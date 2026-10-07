@@ -36,6 +36,7 @@ export {
 export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
 export { addPersonOp } from './ops/addPerson';
+export { updatePersonOp } from './ops/person';
 export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';
 export interface GedcomImportResult {
   importedPersons: number;

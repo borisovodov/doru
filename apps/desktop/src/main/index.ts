@@ -1,8 +1,9 @@
-import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HistoryLog } from '@doru/ai';
 import {
+  Gedcom70Writer,
   HISTORY_FILE_NAME,
   OpQueue,
   ProjectOpener,
@@ -10,10 +11,14 @@ import {
   RecentProjects,
   SqliteTreeRepository,
   TreeStore,
+  addPersonOp,
   importGedcomOp,
+  updatePersonOp,
   type GedcomImportResult,
   type ITreeStore,
+  type PersonRecord,
   type ProjectSummary,
+  type TreeDocument,
 } from '@doru/core';
 import { ConsoleLogService } from '@doru/platform';
 import { NodeFileSystem } from './filesystem';
@@ -207,6 +212,45 @@ ipcMain.handle('tree:redo', async (_event, options: { projectPath: string }) => 
   const { runtime } = await ensureRuntime(options.projectPath);
   runtime.queue.redo({ repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:addPerson', async (_event, options: { projectPath: string; person: PersonRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(addPersonOp('user', options.person), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle(
+  'tree:updatePerson',
+  async (_event, options: { projectPath: string; before: PersonRecord; after: PersonRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    runtime.queue.apply(updatePersonOp('user', options.before, options.after), { repo: runtime.repo });
+    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+  },
+);
+
+ipcMain.handle('project:export', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  const dialogOptions: SaveDialogOptions = {
+    defaultPath: join(options.projectPath, 'export', 'tree.ged'),
+    filters: [{ name: 'GEDCOM', extensions: ['ged'] }],
+    title: 'Export GEDCOM',
+  };
+  const result =
+    mainWindow !== null
+      ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+  if (result.canceled || !result.filePath) {
+    return null;
+  }
+  const doc: TreeDocument = {
+    persons: new Map(runtime.repo.listAllPersons().map((person) => [person.id, person])),
+    families: new Map(runtime.repo.listFamilies().map((family) => [family.id, family])),
+    sources: new Map(),
+  };
+  const content = new Gedcom70Writer().export(doc);
+  await fs.writeFile(result.filePath, content);
+  return { path: result.filePath };
 });
 
 const gotLock = app.requestSingleInstanceLock();

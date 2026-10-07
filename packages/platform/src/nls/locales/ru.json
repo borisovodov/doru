@@ -15,8 +15,21 @@
   "workbench.redo": "Повторить",
   "features.tree.title": "Семейное древо",
   "features.tree.importGedcom": "Импорт GEDCOM…",
+  "features.tree.exportGedcom": "Экспорт GEDCOM…",
   "features.tree.importResult": "Импортировано: {0} персон, {1} семей",
+  "features.tree.exported": "Экспортировано в {0}",
   "features.tree.totalPersons": "Персон в дереве: {0}",
   "features.tree.search.placeholder": "Поиск персон…",
-  "features.tree.emptyTree": "Дерево пустое. Импортируйте GEDCOM-файл, чтобы начать."
+  "features.tree.emptyTree": "Дерево пустое. Импортируйте GEDCOM-файл, чтобы начать.",
+  "features.tree.addPerson": "Добавить персону",
+  "features.tree.save": "Сохранить",
+  "features.tree.back": "Назад",
+  "features.tree.field.given": "Имя",
+  "features.tree.field.surname": "Фамилия",
+  "features.tree.field.sex": "Пол",
+  "features.tree.field.birthYear": "Год рождения",
+  "features.tree.field.deathYear": "Год смерти",
+  "features.tree.sex.U": "Неизвестно",
+  "features.tree.sex.M": "Мужской",
+  "features.tree.sex.F": "Женский"
 }

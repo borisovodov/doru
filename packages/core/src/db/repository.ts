@@ -25,6 +25,7 @@ export interface TreeRepository {
   getPerson(id: string): PersonRecord | undefined;
   deletePerson(id: string): boolean;
   listPersons(query?: PersonQuery): PersonRecord[];
+  listAllPersons(): PersonRecord[];
   countPersons(): number;
   countFamilies(): number;
   insertFamily(family: FamilyRecord): void;
@@ -99,6 +100,13 @@ export class SqliteTreeRepository implements TreeRepository {
     const offset = query.offset ?? 0;
     const sql = `SELECT id, names, sex, birth_json, death_json FROM person${where} ORDER BY id LIMIT ? OFFSET ?`;
     const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonRow[];
+    return rows.map(rowToPerson);
+  }
+
+  listAllPersons(): PersonRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, names, sex, birth_json, death_json FROM person ORDER BY id')
+      .all() as unknown as PersonRow[];
     return rows.map(rowToPerson);
   }
 

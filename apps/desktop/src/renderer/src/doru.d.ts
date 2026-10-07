@@ -20,6 +20,13 @@ declare global {
       getUndoState(projectPath: string): Promise<UndoRedoState>;
       undo(projectPath: string): Promise<UndoRedoState>;
       redo(projectPath: string): Promise<UndoRedoState>;
+      addPerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;
+      updatePerson(
+        projectPath: string,
+        before: PersonRecord,
+        after: PersonRecord,
+      ): Promise<UndoRedoState>;
+      exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }

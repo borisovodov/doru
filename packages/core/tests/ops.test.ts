@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PersonRecord } from '../src/model/types';
 import { addPersonOp } from '../src/ops/addPerson';
 import { OpQueue, type Op } from '../src/ops/op';
+import { updatePersonOp } from '../src/ops/person';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const person: PersonRecord = {
@@ -51,6 +52,24 @@ describe('OpQueue', () => {
       queue.apply(addPersonOp('user', other), ctx);
       expect(queue.canRedo()).toBe(false);
       expect(fixture.repo.countPersons()).toBe(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('updates a person and restores it on undo', () => {
+    const fixture = makeRepo();
+    try {
+      const queue = new OpQueue();
+      const ctx = { repo: fixture.repo };
+
+      queue.apply(addPersonOp('user', person), ctx);
+      const renamed: PersonRecord = { ...person, names: [{ given: 'John' }] };
+      queue.apply(updatePersonOp('user', person, renamed), ctx);
+      expect(fixture.repo.getPerson('P1')).toEqual(renamed);
+
+      queue.undo(ctx);
+      expect(fixture.repo.getPerson('P1')).toEqual(person);
     } finally {
       cleanupRepo(fixture);
     }

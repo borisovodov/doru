@@ -21,6 +21,7 @@ export function App() {
   const [stats, setStats] = useState<TreeStats | null>(null);
   const [undoState, setUndoState] = useState<UndoRedoState>(NO_UNDO);
   const [importResult, setImportResult] = useState<GedcomImportResult | null>(null);
+  const [exportResult, setExportResult] = useState<{ path: string } | null>(null);
   const [search, setSearch] = useState('');
   const commands = useMemo(() => new CommandService(), []);
 
@@ -43,6 +44,7 @@ export function App() {
     if (activePath) {
       setSearch('');
       setImportResult(null);
+      setExportResult(null);
       void reloadTree(activePath, '');
     } else {
       setPersons([]);
@@ -93,6 +95,35 @@ export function App() {
       void reloadTree(activePath, search);
     }
   }, [activePath, search, reloadTree]);
+
+  const exportGedcom = useCallback(async () => {
+    if (!activePath) {
+      return;
+    }
+    setExportResult(await window.doru.exportGedcom(activePath));
+  }, [activePath]);
+
+  const addPerson = useCallback(
+    async (person: PersonRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.addPerson(activePath, person));
+      void reloadTree(activePath, search);
+    },
+    [activePath, search, reloadTree],
+  );
+
+  const updatePerson = useCallback(
+    async (before: PersonRecord, after: PersonRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.updatePerson(activePath, before, after));
+      void reloadTree(activePath, search);
+    },
+    [activePath, search, reloadTree],
+  );
 
   const onSearch = useCallback(
     (query: string) => {
@@ -187,14 +218,18 @@ export function App() {
           persons={activeSummary ? persons : []}
           stats={activeSummary ? stats : null}
           importResult={activeSummary ? importResult : null}
+          exportResult={activeSummary ? exportResult : null}
           search={search}
           canUndo={undoState.canUndo}
           canRedo={undoState.canRedo}
           onOpenProject={() => void openProject()}
           onImportGedcom={() => void importGedcom()}
+          onExportGedcom={() => void exportGedcom()}
           onSearch={onSearch}
           onUndo={() => void undo()}
           onRedo={() => void redo()}
+          onAddPerson={(person) => void addPerson(person)}
+          onUpdatePerson={(before, after) => void updatePerson(before, after)}
         />
       }
       tabs={tabInfos}

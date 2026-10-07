@@ -47,6 +47,9 @@ describe('SqliteTreeRepository', () => {
     try {
       const { repo } = fixture;
       repo.insertPerson(ivan);
+      repo.insertPerson(maria);
+
+      expect(repo.listAllPersons()).toHaveLength(2);
 
       const renamed: PersonRecord = { ...ivan, names: [{ full: 'Ivan Ivanovich Ivanov' }] };
       repo.updatePerson(renamed);
@@ -54,7 +57,7 @@ describe('SqliteTreeRepository', () => {
 
       expect(repo.deletePerson('P1')).toBe(true);
       expect(repo.deletePerson('P1')).toBe(false);
-      expect(repo.countPersons()).toBe(0);
+      expect(repo.countPersons()).toBe(1);
     } finally {
       cleanupRepo(fixture);
     }

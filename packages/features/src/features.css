@@ -51,11 +51,45 @@
   gap: 12px;
   padding: 5px 8px;
   border-bottom: 1px solid var(--doru-border);
+  cursor: pointer;
+}
+
+.person-list li:hover {
+  background: var(--doru-input-bg);
 }
 
 .person-dates {
   color: var(--doru-fg-dim);
   white-space: nowrap;
+}
+
+.person-editor {
+  max-width: 480px;
+  padding: 8px 0;
+}
+
+.person-editor label {
+  display: block;
+  margin: 8px 0;
+  color: var(--doru-fg-dim);
+}
+
+.person-editor input,
+.person-editor select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2px;
+  background: var(--doru-input-bg);
+  border: 1px solid var(--doru-border);
+  color: var(--doru-fg);
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.person-editor-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .recent-list ul {

@@ -18,6 +18,12 @@ const api = {
     ipcRenderer.invoke('tree:undo', { projectPath }),
   redo: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:redo', { projectPath }),
+  addPerson: (projectPath: string, person: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addPerson', { projectPath, person }),
+  updatePerson: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updatePerson', { projectPath, before, after }),
+  exportGedcom: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('project:export', { projectPath }),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);
