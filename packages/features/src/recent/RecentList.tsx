@@ -1,12 +1,5 @@
 import type { RecentProject } from '@doru/core';
-import { LocalizationService } from '@doru/platform';
-
-const detected =
-  typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru')
-    ? 'ru'
-    : 'en';
-
-const nls = new LocalizationService(detected);
+import { nls } from '../nls';
 
 export interface RecentListProps {
   projects: RecentProject[];

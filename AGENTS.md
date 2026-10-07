@@ -27,6 +27,9 @@ Full architecture and roadmap: [docs/plan.md](docs/plan.md) (Russian).
   docs/plan.md section 9).
 - The base language is English: the English source text doubles as the
   fallback value. Add the English bundle entry first, then translations.
+- Locale bundles mirror the VS Code display language set: en, ru, fr, de, it,
+  es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw (see
+  docs/plan.md section 9).
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
 - Locale is configurable via `settings.json` (`locale` key), auto-detected

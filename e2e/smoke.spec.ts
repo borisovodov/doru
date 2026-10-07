@@ -8,7 +8,11 @@ const electronPath = require('electron') as string;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '../apps/desktop');
 
 test('app launches and shows the workbench', async () => {
-  const app = await electron.launch({ args: ['.'], cwd: appDir });
+  const args = ['.'];
+  if (process.env.CI === 'true') {
+    args.push('--no-sandbox');
+  }
+  const app = await electron.launch({ args, cwd: appDir });
   const window = await app.firstWindow();
   await expect(window).toHaveTitle('Doru');
   await expect(window.locator('.workbench')).toBeVisible();

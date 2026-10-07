@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libgbm1 xvfb
+      - run: npm ci
+      - name: Repair Electron install if needed
+        run: |
+          node -e "require('electron')" || node -e "const fs=require('fs');fs.rmSync('node_modules/electron/dist',{recursive:true,force:true});fs.rmSync('node_modules/electron/path.txt',{force:true});require('child_process').execSync('node node_modules/electron/install.js',{stdio:'inherit'})"
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+      - name: E2E smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npx playwright test

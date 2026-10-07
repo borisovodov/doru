@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { GedcomImportResult, PersonRecord, ProjectSummary, Sex, TreeStats } from '@doru/core';
-import { LocalizationService } from '@doru/platform';
-
-const detected =
-  typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru')
-    ? 'ru'
-    : 'en';
-
-const nls = new LocalizationService(detected);
+import { nls } from '../nls';
 
 interface PersonDraft {
   id: string;

@@ -1,5 +1,6 @@
 appId: dev.doru.app
 productName: Doru
+executableName: doru
 directories:
   output: release
 files:
@@ -17,6 +18,7 @@ win:
   target:
     - nsis
 linux:
+  category: Education
   target:
     - AppImage
     - deb

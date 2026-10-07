@@ -19,5 +19,6 @@ export {
 export {
   ILocalizationService,
   LocalizationService,
+  resolveLocale,
   type MessageKey,
 } from './nls';
