@@ -3,6 +3,7 @@ import { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './schema';
 
 export interface ITreeStore {
   readonly path: string;
+  readonly db: DatabaseSync;
   userVersion(): number;
   close(): void;
 }

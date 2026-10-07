@@ -1,4 +1,4 @@
-import type { ProjectSummary } from '@doru/core';
+import type { GedcomImportResult, ProjectSummary } from '@doru/core';
 import { LocalizationService } from '@doru/platform';
 
 const detected =
@@ -10,10 +10,12 @@ const nls = new LocalizationService(detected);
 
 export interface TreeViewProps {
   summary?: ProjectSummary | null;
+  importResult?: GedcomImportResult | null;
   onOpenProject: () => void;
+  onImportGedcom: () => void;
 }
 
-export function TreeView({ summary, onOpenProject }: TreeViewProps) {
+export function TreeView({ summary, importResult, onOpenProject, onImportGedcom }: TreeViewProps) {
   if (!summary) {
     return (
       <div className="tree-view">
@@ -35,6 +37,15 @@ export function TreeView({ summary, onOpenProject }: TreeViewProps) {
         <dt>Schema version</dt>
         <dd>{summary.schemaVersion}</dd>
       </dl>
+      <button onClick={onImportGedcom}>{nls.t('features.tree.importGedcom')}</button>
+      {importResult && (
+        <div>
+          <p>
+            {nls.t('features.tree.importResult', importResult.importedPersons, importResult.importedFamilies)}
+          </p>
+          <p>{nls.t('features.tree.totalPersons', importResult.totalPersons)}</p>
+        </div>
+      )}
       {summary.created.length > 0 && <p>Created: {summary.created.join(', ')}</p>}
       {summary.healed.length > 0 && <p>Healed: {summary.healed.join(', ')}</p>}
     </div>

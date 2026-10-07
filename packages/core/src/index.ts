@@ -33,8 +33,14 @@ export {
   type ProjectLogger,
   type ProjectSummary,
 } from './project/opener';
-export { OpQueue, type Op } from './ops/op';
+export { OpQueue, type MutationContext, type Op } from './ops/op';
 export { addPersonOp } from './ops/addPerson';
+export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';
+export interface GedcomImportResult {
+  importedPersons: number;
+  importedFamilies: number;
+  totalPersons: number;
+}
 export { ReadGedcomImporter, type GedcomImporter } from './gedcom/importer';
 export { Gedcom70Writer, type GedcomWriter } from './gedcom/writer';
 export { detectParentCycles, type ValidationIssue } from './validate/validator';

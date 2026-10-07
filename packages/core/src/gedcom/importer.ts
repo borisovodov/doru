@@ -11,12 +11,19 @@ export interface GedcomImporter {
   import(buffer: ArrayBuffer): TreeDocument;
 }
 
+type SelectionGedcom = ReturnType<typeof readGedcom>;
+
 export class ReadGedcomImporter implements GedcomImporter {
   import(buffer: ArrayBuffer): TreeDocument {
     const doc = emptyDocument();
     const root = readGedcom(buffer);
-    const individuals = root.getIndividualRecord();
+    this.importIndividuals(root, doc);
+    this.importFamilies(root, doc);
+    return doc;
+  }
 
+  private importIndividuals(root: SelectionGedcom, doc: TreeDocument): void {
+    const individuals = root.getIndividualRecord();
     for (let i = 0; i < individuals.length; i++) {
       const node = individuals[i];
       if (!node) {
@@ -36,8 +43,31 @@ export class ReadGedcomImporter implements GedcomImporter {
       };
       doc.persons.set(id, person);
     }
+  }
 
-    return doc;
+  private importFamilies(root: SelectionGedcom, doc: TreeDocument): void {
+    const families = root.getFamilyRecord();
+    for (let i = 0; i < families.length; i++) {
+      const node = families[i];
+      if (!node) {
+        continue;
+      }
+      const id = node.pointer ?? `#F${i}`;
+      const parents: string[] = [];
+      const children: string[] = [];
+      for (const child of node.children) {
+        const value = child.value;
+        if (!value) {
+          continue;
+        }
+        if (child.tag === 'HUSB' || child.tag === 'WIFE') {
+          parents.push(value);
+        } else if (child.tag === 'CHIL') {
+          children.push(value);
+        }
+      }
+      doc.families.set(id, { id, parents, children });
+    }
   }
 
   private dateFrom(eventNode: TreeNode): DateValue | undefined {

@@ -36,6 +36,7 @@ export interface TreeRepository {
 
 export class SqliteTreeRepository implements TreeRepository {
   private readonly db: DatabaseSync;
+  private transactionDepth = 0;
 
   constructor(db: DatabaseSync) {
     this.db = db;
@@ -143,7 +144,11 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   transaction<T>(fn: () => T): T {
+    if (this.transactionDepth > 0) {
+      return fn();
+    }
     this.db.exec('BEGIN IMMEDIATE');
+    this.transactionDepth = 1;
     try {
       const result = fn();
       this.db.exec('COMMIT');
@@ -151,17 +156,24 @@ export class SqliteTreeRepository implements TreeRepository {
     } catch (error) {
       this.db.exec('ROLLBACK');
       throw error;
+    } finally {
+      this.transactionDepth = 0;
     }
   }
 
   private replaceLinks(family: FamilyRecord): void {
+    const personExists = this.db.prepare('SELECT 1 FROM person WHERE id = ?');
     const insertParent = this.db.prepare('INSERT INTO family_parent (family_id, parent_id) VALUES (?, ?)');
     for (const parentId of family.parents) {
-      insertParent.run(family.id, parentId);
+      if (personExists.get(parentId) !== undefined) {
+        insertParent.run(family.id, parentId);
+      }
     }
     const insertChild = this.db.prepare('INSERT INTO family_child (family_id, child_id) VALUES (?, ?)');
     for (const childId of family.children) {
-      insertChild.run(family.id, childId);
+      if (personExists.get(childId) !== undefined) {
+        insertChild.run(family.id, childId);
+      }
     }
   }
 
