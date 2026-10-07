@@ -2,6 +2,8 @@
 
 > **Local-first genealogy for the AI era.**
 
+The name comes from Proto-Indo-European _\*dóru_ — "tree".
+
 A cross-platform desktop app for working with family trees: your data stays in
 plain folders on your disk, works fully offline, and is designed to be driven
 by AI agents through MCP and chat.
