@@ -1,8 +1,10 @@
 # Doru
 
-Local-first genealogy for the AI era. A cross-platform desktop app for working
-with family trees: your data stays in plain folders on your disk, works fully
-offline, and is designed to be driven by AI agents through MCP and chat.
+> **Local-first genealogy for the AI era.**
+
+A cross-platform desktop app for working with family trees: your data stays in
+plain folders on your disk, works fully offline, and is designed to be driven
+by AI agents through MCP and chat.
 
 **Status:** design phase. The codebase has not been scaffolded yet. See
 [docs/plan.md](docs/plan.md) (in Russian) for the full architecture and roadmap.

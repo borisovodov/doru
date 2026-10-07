@@ -4,8 +4,8 @@ Instructions for AI agents and contributors working on this repository.
 
 ## Project
 
-Doru — local-first genealogy desktop app ("Obsidian of genealogy"): Electron +
-TypeScript, monorepo, SQLite-based tree documents (`tree.doru`), text-based
+Doru — local-first genealogy for the AI era ("Obsidian of genealogy"): Electron
++ TypeScript, monorepo, SQLite-based tree documents (`tree.doru`), text-based
 config/themes, MCP host+server, agent chat with audit trail.
 
 Full architecture and roadmap: [docs/plan.md](docs/plan.md) (Russian).
