@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Doru — local-first genealogy for the AI era",
   "author": "Boris Ovodov <boris@ovodov.me>",
+  "homepage": "https://github.com/borisovodov/doru",
   "license": "MIT",
   "main": "./out/main/index.js",
   "scripts": {

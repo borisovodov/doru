@@ -19,6 +19,7 @@ win:
     - nsis
 linux:
   category: Education
+  artifactName: doru-${version}-${arch}.${ext}
   target:
     - AppImage
     - deb
