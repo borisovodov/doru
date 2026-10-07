@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Sterbejahr",
   "features.tree.sex.U": "Unbekannt",
   "features.tree.sex.M": "Männlich",
-  "features.tree.sex.F": "Weiblich"
+  "features.tree.sex.F": "Weiblich",
+  "chat.title": "Agent-Chat",
+  "chat.placeholder": "Bitten Sie den Agenten, Ihren Baum zu bearbeiten oder zu recherchieren…",
+  "chat.send": "Senden",
+  "chat.permission.ask": "Dem Agenten erlauben, {0} auszuführen?",
+  "chat.permission.allow": "Erlauben",
+  "chat.permission.deny": "Verweigern",
+  "chat.toolCall": "Werkzeug: {0}",
+  "chat.empty": "Öffnen Sie ein Projekt, um zu chatten.",
+  "chat.error": "Fehler: {0}"
 }

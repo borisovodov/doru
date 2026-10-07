@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "逝世年份",
   "features.tree.sex.U": "未知",
   "features.tree.sex.M": "男",
-  "features.tree.sex.F": "女"
+  "features.tree.sex.F": "女",
+  "chat.title": "智能体聊天",
+  "chat.placeholder": "让智能体编辑或研究你的家谱…",
+  "chat.send": "发送",
+  "chat.permission.ask": "允许智能体运行 {0} 吗?",
+  "chat.permission.allow": "允许",
+  "chat.permission.deny": "拒绝",
+  "chat.toolCall": "工具: {0}",
+  "chat.empty": "打开项目以开始聊天。",
+  "chat.error": "错误: {0}"
 }

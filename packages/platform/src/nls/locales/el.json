@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Έτος θανάτου",
   "features.tree.sex.U": "Άγνωστο",
   "features.tree.sex.M": "Άνδρας",
-  "features.tree.sex.F": "Γυναίκα"
+  "features.tree.sex.F": "Γυναίκα",
+  "chat.title": "Συνομιλία με τον πράκτορα",
+  "chat.placeholder": "Ζητήστε από τον πράκτορα να επεξεργαστεί ή να ερευνήσει το δέντρο σας…",
+  "chat.send": "Αποστολή",
+  "chat.permission.ask": "Να επιτραπεί στον πράκτορα να εκτελέσει το {0};",
+  "chat.permission.allow": "Επιτρέπεται",
+  "chat.permission.deny": "Απόρριψη",
+  "chat.toolCall": "Εργαλείο: {0}",
+  "chat.empty": "Ανοίξτε ένα έργο για να ξεκινήσετε τη συνομιλία.",
+  "chat.error": "Σφάλμα: {0}"
 }

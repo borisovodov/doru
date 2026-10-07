@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "사망 연도",
   "features.tree.sex.U": "알 수 없음",
   "features.tree.sex.M": "남성",
-  "features.tree.sex.F": "여성"
+  "features.tree.sex.F": "여성",
+  "chat.title": "에이전트 채팅",
+  "chat.placeholder": "에이전트에게 트리 편집이나 조사를 요청하세요…",
+  "chat.send": "보내기",
+  "chat.permission.ask": "에이전트가 {0}을(를) 실행하도록 허용할까요?",
+  "chat.permission.allow": "허용",
+  "chat.permission.deny": "거부",
+  "chat.toolCall": "도구: {0}",
+  "chat.empty": "채팅을 시작하려면 프로젝트를 여세요.",
+  "chat.error": "오류: {0}"
 }

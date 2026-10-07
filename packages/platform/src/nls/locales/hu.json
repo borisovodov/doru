@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Halálozási év",
   "features.tree.sex.U": "Ismeretlen",
   "features.tree.sex.M": "Férfi",
-  "features.tree.sex.F": "Nő"
+  "features.tree.sex.F": "Nő",
+  "chat.title": "Agent-csevegés",
+  "chat.placeholder": "Kérje meg az ügynököt a fa szerkesztésére vagy kutatására…",
+  "chat.send": "Küldés",
+  "chat.permission.ask": "Engedélyezi az ügynöknek a(z) {0} futtatását?",
+  "chat.permission.allow": "Engedélyezés",
+  "chat.permission.deny": "Elutasítás",
+  "chat.toolCall": "Eszköz: {0}",
+  "chat.empty": "A csevegéshez nyisson meg egy projektet.",
+  "chat.error": "Hiba: {0}"
 }

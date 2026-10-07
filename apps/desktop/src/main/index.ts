@@ -1,7 +1,19 @@
 import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { HistoryLog } from '@doru/ai';
+import { parse } from 'jsonc-parser';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  AgentRuntime,
+  DoruMcpServer,
+  HistoryLog,
+  OpenAIChatConnector,
+  TreeMcpBackend,
+  type ChatMessage,
+  type ChatSendResult,
+} from '@doru/ai';
 import {
   Gedcom70Writer,
   HISTORY_FILE_NAME,
@@ -29,6 +41,19 @@ log.setLevel('info');
 const fs = new NodeFileSystem();
 const opener = new ProjectOpener(fs, { open: (path) => TreeStore.open(path) }, log);
 
+const AI_CONFIG_FILE = 'doru.json';
+
+const DEFAULT_AI_CONFIG = `{
+  // AI provider settings for the agent chat.
+  // Any OpenAI-compatible endpoint works: OpenAI, Ollama, OpenRouter, ...
+  "ai": {
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "",
+    "model": "gpt-4o-mini"
+  }
+}
+`;
+
 interface ProjectRuntime {
   store: ITreeStore;
   repo: SqliteTreeRepository;
@@ -37,6 +62,13 @@ interface ProjectRuntime {
 }
 
 const runtimes = new Map<string, ProjectRuntime>();
+
+interface PendingPermission {
+  resolve: (allowed: boolean) => void;
+  timer: NodeJS.Timeout;
+}
+
+const pendingPermissions = new Map<string, PendingPermission>();
 
 let recents: RecentProjects | null = null;
 let mainWindow: BrowserWindow | null = null;
@@ -160,6 +192,65 @@ async function importGedcom(options: {
   };
 }
 
+function loadAiConfig(): { baseUrl: string; apiKey: string; model: string } | null {
+  const dir = app.getPath('userData');
+  const file = join(dir, AI_CONFIG_FILE);
+  if (!existsSync(file)) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(file, DEFAULT_AI_CONFIG);
+  }
+  const parsed = parse(readFileSync(file, 'utf8')) as {
+    ai?: { baseUrl?: string; apiKey?: string; model?: string };
+  };
+  const ai = parsed.ai ?? {};
+  const apiKey = ai.apiKey ?? '';
+  const model = ai.model ?? '';
+  if (!apiKey || !model) {
+    return null;
+  }
+  return { baseUrl: ai.baseUrl ?? 'https://api.openai.com/v1', apiKey, model };
+}
+
+function requestPermission(tool: string, args: Record<string, unknown>): Promise<boolean> {
+  const id = crypto.randomUUID();
+  mainWindow?.webContents.send('chat:permission', { id, tool, arguments: args });
+  return new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => {
+      pendingPermissions.delete(id);
+      resolve(false);
+    }, 120_000);
+    pendingPermissions.set(id, { resolve, timer });
+  });
+}
+
+async function sendChat(options: { projectPath: string; messages: ChatMessage[] }): Promise<ChatSendResult> {
+  const config = loadAiConfig();
+  if (!config) {
+    return {
+      steps: [],
+      finalText: '',
+      error: `AI provider is not configured. Set "ai.apiKey" and "ai.model" in ${join(app.getPath('userData'), AI_CONFIG_FILE)}`,
+    };
+  }
+  const { runtime } = await ensureRuntime(options.projectPath);
+  const lastUser = [...options.messages].reverse().find((message) => message.role === 'user');
+  const promptHash = createHash('sha256').update(lastUser?.content ?? '').digest('hex').slice(0, 12);
+  const actor = `agent:${new URL(config.baseUrl).host}/${config.model}#${promptHash}`;
+  const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
+  const model = new OpenAIChatConnector(config);
+  const agent = new AgentRuntime(model, backend, requestPermission);
+  try {
+    const result = await agent.run(options.messages);
+    return { steps: result.steps, finalText: result.finalText };
+  } catch (error) {
+    return {
+      steps: [],
+      finalText: '',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 ipcMain.handle('project:open', (_event, options: { dialog?: boolean; path?: string } = {}) =>
   openProject(options),
 );
@@ -253,6 +344,21 @@ ipcMain.handle('project:export', async (_event, options: { projectPath: string }
   return { path: result.filePath };
 });
 
+ipcMain.handle(
+  'chat:send',
+  (_event, options: { projectPath: string; messages: ChatMessage[] }) => sendChat(options),
+);
+
+ipcMain.on('chat:permission-response', (_event, options: { id: string; allow: boolean }) => {
+  const pending = pendingPermissions.get(options.id);
+  if (!pending) {
+    return;
+  }
+  clearTimeout(pending.timer);
+  pendingPermissions.delete(options.id);
+  pending.resolve(options.allow === true);
+});
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
@@ -283,8 +389,27 @@ function extractPathArgs(argv: string[]): string[] {
   return argv.slice(1).filter((arg) => !arg.startsWith('-') && arg !== '.');
 }
 
-void app.whenReady().then(() => {
+function parseMcpServerArg(argv: string[]): string | null {
+  const index = argv.indexOf('--mcp-server');
+  if (index === -1) {
+    return null;
+  }
+  return argv[index + 1] ?? null;
+}
+
+void app.whenReady().then(async () => {
   recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
+
+  const mcpProject = parseMcpServerArg(process.argv);
+  if (mcpProject) {
+    const { runtime } = await ensureRuntime(mcpProject);
+    const backend = new TreeMcpBackend(runtime.repo, runtime.queue, 'agent:mcp');
+    const server = new DoruMcpServer(backend, app.getVersion());
+    await server.connect(new StdioServerTransport());
+    log.info(`Doru MCP server started for ${mcpProject}`);
+    return;
+  }
+
   createWindow();
   for (const path of [...extractPathArgs(process.argv), ...pendingExternalPaths]) {
     openExternalPath(path);

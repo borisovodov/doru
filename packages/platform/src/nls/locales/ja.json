@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "没年",
   "features.tree.sex.U": "不明",
   "features.tree.sex.M": "男性",
-  "features.tree.sex.F": "女性"
+  "features.tree.sex.F": "女性",
+  "chat.title": "エージェント チャット",
+  "chat.placeholder": "ツリーの編集や調査をエージェントに依頼してください…",
+  "chat.send": "送信",
+  "chat.permission.ask": "エージェントによる {0} の実行を許可しますか?",
+  "chat.permission.allow": "許可",
+  "chat.permission.deny": "拒否",
+  "chat.toolCall": "ツール: {0}",
+  "chat.empty": "チャットを開始するにはプロジェクトを開いてください。",
+  "chat.error": "エラー: {0}"
 }

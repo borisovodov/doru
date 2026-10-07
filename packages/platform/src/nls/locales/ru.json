@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Год смерти",
   "features.tree.sex.U": "Неизвестно",
   "features.tree.sex.M": "Мужской",
-  "features.tree.sex.F": "Женский"
+  "features.tree.sex.F": "Женский",
+  "chat.title": "Чат с агентом",
+  "chat.placeholder": "Попросите агента отредактировать или исследовать ваше древо…",
+  "chat.send": "Отправить",
+  "chat.permission.ask": "Разрешить агенту выполнить {0}?",
+  "chat.permission.allow": "Разрешить",
+  "chat.permission.deny": "Запретить",
+  "chat.toolCall": "Инструмент: {0}",
+  "chat.empty": "Откройте проект, чтобы начать общение.",
+  "chat.error": "Ошибка: {0}"
 }

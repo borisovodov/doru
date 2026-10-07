@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Death year",
   "features.tree.sex.U": "Unknown",
   "features.tree.sex.M": "Male",
-  "features.tree.sex.F": "Female"
+  "features.tree.sex.F": "Female",
+  "chat.title": "Agent Chat",
+  "chat.placeholder": "Ask the agent to edit or research your tree…",
+  "chat.send": "Send",
+  "chat.permission.ask": "Allow the agent to run {0}?",
+  "chat.permission.allow": "Allow",
+  "chat.permission.deny": "Deny",
+  "chat.toolCall": "Tool: {0}",
+  "chat.empty": "Open a project to start chatting.",
+  "chat.error": "Error: {0}"
 }

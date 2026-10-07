@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ChatMessage } from '@doru/ai';
 import type {
   GedcomImportResult,
   PersonRecord,
@@ -8,8 +9,15 @@ import type {
   UndoRedoState,
 } from '@doru/core';
 import { CommandService } from '@doru/platform';
-import { RecentList, TreeView } from '@doru/features';
+import {
+  ChatPanel,
+  RecentList,
+  TreeView,
+  type ChatPermissionRequest,
+  type ChatTranscriptMessage,
+} from '@doru/features';
 import { Workbench, nls, type TabInfo } from '@doru/workbench';
+import type { ChatPermissionRequest as PreloadPermissionRequest } from './doru.d';
 
 const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
 
@@ -23,7 +31,11 @@ export function App() {
   const [importResult, setImportResult] = useState<GedcomImportResult | null>(null);
   const [exportResult, setExportResult] = useState<{ path: string } | null>(null);
   const [search, setSearch] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatTranscriptMessage[]>([]);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
   const commands = useMemo(() => new CommandService(), []);
+  const chatConversation = useRef<ChatMessage[]>([]);
 
   const refreshRecent = useCallback(async () => {
     setRecent(await window.doru.recentProjects());
@@ -45,6 +57,9 @@ export function App() {
       setSearch('');
       setImportResult(null);
       setExportResult(null);
+      setChatMessages([]);
+      setPermission(null);
+      chatConversation.current = [];
       void reloadTree(activePath, '');
     } else {
       setPersons([]);
@@ -151,9 +166,60 @@ export function App() {
     void reloadTree(activePath, search);
   }, [activePath, search, reloadTree]);
 
+  const sendChatMessage = useCallback(
+    async (text: string) => {
+      if (!activePath || chatBusy) {
+        return;
+      }
+      const userMessage: ChatMessage = { role: 'user', content: text };
+      chatConversation.current = [...chatConversation.current.slice(-20), userMessage];
+      setChatMessages((previous) => [
+        ...previous,
+        { role: 'user', content: text },
+        { role: 'assistant', content: '' },
+      ]);
+      setChatBusy(true);
+      try {
+        const result = await window.doru.sendChat(activePath, chatConversation.current);
+        setChatMessages((previous) => {
+          const next = [...previous];
+          next[next.length - 1] = {
+            role: 'assistant',
+            content: result.finalText,
+            steps: result.steps,
+            error: result.error,
+          };
+          return next;
+        });
+        chatConversation.current.push({ role: 'assistant', content: result.finalText || '' });
+      } finally {
+        setChatBusy(false);
+      }
+      void reloadTree(activePath, search);
+    },
+    [activePath, chatBusy, reloadTree, search],
+  );
+
+  const respondPermission = useCallback(
+    (allow: boolean) => {
+      if (!permission) {
+        return;
+      }
+      window.doru.respondChatPermission(permission.id, allow);
+      setPermission(null);
+    },
+    [permission],
+  );
+
   useEffect(() => {
     void refreshRecent();
   }, [refreshRecent]);
+
+  useEffect(() => {
+    return window.doru.onChatPermission((request: PreloadPermissionRequest) => {
+      setPermission(request);
+    });
+  }, []);
 
   useEffect(() => {
     return window.doru.onExternalOpen((summary) => {
@@ -230,6 +296,15 @@ export function App() {
           onRedo={() => void redo()}
           onAddPerson={(person) => void addPerson(person)}
           onUpdatePerson={(before, after) => void updatePerson(before, after)}
+        />
+      }
+      panel={
+        <ChatPanel
+          messages={chatMessages}
+          busy={chatBusy}
+          permission={permission}
+          onSend={(text) => void sendChatMessage(text)}
+          onPermission={(allow) => respondPermission(allow)}
         />
       }
       tabs={tabInfos}

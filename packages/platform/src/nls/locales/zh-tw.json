@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "逝世年份",
   "features.tree.sex.U": "未知",
   "features.tree.sex.M": "男",
-  "features.tree.sex.F": "女"
+  "features.tree.sex.F": "女",
+  "chat.title": "代理人聊天",
+  "chat.placeholder": "請代理人編輯或研究您的家譜…",
+  "chat.send": "傳送",
+  "chat.permission.ask": "允許代理人執行 {0} 嗎?",
+  "chat.permission.allow": "允許",
+  "chat.permission.deny": "拒絕",
+  "chat.toolCall": "工具: {0}",
+  "chat.empty": "開啟專案以開始聊天。",
+  "chat.error": "錯誤: {0}"
 }

@@ -24,6 +24,15 @@ const api = {
     ipcRenderer.invoke('tree:updatePerson', { projectPath, before, after }),
   exportGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:export', { projectPath }),
+  sendChat: (projectPath: string, messages: unknown[]): Promise<unknown> =>
+    ipcRenderer.invoke('chat:send', { projectPath, messages }),
+  onChatPermission: (callback: (request: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, request: unknown) => callback(request);
+    ipcRenderer.on('chat:permission', listener);
+    return () => ipcRenderer.removeListener('chat:permission', listener);
+  },
+  respondChatPermission: (id: string, allow: boolean): void =>
+    ipcRenderer.send('chat:permission-response', { id, allow }),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);

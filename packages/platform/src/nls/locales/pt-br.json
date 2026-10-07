@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Ano de falecimento",
   "features.tree.sex.U": "Desconhecido",
   "features.tree.sex.M": "Masculino",
-  "features.tree.sex.F": "Feminino"
+  "features.tree.sex.F": "Feminino",
+  "chat.title": "Chat com o agente",
+  "chat.placeholder": "Peça ao agente para editar ou pesquisar em sua árvore…",
+  "chat.send": "Enviar",
+  "chat.permission.ask": "Permitir que o agente execute {0}?",
+  "chat.permission.allow": "Permitir",
+  "chat.permission.deny": "Negar",
+  "chat.toolCall": "Ferramenta: {0}",
+  "chat.empty": "Abra um projeto para começar a conversar.",
+  "chat.error": "Erro: {0}"
 }

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, FamilyRecord, NamePart, PersonRecord, Sex } from '../model/types';
+import type { DateValue, FamilyRecord, NamePart, NoteRecord, PersonRecord, Sex, SourceRecord } from '../model/types';
 
 interface PersonRow {
   id: string;
@@ -33,6 +33,13 @@ export interface TreeRepository {
   getFamily(id: string): FamilyRecord | undefined;
   deleteFamily(id: string): boolean;
   listFamilies(): FamilyRecord[];
+  insertSource(source: SourceRecord): void;
+  deleteSource(id: string): boolean;
+  listSources(): SourceRecord[];
+  addSourceCitation(sourceId: string, targetType: string, targetId: string): void;
+  insertNote(note: NoteRecord): void;
+  deleteNote(id: string): boolean;
+  listNotes(): NoteRecord[];
   transaction<T>(fn: () => T): T;
 }
 
@@ -155,6 +162,64 @@ export class SqliteTreeRepository implements TreeRepository {
   listFamilies(): FamilyRecord[] {
     const rows = this.db.prepare('SELECT id FROM family ORDER BY id').all() as unknown as FamilyRow[];
     return rows.map((row) => this.hydrateFamily(row.id));
+  }
+
+  insertSource(source: SourceRecord): void {
+    this.db
+      .prepare('INSERT INTO source (id, title, author, publication) VALUES (?, ?, ?, ?)')
+      .run(source.id, source.title, source.author ?? null, source.publication ?? null);
+  }
+
+  deleteSource(id: string): boolean {
+    const result = this.db.prepare('DELETE FROM source WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
+  listSources(): SourceRecord[] {
+    const rows = this.db.prepare('SELECT id, title, author, publication FROM source ORDER BY id').all() as unknown as {
+      id: string;
+      title: string;
+      author: string | null;
+      publication: string | null;
+    }[];
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      author: row.author ?? undefined,
+      publication: row.publication ?? undefined,
+    }));
+  }
+
+  addSourceCitation(sourceId: string, targetType: string, targetId: string): void {
+    this.db
+      .prepare('INSERT INTO citation (id, source_id, target_type, target_id) VALUES (?, ?, ?, ?)')
+      .run(crypto.randomUUID(), sourceId, targetType, targetId);
+  }
+
+  insertNote(note: NoteRecord): void {
+    this.db
+      .prepare('INSERT INTO note (id, text, target_type, target_id) VALUES (?, ?, ?, ?)')
+      .run(note.id, note.text, note.targetType ?? null, note.targetId ?? null);
+  }
+
+  deleteNote(id: string): boolean {
+    const result = this.db.prepare('DELETE FROM note WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
+  listNotes(): NoteRecord[] {
+    const rows = this.db.prepare('SELECT id, text, target_type, target_id FROM note ORDER BY id').all() as unknown as {
+      id: string;
+      text: string;
+      target_type: string | null;
+      target_id: string | null;
+    }[];
+    return rows.map((row) => ({
+      id: row.id,
+      text: row.text,
+      targetType: row.target_type ?? undefined,
+      targetId: row.target_id ?? undefined,
+    }));
   }
 
   transaction<T>(fn: () => T): T {

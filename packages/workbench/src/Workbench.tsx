@@ -15,6 +15,7 @@ export interface WorkbenchProps {
   keybindings?: Array<{ key: string; command: string }>;
   sidebar?: ReactNode;
   editor?: ReactNode;
+  panel?: ReactNode;
   tabs?: TabInfo[];
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
@@ -28,6 +29,7 @@ export function Workbench({
   keybindings: externalKeybindings = [],
   sidebar,
   editor,
+  panel,
   tabs,
   activeTabId,
   onSelectTab,
@@ -74,7 +76,7 @@ export function Workbench({
         <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
           {editor}
         </EditorArea>
-        <Panel />
+        <Panel>{panel}</Panel>
       </div>
       <StatusBar text={statusText ?? nls.t('workbench.statusBar.ready')} />
       <CommandPalette commands={commands} open={paletteOpen} onClose={() => setPaletteOpen(false)} />

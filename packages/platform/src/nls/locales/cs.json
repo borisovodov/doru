@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Rok úmrtí",
   "features.tree.sex.U": "Neznámé",
   "features.tree.sex.M": "Mužské",
-  "features.tree.sex.F": "Ženské"
+  "features.tree.sex.F": "Ženské",
+  "chat.title": "Chat s agentem",
+  "chat.placeholder": "Požádejte agenta o úpravu nebo průzkum vašeho stromu…",
+  "chat.send": "Odeslat",
+  "chat.permission.ask": "Povolit agentovi spustit {0}?",
+  "chat.permission.allow": "Povolit",
+  "chat.permission.deny": "Zamítnout",
+  "chat.toolCall": "Nástroj: {0}",
+  "chat.empty": "Otevřete projekt a začněte chatovat.",
+  "chat.error": "Chyba: {0}"
 }

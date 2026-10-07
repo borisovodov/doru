@@ -4,6 +4,7 @@ export type {
   DateValue,
   FamilyRecord,
   NamePart,
+  NoteRecord,
   PersonRecord,
   Sex,
   SourceRecord,
@@ -37,7 +38,9 @@ export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
 export { addPersonOp } from './ops/addPerson';
 export { updatePersonOp } from './ops/person';
+export { addNoteOp, addSourceOp } from './ops/source';
 export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';
+export { computePedigree, type PedigreeNode } from './pedigree';
 export interface GedcomImportResult {
   importedPersons: number;
   importedFamilies: number;

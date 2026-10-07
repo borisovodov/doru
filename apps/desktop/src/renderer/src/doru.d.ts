@@ -6,6 +6,13 @@ import type {
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
+import type { ChatMessage, ChatSendResult } from '@doru/ai';
+
+export interface ChatPermissionRequest {
+  id: string;
+  tool: string;
+  arguments: Record<string, unknown>;
+}
 
 declare global {
   interface Window {
@@ -27,9 +34,10 @@ declare global {
         after: PersonRecord,
       ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
+      sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
+      onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
+      respondChatPermission(id: string, allow: boolean): void;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }
 }
-
-export {};

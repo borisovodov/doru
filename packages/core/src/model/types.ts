@@ -37,6 +37,13 @@ export interface SourceRecord {
   publication?: string;
 }
 
+export interface NoteRecord {
+  id: string;
+  text: string;
+  targetType?: string;
+  targetId?: string;
+}
+
 export interface TreeDocument {
   persons: Map<string, PersonRecord>;
   families: Map<string, FamilyRecord>;

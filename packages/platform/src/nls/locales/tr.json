@@ -31,5 +31,14 @@
   "features.tree.field.deathYear": "Ölüm yılı",
   "features.tree.sex.U": "Bilinmiyor",
   "features.tree.sex.M": "Erkek",
-  "features.tree.sex.F": "Kadın"
+  "features.tree.sex.F": "Kadın",
+  "chat.title": "Ajan Sohbeti",
+  "chat.placeholder": "Ajandan ağacınızı düzenlemesini veya araştırmasını isteyin…",
+  "chat.send": "Gönder",
+  "chat.permission.ask": "Ajanın {0} çalıştırmasına izin verilsin mi?",
+  "chat.permission.allow": "İzin ver",
+  "chat.permission.deny": "Reddet",
+  "chat.toolCall": "Araç: {0}",
+  "chat.empty": "Sohbet etmek için bir proje açın.",
+  "chat.error": "Hata: {0}"
 }
