@@ -22,7 +22,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libgbm1 xvfb
+          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 xvfb
       - run: npm ci
       - name: Repair Electron install if needed
         run: |
