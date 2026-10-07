@@ -1,0 +1,32 @@
+{
+  "name": "@doru/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "package": "electron-vite build && electron-builder"
+  },
+  "dependencies": {
+    "@doru/ai": "*",
+    "@doru/core": "*",
+    "@doru/features": "*",
+    "@doru/platform": "*",
+    "@doru/workbench": "*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "^4.0.0",
+    "vite": "^7.0.0"
+  }
+}

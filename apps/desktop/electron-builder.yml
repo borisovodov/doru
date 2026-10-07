@@ -1,0 +1,22 @@
+appId: dev.doru.app
+productName: Doru
+directories:
+  output: release
+files:
+  - out/**
+fileAssociations:
+  - ext: doru
+    name: Doru Tree
+    role: Editor
+mac:
+  category: public.app-category.lifestyle
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - AppImage
+    - deb

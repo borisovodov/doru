@@ -1,0 +1,12 @@
+{
+  "app.name": "Doru",
+  "app.tagline": "Генеалогия local-first в эру ИИ",
+  "workbench.openProject": "Открыть проект…",
+  "workbench.commandPalette.title": "Палитра команд",
+  "workbench.commandPalette.placeholder": "Введите имя команды…",
+  "workbench.commandPalette.empty": "Команды не найдены",
+  "workbench.tree.empty": "Проект не открыт. Откройте папку с семейным древом, чтобы начать.",
+  "workbench.statusBar.ready": "Готово",
+  "workbench.panel.placeholder": "Панель",
+  "features.tree.title": "Семейное древо"
+}

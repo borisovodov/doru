@@ -1,0 +1,12 @@
+{
+  "app.name": "Doru",
+  "app.tagline": "Local-first genealogy for the AI era",
+  "workbench.openProject": "Open Project…",
+  "workbench.commandPalette.title": "Command Palette",
+  "workbench.commandPalette.placeholder": "Type a command name…",
+  "workbench.commandPalette.empty": "No matching commands",
+  "workbench.tree.empty": "No project open. Open a family tree folder to begin.",
+  "workbench.statusBar.ready": "Ready",
+  "workbench.panel.placeholder": "Panel",
+  "features.tree.title": "Family Tree"
+}

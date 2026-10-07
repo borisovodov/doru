@@ -1,0 +1,159 @@
+:root {
+  --doru-activity-bar-bg: #333333;
+  --doru-side-bar-bg: #252526;
+  --doru-editor-bg: #1e1e1e;
+  --doru-panel-bg: #1e1e1e;
+  --doru-status-bar-bg: #007acc;
+  --doru-status-bar-fg: #ffffff;
+  --doru-fg: #cccccc;
+  --doru-fg-dim: #858585;
+  --doru-border: #3c3c3c;
+  --doru-accent: #007acc;
+  --doru-input-bg: #3c3c3c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  color: var(--doru-fg);
+  background: var(--doru-editor-bg);
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: 48px 260px 1fr;
+  grid-template-rows: 1fr 22px;
+  grid-template-areas:
+    'activity sidebar editor'
+    'status status status';
+  height: 100%;
+}
+
+.activity-bar {
+  grid-area: activity;
+  background: var(--doru-activity-bar-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  gap: 4px;
+}
+
+.activity-bar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--doru-fg-dim);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+
+.activity-bar-item:hover {
+  color: var(--doru-fg);
+}
+
+.side-bar {
+  grid-area: sidebar;
+  background: var(--doru-side-bar-bg);
+  border-right: 1px solid var(--doru-border);
+  overflow: auto;
+  padding: 12px;
+}
+
+.editor-column {
+  grid-area: editor;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.editor-area {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel {
+  height: 160px;
+  background: var(--doru-panel-bg);
+  border-top: 1px solid var(--doru-border);
+  padding: 8px 12px;
+  color: var(--doru-fg-dim);
+}
+
+.status-bar {
+  grid-area: status;
+  background: var(--doru-status-bar-bg);
+  color: var(--doru-status-bar-fg);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  z-index: 100;
+}
+
+.command-palette {
+  width: 520px;
+  max-width: 90vw;
+  background: var(--doru-side-bar-bg);
+  border: 1px solid var(--doru-border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.command-palette-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: var(--doru-input-bg);
+  color: var(--doru-fg);
+  border: none;
+  outline: none;
+  font-size: 13px;
+}
+
+.command-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.command-palette-item {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.command-palette-item.active {
+  background: var(--doru-accent);
+  color: #ffffff;
+}
+
+.command-palette-empty {
+  padding: 6px 12px;
+  color: var(--doru-fg-dim);
+}

@@ -46,6 +46,8 @@ Full architecture and roadmap: [docs/plan.md](docs/plan.md) (Russian).
 
 ## Verification
 
-- Unit tests: vitest. E2E: Playwright (against Electron).
+- Unit tests: vitest (`npm test`). E2E: Playwright against Electron
+  (`npm run build` first, then `npm run e2e`).
+- Typecheck all workspaces: `npm run typecheck`.
+- Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
 - Run tests before considering a change complete.
-- Build/typecheck commands will be documented here once v0 scaffolding lands.
