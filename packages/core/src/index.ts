@@ -33,6 +33,7 @@ export {
   type ProjectLogger,
   type ProjectSummary,
 } from './project/opener';
+export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
 export { addPersonOp } from './ops/addPerson';
 export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SqliteTreeRepository } from '../src/db/repository';
 import { TreeStore } from '../src/db/store';
+import type { IFileSystem } from '../src/fs';
 
 export interface RepoFixture {
   repo: SqliteTreeRepository;
@@ -19,4 +20,48 @@ export function makeRepo(): RepoFixture {
 export function cleanupRepo(fixture: RepoFixture): void {
   fixture.store.close();
   rmSync(fixture.dir, { recursive: true, force: true });
+}
+
+export class MemoryFileSystem implements IFileSystem {
+  private readonly files = new Map<string, string>();
+  private readonly dirs = new Set<string>();
+
+  async exists(path: string): Promise<boolean> {
+    return this.files.has(path) || this.dirs.has(path);
+  }
+
+  async mkdir(path: string): Promise<void> {
+    this.dirs.add(path);
+  }
+
+  async readdir(path: string): Promise<string[]> {
+    const prefix = path.endsWith('/') ? path : `${path}/`;
+    return [...this.files.keys(), ...this.dirs]
+      .filter((entry) => entry.startsWith(prefix) && entry !== path)
+      .map((entry) => entry.slice(prefix.length).split('/')[0] ?? '');
+  }
+
+  async readFile(path: string): Promise<string> {
+    const content = this.files.get(path);
+    if (content === undefined) {
+      throw new Error(`ENOENT: ${path}`);
+    }
+    return content;
+  }
+
+  async writeFile(path: string, content: string): Promise<void> {
+    this.files.set(path, content);
+  }
+
+  async appendFile(path: string, content: string): Promise<void> {
+    this.files.set(path, (this.files.get(path) ?? '') + content);
+  }
+
+  async readBinary(path: string): Promise<Uint8Array> {
+    return new TextEncoder().encode(await this.readFile(path));
+  }
+
+  async writeBinary(path: string, content: Uint8Array): Promise<void> {
+    this.files.set(path, new TextDecoder().decode(content));
+  }
 }

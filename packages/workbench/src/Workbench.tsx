@@ -7,17 +7,32 @@ import { EditorArea } from './components/EditorArea';
 import { Panel } from './components/Panel';
 import { SideBar } from './components/SideBar';
 import { StatusBar } from './components/StatusBar';
+import type { TabInfo } from './components/TabBar';
 import './workbench.css';
 
 export interface WorkbenchProps {
   commands: CommandService;
   sidebar?: ReactNode;
   editor?: ReactNode;
+  tabs?: TabInfo[];
+  activeTabId?: string | null;
+  onSelectTab?: (id: string) => void;
+  onCloseTab?: (id: string) => void;
   statusText?: string;
   onOpenProject: () => void;
 }
 
-export function Workbench({ commands, sidebar, editor, statusText, onOpenProject }: WorkbenchProps) {
+export function Workbench({
+  commands,
+  sidebar,
+  editor,
+  tabs,
+  activeTabId,
+  onSelectTab,
+  onCloseTab,
+  statusText,
+  onOpenProject,
+}: WorkbenchProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
@@ -47,7 +62,9 @@ export function Workbench({ commands, sidebar, editor, statusText, onOpenProject
       <ActivityBar onOpenProject={onOpenProject} />
       <SideBar>{sidebar}</SideBar>
       <div className="editor-column">
-        <EditorArea>{editor}</EditorArea>
+        <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
+          {editor}
+        </EditorArea>
         <Panel />
       </div>
       <StatusBar text={statusText ?? nls.t('workbench.statusBar.ready')} />

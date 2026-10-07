@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from 'electron';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HistoryLog } from '@doru/ai';
 import {
@@ -7,6 +7,7 @@ import {
   OpQueue,
   ProjectOpener,
   ReadGedcomImporter,
+  RecentProjects,
   SqliteTreeRepository,
   TreeStore,
   importGedcomOp,
@@ -32,7 +33,9 @@ interface ProjectRuntime {
 
 const runtimes = new Map<string, ProjectRuntime>();
 
+let recents: RecentProjects | null = null;
 let mainWindow: BrowserWindow | null = null;
+const pendingExternalPaths: string[] = [];
 
 function createWindow(): void {
   const preload = fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
@@ -59,10 +62,21 @@ function createWindow(): void {
   });
 }
 
-async function ensureRuntime(projectPath: string): Promise<{ summary: ProjectSummary; runtime: ProjectRuntime }> {
+async function ensureRuntime(
+  projectPath: string,
+): Promise<{ summary: ProjectSummary; runtime: ProjectRuntime }> {
   const existing = runtimes.get(projectPath);
   if (existing) {
-    return { summary: { path: projectPath, treePath: existing.store.path, schemaVersion: existing.store.userVersion(), created: [], healed: [] }, runtime: existing };
+    return {
+      summary: {
+        path: projectPath,
+        treePath: existing.store.path,
+        schemaVersion: existing.store.userVersion(),
+        created: [],
+        healed: [],
+      },
+      runtime: existing,
+    };
   }
   const { summary, store } = await opener.open(projectPath);
   const repo = new SqliteTreeRepository(store.db);
@@ -78,23 +92,33 @@ async function ensureRuntime(projectPath: string): Promise<{ summary: ProjectSum
 async function openProject(options: { dialog?: boolean; path?: string }): Promise<ProjectSummary | null> {
   let folder = options.path;
   if (!folder) {
+    const dialogOptions: OpenDialogOptions = {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Open Project',
+    };
     const result =
       mainWindow !== null
-        ? await dialog.showOpenDialog(mainWindow, {
-            properties: ['openDirectory', 'createDirectory'],
-            title: 'Open Project',
-          })
-        : await dialog.showOpenDialog({
-            properties: ['openDirectory', 'createDirectory'],
-            title: 'Open Project',
-          });
+        ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
     if (result.canceled || result.filePaths[0] === undefined) {
       return null;
     }
     folder = result.filePaths[0];
   }
   const { summary } = await ensureRuntime(folder);
+  if (recents) {
+    await recents.touch(summary.path);
+  }
   return summary;
+}
+
+function openExternalPath(path: string): void {
+  const root = path.endsWith('.doru') ? dirname(path) : path;
+  void openProject({ path: root }).then((summary) => {
+    if (summary && mainWindow) {
+      mainWindow.webContents.send('project:external-open', summary);
+    }
+  });
 }
 
 async function importGedcom(options: {
@@ -141,8 +165,52 @@ ipcMain.handle(
     importGedcom(options),
 );
 
+ipcMain.handle('project:recent', () => recents?.list() ?? []);
+
+ipcMain.handle('project:close', (_event, options: { path: string }) => {
+  const runtime = runtimes.get(options.path);
+  if (runtime) {
+    runtime.store.close();
+    runtimes.delete(options.path);
+  }
+});
+
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+    }
+    for (const path of extractPathArgs(argv)) {
+      openExternalPath(path);
+    }
+  });
+
+  app.on('open-file', (event, path) => {
+    event.preventDefault();
+    if (app.isReady()) {
+      openExternalPath(path);
+    } else {
+      pendingExternalPaths.push(path);
+    }
+  });
+}
+
+function extractPathArgs(argv: string[]): string[] {
+  return argv.slice(1).filter((arg) => !arg.startsWith('-') && arg !== '.');
+}
+
 void app.whenReady().then(() => {
+  recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
   createWindow();
+  for (const path of [...extractPathArgs(process.argv), ...pendingExternalPaths]) {
+    openExternalPath(path);
+  }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
