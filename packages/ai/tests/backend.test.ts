@@ -6,35 +6,25 @@ import { cleanupAiFixture, makeAiFixture } from './helpers';
 const ivan: PersonRecord = { id: '@I1@', names: [{ given: 'Ivan', surname: 'Ivanov' }], sex: 'M' };
 
 describe('TreeMcpBackend', () => {
-  it('queries, reports stats, and edits through ops with the agent actor', () => {
+  it('queries, reports stats, and edits through ops with the agent actor', async () => {
     const fixture = makeAiFixture();
     try {
-      const audited: string[] = [];
       const queue = fixture.queue;
       const backend = new TreeMcpBackend(fixture.repo, queue, 'agent:test/model#abc');
 
-      void audited;
       fixture.repo.insertPerson(ivan);
 
-      void backend.invoke('tree.query', { query: 'ivan' }).then((result) => {
-        expect(result).toEqual([ivan]);
-      });
+      expect(await backend.invoke('tree.query', { query: 'ivan' })).toEqual([ivan]);
+      expect(await backend.invoke('tree.stats', {})).toEqual({ persons: 1, families: 0 });
 
-      void backend.invoke('tree.stats', {}).then((result) => {
-        expect(result).toEqual({ persons: 1, families: 0 });
+      await backend.invoke('tree.edit', {
+        op: {
+          kind: 'person.add',
+          person: { id: '@I2@', names: [], sex: 'U' },
+        },
       });
-
-      void backend
-        .invoke('tree.edit', {
-          op: {
-            kind: 'person.add',
-            person: { id: '@I2@', names: [], sex: 'U' },
-          },
-        })
-        .then(() => {
-          expect(fixture.repo.countPersons()).toBe(2);
-          expect(queue.canUndo()).toBe(true);
-        });
+      expect(fixture.repo.countPersons()).toBe(2);
+      expect(queue.canUndo()).toBe(true);
     } finally {
       cleanupAiFixture(fixture);
     }
