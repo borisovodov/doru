@@ -11,15 +11,18 @@ fileAssociations:
     role: Editor
 mac:
   category: public.app-category.lifestyle
+  artifactName: doru-${arch}.${ext}
   target:
     - dmg
-    - zip
 win:
+  artifactName: doru-setup-${arch}.${ext}
   target:
     - nsis
+nsis:
+  differentialPackage: false
 linux:
   category: Education
-  artifactName: doru-${version}-${arch}.${ext}
+  artifactName: doru-${arch}.${ext}
   target:
     - AppImage
     - deb
