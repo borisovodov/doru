@@ -41,10 +41,12 @@ jobs:
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
-            apps/desktop/release/*.exe
+            apps/desktop/release/doru-windows-*.exe
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
-            apps/desktop/release/*.blockmap
+            apps/desktop/release/*.dmg.blockmap
+            apps/desktop/release/*.zip.blockmap
+            apps/desktop/release/doru-windows-*.exe.blockmap
             apps/desktop/release/latest*.yml
           if-no-files-found: error
 
