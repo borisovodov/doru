@@ -75,6 +75,7 @@ describe('SqliteTreeRepository', () => {
 
       expect(repo.getFamily('F1')).toEqual(family);
       expect(repo.listFamilies()).toEqual([family]);
+      expect(repo.countFamilies()).toBe(1);
 
       const extended: FamilyRecord = { id: 'F1', parents: ['P1'], children: ['P3'] };
       repo.updateFamily(extended);

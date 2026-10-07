@@ -11,8 +11,12 @@
   "workbench.recent": "Recent",
   "workbench.recent.empty": "No recent projects",
   "workbench.tab.close": "Close",
+  "workbench.undo": "Undo",
+  "workbench.redo": "Redo",
   "features.tree.title": "Family Tree",
   "features.tree.importGedcom": "Import GEDCOM…",
   "features.tree.importResult": "Imported {0} persons and {1} families",
-  "features.tree.totalPersons": "Persons in tree: {0}"
+  "features.tree.totalPersons": "Persons in tree: {0}",
+  "features.tree.search.placeholder": "Search persons…",
+  "features.tree.emptyTree": "The tree is empty. Import a GEDCOM file to get started."
 }

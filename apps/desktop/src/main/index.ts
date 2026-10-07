@@ -175,6 +175,40 @@ ipcMain.handle('project:close', (_event, options: { path: string }) => {
   }
 });
 
+ipcMain.handle(
+  'tree:list',
+  async (_event, options: { projectPath: string; search?: string; limit?: number; offset?: number }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.repo.listPersons({
+      search: options.search,
+      limit: options.limit ?? 100,
+      offset: options.offset ?? 0,
+    });
+  },
+);
+
+ipcMain.handle('tree:stats', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  return { persons: runtime.repo.countPersons(), families: runtime.repo.countFamilies() };
+});
+
+ipcMain.handle('tree:undoState', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:undo', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.undo({ repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:redo', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.redo({ repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();

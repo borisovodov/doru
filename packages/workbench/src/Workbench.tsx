@@ -12,6 +12,7 @@ import './workbench.css';
 
 export interface WorkbenchProps {
   commands: CommandService;
+  keybindings?: Array<{ key: string; command: string }>;
   sidebar?: ReactNode;
   editor?: ReactNode;
   tabs?: TabInfo[];
@@ -24,6 +25,7 @@ export interface WorkbenchProps {
 
 export function Workbench({
   commands,
+  keybindings: externalKeybindings = [],
   sidebar,
   editor,
   tabs,
@@ -38,12 +40,19 @@ export function Workbench({
   useEffect(() => {
     const keybindings = new KeybindingService();
     keybindings.register('f1', 'workbench.showCommandPalette');
+    for (const binding of externalKeybindings) {
+      keybindings.register(binding.key, binding.command);
+    }
     const removeCommand = commands.register({
       id: 'workbench.showCommandPalette',
       title: nls.t('workbench.commandPalette.title'),
       handler: () => setPaletteOpen(true),
     });
     const onKeydown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return;
+      }
       const command = keybindings.onKeydown(event);
       if (command) {
         event.preventDefault();
@@ -55,7 +64,7 @@ export function Workbench({
       removeCommand.dispose();
       window.removeEventListener('keydown', onKeydown);
     };
-  }, [commands]);
+  }, [commands, externalKeybindings]);
 
   return (
     <div className="workbench">

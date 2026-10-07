@@ -26,6 +26,7 @@ export interface TreeRepository {
   deletePerson(id: string): boolean;
   listPersons(query?: PersonQuery): PersonRecord[];
   countPersons(): number;
+  countFamilies(): number;
   insertFamily(family: FamilyRecord): void;
   updateFamily(family: FamilyRecord): void;
   getFamily(id: string): FamilyRecord | undefined;
@@ -103,6 +104,11 @@ export class SqliteTreeRepository implements TreeRepository {
 
   countPersons(): number {
     const row = this.db.prepare('SELECT COUNT(*) AS n FROM person').get() as { n: number };
+    return row.n;
+  }
+
+  countFamilies(): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM family').get() as { n: number };
     return row.n;
   }
 

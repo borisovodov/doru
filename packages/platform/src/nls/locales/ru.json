@@ -11,8 +11,12 @@
   "workbench.recent": "Недавние",
   "workbench.recent.empty": "Нет недавних проектов",
   "workbench.tab.close": "Закрыть",
+  "workbench.undo": "Отменить",
+  "workbench.redo": "Повторить",
   "features.tree.title": "Семейное древо",
   "features.tree.importGedcom": "Импорт GEDCOM…",
   "features.tree.importResult": "Импортировано: {0} персон, {1} семей",
-  "features.tree.totalPersons": "Персон в дереве: {0}"
+  "features.tree.totalPersons": "Персон в дереве: {0}",
+  "features.tree.search.placeholder": "Поиск персон…",
+  "features.tree.emptyTree": "Дерево пустое. Импортируйте GEDCOM-файл, чтобы начать."
 }

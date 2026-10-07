@@ -1,0 +1,86 @@
+.tree-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+
+.tree-toolbar input {
+  flex: 1;
+  min-width: 0;
+  background: var(--doru-input-bg);
+  border: 1px solid var(--doru-border);
+  color: var(--doru-fg);
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.tree-view button,
+.recent-list button {
+  background: var(--doru-input-bg);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tree-view button:hover:not(:disabled),
+.recent-list button:hover {
+  background: var(--doru-accent);
+  color: #ffffff;
+}
+
+.tree-view button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tree-stats {
+  color: var(--doru-fg-dim);
+}
+
+.person-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.person-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--doru-border);
+}
+
+.person-dates {
+  color: var(--doru-fg-dim);
+  white-space: nowrap;
+}
+
+.recent-list ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.recent-list li {
+  margin: 2px 0;
+}
+
+.recent-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--doru-fg);
+  cursor: pointer;
+  padding: 4px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-item:hover {
+  background: var(--doru-input-bg);
+}

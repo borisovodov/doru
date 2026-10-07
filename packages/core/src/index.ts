@@ -42,6 +42,16 @@ export interface GedcomImportResult {
   importedFamilies: number;
   totalPersons: number;
 }
+
+export interface TreeStats {
+  persons: number;
+  families: number;
+}
+
+export interface UndoRedoState {
+  canUndo: boolean;
+  canRedo: boolean;
+}
 export { ReadGedcomImporter, type GedcomImporter } from './gedcom/importer';
 export { Gedcom70Writer, type GedcomWriter } from './gedcom/writer';
 export { detectParentCycles, type ValidationIssue } from './validate/validator';
