@@ -7,13 +7,11 @@ export function addPersonOp(actor: string, person: PersonRecord): Op {
     kind: 'person.add',
     timestamp: new Date().toISOString(),
     actor,
-    apply(doc) {
-      doc.persons.set(person.id, person);
+    apply(ctx) {
+      ctx.repo.insertPerson(person);
     },
-    inverse(doc) {
-      if (doc.persons.get(person.id) === person) {
-        doc.persons.delete(person.id);
-      }
+    inverse(ctx) {
+      ctx.repo.deletePerson(person.id);
     },
   };
 }

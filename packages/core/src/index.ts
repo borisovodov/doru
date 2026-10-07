@@ -13,6 +13,11 @@ export { emptyDocument } from './model/types';
 export { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './db/schema';
 export { TreeStore, type ITreeStore, type TreeStoreFactory } from './db/store';
 export {
+  SqliteTreeRepository,
+  type PersonQuery,
+  type TreeRepository,
+} from './db/repository';
+export {
   DEFAULT_SETTINGS,
   DEFAULT_THEME_CSS,
   HISTORY_FILE_NAME,

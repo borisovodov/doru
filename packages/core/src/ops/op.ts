@@ -1,12 +1,16 @@
-import type { TreeDocument } from '../model/types';
+import type { TreeRepository } from '../db/repository';
+
+export interface MutationContext {
+  repo: TreeRepository;
+}
 
 export interface Op {
   readonly id: string;
   readonly kind: string;
   readonly timestamp: string;
   readonly actor: string;
-  apply(doc: TreeDocument): void;
-  inverse(doc: TreeDocument): void;
+  apply(ctx: MutationContext): void;
+  inverse(ctx: MutationContext): void;
 }
 
 export class OpQueue {
@@ -15,29 +19,29 @@ export class OpQueue {
 
   constructor(private readonly audit: (op: Op) => void = () => {}) {}
 
-  apply(op: Op, doc: TreeDocument): void {
-    op.apply(doc);
+  apply(op: Op, ctx: MutationContext): void {
+    op.apply(ctx);
     this.undoStack.push(op);
     this.redoStack.length = 0;
     this.audit(op);
   }
 
-  undo(doc: TreeDocument): Op | undefined {
+  undo(ctx: MutationContext): Op | undefined {
     const op = this.undoStack.pop();
     if (!op) {
       return undefined;
     }
-    op.inverse(doc);
+    op.inverse(ctx);
     this.redoStack.push(op);
     return op;
   }
 
-  redo(doc: TreeDocument): Op | undefined {
+  redo(ctx: MutationContext): Op | undefined {
     const op = this.redoStack.pop();
     if (!op) {
       return undefined;
     }
-    op.apply(doc);
+    op.apply(ctx);
     this.undoStack.push(op);
     return op;
   }

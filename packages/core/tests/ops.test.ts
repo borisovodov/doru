@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { emptyDocument, type PersonRecord } from '../src/model/types';
+import type { PersonRecord } from '../src/model/types';
 import { addPersonOp } from '../src/ops/addPerson';
 import { OpQueue, type Op } from '../src/ops/op';
+import { cleanupRepo, makeRepo } from './helpers';
 
 const person: PersonRecord = {
   id: 'P1',
@@ -11,36 +12,47 @@ const person: PersonRecord = {
 
 describe('OpQueue', () => {
   it('applies ops, supports undo/redo, and reports to the audit log', () => {
-    const audited: Op[] = [];
-    const queue = new OpQueue((op) => audited.push(op));
-    const doc = emptyDocument();
+    const fixture = makeRepo();
+    try {
+      const audited: Op[] = [];
+      const queue = new OpQueue((op) => audited.push(op));
+      const ctx = { repo: fixture.repo };
 
-    const op = addPersonOp('user', person);
-    queue.apply(op, doc);
-    expect(doc.persons.get('P1')).toBe(person);
-    expect(audited).toEqual([op]);
+      const op = addPersonOp('user', person);
+      queue.apply(op, ctx);
+      expect(fixture.repo.getPerson('P1')).toEqual(person);
+      expect(audited).toEqual([op]);
 
-    expect(queue.canUndo()).toBe(true);
-    expect(queue.canRedo()).toBe(false);
+      expect(queue.canUndo()).toBe(true);
+      expect(queue.canRedo()).toBe(false);
 
-    queue.undo(doc);
-    expect(doc.persons.has('P1')).toBe(false);
-    expect(queue.canRedo()).toBe(true);
+      queue.undo(ctx);
+      expect(fixture.repo.getPerson('P1')).toBeUndefined();
+      expect(queue.canRedo()).toBe(true);
 
-    queue.redo(doc);
-    expect(doc.persons.get('P1')).toBe(person);
+      queue.redo(ctx);
+      expect(fixture.repo.getPerson('P1')).toEqual(person);
+    } finally {
+      cleanupRepo(fixture);
+    }
   });
 
   it('clears the redo stack when a new op is applied', () => {
-    const queue = new OpQueue();
-    const doc = emptyDocument();
+    const fixture = makeRepo();
+    try {
+      const queue = new OpQueue();
+      const ctx = { repo: fixture.repo };
 
-    queue.apply(addPersonOp('user', person), doc);
-    queue.undo(doc);
-    expect(queue.canRedo()).toBe(true);
+      queue.apply(addPersonOp('user', person), ctx);
+      queue.undo(ctx);
+      expect(queue.canRedo()).toBe(true);
 
-    const other: PersonRecord = { id: 'P2', names: [], sex: 'U' };
-    queue.apply(addPersonOp('user', other), doc);
-    expect(queue.canRedo()).toBe(false);
+      const other: PersonRecord = { id: 'P2', names: [], sex: 'U' };
+      queue.apply(addPersonOp('user', other), ctx);
+      expect(queue.canRedo()).toBe(false);
+      expect(fixture.repo.countPersons()).toBe(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
   });
 });

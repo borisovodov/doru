@@ -8,10 +8,14 @@ export interface ITreeStore {
 }
 
 export class TreeStore implements ITreeStore {
+  readonly db: DatabaseSync;
+
   private constructor(
-    private readonly db: DatabaseSync,
+    db: DatabaseSync,
     readonly path: string,
-  ) {}
+  ) {
+    this.db = db;
+  }
 
   static open(path: string): TreeStore {
     const db = new DatabaseSync(path);
