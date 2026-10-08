@@ -221,6 +221,9 @@ JSON-бандлах по локалям, отсутствующий перево
 - Пути/файлы — только через абстракции; watcher — chokidar.
 - Нативные меню: отдельные шаблоны под mac (app menu) и win/linux.
 - Файловая ассоциация `.doru` + протокол `doru://`.
+- **Иконка**: векторный `apps/desktop/resources/icon.svg` — источник истины;
+  `npm run icon -w @doru/desktop` рендерит `icon.png` (1024×1024, sharp);
+  icns/ico electron-builder производит сам из PNG при сборке.
 - Секреты (API-ключи моделей) — Electron `safeStorage` (Keychain/DPAPI/libsecret).
 - e2e прогоняется на всех трёх платформах.
 - **CI/CD (GitHub Actions)**: CI на push/PR (matrix: тесты, typecheck, сборка,
