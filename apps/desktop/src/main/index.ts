@@ -1,18 +1,23 @@
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, watch, type FSWatcher } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyEdits, modify, parse } from 'jsonc-parser';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
+  AcpAgentClient,
   AgentRuntime,
+  DEFAULT_PERMISSION_POLICY,
   DoruMcpServer,
   HistoryLog,
+  McpHostManager,
   OpenAIChatConnector,
   TreeMcpBackend,
+  type AcpMcpServerEntry,
   type ChatMessage,
   type ChatSendResult,
+  type McpServerConfig,
 } from '@doru/ai';
 import {
   Gedcom70Writer,
@@ -57,12 +62,25 @@ const SESSION_FILE = 'session.json';
 
 const DEFAULT_AI_CONFIG = `{
   // AI provider settings for the agent chat.
-  // Any OpenAI-compatible endpoint works: OpenAI, Ollama, OpenRouter, ...
+  // "provider": "openai-compatible" (default) or "acp" (Agent Client Protocol,
+  // e.g. Zed-style coding agents).
   "ai": {
+    "provider": "openai-compatible",
     "baseUrl": "https://api.openai.com/v1",
     "apiKey": "",
-    "model": "gpt-4o-mini"
-  }
+    "model": "gpt-4o-mini",
+    // For "acp": the agent binary to spawn and its arguments.
+    // "command": "my-agent",
+    // "args": []
+  },
+  // Optional: external MCP servers whose tools the in-app agent can use
+  // (web search, FamilySearch, filesystem, ...). Each server is spawned as a
+  // subprocess; tools are prefixed with the server name, e.g. "web:search".
+  // "mcp": {
+  //   "servers": [
+  //     { "name": "web", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-brave-search"], "env": { "BRAVE_API_KEY": "..." } }
+  //   ]
+  // }
 }
 `;
 
@@ -219,7 +237,22 @@ async function importGedcom(options: {
   };
 }
 
-function loadAiConfig(): { baseUrl: string; apiKey: string; model: string } | null {
+type AiConfig =
+  | {
+      provider: 'openai-compatible';
+      baseUrl: string;
+      apiKey: string;
+      model: string;
+      mcpServers: McpServerConfig[];
+    }
+  | {
+      provider: 'acp';
+      command: string;
+      args: string[];
+      mcpServers: McpServerConfig[];
+    };
+
+function loadAiConfig(): AiConfig | null {
   const dir = app.getPath('userData');
   const file = join(dir, AI_CONFIG_FILE);
   if (!existsSync(file)) {
@@ -228,9 +261,27 @@ function loadAiConfig(): { baseUrl: string; apiKey: string; model: string } | nu
   }
   const text = readFileSync(file, 'utf8');
   const parsed = parse(text) as {
-    ai?: { baseUrl?: string; apiKey?: string; apiKeyEncrypted?: string; model?: string };
+    ai?: {
+      provider?: string;
+      baseUrl?: string;
+      apiKey?: string;
+      apiKeyEncrypted?: string;
+      model?: string;
+      command?: string;
+      args?: string[];
+    };
+    mcp?: { servers?: McpServerConfig[] };
   };
   const ai = parsed.ai ?? {};
+  const mcpServers = parsed.mcp?.servers ?? [];
+
+  if (ai.provider === 'acp') {
+    const command = ai.command ?? '';
+    if (!command) {
+      return null;
+    }
+    return { provider: 'acp', command, args: ai.args ?? [], mcpServers };
+  }
 
   let apiKey = ai.apiKey ?? '';
   if (!apiKey && ai.apiKeyEncrypted) {
@@ -263,7 +314,13 @@ function loadAiConfig(): { baseUrl: string; apiKey: string; model: string } | nu
   if (!apiKey || !model) {
     return null;
   }
-  return { baseUrl: ai.baseUrl ?? 'https://api.openai.com/v1', apiKey, model };
+  return {
+    provider: 'openai-compatible',
+    baseUrl: ai.baseUrl ?? 'https://api.openai.com/v1',
+    apiKey,
+    model,
+    mcpServers,
+  };
 }
 
 function requestPermission(tool: string, args: Record<string, unknown>): Promise<boolean> {
@@ -278,22 +335,79 @@ function requestPermission(tool: string, args: Record<string, unknown>): Promise
   });
 }
 
+function doruMcpServerEntry(projectPath: string, actor: string): AcpMcpServerEntry {
+  const args = app.isPackaged
+    ? ['--mcp-server', projectPath]
+    : [resolve(process.argv[1] ?? '.'), '--mcp-server', projectPath];
+  return { name: 'doru', command: process.execPath, args, env: { DORU_MCP_ACTOR: actor } };
+}
+
+const acpClients = new Map<string, AcpAgentClient>();
+
+async function ensureAcpClient(projectPath: string, config: Extract<AiConfig, { provider: 'acp' }>): Promise<AcpAgentClient> {
+  const existing = acpClients.get(projectPath);
+  if (existing) {
+    return existing;
+  }
+  const actor = `agent:acp:${config.command}`;
+  const client = new AcpAgentClient({
+    command: config.command,
+    args: config.args,
+    cwd: projectPath,
+    mcpServers: [
+      doruMcpServerEntry(projectPath, actor),
+      ...config.mcpServers.map((server) => ({
+        name: server.name,
+        command: server.command,
+        args: server.args,
+        env: server.env,
+      })),
+    ],
+  });
+  await client.start(requestPermission);
+  acpClients.set(projectPath, client);
+  return client;
+}
+
 async function sendChat(options: { projectPath: string; messages: ChatMessage[] }): Promise<ChatSendResult> {
   const config = loadAiConfig();
   if (!config) {
     return {
       steps: [],
       finalText: '',
-      error: `AI provider is not configured. Set "ai.apiKey" and "ai.model" in ${join(app.getPath('userData'), AI_CONFIG_FILE)}`,
+      error: `AI provider is not configured. Set it in ${join(app.getPath('userData'), AI_CONFIG_FILE)}`,
     };
   }
   const { runtime } = await ensureRuntime(options.projectPath);
   const lastUser = [...options.messages].reverse().find((message) => message.role === 'user');
   const promptHash = createHash('sha256').update(lastUser?.content ?? '').digest('hex').slice(0, 12);
+
+  if (config.provider === 'acp') {
+    try {
+      const client = await ensureAcpClient(options.projectPath, config);
+      const result = await client.prompt(lastUser?.content ?? '');
+      return { steps: result.steps, finalText: result.finalText };
+    } catch (error) {
+      return {
+        steps: [],
+        finalText: '',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   const actor = `agent:${new URL(config.baseUrl).host}/${config.model}#${promptHash}`;
   const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
   const model = new OpenAIChatConnector(config);
-  const agent = new AgentRuntime(model, backend, requestPermission);
+
+  let host: McpHostManager | null = null;
+  if (config.mcpServers.length > 0) {
+    host = new McpHostManager(config.mcpServers);
+    await host.connectAll();
+  }
+  const extraTools = host?.externalTools() ?? [];
+  const extraInvoke = host ? (name: string, args: Record<string, unknown>) => host.invoke(name, args) : null;
+  const agent = new AgentRuntime(model, backend, requestPermission, DEFAULT_PERMISSION_POLICY, extraTools, extraInvoke);
   try {
     const result = await agent.run(options.messages);
     return { steps: result.steps, finalText: result.finalText };
@@ -303,6 +417,10 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
       finalText: '',
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    if (host) {
+      await host.closeAll();
+    }
   }
 }
 
@@ -366,6 +484,11 @@ ipcMain.handle('project:close', (_event, options: { path: string }) => {
   if (watcher) {
     watcher.close();
     themeWatchers.delete(options.path);
+  }
+  const acp = acpClients.get(options.path);
+  if (acp) {
+    void acp.close();
+    acpClients.delete(options.path);
   }
   void updateSession((session) => {
     const paths = session.paths.filter((entry) => entry !== options.path);
@@ -646,7 +769,8 @@ void app.whenReady().then(async () => {
   const mcpProject = parseMcpServerArg(process.argv);
   if (mcpProject) {
     const { runtime } = await ensureRuntime(mcpProject);
-    const backend = new TreeMcpBackend(runtime.repo, runtime.queue, 'agent:mcp');
+    const actor = process.env.DORU_MCP_ACTOR ?? 'agent:mcp';
+    const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
     const server = new DoruMcpServer(backend, app.getVersion());
     await server.connect(new StdioServerTransport());
     log.info(`Doru MCP server started for ${mcpProject}`);

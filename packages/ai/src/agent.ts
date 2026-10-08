@@ -1,6 +1,6 @@
 import type { ChatMessage, ToolCall } from './types';
 import type { ChatModel } from './model';
-import { doruTools } from './tools';
+import { doruTools, type ToolDefinition } from './tools';
 import {
   DEFAULT_PERMISSION_POLICY,
   toolPermission,
@@ -31,15 +31,19 @@ export class AgentRuntime {
     private readonly backend: TreeMcpBackend,
     private readonly gate: PermissionGate,
     private readonly policy: PermissionPolicy = DEFAULT_PERMISSION_POLICY,
+    private readonly extraTools: ToolDefinition[] = [],
+    private readonly extraInvoke: ((name: string, args: Record<string, unknown>) => Promise<unknown>) | null = null,
   ) {}
 
   async run(messages: ChatMessage[], maxIterations = 8): Promise<AgentRunResult> {
     const steps: AgentStep[] = [];
     const conversation = messages.map((message) => ({ ...message }));
+    const allTools = [...doruTools, ...this.extraTools];
+    const isExternal = (name: string) => this.extraTools.some((tool) => tool.name === name);
     let finalText = '';
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
-      const response = await this.model.complete(conversation, doruTools);
+      const response = await this.model.complete(conversation, allTools);
       if (response.toolCalls.length === 0) {
         if (response.content) {
           steps.push({ type: 'text', content: response.content });
@@ -60,7 +64,9 @@ export class AgentRuntime {
           continue;
         }
         try {
-          const result = await this.backend.invoke(call.name, call.arguments);
+          const result = isExternal(call.name)
+            ? await this.extraInvoke?.(call.name, call.arguments)
+            : await this.backend.invoke(call.name, call.arguments);
           conversation.push({ role: 'tool', toolCallId: call.id, content: JSON.stringify(result) });
           steps.push({ type: 'toolResult', name: call.name, result });
         } catch (error) {

@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@agentclientprotocol/sdk": "^1.7.0",
     "@doru/core": "*",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^4.6.5"
