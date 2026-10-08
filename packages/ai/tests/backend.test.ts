@@ -47,6 +47,21 @@ describe('TreeMcpBackend', () => {
     }
   });
 
+  it('lists everyone when the query is empty or wildcard-only', async () => {
+    const fixture = makeAiFixture();
+    try {
+      fixture.repo.insertPerson(ivan);
+      fixture.repo.insertPerson({ id: '@P2@', names: [], sex: 'F' });
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
+
+      expect(await backend.invoke('tree_query', {})).toHaveLength(2);
+      expect(await backend.invoke('tree_query', { query: '*' })).toHaveLength(2);
+      expect(await backend.invoke('tree_query', { query: '  ' })).toHaveLength(2);
+    } finally {
+      cleanupAiFixture(fixture);
+    }
+  });
+
   it('rejects unknown tools and invalid edits', async () => {
     const fixture = makeAiFixture();
     try {

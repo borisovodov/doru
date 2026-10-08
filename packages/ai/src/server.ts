@@ -23,9 +23,10 @@ export class DoruMcpServer {
     this.server.registerTool(
       'tree_query',
       {
-        description: 'Search persons in the tree by name.',
+        description:
+          'Search persons in the tree by name. Omit the query to list the first 20 persons — use this to list everyone when no specific name is known.',
         inputSchema: {
-          query: z.string().describe('Free-text search query, matched against names'),
+          query: z.string().optional().describe('Free-text search query, matched against names'),
           limit: z.number().optional().describe('Maximum number of results (default 20)'),
         },
       },

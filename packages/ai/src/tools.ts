@@ -7,13 +7,13 @@ export interface ToolDefinition {
 export const doruTools: ToolDefinition[] = [
   {
     name: 'tree_query',
-    description: 'Search and read persons, families, events and sources in the tree.',
+    description:
+      'Search persons in the tree by name. If the query is omitted, returns the first 20 persons in the tree — use this to list everyone when no specific name is known.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string' },
-        personId: { type: 'string' },
-        limit: { type: 'number' },
+        query: { type: 'string', description: 'Free-text search query, matched against names' },
+        limit: { type: 'number', description: 'Maximum number of results (default 20)' },
       },
     },
   },

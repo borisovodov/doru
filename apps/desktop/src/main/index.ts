@@ -438,6 +438,16 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
   const lastUser = [...options.messages].reverse().find((message) => message.role === 'user');
   const promptHash = createHash('sha256').update(lastUser?.content ?? '').digest('hex').slice(0, 12);
 
+  const systemMessage: ChatMessage = {
+    role: 'system',
+    content:
+      'You are a genealogy assistant working with the user\'s family tree. ' +
+      'Use tree_stats to see how large the tree is, and tree_query without a query to list persons. ' +
+      'Wildcards are not needed: an empty query already lists the tree. ' +
+      'For edits, use tree_edit; every edit is recorded with you as the author.',
+  };
+  const conversation = [systemMessage, ...options.messages];
+
   if (config.preset.dialect === 'acp') {
     try {
       const client = await ensureAcpClient(options.projectPath, config);
@@ -468,7 +478,7 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
   const extraInvoke = host ? (name: string, args: Record<string, unknown>) => host.invoke(name, args) : null;
   const agent = new AgentRuntime(model, backend, requestPermission, DEFAULT_PERMISSION_POLICY, extraTools, extraInvoke);
   try {
-    const result = await agent.run(options.messages);
+    const result = await agent.run(conversation);
     return { steps: result.steps, finalText: result.finalText };
   } catch (error) {
     return {

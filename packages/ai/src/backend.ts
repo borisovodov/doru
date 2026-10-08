@@ -47,7 +47,8 @@ export class TreeMcpBackend {
   }
 
   private query(query?: string, limit?: number): PersonRecord[] {
-    return this.repo.listPersons({ search: query, limit: limit ?? 20 });
+    const normalized = normalizeSearch(query);
+    return this.repo.listPersons({ search: normalized, limit: limit ?? 20 });
   }
 
   private get(personId: string): unknown {
@@ -123,4 +124,15 @@ export class TreeMcpBackend {
     }
     throw new Error(`Unsupported chart kind: ${kind}`);
   }
+}
+
+function normalizeSearch(query: string | undefined): string | undefined {
+  if (!query) {
+    return undefined;
+  }
+  const trimmed = query.trim();
+  if (trimmed === '' || /^[\s*?%]*$/.test(trimmed)) {
+    return undefined;
+  }
+  return trimmed.replace(/[*?%]/g, ' ').trim() || undefined;
 }
