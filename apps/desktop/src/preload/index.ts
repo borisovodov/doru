@@ -40,6 +40,20 @@ const api = {
     ipcRenderer.on('theme:changed', listener);
     return () => ipcRenderer.removeListener('theme:changed', listener);
   },
+  getThemeState: (): Promise<unknown> => ipcRenderer.invoke('theme:state'),
+  getThemeCss: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:css', { name }),
+  onThemeSystemChanged: (callback: (info: { systemDark: boolean }) => void): (() => void) => {
+    const listener = (_event: unknown, info: { systemDark: boolean }) => callback(info);
+    ipcRenderer.on('theme:system-changed', listener);
+    return () => ipcRenderer.removeListener('theme:system-changed', listener);
+  },
+  onThemeConfigChanged: (
+    callback: (config: { dark: string; light: string }) => void,
+  ): (() => void) => {
+    const listener = (_event: unknown, config: { dark: string; light: string }) => callback(config);
+    ipcRenderer.on('theme:config-changed', listener);
+    return () => ipcRenderer.removeListener('theme:config-changed', listener);
+  },
   listNotes: (projectPath: string, personId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:notes', { projectPath, personId }),
   addNote: (projectPath: string, note: unknown): Promise<unknown> =>

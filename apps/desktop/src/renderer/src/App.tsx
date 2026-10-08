@@ -38,8 +38,30 @@ export function App() {
   const [chatBusy, setChatBusy] = useState(false);
   const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
   const [themeCss, setThemeCss] = useState('');
+  const [builtinThemeCss, setBuiltinThemeCss] = useState('');
   const commands = useMemo(() => new CommandService(), []);
   const chatConversation = useRef<ChatMessage[]>([]);
+
+  const applyBuiltinTheme = useCallback(async (systemDark: boolean, config: { dark: string; light: string }) => {
+    const name = systemDark ? config.dark : config.light;
+    setBuiltinThemeCss(await window.doru.getThemeCss(name));
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const state = await window.doru.getThemeState();
+      await applyBuiltinTheme(state.systemDark, state.config);
+    })();
+    return window.doru.onThemeSystemChanged((info) => {
+      void window.doru.getThemeState().then((state) => applyBuiltinTheme(info.systemDark, state.config));
+    });
+  }, [applyBuiltinTheme]);
+
+  useEffect(() => {
+    return window.doru.onThemeConfigChanged((config) => {
+      void window.doru.getThemeState().then((state) => applyBuiltinTheme(state.systemDark, config));
+    });
+  }, [applyBuiltinTheme]);
 
   const refreshRecent = useCallback(async () => {
     setRecent(await window.doru.recentProjects());
@@ -415,6 +437,7 @@ export function App() {
 
   return (
     <>
+      <style id="doru-builtin-theme">{builtinThemeCss}</style>
       <style id="doru-project-theme">{themeCss}</style>
       <Workbench
         commands={commands}

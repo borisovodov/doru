@@ -1,0 +1,13 @@
+:root {
+  --doru-activity-bar-bg: #2c2c2c;
+  --doru-side-bar-bg: #f3f3f3;
+  --doru-editor-bg: #ffffff;
+  --doru-panel-bg: #ffffff;
+  --doru-status-bar-bg: #007acc;
+  --doru-status-bar-fg: #ffffff;
+  --doru-fg: #333333;
+  --doru-fg-dim: #616161;
+  --doru-border: #e7e7e7;
+  --doru-accent: #007acc;
+  --doru-input-bg: #ffffff;
+}

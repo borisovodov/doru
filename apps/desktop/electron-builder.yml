@@ -5,6 +5,9 @@ directories:
   output: release
 files:
   - out/**
+extraResources:
+  - from: ../../themes
+    to: themes
 fileAssociations:
   - ext: doru
     name: Doru Tree

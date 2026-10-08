@@ -1,6 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, watch, type FSWatcher } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, watch, type FSWatcher } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyEdits, modify, parse } from 'jsonc-parser';
@@ -59,6 +59,8 @@ const opener = new ProjectOpener(fs, { open: (path) => TreeStore.open(path) }, l
 
 const AI_CONFIG_FILE = 'doru.json';
 const SESSION_FILE = 'session.json';
+const DEFAULT_DARK_THEME = 'doru-dark';
+const DEFAULT_LIGHT_THEME = 'doru-light';
 
 const DEFAULT_AI_CONFIG = `{
   // AI provider settings for the agent chat.
@@ -80,6 +82,12 @@ const DEFAULT_AI_CONFIG = `{
   //   "servers": [
   //     { "name": "web", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-brave-search"], "env": { "BRAVE_API_KEY": "..." } }
   //   ]
+  // },
+  // Built-in themes are chosen separately for dark and light mode; which one
+  // is applied is decided by the operating system appearance.
+  // "theme": {
+  //   "dark": "doru-dark",
+  //   "light": "doru-light"
   // }
 }
 `;
@@ -585,6 +593,68 @@ ipcMain.handle('theme:get', async (_event, options: { projectPath: string }) => 
   }
 });
 
+interface ThemeInfo {
+  name: string;
+  type: 'dark' | 'light';
+}
+
+function themesDir(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'themes')
+    : resolve(app.getAppPath(), '..', '..', 'themes');
+}
+
+function listBuiltinThemes(): ThemeInfo[] {
+  try {
+    const root = themesDir();
+    return readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .map((name) => {
+        try {
+          const meta = JSON.parse(readFileSync(join(root, name, 'theme.json'), 'utf8')) as {
+            name?: string;
+            type?: string;
+          };
+          return { name, type: meta.type === 'light' ? 'light' : 'dark' } as ThemeInfo;
+        } catch {
+          return null;
+        }
+      })
+      .filter((theme): theme is ThemeInfo => theme !== null);
+  } catch {
+    return [];
+  }
+}
+
+function themeConfig(): { dark: string; light: string } {
+  try {
+    const parsed = parse(readFileSync(join(app.getPath('userData'), AI_CONFIG_FILE), 'utf8')) as {
+      theme?: { dark?: string; light?: string };
+    };
+    const theme = parsed.theme ?? {};
+    return { dark: theme.dark ?? DEFAULT_DARK_THEME, light: theme.light ?? DEFAULT_LIGHT_THEME };
+  } catch {
+    return { dark: DEFAULT_DARK_THEME, light: DEFAULT_LIGHT_THEME };
+  }
+}
+
+function themeCss(name: string): string {
+  try {
+    return readFileSync(join(themesDir(), name, 'theme.css'), 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+ipcMain.handle('theme:state', () => ({
+  systemDark: nativeTheme.shouldUseDarkColors,
+  config: themeConfig(),
+  themes: listBuiltinThemes(),
+}));
+
+ipcMain.handle('theme:css', (_event, options: { name: string }) => themeCss(options.name));
+
 ipcMain.handle(
   'tree:notes',
   async (_event, options: { projectPath: string; personId?: string }) => {
@@ -765,6 +835,18 @@ function parseMcpServerArg(argv: string[]): string | null {
 
 void app.whenReady().then(async () => {
   recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
+
+  nativeTheme.on('updated', () => {
+    mainWindow?.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
+  });
+  try {
+    const configWatcher = watch(join(app.getPath('userData'), AI_CONFIG_FILE), () => {
+      mainWindow?.webContents.send('theme:config-changed', themeConfig());
+    });
+    configWatcher.unref();
+  } catch {
+    log.warn('could not watch the app config file');
+  }
 
   const mcpProject = parseMcpServerArg(process.argv);
   if (mcpProject) {

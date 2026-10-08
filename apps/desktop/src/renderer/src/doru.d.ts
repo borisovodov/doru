@@ -42,6 +42,14 @@ declare global {
       respondChatPermission(id: string, allow: boolean): void;
       getTheme(projectPath: string): Promise<{ css: string }>;
       onThemeChanged(callback: (info: { projectPath: string }) => void): () => void;
+      getThemeState(): Promise<{
+        systemDark: boolean;
+        config: { dark: string; light: string };
+        themes: Array<{ name: string; type: 'dark' | 'light' }>;
+      }>;
+      getThemeCss(name: string): Promise<string>;
+      onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
+      onThemeConfigChanged(callback: (config: { dark: string; light: string }) => void): () => void;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getGedcomText(projectPath: string): Promise<string>;
