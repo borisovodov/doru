@@ -1,6 +1,13 @@
 import type { NoteRecord, SourceRecord } from '../model/types';
 import type { Op } from './op';
 
+export interface CitationRecord {
+  id: string;
+  sourceId: string;
+  targetType: string;
+  targetId: string;
+}
+
 export function addSourceOp(
   actor: string,
   source: SourceRecord,
@@ -36,6 +43,36 @@ export function addNoteOp(actor: string, note: NoteRecord): Op {
     },
     inverse(ctx) {
       ctx.repo.deleteNote(note.id);
+    },
+  };
+}
+
+export function attachCitationOp(actor: string, citation: CitationRecord): Op {
+  return {
+    id: crypto.randomUUID(),
+    kind: 'citation.attach',
+    timestamp: new Date().toISOString(),
+    actor,
+    apply(ctx) {
+      ctx.repo.insertCitation(citation);
+    },
+    inverse(ctx) {
+      ctx.repo.deleteCitation(citation.id);
+    },
+  };
+}
+
+export function detachCitationOp(actor: string, citation: CitationRecord): Op {
+  return {
+    id: crypto.randomUUID(),
+    kind: 'citation.detach',
+    timestamp: new Date().toISOString(),
+    actor,
+    apply(ctx) {
+      ctx.repo.deleteCitation(citation.id);
+    },
+    inverse(ctx) {
+      ctx.repo.insertCitation(citation);
     },
   };
 }

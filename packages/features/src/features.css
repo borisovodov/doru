@@ -141,6 +141,144 @@
   white-space: pre;
 }
 
+.date-editor-row {
+  display: flex;
+  gap: 6px;
+}
+
+.date-editor-row input,
+.date-editor-row select {
+  width: auto;
+  min-width: 0;
+}
+
+.person-section {
+  margin-top: 16px;
+  border-top: 1px solid var(--doru-border);
+  padding-top: 8px;
+}
+
+.person-section h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--doru-fg);
+}
+
+.family-row {
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--doru-border);
+  border-radius: 4px;
+}
+
+.family-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.family-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--doru-input-bg);
+  border: 1px solid var(--doru-border);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.family-chip.child {
+  background: rgba(0, 122, 204, 0.25);
+}
+
+.family-chip button,
+.source-list button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 13px;
+}
+
+.family-actions,
+.family-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.person-picker {
+  position: relative;
+  flex: 1;
+  min-width: 140px;
+}
+
+.person-picker input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0;
+}
+
+.person-picker-list {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 2px 0;
+  background: var(--doru-side-bar-bg);
+  border: 1px solid var(--doru-border);
+  border-radius: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.person-picker-list li {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.person-picker-list li:hover {
+  background: var(--doru-accent);
+  color: #ffffff;
+}
+
+.source-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.source-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--doru-border);
+}
+
+.sources-new {
+  display: flex;
+  gap: 6px;
+}
+
+.sources-new input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sources-attach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .recent-list ul {
   list-style: none;
   margin: 8px 0 0;

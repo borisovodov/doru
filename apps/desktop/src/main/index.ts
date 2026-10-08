@@ -24,15 +24,23 @@ import {
   SqliteTreeRepository,
   THEME_FILE_NAME,
   TreeStore,
+  addFamilyOp,
   addNoteOp,
   addPersonOp,
+  addSourceOp,
+  attachCitationOp,
+  deleteFamilyOp,
+  detachCitationOp,
   importGedcomOp,
+  updateFamilyOp,
   updatePersonOp,
+  type FamilyRecord,
   type GedcomImportResult,
   type ITreeStore,
   type NoteRecord,
   type PersonRecord,
   type ProjectSummary,
+  type SourceRecord,
   type TreeDocument,
 } from '@doru/core';
 import { ConsoleLogService } from '@doru/platform';
@@ -45,6 +53,7 @@ const fs = new NodeFileSystem();
 const opener = new ProjectOpener(fs, { open: (path) => TreeStore.open(path) }, log);
 
 const AI_CONFIG_FILE = 'doru.json';
+const SESSION_FILE = 'session.json';
 
 const DEFAULT_AI_CONFIG = `{
   // AI provider settings for the agent chat.
@@ -159,6 +168,10 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
   const { summary } = await ensureRuntime(folder);
   if (recents) {
     await recents.touch(summary.path);
+    await updateSession((session) => {
+      const paths = session.paths.filter((entry) => entry !== summary.path);
+      return { paths: [...paths, summary.path], activePath: summary.path };
+    });
   }
   return summary;
 }
@@ -305,6 +318,44 @@ ipcMain.handle(
 
 ipcMain.handle('project:recent', () => recents?.list() ?? []);
 
+interface SessionData {
+  paths: string[];
+  activePath: string | null;
+}
+
+function readSession(): SessionData {
+  const file = join(app.getPath('userData'), SESSION_FILE);
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as SessionData;
+    if (!Array.isArray(parsed.paths) || typeof parsed.activePath !== 'string' && parsed.activePath !== null) {
+      return { paths: [], activePath: null };
+    }
+    return parsed;
+  } catch {
+    return { paths: [], activePath: null };
+  }
+}
+
+async function updateSession(update: (session: SessionData) => SessionData): Promise<void> {
+  const dir = app.getPath('userData');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, SESSION_FILE), `${JSON.stringify(update(readSession()), null, 2)}\n`);
+}
+
+ipcMain.handle('session:get', async () => {
+  const session = readSession();
+  const existing = [];
+  for (const path of session.paths) {
+    if (await fs.exists(path)) {
+      existing.push(path);
+    }
+  }
+  return {
+    paths: existing,
+    activePath: existing.includes(session.activePath ?? '') ? session.activePath : null,
+  };
+});
+
 ipcMain.handle('project:close', (_event, options: { path: string }) => {
   const runtime = runtimes.get(options.path);
   if (runtime) {
@@ -316,6 +367,11 @@ ipcMain.handle('project:close', (_event, options: { path: string }) => {
     watcher.close();
     themeWatchers.delete(options.path);
   }
+  void updateSession((session) => {
+    const paths = session.paths.filter((entry) => entry !== options.path);
+    const activePath = session.activePath === options.path ? null : session.activePath;
+    return { paths, activePath };
+  });
 });
 
 ipcMain.handle(
@@ -423,6 +479,76 @@ ipcMain.handle(
 ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
   runtime.queue.apply(addNoteOp('user', options.note), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:families', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  return runtime.repo.listFamilies();
+});
+
+ipcMain.handle('tree:addFamily', async (_event, options: { projectPath: string; family: FamilyRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(addFamilyOp('user', options.family), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle(
+  'tree:updateFamily',
+  async (_event, options: { projectPath: string; before: FamilyRecord; after: FamilyRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    runtime.queue.apply(updateFamilyOp('user', options.before, options.after), { repo: runtime.repo });
+    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+  },
+);
+
+ipcMain.handle('tree:deleteFamily', async (_event, options: { projectPath: string; family: FamilyRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(deleteFamilyOp('user', options.family), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  return runtime.repo.listSources();
+});
+
+ipcMain.handle(
+  'tree:addSource',
+  async (
+    _event,
+    options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string },
+  ) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    const citation =
+      options.targetType && options.targetId
+        ? { targetType: options.targetType, targetId: options.targetId }
+        : undefined;
+    runtime.queue.apply(addSourceOp('user', options.source, citation), { repo: runtime.repo });
+    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+  },
+);
+
+ipcMain.handle('tree:attachSource', async (_event, options: { projectPath: string; sourceId: string; targetType: string; targetId: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(
+    attachCitationOp('user', {
+      id: crypto.randomUUID(),
+      sourceId: options.sourceId,
+      targetType: options.targetType,
+      targetId: options.targetId,
+    }),
+    { repo: runtime.repo },
+  );
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:detachCitation', async (_event, options: { projectPath: string; citationId: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  const citation = runtime.repo.getCitation(options.citationId);
+  if (citation) {
+    runtime.queue.apply(detachCitationOp('user', citation), { repo: runtime.repo });
+  }
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 

@@ -33,4 +33,21 @@ describe('source and note ops', () => {
       cleanupRepo(fixture);
     }
   });
+
+  it('lists citations for a target and removes them', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertSource({ id: 'S1', title: 'Parish book' });
+      fixture.repo.addSourceCitation('S1', 'person', 'P1');
+
+      const citations = fixture.repo.listCitationsFor('person', 'P1');
+      expect(citations).toHaveLength(1);
+      expect(citations[0]?.source.title).toBe('Parish book');
+
+      expect(fixture.repo.deleteCitation(citations[0]?.id ?? '')).toBe(true);
+      expect(fixture.repo.listCitationsFor('person', 'P1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });

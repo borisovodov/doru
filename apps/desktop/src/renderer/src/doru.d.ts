@@ -1,9 +1,11 @@
 import type {
+  FamilyRecord,
   GedcomImportResult,
   NoteRecord,
   PersonRecord,
   ProjectSummary,
   RecentProject,
+  SourceRecord,
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
@@ -43,6 +45,33 @@ declare global {
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getGedcomText(projectPath: string): Promise<string>;
+      getFamilies(projectPath: string): Promise<FamilyRecord[]>;
+      addFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
+      updateFamily(
+        projectPath: string,
+        before: FamilyRecord,
+        after: FamilyRecord,
+      ): Promise<UndoRedoState>;
+      deleteFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
+      getSources(projectPath: string): Promise<SourceRecord[]>;
+      addSource(
+        projectPath: string,
+        source: SourceRecord,
+        targetType?: string,
+        targetId?: string,
+      ): Promise<UndoRedoState>;
+      attachSource(
+        projectPath: string,
+        sourceId: string,
+        targetType: string,
+        targetId: string,
+      ): Promise<UndoRedoState>;
+      detachCitation(projectPath: string, citationId: string): Promise<UndoRedoState>;
+      getCitations(
+        projectPath: string,
+        personId: string,
+      ): Promise<Array<{ id: string; source: SourceRecord }>>;
+      getSession(): Promise<{ paths: string[]; activePath: string | null }>;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }

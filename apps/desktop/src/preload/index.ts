@@ -46,6 +46,29 @@ const api = {
     ipcRenderer.invoke('tree:addNote', { projectPath, note }),
   getGedcomText: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:gedcomText', { projectPath }),
+  getFamilies: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:families', { projectPath }),
+  addFamily: (projectPath: string, family: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addFamily', { projectPath, family }),
+  updateFamily: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateFamily', { projectPath, before, after }),
+  deleteFamily: (projectPath: string, family: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteFamily', { projectPath, family }),
+  getSources: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:sources', { projectPath }),
+  addSource: (
+    projectPath: string,
+    source: unknown,
+    targetType?: string,
+    targetId?: string,
+  ): Promise<unknown> => ipcRenderer.invoke('tree:addSource', { projectPath, source, targetType, targetId }),
+  attachSource: (projectPath: string, sourceId: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:attachSource', { projectPath, sourceId, targetType, targetId }),
+  detachCitation: (projectPath: string, citationId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:detachCitation', { projectPath, citationId }),
+  getCitations: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:citations', { projectPath, personId }),
+  getSession: (): Promise<unknown> => ipcRenderer.invoke('session:get'),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);

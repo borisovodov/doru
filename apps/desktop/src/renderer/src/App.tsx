@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatMessage } from '@doru/ai';
 import type {
+  FamilyRecord,
   GedcomImportResult,
   NoteRecord,
   PersonRecord,
   ProjectSummary,
   RecentProject,
+  SourceRecord,
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
@@ -250,12 +252,110 @@ export function App() {
     [activePath],
   );
 
+  useEffect(() => {
+    void (async () => {
+      const session = await window.doru.getSession();
+      for (const path of session.paths) {
+        await openProject(path);
+      }
+      const active = session.activePath ?? session.paths[session.paths.length - 1];
+      if (active) {
+        setActivePath(active);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const getGedcomText = useCallback(async (): Promise<string> => {
     if (!activePath) {
       return '';
     }
     return window.doru.getGedcomText(activePath);
   }, [activePath]);
+
+  const getFamilies = useCallback(async (): Promise<FamilyRecord[]> => {
+    if (!activePath) {
+      return [];
+    }
+    return window.doru.getFamilies(activePath);
+  }, [activePath]);
+
+  const addFamily = useCallback(
+    async (family: FamilyRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.addFamily(activePath, family));
+    },
+    [activePath],
+  );
+
+  const updateFamily = useCallback(
+    async (before: FamilyRecord, after: FamilyRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.updateFamily(activePath, before, after));
+    },
+    [activePath],
+  );
+
+  const deleteFamily = useCallback(
+    async (family: FamilyRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.deleteFamily(activePath, family));
+    },
+    [activePath],
+  );
+
+  const getSources = useCallback(async (): Promise<SourceRecord[]> => {
+    if (!activePath) {
+      return [];
+    }
+    return window.doru.getSources(activePath);
+  }, [activePath]);
+
+  const getCitations = useCallback(
+    async (personId: string) => {
+      if (!activePath) {
+        return [];
+      }
+      return window.doru.getCitations(activePath, personId);
+    },
+    [activePath],
+  );
+
+  const addSource = useCallback(
+    async (source: SourceRecord, targetId: string) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.addSource(activePath, source, 'person', targetId));
+    },
+    [activePath],
+  );
+
+  const attachSource = useCallback(
+    async (sourceId: string, targetId: string) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.attachSource(activePath, sourceId, 'person', targetId));
+    },
+    [activePath],
+  );
+
+  const detachCitation = useCallback(
+    async (citationId: string) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.detachCitation(activePath, citationId));
+    },
+    [activePath],
+  );
 
   useEffect(() => {
     void refreshRecent();
@@ -342,11 +442,20 @@ export function App() {
             onSearch={onSearch}
             onUndo={() => void undo()}
             onRedo={() => void redo()}
-            onAddPerson={(person) => void addPerson(person)}
-            onUpdatePerson={(before, after) => void updatePerson(before, after)}
+            onAddPerson={(person) => addPerson(person)}
+            onUpdatePerson={(before, after) => updatePerson(before, after)}
             getNotes={getNotes}
-            onAddNote={(personId, text) => void addNote(personId, text)}
+            onAddNote={(personId, text) => addNote(personId, text)}
             getGedcomText={getGedcomText}
+            getFamilies={getFamilies}
+            onAddFamily={(family) => addFamily(family)}
+            onUpdateFamily={(before, after) => updateFamily(before, after)}
+            onDeleteFamily={(family) => deleteFamily(family)}
+            getSources={getSources}
+            getCitations={getCitations}
+            onAddSource={(source, targetId) => addSource(source, targetId)}
+            onAttachSource={(sourceId, targetId) => attachSource(sourceId, targetId)}
+            onDetachCitation={(citationId) => detachCitation(citationId)}
           />
         }
         panel={
