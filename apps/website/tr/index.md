@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: Yapay zekâ çağında local-first soy ağacı
   tagline: "Soy ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla."
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: Kullanıcı Rehberi
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "Bir klasörü kopyalayarak yedekleyin. macOS, Windows veya Linux'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">Belgeleri okuyun →</a>
+</div>

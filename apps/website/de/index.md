@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: Local-first-Genealogie im KI-Zeitalter
   tagline: "Ihr Stammbaum lebt in einem gewöhnlichen Ordner auf Ihrer Festplatte, funktioniert vollständig offline und wird von KI-Agenten gesteuert — über den eingebauten Chat oder jeden MCP/ACP-Client."
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: Benutzerhandbuch
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "Backup durch Kopieren eines Ordners. Öffnen Sie ihn unter macOS, Windows oder Linux. GEDCOM-Import und -Export sichern die Interoperabilität."
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">Dokumentation lesen →</a>
+</div>

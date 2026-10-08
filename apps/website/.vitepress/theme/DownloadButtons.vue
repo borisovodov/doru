@@ -67,9 +67,9 @@ function label(): { download: string; platforms: string } {
       <a class="doru-button brand" :href="download.url">
         {{ label().download }} {{ download.os }}
       </a>
-      <a class="doru-button alt" href="/download">{{ label().platforms }}</a>
+      <a class="doru-button alt" href="/docs/#installation">{{ label().platforms }}</a>
     </template>
-    <a v-else class="doru-button brand" href="/download">{{ label().platforms }}</a>
+    <a v-else class="doru-button brand" href="/docs/#installation">{{ label().platforms }}</a>
   </div>
 </template>
 

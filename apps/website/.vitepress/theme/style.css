@@ -1,0 +1,41 @@
+.doru-screenshot {
+  margin: 0 auto 48px;
+  max-width: 960px;
+  padding: 0 24px;
+}
+
+.doru-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+}
+
+.VPHome {
+  margin-bottom: 32px !important;
+}
+
+.doru-read-docs {
+  margin: 48px auto 0;
+  text-align: center;
+}
+
+.doru-read-docs a {
+  display: inline-block;
+  border: 1px solid var(--vp-button-alt-border);
+  background-color: var(--vp-button-alt-bg);
+  color: var(--vp-button-alt-text);
+  border-radius: 20px;
+  padding: 0 20px;
+  line-height: 38px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.25s, border-color 0.25s, background-color 0.25s;
+}
+
+.doru-read-docs a:hover {
+  border-color: var(--vp-button-alt-hover-border);
+  color: var(--vp-button-alt-hover-text);
+}

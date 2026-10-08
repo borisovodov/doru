@@ -102,11 +102,11 @@ macOS builds are signed and notarized. Windows builds are not code-signed yet,
 so SmartScreen may show a warning — click “More info → Run anyway”. On Linux,
 the `.deb` installs with `sudo apt install ./doru-*.deb`; the AppImage needs
 `chmod +x` and then just runs. See the
-[User Guide](https://doru.ovodov.me/guide/user-guide) for details.
+[documentation](https://doru.ovodov.me/docs/) for details.
 
 ## Documentation
 
-See the [User Guide](https://doru.ovodov.me/guide/user-guide) for installation,
+See the [documentation](https://doru.ovodov.me/docs/) for installation,
 tree editing, AI agents, themes, and troubleshooting.
 
 ## Development

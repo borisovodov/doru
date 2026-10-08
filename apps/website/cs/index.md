@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: Local-first genealogie v éře AI
   tagline: "Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta."
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: Uživatelská příručka
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "Záloha zkopírováním složky. Otevřete ji na macOS, Windows nebo Linuxu. Import a export GEDCOM zajišťují interoperabilitu."
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">Přečtěte si dokumentaci →</a>
+</div>

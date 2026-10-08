@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: Local-first γενεαλογία στην εποχή της τεχνητής νοημοσύνης
   tagline: "Το γενεαλογικό σας δέντρο ζει σε έναν συνηθισμένο φάκελο στον δίσκο σας, λειτουργεί πλήρως εκτός σύνδεσης και καθοδηγείται από πράκτορες ΤΝ — μέσω της ενσωματωμένης συνομιλίας ή οποιουδήποτε πελάτη MCP/ACP."
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: Οδηγός χρήστη
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "Αντίγραφο ασφαλείας αντιγράφοντας έναν φάκελο. Ανοίξτε τον σε macOS, Windows ή Linux. Η εισαγωγή και εξαγωγή GEDCOM εξασφαλίζουν τη διαλειτουργικότητα."
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">Διαβάστε την τεκμηρίωση →</a>
+</div>

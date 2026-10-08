@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: AI時代のlocal-first系図
   tagline: "家系図はディスク上の普通のフォルダーにあり、完全にオフラインで動作し、組み込みチャットや任意のMCP/ACPクライアントを通じてAIエージェントに操作されます。"
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: ユーザーガイド
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "フォルダーをコピーするだけでバックアップ。macOS、Windows、Linuxで開けます。GEDCOMのインポートとエクスポートが相互運用性を保証します。"
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">ドキュメントを読む →</a>
+</div>

@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: Genealogia local-first w erze AI
   tagline: "Twoje drzewo genealogiczne żyje w zwykłym folderze na dysku, działa całkowicie offline i jest prowadzone przez agentów AI — przez wbudowany czat lub dowolnego klienta MCP/ACP."
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: Przewodnik użytkownika
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "Kopia zapasowa przez skopiowanie folderu. Otwieraj go na macOS, Windows lub Linuksie. Import i eksport GEDCOM zapewniają interoperacyjność."
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">Przeczytaj dokumentację →</a>
+</div>

@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: AI 時代的本地優先家譜
   tagline: "您的家譜存放在磁碟上的普通資料夾中，完全離線運作，並透過內建聊天或任何 MCP/ACP 用戶端由 AI 代理人驅動。"
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: 使用者指南
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: 本地優先
@@ -34,4 +26,6 @@ features:
     details: "複製資料夾即可備份。在 macOS、Windows 或 Linux 上開啟。GEDCOM 匯入匯出保證互通性。"
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">閱讀文件 →</a>
+</div>

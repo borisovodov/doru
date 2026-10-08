@@ -9,7 +9,7 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
-apps/website/guide/
+apps/website/docs/
 apps/website/public/icon.svg
 apps/website/.vitepress/cache/
 apps/website/.vitepress/dist/

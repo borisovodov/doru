@@ -1,4 +1,4 @@
-# Dóru — User Guide
+# Dóru — Documentation
 
 Dóru is a local-first genealogy app for the AI era. Your family tree lives in
 a plain folder on your disk, works fully offline, and can be driven by AI
@@ -15,19 +15,17 @@ agents — through the built-in chat or any MCP/ACP client.
 
 ---
 
-## 1. Installation
+## 1. Installation {#installation}
 
-Download the latest release from the
-[releases page](https://github.com/borisovodov/doru/releases) and pick your
-platform and architecture (Apple Silicon or Intel):
+Every link below downloads the installer for the latest release directly:
 
 | Platform | Installer |
 |---|---|
-| macOS (Apple Silicon) | `doru-mac-arm64.dmg` |
-| Windows (x64) | `doru-windows-x64.exe` |
-| Windows (arm64) | `doru-windows-arm64.exe` |
-| Linux (x64) | `doru-linux-x86_64.AppImage` or `doru-linux-amd64.deb` |
-| Linux (arm64) | `doru-linux-arm64.AppImage` or `doru-linux-arm64.deb` |
+| macOS (Apple Silicon) | [doru-mac-arm64.dmg](https://github.com/borisovodov/doru/releases/latest/download/doru-mac-arm64.dmg) |
+| Windows (x64) | [doru-windows-x64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-x64.exe) |
+| Windows (arm64) | [doru-windows-arm64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-arm64.exe) |
+| Linux (x64) | [doru-linux-x86_64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-x86_64.AppImage) or [doru-linux-amd64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-amd64.deb) |
+| Linux (arm64) | [doru-linux-arm64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.AppImage) or [doru-linux-arm64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.deb) |
 
 - **macOS**: open the `.dmg`, drag Dóru to Applications. Builds are signed and
   notarized by Apple.

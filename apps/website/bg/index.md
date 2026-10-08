@@ -5,14 +5,6 @@ hero:
   name: Dóru
   text: Local-first генеалогия в ерата на ИИ
   tagline: "Вашето родословно дърво живее в обикновена папка на диска, работи напълно офлайн и се управлява от ИИ агенти — чрез вградения чат или всеки MCP/ACP клиент."
-  image:
-    src: /icon.svg
-    alt: Dóru
-  actions:
-    - theme: alt
-      text: Ръководство за потребителя
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -34,4 +26,6 @@ features:
     details: "Архивирайте чрез копиране на папка. Отваряйте я на macOS, Windows или Linux. GEDCOM импортът и експортът осигуряват съвместимост."
 ---
 
-![Dóru screenshot](/screenshot.png)
+<div class="doru-read-docs">
+  <a href="/docs/">Прочетете документацията →</a>
+</div>
