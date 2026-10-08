@@ -31,6 +31,9 @@ decisions about what we deliberately do **not** build, see
 - Family links are filtered against existing persons at write time — foreign
   keys protect referential integrity without hard-failing on GEDCOM files that
   contain dangling references.
+- Person search uses an **FTS5** virtual table (external content, synced by
+  triggers) with prefix matching and rank ordering; any FTS failure falls back
+  to a `LIKE` scan. An empty query lists persons without searching.
 
 ## GEDCOM
 

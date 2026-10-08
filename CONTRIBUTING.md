@@ -35,6 +35,7 @@ npm run e2e        # Playwright smoke test against the built app
 ## Repository layout
 
 - `apps/desktop` — Electron shell: main process, preload, renderer bootstrap
+- `apps/website` — VitePress site (landing + synced user guide)
 - `packages/platform` — base services: DI, commands, events, config, theming,
   localization (nls)
 - `packages/core` — genealogy domain: GEDCOM, ops, SQLite tree store, project
@@ -42,6 +43,16 @@ npm run e2e        # Playwright smoke test against the built app
 - `packages/workbench` — VS Code-style UI shell
 - `packages/features` — domain UI
 - `packages/ai` — agent layer: connectors, tools, permissions, audit log
+
+Note: `apps/website/guide/` and `apps/website/public/icon.svg` are generated
+from `docs/user-guide.md` and the app icon by the sync script (part of
+`npm run site:build`) — edit the sources, not the generated files.
+
+## Troubleshooting
+
+- **"Electron failed to install correctly"** — the postinstall download is
+  flaky. Delete `node_modules/electron/dist` and `node_modules/electron/path.txt`,
+  then run `node node_modules/electron/install.js`.
 
 ## Making changes
 

@@ -57,3 +57,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - Typecheck all workspaces: `npm run typecheck`.
 - Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
 - Run tests before considering a change complete.
+- E2E specs must launch the app with an isolated `DORU_USER_DATA` env var (see
+  `e2e/smoke.spec.ts`): the single-instance lock otherwise collides with a
+  running dev instance.
+- In tests, close the `TreeStore` before removing temp dirs — Windows fails
+  with `EPERM` on open files.
+- Validate workflow changes with `actionlint .github/workflows/…` before
+  pushing: the `secrets` context is not allowed in `if` conditions of steps.
