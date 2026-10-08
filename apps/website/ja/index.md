@@ -2,17 +2,9 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: AI時代のlocal-first系図
   tagline: "家系図はディスク上の普通のフォルダーにあり、完全にオフラインで動作し、組み込みチャットや任意のMCP/ACPクライアントを通じてAIエージェントに操作されます。"
-  actions:
-    - theme: brand
-      text: ダウンロード
-      link: https://github.com/borisovodov/doru/releases/latest
-    - theme: alt
-      text: ユーザーガイド
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -28,8 +20,12 @@ features:
     details: "設定はdoru.json、スタイルはtheme.css。ホットリロード、プレーンテキスト、人間もエージェントも編集できます。"
   - icon: 🌍
     title: 17言語
-    details: "インターフェースはVS Codeの言語を話します — 日本語と英語から簡体字中国語まで。"
+    details: "インターフェースは完全にローカライズされています — 日本語と英語から簡体字中国語まで。"
   - icon: 💾
     title: 設計から可搬性
     details: "フォルダーをコピーするだけでバックアップ。macOS、Windows、Linuxで開けます。GEDCOMのインポートとエクスポートが相互運用性を保証します。"
 ---
+
+<div class="doru-read-docs">
+  <a href="/docs/">ドキュメントを読む →</a>
+</div>

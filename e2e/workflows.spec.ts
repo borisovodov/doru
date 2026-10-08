@@ -83,7 +83,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
       if (!gedcom.includes('E2E')) throw new Error('gedcom export missing person');
 
       const theme = await window.doru.getTheme(project);
-      if (!theme.css.includes('Doru theme')) throw new Error('theme missing');
+      if (!theme.css.includes('Dóru theme')) throw new Error('theme missing');
 
       const settings = await window.doru.getProjectSettings(project);
       if (settings.nameFormat !== 'given-first') throw new Error('settings missing');

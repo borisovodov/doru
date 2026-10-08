@@ -139,7 +139,7 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: 'Doru',
+    title: 'Dóru',
     icon: process.platform === 'darwin' ? undefined : iconPath(),
     webPreferences: {
       preload,
@@ -1167,7 +1167,7 @@ void app.whenReady().then(async () => {
     const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
     const server = new DoruMcpServer(backend, app.getVersion());
     await server.connect(new StdioServerTransport());
-    log.info(`Doru MCP server started for ${mcpProject}`);
+    log.info(`Dóru MCP server started for ${mcpProject}`);
     return;
   }
 

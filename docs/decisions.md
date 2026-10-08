@@ -1,6 +1,6 @@
 # Product Decisions
 
-Deliberate decisions about what Doru is **not** doing, recorded so they are not
+Deliberate decisions about what Dóru is **not** doing, recorded so they are not
 re-litigated by future contributors. Deferred work is tracked in GitHub issues.
 
 ## Not building
@@ -19,7 +19,7 @@ layer could be reused by a future Capacitor-based client.
 
 ### Monetization
 
-None. Doru is free software (MIT). If this ever changes, it must not compromise
+None. Dóru is free software (MIT). If this ever changes, it must not compromise
 the local-first guarantee: data stays in the user's folder.
 
 ### Manual locale switcher
@@ -35,14 +35,14 @@ USB stick, whatever they prefer.
 
 One caveat lives with this decision: `tree.doru` is a SQLite database, and
 live-syncing an **open** project with a file-sync tool can copy the file in a
-half-written state and corrupt it. Doru uses a single-file journal mode
+half-written state and corrupt it. Dóru uses a single-file journal mode
 (`journal_mode=DELETE`) to keep the folder clean, but the safe practice is:
 close the project (or the app) before syncing. Copying a closed project is
 always safe.
 
 ## Config and data locations
 
-Doru follows each OS's native conventions for its config directory (Electron
+Dóru follows each OS's native conventions for its config directory (Electron
 `userData`): `~/Library/Application Support/Doru` on macOS,
 `%APPDATA%\Doru` on Windows, `~/.config/Doru` on Linux. Dev-tool culture
 (gh, zed, OpenCode) uses `~/.config` everywhere, but for a GUI app the native

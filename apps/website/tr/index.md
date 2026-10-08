@@ -2,17 +2,9 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Yapay zekâ çağında local-first soy ağacı
   tagline: "Soy ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla."
-  actions:
-    - theme: brand
-      text: İndir
-      link: https://github.com/borisovodov/doru/releases/latest
-    - theme: alt
-      text: Kullanıcı Rehberi
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -28,8 +20,12 @@ features:
     details: "Ayarlar doru.json'da, stil theme.css'te. Canlı yeniden yükleme, düz metin, insanlar ve ajanlar tarafından düzenlenebilir."
   - icon: 🌍
     title: 17 dil
-    details: "Arayüz VS Code'un dillerini konuşur — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
+    details: "Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
   - icon: 💾
     title: Doğası gereği taşınabilir
     details: "Bir klasörü kopyalayarak yedekleyin. macOS, Windows veya Linux'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."
 ---
+
+<div class="doru-read-docs">
+  <a href="/docs/">Belgeleri okuyun →</a>
+</div>

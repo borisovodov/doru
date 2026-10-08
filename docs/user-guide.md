@@ -1,6 +1,6 @@
-# Doru — User Guide
+# Dóru — Documentation
 
-Doru is a local-first genealogy app for the AI era. Your family tree lives in
+Dóru is a local-first genealogy app for the AI era. Your family tree lives in
 a plain folder on your disk, works fully offline, and can be driven by AI
 agents — through the built-in chat or any MCP/ACP client.
 
@@ -15,24 +15,22 @@ agents — through the built-in chat or any MCP/ACP client.
 
 ---
 
-## 1. Installation
+## 1. Installation {#installation}
 
-Download the latest release from the
-[releases page](https://github.com/borisovodov/doru/releases) and pick your
-platform and architecture (Apple Silicon or Intel):
+Every link below downloads the installer for the latest release directly:
 
 | Platform | Installer |
 |---|---|
-| macOS (Apple Silicon) | `doru-mac-arm64.dmg` |
-| Windows (x64) | `doru-windows-x64.exe` |
-| Windows (arm64) | `doru-windows-arm64.exe` |
-| Linux (x64) | `doru-linux-x86_64.AppImage` or `doru-linux-amd64.deb` |
-| Linux (arm64) | `doru-linux-arm64.AppImage` or `doru-linux-arm64.deb` |
+| macOS (Apple Silicon) | [doru-mac-arm64.dmg](https://github.com/borisovodov/doru/releases/latest/download/doru-mac-arm64.dmg) |
+| Windows (x64) | [doru-windows-x64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-x64.exe) |
+| Windows (arm64) | [doru-windows-arm64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-arm64.exe) |
+| Linux (x64) | [doru-linux-x86_64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-x86_64.AppImage) or [doru-linux-amd64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-amd64.deb) |
+| Linux (arm64) | [doru-linux-arm64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.AppImage) or [doru-linux-arm64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.deb) |
 
-- **macOS**: open the `.dmg`, drag Doru to Applications. Builds are signed and
+- **macOS**: open the `.dmg`, drag Dóru to Applications. Builds are signed and
   notarized by Apple.
 - **Windows**: run the installer. Builds are not code-signed yet, so SmartScreen
-  may show a warning — click "More info → Run anyway".
+  may show a warning — click “More info → Run anyway”.
 - **Linux**: `.deb` installs with `sudo apt install ./doru-*.deb`; the AppImage
   needs `chmod +x` and then just runs.
 
@@ -40,9 +38,9 @@ platform and architecture (Apple Silicon or Intel):
 
 ## 2. Getting started
 
-1. Launch Doru and click **Open Project…** (or press `F1` → Open Project).
+1. Launch Dóru and click **Open Project…** (or press `F1` → Open Project).
    Choose or create a folder — this folder *is* your project.
-2. Doru creates the project skeleton automatically (silently):
+2. Dóru creates the project skeleton automatically (silently):
 
 ```
 My Family/
@@ -72,7 +70,7 @@ link) opens it in the running app.
 - **Person card**: click a person to edit. Fields: given name, surname, sex,
   and full birth/death dates — year, month, day, a quality marker
   (*Exact / About / Before / After*) and a free-text form (e.g. a calendar
-  date "23 Nivôse" that does not map to Gregorian).
+  date “23 Nivôse” that does not map to Gregorian).
 - **Families**: inside a person card, add parents, a partner, or children.
   Type a name to pick an existing person; chips show the members of each
   family. Removing a person from a family or deleting a family is one click.
@@ -160,7 +158,7 @@ Provider:
 - **API keys** are entered in the UI and stored encrypted in the OS keychain
   (macOS Keychain / Windows Credential Manager / libsecret). The key never
   appears in the config file in plaintext.
-- **Model**: type one or use the suggestions; with a key set, "Fetch models"
+- **Model**: type one or use the suggestions; with a key set, “Fetch models”
   lists the models available from the endpoint.
 - **Test connection** sends a small request and reports whether the provider
   answers. Local providers (Ollama, LM Studio) need no key.
@@ -174,14 +172,14 @@ Provider:
 ### 5.2 ACP agents
 
 Set `"ai": { "provider": "acp", "command": "…", "args": [] }` to talk to an
-agent that speaks the Agent Client Protocol (Zed-style agents). Doru passes the
+agent that speaks the Agent Client Protocol (Zed-style agents). Dóru passes the
 project to the agent as an MCP server, so the agent can query and edit the tree
 just like the built-in chat. Permission prompts work the same way.
 
-### 5.3 Doru as an MCP server (external AI tools)
+### 5.3 Dóru as an MCP server (external AI tools)
 
 Any MCP client — Claude Desktop, Cursor, coding agents — can work with your
-tree. Run Doru in server mode:
+tree. Run Dóru in server mode:
 
 ```sh
 doru --mcp-server /absolute/path/to/project
@@ -207,10 +205,10 @@ language.
 
 ### 5.4 Example prompts
 
-- *"Find everyone born before 1850 and list their sources."*
-- *"Add Ivan Ivanov, born about 1923, as a child of Petr and Maria."*
-- *"Write a research note on Anna about the 1901 census."*
-- *"Check my tree for people born after their parents died."* — the agent can
+- *“Find everyone born before 1850 and list their sources.”*
+- *“Add Ivan Ivanov, born about 1923, as a child of Petr and Maria.”*
+- *“Write a research note on Anna about the 1901 census.”*
+- *“Check my tree for people born after their parents died.”* — the agent can
   combine tree tools with external tools (e.g. web search) if you configure
   them in `mcp.servers`.
 
@@ -226,7 +224,7 @@ language.
   whole folder to git if you like.
 - To back up: copy the project folder. That's all there is. Restoring is
   copying it back.
-- If some file inside the project is missing, Doru recreates it silently on
+- If some file inside the project is missing, Dóru recreates it silently on
   open (defaults for `settings.json`/`theme.css`, an empty tree, folders).
 
 ---
@@ -236,7 +234,7 @@ language.
 The interface is styled entirely through CSS custom properties. The cascade:
 
 1. **Built-in theme** — `doru-dark` or `doru-light`, chosen per OS appearance
-   in `doru.json` (section 4). Switch your OS to light mode and Doru follows
+   in `doru.json` (section 4). Switch your OS to light mode and Dóru follows
    instantly; no in-app toggle.
 2. **Your overrides** — the project's `theme.css`, applied on top and
    hot-reloaded: edit the file in any editor and the app restyles immediately.
@@ -270,7 +268,7 @@ Available variables:
 
 ## 8. Troubleshooting
 
-- **"AI provider is not configured"** — open Settings (gear icon in the left
+- **“AI provider is not configured”** — open Settings (gear icon in the left
   bar), pick a provider, and enter a model (and a key where required).
 - **Ollama connection fails** — select the Ollama preset (base URL
   `http://localhost:11434/v1`); no API key is needed. Make sure Ollama is

@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Doru is maintained by a small team. If you believe you have found a security
+Dóru is maintained by a small team. If you believe you have found a security
 vulnerability, please report it privately — do not open a public issue.
 
 Report vulnerabilities by email to:
@@ -27,7 +27,7 @@ Please include:
 
 In scope:
 
-- The Doru desktop application (Electron shell, renderer, core domain logic)
+- The Dóru desktop application (Electron shell, renderer, core domain logic)
 - Data safety and integrity of `*.doru` project folders
 - The MCP server surface (planned) and agent permission system
 - Handling of untrusted input: GEDCOM files, project folders, settings files
@@ -35,7 +35,7 @@ In scope:
 Out of scope:
 
 - Vulnerabilities in third-party dependencies that are not exploitable through
-  Doru itself (report those upstream)
+  Dóru itself (report those upstream)
 - Theoretical issues without a concrete impact
 
 ## Preferred language

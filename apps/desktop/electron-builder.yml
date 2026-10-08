@@ -12,7 +12,7 @@ extraResources:
     to: icon.png
 fileAssociations:
   - ext: doru
-    name: Doru Tree
+    name: Dóru Tree
     role: Editor
 mac:
   category: public.app-category.lifestyle

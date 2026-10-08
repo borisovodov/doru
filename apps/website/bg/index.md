@@ -2,17 +2,9 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Local-first генеалогия в ерата на ИИ
   tagline: "Вашето родословно дърво живее в обикновена папка на диска, работи напълно офлайн и се управлява от ИИ агенти — чрез вградения чат или всеки MCP/ACP клиент."
-  actions:
-    - theme: brand
-      text: Изтегляне
-      link: https://github.com/borisovodov/doru/releases/latest
-    - theme: alt
-      text: Ръководство за потребителя
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -28,8 +20,12 @@ features:
     details: "Настройки в doru.json, стил в theme.css. Презареждане на живо, обикновен текст, редактируем от хора и агенти."
   - icon: 🌍
     title: 17 езика
-    details: "Интерфейсът говори езиците на VS Code — от български и английски до японски и опростен китайски."
+    details: "Интерфейсът е напълно локализиран — от български и английски до японски и опростен китайски."
   - icon: 💾
     title: Преносимо по дизайн
     details: "Архивирайте чрез копиране на папка. Отваряйте я на macOS, Windows или Linux. GEDCOM импортът и експортът осигуряват съвместимост."
 ---
+
+<div class="doru-read-docs">
+  <a href="/docs/">Прочетете документацията →</a>
+</div>

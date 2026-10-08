@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS = `{
 }
 `;
 
-export const DEFAULT_THEME_CSS = `/* Doru theme. Customize CSS custom properties to restyle the app. */
+export const DEFAULT_THEME_CSS = `/* Dóru theme. Customize CSS custom properties to restyle the app. */
 `;
 
 export interface ProjectLayout {

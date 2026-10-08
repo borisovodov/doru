@@ -1,6 +1,6 @@
-# Contributing to Doru
+# Contributing to Dóru
 
-Thanks for your interest in contributing! Doru is a local-first genealogy app
+Thanks for your interest in contributing! Dóru is a local-first genealogy app
 for the AI era. This guide covers how to set up the project and propose
 changes.
 
@@ -14,7 +14,7 @@ changes.
 
 ## Getting started
 
-Requirements: Node.js >= 22.13 (Doru uses the built-in `node:sqlite`) and npm.
+Requirements: Node.js >= 22.13 (Dóru uses the built-in `node:sqlite`) and npm.
 
 ```sh
 npm install

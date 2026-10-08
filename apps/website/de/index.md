@@ -2,17 +2,9 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Local-first-Genealogie im KI-Zeitalter
   tagline: "Ihr Stammbaum lebt in einem gewöhnlichen Ordner auf Ihrer Festplatte, funktioniert vollständig offline und wird von KI-Agenten gesteuert — über den eingebauten Chat oder jeden MCP/ACP-Client."
-  actions:
-    - theme: brand
-      text: Herunterladen
-      link: https://github.com/borisovodov/doru/releases/latest
-    - theme: alt
-      text: Benutzerhandbuch
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -28,8 +20,12 @@ features:
     details: "Einstellungen in doru.json, Styling in theme.css. Live-Neuladen, Klartext, editierbar für Menschen und Agenten."
   - icon: 🌍
     title: 17 Sprachen
-    details: "Die Oberfläche spricht die Sprachen von VS Code — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."
+    details: "Die Oberfläche ist vollständig lokalisiert — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."
   - icon: 💾
     title: Tragbar von Grund auf
     details: "Backup durch Kopieren eines Ordners. Öffnen Sie ihn unter macOS, Windows oder Linux. GEDCOM-Import und -Export sichern die Interoperabilität."
 ---
+
+<div class="doru-read-docs">
+  <a href="/docs/">Dokumentation lesen →</a>
+</div>

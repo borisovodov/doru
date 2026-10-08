@@ -2,17 +2,9 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Local-first genealogy for the AI era
   tagline: "Your family tree lives in a plain folder on your disk, works fully offline, and is driven by AI agents — through the built-in chat or any MCP/ACP client."
-  actions:
-    - theme: brand
-      text: Download
-      link: https://github.com/borisovodov/doru/releases/latest
-    - theme: alt
-      text: User Guide
-      link: /guide/user-guide
-
 features:
   - icon: 🗂️
     title: Local-first
@@ -28,8 +20,12 @@ features:
     details: "Settings in doru.json, styling in theme.css. Hot reload, plain text, editable by humans and agents alike."
   - icon: 🌍
     title: 17 languages
-    details: "The interface speaks the languages of VS Code — from English and Russian to Japanese and Simplified Chinese."
+    details: "The interface is fully localized — from English and Russian to Japanese and Simplified Chinese."
   - icon: 💾
     title: Portable by design
     details: "Back up by copying a folder. Open it on macOS, Windows, or Linux. GEDCOM import and export keep you interoperable."
 ---
+
+<div class="doru-read-docs">
+  <a href="/docs/">Read the documentation →</a>
+</div>

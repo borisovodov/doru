@@ -21,7 +21,7 @@ test('app launches and shows the workbench', async () => {
     env: { ...process.env, DORU_USER_DATA: userData },
   });
   const window = await app.firstWindow();
-  await expect(window).toHaveTitle('Doru');
+  await expect(window).toHaveTitle('Dóru');
   await expect(window.locator('.workbench')).toBeVisible();
   await app.close();
 });
