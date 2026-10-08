@@ -120,9 +120,13 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
     });
     setHasKey(next.hasKey);
     setConfigured(next.configured);
+    const hadKey = apiKey !== '' || hasKey;
     setApiKey('');
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    if (!isAcp && hadKey) {
+      void fetchModels();
+    }
   };
 
   const clearKey = async () => {
@@ -206,6 +210,9 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
                 ))}
               </datalist>
               <button onClick={() => void fetchModels()}>{nls.t('settings.ai.fetchModels')}</button>
+              {extraModels.length > 0 && (
+                <span className="settings-status ok">{extraModels.length} models</span>
+              )}
               {modelsError && (
                 <span className="settings-status fail">{nls.t('settings.ai.testFail', modelsError)}</span>
               )}
