@@ -300,7 +300,7 @@ function loadAiConfig(): ResolvedAiConfig {
   };
   const ai = parsed.ai ?? {};
 
-  const presetId = ai.provider === 'openai-compatible' ? 'openai' : ai.provider ?? 'openai';
+  const presetId = ai.provider ?? 'openai';
   const preset = findProvider(presetId);
 
   let apiKey = ai.apiKey ?? '';
