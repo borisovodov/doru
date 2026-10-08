@@ -38,6 +38,6 @@ Out of scope:
   Doru itself (report those upstream)
 - Theoretical issues without a concrete impact
 
-## Preferred languages
+## Preferred language
 
-English or Russian.
+English.
