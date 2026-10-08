@@ -4,36 +4,34 @@ Instructions for AI agents and contributors working on this repository.
 
 ## Project
 
-Doru — local-first genealogy for the AI era ("Obsidian of genealogy"): Electron
-+ TypeScript, monorepo, SQLite-based tree documents (`tree.doru`), text-based
-config/themes, MCP host+server, agent chat with audit trail.
+Doru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
+SQLite-based tree documents (`tree.doru`), text-based config/themes, MCP
+host+server, ACP agents, agent chat with audit trail.
 
-Full architecture and roadmap: [docs/plan.md](docs/plan.md) (Russian).
+Design rationale: [docs/architecture.md](docs/architecture.md). Deliberate
+non-goals: [docs/decisions.md](docs/decisions.md).
 
 ## Language policy
 
-- All permanent documents (README.md, AGENTS.md, CONTRIBUTING.md, etc.) are
-  written in **English only**.
-- All code — identifiers, comments, docstrings, commit messages — is written
-  in **English only**.
-- Intermediate working documents (e.g. notes under `docs/` marked as drafts,
-  design explorations) may be written in Russian.
+- All documents (README.md, AGENTS.md, CONTRIBUTING.md, docs/, commit
+  messages) are written in **English only**.
+- All code — identifiers, comments, docstrings — is written in **English
+  only**.
 - Commit messages: English, concise, imperative mood.
 
 ## Localization rules (applies to all UI code)
 
 - Never hardcode user-facing strings in the UI. All UI strings go through the
   nls layer with keys of the form `area.feature.message` (see
-  docs/plan.md section 9).
+  docs/architecture.md, Localization section).
 - The base language is English: the English source text doubles as the
   fallback value. Add the English bundle entry first, then translations.
 - Locale bundles mirror the VS Code display language set: en, ru, fr, de, it,
-  es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw (see
-  docs/plan.md section 9).
+  es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
-- Locale is configurable via `settings.json` (`locale` key), auto-detected
-  from the OS on first run, fallback chain to `en`, hot-switchable at runtime.
+- The UI locale always follows the operating system; there is no in-app
+  language setting (see docs/decisions.md).
 
 ## Architecture conventions
 

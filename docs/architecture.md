@@ -2,7 +2,7 @@
 
 The "why" behind choices that are not obvious from the code itself. For
 decisions about what we deliberately do **not** build, see
-[decisions.md](decisions.md); the roadmap lived in `plan.md`.
+[decisions.md](decisions.md).
 
 ## Project format
 

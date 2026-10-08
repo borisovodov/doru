@@ -26,8 +26,8 @@ build.
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
   through `tree.query`, `tree.edit`, `sources.add`, `notes.write`,
   `charts.render` — and an agent chat built into the UI, with a tool loop over
-  an OpenAI-compatible API (OpenAI, Ollama, OpenRouter). MCP-host mode and ACP
-  are planned next.
+  an OpenAI-compatible API (OpenAI, Ollama, OpenRouter), external MCP servers,
+  and ACP agents.
 - **Auditable.** Every mutation is recorded with its actor — user or agent
   (`agent:{host}/{model}#{promptHash}`). AI edits are always reviewable and
   gated by permission prompts.
@@ -48,10 +48,19 @@ via GitHub Actions.
 
 ## Development
 
-Coming in v0 scaffolding. See [docs/plan.md](docs/plan.md).
+Requirements: Node.js >= 22.13 (built-in `node:sqlite`) and npm.
+
+```sh
+npm install
+npm run dev          # run the desktop app in dev mode
+npm test             # unit tests (vitest)
+npm run typecheck    # strict TypeScript across all workspaces
+npm run build        # production build (electron-vite)
+npm run e2e          # Playwright smoke test against the built app
+npm run site:dev     # the VitePress website
+```
 
 ## Language policy
 
-All permanent documents (README, AGENTS.md, etc.) and all code — including
-comments and identifiers — are in English. Intermediate working documents
-(e.g. docs in Russian) are acceptable; see AGENTS.md.
+All documents and all code — including comments and identifiers — are in
+English. See AGENTS.md.

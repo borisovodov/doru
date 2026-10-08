@@ -8,8 +8,9 @@ changes.
 
 - Read [AGENTS.md](AGENTS.md) — it defines the language policy, localization
   rules, and architecture conventions that all contributions must follow.
-- The architecture and roadmap live in [docs/plan.md](docs/plan.md) (in
-  Russian); the codebase and all permanent documents are in English.
+- [docs/architecture.md](docs/architecture.md) explains the "why" behind the
+  design; [docs/decisions.md](docs/decisions.md) lists deliberate non-goals.
+  All documents and code are in English.
 
 ## Getting started
 
