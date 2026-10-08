@@ -28,7 +28,7 @@ features:
     details: "配置在 doru.json，样式在 theme.css。热重载、纯文本，人和智能体都能编辑。"
   - icon: 🌍
     title: 17 种语言
-    details: "界面讲 VS Code 的语言——从中英文到日文和简体中文。"
+    details: "界面已完全本地化——从中英文到日文和简体中文。"
   - icon: 💾
     title: 天生可移植
     details: "复制文件夹即可备份。在 macOS、Windows 或 Linux 上打开。GEDCOM 导入导出保证互操作性。"

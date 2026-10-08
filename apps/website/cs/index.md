@@ -28,7 +28,7 @@ features:
     details: "Nastavení v doru.json, styl v theme.css. Živé znovunačtení, prostý text, upravitelné lidmi i agenty."
   - icon: 🌍
     title: 17 jazyků
-    details: "Rozhraní mluví jazyky VS Code — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
+    details: "Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
   - icon: 💾
     title: Přenosné z podstaty
     details: "Záloha zkopírováním složky. Otevřete ji na macOS, Windows nebo Linuxu. Import a export GEDCOM zajišťují interoperabilitu."

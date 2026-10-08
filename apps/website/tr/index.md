@@ -28,7 +28,7 @@ features:
     details: "Ayarlar doru.json'da, stil theme.css'te. Canlı yeniden yükleme, düz metin, insanlar ve ajanlar tarafından düzenlenebilir."
   - icon: 🌍
     title: 17 dil
-    details: "Arayüz VS Code'un dillerini konuşur — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
+    details: "Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
   - icon: 💾
     title: Doğası gereği taşınabilir
     details: "Bir klasörü kopyalayarak yedekleyin. macOS, Windows veya Linux'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."

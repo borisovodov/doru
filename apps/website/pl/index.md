@@ -28,7 +28,7 @@ features:
     details: "Ustawienia w doru.json, styl w theme.css. Przeładowanie na żywo, zwykły tekst, edytowalne przez ludzi i agentów."
   - icon: 🌍
     title: 17 języków
-    details: "Interfejs mówi językami VS Code — od polskiego i angielskiego po japoński i chiński uproszczony."
+    details: "Interfejs jest w pełni zlokalizowany — od polskiego i angielskiego po japoński i chiński uproszczony."
   - icon: 💾
     title: Przenośny z założenia
     details: "Kopia zapasowa przez skopiowanie folderu. Otwieraj go na macOS, Windows lub Linuksie. Import i eksport GEDCOM zapewniają interoperacyjność."

@@ -32,7 +32,7 @@ platform and architecture (Apple Silicon or Intel):
 - **macOS**: open the `.dmg`, drag Doru to Applications. Builds are signed and
   notarized by Apple.
 - **Windows**: run the installer. Builds are not code-signed yet, so SmartScreen
-  may show a warning — click "More info → Run anyway".
+  may show a warning — click “More info → Run anyway”.
 - **Linux**: `.deb` installs with `sudo apt install ./doru-*.deb`; the AppImage
   needs `chmod +x` and then just runs.
 
@@ -72,7 +72,7 @@ link) opens it in the running app.
 - **Person card**: click a person to edit. Fields: given name, surname, sex,
   and full birth/death dates — year, month, day, a quality marker
   (*Exact / About / Before / After*) and a free-text form (e.g. a calendar
-  date "23 Nivôse" that does not map to Gregorian).
+  date “23 Nivôse” that does not map to Gregorian).
 - **Families**: inside a person card, add parents, a partner, or children.
   Type a name to pick an existing person; chips show the members of each
   family. Removing a person from a family or deleting a family is one click.
@@ -160,7 +160,7 @@ Provider:
 - **API keys** are entered in the UI and stored encrypted in the OS keychain
   (macOS Keychain / Windows Credential Manager / libsecret). The key never
   appears in the config file in plaintext.
-- **Model**: type one or use the suggestions; with a key set, "Fetch models"
+- **Model**: type one or use the suggestions; with a key set, “Fetch models”
   lists the models available from the endpoint.
 - **Test connection** sends a small request and reports whether the provider
   answers. Local providers (Ollama, LM Studio) need no key.
@@ -207,10 +207,10 @@ language.
 
 ### 5.4 Example prompts
 
-- *"Find everyone born before 1850 and list their sources."*
-- *"Add Ivan Ivanov, born about 1923, as a child of Petr and Maria."*
-- *"Write a research note on Anna about the 1901 census."*
-- *"Check my tree for people born after their parents died."* — the agent can
+- *“Find everyone born before 1850 and list their sources.”*
+- *“Add Ivan Ivanov, born about 1923, as a child of Petr and Maria.”*
+- *“Write a research note on Anna about the 1901 census.”*
+- *“Check my tree for people born after their parents died.”* — the agent can
   combine tree tools with external tools (e.g. web search) if you configure
   them in `mcp.servers`.
 
@@ -270,7 +270,7 @@ Available variables:
 
 ## 8. Troubleshooting
 
-- **"AI provider is not configured"** — open Settings (gear icon in the left
+- **“AI provider is not configured”** — open Settings (gear icon in the left
   bar), pick a provider, and enter a model (and a key where required).
 - **Ollama connection fails** — select the Ollama preset (base URL
   `http://localhost:11434/v1`); no API key is needed. Make sure Ollama is

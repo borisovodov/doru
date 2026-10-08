@@ -28,7 +28,7 @@ features:
     details: "Configurações no doru.json, estilo no theme.css. Recarga a quente, texto simples, editável por pessoas e agentes."
   - icon: 🌍
     title: 17 idiomas
-    details: "A interface fala os idiomas do VS Code — do português e inglês ao japonês e chinês simplificado."
+    details: "A interface é totalmente localizada — do português e inglês ao japonês e chinês simplificado."
   - icon: 💾
     title: Portátil por natureza
     details: "Backup copiando uma pasta. Abra-a no macOS, Windows ou Linux. Importação e exportação GEDCOM mantêm a interoperabilidade."
