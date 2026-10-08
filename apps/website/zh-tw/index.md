@@ -11,7 +11,7 @@ hero:
       link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: 使用者指南
-      link: /zh-tw/guide/user-guide
+      link: /guide/user-guide
 
 features:
   - icon: 🗂️
