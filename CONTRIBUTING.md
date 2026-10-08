@@ -56,22 +56,12 @@ npm run e2e        # Playwright smoke test against the built app
 
 Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Release signing (optional)
+## Release signing
 
-The release workflow builds unsigned installers by default. To enable code
-signing and notarization, add these repository secrets
-(Settings → Secrets and variables → Actions):
-
-- `MAC_CSC_LINK` / `MAC_CSC_KEY_PASSWORD` — macOS "Developer ID Application"
-  certificate (`.p12`, base64) and its password
-- `APPLE_API_KEY` (base64 of the `AuthKey_*.p8` file), `APPLE_API_KEY_ID`,
-  `APPLE_API_ISSUER` — App Store Connect API key used for notarization
-- `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` — Windows code-signing certificate
-  (`.pfx`, base64) and its password
-
-When the Apple API key secrets are present, the macOS job is rebuilt with
-notarization; otherwise the fallback unsigned job runs. Windows signs
-automatically once `WIN_CSC_LINK` is set.
+The release workflow builds macOS installers signed and notarized; Linux and
+Windows installers are unsigned for now. Full instructions for obtaining and
+renewing the signing credentials — including the required GitHub repository
+secrets — are in [docs/signing.md](docs/signing.md).
 
 ## License
 
