@@ -1,8 +1,7 @@
 # Product Decisions
 
 Deliberate decisions about what Doru is **not** doing, recorded so they are not
-re-litigated by future contributors. Deferred work is tracked in GitHub issues
-where possible.
+re-litigated by future contributors. Deferred work is tracked in GitHub issues.
 
 ## Not building
 
@@ -40,12 +39,3 @@ half-written state and corrupt it. Doru uses a single-file journal mode
 (`journal_mode=DELETE`) to keep the folder clean, but the safe practice is:
 close the project (or the app) before syncing. Copying a closed project is
 always safe.
-
-## Deferred
-
-- Diagrams (pedigree, fan charts) — issue
-  [#1](https://github.com/borisovodov/doru/issues/1)
-- Plugin API / extension host — issue
-  [#2](https://github.com/borisovodov/doru/issues/2)
-- Auto-update (electron-updater) — the mac zip and blockmap artifacts are
-  already published to releases so this can land without packaging changes
