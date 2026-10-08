@@ -100,21 +100,20 @@ Global settings live in `doru.json` in the app's config directory:
 
 The file is created with defaults on first run. It is plain JSON with comments
 allowed — edit it with any editor; changes are picked up live while the app is
-running.
+running. The AI provider is normally configured from the in-app **Settings**
+(gear icon in the left bar) — see section 5.
 
 Full reference:
 
 ```jsonc
 {
-  // AI provider for the in-app chat.
+  // AI provider — set from Settings (gear icon) or here directly.
   "ai": {
-    // "openai-compatible" (default) or "acp" (Agent Client Protocol).
-    "provider": "openai-compatible",
-    // For "openai-compatible": any OpenAI-style API endpoint.
-    "baseUrl": "https://api.openai.com/v1",   // e.g. http://localhost:11434/v1 for Ollama
-    "apiKey": "",                             // stored encrypted after first use (see 5.1)
-    "model": "gpt-4o-mini",
-    // For "acp": the agent binary to spawn (Zed-style coding agents).
+    // openai | anthropic | gemini | openrouter | ollama | lmstudio | custom | acp
+    "provider": "openai",
+    "baseUrl": "",   // optional override of the provider's default endpoint
+    "model": "",
+    // For "acp" only: the agent binary to spawn.
     // "command": "my-agent",
     // "args": []
   },
@@ -140,7 +139,7 @@ Full reference:
 ```
 
 Environment variables (useful for secrets): `DORU_AI_API_KEY` and
-`DORU_AI_MODEL` override the corresponding `doru.json` values.
+`DORU_AI_MODEL` override the corresponding values.
 
 ---
 
@@ -152,11 +151,19 @@ The chat panel sits at the bottom of the window. Type a question and the agent
 can read and edit the tree using built-in tools: `tree.query`, `tree.get`,
 `tree.stats`, `tree.edit`, `sources.add`, `notes.write`, `charts.render`.
 
-- Any OpenAI-compatible endpoint works: OpenAI, Ollama (use
-  `"baseUrl": "http://localhost:11434/v1"`), OpenRouter, etc.
-- API keys are encrypted with the OS keychain (macOS Keychain / Windows
-  Credential Manager / libsecret) after first use: the plaintext key is
-  replaced by `ai.apiKeyEncrypted` automatically.
+Set the provider up from **Settings** (gear icon in the left bar) → AI
+Provider:
+
+- **Provider presets**: OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama
+  (local), LM Studio (local), a custom OpenAI-compatible endpoint, or an ACP
+  agent. Each preset pre-fills the base URL and suggests common models.
+- **API keys** are entered in the UI and stored encrypted in the OS keychain
+  (macOS Keychain / Windows Credential Manager / libsecret). The key never
+  appears in the config file in plaintext.
+- **Model**: type one or use the suggestions; with a key set, "Fetch models"
+  lists the models available from the endpoint.
+- **Test connection** sends a small request and reports whether the provider
+  answers. Local providers (Ollama, LM Studio) need no key.
 - **Permissions**: read-only tools run freely; mutating tools (`tree.edit`,
   `sources.add`, `notes.write`) ask for confirmation inline. External MCP tools
   always ask.
@@ -263,11 +270,11 @@ Available variables:
 
 ## 8. Troubleshooting
 
-- **"AI provider is not configured"** — the chat shows the exact path of the
-  config file. Add `ai.model` and either `ai.apiKey` or set
-  `DORU_AI_API_KEY`/`DORU_AI_MODEL`.
-- **Ollama connection fails** — set `"baseUrl": "http://localhost:11434/v1"`
-  and any non-empty `"apiKey"` (Ollama ignores it).
+- **"AI provider is not configured"** — open Settings (gear icon in the left
+  bar), pick a provider, and enter a model (and a key where required).
+- **Ollama connection fails** — select the Ollama preset (base URL
+  `http://localhost:11434/v1`); no API key is needed. Make sure Ollama is
+  running locally.
 - **GEDCOM import looks incomplete** — dialects vary wildly between programs.
   The import is tolerant but not perfect; export to GEDCOM and re-import in
   the source program to verify. Notes on files that fail entirely are welcome

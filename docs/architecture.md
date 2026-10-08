@@ -72,9 +72,18 @@ decisions about what we deliberately do **not** build, see
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
   agent's `session/request_permission` is routed into the same UI gate.
-- **API keys**: a plaintext `apiKey` in `doru.json` is migrated into
-  `apiKeyEncrypted` (OS keychain via `safeStorage`) on first read;
-  `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars override.
+- **Providers**: the in-app Settings (gear icon) offers presets — OpenAI,
+  Anthropic, Google Gemini, OpenRouter, Ollama, LM Studio, a custom
+  OpenAI-compatible endpoint, and ACP. Everything except Anthropic and ACP
+  speaks the OpenAI-compatible chat dialect (Gemini exposes one); Anthropic
+  has its own connector (`/v1/messages`, `x-api-key`, tool_use/tool_result).
+  Presets live in `packages/ai/src/providers.ts`; the config file stores only
+  the provider id, base URL override, and model.
+- **API keys** are entered only in the Settings UI and stored via
+  `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `doru.json`; the
+  plaintext never sits in the file. `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars
+  still override. Settings changes go through `jsonc-parser` edits so the
+  file stays human-readable JSONC.
 
 ## Theming
 
