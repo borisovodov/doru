@@ -1,5 +1,6 @@
 import type {
   GedcomImportResult,
+  NoteRecord,
   PersonRecord,
   ProjectSummary,
   RecentProject,
@@ -37,6 +38,11 @@ declare global {
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
       onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
       respondChatPermission(id: string, allow: boolean): void;
+      getTheme(projectPath: string): Promise<{ css: string }>;
+      onThemeChanged(callback: (info: { projectPath: string }) => void): () => void;
+      listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
+      addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
+      getGedcomText(projectPath: string): Promise<string>;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }

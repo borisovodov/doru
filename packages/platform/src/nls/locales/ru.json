@@ -40,5 +40,11 @@
   "chat.permission.deny": "Запретить",
   "chat.toolCall": "Инструмент: {0}",
   "chat.empty": "Откройте проект, чтобы начать общение.",
-  "chat.error": "Ошибка: {0}"
+  "chat.error": "Ошибка: {0}",
+  "features.tree.notes.title": "Заметки",
+  "features.tree.notes.add": "Добавить заметку",
+  "features.tree.notes.placeholder": "Напишите заметку для исследования…",
+  "features.tree.notes.empty": "Заметок пока нет.",
+  "features.tree.viewGedcom": "Посмотреть GEDCOM",
+  "features.tree.viewPeople": "Вернуться к людям"
 }

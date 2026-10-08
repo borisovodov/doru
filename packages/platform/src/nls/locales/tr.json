@@ -40,5 +40,11 @@
   "chat.permission.deny": "Reddet",
   "chat.toolCall": "Araç: {0}",
   "chat.empty": "Sohbet etmek için bir proje açın.",
-  "chat.error": "Hata: {0}"
+  "chat.error": "Hata: {0}",
+  "features.tree.notes.title": "Notlar",
+  "features.tree.notes.add": "Not ekle",
+  "features.tree.notes.placeholder": "Bir araştırma notu yazın…",
+  "features.tree.notes.empty": "Henüz not yok.",
+  "features.tree.viewGedcom": "GEDCOM'u görüntüle",
+  "features.tree.viewPeople": "Kişilere dön"
 }

@@ -40,5 +40,11 @@
   "chat.permission.deny": "거부",
   "chat.toolCall": "도구: {0}",
   "chat.empty": "채팅을 시작하려면 프로젝트를 여세요.",
-  "chat.error": "오류: {0}"
+  "chat.error": "오류: {0}",
+  "features.tree.notes.title": "메모",
+  "features.tree.notes.add": "메모 추가",
+  "features.tree.notes.placeholder": "연구 메모 작성…",
+  "features.tree.notes.empty": "아직 메모가 없습니다.",
+  "features.tree.viewGedcom": "GEDCOM 보기",
+  "features.tree.viewPeople": "인물로 돌아가기"
 }

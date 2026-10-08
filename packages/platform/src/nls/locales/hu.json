@@ -40,5 +40,11 @@
   "chat.permission.deny": "Elutasítás",
   "chat.toolCall": "Eszköz: {0}",
   "chat.empty": "A csevegéshez nyisson meg egy projektet.",
-  "chat.error": "Hiba: {0}"
+  "chat.error": "Hiba: {0}",
+  "features.tree.notes.title": "Jegyzetek",
+  "features.tree.notes.add": "Jegyzet hozzáadása",
+  "features.tree.notes.placeholder": "Írjon kutatási jegyzetet…",
+  "features.tree.notes.empty": "Még nincsenek jegyzetek.",
+  "features.tree.viewGedcom": "GEDCOM megtekintése",
+  "features.tree.viewPeople": "Vissza a személyekhez"
 }

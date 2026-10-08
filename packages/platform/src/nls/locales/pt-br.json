@@ -40,5 +40,11 @@
   "chat.permission.deny": "Negar",
   "chat.toolCall": "Ferramenta: {0}",
   "chat.empty": "Abra um projeto para começar a conversar.",
-  "chat.error": "Erro: {0}"
+  "chat.error": "Erro: {0}",
+  "features.tree.notes.title": "Notas",
+  "features.tree.notes.add": "Adicionar nota",
+  "features.tree.notes.placeholder": "Escreva uma nota de pesquisa…",
+  "features.tree.notes.empty": "Nenhuma nota ainda.",
+  "features.tree.viewGedcom": "Ver GEDCOM",
+  "features.tree.viewPeople": "Voltar às pessoas"
 }

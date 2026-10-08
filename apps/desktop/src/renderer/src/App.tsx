@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatMessage } from '@doru/ai';
 import type {
   GedcomImportResult,
+  NoteRecord,
   PersonRecord,
   ProjectSummary,
   RecentProject,
@@ -34,6 +35,7 @@ export function App() {
   const [chatMessages, setChatMessages] = useState<ChatTranscriptMessage[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
+  const [themeCss, setThemeCss] = useState('');
   const commands = useMemo(() => new CommandService(), []);
   const chatConversation = useRef<ChatMessage[]>([]);
 
@@ -61,12 +63,22 @@ export function App() {
       setPermission(null);
       chatConversation.current = [];
       void reloadTree(activePath, '');
+      void window.doru.getTheme(activePath).then((result) => setThemeCss(result.css));
     } else {
       setPersons([]);
       setStats(null);
       setUndoState(NO_UNDO);
+      setThemeCss('');
     }
   }, [activePath, reloadTree]);
+
+  useEffect(() => {
+    return window.doru.onThemeChanged((info) => {
+      if (info.projectPath === activePath) {
+        void window.doru.getTheme(info.projectPath).then((result) => setThemeCss(result.css));
+      }
+    });
+  }, [activePath]);
 
   const openProject = useCallback(
     async (path?: string) => {
@@ -211,6 +223,40 @@ export function App() {
     [permission],
   );
 
+  const getNotes = useCallback(
+    async (personId: string): Promise<NoteRecord[]> => {
+      if (!activePath) {
+        return [];
+      }
+      return window.doru.listNotes(activePath, personId);
+    },
+    [activePath],
+  );
+
+  const addNote = useCallback(
+    async (personId: string, text: string) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(
+        await window.doru.addNote(activePath, {
+          id: crypto.randomUUID(),
+          text,
+          targetType: 'person',
+          targetId: personId,
+        }),
+      );
+    },
+    [activePath],
+  );
+
+  const getGedcomText = useCallback(async (): Promise<string> => {
+    if (!activePath) {
+      return '';
+    }
+    return window.doru.getGedcomText(activePath);
+  }, [activePath]);
+
   useEffect(() => {
     void refreshRecent();
   }, [refreshRecent]);
@@ -268,52 +314,58 @@ export function App() {
   const tabInfos: TabInfo[] = tabs.map((tab) => ({ id: tab.path, label: basename(tab.path) }));
 
   return (
-    <Workbench
-      commands={commands}
-      keybindings={keybindings}
-      sidebar={
-        <RecentList
-          projects={recent}
-          onOpen={(path) => void openProject(path)}
-          onBrowse={() => void openProject()}
-        />
-      }
-      editor={
-        <TreeView
-          summary={activeSummary}
-          persons={activeSummary ? persons : []}
-          stats={activeSummary ? stats : null}
-          importResult={activeSummary ? importResult : null}
-          exportResult={activeSummary ? exportResult : null}
-          search={search}
-          canUndo={undoState.canUndo}
-          canRedo={undoState.canRedo}
-          onOpenProject={() => void openProject()}
-          onImportGedcom={() => void importGedcom()}
-          onExportGedcom={() => void exportGedcom()}
-          onSearch={onSearch}
-          onUndo={() => void undo()}
-          onRedo={() => void redo()}
-          onAddPerson={(person) => void addPerson(person)}
-          onUpdatePerson={(before, after) => void updatePerson(before, after)}
-        />
-      }
-      panel={
-        <ChatPanel
-          messages={chatMessages}
-          busy={chatBusy}
-          permission={permission}
-          onSend={(text) => void sendChatMessage(text)}
-          onPermission={(allow) => respondPermission(allow)}
-        />
-      }
-      tabs={tabInfos}
-      activeTabId={activePath}
-      onSelectTab={setActivePath}
-      onCloseTab={(id) => void closeTab(id)}
-      statusText={activeSummary ? activeSummary.path : nls.t('workbench.statusBar.ready')}
-      onOpenProject={() => void openProject()}
-    />
+    <>
+      <style id="doru-project-theme">{themeCss}</style>
+      <Workbench
+        commands={commands}
+        keybindings={keybindings}
+        sidebar={
+          <RecentList
+            projects={recent}
+            onOpen={(path) => void openProject(path)}
+            onBrowse={() => void openProject()}
+          />
+        }
+        editor={
+          <TreeView
+            summary={activeSummary}
+            persons={activeSummary ? persons : []}
+            stats={activeSummary ? stats : null}
+            importResult={activeSummary ? importResult : null}
+            exportResult={activeSummary ? exportResult : null}
+            search={search}
+            canUndo={undoState.canUndo}
+            canRedo={undoState.canRedo}
+            onOpenProject={() => void openProject()}
+            onImportGedcom={() => void importGedcom()}
+            onExportGedcom={() => void exportGedcom()}
+            onSearch={onSearch}
+            onUndo={() => void undo()}
+            onRedo={() => void redo()}
+            onAddPerson={(person) => void addPerson(person)}
+            onUpdatePerson={(before, after) => void updatePerson(before, after)}
+            getNotes={getNotes}
+            onAddNote={(personId, text) => void addNote(personId, text)}
+            getGedcomText={getGedcomText}
+          />
+        }
+        panel={
+          <ChatPanel
+            messages={chatMessages}
+            busy={chatBusy}
+            permission={permission}
+            onSend={(text) => void sendChatMessage(text)}
+            onPermission={(allow) => respondPermission(allow)}
+          />
+        }
+        tabs={tabInfos}
+        activeTabId={activePath}
+        onSelectTab={setActivePath}
+        onCloseTab={(id) => void closeTab(id)}
+        statusText={activeSummary ? activeSummary.path : nls.t('workbench.statusBar.ready')}
+        onOpenProject={() => void openProject()}
+      />
+    </>
   );
 }
 

@@ -1,9 +1,9 @@
-import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, watch, type FSWatcher } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse } from 'jsonc-parser';
+import { applyEdits, modify, parse } from 'jsonc-parser';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   AgentRuntime,
@@ -22,12 +22,15 @@ import {
   ReadGedcomImporter,
   RecentProjects,
   SqliteTreeRepository,
+  THEME_FILE_NAME,
   TreeStore,
+  addNoteOp,
   addPersonOp,
   importGedcomOp,
   updatePersonOp,
   type GedcomImportResult,
   type ITreeStore,
+  type NoteRecord,
   type PersonRecord,
   type ProjectSummary,
   type TreeDocument,
@@ -62,6 +65,7 @@ interface ProjectRuntime {
 }
 
 const runtimes = new Map<string, ProjectRuntime>();
+const themeWatchers = new Map<string, FSWatcher>();
 
 interface PendingPermission {
   resolve: (allowed: boolean) => void;
@@ -123,6 +127,16 @@ async function ensureRuntime(
   });
   const runtime: ProjectRuntime = { store, repo, queue, history };
   runtimes.set(summary.path, runtime);
+  if (!themeWatchers.has(summary.path)) {
+    try {
+      const watcher = watch(join(summary.path, THEME_FILE_NAME), () => {
+        mainWindow?.webContents.send('theme:changed', { projectPath: summary.path });
+      });
+      themeWatchers.set(summary.path, watcher);
+    } catch {
+      log.warn('could not watch theme.css', summary.path);
+    }
+  }
   return { summary, runtime };
 }
 
@@ -199,12 +213,40 @@ function loadAiConfig(): { baseUrl: string; apiKey: string; model: string } | nu
     mkdirSync(dir, { recursive: true });
     writeFileSync(file, DEFAULT_AI_CONFIG);
   }
-  const parsed = parse(readFileSync(file, 'utf8')) as {
-    ai?: { baseUrl?: string; apiKey?: string; model?: string };
+  const text = readFileSync(file, 'utf8');
+  const parsed = parse(text) as {
+    ai?: { baseUrl?: string; apiKey?: string; apiKeyEncrypted?: string; model?: string };
   };
   const ai = parsed.ai ?? {};
-  const apiKey = ai.apiKey ?? '';
-  const model = ai.model ?? '';
+
+  let apiKey = ai.apiKey ?? '';
+  if (!apiKey && ai.apiKeyEncrypted) {
+    try {
+      apiKey = safeStorage.decryptString(Buffer.from(ai.apiKeyEncrypted, 'base64'));
+    } catch {
+      apiKey = '';
+    }
+  }
+  const envKey = process.env.DORU_AI_API_KEY;
+  if (envKey) {
+    apiKey = envKey;
+  }
+
+  if (ai.apiKey && !ai.apiKeyEncrypted && safeStorage.isEncryptionAvailable()) {
+    const encrypted = safeStorage.encryptString(ai.apiKey).toString('base64');
+    const withEncrypted = applyEdits(
+      text,
+      modify(text, ['ai', 'apiKeyEncrypted'], encrypted, { formattingOptions: { insertSpaces: true, tabSize: 2 } }),
+    );
+    const migrated = applyEdits(
+      withEncrypted,
+      modify(withEncrypted, ['ai', 'apiKey'], undefined, { formattingOptions: { insertSpaces: true, tabSize: 2 } }),
+    );
+    writeFileSync(file, migrated);
+    log.info('migrated the plaintext API key into safeStorage');
+  }
+
+  const model = process.env.DORU_AI_MODEL ?? ai.model ?? '';
   if (!apiKey || !model) {
     return null;
   }
@@ -268,6 +310,11 @@ ipcMain.handle('project:close', (_event, options: { path: string }) => {
   if (runtime) {
     runtime.store.close();
     runtimes.delete(options.path);
+  }
+  const watcher = themeWatchers.get(options.path);
+  if (watcher) {
+    watcher.close();
+    themeWatchers.delete(options.path);
   }
 });
 
@@ -349,6 +396,46 @@ ipcMain.handle(
   (_event, options: { projectPath: string; messages: ChatMessage[] }) => sendChat(options),
 );
 
+ipcMain.handle('theme:get', async (_event, options: { projectPath: string }) => {
+  await ensureRuntime(options.projectPath);
+  try {
+    const css = await fs.readFile(join(options.projectPath, THEME_FILE_NAME));
+    return { css };
+  } catch {
+    return { css: '' };
+  }
+});
+
+ipcMain.handle(
+  'tree:notes',
+  async (_event, options: { projectPath: string; personId?: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    const notes = runtime.repo.listNotes();
+    if (!options.personId) {
+      return notes;
+    }
+    return notes.filter(
+      (note) => note.targetType === 'person' && note.targetId === options.personId,
+    );
+  },
+);
+
+ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(addNoteOp('user', options.note), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:gedcomText', async (_event, options: { projectPath: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  const doc: TreeDocument = {
+    persons: new Map(runtime.repo.listAllPersons().map((person) => [person.id, person])),
+    families: new Map(runtime.repo.listFamilies().map((family) => [family.id, family])),
+    sources: new Map(runtime.repo.listSources().map((source) => [source.id, source])),
+  };
+  return new Gedcom70Writer().export(doc);
+});
+
 ipcMain.on('chat:permission-response', (_event, options: { id: string; allow: boolean }) => {
   const pending = pendingPermissions.get(options.id);
   if (!pending) {
@@ -363,6 +450,17 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
+  if (process.defaultApp && process.argv[1]) {
+    app.setAsDefaultProtocolClient('doru', process.execPath, [process.argv[1]]);
+  } else {
+    app.setAsDefaultProtocolClient('doru');
+  }
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    handleProtocolUrl(url);
+  });
+
   app.on('second-instance', (_event, argv) => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) {
@@ -383,6 +481,25 @@ if (!gotLock) {
       pendingExternalPaths.push(path);
     }
   });
+}
+
+function handleProtocolUrl(url: string): void {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'doru:') {
+      return;
+    }
+    const projectPath = parsed.searchParams.get('path');
+    if (projectPath) {
+      if (app.isReady()) {
+        openExternalPath(projectPath);
+      } else {
+        pendingExternalPaths.push(projectPath);
+      }
+    }
+  } catch {
+    log.warn('malformed protocol url', url);
+  }
 }
 
 function extractPathArgs(argv: string[]): string[] {
@@ -412,7 +529,11 @@ void app.whenReady().then(async () => {
 
   createWindow();
   for (const path of [...extractPathArgs(process.argv), ...pendingExternalPaths]) {
-    openExternalPath(path);
+    if (path.startsWith('doru://')) {
+      handleProtocolUrl(path);
+    } else {
+      openExternalPath(path);
+    }
   }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

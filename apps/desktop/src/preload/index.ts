@@ -33,6 +33,19 @@ const api = {
   },
   respondChatPermission: (id: string, allow: boolean): void =>
     ipcRenderer.send('chat:permission-response', { id, allow }),
+  getTheme: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('theme:get', { projectPath }),
+  onThemeChanged: (callback: (info: { projectPath: string }) => void): (() => void) => {
+    const listener = (_event: unknown, info: { projectPath: string }) => callback(info);
+    ipcRenderer.on('theme:changed', listener);
+    return () => ipcRenderer.removeListener('theme:changed', listener);
+  },
+  listNotes: (projectPath: string, personId?: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:notes', { projectPath, personId }),
+  addNote: (projectPath: string, note: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addNote', { projectPath, note }),
+  getGedcomText: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:gedcomText', { projectPath }),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);

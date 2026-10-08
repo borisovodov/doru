@@ -40,5 +40,11 @@
   "chat.permission.deny": "Απόρριψη",
   "chat.toolCall": "Εργαλείο: {0}",
   "chat.empty": "Ανοίξτε ένα έργο για να ξεκινήσετε τη συνομιλία.",
-  "chat.error": "Σφάλμα: {0}"
+  "chat.error": "Σφάλμα: {0}",
+  "features.tree.notes.title": "Σημειώσεις",
+  "features.tree.notes.add": "Προσθήκη σημείωσης",
+  "features.tree.notes.placeholder": "Γράψτε μια ερευνητική σημείωση…",
+  "features.tree.notes.empty": "Δεν υπάρχουν σημειώσεις.",
+  "features.tree.viewGedcom": "Προβολή GEDCOM",
+  "features.tree.viewPeople": "Επιστροφή στα άτομα"
 }

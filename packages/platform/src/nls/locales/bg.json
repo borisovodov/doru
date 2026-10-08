@@ -40,5 +40,11 @@
   "chat.permission.deny": "Отказ",
   "chat.toolCall": "Инструмент: {0}",
   "chat.empty": "Отворете проект, за да започнете чат.",
-  "chat.error": "Грешка: {0}"
+  "chat.error": "Грешка: {0}",
+  "features.tree.notes.title": "Бележки",
+  "features.tree.notes.add": "Добавяне на бележка",
+  "features.tree.notes.placeholder": "Напишете изследователска бележка…",
+  "features.tree.notes.empty": "Все още няма бележки.",
+  "features.tree.viewGedcom": "Преглед на GEDCOM",
+  "features.tree.viewPeople": "Обратно към хората"
 }

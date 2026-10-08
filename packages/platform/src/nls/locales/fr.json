@@ -40,5 +40,11 @@
   "chat.permission.deny": "Refuser",
   "chat.toolCall": "Outil : {0}",
   "chat.empty": "Ouvrez un projet pour commencer à discuter.",
-  "chat.error": "Erreur : {0}"
+  "chat.error": "Erreur : {0}",
+  "features.tree.notes.title": "Notes",
+  "features.tree.notes.add": "Ajouter une note",
+  "features.tree.notes.placeholder": "Rédigez une note de recherche…",
+  "features.tree.notes.empty": "Aucune note pour l'instant.",
+  "features.tree.viewGedcom": "Voir le GEDCOM",
+  "features.tree.viewPeople": "Retour aux personnes"
 }

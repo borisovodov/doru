@@ -32,10 +32,22 @@ jobs:
           node -e "require('electron')" || node -e "const fs=require('fs');fs.rmSync('node_modules/electron/dist',{recursive:true,force:true});fs.rmSync('node_modules/electron/path.txt',{force:true});require('child_process').execSync('node node_modules/electron/install.js',{stdio:'inherit'})"
       - run: npm test
       - run: npm run typecheck
+      - name: Build macOS installers (signed and notarized)
+        if: runner.os == 'macOS' && secrets.APPLE_ID != ''
+        run: npx electron-builder --mac --publish never --config.mac.notarize=true
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
       - name: Build installers
+        if: ${{ !(runner.os == 'macOS' && secrets.APPLE_ID != '') }}
         run: npm run package --workspace @doru/desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || runner.os == 'Windows' && secrets.WIN_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || runner.os == 'Windows' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os }}

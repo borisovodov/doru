@@ -40,5 +40,11 @@
   "chat.permission.deny": "拒绝",
   "chat.toolCall": "工具: {0}",
   "chat.empty": "打开项目以开始聊天。",
-  "chat.error": "错误: {0}"
+  "chat.error": "错误: {0}",
+  "features.tree.notes.title": "备注",
+  "features.tree.notes.add": "添加备注",
+  "features.tree.notes.placeholder": "写一条研究备注…",
+  "features.tree.notes.empty": "暂无备注。",
+  "features.tree.viewGedcom": "查看 GEDCOM",
+  "features.tree.viewPeople": "返回人员列表"
 }

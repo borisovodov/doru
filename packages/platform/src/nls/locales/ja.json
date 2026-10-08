@@ -40,5 +40,11 @@
   "chat.permission.deny": "拒否",
   "chat.toolCall": "ツール: {0}",
   "chat.empty": "チャットを開始するにはプロジェクトを開いてください。",
-  "chat.error": "エラー: {0}"
+  "chat.error": "エラー: {0}",
+  "features.tree.notes.title": "メモ",
+  "features.tree.notes.add": "メモを追加",
+  "features.tree.notes.placeholder": "調査メモを書く…",
+  "features.tree.notes.empty": "メモはまだありません。",
+  "features.tree.viewGedcom": "GEDCOM を表示",
+  "features.tree.viewPeople": "人物に戻る"
 }

@@ -40,5 +40,11 @@
   "chat.permission.deny": "Odrzuć",
   "chat.toolCall": "Narzędzie: {0}",
   "chat.empty": "Otwórz projekt, aby rozpocząć czat.",
-  "chat.error": "Błąd: {0}"
+  "chat.error": "Błąd: {0}",
+  "features.tree.notes.title": "Notatki",
+  "features.tree.notes.add": "Dodaj notatkę",
+  "features.tree.notes.placeholder": "Napisz notatkę badawczą…",
+  "features.tree.notes.empty": "Brak notatek.",
+  "features.tree.viewGedcom": "Pokaż GEDCOM",
+  "features.tree.viewPeople": "Wróć do osób"
 }

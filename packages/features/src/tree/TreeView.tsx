@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { GedcomImportResult, PersonRecord, ProjectSummary, Sex, TreeStats } from '@doru/core';
+import type {
+  GedcomImportResult,
+  NoteRecord,
+  PersonRecord,
+  ProjectSummary,
+  Sex,
+  TreeStats,
+} from '@doru/core';
 import { nls } from '../nls';
 
 interface PersonDraft {
@@ -29,6 +36,9 @@ export interface TreeViewProps {
   onRedo: () => void;
   onAddPerson: (person: PersonRecord) => void;
   onUpdatePerson: (before: PersonRecord, after: PersonRecord) => void;
+  getNotes: (personId: string) => Promise<NoteRecord[]>;
+  onAddNote: (personId: string, text: string) => void;
+  getGedcomText: () => Promise<string>;
 }
 
 export function TreeView({
@@ -48,9 +58,14 @@ export function TreeView({
   onRedo,
   onAddPerson,
   onUpdatePerson,
+  getNotes,
+  onAddNote,
+  getGedcomText,
 }: TreeViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PersonDraft | null>(null);
+  const [viewMode, setViewMode] = useState<'tree' | 'gedcom'>('tree');
+  const [gedcomText, setGedcomText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedId) {
@@ -112,6 +127,19 @@ export function TreeView({
     }
   };
 
+  const toggleGedcom = async () => {
+    if (viewMode === 'tree') {
+      setViewMode('gedcom');
+      setGedcomText(null);
+      setGedcomText(await getGedcomText());
+      setDraft(null);
+      setSelectedId(null);
+    } else {
+      setViewMode('tree');
+      setGedcomText(null);
+    }
+  };
+
   return (
     <div className="tree-view">
       <div className="tree-toolbar">
@@ -129,29 +157,51 @@ export function TreeView({
         <button onClick={onImportGedcom}>{nls.t('features.tree.importGedcom')}</button>
         <button onClick={onExportGedcom}>{nls.t('features.tree.exportGedcom')}</button>
         <button onClick={startAdd}>{nls.t('features.tree.addPerson')}</button>
+        <button onClick={() => void toggleGedcom()}>
+          {viewMode === 'tree' ? nls.t('features.tree.viewGedcom') : nls.t('features.tree.viewPeople')}
+        </button>
       </div>
-      {stats && <p className="tree-stats">{nls.t('features.tree.totalPersons', stats.persons)}</p>}
-      {importResult && (
-        <p className="tree-stats">
-          {nls.t('features.tree.importResult', importResult.importedPersons, importResult.importedFamilies)}
-        </p>
-      )}
-      {exportResult && (
-        <p className="tree-stats">{nls.t('features.tree.exported', exportResult.path)}</p>
-      )}
-      {draft ? (
-        <PersonEditor draft={draft} onChange={setDraft} onSave={save} onCancel={closeEditor} />
-      ) : persons.length === 0 ? (
-        <p>{nls.t('features.tree.emptyTree')}</p>
+      {viewMode === 'gedcom' ? (
+        <pre className="gedcom-view">{gedcomText ?? ''}</pre>
       ) : (
-        <ul className="person-list">
-          {persons.map((person) => (
-            <li key={person.id} onClick={() => setSelectedId(person.id)}>
-              <span className="person-name">{displayName(person)}</span>
-              <span className="person-dates">{years(person)}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {stats && (
+            <p className="tree-stats">{nls.t('features.tree.totalPersons', stats.persons)}</p>
+          )}
+          {importResult && (
+            <p className="tree-stats">
+              {nls.t(
+                'features.tree.importResult',
+                importResult.importedPersons,
+                importResult.importedFamilies,
+              )}
+            </p>
+          )}
+          {exportResult && (
+            <p className="tree-stats">{nls.t('features.tree.exported', exportResult.path)}</p>
+          )}
+          {draft ? (
+            <PersonEditor
+              draft={draft}
+              onChange={setDraft}
+              onSave={save}
+              onCancel={closeEditor}
+              getNotes={getNotes}
+              onAddNote={onAddNote}
+            />
+          ) : persons.length === 0 ? (
+            <p>{nls.t('features.tree.emptyTree')}</p>
+          ) : (
+            <ul className="person-list">
+              {persons.map((person) => (
+                <li key={person.id} onClick={() => setSelectedId(person.id)}>
+                  <span className="person-name">{displayName(person)}</span>
+                  <span className="person-dates">{years(person)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );
@@ -162,10 +212,43 @@ interface PersonEditorProps {
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
   onCancel: () => void;
+  getNotes: (personId: string) => Promise<NoteRecord[]>;
+  onAddNote: (personId: string, text: string) => void;
 }
 
-function PersonEditor({ draft, onChange, onSave, onCancel }: PersonEditorProps) {
+function PersonEditor({ draft, onChange, onSave, onCancel, getNotes, onAddNote }: PersonEditorProps) {
+  const [notes, setNotes] = useState<NoteRecord[]>([]);
+  const [noteDraft, setNoteDraft] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!draft.isNew) {
+      void getNotes(draft.id).then((loaded) => {
+        if (!cancelled) {
+          setNotes(loaded);
+        }
+      });
+    } else {
+      setNotes([]);
+    }
+    setNoteDraft('');
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.id, draft.isNew, getNotes]);
+
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });
+
+  const addNote = () => {
+    const text = noteDraft.trim();
+    if (!text) {
+      return;
+    }
+    onAddNote(draft.id, text);
+    setNoteDraft('');
+    void getNotes(draft.id).then(setNotes);
+  };
+
   return (
     <div className="person-editor">
       <label>
@@ -204,6 +287,33 @@ function PersonEditor({ draft, onChange, onSave, onCancel }: PersonEditorProps) 
         <button onClick={onSave}>{nls.t('features.tree.save')}</button>
         <button onClick={onCancel}>{nls.t('features.tree.back')}</button>
       </div>
+      {!draft.isNew && (
+        <div className="person-notes">
+          <h3>{nls.t('features.tree.notes.title')}</h3>
+          {notes.length === 0 ? (
+            <p className="notes-empty">{nls.t('features.tree.notes.empty')}</p>
+          ) : (
+            <ul>
+              {notes.map((note) => (
+                <li key={note.id}>{note.text}</li>
+              ))}
+            </ul>
+          )}
+          <div className="notes-add">
+            <input
+              value={noteDraft}
+              placeholder={nls.t('features.tree.notes.placeholder')}
+              onChange={(event) => setNoteDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  addNote();
+                }
+              }}
+            />
+            <button onClick={addNote}>{nls.t('features.tree.notes.add')}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -40,5 +40,11 @@
   "chat.permission.deny": "拒絕",
   "chat.toolCall": "工具: {0}",
   "chat.empty": "開啟專案以開始聊天。",
-  "chat.error": "錯誤: {0}"
+  "chat.error": "錯誤: {0}",
+  "features.tree.notes.title": "備註",
+  "features.tree.notes.add": "新增備註",
+  "features.tree.notes.placeholder": "撰寫研究備註…",
+  "features.tree.notes.empty": "尚無備註。",
+  "features.tree.viewGedcom": "檢視 GEDCOM",
+  "features.tree.viewPeople": "返回人員"
 }

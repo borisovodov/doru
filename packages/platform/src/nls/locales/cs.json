@@ -40,5 +40,11 @@
   "chat.permission.deny": "Zamítnout",
   "chat.toolCall": "Nástroj: {0}",
   "chat.empty": "Otevřete projekt a začněte chatovat.",
-  "chat.error": "Chyba: {0}"
+  "chat.error": "Chyba: {0}",
+  "features.tree.notes.title": "Poznámky",
+  "features.tree.notes.add": "Přidat poznámku",
+  "features.tree.notes.placeholder": "Napište výzkumnou poznámku…",
+  "features.tree.notes.empty": "Zatím žádné poznámky.",
+  "features.tree.viewGedcom": "Zobrazit GEDCOM",
+  "features.tree.viewPeople": "Zpět k osobám"
 }
