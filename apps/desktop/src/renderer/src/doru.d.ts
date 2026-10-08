@@ -133,8 +133,18 @@ declare global {
         acpCommand?: string;
         acpArgs?: string[];
       }): Promise<AiSettings>;
-      testAiConnection(): Promise<{ ok: boolean; error?: string }>;
-      fetchAiModels(): Promise<string[]>;
+      testAiConnection(options?: {
+        provider?: string;
+        baseUrl?: string;
+        apiKey?: string;
+        model?: string;
+      }): Promise<{ ok: boolean; error?: string }>;
+      fetchAiModels(options?: {
+        provider?: string;
+        baseUrl?: string;
+        apiKey?: string;
+        model?: string;
+      }): Promise<{ models: string[]; error?: string }>;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }

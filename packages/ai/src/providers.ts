@@ -43,6 +43,14 @@ export const AI_PROVIDERS: AiProviderPreset[] = [
     requiresKey: true,
   },
   {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    dialect: 'openai',
+    defaultBaseUrl: 'https://api.deepseek.com',
+    defaultModels: ['deepseek-chat', 'deepseek-reasoner'],
+    requiresKey: true,
+  },
+  {
     id: 'ollama',
     label: 'Ollama (local)',
     dialect: 'openai',

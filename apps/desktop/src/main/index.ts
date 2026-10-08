@@ -953,12 +953,37 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle('settings:ai:test', async () => {
+function configWithOverrides(overrides: {
+  provider?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+}): ResolvedAiConfig {
   const config = loadAiConfig();
+  const preset = overrides.provider ? findProvider(overrides.provider) : config.preset;
+  const providerChanged = overrides.provider !== undefined && overrides.provider !== config.preset.id;
+  return {
+    ...config,
+    preset,
+    baseUrl:
+      overrides.baseUrl ??
+      (providerChanged ? (preset.defaultBaseUrl ?? '') : config.baseUrl),
+    apiKey: overrides.apiKey !== undefined ? overrides.apiKey : config.apiKey,
+    model: overrides.model ?? config.model,
+  };
+}
+
+ipcMain.handle('settings:ai:test', async (_event, options: {
+  provider?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+} = {}) => {
+  const config = configWithOverrides(options);
   if (config.preset.dialect === 'acp') {
     return { ok: config.acpCommand !== '', error: config.acpCommand !== '' ? undefined : 'ACP command is not set' };
   }
-  if (!config.configured) {
+  if (!config.model || !config.baseUrl || (config.preset.requiresKey && !config.apiKey)) {
     return { ok: false, error: 'Provider is not configured' };
   }
   try {
@@ -973,10 +998,15 @@ ipcMain.handle('settings:ai:test', async () => {
   }
 });
 
-ipcMain.handle('settings:ai:models', async () => {
-  const config = loadAiConfig();
-  if (config.preset.dialect === 'acp' || !config.configured) {
-    return [];
+ipcMain.handle('settings:ai:models', async (_event, options: {
+  provider?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+} = {}) => {
+  const config = configWithOverrides(options);
+  if (config.preset.dialect === 'acp' || !config.baseUrl || !config.apiKey) {
+    return { models: [] as string[], error: 'Provider is not configured' };
   }
   try {
     if (config.preset.dialect === 'anthropic') {
@@ -984,21 +1014,21 @@ ipcMain.handle('settings:ai:models', async () => {
         headers: { 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' },
       });
       if (!response.ok) {
-        return [];
+        return { models: [] as string[], error: `HTTP ${response.status}` };
       }
       const data = (await response.json()) as { data?: Array<{ id: string }> };
-      return (data.data ?? []).map((model) => model.id);
+      return { models: (data.data ?? []).map((model) => model.id) };
     }
     const response = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/models`, {
       headers: { authorization: `Bearer ${config.apiKey}` },
     });
     if (!response.ok) {
-      return [];
+      return { models: [] as string[], error: `HTTP ${response.status}` };
     }
     const data = (await response.json()) as { data?: Array<{ id: string }> };
-    return (data.data ?? []).map((model) => model.id);
-  } catch {
-    return [];
+    return { models: (data.data ?? []).map((model) => model.id) };
+  } catch (error) {
+    return { models: [] as string[], error: error instanceof Error ? error.message : String(error) };
   }
 });
 

@@ -103,8 +103,10 @@ const api = {
   getAiProviders: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:providers'),
   setAiSettings: (options: unknown): Promise<unknown> =>
     ipcRenderer.invoke('settings:ai:set', options),
-  testAiConnection: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:test'),
-  fetchAiModels: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:models'),
+  testAiConnection: (options?: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('settings:ai:test', options ?? {}),
+  fetchAiModels: (options?: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('settings:ai:models', options ?? {}),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);

@@ -32,8 +32,18 @@ export interface SettingsViewProps {
     acpCommand?: string;
     acpArgs?: string[];
   }) => Promise<AiSettingsState>;
-  onTest: () => Promise<{ ok: boolean; error?: string }>;
-  onFetchModels: () => Promise<string[]>;
+  onTest: (options: {
+    provider?: string;
+    baseUrl?: string;
+    apiKey?: string;
+    model?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  onFetchModels: (options: {
+    provider?: string;
+    baseUrl?: string;
+    apiKey?: string;
+    model?: string;
+  }) => Promise<{ models: string[]; error?: string }>;
 }
 
 export function SettingsView({ providers, settings, onSave, onTest, onFetchModels }: SettingsViewProps) {
@@ -49,6 +59,7 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
   const [saved, setSaved] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!settings) {
@@ -73,6 +84,13 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
   const needsKey = preset?.requiresKey ?? false;
   const defaultBaseUrl = preset?.defaultBaseUrl ?? '';
   const modelSuggestions = [...(preset?.defaultModels ?? []), ...extraModels];
+
+  const draft = () => ({
+    provider,
+    baseUrl: baseUrl || defaultBaseUrl,
+    model,
+    ...(apiKey !== '' ? { apiKey } : {}),
+  });
 
   const save = async () => {
     const next = await onSave({
@@ -99,14 +117,19 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
   const test = async () => {
     setTesting(true);
     setTestResult(null);
-    const result = await onTest();
+    const result = await onTest(draft());
     setTesting(false);
     setTestResult(result.ok ? 'ok' : `fail:${result.error ?? ''}`);
   };
 
   const fetchModels = async () => {
-    const models = await onFetchModels();
-    setExtraModels(models);
+    setModelsError(null);
+    const result = await onFetchModels(draft());
+    if (result.error) {
+      setModelsError(result.error);
+      return;
+    }
+    setExtraModels(result.models);
   };
 
   return (
@@ -117,7 +140,14 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
         {!configured && <p className="settings-hint">{nls.t('settings.ai.notConfigured')}</p>}
         <label>
           {nls.t('settings.ai.provider')}
-          <select value={provider} onChange={(event) => setProvider(event.target.value)}>
+          <select
+            value={provider}
+            onChange={(event) => {
+              const next = event.target.value;
+              setProvider(next);
+              setBaseUrl(providers.find((entry) => entry.id === next)?.defaultBaseUrl ?? '');
+            }}
+          >
             {providers.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.label}
@@ -166,6 +196,9 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
                 ))}
               </datalist>
               <button onClick={() => void fetchModels()}>{nls.t('settings.ai.fetchModels')}</button>
+              {modelsError && (
+                <span className="settings-status fail">{nls.t('settings.ai.testFail', modelsError)}</span>
+              )}
             </label>
           </>
         )}

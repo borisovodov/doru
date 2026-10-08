@@ -532,8 +532,8 @@ export function App() {
         setAiSettings(next);
         return next;
       }}
-      onTest={() => window.doru.testAiConnection()}
-      onFetchModels={() => window.doru.fetchAiModels()}
+      onTest={(options) => window.doru.testAiConnection(options)}
+      onFetchModels={(options) => window.doru.fetchAiModels(options)}
     />
   ) : (
     <TreeView
