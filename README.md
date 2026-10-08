@@ -11,10 +11,11 @@ by AI agents through MCP and chat.
 **Status:** v0 and v1 are implemented: local-first project editor (GEDCOM
 import/export, tabs, person editing, families, sources, undo), 17 UI locales,
 MCP server mode, MCP host tools, an ACP agent provider, an in-app agent chat
-with tool calls, permission prompts, and an audit trail. See
-[docs/plan.md](docs/plan.md) (in Russian) for the architecture and roadmap,
-the [User Guide](docs/user-guide.md) for installation and usage, and
-[docs/decisions.md](docs/decisions.md) for what we deliberately do not build.
+with tool calls, permission prompts, and an audit trail. See the
+[User Guide](docs/user-guide.md) for installation and usage,
+[docs/architecture.md](docs/architecture.md) for the "why" behind the design,
+and [docs/decisions.md](docs/decisions.md) for what we deliberately do not
+build.
 
 ## Highlights
 

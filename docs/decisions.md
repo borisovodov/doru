@@ -39,3 +39,22 @@ half-written state and corrupt it. Doru uses a single-file journal mode
 (`journal_mode=DELETE`) to keep the folder clean, but the safe practice is:
 close the project (or the app) before syncing. Copying a closed project is
 always safe.
+
+## Rejected alternatives
+
+- **Tauri instead of Electron** — a Rust shell would break the TypeScript-only
+  rule and re-invent what Electron already does for a VS Code-style workbench.
+- **Single-file `.doru` document** (SQLite with media blobs) — media and
+  config would stop being plain files; the folder wins.
+- **macOS package folders (UTI)** — Finder would hide the structure; an honest
+  folder keeps everything visible and editable.
+- **WAL mode for `tree.doru`** — sidecar files next to a "document" and a
+  bigger live-sync corruption risk; `journal_mode=DELETE` wins.
+- **better-sqlite3** — native-module rebuild pain; `node:sqlite` ships with
+  Node ≥ 22.13 and Electron 37.
+- **In-memory document as the source of truth** — two competing sources of
+  truth; SQLite is authoritative and ops mutate it directly.
+- **Full VS Code-style platform with an extension host in v1** — scope;
+  deferred to issue #2.
+- **Monaco for the raw GEDCOM view** — heavy for a read-only view; a plain
+  `<pre>` is enough until GEDCOM editing becomes a real feature.
