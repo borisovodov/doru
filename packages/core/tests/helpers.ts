@@ -57,6 +57,14 @@ export class MemoryFileSystem implements IFileSystem {
     this.files.set(path, (this.files.get(path) ?? '') + content);
   }
 
+  async copyFile(source: string, destination: string): Promise<void> {
+    const content = this.files.get(source);
+    if (content === undefined) {
+      throw new Error(`ENOENT: ${source}`);
+    }
+    this.files.set(destination, content);
+  }
+
   async readBinary(path: string): Promise<Uint8Array> {
     return new TextEncoder().encode(await this.readFile(path));
   }

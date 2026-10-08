@@ -2,10 +2,13 @@ export type { IFileSystem } from './fs';
 export type {
   DateQuality,
   DateValue,
+  EventRecord,
   FamilyRecord,
+  MediaRecord,
   NamePart,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   Sex,
   SourceRecord,
   TreeDocument,
@@ -40,6 +43,7 @@ export { addPersonOp } from './ops/addPerson';
 export { updatePersonOp } from './ops/person';
 export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp, type CitationRecord } from './ops/source';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
+export { addEventOp, addMediaOp, deleteEventOp, deleteMediaOp } from './ops/record';
 export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';
 export { computePedigree, type PedigreeNode } from './pedigree';
 export interface GedcomImportResult {

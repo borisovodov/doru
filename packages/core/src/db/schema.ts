@@ -66,7 +66,9 @@ CREATE TABLE IF NOT EXISTS place (
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,
   path TEXT NOT NULL,
-  caption TEXT
+  caption TEXT,
+  target_type TEXT,
+  target_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS note (
@@ -79,4 +81,19 @@ CREATE TABLE IF NOT EXISTS note (
 CREATE INDEX IF NOT EXISTS idx_family_parent_parent ON family_parent(parent_id);
 CREATE INDEX IF NOT EXISTS idx_family_child_child ON family_child(child_id);
 CREATE INDEX IF NOT EXISTS idx_event_person ON event(person_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS person_fts USING fts5(names, content='person', content_rowid='rowid');
+
+CREATE TRIGGER IF NOT EXISTS person_fts_insert AFTER INSERT ON person BEGIN
+  INSERT INTO person_fts(rowid, names) VALUES (new.rowid, new.names);
+END;
+
+CREATE TRIGGER IF NOT EXISTS person_fts_delete AFTER DELETE ON person BEGIN
+  INSERT INTO person_fts(person_fts, rowid, names) VALUES ('delete', old.rowid, old.names);
+END;
+
+CREATE TRIGGER IF NOT EXISTS person_fts_update AFTER UPDATE ON person BEGIN
+  INSERT INTO person_fts(person_fts, rowid, names) VALUES ('delete', old.rowid, old.names);
+  INSERT INTO person_fts(rowid, names) VALUES (new.rowid, new.names);
+END;
 `;

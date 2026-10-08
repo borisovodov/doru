@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, FamilyRecord, NamePart, NoteRecord, PersonRecord, Sex, SourceRecord } from '../model/types';
+import type { DateValue, EventRecord, FamilyRecord, MediaRecord, NamePart, NoteRecord, PersonRecord, Sex, SourceRecord } from '../model/types';
 
 interface PersonRow {
   id: string;
@@ -44,6 +44,13 @@ export interface TreeRepository {
   insertNote(note: NoteRecord): void;
   deleteNote(id: string): boolean;
   listNotes(): NoteRecord[];
+  insertEvent(event: EventRecord): void;
+  deleteEvent(id: string): boolean;
+  listEventsForPerson(personId: string): EventRecord[];
+  listEventsForFamily(familyId: string): EventRecord[];
+  insertMedia(media: MediaRecord): void;
+  deleteMedia(id: string): boolean;
+  listMediaFor(targetType: string, targetId: string): MediaRecord[];
   transaction<T>(fn: () => T): T;
 }
 
@@ -100,18 +107,48 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listPersons(query: PersonQuery = {}): PersonRecord[] {
-    const conditions: string[] = [];
-    const params: string[] = [];
-    if (query.search !== undefined && query.search !== '') {
-      conditions.push('instr(lower(names), lower(?)) > 0');
-      params.push(query.search);
-    }
-    const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
     const limit = query.limit ?? 100;
     const offset = query.offset ?? 0;
+    const search = query.search?.trim();
+    if (search) {
+      const rows = this.searchByFts(search, limit, offset);
+      if (rows !== null) {
+        return rows.map(rowToPerson);
+      }
+    }
+    const conditions: string[] = [];
+    const params: string[] = [];
+    if (search) {
+      conditions.push('instr(lower(names), lower(?)) > 0');
+      params.push(search);
+    }
+    const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
     const sql = `SELECT id, names, sex, birth_json, death_json FROM person${where} ORDER BY id LIMIT ? OFFSET ?`;
     const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonRow[];
     return rows.map(rowToPerson);
+  }
+
+  private searchByFts(search: string, limit: number, offset: number): PersonRow[] | null {
+    try {
+      const match = search
+        .split(/\s+/)
+        .filter((token) => token.length > 0)
+        .map((token) => `"${token.replace(/"/g, '""')}"*`)
+        .join(' AND ');
+      if (!match) {
+        return null;
+      }
+      const rows = this.db
+        .prepare(
+          `SELECT p.id, p.names, p.sex, p.birth_json, p.death_json
+           FROM person_fts f JOIN person p ON p.rowid = f.rowid
+           WHERE person_fts MATCH ? ORDER BY rank LIMIT ? OFFSET ?`,
+        )
+        .all(match, limit, offset) as unknown as PersonRow[];
+      return rows;
+    } catch {
+      return null;
+    }
   }
 
   listAllPersons(): PersonRecord[] {
@@ -261,6 +298,103 @@ export class SqliteTreeRepository implements TreeRepository {
     return rows.map((row) => ({
       id: row.id,
       text: row.text,
+      targetType: row.target_type ?? undefined,
+      targetId: row.target_id ?? undefined,
+    }));
+  }
+
+  insertEvent(event: EventRecord): void {
+    let placeId: string | null = null;
+    if (event.place) {
+      const existing = this.db.prepare('SELECT id FROM place WHERE name = ?').get(event.place) as
+        | { id: string }
+        | undefined;
+      if (existing) {
+        placeId = existing.id;
+      } else {
+        placeId = crypto.randomUUID();
+        this.db.prepare('INSERT INTO place (id, name) VALUES (?, ?)').run(placeId, event.place);
+      }
+    }
+    this.db
+      .prepare(
+        'INSERT INTO event (id, type, date_json, place_id, description, person_id, family_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(
+        event.id,
+        event.type,
+        event.date ? JSON.stringify(event.date) : null,
+        placeId,
+        event.description ?? null,
+        event.personId ?? null,
+        event.familyId ?? null,
+      );
+  }
+
+  deleteEvent(id: string): boolean {
+    const result = this.db.prepare('DELETE FROM event WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
+  listEventsForPerson(personId: string): EventRecord[] {
+    return this.queryEvents('person_id', personId);
+  }
+
+  listEventsForFamily(familyId: string): EventRecord[] {
+    return this.queryEvents('family_id', familyId);
+  }
+
+  private queryEvents(column: string, id: string): EventRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT e.id, e.type, e.date_json, p.name AS place, e.description, e.person_id, e.family_id
+         FROM event e LEFT JOIN place p ON p.id = e.place_id WHERE e.${column} = ? ORDER BY e.id`,
+      )
+      .all(id) as unknown as Array<{
+      id: string;
+      type: string;
+      date_json: string | null;
+      place: string | null;
+      description: string | null;
+      person_id: string | null;
+      family_id: string | null;
+    }>;
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      date: row.date_json ? (JSON.parse(row.date_json) as DateValue) : undefined,
+      place: row.place ?? undefined,
+      description: row.description ?? undefined,
+      personId: row.person_id ?? undefined,
+      familyId: row.family_id ?? undefined,
+    }));
+  }
+
+  insertMedia(media: MediaRecord): void {
+    this.db
+      .prepare('INSERT INTO media (id, path, caption, target_type, target_id) VALUES (?, ?, ?, ?, ?)')
+      .run(media.id, media.path, media.caption ?? null, media.targetType ?? null, media.targetId ?? null);
+  }
+
+  deleteMedia(id: string): boolean {
+    const result = this.db.prepare('DELETE FROM media WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
+  listMediaFor(targetType: string, targetId: string): MediaRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, path, caption, target_type, target_id FROM media WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .all(targetType, targetId) as unknown as Array<{
+      id: string;
+      path: string;
+      caption: string | null;
+      target_type: string | null;
+      target_id: string | null;
+    }>;
+    return rows.map((row) => ({
+      id: row.id,
+      path: row.path,
+      caption: row.caption ?? undefined,
       targetType: row.target_type ?? undefined,
       targetId: row.target_id ?? undefined,
     }));

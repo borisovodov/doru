@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { access, appendFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, appendFile, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -25,6 +25,7 @@ const fsImpl: IFileSystem = {
   readFile: (path) => readFile(path, 'utf8'),
   writeFile,
   appendFile,
+  copyFile,
   async readBinary(path) {
     return readFile(path);
   },

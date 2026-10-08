@@ -106,6 +106,21 @@ describe('SqliteTreeRepository', () => {
     }
   });
 
+  it('searches persons with FTS5 prefix matching', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson(ivan);
+      repo.insertPerson(maria);
+
+      expect(repo.listPersons({ search: 'petr' }).map((p) => p.id)).toEqual(['P2']);
+      expect(repo.listPersons({ search: 'Ivan' }).map((p) => p.id)).toEqual(['P1']);
+      expect(repo.listPersons({ search: 'no-such-person' })).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('rolls back a failed transaction', () => {
     const fixture = makeRepo();
     try {

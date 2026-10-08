@@ -8,6 +8,7 @@ export interface DateValue {
   day?: number;
   text?: string;
   quality: DateQuality;
+  place?: string;
 }
 
 export interface NamePart {
@@ -42,6 +43,31 @@ export interface NoteRecord {
   text: string;
   targetType?: string;
   targetId?: string;
+}
+
+export interface EventRecord {
+  id: string;
+  type: string;
+  date?: DateValue;
+  description?: string;
+  place?: string;
+  personId?: string;
+  familyId?: string;
+}
+
+export interface MediaRecord {
+  id: string;
+  path: string;
+  caption?: string;
+  targetType?: string;
+  targetId?: string;
+}
+
+export interface PlaceRecord {
+  id: string;
+  name: string;
+  lat?: number;
+  lon?: number;
 }
 
 export interface TreeDocument {
