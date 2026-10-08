@@ -2,6 +2,8 @@ export type { AgentEvent, AgentIdentity, ChatMessage, ChatRole, ToolCall } from 
 export { type AgentConnector, type AgentChatOptions, type ConnectorKind } from './connector';
 export { type ChatModel, type ModelResponse } from './model';
 export { OpenAIChatConnector, type OpenAIChatOptions } from './openai';
+export { AnthropicChatConnector, type AnthropicChatOptions } from './anthropic';
+export { AI_PROVIDERS, findProvider, type AiDialect, type AiProviderPreset } from './providers';
 export {
   AgentRuntime,
   type AgentRunResult,

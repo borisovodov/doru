@@ -7,14 +7,18 @@ import { applyEdits, modify, parse } from 'jsonc-parser';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   AcpAgentClient,
+  AI_PROVIDERS,
   AgentRuntime,
+  AnthropicChatConnector,
   DEFAULT_PERMISSION_POLICY,
   DoruMcpServer,
   HistoryLog,
   McpHostManager,
   OpenAIChatConnector,
   TreeMcpBackend,
+  findProvider,
   type AcpMcpServerEntry,
+  type AiProviderPreset,
   type ChatMessage,
   type ChatSendResult,
   type McpServerConfig,
@@ -260,26 +264,25 @@ async function importGedcom(options: {
   };
 }
 
-type AiConfig =
-  | {
-      provider: 'openai-compatible';
-      baseUrl: string;
-      apiKey: string;
-      model: string;
-      mcpServers: McpServerConfig[];
-    }
-  | {
-      provider: 'acp';
-      command: string;
-      args: string[];
-      mcpServers: McpServerConfig[];
-    };
+type ResolvedAiConfig = {
+  preset: AiProviderPreset;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  acpCommand: string;
+  acpArgs: string[];
+  mcpServers: McpServerConfig[];
+  configured: boolean;
+};
 
-function loadAiConfig(): AiConfig | null {
-  const dir = app.getPath('userData');
-  const file = join(dir, AI_CONFIG_FILE);
+function configFilePath(): string {
+  return join(app.getPath('userData'), AI_CONFIG_FILE);
+}
+
+function loadAiConfig(): ResolvedAiConfig {
+  const file = configFilePath();
   if (!existsSync(file)) {
-    mkdirSync(dir, { recursive: true });
+    mkdirSync(app.getPath('userData'), { recursive: true });
     writeFileSync(file, DEFAULT_AI_CONFIG);
   }
   const text = readFileSync(file, 'utf8');
@@ -296,15 +299,9 @@ function loadAiConfig(): AiConfig | null {
     mcp?: { servers?: McpServerConfig[] };
   };
   const ai = parsed.ai ?? {};
-  const mcpServers = parsed.mcp?.servers ?? [];
 
-  if (ai.provider === 'acp') {
-    const command = ai.command ?? '';
-    if (!command) {
-      return null;
-    }
-    return { provider: 'acp', command, args: ai.args ?? [], mcpServers };
-  }
+  const presetId = ai.provider === 'openai-compatible' ? 'openai' : ai.provider ?? 'openai';
+  const preset = findProvider(presetId);
 
   let apiKey = ai.apiKey ?? '';
   if (!apiKey && ai.apiKeyEncrypted) {
@@ -333,16 +330,48 @@ function loadAiConfig(): AiConfig | null {
     log.info('migrated the plaintext API key into safeStorage');
   }
 
+  const baseUrl = ai.baseUrl ?? preset.defaultBaseUrl ?? '';
   const model = process.env.DORU_AI_MODEL ?? ai.model ?? '';
-  if (!apiKey || !model) {
-    return null;
+  const acpCommand = ai.command ?? '';
+  const acpArgs = ai.args ?? [];
+  const mcpServers = parsed.mcp?.servers ?? [];
+
+  const configured =
+    preset.dialect === 'acp'
+      ? acpCommand !== ''
+      : model !== '' && baseUrl !== '' && (!preset.requiresKey || apiKey !== '');
+
+  return { preset, baseUrl, apiKey, model, acpCommand, acpArgs, mcpServers, configured };
+}
+
+function writeAiConfig(edits: Array<{ path: (string | number)[]; value?: unknown }>): void {
+  const file = configFilePath();
+  loadAiConfig();
+  let text = readFileSync(file, 'utf8');
+  for (const edit of edits) {
+    const next = modify(text, edit.path, edit.value, { formattingOptions: { insertSpaces: true, tabSize: 2 } });
+    text = applyEdits(text, next);
   }
+  writeFileSync(file, text);
+}
+
+function aiSettingsPayload(config: ResolvedAiConfig): {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  hasKey: boolean;
+  acpCommand: string;
+  acpArgs: string[];
+  configured: boolean;
+} {
   return {
-    provider: 'openai-compatible',
-    baseUrl: ai.baseUrl ?? 'https://api.openai.com/v1',
-    apiKey,
-    model,
-    mcpServers,
+    provider: config.preset.id,
+    baseUrl: config.baseUrl,
+    model: config.model,
+    hasKey: config.apiKey !== '',
+    acpCommand: config.acpCommand,
+    acpArgs: config.acpArgs,
+    configured: config.configured,
   };
 }
 
@@ -367,15 +396,15 @@ function doruMcpServerEntry(projectPath: string, actor: string): AcpMcpServerEnt
 
 const acpClients = new Map<string, AcpAgentClient>();
 
-async function ensureAcpClient(projectPath: string, config: Extract<AiConfig, { provider: 'acp' }>): Promise<AcpAgentClient> {
+async function ensureAcpClient(projectPath: string, config: ResolvedAiConfig): Promise<AcpAgentClient> {
   const existing = acpClients.get(projectPath);
   if (existing) {
     return existing;
   }
-  const actor = `agent:acp:${config.command}`;
+  const actor = `agent:acp:${config.acpCommand}`;
   const client = new AcpAgentClient({
-    command: config.command,
-    args: config.args,
+    command: config.acpCommand,
+    args: config.acpArgs,
     cwd: projectPath,
     mcpServers: [
       doruMcpServerEntry(projectPath, actor),
@@ -394,18 +423,18 @@ async function ensureAcpClient(projectPath: string, config: Extract<AiConfig, { 
 
 async function sendChat(options: { projectPath: string; messages: ChatMessage[] }): Promise<ChatSendResult> {
   const config = loadAiConfig();
-  if (!config) {
+  if (!config.configured) {
     return {
       steps: [],
       finalText: '',
-      error: `AI provider is not configured. Set it in ${join(app.getPath('userData'), AI_CONFIG_FILE)}`,
+      error: `AI provider is not configured. Open the settings (gear icon) to set it up.`,
     };
   }
   const { runtime } = await ensureRuntime(options.projectPath);
   const lastUser = [...options.messages].reverse().find((message) => message.role === 'user');
   const promptHash = createHash('sha256').update(lastUser?.content ?? '').digest('hex').slice(0, 12);
 
-  if (config.provider === 'acp') {
+  if (config.preset.dialect === 'acp') {
     try {
       const client = await ensureAcpClient(options.projectPath, config);
       const result = await client.prompt(lastUser?.content ?? '');
@@ -421,7 +450,10 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
 
   const actor = `agent:${new URL(config.baseUrl).host}/${config.model}#${promptHash}`;
   const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
-  const model = new OpenAIChatConnector(config);
+  const model =
+    config.preset.dialect === 'anthropic'
+      ? new AnthropicChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
+      : new OpenAIChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model });
 
   let host: McpHostManager | null = null;
   if (config.mcpServers.length > 0) {
@@ -859,6 +891,115 @@ ipcMain.on('chat:permission-response', (_event, options: { id: string; allow: bo
   clearTimeout(pending.timer);
   pendingPermissions.delete(options.id);
   pending.resolve(options.allow === true);
+});
+
+ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiConfig()));
+
+ipcMain.handle('settings:ai:providers', () =>
+  AI_PROVIDERS.map((preset) => ({
+    id: preset.id,
+    label: preset.label,
+    dialect: preset.dialect,
+    defaultBaseUrl: preset.defaultBaseUrl ?? '',
+    defaultModels: preset.defaultModels,
+    requiresKey: preset.requiresKey,
+  })),
+);
+
+ipcMain.handle(
+  'settings:ai:set',
+  (_event, options: {
+    provider?: string;
+    baseUrl?: string;
+    model?: string;
+    apiKey?: string;
+    clearKey?: boolean;
+    acpCommand?: string;
+    acpArgs?: string[];
+  }) => {
+    const edits: Array<{ path: (string | number)[]; value?: unknown }> = [];
+    if (options.provider !== undefined) {
+      edits.push({ path: ['ai', 'provider'], value: options.provider });
+    }
+    if (options.baseUrl !== undefined) {
+      edits.push({ path: ['ai', 'baseUrl'], value: options.baseUrl });
+    }
+    if (options.model !== undefined) {
+      edits.push({ path: ['ai', 'model'], value: options.model });
+    }
+    if (options.acpCommand !== undefined) {
+      edits.push({ path: ['ai', 'command'], value: options.acpCommand });
+    }
+    if (options.acpArgs !== undefined) {
+      edits.push({ path: ['ai', 'args'], value: options.acpArgs });
+    }
+    if (options.clearKey) {
+      edits.push({ path: ['ai', 'apiKeyEncrypted'] });
+      edits.push({ path: ['ai', 'apiKey'] });
+    } else if (options.apiKey !== undefined && options.apiKey !== '') {
+      if (!safeStorage.isEncryptionAvailable()) {
+        throw new Error('OS keychain is not available');
+      }
+      edits.push({
+        path: ['ai', 'apiKeyEncrypted'],
+        value: safeStorage.encryptString(options.apiKey).toString('base64'),
+      });
+      edits.push({ path: ['ai', 'apiKey'] });
+    }
+    if (edits.length > 0) {
+      writeAiConfig(edits);
+    }
+    return aiSettingsPayload(loadAiConfig());
+  },
+);
+
+ipcMain.handle('settings:ai:test', async () => {
+  const config = loadAiConfig();
+  if (config.preset.dialect === 'acp') {
+    return { ok: config.acpCommand !== '', error: config.acpCommand !== '' ? undefined : 'ACP command is not set' };
+  }
+  if (!config.configured) {
+    return { ok: false, error: 'Provider is not configured' };
+  }
+  try {
+    const model =
+      config.preset.dialect === 'anthropic'
+        ? new AnthropicChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
+        : new OpenAIChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model });
+    await model.complete([{ role: 'user', content: 'ping' }], []);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('settings:ai:models', async () => {
+  const config = loadAiConfig();
+  if (config.preset.dialect === 'acp' || !config.configured) {
+    return [];
+  }
+  try {
+    if (config.preset.dialect === 'anthropic') {
+      const response = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/v1/models`, {
+        headers: { 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' },
+      });
+      if (!response.ok) {
+        return [];
+      }
+      const data = (await response.json()) as { data?: Array<{ id: string }> };
+      return (data.data ?? []).map((model) => model.id);
+    }
+    const response = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/models`, {
+      headers: { authorization: `Bearer ${config.apiKey}` },
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const data = (await response.json()) as { data?: Array<{ id: string }> };
+    return (data.data ?? []).map((model) => model.id);
+  } catch {
+    return [];
+  }
 });
 
 protocol.registerSchemesAsPrivileged([

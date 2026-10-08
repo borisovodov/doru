@@ -15,6 +15,25 @@ import type { ChatMessage, ChatSendResult } from '@doru/ai';
 
 export type NameFormat = 'given-first' | 'surname-first';
 
+export interface AiProviderInfo {
+  id: string;
+  label: string;
+  dialect: 'openai' | 'anthropic' | 'acp';
+  defaultBaseUrl: string;
+  defaultModels: string[];
+  requiresKey: boolean;
+}
+
+export interface AiSettings {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  hasKey: boolean;
+  acpCommand: string;
+  acpArgs: string[];
+  configured: boolean;
+}
+
 export interface MediaWithPath extends MediaRecord {
   absolutePath: string;
 }
@@ -103,6 +122,19 @@ declare global {
       addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
       getProjectSettings(projectPath: string): Promise<{ nameFormat: NameFormat }>;
+      getAiSettings(): Promise<AiSettings>;
+      getAiProviders(): Promise<AiProviderInfo[]>;
+      setAiSettings(options: {
+        provider?: string;
+        baseUrl?: string;
+        model?: string;
+        apiKey?: string;
+        clearKey?: boolean;
+        acpCommand?: string;
+        acpArgs?: string[];
+      }): Promise<AiSettings>;
+      testAiConnection(): Promise<{ ok: boolean; error?: string }>;
+      fetchAiModels(): Promise<string[]>;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }

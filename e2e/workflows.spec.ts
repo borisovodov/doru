@@ -94,5 +94,12 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(window.locator('.person-editor')).toBeVisible();
   await expect(window.locator('.chat-panel')).toBeVisible();
 
+  const aiSettings = await window.evaluate(() => window.doru.getAiSettings());
+  expect(aiSettings).toHaveProperty('provider');
+
+  await window.locator('.activity-bar-item[title="Settings"]').click();
+  await expect(window.locator('.settings-view')).toBeVisible();
+  await expect(window.locator('.settings-view select')).toBeVisible();
+
   await app.close();
 });

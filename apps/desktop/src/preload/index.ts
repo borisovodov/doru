@@ -99,6 +99,12 @@ const api = {
     ipcRenderer.invoke('tree:deleteMedia', { projectPath, media }),
   getProjectSettings: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:settings', { projectPath }),
+  getAiSettings: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:get'),
+  getAiProviders: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:providers'),
+  setAiSettings: (options: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('settings:ai:set', options),
+  testAiConnection: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:test'),
+  fetchAiModels: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:models'),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);

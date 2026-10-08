@@ -6,6 +6,12 @@ export {
   type NameFormat,
   type TreeViewProps,
 } from './tree/TreeView';
+export {
+  SettingsView,
+  type AiProviderInfo,
+  type AiSettingsState,
+  type SettingsViewProps,
+} from './settings/SettingsView';
 export { RecentList, type RecentListProps } from './recent/RecentList';
 export {
   ChatPanel,

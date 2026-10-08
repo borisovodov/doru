@@ -22,6 +22,7 @@ export interface WorkbenchProps {
   onCloseTab?: (id: string) => void;
   statusText?: string;
   onOpenProject: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function Workbench({
@@ -36,6 +37,7 @@ export function Workbench({
   onCloseTab,
   statusText,
   onOpenProject,
+  onOpenSettings,
 }: WorkbenchProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -70,7 +72,7 @@ export function Workbench({
 
   return (
     <div className="workbench">
-      <ActivityBar onOpenProject={onOpenProject} />
+      <ActivityBar onOpenProject={onOpenProject} onOpenSettings={onOpenSettings ?? (() => {})} />
       <SideBar>{sidebar}</SideBar>
       <div className="editor-column">
         <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>

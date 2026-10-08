@@ -17,7 +17,10 @@ import { CommandService } from '@doru/platform';
 import {
   ChatPanel,
   RecentList,
+  SettingsView,
   TreeView,
+  type AiProviderInfo,
+  type AiSettingsState,
   type ChatPermissionRequest,
   type ChatTranscriptMessage,
   type MediaWithPath,
@@ -44,6 +47,9 @@ export function App() {
   const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
   const [themeCss, setThemeCss] = useState('');
   const [builtinThemeCss, setBuiltinThemeCss] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [aiSettings, setAiSettings] = useState<AiSettingsState | null>(null);
+  const [aiProviders, setAiProviders] = useState<AiProviderInfo[]>([]);
   const commands = useMemo(() => new CommandService(), []);
   const chatConversation = useRef<ChatMessage[]>([]);
 
@@ -455,6 +461,17 @@ export function App() {
   }, [refreshRecent]);
 
   useEffect(() => {
+    void (async () => {
+      const [settings, providers] = await Promise.all([
+        window.doru.getAiSettings(),
+        window.doru.getAiProviders(),
+      ]);
+      setAiSettings(settings);
+      setAiProviders(providers);
+    })();
+  }, []);
+
+  useEffect(() => {
     return window.doru.onChatPermission((request: PreloadPermissionRequest) => {
       setPermission(request);
     });
@@ -506,6 +523,58 @@ export function App() {
   const activeSummary = tabs.find((tab) => tab.path === activePath) ?? null;
   const tabInfos: TabInfo[] = tabs.map((tab) => ({ id: tab.path, label: basename(tab.path) }));
 
+  const editor = showSettings ? (
+    <SettingsView
+      providers={aiProviders}
+      settings={aiSettings}
+      onSave={async (options) => {
+        const next = await window.doru.setAiSettings(options);
+        setAiSettings(next);
+        return next;
+      }}
+      onTest={() => window.doru.testAiConnection()}
+      onFetchModels={() => window.doru.fetchAiModels()}
+    />
+  ) : (
+    <TreeView
+      summary={activeSummary}
+      persons={activeSummary ? persons : []}
+      stats={activeSummary ? stats : null}
+      importResult={activeSummary ? importResult : null}
+      exportResult={activeSummary ? exportResult : null}
+      search={search}
+      canUndo={undoState.canUndo}
+      canRedo={undoState.canRedo}
+      nameFormat={nameFormat}
+      onOpenProject={() => void openProject()}
+      onImportGedcom={() => void importGedcom()}
+      onExportGedcom={() => void exportGedcom()}
+      onSearch={onSearch}
+      onUndo={() => void undo()}
+      onRedo={() => void redo()}
+      onAddPerson={(person) => addPerson(person)}
+      onUpdatePerson={(before, after) => updatePerson(before, after)}
+      getNotes={getNotes}
+      onAddNote={(personId, text) => addNote(personId, text)}
+      getGedcomText={getGedcomText}
+      getFamilies={getFamilies}
+      onAddFamily={(family) => addFamily(family)}
+      onUpdateFamily={(before, after) => updateFamily(before, after)}
+      onDeleteFamily={(family) => deleteFamily(family)}
+      getSources={getSources}
+      getCitations={getCitations}
+      onAddSource={(source, targetId) => addSource(source, targetId)}
+      onAttachSource={(sourceId, targetId) => attachSource(sourceId, targetId)}
+      onDetachCitation={(citationId) => detachCitation(citationId)}
+      getEvents={getEvents}
+      onAddEvent={(event) => addEvent(event)}
+      onDeleteEvent={(event) => deleteEvent(event)}
+      getMedia={getMedia}
+      onAddMedia={(personId) => addMedia(personId)}
+      onDeleteMedia={(media) => deleteMedia(media)}
+    />
+  );
+
   return (
     <>
       <style id="doru-builtin-theme">{builtinThemeCss}</style>
@@ -520,45 +589,7 @@ export function App() {
             onBrowse={() => void openProject()}
           />
         }
-        editor={
-          <TreeView
-            summary={activeSummary}
-            persons={activeSummary ? persons : []}
-            stats={activeSummary ? stats : null}
-            importResult={activeSummary ? importResult : null}
-            exportResult={activeSummary ? exportResult : null}
-            search={search}
-            canUndo={undoState.canUndo}
-            canRedo={undoState.canRedo}
-            nameFormat={nameFormat}
-            onOpenProject={() => void openProject()}
-            onImportGedcom={() => void importGedcom()}
-            onExportGedcom={() => void exportGedcom()}
-            onSearch={onSearch}
-            onUndo={() => void undo()}
-            onRedo={() => void redo()}
-            onAddPerson={(person) => addPerson(person)}
-            onUpdatePerson={(before, after) => updatePerson(before, after)}
-            getNotes={getNotes}
-            onAddNote={(personId, text) => addNote(personId, text)}
-            getGedcomText={getGedcomText}
-            getFamilies={getFamilies}
-            onAddFamily={(family) => addFamily(family)}
-            onUpdateFamily={(before, after) => updateFamily(before, after)}
-            onDeleteFamily={(family) => deleteFamily(family)}
-            getSources={getSources}
-            getCitations={getCitations}
-            onAddSource={(source, targetId) => addSource(source, targetId)}
-            onAttachSource={(sourceId, targetId) => attachSource(sourceId, targetId)}
-            onDetachCitation={(citationId) => detachCitation(citationId)}
-            getEvents={getEvents}
-            onAddEvent={(event) => addEvent(event)}
-            onDeleteEvent={(event) => deleteEvent(event)}
-            getMedia={getMedia}
-            onAddMedia={(personId) => addMedia(personId)}
-            onDeleteMedia={(media) => deleteMedia(media)}
-          />
-        }
+        editor={editor}
         panel={
           <ChatPanel
             messages={chatMessages}
@@ -574,6 +605,7 @@ export function App() {
         onCloseTab={(id) => void closeTab(id)}
         statusText={activeSummary ? activeSummary.path : nls.t('workbench.statusBar.ready')}
         onOpenProject={() => void openProject()}
+        onOpenSettings={() => setShowSettings((value) => !value)}
       />
     </>
   );

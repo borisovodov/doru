@@ -380,6 +380,70 @@
   font-size: 13px;
 }
 
+.settings-view {
+  max-width: 560px;
+  padding: 4px 0;
+}
+
+.settings-section {
+  margin-top: 12px;
+}
+
+.settings-section h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--doru-fg);
+}
+
+.settings-section label {
+  display: block;
+  margin: 8px 0;
+  color: var(--doru-fg-dim);
+}
+
+.settings-section input,
+.settings-section select,
+.settings-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2px;
+  background: var(--doru-input-bg);
+  border: 1px solid var(--doru-border);
+  color: var(--doru-fg);
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.settings-section textarea {
+  font-family: inherit;
+  resize: vertical;
+}
+
+.settings-hint {
+  font-size: 12px;
+  color: var(--doru-fg-dim);
+  margin: 4px 0;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-status {
+  font-size: 12px;
+}
+
+.settings-status.ok {
+  color: #4ec9b0;
+}
+
+.settings-status.fail {
+  color: #f14c4c;
+}
+
 .recent-list ul {
   list-style: none;
   margin: 8px 0 0;
