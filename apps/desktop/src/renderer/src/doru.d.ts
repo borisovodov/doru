@@ -31,6 +31,10 @@ declare global {
       openProjectDialog(): Promise<ProjectSummary | null>;
       openProjectPath(path: string): Promise<ProjectSummary | null>;
       importGedcom(projectPath: string): Promise<GedcomImportResult | null>;
+      importGedcomFile(
+        projectPath: string,
+        filePath: string,
+      ): Promise<GedcomImportResult | null>;
       recentProjects(): Promise<RecentProject[]>;
       closeProject(projectPath: string): Promise<void>;
       listPersons(projectPath: string, search?: string): Promise<PersonRecord[]>;

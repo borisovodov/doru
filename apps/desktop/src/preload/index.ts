@@ -5,6 +5,8 @@ const api = {
   openProjectPath: (path: string): Promise<unknown> => ipcRenderer.invoke('project:open', { path }),
   importGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:import', { projectPath, dialog: true }),
+  importGedcomFile: (projectPath: string, filePath: string): Promise<unknown> =>
+    ipcRenderer.invoke('project:import', { projectPath, filePath }),
   recentProjects: (): Promise<unknown> => ipcRenderer.invoke('project:recent'),
   closeProject: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:close', { path: projectPath }),

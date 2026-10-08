@@ -120,12 +120,19 @@ let recents: RecentProjects | null = null;
 let mainWindow: BrowserWindow | null = null;
 const pendingExternalPaths: string[] = [];
 
+function iconPath(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'icon.png')
+    : join(app.getAppPath(), 'resources', 'icon.png');
+}
+
 function createWindow(): void {
   const preload = fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     title: 'Doru',
+    icon: process.platform === 'darwin' ? undefined : iconPath(),
     webPreferences: {
       preload,
       sandbox: false,
@@ -206,6 +213,7 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
       return { paths: [...paths, summary.path], activePath: summary.path };
     });
   }
+  mainWindow?.webContents.send('project:external-open', summary);
   return summary;
 }
 
@@ -927,6 +935,14 @@ function parseMcpServerArg(argv: string[]): string | null {
 
 void app.whenReady().then(async () => {
   recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
+
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(iconPath());
+    } catch {
+      log.warn('could not set the dock icon');
+    }
+  }
 
   protocol.handle('doru-media', (request) => {
     try {

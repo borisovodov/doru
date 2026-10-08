@@ -1,0 +1,19 @@
+0 HEAD
+1 GEDC
+2 VERS 5.5.1
+0 @I1@ INDI
+1 NAME Ivan /Ivanov/
+1 SEX M
+1 BIRT
+2 DATE 12 MAR 1923
+0 @I2@ INDI
+1 NAME Maria /Ivanova/
+1 SEX F
+0 @I3@ INDI
+1 NAME Petr /Ivanov/
+1 SEX M
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+0 TRLR

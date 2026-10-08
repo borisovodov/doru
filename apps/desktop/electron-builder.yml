@@ -8,6 +8,8 @@ files:
 extraResources:
   - from: ../../themes
     to: themes
+  - from: resources/icon.png
+    to: icon.png
 fileAssociations:
   - ext: doru
     name: Doru Tree
