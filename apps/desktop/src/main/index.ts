@@ -65,6 +65,10 @@ import { NodeFileSystem } from './filesystem';
 const log = new ConsoleLogService();
 log.setLevel('info');
 
+if (process.env.DORU_USER_DATA) {
+  app.setPath('userData', process.env.DORU_USER_DATA);
+}
+
 const fs = new NodeFileSystem();
 const opener = new ProjectOpener(fs, { open: (path) => TreeStore.open(path) }, log);
 
@@ -983,8 +987,14 @@ ipcMain.handle('settings:ai:test', async (_event, options: {
   if (config.preset.dialect === 'acp') {
     return { ok: config.acpCommand !== '', error: config.acpCommand !== '' ? undefined : 'ACP command is not set' };
   }
-  if (!config.model || !config.baseUrl || (config.preset.requiresKey && !config.apiKey)) {
-    return { ok: false, error: 'Provider is not configured' };
+  if (!config.model) {
+    return { ok: false, error: 'Model is not set' };
+  }
+  if (!config.baseUrl) {
+    return { ok: false, error: 'Base URL is not set' };
+  }
+  if (config.preset.requiresKey && !config.apiKey) {
+    return { ok: false, error: 'API key is not set' };
   }
   try {
     const model =

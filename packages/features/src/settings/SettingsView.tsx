@@ -73,7 +73,14 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
     setHasKey(settings.hasKey);
     setConfigured(settings.configured);
     setApiKey('');
-  }, [settings]);
+    if (settings.model === '') {
+      const preset = providers.find((entry) => entry.id === settings.provider);
+      const defaultModel = preset?.defaultModels[0];
+      if (defaultModel) {
+        setModel(defaultModel);
+      }
+    }
+  }, [settings, providers]);
 
   if (!settings) {
     return null;
@@ -84,6 +91,16 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
   const needsKey = preset?.requiresKey ?? false;
   const defaultBaseUrl = preset?.defaultBaseUrl ?? '';
   const modelSuggestions = [...(preset?.defaultModels ?? []), ...extraModels];
+
+  const switchProvider = (id: string) => {
+    setProvider(id);
+    const next = providers.find((entry) => entry.id === id);
+    setBaseUrl(next?.defaultBaseUrl ?? '');
+    const defaultModel = next?.defaultModels[0] ?? '';
+    if (model === '' && defaultModel !== '') {
+      setModel(defaultModel);
+    }
+  };
 
   const draft = () => ({
     provider,
@@ -140,14 +157,7 @@ export function SettingsView({ providers, settings, onSave, onTest, onFetchModel
         {!configured && <p className="settings-hint">{nls.t('settings.ai.notConfigured')}</p>}
         <label>
           {nls.t('settings.ai.provider')}
-          <select
-            value={provider}
-            onChange={(event) => {
-              const next = event.target.value;
-              setProvider(next);
-              setBaseUrl(providers.find((entry) => entry.id === next)?.defaultBaseUrl ?? '');
-            }}
-          >
+          <select value={provider} onChange={(event) => switchProvider(event.target.value)}>
             {providers.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.label}

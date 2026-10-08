@@ -13,11 +13,16 @@ const fixture = resolve(root, 'fixtures', 'small.ged');
 
 test('full workflow through the desktop APIs and UI sections', async () => {
   const project = mkdtempSync(join(tmpdir(), 'doru-e2e-'));
+  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-data-'));
   const args = ['.'];
   if (process.env.CI === 'true') {
     args.push('--no-sandbox');
   }
-  const app = await electron.launch({ args, cwd: appDir });
+  const app = await electron.launch({
+    args,
+    cwd: appDir,
+    env: { ...process.env, DORU_USER_DATA: userData },
+  });
   const window = await app.firstWindow();
   await expect(window.locator('.workbench')).toBeVisible();
 

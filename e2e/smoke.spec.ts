@@ -1,7 +1,9 @@
 import { test, expect, _electron as electron } from '@playwright/test';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
 
 const require = createRequire(import.meta.url);
 const electronPath = require('electron') as string;
@@ -12,7 +14,12 @@ test('app launches and shows the workbench', async () => {
   if (process.env.CI === 'true') {
     args.push('--no-sandbox');
   }
-  const app = await electron.launch({ args, cwd: appDir });
+  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-data-'));
+  const app = await electron.launch({
+    args,
+    cwd: appDir,
+    env: { ...process.env, DORU_USER_DATA: userData },
+  });
   const window = await app.firstWindow();
   await expect(window).toHaveTitle('Doru');
   await expect(window.locator('.workbench')).toBeVisible();
