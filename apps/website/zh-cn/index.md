@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: AI 时代的本地优先家谱
   tagline: "您的家谱存放在磁盘上的普通文件夹中，完全离线运行，并通过内置聊天或任何 MCP/ACP 客户端由 AI 智能体驱动。"
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: 下载
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: 用户指南
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: 天生可移植
     details: "复制文件夹即可备份。在 macOS、Windows 或 Linux 上打开。GEDCOM 导入导出保证互操作性。"
 ---
+
+![Dóru screenshot](/screenshot.png)

@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Local-first genealogy for the AI era
   tagline: "Your family tree lives in a plain folder on your disk, works fully offline, and is driven by AI agents — through the built-in chat or any MCP/ACP client."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: Download
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: User Guide
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Portable by design
     details: "Back up by copying a folder. Open it on macOS, Windows, or Linux. GEDCOM import and export keep you interoperable."
 ---
+
+![Dóru screenshot](/screenshot.png)

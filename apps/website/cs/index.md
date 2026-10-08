@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Local-first genealogie v éře AI
   tagline: "Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: Stáhnout
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: Uživatelská příručka
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Přenosné z podstaty
     details: "Záloha zkopírováním složky. Otevřete ji na macOS, Windows nebo Linuxu. Import a export GEDCOM zajišťují interoperabilitu."
 ---
+
+![Dóru screenshot](/screenshot.png)

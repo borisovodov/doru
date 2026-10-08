@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.png" alt="Doru icon" width="112" />
+  <img src="assets/icon.png" alt="Dóru icon" width="112" />
 </p>
 
-<h1 align="center">Doru</h1>
+<h1 align="center">Dóru</h1>
 
 <p align="center"><strong>Local-first genealogy for the AI era.</strong></p>
 
@@ -20,14 +20,14 @@ by AI agents through MCP and chat.
 
 The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
-![Doru screenshot](assets/screenshot.png)
+![Dóru screenshot](assets/screenshot.png)
 
 ## Highlights
 
 - **Local-first.** A project is a plain folder containing a `tree.doru` SQLite
   database, text-based `settings.json` and `theme.css`, and a `history.jsonl`
   audit log. Nothing is hidden; everything is editable by hand or by agents.
-- **AI-native.** Doru is both an MCP server — run `doru --mcp-server <project>`
+- **AI-native.** Dóru is both an MCP server — run `doru --mcp-server <project>`
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
   through `tree_query`, `tree_edit`, `sources_add`, `notes_write`,
   `charts_render` — and an agent chat built into the UI: provider presets

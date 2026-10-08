@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "productName": "Doru",
-  "description": "Doru — local-first genealogy for the AI era",
+  "description": "Dóru — local-first genealogy for the AI era",
   "author": "Boris Ovodov <boris@ovodov.me>",
   "homepage": "https://github.com/borisovodov/doru",
   "license": "MIT",

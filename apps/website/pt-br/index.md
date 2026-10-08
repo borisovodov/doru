@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Genealogia local-first na era da IA
   tagline: "Sua árvore genealógica vive em uma pasta comum no seu disco, funciona totalmente offline e é conduzida por agentes de IA — pelo chat integrado ou por qualquer cliente MCP/ACP."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: Baixar
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: Guia do usuário
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Portátil por natureza
     details: "Backup copiando uma pasta. Abra-a no macOS, Windows ou Linux. Importação e exportação GEDCOM mantêm a interoperabilidade."
 ---
+
+![Dóru screenshot](/screenshot.png)

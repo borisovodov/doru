@@ -1,7 +1,7 @@
 # Code-signing certificates and secrets
 
 How to obtain, install, and renew the credentials used to sign and notarize
-Doru releases. Certificates expire, so keep this guide close — you will need
+Dóru releases. Certificates expire, so keep this guide close — you will need
 it again.
 
 All credentials live in GitHub repository secrets:

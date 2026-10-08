@@ -71,7 +71,7 @@ decisions about what we deliberately do **not** build, see
   (`doru --mcp-server <project>`); no separate build artifact.
 - **MCP host** tools are prefixed `server:tool` so external servers cannot
   collide with built-ins; servers are spawned per chat turn and closed after.
-- **ACP** (Agent Client Protocol): Doru passes its own MCP server — a
+- **ACP** (Agent Client Protocol): Dóru passes its own MCP server — a
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
   agent's `session/request_permission` is routed into the same UI gate.

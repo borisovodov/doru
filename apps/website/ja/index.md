@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: AI時代のlocal-first系図
   tagline: "家系図はディスク上の普通のフォルダーにあり、完全にオフラインで動作し、組み込みチャットや任意のMCP/ACPクライアントを通じてAIエージェントに操作されます。"
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: ダウンロード
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: ユーザーガイド
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: 設計から可搬性
     details: "フォルダーをコピーするだけでバックアップ。macOS、Windows、Linuxで開けます。GEDCOMのインポートとエクスポートが相互運用性を保証します。"
 ---
+
+![Dóru screenshot](/screenshot.png)

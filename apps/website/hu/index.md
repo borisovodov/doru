@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Local-first családfakutatás a mesterséges intelligencia korában
   tagline: "Családfája egy közönséges mappában él a lemezén, teljesen offline működik, és MI-ügynökök vezérlik — a beépített chaten vagy bármely MCP/ACP-kliensen keresztül."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: Letöltés
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: Felhasználói útmutató
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Hordozható felépítés
     details: "Biztonsági mentés egy mappa másolásával. Nyissa meg macOS-en, Windowson vagy Linuxon. A GEDCOM-import és -export biztosítja az interoperabilitást."
 ---
+
+![Dóru screenshot](/screenshot.png)

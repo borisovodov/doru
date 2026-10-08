@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Генеалогия local-first в эру ИИ
   tagline: "Ваше семейное древо живёт в обычной папке на диске, работает полностью офлайн и управляется ИИ-агентами — через встроенный чат или любой MCP/ACP-клиент."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: Скачать
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: Руководство
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Портативность
     details: "Бэкап — копирование папки. Открывайте её на macOS, Windows или Linux. Импорт и экспорт GEDCOM сохраняют совместимость."
 ---
+
+![Dóru screenshot](/screenshot.png)

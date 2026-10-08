@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: AI 시대의 local-first 계보
   tagline: "가계도는 디스크의 평범한 폴더에 살아 있고, 완전히 오프라인으로 작동하며, 내장 채팅이나 모든 MCP/ACP 클라이언트를 통해 AI 에이전트가 조작합니다."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: 다운로드
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: 사용자 가이드
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: 설계부터 이식 가능
     details: "폴더를 복사하는 것만으로 백업. macOS, Windows, Linux에서 열 수 있습니다. GEDCOM 가져오기와 내보내기가 상호 운용성을 보장합니다."
 ---
+
+![Dóru screenshot](/screenshot.png)

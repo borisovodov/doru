@@ -1,6 +1,6 @@
-# Doru — User Guide
+# Dóru — User Guide
 
-Doru is a local-first genealogy app for the AI era. Your family tree lives in
+Dóru is a local-first genealogy app for the AI era. Your family tree lives in
 a plain folder on your disk, works fully offline, and can be driven by AI
 agents — through the built-in chat or any MCP/ACP client.
 
@@ -29,7 +29,7 @@ platform and architecture (Apple Silicon or Intel):
 | Linux (x64) | `doru-linux-x86_64.AppImage` or `doru-linux-amd64.deb` |
 | Linux (arm64) | `doru-linux-arm64.AppImage` or `doru-linux-arm64.deb` |
 
-- **macOS**: open the `.dmg`, drag Doru to Applications. Builds are signed and
+- **macOS**: open the `.dmg`, drag Dóru to Applications. Builds are signed and
   notarized by Apple.
 - **Windows**: run the installer. Builds are not code-signed yet, so SmartScreen
   may show a warning — click “More info → Run anyway”.
@@ -40,9 +40,9 @@ platform and architecture (Apple Silicon or Intel):
 
 ## 2. Getting started
 
-1. Launch Doru and click **Open Project…** (or press `F1` → Open Project).
+1. Launch Dóru and click **Open Project…** (or press `F1` → Open Project).
    Choose or create a folder — this folder *is* your project.
-2. Doru creates the project skeleton automatically (silently):
+2. Dóru creates the project skeleton automatically (silently):
 
 ```
 My Family/
@@ -174,14 +174,14 @@ Provider:
 ### 5.2 ACP agents
 
 Set `"ai": { "provider": "acp", "command": "…", "args": [] }` to talk to an
-agent that speaks the Agent Client Protocol (Zed-style agents). Doru passes the
+agent that speaks the Agent Client Protocol (Zed-style agents). Dóru passes the
 project to the agent as an MCP server, so the agent can query and edit the tree
 just like the built-in chat. Permission prompts work the same way.
 
-### 5.3 Doru as an MCP server (external AI tools)
+### 5.3 Dóru as an MCP server (external AI tools)
 
 Any MCP client — Claude Desktop, Cursor, coding agents — can work with your
-tree. Run Doru in server mode:
+tree. Run Dóru in server mode:
 
 ```sh
 doru --mcp-server /absolute/path/to/project
@@ -226,7 +226,7 @@ language.
   whole folder to git if you like.
 - To back up: copy the project folder. That's all there is. Restoring is
   copying it back.
-- If some file inside the project is missing, Doru recreates it silently on
+- If some file inside the project is missing, Dóru recreates it silently on
   open (defaults for `settings.json`/`theme.css`, an empty tree, folders).
 
 ---
@@ -236,7 +236,7 @@ language.
 The interface is styled entirely through CSS custom properties. The cascade:
 
 1. **Built-in theme** — `doru-dark` or `doru-light`, chosen per OS appearance
-   in `doru.json` (section 4). Switch your OS to light mode and Doru follows
+   in `doru.json` (section 4). Switch your OS to light mode and Dóru follows
    instantly; no in-app toggle.
 2. **Your overrides** — the project's `theme.css`, applied on top and
    hot-reloaded: edit the file in any editor and the app restyles immediately.

@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Yapay zekâ çağında local-first soy ağacı
   tagline: "Soy ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: İndir
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: Kullanıcı Rehberi
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Doğası gereği taşınabilir
     details: "Bir klasörü kopyalayarak yedekleyin. macOS, Windows veya Linux'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."
 ---
+
+![Dóru screenshot](/screenshot.png)

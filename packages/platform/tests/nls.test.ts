@@ -27,7 +27,7 @@ describe('resolveLocale', () => {
 describe('LocalizationService', () => {
   it('falls back to the English source text for missing keys', () => {
     const service = new LocalizationService('ru');
-    expect(service.t('app.name')).toBe('Doru');
+    expect(service.t('app.name')).toBe('Dóru');
     expect(service.t('workbench.undo')).toBe('Отменить');
     service.setLocale('en');
     expect(service.t('workbench.undo')).toBe('Undo');

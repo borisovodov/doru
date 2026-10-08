@@ -2,13 +2,13 @@
 layout: home
 
 hero:
-  name: Doru
+  name: Dóru
   text: Genealogía local-first en la era de la IA
   tagline: "Tu árbol genealógico vive en una carpeta normal de tu disco, funciona totalmente sin conexión y lo dirigen agentes de IA — mediante el chat integrado o cualquier cliente MCP/ACP."
+  image:
+    src: /icon.svg
+    alt: Dóru
   actions:
-    - theme: brand
-      text: Descargar
-      link: https://github.com/borisovodov/doru/releases/latest
     - theme: alt
       text: Guía de usuario
       link: /guide/user-guide
@@ -33,3 +33,5 @@ features:
     title: Portátil por diseño
     details: "Copia de seguridad copiando una carpeta. Ábrela en macOS, Windows o Linux. La importación y exportación GEDCOM mantienen la interoperabilidad."
 ---
+
+![Dóru screenshot](/screenshot.png)
