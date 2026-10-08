@@ -68,5 +68,18 @@
   "features.tree.date.about": "Etwa",
   "features.tree.date.before": "Vor",
   "features.tree.date.after": "Nach",
-  "features.tree.date.unknown": "Unbekannt"
+  "features.tree.date.unknown": "Unbekannt",
+  "features.tree.events.title": "Ereignisse",
+  "features.tree.events.add": "Ereignis hinzufügen",
+  "features.tree.events.empty": "Keine Ereignisse erfasst.",
+  "features.tree.events.remove": "Ereignis entfernen",
+  "features.tree.events.typeField": "Typ",
+  "features.tree.events.descriptionField": "Beschreibung",
+  "features.tree.events.dateField": "Datum",
+  "features.tree.media.title": "Medien",
+  "features.tree.media.add": "Fotos hinzufügen…",
+  "features.tree.media.empty": "Noch keine Fotos.",
+  "features.tree.media.remove": "Foto entfernen",
+  "features.tree.field.place": "Ort",
+  "features.tree.families.marriage": "Heirat"
 }

@@ -68,5 +68,18 @@
   "features.tree.date.about": "Yaklaşık",
   "features.tree.date.before": "Önce",
   "features.tree.date.after": "Sonra",
-  "features.tree.date.unknown": "Bilinmiyor"
+  "features.tree.date.unknown": "Bilinmiyor",
+  "features.tree.events.title": "Olaylar",
+  "features.tree.events.add": "Olay ekle",
+  "features.tree.events.empty": "Kayıtlı olay yok.",
+  "features.tree.events.remove": "Olayı kaldır",
+  "features.tree.events.typeField": "Tür",
+  "features.tree.events.descriptionField": "Açıklama",
+  "features.tree.events.dateField": "Tarih",
+  "features.tree.media.title": "Medya",
+  "features.tree.media.add": "Fotoğraf ekle…",
+  "features.tree.media.empty": "Henüz fotoğraf yok.",
+  "features.tree.media.remove": "Fotoğrafı kaldır",
+  "features.tree.field.place": "Yer",
+  "features.tree.families.marriage": "Evlilik"
 }

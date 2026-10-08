@@ -83,6 +83,20 @@ const api = {
   getCitations: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:citations', { projectPath, personId }),
   getSession: (): Promise<unknown> => ipcRenderer.invoke('session:get'),
+  getEvents: (projectPath: string, personId?: string, familyId?: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:events', { projectPath, personId, familyId }),
+  addEvent: (projectPath: string, event: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addEvent', { projectPath, event }),
+  deleteEvent: (projectPath: string, event: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteEvent', { projectPath, event }),
+  getMedia: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:media', { projectPath, personId }),
+  addMedia: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addMedia', { projectPath, personId }),
+  deleteMedia: (projectPath: string, media: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteMedia', { projectPath, media }),
+  getProjectSettings: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('project:settings', { projectPath }),
   onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
     const listener = (_event: unknown, summary: unknown) => callback(summary);
     ipcRenderer.on('project:external-open', listener);

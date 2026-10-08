@@ -1,6 +1,8 @@
 import type {
+  EventRecord,
   FamilyRecord,
   GedcomImportResult,
+  MediaRecord,
   NoteRecord,
   PersonRecord,
   ProjectSummary,
@@ -10,6 +12,12 @@ import type {
   UndoRedoState,
 } from '@doru/core';
 import type { ChatMessage, ChatSendResult } from '@doru/ai';
+
+export type NameFormat = 'given-first' | 'surname-first';
+
+export interface MediaWithPath extends MediaRecord {
+  absolutePath: string;
+}
 
 export interface ChatPermissionRequest {
   id: string;
@@ -80,6 +88,17 @@ declare global {
         personId: string,
       ): Promise<Array<{ id: string; source: SourceRecord }>>;
       getSession(): Promise<{ paths: string[]; activePath: string | null }>;
+      getEvents(
+        projectPath: string,
+        personId?: string,
+        familyId?: string,
+      ): Promise<EventRecord[]>;
+      addEvent(projectPath: string, event: EventRecord): Promise<UndoRedoState>;
+      deleteEvent(projectPath: string, event: EventRecord): Promise<UndoRedoState>;
+      getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
+      addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
+      deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
+      getProjectSettings(projectPath: string): Promise<{ nameFormat: NameFormat }>;
       onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }

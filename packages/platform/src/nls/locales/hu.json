@@ -68,5 +68,18 @@
   "features.tree.date.about": "Körülbelül",
   "features.tree.date.before": "Előtt",
   "features.tree.date.after": "Után",
-  "features.tree.date.unknown": "Ismeretlen"
+  "features.tree.date.unknown": "Ismeretlen",
+  "features.tree.events.title": "Események",
+  "features.tree.events.add": "Esemény hozzáadása",
+  "features.tree.events.empty": "Nincs rögzített esemény.",
+  "features.tree.events.remove": "Esemény eltávolítása",
+  "features.tree.events.typeField": "Típus",
+  "features.tree.events.descriptionField": "Leírás",
+  "features.tree.events.dateField": "Dátum",
+  "features.tree.media.title": "Média",
+  "features.tree.media.add": "Fotók hozzáadása…",
+  "features.tree.media.empty": "Még nincsenek fotók.",
+  "features.tree.media.remove": "Fotó eltávolítása",
+  "features.tree.field.place": "Hely",
+  "features.tree.families.marriage": "Házasság"
 }

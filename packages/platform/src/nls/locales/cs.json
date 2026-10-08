@@ -68,5 +68,18 @@
   "features.tree.date.about": "Přibližně",
   "features.tree.date.before": "Před",
   "features.tree.date.after": "Po",
-  "features.tree.date.unknown": "Neznámé"
+  "features.tree.date.unknown": "Neznámé",
+  "features.tree.events.title": "Události",
+  "features.tree.events.add": "Přidat událost",
+  "features.tree.events.empty": "Žádné události nejsou zaznamenány.",
+  "features.tree.events.remove": "Odebrat událost",
+  "features.tree.events.typeField": "Typ",
+  "features.tree.events.descriptionField": "Popis",
+  "features.tree.events.dateField": "Datum",
+  "features.tree.media.title": "Média",
+  "features.tree.media.add": "Přidat fotografie…",
+  "features.tree.media.empty": "Zatím žádné fotografie.",
+  "features.tree.media.remove": "Odebrat fotografii",
+  "features.tree.field.place": "Místo",
+  "features.tree.families.marriage": "Sňatek"
 }

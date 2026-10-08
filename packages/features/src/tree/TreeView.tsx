@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import type {
   DateQuality,
   DateValue,
+  EventRecord,
   FamilyRecord,
   GedcomImportResult,
+  MediaRecord,
   NoteRecord,
   PersonRecord,
   ProjectSummary,
@@ -13,12 +15,19 @@ import type {
 } from '@doru/core';
 import { nls } from '../nls';
 
+export type NameFormat = 'given-first' | 'surname-first';
+
+export interface MediaWithPath extends MediaRecord {
+  absolutePath: string;
+}
+
 interface DateDraft {
   year: string;
   month: string;
   day: string;
   text: string;
   quality: DateQuality;
+  place: string;
 }
 
 interface PersonDraft {
@@ -45,6 +54,7 @@ export interface TreeViewProps {
   search: string;
   canUndo: boolean;
   canRedo: boolean;
+  nameFormat: NameFormat;
   onOpenProject: () => void;
   onImportGedcom: () => void;
   onExportGedcom: () => void;
@@ -65,6 +75,12 @@ export interface TreeViewProps {
   onAddSource: (source: SourceRecord, targetId: string) => Promise<void>;
   onAttachSource: (sourceId: string, targetId: string) => Promise<void>;
   onDetachCitation: (citationId: string) => Promise<void>;
+  getEvents: (personId?: string, familyId?: string) => Promise<EventRecord[]>;
+  onAddEvent: (event: EventRecord) => Promise<void>;
+  onDeleteEvent: (event: EventRecord) => Promise<void>;
+  getMedia: (personId: string) => Promise<MediaWithPath[]>;
+  onAddMedia: (personId: string) => Promise<void>;
+  onDeleteMedia: (media: MediaRecord) => Promise<void>;
 }
 
 export function TreeView({
@@ -76,6 +92,7 @@ export function TreeView({
   search,
   canUndo,
   canRedo,
+  nameFormat,
   onOpenProject,
   onImportGedcom,
   onExportGedcom,
@@ -96,6 +113,12 @@ export function TreeView({
   onAddSource,
   onAttachSource,
   onDetachCitation,
+  getEvents,
+  onAddEvent,
+  onDeleteEvent,
+  getMedia,
+  onAddMedia,
+  onDeleteMedia,
 }: TreeViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PersonDraft | null>(null);
@@ -219,6 +242,7 @@ export function TreeView({
             <PersonEditor
               draft={draft}
               persons={persons}
+              nameFormat={nameFormat}
               onChange={setDraft}
               onSave={() => void save()}
               onCancel={closeEditor}
@@ -233,6 +257,12 @@ export function TreeView({
               onAddSource={onAddSource}
               onAttachSource={onAttachSource}
               onDetachCitation={onDetachCitation}
+              getEvents={getEvents}
+              onAddEvent={onAddEvent}
+              onDeleteEvent={onDeleteEvent}
+              getMedia={getMedia}
+              onAddMedia={onAddMedia}
+              onDeleteMedia={onDeleteMedia}
             />
           ) : persons.length === 0 ? (
             <p>{nls.t('features.tree.emptyTree')}</p>
@@ -240,7 +270,7 @@ export function TreeView({
             <ul className="person-list">
               {persons.map((person) => (
                 <li key={person.id} onClick={() => setSelectedId(person.id)}>
-                  <span className="person-name">{displayName(person)}</span>
+                  <span className="person-name">{displayName(person, nameFormat)}</span>
                   <span className="person-dates">{years(person)}</span>
                 </li>
               ))}
@@ -255,6 +285,7 @@ export function TreeView({
 interface PersonEditorProps {
   draft: PersonDraft;
   persons: PersonRecord[];
+  nameFormat: NameFormat;
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -269,11 +300,18 @@ interface PersonEditorProps {
   onAddSource: (source: SourceRecord, targetId: string) => Promise<void>;
   onAttachSource: (sourceId: string, targetId: string) => Promise<void>;
   onDetachCitation: (citationId: string) => Promise<void>;
+  getEvents: (personId?: string, familyId?: string) => Promise<EventRecord[]>;
+  onAddEvent: (event: EventRecord) => Promise<void>;
+  onDeleteEvent: (event: EventRecord) => Promise<void>;
+  getMedia: (personId: string) => Promise<MediaWithPath[]>;
+  onAddMedia: (personId: string) => Promise<void>;
+  onDeleteMedia: (media: MediaRecord) => Promise<void>;
 }
 
 function PersonEditor({
   draft,
   persons,
+  nameFormat,
   onChange,
   onSave,
   onCancel,
@@ -288,37 +326,42 @@ function PersonEditor({
   onAddSource,
   onAttachSource,
   onDetachCitation,
+  getEvents,
+  onAddEvent,
+  onDeleteEvent,
+  getMedia,
+  onAddMedia,
+  onDeleteMedia,
 }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [noteDraft, setNoteDraft] = useState('');
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
   const [citations, setCitations] = useState<CitationInfo[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [media, setMedia] = useState<MediaWithPath[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     if (!draft.isNew) {
       void getNotes(draft.id).then((loaded) => {
-        if (!cancelled) {
-          setNotes(loaded);
-        }
+        if (!cancelled) setNotes(loaded);
       });
       void refreshFamilies();
-      void getSources().then((loaded) => {
-        if (!cancelled) {
-          setSources(loaded);
-        }
+      void refreshCitations();
+      void getEvents(draft.id).then((loaded) => {
+        if (!cancelled) setEvents(loaded);
       });
-      void getCitations(draft.id).then((loaded) => {
-        if (!cancelled) {
-          setCitations(loaded);
-        }
+      void getMedia(draft.id).then((loaded) => {
+        if (!cancelled) setMedia(loaded);
       });
     } else {
       setNotes([]);
       setFamilies([]);
       setSources([]);
       setCitations([]);
+      setEvents([]);
+      setMedia([]);
     }
     setNoteDraft('');
     return () => {
@@ -334,6 +377,14 @@ function PersonEditor({
   const refreshCitations = async () => {
     setCitations(await getCitations(draft.id));
     setSources(await getSources());
+  };
+
+  const refreshEvents = async () => {
+    setEvents(await getEvents(draft.id));
+  };
+
+  const refreshMedia = async () => {
+    setMedia(await getMedia(draft.id));
   };
 
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });
@@ -385,11 +436,21 @@ function PersonEditor({
           <FamilySection
             personId={draft.id}
             persons={persons}
+            nameFormat={nameFormat}
             families={families}
             refresh={refreshFamilies}
             onAddFamily={onAddFamily}
             onUpdateFamily={onUpdateFamily}
             onDeleteFamily={onDeleteFamily}
+            getEvents={getEvents}
+            onAddEvent={onAddEvent}
+            onDeleteEvent={onDeleteEvent}
+          />
+          <EventsSection
+            events={events}
+            refresh={refreshEvents}
+            onAddEvent={onAddEvent}
+            onDeleteEvent={onDeleteEvent}
           />
           <SourcesSection
             personId={draft.id}
@@ -399,6 +460,13 @@ function PersonEditor({
             onAddSource={onAddSource}
             onAttachSource={onAttachSource}
             onDetachCitation={onDetachCitation}
+          />
+          <MediaSection
+            personId={draft.id}
+            media={media}
+            refresh={refreshMedia}
+            onAddMedia={onAddMedia}
+            onDeleteMedia={onDeleteMedia}
           />
           <div className="person-notes">
             <h3>{nls.t('features.tree.notes.title')}</h3>
@@ -475,6 +543,14 @@ function DateEditor({
           <option value="unknown">{nls.t('features.tree.date.unknown')}</option>
         </select>
         <input
+          placeholder={nls.t('features.tree.field.place')}
+          value={value.place}
+          onChange={(event) => set({ place: event.target.value })}
+        />
+      </div>
+      <div className="date-editor-row">
+        <input
+          className="date-text-input"
           placeholder={nls.t('features.tree.field.dateText')}
           value={value.text}
           onChange={(event) => set({ text: event.target.value })}
@@ -484,24 +560,119 @@ function DateEditor({
   );
 }
 
+const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];
+
+function EventsSection({
+  events,
+  refresh,
+  onAddEvent,
+  onDeleteEvent,
+}: {
+  events: EventRecord[];
+  refresh: () => Promise<void>;
+  onAddEvent: (event: EventRecord) => Promise<void>;
+  onDeleteEvent: (event: EventRecord) => Promise<void>;
+}) {
+  const [type, setType] = useState('');
+  const [date, setDate] = useState<DateDraft>(emptyDate());
+  const [description, setDescription] = useState('');
+
+  const add = async () => {
+    const trimmed = type.trim().toUpperCase();
+    if (!trimmed) {
+      return;
+    }
+    const event: EventRecord = {
+      id: crypto.randomUUID(),
+      type: trimmed,
+      date: fromDateDraft(date),
+      description: description.trim() || undefined,
+    };
+    await onAddEvent(event);
+    setType('');
+    setDate(emptyDate());
+    setDescription('');
+    await refresh();
+  };
+
+  const remove = async (event: EventRecord) => {
+    await onDeleteEvent(event);
+    await refresh();
+  };
+
+  return (
+    <div className="person-section">
+      <h3>{nls.t('features.tree.events.title')}</h3>
+      {events.length === 0 ? (
+        <p className="notes-empty">{nls.t('features.tree.events.empty')}</p>
+      ) : (
+        <ul className="event-list">
+          {events.map((event) => (
+            <li key={event.id}>
+              <span className="event-type">{event.type}</span>
+              <span className="event-date">
+                {event.date ? formatDate(event.date) : ''}
+                {event.place ? ` — ${event.place}` : ''}
+              </span>
+              {event.description ? <span className="event-description">{event.description}</span> : null}
+              <button title={nls.t('features.tree.events.remove')} onClick={() => void remove(event)}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="events-add">
+        <input
+          className="event-type-input"
+          list="doru-event-types"
+          placeholder={nls.t('features.tree.events.typeField')}
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+        />
+        <datalist id="doru-event-types">
+          {EVENT_TYPES.map((eventType) => (
+            <option key={eventType} value={eventType} />
+          ))}
+        </datalist>
+        <DateEditor label={nls.t('features.tree.events.dateField')} value={date} onChange={setDate} />
+        <input
+          placeholder={nls.t('features.tree.events.descriptionField')}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+        <button onClick={() => void add()}>{nls.t('features.tree.events.add')}</button>
+      </div>
+    </div>
+  );
+}
+
 interface FamilySectionProps {
   personId: string;
   persons: PersonRecord[];
+  nameFormat: NameFormat;
   families: FamilyRecord[];
   refresh: () => Promise<void>;
   onAddFamily: (family: FamilyRecord) => Promise<void>;
   onUpdateFamily: (before: FamilyRecord, after: FamilyRecord) => Promise<void>;
   onDeleteFamily: (family: FamilyRecord) => Promise<void>;
+  getEvents: (personId?: string, familyId?: string) => Promise<EventRecord[]>;
+  onAddEvent: (event: EventRecord) => Promise<void>;
+  onDeleteEvent: (event: EventRecord) => Promise<void>;
 }
 
 function FamilySection({
   personId,
   persons,
+  nameFormat,
   families,
   refresh,
   onAddFamily,
   onUpdateFamily,
   onDeleteFamily,
+  getEvents,
+  onAddEvent,
+  onDeleteEvent,
 }: FamilySectionProps) {
   const asChild = families.filter((family) => family.children.includes(personId));
   const asParent = families.filter((family) => family.parents.includes(personId));
@@ -515,11 +686,11 @@ function FamilySection({
     await refresh();
   };
 
-  const removeFrom = async (family: FamilyRecord, role: 'parent' | 'child') => {
+  const removeMember = async (family: FamilyRecord, memberId: string) => {
     const after: FamilyRecord = {
       ...family,
-      parents: role === 'parent' ? family.parents.filter((id) => id !== personId) : family.parents,
-      children: role === 'child' ? family.children.filter((id) => id !== personId) : family.children,
+      parents: family.parents.filter((id) => id !== memberId),
+      children: family.children.filter((id) => id !== memberId),
     };
     await onUpdateFamily(family, after);
     await refresh();
@@ -547,65 +718,34 @@ function FamilySection({
         <p className="notes-empty">{nls.t('features.tree.families.empty')}</p>
       )}
       {asChild.map((family) => (
-        <div key={family.id} className="family-row">
-          <div className="family-members">
-            {family.parents.map((parentId) => (
-              <span key={parentId} className="family-chip">
-                {displayName(persons.find((person) => person.id === parentId))}
-                <button
-                  title="×"
-                  onClick={() => void removeFrom(family, 'parent')}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <PersonPicker
-              persons={persons}
-              exclude={family.parents}
-              onPick={(memberId) => void addMember(family, 'parent', memberId)}
-            />
-          </div>
-          <div className="family-actions">
-            <button onClick={() => void deleteFamily(family)}>
-              {nls.t('features.tree.families.delete')}
-            </button>
-          </div>
-        </div>
+        <FamilyCard
+          key={family.id}
+          family={family}
+          personId={personId}
+          persons={persons}
+          nameFormat={nameFormat}
+          onRemoveMember={(memberId) => void removeMember(family, memberId)}
+          onAddMember={(role, memberId) => void addMember(family, role, memberId)}
+          onDelete={() => void deleteFamily(family)}
+          getEvents={getEvents}
+          onAddEvent={onAddEvent}
+          onDeleteEvent={onDeleteEvent}
+        />
       ))}
       {asParent.map((family) => (
-        <div key={family.id} className="family-row">
-          <div className="family-members">
-            {family.parents
-              .filter((id) => id !== personId)
-              .map((parentId) => (
-                <span key={parentId} className="family-chip">
-                  {displayName(persons.find((person) => person.id === parentId))}
-                  <button title="×" onClick={() => void removeFrom(family, 'parent')}>
-                    ×
-                  </button>
-                </span>
-              ))}
-            {family.children.map((childId) => (
-              <span key={childId} className="family-chip child">
-                {displayName(persons.find((person) => person.id === childId))}
-                <button title="×" onClick={() => void removeFrom(family, 'child')}>
-                  ×
-                </button>
-              </span>
-            ))}
-            <PersonPicker
-              persons={persons}
-              exclude={[...family.parents, ...family.children]}
-              onPick={(memberId) => void addMember(family, 'child', memberId)}
-            />
-          </div>
-          <div className="family-actions">
-            <button onClick={() => void deleteFamily(family)}>
-              {nls.t('features.tree.families.delete')}
-            </button>
-          </div>
-        </div>
+        <FamilyCard
+          key={family.id}
+          family={family}
+          personId={personId}
+          persons={persons}
+          nameFormat={nameFormat}
+          onRemoveMember={(memberId) => void removeMember(family, memberId)}
+          onAddMember={(role, memberId) => void addMember(family, role, memberId)}
+          onDelete={() => void deleteFamily(family)}
+          getEvents={getEvents}
+          onAddEvent={onAddEvent}
+          onDeleteEvent={onDeleteEvent}
+        />
       ))}
       <div className="family-add">
         <button onClick={() => void addFamily('child')}>
@@ -619,13 +759,112 @@ function FamilySection({
   );
 }
 
+function FamilyCard({
+  family,
+  personId,
+  persons,
+  nameFormat,
+  onRemoveMember,
+  onAddMember,
+  onDelete,
+  getEvents,
+  onAddEvent,
+  onDeleteEvent,
+}: {
+  family: FamilyRecord;
+  personId: string;
+  persons: PersonRecord[];
+  nameFormat: NameFormat;
+  onRemoveMember: (memberId: string) => void;
+  onAddMember: (role: 'parent' | 'child', memberId: string) => void;
+  onDelete: () => void;
+  getEvents: (personId?: string, familyId?: string) => Promise<EventRecord[]>;
+  onAddEvent: (event: EventRecord) => Promise<void>;
+  onDeleteEvent: (event: EventRecord) => Promise<void>;
+}) {
+  const [familyEvents, setFamilyEvents] = useState<EventRecord[]>([]);
+  const [marriageDate, setMarriageDate] = useState<DateDraft>(emptyDate());
+
+  useEffect(() => {
+    let cancelled = false;
+    void getEvents(undefined, family.id).then((loaded) => {
+      if (!cancelled) setFamilyEvents(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [family.id, getEvents]);
+
+  const addMarriage = async () => {
+    const date = fromDateDraft(marriageDate);
+    await onAddEvent({ id: crypto.randomUUID(), type: 'MARR', date, familyId: family.id });
+    setMarriageDate(emptyDate());
+    setFamilyEvents(await getEvents(undefined, family.id));
+  };
+
+  const removeEvent = async (event: EventRecord) => {
+    await onDeleteEvent(event);
+    setFamilyEvents(await getEvents(undefined, family.id));
+  };
+
+  return (
+    <div className="family-row">
+      <div className="family-members">
+        {family.parents
+          .filter((id) => id !== personId)
+          .map((parentId) => (
+            <span key={parentId} className="family-chip">
+              {displayName(persons.find((person) => person.id === parentId), nameFormat)}
+              <button title="×" onClick={() => onRemoveMember(parentId)}>
+                ×
+              </button>
+            </span>
+          ))}
+        {family.children.map((childId) => (
+          <span key={childId} className="family-chip child">
+            {displayName(persons.find((person) => person.id === childId), nameFormat)}
+            <button title="×" onClick={() => onRemoveMember(childId)}>
+              ×
+            </button>
+          </span>
+        ))}
+        <PersonPicker
+          persons={persons}
+          exclude={[...family.parents, ...family.children]}
+          nameFormat={nameFormat}
+          onPick={(memberId) => onAddMember('child', memberId)}
+        />
+      </div>
+      <div className="family-events">
+        <span className="family-events-label">{nls.t('features.tree.families.marriage')}</span>
+        {familyEvents.map((event) => (
+          <span key={event.id} className="family-chip event">
+            {event.date ? formatDate(event.date) : ''}
+            {event.place ? ` — ${event.place}` : ''}
+            <button title="×" onClick={() => void removeEvent(event)}>
+              ×
+            </button>
+          </span>
+        ))}
+        <DateEditor label="" value={marriageDate} onChange={setMarriageDate} />
+        <button onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</button>
+      </div>
+      <div className="family-actions">
+        <button onClick={onDelete}>{nls.t('features.tree.families.delete')}</button>
+      </div>
+    </div>
+  );
+}
+
 function PersonPicker({
   persons,
   exclude,
+  nameFormat,
   onPick,
 }: {
   persons: PersonRecord[];
   exclude: string[];
+  nameFormat: NameFormat;
   onPick: (personId: string) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -633,7 +872,7 @@ function PersonPicker({
   const needle = query.trim().toLowerCase();
   const candidates = persons
     .filter((person) => !exclude.includes(person.id))
-    .filter((person) => !needle || displayName(person).toLowerCase().includes(needle))
+    .filter((person) => !needle || displayName(person, nameFormat).toLowerCase().includes(needle))
     .slice(0, 8);
 
   return (
@@ -659,7 +898,7 @@ function PersonPicker({
                 setOpen(false);
               }}
             >
-              {displayName(person)}
+              {displayName(person, nameFormat)}
             </li>
           ))}
         </ul>
@@ -756,8 +995,61 @@ function SourcesSection({
   );
 }
 
+function MediaSection({
+  personId,
+  media,
+  refresh,
+  onAddMedia,
+  onDeleteMedia,
+}: {
+  personId: string;
+  media: MediaWithPath[];
+  refresh: () => Promise<void>;
+  onAddMedia: (personId: string) => Promise<void>;
+  onDeleteMedia: (media: MediaRecord) => Promise<void>;
+}) {
+  const add = async () => {
+    await onAddMedia(personId);
+    await refresh();
+  };
+
+  const remove = async (item: MediaRecord) => {
+    await onDeleteMedia(item);
+    await refresh();
+  };
+
+  return (
+    <div className="person-section">
+      <h3>{nls.t('features.tree.media.title')}</h3>
+      {media.length === 0 ? (
+        <p className="notes-empty">{nls.t('features.tree.media.empty')}</p>
+      ) : (
+        <div className="media-grid">
+          {media.map((item) => (
+            <figure key={item.id} className="media-item">
+              <img
+                src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
+                alt={item.caption ?? ''}
+                loading="lazy"
+              />
+              <button
+                className="media-remove"
+                title={nls.t('features.tree.media.remove')}
+                onClick={() => void remove(item)}
+              >
+                ×
+              </button>
+            </figure>
+          ))}
+        </div>
+      )}
+      <button onClick={() => void add()}>{nls.t('features.tree.media.add')}</button>
+    </div>
+  );
+}
+
 function emptyDate(): DateDraft {
-  return { year: '', month: '', day: '', text: '', quality: 'exact' };
+  return { year: '', month: '', day: '', text: '', quality: 'exact', place: '' };
 }
 
 function toDraft(person: PersonRecord): PersonDraft {
@@ -780,6 +1072,7 @@ function toDateDraft(date: DateValue | undefined): DateDraft {
     day: date?.day !== undefined ? String(date.day) : '',
     text: date?.text ?? '',
     quality: date?.quality ?? 'exact',
+    place: date?.place ?? '',
   };
 }
 
@@ -801,7 +1094,8 @@ function dateDraftEquals(draft: DateDraft, date: DateValue | undefined): boolean
     draft.month === other.month &&
     draft.day === other.day &&
     draft.text === other.text &&
-    draft.quality === other.quality
+    draft.quality === other.quality &&
+    draft.place === other.place
   );
 }
 
@@ -824,13 +1118,14 @@ function fromDateDraft(draft: DateDraft): DateValue | undefined {
   const month = draft.month !== '' ? Number(draft.month) : undefined;
   const day = draft.day !== '' ? Number(draft.day) : undefined;
   const text = draft.text.trim() || undefined;
-  if (year === undefined && month === undefined && day === undefined && text === undefined) {
+  const place = draft.place.trim() || undefined;
+  if (year === undefined && month === undefined && day === undefined && text === undefined && place === undefined) {
     return undefined;
   }
-  return { year, month, day, text, quality: draft.quality };
+  return { year, month, day, text, quality: draft.quality, place };
 }
 
-function displayName(person: PersonRecord | undefined): string {
+function displayName(person: PersonRecord | undefined, nameFormat: NameFormat = 'given-first'): string {
   if (!person) {
     return '?';
   }
@@ -844,8 +1139,11 @@ function displayName(person: PersonRecord | undefined): string {
       return cleaned;
     }
   }
-  const parts = [name.given, name.surname].filter((part) => part !== undefined);
-  return parts.length > 0 ? parts.join(' ') : person.id;
+  const given = name.given;
+  const surname = name.surname;
+  const parts = nameFormat === 'surname-first' ? [surname, given] : [given, surname];
+  const filtered = parts.filter((part) => part !== undefined);
+  return filtered.length > 0 ? (nameFormat === 'surname-first' ? filtered.join(', ') : filtered.join(' ')) : person.id;
 }
 
 function years(person: PersonRecord): string {
@@ -855,6 +1153,17 @@ function years(person: PersonRecord): string {
   }
   if (person.death?.year !== undefined) {
     parts.push(`— ${person.death.year}`);
+  }
+  return parts.join(' ');
+}
+
+function formatDate(date: DateValue): string {
+  const parts: string[] = [];
+  if (date.year !== undefined) {
+    parts.push(`${qualityMark(date.quality)}${date.year}`);
+  }
+  if (date.text) {
+    parts.push(date.text);
   }
   return parts.join(' ');
 }

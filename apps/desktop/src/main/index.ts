@@ -1,8 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
-import { createHash } from 'node:crypto';
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, protocol, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, watch, type FSWatcher } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, extname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyEdits, modify, parse } from 'jsonc-parser';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -26,22 +26,29 @@ import {
   ProjectOpener,
   ReadGedcomImporter,
   RecentProjects,
+  SETTINGS_FILE_NAME,
   SqliteTreeRepository,
   THEME_FILE_NAME,
   TreeStore,
+  addEventOp,
   addFamilyOp,
+  addMediaOp,
   addNoteOp,
   addPersonOp,
   addSourceOp,
   attachCitationOp,
+  deleteEventOp,
   deleteFamilyOp,
+  deleteMediaOp,
   detachCitationOp,
   importGedcomOp,
   updateFamilyOp,
   updatePersonOp,
+  type EventRecord,
   type FamilyRecord,
   type GedcomImportResult,
   type ITreeStore,
+  type MediaRecord,
   type NoteRecord,
   type PersonRecord,
   type ProjectSummary,
@@ -745,6 +752,87 @@ ipcMain.handle('tree:detachCitation', async (_event, options: { projectPath: str
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
+ipcMain.handle(
+  'tree:events',
+  async (_event, options: { projectPath: string; personId?: string; familyId?: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    if (options.personId) {
+      return runtime.repo.listEventsForPerson(options.personId);
+    }
+    if (options.familyId) {
+      return runtime.repo.listEventsForFamily(options.familyId);
+    }
+    return [];
+  },
+);
+
+ipcMain.handle('tree:addEvent', async (_event, options: { projectPath: string; event: EventRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(addEventOp('user', options.event), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:deleteEvent', async (_event, options: { projectPath: string; event: EventRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(deleteEventOp('user', options.event), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('tree:media', async (_event, options: { projectPath: string; personId: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  return runtime.repo
+    .listMediaFor('person', options.personId)
+    .map((media) => ({ ...media, absolutePath: join(options.projectPath, media.path) }));
+});
+
+ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; personId: string }) => {
+  const dialogOptions: OpenDialogOptions = {
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'tiff'] }],
+    title: 'Add photos',
+  };
+  const result =
+    mainWindow !== null
+      ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+  if (result.canceled || result.filePaths.length === 0) {
+    return [];
+  }
+  const { runtime } = await ensureRuntime(options.projectPath);
+  const added: Array<MediaRecord & { absolutePath: string }> = [];
+  for (const source of result.filePaths) {
+    const name = `${randomUUID()}${extname(source)}`;
+    const destination = join(options.projectPath, 'media', name);
+    await fs.copyFile(source, destination);
+    const media: MediaRecord = {
+      id: randomUUID(),
+      path: join('media', name),
+      targetType: 'person',
+      targetId: options.personId,
+    };
+    runtime.queue.apply(addMediaOp('user', media), { repo: runtime.repo });
+    added.push({ ...media, absolutePath: destination });
+  }
+  return added;
+});
+
+ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  runtime.queue.apply(deleteMediaOp('user', options.media), { repo: runtime.repo });
+  return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+});
+
+ipcMain.handle('project:settings', async (_event, options: { projectPath: string }) => {
+  await ensureRuntime(options.projectPath);
+  try {
+    const text = await fs.readFile(join(options.projectPath, SETTINGS_FILE_NAME));
+    const parsed = parse(text) as { nameFormat?: string };
+    return { nameFormat: parsed.nameFormat === 'surname-first' ? 'surname-first' : 'given-first' };
+  } catch {
+    return { nameFormat: 'given-first' };
+  }
+});
+
 ipcMain.handle('tree:gedcomText', async (_event, options: { projectPath: string }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
   const doc: TreeDocument = {
@@ -764,6 +852,10 @@ ipcMain.on('chat:permission-response', (_event, options: { id: string; allow: bo
   pendingPermissions.delete(options.id);
   pending.resolve(options.allow === true);
 });
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'doru-media', privileges: { secure: true, stream: true } },
+]);
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -835,6 +927,19 @@ function parseMcpServerArg(argv: string[]): string | null {
 
 void app.whenReady().then(async () => {
   recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
+
+  protocol.handle('doru-media', (request) => {
+    try {
+      const url = new URL(request.url);
+      const filePath = url.searchParams.get('path');
+      if (!filePath) {
+        return new Response('not found', { status: 404 });
+      }
+      return net.fetch(pathToFileURL(filePath).toString());
+    } catch {
+      return new Response('not found', { status: 404 });
+    }
+  });
 
   nativeTheme.on('updated', () => {
     mainWindow?.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });

@@ -68,5 +68,18 @@
   "features.tree.date.about": "Około",
   "features.tree.date.before": "Przed",
   "features.tree.date.after": "Po",
-  "features.tree.date.unknown": "Nieznane"
+  "features.tree.date.unknown": "Nieznane",
+  "features.tree.events.title": "Wydarzenia",
+  "features.tree.events.add": "Dodaj wydarzenie",
+  "features.tree.events.empty": "Brak zarejestrowanych wydarzeń.",
+  "features.tree.events.remove": "Usuń wydarzenie",
+  "features.tree.events.typeField": "Typ",
+  "features.tree.events.descriptionField": "Opis",
+  "features.tree.events.dateField": "Data",
+  "features.tree.media.title": "Media",
+  "features.tree.media.add": "Dodaj zdjęcia…",
+  "features.tree.media.empty": "Brak zdjęć.",
+  "features.tree.media.remove": "Usuń zdjęcie",
+  "features.tree.field.place": "Miejsce",
+  "features.tree.families.marriage": "Małżeństwo"
 }

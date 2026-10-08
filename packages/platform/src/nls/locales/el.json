@@ -68,5 +68,18 @@
   "features.tree.date.about": "Περίπου",
   "features.tree.date.before": "Πριν",
   "features.tree.date.after": "Μετά",
-  "features.tree.date.unknown": "Άγνωστη"
+  "features.tree.date.unknown": "Άγνωστη",
+  "features.tree.events.title": "Γεγονότα",
+  "features.tree.events.add": "Προσθήκη γεγονότος",
+  "features.tree.events.empty": "Δεν έχουν καταγραφεί γεγονότα.",
+  "features.tree.events.remove": "Αφαίρεση γεγονότος",
+  "features.tree.events.typeField": "Τύπος",
+  "features.tree.events.descriptionField": "Περιγραφή",
+  "features.tree.events.dateField": "Ημερομηνία",
+  "features.tree.media.title": "Πολυμέσα",
+  "features.tree.media.add": "Προσθήκη φωτογραφιών…",
+  "features.tree.media.empty": "Δεν υπάρχουν φωτογραφίες ακόμα.",
+  "features.tree.media.remove": "Αφαίρεση φωτογραφίας",
+  "features.tree.field.place": "Τόπος",
+  "features.tree.families.marriage": "Γάμος"
 }

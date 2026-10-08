@@ -68,5 +68,18 @@
   "features.tree.date.about": "Около",
   "features.tree.date.before": "До",
   "features.tree.date.after": "После",
-  "features.tree.date.unknown": "Неизвестно"
+  "features.tree.date.unknown": "Неизвестно",
+  "features.tree.events.title": "События",
+  "features.tree.events.add": "Добавить событие",
+  "features.tree.events.empty": "Событий не записано.",
+  "features.tree.events.remove": "Удалить событие",
+  "features.tree.events.typeField": "Тип",
+  "features.tree.events.descriptionField": "Описание",
+  "features.tree.events.dateField": "Дата",
+  "features.tree.media.title": "Медиа",
+  "features.tree.media.add": "Добавить фото…",
+  "features.tree.media.empty": "Фото пока нет.",
+  "features.tree.media.remove": "Удалить фото",
+  "features.tree.field.place": "Место",
+  "features.tree.families.marriage": "Брак"
 }

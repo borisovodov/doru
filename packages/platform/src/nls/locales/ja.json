@@ -68,5 +68,18 @@
   "features.tree.date.about": "約",
   "features.tree.date.before": "以前",
   "features.tree.date.after": "以後",
-  "features.tree.date.unknown": "不明"
+  "features.tree.date.unknown": "不明",
+  "features.tree.events.title": "出来事",
+  "features.tree.events.add": "出来事を追加",
+  "features.tree.events.empty": "記録された出来事はありません。",
+  "features.tree.events.remove": "出来事を削除",
+  "features.tree.events.typeField": "種類",
+  "features.tree.events.descriptionField": "説明",
+  "features.tree.events.dateField": "日付",
+  "features.tree.media.title": "メディア",
+  "features.tree.media.add": "写真を追加…",
+  "features.tree.media.empty": "写真はまだありません。",
+  "features.tree.media.remove": "写真を削除",
+  "features.tree.field.place": "場所",
+  "features.tree.families.marriage": "結婚"
 }

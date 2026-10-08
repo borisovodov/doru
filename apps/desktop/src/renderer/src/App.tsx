@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatMessage } from '@doru/ai';
 import type {
+  EventRecord,
   FamilyRecord,
   GedcomImportResult,
+  MediaRecord,
   NoteRecord,
   PersonRecord,
   ProjectSummary,
@@ -18,6 +20,8 @@ import {
   TreeView,
   type ChatPermissionRequest,
   type ChatTranscriptMessage,
+  type MediaWithPath,
+  type NameFormat,
 } from '@doru/features';
 import { Workbench, nls, type TabInfo } from '@doru/workbench';
 import type { ChatPermissionRequest as PreloadPermissionRequest } from './doru.d';
@@ -34,6 +38,7 @@ export function App() {
   const [importResult, setImportResult] = useState<GedcomImportResult | null>(null);
   const [exportResult, setExportResult] = useState<{ path: string } | null>(null);
   const [search, setSearch] = useState('');
+  const [nameFormat, setNameFormat] = useState<NameFormat>('given-first');
   const [chatMessages, setChatMessages] = useState<ChatTranscriptMessage[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
@@ -88,6 +93,9 @@ export function App() {
       chatConversation.current = [];
       void reloadTree(activePath, '');
       void window.doru.getTheme(activePath).then((result) => setThemeCss(result.css));
+      void window.doru
+        .getProjectSettings(activePath)
+        .then((settings) => setNameFormat(settings.nameFormat));
     } else {
       setPersons([]);
       setStats(null);
@@ -379,6 +387,69 @@ export function App() {
     [activePath],
   );
 
+  const getEvents = useCallback(
+    async (personId?: string, familyId?: string): Promise<EventRecord[]> => {
+      if (!activePath) {
+        return [];
+      }
+      return window.doru.getEvents(activePath, personId, familyId);
+    },
+    [activePath],
+  );
+
+  const addEvent = useCallback(
+    async (event: EventRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.addEvent(activePath, event));
+    },
+    [activePath],
+  );
+
+  const deleteEvent = useCallback(
+    async (event: EventRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.deleteEvent(activePath, event));
+    },
+    [activePath],
+  );
+
+  const getMedia = useCallback(
+    async (personId: string): Promise<MediaWithPath[]> => {
+      if (!activePath) {
+        return [];
+      }
+      return window.doru.getMedia(activePath, personId);
+    },
+    [activePath],
+  );
+
+  const addMedia = useCallback(
+    async (personId: string) => {
+      if (!activePath) {
+        return;
+      }
+      const added = await window.doru.addMedia(activePath, personId);
+      if (added.length > 0) {
+        setUndoState(await window.doru.getUndoState(activePath));
+      }
+    },
+    [activePath],
+  );
+
+  const deleteMedia = useCallback(
+    async (media: MediaRecord) => {
+      if (!activePath) {
+        return;
+      }
+      setUndoState(await window.doru.deleteMedia(activePath, media));
+    },
+    [activePath],
+  );
+
   useEffect(() => {
     void refreshRecent();
   }, [refreshRecent]);
@@ -459,6 +530,7 @@ export function App() {
             search={search}
             canUndo={undoState.canUndo}
             canRedo={undoState.canRedo}
+            nameFormat={nameFormat}
             onOpenProject={() => void openProject()}
             onImportGedcom={() => void importGedcom()}
             onExportGedcom={() => void exportGedcom()}
@@ -479,6 +551,12 @@ export function App() {
             onAddSource={(source, targetId) => addSource(source, targetId)}
             onAttachSource={(sourceId, targetId) => attachSource(sourceId, targetId)}
             onDetachCitation={(citationId) => detachCitation(citationId)}
+            getEvents={getEvents}
+            onAddEvent={(event) => addEvent(event)}
+            onDeleteEvent={(event) => deleteEvent(event)}
+            getMedia={getMedia}
+            onAddMedia={(personId) => addMedia(personId)}
+            onDeleteMedia={(media) => deleteMedia(media)}
           />
         }
         panel={

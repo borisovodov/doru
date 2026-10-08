@@ -68,5 +68,18 @@
   "features.tree.date.about": "Около",
   "features.tree.date.before": "Преди",
   "features.tree.date.after": "След",
-  "features.tree.date.unknown": "Неизвестно"
+  "features.tree.date.unknown": "Неизвестно",
+  "features.tree.events.title": "Събития",
+  "features.tree.events.add": "Добавяне на събитие",
+  "features.tree.events.empty": "Няма записани събития.",
+  "features.tree.events.remove": "Премахване на събитие",
+  "features.tree.events.typeField": "Тип",
+  "features.tree.events.descriptionField": "Описание",
+  "features.tree.events.dateField": "Дата",
+  "features.tree.media.title": "Медия",
+  "features.tree.media.add": "Добавяне на снимки…",
+  "features.tree.media.empty": "Все още няма снимки.",
+  "features.tree.media.remove": "Премахване на снимка",
+  "features.tree.field.place": "Място",
+  "features.tree.families.marriage": "Брак"
 }

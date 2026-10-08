@@ -68,5 +68,18 @@
   "features.tree.date.about": "大约",
   "features.tree.date.before": "之前",
   "features.tree.date.after": "之后",
-  "features.tree.date.unknown": "未知"
+  "features.tree.date.unknown": "未知",
+  "features.tree.events.title": "事件",
+  "features.tree.events.add": "添加事件",
+  "features.tree.events.empty": "没有记录的事件。",
+  "features.tree.events.remove": "删除事件",
+  "features.tree.events.typeField": "类型",
+  "features.tree.events.descriptionField": "描述",
+  "features.tree.events.dateField": "日期",
+  "features.tree.media.title": "媒体",
+  "features.tree.media.add": "添加照片…",
+  "features.tree.media.empty": "还没有照片。",
+  "features.tree.media.remove": "删除照片",
+  "features.tree.field.place": "地点",
+  "features.tree.families.marriage": "婚姻"
 }
