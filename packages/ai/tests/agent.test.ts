@@ -31,7 +31,7 @@ describe('AgentRuntime', () => {
         {
           content: null,
           toolCalls: [
-            { id: 'call-1', name: 'tree.query', arguments: { query: 'ivan', limit: 10 } },
+            { id: 'call-1', name: 'tree_query', arguments: { query: 'ivan', limit: 10 } },
           ],
         },
         { content: 'Found one person.', toolCalls: [] },
@@ -62,7 +62,7 @@ describe('AgentRuntime', () => {
           toolCalls: [
             {
               id: 'call-1',
-              name: 'tree.edit',
+              name: 'tree_edit',
               arguments: {
                 op: { kind: 'person.add', person: { id: '@I2@', names: [], sex: 'U' } },
               },
@@ -92,7 +92,7 @@ describe('AgentRuntime', () => {
           toolCalls: [
             {
               id: 'call-1',
-              name: 'tree.edit',
+              name: 'tree_edit',
               arguments: { op: { kind: 'person.add', person: { id: '@I2@', names: [], sex: 'U' } } },
             },
           ],

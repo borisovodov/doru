@@ -43,6 +43,16 @@ export class AnthropicChatConnector implements ChatModel {
       .map((message) => message.content ?? '')
       .join('\n');
 
+    const wireToReal = new Map<string, string>();
+    const wireName = (name: string): string => {
+      let candidate = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      while (wireToReal.has(candidate)) {
+        candidate = `${candidate}_`;
+      }
+      wireToReal.set(candidate, name);
+      return candidate;
+    };
+
     const body: Record<string, unknown> = {
       model: this.options.model,
       max_tokens: 2048,
@@ -50,7 +60,7 @@ export class AnthropicChatConnector implements ChatModel {
       ...(tools.length > 0
         ? {
             tools: tools.map((tool) => ({
-              name: tool.name,
+              name: wireName(tool.name),
               description: tool.description,
               input_schema: tool.inputSchema,
             })),
@@ -83,7 +93,7 @@ export class AnthropicChatConnector implements ChatModel {
       } else if (block.type === 'tool_use' && block.id !== undefined && block.name !== undefined) {
         toolCalls.push({
           id: block.id,
-          name: block.name,
+          name: wireToReal.get(block.name) ?? block.name,
           arguments: (block.input as Record<string, unknown>) ?? {},
         });
       }

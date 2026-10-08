@@ -16,14 +16,14 @@ describe('DoruMcpServer', () => {
       const client = new Client({ name: 'test-client', version: '1.0.0' });
       await client.connect(clientTransport);
 
-      const stats = await client.callTool({ name: 'tree.stats', arguments: {} });
+      const stats = await client.callTool({ name: 'tree_stats', arguments: {} });
       const text = stats.content[0];
       expect(text?.type).toBe('text');
       if (text?.type === 'text') {
         expect(JSON.parse(text.text)).toEqual({ persons: 0, families: 0 });
       }
 
-      const missing = await client.callTool({ name: 'tree.get', arguments: { personId: 'nope' } });
+      const missing = await client.callTool({ name: 'tree_get', arguments: { personId: 'nope' } });
       expect(missing.content[0]).toMatchObject({ type: 'text' });
 
       await client.close();

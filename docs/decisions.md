@@ -40,6 +40,15 @@ half-written state and corrupt it. Doru uses a single-file journal mode
 close the project (or the app) before syncing. Copying a closed project is
 always safe.
 
+## API stability before 1.0.0
+
+Our own APIs — including MCP tool names — may break freely until 1.0.0 is
+released; no compatibility shims. MCP tool names follow `^[a-zA-Z0-9_-]+$`
+with underscore separators (`tree_query`, `sources_add`, `charts_render`),
+because strict OpenAI-compatible providers (DeepSeek, and others) reject dots
+and colons in function names. External MCP host tools keep arbitrary names and
+are sanitized on the wire by the connectors.
+
 ## Rejected alternatives
 
 - **Tauri instead of Electron** — a Rust shell would break the TypeScript-only

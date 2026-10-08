@@ -33,6 +33,16 @@ export class OpenAIChatConnector implements ChatModel {
 
   async complete(messages: ChatMessage[], tools: ToolDefinition[]): Promise<ModelResponse> {
     const url = `${this.options.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+    const wireToReal = new Map<string, string>();
+    const wireName = (name: string): string => {
+      let candidate = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      while (wireToReal.has(candidate)) {
+        candidate = `${candidate}_`;
+      }
+      wireToReal.set(candidate, name);
+      return candidate;
+    };
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -47,7 +57,7 @@ export class OpenAIChatConnector implements ChatModel {
               tools: tools.map((tool) => ({
                 type: 'function',
                 function: {
-                  name: tool.name,
+                  name: wireName(tool.name),
                   description: tool.description,
                   parameters: tool.inputSchema,
                 },
@@ -66,7 +76,7 @@ export class OpenAIChatConnector implements ChatModel {
       content: message?.content ?? null,
       toolCalls: (message?.tool_calls ?? []).map((call) => ({
         id: call.id,
-        name: call.function.name,
+        name: wireToReal.get(call.function.name) ?? call.function.name,
         arguments: parseArguments(call.function.arguments),
       })),
     };

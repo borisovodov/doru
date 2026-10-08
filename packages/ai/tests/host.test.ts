@@ -32,7 +32,7 @@ describe('McpHostManager', () => {
     await manager.connectAll();
 
     expect(manager.has('dummy:echo')).toBe(true);
-    expect(manager.has('tree.query')).toBe(false);
+    expect(manager.has('tree_query')).toBe(false);
     expect(await manager.invoke('dummy:count', { text: 'abcd' })).toBe('4');
     expect(String(await manager.invoke('dummy:nope', {}))).toContain('not found');
 

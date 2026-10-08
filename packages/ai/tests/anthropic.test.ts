@@ -19,7 +19,7 @@ describe('AnthropicChatConnector', () => {
         JSON.stringify({
           content: [
             { type: 'text', text: 'Hello' },
-            { type: 'tool_use', id: 'tu-1', name: 'tree.stats', input: {} },
+            { type: 'tool_use', id: 'tu-1', name: 'tree_stats', input: {} },
           ],
         }),
         { status: 200, headers: { 'content-type': 'application/json' } },
@@ -39,16 +39,16 @@ describe('AnthropicChatConnector', () => {
         {
           role: 'assistant',
           content: null,
-          toolCalls: [{ id: 'tc-1', name: 'tree.query', arguments: { query: 'ivan' } }],
+          toolCalls: [{ id: 'tc-1', name: 'tree_query', arguments: { query: 'ivan' } }],
         },
         { role: 'tool', toolCallId: 'tc-1', content: '{"ok":true}' },
         { role: 'user', content: 'Continue' },
       ],
-      [{ name: 'tree.stats', description: 'Stats', inputSchema: { type: 'object' } }],
+      [{ name: 'tree_stats', description: 'Stats', inputSchema: { type: 'object' } }],
     );
 
     expect(result.content).toBe('Hello');
-    expect(result.toolCalls).toEqual([{ id: 'tu-1', name: 'tree.stats', arguments: {} }]);
+    expect(result.toolCalls).toEqual([{ id: 'tu-1', name: 'tree_stats', arguments: {} }]);
 
     const body = JSON.parse(captured!.body) as {
       model: string;

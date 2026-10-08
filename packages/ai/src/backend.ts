@@ -27,19 +27,19 @@ export class TreeMcpBackend {
 
   async invoke(name: string, args: Record<string, unknown>): Promise<unknown> {
     switch (name) {
-      case 'tree.query':
+      case 'tree_query':
         return this.query(args.query as string | undefined, args.limit as number | undefined);
-      case 'tree.get':
+      case 'tree_get':
         return this.get(args.personId as string);
-      case 'tree.stats':
+      case 'tree_stats':
         return this.stats();
-      case 'tree.edit':
+      case 'tree_edit':
         return this.edit(args.op as TreeEditOp);
-      case 'sources.add':
+      case 'sources_add':
         return this.addSource(args);
-      case 'notes.write':
+      case 'notes_write':
         return this.writeNote(args);
-      case 'charts.render':
+      case 'charts_render':
         return this.renderChart(args.personId as string, args.kind as string);
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -67,7 +67,7 @@ export class TreeMcpBackend {
 
   private edit(op: TreeEditOp): unknown {
     if (!op || typeof op !== 'object') {
-      throw new Error('tree.edit requires an "op" object');
+      throw new Error('tree_edit requires an "op" object');
     }
     if (op.kind === 'person.add') {
       this.queue.apply(addPersonOp(this.actor, op.person), { repo: this.repo });
@@ -83,7 +83,7 @@ export class TreeMcpBackend {
   private addSource(args: Record<string, unknown>): unknown {
     const title = args.title as string;
     if (!title) {
-      throw new Error('sources.add requires a "title"');
+      throw new Error('sources_add requires a "title"');
     }
     const source = {
       id: crypto.randomUUID(),
@@ -101,7 +101,7 @@ export class TreeMcpBackend {
   private writeNote(args: Record<string, unknown>): unknown {
     const text = args.text as string;
     if (!text) {
-      throw new Error('notes.write requires "text"');
+      throw new Error('notes_write requires "text"');
     }
     const note = {
       id: crypto.randomUUID(),
@@ -115,7 +115,7 @@ export class TreeMcpBackend {
 
   private renderChart(personId: string, kind: string): unknown {
     if (!personId) {
-      throw new Error('charts.render requires "personId"');
+      throw new Error('charts_render requires "personId"');
     }
     if (kind === 'pedigree') {
       const root = computePedigree(this.repo, personId, 5);

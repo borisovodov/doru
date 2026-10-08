@@ -148,8 +148,8 @@ Environment variables (useful for secrets): `DORU_AI_API_KEY` and
 ### 5.1 The in-app chat
 
 The chat panel sits at the bottom of the window. Type a question and the agent
-can read and edit the tree using built-in tools: `tree.query`, `tree.get`,
-`tree.stats`, `tree.edit`, `sources.add`, `notes.write`, `charts.render`.
+can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
+`tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render`.
 
 Set the provider up from **Settings** (gear icon in the left bar) → AI
 Provider:
@@ -164,8 +164,8 @@ Provider:
   lists the models available from the endpoint.
 - **Test connection** sends a small request and reports whether the provider
   answers. Local providers (Ollama, LM Studio) need no key.
-- **Permissions**: read-only tools run freely; mutating tools (`tree.edit`,
-  `sources.add`, `notes.write`) ask for confirmation inline. External MCP tools
+- **Permissions**: read-only tools run freely; mutating tools (`tree_edit`,
+  `sources_add`, `notes_write`) ask for confirmation inline. External MCP tools
   always ask.
 - **Audit trail**: every agent edit is recorded in `history.jsonl` with an
   actor like `agent:api.openai.com/gpt-4o-mini#a1b2c3d4e5f6` — you can always

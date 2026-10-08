@@ -30,6 +30,11 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
+- MCP tool names must match `^[a-zA-Z0-9_-]+$` — use underscore separators
+  (`tree_query`, `sources_add`, `charts_render`). Strict providers (e.g.
+  DeepSeek) reject dots and colons.
+- Breaking our own APIs — including MCP tool names — is fine before 1.0.0;
+  do not add compatibility shims.
 - The UI locale always follows the operating system; there is no in-app
   language setting (see docs/decisions.md).
 

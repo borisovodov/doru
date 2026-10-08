@@ -21,7 +21,7 @@ function mockAgentApp() {
           sessionUpdate: 'tool_call',
           toolCallId: 'tc-1',
           title: 'Inspect the tree',
-          name: 'tree.stats',
+          name: 'tree_stats',
           kind: 'other',
           status: 'in_progress',
           rawInput: {},
@@ -60,7 +60,7 @@ describe('AcpAgentClient', () => {
     ]);
     const toolCall = result.steps[2];
     if (toolCall?.type === 'toolCall') {
-      expect(toolCall.name).toBe('tree.stats');
+      expect(toolCall.name).toBe('tree_stats');
     }
   });
 
@@ -75,7 +75,7 @@ describe('AcpAgentClient', () => {
       .onRequest('session/prompt', async ({ params, client }) => {
         await client.request('session/request_permission', {
           sessionId: params.sessionId,
-          toolCall: { toolCallId: 'tc-1', title: 'Edit', name: 'tree.edit', rawInput: {} },
+          toolCall: { toolCallId: 'tc-1', title: 'Edit', name: 'tree_edit', rawInput: {} },
           options: [
             { optionId: 'allow', name: 'Allow once', kind: 'allow_once' },
             { optionId: 'reject', name: 'Reject once', kind: 'reject_once' },
@@ -87,6 +87,6 @@ describe('AcpAgentClient', () => {
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
     await client.startWithAgent(agentApp, gate);
     await client.prompt('Edit something');
-    expect(asked).toBe('tree.edit');
+    expect(asked).toBe('tree_edit');
   });
 });

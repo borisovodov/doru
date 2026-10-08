@@ -61,7 +61,7 @@ decisions about what we deliberately do **not** build, see
   - `agent:acp:{command}` — ACP agent (the doru subprocess it spawns inherits
     the actor via the `DORU_MCP_ACTOR` env var);
   - `agent:mcp` — external MCP clients driving `doru --mcp-server`.
-- **Permissions**: read-only tools (`tree.query`, `charts.render`) run freely,
+- **Permissions**: read-only tools (`tree_query`, `charts_render`) run freely,
   mutating tools ask via an inline card (2-minute timeout denies), and tools
   from external MCP servers always ask.
 - **MCP server mode** runs the same Electron binary over stdio

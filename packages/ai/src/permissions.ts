@@ -8,8 +8,8 @@ export interface PermissionPolicy {
 export const DEFAULT_PERMISSION_POLICY: PermissionPolicy = {
   default: 'ask',
   overrides: {
-    'tree.query': 'allow',
-    'charts.render': 'allow',
+    'tree_query': 'allow',
+    'charts_render': 'allow',
   },
 };
 

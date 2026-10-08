@@ -21,7 +21,7 @@ export class DoruMcpServer {
     this.server = new McpServer({ name: 'doru', version });
 
     this.server.registerTool(
-      'tree.query',
+      'tree_query',
       {
         description: 'Search persons in the tree by name.',
         inputSchema: {
@@ -29,26 +29,26 @@ export class DoruMcpServer {
           limit: z.number().optional().describe('Maximum number of results (default 20)'),
         },
       },
-      async (args) => asText(await backend.invoke('tree.query', args)),
+      async (args) => asText(await backend.invoke('tree_query', args)),
     );
 
     this.server.registerTool(
-      'tree.get',
+      'tree_get',
       {
         description: 'Read a person with the families they belong to.',
         inputSchema: { personId: z.string().describe('Person id (e.g. @I1@)') },
       },
-      async (args) => asText(await backend.invoke('tree.get', args)),
+      async (args) => asText(await backend.invoke('tree_get', args)),
     );
 
     this.server.registerTool(
-      'tree.stats',
+      'tree_stats',
       { description: 'Return person and family counts for the tree.' },
-      async () => asText(await backend.invoke('tree.stats', {})),
+      async () => asText(await backend.invoke('tree_stats', {})),
     );
 
     this.server.registerTool(
-      'tree.edit',
+      'tree_edit',
       {
         description:
           'Apply an edit to the tree. Supports person.add and person.update. Every edit is recorded in the audit log with the calling agent as the actor.',
@@ -78,11 +78,11 @@ export class DoruMcpServer {
             .describe('Edit operation'),
         },
       },
-      async (args) => asText(await backend.invoke('tree.edit', { op: args.op })),
+      async (args) => asText(await backend.invoke('tree_edit', { op: args.op })),
     );
 
     this.server.registerTool(
-      'sources.add',
+      'sources_add',
       {
         description: 'Add a source, optionally citing a person or family.',
         inputSchema: {
@@ -92,11 +92,11 @@ export class DoruMcpServer {
           targetId: z.string().optional().describe('Id of the cited record'),
         },
       },
-      async (args) => asText(await backend.invoke('sources.add', args)),
+      async (args) => asText(await backend.invoke('sources_add', args)),
     );
 
     this.server.registerTool(
-      'notes.write',
+      'notes_write',
       {
         description: 'Write a research note, optionally attached to a record.',
         inputSchema: {
@@ -105,11 +105,11 @@ export class DoruMcpServer {
           targetId: z.string().optional(),
         },
       },
-      async (args) => asText(await backend.invoke('notes.write', args)),
+      async (args) => asText(await backend.invoke('notes_write', args)),
     );
 
     this.server.registerTool(
-      'charts.render',
+      'charts_render',
       {
         description: 'Render chart data for a person (pedigree is supported).',
         inputSchema: {
@@ -117,7 +117,7 @@ export class DoruMcpServer {
           kind: z.enum(['pedigree']).describe('Chart kind'),
         },
       },
-      async (args) => asText(await backend.invoke('charts.render', args)),
+      async (args) => asText(await backend.invoke('charts_render', args)),
     );
   }
 

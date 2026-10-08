@@ -24,8 +24,8 @@ build.
   audit log. Nothing is hidden; everything is editable by hand or by agents.
 - **AI-native.** Doru is both an MCP server — run `doru --mcp-server <project>`
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
-  through `tree.query`, `tree.edit`, `sources.add`, `notes.write`,
-  `charts.render` — and an agent chat built into the UI: provider presets
+  through `tree_query`, `tree_edit`, `sources_add`, `notes_write`,
+  `charts_render` — and an agent chat built into the UI: provider presets
   (OpenAI, Anthropic, Gemini, OpenRouter, Ollama, LM Studio, custom
   endpoints) configured in the in-app settings with keys stored in the OS
   keychain, external MCP servers, and ACP agents.

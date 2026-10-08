@@ -14,10 +14,10 @@ describe('TreeMcpBackend', () => {
 
       fixture.repo.insertPerson(ivan);
 
-      expect(await backend.invoke('tree.query', { query: 'ivan' })).toEqual([ivan]);
-      expect(await backend.invoke('tree.stats', {})).toEqual({ persons: 1, families: 0 });
+      expect(await backend.invoke('tree_query', { query: 'ivan' })).toEqual([ivan]);
+      expect(await backend.invoke('tree_stats', {})).toEqual({ persons: 1, families: 0 });
 
-      await backend.invoke('tree.edit', {
+      await backend.invoke('tree_edit', {
         op: {
           kind: 'person.add',
           person: { id: '@I2@', names: [], sex: 'U' },
@@ -38,7 +38,7 @@ describe('TreeMcpBackend', () => {
       fixture.repo.insertFamily({ id: '@F1@', parents: ['@P2@'], children: ['@I1@'] });
       const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
 
-      const result = (await backend.invoke('charts.render', { personId: '@I1@', kind: 'pedigree' })) as {
+      const result = (await backend.invoke('charts_render', { personId: '@I1@', kind: 'pedigree' })) as {
         root: { parents: Array<{ id: string }> };
       };
       expect(result.root.parents.map((parent) => parent.id)).toEqual(['@P2@']);
@@ -52,7 +52,7 @@ describe('TreeMcpBackend', () => {
     try {
       const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
       await expect(backend.invoke('nope', {})).rejects.toThrow('Unknown tool');
-      await expect(backend.invoke('tree.edit', { op: { kind: 'person.destroy' } })).rejects.toThrow(
+      await expect(backend.invoke('tree_edit', { op: { kind: 'person.destroy' } })).rejects.toThrow(
         'Unsupported op kind',
       );
     } finally {
