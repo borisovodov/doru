@@ -39,3 +39,16 @@
   border-color: var(--vp-button-alt-hover-border);
   color: var(--vp-button-alt-hover-text);
 }
+
+@media (min-width: 768px) {
+  .VPNavBar .content-body .VPNavBarTranslations {
+    display: flex;
+    align-items: center;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .VPNavBar .content-body .VPNavBarExtra {
+    display: none;
+  }
+}
