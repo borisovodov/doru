@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Dóru
   text: Genealogia local-first w erze AI
-  tagline: "Twoje drzewo genealogiczne żyje w zwykłym folderze na dysku, działa całkowicie offline i jest prowadzone przez agentów AI — przez wbudowany czat lub dowolnego klienta MCP/ACP."
+  tagline: "Twoje drzewo genealogiczne żyje w zwykłym folderze na dysku, działa całkowicie offline i jest prowadzone przez agentów AI — przez wbudowany czat lub dowolnego klienta MCP/ACP. Bez kont, bez chmury, bez telemetrii: Twoje dane zostają z Tobą."
 features:
   - icon: 🗂️
     title: Local-first
@@ -12,6 +12,9 @@ features:
   - icon: 🤖
     title: Natywna obsługa AI
     details: "Czat z agentami i narzędziami drzewa, tryb serwera MCP dla Claude Desktop i Cursor, host MCP dla zewnętrznych serwerów, agenci ACP."
+  - icon: 🔒
+    title: Prywatność z założenia
+    details: "Aplikacja nigdy nie łączy się sama: bez kont, bez chmury, bez telemetrii. Jedyne połączenia sieciowe idą do dostawców AI i serwerów MCP, które sam konfigurujesz. Klucze API pozostają w pęku kluczy systemu, a z Ollamą lub LM Studio AI działa w całości na Twoim komputerze."
   - icon: 🧾
     title: Rozliczalność
     details: "Każda zmiana — Twoja lub agenta — jest zapisana w history.jsonl wraz z autorem. Edycje AI pozostają widoczne i odwracalne."
@@ -24,6 +27,9 @@ features:
   - icon: 💾
     title: Przenośny z założenia
     details: "Kopia zapasowa przez skopiowanie folderu. Otwieraj go na macOS, Windows lub Linuksie. Import i eksport GEDCOM zapewniają interoperacyjność."
+  - icon: 🐙
+    title: Prawdziwy open source
+    details: "Cała aplikacja jest na licencji MIT: wolna do dowolnego użytku, modyfikacji i rozpowszechniania. Kod źródłowy w całości otwarty — bez zastrzeżonych części, bez sztuczek open-core."
 ---
 
 <div class="doru-read-docs">

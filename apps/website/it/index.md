@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Dóru
   text: Genealogia local-first nell'era dell'IA
-  tagline: "Il tuo albero genealogico vive in una semplice cartella sul disco, funziona completamente offline ed è guidato da agenti IA — tramite la chat integrata o qualsiasi client MCP/ACP."
+  tagline: "Il tuo albero genealogico vive in una semplice cartella sul disco, funziona completamente offline ed è guidato da agenti IA — tramite la chat integrata o qualsiasi client MCP/ACP. Niente account, niente cloud, niente telemetria: i tuoi dati restano con te."
 features:
   - icon: 🗂️
     title: Local-first
@@ -12,6 +12,9 @@ features:
   - icon: 🤖
     title: Nativamente IA
     details: "Chat con agenti e strumenti dell'albero, modalità server MCP per Claude Desktop e Cursor, host MCP per server esterni, agenti ACP."
+  - icon: 🔒
+    title: Progettato per la privacy
+    details: "L'app non fa mai chiamate di propria iniziativa: niente account, niente cloud, niente telemetria. Le uniche connessioni di rete vanno ai provider IA e ai server MCP che configuri tu stesso. Le chiavi API restano nel portachiavi di sistema e con Ollama o LM Studio l'IA gira interamente sulla tua macchina."
   - icon: 🧾
     title: Tracciabile
     details: "Ogni modifica — tua o di un agente — è registrata in history.jsonl con il suo autore. Le modifiche IA restano visibili e annullabili."
@@ -24,6 +27,9 @@ features:
   - icon: 💾
     title: Portatile per progetto
     details: "Backup copiando una cartella. Aprila su macOS, Windows o Linux. Import ed export GEDCOM garantiscono l'interoperabilità."
+  - icon: 🐙
+    title: Vero open source
+    details: "L'intera app è sotto licenza MIT: libera per qualsiasi uso, modifica e ridistribuzione. Codice sorgente completamente aperto — nessuna parte proprietaria, nessun trucco open-core."
 ---
 
 <div class="doru-read-docs">

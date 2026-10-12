@@ -19,7 +19,9 @@ layer could be reused by a future Capacitor-based client.
 
 ### Monetization
 
-None. Dóru is free software (MIT). If this ever changes, it must not compromise
+None. Dóru is free software under the MIT license — genuinely open source, not
+merely source-available: the whole app may be used, modified, and
+redistributed for any purpose. If this ever changes, it must not compromise
 the local-first guarantee: data stays in the user's folder.
 
 ### Manual locale switcher

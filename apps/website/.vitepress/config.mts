@@ -47,7 +47,7 @@ const localeConfig = Object.fromEntries(
 export default defineConfig({
   lang: 'en-US',
   title: 'Dóru',
-  description: 'Local-first genealogy for the AI era.',
+  description: 'Local-first genealogy for the AI era. Open source (MIT) — your data stays with you.',
   cleanUrls: true,
   appearance: 'force-auto',
   head: [

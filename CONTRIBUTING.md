@@ -1,8 +1,8 @@
 # Contributing to Dóru
 
-Thanks for your interest in contributing! Dóru is a local-first genealogy app
-for the AI era. This guide covers how to set up the project and propose
-changes.
+Thanks for your interest in contributing! Dóru is a local-first, MIT-licensed
+genealogy app for the AI era — your data stays on your machine. This guide
+covers how to set up the project and propose changes.
 
 ## Before you start
 

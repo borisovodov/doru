@@ -5,7 +5,10 @@ a plain folder on your disk, works fully offline, and can be driven by AI
 agents — through the built-in chat or any MCP/ACP client.
 
 - **Local-first.** Nothing leaves your computer unless you say so. A project
-  is an ordinary folder; the tree is a single SQLite file inside it.
+  is an ordinary folder; the tree is a single SQLite file inside it. No
+  accounts, no cloud, no telemetry — your data stays with you.
+- **Open source.** The whole app is MIT-licensed — free for any use,
+  modification, and redistribution, with the full source available.
 - **AI-native.** Talk to an agent in the app, or let external tools (Claude
   Desktop, Cursor, coding agents) work with your tree over MCP/ACP.
 - **Auditable.** Every change — yours or an agent's — is recorded in a
@@ -216,9 +219,11 @@ language.
 
 ## 6. Data ownership and backups
 
-- Your data is a plain folder. Nothing is uploaded anywhere unless *you*
+- Your data is a plain folder — and it stays yours. Dóru has no accounts, no
+  cloud backend, and no telemetry. Nothing is uploaded anywhere unless *you*
   configure an AI provider — and even then, only the content you send in chat
-  leaves your machine.
+  leaves your machine. If you want to keep everything on your computer, local
+  providers (Ollama, LM Studio) work fully offline.
 - The folder is version-control friendly: `tree.doru` is a stable binary file,
   while `history.jsonl`, `settings.json` and `theme.css` are text — commit the
   whole folder to git if you like.

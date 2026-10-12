@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Dóru
   text: AI時代のlocal-first系図
-  tagline: "家系図はディスク上の普通のフォルダーにあり、完全にオフラインで動作し、組み込みチャットや任意のMCP/ACPクライアントを通じてAIエージェントに操作されます。"
+  tagline: "家系図はディスク上の普通のフォルダーにあり、完全にオフラインで動作し、組み込みチャットや任意のMCP/ACPクライアントを通じてAIエージェントに操作されます。アカウントもクラウドもテレメトリもありません:データはあなたの手元に残ります。"
 features:
   - icon: 🗂️
     title: Local-first
@@ -12,6 +12,9 @@ features:
   - icon: 🤖
     title: AIネイティブ
     details: "ツリー操作ツールを備えたエージェントチャット、Claude DesktopやCursor向けのMCPサーバーモード、外部サーバー向けのMCPホスト、ACPエージェント。"
+  - icon: 🔒
+    title: プライバシー・バイ・デザイン
+    details: "アプリが勝手に外部と通信することはありません:アカウントもクラウドもテレメトリもありません。ネットワーク通信は、あなた自身が設定したAIプロバイダーとMCPサーバーだけです。APIキーはOSのキーチェーンに保存され、OllamaやLM Studioを使えばAIはすべて手元のマシンで動きます。"
   - icon: 🧾
     title: 追跡可能
     details: "すべての変更は、あなたのものもエージェントのものも、history.jsonlに作成者とともに記録されます。AIの編集は常に確認・取り消し可能です。"
@@ -24,6 +27,9 @@ features:
   - icon: 💾
     title: 設計から可搬性
     details: "フォルダーをコピーするだけでバックアップ。macOS、Windows、Linuxで開けます。GEDCOMのインポートとエクスポートが相互運用性を保証します。"
+  - icon: 🐙
+    title: 本物のオープンソース
+    details: "アプリ全体がMITライセンスです:あらゆる利用・改変・再配布が自由です。ソースコードは完全に公開されています——プロプライエタリな部分も、open-coreの仕掛けもありません。"
 ---
 
 <div class="doru-read-docs">

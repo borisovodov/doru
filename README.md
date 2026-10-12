@@ -16,7 +16,14 @@
 
 A cross-platform desktop app for working with family trees: your data stays in
 plain folders on your disk, works fully offline, and is designed to be driven
-by AI agents through MCP and chat.
+by AI agents through MCP and chat. There are no accounts, no cloud, and no
+telemetry — nothing leaves your machine unless you explicitly send it
+somewhere, and even AI features work with local models like Ollama if you
+prefer.
+
+Dóru is genuinely open source: the entire app is released under the
+[MIT license](LICENSE.md) — free for any use, modification, and
+redistribution, with no proprietary parts and no open-core tricks.
 
 The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
@@ -24,9 +31,15 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Highlights
 
-- **Local-first.** A project is a plain folder containing a `tree.doru` SQLite
-  database, text-based `settings.json` and `theme.css`, and a `history.jsonl`
-  audit log. Nothing is hidden; everything is editable by hand or by agents.
+- **Local-first — your data stays yours.** A project is a plain folder
+  containing a `tree.doru` SQLite database, text-based `settings.json` and
+  `theme.css`, and a `history.jsonl` audit log. Nothing is hidden; everything
+  is editable by hand or by agents. There are no accounts, no cloud, no
+  telemetry: nothing leaves your machine unless you explicitly send it to an
+  AI provider you configured yourself.
+- **Genuinely open source.** The whole app is MIT-licensed: free to use,
+  modify, and redistribute, for any purpose. What you run is what is in the
+  repo — no source-available bait, no proprietary parts.
 - **AI-native.** Dóru is both an MCP server — run `doru --mcp-server <project>`
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
   through `tree_query`, `tree_edit`, `sources_add`, `notes_write`,
