@@ -22,8 +22,8 @@ features:
     title: 텍스트 설정과 테마
     details: "설정은 doru.json, 스타일은 theme.css. 핫 리로드, 일반 텍스트, 사람과 에이전트 모두 편집 가능."
   - icon: 🌍
-    title: 17개 언어
-    details: "인터페이스는 완전히 현지화되어 있습니다 — 한국어와 영어부터 일본어와 중국어 간체까지."
+    title: 크로스 플랫폼과 17개 언어
+    details: "macOS, Windows, Linux에서 실행됩니다. 인터페이스는 완전히 현지화되어 있습니다 — 한국어와 영어부터 일본어와 중국어 간체까지."
   - icon: 💾
     title: 설계부터 이식 가능
     details: "폴더를 복사하는 것만으로 백업. macOS, Windows, Linux에서 열 수 있습니다. GEDCOM 가져오기와 내보내기가 상호 운용성을 보장합니다."

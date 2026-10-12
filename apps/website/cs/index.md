@@ -22,8 +22,8 @@ features:
     title: Textová konfigurace a motivy
     details: "Nastavení v doru.json, styl v theme.css. Živé znovunačtení, prostý text, upravitelné lidmi i agenty."
   - icon: 🌍
-    title: 17 jazyků
-    details: "Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
+    title: Multiplatformní a 17 jazyků
+    details: "Běží na macOS, Windows a Linuxu. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
   - icon: 💾
     title: Přenosné z podstaty
     details: "Záloha zkopírováním složky. Otevřete ji na macOS, Windows nebo Linuxu. Import a export GEDCOM zajišťují interoperabilitu."

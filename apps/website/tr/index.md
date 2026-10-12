@@ -22,8 +22,8 @@ features:
     title: Metin yapılandırma ve temalar
     details: "Ayarlar doru.json'da, stil theme.css'te. Canlı yeniden yükleme, düz metin, insanlar ve ajanlar tarafından düzenlenebilir."
   - icon: 🌍
-    title: 17 dil
-    details: "Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
+    title: Çok platformlu ve 17 dil
+    details: "macOS, Windows ve Linux'ta çalışır. Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
   - icon: 💾
     title: Doğası gereği taşınabilir
     details: "Bir klasörü kopyalayarak yedekleyin. macOS, Windows veya Linux'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."

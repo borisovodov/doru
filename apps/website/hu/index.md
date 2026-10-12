@@ -22,8 +22,8 @@ features:
     title: Szöveges konfiguráció és témák
     details: "Beállítások a doru.json-ban, stílus a theme.css-ben. Élő újratöltés, egyszerű szöveg, emberek és ügynökök is szerkeszthetik."
   - icon: 🌍
-    title: 17 nyelv
-    details: "A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."
+    title: Többplatformos és 17 nyelv
+    details: "macOS-en, Windowson és Linuxon fut. A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."
   - icon: 💾
     title: Hordozható felépítés
     details: "Biztonsági mentés egy mappa másolásával. Nyissa meg macOS-en, Windowson vagy Linuxon. A GEDCOM-import és -export biztosítja az interoperabilitást."

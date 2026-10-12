@@ -22,8 +22,8 @@ features:
     title: Config e temi in testo
     details: "Impostazioni in doru.json, stile in theme.css. Ricarica a caldo, testo semplice, modificabile da persone e agenti."
   - icon: 🌍
-    title: 17 lingue
-    details: "L'interfaccia è completamente localizzata — dall'italiano e l'inglese al giapponese e al cinese semplificato."
+    title: Multipiattaforma e 17 lingue
+    details: "Funziona su macOS, Windows e Linux. L'interfaccia è completamente localizzata — dall'italiano e l'inglese al giapponese e al cinese semplificato."
   - icon: 💾
     title: Portatile per progetto
     details: "Backup copiando una cartella. Aprila su macOS, Windows o Linux. Import ed export GEDCOM garantiscono l'interoperabilità."
