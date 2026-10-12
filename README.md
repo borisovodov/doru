@@ -7,11 +7,7 @@
 <p align="center"><strong>Local-first genealogy for the AI era.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/borisovodov/doru/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/borisovodov/doru" /></a>
   <a href="https://github.com/borisovodov/doru/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/borisovodov/doru/ci.yml?branch=main" /></a>
-  <a href="https://github.com/borisovodov/doru/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/borisovodov/doru/total" /></a>
-  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/github/license/borisovodov/doru" /></a>
-  <a href="https://doru.ovodov.me"><img alt="Docs" src="https://img.shields.io/badge/docs-doru.ovodov.me-8b5cf6" /></a>
 </p>
 
 A cross-platform desktop app for working with family trees: your data stays in
@@ -100,16 +96,15 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Installation
 
-Download the installer for your platform from the
-[releases page](https://github.com/borisovodov/doru/releases/latest):
+Every link below downloads the installer for the latest release directly:
 
 | Platform | Installer |
 |---|---|
-| macOS (Apple Silicon) | `doru-mac-arm64.dmg` |
-| Windows (x64) | `doru-windows-x64.exe` |
-| Windows (arm64) | `doru-windows-arm64.exe` |
-| Linux (x64) | `doru-linux-x86_64.AppImage` or `doru-linux-amd64.deb` |
-| Linux (arm64) | `doru-linux-arm64.AppImage` or `doru-linux-arm64.deb` |
+| macOS (Apple Silicon) | [doru-mac-arm64.dmg](https://github.com/borisovodov/doru/releases/latest/download/doru-mac-arm64.dmg) |
+| Windows (x64) | [doru-windows-x64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-x64.exe) |
+| Windows (arm64) | [doru-windows-arm64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-arm64.exe) |
+| Linux (x64) | [doru-linux-x86_64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-x86_64.AppImage) or [doru-linux-amd64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-amd64.deb) |
+| Linux (arm64) | [doru-linux-arm64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.AppImage) or [doru-linux-arm64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.deb) |
 
 macOS builds are signed and notarized. Windows builds are not code-signed yet,
 so SmartScreen may show a warning — click “More info → Run anyway”. On Linux,
