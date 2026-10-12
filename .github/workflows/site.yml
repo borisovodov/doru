@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/website/**'
-      - 'docs/user-guide.md'
+      - 'docs/guide/**'
   workflow_dispatch:
 
 permissions:

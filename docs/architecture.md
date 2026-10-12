@@ -19,6 +19,19 @@ decisions about what we deliberately do **not** build, see
   (template files, dirs, an empty tree with the latest schema). The only loud
   case is a corrupted database — that must not be silently "healed" away.
 
+## Privacy
+
+- The app makes no network calls on its own: no accounts, no cloud backend,
+  no telemetry, no analytics, no update checks. The only network activity is
+  what the user explicitly configures — an AI provider in Settings or external
+  MCP servers — and local providers (Ollama, LM Studio) keep even that on the
+  machine.
+- AI provider keys are entered only in the Settings UI and stored encrypted
+  via the OS keychain; the plaintext never sits in a file.
+- Tree data leaves the machine only when the user sends it: a chat message to
+  a configured provider or an explicit export. This guarantee is load-bearing
+  for the product — see the Monetization decision in decisions.md.
+
 ## Mutations
 
 - Every change goes through **ops** (command pattern with inverse), giving a
