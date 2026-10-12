@@ -1,14 +1,14 @@
-import { mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, copyFileSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
-const guideSrc = join(root, 'docs', 'user-guide.md');
-const guideDest = join(root, 'apps', 'website', 'docs', 'index.md');
+const guideSrc = join(root, 'docs', 'guide');
+const guideDest = join(root, 'apps', 'website', 'docs');
+rmSync(guideDest, { recursive: true, force: true });
 mkdirSync(dirname(guideDest), { recursive: true });
-const content = readFileSync(guideSrc, 'utf8');
-writeFileSync(guideDest, `---\noutline: deep\ntitle: Documentation\n---\n\n${content}`);
+cpSync(guideSrc, guideDest, { recursive: true });
 
 const iconSrc = join(root, 'apps', 'desktop', 'build', 'Icon-256@1x.png');
 const iconDest = join(root, 'apps', 'website', 'public', 'icon.png');
