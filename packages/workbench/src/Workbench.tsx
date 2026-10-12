@@ -2,11 +2,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { CommandService, KeybindingService } from '@doru/platform';
 import { nls } from './nls';
 import { ActivityBar } from './components/ActivityBar';
-import { CommandPalette } from './components/CommandPalette';
 import { EditorArea } from './components/EditorArea';
 import { Panel } from './components/Panel';
+import { SecondarySideBar } from './components/SecondarySideBar';
 import { SideBar } from './components/SideBar';
-import { StatusBar } from './components/StatusBar';
 import type { TabInfo } from './components/TabBar';
 import './workbench.css';
 
@@ -14,13 +13,13 @@ export interface WorkbenchProps {
   commands: CommandService;
   keybindings?: Array<{ key: string; command: string }>;
   sidebar?: ReactNode;
+  secondarySidebar?: ReactNode;
   editor?: ReactNode;
   panel?: ReactNode;
   tabs?: TabInfo[];
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
   onCloseTab?: (id: string) => void;
-  statusText?: string;
   onOpenProject: () => void;
   onOpenSettings?: () => void;
 }
@@ -29,28 +28,29 @@ export function Workbench({
   commands,
   keybindings: externalKeybindings = [],
   sidebar,
+  secondarySidebar,
   editor,
   panel,
   tabs,
   activeTabId,
   onSelectTab,
   onCloseTab,
-  statusText,
   onOpenProject,
   onOpenSettings,
 }: WorkbenchProps) {
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [secondarySideBarOpen, setSecondarySideBarOpen] = useState(true);
 
   useEffect(() => {
     const keybindings = new KeybindingService();
-    keybindings.register('f1', 'workbench.showCommandPalette');
+    keybindings.register('meta+alt+b', 'workbench.toggleSecondarySideBar');
+    keybindings.register('ctrl+alt+b', 'workbench.toggleSecondarySideBar');
     for (const binding of externalKeybindings) {
       keybindings.register(binding.key, binding.command);
     }
-    const removeCommand = commands.register({
-      id: 'workbench.showCommandPalette',
-      title: nls.t('workbench.commandPalette.title'),
-      handler: () => setPaletteOpen(true),
+    const removeToggleSecondarySideBar = commands.register({
+      id: 'workbench.toggleSecondarySideBar',
+      title: nls.t('workbench.toggleSecondarySideBar'),
+      handler: () => setSecondarySideBarOpen((open) => !open),
     });
     const onKeydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -65,13 +65,13 @@ export function Workbench({
     };
     window.addEventListener('keydown', onKeydown);
     return () => {
-      removeCommand.dispose();
+      removeToggleSecondarySideBar.dispose();
       window.removeEventListener('keydown', onKeydown);
     };
   }, [commands, externalKeybindings]);
 
   return (
-    <div className="workbench">
+    <div className={secondarySideBarOpen ? 'workbench secondary-open' : 'workbench'}>
       <ActivityBar onOpenProject={onOpenProject} onOpenSettings={onOpenSettings ?? (() => {})} />
       <SideBar>{sidebar}</SideBar>
       <div className="editor-column">
@@ -80,8 +80,7 @@ export function Workbench({
         </EditorArea>
         <Panel>{panel}</Panel>
       </div>
-      <StatusBar text={statusText ?? nls.t('workbench.statusBar.ready')} />
-      <CommandPalette commands={commands} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {secondarySideBarOpen && <SecondarySideBar>{secondarySidebar}</SecondarySideBar>}
     </div>
   );
 }

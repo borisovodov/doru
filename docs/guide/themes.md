@@ -13,7 +13,6 @@ Example `theme.css` that gives the project a warmer look:
 ```css
 :root {
   --doru-accent: #b08968;
-  --doru-status-bar-bg: #7f5539;
   --doru-side-bar-bg: #1f1b18;
   --doru-editor-bg: #171310;
 }
@@ -27,7 +26,6 @@ Available variables:
 | `--doru-side-bar-bg` | sidebar background |
 | `--doru-editor-bg` | main editor background |
 | `--doru-panel-bg` | bottom panel (chat) background |
-| `--doru-status-bar-bg` / `--doru-status-bar-fg` | bottom status bar colors |
 | `--doru-fg` / `--doru-fg-dim` | main and muted text |
 | `--doru-border` | borders and separators |
 | `--doru-accent` | highlights, active tabs, buttons |

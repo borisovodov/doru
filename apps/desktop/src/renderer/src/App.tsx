@@ -603,7 +603,6 @@ export function App() {
         activeTabId={activePath}
         onSelectTab={setActivePath}
         onCloseTab={(id) => void closeTab(id)}
-        statusText={activeSummary ? activeSummary.path : nls.t('workbench.statusBar.ready')}
         onOpenProject={() => void openProject()}
         onOpenSettings={() => setShowSettings((value) => !value)}
       />

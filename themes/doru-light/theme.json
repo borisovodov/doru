@@ -6,8 +6,6 @@
     "sideBar.background": "#f3f3f3",
     "editor.background": "#ffffff",
     "panel.background": "#ffffff",
-    "statusBar.background": "#007acc",
-    "statusBar.foreground": "#ffffff",
     "foreground": "#333333",
     "foreground.dim": "#616161",
     "border": "#e7e7e7",

@@ -3,8 +3,6 @@
   --doru-side-bar-bg: #252526;
   --doru-editor-bg: #1e1e1e;
   --doru-panel-bg: #1e1e1e;
-  --doru-status-bar-bg: #007acc;
-  --doru-status-bar-fg: #ffffff;
   --doru-fg: #cccccc;
   --doru-fg-dim: #858585;
   --doru-border: #3c3c3c;
@@ -29,12 +27,14 @@ body {
 
 .workbench {
   display: grid;
-  grid-template-columns: 48px 260px 1fr;
-  grid-template-rows: 1fr 22px;
-  grid-template-areas:
-    'activity sidebar editor'
-    'status status status';
+  grid-template-columns: 48px 260px 1fr 0px;
+  grid-template-rows: 1fr;
+  grid-template-areas: 'activity sidebar editor secondary';
   height: 100%;
+}
+
+.workbench.secondary-open {
+  grid-template-columns: 48px 260px 1fr 320px;
 }
 
 .activity-bar {
@@ -68,6 +68,14 @@ body {
   grid-area: sidebar;
   background: var(--doru-side-bar-bg);
   border-right: 1px solid var(--doru-border);
+  overflow: auto;
+  padding: 12px;
+}
+
+.secondary-side-bar {
+  grid-area: secondary;
+  background: var(--doru-side-bar-bg);
+  border-left: 1px solid var(--doru-border);
   overflow: auto;
   padding: 12px;
 }
@@ -137,70 +145,5 @@ body {
   background: var(--doru-panel-bg);
   border-top: 1px solid var(--doru-border);
   padding: 8px 12px;
-  color: var(--doru-fg-dim);
-}
-
-.status-bar {
-  grid-area: status;
-  background: var(--doru-status-bar-bg);
-  color: var(--doru-status-bar-fg);
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.command-palette-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 80px;
-  z-index: 100;
-}
-
-.command-palette {
-  width: 520px;
-  max-width: 90vw;
-  background: var(--doru-side-bar-bg);
-  border: 1px solid var(--doru-border);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.command-palette-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  background: var(--doru-input-bg);
-  color: var(--doru-fg);
-  border: none;
-  outline: none;
-  font-size: 13px;
-}
-
-.command-palette-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-  max-height: 320px;
-  overflow: auto;
-}
-
-.command-palette-item {
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.command-palette-item.active {
-  background: var(--doru-accent);
-  color: #ffffff;
-}
-
-.command-palette-empty {
-  padding: 6px 12px;
   color: var(--doru-fg-dim);
 }
