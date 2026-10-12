@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" alt="Dóru icon" width="112" />
+  <img src="apps/desktop/build/Icon-256@1x.png" alt="Dóru icon" width="112" />
 </p>
 
 <h1 align="center">Dóru</h1>

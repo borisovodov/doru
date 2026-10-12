@@ -1,5 +1,5 @@
-import { h } from 'vue';
-import type { Theme } from 'vitepress';
+import { h, watchEffect } from 'vue';
+import { inBrowser, useData, type Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import DownloadButtons from './DownloadButtons.vue';
 import LangTracker from './LangTracker.vue';
@@ -7,6 +7,13 @@ import './style.css';
 
 export default {
   extends: DefaultTheme,
+  setup() {
+    if (!inBrowser) return;
+    const { isDark } = useData();
+    watchEffect(() => {
+      document.documentElement.classList.toggle('dark', isDark.value);
+    });
+  },
   Layout: () =>
     h(DefaultTheme.Layout, null, {
       'home-hero-actions-after': () => h(DownloadButtons),

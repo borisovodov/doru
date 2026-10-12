@@ -1127,7 +1127,7 @@ function parseMcpServerArg(argv: string[]): string | null {
 void app.whenReady().then(async () => {
   recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
 
-  if (process.platform === 'darwin' && app.dock) {
+  if (process.platform === 'darwin' && app.dock && !app.isPackaged) {
     try {
       app.dock.setIcon(iconPath());
     } catch {

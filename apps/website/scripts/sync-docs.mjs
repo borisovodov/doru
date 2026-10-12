@@ -10,8 +10,8 @@ rmSync(guideDest, { recursive: true, force: true });
 mkdirSync(dirname(guideDest), { recursive: true });
 cpSync(guideSrc, guideDest, { recursive: true });
 
-const iconSrc = join(root, 'apps', 'desktop', 'resources', 'icon.svg');
-const iconDest = join(root, 'apps', 'website', 'public', 'icon.svg');
+const iconSrc = join(root, 'apps', 'desktop', 'build', 'Icon-256@1x.png');
+const iconDest = join(root, 'apps', 'website', 'public', 'icon.png');
 mkdirSync(dirname(iconDest), { recursive: true });
 copyFileSync(iconSrc, iconDest);
 
