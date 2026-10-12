@@ -16,11 +16,13 @@ fileAssociations:
     role: Editor
 mac:
   category: public.app-category.lifestyle
-  icon: resources/icon.png
+  icon: build/Icon.icon
   artifactName: doru-mac-${arch}.${ext}
   target:
     - dmg
     - zip
+dmg:
+  icon: build/icon.icns
 win:
   icon: resources/icon.png
   artifactName: doru-windows-${arch}.${ext}

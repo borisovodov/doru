@@ -10,8 +10,8 @@ mkdirSync(dirname(guideDest), { recursive: true });
 const content = readFileSync(guideSrc, 'utf8');
 writeFileSync(guideDest, `---\noutline: deep\ntitle: Documentation\n---\n\n${content}`);
 
-const iconSrc = join(root, 'apps', 'desktop', 'resources', 'icon.svg');
-const iconDest = join(root, 'apps', 'website', 'public', 'icon.svg');
+const iconSrc = join(root, 'apps', 'desktop', 'build', 'Icon-256@1x.png');
+const iconDest = join(root, 'apps', 'website', 'public', 'icon.png');
 mkdirSync(dirname(iconDest), { recursive: true });
 copyFileSync(iconSrc, iconDest);
 

@@ -22,7 +22,7 @@ const LOCALIZED = {
 
 function themeConfig(nav: string, footer: string): DefaultTheme.Config {
   return {
-    logo: '/icon.svg',
+    logo: '/icon.png',
     nav: [
       { text: nav, link: '/docs/' },
       { text: 'GitHub', link: 'https://github.com/borisovodov/doru' },
@@ -51,7 +51,7 @@ export default defineConfig({
   cleanUrls: true,
   appearance: 'force-auto',
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/icon.png' }],
     [
       'script',
       {},
