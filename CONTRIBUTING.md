@@ -44,8 +44,8 @@ npm run e2e        # Playwright smoke test against the built app
 - `packages/features` — domain UI
 - `packages/ai` — agent layer: connectors, tools, permissions, audit log
 
-Note: `apps/website/guide/` and `apps/website/public/icon.svg` are generated
-from `docs/user-guide.md` and the app icon by the sync script (part of
+Note: `apps/website/docs/` and `apps/website/public/icon.svg` are generated
+from `docs/guide/` and the app icon by the sync script (part of
 `npm run site:build`) — edit the sources, not the generated files.
 
 ## Troubleshooting

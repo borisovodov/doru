@@ -28,7 +28,35 @@ function themeConfig(nav: string, footer: string): DefaultTheme.Config {
       { text: 'GitHub', link: 'https://github.com/borisovodov/doru' },
     ],
     sidebar: {
-      '/docs/': [{ text: nav, link: '/docs/' }],
+      '/docs/': [
+        { text: nav, link: '/docs/' },
+        {
+          text: 'Get started',
+          collapsed: false,
+          items: [
+            { text: 'Installation', link: '/docs/installation' },
+            { text: 'Quick start', link: '/docs/getting-started' },
+          ],
+        },
+        {
+          text: 'Guide',
+          collapsed: false,
+          items: [
+            { text: 'Working with the tree', link: '/docs/tree' },
+            { text: 'Configuration', link: '/docs/configuration' },
+            { text: 'AI and agents', link: '/docs/agents' },
+            { text: 'Themes', link: '/docs/themes' },
+          ],
+        },
+        {
+          text: 'Reference',
+          collapsed: false,
+          items: [
+            { text: 'Data and backups', link: '/docs/data-backups' },
+            { text: 'Troubleshooting', link: '/docs/troubleshooting' },
+          ],
+        },
+      ],
     },
     footer: { message: footer },
     search: { provider: 'local' },
