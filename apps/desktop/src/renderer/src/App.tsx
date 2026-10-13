@@ -706,6 +706,14 @@ export function App() {
   const sidebar = (() => {
     switch (activeView) {
       case 'people':
+        if (!projectPath) {
+          return (
+            <PlaceholderView
+              title={nls.t('workbench.activityBar.people')}
+              description={nls.t('features.people.placeholder')}
+            />
+          );
+        }
         return <PersonList persons={persons} onOpen={openPersonTab} />;
       case 'places':
         return (
