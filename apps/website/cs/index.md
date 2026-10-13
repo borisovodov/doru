@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Projekt je obyčejná složka: SQLite databáze, textová nastavení a motiv, auditní záznam. Nic není skryto, nic se nenahrává."
+    details: "Projekt je obyčejná složka: SQLite databáze a složka media na fotky. Nic není skryto, nic se nenahrává."
   - icon: 🤖
     title: Nativně AI
     details: "Chat s agenty a nástroji stromu, režim MCP serveru pro Claude Desktop a Cursor, MCP host pro externí servery, ACP agenti."
   - icon: 🔒
     title: Soukromí z podstaty
     details: "Aplikace sama nikam nevolá: žádné účty, žádný cloud, žádná telemetrie. Jediná síťová spojení vedou k poskytovatelům AI a MCP serverům, které si sami nakonfigurujete. API klíče zůstávají v systémové klíčence a s Ollamou nebo LM Studiem běží AI kompletně na vašem počítači."
-  - icon: 🧾
-    title: Dohledatelné
-    details: "Každá změna — vaše nebo agentova — je zaznamenána v history.jsonl s autorem. Úpravy AI zůstávají viditelné a vratitelné."
   - icon: 🎨
-    title: Textová konfigurace a motivy
-    details: "Nastavení v doru.json, styl v theme.css. Živé znovunačtení, prostý text, upravitelné lidmi i agenty."
+    title: Textová konfigurace
+    details: "Nastavení v doru.json: poskytovatelé AI, motivy a další. Prostý text, živé znovunačtení, upravitelné lidmi i agenty."
   - icon: 🌍
     title: Multiplatformní a 17 jazyků
     details: "Běží na macOS, Windows a Linuxu. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."

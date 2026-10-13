@@ -5,13 +5,12 @@
   configure an AI provider — and even then, only the content you send in chat
   leaves your machine. If you want to keep everything on your computer, local
   providers (Ollama, LM Studio) work fully offline.
-- The folder is version-control friendly: `tree.doru` is a stable binary file,
-  while `history.jsonl`, `settings.json` and `theme.css` are text — commit the
-  whole folder to git if you like.
+- The folder is version-control friendly: `tree.doru` is a stable binary file —
+  commit the whole folder to git if you like.
 - To back up: copy the project folder. That's all there is. Restoring is
   copying it back.
-- If some file inside the project is missing, Dóru recreates it silently on
-  open (defaults for `settings.json`/`theme.css`, an empty tree, folders).
+- If something inside the project is missing, Dóru recreates it silently on
+  open (the `media/` folder, an empty tree).
 
 ## Syncing between machines
 

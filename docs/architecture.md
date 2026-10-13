@@ -7,8 +7,8 @@ decisions about what we deliberately do **not** build, see
 ## Project format
 
 - The project is an **ordinary folder**, not a single file and not a macOS
-  package. Config, theme, and history stay real text files that humans and
-  agents can edit with any editor; photos stay real files in `media/`.
+  package. Photos stay real files in `media/`; everything else lives in the
+  `tree.doru` SQLite database.
 - `tree.doru` is SQLite with:
   - `journal_mode=DELETE` — WAL would leave `-wal`/`-shm` sidecars next to a
     "document" file and invites file-sync corruption;
@@ -35,7 +35,7 @@ decisions about what we deliberately do **not** build, see
 ## Mutations
 
 - Every change goes through **ops** (command pattern with inverse), giving a
-  single path for undo/redo, the audit log, and (potentially) sync. SQLite is
+  single path for undo/redo and (potentially) sync. SQLite is
   the single source of truth; the in-memory `TreeDocument` exists only as an
   import/export DTO.
 - Repository transactions are **reentrant** (SQLite cannot nest `BEGIN`):
@@ -70,13 +70,6 @@ decisions about what we deliberately do **not** build, see
 
 ## AI and agents
 
-- **Audit actors** in `history.jsonl`:
-  - `user` — manual edits;
-  - `agent:{host}/{model}#{promptHash}` — OpenAI-compatible chat (12-hex
-    SHA-256 of the last user message);
-  - `agent:acp:{command}` — ACP agent (the doru subprocess it spawns inherits
-    the actor via the `DORU_MCP_ACTOR` env var);
-  - `agent:mcp` — external MCP clients driving `doru --mcp-server`.
 - **Permissions**: read-only tools (`tree_query`, `charts_render`) run freely,
   mutating tools ask via an inline card (2-minute timeout denies), and tools
   from external MCP servers always ask.
@@ -103,10 +96,9 @@ decisions about what we deliberately do **not** build, see
 
 ## Theming
 
-- Cascade: hardcoded baseline palette < selected built-in theme < project
-  `theme.css` (hot-reloaded via `fs.watch`). The built-in theme is chosen per
-  OS appearance from `doru.json` (`theme.dark`/`theme.light`); the OS is the
-  only authority for light vs dark.
+- Cascade: hardcoded baseline palette < selected built-in theme. The built-in
+  theme is chosen per OS appearance from `doru.json`
+  (`theme.dark`/`theme.light`); the OS is the only authority for light vs dark.
 - Built-in themes ship as real files in app resources (`themes/`), so the
   same mechanism could serve user-installed themes later.
 

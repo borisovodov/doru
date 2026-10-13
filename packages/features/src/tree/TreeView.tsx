@@ -15,8 +15,6 @@ import type {
 } from '@doru/core';
 import { nls } from '../nls';
 
-export type NameFormat = 'given-first' | 'surname-first';
-
 export interface MediaWithPath extends MediaRecord {
   absolutePath: string;
 }
@@ -54,7 +52,6 @@ export interface TreeViewProps {
   search: string;
   canUndo: boolean;
   canRedo: boolean;
-  nameFormat: NameFormat;
   onOpenProject: () => void;
   onImportGedcom: () => void;
   onExportGedcom: () => void;
@@ -92,7 +89,6 @@ export function TreeView({
   search,
   canUndo,
   canRedo,
-  nameFormat,
   onOpenProject,
   onImportGedcom,
   onExportGedcom,
@@ -242,7 +238,6 @@ export function TreeView({
             <PersonEditor
               draft={draft}
               persons={persons}
-              nameFormat={nameFormat}
               onChange={setDraft}
               onSave={() => void save()}
               onCancel={closeEditor}
@@ -270,7 +265,7 @@ export function TreeView({
             <ul className="person-list">
               {persons.map((person) => (
                 <li key={person.id} onClick={() => setSelectedId(person.id)}>
-                  <span className="person-name">{displayName(person, nameFormat)}</span>
+                  <span className="person-name">{displayName(person)}</span>
                   <span className="person-dates">{years(person)}</span>
                 </li>
               ))}
@@ -285,7 +280,6 @@ export function TreeView({
 interface PersonEditorProps {
   draft: PersonDraft;
   persons: PersonRecord[];
-  nameFormat: NameFormat;
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -311,7 +305,6 @@ interface PersonEditorProps {
 function PersonEditor({
   draft,
   persons,
-  nameFormat,
   onChange,
   onSave,
   onCancel,
@@ -436,7 +429,6 @@ function PersonEditor({
           <FamilySection
             personId={draft.id}
             persons={persons}
-            nameFormat={nameFormat}
             families={families}
             refresh={refreshFamilies}
             onAddFamily={onAddFamily}
@@ -650,7 +642,6 @@ function EventsSection({
 interface FamilySectionProps {
   personId: string;
   persons: PersonRecord[];
-  nameFormat: NameFormat;
   families: FamilyRecord[];
   refresh: () => Promise<void>;
   onAddFamily: (family: FamilyRecord) => Promise<void>;
@@ -664,7 +655,6 @@ interface FamilySectionProps {
 function FamilySection({
   personId,
   persons,
-  nameFormat,
   families,
   refresh,
   onAddFamily,
@@ -723,7 +713,6 @@ function FamilySection({
           family={family}
           personId={personId}
           persons={persons}
-          nameFormat={nameFormat}
           onRemoveMember={(memberId) => void removeMember(family, memberId)}
           onAddMember={(role, memberId) => void addMember(family, role, memberId)}
           onDelete={() => void deleteFamily(family)}
@@ -738,7 +727,6 @@ function FamilySection({
           family={family}
           personId={personId}
           persons={persons}
-          nameFormat={nameFormat}
           onRemoveMember={(memberId) => void removeMember(family, memberId)}
           onAddMember={(role, memberId) => void addMember(family, role, memberId)}
           onDelete={() => void deleteFamily(family)}
@@ -763,7 +751,6 @@ function FamilyCard({
   family,
   personId,
   persons,
-  nameFormat,
   onRemoveMember,
   onAddMember,
   onDelete,
@@ -774,7 +761,6 @@ function FamilyCard({
   family: FamilyRecord;
   personId: string;
   persons: PersonRecord[];
-  nameFormat: NameFormat;
   onRemoveMember: (memberId: string) => void;
   onAddMember: (role: 'parent' | 'child', memberId: string) => void;
   onDelete: () => void;
@@ -814,7 +800,7 @@ function FamilyCard({
           .filter((id) => id !== personId)
           .map((parentId) => (
             <span key={parentId} className="family-chip">
-              {displayName(persons.find((person) => person.id === parentId), nameFormat)}
+              {displayName(persons.find((person) => person.id === parentId))}
               <button title="×" onClick={() => onRemoveMember(parentId)}>
                 ×
               </button>
@@ -822,7 +808,7 @@ function FamilyCard({
           ))}
         {family.children.map((childId) => (
           <span key={childId} className="family-chip child">
-            {displayName(persons.find((person) => person.id === childId), nameFormat)}
+            {displayName(persons.find((person) => person.id === childId))}
             <button title="×" onClick={() => onRemoveMember(childId)}>
               ×
             </button>
@@ -831,7 +817,6 @@ function FamilyCard({
         <PersonPicker
           persons={persons}
           exclude={[...family.parents, ...family.children]}
-          nameFormat={nameFormat}
           onPick={(memberId) => onAddMember('child', memberId)}
         />
       </div>
@@ -859,12 +844,10 @@ function FamilyCard({
 function PersonPicker({
   persons,
   exclude,
-  nameFormat,
   onPick,
 }: {
   persons: PersonRecord[];
   exclude: string[];
-  nameFormat: NameFormat;
   onPick: (personId: string) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -872,7 +855,7 @@ function PersonPicker({
   const needle = query.trim().toLowerCase();
   const candidates = persons
     .filter((person) => !exclude.includes(person.id))
-    .filter((person) => !needle || displayName(person, nameFormat).toLowerCase().includes(needle))
+    .filter((person) => !needle || displayName(person).toLowerCase().includes(needle))
     .slice(0, 8);
 
   return (
@@ -898,7 +881,7 @@ function PersonPicker({
                 setOpen(false);
               }}
             >
-              {displayName(person, nameFormat)}
+              {displayName(person)}
             </li>
           ))}
         </ul>
@@ -1125,7 +1108,7 @@ function fromDateDraft(draft: DateDraft): DateValue | undefined {
   return { year, month, day, text, quality: draft.quality, place };
 }
 
-function displayName(person: PersonRecord | undefined, nameFormat: NameFormat = 'given-first'): string {
+function displayName(person: PersonRecord | undefined): string {
   if (!person) {
     return '?';
   }
@@ -1141,9 +1124,8 @@ function displayName(person: PersonRecord | undefined, nameFormat: NameFormat = 
   }
   const given = name.given;
   const surname = name.surname;
-  const parts = nameFormat === 'surname-first' ? [surname, given] : [given, surname];
-  const filtered = parts.filter((part) => part !== undefined);
-  return filtered.length > 0 ? (nameFormat === 'surname-first' ? filtered.join(', ') : filtered.join(' ')) : person.id;
+  const filtered = [given, surname].filter((part) => part !== undefined);
+  return filtered.length > 0 ? filtered.join(' ') : person.id;
 }
 
 function years(person: PersonRecord): string {

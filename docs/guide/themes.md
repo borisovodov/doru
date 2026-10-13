@@ -1,24 +1,15 @@
 # Themes
 
-The interface is styled entirely through CSS custom properties. The cascade:
+The interface is styled entirely through CSS custom properties, applied at the
+app level — never per project.
 
-1. **Built-in theme** — `doru-dark` or `doru-light`, chosen per OS appearance
-   in `doru.json` (see [Configuration](configuration.md)). Switch your OS to
-   light mode and Dóru follows instantly; no in-app toggle.
-2. **Your overrides** — the project's `theme.css`, applied on top and
-   hot-reloaded: edit the file in any editor and the app restyles immediately.
+- **Built-in themes** — `doru-dark` and `doru-light`, chosen per OS appearance
+  in `doru.json` (see [Configuration](configuration.md)). Switch your OS to
+  light mode and Dóru follows instantly; there is no in-app toggle.
+- Built-in themes ship as real files in the app's `themes/` directory, and the
+  same mechanism could serve user-installed themes later.
 
-Example `theme.css` that gives the project a warmer look:
-
-```css
-:root {
-  --doru-accent: #b08968;
-  --doru-side-bar-bg: #1f1b18;
-  --doru-editor-bg: #171310;
-}
-```
-
-Available variables:
+Available variables (used by the workbench and the feature views):
 
 | Variable | Meaning |
 |---|---|

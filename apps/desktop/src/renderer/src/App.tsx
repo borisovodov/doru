@@ -25,7 +25,6 @@ import {
   type ChatPermissionRequest,
   type ChatTranscriptMessage,
   type MediaWithPath,
-  type NameFormat,
 } from '@doru/features';
 import { Workbench, nls, type ActivityViewId, type TabInfo } from '@doru/workbench';
 import type { ChatPermissionRequest as PreloadPermissionRequest } from './doru.d';
@@ -43,11 +42,9 @@ export function App() {
   const [importResult, setImportResult] = useState<GedcomImportResult | null>(null);
   const [exportResult, setExportResult] = useState<{ path: string } | null>(null);
   const [search, setSearch] = useState('');
-  const [nameFormat, setNameFormat] = useState<NameFormat>('given-first');
   const [chatMessages, setChatMessages] = useState<ChatTranscriptMessage[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
-  const [themeCss, setThemeCss] = useState('');
   const [builtinThemeCss, setBuiltinThemeCss] = useState('');
   const [settingsTabOpen, setSettingsTabOpen] = useState(false);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
@@ -101,25 +98,12 @@ export function App() {
       setPermission(null);
       chatConversation.current = [];
       void reloadTree(activePath, '');
-      void window.doru.getTheme(activePath).then((result) => setThemeCss(result.css));
-      void window.doru
-        .getProjectSettings(activePath)
-        .then((settings) => setNameFormat(settings.nameFormat));
     } else {
       setPersons([]);
       setStats(null);
       setUndoState(NO_UNDO);
-      setThemeCss('');
     }
   }, [activePath, reloadTree]);
-
-  useEffect(() => {
-    return window.doru.onThemeChanged((info) => {
-      if (info.projectPath === activePath) {
-        void window.doru.getTheme(info.projectPath).then((result) => setThemeCss(result.css));
-      }
-    });
-  }, [activePath]);
 
   const openProject = useCallback(
     async (path?: string) => {
@@ -566,7 +550,6 @@ export function App() {
       search={search}
       canUndo={undoState.canUndo}
       canRedo={undoState.canRedo}
-      nameFormat={nameFormat}
       onOpenProject={() => void openProject()}
       onImportGedcom={() => void importGedcom()}
       onExportGedcom={() => void exportGedcom()}
@@ -670,7 +653,6 @@ export function App() {
   return (
     <>
       <style id="doru-builtin-theme">{builtinThemeCss}</style>
-      <style id="doru-project-theme">{themeCss}</style>
       <Workbench
         commands={commands}
         keybindings={keybindings}

@@ -6,7 +6,7 @@ Instructions for AI agents and contributors working on this repository.
 
 Dóru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
 SQLite-based tree documents (`tree.doru`), text-based config/themes, MCP
-host+server, ACP agents, agent chat with audit trail. MIT-licensed; no
+host+server, ACP agents, agent chat. MIT-licensed; no
 accounts, no cloud, no telemetry — user data never leaves the machine unless
 the user explicitly sends it.
 
@@ -48,7 +48,7 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - SQLite is only touched by the Electron main process; renderer and agents go
   through IPC/MCP tools.
 - Every tree mutation goes through ops (command pattern with inverse) so that
-  undo/redo and the audit log (history.jsonl) stay consistent.
+  undo/redo stays consistent.
 - Keep the service layer free of Electron-specific APIs where feasible
   (allows future Capacitor/mobile reuse).
 

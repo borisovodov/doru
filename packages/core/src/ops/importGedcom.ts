@@ -7,14 +7,13 @@ export interface GedcomImportOp extends Op {
   readonly insertedFamilies: string[];
 }
 
-export function importGedcomOp(actor: string, source: string, doc: TreeDocument): GedcomImportOp {
+export function importGedcomOp(source: string, doc: TreeDocument): GedcomImportOp {
   const insertedPersons: string[] = [];
   const insertedFamilies: string[] = [];
   return {
     id: crypto.randomUUID(),
     kind: 'gedcom.import',
     timestamp: new Date().toISOString(),
-    actor,
     source,
     insertedPersons,
     insertedFamilies,

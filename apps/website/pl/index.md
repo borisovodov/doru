@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Projekt to zwykły folder: baza SQLite, tekstowe ustawienia i motyw, dziennik audytu. Nic nie jest ukryte, nic nie jest wysyłane."
+    details: "Projekt to zwykły folder: baza SQLite i folder media na zdjęcia. Nic nie jest ukryte, nic nie jest wysyłane."
   - icon: 🤖
     title: Natywna obsługa AI
     details: "Czat z agentami i narzędziami drzewa, tryb serwera MCP dla Claude Desktop i Cursor, host MCP dla zewnętrznych serwerów, agenci ACP."
   - icon: 🔒
     title: Prywatność z założenia
     details: "Aplikacja nigdy nie łączy się sama: bez kont, bez chmury, bez telemetrii. Jedyne połączenia sieciowe idą do dostawców AI i serwerów MCP, które sam konfigurujesz. Klucze API pozostają w pęku kluczy systemu, a z Ollamą lub LM Studio AI działa w całości na Twoim komputerze."
-  - icon: 🧾
-    title: Rozliczalność
-    details: "Każda zmiana — Twoja lub agenta — jest zapisana w history.jsonl wraz z autorem. Edycje AI pozostają widoczne i odwracalne."
   - icon: 🎨
-    title: Konfiguracja i motywy w tekście
-    details: "Ustawienia w doru.json, styl w theme.css. Przeładowanie na żywo, zwykły tekst, edytowalne przez ludzi i agentów."
+    title: Konfiguracja w tekście
+    details: "Ustawienia w doru.json: dostawcy AI, motywy i więcej. Zwykły tekst, przeładowanie na żywo, edytowalne przez ludzi i agentów."
   - icon: 🌍
     title: Wieloplatformowość i 17 języków
     details: "Działa na macOS, Windows i Linuksie. Interfejs jest w pełni zlokalizowany — od polskiego i angielskiego po japoński i chiński uproszczony."

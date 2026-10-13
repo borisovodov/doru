@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Bir proje sıradan bir klasördür: bir SQLite veritabanı, metin ayarları ve tema, bir denetim günlüğü. Hiçbir şey gizli değil, hiçbir şey yüklenmiyor."
+    details: "Bir proje sıradan bir klasördür: bir SQLite veritabanı ve fotoğraflar için bir media klasörü. Hiçbir şey gizli değil, hiçbir şey yüklenmiyor."
   - icon: 🤖
     title: YZ-yerel
     details: "Ağaç araçlarıyla ajan sohbeti, Claude Desktop ve Cursor için MCP sunucu modu, harici sunucular için MCP host, ACP ajanları."
   - icon: 🔒
     title: Tasarım gereği gizli
     details: "Uygulama kendiliğinden hiçbir yere bağlanmaz: hesap yok, bulut yok, telemetri yok. Tek ağ bağlantıları, kendinizin yapılandırdığı YZ sağlayıcıları ve MCP sunucularıdır. API anahtarları sistem anahtarlığında kalır; Ollama veya LM Studio ile YZ tamamen kendi makinenizde çalışır."
-  - icon: 🧾
-    title: Denetlenebilir
-    details: "Her değişiklik — sizin veya bir ajanın — history.jsonl dosyasına yazarıyla birlikte kaydedilir. YZ düzenlemeleri görünür ve geri alınabilir kalır."
   - icon: 🎨
-    title: Metin yapılandırma ve temalar
-    details: "Ayarlar doru.json'da, stil theme.css'te. Canlı yeniden yükleme, düz metin, insanlar ve ajanlar tarafından düzenlenebilir."
+    title: Metin yapılandırma
+    details: "Ayarlar doru.json'da: YZ sağlayıcıları, temalar ve daha fazlası. Düz metin, canlı yeniden yükleme, insanlar ve ajanlar tarafından düzenlenebilir."
   - icon: 🌍
     title: Çok platformlu ve 17 dil
     details: "macOS, Windows ve Linux'ta çalışır. Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."

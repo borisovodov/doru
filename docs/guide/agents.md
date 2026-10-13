@@ -22,9 +22,6 @@ Provider:
 - **Permissions**: read-only tools run freely; mutating tools (`tree_edit`,
   `sources_add`, `notes_write`) ask for confirmation inline. External MCP tools
   always ask.
-- **Audit trail**: every agent edit is recorded in `history.jsonl` with an
-  actor like `agent:api.openai.com/gpt-4o-mini#a1b2c3d4e5f6` — you can always
-  tell who changed what, and undo it.
 
 ## ACP agents
 

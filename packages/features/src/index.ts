@@ -3,7 +3,6 @@ import './features.css';
 export {
   TreeView,
   type MediaWithPath,
-  type NameFormat,
   type TreeViewProps,
 } from './tree/TreeView';
 export {

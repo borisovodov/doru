@@ -13,8 +13,6 @@ import type {
 } from '@doru/core';
 import type { ChatMessage, ChatSendResult } from '@doru/ai';
 
-export type NameFormat = 'given-first' | 'surname-first';
-
 export interface AiProviderInfo {
   id: string;
   label: string;
@@ -72,8 +70,6 @@ declare global {
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
       onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
       respondChatPermission(id: string, allow: boolean): void;
-      getTheme(projectPath: string): Promise<{ css: string }>;
-      onThemeChanged(callback: (info: { projectPath: string }) => void): () => void;
       getThemeState(): Promise<{
         systemDark: boolean;
         config: { dark: string; light: string };
@@ -122,7 +118,6 @@ declare global {
       getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
-      getProjectSettings(projectPath: string): Promise<{ nameFormat: NameFormat }>;
       getAiSettings(): Promise<AiSettings>;
       getAiProviders(): Promise<AiProviderInfo[]>;
       setAiSettings(options: {

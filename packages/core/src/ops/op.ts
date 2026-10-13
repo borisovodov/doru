@@ -8,7 +8,6 @@ export interface Op {
   readonly id: string;
   readonly kind: string;
   readonly timestamp: string;
-  readonly actor: string;
   apply(ctx: MutationContext): void;
   inverse(ctx: MutationContext): void;
 }
@@ -17,13 +16,10 @@ export class OpQueue {
   private readonly undoStack: Op[] = [];
   private readonly redoStack: Op[] = [];
 
-  constructor(private readonly audit: (op: Op) => void = () => {}) {}
-
   apply(op: Op, ctx: MutationContext): void {
     op.apply(ctx);
     this.undoStack.push(op);
     this.redoStack.length = 0;
-    this.audit(op);
   }
 
   undo(ctx: MutationContext): Op | undefined {

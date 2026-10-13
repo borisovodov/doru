@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, protocol, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
-import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, watch, type FSWatcher } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, watch } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyEdits, modify, parse } from 'jsonc-parser';
@@ -12,7 +12,6 @@ import {
   AnthropicChatConnector,
   DEFAULT_PERMISSION_POLICY,
   DoruMcpServer,
-  HistoryLog,
   McpHostManager,
   OpenAIChatConnector,
   TreeMcpBackend,
@@ -25,14 +24,12 @@ import {
 } from '@doru/ai';
 import {
   Gedcom70Writer,
-  HISTORY_FILE_NAME,
+  MEDIA_DIR_NAME,
   OpQueue,
   ProjectOpener,
   ReadGedcomImporter,
   RecentProjects,
-  SETTINGS_FILE_NAME,
   SqliteTreeRepository,
-  THEME_FILE_NAME,
   TreeStore,
   addEventOp,
   addFamilyOp,
@@ -111,11 +108,9 @@ interface ProjectRuntime {
   store: ITreeStore;
   repo: SqliteTreeRepository;
   queue: OpQueue;
-  history: HistoryLog;
 }
 
 const runtimes = new Map<string, ProjectRuntime>();
-const themeWatchers = new Map<string, FSWatcher>();
 
 interface PendingPermission {
   resolve: (allowed: boolean) => void;
@@ -178,22 +173,9 @@ async function ensureRuntime(
   }
   const { summary, store } = await opener.open(projectPath);
   const repo = new SqliteTreeRepository(store.db);
-  const history = new HistoryLog(fs, join(projectPath, HISTORY_FILE_NAME));
-  const queue = new OpQueue((op) => {
-    void history.append({ ts: op.timestamp, actor: op.actor, opId: op.id, opKind: op.kind });
-  });
-  const runtime: ProjectRuntime = { store, repo, queue, history };
+  const queue = new OpQueue();
+  const runtime: ProjectRuntime = { store, repo, queue };
   runtimes.set(summary.path, runtime);
-  if (!themeWatchers.has(summary.path)) {
-    try {
-      const watcher = watch(join(summary.path, THEME_FILE_NAME), () => {
-        mainWindow?.webContents.send('theme:changed', { projectPath: summary.path });
-      });
-      themeWatchers.set(summary.path, watcher);
-    } catch {
-      log.warn('could not watch theme.css', summary.path);
-    }
-  }
   return { summary, runtime };
 }
 
@@ -275,7 +257,7 @@ async function importGedcom(options: {
   const bytes = await fs.readBinary(filePath);
   const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   const doc = new ReadGedcomImporter().import(buffer);
-  const op = importGedcomOp('user:import', filePath, doc);
+  const op = importGedcomOp(filePath, doc);
   runtime.queue.apply(op, { repo: runtime.repo });
   return {
     importedPersons: op.insertedPersons.length,
@@ -407,11 +389,11 @@ function requestPermission(tool: string, args: Record<string, unknown>): Promise
   });
 }
 
-function doruMcpServerEntry(projectPath: string, actor: string): AcpMcpServerEntry {
+function doruMcpServerEntry(projectPath: string): AcpMcpServerEntry {
   const args = app.isPackaged
     ? ['--mcp-server', projectPath]
     : [resolve(process.argv[1] ?? '.'), '--mcp-server', projectPath];
-  return { name: 'doru', command: process.execPath, args, env: { DORU_MCP_ACTOR: actor } };
+  return { name: 'doru', command: process.execPath, args };
 }
 
 const acpClients = new Map<string, AcpAgentClient>();
@@ -421,13 +403,12 @@ async function ensureAcpClient(projectPath: string, config: ResolvedAiConfig): P
   if (existing) {
     return existing;
   }
-  const actor = `agent:acp:${config.acpCommand}`;
   const client = new AcpAgentClient({
     command: config.acpCommand,
     args: config.acpArgs,
     cwd: projectPath,
     mcpServers: [
-      doruMcpServerEntry(projectPath, actor),
+      doruMcpServerEntry(projectPath),
       ...config.mcpServers.map((server) => ({
         name: server.name,
         command: server.command,
@@ -452,7 +433,6 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
   }
   const { runtime } = await ensureRuntime(options.projectPath);
   const lastUser = [...options.messages].reverse().find((message) => message.role === 'user');
-  const promptHash = createHash('sha256').update(lastUser?.content ?? '').digest('hex').slice(0, 12);
 
   const systemMessage: ChatMessage = {
     role: 'system',
@@ -460,7 +440,7 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
       'You are a genealogy assistant working with the user\'s family tree. ' +
       'Use tree_stats to see how large the tree is, and tree_query without a query to list persons. ' +
       'Wildcards are not needed: an empty query already lists the tree. ' +
-      'For edits, use tree_edit; every edit is recorded with you as the author.',
+      'For edits, use tree_edit.',
   };
   const conversation = [systemMessage, ...options.messages];
 
@@ -478,8 +458,7 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
     }
   }
 
-  const actor = `agent:${new URL(config.baseUrl).host}/${config.model}#${promptHash}`;
-  const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
+  const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
   const model =
     config.preset.dialect === 'anthropic'
       ? new AnthropicChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
@@ -567,11 +546,6 @@ ipcMain.handle('project:close', (_event, options: { path: string }) => {
     runtime.store.close();
     runtimes.delete(options.path);
   }
-  const watcher = themeWatchers.get(options.path);
-  if (watcher) {
-    watcher.close();
-    themeWatchers.delete(options.path);
-  }
   const acp = acpClients.get(options.path);
   if (acp) {
     void acp.close();
@@ -620,7 +594,7 @@ ipcMain.handle('tree:redo', async (_event, options: { projectPath: string }) => 
 
 ipcMain.handle('tree:addPerson', async (_event, options: { projectPath: string; person: PersonRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(addPersonOp('user', options.person), { repo: runtime.repo });
+  runtime.queue.apply(addPersonOp(options.person), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
@@ -628,7 +602,7 @@ ipcMain.handle(
   'tree:updatePerson',
   async (_event, options: { projectPath: string; before: PersonRecord; after: PersonRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(updatePersonOp('user', options.before, options.after), { repo: runtime.repo });
+    runtime.queue.apply(updatePersonOp(options.before, options.after), { repo: runtime.repo });
     return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
   },
 );
@@ -636,7 +610,7 @@ ipcMain.handle(
 ipcMain.handle('project:export', async (_event, options: { projectPath: string }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
   const dialogOptions: SaveDialogOptions = {
-    defaultPath: join(options.projectPath, 'export', 'tree.ged'),
+    defaultPath: join(options.projectPath, 'tree.ged'),
     filters: [{ name: 'GEDCOM', extensions: ['ged'] }],
     title: 'Export GEDCOM',
   };
@@ -662,15 +636,7 @@ ipcMain.handle(
   (_event, options: { projectPath: string; messages: ChatMessage[] }) => sendChat(options),
 );
 
-ipcMain.handle('theme:get', async (_event, options: { projectPath: string }) => {
-  await ensureRuntime(options.projectPath);
-  try {
-    const css = await fs.readFile(join(options.projectPath, THEME_FILE_NAME));
-    return { css };
-  } catch {
-    return { css: '' };
-  }
-});
+ipcMain.handle('theme:css', (_event, options: { name: string }) => themeCss(options.name));
 
 interface ThemeInfo {
   name: string;
@@ -732,8 +698,6 @@ ipcMain.handle('theme:state', () => ({
   themes: listBuiltinThemes(),
 }));
 
-ipcMain.handle('theme:css', (_event, options: { name: string }) => themeCss(options.name));
-
 ipcMain.handle(
   'tree:notes',
   async (_event, options: { projectPath: string; personId?: string }) => {
@@ -750,7 +714,7 @@ ipcMain.handle(
 
 ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(addNoteOp('user', options.note), { repo: runtime.repo });
+  runtime.queue.apply(addNoteOp(options.note), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
@@ -761,7 +725,7 @@ ipcMain.handle('tree:families', async (_event, options: { projectPath: string })
 
 ipcMain.handle('tree:addFamily', async (_event, options: { projectPath: string; family: FamilyRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(addFamilyOp('user', options.family), { repo: runtime.repo });
+  runtime.queue.apply(addFamilyOp(options.family), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
@@ -769,14 +733,14 @@ ipcMain.handle(
   'tree:updateFamily',
   async (_event, options: { projectPath: string; before: FamilyRecord; after: FamilyRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(updateFamilyOp('user', options.before, options.after), { repo: runtime.repo });
+    runtime.queue.apply(updateFamilyOp(options.before, options.after), { repo: runtime.repo });
     return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
   },
 );
 
 ipcMain.handle('tree:deleteFamily', async (_event, options: { projectPath: string; family: FamilyRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(deleteFamilyOp('user', options.family), { repo: runtime.repo });
+  runtime.queue.apply(deleteFamilyOp(options.family), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
@@ -796,7 +760,7 @@ ipcMain.handle(
       options.targetType && options.targetId
         ? { targetType: options.targetType, targetId: options.targetId }
         : undefined;
-    runtime.queue.apply(addSourceOp('user', options.source, citation), { repo: runtime.repo });
+    runtime.queue.apply(addSourceOp(options.source, citation), { repo: runtime.repo });
     return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
   },
 );
@@ -804,7 +768,7 @@ ipcMain.handle(
 ipcMain.handle('tree:attachSource', async (_event, options: { projectPath: string; sourceId: string; targetType: string; targetId: string }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
   runtime.queue.apply(
-    attachCitationOp('user', {
+    attachCitationOp({
       id: crypto.randomUUID(),
       sourceId: options.sourceId,
       targetType: options.targetType,
@@ -819,7 +783,7 @@ ipcMain.handle('tree:detachCitation', async (_event, options: { projectPath: str
   const { runtime } = await ensureRuntime(options.projectPath);
   const citation = runtime.repo.getCitation(options.citationId);
   if (citation) {
-    runtime.queue.apply(detachCitationOp('user', citation), { repo: runtime.repo });
+    runtime.queue.apply(detachCitationOp(citation), { repo: runtime.repo });
   }
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
@@ -840,13 +804,13 @@ ipcMain.handle(
 
 ipcMain.handle('tree:addEvent', async (_event, options: { projectPath: string; event: EventRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(addEventOp('user', options.event), { repo: runtime.repo });
+  runtime.queue.apply(addEventOp(options.event), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
 ipcMain.handle('tree:deleteEvent', async (_event, options: { projectPath: string; event: EventRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(deleteEventOp('user', options.event), { repo: runtime.repo });
+  runtime.queue.apply(deleteEventOp(options.event), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
@@ -874,15 +838,15 @@ ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; p
   const added: Array<MediaRecord & { absolutePath: string }> = [];
   for (const source of result.filePaths) {
     const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(options.projectPath, 'media', name);
+    const destination = join(options.projectPath, MEDIA_DIR_NAME, name);
     await fs.copyFile(source, destination);
     const media: MediaRecord = {
       id: randomUUID(),
-      path: join('media', name),
+      path: join(MEDIA_DIR_NAME, name),
       targetType: 'person',
       targetId: options.personId,
     };
-    runtime.queue.apply(addMediaOp('user', media), { repo: runtime.repo });
+    runtime.queue.apply(addMediaOp(media), { repo: runtime.repo });
     added.push({ ...media, absolutePath: destination });
   }
   return added;
@@ -890,7 +854,7 @@ ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; p
 
 ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
-  runtime.queue.apply(deleteMediaOp('user', options.media), { repo: runtime.repo });
+  runtime.queue.apply(deleteMediaOp(options.media), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
 });
 
@@ -1181,8 +1145,7 @@ void app.whenReady().then(async () => {
   const mcpProject = parseMcpServerArg(process.argv);
   if (mcpProject) {
     const { runtime } = await ensureRuntime(mcpProject);
-    const actor = process.env.DORU_MCP_ACTOR ?? 'agent:mcp';
-    const backend = new TreeMcpBackend(runtime.repo, runtime.queue, actor);
+    const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
     const server = new DoruMcpServer(backend, app.getVersion());
     await server.connect(new StdioServerTransport());
     log.info(`Dóru MCP server started for ${mcpProject}`);

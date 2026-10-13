@@ -22,12 +22,8 @@ export {
   type TreeRepository,
 } from './db/repository';
 export {
-  DEFAULT_SETTINGS,
-  DEFAULT_THEME_CSS,
-  HISTORY_FILE_NAME,
+  MEDIA_DIR_NAME,
   PROJECT_DIRS,
-  SETTINGS_FILE_NAME,
-  THEME_FILE_NAME,
   TREE_FILE_NAME,
   type ProjectLayout,
 } from './project/layout';

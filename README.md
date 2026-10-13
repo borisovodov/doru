@@ -28,11 +28,10 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 ## Highlights
 
 - **Local-first — your data stays yours.** A project is a plain folder
-  containing a `tree.doru` SQLite database, text-based `settings.json` and
-  `theme.css`, and a `history.jsonl` audit log. Nothing is hidden; everything
-  is editable by hand or by agents. There are no accounts, no cloud, no
-  telemetry: nothing leaves your machine unless you explicitly send it to an
-  AI provider you configured yourself.
+  containing a `tree.doru` SQLite database and a `media/` folder for photos
+  and scans. Nothing is hidden; everything is editable by hand or by agents.
+  There are no accounts, no cloud, no telemetry: nothing leaves your machine
+  unless you explicitly send it to an AI provider you configured yourself.
 - **Genuinely open source.** The whole app is MIT-licensed: free to use,
   modify, and redistribute, for any purpose. What you run is what is in the
   repo — no source-available bait, no proprietary parts.
@@ -90,8 +89,8 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 - **`doru.json`** — plain JSON with comments, edited in any editor, picked up
   live while the app runs.
-- **`theme.css`** — the interface is styled through CSS custom properties;
-  save the file and the app restyles immediately.
+- **Themes** — the interface is styled through CSS custom properties; a dark
+  and a light theme are built in and chosen per OS appearance.
 - **17 languages** — the UI always follows the operating system language.
 
 ## Installation

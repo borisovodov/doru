@@ -6,7 +6,6 @@ import { DatabaseSync } from 'node:sqlite';
 import { DORU_APPLICATION_ID, SCHEMA_VERSION } from '../src/db/schema';
 import { TreeStore } from '../src/db/store';
 import type { IFileSystem } from '../src/fs';
-import { DEFAULT_SETTINGS, DEFAULT_THEME_CSS } from '../src/project/layout';
 import { ProjectOpener } from '../src/project/opener';
 
 const fsImpl: IFileSystem = {
@@ -41,23 +40,11 @@ describe('ProjectOpener', () => {
       const opener = new ProjectOpener(fsImpl, { open: (p) => TreeStore.open(p) });
       const { summary, store } = await opener.open(folder);
 
-      expect(summary.created.sort()).toEqual([
-        'export/',
-        'history.jsonl',
-        'media/',
-        'settings.json',
-        'theme.css',
-        'tree.doru',
-      ]);
+      expect(summary.created.sort()).toEqual(['media/', 'tree.doru']);
       expect(summary.healed).toEqual([]);
       expect(summary.schemaVersion).toBe(SCHEMA_VERSION);
 
-      const settings = await readFile(join(folder, 'settings.json'), 'utf8');
-      const theme = await readFile(join(folder, 'theme.css'), 'utf8');
-      expect(settings).toBe(DEFAULT_SETTINGS);
-      expect(theme).toBe(DEFAULT_THEME_CSS);
       expect(await readdir(join(folder, 'media'))).toEqual([]);
-      expect(await readdir(join(folder, 'export'))).toEqual([]);
 
       const db = new DatabaseSync(summary.treePath);
       const applicationId = (db.prepare('PRAGMA application_id').get() as { application_id: number }).application_id;
@@ -74,14 +61,14 @@ describe('ProjectOpener', () => {
   it('silently heals a partial project without touching existing files', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'doru-heal-'));
     try {
-      await writeFile(join(folder, 'settings.json'), '{"locale": "ru"}\n', 'utf8');
+      await writeFile(join(folder, 'note.txt'), 'keep me\n', 'utf8');
 
       const opener = new ProjectOpener(fsImpl, { open: (p) => TreeStore.open(p) });
       const { summary, store } = await opener.open(folder);
 
       expect(summary.created).toEqual([]);
-      expect(summary.healed.sort()).toEqual(['export/', 'history.jsonl', 'media/', 'theme.css', 'tree.doru']);
-      expect(await readFile(join(folder, 'settings.json'), 'utf8')).toBe('{"locale": "ru"}\n');
+      expect(summary.healed.sort()).toEqual(['media/', 'tree.doru']);
+      expect(await readFile(join(folder, 'note.txt'), 'utf8')).toBe('keep me\n');
       store.close();
     } finally {
       await rm(folder, { recursive: true, force: true });

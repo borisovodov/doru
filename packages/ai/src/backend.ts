@@ -15,15 +15,10 @@ export type TreeEditOp =
   | { kind: 'person.update'; before: PersonRecord; after: PersonRecord };
 
 export class TreeMcpBackend {
-  actor: string;
-
   constructor(
     private readonly repo: TreeRepository,
     private readonly queue: OpQueue,
-    actor: string,
-  ) {
-    this.actor = actor;
-  }
+  ) {}
 
   async invoke(name: string, args: Record<string, unknown>): Promise<unknown> {
     switch (name) {
@@ -71,11 +66,11 @@ export class TreeMcpBackend {
       throw new Error('tree_edit requires an "op" object');
     }
     if (op.kind === 'person.add') {
-      this.queue.apply(addPersonOp(this.actor, op.person), { repo: this.repo });
+      this.queue.apply(addPersonOp(op.person), { repo: this.repo });
       return { ok: true, canUndo: this.queue.canUndo() };
     }
     if (op.kind === 'person.update') {
-      this.queue.apply(updatePersonOp(this.actor, op.before, op.after), { repo: this.repo });
+      this.queue.apply(updatePersonOp(op.before, op.after), { repo: this.repo });
       return { ok: true, canUndo: this.queue.canUndo() };
     }
     throw new Error(`Unsupported op kind: ${(op as { kind?: string }).kind}`);
@@ -95,7 +90,7 @@ export class TreeMcpBackend {
     const targetType = args.targetType as string | undefined;
     const targetId = args.targetId as string | undefined;
     const citation = targetType && targetId ? { targetType, targetId } : undefined;
-    this.queue.apply(addSourceOp(this.actor, source, citation), { repo: this.repo });
+    this.queue.apply(addSourceOp(source, citation), { repo: this.repo });
     return { ok: true, id: source.id };
   }
 
@@ -110,7 +105,7 @@ export class TreeMcpBackend {
       targetType: args.targetType as string | undefined,
       targetId: args.targetId as string | undefined,
     };
-    this.queue.apply(addNoteOp(this.actor, note), { repo: this.repo });
+    this.queue.apply(addNoteOp(note), { repo: this.repo });
     return { ok: true, id: note.id };
   }
 

@@ -36,13 +36,6 @@ const api = {
   },
   respondChatPermission: (id: string, allow: boolean): void =>
     ipcRenderer.send('chat:permission-response', { id, allow }),
-  getTheme: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('theme:get', { projectPath }),
-  onThemeChanged: (callback: (info: { projectPath: string }) => void): (() => void) => {
-    const listener = (_event: unknown, info: { projectPath: string }) => callback(info);
-    ipcRenderer.on('theme:changed', listener);
-    return () => ipcRenderer.removeListener('theme:changed', listener);
-  },
   getThemeState: (): Promise<unknown> => ipcRenderer.invoke('theme:state'),
   getThemeCss: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:css', { name }),
   onThemeSystemChanged: (callback: (info: { systemDark: boolean }) => void): (() => void) => {
@@ -98,8 +91,6 @@ const api = {
     ipcRenderer.invoke('tree:addMedia', { projectPath, personId }),
   deleteMedia: (projectPath: string, media: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteMedia', { projectPath, media }),
-  getProjectSettings: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('project:settings', { projectPath }),
   getAiSettings: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:get'),
   getAiProviders: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:providers'),
   setAiSettings: (options: unknown): Promise<unknown> =>

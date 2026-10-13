@@ -1,15 +1,7 @@
 import { join } from 'node:path';
 import type { IFileSystem } from '../fs';
 import type { ITreeStore, TreeStoreFactory } from '../db/store';
-import {
-  DEFAULT_SETTINGS,
-  DEFAULT_THEME_CSS,
-  HISTORY_FILE_NAME,
-  PROJECT_DIRS,
-  SETTINGS_FILE_NAME,
-  THEME_FILE_NAME,
-  TREE_FILE_NAME,
-} from './layout';
+import { PROJECT_DIRS, TREE_FILE_NAME } from './layout';
 
 export interface ProjectLogger {
   info(message: string, ...args: unknown[]): void;
@@ -54,18 +46,6 @@ export class ProjectOpener {
       if (!(await this.fs.exists(join(folderPath, dir)))) {
         await this.fs.mkdir(join(folderPath, dir));
         target.push(`${dir}/`);
-      }
-    }
-
-    for (const [name, content] of [
-      [SETTINGS_FILE_NAME, DEFAULT_SETTINGS],
-      [THEME_FILE_NAME, DEFAULT_THEME_CSS],
-      [HISTORY_FILE_NAME, ''],
-    ] as const) {
-      const path = join(folderPath, name);
-      if (!(await this.fs.exists(path))) {
-        await this.fs.writeFile(path, content);
-        target.push(name);
       }
     }
 

@@ -26,7 +26,7 @@ describe('AgentRuntime', () => {
     const fixture = makeAiFixture();
     try {
       fixture.repo.insertPerson(ivan);
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
       const model = new FakeChatModel([
         {
           content: null,
@@ -55,7 +55,7 @@ describe('AgentRuntime', () => {
   it('applies tree edits through ops and records the agent actor', async () => {
     const fixture = makeAiFixture();
     try {
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:openai/gpt#deadbeef');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
       const model = new FakeChatModel([
         {
           content: null,
@@ -85,7 +85,7 @@ describe('AgentRuntime', () => {
     const fixture = makeAiFixture();
     try {
       fixture.repo.insertPerson(ivan);
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
       const model = new FakeChatModel([
         {
           content: null,

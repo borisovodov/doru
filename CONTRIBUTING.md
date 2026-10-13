@@ -42,7 +42,7 @@ npm run e2e        # Playwright smoke test against the built app
   self-healing (no UI dependencies)
 - `packages/workbench` — VS Code-style UI shell
 - `packages/features` — domain UI
-- `packages/ai` — agent layer: connectors, tools, permissions, audit log
+- `packages/ai` — agent layer: connectors, tools, permissions
 
 Note: `apps/website/docs/` and `apps/website/public/icon.png` are generated
 from `docs/guide/` and the app icon by the sync script (part of
