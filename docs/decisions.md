@@ -62,7 +62,7 @@ are sanitized on the wire by the connectors.
 ## Rejected alternatives
 
 - **Tauri instead of Electron** — a Rust shell would break the TypeScript-only
-  rule and re-invent what Electron already does for a VS Code-style workbench.
+  rule and re-invent what Electron already does for a desktop workbench.
 - **Media as BLOBs inside the `.doru` database** — photos and scans would
   stop being plain files; a `media/` folder next to the `.doru` file wins.
 - **macOS package folders (UTI)** — Finder would hide the structure; an honest
@@ -73,7 +73,7 @@ are sanitized on the wire by the connectors.
   Node ≥ 22.13 and Electron 37.
 - **In-memory document as the source of truth** — two competing sources of
   truth; SQLite is authoritative and ops mutate it directly.
-- **Full VS Code-style platform with an extension host in v1** — scope;
+- **Full IDE-style platform with an extension host in v1** — scope;
   deferred to issue #2.
 - **Monaco for the raw GEDCOM view** — heavy for a read-only view; a plain
   `<pre>` is enough until GEDCOM editing becomes a real feature.

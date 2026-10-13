@@ -40,7 +40,8 @@ npm run e2e        # Playwright smoke test against the built app
   localization (nls)
 - `packages/core` — genealogy domain: GEDCOM, ops, SQLite tree store, project
   self-healing (no UI dependencies)
-- `packages/workbench` — VS Code-style UI shell
+- `packages/workbench` — the desktop workbench UI shell (activity bar,
+  sidebars, editor area, tabs)
 - `packages/features` — domain UI
 - `packages/ai` — agent layer: connectors, tools, permissions
 

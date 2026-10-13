@@ -28,8 +28,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   docs/architecture.md, Localization section).
 - The base language is English: the English source text doubles as the
   fallback value. Add the English bundle entry first, then translations.
-- Locale bundles mirror the VS Code display language set: en, ru, fr, de, it,
-  es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
+- Locale bundles mirror the common IDE display language set: en, ru, fr, de,
+  it, es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
 - MCP tool names must match `^[a-zA-Z0-9_-]+$` — use underscore separators

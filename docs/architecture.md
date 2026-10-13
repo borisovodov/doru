@@ -111,18 +111,18 @@ decisions about what we deliberately do **not** build, see
   (`#0f1311`) with chrome (`#161a17`), raised (`#1b201c`) and popover
   (`#202621`) surface layers and a sage accent (`#63a37f`); the light theme is
   paper (`#fdfcf9`) and cream (`#f2efe7`) with a forest accent (`#3f7355`).
-- **Tokens are semantic**, in the spirit of OpenCode 2 / VS Code 2026:
-  `--doru-bg-*` (surfaces), `--doru-fg-*` (text weights), `--doru-border*`
-  (alpha hairlines), `--doru-accent*`, `--doru-overlay-*` (hover/pressed),
-  `--doru-state` colors, `--doru-ring` (0.5px elevation ring), geometry
-  (`--doru-radius-sm/md/lg` = 4/6/8px, `--doru-control-height` = 28px).
+- **Tokens are semantic**: `--doru-bg-*` (surfaces), `--doru-fg-*` (text
+  weights), `--doru-border*` (alpha hairlines), `--doru-accent*`,
+  `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
+  (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
+  `--doru-control-height` = 28px).
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
-  a 2px accent outline; disabled is opacity 0.45. Tabs are VS Code-style:
-  square strip without a bottom divider, active tab is a pill in the canvas
-  color flowing into the editor (top corners rounded, bottom flush), vertical
-  hairline dividers between tabs. Chat: user bubbles are accent-alpha pills,
-  tool steps are raised chips, the input is a 32px rounded field.
+  a 2px accent outline; disabled is opacity 0.45. Tabs: a square strip
+  without a bottom divider, active tab is a pill in the canvas color flowing
+  into the editor (top corners rounded, bottom flush), vertical hairline
+  dividers between tabs. Chat: user bubbles are accent-alpha pills, tool
+  steps are raised chips, the input is a 32px rounded field.
 - **Custom title bar** (see `createWindow` in the main process): macOS uses
   `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Windows and
   Linux use `frame: false` + a Window Controls Overlay colored from the theme
