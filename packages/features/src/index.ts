@@ -12,7 +12,8 @@ export {
   type AiSettingsState,
   type SettingsViewProps,
 } from './settings/SettingsView';
-export { RecentList, type RecentListProps } from './recent/RecentList';
+export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
+export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
 export {
   ChatPanel,
   type ChatPanelProps,

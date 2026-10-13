@@ -37,6 +37,14 @@ body {
   grid-template-columns: 48px 260px 1fr 320px;
 }
 
+.workbench.no-sidebar {
+  grid-template-columns: 48px 0px 1fr 0px;
+}
+
+.workbench.no-sidebar.secondary-open {
+  grid-template-columns: 48px 0px 1fr 320px;
+}
+
 .activity-bar {
   grid-area: activity;
   background: var(--doru-activity-bar-bg);
@@ -62,6 +70,15 @@ body {
 
 .activity-bar-item:hover {
   color: var(--doru-fg);
+}
+
+.activity-bar-item.active {
+  color: var(--doru-fg);
+  border-left-color: var(--doru-accent);
+}
+
+.activity-bar-bottom {
+  margin-top: auto;
 }
 
 .side-bar {

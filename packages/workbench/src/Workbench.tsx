@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { CommandService, KeybindingService } from '@doru/platform';
 import { nls } from './nls';
-import { ActivityBar } from './components/ActivityBar';
+import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
 import { EditorArea } from './components/EditorArea';
 import { Panel } from './components/Panel';
 import { SecondarySideBar } from './components/SecondarySideBar';
@@ -20,7 +20,8 @@ export interface WorkbenchProps {
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
   onCloseTab?: (id: string) => void;
-  onOpenProject: () => void;
+  activeView: ActivityViewId;
+  onSelectView: (view: ActivityViewId) => void;
   onOpenSettings?: () => void;
 }
 
@@ -35,7 +36,8 @@ export function Workbench({
   activeTabId,
   onSelectTab,
   onCloseTab,
-  onOpenProject,
+  activeView,
+  onSelectView,
   onOpenSettings,
 }: WorkbenchProps) {
   const [secondarySideBarOpen, setSecondarySideBarOpen] = useState(true);
@@ -70,10 +72,22 @@ export function Workbench({
     };
   }, [commands, externalKeybindings]);
 
+  const layoutClasses = ['workbench'];
+  if (secondarySideBarOpen) {
+    layoutClasses.push('secondary-open');
+  }
+  if (activeView === 'tree') {
+    layoutClasses.push('no-sidebar');
+  }
+
   return (
-    <div className={secondarySideBarOpen ? 'workbench secondary-open' : 'workbench'}>
-      <ActivityBar onOpenProject={onOpenProject} onOpenSettings={onOpenSettings ?? (() => {})} />
-      <SideBar>{sidebar}</SideBar>
+    <div className={layoutClasses.join(' ')}>
+      <ActivityBar
+        activeView={activeView}
+        onSelectView={onSelectView}
+        onOpenSettings={onOpenSettings ?? (() => {})}
+      />
+      {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
       <div className="editor-column">
         <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
           {editor}

@@ -16,9 +16,10 @@ import type {
 import { CommandService } from '@doru/platform';
 import {
   ChatPanel,
-  RecentList,
+  PlaceholderView,
   SettingsView,
   TreeView,
+  WelcomePage,
   type AiProviderInfo,
   type AiSettingsState,
   type ChatPermissionRequest,
@@ -26,10 +27,11 @@ import {
   type MediaWithPath,
   type NameFormat,
 } from '@doru/features';
-import { Workbench, nls, type TabInfo } from '@doru/workbench';
+import { Workbench, nls, type ActivityViewId, type TabInfo } from '@doru/workbench';
 import type { ChatPermissionRequest as PreloadPermissionRequest } from './doru.d';
 
 const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
+const SETTINGS_TAB_ID = '__doru-settings__';
 
 export function App() {
   const [tabs, setTabs] = useState<ProjectSummary[]>([]);
@@ -47,7 +49,8 @@ export function App() {
   const [permission, setPermission] = useState<ChatPermissionRequest | null>(null);
   const [themeCss, setThemeCss] = useState('');
   const [builtinThemeCss, setBuiltinThemeCss] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
+  const [settingsTabOpen, setSettingsTabOpen] = useState(false);
+  const [activeView, setActiveView] = useState<ActivityViewId>('tree');
   const [aiSettings, setAiSettings] = useState<AiSettingsState | null>(null);
   const [aiProviders, setAiProviders] = useState<AiProviderInfo[]>([]);
   const commands = useMemo(() => new CommandService(), []);
@@ -130,10 +133,24 @@ export function App() {
         previous.some((tab) => tab.path === result.path) ? previous : [...previous, result],
       );
       setActivePath(result.path);
+      setSettingsTabOpen(false);
       void refreshRecent();
     },
     [refreshRecent],
   );
+
+  const createProject = useCallback(async () => {
+    const result = await window.doru.createProjectDialog();
+    if (!result) {
+      return;
+    }
+    setTabs((previous) =>
+      previous.some((tab) => tab.path === result.path) ? previous : [...previous, result],
+    );
+    setActivePath(result.path);
+    setSettingsTabOpen(false);
+    void refreshRecent();
+  }, [refreshRecent]);
 
   const closeTab = useCallback(
     async (path: string) => {
@@ -483,6 +500,7 @@ export function App() {
         previous.some((tab) => tab.path === summary.path) ? previous : [...previous, summary],
       );
       setActivePath(summary.path);
+      setSettingsTabOpen(false);
       void refreshRecent();
     });
   }, [refreshRecent]);
@@ -521,9 +539,12 @@ export function App() {
   );
 
   const activeSummary = tabs.find((tab) => tab.path === activePath) ?? null;
-  const tabInfos: TabInfo[] = tabs.map((tab) => ({ id: tab.path, label: basename(tab.path) }));
+  const tabInfos: TabInfo[] = [
+    ...tabs.map((tab) => ({ id: tab.path, label: basename(tab.path) })),
+    ...(settingsTabOpen ? [{ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') }] : []),
+  ];
 
-  const editor = showSettings ? (
+  const editor = settingsTabOpen ? (
     <SettingsView
       providers={aiProviders}
       settings={aiSettings}
@@ -535,13 +556,13 @@ export function App() {
       onTest={(options) => window.doru.testAiConnection(options)}
       onFetchModels={(options) => window.doru.fetchAiModels(options)}
     />
-  ) : (
+  ) : activeSummary ? (
     <TreeView
       summary={activeSummary}
-      persons={activeSummary ? persons : []}
-      stats={activeSummary ? stats : null}
-      importResult={activeSummary ? importResult : null}
-      exportResult={activeSummary ? exportResult : null}
+      persons={persons}
+      stats={stats}
+      importResult={importResult}
+      exportResult={exportResult}
       search={search}
       canUndo={undoState.canUndo}
       canRedo={undoState.canRedo}
@@ -573,7 +594,78 @@ export function App() {
       onAddMedia={(personId) => addMedia(personId)}
       onDeleteMedia={(media) => deleteMedia(media)}
     />
+  ) : (
+    <WelcomePage
+      recent={recent}
+      onCreateProject={() => void createProject()}
+      onOpenProject={() => void openProject()}
+      onOpenRecent={(path) => void openProject(path)}
+    />
   );
+
+  const sidebar = (() => {
+    switch (activeView) {
+      case 'people':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.people')}
+            description={nls.t('features.people.placeholder')}
+          />
+        );
+      case 'places':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.places')}
+            description={nls.t('features.places.placeholder')}
+          />
+        );
+      case 'sources':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.sources')}
+            description={nls.t('features.sources.placeholder')}
+          />
+        );
+      case 'tasks':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.tasks')}
+            description={nls.t('features.tasks.placeholder')}
+          />
+        );
+      case 'search':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.search')}
+            description={nls.t('features.search.placeholder')}
+          />
+        );
+      case 'import':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.import')}
+            description={activeSummary ? undefined : nls.t('workbench.tree.empty')}
+          >
+            <button disabled={!activeSummary} onClick={() => void importGedcom()}>
+              {nls.t('features.tree.importGedcom')}
+            </button>
+          </PlaceholderView>
+        );
+      case 'export':
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.export')}
+            description={activeSummary ? undefined : nls.t('workbench.tree.empty')}
+          >
+            <button disabled={!activeSummary} onClick={() => void exportGedcom()}>
+              {nls.t('features.tree.exportGedcom')}
+            </button>
+          </PlaceholderView>
+        );
+      default:
+        return null;
+    }
+  })();
 
   return (
     <>
@@ -582,13 +674,9 @@ export function App() {
       <Workbench
         commands={commands}
         keybindings={keybindings}
-        sidebar={
-          <RecentList
-            projects={recent}
-            onOpen={(path) => void openProject(path)}
-            onBrowse={() => void openProject()}
-          />
-        }
+        sidebar={sidebar}
+        activeView={activeView}
+        onSelectView={setActiveView}
         editor={editor}
         panel={
           <ChatPanel
@@ -600,11 +688,23 @@ export function App() {
           />
         }
         tabs={tabInfos}
-        activeTabId={activePath}
-        onSelectTab={setActivePath}
-        onCloseTab={(id) => void closeTab(id)}
-        onOpenProject={() => void openProject()}
-        onOpenSettings={() => setShowSettings((value) => !value)}
+        activeTabId={settingsTabOpen ? SETTINGS_TAB_ID : activePath}
+        onSelectTab={(id) => {
+          if (id === SETTINGS_TAB_ID) {
+            setSettingsTabOpen(true);
+          } else {
+            setSettingsTabOpen(false);
+            setActivePath(id);
+          }
+        }}
+        onCloseTab={(id) => {
+          if (id === SETTINGS_TAB_ID) {
+            setSettingsTabOpen(false);
+          } else {
+            void closeTab(id);
+          }
+        }}
+        onOpenSettings={() => setSettingsTabOpen(true)}
       />
     </>
   );

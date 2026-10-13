@@ -49,6 +49,7 @@ declare global {
     doru: {
       openProjectDialog(): Promise<ProjectSummary | null>;
       openProjectPath(path: string): Promise<ProjectSummary | null>;
+      createProjectDialog(): Promise<ProjectSummary | null>;
       importGedcom(projectPath: string): Promise<GedcomImportResult | null>;
       importGedcomFile(
         projectPath: string,

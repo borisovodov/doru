@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 const api = {
   openProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:open', { dialog: true }),
   openProjectPath: (path: string): Promise<unknown> => ipcRenderer.invoke('project:open', { path }),
+  createProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:create'),
   importGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:import', { projectPath, dialog: true }),
   importGedcomFile: (projectPath: string, filePath: string): Promise<unknown> =>

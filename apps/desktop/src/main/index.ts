@@ -225,6 +225,22 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
   return summary;
 }
 
+async function createProject(): Promise<ProjectSummary | null> {
+  const dialogOptions: OpenDialogOptions = {
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Create New Project',
+    buttonLabel: 'Create',
+  };
+  const result =
+    mainWindow !== null
+      ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+  if (result.canceled || result.filePaths[0] === undefined) {
+    return null;
+  }
+  return openProject({ path: result.filePaths[0] });
+}
+
 function openExternalPath(path: string): void {
   const root = path.endsWith('.doru') ? dirname(path) : path;
   void openProject({ path: root }).then((summary) => {
@@ -496,6 +512,8 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
 ipcMain.handle('project:open', (_event, options: { dialog?: boolean; path?: string } = {}) =>
   openProject(options),
 );
+
+ipcMain.handle('project:create', () => createProject());
 
 ipcMain.handle(
   'project:import',
