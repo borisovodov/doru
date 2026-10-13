@@ -4,24 +4,24 @@ import { useData } from 'vitepress';
 
 const { lang } = useData();
 
-const LABELS: Record<string, { download: string; platforms: string }> = {
-  'en-US': { download: 'Download for', platforms: 'All platforms' },
-  ru: { download: 'Скачать для', platforms: 'Все платформы' },
-  fr: { download: 'Télécharger pour', platforms: 'Toutes les plateformes' },
-  de: { download: 'Herunterladen für', platforms: 'Alle Plattformen' },
-  it: { download: 'Scarica per', platforms: 'Tutte le piattaforme' },
-  es: { download: 'Descargar para', platforms: 'Todas las plataformas' },
-  'pt-br': { download: 'Baixar para', platforms: 'Todas as plataformas' },
-  cs: { download: 'Stáhnout pro', platforms: 'Všechny platformy' },
-  pl: { download: 'Pobierz dla', platforms: 'Wszystkie platformy' },
-  hu: { download: 'Letöltés:', platforms: 'Minden platform' },
-  bg: { download: 'Изтегли за', platforms: 'Всички платформи' },
-  el: { download: 'Λήψη για', platforms: 'Όλες οι πλατφόρμες' },
-  tr: { download: 'İndir:', platforms: 'Tüm platformlar' },
-  ja: { download: 'ダウンロード:', platforms: 'すべてのプラットフォーム' },
-  ko: { download: '다운로드:', platforms: '모든 플랫폼' },
-  'zh-cn': { download: '下载', platforms: '所有平台' },
-  'zh-tw': { download: '下載', platforms: '所有平台' },
+const LABELS: Record<string, { download: string; platforms: string; experimental: string }> = {
+  'en-US': { download: 'Download for', platforms: 'All platforms', experimental: 'Experimental' },
+  ru: { download: 'Скачать для', platforms: 'Все платформы', experimental: 'Экспериментально' },
+  fr: { download: 'Télécharger pour', platforms: 'Toutes les plateformes', experimental: 'Expérimental' },
+  de: { download: 'Herunterladen für', platforms: 'Alle Plattformen', experimental: 'Experimentell' },
+  it: { download: 'Scarica per', platforms: 'Tutte le piattaforme', experimental: 'Sperimentale' },
+  es: { download: 'Descargar para', platforms: 'Todas las plataformas', experimental: 'Experimental' },
+  'pt-br': { download: 'Baixar para', platforms: 'Todas as plataformas', experimental: 'Experimental' },
+  cs: { download: 'Stáhnout pro', platforms: 'Všechny platformy', experimental: 'Experimentální' },
+  pl: { download: 'Pobierz dla', platforms: 'Wszystkie platformy', experimental: 'Eksperymentalne' },
+  hu: { download: 'Letöltés:', platforms: 'Minden platform', experimental: 'Kísérleti' },
+  bg: { download: 'Изтегли за', platforms: 'Всички платформи', experimental: 'Експериментално' },
+  el: { download: 'Λήψη για', platforms: 'Όλες οι πλατφόρμες', experimental: 'Πειραματικό' },
+  tr: { download: 'İndir:', platforms: 'Tüm platformlar', experimental: 'Deneysel' },
+  ja: { download: 'ダウンロード:', platforms: 'すべてのプラットフォーム', experimental: '実験版' },
+  ko: { download: '다운로드:', platforms: '모든 플랫폼', experimental: '실험 버전' },
+  'zh-cn': { download: '下载', platforms: '所有平台', experimental: '实验性' },
+  'zh-tw': { download: '下載', platforms: '所有平台', experimental: '實驗性' },
 };
 
 const BASE = 'https://github.com/borisovodov/doru/releases/latest/download';
@@ -56,8 +56,12 @@ onMounted(() => {
   download.value = detect();
 });
 
-function label(): { download: string; platforms: string } {
+function label(): { download: string; platforms: string; experimental: string } {
   return LABELS[lang.value] ?? LABELS['en-US']!;
+}
+
+function isExperimental(os: string): boolean {
+  return os.startsWith('Windows') || os.startsWith('Linux');
 }
 </script>
 
@@ -66,6 +70,7 @@ function label(): { download: string; platforms: string } {
     <template v-if="download">
       <a class="doru-button brand" :href="download.url">
         {{ label().download }} {{ download.os }}
+        <span v-if="isExperimental(download.os)" class="doru-badge">{{ label().experimental }}</span>
       </a>
       <a class="doru-button alt" href="/docs/installation">{{ label().platforms }}</a>
     </template>
@@ -111,5 +116,15 @@ function label(): { download: string; platforms: string } {
 .doru-button.alt:hover {
   border-color: var(--vp-button-alt-hover-border);
   color: var(--vp-button-alt-hover-text);
+}
+.doru-badge {
+  margin-left: 8px;
+  padding: 1px 9px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  vertical-align: 1px;
 }
 </style>
