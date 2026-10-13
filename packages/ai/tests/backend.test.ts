@@ -10,7 +10,7 @@ describe('TreeMcpBackend', () => {
     const fixture = makeAiFixture();
     try {
       const queue = fixture.queue;
-      const backend = new TreeMcpBackend(fixture.repo, queue, 'agent:test/model#abc');
+      const backend = new TreeMcpBackend(fixture.repo, queue);
 
       fixture.repo.insertPerson(ivan);
 
@@ -36,7 +36,7 @@ describe('TreeMcpBackend', () => {
       fixture.repo.insertPerson(ivan);
       fixture.repo.insertPerson({ id: '@P2@', names: [], sex: 'F' });
       fixture.repo.insertFamily({ id: '@F1@', parents: ['@P2@'], children: ['@I1@'] });
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
 
       const result = (await backend.invoke('charts_render', { personId: '@I1@', kind: 'pedigree' })) as {
         root: { parents: Array<{ id: string }> };
@@ -52,7 +52,7 @@ describe('TreeMcpBackend', () => {
     try {
       fixture.repo.insertPerson(ivan);
       fixture.repo.insertPerson({ id: '@P2@', names: [], sex: 'F' });
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
 
       expect(await backend.invoke('tree_query', {})).toHaveLength(2);
       expect(await backend.invoke('tree_query', { query: '*' })).toHaveLength(2);
@@ -65,7 +65,7 @@ describe('TreeMcpBackend', () => {
   it('rejects unknown tools and invalid edits', async () => {
     const fixture = makeAiFixture();
     try {
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:test');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
       await expect(backend.invoke('nope', {})).rejects.toThrow('Unknown tool');
       await expect(backend.invoke('tree_edit', { op: { kind: 'person.destroy' } })).rejects.toThrow(
         'Unsupported op kind',

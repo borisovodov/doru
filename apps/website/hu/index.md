@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "A projekt egy közönséges mappa: SQLite-adatbázis, szöveges beállítások és téma, auditnapló. Semmi sincs elrejtve, semmi sincs feltöltve."
+    details: "A projekt egyetlen .doru fájl (SQLite); a fényképek a mellette lévő media mappában élnek. Semmi sincs elrejtve, semmi sincs feltöltve."
   - icon: 🤖
     title: MI-natív
     details: "Ügynök-chat a fa eszközeivel, MCP-szerver mód a Claude Desktophoz és a Cursorhoz, MCP-host külső szerverekhez, ACP-ügynökök."
   - icon: 🔒
     title: Alapból privát
     details: "Az alkalmazás soha nem telefonál haza magától: nincs fiók, nincs felhő, nincs telemetria. Az egyetlen hálózati kapcsolat az Ön által beállított MI-szolgáltatók és MCP-szerverek felé irányul. Az API-kulcsok a rendszer kulcstartójában maradnak, az Ollama vagy LM Studio használatával pedig a MI teljesen a saját gépén fut."
-  - icon: 🧾
-    title: Nyomon követhető
-    details: "Minden változtatás — az Öné vagy egy ügynöké — a history.jsonl-ben szerepel a szerzővel. Az MI-szerkesztések láthatók és visszavonhatók."
   - icon: 🎨
-    title: Szöveges konfiguráció és témák
-    details: "Beállítások a doru.json-ban, stílus a theme.css-ben. Élő újratöltés, egyszerű szöveg, emberek és ügynökök is szerkeszthetik."
+    title: Szöveges konfiguráció
+    details: "Beállítások a doru.json-ban: MI-szolgáltatók, témák és még több. Egyszerű szöveg, élő újratöltés, emberek és ügynökök is szerkeszthetik."
   - icon: 🌍
     title: Többplatformos és 17 nyelv
     details: "macOS-en, Windowson és Linuxon fut. A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."

@@ -15,7 +15,6 @@ export { TreeMcpBackend, type TreeEditOp } from './backend';
 export { DoruMcpServer } from './server';
 export { McpHostClient, McpHostManager, type HostToolSource, type McpServerConfig } from './host';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry } from './acp';
-export { HistoryLog, type AuditEntry } from './audit';
 export { doruTools, type ToolDefinition } from './tools';
 export {
   DEFAULT_PERMISSION_POLICY,

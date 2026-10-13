@@ -16,7 +16,7 @@ describe('event ops', () => {
         description: 'Vagankovo cemetery',
         personId: 'P1',
       };
-      const add = addEventOp('user', event);
+      const add = addEventOp(event);
       add.apply(ctx);
 
       const events = fixture.repo.listEventsForPerson('P1');
@@ -24,7 +24,7 @@ describe('event ops', () => {
       expect(events[0]?.place).toBe('Moscow');
       expect(events[0]?.date?.year).toBe(1901);
 
-      const del = deleteEventOp('user', event);
+      const del = deleteEventOp(event);
       del.apply(ctx);
       expect(fixture.repo.listEventsForPerson('P1')).toEqual([]);
       del.inverse(ctx);
@@ -41,11 +41,11 @@ describe('media ops', () => {
     try {
       const ctx = { repo: fixture.repo };
       const media = { id: 'M1', path: 'media/photo.jpg', caption: 'Portrait', targetType: 'person', targetId: 'P1' };
-      const add = addMediaOp('user', media);
+      const add = addMediaOp(media);
       add.apply(ctx);
       expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([media]);
 
-      const del = deleteMediaOp('user', media);
+      const del = deleteMediaOp(media);
       del.apply(ctx);
       expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
     } finally {

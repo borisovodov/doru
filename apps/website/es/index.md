@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Un proyecto es una carpeta normal: una base SQLite, ajustes y tema en texto, un registro de auditoría. Nada se oculta, nada se sube."
+    details: "Un proyecto es un único archivo .doru (SQLite); las fotos viven en una carpeta media junto a él. Nada se oculta, nada se sube."
   - icon: 🤖
     title: Nativo de IA
     details: "Chat con agentes y herramientas del árbol, modo servidor MCP para Claude Desktop y Cursor, host MCP para servidores externos, agentes ACP."
   - icon: 🔒
     title: Privacidad por diseño
     details: "La app nunca llama por su cuenta: sin cuentas, sin nube, sin telemetría. Las únicas conexiones de red van a los proveedores de IA y servidores MCP que tú mismo configuras. Las claves API se quedan en el llavero del sistema, y con Ollama o LM Studio la IA funciona por completo en tu máquina."
-  - icon: 🧾
-    title: Auditable
-    details: "Cada cambio — tuyo o de un agente — queda registrado en history.jsonl con su autor. Las ediciones de IA siempre son visibles y reversibles."
   - icon: 🎨
-    title: Config y temas en texto
-    details: "Ajustes en doru.json, estilo en theme.css. Recarga en caliente, texto plano, editable por humanos y agentes."
+    title: Config en texto
+    details: "Ajustes en doru.json: proveedores de IA, temas y más. Texto plano, recarga en caliente, editable por humanos y agentes."
   - icon: 🌍
     title: Multiplataforma y 17 idiomas
     details: "Funciona en macOS, Windows y Linux. La interfaz está completamente localizada — del español y el inglés al japonés y el chino simplificado."

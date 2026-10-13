@@ -22,9 +22,6 @@ Provider:
 - **Permissions**: read-only tools run freely; mutating tools (`tree_edit`,
   `sources_add`, `notes_write`) ask for confirmation inline. External MCP tools
   always ask.
-- **Audit trail**: every agent edit is recorded in `history.jsonl` with an
-  actor like `agent:api.openai.com/gpt-4o-mini#a1b2c3d4e5f6` — you can always
-  tell who changed what, and undo it.
 
 ## ACP agents
 
@@ -36,10 +33,10 @@ just like the built-in chat. Permission prompts work the same way.
 ## Dóru as an MCP server
 
 Any MCP client — Claude Desktop, Cursor, coding agents — can work with your
-tree. Run Dóru in server mode:
+tree. Run Dóru in server mode, pointing at the `.doru` file:
 
 ```sh
-doru --mcp-server /absolute/path/to/project
+doru --mcp-server /absolute/path/to/family.doru
 ```
 
 Claude Desktop configuration example
@@ -50,7 +47,7 @@ Claude Desktop configuration example
   "mcpServers": {
     "doru": {
       "command": "/Applications/Doru.app/Contents/MacOS/doru",
-      "args": ["--mcp-server", "/Users/you/FamilyHistory"]
+      "args": ["--mcp-server", "/Users/you/FamilyHistory/family.doru"]
     }
   }
 }

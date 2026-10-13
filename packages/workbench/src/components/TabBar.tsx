@@ -3,6 +3,7 @@ import { nls } from '../nls';
 export interface TabInfo {
   id: string;
   label: string;
+  closable?: boolean;
 }
 
 export interface TabBarProps {
@@ -25,16 +26,18 @@ export function TabBar({ tabs, activeId, onSelect, onClose }: TabBarProps) {
           onClick={() => onSelect(tab.id)}
         >
           <span className="tab-label">{tab.label}</span>
-          <button
-            className="tab-close"
-            title={nls.t('workbench.tab.close')}
-            onClick={(event) => {
-              event.stopPropagation();
-              onClose(tab.id);
-            }}
-          >
-            ×
-          </button>
+          {tab.closable !== false && (
+            <button
+              className="tab-close"
+              title={nls.t('workbench.tab.close')}
+              onClick={(event) => {
+                event.stopPropagation();
+                onClose(tab.id);
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
       ))}
     </div>

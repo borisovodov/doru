@@ -1,12 +1,11 @@
 import type { FamilyRecord } from '../model/types';
 import type { Op } from './op';
 
-export function addFamilyOp(actor: string, family: FamilyRecord): Op {
+export function addFamilyOp(family: FamilyRecord): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'family.add',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.insertFamily(family);
     },
@@ -16,12 +15,11 @@ export function addFamilyOp(actor: string, family: FamilyRecord): Op {
   };
 }
 
-export function updateFamilyOp(actor: string, before: FamilyRecord, after: FamilyRecord): Op {
+export function updateFamilyOp(before: FamilyRecord, after: FamilyRecord): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'family.update',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.updateFamily(after);
     },
@@ -31,12 +29,11 @@ export function updateFamilyOp(actor: string, before: FamilyRecord, after: Famil
   };
 }
 
-export function deleteFamilyOp(actor: string, family: FamilyRecord): Op {
+export function deleteFamilyOp(family: FamilyRecord): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'family.delete',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.deleteFamily(family.id);
     },

@@ -12,7 +12,7 @@ const appDir = resolve(root, '../apps/desktop');
 const fixture = resolve(root, 'fixtures', 'small.ged');
 
 test('full workflow through the desktop APIs and UI sections', async () => {
-  const project = mkdtempSync(join(tmpdir(), 'doru-e2e-'));
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-data-'));
   const args = ['.'];
   if (process.env.CI === 'true') {
@@ -23,10 +23,10 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     cwd: appDir,
     env: { ...process.env, DORU_USER_DATA: userData },
   });
-  const window = await app.firstWindow();
-  await expect(window.locator('.workbench')).toBeVisible();
+  const home = await app.firstWindow();
+  await expect(home.locator('.welcome-page')).toBeVisible();
 
-  await window.evaluate(
+  await home.evaluate(
     async ({ project, fixture }) => {
       const summary = await window.doru.openProjectPath(project);
       if (!summary) throw new Error('project open failed');
@@ -82,18 +82,17 @@ test('full workflow through the desktop APIs and UI sections', async () => {
       const gedcom = await window.doru.getGedcomText(project);
       if (!gedcom.includes('E2E')) throw new Error('gedcom export missing person');
 
-      const theme = await window.doru.getTheme(project);
-      if (!theme.css.includes('Dóru theme')) throw new Error('theme missing');
-
-      const settings = await window.doru.getProjectSettings(project);
-      if (settings.nameFormat !== 'given-first') throw new Error('settings missing');
-
       const undo = await window.doru.undo(project);
       if (!undo.canRedo) throw new Error('undo failed');
       await window.doru.redo(project);
     },
     { project, fixture },
   );
+
+  const window = home;
+  await window.reload();
+  await expect(window.locator('.workbench')).toBeVisible();
+  await expect(window.locator('.person-list li').first()).toBeVisible();
 
   await window.locator('.person-list li').first().click();
   await expect(window.locator('.person-editor')).toBeVisible();

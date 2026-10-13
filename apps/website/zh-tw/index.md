@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: 本地優先
-    details: "專案就是一個普通資料夾：SQLite 資料庫、文字設定與主題、稽核紀錄。沒有隱藏，沒有上傳。"
+    details: "專案就是一個 .doru 檔案（SQLite）；照片存放在它旁邊的 media 資料夾裡。沒有隱藏，沒有上傳。"
   - icon: 🤖
     title: AI 原生
     details: "附家譜工具的代理人聊天、給 Claude Desktop 與 Cursor 的 MCP 伺服器模式、給外部伺服器的 MCP 主機、ACP 代理人。"
   - icon: 🔒
     title: 隱私優先
     details: "應用程式絕不會自行連網：沒有帳戶，沒有雲端，沒有遙測。唯一的網路連線是您自己設定的 AI 提供者與 MCP 伺服器。API 金鑰保存在系統鑰匙圈中；使用 Ollama 或 LM Studio 時，AI 完全在您自己的電腦上執行。"
-  - icon: 🧾
-    title: 可稽核
-    details: "每一次修改——您的或代理人的——都會連同作者記錄在 history.jsonl 中。AI 編輯始終可見、可復原。"
   - icon: 🎨
-    title: 文字設定與主題
-    details: "設定在 doru.json，樣式在 theme.css。熱重載、純文字，人與代理人都能編輯。"
+    title: 文字設定
+    details: "設定在 doru.json：AI 提供者、主題等。純文字、熱重載，人與代理人都能編輯。"
   - icon: 🌍
     title: 跨平台與 17 種語言
     details: "支援 macOS、Windows 與 Linux。介面已完全本地化——從中英文到日文和簡體中文。"

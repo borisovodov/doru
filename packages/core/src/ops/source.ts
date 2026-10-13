@@ -9,7 +9,6 @@ export interface CitationRecord {
 }
 
 export function addSourceOp(
-  actor: string,
   source: SourceRecord,
   citation?: { targetType: string; targetId: string },
 ): Op {
@@ -17,7 +16,6 @@ export function addSourceOp(
     id: crypto.randomUUID(),
     kind: 'source.add',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.transaction(() => {
         ctx.repo.insertSource(source);
@@ -32,12 +30,11 @@ export function addSourceOp(
   };
 }
 
-export function addNoteOp(actor: string, note: NoteRecord): Op {
+export function addNoteOp(note: NoteRecord): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'note.write',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.insertNote(note);
     },
@@ -47,12 +44,11 @@ export function addNoteOp(actor: string, note: NoteRecord): Op {
   };
 }
 
-export function attachCitationOp(actor: string, citation: CitationRecord): Op {
+export function attachCitationOp(citation: CitationRecord): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'citation.attach',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.insertCitation(citation);
     },
@@ -62,12 +58,11 @@ export function attachCitationOp(actor: string, citation: CitationRecord): Op {
   };
 }
 
-export function detachCitationOp(actor: string, citation: CitationRecord): Op {
+export function detachCitationOp(citation: CitationRecord): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'citation.detach',
     timestamp: new Date().toISOString(),
-    actor,
     apply(ctx) {
       ctx.repo.deleteCitation(citation.id);
     },

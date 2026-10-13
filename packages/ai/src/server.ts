@@ -52,7 +52,7 @@ export class DoruMcpServer {
       'tree_edit',
       {
         description:
-          'Apply an edit to the tree. Supports person.add and person.update. Every edit is recorded in the audit log with the calling agent as the actor.',
+          'Apply an edit to the tree. Supports person.add and person.update.',
         inputSchema: {
           op: z
             .discriminatedUnion('kind', [

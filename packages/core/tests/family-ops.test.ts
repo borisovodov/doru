@@ -13,18 +13,18 @@ describe('family ops', () => {
         fixture.repo.insertPerson({ id, names: [], sex: 'U' });
       }
 
-      const add = addFamilyOp('user', family);
+      const add = addFamilyOp(family);
       add.apply(ctx);
       expect(fixture.repo.getFamily('F1')?.parents).toEqual(['P1', 'P2']);
 
       const updated = { ...family, parents: ['P1'] };
-      const update = updateFamilyOp('user', family, updated);
+      const update = updateFamilyOp(family, updated);
       update.apply(ctx);
       expect(fixture.repo.getFamily('F1')?.parents).toEqual(['P1']);
       update.inverse(ctx);
       expect(fixture.repo.getFamily('F1')?.parents).toEqual(['P1', 'P2']);
 
-      const del = deleteFamilyOp('user', family);
+      const del = deleteFamilyOp(family);
       del.apply(ctx);
       expect(fixture.repo.getFamily('F1')).toBeUndefined();
       del.inverse(ctx);

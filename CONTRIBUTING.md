@@ -40,9 +40,10 @@ npm run e2e        # Playwright smoke test against the built app
   localization (nls)
 - `packages/core` — genealogy domain: GEDCOM, ops, SQLite tree store, project
   self-healing (no UI dependencies)
-- `packages/workbench` — VS Code-style UI shell
+- `packages/workbench` — the desktop workbench UI shell (activity bar,
+  sidebars, editor area, tabs)
 - `packages/features` — domain UI
-- `packages/ai` — agent layer: connectors, tools, permissions, audit log
+- `packages/ai` — agent layer: connectors, tools, permissions
 
 Note: `apps/website/docs/` and `apps/website/public/icon.png` are generated
 from `docs/guide/` and the app icon by the sync script (part of
@@ -53,6 +54,15 @@ from `docs/guide/` and the app icon by the sync script (part of
 - **"Electron failed to install correctly"** — the postinstall download is
   flaky. Delete `node_modules/electron/dist` and `node_modules/electron/path.txt`,
   then run `node node_modules/electron/install.js`.
+- **"Electron uninstall" from electron-vite while `dist/` exists** — the
+  install script extracted the binary but never wrote `path.txt` (seen with
+  Node ≥ 26, where extract-zip's promise does not resolve). Create the file
+  manually: content `Electron.app/Contents/MacOS/Electron` on macOS, `electron`
+  on Linux, `electron.exe` on Windows.
+- **`npm install` skips install scripts** (npm 11 asks for approval) — the
+  Electron binary and native deps are not installed. Re-run
+  `node node_modules/electron/install.js` after approving or the install stays
+  incomplete.
 
 ## Making changes
 

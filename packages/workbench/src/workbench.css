@@ -1,15 +1,48 @@
 :root {
-  --doru-activity-bar-bg: #333333;
-  --doru-side-bar-bg: #252526;
-  --doru-editor-bg: #1e1e1e;
-  --doru-panel-bg: #1e1e1e;
-  --doru-status-bar-bg: #007acc;
-  --doru-status-bar-fg: #ffffff;
-  --doru-fg: #cccccc;
-  --doru-fg-dim: #858585;
-  --doru-border: #3c3c3c;
-  --doru-accent: #007acc;
-  --doru-input-bg: #3c3c3c;
+  /* Surfaces: canvas (editor) < chrome (bars) < raised < popover */
+  --doru-bg-canvas: #0f1311;
+  --doru-bg-chrome: #161a17;
+  --doru-bg-chrome-active: rgba(255, 255, 255, 0.07);
+  --doru-bg-raised: #1b201c;
+  --doru-bg-popover: #202621;
+  --doru-bg-input: #1b201c;
+
+  /* Text */
+  --doru-fg: #c7cdc8;
+  --doru-fg-muted: #8d958f;
+  --doru-fg-faint: #5d655f;
+
+  /* Borders — alpha hairlines */
+  --doru-border: rgba(255, 255, 255, 0.08);
+  --doru-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Accent — forest / sage from the Dóru icon */
+  --doru-accent: #63a37f;
+  --doru-accent-hover: #78b894;
+  --doru-accent-active: #518b68;
+  --doru-on-accent: #0c1510;
+  --doru-accent-alpha: rgba(99, 163, 127, 0.14);
+  --doru-focus: var(--doru-accent);
+
+  /* Overlays for hover / pressed states */
+  --doru-overlay-hover: rgba(255, 255, 255, 0.06);
+  --doru-overlay-pressed: rgba(255, 255, 255, 0.1);
+
+  /* States */
+  --doru-success: #7fc690;
+  --doru-warning: #d9b45c;
+  --doru-danger: #e0745f;
+  --doru-info: #7fb3c9;
+
+  /* Geometry */
+  --doru-radius-sm: 4px;
+  --doru-radius-md: 6px;
+  --doru-radius-lg: 8px;
+  --doru-control-height: 28px;
+  --doru-font-size: 13px;
+
+  /* Rings — 0.5px hairline "border" via box-shadow */
+  --doru-ring: 0 0 0 0.5px rgba(255, 255, 255, 0.14);
 }
 
 html,
@@ -22,68 +55,141 @@ body {
   margin: 0;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  font-size: 13px;
+  font-size: var(--doru-font-size);
   color: var(--doru-fg);
-  background: var(--doru-editor-bg);
+  background: var(--doru-bg-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--doru-focus);
+  outline-offset: 1px;
 }
 
 .workbench {
   display: grid;
-  grid-template-columns: 48px 260px 1fr;
-  grid-template-rows: 1fr 22px;
+  grid-template-columns: 48px 260px 1fr 0px;
+  grid-template-rows: auto 1fr;
   grid-template-areas:
-    'activity sidebar editor'
-    'status status status';
+    'titlebar titlebar titlebar titlebar'
+    'activity sidebar editor secondary';
   height: 100%;
+}
+
+.title-bar {
+  grid-area: titlebar;
+  position: relative;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--doru-bg-chrome);
+  border-bottom: 1px solid var(--doru-border);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.title-bar-title {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+
+.title-bar-actions {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+
+/* macOS: reserve space for the traffic lights on the left. */
+.title-bar-mac {
+  padding-left: 78px;
+}
+
+/* Windows/Linux: reserve space for the window-control overlay buttons on the right. */
+.title-bar-overlay {
+  padding-right: calc(100% - env(titlebar-area-width, 100%));
+}
+
+.workbench.secondary-open {
+  grid-template-columns: 48px 260px 1fr 320px;
+}
+
+.workbench.no-sidebar {
+  grid-template-columns: 48px 0px 1fr 0px;
+}
+
+.workbench.no-sidebar.secondary-open {
+  grid-template-columns: 48px 0px 1fr 320px;
 }
 
 .activity-bar {
   grid-area: activity;
-  background: var(--doru-activity-bar-bg);
+  background: var(--doru-bg-chrome);
+  border-right: 1px solid var(--doru-border);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 8px;
-  gap: 4px;
+  padding-top: 6px;
+  gap: 2px;
 }
 
 .activity-bar-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
-  color: var(--doru-fg-dim);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg-muted);
   cursor: pointer;
-  border-left: 2px solid transparent;
 }
 
 .activity-bar-item:hover {
+  background: var(--doru-overlay-hover);
   color: var(--doru-fg);
+}
+
+.activity-bar-item.active {
+  background: var(--doru-bg-chrome-active);
+  color: var(--doru-fg);
+}
+
+.activity-bar-bottom {
+  margin-top: auto;
+  margin-bottom: 6px;
 }
 
 .side-bar {
   grid-area: sidebar;
-  background: var(--doru-side-bar-bg);
+  background: var(--doru-bg-chrome);
   border-right: 1px solid var(--doru-border);
   overflow: auto;
   padding: 12px;
 }
 
-.editor-column {
-  grid-area: editor;
+.secondary-side-bar {
+  grid-area: secondary;
+  background: var(--doru-bg-chrome);
+  border-left: 1px solid var(--doru-border);
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .editor-area {
+  grid-area: editor;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  background: var(--doru-bg-canvas);
 }
 
 .editor-content {
@@ -92,30 +198,82 @@ body {
   overflow: auto;
 }
 
+.editor-stack {
+  height: 100%;
+}
+
+.editor-pane {
+  display: none;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.editor-pane.active {
+  display: block;
+}
+
 .tab-bar {
   display: flex;
-  background: var(--doru-side-bar-bg);
-  border-bottom: 1px solid var(--doru-border);
+  align-items: stretch;
+  background: var(--doru-bg-chrome);
   overflow-x: auto;
   flex: none;
+  padding: 0 4px;
 }
 
 .tab {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
-  border-right: 1px solid var(--doru-border);
-  background: var(--doru-side-bar-bg);
-  color: var(--doru-fg-dim);
+  height: 35px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--doru-fg-muted);
   cursor: pointer;
   white-space: nowrap;
+  font-size: var(--doru-font-size);
+}
+
+/* The "pill" fill behind the tab content (Modern UI treatment).
+   It flows into the editor below: only the top corners are rounded. */
+.tab::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  bottom: 0;
+  border-radius: var(--doru-radius-md) var(--doru-radius-md) 0 0;
+  background: transparent;
+}
+
+/* Vertical divider between tabs. */
+.tab:not(:first-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 16px;
+  transform: translateY(-50%);
+  background: var(--doru-border);
+}
+
+.tab:hover:not(.active)::before {
+  background: var(--doru-overlay-hover);
 }
 
 .tab.active {
-  background: var(--doru-editor-bg);
   color: var(--doru-fg);
-  box-shadow: inset 0 1px 0 var(--doru-accent);
+}
+
+.tab.active::before {
+  background: var(--doru-bg-canvas);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .tab-close {
@@ -125,82 +283,15 @@ body {
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
-  padding: 0 2px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--doru-radius-sm);
 }
 
 .tab-close:hover {
+  background: var(--doru-overlay-hover);
   color: var(--doru-fg);
-}
-
-.panel {
-  height: 160px;
-  background: var(--doru-panel-bg);
-  border-top: 1px solid var(--doru-border);
-  padding: 8px 12px;
-  color: var(--doru-fg-dim);
-}
-
-.status-bar {
-  grid-area: status;
-  background: var(--doru-status-bar-bg);
-  color: var(--doru-status-bar-fg);
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.command-palette-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 80px;
-  z-index: 100;
-}
-
-.command-palette {
-  width: 520px;
-  max-width: 90vw;
-  background: var(--doru-side-bar-bg);
-  border: 1px solid var(--doru-border);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.command-palette-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  background: var(--doru-input-bg);
-  color: var(--doru-fg);
-  border: none;
-  outline: none;
-  font-size: 13px;
-}
-
-.command-palette-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-  max-height: 320px;
-  overflow: auto;
-}
-
-.command-palette-item {
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.command-palette-item.active {
-  background: var(--doru-accent);
-  color: #ffffff;
-}
-
-.command-palette-empty {
-  padding: 6px 12px;
-  color: var(--doru-fg-dim);
 }

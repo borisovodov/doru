@@ -27,12 +27,11 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Highlights
 
-- **Local-first — your data stays yours.** A project is a plain folder
-  containing a `tree.doru` SQLite database, text-based `settings.json` and
-  `theme.css`, and a `history.jsonl` audit log. Nothing is hidden; everything
-  is editable by hand or by agents. There are no accounts, no cloud, no
-  telemetry: nothing leaves your machine unless you explicitly send it to an
-  AI provider you configured yourself.
+- **Local-first — your data stays yours.** A project is a single `.doru`
+  file (a SQLite database); photos and scans live in a `media/` folder next
+  to it. Nothing is hidden; everything is editable by hand or by agents.
+  There are no accounts, no cloud, no telemetry: nothing leaves your machine
+  unless you explicitly send it to an AI provider you configured yourself.
 - **Genuinely open source.** The whole app is MIT-licensed: free to use,
   modify, and redistribute, for any purpose. What you run is what is in the
   repo — no source-available bait, no proprietary parts.
@@ -68,9 +67,11 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 - **GEDCOM 5.5 / 5.5.1 import**, **GEDCOM 7.0 export**, and a read-only
   GEDCOM view of the whole tree.
-- **Tabs** — several projects open side by side; recent projects are listed
-  in the sidebar, open tabs are restored on launch, and `doru://open?path=…`
-  links or double-clicked `*.doru` files open in the running app.
+- **Tabs** — a project opens in its own window, and entities (persons, the
+  tree editor, settings) open as tabs inside it. Recent projects are listed on
+  the start page, open project windows are restored on launch, and
+  `doru://open?path=…` links or double-clicked `*.doru` files open in the
+  running app.
 
 ### AI and agents
 
@@ -90,8 +91,8 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 - **`doru.json`** — plain JSON with comments, edited in any editor, picked up
   live while the app runs.
-- **`theme.css`** — the interface is styled through CSS custom properties;
-  save the file and the app restyles immediately.
+- **Themes** — the interface is styled through CSS custom properties; a dark
+  and a light theme are built in and chosen per OS appearance.
 - **17 languages** — the UI always follows the operating system language.
 
 ## Installation

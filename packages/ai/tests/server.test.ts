@@ -9,7 +9,7 @@ describe('DoruMcpServer', () => {
   it('serves tools over an MCP transport', { timeout: 15000 }, async () => {
     const fixture = makeAiFixture();
     try {
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue, 'agent:mcp');
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
       const server = new DoruMcpServer(backend, '0.0.1');
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
       await server.connect(serverTransport);

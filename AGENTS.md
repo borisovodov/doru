@@ -5,8 +5,8 @@ Instructions for AI agents and contributors working on this repository.
 ## Project
 
 Dóru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
-SQLite-based tree documents (`tree.doru`), text-based config/themes, MCP
-host+server, ACP agents, agent chat with audit trail. MIT-licensed; no
+SQLite-based tree documents (`.doru` files), text-based config/themes, MCP
+host+server, ACP agents, agent chat. MIT-licensed; no
 accounts, no cloud, no telemetry — user data never leaves the machine unless
 the user explicitly sends it.
 
@@ -28,8 +28,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   docs/architecture.md, Localization section).
 - The base language is English: the English source text doubles as the
   fallback value. Add the English bundle entry first, then translations.
-- Locale bundles mirror the VS Code display language set: en, ru, fr, de, it,
-  es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
+- Locale bundles mirror the common IDE display language set: en, ru, fr, de,
+  it, es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
 - MCP tool names must match `^[a-zA-Z0-9_-]+$` — use underscore separators
@@ -37,6 +37,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   DeepSeek) reject dots and colons.
 - Breaking our own APIs — including MCP tool names and website URLs — is
   fine before 1.0.0; do not add compatibility shims.
+- **No migrations before 1.0.0.** The project format, the SQLite schema, and
+  storage layouts change freely; do not write code that upgrades old data or
+  reads old formats. Newer versions may simply not understand files written by
+  older ones.
 - The UI locale always follows the operating system; there is no in-app
   language setting (see docs/decisions.md).
 
@@ -48,9 +52,21 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - SQLite is only touched by the Electron main process; renderer and agents go
   through IPC/MCP tools.
 - Every tree mutation goes through ops (command pattern with inverse) so that
-  undo/redo and the audit log (history.jsonl) stay consistent.
+  undo/redo stays consistent.
 - Keep the service layer free of Electron-specific APIs where feasible
   (allows future Capacitor/mobile reuse).
+- **One window per open project file.** The main process maps project paths to
+  `BrowserWindow`s (`projectWindows`) and webContents ids to projects
+  (`windowProject`); opening a file focuses its window or binds a welcome
+  window instead of creating duplicates. Window-close cleanup must read the
+  *current* binding from `windowProject` — never capture the creation-time
+  path in the `closed` closure (a rebinding leaks a destroyed window).
+- **Tabs are entities, not projects.** The renderer keeps open tabs in
+  `openTabs` with ids `tree`, `settings`, `person:<id>`, `person:new:<uuid>`.
+  Tabs are kept alive via the `.editor-stack`/`.editor-pane` pattern (inactive
+  panes are hidden, not unmounted). The welcome page is the editor-area state
+  with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
+  active tab via renderer keybindings, not via the application menu.
 
 ## Verification
 
@@ -59,6 +75,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - Typecheck all workspaces: `npm run typecheck`.
 - Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
 - Run tests before considering a change complete.
+- **Restart `npm run dev` after editing `apps/desktop/src/main` or
+  `src/preload`** — electron-vite's watcher does not reliably rebuild the main
+  process or the preload bundle. Renderer changes hot-reload fine.
+- `npm install` may skip install scripts (npm 11 approval prompt); if Electron
+  fails with "Electron uninstall", the binary was never extracted. Run
+  `node node_modules/electron/install.js` — and note that under Node ≥ 26 it
+  can extract without writing `path.txt`; verify or create it manually
+  (`Electron.app/Contents/MacOS/Electron` on macOS).
 - E2E specs must launch the app with an isolated `DORU_USER_DATA` env var (see
   `e2e/smoke.spec.ts`): the single-instance lock otherwise collides with a
   running dev instance.

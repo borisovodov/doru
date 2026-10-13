@@ -11,6 +11,3 @@
   as bug reports.
 - **Windows SmartScreen warning** — Windows builds are experimental; see
   [Installation](installation.md).
-- **Theme looks broken** — a syntax error in `theme.css` stops the rest of the
-  file from applying. Check the console (View → Toggle Developer Tools) or
-  temporarily empty the file.

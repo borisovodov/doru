@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PersonRecord } from '../src/model/types';
 import { addPersonOp } from '../src/ops/addPerson';
-import { OpQueue, type Op } from '../src/ops/op';
+import { OpQueue } from '../src/ops/op';
 import { updatePersonOp } from '../src/ops/person';
 import { cleanupRepo, makeRepo } from './helpers';
 
@@ -12,17 +12,15 @@ const person: PersonRecord = {
 };
 
 describe('OpQueue', () => {
-  it('applies ops, supports undo/redo, and reports to the audit log', () => {
+  it('applies ops and supports undo/redo', () => {
     const fixture = makeRepo();
     try {
-      const audited: Op[] = [];
-      const queue = new OpQueue((op) => audited.push(op));
+      const queue = new OpQueue();
       const ctx = { repo: fixture.repo };
 
-      const op = addPersonOp('user', person);
+      const op = addPersonOp(person);
       queue.apply(op, ctx);
       expect(fixture.repo.getPerson('P1')).toEqual(person);
-      expect(audited).toEqual([op]);
 
       expect(queue.canUndo()).toBe(true);
       expect(queue.canRedo()).toBe(false);
@@ -44,12 +42,12 @@ describe('OpQueue', () => {
       const queue = new OpQueue();
       const ctx = { repo: fixture.repo };
 
-      queue.apply(addPersonOp('user', person), ctx);
+      queue.apply(addPersonOp(person), ctx);
       queue.undo(ctx);
       expect(queue.canRedo()).toBe(true);
 
       const other: PersonRecord = { id: 'P2', names: [], sex: 'U' };
-      queue.apply(addPersonOp('user', other), ctx);
+      queue.apply(addPersonOp(other), ctx);
       expect(queue.canRedo()).toBe(false);
       expect(fixture.repo.countPersons()).toBe(1);
     } finally {
@@ -63,9 +61,9 @@ describe('OpQueue', () => {
       const queue = new OpQueue();
       const ctx = { repo: fixture.repo };
 
-      queue.apply(addPersonOp('user', person), ctx);
+      queue.apply(addPersonOp(person), ctx);
       const renamed: PersonRecord = { ...person, names: [{ given: 'John' }] };
-      queue.apply(updatePersonOp('user', person, renamed), ctx);
+      queue.apply(updatePersonOp(person, renamed), ctx);
       expect(fixture.repo.getPerson('P1')).toEqual(renamed);
 
       queue.undo(ctx);

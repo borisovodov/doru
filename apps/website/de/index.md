@@ -8,19 +8,16 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Ein Projekt ist ein gewöhnlicher Ordner: eine SQLite-Datei, Text-Einstellungen und -Theme, ein Prüfprotokoll. Nichts ist versteckt, nichts wird hochgeladen."
+    details: "Ein Projekt ist eine einzelne .doru-Datei (SQLite); Fotos liegen in einem media-Ordner daneben. Nichts ist versteckt, nichts wird hochgeladen."
   - icon: 🤖
     title: KI-nativ
     details: "Agent-Chat mit Baum-Werkzeugen, MCP-Servermodus für Claude Desktop und Cursor, MCP-Host für externe Server, ACP-Agenten."
   - icon: 🔒
     title: Privat per Design
     details: "Die App telefoniert nie nach Hause: keine Konten, keine Cloud, keine Telemetrie. Die einzigen Netzwerkverbindungen gehen zu KI-Anbietern und MCP-Servern, die Sie selbst konfigurieren. API-Schlüssel bleiben im Schlüsselbund des Systems, und mit Ollama oder LM Studio läuft die KI komplett auf Ihrem Rechner."
-  - icon: 🧾
-    title: Nachvollziehbar
-    details: "Jede Änderung — Ihre oder die eines Agenten — wird mit Urheber in history.jsonl aufgezeichnet. KI-Änderungen bleiben sichtbar und rückgängig machbar."
   - icon: 🎨
-    title: Text-Konfiguration und -Themes
-    details: "Einstellungen in doru.json, Styling in theme.css. Live-Neuladen, Klartext, editierbar für Menschen und Agenten."
+    title: Text-Konfiguration
+    details: "Einstellungen in doru.json — KI-Anbieter, Themes und mehr. Klartext, Live-Neuladen, editierbar für Menschen und Agenten."
   - icon: 🌍
     title: Plattformübergreifend und 17 Sprachen
     details: "Läuft auf macOS, Windows und Linux. Die Oberfläche ist vollständig lokalisiert — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."

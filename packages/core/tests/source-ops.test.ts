@@ -7,7 +7,7 @@ describe('source and note ops', () => {
     const fixture = makeRepo();
     try {
       const ctx = { repo: fixture.repo };
-      const op = addSourceOp('user', { id: 'S1', title: '1923 census' }, { targetType: 'person', targetId: 'P1' });
+      const op = addSourceOp({ id: 'S1', title: '1923 census' }, { targetType: 'person', targetId: 'P1' });
       op.apply(ctx);
       expect(fixture.repo.listSources()).toEqual([{ id: 'S1', title: '1923 census' }]);
 
@@ -22,7 +22,7 @@ describe('source and note ops', () => {
     const fixture = makeRepo();
     try {
       const ctx = { repo: fixture.repo };
-      const op = addNoteOp('user', { id: 'N1', text: 'Check the archive', targetType: 'person', targetId: 'P1' });
+      const op = addNoteOp({ id: 'N1', text: 'Check the archive', targetType: 'person', targetId: 'P1' });
       op.apply(ctx);
       expect(fixture.repo.listNotes()).toHaveLength(1);
       expect(fixture.repo.listNotes()[0]?.text).toBe('Check the archive');

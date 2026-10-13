@@ -1,18 +1,27 @@
 import './features.css';
 
+export { TreeView, type TreeViewProps } from './tree/TreeView';
 export {
-  TreeView,
+  PersonEditor,
+  draftToRecord,
+  newPersonDraft,
+  personDraftMatches,
+  personToDraft,
+  type CitationInfo,
   type MediaWithPath,
-  type NameFormat,
-  type TreeViewProps,
-} from './tree/TreeView';
+  type PersonDraft,
+  type PersonEditorProps,
+} from './person/PersonEditor';
+export { PersonList, type PersonListProps } from './person/PersonList';
+export { displayName } from './person/format';
 export {
   SettingsView,
   type AiProviderInfo,
   type AiSettingsState,
   type SettingsViewProps,
 } from './settings/SettingsView';
-export { RecentList, type RecentListProps } from './recent/RecentList';
+export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
+export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
 export {
   ChatPanel,
   type ChatPanelProps,

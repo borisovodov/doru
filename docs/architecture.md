@@ -6,18 +6,20 @@ decisions about what we deliberately do **not** build, see
 
 ## Project format
 
-- The project is an **ordinary folder**, not a single file and not a macOS
-  package. Config, theme, and history stay real text files that humans and
-  agents can edit with any editor; photos stay real files in `media/`.
-- `tree.doru` is SQLite with:
+- The project **is a single `.doru` file** — a SQLite database branded with
+  an app id. Photos and scans are ordinary files in a `media/` folder next to
+  it, created on demand (its absence is normal).
+- The file's name is the project's name. Moving or renaming the file moves or
+  renames the project.
+- The `.doru` file is SQLite with:
   - `journal_mode=DELETE` — WAL would leave `-wal`/`-shm` sidecars next to a
     "document" file and invites file-sync corruption;
   - `application_id = 0x444F5255` ("DORU") — brands the file so it is
     recognizable even in a generic SQLite browser;
   - `user_version` — the schema migration counter.
-- Opening a project is **idempotent and silent**: missing pieces are recreated
-  (template files, dirs, an empty tree with the latest schema). The only loud
-  case is a corrupted database — that must not be silently "healed" away.
+- Opening a project is **idempotent**: an existing file opens as-is, a new one
+  is created with the latest schema. The only loud case is a corrupted
+  database — that must not be silently "healed" away.
 
 ## Privacy
 
@@ -35,7 +37,7 @@ decisions about what we deliberately do **not** build, see
 ## Mutations
 
 - Every change goes through **ops** (command pattern with inverse), giving a
-  single path for undo/redo, the audit log, and (potentially) sync. SQLite is
+  single path for undo/redo and (potentially) sync. SQLite is
   the single source of truth; the in-memory `TreeDocument` exists only as an
   import/export DTO.
 - Repository transactions are **reentrant** (SQLite cannot nest `BEGIN`):
@@ -70,13 +72,6 @@ decisions about what we deliberately do **not** build, see
 
 ## AI and agents
 
-- **Audit actors** in `history.jsonl`:
-  - `user` — manual edits;
-  - `agent:{host}/{model}#{promptHash}` — OpenAI-compatible chat (12-hex
-    SHA-256 of the last user message);
-  - `agent:acp:{command}` — ACP agent (the doru subprocess it spawns inherits
-    the actor via the `DORU_MCP_ACTOR` env var);
-  - `agent:mcp` — external MCP clients driving `doru --mcp-server`.
 - **Permissions**: read-only tools (`tree_query`, `charts_render`) run freely,
   mutating tools ask via an inline card (2-minute timeout denies), and tools
   from external MCP servers always ask.
@@ -103,12 +98,51 @@ decisions about what we deliberately do **not** build, see
 
 ## Theming
 
-- Cascade: hardcoded baseline palette < selected built-in theme < project
-  `theme.css` (hot-reloaded via `fs.watch`). The built-in theme is chosen per
-  OS appearance from `doru.json` (`theme.dark`/`theme.light`); the OS is the
-  only authority for light vs dark.
-- Built-in themes ship as real files in app resources (`themes/`), so the
-  same mechanism could serve user-installed themes later.
+- Cascade: hardcoded baseline palette < selected built-in theme. The built-in
+  theme is chosen per OS appearance from `doru.json`
+  (`theme.dark`/`theme.light`); the OS is the only authority for light vs dark.
+- Built-in themes are single JSON palette files in app resources (`themes/`),
+  resolved to CSS custom properties at startup — the same mechanism could
+  serve user-installed themes later.
+
+## Design system
+
+- **The accent is the app icon**: deep forest green (`#263b2e`) and warm
+  parchment (`#ece1d2`). The dark theme is a green-tinted near-black canvas
+  (`#0f1311`) with chrome (`#161a17`), raised (`#1b201c`) and popover
+  (`#202621`) surface layers and a sage accent (`#63a37f`); the light theme is
+  paper (`#fdfcf9`) and cream (`#f2efe7`) with a forest accent (`#3f7355`).
+- **Tokens are semantic**: `--doru-bg-*` (surfaces), `--doru-fg-*` (text
+  weights), `--doru-border*` (alpha hairlines), `--doru-accent*`,
+  `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
+  (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
+  `--doru-control-height` = 28px).
+- **Component conventions**: controls are 28px tall with 6px radius and a
+  0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
+  a 2px accent outline; disabled is opacity 0.45. Tabs: a square strip
+  without a bottom divider, active tab is a pill in the canvas color flowing
+  into the editor (top corners rounded, bottom flush), vertical hairline
+  dividers between tabs. Chat: user bubbles are accent-alpha pills, tool
+  steps are raised chips, the input is a 32px rounded field.
+- **Custom title bar** (see `createWindow` in the main process): macOS uses
+  `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Windows and
+  Linux use `frame: false` + a Window Controls Overlay colored from the theme
+  and updated on theme change. The renderer always draws a 38px `.title-bar`
+  (drag region, `-webkit-app-region: drag`) and reserves room for the OS
+  controls via `env(titlebar-area-*)` (Windows/Linux) or left padding (macOS).
+
+## Workbench windows and tabs
+
+- One `BrowserWindow` per open project file. The main process tracks
+  `projectWindows` (path → window) and `windowProject` (webContents id →
+  path or `null` for a welcome window); opening an already-open file focuses
+  its window, and a welcome window gets *bound* to the newly opened project.
+- The renderer bootstraps from `project:current` and listens for
+  `project:bind`. Open tabs are renderer state (`tree`, `settings`,
+  `person:<id>`, `person:new:<uuid>`); the tab contents are kept alive in
+  hidden panes (`.editor-stack`/`.editor-pane`), and the welcome page is shown
+  in the editor area whenever zero tabs are open. Closing a window closes its
+  project runtime; the session file stores open window paths.
 
 ## Packaging and releases
 

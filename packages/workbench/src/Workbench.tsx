@@ -1,56 +1,70 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { CommandService, KeybindingService } from '@doru/platform';
 import { nls } from './nls';
-import { ActivityBar } from './components/ActivityBar';
-import { CommandPalette } from './components/CommandPalette';
+import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
 import { EditorArea } from './components/EditorArea';
-import { Panel } from './components/Panel';
+import { SecondarySideBar } from './components/SecondarySideBar';
 import { SideBar } from './components/SideBar';
-import { StatusBar } from './components/StatusBar';
 import type { TabInfo } from './components/TabBar';
 import './workbench.css';
 
 export interface WorkbenchProps {
   commands: CommandService;
   keybindings?: Array<{ key: string; command: string }>;
+  title?: string;
+  platform?: string;
   sidebar?: ReactNode;
+  secondarySidebar?: ReactNode;
   editor?: ReactNode;
-  panel?: ReactNode;
   tabs?: TabInfo[];
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
   onCloseTab?: (id: string) => void;
-  statusText?: string;
-  onOpenProject: () => void;
+  activeView: ActivityViewId;
+  onSelectView: (view: ActivityViewId) => void;
   onOpenSettings?: () => void;
 }
 
 export function Workbench({
   commands,
   keybindings: externalKeybindings = [],
+  title,
+  platform,
   sidebar,
+  secondarySidebar,
   editor,
-  panel,
   tabs,
   activeTabId,
   onSelectTab,
   onCloseTab,
-  statusText,
-  onOpenProject,
+  activeView,
+  onSelectView,
   onOpenSettings,
 }: WorkbenchProps) {
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [secondarySideBarOpen, setSecondarySideBarOpen] = useState(true);
 
   useEffect(() => {
     const keybindings = new KeybindingService();
-    keybindings.register('f1', 'workbench.showCommandPalette');
+    keybindings.register('meta+alt+b', 'workbench.toggleSecondarySideBar');
+    keybindings.register('ctrl+alt+b', 'workbench.toggleSecondarySideBar');
+    keybindings.register('meta+w', 'workbench.closeActiveTab');
+    keybindings.register('ctrl+w', 'workbench.closeActiveTab');
     for (const binding of externalKeybindings) {
       keybindings.register(binding.key, binding.command);
     }
-    const removeCommand = commands.register({
-      id: 'workbench.showCommandPalette',
-      title: nls.t('workbench.commandPalette.title'),
-      handler: () => setPaletteOpen(true),
+    const removeToggleSecondarySideBar = commands.register({
+      id: 'workbench.toggleSecondarySideBar',
+      title: nls.t('workbench.toggleSecondarySideBar'),
+      handler: () => setSecondarySideBarOpen((open) => !open),
+    });
+    const removeCloseActiveTab = commands.register({
+      id: 'workbench.closeActiveTab',
+      title: nls.t('workbench.closeActiveTab'),
+      handler: () => {
+        if (activeTabId) {
+          onCloseTab?.(activeTabId);
+        }
+      },
     });
     const onKeydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -65,23 +79,36 @@ export function Workbench({
     };
     window.addEventListener('keydown', onKeydown);
     return () => {
-      removeCommand.dispose();
+      removeToggleSecondarySideBar.dispose();
+      removeCloseActiveTab.dispose();
       window.removeEventListener('keydown', onKeydown);
     };
-  }, [commands, externalKeybindings]);
+  }, [commands, externalKeybindings, activeTabId, onCloseTab]);
+
+  const layoutClasses = ['workbench'];
+  if (secondarySideBarOpen) {
+    layoutClasses.push('secondary-open');
+  }
+  if (activeView === 'tree') {
+    layoutClasses.push('no-sidebar');
+  }
 
   return (
-    <div className="workbench">
-      <ActivityBar onOpenProject={onOpenProject} onOpenSettings={onOpenSettings ?? (() => {})} />
-      <SideBar>{sidebar}</SideBar>
-      <div className="editor-column">
-        <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
-          {editor}
-        </EditorArea>
-        <Panel>{panel}</Panel>
+    <div className={layoutClasses.join(' ')}>
+      <div className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
+        <span className="title-bar-title">{title}</span>
+        <div className="title-bar-actions" />
       </div>
-      <StatusBar text={statusText ?? nls.t('workbench.statusBar.ready')} />
-      <CommandPalette commands={commands} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <ActivityBar
+        activeView={activeView}
+        onSelectView={onSelectView}
+        onOpenSettings={onOpenSettings ?? (() => {})}
+      />
+      {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
+      <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
+        {editor}
+      </EditorArea>
+      {secondarySideBarOpen && <SecondarySideBar>{secondarySidebar}</SecondarySideBar>}
     </div>
   );
 }

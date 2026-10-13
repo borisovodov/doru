@@ -27,7 +27,7 @@ describe('importGedcomOp', () => {
   it('inserts persons and families in one transaction and reports them', () => {
     const fixture = makeRepo();
     try {
-      const op = importGedcomOp('user:import', 'royal92.ged', importDoc());
+      const op = importGedcomOp('royal92.ged', importDoc());
       op.apply({ repo: fixture.repo });
 
       expect(op.insertedPersons).toEqual(['@I1@', '@I2@']);
@@ -42,7 +42,7 @@ describe('importGedcomOp', () => {
   it('is fully reversible', () => {
     const fixture = makeRepo();
     try {
-      const op = importGedcomOp('user:import', 'royal92.ged', importDoc());
+      const op = importGedcomOp('royal92.ged', importDoc());
       op.apply({ repo: fixture.repo });
       op.inverse({ repo: fixture.repo });
 
@@ -56,10 +56,10 @@ describe('importGedcomOp', () => {
   it('skips already existing records and only removes what it inserted', () => {
     const fixture = makeRepo();
     try {
-      const op = importGedcomOp('user:import', 'royal92.ged', importDoc());
+      const op = importGedcomOp('royal92.ged', importDoc());
       op.apply({ repo: fixture.repo });
 
-      const again = importGedcomOp('user:import', 'royal92.ged', importDoc());
+      const again = importGedcomOp('royal92.ged', importDoc());
       again.apply({ repo: fixture.repo });
       expect(again.insertedPersons).toEqual([]);
 

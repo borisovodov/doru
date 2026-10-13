@@ -1,34 +1,36 @@
 # Themes
 
-The interface is styled entirely through CSS custom properties. The cascade:
+The interface is styled entirely through CSS custom properties, applied at the
+app level — never per project.
 
-1. **Built-in theme** — `doru-dark` or `doru-light`, chosen per OS appearance
-   in `doru.json` (see [Configuration](configuration.md)). Switch your OS to
-   light mode and Dóru follows instantly; no in-app toggle.
-2. **Your overrides** — the project's `theme.css`, applied on top and
-   hot-reloaded: edit the file in any editor and the app restyles immediately.
+- **Built-in themes** — `doru-dark` and `doru-light`, chosen per OS appearance
+  in `doru.json` (see [Configuration](configuration.md)). Switch your OS to
+  light mode and Dóru follows instantly; there is no in-app toggle.
+- Built-in themes are single JSON palette files in the app's `themes/`
+  directory: the `colors` map is resolved to `--doru-*` CSS custom properties
+  at startup (one file per theme, no CSS). The same mechanism could serve
+  user-installed themes later.
 
-Example `theme.css` that gives the project a warmer look:
-
-```css
-:root {
-  --doru-accent: #b08968;
-  --doru-status-bar-bg: #7f5539;
-  --doru-side-bar-bg: #1f1b18;
-  --doru-editor-bg: #171310;
-}
-```
+The palette follows the app icon: a deep forest green with warm paper tones.
+The dark theme layers surfaces from a near-black green-tinted canvas to
+lighter chrome and popovers; the light theme uses warm paper and cream.
 
 Available variables:
 
 | Variable | Meaning |
 |---|---|
-| `--doru-activity-bar-bg` | leftmost icon strip background |
-| `--doru-side-bar-bg` | sidebar background |
-| `--doru-editor-bg` | main editor background |
-| `--doru-panel-bg` | bottom panel (chat) background |
-| `--doru-status-bar-bg` / `--doru-status-bar-fg` | bottom status bar colors |
-| `--doru-fg` / `--doru-fg-dim` | main and muted text |
-| `--doru-border` | borders and separators |
-| `--doru-accent` | highlights, active tabs, buttons |
-| `--doru-input-bg` | inputs, chips, code blocks |
+| `--doru-bg-canvas` | main editor background |
+| `--doru-bg-chrome` | activity bar, sidebars, tab strip |
+| `--doru-bg-raised` | cards, chips, the chat input |
+| `--doru-bg-popover` | menus and pickers |
+| `--doru-bg-input` | buttons, inputs, selects |
+| `--doru-fg` / `--doru-fg-muted` / `--doru-fg-faint` | main, muted and faint text |
+| `--doru-border` / `--doru-border-strong` | hairlines and stronger borders |
+| `--doru-accent` / `--doru-accent-hover` / `--doru-accent-active` | accent (forest/sage green) |
+| `--doru-on-accent` | text on the accent background |
+| `--doru-accent-alpha` | translucent accent (chips, chat bubbles) |
+| `--doru-focus` | focus ring color |
+| `--doru-overlay-hover` / `--doru-overlay-pressed` | hover/pressed overlays |
+| `--doru-success` / `--doru-warning` / `--doru-danger` / `--doru-info` | state colors |
+| `--doru-radius-sm` / `--doru-radius-md` / `--doru-radius-lg` | 4 / 6 / 8 px radii |
+| `--doru-control-height` | control height (28px) |

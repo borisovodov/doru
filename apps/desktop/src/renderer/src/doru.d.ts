@@ -13,8 +13,6 @@ import type {
 } from '@doru/core';
 import type { ChatMessage, ChatSendResult } from '@doru/ai';
 
-export type NameFormat = 'given-first' | 'surname-first';
-
 export interface AiProviderInfo {
   id: string;
   label: string;
@@ -47,15 +45,18 @@ export interface ChatPermissionRequest {
 declare global {
   interface Window {
     doru: {
+      readonly platform: string;
+      getCurrentProject(): Promise<string | null>;
+      onProjectBound(callback: (info: { path: string }) => void): () => void;
       openProjectDialog(): Promise<ProjectSummary | null>;
       openProjectPath(path: string): Promise<ProjectSummary | null>;
+      createProjectDialog(): Promise<ProjectSummary | null>;
       importGedcom(projectPath: string): Promise<GedcomImportResult | null>;
       importGedcomFile(
         projectPath: string,
         filePath: string,
       ): Promise<GedcomImportResult | null>;
       recentProjects(): Promise<RecentProject[]>;
-      closeProject(projectPath: string): Promise<void>;
       listPersons(projectPath: string, search?: string): Promise<PersonRecord[]>;
       treeStats(projectPath: string): Promise<TreeStats>;
       getUndoState(projectPath: string): Promise<UndoRedoState>;
@@ -71,8 +72,6 @@ declare global {
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
       onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
       respondChatPermission(id: string, allow: boolean): void;
-      getTheme(projectPath: string): Promise<{ css: string }>;
-      onThemeChanged(callback: (info: { projectPath: string }) => void): () => void;
       getThemeState(): Promise<{
         systemDark: boolean;
         config: { dark: string; light: string };
@@ -110,7 +109,6 @@ declare global {
         projectPath: string,
         personId: string,
       ): Promise<Array<{ id: string; source: SourceRecord }>>;
-      getSession(): Promise<{ paths: string[]; activePath: string | null }>;
       getEvents(
         projectPath: string,
         personId?: string,
@@ -121,7 +119,6 @@ declare global {
       getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
-      getProjectSettings(projectPath: string): Promise<{ nameFormat: NameFormat }>;
       getAiSettings(): Promise<AiSettings>;
       getAiProviders(): Promise<AiProviderInfo[]>;
       setAiSettings(options: {
@@ -145,7 +142,6 @@ declare global {
         apiKey?: string;
         model?: string;
       }): Promise<{ models: string[]; error?: string }>;
-      onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }
 }
