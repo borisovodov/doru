@@ -61,8 +61,9 @@ secrets.
 
 ## Windows (not enabled yet)
 
-Windows code signing is not part of the release pipeline yet. When it is
-enabled, it will use secrets `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`:
+Windows code signing is not part of the release pipeline yet; until it is,
+Windows builds remain experimental. When it is enabled, it will use secrets
+`WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`:
 
 1. Buy an **OV code-signing certificate** from a CA (SSL.com, Certum,
    Sectigo/DigiCert). Organization validation typically involves a phone call
