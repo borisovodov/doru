@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "Személyek a fában: {0}",
   "features.tree.search.placeholder": "Személyek keresése…",
   "features.tree.emptyTree": "A fa üres. Importáljon egy GEDCOM-fájlt a kezdéshez.",
+  "features.tree.personNotFound": "Ez a személy már nincs a családfában.",
   "features.tree.addPerson": "Személy hozzáadása",
   "features.tree.save": "Mentés",
   "features.tree.back": "Vissza",

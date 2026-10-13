@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "ツリー内の人数: {0}",
   "features.tree.search.placeholder": "人物を検索…",
   "features.tree.emptyTree": "ツリーは空です。開始するには GEDCOM ファイルをインポートしてください。",
+  "features.tree.personNotFound": "この人物はもうツリーに存在しません。",
   "features.tree.addPerson": "人物を追加",
   "features.tree.save": "保存",
   "features.tree.back": "戻る",

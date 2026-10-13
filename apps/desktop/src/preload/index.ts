@@ -1,6 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 const api = {
+  getCurrentProject: (): Promise<unknown> => ipcRenderer.invoke('project:current'),
+  onCloseTab: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('tab:close', listener);
+    return () => ipcRenderer.removeListener('tab:close', listener);
+  },
+  onProjectBound: (callback: (info: { path: string }) => void): (() => void) => {
+    const listener = (_event: unknown, info: { path: string }) => callback(info);
+    ipcRenderer.on('project:bind', listener);
+    return () => ipcRenderer.removeListener('project:bind', listener);
+  },
   openProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:open', { dialog: true }),
   openProjectPath: (path: string): Promise<unknown> => ipcRenderer.invoke('project:open', { path }),
   createProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:create'),
@@ -9,8 +20,6 @@ const api = {
   importGedcomFile: (projectPath: string, filePath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:import', { projectPath, filePath }),
   recentProjects: (): Promise<unknown> => ipcRenderer.invoke('project:recent'),
-  closeProject: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('project:close', { path: projectPath }),
   listPersons: (projectPath: string, search?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:list', { projectPath, search }),
   treeStats: (projectPath: string): Promise<unknown> =>
@@ -78,7 +87,6 @@ const api = {
     ipcRenderer.invoke('tree:detachCitation', { projectPath, citationId }),
   getCitations: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:citations', { projectPath, personId }),
-  getSession: (): Promise<unknown> => ipcRenderer.invoke('session:get'),
   getEvents: (projectPath: string, personId?: string, familyId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:events', { projectPath, personId, familyId }),
   addEvent: (projectPath: string, event: unknown): Promise<unknown> =>
@@ -99,11 +107,6 @@ const api = {
     ipcRenderer.invoke('settings:ai:test', options ?? {}),
   fetchAiModels: (options?: unknown): Promise<unknown> =>
     ipcRenderer.invoke('settings:ai:models', options ?? {}),
-  onExternalOpen: (callback: (summary: unknown) => void): (() => void) => {
-    const listener = (_event: unknown, summary: unknown) => callback(summary);
-    ipcRenderer.on('project:external-open', listener);
-    return () => ipcRenderer.removeListener('project:external-open', listener);
-  },
 };
 
 contextBridge.exposeInMainWorld('doru', api);

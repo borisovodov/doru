@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "트리의 인물 수: {0}",
   "features.tree.search.placeholder": "인물 검색…",
   "features.tree.emptyTree": "트리가 비어 있습니다. 시작하려면 GEDCOM 파일을 가져오세요.",
+  "features.tree.personNotFound": "이 인물은 더 이상 트리에 없습니다.",
   "features.tree.addPerson": "인물 추가",
   "features.tree.save": "저장",
   "features.tree.back": "뒤로",

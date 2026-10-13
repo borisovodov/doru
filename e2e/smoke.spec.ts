@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require('electron') as string;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '../apps/desktop');
 
-test('app launches and shows the workbench', async () => {
+test('app launches and shows the welcome screen', async () => {
   const args = ['.'];
   if (process.env.CI === 'true') {
     args.push('--no-sandbox');
@@ -23,5 +23,6 @@ test('app launches and shows the workbench', async () => {
   const window = await app.firstWindow();
   await expect(window).toHaveTitle('Dóru');
   await expect(window.locator('.workbench')).toBeVisible();
+  await expect(window.locator('.welcome-page')).toBeVisible();
   await app.close();
 });

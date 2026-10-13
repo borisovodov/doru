@@ -15,9 +15,10 @@ media/              photos and scans, created on demand (optional)
    5.5.1 dialects are imported; exports are written as GEDCOM 7.0). Or start
    from scratch with **Add Person**.
 
-Projects can be opened in tabs — several trees side by side. Recently used
-projects are listed on the start page, and your open tabs are restored on the
-next launch. Double-clicking a `*.doru` file (or opening a
+Each project opens in its **own window**; persons, the tree editor and the
+settings open as tabs inside it. Recently used projects are listed on the
+start page, and your open project windows are restored on the next launch.
+Double-clicking a `*.doru` file (or opening a
 `doru://open?path=/…/family.doru` link) opens it in the running app.
 
 ## Next steps

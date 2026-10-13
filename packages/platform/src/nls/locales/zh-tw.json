@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "樹中人員數: {0}",
   "features.tree.search.placeholder": "搜尋人員…",
   "features.tree.emptyTree": "樹是空的。請匯入 GEDCOM 檔案以開始。",
+  "features.tree.personNotFound": "此人已不在樹中。",
   "features.tree.addPerson": "新增人員",
   "features.tree.save": "儲存",
   "features.tree.back": "返回",

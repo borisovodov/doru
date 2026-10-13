@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "Άτομα στο δέντρο: {0}",
   "features.tree.search.placeholder": "Αναζήτηση ατόμων…",
   "features.tree.emptyTree": "Το δέντρο είναι κενό. Εισαγάγετε ένα αρχείο GEDCOM για να ξεκινήσετε.",
+  "features.tree.personNotFound": "Αυτό το πρόσωπο δεν είναι πλέον στο δέντρο.",
   "features.tree.addPerson": "Προσθήκη ατόμου",
   "features.tree.save": "Αποθήκευση",
   "features.tree.back": "Πίσω",

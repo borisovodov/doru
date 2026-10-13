@@ -67,9 +67,11 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 - **GEDCOM 5.5 / 5.5.1 import**, **GEDCOM 7.0 export**, and a read-only
   GEDCOM view of the whole tree.
-- **Tabs** — several projects open side by side; recent projects are listed
-  on the start page, open tabs are restored on launch, and `doru://open?path=…`
-  links or double-clicked `*.doru` files open in the running app.
+- **Tabs** — a project opens in its own window, and entities (persons, the
+  tree editor, settings) open as tabs inside it. Recent projects are listed on
+  the start page, open project windows are restored on launch, and
+  `doru://open?path=…` links or double-clicked `*.doru` files open in the
+  running app.
 
 ### AI and agents
 

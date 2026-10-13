@@ -573,6 +573,11 @@
   font-size: 13px;
 }
 
+.person-missing {
+  margin: 16px;
+  color: var(--doru-fg-dim);
+}
+
 .placeholder-view p {
   margin: 0 0 12px;
   color: var(--doru-fg-dim);

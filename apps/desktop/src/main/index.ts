@@ -1,4 +1,17 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, protocol, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  net,
+  protocol,
+  safeStorage,
+  type MenuItemConstructorOptions,
+  type OpenDialogOptions,
+  type SaveDialogOptions,
+} from 'electron';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, watch } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -121,7 +134,8 @@ interface PendingPermission {
 const pendingPermissions = new Map<string, PendingPermission>();
 
 let recents: RecentProjects | null = null;
-let mainWindow: BrowserWindow | null = null;
+const projectWindows = new Map<string, BrowserWindow>();
+const windowProject = new Map<number, string | null>();
 const pendingExternalPaths: string[] = [];
 
 function iconPath(): string {
@@ -130,12 +144,56 @@ function iconPath(): string {
     : join(app.getAppPath(), 'resources', 'icon.png');
 }
 
-function createWindow(): void {
+function focusedWindow(): BrowserWindow | null {
+  return BrowserWindow.getFocusedWindow();
+}
+
+function windowById(id: number): BrowserWindow | null {
+  return (
+    BrowserWindow.getAllWindows().find(
+      (window) => !window.isDestroyed() && window.webContents.id === id,
+    ) ?? null
+  );
+}
+
+function installMenu(): void {
+  const closeTabItem: MenuItemConstructorOptions = {
+    label: 'Close Tab',
+    accelerator: 'CmdOrCtrl+W',
+    click: (_item, window) => {
+      const browserWindow = window as BrowserWindow | undefined;
+      if (browserWindow && !browserWindow.isDestroyed()) {
+        browserWindow.webContents.send('tab:close');
+      }
+    },
+  };
+  const template: MenuItemConstructorOptions[] = [];
+  if (process.platform === 'darwin') {
+    template.push({ role: 'appMenu' });
+    template.push({ label: 'File', submenu: [closeTabItem] });
+  } else {
+    template.push({
+      label: 'File',
+      submenu: [closeTabItem, { type: 'separator' }, { role: 'quit' }],
+    });
+  }
+  template.push({ role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' });
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function bindWindowToProject(window: BrowserWindow, projectPath: string): void {
+  windowProject.set(window.webContents.id, projectPath);
+  projectWindows.set(projectPath, window);
+  window.setTitle(`${basename(projectPath)} — Dóru`);
+  window.webContents.send('project:bind', { path: projectPath });
+}
+
+function createWindow(projectPath: string | null): BrowserWindow {
   const preload = fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
-  mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: 'Dóru',
+    title: projectPath ? `${basename(projectPath)} — Dóru` : 'Dóru',
     icon: process.platform === 'darwin' ? undefined : iconPath(),
     webPreferences: {
       preload,
@@ -143,17 +201,52 @@ function createWindow(): void {
       contextIsolation: true,
     },
   });
+  const webContentsId = window.webContents.id;
+  windowProject.set(webContentsId, projectPath);
+
+  window.on('page-title-updated', (event) => {
+    event.preventDefault();
+    const bound = windowProject.get(webContentsId);
+    window.setTitle(bound ? `${basename(bound)} — Dóru` : 'Dóru');
+  });
 
   const rendererUrl = process.env.ELECTRON_RENDERER_URL;
   if (rendererUrl) {
-    void mainWindow.loadURL(rendererUrl);
+    void window.loadURL(rendererUrl);
   } else {
-    void mainWindow.loadFile(join(fileURLToPath(new URL('..', import.meta.url)), 'renderer/index.html'));
+    void window.loadFile(join(fileURLToPath(new URL('..', import.meta.url)), 'renderer/index.html'));
   }
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+  window.on('closed', () => {
+    const boundProject = windowProject.get(webContentsId);
+    windowProject.delete(webContentsId);
+    if (boundProject) {
+      projectWindows.delete(boundProject);
+      closeProjectRuntime(boundProject);
+      void updateSession((session) => ({
+        paths: session.paths.filter((entry) => entry !== boundProject),
+        activePath: session.activePath === boundProject ? null : session.activePath,
+      }));
+    }
   });
+
+  if (projectPath) {
+    projectWindows.set(projectPath, window);
+  }
+  return window;
+}
+
+function closeProjectRuntime(projectPath: string): void {
+  const runtime = runtimes.get(projectPath);
+  if (runtime) {
+    runtime.store.close();
+    runtimes.delete(projectPath);
+  }
+  const acp = acpClients.get(projectPath);
+  if (acp) {
+    void acp.close();
+    acpClients.delete(projectPath);
+  }
 }
 
 async function ensureRuntime(
@@ -178,7 +271,10 @@ async function ensureRuntime(
   return { summary, runtime };
 }
 
-async function openProject(options: { dialog?: boolean; path?: string }): Promise<ProjectSummary | null> {
+async function openProject(
+  options: { dialog?: boolean; path?: string },
+  senderId?: number,
+): Promise<ProjectSummary | null> {
   let filePath = options.path;
   if (!filePath) {
     const dialogOptions: OpenDialogOptions = {
@@ -186,9 +282,10 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
       filters: [{ name: 'Dóru project', extensions: ['doru'] }],
       title: 'Open Project',
     };
+    const parent = focusedWindow();
     const result =
-      mainWindow !== null
-        ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+      parent !== null
+        ? await dialog.showOpenDialog(parent, dialogOptions)
         : await dialog.showOpenDialog(dialogOptions);
     if (result.canceled || result.filePaths[0] === undefined) {
       return null;
@@ -198,7 +295,40 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
   if (!filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
     return null;
   }
+  const existingWindow = projectWindows.get(filePath);
+  if (existingWindow) {
+    if (existingWindow.isDestroyed()) {
+      projectWindows.delete(filePath);
+    } else {
+      if (existingWindow.isMinimized()) {
+        existingWindow.restore();
+      }
+      existingWindow.focus();
+      return {
+        path: filePath,
+        schemaVersion: runtimes.get(filePath)?.store.userVersion() ?? 0,
+        created: false,
+      };
+    }
+  }
   const { summary } = await ensureRuntime(filePath);
+  const senderWindow = senderId !== undefined ? windowById(senderId) : null;
+  const senderBound = senderId !== undefined ? windowProject.get(senderId) : undefined;
+  if (senderWindow && !senderWindow.isDestroyed() && senderBound === null) {
+    bindWindowToProject(senderWindow, filePath);
+  } else if (senderId === undefined) {
+    const emptyWindow =
+      BrowserWindow.getAllWindows().find(
+        (window) => !window.isDestroyed() && windowProject.get(window.webContents.id) === null,
+      ) ?? null;
+    if (emptyWindow) {
+      bindWindowToProject(emptyWindow, filePath);
+    } else {
+      createWindow(filePath);
+    }
+  } else {
+    createWindow(filePath);
+  }
   if (recents) {
     await recents.touch(summary.path);
     await updateSession((session) => {
@@ -206,11 +336,10 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
       return { paths: [...paths, summary.path], activePath: summary.path };
     });
   }
-  mainWindow?.webContents.send('project:external-open', summary);
   return summary;
 }
 
-async function createProject(): Promise<ProjectSummary | null> {
+async function createProject(senderId?: number): Promise<ProjectSummary | null> {
   const dialogOptions: SaveDialogOptions = {
     filters: [{ name: 'Dóru project', extensions: ['doru'] }],
     title: 'Create New Project',
@@ -218,8 +347,8 @@ async function createProject(): Promise<ProjectSummary | null> {
     defaultPath: 'Family Tree.doru',
   };
   const result =
-    mainWindow !== null
-      ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+    focusedWindow() !== null
+      ? await dialog.showSaveDialog(focusedWindow() as BrowserWindow, dialogOptions)
       : await dialog.showSaveDialog(dialogOptions);
   if (result.canceled || !result.filePath) {
     return null;
@@ -227,18 +356,14 @@ async function createProject(): Promise<ProjectSummary | null> {
   const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
     ? result.filePath
     : `${result.filePath}${TREE_FILE_EXTENSION}`;
-  return openProject({ path: filePath });
+  return openProject({ path: filePath }, senderId);
 }
 
 function openExternalPath(path: string): void {
   if (!path.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
     return;
   }
-  void openProject({ path }).then((summary) => {
-    if (summary && mainWindow) {
-      mainWindow.webContents.send('project:external-open', summary);
-    }
-  });
+  void openProject({ path });
 }
 
 async function importGedcom(options: {
@@ -254,8 +379,8 @@ async function importGedcom(options: {
       title: 'Import GEDCOM',
     };
     const result =
-      mainWindow !== null
-        ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+      focusedWindow() !== null
+        ? await dialog.showOpenDialog(focusedWindow() as BrowserWindow, dialogOptions)
         : await dialog.showOpenDialog(dialogOptions);
     if (result.canceled || result.filePaths[0] === undefined) {
       return null;
@@ -386,9 +511,9 @@ function aiSettingsPayload(config: ResolvedAiConfig): {
   };
 }
 
-function requestPermission(tool: string, args: Record<string, unknown>): Promise<boolean> {
+function requestPermission(projectPath: string, tool: string, args: Record<string, unknown>): Promise<boolean> {
   const id = crypto.randomUUID();
-  mainWindow?.webContents.send('chat:permission', { id, tool, arguments: args });
+  projectWindows.get(projectPath)?.webContents.send('chat:permission', { id, tool, arguments: args });
   return new Promise<boolean>((resolve) => {
     const timer = setTimeout(() => {
       pendingPermissions.delete(id);
@@ -415,7 +540,7 @@ async function ensureAcpClient(projectPath: string, config: ResolvedAiConfig): P
   const client = new AcpAgentClient({
     command: config.acpCommand,
     args: config.acpArgs,
-    cwd: projectPath,
+    cwd: dirname(projectPath),
     mcpServers: [
       doruMcpServerEntry(projectPath),
       ...config.mcpServers.map((server) => ({
@@ -426,7 +551,7 @@ async function ensureAcpClient(projectPath: string, config: ResolvedAiConfig): P
       })),
     ],
   });
-  await client.start(requestPermission);
+  await client.start((tool, args) => requestPermission(projectPath, tool, args));
   acpClients.set(projectPath, client);
   return client;
 }
@@ -480,7 +605,14 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
   }
   const extraTools = host?.externalTools() ?? [];
   const extraInvoke = host ? (name: string, args: Record<string, unknown>) => host.invoke(name, args) : null;
-  const agent = new AgentRuntime(model, backend, requestPermission, DEFAULT_PERMISSION_POLICY, extraTools, extraInvoke);
+  const agent = new AgentRuntime(
+    model,
+    backend,
+    (tool, args) => requestPermission(options.projectPath, tool, args),
+    DEFAULT_PERMISSION_POLICY,
+    extraTools,
+    extraInvoke,
+  );
   try {
     const result = await agent.run(conversation);
     return { steps: result.steps, finalText: result.finalText };
@@ -497,11 +629,12 @@ async function sendChat(options: { projectPath: string; messages: ChatMessage[] 
   }
 }
 
-ipcMain.handle('project:open', (_event, options: { dialog?: boolean; path?: string } = {}) =>
-  openProject(options),
+ipcMain.handle(
+  'project:open',
+  (event, options: { dialog?: boolean; path?: string } = {}) => openProject(options, event.sender.id),
 );
 
-ipcMain.handle('project:create', () => createProject());
+ipcMain.handle('project:create', (event) => createProject(event.sender.id));
 
 ipcMain.handle(
   'project:import',
@@ -535,37 +668,7 @@ async function updateSession(update: (session: SessionData) => SessionData): Pro
   writeFileSync(join(dir, SESSION_FILE), `${JSON.stringify(update(readSession()), null, 2)}\n`);
 }
 
-ipcMain.handle('session:get', async () => {
-  const session = readSession();
-  const existing = [];
-  for (const path of session.paths) {
-    if (await fs.exists(path)) {
-      existing.push(path);
-    }
-  }
-  return {
-    paths: existing,
-    activePath: existing.includes(session.activePath ?? '') ? session.activePath : null,
-  };
-});
-
-ipcMain.handle('project:close', (_event, options: { path: string }) => {
-  const runtime = runtimes.get(options.path);
-  if (runtime) {
-    runtime.store.close();
-    runtimes.delete(options.path);
-  }
-  const acp = acpClients.get(options.path);
-  if (acp) {
-    void acp.close();
-    acpClients.delete(options.path);
-  }
-  void updateSession((session) => {
-    const paths = session.paths.filter((entry) => entry !== options.path);
-    const activePath = session.activePath === options.path ? null : session.activePath;
-    return { paths, activePath };
-  });
-});
+ipcMain.handle('project:current', (event) => windowProject.get(event.sender.id) ?? null);
 
 ipcMain.handle(
   'tree:list',
@@ -624,8 +727,8 @@ ipcMain.handle('project:export', async (_event, options: { projectPath: string }
     title: 'Export GEDCOM',
   };
   const result =
-    mainWindow !== null
-      ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+    focusedWindow() !== null
+      ? await dialog.showSaveDialog(focusedWindow() as BrowserWindow, dialogOptions)
       : await dialog.showSaveDialog(dialogOptions);
   if (result.canceled || !result.filePath) {
     return null;
@@ -837,8 +940,8 @@ ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; p
     title: 'Add photos',
   };
   const result =
-    mainWindow !== null
-      ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+    focusedWindow() !== null
+      ? await dialog.showOpenDialog(focusedWindow() as BrowserWindow, dialogOptions)
       : await dialog.showOpenDialog(dialogOptions);
   if (result.canceled || result.filePaths.length === 0) {
     return [];
@@ -867,17 +970,6 @@ ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string
   const { runtime } = await ensureRuntime(options.projectPath);
   runtime.queue.apply(deleteMediaOp(options.media), { repo: runtime.repo });
   return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
-});
-
-ipcMain.handle('project:settings', async (_event, options: { projectPath: string }) => {
-  await ensureRuntime(options.projectPath);
-  try {
-    const text = await fs.readFile(join(options.projectPath, SETTINGS_FILE_NAME));
-    const parsed = parse(text) as { nameFormat?: string };
-    return { nameFormat: parsed.nameFormat === 'surname-first' ? 'surname-first' : 'given-first' };
-  } catch {
-    return { nameFormat: 'given-first' };
-  }
 });
 
 ipcMain.handle('tree:gedcomText', async (_event, options: { projectPath: string }) => {
@@ -1065,11 +1157,16 @@ if (!gotLock) {
   });
 
   app.on('second-instance', (_event, argv) => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
+    const target =
+      BrowserWindow.getFocusedWindow() ??
+      projectWindows.values().next().value ??
+      BrowserWindow.getAllWindows()[0] ??
+      null;
+    if (target) {
+      if (target.isMinimized()) {
+        target.restore();
       }
-      mainWindow.focus();
+      target.focus();
     }
     for (const path of extractPathArgs(argv)) {
       if (path.startsWith('doru://')) {
@@ -1123,6 +1220,7 @@ function parseMcpServerArg(argv: string[]): string | null {
 
 void app.whenReady().then(async () => {
   recents = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
+  installMenu();
 
   if (process.platform === 'darwin' && app.dock && !app.isPackaged) {
     try {
@@ -1146,11 +1244,15 @@ void app.whenReady().then(async () => {
   });
 
   nativeTheme.on('updated', () => {
-    mainWindow?.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
+    }
   });
   try {
     const configWatcher = watch(join(app.getPath('userData'), AI_CONFIG_FILE), () => {
-      mainWindow?.webContents.send('theme:config-changed', themeConfig());
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send('theme:config-changed', themeConfig());
+      }
     });
     configWatcher.unref();
   } catch {
@@ -1167,17 +1269,32 @@ void app.whenReady().then(async () => {
     return;
   }
 
-  createWindow();
-  for (const path of [...extractPathArgs(process.argv), ...pendingExternalPaths]) {
-    if (path.startsWith('doru://')) {
-      handleProtocolUrl(path);
-    } else {
-      openExternalPath(path);
+  const argvPaths = [...extractPathArgs(process.argv), ...pendingExternalPaths];
+  if (argvPaths.length > 0) {
+    for (const path of argvPaths) {
+      if (path.startsWith('doru://')) {
+        handleProtocolUrl(path);
+      } else {
+        openExternalPath(path);
+      }
+    }
+  } else {
+    const session = readSession();
+    for (const path of session.paths) {
+      await openProject({ path });
+    }
+    const activePath = session.activePath;
+    if (activePath) {
+      await openProject({ path: activePath });
+      projectWindows.get(activePath)?.focus();
+    }
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow(null);
     }
   }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      createWindow(null);
     }
   });
 });

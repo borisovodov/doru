@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "Персон в дереве: {0}",
   "features.tree.search.placeholder": "Поиск персон…",
   "features.tree.emptyTree": "Дерево пустое. Импортируйте GEDCOM-файл, чтобы начать.",
+  "features.tree.personNotFound": "Этой персоны больше нет в дереве.",
   "features.tree.addPerson": "Добавить персону",
   "features.tree.save": "Сохранить",
   "features.tree.back": "Назад",

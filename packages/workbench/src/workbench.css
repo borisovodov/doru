@@ -117,6 +117,21 @@ body {
   overflow: auto;
 }
 
+.editor-stack {
+  height: 100%;
+}
+
+.editor-pane {
+  display: none;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.editor-pane.active {
+  display: block;
+}
+
 .tab-bar {
   display: flex;
   background: var(--doru-side-bar-bg);

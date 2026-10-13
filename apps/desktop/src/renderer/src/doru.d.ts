@@ -45,6 +45,9 @@ export interface ChatPermissionRequest {
 declare global {
   interface Window {
     doru: {
+      getCurrentProject(): Promise<string | null>;
+      onCloseTab(callback: () => void): () => void;
+      onProjectBound(callback: (info: { path: string }) => void): () => void;
       openProjectDialog(): Promise<ProjectSummary | null>;
       openProjectPath(path: string): Promise<ProjectSummary | null>;
       createProjectDialog(): Promise<ProjectSummary | null>;
@@ -54,7 +57,6 @@ declare global {
         filePath: string,
       ): Promise<GedcomImportResult | null>;
       recentProjects(): Promise<RecentProject[]>;
-      closeProject(projectPath: string): Promise<void>;
       listPersons(projectPath: string, search?: string): Promise<PersonRecord[]>;
       treeStats(projectPath: string): Promise<TreeStats>;
       getUndoState(projectPath: string): Promise<UndoRedoState>;
@@ -107,7 +109,6 @@ declare global {
         projectPath: string,
         personId: string,
       ): Promise<Array<{ id: string; source: SourceRecord }>>;
-      getSession(): Promise<{ paths: string[]; activePath: string | null }>;
       getEvents(
         projectPath: string,
         personId?: string,
@@ -141,7 +142,6 @@ declare global {
         apiKey?: string;
         model?: string;
       }): Promise<{ models: string[]; error?: string }>;
-      onExternalOpen(callback: (summary: ProjectSummary) => void): () => void;
     };
   }
 }

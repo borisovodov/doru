@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "Osob ve stromu: {0}",
   "features.tree.search.placeholder": "Hledat osoby…",
   "features.tree.emptyTree": "Strom je prázdný. Importujte soubor GEDCOM a začněte.",
+  "features.tree.personNotFound": "Tato osoba už není v rodokmenu.",
   "features.tree.addPerson": "Přidat osobu",
   "features.tree.save": "Uložit",
   "features.tree.back": "Zpět",

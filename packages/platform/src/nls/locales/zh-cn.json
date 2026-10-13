@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "树中人数: {0}",
   "features.tree.search.placeholder": "搜索人员…",
   "features.tree.emptyTree": "树是空的。请导入 GEDCOM 文件以开始。",
+  "features.tree.personNotFound": "此人已不在树中。",
   "features.tree.addPerson": "添加人员",
   "features.tree.save": "保存",
   "features.tree.back": "返回",

@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "Persons in tree: {0}",
   "features.tree.search.placeholder": "Search persons…",
   "features.tree.emptyTree": "The tree is empty. Import a GEDCOM file to get started.",
+  "features.tree.personNotFound": "This person is no longer in the tree.",
   "features.tree.addPerson": "Add Person",
   "features.tree.save": "Save",
   "features.tree.back": "Back",

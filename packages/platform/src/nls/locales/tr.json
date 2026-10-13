@@ -33,6 +33,7 @@
   "features.tree.totalPersons": "Ağaçtaki kişiler: {0}",
   "features.tree.search.placeholder": "Kişileri ara…",
   "features.tree.emptyTree": "Ağaç boş. Başlamak için bir GEDCOM dosyası içe aktarın.",
+  "features.tree.personNotFound": "Bu kişi artık ağaçta değil.",
   "features.tree.addPerson": "Kişi ekle",
   "features.tree.save": "Kaydet",
   "features.tree.back": "Geri",

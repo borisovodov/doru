@@ -23,10 +23,10 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     cwd: appDir,
     env: { ...process.env, DORU_USER_DATA: userData },
   });
-  const window = await app.firstWindow();
-  await expect(window.locator('.workbench')).toBeVisible();
+  const home = await app.firstWindow();
+  await expect(home.locator('.welcome-page')).toBeVisible();
 
-  await window.evaluate(
+  await home.evaluate(
     async ({ project, fixture }) => {
       const summary = await window.doru.openProjectPath(project);
       if (!summary) throw new Error('project open failed');
@@ -88,6 +88,11 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     },
     { project, fixture },
   );
+
+  const window = home;
+  await window.reload();
+  await expect(window.locator('.workbench')).toBeVisible();
+  await expect(window.locator('.person-list li').first()).toBeVisible();
 
   await window.locator('.person-list li').first().click();
   await expect(window.locator('.person-editor')).toBeVisible();
