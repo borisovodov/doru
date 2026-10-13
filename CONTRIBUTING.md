@@ -70,10 +70,11 @@ Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Release signing
 
-The release workflow builds macOS installers signed and notarized; Linux and
-Windows installers are unsigned for now. Full instructions for obtaining and
-renewing the signing credentials — including the required GitHub repository
-secrets — are in [docs/signing.md](docs/signing.md).
+The release workflow builds macOS installers signed and notarized. Linux and
+Windows builds are **experimental**: they are built by CI, but are unsigned and
+have not yet been verified on real Windows/Linux machines. Full instructions
+for obtaining and renewing the signing credentials — including the required
+GitHub repository secrets — are in [docs/signing.md](docs/signing.md).
 
 ## License
 
