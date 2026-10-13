@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 const api = {
+  platform: process.platform,
   getCurrentProject: (): Promise<unknown> => ipcRenderer.invoke('project:current'),
   onCloseTab: (callback: () => void): (() => void) => {
     const listener = () => callback();

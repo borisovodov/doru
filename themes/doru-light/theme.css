@@ -1,10 +1,32 @@
 :root {
-  --doru-activity-bar-bg: #2c2c2c;
-  --doru-side-bar-bg: #f3f3f3;
-  --doru-editor-bg: #ffffff;
-  --doru-fg: #333333;
-  --doru-fg-dim: #616161;
-  --doru-border: #e7e7e7;
-  --doru-accent: #007acc;
-  --doru-input-bg: #ffffff;
+  --doru-bg-canvas: #fdfcf9;
+  --doru-bg-chrome: #f2efe7;
+  --doru-bg-chrome-active: rgba(0, 0, 0, 0.08);
+  --doru-bg-raised: #f7f4ec;
+  --doru-bg-popover: #ffffff;
+  --doru-bg-input: #ffffff;
+
+  --doru-fg: #1f2621;
+  --doru-fg-muted: #5d655f;
+  --doru-fg-faint: #8d958f;
+
+  --doru-border: rgba(0, 0, 0, 0.09);
+  --doru-border-strong: rgba(0, 0, 0, 0.18);
+
+  --doru-accent: #3f7355;
+  --doru-accent-hover: #35624a;
+  --doru-accent-active: #2c5340;
+  --doru-on-accent: #fdfcf9;
+  --doru-accent-alpha: rgba(63, 115, 85, 0.12);
+  --doru-focus: var(--doru-accent);
+
+  --doru-overlay-hover: rgba(0, 0, 0, 0.05);
+  --doru-overlay-pressed: rgba(0, 0, 0, 0.09);
+
+  --doru-success: #2f7d43;
+  --doru-warning: #9a6a00;
+  --doru-danger: #c2412d;
+  --doru-info: #2d6c9e;
+
+  --doru-ring: 0 0 0 0.5px rgba(0, 0, 0, 0.12);
 }

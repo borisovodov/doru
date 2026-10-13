@@ -1,10 +1,32 @@
 :root {
-  --doru-activity-bar-bg: #333333;
-  --doru-side-bar-bg: #252526;
-  --doru-editor-bg: #1e1e1e;
-  --doru-fg: #cccccc;
-  --doru-fg-dim: #858585;
-  --doru-border: #3c3c3c;
-  --doru-accent: #007acc;
-  --doru-input-bg: #3c3c3c;
+  --doru-bg-canvas: #0f1311;
+  --doru-bg-chrome: #161a17;
+  --doru-bg-chrome-active: rgba(255, 255, 255, 0.07);
+  --doru-bg-raised: #1b201c;
+  --doru-bg-popover: #202621;
+  --doru-bg-input: #1b201c;
+
+  --doru-fg: #c7cdc8;
+  --doru-fg-muted: #8d958f;
+  --doru-fg-faint: #5d655f;
+
+  --doru-border: rgba(255, 255, 255, 0.08);
+  --doru-border-strong: rgba(255, 255, 255, 0.16);
+
+  --doru-accent: #63a37f;
+  --doru-accent-hover: #78b894;
+  --doru-accent-active: #518b68;
+  --doru-on-accent: #0c1510;
+  --doru-accent-alpha: rgba(99, 163, 127, 0.14);
+  --doru-focus: var(--doru-accent);
+
+  --doru-overlay-hover: rgba(255, 255, 255, 0.06);
+  --doru-overlay-pressed: rgba(255, 255, 255, 0.1);
+
+  --doru-success: #7fc690;
+  --doru-warning: #d9b45c;
+  --doru-danger: #e0745f;
+  --doru-info: #7fb3c9;
+
+  --doru-ring: 0 0 0 0.5px rgba(255, 255, 255, 0.14);
 }

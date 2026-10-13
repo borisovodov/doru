@@ -45,6 +45,7 @@ export interface ChatPermissionRequest {
 declare global {
   interface Window {
     doru: {
+      readonly platform: string;
       getCurrentProject(): Promise<string | null>;
       onCloseTab(callback: () => void): () => void;
       onProjectBound(callback: (info: { path: string }) => void): () => void;

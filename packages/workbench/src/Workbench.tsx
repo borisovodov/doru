@@ -11,6 +11,8 @@ import './workbench.css';
 export interface WorkbenchProps {
   commands: CommandService;
   keybindings?: Array<{ key: string; command: string }>;
+  title?: string;
+  customTitleBar?: boolean;
   sidebar?: ReactNode;
   secondarySidebar?: ReactNode;
   editor?: ReactNode;
@@ -26,6 +28,8 @@ export interface WorkbenchProps {
 export function Workbench({
   commands,
   keybindings: externalKeybindings = [],
+  title,
+  customTitleBar = false,
   sidebar,
   secondarySidebar,
   editor,
@@ -79,6 +83,12 @@ export function Workbench({
 
   return (
     <div className={layoutClasses.join(' ')}>
+      {customTitleBar && (
+        <div className="title-bar">
+          <span className="title-bar-title">{title}</span>
+          <div className="title-bar-actions" />
+        </div>
+      )}
       <ActivityBar
         activeView={activeView}
         onSelectView={onSelectView}

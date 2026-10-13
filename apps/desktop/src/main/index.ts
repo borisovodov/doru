@@ -195,6 +195,9 @@ function createWindow(projectPath: string | null): BrowserWindow {
     height: 800,
     title: projectPath ? `${basename(projectPath)} — Dóru` : 'Dóru',
     icon: process.platform === 'darwin' ? undefined : iconPath(),
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 13 } }
+      : {}),
     webPreferences: {
       preload,
       sandbox: false,

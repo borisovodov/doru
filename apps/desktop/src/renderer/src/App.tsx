@@ -706,7 +706,7 @@ export function App() {
   const sidebar = (() => {
     switch (activeView) {
       case 'people':
-        if (!projectPath) {
+        if (persons.length === 0) {
           return (
             <PlaceholderView
               title={nls.t('workbench.activityBar.people')}
@@ -889,6 +889,8 @@ export function App() {
       <Workbench
         commands={commands}
         keybindings={keybindings}
+        title={projectPath ? projectName(projectPath) : nls.t('app.name')}
+        customTitleBar={window.doru.platform === 'darwin'}
         sidebar={sidebar}
         activeView={activeView}
         onSelectView={handleSelectView}
@@ -910,4 +912,10 @@ export function App() {
       />
     </>
   );
+}
+
+function projectName(path: string): string {
+  const parts = path.split(/[\\/]/);
+  const base = parts[parts.length - 1] ?? path;
+  return base.toLowerCase().endsWith('.doru') ? base.slice(0, -5) : base;
 }

@@ -2,13 +2,13 @@
   "name": "Dóru Dark",
   "type": "dark",
   "colors": {
-    "activityBar.background": "#333333",
-    "sideBar.background": "#252526",
-    "editor.background": "#1e1e1e",
-    "foreground": "#cccccc",
-    "foreground.dim": "#858585",
-    "border": "#3c3c3c",
-    "accent": "#007acc",
-    "input.background": "#3c3c3c"
+    "activityBar.background": "#161a17",
+    "sideBar.background": "#161a17",
+    "editor.background": "#0f1311",
+    "foreground": "#c7cdc8",
+    "foreground.dim": "#8d958f",
+    "border": "#ffffff14",
+    "accent": "#63a37f",
+    "input.background": "#1b201c"
   }
 }

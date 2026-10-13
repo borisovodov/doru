@@ -2,13 +2,13 @@
   "name": "Dóru Light",
   "type": "light",
   "colors": {
-    "activityBar.background": "#2c2c2c",
-    "sideBar.background": "#f3f3f3",
-    "editor.background": "#ffffff",
-    "foreground": "#333333",
-    "foreground.dim": "#616161",
-    "border": "#e7e7e7",
-    "accent": "#007acc",
+    "activityBar.background": "#f2efe7",
+    "sideBar.background": "#f2efe7",
+    "editor.background": "#fdfcf9",
+    "foreground": "#1f2621",
+    "foreground.dim": "#5d655f",
+    "border": "#00000017",
+    "accent": "#3f7355",
     "input.background": "#ffffff"
   }
 }
