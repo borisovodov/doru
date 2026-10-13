@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Projekt je obyčejná složka: SQLite databáze a složka media na fotky. Nic není skryto, nic se nenahrává."
+    details: "Projekt je jediný soubor .doru (SQLite); fotky žijí ve složce media vedle něj. Nic není skryto, nic se nenahrává."
   - icon: 🤖
     title: Nativně AI
     details: "Chat s agenty a nástroji stromu, režim MCP serveru pro Claude Desktop a Cursor, MCP host pro externí servery, ACP agenti."

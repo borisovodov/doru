@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Um projeto é uma pasta comum: um banco SQLite e uma pasta media para fotos. Nada é escondido, nada é enviado."
+    details: "Um projeto é um único arquivo .doru (SQLite); as fotos vivem em uma pasta media ao lado. Nada é escondido, nada é enviado."
   - icon: 🤖
     title: Nativo de IA
     details: "Chat com agentes e ferramentas da árvore, modo servidor MCP para Claude Desktop e Cursor, host MCP para servidores externos, agentes ACP."

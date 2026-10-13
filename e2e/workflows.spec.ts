@@ -12,7 +12,7 @@ const appDir = resolve(root, '../apps/desktop');
 const fixture = resolve(root, 'fixtures', 'small.ged');
 
 test('full workflow through the desktop APIs and UI sections', async () => {
-  const project = mkdtempSync(join(tmpdir(), 'doru-e2e-'));
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-data-'));
   const args = ['.'];
   if (process.env.CI === 'true') {

@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Bir proje sıradan bir klasördür: bir SQLite veritabanı ve fotoğraflar için bir media klasörü. Hiçbir şey gizli değil, hiçbir şey yüklenmiyor."
+    details: "Bir proje tek bir .doru dosyasıdır (SQLite); fotoğraflar yanındaki media klasöründe yaşar. Hiçbir şey gizli değil, hiçbir şey yüklenmiyor."
   - icon: 🤖
     title: YZ-yerel
     details: "Ağaç araçlarıyla ajan sohbeti, Claude Desktop ve Cursor için MCP sunucu modu, harici sunucular için MCP host, ACP ajanları."

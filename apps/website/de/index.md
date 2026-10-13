@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Ein Projekt ist ein gewöhnlicher Ordner: eine SQLite-Datei und ein media-Ordner für Fotos. Nichts ist versteckt, nichts wird hochgeladen."
+    details: "Ein Projekt ist eine einzelne .doru-Datei (SQLite); Fotos liegen in einem media-Ordner daneben. Nichts ist versteckt, nichts wird hochgeladen."
   - icon: 🤖
     title: KI-nativ
     details: "Agent-Chat mit Baum-Werkzeugen, MCP-Servermodus für Claude Desktop und Cursor, MCP-Host für externe Server, ACP-Agenten."

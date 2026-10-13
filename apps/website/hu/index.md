@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "A projekt egy közönséges mappa: SQLite-adatbázis és egy media mappa a fényképeknek. Semmi sincs elrejtve, semmi sincs feltöltve."
+    details: "A projekt egyetlen .doru fájl (SQLite); a fényképek a mellette lévő media mappában élnek. Semmi sincs elrejtve, semmi sincs feltöltve."
   - icon: 🤖
     title: MI-natív
     details: "Ügynök-chat a fa eszközeivel, MCP-szerver mód a Claude Desktophoz és a Cursorhoz, MCP-host külső szerverekhez, ACP-ügynökök."

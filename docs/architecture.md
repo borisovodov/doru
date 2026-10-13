@@ -6,18 +6,20 @@ decisions about what we deliberately do **not** build, see
 
 ## Project format
 
-- The project is an **ordinary folder**, not a single file and not a macOS
-  package. Photos stay real files in `media/`; everything else lives in the
-  `tree.doru` SQLite database.
-- `tree.doru` is SQLite with:
+- The project **is a single `.doru` file** — a SQLite database branded with
+  an app id. Photos and scans are ordinary files in a `media/` folder next to
+  it, created on demand (its absence is normal).
+- The file's name is the project's name. Moving or renaming the file moves or
+  renames the project.
+- The `.doru` file is SQLite with:
   - `journal_mode=DELETE` — WAL would leave `-wal`/`-shm` sidecars next to a
     "document" file and invites file-sync corruption;
   - `application_id = 0x444F5255` ("DORU") — brands the file so it is
     recognizable even in a generic SQLite browser;
   - `user_version` — the schema migration counter.
-- Opening a project is **idempotent and silent**: missing pieces are recreated
-  (template files, dirs, an empty tree with the latest schema). The only loud
-  case is a corrupted database — that must not be silently "healed" away.
+- Opening a project is **idempotent**: an existing file opens as-is, a new one
+  is created with the latest schema. The only loud case is a corrupted
+  database — that must not be silently "healed" away.
 
 ## Privacy
 

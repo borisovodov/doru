@@ -5,7 +5,7 @@ Instructions for AI agents and contributors working on this repository.
 ## Project
 
 Dóru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
-SQLite-based tree documents (`tree.doru`), text-based config/themes, MCP
+SQLite-based tree documents (`.doru` files), text-based config/themes, MCP
 host+server, ACP agents, agent chat. MIT-licensed; no
 accounts, no cloud, no telemetry — user data never leaves the machine unless
 the user explicitly sends it.
@@ -37,6 +37,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   DeepSeek) reject dots and colons.
 - Breaking our own APIs — including MCP tool names and website URLs — is
   fine before 1.0.0; do not add compatibility shims.
+- **No migrations before 1.0.0.** The project format, the SQLite schema, and
+  storage layouts change freely; do not write code that upgrades old data or
+  reads old formats. Newer versions may simply not understand files written by
+  older ones.
 - The UI locale always follows the operating system; there is no in-app
   language setting (see docs/decisions.md).
 

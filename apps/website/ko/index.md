@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "프로젝트는 평범한 폴더입니다. SQLite 데이터베이스와 사진용 media 폴더. 숨겨지는 것도 업로드되는 것도 없습니다."
+    details: "프로젝트는 단일 .doru 파일(SQLite)입니다. 사진은 옆의 media 폴더에 보관됩니다. 숨겨지는 것도 업로드되는 것도 없습니다."
   - icon: 🤖
     title: AI 네이티브
     details: "트리 도구를 갖춘 에이전트 채팅, Claude Desktop과 Cursor용 MCP 서버 모드, 외부 서버용 MCP 호스트, ACP 에이전트."

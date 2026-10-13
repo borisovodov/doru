@@ -27,9 +27,9 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Highlights
 
-- **Local-first — your data stays yours.** A project is a plain folder
-  containing a `tree.doru` SQLite database and a `media/` folder for photos
-  and scans. Nothing is hidden; everything is editable by hand or by agents.
+- **Local-first — your data stays yours.** A project is a single `.doru`
+  file (a SQLite database); photos and scans live in a `media/` folder next
+  to it. Nothing is hidden; everything is editable by hand or by agents.
   There are no accounts, no cloud, no telemetry: nothing leaves your machine
   unless you explicitly send it to an AI provider you configured yourself.
 - **Genuinely open source.** The whole app is MIT-licensed: free to use,
@@ -68,7 +68,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 - **GEDCOM 5.5 / 5.5.1 import**, **GEDCOM 7.0 export**, and a read-only
   GEDCOM view of the whole tree.
 - **Tabs** — several projects open side by side; recent projects are listed
-  in the sidebar, open tabs are restored on launch, and `doru://open?path=…`
+  on the start page, open tabs are restored on launch, and `doru://open?path=…`
   links or double-clicked `*.doru` files open in the running app.
 
 ### AI and agents

@@ -7,8 +7,8 @@ re-litigated by future contributors. Deferred work is tracked in GitHub issues.
 
 ### Multiple trees per project folder
 
-A project is one folder with exactly one `tree.doru`. Multiple independent
-trees in a single folder add complexity without a user need; open several
+A project is one `.doru` file with exactly one tree. Multiple independent
+trees in a single file add complexity without a user need; open several
 projects in tabs instead.
 
 ### Mobile version
@@ -22,7 +22,7 @@ layer could be reused by a future Capacitor-based client.
 None. Dóru is free software under the MIT license — genuinely open source, not
 merely source-available: the whole app may be used, modified, and
 redistributed for any purpose. If this ever changes, it must not compromise
-the local-first guarantee: data stays in the user's folder.
+the local-first guarantee: data stays in the user's files.
 
 ### Manual locale switcher
 
@@ -31,14 +31,14 @@ shipped and selected automatically; there is no in-app language setting.
 
 ### Built-in cross-device sync (CRDT)
 
-No built-in sync engine. Projects are plain folders, and keeping them in sync
+No built-in sync engine. Projects are plain files, and keeping them in sync
 between machines is the user's job — iCloud Drive, Dropbox, rclone, rsync, a
 USB stick, whatever they prefer.
 
-One caveat lives with this decision: `tree.doru` is a SQLite database, and
-live-syncing an **open** project with a file-sync tool can copy the file in a
-half-written state and corrupt it. Dóru uses a single-file journal mode
-(`journal_mode=DELETE`) to keep the folder clean, but the safe practice is:
+One caveat lives with this decision: the `.doru` file is a SQLite database,
+and live-syncing an **open** project with a file-sync tool can copy the file
+in a half-written state and corrupt it. Dóru uses a single-file journal mode
+(`journal_mode=DELETE`) to keep the file clean, but the safe practice is:
 close the project (or the app) before syncing. Copying a closed project is
 always safe.
 
@@ -63,11 +63,11 @@ are sanitized on the wire by the connectors.
 
 - **Tauri instead of Electron** — a Rust shell would break the TypeScript-only
   rule and re-invent what Electron already does for a VS Code-style workbench.
-- **Single-file `.doru` document** (SQLite with media blobs) — media and
-  config would stop being plain files; the folder wins.
+- **Media as BLOBs inside the `.doru` database** — photos and scans would
+  stop being plain files; a `media/` folder next to the `.doru` file wins.
 - **macOS package folders (UTI)** — Finder would hide the structure; an honest
-  folder keeps everything visible and editable.
-- **WAL mode for `tree.doru`** — sidecar files next to a "document" and a
+  `.doru` file keeps everything visible and editable.
+- **WAL mode for the `.doru` file** — sidecar files next to a "document" and a
   bigger live-sync corruption risk; `journal_mode=DELETE` wins.
 - **better-sqlite3** — native-module rebuild pain; `node:sqlite` ships with
   Node ≥ 22.13 and Electron 37.

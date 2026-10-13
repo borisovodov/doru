@@ -23,9 +23,7 @@ export {
 } from './db/repository';
 export {
   MEDIA_DIR_NAME,
-  PROJECT_DIRS,
-  TREE_FILE_NAME,
-  type ProjectLayout,
+  TREE_FILE_EXTENSION,
 } from './project/layout';
 export {
   ProjectOpener,

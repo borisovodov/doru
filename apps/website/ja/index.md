@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "プロジェクトは普通のフォルダーです。SQLiteデータベースと写真用のmediaフォルダー。隠されるものもアップロードされるものもありません。"
+    details: "プロジェクトは1つの.doruファイル（SQLite）です。写真は隣のmediaフォルダーに置かれます。隠されるものもアップロードされるものもありません。"
   - icon: 🤖
     title: AIネイティブ
     details: "ツリー操作ツールを備えたエージェントチャット、Claude DesktopやCursor向けのMCPサーバーモード、外部サーバー向けのMCPホスト、ACPエージェント。"

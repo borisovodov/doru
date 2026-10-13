@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Un projet est un dossier ordinaire : une base SQLite et un dossier media pour les photos. Rien n'est caché, rien n'est envoyé."
+    details: "Un projet est un seul fichier .doru (SQLite) ; les photos vivent dans un dossier media à côté. Rien n'est caché, rien n'est envoyé."
   - icon: 🤖
     title: Natif IA
     details: "Chat avec agents et outils de l'arbre, mode serveur MCP pour Claude Desktop et Cursor, hôte MCP pour serveurs externes, agents ACP."

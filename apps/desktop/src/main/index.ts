@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, protocol, safeStorage, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, watch } from 'node:fs';
-import { dirname, extname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyEdits, modify, parse } from 'jsonc-parser';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -30,6 +30,7 @@ import {
   ReadGedcomImporter,
   RecentProjects,
   SqliteTreeRepository,
+  TREE_FILE_EXTENSION,
   TreeStore,
   addEventOp,
   addFamilyOp,
@@ -163,10 +164,8 @@ async function ensureRuntime(
     return {
       summary: {
         path: projectPath,
-        treePath: existing.store.path,
         schemaVersion: existing.store.userVersion(),
-        created: [],
-        healed: [],
+        created: false,
       },
       runtime: existing,
     };
@@ -180,10 +179,11 @@ async function ensureRuntime(
 }
 
 async function openProject(options: { dialog?: boolean; path?: string }): Promise<ProjectSummary | null> {
-  let folder = options.path;
-  if (!folder) {
+  let filePath = options.path;
+  if (!filePath) {
     const dialogOptions: OpenDialogOptions = {
-      properties: ['openDirectory', 'createDirectory'],
+      properties: ['openFile'],
+      filters: [{ name: 'Dóru project', extensions: ['doru'] }],
       title: 'Open Project',
     };
     const result =
@@ -193,9 +193,12 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
     if (result.canceled || result.filePaths[0] === undefined) {
       return null;
     }
-    folder = result.filePaths[0];
+    filePath = result.filePaths[0];
   }
-  const { summary } = await ensureRuntime(folder);
+  if (!filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
+    return null;
+  }
+  const { summary } = await ensureRuntime(filePath);
   if (recents) {
     await recents.touch(summary.path);
     await updateSession((session) => {
@@ -208,24 +211,30 @@ async function openProject(options: { dialog?: boolean; path?: string }): Promis
 }
 
 async function createProject(): Promise<ProjectSummary | null> {
-  const dialogOptions: OpenDialogOptions = {
-    properties: ['openDirectory', 'createDirectory'],
+  const dialogOptions: SaveDialogOptions = {
+    filters: [{ name: 'Dóru project', extensions: ['doru'] }],
     title: 'Create New Project',
     buttonLabel: 'Create',
+    defaultPath: 'Family Tree.doru',
   };
   const result =
     mainWindow !== null
-      ? await dialog.showOpenDialog(mainWindow, dialogOptions)
-      : await dialog.showOpenDialog(dialogOptions);
-  if (result.canceled || result.filePaths[0] === undefined) {
+      ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+  if (result.canceled || !result.filePath) {
     return null;
   }
-  return openProject({ path: result.filePaths[0] });
+  const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
+    ? result.filePath
+    : `${result.filePath}${TREE_FILE_EXTENSION}`;
+  return openProject({ path: filePath });
 }
 
 function openExternalPath(path: string): void {
-  const root = path.endsWith('.doru') ? dirname(path) : path;
-  void openProject({ path: root }).then((summary) => {
+  if (!path.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
+    return;
+  }
+  void openProject({ path }).then((summary) => {
     if (summary && mainWindow) {
       mainWindow.webContents.send('project:external-open', summary);
     }
@@ -610,7 +619,7 @@ ipcMain.handle(
 ipcMain.handle('project:export', async (_event, options: { projectPath: string }) => {
   const { runtime } = await ensureRuntime(options.projectPath);
   const dialogOptions: SaveDialogOptions = {
-    defaultPath: join(options.projectPath, 'tree.ged'),
+    defaultPath: join(dirname(options.projectPath), `${basename(options.projectPath).replace(/\.doru$/i, '')}.ged`),
     filters: [{ name: 'GEDCOM', extensions: ['ged'] }],
     title: 'Export GEDCOM',
   };
@@ -818,7 +827,7 @@ ipcMain.handle('tree:media', async (_event, options: { projectPath: string; pers
   const { runtime } = await ensureRuntime(options.projectPath);
   return runtime.repo
     .listMediaFor('person', options.personId)
-    .map((media) => ({ ...media, absolutePath: join(options.projectPath, media.path) }));
+    .map((media) => ({ ...media, absolutePath: join(dirname(options.projectPath), media.path) }));
 });
 
 ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; personId: string }) => {
@@ -835,10 +844,12 @@ ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; p
     return [];
   }
   const { runtime } = await ensureRuntime(options.projectPath);
+  const mediaDir = join(dirname(options.projectPath), MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
   const added: Array<MediaRecord & { absolutePath: string }> = [];
   for (const source of result.filePaths) {
     const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(options.projectPath, MEDIA_DIR_NAME, name);
+    const destination = join(mediaDir, name);
     await fs.copyFile(source, destination);
     const media: MediaRecord = {
       id: randomUUID(),
@@ -1061,7 +1072,11 @@ if (!gotLock) {
       mainWindow.focus();
     }
     for (const path of extractPathArgs(argv)) {
-      openExternalPath(path);
+      if (path.startsWith('doru://')) {
+        handleProtocolUrl(path);
+      } else {
+        openExternalPath(path);
+      }
     }
   });
 

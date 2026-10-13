@@ -1,13 +1,14 @@
 # Quick start
 
 1. Launch Dóru and click **Create New Project** (or **Open Project…**) on the
-   start page. Choose or create a folder — this folder *is* your project.
-2. Dóru creates the project skeleton automatically (silently):
+   start page.
+2. **Create** asks for a location and a name and creates a `.doru` file there;
+   **Open** opens an existing `.doru` file. The file *is* the project — its
+   name is the project's name:
 
 ```
-My Family/
-├── tree.doru         the tree itself (SQLite, branded with an app id)
-└── media/            place photos and scanned documents here
+My Family.doru      the tree itself (SQLite, branded with an app id)
+media/              photos and scans, created on demand (optional)
 ```
 
 3. Get data in: click **Import GEDCOM…** and pick a `.ged` file (GEDCOM 5.5 /
@@ -16,8 +17,8 @@ My Family/
 
 Projects can be opened in tabs — several trees side by side. Recently used
 projects are listed on the start page, and your open tabs are restored on the
-next launch. Double-clicking a `*.doru` file (or opening a `doru://open?path=…`
-link) opens it in the running app.
+next launch. Double-clicking a `*.doru` file (or opening a
+`doru://open?path=/…/family.doru` link) opens it in the running app.
 
 ## Next steps
 

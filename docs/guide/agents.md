@@ -33,10 +33,10 @@ just like the built-in chat. Permission prompts work the same way.
 ## Dóru as an MCP server
 
 Any MCP client — Claude Desktop, Cursor, coding agents — can work with your
-tree. Run Dóru in server mode:
+tree. Run Dóru in server mode, pointing at the `.doru` file:
 
 ```sh
-doru --mcp-server /absolute/path/to/project
+doru --mcp-server /absolute/path/to/family.doru
 ```
 
 Claude Desktop configuration example
@@ -47,7 +47,7 @@ Claude Desktop configuration example
   "mcpServers": {
     "doru": {
       "command": "/Applications/Doru.app/Contents/MacOS/doru",
-      "args": ["--mcp-server", "/Users/you/FamilyHistory"]
+      "args": ["--mcp-server", "/Users/you/FamilyHistory/family.doru"]
     }
   }
 }

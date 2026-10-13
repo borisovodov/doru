@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Projekt to zwykły folder: baza SQLite i folder media na zdjęcia. Nic nie jest ukryte, nic nie jest wysyłane."
+    details: "Projekt to pojedynczy plik .doru (SQLite); zdjęcia żyją w folderze media obok niego. Nic nie jest ukryte, nic nie jest wysyłane."
   - icon: 🤖
     title: Natywna obsługa AI
     details: "Czat z agentami i narzędziami drzewa, tryb serwera MCP dla Claude Desktop i Cursor, host MCP dla zewnętrznych serwerów, agenci ACP."

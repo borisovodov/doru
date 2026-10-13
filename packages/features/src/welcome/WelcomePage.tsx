@@ -36,7 +36,7 @@ export function WelcomePage({ recent, onCreateProject, onOpenProject, onOpenRece
                   title={project.path}
                   onClick={() => onOpenRecent(project.path)}
                 >
-                  <span className="welcome-recent-name">{basename(project.path)}</span>
+                  <span className="welcome-recent-name">{projectName(project.path)}</span>
                   <span className="welcome-recent-path">{project.path}</span>
                 </button>
               </li>
@@ -46,6 +46,11 @@ export function WelcomePage({ recent, onCreateProject, onOpenProject, onOpenRece
       </section>
     </div>
   );
+}
+
+function projectName(path: string): string {
+  const base = basename(path);
+  return base.toLowerCase().endsWith('.doru') ? base.slice(0, -5) : base;
 }
 
 function basename(path: string): string {

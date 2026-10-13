@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: 本地優先
-    details: "專案就是一個普通資料夾：SQLite 資料庫和一個存放照片的 media 資料夾。沒有隱藏，沒有上傳。"
+    details: "專案就是一個 .doru 檔案（SQLite）；照片存放在它旁邊的 media 資料夾裡。沒有隱藏，沒有上傳。"
   - icon: 🤖
     title: AI 原生
     details: "附家譜工具的代理人聊天、給 Claude Desktop 與 Cursor 的 MCP 伺服器模式、給外部伺服器的 MCP 主機、ACP 代理人。"

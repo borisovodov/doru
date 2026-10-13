@@ -524,7 +524,7 @@ export function App() {
 
   const activeSummary = tabs.find((tab) => tab.path === activePath) ?? null;
   const tabInfos: TabInfo[] = [
-    ...tabs.map((tab) => ({ id: tab.path, label: basename(tab.path) })),
+    ...tabs.map((tab) => ({ id: tab.path, label: projectName(tab.path) })),
     ...(settingsTabOpen ? [{ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') }] : []),
   ];
 
@@ -695,4 +695,9 @@ export function App() {
 function basename(path: string): string {
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || path;
+}
+
+function projectName(path: string): string {
+  const base = basename(path);
+  return base.toLowerCase().endsWith('.doru') ? base.slice(0, -5) : base;
 }

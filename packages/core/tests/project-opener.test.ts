@@ -34,19 +34,18 @@ const fsImpl: IFileSystem = {
 };
 
 describe('ProjectOpener', () => {
-  it('creates the full template for a new project', async () => {
+  it('creates a new project file and reports it as created', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'doru-new-'));
     try {
+      const filePath = join(folder, 'family.doru');
       const opener = new ProjectOpener(fsImpl, { open: (p) => TreeStore.open(p) });
-      const { summary, store } = await opener.open(folder);
+      const { summary, store } = await opener.open(filePath);
 
-      expect(summary.created.sort()).toEqual(['media/', 'tree.doru']);
-      expect(summary.healed).toEqual([]);
+      expect(summary.path).toBe(filePath);
+      expect(summary.created).toBe(true);
       expect(summary.schemaVersion).toBe(SCHEMA_VERSION);
 
-      expect(await readdir(join(folder, 'media'))).toEqual([]);
-
-      const db = new DatabaseSync(summary.treePath);
+      const db = new DatabaseSync(summary.path);
       const applicationId = (db.prepare('PRAGMA application_id').get() as { application_id: number }).application_id;
       const journalMode = (db.prepare('PRAGMA journal_mode').get() as { journal_mode: string }).journal_mode;
       expect(applicationId).toBe(DORU_APPLICATION_ID);
@@ -58,17 +57,15 @@ describe('ProjectOpener', () => {
     }
   });
 
-  it('silently heals a partial project without touching existing files', async () => {
-    const folder = await mkdtemp(join(tmpdir(), 'doru-heal-'));
+  it('creates missing parent directories for a new project', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'doru-parent-'));
     try {
-      await writeFile(join(folder, 'note.txt'), 'keep me\n', 'utf8');
-
+      const filePath = join(folder, 'nested', 'deeper', 'family.doru');
       const opener = new ProjectOpener(fsImpl, { open: (p) => TreeStore.open(p) });
-      const { summary, store } = await opener.open(folder);
+      const { summary, store } = await opener.open(filePath);
 
-      expect(summary.created).toEqual([]);
-      expect(summary.healed.sort()).toEqual(['media/', 'tree.doru']);
-      expect(await readFile(join(folder, 'note.txt'), 'utf8')).toBe('keep me\n');
+      expect(summary.created).toBe(true);
+      expect(summary.path).toBe(filePath);
       store.close();
     } finally {
       await rm(folder, { recursive: true, force: true });
@@ -78,30 +75,14 @@ describe('ProjectOpener', () => {
   it('is idempotent on reopen', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'doru-reopen-'));
     try {
+      const filePath = join(folder, 'family.doru');
       const opener = new ProjectOpener(fsImpl, { open: (p) => TreeStore.open(p) });
-      const first = await opener.open(folder);
+      const first = await opener.open(filePath);
       first.store.close();
-      const second = await opener.open(folder);
-      expect(second.summary.created).toEqual([]);
-      expect(second.summary.healed).toEqual([]);
+      const second = await opener.open(filePath);
+      expect(second.summary.created).toBe(false);
+      expect(second.summary.path).toBe(filePath);
       second.store.close();
-    } finally {
-      await rm(folder, { recursive: true, force: true });
-    }
-  });
-
-  it('respects an existing tree file with a custom name', async () => {
-    const folder = await mkdtemp(join(tmpdir(), 'doru-custom-'));
-    try {
-      const customPath = join(folder, 'family.doru');
-      TreeStore.open(customPath).close();
-
-      const opener = new ProjectOpener(fsImpl, { open: (p) => TreeStore.open(p) });
-      const { summary, store } = await opener.open(folder);
-
-      expect(summary.treePath).toBe(customPath);
-      expect(summary.healed).not.toContain('family.doru');
-      store.close();
     } finally {
       await rm(folder, { recursive: true, force: true });
     }
