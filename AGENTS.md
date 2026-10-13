@@ -6,7 +6,9 @@ Instructions for AI agents and contributors working on this repository.
 
 Dóru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
 SQLite-based tree documents (`tree.doru`), text-based config/themes, MCP
-host+server, ACP agents, agent chat with audit trail.
+host+server, ACP agents, agent chat with audit trail. MIT-licensed; no
+accounts, no cloud, no telemetry — user data never leaves the machine unless
+the user explicitly sends it.
 
 Design rationale: [docs/architecture.md](docs/architecture.md). Deliberate
 non-goals: [docs/decisions.md](docs/decisions.md).

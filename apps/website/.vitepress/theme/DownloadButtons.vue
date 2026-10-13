@@ -72,9 +72,9 @@ function isExperimental(os: string): boolean {
         {{ label().download }} {{ download.os }}
         <span v-if="isExperimental(download.os)" class="doru-badge">{{ label().experimental }}</span>
       </a>
-      <a class="doru-button alt" href="/docs/#installation">{{ label().platforms }}</a>
+      <a class="doru-button alt" href="/docs/installation">{{ label().platforms }}</a>
     </template>
-    <a v-else class="doru-button brand" href="/docs/#installation">{{ label().platforms }}</a>
+    <a v-else class="doru-button brand" href="/docs/installation">{{ label().platforms }}</a>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" alt="Dóru icon" width="112" />
+  <img src="apps/desktop/build/Icon-256@1x.png" alt="Dóru icon" width="112" />
 </p>
 
 <h1 align="center">Dóru</h1>
@@ -7,16 +7,19 @@
 <p align="center"><strong>Local-first genealogy for the AI era.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/borisovodov/doru/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/borisovodov/doru" /></a>
   <a href="https://github.com/borisovodov/doru/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/borisovodov/doru/ci.yml?branch=main" /></a>
-  <a href="https://github.com/borisovodov/doru/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/borisovodov/doru/total" /></a>
-  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/github/license/borisovodov/doru" /></a>
-  <a href="https://doru.ovodov.me"><img alt="Docs" src="https://img.shields.io/badge/docs-doru.ovodov.me-8b5cf6" /></a>
 </p>
 
 A cross-platform desktop app for working with family trees: your data stays in
 plain folders on your disk, works fully offline, and is designed to be driven
-by AI agents through MCP and chat.
+by AI agents through MCP and chat. There are no accounts, no cloud, and no
+telemetry — nothing leaves your machine unless you explicitly send it
+somewhere, and even AI features work with local models like Ollama if you
+prefer.
+
+Dóru is genuinely open source: the entire app is released under the
+[MIT license](LICENSE.md) — free for any use, modification, and
+redistribution, with no proprietary parts and no open-core tricks.
 
 The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
@@ -24,9 +27,15 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Highlights
 
-- **Local-first.** A project is a plain folder containing a `tree.doru` SQLite
-  database, text-based `settings.json` and `theme.css`, and a `history.jsonl`
-  audit log. Nothing is hidden; everything is editable by hand or by agents.
+- **Local-first — your data stays yours.** A project is a plain folder
+  containing a `tree.doru` SQLite database, text-based `settings.json` and
+  `theme.css`, and a `history.jsonl` audit log. Nothing is hidden; everything
+  is editable by hand or by agents. There are no accounts, no cloud, no
+  telemetry: nothing leaves your machine unless you explicitly send it to an
+  AI provider you configured yourself.
+- **Genuinely open source.** The whole app is MIT-licensed: free to use,
+  modify, and redistribute, for any purpose. What you run is what is in the
+  repo — no source-available bait, no proprietary parts.
 - **AI-native.** Dóru is both an MCP server — run `doru --mcp-server <project>`
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
   through `tree_query`, `tree_edit`, `sources_add`, `notes_write`,
@@ -87,16 +96,15 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Installation
 
-Download the installer for your platform from the
-[releases page](https://github.com/borisovodov/doru/releases/latest):
+Every link below downloads the installer for the latest release directly:
 
 | Platform | Installer |
 |---|---|
-| macOS (Apple Silicon) | `doru-mac-arm64.dmg` |
-| Windows (x64) *(experimental)* | `doru-windows-x64.exe` |
-| Windows (arm64) *(experimental)* | `doru-windows-arm64.exe` |
-| Linux (x64) *(experimental)* | `doru-linux-x86_64.AppImage` or `doru-linux-amd64.deb` |
-| Linux (arm64) *(experimental)* | `doru-linux-arm64.AppImage` or `doru-linux-arm64.deb` |
+| macOS (Apple Silicon) | [doru-mac-arm64.dmg](https://github.com/borisovodov/doru/releases/latest/download/doru-mac-arm64.dmg) |
+| Windows (x64) *(experimental)* | [doru-windows-x64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-x64.exe) |
+| Windows (arm64) *(experimental)* | [doru-windows-arm64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-arm64.exe) |
+| Linux (x64) *(experimental)* | [doru-linux-x86_64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-x86_64.AppImage) or [doru-linux-amd64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-amd64.deb) |
+| Linux (arm64) *(experimental)* | [doru-linux-arm64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.AppImage) or [doru-linux-arm64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.deb) |
 
 macOS is the primary platform; its builds are signed and notarized. **Windows
 and Linux builds are experimental**: they are built by CI, but are unsigned and
