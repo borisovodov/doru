@@ -101,8 +101,9 @@ decisions about what we deliberately do **not** build, see
 - Cascade: hardcoded baseline palette < selected built-in theme. The built-in
   theme is chosen per OS appearance from `doru.json`
   (`theme.dark`/`theme.light`); the OS is the only authority for light vs dark.
-- Built-in themes ship as real files in app resources (`themes/`), so the
-  same mechanism could serve user-installed themes later.
+- Built-in themes are single JSON palette files in app resources (`themes/`),
+  resolved to CSS custom properties at startup — the same mechanism could
+  serve user-installed themes later.
 
 ## Design system
 

@@ -176,11 +176,28 @@ function bindWindowToProject(window: BrowserWindow, projectPath: string): void {
 
 const TITLE_BAR_HEIGHT = 38;
 
+interface ThemeDefinition {
+  name?: string;
+  type?: string;
+  colors?: Record<string, string>;
+}
+
+function themeDefinition(name: string): ThemeDefinition {
+  try {
+    return JSON.parse(readFileSync(join(themesDir(), name, 'theme.json'), 'utf8')) as ThemeDefinition;
+  } catch {
+    return {};
+  }
+}
+
 function titleBarOverlayOptions(): { color: string; symbolColor: string; height: number } {
   const dark = nativeTheme.shouldUseDarkColors;
+  const themeName = dark ? themeConfig().dark : themeConfig().light;
+  const definition = themeDefinition(themeName);
+  const color = definition.colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
   return {
-    color: dark ? '#161a17' : '#f2efe7',
-    symbolColor: dark ? '#ffffff' : '#000000',
+    color,
+    symbolColor: definition.type === 'light' ? '#000000' : '#ffffff',
     height: TITLE_BAR_HEIGHT,
   };
 }
@@ -783,11 +800,11 @@ function listBuiltinThemes(): ThemeInfo[] {
       .map((entry) => entry.name)
       .map((name) => {
         try {
-          const meta = JSON.parse(readFileSync(join(root, name, 'theme.json'), 'utf8')) as {
-            name?: string;
-            type?: string;
-          };
-          return { name, type: meta.type === 'light' ? 'light' : 'dark' } as ThemeInfo;
+          const definition = themeDefinition(name);
+          return {
+            name: definition.name ?? name,
+            type: definition.type === 'light' ? 'light' : 'dark',
+          } as ThemeInfo;
         } catch {
           return null;
         }
@@ -811,11 +828,9 @@ function themeConfig(): { dark: string; light: string } {
 }
 
 function themeCss(name: string): string {
-  try {
-    return readFileSync(join(themesDir(), name, 'theme.css'), 'utf8');
-  } catch {
-    return '';
-  }
+  const colors = themeDefinition(name).colors ?? {};
+  const lines = Object.entries(colors).map(([key, value]) => `  --doru-${key}: ${value};`);
+  return `:root {\n${lines.join('\n')}\n}\n`;
 }
 
 ipcMain.handle('theme:state', () => ({

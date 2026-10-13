@@ -6,8 +6,10 @@ app level — never per project.
 - **Built-in themes** — `doru-dark` and `doru-light`, chosen per OS appearance
   in `doru.json` (see [Configuration](configuration.md)). Switch your OS to
   light mode and Dóru follows instantly; there is no in-app toggle.
-- Built-in themes ship as real files in the app's `themes/` directory, and the
-  same mechanism could serve user-installed themes later.
+- Built-in themes are single JSON palette files in the app's `themes/`
+  directory: the `colors` map is resolved to `--doru-*` CSS custom properties
+  at startup (one file per theme, no CSS). The same mechanism could serve
+  user-installed themes later.
 
 The palette follows the app icon: a deep forest green with warm paper tones.
 The dark theme layers surfaces from a near-black green-tinted canvas to
