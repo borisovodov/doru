@@ -3,7 +3,6 @@ import { CommandService, KeybindingService } from '@doru/platform';
 import { nls } from './nls';
 import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
 import { EditorArea } from './components/EditorArea';
-import { Panel } from './components/Panel';
 import { SecondarySideBar } from './components/SecondarySideBar';
 import { SideBar } from './components/SideBar';
 import type { TabInfo } from './components/TabBar';
@@ -15,7 +14,6 @@ export interface WorkbenchProps {
   sidebar?: ReactNode;
   secondarySidebar?: ReactNode;
   editor?: ReactNode;
-  panel?: ReactNode;
   tabs?: TabInfo[];
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
@@ -31,7 +29,6 @@ export function Workbench({
   sidebar,
   secondarySidebar,
   editor,
-  panel,
   tabs,
   activeTabId,
   onSelectTab,
@@ -88,12 +85,9 @@ export function Workbench({
         onOpenSettings={onOpenSettings ?? (() => {})}
       />
       {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
-      <div className="editor-column">
-        <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
-          {editor}
-        </EditorArea>
-        <Panel>{panel}</Panel>
-      </div>
+      <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
+        {editor}
+      </EditorArea>
       {secondarySideBarOpen && <SecondarySideBar>{secondarySidebar}</SecondarySideBar>}
     </div>
   );

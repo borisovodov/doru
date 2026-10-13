@@ -16,7 +16,6 @@ Available variables (used by the workbench and the feature views):
 | `--doru-activity-bar-bg` | leftmost icon strip background |
 | `--doru-side-bar-bg` | sidebar background |
 | `--doru-editor-bg` | main editor background |
-| `--doru-panel-bg` | bottom panel (chat) background |
 | `--doru-fg` / `--doru-fg-dim` | main and muted text |
 | `--doru-border` | borders and separators |
 | `--doru-accent` | highlights, active tabs, buttons |

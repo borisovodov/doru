@@ -885,7 +885,7 @@ export function App() {
         activeView={activeView}
         onSelectView={handleSelectView}
         editor={editor}
-        panel={
+        secondarySidebar={
           <ChatPanel
             messages={chatMessages}
             busy={chatBusy}
