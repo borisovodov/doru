@@ -55,6 +55,18 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   undo/redo stays consistent.
 - Keep the service layer free of Electron-specific APIs where feasible
   (allows future Capacitor/mobile reuse).
+- **One window per open project file.** The main process maps project paths to
+  `BrowserWindow`s (`projectWindows`) and webContents ids to projects
+  (`windowProject`); opening a file focuses its window or binds a welcome
+  window instead of creating duplicates. Window-close cleanup must read the
+  *current* binding from `windowProject` — never capture the creation-time
+  path in the `closed` closure (a rebinding leaks a destroyed window).
+- **Tabs are entities, not projects.** The renderer keeps open tabs in
+  `openTabs` with ids `tree`, `settings`, `person:<id>`, `person:new:<uuid>`.
+  Tabs are kept alive via the `.editor-stack`/`.editor-pane` pattern (inactive
+  panes are hidden, not unmounted). The welcome page is the editor-area state
+  with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
+  active tab via renderer keybindings, not via the application menu.
 
 ## Verification
 
@@ -63,6 +75,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - Typecheck all workspaces: `npm run typecheck`.
 - Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
 - Run tests before considering a change complete.
+- **Restart `npm run dev` after editing `apps/desktop/src/main` or
+  `src/preload`** — electron-vite's watcher does not reliably rebuild the main
+  process or the preload bundle. Renderer changes hot-reload fine.
+- `npm install` may skip install scripts (npm 11 approval prompt); if Electron
+  fails with "Electron uninstall", the binary was never extracted. Run
+  `node node_modules/electron/install.js` — and note that under Node ≥ 26 it
+  can extract without writing `path.txt`; verify or create it manually
+  (`Electron.app/Contents/MacOS/Electron` on macOS).
 - E2E specs must launch the app with an isolated `DORU_USER_DATA` env var (see
   `e2e/smoke.spec.ts`): the single-instance lock otherwise collides with a
   running dev instance.

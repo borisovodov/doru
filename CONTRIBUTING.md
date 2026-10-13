@@ -53,6 +53,15 @@ from `docs/guide/` and the app icon by the sync script (part of
 - **"Electron failed to install correctly"** — the postinstall download is
   flaky. Delete `node_modules/electron/dist` and `node_modules/electron/path.txt`,
   then run `node node_modules/electron/install.js`.
+- **"Electron uninstall" from electron-vite while `dist/` exists** — the
+  install script extracted the binary but never wrote `path.txt` (seen with
+  Node ≥ 26, where extract-zip's promise does not resolve). Create the file
+  manually: content `Electron.app/Contents/MacOS/Electron` on macOS, `electron`
+  on Linux, `electron.exe` on Windows.
+- **`npm install` skips install scripts** (npm 11 asks for approval) — the
+  Electron binary and native deps are not installed. Re-run
+  `node node_modules/electron/install.js` after approving or the install stays
+  incomplete.
 
 ## Making changes
 

@@ -104,6 +104,45 @@ decisions about what we deliberately do **not** build, see
 - Built-in themes ship as real files in app resources (`themes/`), so the
   same mechanism could serve user-installed themes later.
 
+## Design system
+
+- **The accent is the app icon**: deep forest green (`#263b2e`) and warm
+  parchment (`#ece1d2`). The dark theme is a green-tinted near-black canvas
+  (`#0f1311`) with chrome (`#161a17`), raised (`#1b201c`) and popover
+  (`#202621`) surface layers and a sage accent (`#63a37f`); the light theme is
+  paper (`#fdfcf9`) and cream (`#f2efe7`) with a forest accent (`#3f7355`).
+- **Tokens are semantic**, in the spirit of OpenCode 2 / VS Code 2026:
+  `--doru-bg-*` (surfaces), `--doru-fg-*` (text weights), `--doru-border*`
+  (alpha hairlines), `--doru-accent*`, `--doru-overlay-*` (hover/pressed),
+  `--doru-state` colors, `--doru-ring` (0.5px elevation ring), geometry
+  (`--doru-radius-sm/md/lg` = 4/6/8px, `--doru-control-height` = 28px).
+- **Component conventions**: controls are 28px tall with 6px radius and a
+  0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
+  a 2px accent outline; disabled is opacity 0.45. Tabs are VS Code-style:
+  square strip without a bottom divider, active tab is a pill in the canvas
+  color flowing into the editor (top corners rounded, bottom flush), vertical
+  hairline dividers between tabs. Chat: user bubbles are accent-alpha pills,
+  tool steps are raised chips, the input is a 32px rounded field.
+- **Custom title bar** (see `createWindow` in the main process): macOS uses
+  `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Windows and
+  Linux use `frame: false` + a Window Controls Overlay colored from the theme
+  and updated on theme change. The renderer always draws a 38px `.title-bar`
+  (drag region, `-webkit-app-region: drag`) and reserves room for the OS
+  controls via `env(titlebar-area-*)` (Windows/Linux) or left padding (macOS).
+
+## Workbench windows and tabs
+
+- One `BrowserWindow` per open project file. The main process tracks
+  `projectWindows` (path → window) and `windowProject` (webContents id →
+  path or `null` for a welcome window); opening an already-open file focuses
+  its window, and a welcome window gets *bound* to the newly opened project.
+- The renderer bootstraps from `project:current` and listens for
+  `project:bind`. Open tabs are renderer state (`tree`, `settings`,
+  `person:<id>`, `person:new:<uuid>`); the tab contents are kept alive in
+  hidden panes (`.editor-stack`/`.editor-pane`), and the welcome page is shown
+  in the editor area whenever zero tabs are open. Closing a window closes its
+  project runtime; the session file stores open window paths.
+
 ## Packaging and releases
 
 - Artifact naming is `doru-{os}-{arch}.{ext}` with no version (the tag carries
