@@ -106,13 +106,12 @@ Every link below downloads the installer for the latest release directly:
 | Linux (x64) *(experimental)* | [doru-linux-x86_64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-x86_64.AppImage) or [doru-linux-amd64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-amd64.deb) |
 | Linux (arm64) *(experimental)* | [doru-linux-arm64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.AppImage) or [doru-linux-arm64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.deb) |
 
-macOS is the primary platform; its builds are signed and notarized. **Windows
-and Linux builds are experimental**: they are built by CI, but are unsigned and
-have not yet been verified on real Windows/Linux machines — expect rough edges.
-On Windows, SmartScreen may show a warning because the builds are not
-code-signed — click “More info → Run anyway”. On Linux, the `.deb` installs
-with `sudo apt install ./doru-*.deb`; the AppImage needs `chmod +x` and then
-just runs. See the [documentation](https://doru.ovodov.me/docs/) for details.
+macOS is the primary platform. **Windows and Linux builds are experimental**:
+they are built by CI, but have not yet been verified on real Windows/Linux
+machines — expect rough edges. On Windows, SmartScreen may show a warning —
+click “More info → Run anyway”. On Linux, the `.deb` installs with
+`sudo apt install ./doru-*.deb`; the AppImage needs `chmod +x` and then just
+runs. See the [documentation](https://doru.ovodov.me/docs/) for details.
 
 ## Documentation
 

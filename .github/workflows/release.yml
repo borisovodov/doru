@@ -92,8 +92,3 @@ jobs:
         with:
           files: dist/**
           generate_release_notes: true
-          body: |
-            > [!NOTE]
-            > macOS builds are signed and notarized. Windows and Linux builds
-            > are **experimental**: unsigned and not yet verified on real
-            > Windows/Linux machines.
