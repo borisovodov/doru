@@ -12,7 +12,7 @@ export interface WorkbenchProps {
   commands: CommandService;
   keybindings?: Array<{ key: string; command: string }>;
   title?: string;
-  customTitleBar?: boolean;
+  platform?: string;
   sidebar?: ReactNode;
   secondarySidebar?: ReactNode;
   editor?: ReactNode;
@@ -29,7 +29,7 @@ export function Workbench({
   commands,
   keybindings: externalKeybindings = [],
   title,
-  customTitleBar = false,
+  platform,
   sidebar,
   secondarySidebar,
   editor,
@@ -47,6 +47,8 @@ export function Workbench({
     const keybindings = new KeybindingService();
     keybindings.register('meta+alt+b', 'workbench.toggleSecondarySideBar');
     keybindings.register('ctrl+alt+b', 'workbench.toggleSecondarySideBar');
+    keybindings.register('meta+w', 'workbench.closeActiveTab');
+    keybindings.register('ctrl+w', 'workbench.closeActiveTab');
     for (const binding of externalKeybindings) {
       keybindings.register(binding.key, binding.command);
     }
@@ -54,6 +56,15 @@ export function Workbench({
       id: 'workbench.toggleSecondarySideBar',
       title: nls.t('workbench.toggleSecondarySideBar'),
       handler: () => setSecondarySideBarOpen((open) => !open),
+    });
+    const removeCloseActiveTab = commands.register({
+      id: 'workbench.closeActiveTab',
+      title: nls.t('workbench.closeActiveTab'),
+      handler: () => {
+        if (activeTabId) {
+          onCloseTab?.(activeTabId);
+        }
+      },
     });
     const onKeydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -69,9 +80,10 @@ export function Workbench({
     window.addEventListener('keydown', onKeydown);
     return () => {
       removeToggleSecondarySideBar.dispose();
+      removeCloseActiveTab.dispose();
       window.removeEventListener('keydown', onKeydown);
     };
-  }, [commands, externalKeybindings]);
+  }, [commands, externalKeybindings, activeTabId, onCloseTab]);
 
   const layoutClasses = ['workbench'];
   if (secondarySideBarOpen) {
@@ -83,12 +95,10 @@ export function Workbench({
 
   return (
     <div className={layoutClasses.join(' ')}>
-      {customTitleBar && (
-        <div className="title-bar">
-          <span className="title-bar-title">{title}</span>
-          <div className="title-bar-actions" />
-        </div>
-      )}
+      <div className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
+        <span className="title-bar-title">{title}</span>
+        <div className="title-bar-actions" />
+      </div>
       <ActivityBar
         activeView={activeView}
         onSelectView={onSelectView}

@@ -157,25 +157,11 @@ function windowById(id: number): BrowserWindow | null {
 }
 
 function installMenu(): void {
-  const closeTabItem: MenuItemConstructorOptions = {
-    label: 'Close Tab',
-    accelerator: 'CmdOrCtrl+W',
-    click: (_item, window) => {
-      const browserWindow = window as BrowserWindow | undefined;
-      if (browserWindow && !browserWindow.isDestroyed()) {
-        browserWindow.webContents.send('tab:close');
-      }
-    },
-  };
   const template: MenuItemConstructorOptions[] = [];
   if (process.platform === 'darwin') {
     template.push({ role: 'appMenu' });
-    template.push({ label: 'File', submenu: [closeTabItem] });
   } else {
-    template.push({
-      label: 'File',
-      submenu: [closeTabItem, { type: 'separator' }, { role: 'quit' }],
-    });
+    template.push({ label: 'File', submenu: [{ role: 'quit' }] });
   }
   template.push({ role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -188,6 +174,27 @@ function bindWindowToProject(window: BrowserWindow, projectPath: string): void {
   window.webContents.send('project:bind', { path: projectPath });
 }
 
+const TITLE_BAR_HEIGHT = 38;
+
+function titleBarOverlayOptions(): { color: string; symbolColor: string; height: number } {
+  const dark = nativeTheme.shouldUseDarkColors;
+  return {
+    color: dark ? '#161a17' : '#f2efe7',
+    symbolColor: dark ? '#ffffff' : '#000000',
+    height: TITLE_BAR_HEIGHT,
+  };
+}
+
+function updateTitleBarOverlays(): void {
+  if (process.platform === 'darwin') {
+    return;
+  }
+  const overlay = titleBarOverlayOptions();
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.setTitleBarOverlay(overlay);
+  }
+}
+
 function createWindow(projectPath: string | null): BrowserWindow {
   const preload = fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
   const window = new BrowserWindow({
@@ -197,7 +204,11 @@ function createWindow(projectPath: string | null): BrowserWindow {
     icon: process.platform === 'darwin' ? undefined : iconPath(),
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 13 } }
-      : {}),
+      : {
+          frame: false,
+          titleBarStyle: 'hidden' as const,
+          titleBarOverlay: titleBarOverlayOptions(),
+        }),
     webPreferences: {
       preload,
       sandbox: false,
@@ -1247,12 +1258,14 @@ void app.whenReady().then(async () => {
   });
 
   nativeTheme.on('updated', () => {
+    updateTitleBarOverlays();
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
     }
   });
   try {
     const configWatcher = watch(join(app.getPath('userData'), AI_CONFIG_FILE), () => {
+      updateTitleBarOverlays();
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send('theme:config-changed', themeConfig());
       }

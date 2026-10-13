@@ -663,14 +663,6 @@ export function App() {
     [openTabs],
   );
 
-  useEffect(() => {
-    return window.doru.onCloseTab(() => {
-      if (activeTabId) {
-        closeTab(activeTabId);
-      }
-    });
-  }, [activeTabId, closeTab]);
-
   const openPersonTab = useCallback(
     (personId: string) => {
       const person = persons.find((entry) => entry.id === personId);
@@ -890,7 +882,7 @@ export function App() {
         commands={commands}
         keybindings={keybindings}
         title={projectPath ? projectName(projectPath) : nls.t('app.name')}
-        customTitleBar={window.doru.platform === 'darwin'}
+        platform={window.doru.platform}
         sidebar={sidebar}
         activeView={activeView}
         onSelectView={handleSelectView}

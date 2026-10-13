@@ -47,7 +47,6 @@ declare global {
     doru: {
       readonly platform: string;
       getCurrentProject(): Promise<string | null>;
-      onCloseTab(callback: () => void): () => void;
       onProjectBound(callback: (info: { path: string }) => void): () => void;
       openProjectDialog(): Promise<ProjectSummary | null>;
       openProjectPath(path: string): Promise<ProjectSummary | null>;

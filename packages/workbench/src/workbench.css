@@ -103,6 +103,16 @@ body {
   -webkit-app-region: no-drag;
 }
 
+/* macOS: reserve space for the traffic lights on the left. */
+.title-bar-mac {
+  padding-left: 78px;
+}
+
+/* Windows/Linux: reserve space for the window-control overlay buttons on the right. */
+.title-bar-overlay {
+  padding-right: calc(100% - env(titlebar-area-width, 100%));
+}
+
 .workbench.secondary-open {
   grid-template-columns: 48px 260px 1fr 320px;
 }
