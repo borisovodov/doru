@@ -78,11 +78,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - **Restart `npm run dev` after editing `apps/desktop/src/main` or
   `src/preload`** — electron-vite's watcher does not reliably rebuild the main
   process or the preload bundle. Renderer changes hot-reload fine.
-- `npm install` may skip install scripts (npm 11 approval prompt); if Electron
-  fails with "Electron uninstall", the binary was never extracted. Run
-  `node node_modules/electron/install.js` — and note that under Node ≥ 26 it
-  can extract without writing `path.txt`; verify or create it manually
-  (`Electron.app/Contents/MacOS/Electron` on macOS).
+- npm 11 blocks dependency install scripts unless they are approved in the
+  root `allowScripts` field of `package.json` (keep it in sync when adding
+  packages with install scripts: `npm install-scripts approve <pkg>`).
+- Electron 44+ ships no install script; the root `postinstall` extracts the
+  binary via `node node_modules/electron/install.js`. If Electron fails with
+  "Electron uninstall", run that command manually and verify `path.txt` points
+  to `Electron.app/Contents/MacOS/Electron` (macOS).
 - E2E specs must launch the app with an isolated `DORU_USER_DATA` env var (see
   `e2e/smoke.spec.ts`): the single-instance lock otherwise collides with a
   running dev instance.
