@@ -247,65 +247,44 @@ body {
 
 .tab-bar {
   display: flex;
-  align-items: stretch;
-  background: var(--doru-bg-chrome);
+  align-items: center;
+  /* Modern VS Code: the tab strip takes the editor background, so the tabs
+     float on it as pills; 35px strip with 24px pills, no bottom border. */
+  height: 35px;
+  box-sizing: border-box;
+  background: var(--doru-bg-canvas);
   overflow-x: auto;
   flex: none;
-  padding: 0 4px;
+  padding: 2px;
 }
 
 .tab {
   position: relative;
-  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 35px;
-  padding: 0 10px;
+  height: 24px;
+  flex: none;
+  /* 2px on each side + the strip's own padding: 4px between pill fills. */
+  margin: 0 2px;
+  padding: 0 8px 0 6px;
   background: transparent;
+  border-radius: var(--doru-radius-sm);
   color: var(--doru-fg-muted);
   cursor: pointer;
   white-space: nowrap;
+  user-select: none;
   font-size: var(--doru-font-size);
 }
 
-/* The "pill" fill behind the tab content (Modern UI treatment).
-   It flows into the editor below: only the top corners are rounded. */
-.tab::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: 4px;
-  right: 4px;
-  top: 4px;
-  bottom: 0;
-  border-radius: var(--doru-radius-md) var(--doru-radius-md) 0 0;
-  background: transparent;
-}
-
-/* Vertical divider between tabs. */
-.tab:not(:first-child)::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 1px;
-  height: 16px;
-  transform: translateY(-50%);
-  background: var(--doru-border);
-}
-
-.tab:hover:not(.active)::before {
+.tab:hover:not(.active) {
   background: var(--doru-overlay-hover);
-}
-
-.tab.active {
   color: var(--doru-fg);
 }
 
-.tab.active::before {
-  background: var(--doru-bg-canvas);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+.tab.active {
+  background: var(--doru-bg-chrome-active);
+  color: var(--doru-fg);
 }
 
 .tab-close {
@@ -315,15 +294,84 @@ body {
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--doru-radius-sm);
+  /* Like VS Code: the close action is hidden until hover or activation. */
+  opacity: 0;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  opacity: 1;
 }
 
 .tab-close:hover {
-  background: var(--doru-overlay-hover);
+  background: var(--doru-overlay-pressed);
   color: var(--doru-fg);
+}
+
+/* Drop indicator for tab reordering: a 2px accent line in the gap before or
+   after the hovered pill. */
+.tab.drop-before::before,
+.tab.drop-after::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--doru-accent);
+  pointer-events: none;
+}
+
+.tab.drop-before::before {
+  left: -2px;
+}
+
+.tab.drop-after::after {
+  right: -2px;
+}
+
+/* Pointer-based tab reordering (no native drag session, so no OS copy
+   cursor): a grab cursor for the whole gesture and a dimmed source tab. */
+body.tab-reordering,
+body.tab-reordering * {
+  cursor: grabbing !important;
+}
+
+.tab.dragging {
+  opacity: 0.6;
+}
+
+/* The drag ghost: a replica of the dragged tab following the pointer
+   (replaces the native drag image we no longer have). Positioned out of
+   flow, so the bar's overflow never clips it. */
+.tab-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px 0 6px;
+  border-radius: var(--doru-radius-sm);
+  background: var(--doru-bg-raised);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    var(--doru-ring);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+.tab-drag-ghost.visible {
+  visibility: visible;
 }

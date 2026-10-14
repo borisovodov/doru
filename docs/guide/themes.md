@@ -19,8 +19,8 @@ Available variables:
 
 | Variable | Meaning |
 |---|---|
-| `--doru-bg-canvas` | main editor background |
-| `--doru-bg-chrome` | activity bar, sidebars, tab strip |
+| `--doru-bg-canvas` | editor background and tab strip |
+| `--doru-bg-chrome` | activity bar, sidebars, floating-panel surface |
 | `--doru-bg-raised` | cards, chips, the chat input |
 | `--doru-bg-popover` | menus and pickers |
 | `--doru-bg-input` | buttons, inputs, selects |
