@@ -45,6 +45,18 @@ declare global {
         before: PersonRecord,
         after: PersonRecord,
       ): Promise<UndoRedoState>;
+      deletePerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;
+      reparent(
+        projectPath: string,
+        childId: string,
+        newParentId: string,
+      ): Promise<UndoRedoState>;
+      addRelative(
+        projectPath: string,
+        relation: 'child' | 'spouse' | 'parent',
+        anchorId: string,
+        person: PersonRecord,
+      ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
       onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;

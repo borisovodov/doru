@@ -105,6 +105,13 @@ export function App() {
           key={projectPath ?? 'none'}
           persons={tree.persons}
           families={tree.families}
+          api={{
+            addRelative: tree.addRelative,
+            deletePerson: tree.deletePerson,
+            reparent: tree.reparent,
+            updatePerson: tree.api.updatePerson,
+            openEditor: tabs.openPersonTab,
+          }}
         />
       );
     }

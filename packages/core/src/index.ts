@@ -34,7 +34,7 @@ export {
 export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
 export { addPersonOp } from './ops/addPerson';
-export { updatePersonOp } from './ops/person';
+export { updatePersonOp, deletePersonOp, reparentOp, addRelativeOp } from './ops/person';
 export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp, type CitationRecord } from './ops/source';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
 export { addEventOp, addMediaOp, deleteEventOp, deleteMediaOp } from './ops/record';
@@ -43,6 +43,7 @@ export { computePedigree, type PedigreeNode } from './pedigree';
 export {
   layoutPedigree,
   suggestFocusPerson,
+  isDescendantOf,
   type ChartKind,
   type LaidOutCard,
   type PedigreeCard,

@@ -30,6 +30,16 @@ const api = {
     ipcRenderer.invoke('tree:addPerson', { projectPath, person }),
   updatePerson: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updatePerson', { projectPath, before, after }),
+  deletePerson: (projectPath: string, person: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deletePerson', { projectPath, person }),
+  reparent: (projectPath: string, childId: string, newParentId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:reparent', { projectPath, childId, newParentId }),
+  addRelative: (
+    projectPath: string,
+    relation: string,
+    anchorId: string,
+    person: unknown,
+  ): Promise<unknown> => ipcRenderer.invoke('tree:addRelative', { projectPath, relation, anchorId, person }),
   exportGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:export', { projectPath }),
   sendChat: (projectPath: string, messages: unknown[]): Promise<unknown> =>

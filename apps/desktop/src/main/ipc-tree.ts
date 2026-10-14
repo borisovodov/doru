@@ -5,12 +5,15 @@ import {
   addFamilyOp,
   addNoteOp,
   addPersonOp,
+  addRelativeOp,
   addSourceOp,
   attachCitationOp,
   deleteEventOp,
   deleteFamilyOp,
   deleteMediaOp,
+  deletePersonOp,
   detachCitationOp,
+  reparentOp,
   updateFamilyOp,
   updatePersonOp,
   type EventRecord,
@@ -70,6 +73,105 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; before: PersonRecord; after: PersonRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       runtime.queue.apply(updatePersonOp(options.before, options.after), { repo: runtime.repo });
+      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deletePerson',
+    async (_event, options: { projectPath: string; person: PersonRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const links = runtime.repo
+        .listFamilies()
+        .filter(
+          (family) =>
+            family.parents.includes(options.person.id) ||
+            family.children.includes(options.person.id),
+        )
+        .map((family) => ({
+          before: family,
+          after: {
+            ...family,
+            parents: family.parents.filter((id) => id !== options.person.id),
+            children: family.children.filter((id) => id !== options.person.id),
+          },
+        }));
+      runtime.queue.apply(deletePersonOp(options.person, links), { repo: runtime.repo });
+      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    },
+  );
+
+  ipcMain.handle(
+    'tree:reparent',
+    async (_event, options: { projectPath: string; childId: string; newParentId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const families = runtime.repo.listFamilies();
+      const links = [];
+      for (const family of families.filter((entry) => entry.children.includes(options.childId))) {
+        links.push({
+          before: family,
+          after: {
+            ...family,
+            children: family.children.filter((id) => id !== options.childId),
+          },
+        });
+      }
+      const target = families.find((entry) => entry.parents.includes(options.newParentId));
+      if (target) {
+        links.push({
+          before: target,
+          after: { ...target, children: [...target.children, options.childId] },
+        });
+      }
+      const created = target
+        ? undefined
+        : { id: randomUUID(), parents: [options.newParentId], children: [options.childId] };
+      runtime.queue.apply(reparentOp(options.childId, links, created), { repo: runtime.repo });
+      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addRelative',
+    async (
+      _event,
+      options: {
+        projectPath: string;
+        relation: 'child' | 'spouse' | 'parent';
+        anchorId: string;
+        person: PersonRecord;
+      },
+    ) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const families = runtime.repo.listFamilies();
+      let links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
+      let created: FamilyRecord | undefined;
+      if (options.relation === 'parent') {
+        created = {
+          id: randomUUID(),
+          parents: [options.person.id],
+          children: [options.anchorId],
+        };
+      } else {
+        const target = families.find((entry) => entry.parents.includes(options.anchorId));
+        if (target) {
+          const after =
+            options.relation === 'child'
+              ? { ...target, children: [...target.children, options.person.id] }
+              : { ...target, parents: [...target.parents, options.person.id] };
+          links = [{ before: target, after }];
+        } else {
+          created = {
+            id: randomUUID(),
+            parents:
+              options.relation === 'child'
+                ? [options.anchorId]
+                : [options.anchorId, options.person.id],
+            children: options.relation === 'child' ? [options.person.id] : [],
+          };
+        }
+      }
+      runtime.queue.apply(addRelativeOp(options.person, links, created), { repo: runtime.repo });
       return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
     },
   );

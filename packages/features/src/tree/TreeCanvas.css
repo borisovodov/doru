@@ -237,6 +237,216 @@
   stroke: var(--doru-fg-faint);
 }
 
+/* ── Card quick-action toolbar ────────────────────────────────────── */
+
+.card-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.card-toolbar button {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  color: var(--doru-fg-muted);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.card-toolbar button:hover {
+  color: var(--doru-fg);
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.card-toolbar button:last-child:hover {
+  color: var(--doru-danger);
+}
+
+/* ── Person form panel ────────────────────────────────────────────── */
+
+.person-form-panel {
+  margin: 10px;
+}
+
+.person-form {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-lg);
+  box-shadow: var(--doru-ring);
+}
+
+.person-form-title {
+  margin: 0;
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+}
+
+.person-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.person-form-field > span {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+
+.person-form input {
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-form input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.person-form-sex {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--doru-bg-input);
+  border-radius: var(--doru-radius-sm);
+}
+
+.person-form-sex button {
+  flex: 1;
+  height: 24px;
+  background: transparent;
+  color: var(--doru-fg-muted);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-form-sex button.active {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+.person-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.person-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.person-form-actions button {
+  height: var(--doru-control-height);
+  padding: 0 12px;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-form-actions button:hover:not(:disabled) {
+  border-color: var(--doru-accent);
+}
+
+.person-form-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.person-form-actions button.primary {
+  background: var(--doru-accent);
+  border-color: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+/* ── Canvas search ────────────────────────────────────────────────── */
+
+.tree-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--doru-fg-muted);
+}
+
+.tree-search input {
+  width: 150px;
+  height: 24px;
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  color: var(--doru-fg);
+  padding: 0 6px 0 2px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.tree-search input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.tree-search-results {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 200px;
+  max-height: 260px;
+  overflow: auto;
+  background: var(--doru-bg-popover);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.tree-search-results button {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* Dragging a card over the canvas. */
+.person-card.dragging {
+  opacity: 0.85;
+  border-color: var(--doru-accent);
+}
+
 /* ── Canvas toolbar ───────────────────────────────────────────────── */
 
 .tree-toolbar {

@@ -56,6 +56,54 @@ export function useTreeData(projectPath: string | null | undefined) {
     void refreshTree();
   }, [projectPath, refreshTree]);
 
+  /**
+   * Creates a person and links them to `anchorId`: as a child, as a spouse
+   * (reusing the anchor's family or creating one), or as a parent (a new
+   * family with the anchor as the child). A single compound op — one undo
+   * removes the person and the link.
+   */
+  const addRelative = useCallback(
+    async (relation: 'child' | 'spouse' | 'parent', anchorId: string, person: PersonRecord) => {
+      if (!projectPath) {
+        return;
+      }
+      setUndoState(await window.doru.addRelative(projectPath, relation, anchorId, person));
+      await refreshTree();
+    },
+    [projectPath, refreshTree],
+  );
+
+  /**
+   * Moves a person (as a child) into the family of `newParentId`, creating
+   * that family when it does not exist. A single compound op — one undo
+   * restores everything.
+   */
+  const reparent = useCallback(
+    async (childId: string, newParentId: string) => {
+      if (!projectPath || childId === newParentId) {
+        return;
+      }
+      setUndoState(await window.doru.reparent(projectPath, childId, newParentId));
+      await refreshTree();
+    },
+    [projectPath, refreshTree],
+  );
+
+  /**
+   * Deletes the person record together with their family links (a single
+   * compound op, so one undo restores everything).
+   */
+  const deletePerson = useCallback(
+    async (person: PersonRecord) => {
+      if (!projectPath) {
+        return;
+      }
+      setUndoState(await window.doru.deletePerson(projectPath, person));
+      await refreshTree();
+    },
+    [projectPath, refreshTree],
+  );
+
   const api = useMemo<PersonEditorApi>(
     () => ({
       addPerson: async (person) => {
@@ -171,6 +219,9 @@ export function useTreeData(projectPath: string | null | undefined) {
     undo,
     redo,
     refreshTree,
+    addRelative,
+    deletePerson,
+    reparent,
     api,
   };
 }

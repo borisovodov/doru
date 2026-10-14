@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PersonRecord } from '../src/model/types';
 import { addPersonOp } from '../src/ops/addPerson';
 import { OpQueue } from '../src/ops/op';
-import { updatePersonOp } from '../src/ops/person';
+import { deletePersonOp, updatePersonOp } from '../src/ops/person';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const person: PersonRecord = {
@@ -68,6 +68,33 @@ describe('OpQueue', () => {
 
       queue.undo(ctx);
       expect(fixture.repo.getPerson('P1')).toEqual(person);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('deletes a person with family links and restores both on undo', () => {
+    const fixture = makeRepo();
+    try {
+      const queue = new OpQueue();
+      const ctx = { repo: fixture.repo };
+      queue.apply(addPersonOp(person), ctx);
+      fixture.repo.insertPerson({ id: 'P2', names: [], sex: 'F' });
+      const family = { id: 'F1', parents: ['P1', 'P2'], children: [] };
+      fixture.repo.insertFamily(family);
+
+      queue.apply(
+        deletePersonOp(person, [
+          { before: family, after: { ...family, parents: ['P2'] } },
+        ]),
+        ctx,
+      );
+      expect(fixture.repo.getPerson('P1')).toBeUndefined();
+      expect(fixture.repo.getFamily('F1')?.parents).toEqual(['P2']);
+
+      queue.undo(ctx);
+      expect(fixture.repo.getPerson('P1')).toEqual(person);
+      expect(fixture.repo.getFamily('F1')?.parents).toEqual(['P1', 'P2']);
     } finally {
       cleanupRepo(fixture);
     }

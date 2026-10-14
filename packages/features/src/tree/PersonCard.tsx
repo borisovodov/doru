@@ -1,9 +1,26 @@
 import { memo, type MouseEvent } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import {
+  Baby,
+  ChevronDown,
+  ChevronRight,
+  Pencil,
+  PencilLine,
+  Trash2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import {
+  Handle,
+  NodeToolbar,
+  Position,
+  type Node,
+  type NodeProps,
+} from '@xyflow/react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { displayName, years } from '../person/format';
+
+export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'rename' | 'delete';
 
 export type PersonCardData = {
   person: PersonRecord;
@@ -16,6 +33,8 @@ export type PersonCardData = {
   /** Whether the subtree is currently collapsed. */
   collapsed: boolean;
   onToggleCollapse?: (personId: string) => void;
+  /** Quick actions on the selected card (add/edit/delete relatives). */
+  onAction?: (action: CardAction, personId: string) => void;
 };
 
 /**
@@ -28,7 +47,7 @@ export const PersonCard = memo(function PersonCard({
   data,
   selected,
 }: NodeProps<Node<PersonCardData>>) {
-  const { person, line, isFocus, hasSubtree, collapsed } = data;
+  const { person, line, isFocus, hasSubtree, collapsed, onAction } = data;
   const deceased = person.death?.year !== undefined;
   const dates = years(person);
   const classes = [
@@ -46,6 +65,20 @@ export const PersonCard = memo(function PersonCard({
     event.stopPropagation();
     data.onToggleCollapse?.(person.id);
   };
+
+  const action = (kind: CardAction) => (event: MouseEvent) => {
+    event.stopPropagation();
+    onAction?.(kind, person.id);
+  };
+
+  const ACTIONS = [
+    { kind: 'child', icon: Baby, key: 'tree.canvas.addChild' },
+    { kind: 'spouse', icon: UserPlus, key: 'tree.canvas.addSpouse' },
+    { kind: 'parent', icon: Users, key: 'tree.canvas.addParent' },
+    { kind: 'rename', icon: PencilLine, key: 'tree.canvas.rename' },
+    { kind: 'edit', icon: Pencil, key: 'tree.canvas.edit' },
+    { kind: 'delete', icon: Trash2, key: 'tree.canvas.deletePerson' },
+  ] as const satisfies ReadonlyArray<{ kind: CardAction; icon: typeof Baby; key: string }>;
 
   return (
     <div className={classes}>
@@ -69,6 +102,15 @@ export const PersonCard = memo(function PersonCard({
         >
           {collapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
         </button>
+      )}
+      {onAction && selected && (
+        <NodeToolbar position={Position.Top} className="card-toolbar" offset={8}>
+          {ACTIONS.map(({ kind, icon: Icon, key }) => (
+            <button key={kind} type="button" title={nls.t(key)} aria-label={nls.t(key)} onClick={action(kind)}>
+              <Icon size={14} aria-hidden="true" />
+            </button>
+          ))}
+        </NodeToolbar>
       )}
     </div>
   );

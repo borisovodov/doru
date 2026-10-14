@@ -15,20 +15,37 @@ import {
   type Node,
   type NodeChange,
 } from '@xyflow/react';
-import { layoutPedigree, suggestFocusPerson } from '@doru/core/layout';
+import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, FamilyRecord, PersonRecord } from '@doru/core';
-import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X } from 'lucide-react';
 import { nls } from '../nls';
 import { displayName } from '../person/format';
 import { GenerationBand, type GenerationBandData } from './GenerationBand';
 import { MarriageEdge, PedigreeEdge, SeeAlsoEdge, type CanvasEdgeData } from './PedigreeEdges';
-import { PersonCard, type PersonCardData } from './PersonCard';
+import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
+import { PersonForm } from './PersonForm';
 import '@xyflow/react/dist/style.css';
 import './TreeCanvas.css';
+
+export type RelativeRelation = 'child' | 'spouse' | 'parent';
+
+export interface TreeCanvasApi {
+  /** Creates a person and links them to the anchor (child/spouse/parent). */
+  addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): Promise<void>;
+  /** Detaches the person from all families and deletes the record. */
+  deletePerson(person: PersonRecord): Promise<void>;
+  /** Moves a person (as a child) into the family of `newParentId`. */
+  reparent(childId: string, newParentId: string): Promise<void>;
+  /** Updates the person record (rename, dates). */
+  updatePerson(before: PersonRecord, after: PersonRecord): Promise<void>;
+  /** Opens the full person editor (a PersonTab). */
+  openEditor(personId: string): void;
+}
 
 export interface TreeCanvasProps {
   persons: PersonRecord[];
   families: FamilyRecord[];
+  api: TreeCanvasApi;
 }
 
 /** Must match the card size in TreeCanvas.css — the layout depends on it. */
@@ -65,12 +82,17 @@ export function TreeCanvas(props: TreeCanvasProps) {
   );
 }
 
-function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
+function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
   const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
+  const [form, setForm] = useState<{
+    relation: RelativeRelation | 'rename';
+    anchorId: string;
+  } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const { setViewport } = useReactFlow();
+  const { setViewport, getIntersectingNodes } = useReactFlow();
 
   const suggested = suggestFocusPerson(persons, families);
   const focusId = history ? history.stack[history.index] : suggested;
@@ -93,6 +115,29 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
       nodeHeight: CARD_HEIGHT,
     });
   }, [effectiveFocus, persons, families, kind, collapsed]);
+
+  const handleAction = useCallback(
+    (action: CardAction, personId: string) => {
+      const person = persons.find((entry) => entry.id === personId);
+      if (!person) {
+        return;
+      }
+      if (action === 'edit') {
+        api.openEditor(personId);
+        return;
+      }
+      if (action === 'delete') {
+        void api.deletePerson(person);
+        return;
+      }
+      if (action === 'rename') {
+        setForm({ relation: 'rename', anchorId: personId });
+        return;
+      }
+      setForm({ relation: action, anchorId: personId });
+    },
+    [persons, api],
+  );
 
   const projected = useMemo(() => {
     if (!layout) {
@@ -144,6 +189,7 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
           hasSubtree: card.hasSubtree,
           collapsed: collapsed.has(card.personId),
           onToggleCollapse: toggleCollapse,
+          onAction: handleAction,
         } satisfies PersonCardData,
       })),
     ];
@@ -155,7 +201,7 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
       data: edge.geometry as CanvasEdgeData,
     }));
     return { nodes: flowNodes, edges: flowEdges };
-  }, [layout, persons, collapsed]);
+  }, [layout, persons, collapsed, handleAction]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
@@ -258,6 +304,68 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
     setCollapsed(new Set());
   }, []);
 
+  const handleFormSubmit = useCallback(
+    (person: PersonRecord) => {
+      if (!form) {
+        return;
+      }
+      if (form.relation === 'rename') {
+        const before = persons.find((entry) => entry.id === form.anchorId);
+        if (before) {
+          void api.updatePerson(before, person);
+        }
+      } else {
+        void api.addRelative(form.relation, form.anchorId, person);
+      }
+      setForm(null);
+    },
+    [form, persons, api],
+  );
+
+  const formTitle = useMemo(() => {
+    if (!form) {
+      return '';
+    }
+    const anchor = persons.find((person) => person.id === form.anchorId);
+    const name = displayName(anchor);
+    switch (form.relation) {
+      case 'child':
+        return nls.t('tree.canvas.form.childTitle', name);
+      case 'spouse':
+        return nls.t('tree.canvas.form.spouseTitle', name);
+      case 'parent':
+        return nls.t('tree.canvas.form.parentTitle', name);
+      case 'rename':
+        return nls.t('tree.canvas.form.renameTitle', name);
+    }
+  }, [form, persons]);
+
+  // Drag-to-reparent: dropping a card onto another person's card moves the
+  // dragged person (as a child) into that family. Anything else snaps back.
+  const handleNodeDragStop = useCallback(
+    (_event: MouseEvent | TouchEvent, node: Node<PersonCardData | GenerationBandData>) => {
+      const data = node.data as PersonCardData;
+      if (!data.person) {
+        setNodes(projected.nodes);
+        return;
+      }
+      const target = getIntersectingNodes(node).find(
+        (candidate) => candidate.type === 'personCard' && candidate.id !== node.id,
+      );
+      const targetPerson = (target?.data as PersonCardData | undefined)?.person;
+      if (
+        !targetPerson ||
+        targetPerson.id === data.person.id ||
+        isDescendantOf(persons, families, data.person.id, targetPerson.id)
+      ) {
+        setNodes(projected.nodes);
+        return;
+      }
+      void api.reparent(data.person.id, targetPerson.id);
+    },
+    [getIntersectingNodes, persons, families, api, projected],
+  );
+
   const handleNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: Node<PersonCardData | GenerationBandData>) => {
       const data = node.data as PersonCardData;
@@ -267,6 +375,17 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
     },
     [refocus],
   );
+
+  const searchQueryText = searchQuery.trim().toLowerCase();
+  const searchResults = useMemo(() => {
+    if (searchQueryText === '') {
+      return [];
+    }
+    return persons
+      .map((person) => ({ person, name: displayName(person) }))
+      .filter((entry) => entry.name.toLowerCase().includes(searchQueryText))
+      .slice(0, 8);
+  }, [searchQueryText, persons]);
 
   if (persons.length === 0) {
     return (
@@ -292,19 +411,32 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          nodesDraggable={false}
-          nodesConnectable={false}
           minZoom={0.1}
           maxZoom={2}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeDoubleClick={handleNodeDoubleClick}
+          onNodeDragStop={handleNodeDragStop}
           zoomOnDoubleClick={false}
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
           <MiniMap pannable zoomable />
           <Controls showInteractive={false} />
+          {form && (
+            <Panel position="top-right" className="person-form-panel">
+              <PersonForm
+                title={formTitle}
+                initial={
+                  form.relation === 'rename'
+                    ? persons.find((person) => person.id === form.anchorId)
+                    : undefined
+                }
+                onSubmit={handleFormSubmit}
+                onCancel={() => setForm(null)}
+              />
+            </Panel>
+          )}
           <Panel position="top-left" className="tree-toolbar">
             <div className="tree-direction" role="group">
               {CHART_KINDS.map((entry) => (
@@ -374,6 +506,36 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
                 {displayName(focusPerson)}
               </span>
             )}
+            <div className="tree-search">
+              <Search size={14} aria-hidden="true" />
+              <input
+                value={searchQuery}
+                placeholder={nls.t('tree.canvas.search.placeholder')}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setSearchQuery('');
+                  }
+                }}
+              />
+              {searchResults.length > 0 && (
+                <ul className="tree-search-results">
+                  {searchResults.map(({ person, name }) => (
+                    <li key={person.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          refocus(person.id);
+                          setSearchQuery('');
+                        }}
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Panel>
         </ReactFlow>
       </div>

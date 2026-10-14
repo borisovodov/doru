@@ -200,6 +200,46 @@ function orderChildren(ids: string[], personById: Map<string, PersonRecord>): st
   });
 }
 
+/**
+ * Whether `ancestorId` sits on the ancestry chain above `personId` (i.e.
+ * `personId` descends from `ancestorId`). Used to reject reparenting that
+ * would create an ancestry cycle.
+ */
+export function isDescendantOf(
+  persons: PersonRecord[],
+  families: FamilyRecord[],
+  ancestorId: string,
+  personId: string,
+): boolean {
+  if (ancestorId === personId) {
+    return true;
+  }
+  const parentsByChild = new Map<string, string[]>();
+  for (const family of families) {
+    for (const childId of family.children) {
+      const list = parentsByChild.get(childId) ?? [];
+      list.push(...family.parents);
+      parentsByChild.set(childId, list);
+    }
+  }
+  const queue = [personId];
+  const visited = new Set<string>();
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined || visited.has(current)) {
+      continue;
+    }
+    visited.add(current);
+    for (const parentId of parentsByChild.get(current) ?? []) {
+      if (parentId === ancestorId) {
+        return true;
+      }
+      queue.push(parentId);
+    }
+  }
+  return false;
+}
+
 function indexFamilies(
   families: FamilyRecord[],
 ): { byChild: Map<string, FamilyRecord[]>; byParent: Map<string, FamilyRecord[]> } {
