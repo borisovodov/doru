@@ -41,17 +41,17 @@ export { addEventOp, addMediaOp, deleteEventOp, deleteMediaOp } from './ops/reco
 export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';
 export { computePedigree, type PedigreeNode } from './pedigree';
 export {
-  buildAncestorGraph,
-  layoutAncestors,
+  layoutPedigree,
   suggestFocusPerson,
-  type AncestorLayout,
-  type AncestorLayoutOptions,
-  type LaidOutNode,
-  type PedigreeGraph,
-  type PedigreeGraphEdge,
-  type PedigreeGraphNode,
-  type PedigreeRole,
-} from './layout/ancestors';
+  type ChartDirection,
+  type LaidOutCard,
+  type PedigreeCard,
+  type PedigreeCardRole,
+  type PedigreeEdge,
+  type PedigreeEdgeKind,
+  type PedigreeLayout,
+  type PedigreeLayoutOptions,
+} from './layout/pedigree';
 export interface GedcomImportResult {
   importedPersons: number;
   importedFamilies: number;

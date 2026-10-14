@@ -98,7 +98,15 @@ export function App() {
 
   const renderTabContent = (tab: { id: string }): ReactNode => {
     if (tab.id === TREE_TAB_ID) {
-      return <TreeCanvas persons={tree.persons} families={tree.families} />;
+      // Keying by the project path resets canvas state (focus history,
+      // direction) when the user switches projects.
+      return (
+        <TreeCanvas
+          key={projectPath ?? 'none'}
+          persons={tree.persons}
+          families={tree.families}
+        />
+      );
     }
     if (tab.id === SETTINGS_TAB_ID) {
       return (

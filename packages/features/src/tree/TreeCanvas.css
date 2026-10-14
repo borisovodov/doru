@@ -118,3 +118,119 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Invisible connection points: React Flow needs handles to attach edges,
+   but the pedigree edges carry their own geometry. */
+.person-card .person-card-handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Canvas toolbar ───────────────────────────────────────────────── */
+
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px;
+  padding: 6px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.tree-toolbar button {
+  height: 24px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--doru-fg);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.tree-toolbar button:hover:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.tree-toolbar button:active:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-pressed), var(--doru-overlay-pressed));
+}
+
+.tree-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tree-direction {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--doru-bg-input);
+  border-radius: var(--doru-radius-sm);
+}
+
+.tree-direction button.active {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+.tree-nav {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.tree-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+  max-width: 40vw;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tree-breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tree-breadcrumbs li:not(:last-child)::after {
+  content: '›';
+  color: var(--doru-fg-faint);
+  margin-left: 2px;
+}
+
+.tree-breadcrumbs button {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-breadcrumbs button.current {
+  color: var(--doru-accent);
+  font-weight: 600;
+}
+
+.tree-breadcrumbs-current {
+  padding: 0 8px;
+  color: var(--doru-accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
