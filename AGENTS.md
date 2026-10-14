@@ -67,6 +67,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   panes are hidden, not unmounted). The welcome page is the editor-area state
   with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
   active tab via renderer keybindings, not via the application menu.
+- **macOS app icons.** The icon source of truth is the Icon Composer project
+  `apps/desktop/build/Icon.icon`. electron-builder renders the app bundle icon
+  from it at package time (actool, Xcode 26+). `npm run icon:mac -w
+  @doru/desktop` regenerates the committed `build/icon.icns` (DMG volume icon)
+  and `build/icon-dev.png` (macOS dev dock icon); commit both after editing
+  `Icon.icon`. Dev uses that PNG because Electron's `nativeImage` cannot load
+  `.icns` files — the packaged app gets its icon via Info.plist
+  (`CFBundleIconName`/`Assets.car`), which is macOS, not Electron.
 
 ## Verification
 
