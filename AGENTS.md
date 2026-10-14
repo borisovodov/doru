@@ -118,3 +118,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   with `EPERM` on open files.
 - Validate workflow changes with `actionlint .github/workflows/…` before
   pushing: the `secrets` context is not allowed in `if` conditions of steps.
+- **Releases are cut by CI.** Pushing a `v*` tag triggers the Release
+  workflow, which builds the installers and creates the GitHub release with
+  generated notes and assets. Just bump the versions and push the tag — never
+  run `gh release create` by hand and never force-move a release tag: every
+  workflow run appends its own notes block to the existing release body.
