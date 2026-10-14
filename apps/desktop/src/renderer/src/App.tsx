@@ -110,6 +110,7 @@ export function App() {
             deletePerson: tree.deletePerson,
             reparent: tree.reparent,
             updatePerson: tree.api.updatePerson,
+            getPersonCounts: tree.personCounts,
             openEditor: tabs.openPersonTab,
           }}
         />

@@ -1,10 +1,13 @@
 import { memo, type MouseEvent } from 'react';
 import {
   Baby,
+  BookOpenText,
   ChevronDown,
   ChevronRight,
+  Image as ImageIcon,
   Pencil,
   PencilLine,
+  StickyNote,
   Trash2,
   UserPlus,
   Users,
@@ -19,6 +22,7 @@ import {
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { displayName, years } from '../person/format';
+import type { PersonCounts } from './TreeCanvas';
 
 export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'rename' | 'delete';
 
@@ -32,10 +36,28 @@ export type PersonCardData = {
   hasSubtree: boolean;
   /** Whether the subtree is currently collapsed. */
   collapsed: boolean;
+  /** Badge counts (notes, sources, media). */
+  counts: PersonCounts;
   onToggleCollapse?: (personId: string) => void;
   /** Quick actions on the selected card (add/edit/delete relatives). */
   onAction?: (action: CardAction, personId: string) => void;
 };
+
+function initials(person: PersonRecord): string {
+  const name = person.names[0];
+  if (!name) {
+    return '?';
+  }
+  if (name.full) {
+    const words = name.full.replace(/\//g, '').trim().split(/\s+/).filter(Boolean);
+    return words.slice(0, 2).map((word) => word[0]?.toUpperCase() ?? '').join('');
+  }
+  const parts = [name.given, name.surname].filter((part) => part !== undefined) as string[];
+  if (parts.length === 0) {
+    return '?';
+  }
+  return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
+}
 
 /**
  * Person card. Size is fixed in CSS and mirrored by the layout options so
@@ -47,7 +69,7 @@ export const PersonCard = memo(function PersonCard({
   data,
   selected,
 }: NodeProps<Node<PersonCardData>>) {
-  const { person, line, isFocus, hasSubtree, collapsed, onAction } = data;
+  const { person, line, isFocus, hasSubtree, collapsed, counts, onAction } = data;
   const deceased = person.death?.year !== undefined;
   const dates = years(person);
   const classes = [
@@ -80,18 +102,38 @@ export const PersonCard = memo(function PersonCard({
     { kind: 'delete', icon: Trash2, key: 'tree.canvas.deletePerson' },
   ] as const satisfies ReadonlyArray<{ kind: CardAction; icon: typeof Baby; key: string }>;
 
+  const BADGES = [
+    { icon: StickyNote, count: counts.notes, title: nls.t('features.tree.notes.title') },
+    { icon: BookOpenText, count: counts.sources, title: nls.t('features.tree.sources.title') },
+    { icon: ImageIcon, count: counts.media, title: nls.t('features.tree.media.title') },
+  ] as const;
+
   return (
     <div className={classes}>
       <Handle type="target" position={Position.Top} className="person-card-handle" />
       <Handle type="source" position={Position.Bottom} className="person-card-handle" />
-      <span className="sex-dot" aria-hidden="true" />
-      <span className="person-card-name">{displayName(person)}</span>
-      {dates !== '' && (
-        <span className="person-card-years">
-          {deceased ? '† ' : ''}
-          {dates}
-        </span>
-      )}
+      <span className="person-card-avatar" aria-hidden="true">
+        {initials(person)}
+      </span>
+      <div className="person-card-body">
+        <span className="person-card-name">{displayName(person)}</span>
+        {dates !== '' && (
+          <span className="person-card-years">
+            {deceased ? '† ' : ''}
+            {dates}
+          </span>
+        )}
+      </div>
+      <div className="person-card-badges">
+        {BADGES.map(({ icon: Icon, count, title }) =>
+          count > 0 ? (
+            <span key={title} className="person-card-badge" title={`${title}: ${count}`}>
+              <Icon size={11} aria-hidden="true" />
+              <span>{count}</span>
+            </span>
+          ) : null,
+        )}
+      </div>
       {hasSubtree && (
         <button
           type="button"

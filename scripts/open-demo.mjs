@@ -105,6 +105,28 @@ await window.evaluate(
         await window.doru.addFamily(project, { id, parents, children });
       }
     }
+    // A bit of extra content so the card badges are visible in the demo.
+    const notes = await window.doru.listNotes(project);
+    if (notes.length === 0) {
+      await window.doru.addNote(project, {
+        id: 'DEMONOTE1',
+        text: 'Born in Nikolskoye; the metric book was found in the state archive.',
+        targetType: 'person',
+        targetId: 'P9',
+      });
+      await window.doru.addSource(
+        project,
+        { id: 'DEMOSRC1', title: 'Metric book, 1950', author: 'State Archive' },
+        'person',
+        'P9',
+      );
+      await window.doru.addSource(
+        project,
+        { id: 'DEMOSRC2', title: 'The Ivanov family archive' },
+        'person',
+        'P1',
+      );
+    }
   },
   { project, persons, families },
 );

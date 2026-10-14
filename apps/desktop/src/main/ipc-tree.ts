@@ -190,6 +190,25 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle(
+    'tree:personCounts',
+    async (_event, options: { projectPath: string; personIds: string[] }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const notes = runtime.repo.listNotes();
+      const counts: Record<string, { notes: number; sources: number; media: number }> = {};
+      for (const personId of options.personIds) {
+        counts[personId] = {
+          notes: notes.filter(
+            (note) => note.targetType === 'person' && note.targetId === personId,
+          ).length,
+          sources: runtime.repo.listCitationsFor('person', personId).length,
+          media: runtime.repo.listMediaFor('person', personId).length,
+        };
+      }
+      return counts;
+    },
+  );
+
   ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     runtime.queue.apply(addNoteOp(options.note), { repo: runtime.repo });

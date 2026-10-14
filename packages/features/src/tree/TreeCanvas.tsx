@@ -29,6 +29,12 @@ import './TreeCanvas.css';
 
 export type RelativeRelation = 'child' | 'spouse' | 'parent';
 
+export interface PersonCounts {
+  notes: number;
+  sources: number;
+  media: number;
+}
+
 export interface TreeCanvasApi {
   /** Creates a person and links them to the anchor (child/spouse/parent). */
   addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): Promise<void>;
@@ -38,6 +44,8 @@ export interface TreeCanvasApi {
   reparent(childId: string, newParentId: string): Promise<void>;
   /** Updates the person record (rename, dates). */
   updatePerson(before: PersonRecord, after: PersonRecord): Promise<void>;
+  /** Badge counts (notes, sources, media) for the given persons. */
+  getPersonCounts(personIds: string[]): Promise<Record<string, PersonCounts>>;
   /** Opens the full person editor (a PersonTab). */
   openEditor(personId: string): void;
 }
@@ -91,6 +99,7 @@ function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
     anchorId: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { setViewport, getIntersectingNodes } = useReactFlow();
 
@@ -188,6 +197,7 @@ function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
           isFocus: card.key === layout.focusKey,
           hasSubtree: card.hasSubtree,
           collapsed: collapsed.has(card.personId),
+          counts: counts[card.personId] ?? { notes: 0, sources: 0, media: 0 },
           onToggleCollapse: toggleCollapse,
           onAction: handleAction,
         } satisfies PersonCardData,
@@ -201,7 +211,7 @@ function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
       data: edge.geometry as CanvasEdgeData,
     }));
     return { nodes: flowNodes, edges: flowEdges };
-  }, [layout, persons, collapsed, handleAction]);
+  }, [layout, persons, collapsed, counts, handleAction]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
@@ -212,6 +222,24 @@ function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
     setNodes(projected.nodes);
     setEdges(projected.edges);
   }, [projected]);
+
+  // Badge counts for the visible cards.
+  useEffect(() => {
+    if (!layout) {
+      setCounts({});
+      return;
+    }
+    let cancelled = false;
+    const ids = [...new Set(layout.cards.map((card) => card.personId))];
+    void api.getPersonCounts(ids).then((result) => {
+      if (!cancelled) {
+        setCounts(result);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [layout, api]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(

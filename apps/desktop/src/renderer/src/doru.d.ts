@@ -70,6 +70,10 @@ declare global {
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
       onThemeConfigChanged(callback: (config: { dark: string; light: string }) => void): () => void;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
+      personCounts(
+        projectPath: string,
+        personIds: string[],
+      ): Promise<Record<string, { notes: number; sources: number; media: number }>>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getGedcomText(projectPath: string): Promise<string>;
       getFamilies(projectPath: string): Promise<FamilyRecord[]>;

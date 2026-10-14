@@ -89,6 +89,16 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const personCounts = useCallback(
+    (personIds: string[]) => {
+      if (!projectPath || personIds.length === 0) {
+        return Promise.resolve({} as Record<string, { notes: number; sources: number; media: number }>);
+      }
+      return window.doru.personCounts(projectPath, personIds);
+    },
+    [projectPath],
+  );
+
   /**
    * Deletes the person record together with their family links (a single
    * compound op, so one undo restores everything).
@@ -222,6 +232,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     addRelative,
     deletePerson,
     reparent,
+    personCounts,
     api,
   };
 }

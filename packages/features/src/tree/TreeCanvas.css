@@ -81,11 +81,12 @@
   height: 64px;
   box-sizing: border-box;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 8px 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
   background: var(--doru-bg-raised);
   border: 1px solid var(--doru-border);
+  border-left-width: 3px;
   border-radius: var(--doru-radius-md);
   box-shadow: var(--doru-ring);
   cursor: pointer;
@@ -100,6 +101,39 @@
   box-shadow:
     var(--doru-ring),
     0 0 0 2px var(--doru-accent-alpha);
+}
+
+.person-card-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+  user-select: none;
+}
+
+.person-card.sex-m .person-card-avatar {
+  background: color-mix(in srgb, var(--doru-info) 22%, var(--doru-bg-input));
+  color: var(--doru-info);
+}
+
+.person-card.sex-f .person-card-avatar {
+  background: color-mix(in srgb, #c98ba0 22%, var(--doru-bg-input));
+  color: #c98ba0;
+}
+
+.person-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .person-card-name {
@@ -118,6 +152,22 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.person-card-badges {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  display: flex;
+  gap: 5px;
+}
+
+.person-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--doru-fg-muted);
 }
 
 /* Invisible connection points: React Flow needs handles to attach edges,
@@ -165,24 +215,6 @@
   box-shadow:
     var(--doru-ring),
     0 0 0 2px var(--doru-accent-alpha);
-}
-
-.sex-dot {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: transparent;
-}
-
-.person-card.sex-m .sex-dot {
-  background: var(--doru-info);
-}
-
-.person-card.sex-f .sex-dot {
-  background: #c98ba0;
 }
 
 /* ── Collapse button ──────────────────────────────────────────────── */
