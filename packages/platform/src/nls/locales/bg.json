@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "Тип",
   "features.tree.events.descriptionField": "Описание",
   "features.tree.events.dateField": "Дата",
+  "features.tree.family.removeMember": "Премахване на член на семейството",
+  "features.tree.sources.detach": "Откачване на източника",
   "features.tree.media.title": "Медия",
   "features.tree.media.add": "Добавяне на снимки…",
   "features.tree.media.empty": "Все още няма снимки.",

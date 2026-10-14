@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "유형",
   "features.tree.events.descriptionField": "설명",
   "features.tree.events.dateField": "날짜",
+  "features.tree.family.removeMember": "가족 구성원 제거",
+  "features.tree.sources.detach": "출처 연결 해제",
   "features.tree.media.title": "미디어",
   "features.tree.media.add": "사진 추가…",
   "features.tree.media.empty": "아직 사진이 없습니다.",
