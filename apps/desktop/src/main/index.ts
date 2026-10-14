@@ -190,13 +190,21 @@ function themeDefinition(name: string): ThemeDefinition {
   }
 }
 
+/**
+ * The shell (chrome) color of the active theme. The hardcoded fallback
+ * mirrors the baseline palette in `workbench.css` `:root` and only applies
+ * when a theme does not define `bg-chrome`; both built-in themes do.
+ */
+function chromeColor(definition: ThemeDefinition, dark: boolean): string {
+  return definition.colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
+}
+
 function titleBarOverlayOptions(): { color: string; symbolColor: string; height: number } {
   const dark = nativeTheme.shouldUseDarkColors;
   const themeName = dark ? themeConfig().dark : themeConfig().light;
   const definition = themeDefinition(themeName);
-  const color = definition.colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
   return {
-    color,
+    color: chromeColor(definition, dark),
     symbolColor: definition.type === 'light' ? '#000000' : '#ffffff',
     height: TITLE_BAR_HEIGHT,
   };
@@ -205,7 +213,7 @@ function titleBarOverlayOptions(): { color: string; symbolColor: string; height:
 function windowBackgroundColor(): string {
   const dark = nativeTheme.shouldUseDarkColors;
   const themeName = dark ? themeConfig().dark : themeConfig().light;
-  return themeDefinition(themeName).colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
+  return chromeColor(themeDefinition(themeName), dark);
 }
 
 function updateTitleBarOverlays(): void {
