@@ -127,6 +127,7 @@ body {
   width: 28px;
   height: 28px;
   border: none;
+  padding: 0;
   background: transparent;
   border-radius: var(--doru-radius-sm);
   color: var(--doru-fg-muted);
@@ -180,7 +181,9 @@ body {
   flex-direction: column;
   align-items: center;
   padding-top: 6px;
-  gap: 2px;
+  /* The vertical gap matches the 6px side inset of the 36px buttons in the
+     48px rail, so spacing reads uniform around every button. */
+  gap: 6px;
 }
 
 .activity-bar-item {
@@ -191,6 +194,7 @@ body {
   height: 36px;
   background: transparent;
   border: none;
+  padding: 0;
   border-radius: var(--doru-radius-md);
   color: var(--doru-fg-muted);
   cursor: pointer;
@@ -459,13 +463,14 @@ body.sash-resizing * {
   right: 6px;
   transform: translateY(-50%);
   border: none;
+  padding: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;

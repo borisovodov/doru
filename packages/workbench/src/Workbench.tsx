@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { PanelRight } from 'lucide-react';
 import { CommandService, KeybindingService } from '@doru/platform';
 import { nls } from './nls';
 import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
@@ -141,19 +142,7 @@ export function Workbench({
             aria-pressed={secondarySideBarOpen}
             onClick={() => setSecondarySideBarOpen((open) => !open)}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <rect
-                x="2.5"
-                y="2.5"
-                width="11"
-                height="11"
-                rx="1.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <line x1="9.8" y1="2.5" x2="9.8" y2="13.5" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
+            <PanelRight size={16} aria-hidden="true" />
           </button>
         </div>
       </div>

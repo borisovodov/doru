@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
+import { X } from 'lucide-react';
 import { nls } from '../nls';
 import { dropIndexForTabs } from '../tabReorder';
 
@@ -264,7 +265,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
                   onClose(tab.id);
                 }}
               >
-                ×
+                <X size={14} strokeWidth={1.5} aria-hidden="true" />
               </button>
             )}
           </div>
