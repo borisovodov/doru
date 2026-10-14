@@ -15,9 +15,6 @@ import ru from './nls/locales/ru.json';
 import tr from './nls/locales/tr.json';
 import zhcn from './nls/locales/zh-cn.json';
 import zhtw from './nls/locales/zh-tw.json';
-import { createServiceId } from './di';
-
-export const ILocalizationService = createServiceId<ILocalizationService>('localization');
 
 export type MessageKey = keyof typeof en;
 

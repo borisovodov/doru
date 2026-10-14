@@ -1,6 +1,4 @@
-import { createServiceId, type IDisposable } from './di';
-
-export const ICommandService = createServiceId<ICommandService>('command');
+import type { IDisposable } from './disposable';
 
 export interface Command {
   id: string;
