@@ -117,6 +117,15 @@ decisions about what we deliberately do **not** build, see
   `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
   (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
   `--doru-control-height` = 28px).
+- **Floating panels** (VS Code 2026 geometry): the workbench root is the
+  shell — a plain surface in the chrome color. The activity bar and the
+  primary side bar share one rounded card (1px border, 8px radius) with a
+  hairline seam between them; the editor is its own rounded card in the
+  canvas color (`overflow: hidden` clips the tab strip); the secondary side
+  bar floats on the right as a standalone card. Cards sit 4px from the
+  window edges and from each other (`--doru-panel-gutter`), so only their
+  borders separate them from the shell — they are framed, not cut. The title
+  bar is not a card: it spans the full width under the window controls.
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
   a 2px accent outline; disabled is opacity 0.45. Tabs: a square strip

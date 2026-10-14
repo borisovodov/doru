@@ -89,9 +89,6 @@ export function Workbench({
   if (secondarySideBarOpen) {
     layoutClasses.push('secondary-open');
   }
-  if (activeView === 'tree') {
-    layoutClasses.push('no-sidebar');
-  }
 
   return (
     <div className={layoutClasses.join(' ')}>
@@ -99,12 +96,14 @@ export function Workbench({
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions" />
       </div>
-      <ActivityBar
-        activeView={activeView}
-        onSelectView={onSelectView}
-        onOpenSettings={onOpenSettings ?? (() => {})}
-      />
-      {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
+      <div className="side-cluster">
+        <ActivityBar
+          activeView={activeView}
+          onSelectView={onSelectView}
+          onOpenSettings={onOpenSettings ?? (() => {})}
+        />
+        {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
+      </div>
       <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
         {editor}
       </EditorArea>
