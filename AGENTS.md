@@ -67,6 +67,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   panes are hidden, not unmounted). The welcome page is the editor-area state
   with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
   active tab via renderer keybindings, not via the application menu.
+- **UI drags are pointer-based, not HTML5 drag-and-drop** (tab reorder,
+  side-bar sashes): `setPointerCapture` + a gesture threshold + Escape
+  cancel. Native drag sessions flash the macOS copy cursor and fight our
+  cursor/ghost styling. Use custom tooltips instead of `title` (broken under
+  the drag region on macOS), and always reset `padding: 0` on icon-only
+  buttons — the UA button padding collapses flex child SVGs. See the
+  "Interaction conventions" bullet in docs/architecture.md.
 
 ## Verification
 
@@ -96,6 +103,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - E2E specs must launch the app with an isolated `DORU_USER_DATA` env var (see
   `e2e/smoke.spec.ts`): the single-instance lock otherwise collides with a
   running dev instance.
+- Drag simulations in e2e: first `mouse.move` past the 4px gesture threshold
+  before the real drag, and assert with retrying `expect(locator).toHaveText`
+  instead of one-shot reads — pointer events need both.
 - In tests, close the `TreeStore` before removing temp dirs — Windows fails
   with `EPERM` on open files.
 - Validate workflow changes with `actionlint .github/workflows/…` before

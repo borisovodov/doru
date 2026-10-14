@@ -112,6 +112,7 @@ decisions about what we deliberately do **not** build, see
   (`#0f1311`) with chrome (`#161a17`), raised (`#1b201c`) and popover
   (`#202621`) surface layers and a sage accent (`#63a37f`); the light theme is
   paper (`#fdfcf9`) and cream (`#f2efe7`) with a forest accent (`#3f7355`).
+  UI glyphs (activity bar, title-bar toggle) come from **lucide-react**.
 - **Tokens are semantic**: `--doru-bg-*` (surfaces), `--doru-fg-*` (text
   weights), `--doru-border*` (alpha hairlines), `--doru-accent*`,
   `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
@@ -158,6 +159,20 @@ decisions about what we deliberately do **not** build, see
   and updated on theme change. The renderer always draws a 38px `.title-bar`
   (drag region, `-webkit-app-region: drag`) and reserves room for the OS
   controls via `env(titlebar-area-*)` (Windows/Linux) or left padding (macOS).
+- **Interaction conventions** (learned the hard way): every drag gesture
+  (tab reordering, side-bar sashes) is pointer-based — `setPointerCapture`,
+  a 4px threshold, Escape to cancel — never native HTML5 drag: the OS drag
+  session flashes the macOS copy cursor and replaces our cursor/ghost
+  styling. Native `title` tooltips are unreliable under the drag region on
+  macOS, so tooltips are custom (`ActivityBar` pattern: fixed pill, delay,
+  `aria-label` instead of `title`). Icon-only buttons must reset the UA
+  `padding: 0` and use `display: inline-flex`, or the flex child SVG
+  collapses to the leftover content box. The `BrowserWindow`
+  `backgroundColor` follows the theme (`windowBackgroundColor()` in the main
+  process) so live resizes never flash white. Accepted macOS quirk: the drag
+  region makes the window background movable (`isMovableByWindowBackground`),
+  so grabbing a resize edge occasionally moves the window instead of
+  resizing — not fixable from the renderer.
 
 ## Workbench windows and tabs
 
