@@ -1,16 +1,15 @@
 import { BrowserWindow, app, nativeTheme, net, protocol } from 'electron';
-import { watch } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
+import { watchConfig } from './config';
 import { registerChatIpc } from './ipc-chat';
 import { registerProjectIpc } from './ipc-project';
 import { registerSettingsIpc } from './ipc-settings';
 import { registerThemeIpc } from './ipc-theme';
 import { registerTreeIpc } from './ipc-tree';
-import { AI_CONFIG_FILE } from './ai-config';
 import { log } from './log';
 import { NodeFileSystem } from './filesystem';
 import { openExternalPath, openProject } from './projects';
@@ -143,17 +142,12 @@ void app.whenReady().then(async () => {
       window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
     }
   });
-  try {
-    const configWatcher = watch(join(app.getPath('userData'), AI_CONFIG_FILE), () => {
-      updateTitleBarOverlays();
-      for (const window of BrowserWindow.getAllWindows()) {
-        window.webContents.send('theme:config-changed', themeConfig());
-      }
-    });
-    configWatcher.unref();
-  } catch {
-    log.warn('could not watch the app config file');
-  }
+  watchConfig(() => {
+    updateTitleBarOverlays();
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send('theme:config-changed', themeConfig());
+    }
+  });
 
   const mcpProject = parseMcpServerArg(process.argv);
   if (mcpProject) {

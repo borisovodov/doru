@@ -1,8 +1,7 @@
 import { BrowserWindow, app, nativeTheme } from 'electron';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { parse } from 'jsonc-parser';
-import { AI_CONFIG_FILE } from './ai-config';
+import { readConfig } from './config';
 
 export const TITLE_BAR_HEIGHT = 38;
 
@@ -58,15 +57,8 @@ export function listBuiltinThemes(): ThemeInfo[] {
 }
 
 export function themeConfig(): { dark: string; light: string } {
-  try {
-    const parsed = parse(readFileSync(join(app.getPath('userData'), AI_CONFIG_FILE), 'utf8')) as {
-      theme?: { dark?: string; light?: string };
-    };
-    const theme = parsed.theme ?? {};
-    return { dark: theme.dark ?? DEFAULT_DARK_THEME, light: theme.light ?? DEFAULT_LIGHT_THEME };
-  } catch {
-    return { dark: DEFAULT_DARK_THEME, light: DEFAULT_LIGHT_THEME };
-  }
+  const theme = (readConfig().theme ?? {}) as { dark?: string; light?: string };
+  return { dark: theme.dark ?? DEFAULT_DARK_THEME, light: theme.light ?? DEFAULT_LIGHT_THEME };
 }
 
 export function themeCss(name: string): string {

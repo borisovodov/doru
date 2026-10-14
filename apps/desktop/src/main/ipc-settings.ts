@@ -4,8 +4,8 @@ import {
   aiSettingsPayload,
   configWithOverrides,
   loadAiConfig,
-  writeAiConfig,
 } from './ai-config';
+import { writeConfigEdits } from './config';
 
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiConfig()));
@@ -62,7 +62,7 @@ export function registerSettingsIpc(): void {
         edits.push({ path: ['ai', 'apiKey'] });
       }
       if (edits.length > 0) {
-        writeAiConfig(edits);
+        writeConfigEdits(edits);
       }
       return aiSettingsPayload(loadAiConfig());
     },
