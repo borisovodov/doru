@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AgentStep } from '@doru/ai';
 import { nls } from '../nls';
+import './ChatPanel.css';
 
 export interface ChatTranscriptMessage {
   role: 'user' | 'assistant';

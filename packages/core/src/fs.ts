@@ -6,6 +6,7 @@ export interface IFileSystem {
   writeFile(path: string, content: string): Promise<void>;
   appendFile(path: string, content: string): Promise<void>;
   copyFile(source: string, destination: string): Promise<void>;
+  remove(path: string): Promise<void>;
   readBinary(path: string): Promise<Uint8Array>;
   writeBinary(path: string, content: Uint8Array): Promise<void>;
 }

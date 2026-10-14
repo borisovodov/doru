@@ -65,6 +65,10 @@ export class MemoryFileSystem implements IFileSystem {
     this.files.set(destination, content);
   }
 
+  async remove(path: string): Promise<void> {
+    this.files.delete(path);
+  }
+
   async readBinary(path: string): Promise<Uint8Array> {
     return new TextEncoder().encode(await this.readFile(path));
   }

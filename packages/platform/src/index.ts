@@ -1,24 +1,9 @@
-export {
-  createServiceId,
-  ServiceCollection,
-  type IDisposable,
-  type ServiceIdentifier,
-} from './di';
-export { Emitter } from './events';
-export { ILifecycleService, type ILifecycleService as ILifecycleServiceType } from './lifecycle';
-export { ILogService, ConsoleLogService, type LogLevel } from './logger';
-export { ICommandService, CommandService, type Command } from './commands';
-export { IKeybindingService, KeybindingService } from './keybindings';
-export { IThemeService, type Theme } from './theme';
-export { IStorageService } from './storage';
-export {
-  IConfigurationService,
-  ConfigurationService,
-  type IConfigStore,
-} from './configuration';
-export {
-  ILocalizationService,
-  LocalizationService,
-  resolveLocale,
-  type MessageKey,
-} from './nls';
+export type { IDisposable } from './disposable';
+export { ConsoleLogService } from './logger';
+export type { ILogService, LogLevel } from './logger';
+export { CommandService } from './commands';
+export type { Command, ICommandService } from './commands';
+export { KeybindingService } from './keybindings';
+export type { IKeybindingService } from './keybindings';
+export { LocalizationService, resolveLocale } from './nls';
+export type { ILocalizationService, MessageKey } from './nls';

@@ -6,6 +6,7 @@ import type {
 } from '@doru/core';
 import { nls } from '../nls';
 import { PersonList } from '../person/PersonList';
+import './TreeView.css';
 
 export interface TreeViewProps {
   persons: PersonRecord[];

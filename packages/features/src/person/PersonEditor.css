@@ -1,0 +1,145 @@
+/* ── Person editor ─────────────────────────────────────────────────── */
+
+.person-editor {
+  max-width: 560px;
+  padding: 8px 16px;
+}
+
+.person-editor label {
+  display: block;
+  margin: 10px 0;
+  color: var(--doru-fg-muted);
+}
+
+.person-editor input,
+.person-editor select {
+  width: 100%;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  margin-top: 4px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+}
+
+.person-editor input:focus,
+.person-editor select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.person-editor-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.person-editor-actions button {
+  height: var(--doru-control-height);
+  padding: 0 13px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.person-editor-actions button:first-child {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+.person-editor-actions button:first-child:hover {
+  background: var(--doru-accent-hover);
+}
+
+.person-editor-actions button:not(:first-child) {
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  box-shadow: var(--doru-ring);
+}
+
+.person-editor-actions button:not(:first-child):hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.person-notes,
+.person-section {
+  margin-top: 14px;
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  border-radius: var(--doru-radius-lg);
+  padding: 12px;
+}
+
+.person-notes h3,
+.person-section h3 {
+  margin: 0 0 8px;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+}
+
+.person-notes ul {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.person-notes li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--doru-border);
+  white-space: pre-wrap;
+}
+
+.person-notes li:last-child {
+  border-bottom: none;
+}
+
+.notes-empty {
+  color: var(--doru-fg-muted);
+}
+
+.notes-add {
+  display: flex;
+  gap: 8px;
+}
+
+.notes-add input {
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-add button {
+  height: var(--doru-control-height);
+  padding: 0 11px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.notes-add button:hover {
+  background: var(--doru-accent-hover);
+}
+
+/* ── Dates ─────────────────────────────────────────────────────────── */
+
+.date-editor-row {
+  display: flex;
+  gap: 6px;
+}
+
+.date-editor-row input,
+.date-editor-row select {
+  width: auto;
+  min-width: 0;
+}
+
+.date-text-input {
+  width: 100%;
+}
+

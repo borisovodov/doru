@@ -25,6 +25,9 @@ const fsImpl: IFileSystem = {
   writeFile,
   appendFile,
   copyFile,
+  async remove(path) {
+    await rm(path, { force: true });
+  },
   async readBinary(path) {
     return readFile(path);
   },

@@ -1,5 +1,6 @@
 import type { RecentProject } from '@doru/core';
 import { nls } from '../nls';
+import './WelcomePage.css';
 
 export interface WelcomePageProps {
   recent: RecentProject[];

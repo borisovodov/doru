@@ -1,7 +1,3 @@
-import { createServiceId } from './di';
-
-export const ILogService = createServiceId<ILogService>('log');
-
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
 export interface ILogService {

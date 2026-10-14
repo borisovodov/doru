@@ -1,23 +1,22 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, EventRecord, FamilyRecord, MediaRecord, NamePart, NoteRecord, PersonRecord, Sex, SourceRecord } from '../model/types';
+import type {
+  EventRecord,
+  FamilyRecord,
+  MediaRecord,
+  NoteRecord,
+  PersonRecord,
+  SourceRecord,
+  TreeDocument,
+} from '../model/types';
+import { EventRepo } from './eventRepo';
+import { FamilyRepo } from './familyRepo';
+import { MediaRepo } from './mediaRepo';
+import { NoteRepo } from './noteRepo';
+import { PersonRepo, type PersonQuery } from './personRepo';
+import { SourceRepo } from './sourceRepo';
+import { TransactionScope } from './transaction';
 
-interface PersonRow {
-  id: string;
-  names: string;
-  sex: Sex | null;
-  birth_json: string | null;
-  death_json: string | null;
-}
-
-interface FamilyRow {
-  id: string;
-}
-
-export interface PersonQuery {
-  search?: string;
-  limit?: number;
-  offset?: number;
-}
+export type { PersonQuery } from './personRepo';
 
 export interface TreeRepository {
   insertPerson(person: PersonRecord): void;
@@ -51,414 +50,166 @@ export interface TreeRepository {
   insertMedia(media: MediaRecord): void;
   deleteMedia(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
+  toTreeDocument(): TreeDocument;
   transaction<T>(fn: () => T): T;
 }
 
+/**
+ * Facade over the per-entity repositories. Ops and services talk to this
+ * interface; the entity split underneath is an implementation detail.
+ */
 export class SqliteTreeRepository implements TreeRepository {
-  private readonly db: DatabaseSync;
-  private transactionDepth = 0;
+  private readonly transactions: TransactionScope;
+  private readonly persons: PersonRepo;
+  private readonly families: FamilyRepo;
+  private readonly sources: SourceRepo;
+  private readonly notes: NoteRepo;
+  private readonly events: EventRepo;
+  private readonly media: MediaRepo;
 
   constructor(db: DatabaseSync) {
-    this.db = db;
+    this.transactions = new TransactionScope(db);
+    this.persons = new PersonRepo(db);
+    this.families = new FamilyRepo(db, this.transactions);
+    this.sources = new SourceRepo(db);
+    this.notes = new NoteRepo(db);
+    this.events = new EventRepo(db);
+    this.media = new MediaRepo(db);
   }
 
   insertPerson(person: PersonRecord): void {
-    const now = new Date().toISOString();
-    this.db
-      .prepare(
-        'INSERT INTO person (id, names, sex, birth_json, death_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        person.id,
-        JSON.stringify(person.names),
-        person.sex,
-        dateToJson(person.birth),
-        dateToJson(person.death),
-        now,
-        now,
-      );
+    this.persons.insertPerson(person);
   }
 
   updatePerson(person: PersonRecord): void {
-    this.db
-      .prepare(
-        'UPDATE person SET names = ?, sex = ?, birth_json = ?, death_json = ?, updated_at = ? WHERE id = ?',
-      )
-      .run(
-        JSON.stringify(person.names),
-        person.sex,
-        dateToJson(person.birth),
-        dateToJson(person.death),
-        new Date().toISOString(),
-        person.id,
-      );
+    this.persons.updatePerson(person);
   }
 
   getPerson(id: string): PersonRecord | undefined {
-    const row = this.db.prepare('SELECT id, names, sex, birth_json, death_json FROM person WHERE id = ?').get(id) as
-      | PersonRow
-      | undefined;
-    return row ? rowToPerson(row) : undefined;
+    return this.persons.getPerson(id);
   }
 
   deletePerson(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM person WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.persons.deletePerson(id);
   }
 
-  listPersons(query: PersonQuery = {}): PersonRecord[] {
-    const limit = query.limit ?? 100;
-    const offset = query.offset ?? 0;
-    const search = query.search?.trim();
-    if (search) {
-      const rows = this.searchByFts(search, limit, offset);
-      if (rows !== null) {
-        return rows.map(rowToPerson);
-      }
-    }
-    const conditions: string[] = [];
-    const params: string[] = [];
-    if (search) {
-      conditions.push('instr(lower(names), lower(?)) > 0');
-      params.push(search);
-    }
-    const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const sql = `SELECT id, names, sex, birth_json, death_json FROM person${where} ORDER BY id LIMIT ? OFFSET ?`;
-    const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonRow[];
-    return rows.map(rowToPerson);
-  }
-
-  private searchByFts(search: string, limit: number, offset: number): PersonRow[] | null {
-    try {
-      const match = search
-        .split(/\s+/)
-        .filter((token) => token.length > 0)
-        .map((token) => `"${token.replace(/"/g, '""')}"*`)
-        .join(' AND ');
-      if (!match) {
-        return null;
-      }
-      const rows = this.db
-        .prepare(
-          `SELECT p.id, p.names, p.sex, p.birth_json, p.death_json
-           FROM person_fts f JOIN person p ON p.rowid = f.rowid
-           WHERE person_fts MATCH ? ORDER BY rank LIMIT ? OFFSET ?`,
-        )
-        .all(match, limit, offset) as unknown as PersonRow[];
-      return rows;
-    } catch {
-      return null;
-    }
+  listPersons(query?: PersonQuery): PersonRecord[] {
+    return this.persons.listPersons(query);
   }
 
   listAllPersons(): PersonRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, names, sex, birth_json, death_json FROM person ORDER BY id')
-      .all() as unknown as PersonRow[];
-    return rows.map(rowToPerson);
+    return this.persons.listAllPersons();
   }
 
   countPersons(): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS n FROM person').get() as { n: number };
-    return row.n;
+    return this.persons.countPersons();
   }
 
   countFamilies(): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS n FROM family').get() as { n: number };
-    return row.n;
+    return this.families.countFamilies();
   }
 
   insertFamily(family: FamilyRecord): void {
-    this.transaction(() => {
-      const now = new Date().toISOString();
-      this.db
-        .prepare('INSERT INTO family (id, created_at, updated_at) VALUES (?, ?, ?)')
-        .run(family.id, now, now);
-      this.replaceLinks(family);
-    });
+    this.families.insertFamily(family);
   }
 
   updateFamily(family: FamilyRecord): void {
-    this.transaction(() => {
-      this.db.prepare('UPDATE family SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), family.id);
-      this.db.prepare('DELETE FROM family_parent WHERE family_id = ?').run(family.id);
-      this.db.prepare('DELETE FROM family_child WHERE family_id = ?').run(family.id);
-      this.replaceLinks(family);
-    });
+    this.families.updateFamily(family);
   }
 
   getFamily(id: string): FamilyRecord | undefined {
-    const row = this.db.prepare('SELECT id FROM family WHERE id = ?').get(id) as FamilyRow | undefined;
-    if (!row) {
-      return undefined;
-    }
-    return this.hydrateFamily(row.id);
+    return this.families.getFamily(id);
   }
 
   deleteFamily(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM family WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.families.deleteFamily(id);
   }
 
   listFamilies(): FamilyRecord[] {
-    const rows = this.db.prepare('SELECT id FROM family ORDER BY id').all() as unknown as FamilyRow[];
-    return rows.map((row) => this.hydrateFamily(row.id));
+    return this.families.listFamilies();
   }
 
   insertSource(source: SourceRecord): void {
-    this.db
-      .prepare('INSERT INTO source (id, title, author, publication) VALUES (?, ?, ?, ?)')
-      .run(source.id, source.title, source.author ?? null, source.publication ?? null);
+    this.sources.insertSource(source);
   }
 
   deleteSource(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM source WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.sources.deleteSource(id);
   }
 
   listSources(): SourceRecord[] {
-    const rows = this.db.prepare('SELECT id, title, author, publication FROM source ORDER BY id').all() as unknown as {
-      id: string;
-      title: string;
-      author: string | null;
-      publication: string | null;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      author: row.author ?? undefined,
-      publication: row.publication ?? undefined,
-    }));
+    return this.sources.listSources();
   }
 
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void {
-    this.insertCitation({ id: crypto.randomUUID(), sourceId, targetType, targetId });
+    this.sources.addSourceCitation(sourceId, targetType, targetId);
   }
 
   insertCitation(citation: { id: string; sourceId: string; targetType: string; targetId: string }): void {
-    this.db
-      .prepare('INSERT INTO citation (id, source_id, target_type, target_id) VALUES (?, ?, ?, ?)')
-      .run(citation.id, citation.sourceId, citation.targetType, citation.targetId);
+    this.sources.insertCitation(citation);
   }
 
   deleteCitation(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM citation WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.sources.deleteCitation(id);
   }
 
   getCitation(id: string): { id: string; sourceId: string; targetType: string; targetId: string } | undefined {
-    const row = this.db
-      .prepare('SELECT id, source_id, target_type, target_id FROM citation WHERE id = ?')
-      .get(id) as { id: string; source_id: string; target_type: string; target_id: string } | undefined;
-    if (!row) {
-      return undefined;
-    }
-    return { id: row.id, sourceId: row.source_id, targetType: row.target_type, targetId: row.target_id };
+    return this.sources.getCitation(id);
   }
 
   listCitationsFor(targetType: string, targetId: string): Array<{ id: string; source: SourceRecord }> {
-    const rows = this.db
-      .prepare('SELECT c.id, s.id AS source_id, s.title, s.author, s.publication FROM citation c JOIN source s ON s.id = c.source_id WHERE c.target_type = ? AND c.target_id = ? ORDER BY c.id')
-      .all(targetType, targetId) as unknown as Array<{
-      id: string;
-      source_id: string;
-      title: string;
-      author: string | null;
-      publication: string | null;
-    }>;
-    return rows.map((row) => ({
-      id: row.id,
-      source: {
-        id: row.source_id,
-        title: row.title,
-        author: row.author ?? undefined,
-        publication: row.publication ?? undefined,
-      },
-    }));
+    return this.sources.listCitationsFor(targetType, targetId);
   }
 
   insertNote(note: NoteRecord): void {
-    this.db
-      .prepare('INSERT INTO note (id, text, target_type, target_id) VALUES (?, ?, ?, ?)')
-      .run(note.id, note.text, note.targetType ?? null, note.targetId ?? null);
+    this.notes.insertNote(note);
   }
 
   deleteNote(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM note WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.notes.deleteNote(id);
   }
 
   listNotes(): NoteRecord[] {
-    const rows = this.db.prepare('SELECT id, text, target_type, target_id FROM note ORDER BY id').all() as unknown as {
-      id: string;
-      text: string;
-      target_type: string | null;
-      target_id: string | null;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      text: row.text,
-      targetType: row.target_type ?? undefined,
-      targetId: row.target_id ?? undefined,
-    }));
+    return this.notes.listNotes();
   }
 
   insertEvent(event: EventRecord): void {
-    let placeId: string | null = null;
-    if (event.place) {
-      const existing = this.db.prepare('SELECT id FROM place WHERE name = ?').get(event.place) as
-        | { id: string }
-        | undefined;
-      if (existing) {
-        placeId = existing.id;
-      } else {
-        placeId = crypto.randomUUID();
-        this.db.prepare('INSERT INTO place (id, name) VALUES (?, ?)').run(placeId, event.place);
-      }
-    }
-    this.db
-      .prepare(
-        'INSERT INTO event (id, type, date_json, place_id, description, person_id, family_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        event.id,
-        event.type,
-        event.date ? JSON.stringify(event.date) : null,
-        placeId,
-        event.description ?? null,
-        event.personId ?? null,
-        event.familyId ?? null,
-      );
+    this.events.insertEvent(event);
   }
 
   deleteEvent(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM event WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.events.deleteEvent(id);
   }
 
   listEventsForPerson(personId: string): EventRecord[] {
-    return this.queryEvents('person_id', personId);
+    return this.events.listEventsForPerson(personId);
   }
 
   listEventsForFamily(familyId: string): EventRecord[] {
-    return this.queryEvents('family_id', familyId);
-  }
-
-  private queryEvents(column: string, id: string): EventRecord[] {
-    const rows = this.db
-      .prepare(
-        `SELECT e.id, e.type, e.date_json, p.name AS place, e.description, e.person_id, e.family_id
-         FROM event e LEFT JOIN place p ON p.id = e.place_id WHERE e.${column} = ? ORDER BY e.id`,
-      )
-      .all(id) as unknown as Array<{
-      id: string;
-      type: string;
-      date_json: string | null;
-      place: string | null;
-      description: string | null;
-      person_id: string | null;
-      family_id: string | null;
-    }>;
-    return rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      date: row.date_json ? (JSON.parse(row.date_json) as DateValue) : undefined,
-      place: row.place ?? undefined,
-      description: row.description ?? undefined,
-      personId: row.person_id ?? undefined,
-      familyId: row.family_id ?? undefined,
-    }));
+    return this.events.listEventsForFamily(familyId);
   }
 
   insertMedia(media: MediaRecord): void {
-    this.db
-      .prepare('INSERT INTO media (id, path, caption, target_type, target_id) VALUES (?, ?, ?, ?, ?)')
-      .run(media.id, media.path, media.caption ?? null, media.targetType ?? null, media.targetId ?? null);
+    this.media.insertMedia(media);
   }
 
   deleteMedia(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM media WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.media.deleteMedia(id);
   }
 
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, path, caption, target_type, target_id FROM media WHERE target_type = ? AND target_id = ? ORDER BY id')
-      .all(targetType, targetId) as unknown as Array<{
-      id: string;
-      path: string;
-      caption: string | null;
-      target_type: string | null;
-      target_id: string | null;
-    }>;
-    return rows.map((row) => ({
-      id: row.id,
-      path: row.path,
-      caption: row.caption ?? undefined,
-      targetType: row.target_type ?? undefined,
-      targetId: row.target_id ?? undefined,
-    }));
+    return this.media.listMediaFor(targetType, targetId);
+  }
+
+  toTreeDocument(): TreeDocument {
+    return {
+      persons: new Map(this.listAllPersons().map((person) => [person.id, person])),
+      families: new Map(this.listFamilies().map((family) => [family.id, family])),
+      sources: new Map(this.listSources().map((source) => [source.id, source])),
+    };
   }
 
   transaction<T>(fn: () => T): T {
-    if (this.transactionDepth > 0) {
-      return fn();
-    }
-    this.db.exec('BEGIN IMMEDIATE');
-    this.transactionDepth = 1;
-    try {
-      const result = fn();
-      this.db.exec('COMMIT');
-      return result;
-    } catch (error) {
-      this.db.exec('ROLLBACK');
-      throw error;
-    } finally {
-      this.transactionDepth = 0;
-    }
+    return this.transactions.run(fn);
   }
-
-  private replaceLinks(family: FamilyRecord): void {
-    const personExists = this.db.prepare('SELECT 1 FROM person WHERE id = ?');
-    const insertParent = this.db.prepare('INSERT INTO family_parent (family_id, parent_id) VALUES (?, ?)');
-    for (const parentId of family.parents) {
-      if (personExists.get(parentId) !== undefined) {
-        insertParent.run(family.id, parentId);
-      }
-    }
-    const insertChild = this.db.prepare('INSERT INTO family_child (family_id, child_id) VALUES (?, ?)');
-    for (const childId of family.children) {
-      if (personExists.get(childId) !== undefined) {
-        insertChild.run(family.id, childId);
-      }
-    }
-  }
-
-  private hydrateFamily(id: string): FamilyRecord {
-    const parents = this.db.prepare('SELECT parent_id FROM family_parent WHERE family_id = ?').all(id) as unknown as {
-      parent_id: string;
-    }[];
-    const children = this.db.prepare('SELECT child_id FROM family_child WHERE family_id = ?').all(id) as unknown as {
-      child_id: string;
-    }[];
-    return {
-      id,
-      parents: parents.map((row) => row.parent_id),
-      children: children.map((row) => row.child_id),
-    };
-  }
-}
-
-function dateToJson(date: DateValue | undefined): string | null {
-  return date ? JSON.stringify(date) : null;
-}
-
-function rowToPerson(row: PersonRow): PersonRecord {
-  return {
-    id: row.id,
-    names: JSON.parse(row.names) as NamePart[],
-    sex: row.sex ?? 'U',
-    birth: row.birth_json ? (JSON.parse(row.birth_json) as DateValue) : undefined,
-    death: row.death_json ? (JSON.parse(row.death_json) as DateValue) : undefined,
-  };
 }
