@@ -211,6 +211,25 @@ body {
   margin-bottom: 6px;
 }
 
+/* Custom activity bar tooltip: native title tooltips are unreliable under
+   the custom drag region on macOS, so we draw our own to the right of the
+   rail (fixed positioning escapes the card's overflow clipping). */
+.activity-tooltip {
+  position: fixed;
+  left: 54px;
+  transform: translateY(-50%);
+  z-index: 100;
+  pointer-events: none;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--doru-fg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
 .side-bar {
   flex: 0 0 var(--doru-sidebar-width, 260px);
   width: var(--doru-sidebar-width, 260px);

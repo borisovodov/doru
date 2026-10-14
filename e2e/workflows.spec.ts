@@ -170,7 +170,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   const aiSettings = await window.evaluate(() => window.doru.getAiSettings());
   expect(aiSettings).toHaveProperty('provider');
 
-  await window.locator('.activity-bar-item[title="Settings"]').click();
+  await window.locator('.activity-bar .activity-bar-bottom').click();
   await expect(window.locator('.settings-view')).toBeVisible();
   await expect(window.locator('.settings-view select')).toBeVisible();
 

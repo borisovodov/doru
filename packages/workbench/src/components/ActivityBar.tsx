@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
 import { nls } from '../nls';
 
 export type ActivityViewId =
@@ -17,15 +17,56 @@ export interface ActivityBarProps {
   onOpenSettings: () => void;
 }
 
+/** Native title tooltips are unreliable under the custom drag region on
+ *  macOS, so the activity bar draws its own. */
+const TOOLTIP_DELAY_MS = 600;
+
 function Icon({ children }: { children: ReactNode }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 16 16" aria-hidden="true">
       {children}
     </svg>
   );
 }
 
 export function ActivityBar({ activeView, onSelectView, onOpenSettings }: ActivityBarProps) {
+  const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    },
+    [],
+  );
+
+  const showTooltip = (label: string, element: HTMLElement) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(() => {
+      const rect = element.getBoundingClientRect();
+      setTooltip({ label, top: rect.top + rect.height / 2 });
+    }, TOOLTIP_DELAY_MS);
+  };
+
+  const hideTooltip = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setTooltip(null);
+  };
+
+  const tooltipHandlers = (label: string) => ({
+    onMouseEnter: (event: MouseEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget),
+    onMouseLeave: hideTooltip,
+    onFocus: (event: FocusEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget),
+    onBlur: hideTooltip,
+  });
+
   const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode }> = [
     {
       id: 'tree',
@@ -123,16 +164,18 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
         <button
           key={view.id}
           className={view.id === activeView ? 'activity-bar-item active' : 'activity-bar-item'}
-          title={view.title}
+          aria-label={view.title}
           onClick={() => onSelectView(view.id)}
+          {...tooltipHandlers(view.title)}
         >
           {view.icon}
         </button>
       ))}
       <button
         className="activity-bar-item activity-bar-bottom"
-        title={nls.t('workbench.activityBar.settings')}
+        aria-label={nls.t('workbench.activityBar.settings')}
         onClick={onOpenSettings}
+        {...tooltipHandlers(nls.t('workbench.activityBar.settings'))}
       >
         <Icon>
           <path
@@ -141,6 +184,11 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
           />
         </Icon>
       </button>
+      {tooltip && (
+        <div className="activity-tooltip" style={{ top: tooltip.top }} role="tooltip">
+          {tooltip.label}
+        </div>
+      )}
     </div>
   );
 }
