@@ -202,6 +202,12 @@ function titleBarOverlayOptions(): { color: string; symbolColor: string; height:
   };
 }
 
+function windowBackgroundColor(): string {
+  const dark = nativeTheme.shouldUseDarkColors;
+  const themeName = dark ? themeConfig().dark : themeConfig().light;
+  return themeDefinition(themeName).colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
+}
+
 function updateTitleBarOverlays(): void {
   if (process.platform === 'darwin') {
     return;
@@ -219,6 +225,9 @@ function createWindow(projectPath: string | null): BrowserWindow {
     height: 800,
     title: projectPath ? `${basename(projectPath)} — Dóru` : 'Dóru',
     icon: process.platform === 'darwin' ? undefined : iconPath(),
+    // Match the shell color so live window resizes never flash the default
+    // white native surface under the content.
+    backgroundColor: windowBackgroundColor(),
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 13 } }
       : {
@@ -890,6 +899,11 @@ ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) 
   return runtime.repo.listSources();
 });
 
+ipcMain.handle('tree:citations', async (_event, options: { projectPath: string; personId: string }) => {
+  const { runtime } = await ensureRuntime(options.projectPath);
+  return runtime.repo.listCitationsFor('person', options.personId);
+});
+
 ipcMain.handle(
   'tree:addSource',
   async (
@@ -1274,7 +1288,9 @@ void app.whenReady().then(async () => {
 
   nativeTheme.on('updated', () => {
     updateTitleBarOverlays();
+    const background = windowBackgroundColor();
     for (const window of BrowserWindow.getAllWindows()) {
+      window.setBackgroundColor(background);
       window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
     }
   });
