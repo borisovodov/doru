@@ -35,6 +35,8 @@ declare global {
       ): Promise<GedcomImportResult | null>;
       recentProjects(): Promise<RecentProject[]>;
       listPersons(projectPath: string, search?: string): Promise<PersonRecord[]>;
+      /** Every person and family in the tree (no pagination). */
+      all(projectPath: string): Promise<{ persons: PersonRecord[]; families: FamilyRecord[] }>;
       treeStats(projectPath: string): Promise<TreeStats>;
       getUndoState(projectPath: string): Promise<UndoRedoState>;
       undo(projectPath: string): Promise<UndoRedoState>;

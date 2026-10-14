@@ -114,3 +114,36 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
 
   await app.close();
 });
+
+test('clicking a person in the People sidebar focuses the canvas', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-')), 'family.doru');
+  const userData = mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-data-'));
+  const args = ['.', project];
+  if (process.env.CI === 'true') {
+    args.push('--no-sandbox');
+  }
+  const app = await electron.launch({
+    args,
+    cwd: appDir,
+    env: { ...process.env, DORU_USER_DATA: userData },
+  });
+  const window = await app.firstWindow();
+  await window.waitForSelector('.workbench', { timeout: 20_000 });
+  await window.evaluate(
+    async ({ project, fixture }) => {
+      await window.doru.importGedcomFile(project, fixture);
+    },
+    { project, fixture },
+  );
+  await window.reload();
+  await window.waitForSelector('.react-flow__node', { timeout: 20_000 });
+
+  // Open the People view and click Ivan in the sidebar list.
+  await window.locator('.activity-bar .activity-bar-item').nth(1).click();
+  await expect(window.locator('.person-list li').first()).toBeVisible();
+  await window.locator('.person-list li', { hasText: 'Ivan Ivanov' }).first().click();
+
+  // The canvas (kept alive in the hidden pane) refocuses on Ivan.
+  await expect(window.locator('.tree-breadcrumbs')).toHaveText(/Ivan Ivanov/);
+  await app.close();
+});

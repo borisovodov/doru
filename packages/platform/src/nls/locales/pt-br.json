@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Descendentes",
   "tree.canvas.view.family": "Família",
   "tree.canvas.view.hourglass": "Ampulheta",
+  "tree.people.listLimit": "Mostrando {0} de {1} pessoas",
   "workbench.activityBar.export": "Exportar",
   "workbench.activityBar.import": "Importar",
   "workbench.activityBar.people": "Pessoas",

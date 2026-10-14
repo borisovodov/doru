@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Potomkowie",
   "tree.canvas.view.family": "Rodzina",
   "tree.canvas.view.hourglass": "Klepsydra",
+  "tree.people.listLimit": "Wyświetlono {0} z {1} osób",
   "workbench.activityBar.export": "Eksport",
   "workbench.activityBar.import": "Import",
   "workbench.activityBar.people": "Osoby",

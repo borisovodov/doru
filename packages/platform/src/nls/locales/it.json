@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Discendenti",
   "tree.canvas.view.family": "Famiglia",
   "tree.canvas.view.hourglass": "Clessidra",
+  "tree.people.listLimit": "Mostrate {0} di {1} persone",
   "workbench.activityBar.export": "Esporta",
   "workbench.activityBar.import": "Importa",
   "workbench.activityBar.people": "Persone",

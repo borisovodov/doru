@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Απόγονοι",
   "tree.canvas.view.family": "Οικογένεια",
   "tree.canvas.view.hourglass": "Κλεψύδρα",
+  "tree.people.listLimit": "Εμφανίζονται {0} από {1} πρόσωπα",
   "workbench.activityBar.export": "Εξαγωγή",
   "workbench.activityBar.import": "Εισαγωγή",
   "workbench.activityBar.people": "Πρόσωπα",

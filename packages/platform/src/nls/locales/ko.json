@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "후손",
   "tree.canvas.view.family": "가족",
   "tree.canvas.view.hourglass": "모래시계",
+  "tree.people.listLimit": "{1}명 중 {0}명 표시",
   "workbench.activityBar.export": "내보내기",
   "workbench.activityBar.import": "가져오기",
   "workbench.activityBar.people": "인물",

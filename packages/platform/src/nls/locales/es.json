@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Descendientes",
   "tree.canvas.view.family": "Familia",
   "tree.canvas.view.hourglass": "Reloj de arena",
+  "tree.people.listLimit": "Mostrando {0} de {1} personas",
   "workbench.activityBar.export": "Exportar",
   "workbench.activityBar.import": "Importar",
   "workbench.activityBar.people": "Personas",

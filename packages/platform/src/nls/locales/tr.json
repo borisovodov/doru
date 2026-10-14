@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Torunlar",
   "tree.canvas.view.family": "Aile",
   "tree.canvas.view.hourglass": "Kum saati",
+  "tree.people.listLimit": "{1} kişiden {0} gösteriliyor",
   "workbench.activityBar.export": "Dışa aktar",
   "workbench.activityBar.import": "İçe aktar",
   "workbench.activityBar.people": "Kişiler",

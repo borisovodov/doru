@@ -54,6 +54,8 @@ export interface TreeCanvasProps {
   persons: PersonRecord[];
   families: FamilyRecord[];
   api: TreeCanvasApi;
+  /** External focus request (e.g. a click in the People sidebar). */
+  focusRequest?: { personId: string; nonce: number } | null;
 }
 
 /** Must match the card size in TreeCanvas.css — the layout depends on it. */
@@ -90,7 +92,7 @@ export function TreeCanvas(props: TreeCanvasProps) {
   );
 }
 
-function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
+function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasProps) {
   const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
@@ -305,6 +307,15 @@ function TreeCanvasInner({ persons, families, api }: TreeCanvasProps) {
     },
     [persons],
   );
+
+  // External focus requests (e.g. a click in the People sidebar).
+  const lastFocusRequest = useRef(0);
+  useEffect(() => {
+    if (focusRequest && focusRequest.nonce !== lastFocusRequest.current) {
+      lastFocusRequest.current = focusRequest.nonce;
+      refocus(focusRequest.personId);
+    }
+  }, [focusRequest, refocus]);
 
   const goBack = useCallback(() => {
     setHistory((current) =>

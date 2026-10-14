@@ -2,6 +2,9 @@ import type { PersonRecord } from '@doru/core';
 import { PersonList, PlaceholderView } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
+/** Render cap for the People list on very large trees. */
+const PEOPLE_LIST_LIMIT = 500;
+
 export function SidebarView({
   activeView,
   persons,
@@ -27,7 +30,16 @@ export function SidebarView({
           />
         );
       }
-      return <PersonList persons={persons} onOpen={onOpenPerson} />;
+      return (
+        <>
+          <PersonList persons={persons.slice(0, PEOPLE_LIST_LIMIT)} onOpen={onOpenPerson} />
+          {persons.length > PEOPLE_LIST_LIMIT && (
+            <p className="side-bar-note">
+              {nls.t('tree.people.listLimit', PEOPLE_LIST_LIMIT, persons.length)}
+            </p>
+          )}
+        </>
+      );
     case 'places':
       return (
         <PlaceholderView

@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Nachfahren",
   "tree.canvas.view.family": "Familie",
   "tree.canvas.view.hourglass": "Sanduhr",
+  "tree.people.listLimit": "{0} von {1} Personen angezeigt",
   "workbench.activityBar.export": "Exportieren",
   "workbench.activityBar.import": "Importieren",
   "workbench.activityBar.people": "Personen",

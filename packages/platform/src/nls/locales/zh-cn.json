@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "后代",
   "tree.canvas.view.family": "家庭",
   "tree.canvas.view.hourglass": "沙漏图",
+  "tree.people.listLimit": "显示 {1} 人中的 {0} 人",
   "workbench.activityBar.export": "导出",
   "workbench.activityBar.import": "导入",
   "workbench.activityBar.people": "人物",

@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Descendants",
   "tree.canvas.view.family": "Famille",
   "tree.canvas.view.hourglass": "Sablier",
+  "tree.people.listLimit": "{0} personnes affichées sur {1}",
   "workbench.activityBar.export": "Exporter",
   "workbench.activityBar.import": "Importer",
   "workbench.activityBar.people": "Personnes",

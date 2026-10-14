@@ -19,6 +19,9 @@ import { useTreeData } from './hooks/useTreeData';
 export function App() {
   const [projectPath, setProjectPath] = useState<string | null | undefined>(undefined);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
+  const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(
+    null,
+  );
 
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
@@ -96,6 +99,15 @@ export function App() {
     [tabs.openTab, projectPath],
   );
 
+  /** Opens the person editor and refocuses the tree canvas on that person. */
+  const openPersonAndFocus = useCallback(
+    (personId: string) => {
+      tabs.openPersonTab(personId);
+      setCanvasFocus((current) => ({ personId, nonce: (current?.nonce ?? 0) + 1 }));
+    },
+    [tabs.openPersonTab],
+  );
+
   const renderTabContent = (tab: { id: string }): ReactNode => {
     if (tab.id === TREE_TAB_ID) {
       // Keying by the project path resets canvas state (focus history,
@@ -105,6 +117,7 @@ export function App() {
           key={projectPath ?? 'none'}
           persons={tree.persons}
           families={tree.families}
+          focusRequest={canvasFocus}
           api={{
             addRelative: tree.addRelative,
             deletePerson: tree.deletePerson,
@@ -178,7 +191,7 @@ export function App() {
             activeView={activeView}
             persons={tree.persons}
             projectPath={projectPath}
-            onOpenPerson={tabs.openPersonTab}
+            onOpenPerson={openPersonAndFocus}
             onImportGedcom={() => void project.importGedcom()}
             onExportGedcom={() => void project.exportGedcom()}
           />

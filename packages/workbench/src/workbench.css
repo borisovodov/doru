@@ -550,3 +550,10 @@ body.tab-reordering * {
 .tab-drag-ghost.visible {
   visibility: visible;
 }
+
+/* Side bar note (e.g. truncated lists on large trees). */
+.side-bar-note {
+  margin: 8px 12px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}

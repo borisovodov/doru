@@ -14,13 +14,12 @@ export function useTreeData(projectPath: string | null | undefined) {
   const [undoState, setUndoState] = useState<UndoRedoState>(NO_UNDO);
 
   const reloadTree = useCallback(async (path: string) => {
-    const [list, fams, undo] = await Promise.all([
-      window.doru.listPersons(path),
-      window.doru.getFamilies(path),
+    const [data, undo] = await Promise.all([
+      window.doru.all(path),
       window.doru.getUndoState(path),
     ]);
-    setPersons(list);
-    setFamilies(fams);
+    setPersons(data.persons);
+    setFamilies(data.families);
     setUndoState(undo);
   }, []);
 

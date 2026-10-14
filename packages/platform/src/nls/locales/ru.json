@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Потомки",
   "tree.canvas.view.family": "Семья",
   "tree.canvas.view.hourglass": "Песочные часы",
+  "tree.people.listLimit": "Показано {0} из {1} персон",
   "workbench.activityBar.export": "Экспорт",
   "workbench.activityBar.import": "Импорт",
   "workbench.activityBar.people": "Персоны",

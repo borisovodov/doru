@@ -18,6 +18,7 @@ const api = {
   recentProjects: (): Promise<unknown> => ipcRenderer.invoke('project:recent'),
   listPersons: (projectPath: string, search?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:list', { projectPath, search }),
+  all: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:all', { projectPath }),
   treeStats: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:stats', { projectPath }),
   getUndoState: (projectPath: string): Promise<unknown> =>

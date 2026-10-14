@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Utódok",
   "tree.canvas.view.family": "Család",
   "tree.canvas.view.hourglass": "Homokóra",
+  "tree.people.listLimit": "{1} személyből {0} megjelenítve",
   "workbench.activityBar.export": "Exportálás",
   "workbench.activityBar.import": "Importálás",
   "workbench.activityBar.people": "Személyek",

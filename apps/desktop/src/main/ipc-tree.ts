@@ -40,6 +40,14 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle('tree:all', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return {
+      persons: runtime.repo.listAllPersons(),
+      families: runtime.repo.listFamilies(),
+    };
+  });
+
   ipcMain.handle('tree:stats', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return { persons: runtime.repo.countPersons(), families: runtime.repo.countFamilies() };

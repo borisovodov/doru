@@ -111,6 +111,7 @@
   "tree.canvas.view.descendants": "Потомци",
   "tree.canvas.view.family": "Семейство",
   "tree.canvas.view.hourglass": "Пясъчен часовник",
+  "tree.people.listLimit": "Показани {0} от {1} лица",
   "workbench.activityBar.export": "Експортиране",
   "workbench.activityBar.import": "Импортиране",
   "workbench.activityBar.people": "Лица",
