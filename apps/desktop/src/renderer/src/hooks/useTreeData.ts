@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { PersonRecord, TreeStats, UndoRedoState } from '@doru/core';
+import type { FamilyRecord, PersonRecord, UndoRedoState } from '@doru/core';
 import type { PersonEditorApi } from '@doru/features';
 
 const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
@@ -10,47 +10,35 @@ const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
  */
 export function useTreeData(projectPath: string | null | undefined) {
   const [persons, setPersons] = useState<PersonRecord[]>([]);
-  const [stats, setStats] = useState<TreeStats | null>(null);
+  const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [undoState, setUndoState] = useState<UndoRedoState>(NO_UNDO);
-  const [search, setSearch] = useState('');
 
-  const reloadTree = useCallback(async (path: string, query: string) => {
-    const [list, treeStats, undo] = await Promise.all([
-      window.doru.listPersons(path, query),
-      window.doru.treeStats(path),
+  const reloadTree = useCallback(async (path: string) => {
+    const [list, fams, undo] = await Promise.all([
+      window.doru.listPersons(path),
+      window.doru.getFamilies(path),
       window.doru.getUndoState(path),
     ]);
     setPersons(list);
-    setStats(treeStats);
+    setFamilies(fams);
     setUndoState(undo);
   }, []);
 
   useEffect(() => {
     if (!projectPath) {
       setPersons([]);
-      setStats(null);
+      setFamilies([]);
       setUndoState(NO_UNDO);
       return;
     }
-    setSearch('');
-    void reloadTree(projectPath, '');
+    void reloadTree(projectPath);
   }, [projectPath, reloadTree]);
 
   const refreshTree = useCallback(async () => {
     if (projectPath) {
-      await reloadTree(projectPath, search);
+      await reloadTree(projectPath);
     }
-  }, [projectPath, search, reloadTree]);
-
-  const onSearch = useCallback(
-    (query: string) => {
-      setSearch(query);
-      if (projectPath) {
-        void reloadTree(projectPath, query);
-      }
-    },
-    [projectPath, reloadTree],
-  );
+  }, [projectPath, reloadTree]);
 
   const undo = useCallback(async () => {
     if (!projectPath) {
@@ -67,13 +55,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     setUndoState(await window.doru.redo(projectPath));
     void refreshTree();
   }, [projectPath, refreshTree]);
-
-  const getGedcomText = useCallback(async (): Promise<string> => {
-    if (!projectPath) {
-      return '';
-    }
-    return window.doru.getGedcomText(projectPath);
-  }, [projectPath]);
 
   const api = useMemo<PersonEditorApi>(
     () => ({
@@ -185,14 +166,11 @@ export function useTreeData(projectPath: string | null | undefined) {
 
   return {
     persons,
-    stats,
+    families,
     undoState,
-    search,
-    onSearch,
     undo,
     redo,
     refreshTree,
-    getGedcomText,
     api,
   };
 }

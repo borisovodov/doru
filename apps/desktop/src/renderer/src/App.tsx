@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CommandService } from '@doru/platform';
-import { ChatPanel, SettingsView, TreeView, WelcomePage } from '@doru/features';
+import { ChatPanel, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import { PersonTab } from './components/PersonTab';
 import { SidebarView } from './components/SidebarView';
@@ -98,25 +98,7 @@ export function App() {
 
   const renderTabContent = (tab: { id: string }): ReactNode => {
     if (tab.id === TREE_TAB_ID) {
-      return (
-        <TreeView
-          persons={tree.persons}
-          stats={tree.stats}
-          importResult={project.importResult}
-          exportResult={project.exportResult}
-          search={tree.search}
-          canUndo={tree.undoState.canUndo}
-          canRedo={tree.undoState.canRedo}
-          onSearch={tree.onSearch}
-          onUndo={() => void tree.undo()}
-          onRedo={() => void tree.redo()}
-          onImportGedcom={() => void project.importGedcom()}
-          onExportGedcom={() => void project.exportGedcom()}
-          onAddPerson={tabs.openNewPersonTab}
-          onOpenPerson={tabs.openPersonTab}
-          getGedcomText={tree.getGedcomText}
-        />
-      );
+      return <TreeCanvas persons={tree.persons} families={tree.families} />;
     }
     if (tab.id === SETTINGS_TAB_ID) {
       return (

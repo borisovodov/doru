@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { GedcomImportResult, RecentProject } from '@doru/core';
+import type { RecentProject } from '@doru/core';
 
 export function useProject(
   projectPath: string | null | undefined,
@@ -7,13 +7,6 @@ export function useProject(
   ensureTreeTab: () => void,
 ) {
   const [recent, setRecent] = useState<RecentProject[]>([]);
-  const [importResult, setImportResult] = useState<GedcomImportResult | null>(null);
-  const [exportResult, setExportResult] = useState<{ path: string } | null>(null);
-
-  useEffect(() => {
-    setImportResult(null);
-    setExportResult(null);
-  }, [projectPath]);
 
   const refreshRecent = useCallback(async () => {
     setRecent(await window.doru.recentProjects());
@@ -48,7 +41,6 @@ export function useProject(
       return;
     }
     const result = await window.doru.importGedcom(projectPath);
-    setImportResult(result);
     if (result) {
       void refreshTree();
     }
@@ -58,13 +50,11 @@ export function useProject(
     if (!projectPath) {
       return;
     }
-    setExportResult(await window.doru.exportGedcom(projectPath));
+    await window.doru.exportGedcom(projectPath);
   }, [projectPath]);
 
   return {
     recent,
-    importResult,
-    exportResult,
     refreshRecent,
     openProject,
     createProject,

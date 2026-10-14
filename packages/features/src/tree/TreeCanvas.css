@@ -1,0 +1,120 @@
+/* ── The tree tab: one full-size canvas ───────────────────────────── */
+
+.tree-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--doru-bg-canvas);
+  /* Canvas interactions (pan, zoom, drag) come later; disable text
+     selection and native scrolling gestures from the start. */
+  user-select: none;
+  touch-action: none;
+}
+
+.tree-canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--doru-fg-muted);
+  pointer-events: none;
+}
+
+/* ── React Flow theme: map the doru tokens onto the xyflow tokens ──── */
+
+.tree-canvas .react-flow {
+  --xy-background-color: transparent;
+  --xy-background-pattern-dots-color-default: color-mix(
+    in srgb,
+    var(--doru-border) 55%,
+    transparent
+  );
+  --xy-edge-stroke-default: var(--doru-border-strong);
+  --xy-edge-stroke-selected-default: var(--doru-accent);
+  --xy-edge-stroke-width-default: 1.5px;
+  --xy-node-background-color-default: var(--doru-bg-raised);
+  --xy-node-border-default: var(--doru-border);
+  --xy-node-border-radius-default: var(--doru-radius-md);
+  --xy-node-boxshadow-default: var(--doru-ring);
+  --xy-node-boxshadow-hover-default: var(--doru-ring);
+  --xy-node-boxshadow-selected-default: 0 0 0 2px var(--doru-accent);
+  --xy-node-color-default: var(--doru-fg);
+  --xy-selection-background-color-default: color-mix(
+    in srgb,
+    var(--doru-accent) 12%,
+    transparent
+  );
+  --xy-selection-border-default: var(--doru-accent);
+  --xy-controls-button-background-color-default: var(--doru-bg-raised);
+  --xy-controls-button-background-color-hover-default: var(--doru-bg-chrome);
+  --xy-controls-button-color-default: var(--doru-fg);
+  --xy-controls-button-color-hover-default: var(--doru-fg);
+  --xy-controls-button-border-color-default: var(--doru-border);
+  --xy-controls-box-shadow-default: var(--doru-ring);
+  --xy-minimap-background-color-default: var(--doru-bg-chrome);
+  --xy-minimap-mask-background-color-default: color-mix(
+    in srgb,
+    var(--doru-bg-canvas) 72%,
+    transparent
+  );
+  --xy-minimap-mask-stroke-color-default: var(--doru-border);
+  --xy-minimap-node-background-color-default: var(--doru-fg-muted);
+  --xy-minimap-node-stroke-color-default: transparent;
+}
+
+/* ── Person cards ─────────────────────────────────────────────────── */
+
+/* The layout assumes a fixed 180×64 card; keep these values in sync with
+   CARD_WIDTH / CARD_HEIGHT in TreeCanvas.tsx. */
+.person-card {
+  width: 180px;
+  height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 12px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+  cursor: pointer;
+}
+
+.person-card:hover {
+  border-color: var(--doru-accent);
+}
+
+.person-card.selected {
+  border-color: var(--doru-accent);
+  box-shadow:
+    var(--doru-ring),
+    0 0 0 2px var(--doru-accent-alpha);
+}
+
+.person-card-name {
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.person-card-years {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

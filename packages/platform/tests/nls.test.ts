@@ -35,6 +35,6 @@ describe('LocalizationService', () => {
 
   it('interpolates arguments', () => {
     const service = new LocalizationService('en');
-    expect(service.t('features.tree.importResult', 12, 3)).toBe('Imported 12 persons and 3 families');
+    expect(service.t('chat.error', 'boom')).toBe('Error: boom');
   });
 });

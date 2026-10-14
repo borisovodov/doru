@@ -40,18 +40,21 @@ await window.evaluate(
   { project, fixture: join(root, 'e2e', 'fixtures', 'small.ged') },
 );
 await window.waitForSelector('.editor-pane.active');
+// The import happens through the IPC directly, so the renderer still shows
+// pre-import state; reload the window to re-bind the project and load the
+// imported persons.
+await window.reload();
+await window.waitForSelector('.editor-pane.active .tree-canvas');
 
 const labels = () =>
   window.$$eval('.tab-bar .tab .tab-label', (els) => els.map((el) => el.textContent));
 
-// Open two person tabs (switching back to the tree tab in between, since
-// opening a person tab activates it and hides the tree pane).
+// Open two person tabs from the People sidebar (switching back to the tree
+// tab in between, since opening a person tab activates it and hides the
+// tree pane).
+await window.locator('.activity-bar .activity-bar-item').nth(1).click();
 const items = window.locator('.person-list li');
-// The import races the project-bound reload; nudge the UI via the search
-// field so the tree list reflects the imported persons.
-await window.locator('.tree-toolbar input').fill('ivan');
 await items.first().waitFor({ timeout: 20_000 });
-await window.locator('.tree-toolbar input').fill('');
 await items.nth(2).waitFor({ timeout: 20_000 });
 console.log('persons:', await items.count());
 await items.nth(0).click();
