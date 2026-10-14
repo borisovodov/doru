@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, EventRecord, FamilyRecord, MediaRecord, NamePart, NoteRecord, PersonRecord, Sex, SourceRecord } from '../model/types';
+import type { DateValue, EventRecord, FamilyRecord, MediaRecord, NamePart, NoteRecord, PersonRecord, Sex, SourceRecord, TreeDocument } from '../model/types';
 
 interface PersonRow {
   id: string;
@@ -51,6 +51,7 @@ export interface TreeRepository {
   insertMedia(media: MediaRecord): void;
   deleteMedia(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
+  toTreeDocument(): TreeDocument;
   transaction<T>(fn: () => T): T;
 }
 
@@ -416,6 +417,14 @@ export class SqliteTreeRepository implements TreeRepository {
     } finally {
       this.transactionDepth = 0;
     }
+  }
+
+  toTreeDocument(): TreeDocument {
+    return {
+      persons: new Map(this.listAllPersons().map((person) => [person.id, person])),
+      families: new Map(this.listFamilies().map((family) => [family.id, family])),
+      sources: new Map(this.listSources().map((source) => [source.id, source])),
+    };
   }
 
   private replaceLinks(family: FamilyRecord): void {
