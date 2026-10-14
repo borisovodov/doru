@@ -33,7 +33,7 @@ import {
   type MediaWithPath,
   type PersonDraft,
 } from '@doru/features';
-import { Workbench, nls, type ActivityViewId, type TabInfo } from '@doru/workbench';
+import { Workbench, moveTab, nls, type ActivityViewId, type TabInfo } from '@doru/workbench';
 import type { ChatPermissionRequest as PreloadPermissionRequest } from './doru.d';
 
 const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
@@ -663,6 +663,10 @@ export function App() {
     [openTabs],
   );
 
+  const reorderTabs = useCallback((sourceId: string, dropIndex: number) => {
+    setOpenTabs((current) => moveTab(current, sourceId, dropIndex));
+  }, []);
+
   const openPersonTab = useCallback(
     (personId: string) => {
       const person = persons.find((entry) => entry.id === personId);
@@ -900,6 +904,7 @@ export function App() {
         activeTabId={activeTabId}
         onSelectTab={setActiveTabId}
         onCloseTab={closeTab}
+        onReorderTab={reorderTabs}
         onOpenSettings={handleOpenSettings}
       />
     </>

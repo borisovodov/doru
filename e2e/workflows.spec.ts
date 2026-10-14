@@ -98,6 +98,29 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(window.locator('.person-editor')).toBeVisible();
   await expect(window.locator('.chat-panel')).toBeVisible();
 
+  // Tab drag-and-drop: move the first person tab in front of the tree tab.
+  await window.locator('.tab-bar .tab').first().click();
+  await window.locator('.person-list li').nth(1).click();
+  await expect(window.locator('.tab-bar .tab')).toHaveCount(3);
+  const tabLabels = window.locator('.tab-bar .tab .tab-label');
+  const orderBefore = await tabLabels.allTextContents();
+  const draggedTab = window.locator('.tab-bar .tab').nth(1);
+  const dropTarget = window.locator('.tab-bar .tab').nth(0);
+  const from = await draggedTab.boundingBox();
+  const to = await dropTarget.boundingBox();
+  expect(from).not.toBeNull();
+  expect(to).not.toBeNull();
+  await window.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await window.mouse.down();
+  await window.mouse.move(to!.x + 2, to!.y + to!.height / 2, { steps: 8 });
+  await expect(window.locator('.tab-drag-ghost')).toBeVisible();
+  await window.mouse.up();
+  await expect(window.locator('.tab-drag-ghost')).toBeHidden();
+  const orderAfter = await tabLabels.allTextContents();
+  expect(orderAfter).toEqual([orderBefore[1], orderBefore[0], orderBefore[2]]);
+  // The dragged tab becomes active, like in VS Code.
+  await expect(window.locator('.tab-bar .tab').first()).toHaveClass(/active/);
+
   const aiSettings = await window.evaluate(() => window.doru.getAiSettings());
   expect(aiSettings).toHaveProperty('provider');
 

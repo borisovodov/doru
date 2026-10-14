@@ -20,6 +20,7 @@ export interface WorkbenchProps {
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
   onCloseTab?: (id: string) => void;
+  onReorderTab?: (sourceId: string, dropIndex: number) => void;
   activeView: ActivityViewId;
   onSelectView: (view: ActivityViewId) => void;
   onOpenSettings?: () => void;
@@ -37,6 +38,7 @@ export function Workbench({
   activeTabId,
   onSelectTab,
   onCloseTab,
+  onReorderTab,
   activeView,
   onSelectView,
   onOpenSettings,
@@ -104,7 +106,13 @@ export function Workbench({
         />
         {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
       </div>
-      <EditorArea tabs={tabs} activeTabId={activeTabId} onSelectTab={onSelectTab} onCloseTab={onCloseTab}>
+      <EditorArea
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onSelectTab={onSelectTab}
+        onCloseTab={onCloseTab}
+        onReorderTab={onReorderTab}
+      >
         {editor}
       </EditorArea>
       {secondarySideBarOpen && <SecondarySideBar>{secondarySidebar}</SecondarySideBar>}

@@ -128,11 +128,17 @@ decisions about what we deliberately do **not** build, see
   bar is not a card: it spans the full width under the window controls.
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
-  a 2px accent outline; disabled is opacity 0.45. Tabs: a square strip
-  without a bottom divider, active tab is a pill in the canvas color flowing
-  into the editor (top corners rounded, bottom flush), vertical hairline
-  dividers between tabs. Chat: user bubbles are accent-alpha pills, tool
-  steps are raised chips, the input is a 32px rounded field.
+  a 2px accent outline; disabled is opacity 0.45. Tabs (modern VS Code
+  geometry): a 35px strip in the canvas color without a bottom border, tabs
+  are 24px rounded pills (4px radius, 4px gaps, no dividers) — inactive
+  transparent, hover overlay, active chrome-active; the close action appears
+  on hover and on the active tab. Tabs are drag-reorderable via pointer
+  capture (not native HTML5 drag, whose OS session flashes the copy cursor on
+  macOS): pressing a tab activates it immediately, a dimmed source tab, a
+  drag ghost that follows the pointer at its grab point and a 2px accent line
+  mark the gesture, Escape cancels; the index math lives in `tabReorder.ts`.
+  Chat: user bubbles are accent-alpha pills,
+  tool steps are raised chips, the input is a 32px rounded field.
 - **Custom title bar** (see `createWindow` in the main process): macOS uses
   `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Windows and
   Linux use `frame: false` + a Window Controls Overlay colored from the theme

@@ -7,9 +7,17 @@ export interface EditorAreaProps {
   activeTabId?: string | null;
   onSelectTab?: (id: string) => void;
   onCloseTab?: (id: string) => void;
+  onReorderTab?: (sourceId: string, dropIndex: number) => void;
 }
 
-export function EditorArea({ children, tabs, activeTabId, onSelectTab, onCloseTab }: EditorAreaProps) {
+export function EditorArea({
+  children,
+  tabs,
+  activeTabId,
+  onSelectTab,
+  onCloseTab,
+  onReorderTab,
+}: EditorAreaProps) {
   return (
     <div className="editor-area">
       {tabs && tabs.length > 0 && (
@@ -18,6 +26,7 @@ export function EditorArea({ children, tabs, activeTabId, onSelectTab, onCloseTa
           activeId={activeTabId ?? null}
           onSelect={onSelectTab ?? (() => {})}
           onClose={onCloseTab ?? (() => {})}
+          onReorder={onReorderTab}
         />
       )}
       <div className="editor-content">{children}</div>

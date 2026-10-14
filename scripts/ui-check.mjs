@@ -98,4 +98,33 @@ const withSidebar = await window.evaluate(() => {
 });
 console.log('with sidebar:', JSON.stringify(withSidebar, null, 2));
 
+// Tab geometry (open state has tabs rendered)
+const tabs = await window.evaluate(() => {
+  const bar = document.querySelector('.tab-bar');
+  const tab = document.querySelector('.tab-bar .tab');
+  const active = document.querySelector('.tab-bar .tab.active');
+  const close = document.querySelector('.tab-bar .tab .tab-close');
+  if (!bar || !tab) return null;
+  const g = (el) => {
+    const b = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return {
+      x: Math.round(b.x * 10) / 10,
+      y: Math.round(b.y * 10) / 10,
+      w: Math.round(b.width * 10) / 10,
+      h: Math.round(b.height * 10) / 10,
+      radius: cs.borderRadius,
+      bg: cs.backgroundColor,
+      opacity: cs.opacity,
+    };
+  };
+  return {
+    bar: g(bar),
+    tab: g(tab),
+    active: active ? g(active) : null,
+    close: close ? g(close) : null,
+  };
+});
+console.log('tabs:', JSON.stringify(tabs, null, 2));
+
 await app.close();
