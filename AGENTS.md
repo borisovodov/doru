@@ -74,6 +74,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   (`npm run build` first, then `npm run e2e`).
 - Typecheck all workspaces: `npm run typecheck`.
 - Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
+- **Dev runs get their own `userData`.** The main process takes a
+  single-instance lock on `userData`; two dev instances sharing
+  `~/Library/Application Support/Doru` kill each other (the loser quits
+  immediately). Always start dev with an isolated user-data dir:
+  `DORU_USER_DATA="$(mktemp -d -t doru-dev-)" npm run dev` — or point at a
+  stable per-session tmp path if you want recents to survive restarts. Do not
+  rely on the default userData during a session, and never quit other
+  sessions' instances to free the lock.
 - Run tests before considering a change complete.
 - **Restart `npm run dev` after editing `apps/desktop/src/main` or
   `src/preload`** — electron-vite's watcher does not reliably rebuild the main
