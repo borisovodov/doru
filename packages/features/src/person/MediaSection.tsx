@@ -1,6 +1,7 @@
 import type { MediaRecord } from '@doru/core';
 import { nls } from '../nls';
 import type { MediaWithPath } from './types';
+import './MediaSection.css';
 
 export function MediaSection({
   personId,

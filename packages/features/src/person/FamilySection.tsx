@@ -4,6 +4,7 @@ import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
 import { displayName, formatDate } from './format';
+import './FamilySection.css';
 
 interface FamilySectionProps {
   personId: string;

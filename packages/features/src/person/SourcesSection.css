@@ -1,0 +1,37 @@
+/* ── Sources ───────────────────────────────────────────────────────── */
+
+.source-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.source-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--doru-border);
+}
+
+.source-list li:last-child {
+  border-bottom: none;
+}
+
+.sources-new {
+  display: flex;
+  gap: 6px;
+}
+
+.sources-new input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sources-attach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+

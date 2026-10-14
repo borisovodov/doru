@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import './PlaceholderView.css';
 
 export interface PlaceholderViewProps {
   title: string;

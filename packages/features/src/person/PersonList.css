@@ -1,0 +1,27 @@
+/* ── Person list ───────────────────────────────────────────────────── */
+
+.person-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.person-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 8px;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.person-list li:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.person-dates {
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+

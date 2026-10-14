@@ -4,6 +4,7 @@ import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
 import { formatDate } from './format';
+import './EventsSection.css';
 
 const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];
 

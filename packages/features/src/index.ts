@@ -1,5 +1,3 @@
-import './features.css';
-
 export { TreeView, type TreeViewProps } from './tree/TreeView';
 export { PersonEditor, type PersonEditorProps } from './person/PersonEditor';
 export {

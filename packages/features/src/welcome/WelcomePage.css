@@ -1,0 +1,132 @@
+/* ── Welcome page ──────────────────────────────────────────────────── */
+
+.welcome-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 72px 24px;
+}
+
+.welcome-hero {
+  text-align: center;
+  max-width: 520px;
+  margin-bottom: 64px;
+}
+
+.welcome-hero h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.welcome-tagline {
+  margin: 0 0 32px;
+  color: var(--doru-fg-muted);
+  font-size: 14px;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.welcome-primary {
+  height: 32px;
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  border: none;
+  border-radius: var(--doru-radius-lg);
+  padding: 0 16px;
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.welcome-primary:hover {
+  background: var(--doru-accent-hover);
+}
+
+.welcome-primary:active {
+  background: var(--doru-accent-active);
+}
+
+.welcome-secondary {
+  height: 32px;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  border: none;
+  box-shadow: var(--doru-ring);
+  border-radius: var(--doru-radius-lg);
+  padding: 0 16px;
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.welcome-secondary:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.welcome-recent {
+  width: 100%;
+  max-width: 560px;
+}
+
+.welcome-recent h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--doru-fg-muted);
+}
+
+.welcome-recent ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.welcome-recent-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--doru-radius-md);
+  cursor: pointer;
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+}
+
+.welcome-recent-item:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.welcome-recent-name {
+  font-weight: 500;
+}
+
+.welcome-recent-path {
+  color: var(--doru-fg-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.welcome-recent-empty {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--doru-fg-muted);
+}
+

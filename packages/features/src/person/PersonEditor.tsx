@@ -8,6 +8,7 @@ import type {
   SourceRecord,
 } from '@doru/core';
 import { nls } from '../nls';
+import './PersonEditor.css';
 import { DateEditor } from './DateEditor';
 import { EventsSection } from './EventsSection';
 import { FamilySection } from './FamilySection';

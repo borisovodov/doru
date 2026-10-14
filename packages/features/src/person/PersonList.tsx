@@ -1,5 +1,6 @@
 import type { PersonRecord } from '@doru/core';
 import { nls } from '../nls';
+import './PersonList.css';
 import { displayName, years } from './format';
 
 export interface PersonListProps {

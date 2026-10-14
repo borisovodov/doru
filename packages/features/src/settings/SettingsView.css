@@ -1,0 +1,93 @@
+/* ── Settings ──────────────────────────────────────────────────────── */
+
+.settings-view {
+  max-width: 560px;
+  padding: 8px 16px;
+}
+
+.settings-section {
+  margin-top: 16px;
+}
+
+.settings-section h3 {
+  margin: 0 0 8px;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+}
+
+.settings-section label {
+  display: block;
+  margin: 10px 0;
+  color: var(--doru-fg-muted);
+}
+
+.settings-section input,
+.settings-section select,
+.settings-section textarea {
+  width: 100%;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  margin-top: 4px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+}
+
+.settings-section input:focus,
+.settings-section select:focus,
+.settings-section textarea:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.settings-section textarea {
+  height: auto;
+  min-height: 64px;
+  font-family: inherit;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.settings-hint {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  margin: 4px 0;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.settings-actions button {
+  height: var(--doru-control-height);
+  padding: 0 13px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.settings-actions button:hover {
+  background: var(--doru-accent-hover);
+}
+
+.settings-status {
+  font-size: 12px;
+}
+
+.settings-status.ok {
+  color: var(--doru-success);
+}
+
+.settings-status.fail {
+  color: var(--doru-danger);
+}
+

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SourceRecord } from '@doru/core';
 import { nls } from '../nls';
 import type { CitationInfo } from './types';
+import './SourcesSection.css';
 
 interface SourcesSectionProps {
   personId: string;
