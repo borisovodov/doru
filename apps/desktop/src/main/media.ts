@@ -3,10 +3,23 @@ import { randomUUID } from 'node:crypto';
 import { dirname, extname, join } from 'node:path';
 import { MEDIA_DIR_NAME, addMediaOp, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
+import { log } from './log';
 import { ensureRuntime } from './runtime';
 import { focusedWindow } from './windows';
 
 const fs = new NodeFileSystem();
+
+/**
+ * Resolves a media path stored in the database to an absolute path inside
+ * the project's media folder. Returns null for paths that would escape it.
+ */
+function mediaAbsolutePath(projectPath: string, mediaPath: string): string | null {
+  const normalized = mediaPath.replaceAll('\\', '/');
+  if (!normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
+    return null;
+  }
+  return join(dirname(projectPath), mediaPath);
+}
 
 export async function listMediaForPerson(
   projectPath: string,
@@ -52,4 +65,24 @@ export async function addMediaToPerson(
     added.push({ ...media, absolutePath: destination });
   }
   return added;
+}
+
+/**
+ * Deletes the file copy backing a media record from the project's media
+ * folder. Call after the record itself has been removed from the database.
+ *
+ * Note: undoing the deletion restores the record but not the file copy —
+ * mirroring how undoing addMedia leaves the copy behind. Media files are
+ * treated as derived assets, not undoable state.
+ */
+export async function removeMediaFile(projectPath: string, mediaPath: string): Promise<void> {
+  const absolute = mediaAbsolutePath(projectPath, mediaPath);
+  if (!absolute) {
+    return;
+  }
+  try {
+    await fs.remove(absolute);
+  } catch (error) {
+    log.warn('could not remove media file', absolute, error);
+  }
 }

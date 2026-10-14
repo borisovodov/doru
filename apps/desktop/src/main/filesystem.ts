@@ -1,4 +1,4 @@
-import { access, appendFile, copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, appendFile, copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import type { IFileSystem } from '@doru/core';
 
 export class NodeFileSystem implements IFileSystem {
@@ -33,6 +33,10 @@ export class NodeFileSystem implements IFileSystem {
 
   copyFile(source: string, destination: string): Promise<void> {
     return copyFile(source, destination);
+  }
+
+  async remove(path: string): Promise<void> {
+    await rm(path, { force: true });
   }
 
   readBinary(path: string): Promise<Uint8Array> {

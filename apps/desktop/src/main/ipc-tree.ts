@@ -21,7 +21,7 @@ import {
   type SourceRecord,
 } from '@doru/core';
 import { gedcomText } from './gedcom';
-import { addMediaToPerson, listMediaForPerson } from './media';
+import { addMediaToPerson, listMediaForPerson, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
 
 export function registerTreeIpc(): void {
@@ -212,6 +212,7 @@ export function registerTreeIpc(): void {
   ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     runtime.queue.apply(deleteMediaOp(options.media), { repo: runtime.repo });
+    await removeMediaFile(options.projectPath, options.media.path);
     return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
   });
 
