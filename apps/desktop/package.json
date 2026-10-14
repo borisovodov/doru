@@ -14,6 +14,7 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.json",
+    "icon:mac": "node scripts/generate-mac-icon.mjs",
     "package": "electron-vite build && electron-builder --publish never",
     "package:mac": "electron-vite build && electron-builder --mac --publish never",
     "package:win": "electron-vite build && electron-builder --win --publish never",
@@ -25,6 +26,7 @@
     "@doru/features": "*",
     "@doru/platform": "*",
     "@doru/workbench": "*",
+    "jsonc-parser": "3.3.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

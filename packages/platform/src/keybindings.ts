@@ -1,6 +1,4 @@
-import { createServiceId, type IDisposable } from './di';
-
-export const IKeybindingService = createServiceId<IKeybindingService>('keybinding');
+import type { IDisposable } from './disposable';
 
 export interface IKeybindingService {
   register(key: string, command: string): IDisposable;

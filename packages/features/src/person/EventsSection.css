@@ -1,0 +1,79 @@
+/* ── Events ────────────────────────────────────────────────────────── */
+
+.event-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.event-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--doru-border);
+}
+
+.event-list li:last-child {
+  border-bottom: none;
+}
+
+.event-list button {
+  border: none;
+  padding: 0 2px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--doru-radius-sm);
+}
+
+.event-type {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--doru-accent);
+  min-width: 44px;
+}
+
+.event-date {
+  font-size: 12px;
+  color: var(--doru-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-description {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  flex: 1;
+}
+
+.events-add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.events-add input,
+.events-add .date-editor input {
+  width: auto;
+}
+
+.event-type-input {
+  max-width: 140px;
+}
+
+.family-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.family-events-label {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+

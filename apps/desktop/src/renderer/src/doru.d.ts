@@ -12,35 +12,12 @@ import type {
   UndoRedoState,
 } from '@doru/core';
 import type { ChatMessage, ChatSendResult } from '@doru/ai';
-
-export interface AiProviderInfo {
-  id: string;
-  label: string;
-  dialect: 'openai' | 'anthropic' | 'acp';
-  defaultBaseUrl: string;
-  defaultModels: string[];
-  requiresKey: boolean;
-}
-
-export interface AiSettings {
-  provider: string;
-  baseUrl: string;
-  model: string;
-  hasKey: boolean;
-  acpCommand: string;
-  acpArgs: string[];
-  configured: boolean;
-}
-
-export interface MediaWithPath extends MediaRecord {
-  absolutePath: string;
-}
-
-export interface ChatPermissionRequest {
-  id: string;
-  tool: string;
-  arguments: Record<string, unknown>;
-}
+import type {
+  AiProviderInfo,
+  AiSettingsState,
+  ChatPermissionRequest,
+  MediaWithPath,
+} from '@doru/features';
 
 declare global {
   interface Window {
@@ -119,7 +96,7 @@ declare global {
       getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
-      getAiSettings(): Promise<AiSettings>;
+      getAiSettings(): Promise<AiSettingsState>;
       getAiProviders(): Promise<AiProviderInfo[]>;
       setAiSettings(options: {
         provider?: string;
@@ -129,7 +106,7 @@ declare global {
         clearKey?: boolean;
         acpCommand?: string;
         acpArgs?: string[];
-      }): Promise<AiSettings>;
+      }): Promise<AiSettingsState>;
       testAiConnection(options?: {
         provider?: string;
         baseUrl?: string;

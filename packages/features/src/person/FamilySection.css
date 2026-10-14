@@ -1,0 +1,134 @@
+/* ── Families ──────────────────────────────────────────────────────── */
+
+.family-row {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: var(--doru-bg-input);
+  box-shadow: var(--doru-ring);
+  border-radius: var(--doru-radius-md);
+}
+
+.family-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.family-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.family-chip.child {
+  background: var(--doru-accent-alpha);
+}
+
+.family-chip.event {
+  background: var(--doru-bg-raised);
+}
+
+.family-chip button,
+.source-list button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  font-size: 13px;
+  border-radius: var(--doru-radius-sm);
+}
+
+.family-chip button:hover,
+.source-list button:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.family-actions,
+.family-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.family-actions button {
+  height: var(--doru-control-height);
+  padding: 0 11px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  background: transparent;
+  box-shadow: var(--doru-ring);
+  color: var(--doru-danger);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.family-actions button:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.family-add button {
+  height: var(--doru-control-height);
+  padding: 0 11px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-bg-input);
+  box-shadow: var(--doru-ring);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.family-add button:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+/* ── Person picker ─────────────────────────────────────────────────── */
+
+.person-picker {
+  position: relative;
+  flex: 1;
+  min-width: 140px;
+}
+
+.person-picker input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0;
+}
+
+.person-picker-list {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 4px;
+  background: var(--doru-bg-popover);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), var(--doru-ring);
+  border-radius: var(--doru-radius-md);
+  max-height: 200px;
+  overflow: auto;
+}
+
+.person-picker-list li {
+  padding: 4px 8px;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.person-picker-list li:hover {
+  background: var(--doru-overlay-hover);
+}
+

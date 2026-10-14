@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { nls } from '../nls';
+import './SettingsView.css';
 
 export interface AiProviderInfo {
   id: string;
