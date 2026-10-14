@@ -16,11 +16,12 @@ import {
   type NodeChange,
 } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson } from '@doru/core/layout';
-import type { ChartDirection, FamilyRecord, PersonRecord } from '@doru/core';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { ChartKind, FamilyRecord, PersonRecord } from '@doru/core';
+import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { nls } from '../nls';
 import { displayName } from '../person/format';
-import { MarriageEdge, PedigreeEdge, type CanvasEdgeData } from './PedigreeEdges';
+import { GenerationBand, type GenerationBandData } from './GenerationBand';
+import { MarriageEdge, PedigreeEdge, SeeAlsoEdge, type CanvasEdgeData } from './PedigreeEdges';
 import { PersonCard, type PersonCardData } from './PersonCard';
 import '@xyflow/react/dist/style.css';
 import './TreeCanvas.css';
@@ -33,9 +34,17 @@ export interface TreeCanvasProps {
 /** Must match the card size in TreeCanvas.css — the layout depends on it. */
 const CARD_WIDTH = 180;
 const CARD_HEIGHT = 64;
+const ROW_HEIGHT = CARD_HEIGHT + 48;
 
-const nodeTypes = { personCard: PersonCard };
-const edgeTypes = { pedigree: PedigreeEdge, marriage: MarriageEdge };
+const nodeTypes = { personCard: PersonCard, generationBand: GenerationBand };
+const edgeTypes = { pedigree: PedigreeEdge, marriage: MarriageEdge, seeAlso: SeeAlsoEdge };
+
+const CHART_KINDS = [
+  { kind: 'ancestors', key: 'tree.canvas.view.ancestors' },
+  { kind: 'descendants', key: 'tree.canvas.view.descendants' },
+  { kind: 'hourglass', key: 'tree.canvas.view.hourglass' },
+  { kind: 'family', key: 'tree.canvas.view.family' },
+] as const satisfies ReadonlyArray<{ kind: ChartKind; key: string }>;
 
 interface FocusHistory {
   stack: string[];
@@ -46,7 +55,7 @@ interface FocusHistory {
  * The tree tab: one full-size canvas. The graph is derived from the domain
  * model on every render (controlled mode) — React Flow never owns the data.
  * Double-clicking a card refocuses the chart; the toolbar switches between
- * ancestors and descendants and walks the focus history.
+ * chart kinds, walks the focus history and collapses branches.
  */
 export function TreeCanvas(props: TreeCanvasProps) {
   return (
@@ -57,8 +66,9 @@ export function TreeCanvas(props: TreeCanvasProps) {
 }
 
 function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
-  const [direction, setDirection] = useState<ChartDirection>('ancestors');
+  const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { setViewport } = useReactFlow();
 
@@ -76,26 +86,67 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
       return null;
     }
     return layoutPedigree(effectiveFocus, persons, families, {
-      direction,
+      kind,
       maxGenerations: 4,
+      collapsed,
       nodeWidth: CARD_WIDTH,
       nodeHeight: CARD_HEIGHT,
     });
-  }, [effectiveFocus, persons, families, direction]);
+  }, [effectiveFocus, persons, families, kind, collapsed]);
 
   const projected = useMemo(() => {
     if (!layout) {
-      return { nodes: [] as Node<PersonCardData, 'personCard'>[], edges: [] as Edge[] };
+      return {
+        nodes: [] as Node<PersonCardData | GenerationBandData, string>[],
+        edges: [] as Edge[],
+      };
     }
     const personById = new Map(persons.map((person) => [person.id, person]));
-    const flowNodes: Node<PersonCardData, 'personCard'>[] = layout.cards.map((card) => ({
-      id: card.key,
-      type: 'personCard',
-      position: { x: card.x - CARD_WIDTH / 2, y: card.y - CARD_HEIGHT / 2 },
-      data: {
-        person: personById.get(card.personId) ?? { id: card.personId, names: [], sex: 'U' },
-      },
-    }));
+    const toggleCollapse = (personId: string) => {
+      setCollapsed((current) => {
+        const next = new Set(current);
+        if (next.has(personId)) {
+          next.delete(personId);
+        } else {
+          next.add(personId);
+        }
+        return next;
+      });
+    };
+    // Generation bands sit behind the cards: render them first so they stay
+    // below in the DOM order.
+    const bandNodes: Node<GenerationBandData, 'generationBand'>[] = [
+      ...new Set(layout.cards.map((card) => card.generation)),
+    ]
+      .sort((a, b) => a - b)
+      .map((generation) => ({
+        id: `band:${generation}`,
+        type: 'generationBand',
+        position: {
+          x: layout.minX - 240,
+          y: generation * ROW_HEIGHT - ROW_HEIGHT / 2,
+        },
+        style: { width: layout.width + 480, height: ROW_HEIGHT },
+        data: { generation },
+        selectable: false,
+        draggable: false,
+      }));
+    const flowNodes: Node<PersonCardData | GenerationBandData, string>[] = [
+      ...bandNodes,
+      ...layout.cards.map((card) => ({
+        id: card.key,
+        type: 'personCard',
+        position: { x: card.x - CARD_WIDTH / 2, y: card.y - CARD_HEIGHT / 2 },
+        data: {
+          person: personById.get(card.personId) ?? { id: card.personId, names: [], sex: 'U' },
+          line: card.line,
+          isFocus: card.key === layout.focusKey,
+          hasSubtree: card.hasSubtree,
+          collapsed: collapsed.has(card.personId),
+          onToggleCollapse: toggleCollapse,
+        } satisfies PersonCardData,
+      })),
+    ];
     const flowEdges: Edge[] = layout.edges.map((edge) => ({
       id: edge.id,
       type: edge.kind,
@@ -104,12 +155,12 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
       data: edge.geometry as CanvasEdgeData,
     }));
     return { nodes: flowNodes, edges: flowEdges };
-  }, [layout, persons]);
+  }, [layout, persons, collapsed]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
   // standard change handlers.
-  const [nodes, setNodes] = useState<Node<PersonCardData, 'personCard'>[]>([]);
+  const [nodes, setNodes] = useState<Node<PersonCardData | GenerationBandData, string>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   useEffect(() => {
     setNodes(projected.nodes);
@@ -117,7 +168,10 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
   }, [projected]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((current) => applyNodeChanges(changes, current) as Node<PersonCardData, 'personCard'>[]);
+    setNodes(
+      (current) =>
+        applyNodeChanges(changes, current) as Node<PersonCardData | GenerationBandData, string>[],
+    );
   }, []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges((current) => applyEdgeChanges(changes, current) as Edge[]);
@@ -196,9 +250,20 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
     setHistory((current) => (current ? { ...current, index } : current));
   }, []);
 
+  const collapseAll = useCallback(() => {
+    setCollapsed(new Set(persons.map((person) => person.id)));
+  }, [persons]);
+
+  const expandAll = useCallback(() => {
+    setCollapsed(new Set());
+  }, []);
+
   const handleNodeDoubleClick = useCallback(
-    (_event: React.MouseEvent, node: Node<PersonCardData>) => {
-      refocus(node.data.person.id);
+    (_event: React.MouseEvent, node: Node<PersonCardData | GenerationBandData>) => {
+      const data = node.data as PersonCardData;
+      if (data.person) {
+        refocus(data.person.id);
+      }
     },
     [refocus],
   );
@@ -228,6 +293,7 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           nodesDraggable={false}
+          nodesConnectable={false}
           minZoom={0.1}
           maxZoom={2}
           onNodesChange={onNodesChange}
@@ -241,20 +307,16 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
           <Controls showInteractive={false} />
           <Panel position="top-left" className="tree-toolbar">
             <div className="tree-direction" role="group">
-              <button
-                type="button"
-                className={direction === 'ancestors' ? 'active' : undefined}
-                onClick={() => setDirection('ancestors')}
-              >
-                {nls.t('tree.canvas.view.ancestors')}
-              </button>
-              <button
-                type="button"
-                className={direction === 'descendants' ? 'active' : undefined}
-                onClick={() => setDirection('descendants')}
-              >
-                {nls.t('tree.canvas.view.descendants')}
-              </button>
+              {CHART_KINDS.map((entry) => (
+                <button
+                  key={entry.kind}
+                  type="button"
+                  className={kind === entry.kind ? 'active' : undefined}
+                  onClick={() => setKind(entry.kind)}
+                >
+                  {nls.t(entry.key)}
+                </button>
+              ))}
             </div>
             <div className="tree-nav">
               <button
@@ -274,6 +336,22 @@ function TreeCanvasInner({ persons, families }: TreeCanvasProps) {
                 onClick={goForward}
               >
                 <ChevronRight size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                title={nls.t('tree.canvas.collapseAll')}
+                aria-label={nls.t('tree.canvas.collapseAll')}
+                onClick={collapseAll}
+              >
+                <ChevronsDownUp size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                title={nls.t('tree.canvas.expandAll')}
+                aria-label={nls.t('tree.canvas.expandAll')}
+                onClick={expandAll}
+              >
+                <ChevronsUpDown size={16} aria-hidden="true" />
               </button>
             </div>
             {breadcrumbs.length > 0 && (

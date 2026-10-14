@@ -43,7 +43,7 @@ export { computePedigree, type PedigreeNode } from './pedigree';
 export {
   layoutPedigree,
   suggestFocusPerson,
-  type ChartDirection,
+  type ChartKind,
   type LaidOutCard,
   type PedigreeCard,
   type PedigreeCardRole,
@@ -51,6 +51,7 @@ export {
   type PedigreeEdgeKind,
   type PedigreeLayout,
   type PedigreeLayoutOptions,
+  type PedigreeLine,
 } from './layout/pedigree';
 export interface GedcomImportResult {
   importedPersons: number;

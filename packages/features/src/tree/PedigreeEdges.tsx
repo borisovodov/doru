@@ -37,3 +37,20 @@ export function MarriageEdge({ id, data }: EdgeProps<Edge<CanvasEdgeData>>) {
   const { from, to } = data;
   return <BaseEdge id={id} path={`M ${from.x} ${from.y} L ${to.x} ${to.y}`} />;
 }
+
+/**
+ * A dashed "see also" curve: marks a person that was not expanded because
+ * they already appear elsewhere in the chart (an ancestry cycle in the
+ * data). It connects the card centres with a gentle arc.
+ */
+export function SeeAlsoEdge({ id, data }: EdgeProps<Edge<CanvasEdgeData>>) {
+  if (!data) {
+    return null;
+  }
+  const { from, to } = data;
+  const midX = (from.x + to.x) / 2;
+  const midY = (from.y + to.y) / 2;
+  const bow = Math.abs(to.x - from.x) * 0.25 + 24;
+  const path = `M ${from.x} ${from.y} Q ${midX} ${midY - bow} ${to.x} ${to.y}`;
+  return <BaseEdge id={id} path={path} className="see-also-edge" />;
+}

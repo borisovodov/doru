@@ -109,6 +109,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-right: 16px;
 }
 
 .person-card-years {
@@ -130,6 +131,110 @@
   border: none;
   opacity: 0;
   pointer-events: none;
+}
+
+/* ── Presentation: sex, line, life state ──────────────────────────── */
+
+.tree-canvas {
+  --doru-line-paternal: var(--doru-info);
+  --doru-line-maternal: #c98ba0;
+}
+
+.person-card {
+  border-left-width: 3px;
+}
+
+.person-card.line-paternal {
+  border-left-color: var(--doru-line-paternal);
+}
+
+.person-card.line-maternal {
+  border-left-color: var(--doru-line-maternal);
+}
+
+.person-card.deceased {
+  opacity: 0.75;
+}
+
+.person-card.deceased .person-card-name {
+  color: var(--doru-fg-muted);
+}
+
+.person-card.focus {
+  border-color: var(--doru-accent);
+  box-shadow:
+    var(--doru-ring),
+    0 0 0 2px var(--doru-accent-alpha);
+}
+
+.sex-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.person-card.sex-m .sex-dot {
+  background: var(--doru-info);
+}
+
+.person-card.sex-f .sex-dot {
+  background: #c98ba0;
+}
+
+/* ── Collapse button ──────────────────────────────────────────────── */
+
+.person-card-collapse {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.person-card:hover .person-card-collapse {
+  display: inline-flex;
+}
+
+.person-card-collapse:hover {
+  color: var(--doru-fg);
+  border-color: var(--doru-accent);
+}
+
+/* ── Generation bands ─────────────────────────────────────────────── */
+
+.generation-band {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--doru-radius-md);
+  pointer-events: none;
+}
+
+.generation-band.even {
+  background: transparent;
+}
+
+.generation-band.odd {
+  background: color-mix(in srgb, var(--doru-bg-raised) 55%, transparent);
+}
+
+/* ── See-also edges ───────────────────────────────────────────────── */
+
+.see-also-edge {
+  stroke-dasharray: 4 4;
+  stroke: var(--doru-fg-faint);
 }
 
 /* ── Canvas toolbar ───────────────────────────────────────────────── */
