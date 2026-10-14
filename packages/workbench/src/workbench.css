@@ -56,6 +56,12 @@ body,
   height: 100%;
 }
 
+/* The html canvas mirrors the body so nothing white peeks through during
+   live window resizes. */
+html {
+  background: var(--doru-bg-canvas);
+}
+
 body {
   margin: 0;
   font-family:
@@ -72,6 +78,7 @@ body {
 }
 
 .workbench {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr 0px;
   grid-template-rows: auto 1fr;
@@ -84,7 +91,7 @@ body {
 }
 
 .workbench.secondary-open {
-  grid-template-columns: auto 1fr 328px;
+  grid-template-columns: auto 1fr var(--doru-secondary-column, 328px);
 }
 
 .title-bar {
@@ -113,6 +120,28 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.title-bar-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--doru-radius-sm);
+  color: var(--doru-fg-muted);
+  cursor: pointer;
+}
+
+.title-bar-action:hover {
+  background: var(--doru-overlay-hover);
+  color: var(--doru-fg);
+}
+
+.title-bar-action.active {
+  color: var(--doru-fg);
+}
+
 /* macOS: reserve space for the traffic lights on the left. */
 .title-bar-mac {
   padding-left: 78px;
@@ -133,6 +162,7 @@ body {
 
 .side-cluster {
   grid-area: sidecluster;
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -182,8 +212,8 @@ body {
 }
 
 .side-bar {
-  flex: 0 0 260px;
-  width: 260px;
+  flex: 0 0 var(--doru-sidebar-width, 260px);
+  width: var(--doru-sidebar-width, 260px);
   box-sizing: border-box;
   /* The leading hairline is the seam that splits the shared card in two. */
   border-left: 1px solid var(--doru-border);
@@ -193,6 +223,7 @@ body {
 
 .secondary-side-bar {
   grid-area: secondary;
+  position: relative;
   margin: 0 var(--doru-panel-gutter) var(--doru-panel-gutter) var(--doru-panel-gutter);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-panel-radius);
@@ -201,6 +232,94 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Resize sashes between the panels (pointer-based, no native drag session).
+   They sit in the 4px gutters between the floating cards, spanning the cards'
+   height (below the 38px title bar, above the 4px bottom gutter). */
+
+.sash {
+  position: absolute;
+  top: 38px;
+  bottom: 4px;
+  width: 8px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sash::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 22px;
+  /* Three barely-visible dots that always hint at the drag affordance. */
+  background-image:
+    radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px),
+    radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px),
+    radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px);
+  background-repeat: no-repeat;
+  background-size: 2px 2px;
+  background-position:
+    center 6px,
+    center 11px,
+    center 16px;
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
+}
+
+.sash::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--doru-accent);
+  opacity: 0;
+  /* Fades out immediately so quick passes never flash. */
+  transition: opacity 0.12s ease;
+}
+
+.sash:hover::after {
+  opacity: 0.5;
+  /* Appears only after a short hover, so sweeping the cursor across the
+     window does not flicker the line. */
+  transition-delay: 0.2s;
+}
+
+/* The dots give way to the highlight line while hovering or dragging. */
+.sash:hover::before {
+  opacity: 0;
+  transition-delay: 0.2s;
+}
+
+.sash.dragging::after {
+  opacity: 1;
+  /* An actual resize shows the line right away. */
+  transition-delay: 0s;
+}
+
+.sash.dragging::before {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+.side-sash {
+  left: var(--doru-side-sash-left, 312px);
+}
+
+.secondary-sash {
+  right: var(--doru-secondary-sash-right, 322px);
+}
+
+body.sash-resizing,
+body.sash-resizing * {
+  cursor: col-resize !important;
 }
 
 .editor-area {
@@ -249,11 +368,12 @@ body {
   display: flex;
   align-items: center;
   /* Modern VS Code: the tab strip takes the editor background, so the tabs
-     float on it as pills; 35px strip with 24px pills, no bottom border. */
+     float on it as pills; 35px strip with 24px pills, no bottom border.
+     Tabs shrink with ellipsized labels instead of scrolling. */
   height: 35px;
   box-sizing: border-box;
   background: var(--doru-bg-canvas);
-  overflow-x: auto;
+  overflow: hidden;
   flex: none;
   padding: 2px;
 }
@@ -262,9 +382,12 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
   height: 24px;
-  flex: none;
+  /* Browser-like sizing: equal widths capped at a common maximum; shrink to
+     fit the editor width (like OpenCode) with fading labels. */
+  flex: 1 1 0;
+  min-width: 40px;
+  max-width: 160px;
   /* 2px on each side + the strip's own padding: 4px between pill fills. */
   margin: 0 2px;
   padding: 0 8px 0 6px;
@@ -275,6 +398,30 @@ body {
   white-space: nowrap;
   user-select: none;
   font-size: var(--doru-font-size);
+}
+
+.tab-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Clipped labels dissolve on the right edge; ellipses never appear. */
+  text-overflow: clip;
+}
+
+/* Clipped labels dissolve at the tab's right edge while the close action is
+   hidden. */
+.tab-label.fading {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+}
+
+/* With the close action visible (hover or active) a clipped label dissolves
+   just before it, so nothing runs under the button. */
+.tab:hover .tab-label.fading,
+.tab.active .tab-label.fading {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 34px), transparent calc(100% - 14px));
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 34px), transparent calc(100% - 14px));
 }
 
 .tab:hover:not(.active) {
@@ -288,6 +435,10 @@ body {
 }
 
 .tab-close {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
   border: none;
   background: transparent;
   color: inherit;

@@ -126,11 +126,24 @@ decisions about what we deliberately do **not** build, see
   window edges and from each other (`--doru-panel-gutter`), so only their
   borders separate them from the shell — they are framed, not cut. The title
   bar is not a card: it spans the full width under the window controls.
+- **Resizable side bars**: the primary side bar (260px default) and the
+  secondary side bar (320px default) are resized with pointer-based sashes
+  (`.sash`, 8px hit strip in the gutter between the cards, a 2px accent line
+  with a short hover delay and an always-visible faint three-dot grip that
+  yields to the line, `col-resize` cursor via a body class); widths are
+  clamped (160–520 / 220–560), live in `Workbench` state and feed the grid
+  via `--doru-sidebar-width` / `--doru-secondary-column` custom properties.
+  The title bar carries a toggle button for the secondary side bar (also
+  `Meta/Ctrl+Alt+B`).
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
   a 2px accent outline; disabled is opacity 0.45. Tabs (modern VS Code
   geometry): a 35px strip in the canvas color without a bottom border, tabs
-  are 24px rounded pills (4px radius, 4px gaps, no dividers) — inactive
+  are 24px rounded pills (4px radius, 4px gaps, no dividers) with equal
+  widths capped at a common 160px maximum (browser-like) that shrink with
+  labels fading out on the right edge instead of scrolling — the fade reaches
+  the tab edge while the close action is hidden and yields to it on hover or
+  activation — inactive
   transparent, hover overlay, active chrome-active; the close action appears
   on hover and on the active tab. Tabs are drag-reorderable via pointer
   capture (not native HTML5 drag, whose OS session flashes the copy cursor on

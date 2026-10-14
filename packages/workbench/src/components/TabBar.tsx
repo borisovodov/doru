@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { nls } from '../nls';
 import { dropIndexForTabs } from '../tabReorder';
 
@@ -81,6 +81,51 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [drag]);
+
+  // Clipped labels fade out on the right edge (no ellipses, like OpenCode):
+  // measure the rendered text width on a canvas for subpixel precision, so
+  // every sliver of overflow flips the label to the fading mask. When the
+  // close action is visible (active or hovered) the label's usable width
+  // excludes the 22px it occupies. Tracks the strip width, the tab set and
+  // hover changes.
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar) {
+      return;
+    }
+    let canvas: HTMLCanvasElement | null = null;
+    const textWidth = (label: HTMLElement): number => {
+      canvas ??= document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      const style = getComputedStyle(label);
+      const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}/${style.lineHeight} ${style.fontFamily}`;
+      if (!context) {
+        return (label.textContent?.length ?? 0) * 8;
+      }
+      context.font = font;
+      return context.measureText(label.textContent ?? '').width;
+    };
+    const updateFades = () => {
+      const labels = bar.querySelectorAll<HTMLElement>('.tab-label');
+      for (const label of labels) {
+        const tab = label.closest<HTMLElement>('.tab');
+        const reserveClose =
+          tab && (tab.classList.contains('active') || tab.matches(':hover')) ? 22 : 0;
+        label.classList.toggle('fading', textWidth(label) > label.clientWidth - reserveClose);
+      }
+    };
+    const scheduleUpdate = () => requestAnimationFrame(updateFades);
+    updateFades();
+    const observer = new ResizeObserver(updateFades);
+    observer.observe(bar);
+    bar.addEventListener('pointerover', scheduleUpdate);
+    bar.addEventListener('pointerout', scheduleUpdate);
+    return () => {
+      observer.disconnect();
+      bar.removeEventListener('pointerover', scheduleUpdate);
+      bar.removeEventListener('pointerout', scheduleUpdate);
+    };
+  }, [tabs]);
 
   if (tabs.length === 0) {
     return null;
