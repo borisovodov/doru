@@ -1,17 +1,15 @@
 import './features.css';
 
 export { TreeView, type TreeViewProps } from './tree/TreeView';
+export { PersonEditor, type PersonEditorProps } from './person/PersonEditor';
 export {
-  PersonEditor,
   draftToRecord,
   newPersonDraft,
   personDraftMatches,
   personToDraft,
-  type CitationInfo,
-  type MediaWithPath,
   type PersonDraft,
-  type PersonEditorProps,
-} from './person/PersonEditor';
+} from './person/draft';
+export type { CitationInfo, MediaWithPath, PersonEditorApi } from './person/types';
 export { PersonList, type PersonListProps } from './person/PersonList';
 export { displayName } from './person/format';
 export {
