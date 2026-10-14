@@ -83,7 +83,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [drag]);
 
-  // Clipped labels fade out on the right edge (no ellipses, like OpenCode):
+  // Clipped labels fade out on the right edge (no ellipses):
   // measure the rendered text width on a canvas for subpixel precision, so
   // every sliver of overflow flips the label to the fading mask. When the
   // close action is visible (active or hovered) the label's usable width
@@ -159,7 +159,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
     if ((event.target as HTMLElement).closest('.tab-close')) {
       return;
     }
-    // Pressing a tab activates it immediately, like VS Code — so the dragged
+    // Pressing a tab activates it immediately, so the dragged
     // tab is always the active one, during and after the reorder.
     onSelect(tabId);
     if (!reorderRef.current) {

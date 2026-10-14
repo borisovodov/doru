@@ -118,7 +118,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(window.locator('.tab-drag-ghost')).toBeVisible();
   await window.mouse.up();
   await expect(window.locator('.tab-drag-ghost')).toBeHidden();
-  // The dragged tab moves to the front and becomes active, like in VS Code.
+  // The dragged tab moves to the front and becomes active.
   await expect(tabLabels).toHaveText([orderBefore[1]!, orderBefore[0]!, orderBefore[2]!]);
   await expect(window.locator('.tab-bar .tab').first()).toHaveClass(/active/);
 
@@ -133,10 +133,16 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     sideSashBox!.y + sideSashBox!.height / 2,
   );
   await window.mouse.down();
+  // Make the first step explicit, then drag with more steps, so the gesture
+  // reliably registers every move.
+  await window.mouse.move(
+    sideSashBox!.x + sideSashBox!.width / 2 + 12,
+    sideSashBox!.y + sideSashBox!.height / 2,
+  );
   await window.mouse.move(
     sideSashBox!.x + sideSashBox!.width / 2 + 60,
     sideSashBox!.y + sideSashBox!.height / 2,
-    { steps: 6 },
+    { steps: 8 },
   );
   await window.mouse.up();
   const sideAfter = (await window.locator('.side-bar').boundingBox())!.width;
@@ -159,9 +165,13 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   );
   await window.mouse.down();
   await window.mouse.move(
+    secondarySashBox!.x + secondarySashBox!.width / 2 - 10,
+    secondarySashBox!.y + secondarySashBox!.height / 2,
+  );
+  await window.mouse.move(
     secondarySashBox!.x + secondarySashBox!.width / 2 - 50,
     secondarySashBox!.y + secondarySashBox!.height / 2,
-    { steps: 6 },
+    { steps: 8 },
   );
   await window.mouse.up();
   const secondaryAfter = (await window.locator('.secondary-side-bar').boundingBox())!.width;

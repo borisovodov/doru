@@ -118,7 +118,7 @@ decisions about what we deliberately do **not** build, see
   `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
   (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
   `--doru-control-height` = 28px).
-- **Floating panels** (VS Code 2026 geometry): the workbench root is the
+- **Floating panels**: the workbench root is the
   shell — a plain surface in the chrome color. The activity bar and the
   primary side bar share one rounded card (1px border, 8px radius) with a
   hairline seam between them; the editor is its own rounded card in the
@@ -138,8 +138,8 @@ decisions about what we deliberately do **not** build, see
   `Meta/Ctrl+Alt+B`).
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
-  a 2px accent outline; disabled is opacity 0.45. Tabs (modern VS Code
-  geometry): a 35px strip in the canvas color without a bottom border, tabs
+  a 2px accent outline; disabled is opacity 0.45. Tabs: a 35px strip in the
+  canvas color without a bottom border, tabs
   are 24px rounded pills (4px radius, 4px gaps, no dividers) with equal
   widths capped at a common 160px maximum (browser-like) that shrink with
   labels fading out on the right edge instead of scrolling — the fade reaches

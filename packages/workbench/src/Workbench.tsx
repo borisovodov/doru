@@ -111,7 +111,7 @@ export function Workbench({
     '--doru-sidebar-width': `${sideBarWidth}px`,
     '--doru-secondary-column': `${secondaryWidth + 8}px`,
     // Sash positions: the sashes live in the 4px gutters BETWEEN the floating
-    // cards (like VS Code), centered on the gap. The side cluster's right
+    // cards, centered on the gap. The side cluster's right
     // border sits at 4 (gutter) + 48 (rail) + 2 (borders) + sideBarWidth, and
     // the secondary card's left border sits 4px into its column.
     '--doru-side-sash-left': `${sideBarWidth + 52}px`,

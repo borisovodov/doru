@@ -42,7 +42,7 @@
   --doru-font-size: 13px;
 
   /* Floating panels: gutter between the cards and the window edge,
-     and the shared card corner radius (VS Code 2026 geometry). */
+     and the shared card corner radius. */
   --doru-panel-gutter: 4px;
   --doru-panel-radius: var(--doru-radius-lg);
 
@@ -154,7 +154,7 @@ body {
 }
 
 /*
- * Floating panels (VS Code 2026 geometry): the activity bar and the primary
+ * Floating panels: the activity bar and the primary
  * side bar share one rounded card with a hairline seam between them, the
  * editor is its own rounded card, and the secondary side bar floats on the
  * right. The shell background shows through the 4px gutters; the cards
@@ -390,9 +390,9 @@ body.sash-resizing * {
 .tab-bar {
   display: flex;
   align-items: center;
-  /* Modern VS Code: the tab strip takes the editor background, so the tabs
+  /* The tab strip takes the editor background, so the tabs
      float on it as pills; 35px strip with 24px pills, no bottom border.
-     Tabs shrink with ellipsized labels instead of scrolling. */
+     Tabs shrink with labels fading out instead of scrolling. */
   height: 35px;
   box-sizing: border-box;
   background: var(--doru-bg-canvas);
@@ -407,7 +407,7 @@ body.sash-resizing * {
   align-items: center;
   height: 24px;
   /* Browser-like sizing: equal widths capped at a common maximum; shrink to
-     fit the editor width (like OpenCode) with fading labels. */
+     fit the editor width with fading labels. */
   flex: 1 1 0;
   min-width: 40px;
   max-width: 160px;
@@ -475,7 +475,7 @@ body.sash-resizing * {
   align-items: center;
   justify-content: center;
   border-radius: var(--doru-radius-sm);
-  /* Like VS Code: the close action is hidden until hover or activation. */
+  /* The close action is hidden until hover or activation. */
   opacity: 0;
 }
 
