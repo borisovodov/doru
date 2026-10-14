@@ -13,3 +13,4 @@ apps/website/docs/
 apps/website/public/icon.png
 apps/website/.vitepress/cache/
 apps/website/.vitepress/dist/
+.ui-shots/

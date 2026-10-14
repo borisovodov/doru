@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import type { EventRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
@@ -158,16 +159,16 @@ function FamilyCard({
           .map((parentId) => (
             <span key={parentId} className="family-chip">
               {displayName(persons.find((person) => person.id === parentId))}
-              <button title="×" onClick={() => onRemoveMember(parentId)}>
-                ×
+              <button title={nls.t('features.tree.family.removeMember')} onClick={() => onRemoveMember(parentId)}>
+                <X size={12} aria-hidden="true" />
               </button>
             </span>
           ))}
         {family.children.map((childId) => (
           <span key={childId} className="family-chip child">
             {displayName(persons.find((person) => person.id === childId))}
-            <button title="×" onClick={() => onRemoveMember(childId)}>
-              ×
+            <button title={nls.t('features.tree.family.removeMember')} onClick={() => onRemoveMember(childId)}>
+              <X size={12} aria-hidden="true" />
             </button>
           </span>
         ))}
@@ -183,8 +184,8 @@ function FamilyCard({
           <span key={event.id} className="family-chip event">
             {event.date ? formatDate(event.date) : ''}
             {event.place ? ` — ${event.place}` : ''}
-            <button title="×" onClick={() => void removeEvent(event)}>
-              ×
+            <button title={nls.t('features.tree.events.remove')} onClick={() => void removeEvent(event)}>
+              <X size={12} aria-hidden="true" />
             </button>
           </span>
         ))}

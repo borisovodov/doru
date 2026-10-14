@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "Typ",
   "features.tree.events.descriptionField": "Popis",
   "features.tree.events.dateField": "Datum",
+  "features.tree.family.removeMember": "Odebrat člena rodiny",
+  "features.tree.sources.detach": "Odpojit zdroj",
   "features.tree.media.title": "Média",
   "features.tree.media.add": "Přidat fotografie…",
   "features.tree.media.empty": "Zatím žádné fotografie.",

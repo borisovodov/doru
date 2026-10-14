@@ -41,6 +41,11 @@
   --doru-control-height: 28px;
   --doru-font-size: 13px;
 
+  /* Floating panels: gutter between the cards and the window edge,
+     and the shared card corner radius. */
+  --doru-panel-gutter: 4px;
+  --doru-panel-radius: var(--doru-radius-lg);
+
   /* Rings — 0.5px hairline "border" via box-shadow */
   --doru-ring: 0 0 0 0.5px rgba(255, 255, 255, 0.14);
 }
@@ -49,6 +54,12 @@ html,
 body,
 #root {
   height: 100%;
+}
+
+/* The html canvas mirrors the body so nothing white peeks through during
+   live window resizes. */
+html {
+  background: var(--doru-bg-canvas);
 }
 
 body {
@@ -67,13 +78,20 @@ body {
 }
 
 .workbench {
+  position: relative;
   display: grid;
-  grid-template-columns: 48px 260px 1fr 0px;
+  grid-template-columns: auto 1fr 0px;
   grid-template-rows: auto 1fr;
   grid-template-areas:
-    'titlebar titlebar titlebar titlebar'
-    'activity sidebar editor secondary';
+    'titlebar titlebar titlebar'
+    'sidecluster editor secondary';
   height: 100%;
+  /* The shell backdrop visible through the gutters between the floating panels. */
+  background: var(--doru-bg-chrome);
+}
+
+.workbench.secondary-open {
+  grid-template-columns: auto 1fr var(--doru-secondary-column, 328px);
 }
 
 .title-bar {
@@ -84,7 +102,6 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--doru-bg-chrome);
-  border-bottom: 1px solid var(--doru-border);
   -webkit-app-region: drag;
   user-select: none;
 }
@@ -103,6 +120,29 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.title-bar-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  border-radius: var(--doru-radius-sm);
+  color: var(--doru-fg-muted);
+  cursor: pointer;
+}
+
+.title-bar-action:hover {
+  background: var(--doru-overlay-hover);
+  color: var(--doru-fg);
+}
+
+.title-bar-action.active {
+  color: var(--doru-fg);
+}
+
 /* macOS: reserve space for the traffic lights on the left. */
 .title-bar-mac {
   padding-left: 78px;
@@ -113,27 +153,37 @@ body {
   padding-right: calc(100% - env(titlebar-area-width, 100%));
 }
 
-.workbench.secondary-open {
-  grid-template-columns: 48px 260px 1fr 320px;
-}
+/*
+ * Floating panels: the activity bar and the primary
+ * side bar share one rounded card with a hairline seam between them, the
+ * editor is its own rounded card, and the secondary side bar floats on the
+ * right. The shell background shows through the 4px gutters; the cards
+ * themselves keep the chrome color, so only their borders set them apart.
+ */
 
-.workbench.no-sidebar {
-  grid-template-columns: 48px 0px 1fr 0px;
-}
-
-.workbench.no-sidebar.secondary-open {
-  grid-template-columns: 48px 0px 1fr 320px;
+.side-cluster {
+  grid-area: sidecluster;
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 0 var(--doru-panel-gutter) var(--doru-panel-gutter);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-panel-radius);
+  overflow: hidden;
+  background: var(--doru-bg-chrome);
 }
 
 .activity-bar {
-  grid-area: activity;
-  background: var(--doru-bg-chrome);
-  border-right: 1px solid var(--doru-border);
+  flex: 0 0 auto;
+  width: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 6px;
-  gap: 2px;
+  /* The vertical gap matches the 6px side inset of the 36px buttons in the
+     48px rail, so spacing reads uniform around every button. */
+  gap: 6px;
 }
 
 .activity-bar-item {
@@ -144,6 +194,7 @@ body {
   height: 36px;
   background: transparent;
   border: none;
+  padding: 0;
   border-radius: var(--doru-radius-md);
   color: var(--doru-fg-muted);
   cursor: pointer;
@@ -164,22 +215,134 @@ body {
   margin-bottom: 6px;
 }
 
+/* Custom activity bar tooltip: native title tooltips are unreliable under
+   the custom drag region on macOS, so we draw our own to the right of the
+   rail (fixed positioning escapes the card's overflow clipping). */
+.activity-tooltip {
+  position: fixed;
+  left: 54px;
+  transform: translateY(-50%);
+  z-index: 100;
+  pointer-events: none;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--doru-fg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
 .side-bar {
-  grid-area: sidebar;
-  background: var(--doru-bg-chrome);
-  border-right: 1px solid var(--doru-border);
+  flex: 0 0 var(--doru-sidebar-width, 260px);
+  width: var(--doru-sidebar-width, 260px);
+  box-sizing: border-box;
+  /* The leading hairline is the seam that splits the shared card in two. */
+  border-left: 1px solid var(--doru-border);
   overflow: auto;
   padding: 12px;
 }
 
 .secondary-side-bar {
   grid-area: secondary;
+  position: relative;
+  margin: 0 var(--doru-panel-gutter) var(--doru-panel-gutter) var(--doru-panel-gutter);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-panel-radius);
   background: var(--doru-bg-chrome);
-  border-left: 1px solid var(--doru-border);
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Resize sashes between the panels (pointer-based, no native drag session).
+   They sit in the 4px gutters between the floating cards, spanning the cards'
+   height (below the 38px title bar, above the 4px bottom gutter). */
+
+.sash {
+  position: absolute;
+  top: 38px;
+  bottom: 4px;
+  width: 8px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sash::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 22px;
+  /* Three barely-visible dots that always hint at the drag affordance. */
+  background-image:
+    radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px),
+    radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px),
+    radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px);
+  background-repeat: no-repeat;
+  background-size: 2px 2px;
+  background-position:
+    center 6px,
+    center 11px,
+    center 16px;
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
+}
+
+.sash::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--doru-accent);
+  opacity: 0;
+  /* Fades out immediately so quick passes never flash. */
+  transition: opacity 0.12s ease;
+}
+
+.sash:hover::after {
+  opacity: 0.5;
+  /* Appears only after a short hover, so sweeping the cursor across the
+     window does not flicker the line. */
+  transition-delay: 0.2s;
+}
+
+/* The dots give way to the highlight line while hovering or dragging. */
+.sash:hover::before {
+  opacity: 0;
+  transition-delay: 0.2s;
+}
+
+.sash.dragging::after {
+  opacity: 1;
+  /* An actual resize shows the line right away. */
+  transition-delay: 0s;
+}
+
+.sash.dragging::before {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+.side-sash {
+  left: var(--doru-side-sash-left, 312px);
+}
+
+.secondary-sash {
+  right: var(--doru-secondary-sash-right, 322px);
+}
+
+body.sash-resizing,
+body.sash-resizing * {
+  cursor: col-resize !important;
 }
 
 .editor-area {
@@ -190,6 +353,17 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--doru-bg-canvas);
+  /* The editor floats as its own card: rounded, framed, clipping the tab bar. */
+  margin: 0 0 var(--doru-panel-gutter) var(--doru-panel-gutter);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-panel-radius);
+  overflow: hidden;
+}
+
+/* Without the secondary side bar the editor is the rightmost card and owns
+   the window-edge gutter itself. */
+.workbench:not(.secondary-open) .editor-area {
+  margin-right: var(--doru-panel-gutter);
 }
 
 .editor-content {
@@ -215,69 +389,81 @@ body {
 
 .tab-bar {
   display: flex;
-  align-items: stretch;
-  background: var(--doru-bg-chrome);
-  overflow-x: auto;
+  align-items: center;
+  /* The tab strip takes the editor background, so the tabs
+     float on it as pills; 35px strip with 24px pills, no bottom border.
+     Tabs shrink with labels fading out instead of scrolling. */
+  height: 35px;
+  box-sizing: border-box;
+  background: var(--doru-bg-canvas);
+  overflow: hidden;
   flex: none;
-  padding: 0 4px;
+  padding: 2px;
 }
 
 .tab {
   position: relative;
-  isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 35px;
-  padding: 0 10px;
+  height: 24px;
+  /* Browser-like sizing: equal widths capped at a common maximum; shrink to
+     fit the editor width with fading labels. */
+  flex: 1 1 0;
+  min-width: 40px;
+  max-width: 160px;
+  /* 2px on each side + the strip's own padding: 4px between pill fills. */
+  margin: 0 2px;
+  padding: 0 8px 0 6px;
   background: transparent;
+  border-radius: var(--doru-radius-sm);
   color: var(--doru-fg-muted);
   cursor: pointer;
   white-space: nowrap;
+  user-select: none;
   font-size: var(--doru-font-size);
 }
 
-/* The "pill" fill behind the tab content (Modern UI treatment).
-   It flows into the editor below: only the top corners are rounded. */
-.tab::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: 4px;
-  right: 4px;
-  top: 4px;
-  bottom: 0;
-  border-radius: var(--doru-radius-md) var(--doru-radius-md) 0 0;
-  background: transparent;
+.tab-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Clipped labels dissolve on the right edge; ellipses never appear. */
+  text-overflow: clip;
 }
 
-/* Vertical divider between tabs. */
-.tab:not(:first-child)::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 1px;
-  height: 16px;
-  transform: translateY(-50%);
-  background: var(--doru-border);
+/* Clipped labels dissolve at the tab's right edge while the close action is
+   hidden. */
+.tab-label.fading {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
 }
 
-.tab:hover:not(.active)::before {
+/* With the close action visible (hover or active) a clipped label dissolves
+   just before it, so nothing runs under the button. */
+.tab:hover .tab-label.fading,
+.tab.active .tab-label.fading {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 34px), transparent calc(100% - 14px));
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 34px), transparent calc(100% - 14px));
+}
+
+.tab:hover:not(.active) {
   background: var(--doru-overlay-hover);
-}
-
-.tab.active {
   color: var(--doru-fg);
 }
 
-.tab.active::before {
-  background: var(--doru-bg-canvas);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+.tab.active {
+  background: var(--doru-bg-chrome-active);
+  color: var(--doru-fg);
 }
 
 .tab-close {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
   border: none;
+  padding: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -289,9 +475,78 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: var(--doru-radius-sm);
+  /* The close action is hidden until hover or activation. */
+  opacity: 0;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  opacity: 1;
 }
 
 .tab-close:hover {
-  background: var(--doru-overlay-hover);
+  background: var(--doru-overlay-pressed);
   color: var(--doru-fg);
+}
+
+/* Drop indicator for tab reordering: a 2px accent line in the gap before or
+   after the hovered pill. */
+.tab.drop-before::before,
+.tab.drop-after::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--doru-accent);
+  pointer-events: none;
+}
+
+.tab.drop-before::before {
+  left: -2px;
+}
+
+.tab.drop-after::after {
+  right: -2px;
+}
+
+/* Pointer-based tab reordering (no native drag session, so no OS copy
+   cursor): a grab cursor for the whole gesture and a dimmed source tab. */
+body.tab-reordering,
+body.tab-reordering * {
+  cursor: grabbing !important;
+}
+
+.tab.dragging {
+  opacity: 0.6;
+}
+
+/* The drag ghost: a replica of the dragged tab following the pointer
+   (replaces the native drag image we no longer have). Positioned out of
+   flow, so the bar's overflow never clips it. */
+.tab-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px 0 6px;
+  border-radius: var(--doru-radius-sm);
+  background: var(--doru-bg-raised);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    var(--doru-ring);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+.tab-drag-ghost.visible {
+  visibility: visible;
 }

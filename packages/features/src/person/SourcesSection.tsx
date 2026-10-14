@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import type { SourceRecord } from '@doru/core';
 import { nls } from '../nls';
 import type { CitationInfo } from './types';
@@ -60,8 +61,8 @@ export function SourcesSection({
         {citations.map((citation) => (
           <li key={citation.id}>
             <span>{citation.source.title}</span>
-            <button title="×" onClick={() => void detach(citation.id)}>
-              ×
+            <button title={nls.t('features.tree.sources.detach')} onClick={() => void detach(citation.id)}>
+              <X size={12} aria-hidden="true" />
             </button>
           </li>
         ))}

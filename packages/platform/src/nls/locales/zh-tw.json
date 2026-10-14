@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "類型",
   "features.tree.events.descriptionField": "描述",
   "features.tree.events.dateField": "日期",
+  "features.tree.family.removeMember": "移除家庭成員",
+  "features.tree.sources.detach": "取消關聯來源",
   "features.tree.media.title": "媒體",
   "features.tree.media.add": "新增照片…",
   "features.tree.media.empty": "尚無照片。",

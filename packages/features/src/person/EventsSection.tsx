@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import type { EventRecord } from '@doru/core';
 import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
@@ -62,7 +63,7 @@ export function EventsSection({
               </span>
               {event.description ? <span className="event-description">{event.description}</span> : null}
               <button title={nls.t('features.tree.events.remove')} onClick={() => void remove(event)}>
-                ×
+                <X size={14} aria-hidden="true" />
               </button>
             </li>
           ))}

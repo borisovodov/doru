@@ -19,8 +19,8 @@ Available variables:
 
 | Variable | Meaning |
 |---|---|
-| `--doru-bg-canvas` | main editor background |
-| `--doru-bg-chrome` | activity bar, sidebars, tab strip |
+| `--doru-bg-canvas` | editor background and tab strip |
+| `--doru-bg-chrome` | activity bar, sidebars, floating-panel surface |
 | `--doru-bg-raised` | cards, chips, the chat input |
 | `--doru-bg-popover` | menus and pickers |
 | `--doru-bg-input` | buttons, inputs, selects |
@@ -34,3 +34,5 @@ Available variables:
 | `--doru-success` / `--doru-warning` / `--doru-danger` / `--doru-info` | state colors |
 | `--doru-radius-sm` / `--doru-radius-md` / `--doru-radius-lg` | 4 / 6 / 8 px radii |
 | `--doru-control-height` | control height (28px) |
+| `--doru-panel-gutter` | gap between the floating panels and the window edge (4px) |
+| `--doru-panel-radius` | floating-panel corner radius (8px) |

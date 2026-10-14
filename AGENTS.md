@@ -67,6 +67,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   panes are hidden, not unmounted). The welcome page is the editor-area state
   with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
   active tab via renderer keybindings, not via the application menu.
+- **UI drags are pointer-based, not HTML5 drag-and-drop** (tab reorder,
+  side-bar sashes): `setPointerCapture` + a gesture threshold + Escape
+  cancel. Native drag sessions flash the macOS copy cursor and fight our
+  cursor/ghost styling. Use custom tooltips instead of `title` (broken under
+  the drag region on macOS), and always reset `padding: 0` on icon-only
+  buttons — the UA button padding collapses flex child SVGs. See the
+  "Interaction conventions" bullet in docs/architecture.md.
 - **macOS app icons.** The icon source of truth is the Icon Composer project
   `apps/desktop/build/Icon.icon`. electron-builder renders the app bundle icon
   from it at package time (actool, Xcode 26+). `npm run icon:mac -w
@@ -82,6 +89,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   (`npm run build` first, then `npm run e2e`).
 - Typecheck all workspaces: `npm run typecheck`.
 - Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
+- **Dev runs get their own `userData`.** The main process takes a
+  single-instance lock on `userData`; two dev instances sharing
+  `~/Library/Application Support/Doru` kill each other (the loser quits
+  immediately). Always start dev with an isolated user-data dir:
+  `DORU_USER_DATA="$(mktemp -d -t doru-dev-)" npm run dev` — or point at a
+  stable per-session tmp path if you want recents to survive restarts. Do not
+  rely on the default userData during a session, and never quit other
+  sessions' instances to free the lock.
 - Run tests before considering a change complete.
 - **Restart `npm run dev` after editing `apps/desktop/src/main` or
   `src/preload`** — electron-vite's watcher does not reliably rebuild the main
@@ -96,6 +111,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - E2E specs must launch the app with an isolated `DORU_USER_DATA` env var (see
   `e2e/smoke.spec.ts`): the single-instance lock otherwise collides with a
   running dev instance.
+- Drag simulations in e2e: first `mouse.move` past the 4px gesture threshold
+  before the real drag, and assert with retrying `expect(locator).toHaveText`
+  instead of one-shot reads — pointer events need both.
 - In tests, close the `TreeStore` before removing temp dirs — Windows fails
   with `EPERM` on open files.
 - Validate workflow changes with `actionlint .github/workflows/…` before

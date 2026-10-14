@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { closeProjectRuntime } from './runtime';
 import { updateSession } from './session';
 import { projectWindows, windowProject } from './state';
-import { titleBarOverlayOptions } from './themes';
+import { titleBarOverlayOptions, windowBackgroundColor } from './themes';
 
 export function iconPath(): string {
   if (app.isPackaged) {
@@ -56,6 +56,9 @@ export function createWindow(projectPath: string | null): BrowserWindow {
     height: 800,
     title: projectPath ? `${basename(projectPath)} — Dóru` : 'Dóru',
     icon: process.platform === 'darwin' ? undefined : iconPath(),
+    // Match the shell color so live window resizes never flash the default
+    // white native surface under the content.
+    backgroundColor: windowBackgroundColor(),
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 13 } }
       : {

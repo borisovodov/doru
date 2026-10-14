@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { PersonRecord } from '@doru/core';
 import { displayName } from '@doru/features';
-import { nls, type TabInfo } from '@doru/workbench';
+import { moveTab, nls, type TabInfo } from '@doru/workbench';
 
 const TREE_TAB_ID = 'tree';
 const SETTINGS_TAB_ID = 'settings';
@@ -97,6 +97,10 @@ export function useTabs(persons: PersonRecord[]) {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
 
+  const reorderTabs = useCallback((sourceId: string, dropIndex: number) => {
+    setOpenTabs((current) => moveTab(current, sourceId, dropIndex));
+  }, []);
+
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
     label: tabLabel(tab, persons),
@@ -115,6 +119,7 @@ export function useTabs(persons: PersonRecord[]) {
     openPersonTab,
     openNewPersonTab,
     openSettingsTab,
+    reorderTabs,
   };
 }
 

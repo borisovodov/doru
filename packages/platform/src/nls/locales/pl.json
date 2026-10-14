@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "Typ",
   "features.tree.events.descriptionField": "Opis",
   "features.tree.events.dateField": "Data",
+  "features.tree.family.removeMember": "Usuń członka rodziny",
+  "features.tree.sources.detach": "Odłącz źródło",
   "features.tree.media.title": "Media",
   "features.tree.media.add": "Dodaj zdjęcia…",
   "features.tree.media.empty": "Brak zdjęć.",

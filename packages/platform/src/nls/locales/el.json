@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "Τύπος",
   "features.tree.events.descriptionField": "Περιγραφή",
   "features.tree.events.dateField": "Ημερομηνία",
+  "features.tree.family.removeMember": "Αφαίρεση μέλους οικογένειας",
+  "features.tree.sources.detach": "Αποσύνδεση πηγής",
   "features.tree.media.title": "Πολυμέσα",
   "features.tree.media.add": "Προσθήκη φωτογραφιών…",
   "features.tree.media.empty": "Δεν υπάρχουν φωτογραφίες ακόμα.",

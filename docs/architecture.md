@@ -112,24 +112,67 @@ decisions about what we deliberately do **not** build, see
   (`#0f1311`) with chrome (`#161a17`), raised (`#1b201c`) and popover
   (`#202621`) surface layers and a sage accent (`#63a37f`); the light theme is
   paper (`#fdfcf9`) and cream (`#f2efe7`) with a forest accent (`#3f7355`).
+  UI glyphs (activity bar, title-bar toggle) come from **lucide-react**.
 - **Tokens are semantic**: `--doru-bg-*` (surfaces), `--doru-fg-*` (text
   weights), `--doru-border*` (alpha hairlines), `--doru-accent*`,
   `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
   (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
   `--doru-control-height` = 28px).
+- **Floating panels**: the workbench root is the
+  shell — a plain surface in the chrome color. The activity bar and the
+  primary side bar share one rounded card (1px border, 8px radius) with a
+  hairline seam between them; the editor is its own rounded card in the
+  canvas color (`overflow: hidden` clips the tab strip); the secondary side
+  bar floats on the right as a standalone card. Cards sit 4px from the
+  window edges and from each other (`--doru-panel-gutter`), so only their
+  borders separate them from the shell — they are framed, not cut. The title
+  bar is not a card: it spans the full width under the window controls.
+- **Resizable side bars**: the primary side bar (260px default) and the
+  secondary side bar (320px default) are resized with pointer-based sashes
+  (`.sash`, 8px hit strip in the gutter between the cards, a 2px accent line
+  with a short hover delay and an always-visible faint three-dot grip that
+  yields to the line, `col-resize` cursor via a body class); widths are
+  clamped (160–520 / 220–560), live in `Workbench` state and feed the grid
+  via `--doru-sidebar-width` / `--doru-secondary-column` custom properties.
+  The title bar carries a toggle button for the secondary side bar (also
+  `Meta/Ctrl+Alt+B`).
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
-  a 2px accent outline; disabled is opacity 0.45. Tabs: a square strip
-  without a bottom divider, active tab is a pill in the canvas color flowing
-  into the editor (top corners rounded, bottom flush), vertical hairline
-  dividers between tabs. Chat: user bubbles are accent-alpha pills, tool
-  steps are raised chips, the input is a 32px rounded field.
+  a 2px accent outline; disabled is opacity 0.45. Tabs: a 35px strip in the
+  canvas color without a bottom border, tabs
+  are 24px rounded pills (4px radius, 4px gaps, no dividers) with equal
+  widths capped at a common 160px maximum (browser-like) that shrink with
+  labels fading out on the right edge instead of scrolling — the fade reaches
+  the tab edge while the close action is hidden and yields to it on hover or
+  activation — inactive
+  transparent, hover overlay, active chrome-active; the close action appears
+  on hover and on the active tab. Tabs are drag-reorderable via pointer
+  capture (not native HTML5 drag, whose OS session flashes the copy cursor on
+  macOS): pressing a tab activates it immediately, a dimmed source tab, a
+  drag ghost that follows the pointer at its grab point and a 2px accent line
+  mark the gesture, Escape cancels; the index math lives in `tabReorder.ts`.
+  Chat: user bubbles are accent-alpha pills,
+  tool steps are raised chips, the input is a 32px rounded field.
 - **Custom title bar** (see `createWindow` in the main process): macOS uses
   `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Windows and
   Linux use `frame: false` + a Window Controls Overlay colored from the theme
   and updated on theme change. The renderer always draws a 38px `.title-bar`
   (drag region, `-webkit-app-region: drag`) and reserves room for the OS
   controls via `env(titlebar-area-*)` (Windows/Linux) or left padding (macOS).
+- **Interaction conventions** (learned the hard way): every drag gesture
+  (tab reordering, side-bar sashes) is pointer-based — `setPointerCapture`,
+  a 4px threshold, Escape to cancel — never native HTML5 drag: the OS drag
+  session flashes the macOS copy cursor and replaces our cursor/ghost
+  styling. Native `title` tooltips are unreliable under the drag region on
+  macOS, so tooltips are custom (`ActivityBar` pattern: fixed pill, delay,
+  `aria-label` instead of `title`). Icon-only buttons must reset the UA
+  `padding: 0` and use `display: inline-flex`, or the flex child SVG
+  collapses to the leftover content box. The `BrowserWindow`
+  `backgroundColor` follows the theme (`windowBackgroundColor()` in the main
+  process) so live resizes never flash white. Accepted macOS quirk: the drag
+  region makes the window background movable (`isMovableByWindowBackground`),
+  so grabbing a resize edge occasionally moves the window instead of
+  resizing — not fixable from the renderer.
 
 ## Workbench windows and tabs
 

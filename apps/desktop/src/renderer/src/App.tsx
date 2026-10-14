@@ -201,6 +201,7 @@ export function App() {
         activeTabId={tabs.activeTabId}
         onSelectTab={tabs.setActiveTabId}
         onCloseTab={tabs.closeTab}
+        onReorderTab={tabs.reorderTabs}
         onOpenSettings={tabs.openSettingsTab}
       />
     </>

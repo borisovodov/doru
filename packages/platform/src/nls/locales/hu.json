@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "Típus",
   "features.tree.events.descriptionField": "Leírás",
   "features.tree.events.dateField": "Dátum",
+  "features.tree.family.removeMember": "Családtag eltávolítása",
+  "features.tree.sources.detach": "Forrás leválasztása",
   "features.tree.media.title": "Média",
   "features.tree.media.add": "Fotók hozzáadása…",
   "features.tree.media.empty": "Még nincsenek fotók.",

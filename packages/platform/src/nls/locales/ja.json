@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "種類",
   "features.tree.events.descriptionField": "説明",
   "features.tree.events.dateField": "日付",
+  "features.tree.family.removeMember": "家族メンバーを削除",
+  "features.tree.sources.detach": "ソースのリンクを解除",
   "features.tree.media.title": "メディア",
   "features.tree.media.add": "写真を追加…",
   "features.tree.media.empty": "写真はまだありません。",

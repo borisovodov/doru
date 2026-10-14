@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import type { MediaRecord } from '@doru/core';
 import { nls } from '../nls';
 import type { MediaWithPath } from './types';
@@ -45,7 +46,7 @@ export function MediaSection({
                 title={nls.t('features.tree.media.remove')}
                 onClick={() => void remove(item)}
               >
-                ×
+                <X size={13} aria-hidden="true" />
               </button>
             </figure>
           ))}

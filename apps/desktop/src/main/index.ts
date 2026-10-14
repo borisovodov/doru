@@ -16,7 +16,7 @@ import { openExternalPath, openProject } from './projects';
 import { closeAllRuntimes, ensureRuntime } from './runtime';
 import { readSession } from './session';
 import { pendingExternalPaths, projectWindows, recents } from './state';
-import { themeConfig, updateTitleBarOverlays } from './themes';
+import { themeConfig, updateTitleBarOverlays, updateWindowBackgrounds } from './themes';
 import { createWindow, iconPath, installMenu } from './windows';
 
 if (process.env.DORU_USER_DATA) {
@@ -138,12 +138,14 @@ void app.whenReady().then(async () => {
 
   nativeTheme.on('updated', () => {
     updateTitleBarOverlays();
+    updateWindowBackgrounds();
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
     }
   });
   watchConfig(() => {
     updateTitleBarOverlays();
+    updateWindowBackgrounds();
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send('theme:config-changed', themeConfig());
     }

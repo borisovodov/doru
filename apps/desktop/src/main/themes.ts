@@ -71,12 +71,35 @@ export function titleBarOverlayOptions(): { color: string; symbolColor: string; 
   const dark = nativeTheme.shouldUseDarkColors;
   const themeName = dark ? themeConfig().dark : themeConfig().light;
   const definition = themeDefinition(themeName);
-  const color = definition.colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
   return {
-    color,
+    color: chromeColor(definition, dark),
     symbolColor: definition.type === 'light' ? '#000000' : '#ffffff',
     height: TITLE_BAR_HEIGHT,
   };
+}
+
+/**
+ * The shell (chrome) color of the active theme. The hardcoded fallback
+ * mirrors the baseline palette in `workbench.css` `:root` and only applies
+ * when a theme does not define `bg-chrome`; both built-in themes do.
+ */
+function chromeColor(definition: ThemeDefinition, dark: boolean): string {
+  return definition.colors?.['bg-chrome'] ?? (dark ? '#161a17' : '#f2efe7');
+}
+
+/** The native window surface color, kept in sync with the theme so live
+ *  resizes never flash the default white background. */
+export function windowBackgroundColor(): string {
+  const dark = nativeTheme.shouldUseDarkColors;
+  const themeName = dark ? themeConfig().dark : themeConfig().light;
+  return chromeColor(themeDefinition(themeName), dark);
+}
+
+export function updateWindowBackgrounds(): void {
+  const background = windowBackgroundColor();
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.setBackgroundColor(background);
+  }
 }
 
 export function updateTitleBarOverlays(): void {

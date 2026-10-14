@@ -89,6 +89,8 @@
   "features.tree.events.typeField": "Tür",
   "features.tree.events.descriptionField": "Açıklama",
   "features.tree.events.dateField": "Tarih",
+  "features.tree.family.removeMember": "Aile üyesini kaldır",
+  "features.tree.sources.detach": "Kaynağı ayır",
   "features.tree.media.title": "Medya",
   "features.tree.media.add": "Fotoğraf ekle…",
   "features.tree.media.empty": "Henüz fotoğraf yok.",
