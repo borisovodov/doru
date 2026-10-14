@@ -49,6 +49,11 @@ Note: `apps/website/docs/` and `apps/website/public/icon.png` are generated
 from `docs/guide/` and the app icon by the sync script (part of
 `npm run site:build`) — edit the sources, not the generated files.
 
+Note: `apps/desktop/build` holds the app icons — the Icon Composer project
+`Icon.icon` plus the generated `icon.icns` (DMG volume icon) and
+`icon-dev.png` (macOS dev dock icon). After editing `Icon.icon`, regenerate
+and commit both with `npm run icon:mac -w @doru/desktop` (macOS, Xcode 26+).
+
 ## Troubleshooting
 
 - **"Electron failed to install correctly"** — the postinstall download is

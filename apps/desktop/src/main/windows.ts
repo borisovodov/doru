@@ -7,8 +7,15 @@ import { projectWindows, windowProject } from './state';
 import { titleBarOverlayOptions } from './themes';
 
 export function iconPath(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'icon.png')
+  if (app.isPackaged) {
+    return join(process.resourcesPath, 'icon.png');
+  }
+  // In development on macOS, use the PNG extracted from the icns that
+  // electron-builder generates from the Icon Composer project, so the dock
+  // icon matches the packaged app. Electron's nativeImage cannot load .icns
+  // files directly. Run `npm run icon:mac -w @doru/desktop` to regenerate.
+  return process.platform === 'darwin'
+    ? join(app.getAppPath(), 'build', 'icon-dev.png')
     : join(app.getAppPath(), 'resources', 'icon.png');
 }
 
