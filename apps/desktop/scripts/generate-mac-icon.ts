@@ -12,6 +12,7 @@
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { generateAssetCatalogForIcon } from 'app-builder-lib/out/util/macosIconComposer.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const iconProject = join(root, 'build', 'Icon.icon');
@@ -23,7 +24,7 @@ if (process.platform !== 'darwin') {
   process.exit(1);
 }
 
-function extractIcnsPng(icns, chunkType) {
+function extractIcnsPng(icns: Buffer, chunkType: string): Buffer | null {
   let offset = 8; // skip the 'icns' magic and the total size field
   while (offset + 8 <= icns.length) {
     const type = icns.toString('latin1', offset, offset + 4);
@@ -40,9 +41,6 @@ function extractIcnsPng(icns, chunkType) {
 }
 
 try {
-  const { generateAssetCatalogForIcon } = await import(
-    'app-builder-lib/out/util/macosIconComposer.js'
-  );
   const { icnsFile } = await generateAssetCatalogForIcon(iconProject);
   writeFileSync(icnsPath, icnsFile);
 
@@ -55,6 +53,6 @@ try {
   console.log(`wrote ${icnsPath}`);
   console.log(`wrote ${devPngPath}`);
 } catch (error) {
-  console.error(`generate-mac-icon: ${error?.message ?? error}`);
+  console.error(`generate-mac-icon: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }

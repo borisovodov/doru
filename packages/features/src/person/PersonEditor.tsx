@@ -22,7 +22,7 @@ export interface PersonEditorProps {
   persons: PersonRecord[];
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
-  onCancel?: () => void;
+  onCancel?: (() => void) | undefined;
   api: PersonEditorApi;
 }
 

@@ -15,11 +15,6 @@ interface AnthropicToolUse {
   input: unknown;
 }
 
-interface AnthropicText {
-  type: 'text';
-  text: string;
-}
-
 interface AnthropicContentBlock {
   type: string;
   text?: string;
@@ -68,7 +63,7 @@ export class AnthropicChatConnector implements ChatModel {
         : {}),
     };
     if (system) {
-      body.system = system;
+      body['system'] = system;
     }
 
     const response = await fetch(`${this.options.baseUrl.replace(/\/+$/, '')}/v1/messages`, {

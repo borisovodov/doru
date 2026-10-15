@@ -26,7 +26,7 @@ interface AiConfigJson {
 
 export function loadAiConfig(): ResolvedAiConfig {
   const parsed = readConfig();
-  const ai = (parsed.ai ?? {}) as AiConfigJson;
+  const ai = (parsed['ai'] ?? {}) as AiConfigJson;
 
   const presetId = ai.provider ?? 'openai';
   const preset = findProvider(presetId);
@@ -39,7 +39,7 @@ export function loadAiConfig(): ResolvedAiConfig {
       apiKey = '';
     }
   }
-  const envKey = process.env.DORU_AI_API_KEY;
+  const envKey = process.env['DORU_AI_API_KEY'];
   if (envKey) {
     apiKey = envKey;
   }
@@ -53,10 +53,10 @@ export function loadAiConfig(): ResolvedAiConfig {
   }
 
   const baseUrl = ai.baseUrl ?? preset.defaultBaseUrl ?? '';
-  const model = process.env.DORU_AI_MODEL ?? ai.model ?? '';
+  const model = process.env['DORU_AI_MODEL'] ?? ai.model ?? '';
   const acpCommand = ai.command ?? '';
   const acpArgs = ai.args ?? [];
-  const mcpServers = (parsed.mcp as { servers?: McpServerConfig[] } | undefined)?.servers ?? [];
+  const mcpServers = (parsed['mcp'] as { servers?: McpServerConfig[] } | undefined)?.servers ?? [];
 
   const configured =
     preset.dialect === 'acp'

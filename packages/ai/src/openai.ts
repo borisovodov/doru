@@ -1,4 +1,4 @@
-import type { ChatMessage, ToolCall } from './types';
+import type { ChatMessage } from './types';
 import type { ToolDefinition } from './tools';
 import type { ChatModel, ModelResponse } from './model';
 
@@ -11,7 +11,7 @@ export interface OpenAIChatOptions {
 interface ApiMessage {
   role: string;
   content: string | null;
-  tool_call_id?: string;
+  tool_call_id?: string | undefined;
   tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }>;
 }
 

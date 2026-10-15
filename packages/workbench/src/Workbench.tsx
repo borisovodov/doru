@@ -18,11 +18,11 @@ export interface WorkbenchProps {
   sidebar?: ReactNode;
   secondarySidebar?: ReactNode;
   editor?: ReactNode;
-  tabs?: TabInfo[];
-  activeTabId?: string | null;
-  onSelectTab?: (id: string) => void;
-  onCloseTab?: (id: string) => void;
-  onReorderTab?: (sourceId: string, dropIndex: number) => void;
+  tabs?: TabInfo[] | undefined;
+  activeTabId?: string | null | undefined;
+  onSelectTab?: ((id: string) => void) | undefined;
+  onCloseTab?: ((id: string) => void) | undefined;
+  onReorderTab?: ((sourceId: string, dropIndex: number) => void) | undefined;
   activeView: ActivityViewId;
   onSelectView: (view: ActivityViewId) => void;
   onOpenSettings?: () => void;

@@ -77,6 +77,9 @@ export default defineConfig({
   title: 'Dóru',
   description: 'Local-first genealogy for the AI era. Open source (MIT) — your data stays with you.',
   cleanUrls: true,
+  // Strict by default in VitePress; keep it explicit so a dead link always
+  // fails the build instead of silently regressing.
+  ignoreDeadLinks: false,
   appearance: 'force-auto',
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/icon.png' }],

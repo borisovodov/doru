@@ -15,7 +15,7 @@ export interface TabBarProps {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   /** When provided, tabs can be reordered by dragging; drops call this with the insertion index. */
-  onReorder?: (sourceId: string, dropIndex: number) => void;
+  onReorder?: ((sourceId: string, dropIndex: number) => void) | undefined;
 }
 
 interface DragState {

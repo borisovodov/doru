@@ -1,5 +1,3 @@
-import type { PersonRecord } from '../model/types';
-
 export type ChartKind = 'ancestors' | 'descendants' | 'hourglass' | 'family';
 
 /** Which side of the focus an ancestor card sits on. */

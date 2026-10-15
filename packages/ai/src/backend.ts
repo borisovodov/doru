@@ -24,19 +24,19 @@ export class TreeMcpBackend {
   async invoke(name: string, args: Record<string, unknown>): Promise<unknown> {
     switch (name) {
       case 'tree_query':
-        return this.query(args.query as string | undefined, args.limit as number | undefined);
+        return this.query(args['query'] as string | undefined, args['limit'] as number | undefined);
       case 'tree_get':
-        return this.get(args.personId as string);
+        return this.get(args['personId'] as string);
       case 'tree_stats':
         return this.stats();
       case 'tree_edit':
-        return this.edit(args.op as TreeEditOp);
+        return this.edit(args['op'] as TreeEditOp);
       case 'sources_add':
         return this.addSource(args);
       case 'notes_write':
         return this.writeNote(args);
       case 'charts_render':
-        return this.renderChart(args.personId as string, args.kind as string);
+        return this.renderChart(args['personId'] as string, args['kind'] as string);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -78,33 +78,33 @@ export class TreeMcpBackend {
   }
 
   private addSource(args: Record<string, unknown>): unknown {
-    const title = args.title as string;
+    const title = args['title'] as string;
     if (!title) {
       throw new Error('sources_add requires a "title"');
     }
     const source = {
       id: crypto.randomUUID(),
       title,
-      author: args.author as string | undefined,
-      publication: args.publication as string | undefined,
+      author: args['author'] as string | undefined,
+      publication: args['publication'] as string | undefined,
     };
-    const targetType = args.targetType as string | undefined;
-    const targetId = args.targetId as string | undefined;
+    const targetType = args['targetType'] as string | undefined;
+    const targetId = args['targetId'] as string | undefined;
     const citation = targetType && targetId ? { targetType, targetId } : undefined;
     this.queue.apply(addSourceOp(source, citation), { repo: this.repo });
     return { ok: true, id: source.id };
   }
 
   private writeNote(args: Record<string, unknown>): unknown {
-    const text = args.text as string;
+    const text = args['text'] as string;
     if (!text) {
       throw new Error('notes_write requires "text"');
     }
     const note = {
       id: crypto.randomUUID(),
       text,
-      targetType: args.targetType as string | undefined,
-      targetId: args.targetId as string | undefined,
+      targetType: args['targetType'] as string | undefined,
+      targetId: args['targetId'] as string | undefined,
     };
     this.queue.apply(addNoteOp(note), { repo: this.repo });
     return { ok: true, id: note.id };

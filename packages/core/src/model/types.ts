@@ -3,26 +3,26 @@ export type Sex = 'M' | 'F' | 'U';
 export type DateQuality = 'exact' | 'about' | 'before' | 'after' | 'range' | 'unknown';
 
 export interface DateValue {
-  year?: number;
-  month?: number;
-  day?: number;
-  text?: string;
+  year?: number | undefined;
+  month?: number | undefined;
+  day?: number | undefined;
+  text?: string | undefined;
   quality: DateQuality;
-  place?: string;
+  place?: string | undefined;
 }
 
 export interface NamePart {
-  given?: string;
-  surname?: string;
-  full?: string;
+  given?: string | undefined;
+  surname?: string | undefined;
+  full?: string | undefined;
 }
 
 export interface PersonRecord {
   id: string;
   names: NamePart[];
   sex: Sex;
-  birth?: DateValue;
-  death?: DateValue;
+  birth?: DateValue | undefined;
+  death?: DateValue | undefined;
 }
 
 export interface FamilyRecord {
@@ -34,40 +34,40 @@ export interface FamilyRecord {
 export interface SourceRecord {
   id: string;
   title: string;
-  author?: string;
-  publication?: string;
+  author?: string | undefined;
+  publication?: string | undefined;
 }
 
 export interface NoteRecord {
   id: string;
   text: string;
-  targetType?: string;
-  targetId?: string;
+  targetType?: string | undefined;
+  targetId?: string | undefined;
 }
 
 export interface EventRecord {
   id: string;
   type: string;
-  date?: DateValue;
-  description?: string;
-  place?: string;
-  personId?: string;
-  familyId?: string;
+  date?: DateValue | undefined;
+  description?: string | undefined;
+  place?: string | undefined;
+  personId?: string | undefined;
+  familyId?: string | undefined;
 }
 
 export interface MediaRecord {
   id: string;
   path: string;
-  caption?: string;
-  targetType?: string;
-  targetId?: string;
+  caption?: string | undefined;
+  targetType?: string | undefined;
+  targetId?: string | undefined;
 }
 
 export interface PlaceRecord {
   id: string;
   name: string;
-  lat?: number;
-  lon?: number;
+  lat?: number | undefined;
+  lon?: number | undefined;
 }
 
 export interface TreeDocument {

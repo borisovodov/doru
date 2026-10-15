@@ -13,8 +13,8 @@ import type { AgentStep, PermissionGate } from './agent';
 export interface AcpMcpServerEntry {
   name: string;
   command: string;
-  args?: string[];
-  env?: Record<string, string>;
+  args?: string[] | undefined;
+  env?: Record<string, string> | undefined;
 }
 
 export interface AcpConnectorOptions {

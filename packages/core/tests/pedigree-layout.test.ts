@@ -433,7 +433,6 @@ describe('layoutPedigree — lines', () => {
 });
 
 describe('isDescendantOf', () => {
-  const persons = (ids: string[]) => ids.map((id) => person(id));
   const family = (id: string, parents: string[], children: string[]): FamilyRecord => ({
     id,
     parents,
@@ -441,25 +440,22 @@ describe('isDescendantOf', () => {
   });
 
   it('detects a direct parent', () => {
-    const ps = persons(['kid', 'dad']);
-    expect(isDescendantOf(ps, [family('F1', ['dad'], ['kid'])], 'dad', 'kid')).toBe(true);
+    expect(isDescendantOf([family('F1', ['dad'], ['kid'])], 'dad', 'kid')).toBe(true);
   });
 
   it('walks the ancestry chain', () => {
-    const ps = persons(['kid', 'dad', 'gpa']);
     const fs = [family('F1', ['dad'], ['kid']), family('F2', ['gpa'], ['dad'])];
-    expect(isDescendantOf(ps, fs, 'gpa', 'kid')).toBe(true);
+    expect(isDescendantOf(fs, 'gpa', 'kid')).toBe(true);
   });
 
   it('returns false for unrelated persons and reversed order', () => {
-    const ps = persons(['a', 'b']);
-    expect(isDescendantOf(ps, [family('F1', ['a'], ['b'])], 'a', 'b')).toBe(true);
-    expect(isDescendantOf(ps, [family('F1', ['a'], ['b'])], 'b', 'a')).toBe(false);
-    expect(isDescendantOf(ps, [], 'a', 'b')).toBe(false);
+    expect(isDescendantOf([family('F1', ['a'], ['b'])], 'a', 'b')).toBe(true);
+    expect(isDescendantOf([family('F1', ['a'], ['b'])], 'b', 'a')).toBe(false);
+    expect(isDescendantOf([], 'a', 'b')).toBe(false);
   });
 
   it('treats a person as their own descendant', () => {
-    expect(isDescendantOf(persons(['a']), [], 'a', 'a')).toBe(true);
+    expect(isDescendantOf([], 'a', 'a')).toBe(true);
   });
 });
 

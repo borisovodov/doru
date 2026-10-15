@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "npm run dev --workspace @doru/desktop",
     "build": "npm run build --workspace @doru/desktop",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "e2e": "playwright test",
     "site:dev": "npm run dev --workspace @doru/website",

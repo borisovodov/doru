@@ -91,7 +91,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 
 - Unit tests: vitest (`npm test`). E2E: Playwright against Electron
   (`npm run build` first, then `npm run e2e`).
-- Typecheck all workspaces: `npm run typecheck`.
+- Typecheck all workspaces: `npm run typecheck` (this also covers the root
+  `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
+  dev helper scripts).
+- Dev helper scripts (`scripts/*.ts`, `apps/*/scripts/*.ts`) are TypeScript
+  run directly by Node's built-in type stripping (Node ≥ 24): `node
+  scripts/ui-check.ts`. They must therefore use only erasable syntax — no
+  enums, namespaces, or parameter properties.
 - Build the desktop app: `npm run build`; run it in dev mode: `npm run dev`.
 - **Dev runs get their own `userData`.** The main process takes a
   single-instance lock on `userData`; two dev instances sharing

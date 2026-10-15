@@ -129,7 +129,7 @@ export function registerTreeIpc(): void {
       const created = target
         ? undefined
         : { id: randomUUID(), parents: [options.newParentId], children: [options.childId] };
-      runtime.queue.apply(reparentOp(options.childId, links, created), { repo: runtime.repo });
+      runtime.queue.apply(reparentOp(links, created), { repo: runtime.repo });
       return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
     },
   );

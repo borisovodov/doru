@@ -19,8 +19,8 @@ import { pendingExternalPaths, projectWindows, recents } from './state';
 import { themeConfig, updateTitleBarOverlays, updateWindowBackgrounds } from './themes';
 import { createWindow, iconPath, installMenu } from './windows';
 
-if (process.env.DORU_USER_DATA) {
-  app.setPath('userData', process.env.DORU_USER_DATA);
+if (process.env['DORU_USER_DATA']) {
+  app.setPath('userData', process.env['DORU_USER_DATA']);
 }
 
 registerProjectIpc();

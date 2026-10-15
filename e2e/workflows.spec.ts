@@ -1,12 +1,9 @@
 import { test, expect, _electron as electron } from '@playwright/test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const require = createRequire(import.meta.url);
-const electronPath = require('electron') as string;
 const root = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(root, '../apps/desktop');
 const fixture = resolve(root, 'fixtures', 'small.ged');
@@ -15,7 +12,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-data-'));
   const args = ['.'];
-  if (process.env.CI === 'true') {
+  if (process.env['CI'] === 'true') {
     args.push('--no-sandbox');
   }
   const app = await electron.launch({
@@ -89,104 +86,104 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     { project, fixture },
   );
 
-  const window = home;
-  await window.reload();
-  await expect(window.locator('.workbench')).toBeVisible();
-  await expect(window.locator('.editor-pane.active .tree-canvas')).toBeVisible();
+  const page = home;
+  await page.reload();
+  await expect(page.locator('.workbench')).toBeVisible();
+  await expect(page.locator('.editor-pane.active .tree-canvas')).toBeVisible();
 
   // The person list now lives in the People sidebar, not in the tree tab.
-  await window.locator('.activity-bar .activity-bar-item').nth(1).click();
-  await expect(window.locator('.person-list li').first()).toBeVisible();
+  await page.locator('.activity-bar .activity-bar-item').nth(1).click();
+  await expect(page.locator('.person-list li').first()).toBeVisible();
 
-  await window.locator('.person-list li').first().click();
-  await expect(window.locator('.person-editor')).toBeVisible();
-  await expect(window.locator('.chat-panel')).toBeVisible();
+  await page.locator('.person-list li').first().click();
+  await expect(page.locator('.person-editor')).toBeVisible();
+  await expect(page.locator('.chat-panel')).toBeVisible();
 
   // Tab drag-and-drop: move the first person tab in front of the tree tab.
-  await window.locator('.tab-bar .tab').first().click();
-  await window.locator('.person-list li').nth(1).click();
-  await expect(window.locator('.tab-bar .tab')).toHaveCount(3);
-  const tabLabels = window.locator('.tab-bar .tab .tab-label');
+  await page.locator('.tab-bar .tab').first().click();
+  await page.locator('.person-list li').nth(1).click();
+  await expect(page.locator('.tab-bar .tab')).toHaveCount(3);
+  const tabLabels = page.locator('.tab-bar .tab .tab-label');
   const orderBefore = await tabLabels.allTextContents();
-  const draggedTab = window.locator('.tab-bar .tab').nth(1);
-  const dropTarget = window.locator('.tab-bar .tab').nth(0);
+  const draggedTab = page.locator('.tab-bar .tab').nth(1);
+  const dropTarget = page.locator('.tab-bar .tab').nth(0);
   const from = await draggedTab.boundingBox();
   const to = await dropTarget.boundingBox();
   expect(from).not.toBeNull();
   expect(to).not.toBeNull();
-  await window.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
-  await window.mouse.down();
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
   // Cross the drag threshold first so the gesture reliably starts.
-  await window.mouse.move(from!.x + from!.width / 2 + 20, from!.y + from!.height / 2);
-  await window.mouse.move(to!.x + 2, to!.y + to!.height / 2, { steps: 8 });
-  await expect(window.locator('.tab-drag-ghost')).toBeVisible();
-  await window.mouse.up();
-  await expect(window.locator('.tab-drag-ghost')).toBeHidden();
+  await page.mouse.move(from!.x + from!.width / 2 + 20, from!.y + from!.height / 2);
+  await page.mouse.move(to!.x + 2, to!.y + to!.height / 2, { steps: 8 });
+  await expect(page.locator('.tab-drag-ghost')).toBeVisible();
+  await page.mouse.up();
+  await expect(page.locator('.tab-drag-ghost')).toBeHidden();
   // The dragged tab moves to the front and becomes active.
   await expect(tabLabels).toHaveText([orderBefore[1]!, orderBefore[0]!, orderBefore[2]!]);
-  await expect(window.locator('.tab-bar .tab').first()).toHaveClass(/active/);
+  await expect(page.locator('.tab-bar .tab').first()).toHaveClass(/active/);
 
   // Primary sidebar resizing: switch to the people view and drag its sash.
-  await window.locator('.activity-bar .activity-bar-item').nth(1).click();
-  await expect(window.locator('.side-bar')).toBeVisible();
-  const sideSash = window.locator('.side-sash');
+  await page.locator('.activity-bar .activity-bar-item').nth(1).click();
+  await expect(page.locator('.side-bar')).toBeVisible();
+  const sideSash = page.locator('.side-sash');
   const sideSashBox = await sideSash.boundingBox();
-  const sideBefore = (await window.locator('.side-bar').boundingBox())!.width;
-  await window.mouse.move(
+  const sideBefore = (await page.locator('.side-bar').boundingBox())!.width;
+  await page.mouse.move(
     sideSashBox!.x + sideSashBox!.width / 2,
     sideSashBox!.y + sideSashBox!.height / 2,
   );
-  await window.mouse.down();
+  await page.mouse.down();
   // Make the first step explicit, then drag with more steps, so the gesture
   // reliably registers every move.
-  await window.mouse.move(
+  await page.mouse.move(
     sideSashBox!.x + sideSashBox!.width / 2 + 12,
     sideSashBox!.y + sideSashBox!.height / 2,
   );
-  await window.mouse.move(
+  await page.mouse.move(
     sideSashBox!.x + sideSashBox!.width / 2 + 60,
     sideSashBox!.y + sideSashBox!.height / 2,
     { steps: 8 },
   );
-  await window.mouse.up();
-  const sideAfter = (await window.locator('.side-bar').boundingBox())!.width;
+  await page.mouse.up();
+  const sideAfter = (await page.locator('.side-bar').boundingBox())!.width;
   expect(sideAfter).toBeGreaterThan(sideBefore + 40);
 
   // The title-bar button toggles the secondary side bar.
-  await expect(window.locator('.secondary-side-bar')).toBeVisible();
-  await window.locator('.title-bar-action').click();
-  await expect(window.locator('.secondary-side-bar')).toBeHidden();
-  await window.locator('.title-bar-action').click();
-  await expect(window.locator('.secondary-side-bar')).toBeVisible();
+  await expect(page.locator('.secondary-side-bar')).toBeVisible();
+  await page.locator('.title-bar-action').click();
+  await expect(page.locator('.secondary-side-bar')).toBeHidden();
+  await page.locator('.title-bar-action').click();
+  await expect(page.locator('.secondary-side-bar')).toBeVisible();
 
   // Secondary sidebar resizing: drag its left sash inwards (it grows).
-  const secondarySash = window.locator('.secondary-sash');
+  const secondarySash = page.locator('.secondary-sash');
   const secondarySashBox = await secondarySash.boundingBox();
-  const secondaryBefore = (await window.locator('.secondary-side-bar').boundingBox())!.width;
-  await window.mouse.move(
+  const secondaryBefore = (await page.locator('.secondary-side-bar').boundingBox())!.width;
+  await page.mouse.move(
     secondarySashBox!.x + secondarySashBox!.width / 2,
     secondarySashBox!.y + secondarySashBox!.height / 2,
   );
-  await window.mouse.down();
-  await window.mouse.move(
+  await page.mouse.down();
+  await page.mouse.move(
     secondarySashBox!.x + secondarySashBox!.width / 2 - 10,
     secondarySashBox!.y + secondarySashBox!.height / 2,
   );
-  await window.mouse.move(
+  await page.mouse.move(
     secondarySashBox!.x + secondarySashBox!.width / 2 - 50,
     secondarySashBox!.y + secondarySashBox!.height / 2,
     { steps: 8 },
   );
-  await window.mouse.up();
-  const secondaryAfter = (await window.locator('.secondary-side-bar').boundingBox())!.width;
+  await page.mouse.up();
+  const secondaryAfter = (await page.locator('.secondary-side-bar').boundingBox())!.width;
   expect(secondaryAfter).toBeGreaterThan(secondaryBefore + 30);
 
-  const aiSettings = await window.evaluate(() => window.doru.getAiSettings());
+  const aiSettings = await page.evaluate(() => window.doru.getAiSettings());
   expect(aiSettings).toHaveProperty('provider');
 
-  await window.locator('.activity-bar .activity-bar-bottom').click();
-  await expect(window.locator('.settings-view')).toBeVisible();
-  await expect(window.locator('.settings-view select')).toBeVisible();
+  await page.locator('.activity-bar .activity-bar-bottom').click();
+  await expect(page.locator('.settings-view')).toBeVisible();
+  await expect(page.locator('.settings-view select')).toBeVisible();
 
   await app.close();
 });

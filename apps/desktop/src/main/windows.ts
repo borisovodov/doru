@@ -51,11 +51,12 @@ export function bindWindowToProject(window: BrowserWindow, projectPath: string):
 
 export function createWindow(projectPath: string | null): BrowserWindow {
   const preload = fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
+  const icon = process.platform === 'darwin' ? undefined : iconPath();
   const window = new BrowserWindow({
     width: 1280,
     height: 800,
     title: projectPath ? `${basename(projectPath)} — Dóru` : 'Dóru',
-    icon: process.platform === 'darwin' ? undefined : iconPath(),
+    ...(icon ? { icon } : {}),
     // Match the shell color so live window resizes never flash the default
     // white native surface under the content.
     backgroundColor: windowBackgroundColor(),
@@ -81,7 +82,7 @@ export function createWindow(projectPath: string | null): BrowserWindow {
     window.setTitle(bound ? `${basename(bound)} — Dóru` : 'Dóru');
   });
 
-  const rendererUrl = process.env.ELECTRON_RENDERER_URL;
+  const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
   if (rendererUrl) {
     void window.loadURL(rendererUrl);
   } else {

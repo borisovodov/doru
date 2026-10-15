@@ -1,14 +1,11 @@
 // Dev helper: verifies tab drag-and-drop reordering against the dev server.
-// Usage: npm run dev (in another terminal), then: node scripts/ui-drag.mjs
+// Usage: npm run dev (in another terminal), then: node scripts/ui-drag.ts
 import { _electron as electron } from '@playwright/test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { createRequire } from 'node:module';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const require = createRequire(import.meta.url);
-const electronPath = require('electron');
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const appDir = join(root, 'apps/desktop');
 
@@ -19,67 +16,74 @@ const app = await electron.launch({
   env: {
     ...process.env,
     DORU_USER_DATA: userData,
-    ELECTRON_RENDERER_URL: process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:5173',
+    ELECTRON_RENDERER_URL: process.env['ELECTRON_RENDERER_URL'] ?? 'http://localhost:5173',
   },
 });
-const window = await app.firstWindow();
-window.on('console', (msg) => {
+const page = await app.firstWindow();
+page.on('console', (msg) => {
   if (msg.text().startsWith('dnd')) {
     console.log('[renderer]', msg.text());
   }
 });
-await window.setViewportSize({ width: 1440, height: 900 });
-await window.waitForSelector('.workbench', { timeout: 20_000 });
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.waitForSelector('.workbench', { timeout: 20_000 });
 
 const project = join(mkdtempSync(join(tmpdir(), 'doru-drag-project-')), 'family.doru');
-await window.evaluate(
+await page.evaluate(
   async ({ project, fixture }) => {
     await window.doru.openProjectPath(project);
     await window.doru.importGedcomFile(project, fixture);
   },
   { project, fixture: join(root, 'e2e', 'fixtures', 'small.ged') },
 );
-await window.waitForSelector('.editor-pane.active');
+await page.waitForSelector('.editor-pane.active');
 // The import happens through the IPC directly, so the renderer still shows
 // pre-import state; reload the window to re-bind the project and load the
 // imported persons.
-await window.reload();
-await window.waitForSelector('.editor-pane.active .tree-canvas');
+await page.reload();
+await page.waitForSelector('.editor-pane.active .tree-canvas');
 
 const labels = () =>
-  window.$$eval('.tab-bar .tab .tab-label', (els) => els.map((el) => el.textContent));
+  page.$$eval('.tab-bar .tab .tab-label', (els) => els.map((el) => el.textContent));
 
 // Open two person tabs from the People sidebar (switching back to the tree
 // tab in between, since opening a person tab activates it and hides the
 // tree pane).
-await window.locator('.activity-bar .activity-bar-item').nth(1).click();
-const items = window.locator('.person-list li');
+await page.locator('.activity-bar .activity-bar-item').nth(1).click();
+const items = page.locator('.person-list li');
 await items.first().waitFor({ timeout: 20_000 });
 await items.nth(2).waitFor({ timeout: 20_000 });
 console.log('persons:', await items.count());
 await items.nth(0).click();
-await window.waitForTimeout(150);
-await window.locator('.tab-bar .tab').first().click();
+await page.waitForTimeout(150);
+await page.locator('.tab-bar .tab').first().click();
 await items.nth(1).click();
-await window.waitForTimeout(200);
+await page.waitForTimeout(200);
 
 console.log('before:', await labels());
-console.log('tab count:', await window.locator('.tab-bar .tab').count());
+console.log('tab count:', await page.locator('.tab-bar .tab').count());
 
-const dragByMouse = async (fromIndex, toIndex, toXOffset) => {
-  const from = await window.locator('.tab-bar .tab').nth(fromIndex).boundingBox();
-  const to = await window.locator('.tab-bar .tab').nth(toIndex).boundingBox();
-  await window.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-  await window.mouse.down();
-  await window.mouse.move(to.x + toXOffset, to.y + to.height / 2, { steps: 8 });
-  await window.mouse.up();
-  await window.waitForTimeout(200);
+const dragByMouse = async (fromIndex: number, toIndex: number, toXOffset: number) => {
+  const from = await page.locator('.tab-bar .tab').nth(fromIndex).boundingBox();
+  const to = await page.locator('.tab-bar .tab').nth(toIndex).boundingBox();
+  if (!from || !to) {
+    throw new Error(`tab bounds missing for ${fromIndex} -> ${toIndex}`);
+  }
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + toXOffset, to.y + to.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(200);
 };
 
 // Drag the second tab (first person) onto the right half of the last tab
 // -> drops after it.
-const tabs = window.locator('.tab-bar .tab');
-const lastWidth = (await tabs.last().boundingBox()).width;
+const tabs = page.locator('.tab-bar .tab');
+const lastBox = await tabs.last().boundingBox();
+if (!lastBox) {
+  throw new Error('last tab bounds missing');
+}
+const lastWidth = lastBox.width;
 await dragByMouse(1, await tabs.count() - 1, lastWidth - 6);
 
 console.log('after: ', await labels());

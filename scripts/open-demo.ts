@@ -8,16 +8,14 @@
 //     ELECTRON_RENDERER_URL="http://localhost:5173" \
 //     npx electron apps/desktop "$HOME/Downloads/Doru Demo.doru"
 //
-// Usage: npm run dev (in another terminal), then: node scripts/open-demo.mjs
+// Usage: npm run dev (in another terminal), then: node scripts/open-demo.ts
 import { _electron as electron } from '@playwright/test';
 import { mkdtempSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PersonRecord, Sex } from '@doru/core';
 
-const require = createRequire(import.meta.url);
-const electronPath = require('electron');
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const appDir = join(root, 'apps/desktop');
 
@@ -28,16 +26,17 @@ const app = await electron.launch({
   env: {
     ...process.env,
     DORU_USER_DATA: userData,
-    ELECTRON_RENDERER_URL: process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:5173',
+    ELECTRON_RENDERER_URL: process.env['ELECTRON_RENDERER_URL'] ?? 'http://localhost:5173',
   },
 });
-const window = await app.firstWindow();
-await window.setViewportSize({ width: 1440, height: 900 });
-await window.waitForSelector('.workbench', { timeout: 20_000 });
+const page = await app.firstWindow();
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.waitForSelector('.workbench', { timeout: 20_000 });
 
 const project = join(homedir(), 'Downloads', 'Doru Demo.doru');
 // id: [given, surname, sex, birthYear, deathYear?]
-const persons = {
+type PersonSeed = [given: string, surname: string, sex: Sex, birthYear: number, deathYear?: number];
+const persons: Record<string, PersonSeed> = {
   N1: ['Nikolai', 'Ivanov', 'M', 1900, 1972],
   N2: ['Anna', 'Ivanova', 'F', 1905, 1980],
   N3: ['Piotr', 'Smirnov', 'M', 1898, 1975],
@@ -68,7 +67,7 @@ const persons = {
   P24: ['Liza', 'Petrova', 'F', 2012],
 };
 // fam: [parents, children]
-const families = {
+const families: Record<string, [string[], string[]]> = {
   F1: [['N1', 'N2'], ['P1', 'P3']],
   F2: [['N3', 'N4'], ['P2']],
   F3: [['P1', 'P2'], ['P9', 'P5', 'P7']],
@@ -82,7 +81,7 @@ const families = {
   F11: [['P17', 'P18'], ['P24']],
 };
 
-await window.evaluate(
+await page.evaluate(
   async ({ project, persons, families }) => {
     await window.doru.openProjectPath(project);
     const existing = new Set((await window.doru.listPersons(project)).map((p) => p.id));
@@ -90,7 +89,7 @@ await window.evaluate(
       if (existing.has(id)) {
         continue;
       }
-      const person = { id, names: [{ given, surname }], sex };
+      const person: PersonRecord = { id, names: [{ given, surname }], sex };
       if (birthYear !== undefined) {
         person.birth = { year: birthYear, quality: 'exact' };
       }
@@ -130,11 +129,11 @@ await window.evaluate(
   },
   { project, persons, families },
 );
-await window.reload();
-await window.waitForSelector('.react-flow__node', { timeout: 20_000 });
+await page.reload();
+await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
 console.log('demo project open:', project);
-console.log('nodes:', await window.locator('.react-flow__node').count());
-console.log('edges:', await window.locator('.react-flow__edge').count());
+console.log('nodes:', await page.locator('.react-flow__node').count());
+console.log('edges:', await page.locator('.react-flow__edge').count());
 
 // Keep the window open until the user closes it.
-await new Promise((resolve) => app.on('close', resolve));
+await new Promise<void>((resolve) => app.on('close', () => resolve()));

@@ -160,7 +160,7 @@ describe('OpQueue', () => {
       fixture.repo.insertFamily(to);
 
       queue.apply(
-        reparentOp('K', [
+        reparentOp([
           { before: from, after: { ...from, children: [] } },
           { before: to, after: { ...to, children: ['K'] } },
         ], undefined),
@@ -190,7 +190,7 @@ describe('OpQueue', () => {
       const created = { id: 'F2', parents: ['B'], children: ['K'] };
 
       queue.apply(
-        reparentOp('K', [{ before: from, after: { ...from, children: [] } }], created),
+        reparentOp([{ before: from, after: { ...from, children: [] } }], created),
         ctx,
       );
       expect(fixture.repo.getFamily('F1')?.children).toEqual([]);

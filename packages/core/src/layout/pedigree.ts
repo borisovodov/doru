@@ -73,7 +73,6 @@ export function suggestFocusPerson(
  * would create an ancestry cycle.
  */
 export function isDescendantOf(
-  persons: PersonRecord[],
   families: FamilyRecord[],
   ancestorId: string,
   personId: string,
