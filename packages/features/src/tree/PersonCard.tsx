@@ -22,7 +22,7 @@ import {
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { displayName, years } from '../person/format';
-import type { PersonCounts } from './TreeCanvas';
+import type { PersonCounts } from './types';
 
 export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'rename' | 'delete';
 
@@ -68,6 +68,7 @@ function initials(person: PersonRecord): string {
 export const PersonCard = memo(function PersonCard({
   data,
   selected,
+  dragging,
 }: NodeProps<Node<PersonCardData>>) {
   const { person, line, isFocus, hasSubtree, collapsed, counts, onAction } = data;
   const deceased = person.death?.year !== undefined;
@@ -79,6 +80,7 @@ export const PersonCard = memo(function PersonCard({
     selected ? 'selected' : '',
     isFocus ? 'focus' : '',
     deceased ? 'deceased' : '',
+    dragging ? 'dragging' : '',
   ]
     .filter(Boolean)
     .join(' ');

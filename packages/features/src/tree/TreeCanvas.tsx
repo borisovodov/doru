@@ -12,71 +12,33 @@ import {
   useReactFlow,
   type Edge,
   type EdgeChange,
-  type Node,
   type NodeChange,
 } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
-import type { ChartKind, FamilyRecord, PersonRecord } from '@doru/core';
-import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X } from 'lucide-react';
+import type { ChartKind, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { displayName } from '../person/format';
 import { GenerationBand, type GenerationBandData } from './GenerationBand';
-import { MarriageEdge, PedigreeEdge, SeeAlsoEdge, type CanvasEdgeData } from './PedigreeEdges';
+import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
 import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
 import { PersonForm } from './PersonForm';
+import { TreeToolbar } from './TreeToolbar';
+import { computeFit } from './fit';
+import { projectLayout, type CanvasNode } from './project';
+import { CARD_HEIGHT, CARD_WIDTH } from './sizes';
+import type { FocusHistory, PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
 import '@xyflow/react/dist/style.css';
 import './TreeCanvas.css';
 
-export type RelativeRelation = 'child' | 'spouse' | 'parent';
-
-export interface PersonCounts {
-  notes: number;
-  sources: number;
-  media: number;
-}
-
-export interface TreeCanvasApi {
-  /** Creates a person and links them to the anchor (child/spouse/parent). */
-  addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): Promise<void>;
-  /** Detaches the person from all families and deletes the record. */
-  deletePerson(person: PersonRecord): Promise<void>;
-  /** Moves a person (as a child) into the family of `newParentId`. */
-  reparent(childId: string, newParentId: string): Promise<void>;
-  /** Updates the person record (rename, dates). */
-  updatePerson(before: PersonRecord, after: PersonRecord): Promise<void>;
-  /** Badge counts (notes, sources, media) for the given persons. */
-  getPersonCounts(personIds: string[]): Promise<Record<string, PersonCounts>>;
-  /** Opens the full person editor (a PersonTab). */
-  openEditor(personId: string): void;
-}
-
-export interface TreeCanvasProps {
-  persons: PersonRecord[];
-  families: FamilyRecord[];
-  api: TreeCanvasApi;
-  /** External focus request (e.g. a click in the People sidebar). */
-  focusRequest?: { personId: string; nonce: number } | null;
-}
-
-/** Must match the card size in TreeCanvas.css — the layout depends on it. */
-const CARD_WIDTH = 180;
-const CARD_HEIGHT = 64;
-const ROW_HEIGHT = CARD_HEIGHT + 48;
+export type {
+  PersonCounts,
+  RelativeRelation,
+  TreeCanvasApi,
+  TreeCanvasProps,
+} from './types';
 
 const nodeTypes = { personCard: PersonCard, generationBand: GenerationBand };
 const edgeTypes = { pedigree: PedigreeEdge, marriage: MarriageEdge, seeAlso: SeeAlsoEdge };
-
-const CHART_KINDS = [
-  { kind: 'ancestors', key: 'tree.canvas.view.ancestors' },
-  { kind: 'descendants', key: 'tree.canvas.view.descendants' },
-  { kind: 'hourglass', key: 'tree.canvas.view.hourglass' },
-  { kind: 'family', key: 'tree.canvas.view.family' },
-] as const satisfies ReadonlyArray<{ kind: ChartKind; key: string }>;
-
-interface FocusHistory {
-  stack: string[];
-  index: number;
-}
 
 /**
  * The tree tab: one full-size canvas. The graph is derived from the domain
@@ -127,6 +89,23 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     });
   }, [effectiveFocus, persons, families, kind, collapsed]);
 
+  const refocus = useCallback(
+    (personId: string) => {
+      if (!persons.some((person) => person.id === personId)) {
+        return;
+      }
+      setHistory((current) => {
+        const stack = current ? current.stack.slice(0, current.index + 1) : [];
+        if (stack[stack.length - 1] === personId) {
+          return current;
+        }
+        stack.push(personId);
+        return { stack, index: stack.length - 1 };
+      });
+    },
+    [persons],
+  );
+
   const handleAction = useCallback(
     (action: CardAction, personId: string) => {
       const person = persons.find((entry) => entry.id === personId);
@@ -135,90 +114,41 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
       }
       if (action === 'edit') {
         api.openEditor(personId);
-        return;
-      }
-      if (action === 'delete') {
+      } else if (action === 'delete') {
         void api.deletePerson(person);
-        return;
+      } else {
+        setForm({ relation: action, anchorId: personId });
       }
-      if (action === 'rename') {
-        setForm({ relation: 'rename', anchorId: personId });
-        return;
-      }
-      setForm({ relation: action, anchorId: personId });
     },
     [persons, api],
   );
 
+  const toggleCollapse = useCallback((personId: string) => {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(personId)) {
+        next.delete(personId);
+      } else {
+        next.add(personId);
+      }
+      return next;
+    });
+  }, []);
+
   const projected = useMemo(() => {
     if (!layout) {
-      return {
-        nodes: [] as Node<PersonCardData | GenerationBandData, string>[],
-        edges: [] as Edge[],
-      };
+      return { nodes: [] as CanvasNode[], edges: [] as Edge[] };
     }
-    const personById = new Map(persons.map((person) => [person.id, person]));
-    const toggleCollapse = (personId: string) => {
-      setCollapsed((current) => {
-        const next = new Set(current);
-        if (next.has(personId)) {
-          next.delete(personId);
-        } else {
-          next.add(personId);
-        }
-        return next;
-      });
-    };
-    // Generation bands sit behind the cards: render them first so they stay
-    // below in the DOM order.
-    const bandNodes: Node<GenerationBandData, 'generationBand'>[] = [
-      ...new Set(layout.cards.map((card) => card.generation)),
-    ]
-      .sort((a, b) => a - b)
-      .map((generation) => ({
-        id: `band:${generation}`,
-        type: 'generationBand',
-        position: {
-          x: layout.minX - 240,
-          y: generation * ROW_HEIGHT - ROW_HEIGHT / 2,
-        },
-        style: { width: layout.width + 480, height: ROW_HEIGHT },
-        data: { generation },
-        selectable: false,
-        draggable: false,
-      }));
-    const flowNodes: Node<PersonCardData | GenerationBandData, string>[] = [
-      ...bandNodes,
-      ...layout.cards.map((card) => ({
-        id: card.key,
-        type: 'personCard',
-        position: { x: card.x - CARD_WIDTH / 2, y: card.y - CARD_HEIGHT / 2 },
-        data: {
-          person: personById.get(card.personId) ?? { id: card.personId, names: [], sex: 'U' },
-          line: card.line,
-          isFocus: card.key === layout.focusKey,
-          hasSubtree: card.hasSubtree,
-          collapsed: collapsed.has(card.personId),
-          counts: counts[card.personId] ?? { notes: 0, sources: 0, media: 0 },
-          onToggleCollapse: toggleCollapse,
-          onAction: handleAction,
-        } satisfies PersonCardData,
-      })),
-    ];
-    const flowEdges: Edge[] = layout.edges.map((edge) => ({
-      id: edge.id,
-      type: edge.kind,
-      source: edge.source,
-      target: edge.target,
-      data: edge.geometry as CanvasEdgeData,
-    }));
-    return { nodes: flowNodes, edges: flowEdges };
-  }, [layout, persons, collapsed, counts, handleAction]);
+    return projectLayout(layout, persons, collapsed, counts, {
+      onToggleCollapse: toggleCollapse,
+      onAction: handleAction,
+    });
+  }, [layout, persons, collapsed, counts, toggleCollapse, handleAction]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
   // standard change handlers.
-  const [nodes, setNodes] = useState<Node<PersonCardData | GenerationBandData, string>[]>([]);
+  const [nodes, setNodes] = useState<CanvasNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   useEffect(() => {
     setNodes(projected.nodes);
@@ -244,32 +174,22 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   }, [layout, api]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes(
-      (current) =>
-        applyNodeChanges(changes, current) as Node<PersonCardData | GenerationBandData, string>[],
-    );
+    setNodes((current) => applyNodeChanges(changes, current) as CanvasNode[]);
   }, []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges((current) => applyEdgeChanges(changes, current) as Edge[]);
   }, []);
 
   // Fit the chart into the canvas. Deterministic: computed from the exact
-  // layout bounds, no node measurement involved. Never zooms in beyond 1 —
-  // a small tree stays at natural card size instead of ballooning. The
-  // layout-change call runs as a macrotask so that it lands after React
-  // StrictMode's double-mount of the React Flow subtree (whose second
-  // pan/zoom instance would otherwise reset the viewport right after us).
+  // layout bounds, no node measurement involved. Runs as a macrotask so it
+  // lands after React StrictMode's double-mount of the React Flow subtree
+  // (whose second pan/zoom instance would otherwise reset the viewport).
   const fitChart = useCallback(() => {
     const el = canvasRef.current;
     if (!el || !layout || el.clientWidth === 0 || el.clientHeight === 0) {
       return;
     }
-    const padding = 0.12;
-    const fit = Math.min(el.clientWidth / layout.width, el.clientHeight / layout.height);
-    const zoom = Math.max(0.1, Math.min(fit * (1 - padding), 1));
-    const x = (el.clientWidth - layout.width * zoom) / 2 - layout.minX * zoom;
-    const y = (el.clientHeight - layout.height * zoom) / 2 - layout.minY * zoom;
-    void setViewport({ x, y, zoom });
+    void setViewport(computeFit(layout, el.clientWidth, el.clientHeight));
   }, [layout, setViewport]);
 
   useEffect(() => {
@@ -290,23 +210,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     observer.observe(el);
     return () => observer.disconnect();
   }, [fitChart]);
-
-  const refocus = useCallback(
-    (personId: string) => {
-      if (!persons.some((person) => person.id === personId)) {
-        return;
-      }
-      setHistory((current) => {
-        const stack = current ? current.stack.slice(0, current.index + 1) : [];
-        if (stack[stack.length - 1] === personId) {
-          return current;
-        }
-        stack.push(personId);
-        return { stack, index: stack.length - 1 };
-      });
-    },
-    [persons],
-  );
 
   // External focus requests (e.g. a click in the People sidebar).
   const lastFocusRequest = useRef(0);
@@ -365,8 +268,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     if (!form) {
       return '';
     }
-    const anchor = persons.find((person) => person.id === form.anchorId);
-    const name = displayName(anchor);
+    const name = displayName(persons.find((person) => person.id === form.anchorId));
     switch (form.relation) {
       case 'child':
         return nls.t('tree.canvas.form.childTitle', name);
@@ -382,7 +284,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   // Drag-to-reparent: dropping a card onto another person's card moves the
   // dragged person (as a child) into that family. Anything else snaps back.
   const handleNodeDragStop = useCallback(
-    (_event: MouseEvent | TouchEvent, node: Node<PersonCardData | GenerationBandData>) => {
+    (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
       const data = node.data as PersonCardData;
       if (!data.person) {
         setNodes(projected.nodes);
@@ -406,7 +308,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   );
 
   const handleNodeDoubleClick = useCallback(
-    (_event: React.MouseEvent, node: Node<PersonCardData | GenerationBandData>) => {
+    (_event: React.MouseEvent, node: CanvasNode) => {
       const data = node.data as PersonCardData;
       if (data.person) {
         refocus(data.person.id);
@@ -414,17 +316,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     },
     [refocus],
   );
-
-  const searchQueryText = searchQuery.trim().toLowerCase();
-  const searchResults = useMemo(() => {
-    if (searchQueryText === '') {
-      return [];
-    }
-    return persons
-      .map((person) => ({ person, name: displayName(person) }))
-      .filter((entry) => entry.name.toLowerCase().includes(searchQueryText))
-      .slice(0, 8);
-  }, [searchQueryText, persons]);
 
   if (persons.length === 0) {
     return (
@@ -436,10 +327,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     );
   }
 
-  const focusPerson =
-    effectiveFocus !== undefined
-      ? persons.find((person) => person.id === effectiveFocus)
-      : undefined;
   const breadcrumbs = history ? history.stack.slice(0, history.index + 1) : [];
 
   return (
@@ -476,105 +363,27 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
               />
             </Panel>
           )}
-          <Panel position="top-left" className="tree-toolbar">
-            <div className="tree-direction" role="group">
-              {CHART_KINDS.map((entry) => (
-                <button
-                  key={entry.kind}
-                  type="button"
-                  className={kind === entry.kind ? 'active' : undefined}
-                  onClick={() => setKind(entry.kind)}
-                >
-                  {nls.t(entry.key)}
-                </button>
-              ))}
-            </div>
-            <div className="tree-nav">
-              <button
-                type="button"
-                title={nls.t('tree.canvas.back')}
-                aria-label={nls.t('tree.canvas.back')}
-                disabled={!history || history.index === 0}
-                onClick={goBack}
-              >
-                <ChevronLeft size={16} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                title={nls.t('tree.canvas.forward')}
-                aria-label={nls.t('tree.canvas.forward')}
-                disabled={!history || history.index >= history.stack.length - 1}
-                onClick={goForward}
-              >
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                title={nls.t('tree.canvas.collapseAll')}
-                aria-label={nls.t('tree.canvas.collapseAll')}
-                onClick={collapseAll}
-              >
-                <ChevronsDownUp size={16} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                title={nls.t('tree.canvas.expandAll')}
-                aria-label={nls.t('tree.canvas.expandAll')}
-                onClick={expandAll}
-              >
-                <ChevronsUpDown size={16} aria-hidden="true" />
-              </button>
-            </div>
-            {breadcrumbs.length > 0 && (
-              <ol className="tree-breadcrumbs">
-                {breadcrumbs.map((personId, index) => (
-                  <li key={personId}>
-                    <button
-                      type="button"
-                      className={index === breadcrumbs.length - 1 ? 'current' : undefined}
-                      onClick={() => jumpTo(index)}
-                    >
-                      {displayName(persons.find((person) => person.id === personId))}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {breadcrumbs.length === 0 && focusPerson && (
-              <span className="tree-breadcrumbs-current">
-                {displayName(focusPerson)}
-              </span>
-            )}
-            <div className="tree-search">
-              <Search size={14} aria-hidden="true" />
-              <input
-                value={searchQuery}
-                placeholder={nls.t('tree.canvas.search.placeholder')}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') {
-                    setSearchQuery('');
-                  }
-                }}
-              />
-              {searchResults.length > 0 && (
-                <ul className="tree-search-results">
-                  {searchResults.map(({ person, name }) => (
-                    <li key={person.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          refocus(person.id);
-                          setSearchQuery('');
-                        }}
-                      >
-                        {name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          <Panel position="top-left" className="tree-toolbar-panel">
+            <TreeToolbar
+              kind={kind}
+              onKindChange={setKind}
+              canGoBack={history !== null && history.index > 0}
+              canGoForward={history !== null && history.index < history.stack.length - 1}
+              onBack={goBack}
+              onForward={goForward}
+              onCollapseAll={collapseAll}
+              onExpandAll={expandAll}
+              breadcrumbs={breadcrumbs}
+              focusPersonId={effectiveFocus}
+              persons={persons}
+              onJump={jumpTo}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              onSearchSelect={(personId) => {
+                refocus(personId);
+                setSearchQuery('');
+              }}
+            />
           </Panel>
         </ReactFlow>
       </div>

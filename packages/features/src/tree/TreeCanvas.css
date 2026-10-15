@@ -75,7 +75,7 @@
 /* ── Person cards ─────────────────────────────────────────────────── */
 
 /* The layout assumes a fixed 180×64 card; keep these values in sync with
-   CARD_WIDTH / CARD_HEIGHT in TreeCanvas.tsx. */
+   CARD_WIDTH / CARD_HEIGHT in sizes.ts. */
 .person-card {
   width: 180px;
   height: 64px;
@@ -188,10 +188,6 @@
 .tree-canvas {
   --doru-line-paternal: var(--doru-info);
   --doru-line-maternal: #c98ba0;
-}
-
-.person-card {
-  border-left-width: 3px;
 }
 
 .person-card.line-paternal {
