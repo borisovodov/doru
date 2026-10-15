@@ -117,8 +117,7 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await app.close();
 });
 
-test('clicking a person in the People sidebar focuses the canvas', async () => {
-  const project = join(mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-')), 'family.doru');
+test('clicking a person in the People sidebar focuses the canvas', async () => {  const project = join(mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-data-'));
   const args = ['.', project];
   if (process.env.CI === 'true') {
@@ -209,5 +208,28 @@ test('rename, search and delete with undo on the canvas', async () => {
   await window.keyboard.press('Meta+z');
   await expect(window.locator('.person-card', { hasText: 'Maria Ivanova' }).first()).toBeVisible();
 
+  await app.close();
+});
+
+test('an empty tree offers to add the first person', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-empty-e2e-')), 'family.doru');
+  const userData = mkdtempSync(join(tmpdir(), 'doru-empty-e2e-data-'));
+  const args = ['.', project];
+  if (process.env.CI === 'true') {
+    args.push('--no-sandbox');
+  }
+  const app = await electron.launch({
+    args,
+    cwd: appDir,
+    env: { ...process.env, DORU_USER_DATA: userData },
+  });
+  const window = await app.firstWindow();
+  await window.waitForSelector('.workbench', { timeout: 20_000 });
+  await window.reload();
+  await expect(window.locator('.tree-canvas-empty')).toBeVisible();
+  await expect(window.locator('.tree-canvas-first')).toBeVisible();
+  await window.locator('.tree-canvas-first').click();
+  // The new-person editor tab opens.
+  await expect(window.locator('.person-editor')).toBeVisible();
   await app.close();
 });

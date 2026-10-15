@@ -125,6 +125,7 @@ export function App() {
             updatePerson: tree.api.updatePerson,
             getPersonCounts: tree.personCounts,
             openEditor: tabs.openPersonTab,
+            openNewPerson: tabs.openNewPersonTab,
           }}
         />
       );

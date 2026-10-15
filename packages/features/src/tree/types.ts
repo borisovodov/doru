@@ -21,6 +21,8 @@ export interface TreeCanvasApi {
   getPersonCounts(personIds: string[]): Promise<Record<string, PersonCounts>>;
   /** Opens the full person editor (a PersonTab). */
   openEditor(personId: string): void;
+  /** Opens the new-person editor tab (used to add the first person). */
+  openNewPerson(): void;
 }
 
 export interface TreeCanvasProps {
