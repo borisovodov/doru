@@ -30,6 +30,27 @@
   pointer-events: none;
 }
 
+/* "Add the first person" button on the empty canvas. */
+.tree-canvas-first {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 40px);
+  transform: translateX(-50%);
+  height: var(--doru-control-height);
+  padding: 0 14px;
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  border: none;
+  border-radius: var(--doru-radius-md);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.tree-canvas-first:hover {
+  background: var(--doru-accent-hover);
+}
+
 /* ── React Flow theme: map the doru tokens onto the xyflow tokens ──── */
 
 .tree-canvas .react-flow {

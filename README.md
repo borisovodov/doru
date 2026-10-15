@@ -52,10 +52,18 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ### Genealogy
 
-- **Persons** — the full list with live search; each person card holds names,
-  sex, and birth/death dates with a quality marker (*exact / about / before /
-  after*) plus a free-text form for dates that do not map to Gregorian.
-- **Families** — add parents, partners, and children from a person card;
+- **Interactive tree canvas** — the tree tab is one zoomable canvas with four
+  charts (ancestors, descendants, hourglass, family), focus navigation with
+  history and breadcrumbs, search-to-jump, and collapsible branches. Cards
+  show an avatar, years, sex and line marks, and notes/sources/media badges.
+- **Editing on the canvas** — add children, spouses and parents, rename,
+  delete, and drag a card onto another person to reparent; the full editor
+  (names, sex, birth/death dates with a quality marker — *exact / about /
+  before / after* — plus a free-text form for dates that do not map to
+  Gregorian) opens as a tab. Every action is one undoable step.
+- **Persons** — the People sidebar lists everyone; click a person to focus
+  the canvas and open their editor.
+- **Families** — add parents, partners, and children from a person editor;
   chips show the members of each family, and removing someone from a family
   is one click.
 - **Sources and notes** — attach a source (title and author) as a citation or
@@ -65,8 +73,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ### Import and export
 
-- **GEDCOM 5.5 / 5.5.1 import**, **GEDCOM 7.0 export**, and a read-only
-  GEDCOM view of the whole tree.
+- **GEDCOM 5.5 / 5.5.1 import** and **GEDCOM 7.0 export**.
 - **Tabs** — a project opens in its own window, and entities (persons, the
   tree editor, settings) open as tabs inside it. Recent projects are listed on
   the start page, open project windows are restored on launch, and

@@ -358,6 +358,13 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
       <div className="tree-view">
         <div className="tree-canvas">
           <p className="tree-canvas-empty">{nls.t('features.tree.emptyTree')}</p>
+          <button
+            type="button"
+            className="tree-canvas-first"
+            onClick={() => api.openNewPerson()}
+          >
+            {nls.t('tree.canvas.addFirstPerson')}
+          </button>
         </div>
       </div>
     );
