@@ -26,6 +26,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - Never hardcode user-facing strings in the UI. All UI strings go through the
   nls layer with keys of the form `area.feature.message` (see
   docs/architecture.md, Localization section).
+- **`npm run check:nls` enforces this in CI** (also on every PR): every
+  English key must exist, be non-empty and use the same `{n}` placeholders in
+  all 17 locales, and UI code must not hardcode JSX text or literal
+  `title`/`placeholder`/`alt`/`aria-label` strings. Escape hatch for
+  genuinely universal strings: a `nls-ignore` comment on the same or previous
+  line. The checker is part of the CI setup and lives in
+  `.github/scripts/check-nls.ts` — not in the `scripts/` dev helpers.
 - The base language is English: the English source text doubles as the
   fallback value. Add the English bundle entry first, then translations.
 - Locale bundles mirror the common IDE display language set: en, ru, fr, de,
@@ -91,6 +98,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 
 - Unit tests: vitest (`npm test`). E2E: Playwright against Electron
   (`npm run build` first, then `npm run e2e`).
+- Localization guard: `npm run check:nls` (runs in CI). Fails on incomplete
+  locale bundles or hardcoded user-facing UI strings.
 - Typecheck all workspaces: `npm run typecheck` (this also covers the root
   `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
   dev helper scripts).

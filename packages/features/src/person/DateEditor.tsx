@@ -18,13 +18,13 @@ export function DateEditor({
       <div className="date-editor-row">
         <input
           type="number"
-          placeholder="YYYY"
+          placeholder={nls.t('features.tree.date.yearPlaceholder')}
           value={value.year}
           onChange={(event) => set({ year: event.target.value })}
         />
         <input
           type="number"
-          placeholder="MM"
+          placeholder={nls.t('features.tree.date.monthPlaceholder')}
           min={1}
           max={12}
           value={value.month}
@@ -32,7 +32,7 @@ export function DateEditor({
         />
         <input
           type="number"
-          placeholder="DD"
+          placeholder={nls.t('features.tree.date.dayPlaceholder')}
           min={1}
           max={31}
           value={value.day}
