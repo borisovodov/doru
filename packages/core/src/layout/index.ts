@@ -12,3 +12,4 @@ export {
   type PedigreeLayoutOptions,
   type PedigreeLine,
 } from './pedigree';
+export { renderPedigreeSvg, type SvgRenderOptions } from './svg';

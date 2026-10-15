@@ -3,7 +3,8 @@ import {
   addNoteOp,
   addPersonOp,
   addSourceOp,
-  computePedigree,
+  layoutPedigree,
+  renderPedigreeSvg,
   updatePersonOp,
   type PersonRecord,
   type TreeRepository,
@@ -114,8 +115,17 @@ export class TreeMcpBackend {
       throw new Error('charts_render requires "personId"');
     }
     if (kind === 'pedigree') {
-      const root = computePedigree(this.repo, personId, 5);
-      return { kind, root };
+      const persons = this.repo.listAllPersons();
+      const families = this.repo.listFamilies();
+      const layout = layoutPedigree(personId, persons, families, {
+        kind: 'ancestors',
+        maxGenerations: 4,
+      });
+      if (!layout) {
+        throw new Error(`Unknown person: ${personId}`);
+      }
+      const svg = renderPedigreeSvg(layout, persons);
+      return { kind, svg, persons: layout.cards.length, edges: layout.edges.length };
     }
     throw new Error(`Unsupported chart kind: ${kind}`);
   }
