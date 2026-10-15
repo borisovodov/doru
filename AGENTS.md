@@ -82,6 +82,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   `Icon.icon`. Dev uses that PNG because Electron's `nativeImage` cannot load
   `.icns` files — the packaged app gets its icon via Info.plist
   (`CFBundleIconName`/`Assets.car`), which is macOS, not Electron.
+- **Future work lives in GitHub issues, not in docs.** When a design document
+  lists "future work"/"todo" items, file them as issues (`gh issue create`)
+  and keep the document to what exists and why. Never leave roadmap-style
+  lists in the repository text.
 
 ## Verification
 

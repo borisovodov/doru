@@ -1,0 +1,615 @@
+/* ── The tree tab: one full-size canvas ───────────────────────────── */
+
+.tree-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--doru-bg-canvas);
+  /* Canvas interactions (pan, zoom, drag) come later; disable text
+     selection and native scrolling gestures from the start. */
+  user-select: none;
+  touch-action: none;
+}
+
+.tree-canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--doru-fg-muted);
+  pointer-events: none;
+}
+
+/* ── React Flow theme: map the doru tokens onto the xyflow tokens ──── */
+
+.tree-canvas .react-flow {
+  --xy-background-color: transparent;
+  --xy-background-pattern-dots-color-default: color-mix(
+    in srgb,
+    var(--doru-border) 55%,
+    transparent
+  );
+  --xy-edge-stroke-default: var(--doru-border-strong);
+  --xy-edge-stroke-selected-default: var(--doru-accent);
+  --xy-edge-stroke-width-default: 1.5px;
+  --xy-node-background-color-default: var(--doru-bg-raised);
+  --xy-node-border-default: var(--doru-border);
+  --xy-node-border-radius-default: var(--doru-radius-md);
+  --xy-node-boxshadow-default: var(--doru-ring);
+  --xy-node-boxshadow-hover-default: var(--doru-ring);
+  --xy-node-boxshadow-selected-default: 0 0 0 2px var(--doru-accent);
+  --xy-node-color-default: var(--doru-fg);
+  --xy-selection-background-color-default: color-mix(
+    in srgb,
+    var(--doru-accent) 12%,
+    transparent
+  );
+  --xy-selection-border-default: var(--doru-accent);
+  --xy-controls-button-background-color-default: var(--doru-bg-raised);
+  --xy-controls-button-background-color-hover-default: var(--doru-bg-chrome);
+  --xy-controls-button-color-default: var(--doru-fg);
+  --xy-controls-button-color-hover-default: var(--doru-fg);
+  --xy-controls-button-border-color-default: var(--doru-border);
+  --xy-controls-box-shadow-default: var(--doru-ring);
+  --xy-minimap-background-color-default: var(--doru-bg-chrome);
+  --xy-minimap-mask-background-color-default: color-mix(
+    in srgb,
+    var(--doru-bg-canvas) 72%,
+    transparent
+  );
+  --xy-minimap-mask-stroke-color-default: var(--doru-border);
+  --xy-minimap-node-background-color-default: var(--doru-fg-muted);
+  --xy-minimap-node-stroke-color-default: transparent;
+}
+
+/* ── Person cards ─────────────────────────────────────────────────── */
+
+/* The layout assumes a fixed 180×64 card; keep these values in sync with
+   CARD_WIDTH / CARD_HEIGHT in sizes.ts. */
+.person-card {
+  width: 180px;
+  height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-left-width: 3px;
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+  cursor: pointer;
+}
+
+.person-card:hover {
+  border-color: var(--doru-accent);
+}
+
+.person-card.selected {
+  border-color: var(--doru-accent);
+  box-shadow:
+    var(--doru-ring),
+    0 0 0 2px var(--doru-accent-alpha);
+}
+
+.person-card-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+  user-select: none;
+}
+
+.person-card.sex-m .person-card-avatar {
+  background: color-mix(in srgb, var(--doru-info) 22%, var(--doru-bg-input));
+  color: var(--doru-info);
+}
+
+.person-card.sex-f .person-card-avatar {
+  background: color-mix(in srgb, #c98ba0 22%, var(--doru-bg-input));
+  color: #c98ba0;
+}
+
+.person-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.person-card-name {
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 16px;
+}
+
+.person-card-years {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.person-card-badges {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  display: flex;
+  gap: 5px;
+}
+
+.person-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--doru-fg-muted);
+}
+
+/* Invisible connection points: React Flow needs handles to attach edges,
+   but the pedigree edges carry their own geometry. */
+.person-card .person-card-handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Presentation: sex, line, life state ──────────────────────────── */
+
+.tree-canvas {
+  --doru-line-paternal: var(--doru-info);
+  --doru-line-maternal: #c98ba0;
+}
+
+.person-card.line-paternal {
+  border-left-color: var(--doru-line-paternal);
+}
+
+.person-card.line-maternal {
+  border-left-color: var(--doru-line-maternal);
+}
+
+.person-card.deceased {
+  opacity: 0.75;
+}
+
+.person-card.deceased .person-card-name {
+  color: var(--doru-fg-muted);
+}
+
+.person-card.focus {
+  border-color: var(--doru-accent);
+  box-shadow:
+    var(--doru-ring),
+    0 0 0 2px var(--doru-accent-alpha);
+}
+
+/* ── Collapse button ──────────────────────────────────────────────── */
+
+.person-card-collapse {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.person-card:hover .person-card-collapse {
+  display: inline-flex;
+}
+
+.person-card-collapse:hover {
+  color: var(--doru-fg);
+  border-color: var(--doru-accent);
+}
+
+/* ── Generation bands ─────────────────────────────────────────────── */
+
+.generation-band {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--doru-radius-md);
+  pointer-events: none;
+}
+
+.generation-band.even {
+  background: transparent;
+}
+
+.generation-band.odd {
+  background: color-mix(in srgb, var(--doru-bg-raised) 55%, transparent);
+}
+
+/* ── See-also edges ───────────────────────────────────────────────── */
+
+.see-also-edge {
+  stroke-dasharray: 4 4;
+  stroke: var(--doru-fg-faint);
+}
+
+/* ── Card quick-action toolbar ────────────────────────────────────── */
+
+.card-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.card-toolbar button {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  color: var(--doru-fg-muted);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.card-toolbar button:hover {
+  color: var(--doru-fg);
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.card-toolbar button:last-child:hover {
+  color: var(--doru-danger);
+}
+
+/* ── Person form panel ────────────────────────────────────────────── */
+
+.person-form-panel {
+  margin: 10px;
+}
+
+.person-form {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-lg);
+  box-shadow: var(--doru-ring);
+}
+
+.person-form-title {
+  margin: 0;
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+}
+
+.person-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.person-form-field > span {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+
+.person-form input {
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-form input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.person-form-sex {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--doru-bg-input);
+  border-radius: var(--doru-radius-sm);
+}
+
+.person-form-sex button {
+  flex: 1;
+  height: 24px;
+  background: transparent;
+  color: var(--doru-fg-muted);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-form-sex button.active {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+.person-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.person-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.person-form-actions button {
+  height: var(--doru-control-height);
+  padding: 0 12px;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-form-actions button:hover:not(:disabled) {
+  border-color: var(--doru-accent);
+}
+
+.person-form-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.person-form-actions button.primary {
+  background: var(--doru-accent);
+  border-color: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+/* ── Canvas search ────────────────────────────────────────────────── */
+
+.tree-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--doru-fg-muted);
+}
+
+.tree-search input {
+  width: 150px;
+  height: 24px;
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  color: var(--doru-fg);
+  padding: 0 6px 0 2px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.tree-search input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.tree-search-results {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 200px;
+  max-height: 260px;
+  overflow: auto;
+  background: var(--doru-bg-popover);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.tree-search-results button {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* Dragging a card over the canvas. */
+.person-card.dragging {
+  opacity: 0.85;
+  border-color: var(--doru-accent);
+}
+
+/* Valid drop target while a card is being dragged. */
+.person-card.drop-target {
+  outline: 2px dashed var(--doru-accent);
+  outline-offset: -3px;
+  border-color: var(--doru-accent);
+}
+
+/* ── Canvas toolbar ───────────────────────────────────────────────── */
+
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px;
+  padding: 6px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.tree-toolbar button {
+  height: 24px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--doru-fg);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.tree-toolbar button:hover:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.tree-toolbar button:active:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-pressed), var(--doru-overlay-pressed));
+}
+
+.tree-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tree-direction {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--doru-bg-input);
+  border-radius: var(--doru-radius-sm);
+}
+
+.tree-direction button.active {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+.tree-nav {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.tree-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+  max-width: 40vw;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tree-breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tree-breadcrumbs li:not(:last-child)::after {
+  content: '›';
+  color: var(--doru-fg-faint);
+  margin-left: 2px;
+}
+
+.tree-breadcrumbs button {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-breadcrumbs button.current {
+  color: var(--doru-accent);
+  font-weight: 600;
+}
+
+.tree-breadcrumbs-current {
+  padding: 0 8px;
+  color: var(--doru-accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Zoom controls ────────────────────────────────────────────────── */
+
+.tree-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px;
+}
+
+.tree-zoom button {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--doru-bg-raised);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  box-shadow: var(--doru-ring);
+  cursor: pointer;
+}
+
+.tree-zoom button:hover {
+  color: var(--doru-accent);
+  border-color: var(--doru-accent);
+}

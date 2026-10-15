@@ -18,10 +18,9 @@ const api = {
   recentProjects: (): Promise<unknown> => ipcRenderer.invoke('project:recent'),
   listPersons: (projectPath: string, search?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:list', { projectPath, search }),
+  all: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:all', { projectPath }),
   treeStats: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:stats', { projectPath }),
-  getUndoState: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:undoState', { projectPath }),
   undo: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:undo', { projectPath }),
   redo: (projectPath: string): Promise<unknown> =>
@@ -30,6 +29,16 @@ const api = {
     ipcRenderer.invoke('tree:addPerson', { projectPath, person }),
   updatePerson: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updatePerson', { projectPath, before, after }),
+  deletePerson: (projectPath: string, person: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deletePerson', { projectPath, person }),
+  reparent: (projectPath: string, childId: string, newParentId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:reparent', { projectPath, childId, newParentId }),
+  addRelative: (
+    projectPath: string,
+    relation: string,
+    anchorId: string,
+    person: unknown,
+  ): Promise<unknown> => ipcRenderer.invoke('tree:addRelative', { projectPath, relation, anchorId, person }),
   exportGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:export', { projectPath }),
   sendChat: (projectPath: string, messages: unknown[]): Promise<unknown> =>
@@ -57,6 +66,8 @@ const api = {
   },
   listNotes: (projectPath: string, personId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:notes', { projectPath, personId }),
+  personCounts: (projectPath: string, personIds: string[]): Promise<unknown> =>
+    ipcRenderer.invoke('tree:personCounts', { projectPath, personIds }),
   addNote: (projectPath: string, note: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addNote', { projectPath, note }),
   getGedcomText: (projectPath: string): Promise<unknown> =>

@@ -1,4 +1,5 @@
-export { TreeView, type TreeViewProps } from './tree/TreeView';
+export { TreeCanvas, type TreeCanvasProps } from './tree/TreeCanvas';
+export { PersonCard, type PersonCardData } from './tree/PersonCard';
 export { PersonEditor, type PersonEditorProps } from './person/PersonEditor';
 export {
   draftToRecord,

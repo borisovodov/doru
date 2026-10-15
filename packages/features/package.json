@@ -12,6 +12,7 @@
   "dependencies": {
     "@doru/core": "*",
     "@doru/platform": "*",
+    "@xyflow/react": "12.12.0",
     "lucide-react": "1.57.0",
     "react": "19.3.0"
   },

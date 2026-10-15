@@ -34,14 +34,20 @@ describe('TreeMcpBackend', () => {
     const fixture = makeAiFixture();
     try {
       fixture.repo.insertPerson(ivan);
-      fixture.repo.insertPerson({ id: '@P2@', names: [], sex: 'F' });
+      fixture.repo.insertPerson({ id: '@P2@', names: [{ given: 'Mother' }], sex: 'F' });
       fixture.repo.insertFamily({ id: '@F1@', parents: ['@P2@'], children: ['@I1@'] });
       const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
 
       const result = (await backend.invoke('charts_render', { personId: '@I1@', kind: 'pedigree' })) as {
-        root: { parents: Array<{ id: string }> };
+        kind: string;
+        svg: string;
+        persons: number;
       };
-      expect(result.root.parents.map((parent) => parent.id)).toEqual(['@P2@']);
+      expect(result.kind).toBe('pedigree');
+      expect(result.svg).toContain('<svg');
+      expect(result.svg).toContain('Ivan');
+      expect(result.svg).toContain('Mother');
+      expect(result.persons).toBe(2);
     } finally {
       cleanupAiFixture(fixture);
     }

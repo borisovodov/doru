@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CommandService } from '@doru/platform';
-import { ChatPanel, SettingsView, TreeView, WelcomePage } from '@doru/features';
+import { ChatPanel, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import { PersonTab } from './components/PersonTab';
 import { SidebarView } from './components/SidebarView';
@@ -19,6 +19,9 @@ import { useTreeData } from './hooks/useTreeData';
 export function App() {
   const [projectPath, setProjectPath] = useState<string | null | undefined>(undefined);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
+  const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(
+    null,
+  );
 
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
@@ -96,25 +99,33 @@ export function App() {
     [tabs.openTab, projectPath],
   );
 
+  /** Opens the person editor and refocuses the tree canvas on that person. */
+  const openPersonAndFocus = useCallback(
+    (personId: string) => {
+      tabs.openPersonTab(personId);
+      setCanvasFocus((current) => ({ personId, nonce: (current?.nonce ?? 0) + 1 }));
+    },
+    [tabs.openPersonTab],
+  );
+
   const renderTabContent = (tab: { id: string }): ReactNode => {
     if (tab.id === TREE_TAB_ID) {
+      // Keying by the project path resets canvas state (focus history,
+      // direction) when the user switches projects.
       return (
-        <TreeView
+        <TreeCanvas
+          key={projectPath ?? 'none'}
           persons={tree.persons}
-          stats={tree.stats}
-          importResult={project.importResult}
-          exportResult={project.exportResult}
-          search={tree.search}
-          canUndo={tree.undoState.canUndo}
-          canRedo={tree.undoState.canRedo}
-          onSearch={tree.onSearch}
-          onUndo={() => void tree.undo()}
-          onRedo={() => void tree.redo()}
-          onImportGedcom={() => void project.importGedcom()}
-          onExportGedcom={() => void project.exportGedcom()}
-          onAddPerson={tabs.openNewPersonTab}
-          onOpenPerson={tabs.openPersonTab}
-          getGedcomText={tree.getGedcomText}
+          families={tree.families}
+          focusRequest={canvasFocus}
+          api={{
+            addRelative: tree.addRelative,
+            deletePerson: tree.deletePerson,
+            reparent: tree.reparent,
+            updatePerson: tree.api.updatePerson,
+            getPersonCounts: tree.personCounts,
+            openEditor: tabs.openPersonTab,
+          }}
         />
       );
     }
@@ -180,7 +191,7 @@ export function App() {
             activeView={activeView}
             persons={tree.persons}
             projectPath={projectPath}
-            onOpenPerson={tabs.openPersonTab}
+            onOpenPerson={openPersonAndFocus}
             onImportGedcom={() => void project.importGedcom()}
             onExportGedcom={() => void project.exportGedcom()}
           />

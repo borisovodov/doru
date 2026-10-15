@@ -92,6 +92,10 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   const window = home;
   await window.reload();
   await expect(window.locator('.workbench')).toBeVisible();
+  await expect(window.locator('.editor-pane.active .tree-canvas')).toBeVisible();
+
+  // The person list now lives in the People sidebar, not in the tree tab.
+  await window.locator('.activity-bar .activity-bar-item').nth(1).click();
   await expect(window.locator('.person-list li').first()).toBeVisible();
 
   await window.locator('.person-list li').first().click();

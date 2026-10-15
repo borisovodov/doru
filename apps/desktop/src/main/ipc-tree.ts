@@ -5,12 +5,15 @@ import {
   addFamilyOp,
   addNoteOp,
   addPersonOp,
+  addRelativeOp,
   addSourceOp,
   attachCitationOp,
   deleteEventOp,
   deleteFamilyOp,
   deleteMediaOp,
+  deletePersonOp,
   detachCitationOp,
+  reparentOp,
   updateFamilyOp,
   updatePersonOp,
   type EventRecord,
@@ -37,14 +40,17 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle('tree:all', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return {
+      persons: runtime.repo.listAllPersons(),
+      families: runtime.repo.listFamilies(),
+    };
+  });
+
   ipcMain.handle('tree:stats', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return { persons: runtime.repo.countPersons(), families: runtime.repo.countFamilies() };
-  });
-
-  ipcMain.handle('tree:undoState', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
   });
 
   ipcMain.handle('tree:undo', async (_event, options: { projectPath: string }) => {
@@ -75,6 +81,105 @@ export function registerTreeIpc(): void {
   );
 
   ipcMain.handle(
+    'tree:deletePerson',
+    async (_event, options: { projectPath: string; person: PersonRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const links = runtime.repo
+        .listFamilies()
+        .filter(
+          (family) =>
+            family.parents.includes(options.person.id) ||
+            family.children.includes(options.person.id),
+        )
+        .map((family) => ({
+          before: family,
+          after: {
+            ...family,
+            parents: family.parents.filter((id) => id !== options.person.id),
+            children: family.children.filter((id) => id !== options.person.id),
+          },
+        }));
+      runtime.queue.apply(deletePersonOp(options.person, links), { repo: runtime.repo });
+      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    },
+  );
+
+  ipcMain.handle(
+    'tree:reparent',
+    async (_event, options: { projectPath: string; childId: string; newParentId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const families = runtime.repo.listFamilies();
+      const links = [];
+      for (const family of families.filter((entry) => entry.children.includes(options.childId))) {
+        links.push({
+          before: family,
+          after: {
+            ...family,
+            children: family.children.filter((id) => id !== options.childId),
+          },
+        });
+      }
+      const target = families.find((entry) => entry.parents.includes(options.newParentId));
+      if (target) {
+        links.push({
+          before: target,
+          after: { ...target, children: [...target.children, options.childId] },
+        });
+      }
+      const created = target
+        ? undefined
+        : { id: randomUUID(), parents: [options.newParentId], children: [options.childId] };
+      runtime.queue.apply(reparentOp(options.childId, links, created), { repo: runtime.repo });
+      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addRelative',
+    async (
+      _event,
+      options: {
+        projectPath: string;
+        relation: 'child' | 'spouse' | 'parent';
+        anchorId: string;
+        person: PersonRecord;
+      },
+    ) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const families = runtime.repo.listFamilies();
+      let links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
+      let created: FamilyRecord | undefined;
+      if (options.relation === 'parent') {
+        created = {
+          id: randomUUID(),
+          parents: [options.person.id],
+          children: [options.anchorId],
+        };
+      } else {
+        const target = families.find((entry) => entry.parents.includes(options.anchorId));
+        if (target) {
+          const after =
+            options.relation === 'child'
+              ? { ...target, children: [...target.children, options.person.id] }
+              : { ...target, parents: [...target.parents, options.person.id] };
+          links = [{ before: target, after }];
+        } else {
+          created = {
+            id: randomUUID(),
+            parents:
+              options.relation === 'child'
+                ? [options.anchorId]
+                : [options.anchorId, options.person.id],
+            children: options.relation === 'child' ? [options.person.id] : [],
+          };
+        }
+      }
+      runtime.queue.apply(addRelativeOp(options.person, links, created), { repo: runtime.repo });
+      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    },
+  );
+
+  ipcMain.handle(
     'tree:notes',
     async (_event, options: { projectPath: string; personId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
@@ -85,6 +190,25 @@ export function registerTreeIpc(): void {
       return notes.filter(
         (note) => note.targetType === 'person' && note.targetId === options.personId,
       );
+    },
+  );
+
+  ipcMain.handle(
+    'tree:personCounts',
+    async (_event, options: { projectPath: string; personIds: string[] }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      const notes = runtime.repo.listNotes();
+      const counts: Record<string, { notes: number; sources: number; media: number }> = {};
+      for (const personId of options.personIds) {
+        counts[personId] = {
+          notes: notes.filter(
+            (note) => note.targetType === 'person' && note.targetId === personId,
+          ).length,
+          sources: runtime.repo.listCitationsFor('person', personId).length,
+          media: runtime.repo.listMediaFor('person', personId).length,
+        };
+      }
+      return counts;
     },
   );
 

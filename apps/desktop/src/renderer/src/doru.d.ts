@@ -35,8 +35,9 @@ declare global {
       ): Promise<GedcomImportResult | null>;
       recentProjects(): Promise<RecentProject[]>;
       listPersons(projectPath: string, search?: string): Promise<PersonRecord[]>;
+      /** Every person and family in the tree (no pagination). */
+      all(projectPath: string): Promise<{ persons: PersonRecord[]; families: FamilyRecord[] }>;
       treeStats(projectPath: string): Promise<TreeStats>;
-      getUndoState(projectPath: string): Promise<UndoRedoState>;
       undo(projectPath: string): Promise<UndoRedoState>;
       redo(projectPath: string): Promise<UndoRedoState>;
       addPerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;
@@ -44,6 +45,18 @@ declare global {
         projectPath: string,
         before: PersonRecord,
         after: PersonRecord,
+      ): Promise<UndoRedoState>;
+      deletePerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;
+      reparent(
+        projectPath: string,
+        childId: string,
+        newParentId: string,
+      ): Promise<UndoRedoState>;
+      addRelative(
+        projectPath: string,
+        relation: 'child' | 'spouse' | 'parent',
+        anchorId: string,
+        person: PersonRecord,
       ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
@@ -58,6 +71,10 @@ declare global {
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
       onThemeConfigChanged(callback: (config: { dark: string; light: string }) => void): () => void;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
+      personCounts(
+        projectPath: string,
+        personIds: string[],
+      ): Promise<Record<string, { notes: number; sources: number; media: number }>>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getGedcomText(projectPath: string): Promise<string>;
       getFamilies(projectPath: string): Promise<FamilyRecord[]>;

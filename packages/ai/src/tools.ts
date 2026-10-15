@@ -57,12 +57,13 @@ export const doruTools: ToolDefinition[] = [
   },
   {
     name: 'charts_render',
-    description: 'Render a chart (pedigree, fan) for the given person.',
+    description:
+      'Render an ancestor chart for the given person as a standalone SVG image.',
     inputSchema: {
       type: 'object',
       properties: {
         personId: { type: 'string' },
-        kind: { type: 'string', enum: ['pedigree', 'fan'] },
+        kind: { type: 'string', enum: ['pedigree'] },
       },
       required: ['personId', 'kind'],
     },
