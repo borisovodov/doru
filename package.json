@@ -11,6 +11,7 @@
     "dev": "npm run dev --workspace @doru/desktop",
     "build": "npm run build --workspace @doru/desktop",
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
+    "check:nls": "node .github/scripts/check-nls.ts",
     "test": "vitest run",
     "e2e": "playwright test",
     "site:dev": "npm run dev --workspace @doru/website",
