@@ -21,8 +21,6 @@ const api = {
   all: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:all', { projectPath }),
   treeStats: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:stats', { projectPath }),
-  getUndoState: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:undoState', { projectPath }),
   undo: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:undo', { projectPath }),
   redo: (projectPath: string): Promise<unknown> =>

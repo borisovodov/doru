@@ -53,11 +53,6 @@ export function registerTreeIpc(): void {
     return { persons: runtime.repo.countPersons(), families: runtime.repo.countFamilies() };
   });
 
-  ipcMain.handle('tree:undoState', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
-  });
-
   ipcMain.handle('tree:undo', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     runtime.queue.undo({ repo: runtime.repo });

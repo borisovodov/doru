@@ -38,7 +38,6 @@ declare global {
       /** Every person and family in the tree (no pagination). */
       all(projectPath: string): Promise<{ persons: PersonRecord[]; families: FamilyRecord[] }>;
       treeStats(projectPath: string): Promise<TreeStats>;
-      getUndoState(projectPath: string): Promise<UndoRedoState>;
       undo(projectPath: string): Promise<UndoRedoState>;
       redo(projectPath: string): Promise<UndoRedoState>;
       addPerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;

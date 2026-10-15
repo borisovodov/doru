@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { FamilyRecord, PersonRecord, UndoRedoState } from '@doru/core';
+import type { FamilyRecord, PersonRecord } from '@doru/core';
 import type { PersonEditorApi } from '@doru/features';
-
-const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
 
 /**
  * Tree state and every mutation/reload that goes through `window.doru`.
@@ -11,23 +9,17 @@ const NO_UNDO: UndoRedoState = { canUndo: false, canRedo: false };
 export function useTreeData(projectPath: string | null | undefined) {
   const [persons, setPersons] = useState<PersonRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
-  const [undoState, setUndoState] = useState<UndoRedoState>(NO_UNDO);
 
   const reloadTree = useCallback(async (path: string) => {
-    const [data, undo] = await Promise.all([
-      window.doru.all(path),
-      window.doru.getUndoState(path),
-    ]);
+    const data = await window.doru.all(path);
     setPersons(data.persons);
     setFamilies(data.families);
-    setUndoState(undo);
   }, []);
 
   useEffect(() => {
     if (!projectPath) {
       setPersons([]);
       setFamilies([]);
-      setUndoState(NO_UNDO);
       return;
     }
     void reloadTree(projectPath);
@@ -43,7 +35,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     if (!projectPath) {
       return;
     }
-    setUndoState(await window.doru.undo(projectPath));
+    await window.doru.undo(projectPath);
     void refreshTree();
   }, [projectPath, refreshTree]);
 
@@ -51,7 +43,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     if (!projectPath) {
       return;
     }
-    setUndoState(await window.doru.redo(projectPath));
+    await window.doru.redo(projectPath);
     void refreshTree();
   }, [projectPath, refreshTree]);
 
@@ -66,7 +58,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       if (!projectPath) {
         return;
       }
-      setUndoState(await window.doru.addRelative(projectPath, relation, anchorId, person));
+      await window.doru.addRelative(projectPath, relation, anchorId, person);
       await refreshTree();
     },
     [projectPath, refreshTree],
@@ -82,7 +74,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       if (!projectPath || childId === newParentId) {
         return;
       }
-      setUndoState(await window.doru.reparent(projectPath, childId, newParentId));
+      await window.doru.reparent(projectPath, childId, newParentId);
       await refreshTree();
     },
     [projectPath, refreshTree],
@@ -107,7 +99,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       if (!projectPath) {
         return;
       }
-      setUndoState(await window.doru.deletePerson(projectPath, person));
+      await window.doru.deletePerson(projectPath, person);
       await refreshTree();
     },
     [projectPath, refreshTree],
@@ -119,14 +111,14 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.addPerson(projectPath, person));
+        await window.doru.addPerson(projectPath, person);
         await refreshTree();
       },
       updatePerson: async (before, after) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.updatePerson(projectPath, before, after));
+        await window.doru.updatePerson(projectPath, before, after);
         await refreshTree();
       },
       getNotes: (personId) =>
@@ -135,14 +127,12 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) {
           return;
         }
-        setUndoState(
-          await window.doru.addNote(projectPath, {
-            id: crypto.randomUUID(),
-            text,
-            targetType: 'person',
-            targetId: personId,
-          }),
-        );
+        await window.doru.addNote(projectPath, {
+          id: crypto.randomUUID(),
+          text,
+          targetType: 'person',
+          targetId: personId,
+        });
       },
       getFamilies: () =>
         projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([]),
@@ -150,19 +140,19 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.addFamily(projectPath, family));
+        await window.doru.addFamily(projectPath, family);
       },
       updateFamily: async (before, after) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.updateFamily(projectPath, before, after));
+        await window.doru.updateFamily(projectPath, before, after);
       },
       deleteFamily: async (family) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.deleteFamily(projectPath, family));
+        await window.doru.deleteFamily(projectPath, family);
       },
       getSources: () =>
         projectPath ? window.doru.getSources(projectPath) : Promise.resolve([]),
@@ -172,19 +162,19 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.addSource(projectPath, source, 'person', targetId));
+        await window.doru.addSource(projectPath, source, 'person', targetId);
       },
       attachSource: async (sourceId, targetId) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.attachSource(projectPath, sourceId, 'person', targetId));
+        await window.doru.attachSource(projectPath, sourceId, 'person', targetId);
       },
       detachCitation: async (citationId) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.detachCitation(projectPath, citationId));
+        await window.doru.detachCitation(projectPath, citationId);
       },
       getEvents: (personId, familyId) =>
         projectPath ? window.doru.getEvents(projectPath, personId, familyId) : Promise.resolve([]),
@@ -192,13 +182,13 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.addEvent(projectPath, event));
+        await window.doru.addEvent(projectPath, event);
       },
       deleteEvent: async (event) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.deleteEvent(projectPath, event));
+        await window.doru.deleteEvent(projectPath, event);
       },
       getMedia: (personId) =>
         projectPath ? window.doru.getMedia(projectPath, personId) : Promise.resolve([]),
@@ -206,16 +196,13 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) {
           return;
         }
-        const added = await window.doru.addMedia(projectPath, personId);
-        if (added.length > 0) {
-          setUndoState(await window.doru.getUndoState(projectPath));
-        }
+        await window.doru.addMedia(projectPath, personId);
       },
       deleteMedia: async (media) => {
         if (!projectPath) {
           return;
         }
-        setUndoState(await window.doru.deleteMedia(projectPath, media));
+        await window.doru.deleteMedia(projectPath, media);
       },
     }),
     [projectPath, refreshTree],
@@ -224,7 +211,6 @@ export function useTreeData(projectPath: string | null | undefined) {
   return {
     persons,
     families,
-    undoState,
     undo,
     redo,
     refreshTree,
