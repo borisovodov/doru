@@ -38,6 +38,8 @@ export type PersonCardData = {
   collapsed: boolean;
   /** Badge counts (notes, sources, media). */
   counts: PersonCounts;
+  /** Highlighted as the drop target of an ongoing card drag. */
+  isDropTarget: boolean;
   onToggleCollapse?: (personId: string) => void;
   /** Quick actions on the selected card (add/edit/delete relatives). */
   onAction?: (action: CardAction, personId: string) => void;
@@ -70,7 +72,7 @@ export const PersonCard = memo(function PersonCard({
   selected,
   dragging,
 }: NodeProps<Node<PersonCardData>>) {
-  const { person, line, isFocus, hasSubtree, collapsed, counts, onAction } = data;
+  const { person, line, isFocus, hasSubtree, collapsed, counts, isDropTarget, onAction } = data;
   const deceased = person.death?.year !== undefined;
   const dates = years(person);
   const classes = [
@@ -81,6 +83,7 @@ export const PersonCard = memo(function PersonCard({
     isFocus ? 'focus' : '',
     deceased ? 'deceased' : '',
     dragging ? 'dragging' : '',
+    isDropTarget ? 'drop-target' : '',
   ]
     .filter(Boolean)
     .join(' ');

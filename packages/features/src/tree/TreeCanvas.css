@@ -475,6 +475,13 @@
   border-color: var(--doru-accent);
 }
 
+/* Valid drop target while a card is being dragged. */
+.person-card.drop-target {
+  outline: 2px dashed var(--doru-accent);
+  outline-offset: -3px;
+  border-color: var(--doru-accent);
+}
+
 /* ── Canvas toolbar ───────────────────────────────────────────────── */
 
 .tree-toolbar {
@@ -576,4 +583,33 @@
   color: var(--doru-accent);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* ── Zoom controls ────────────────────────────────────────────────── */
+
+.tree-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px;
+}
+
+.tree-zoom button {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--doru-bg-raised);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  box-shadow: var(--doru-ring);
+  cursor: pointer;
+}
+
+.tree-zoom button:hover {
+  color: var(--doru-accent);
+  border-color: var(--doru-accent);
 }

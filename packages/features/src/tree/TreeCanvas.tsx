@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
   Panel,
   ReactFlow,
@@ -16,6 +15,7 @@ import {
 } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PersonRecord } from '@doru/core';
+import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import { nls } from '../nls';
 import { displayName } from '../person/format';
 import { GenerationBand, type GenerationBandData } from './GenerationBand';
@@ -65,7 +65,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const [searchQuery, setSearchQuery] = useState('');
   const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const { setViewport, getIntersectingNodes } = useReactFlow();
+  const { setViewport, zoomIn, zoomOut, getIntersectingNodes } = useReactFlow();
 
   const suggested = suggestFocusPerson(persons, families);
   const focusId = history ? history.stack[history.index] : suggested;
@@ -139,7 +139,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     if (!layout) {
       return { nodes: [] as CanvasNode[], edges: [] as Edge[] };
     }
-    return projectLayout(layout, persons, collapsed, counts, {
+    return projectLayout(layout, persons, collapsed, counts, null, {
       onToggleCollapse: toggleCollapse,
       onAction: handleAction,
     });
@@ -283,28 +283,64 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
 
   // Drag-to-reparent: dropping a card onto another person's card moves the
   // dragged person (as a child) into that family. Anything else snaps back.
-  const handleNodeDragStop = useCallback(
-    (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
+  // The valid drop target is highlighted while dragging by patching the
+  // node data in place — the projection must not rerun mid-drag, or the
+  // dragged card would snap back to its layout position.
+  const resolveDropTarget = useCallback(
+    (node: CanvasNode): CanvasNode | undefined => {
       const data = node.data as PersonCardData;
       if (!data.person) {
-        setNodes(projected.nodes);
-        return;
+        return undefined;
       }
       const target = getIntersectingNodes(node).find(
         (candidate) => candidate.type === 'personCard' && candidate.id !== node.id,
       );
       const targetPerson = (target?.data as PersonCardData | undefined)?.person;
       if (
+        !target ||
         !targetPerson ||
         targetPerson.id === data.person.id ||
         isDescendantOf(persons, families, data.person.id, targetPerson.id)
       ) {
-        setNodes(projected.nodes);
-        return;
+        return undefined;
       }
-      void api.reparent(data.person.id, targetPerson.id);
+      return target as CanvasNode;
     },
-    [getIntersectingNodes, persons, families, api, projected],
+    [getIntersectingNodes, persons, families],
+  );
+
+  const handleNodeDrag = useCallback(
+    (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
+      const targetId = resolveDropTarget(node)?.id ?? null;
+      setNodes((current) =>
+        current.map((entry) => {
+          if (entry.type !== 'personCard') {
+            return entry;
+          }
+          const data = entry.data as PersonCardData;
+          const isDropTarget = entry.id === targetId;
+          if (data.isDropTarget === isDropTarget) {
+            return entry;
+          }
+          return { ...entry, data: { ...data, isDropTarget } };
+        }),
+      );
+    },
+    [resolveDropTarget],
+  );
+
+  const handleNodeDragStop = useCallback(
+    (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
+      const target = resolveDropTarget(node);
+      const data = node.data as PersonCardData;
+      if (data.person && target) {
+        const targetPerson = (target.data as PersonCardData).person;
+        void api.reparent(data.person.id, targetPerson.id);
+      }
+      // Re-project: clears the highlight and snaps the card back.
+      setNodes(projected.nodes);
+    },
+    [resolveDropTarget, api, projected],
   );
 
   const handleNodeDoubleClick = useCallback(
@@ -342,13 +378,39 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeDoubleClick={handleNodeDoubleClick}
+          onNodeDrag={handleNodeDrag}
           onNodeDragStop={handleNodeDragStop}
           zoomOnDoubleClick={false}
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
-          <MiniMap pannable zoomable />
-          <Controls showInteractive={false} />
+          <MiniMap pannable zoomable ariaLabel={nls.t('tree.canvas.minimap')} />
+          <Panel position="bottom-left" className="tree-zoom">
+            <button
+              type="button"
+              title={nls.t('tree.canvas.zoomIn')}
+              aria-label={nls.t('tree.canvas.zoomIn')}
+              onClick={() => void zoomIn({ duration: 150 })}
+            >
+              <ZoomIn size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title={nls.t('tree.canvas.zoomOut')}
+              aria-label={nls.t('tree.canvas.zoomOut')}
+              onClick={() => void zoomOut({ duration: 150 })}
+            >
+              <ZoomOut size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title={nls.t('tree.canvas.fit')}
+              aria-label={nls.t('tree.canvas.fit')}
+              onClick={fitChart}
+            >
+              <Maximize2 size={16} aria-hidden="true" />
+            </button>
+          </Panel>
           {form && (
             <Panel position="top-right" className="person-form-panel">
               <PersonForm

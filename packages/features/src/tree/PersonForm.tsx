@@ -10,14 +10,28 @@ export interface PersonFormProps {
   onCancel: () => void;
 }
 
+/** Splits a GEDCOM-style full name ("Petr /Ivanov/") into its parts. */
+function splitFullName(full: string): { given: string; surname: string } {
+  const words = full.replace(/\//g, '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return { given: '', surname: '' };
+  }
+  return { given: words[0] ?? '', surname: words.slice(1).join(' ') };
+}
+
 /**
  * Person creation/editing form: name, sex, birth/death years. Used by the
  * canvas quick actions to add a child, spouse or parent, and to rename a
  * person in place.
  */
 export function PersonForm({ title, initial, onSubmit, onCancel }: PersonFormProps) {
-  const [given, setGiven] = useState(initial?.names[0]?.given ?? '');
-  const [surname, setSurname] = useState(initial?.names[0]?.surname ?? '');
+  const initialParts = initial?.names[0]
+    ? initial.names[0].full
+      ? splitFullName(initial.names[0].full)
+      : { given: initial.names[0].given ?? '', surname: initial.names[0].surname ?? '' }
+    : { given: '', surname: '' };
+  const [given, setGiven] = useState(initialParts.given);
+  const [surname, setSurname] = useState(initialParts.surname);
   const [sex, setSex] = useState<Sex>(initial?.sex ?? 'U');
   const [birthYear, setBirthYear] = useState(
     initial?.birth?.year !== undefined ? String(initial.birth.year) : '',
