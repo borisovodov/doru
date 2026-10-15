@@ -33,6 +33,7 @@ win:
         - arm64
 linux:
   category: Education
+  syncDesktopName: true
   icon: resources/icon.png
   artifactName: doru-linux-${arch}.${ext}
   target:
