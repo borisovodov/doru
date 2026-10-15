@@ -4,7 +4,8 @@
 
 The chat panel sits at the bottom of the window. Type a question and the agent
 can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
-`tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render`.
+`tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render`
+(the last one renders a person's ancestor chart as an SVG image).
 
 Set the provider up from **Settings** (gear icon in the left bar) → AI
 Provider:

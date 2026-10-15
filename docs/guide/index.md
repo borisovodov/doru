@@ -20,7 +20,7 @@ agents — through the built-in chat or any MCP/ACP client.
 |---|---|
 | [Installation](installation.md) | Download links and notes for macOS, Windows, and Linux. |
 | [Quick start](getting-started.md) | Create your first project, understand the `.doru` file, import GEDCOM. |
-| [Working with the tree](tree.md) | Persons, families, sources, notes, undo/redo, the GEDCOM view. |
+| [Working with the tree](tree.md) | The interactive tree canvas: charts, focus navigation, editing, families, sources, notes. |
 | [Configuration](configuration.md) | The full `doru.json` reference and environment variables. |
 | [AI and agents](agents.md) | The in-app chat, ACP agents, MCP server mode, example prompts. |
 | [Themes](themes.md) | Dark and light themes, chosen per OS appearance. |
