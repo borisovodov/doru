@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { layoutPedigree, suggestFocusPerson, type LaidOutCard } from '../src/layout/pedigree';
+import { isDescendantOf, layoutPedigree, suggestFocusPerson, type LaidOutCard } from '../src/layout/pedigree';
 import type { FamilyRecord, PersonRecord } from '../src/model/types';
 
 const person = (id: string, sex: PersonRecord['sex'] = 'U', birthYear?: number): PersonRecord => ({
@@ -429,6 +429,37 @@ describe('layoutPedigree — lines', () => {
     expect(byKey.get('person:father@spouse:F1')?.line).toBe('paternal');
     expect(byKey.get('person:mother@spouse:F1')?.line).toBe('maternal');
     expect(byKey.get('person:child@focus')?.line).toBeNull();
+  });
+});
+
+describe('isDescendantOf', () => {
+  const persons = (ids: string[]) => ids.map((id) => person(id));
+  const family = (id: string, parents: string[], children: string[]): FamilyRecord => ({
+    id,
+    parents,
+    children,
+  });
+
+  it('detects a direct parent', () => {
+    const ps = persons(['kid', 'dad']);
+    expect(isDescendantOf(ps, [family('F1', ['dad'], ['kid'])], 'dad', 'kid')).toBe(true);
+  });
+
+  it('walks the ancestry chain', () => {
+    const ps = persons(['kid', 'dad', 'gpa']);
+    const fs = [family('F1', ['dad'], ['kid']), family('F2', ['gpa'], ['dad'])];
+    expect(isDescendantOf(ps, fs, 'gpa', 'kid')).toBe(true);
+  });
+
+  it('returns false for unrelated persons and reversed order', () => {
+    const ps = persons(['a', 'b']);
+    expect(isDescendantOf(ps, [family('F1', ['a'], ['b'])], 'a', 'b')).toBe(true);
+    expect(isDescendantOf(ps, [family('F1', ['a'], ['b'])], 'b', 'a')).toBe(false);
+    expect(isDescendantOf(ps, [], 'a', 'b')).toBe(false);
+  });
+
+  it('treats a person as their own descendant', () => {
+    expect(isDescendantOf(persons(['a']), [], 'a', 'a')).toBe(true);
   });
 });
 

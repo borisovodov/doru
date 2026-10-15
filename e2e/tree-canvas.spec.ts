@@ -68,7 +68,7 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await window.locator('.person-form-actions button.primary').click();
   await expect(window.locator('.person-card', { hasText: 'TestKid' }).first()).toBeVisible();
 
-  // Drag TestKid onto Kid2 → reparents into family F3.
+  // Drag TestKid onto Kid2 → reparents into family F4.
   const kid = window.locator('.person-card', { hasText: 'TestKid' }).first();
   const kid2 = window.locator('.person-card', { hasText: 'Kid2' }).first();
   const kbox = await kid.boundingBox();
@@ -82,6 +82,8 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
     k2box!.y + k2box!.height / 2,
     { steps: 10 },
   );
+  // The valid drop target is highlighted while dragging.
+  await expect(kid2).toHaveClass(/drop-target/);
   await window.mouse.up();
   await window.waitForTimeout(900);
 
@@ -145,5 +147,67 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
 
   // The canvas (kept alive in the hidden pane) refocuses on Ivan.
   await expect(window.locator('.tree-breadcrumbs')).toHaveText(/Ivan Ivanov/);
+  await app.close();
+});
+
+test('rename, search and delete with undo on the canvas', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-ops-e2e-')), 'family.doru');
+  const userData = mkdtempSync(join(tmpdir(), 'doru-ops-e2e-data-'));
+  const args = ['.', project];
+  if (process.env.CI === 'true') {
+    args.push('--no-sandbox');
+  }
+  const app = await electron.launch({
+    args,
+    cwd: appDir,
+    env: { ...process.env, DORU_USER_DATA: userData },
+  });
+  const window = await app.firstWindow();
+  await window.waitForSelector('.workbench', { timeout: 20_000 });
+  await window.evaluate(
+    async ({ project, fixture }) => {
+      await window.doru.importGedcomFile(project, fixture);
+    },
+    { project, fixture },
+  );
+  await window.reload();
+  await window.waitForSelector('.react-flow__node', { timeout: 20_000 });
+
+  const clickCard = async (name: string) => {
+    const card = window.locator('.person-card', { hasText: name }).first();
+    const box = await card.boundingBox();
+    await window.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await window.waitForTimeout(250);
+  };
+
+  // Rename Petr via the card toolbar (prefilled form).
+  await clickCard('Petr');
+  await window.locator('.card-toolbar button').nth(3).click();
+  await expect(window.locator('.person-form input').nth(0)).toHaveValue('Petr');
+  await window.locator('.person-form input').nth(0).fill('Petya');
+  await window.locator('.person-form-actions button.primary').click();
+  await expect(window.locator('.person-card', { hasText: 'Petya Ivanov' }).first()).toBeVisible();
+
+  // Undo the rename.
+  await window.keyboard.press('Meta+z');
+  await expect(window.locator('.person-card', { hasText: 'Petr Ivanov' }).first()).toBeVisible();
+  await expect(window.locator('.person-card', { hasText: 'Petya Ivanov' })).toHaveCount(0);
+
+  // Search jumps to a person.
+  await window.locator('.tree-search input').fill('Maria');
+  await expect(window.locator('.tree-search-results button').first()).toBeVisible();
+  await window.locator('.tree-search-results button').first().click();
+  await expect(window.locator('.tree-breadcrumbs')).toHaveText(/Maria Ivanova/);
+  // Wait for the re-layout and the fit to settle before clicking cards.
+  await expect(window.locator('.person-card.focus')).toHaveText(/Maria Ivanova/);
+  await window.waitForTimeout(400);
+
+  // Delete the focused person (Maria) and undo the whole compound op.
+  await clickCard('Maria Ivanova');
+  await window.locator('.card-toolbar button').nth(5).click();
+  await expect(window.locator('.person-card', { hasText: 'Maria Ivanova' })).toHaveCount(0);
+  await window.keyboard.press('Meta+z');
+  await expect(window.locator('.person-card', { hasText: 'Maria Ivanova' }).first()).toBeVisible();
+
   await app.close();
 });
