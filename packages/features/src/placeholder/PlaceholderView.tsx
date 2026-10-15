@@ -3,7 +3,7 @@ import './PlaceholderView.css';
 
 export interface PlaceholderViewProps {
   title: string;
-  description?: string;
+  description?: string | undefined;
   children?: ReactNode;
 }
 

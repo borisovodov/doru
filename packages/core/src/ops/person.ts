@@ -49,7 +49,6 @@ export function deletePersonOp(
  * does not exist. One undo step restores everything.
  */
 export function reparentOp(
-  childId: string,
   familyLinks: Array<{ before: FamilyRecord; after: FamilyRecord }>,
   created: FamilyRecord | undefined,
 ): Op {

@@ -2,9 +2,9 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { DateValue, NamePart, PersonRecord, Sex } from '../model/types';
 
 export interface PersonQuery {
-  search?: string;
-  limit?: number;
-  offset?: number;
+  search?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 interface PersonRow {

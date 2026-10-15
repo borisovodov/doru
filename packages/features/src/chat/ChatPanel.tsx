@@ -7,7 +7,7 @@ export interface ChatTranscriptMessage {
   role: 'user' | 'assistant';
   content: string;
   steps?: AgentStep[];
-  error?: string;
+  error?: string | undefined;
 }
 
 export interface ChatPermissionRequest {

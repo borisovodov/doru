@@ -57,7 +57,7 @@ export function listBuiltinThemes(): ThemeInfo[] {
 }
 
 export function themeConfig(): { dark: string; light: string } {
-  const theme = (readConfig().theme ?? {}) as { dark?: string; light?: string };
+  const theme = (readConfig()['theme'] ?? {}) as { dark?: string; light?: string };
   return { dark: theme.dark ?? DEFAULT_DARK_THEME, light: theme.light ?? DEFAULT_LIGHT_THEME };
 }
 

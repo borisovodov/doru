@@ -18,7 +18,7 @@ import type { ChartKind, PersonRecord } from '@doru/core';
 import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import { nls } from '../nls';
 import { displayName } from '../person/format';
-import { GenerationBand, type GenerationBandData } from './GenerationBand';
+import { GenerationBand } from './GenerationBand';
 import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
 import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
 import { PersonForm } from './PersonForm';
@@ -300,13 +300,13 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
         !target ||
         !targetPerson ||
         targetPerson.id === data.person.id ||
-        isDescendantOf(persons, families, data.person.id, targetPerson.id)
+        isDescendantOf(families, data.person.id, targetPerson.id)
       ) {
         return undefined;
       }
       return target as CanvasNode;
     },
-    [getIntersectingNodes, persons, families],
+    [getIntersectingNodes, families],
   );
 
   const handleNodeDrag = useCallback(

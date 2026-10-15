@@ -5,7 +5,7 @@ import { nls } from '../nls';
 export interface PersonFormProps {
   title: string;
   /** Prefill for editing an existing person; creates a new one when absent. */
-  initial?: PersonRecord;
+  initial?: PersonRecord | undefined;
   onSubmit: (person: PersonRecord) => void;
   onCancel: () => void;
 }
