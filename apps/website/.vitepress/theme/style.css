@@ -1,20 +1,141 @@
+/* Dóru website theme — mirrors the desktop app's theme tokens
+   (themes/doru-light/theme.json and themes/doru-dark/theme.json),
+   so the site and the app feel like one product. */
+
 :root {
-  /* Icon.icon palette: #414f41/#1f2b24 — background gradient,
-     #263b2e — glyph green, #ece1d2 — glyph cream */
-  --vp-c-brand-1: #414f41;
-  --vp-c-brand-2: #263b2e;
-  --vp-c-brand-3: #414f41;
-  --vp-c-brand-soft: rgba(65, 79, 65, 0.14);
-  --vp-button-brand-hover-bg: #263b2e;
-  --vp-home-hero-name-background: linear-gradient(120deg, #414f41 20%, #263b2e 90%);
+  /* Surfaces — canvas (page) < chrome (nav/sidebar) < raised < popover */
+  --vp-c-bg: #fdfcf9; /* bg-canvas */
+  --vp-c-bg-alt: #f2efe7; /* bg-chrome */
+  --vp-c-bg-elv: #ffffff; /* bg-popover */
+  --vp-c-bg-soft: #f7f4ec; /* bg-raised */
+
+  /* Text */
+  --vp-c-text-1: #1f2621; /* fg */
+  --vp-c-text-2: #5d655f; /* fg-muted */
+  --vp-c-text-3: #8d958f; /* fg-faint */
+
+  /* Alpha hairline borders, like the app */
+  --vp-c-border: rgba(0, 0, 0, 0.18); /* border-strong */
+  --vp-c-divider: rgba(0, 0, 0, 0.09); /* border */
+  --vp-c-gutter: rgba(0, 0, 0, 0.09);
+
+  /* Accent — forest / sage from the Dóru icon */
+  --vp-c-brand-1: #3f7355; /* accent */
+  --vp-c-brand-2: #35624a; /* accent-hover */
+  --vp-c-brand-3: #2c5340; /* accent-active */
+  --vp-c-brand-soft: rgba(63, 115, 85, 0.12); /* accent-alpha */
+
+  /* Neutral function colors on app surfaces */
+  --vp-c-default-1: #1f2621;
+  --vp-c-default-2: #5d655f;
+  --vp-c-default-3: #f2efe7;
+  --vp-c-default-soft: rgba(0, 0, 0, 0.06);
+
+  /* States — Dóru Light */
+  --vp-c-success-1: #2f7d43;
+  --vp-c-success-2: #256b36;
+  --vp-c-success-3: #1c5730;
+  --vp-c-success-soft: rgba(47, 125, 67, 0.16);
+  --vp-c-warning-1: #9a6a00;
+  --vp-c-warning-2: #7d5600;
+  --vp-c-warning-3: #634400;
+  --vp-c-warning-soft: rgba(154, 106, 0, 0.16);
+  --vp-c-danger-1: #c2412d;
+  --vp-c-danger-2: #a03524;
+  --vp-c-danger-3: #7e2a1d;
+  --vp-c-danger-soft: rgba(194, 65, 45, 0.14);
+  --vp-c-info-1: #2d6c9e;
+  --vp-c-info-2: #245a85;
+  --vp-c-info-3: #1c486c;
+  --vp-c-info-soft: rgba(45, 108, 158, 0.14);
+
+  /* Brand button — accent with on-accent text, like the app */
+  --vp-button-brand-text: #fdfcf9; /* on-accent */
+  --vp-button-brand-hover-text: #fdfcf9;
+  --vp-button-brand-active-text: #fdfcf9;
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+  --vp-button-brand-active-bg: var(--vp-c-brand-3);
+
+  /* Chrome surfaces: nav, local nav and sidebar use the app chrome color */
+  --vp-nav-bg-color: var(--vp-c-bg-alt);
+  --vp-local-nav-bg-color: var(--vp-c-bg-alt);
+
+  /* Hero — sage gradient on the name, soft accent glow behind */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #3f7355 20%, #2c5340 90%);
+  --vp-home-hero-image-background-image: radial-gradient(
+    60% 60% at 50% 40%,
+    rgba(63, 115, 85, 0.18) 0%,
+    transparent 100%
+  );
+  --vp-home-hero-image-filter: none;
+
+  /* The app's system font stack */
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu,
+    Cantarell, 'Helvetica Neue', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 .dark {
-  --vp-c-brand-1: #ece1d2;
-  --vp-c-brand-2: #899289;
-  --vp-c-brand-3: #414f41;
-  --vp-c-brand-soft: rgba(236, 225, 210, 0.16);
-  --vp-home-hero-name-background: linear-gradient(120deg, #ece1d2 20%, #899289 100%);
+  /* Surfaces — Dóru Dark */
+  --vp-c-bg: #0f1311; /* bg-canvas */
+  --vp-c-bg-alt: #161a17; /* bg-chrome */
+  --vp-c-bg-elv: #1b201c; /* bg-raised */
+  --vp-c-bg-soft: #202621; /* bg-popover */
+
+  /* Text */
+  --vp-c-text-1: #c7cdc8; /* fg */
+  --vp-c-text-2: #8d958f; /* fg-muted */
+  --vp-c-text-3: #5d655f; /* fg-faint */
+
+  /* Alpha hairline borders */
+  --vp-c-border: rgba(255, 255, 255, 0.16); /* border-strong */
+  --vp-c-divider: rgba(255, 255, 255, 0.08); /* border */
+  --vp-c-gutter: rgba(255, 255, 255, 0.08);
+
+  /* Accent — sage on dark canvas */
+  --vp-c-brand-1: #63a37f; /* accent */
+  --vp-c-brand-2: #78b894; /* accent-hover */
+  --vp-c-brand-3: #518b68; /* accent-active */
+  --vp-c-brand-soft: rgba(99, 163, 127, 0.14); /* accent-alpha */
+
+  /* Neutral function colors */
+  --vp-c-default-1: #c7cdc8;
+  --vp-c-default-2: #8d958f;
+  --vp-c-default-3: #161a17;
+  --vp-c-default-soft: rgba(255, 255, 255, 0.06);
+
+  /* States — Dóru Dark */
+  --vp-c-success-1: #7fc690;
+  --vp-c-success-2: #98d4a7;
+  --vp-c-success-3: #63a37f;
+  --vp-c-success-soft: rgba(127, 198, 144, 0.14);
+  --vp-c-warning-1: #d9b45c;
+  --vp-c-warning-2: #e3c47e;
+  --vp-c-warning-3: #b08c36;
+  --vp-c-warning-soft: rgba(217, 180, 92, 0.14);
+  --vp-c-danger-1: #e0745f;
+  --vp-c-danger-2: #e8927f;
+  --vp-c-danger-3: #bd5c49;
+  --vp-c-danger-soft: rgba(224, 116, 95, 0.14);
+  --vp-c-info-1: #7fb3c9;
+  --vp-c-info-2: #9ec4d6;
+  --vp-c-info-3: #5f93ac;
+  --vp-c-info-soft: rgba(127, 179, 201, 0.14);
+
+  /* Brand button — accent with the dark on-accent text */
+  --vp-button-brand-text: #0c1510; /* on-accent */
+  --vp-button-brand-hover-text: #0c1510;
+  --vp-button-brand-active-text: #0c1510;
+
+  /* Hero */
+  --vp-home-hero-name-background: linear-gradient(120deg, #78b894 20%, #63a37f 90%);
+  --vp-home-hero-image-background-image: radial-gradient(
+    60% 60% at 50% 40%,
+    rgba(99, 163, 127, 0.16) 0%,
+    transparent 100%
+  );
 }
 
 .doru-screenshot {
@@ -28,11 +149,18 @@
   width: 100%;
   height: auto;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
+  border-radius: 8px; /* the app's --doru-radius-lg */
+  box-shadow: var(--vp-shadow-2);
 }
 
 .VPHome {
   margin-bottom: 32px !important;
+}
+
+/* Feature cards on the home page use the app's raised surfaces and
+   radius instead of VitePress' default 12px. */
+.VPFeature {
+  border-radius: 8px;
 }
 
 .doru-read-docs {
