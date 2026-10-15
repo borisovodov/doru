@@ -142,3 +142,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   generated notes and assets. Just bump the versions and push the tag — never
   run `gh release create` by hand and never force-move a release tag: every
   workflow run appends its own notes block to the existing release body.
+- **Version bumps and the lockfile land in one commit.** After bumping
+  `version` in the root and workspace `package.json` files, run
+  `npm install --package-lock-only` so `package-lock.json` records the new
+  versions, and commit the bump together with the lockfile update. Note:
+  `npm run build` does *not* touch the lockfile — releasing without the sync
+  leaves a stale lock and forces a lockfile-only follow-up commit.
