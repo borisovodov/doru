@@ -1,8 +1,9 @@
 # Tree editor: architecture, decisions and future work
 
 The interactive family tree lives in the tree tab of the desktop app. This
-document captures the architecture, the decisions made while building it,
-the remaining work and the pitfalls discovered along the way.
+document captures the architecture, the decisions made while building it
+and the pitfalls discovered along the way. Future work lives in GitHub
+issues (see the "Tree editor" issue track).
 
 ## Architecture
 
@@ -44,22 +45,8 @@ the remaining work and the pitfalls discovered along the way.
 - Manual card positions are not persisted; auto-layout is the source of
   truth. Revisit only if a free-form mode is wanted.
 - Chart kinds: ancestors → descendants → hourglass → family.
-- Dependencies: only d3 (pure math) and React Flow. No dagre/elk/genealogy
-  libraries — the layout is domain code we own.
-
-## Future work
-
-- Photos on cards (the `doru-media://` protocol exists) and richer badges.
-- Inline editing of names/dates directly on the card (currently a form
-  panel).
-- Hover tooltips with quick actions on cards.
-- Relationship calculator (BFS over families in core).
-- Circular fan chart (polar projection of the same graph).
-- Chart export to PNG/PDF (layout + static SVG rendering via main).
-- Filters: hide living people, direct line only, default generation count.
-- Duplicate detection and a `mergePersonsOp`.
-- Timeline view (life lines); places/map overlay.
-- "See also" polish for collapsed/duplicated persons (the cycle link exists).
+- Dependencies: d3 for pure layout math and React Flow for the canvas
+  runtime — the layout itself is domain code we own.
 
 ## Pitfalls and lessons
 
