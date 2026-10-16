@@ -313,9 +313,10 @@ export type FamilyChildStatusEnum =
  * (`LDS_BAPTISM_DATE_STATUS`, `LDS_ENDOWMENT_DATE_STATUS`,
  * `LDS_CHILD_SEALING_DATE_STATUS`, `LDS_SPOUSE_SEALING_DATE_STATUS`)
  * with the same values, but 5.5.1 spells PRE-1970 and DNS/CAN with a
- * hyphen and slash (7.0: PRE_1970, DNS_CAN) and has no INFANT value. The
- * per-ordinance "applies to" subsets of 5.5.1 are a subset of this union
- * (see the 5.5.1 overlay notes).
+ * hyphen and slash (7.0: PRE_1970, DNS_CAN) and has no INFANT value.
+ * This model keeps the single 7.0 set: the 5.5.1 spellings are treated as
+ * serialization aliases, and the 5.5.1 per-ordinance subsets are a subset
+ * of this union.
  */
 export const ORDINANCE_STATUS_ENUM_VALUES = {
   /** Born in the covenant, so child to parent sealing ordinance is not required. Applies to: SLGC. Status: current. */
