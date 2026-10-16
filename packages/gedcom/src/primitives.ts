@@ -136,7 +136,8 @@ export type EnumValue = StdEnum | ExtensionTag;
  * GEDCOM 5.5.1 §2 Primitive Elements (p.45), `DATE_CALENDAR` — the same
  * four calendars, but written as `@#D…@` escape sequences preceding the
  * date (e.g. `@#DHEBREW@`); 5.5.1 additionally reserves ROMAN and UNKNOWN
- * calendar escapes for future definition (see the 5.5.1 overlay notes).
+ * calendar escapes, which it never defines. The escape form is a
+ * serialization detail; this model keeps the calendar as data.
  */
 export type Calendar = 'GREGORIAN' | 'JULIAN' | 'FRENCH_R' | 'HEBREW' | ExtensionTag;
 
@@ -343,7 +344,11 @@ export interface EmptyDateValue {
  * with a parenthesized phrase (`INT <DATE> (<DATE_PHRASE>)`) and a
  * phrase-only form (`(<DATE_PHRASE>)`); in 7.0 the phrase moved to the
  * PHRASE substructure of g7:DATE. 5.5.1 also writes the year modifier
- * `1648/49` (dual dates) which 7.0 moved to a PHRASE as well.
+ * `1648/49` (dual dates) which 7.0 moved to a PHRASE as well. This union
+ * is unchanged by these differences: an imported 5.5.1 `INT` date keeps
+ * the date here and the phrase in the DATE structure's `phrase`, and
+ * dual years likewise move to `phrase`; the 5.5.1 syntax (calendar
+ * escapes, trailing `B.C.`) is handled by the parser and serializer.
  */
 export type DateValue =
   | PlainDate
@@ -489,8 +494,9 @@ export interface PersonalName {
  *
  * GEDCOM 5.5.1 §2 Primitive Elements (p.50), `LANGUAGE_ID` — 5.5.1 uses a
  * fixed table of English language names (e.g. "Spanish", "Russian")
- * instead of BCP 47 tags; conversion between the two is a serialization
- * concern.
+ * instead of BCP 47 tags. The table is finite and maps one-to-one onto
+ * BCP 47 tags; the mapping lives in the serializer and does not change
+ * this type.
  */
 export type Language = string;
 

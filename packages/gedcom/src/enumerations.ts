@@ -225,7 +225,7 @@ export type RestrictionEnum = keyof typeof RESTRICTION_ENUM_VALUES | ExtensionTa
  * (CLERGY, FRIEND, GODP, MULTIPLE, NGHBR, OFFICIATOR, PARENT, WITN) and
  * OTHER are 7.0-only. A parenthesized 5.5.1 descriptor is normalized on
  * import to OTHER with the descriptor kept in the ROLE.PHRASE
- * substructure (see the 5.5.1 overlay notes).
+ * substructure.
  */
 export const ROLE_ENUM_VALUES = {
   /** Child. */
@@ -318,7 +318,7 @@ export type FamilyChildStatusEnum =
  * hyphen and slash (7.0: PRE_1970, DNS_CAN) and has no INFANT value.
  * This model keeps the single 7.0 set: the 5.5.1 spellings are treated as
  * serialization aliases, and the 5.5.1 per-ordinance subsets are a subset
- * of this union.
+ * of this union and are enforced at validation time, not in the types.
  */
 export const ORDINANCE_STATUS_ENUM_VALUES = {
   /** Born in the covenant, so child to parent sealing ordinance is not required. Applies to: SLGC. Status: current. */
@@ -360,7 +360,7 @@ export type OrdinanceStatusEnum =
  * PROFESSIONAL and OTHER are 7.0-only, and 7.0 restricts non-standard
  * values to extension tags. An arbitrary 5.5.1 user-defined value is
  * normalized on import to OTHER with the text kept in the TYPE.PHRASE
- * substructure (see the 5.5.1 overlay notes).
+ * substructure.
  */
 export const NAME_TYPE_ENUM_VALUES = {
   /** Also known as, alias, etc. */
