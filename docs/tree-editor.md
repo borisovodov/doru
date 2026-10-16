@@ -69,8 +69,7 @@ issues (see the "Tree editor" issue track).
     imports from the renderer must use the pure `@doru/core/layout` subpath.
   - `listPersons` defaults to a limit of 100 — canvases need the full
     `tree:all` endpoint; keep paginated reads for lists.
-  - GEDCOM importer keeps pointers as ids (`@I1@`, `@F1@`) — fixtures and
-    tests must not assume pretty ids.
+  - E2E seeds use literal ids (`I1`, `F1`) — tests must not assume pretty ids.
   - Vitest uses `Object.is` — normalize `-0` in layout math.
 - **Tooling**
   - Playwright-launched Electron windows do not resize like native ones;

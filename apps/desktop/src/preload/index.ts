@@ -70,8 +70,6 @@ const api = {
     ipcRenderer.invoke('tree:personCounts', { projectPath, personIds }),
   addNote: (projectPath: string, note: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addNote', { projectPath, note }),
-  getGedcomText: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:gedcomText', { projectPath }),
   getFamilies: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:families', { projectPath }),
   addFamily: (projectPath: string, family: unknown): Promise<unknown> =>

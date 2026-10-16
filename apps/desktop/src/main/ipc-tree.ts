@@ -23,7 +23,6 @@ import {
   type PersonRecord,
   type SourceRecord,
 } from '@doru/core';
-import { gedcomText } from './gedcom';
 import { addMediaToPerson, listMediaForPerson, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
 
@@ -339,8 +338,4 @@ export function registerTreeIpc(): void {
     await removeMediaFile(options.projectPath, options.media.path);
     return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
   });
-
-  ipcMain.handle('tree:gedcomText', async (_event, options: { projectPath: string }) =>
-    gedcomText(options.projectPath),
-  );
 }
