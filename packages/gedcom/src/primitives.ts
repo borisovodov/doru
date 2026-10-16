@@ -1,13 +1,19 @@
 /**
- * Primitives of the GEDCOM 7.0.18 object model.
+ * Primitives of the GEDCOM object model.
  *
- * Every type in this file maps to a concept of the FamilySearch GEDCOM
- * Specification 7.0.18; every section reference (`GEDCOM 7.0 §…`) in this
- * file points into that specification: chapter 1 (container format
- * identifiers), chapter 2 (data types) and chapter 6 (known calendars).
- * Chapter numbers differ between GEDCOM versions (5.5.1 numbers its
- * chapters differently), so the version is always stated explicitly in
- * every reference.
+ * Every type in this file maps to a concept of the GEDCOM specifications.
+ * Section references carry the spec version explicitly because the two
+ * supported versions number their chapters differently:
+ * - `GEDCOM 7.0 §…` — The FamilySearch GEDCOM Specification 7.0.18:
+ *   chapter 1 (container format identifiers), chapter 2 (data types) and
+ *   chapter 6 (known calendars).
+ * - `GEDCOM 5.5.1 §…` — The GEDCOM Standard 5.5.1: chapter 1 (data
+ *   representation grammar), chapter 2 (lineage-linked grammar: record
+ *   structures p.23, substructures p.31, primitive elements p.41),
+ *   appendix A (tag definitions p.83).
+ *
+ * This is a single model spanning both versions; 5.5.1-only concepts are
+ * included alongside the 7.0 model.
  */
 
 // ---------------------------------------------------------------------------
@@ -18,6 +24,10 @@
  * GEDCOM 7.0 §1.3 Lines, production `Xref` — a cross-reference identifier `@...@`.
  * Each cross-reference identifier is unique within a given document and is
  * not retained between data streams.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` — identical concept;
+ * additionally limited to 22 characters including the at signs, and the
+ * first character must be an alpha or a digit.
  */
 export type Xref = string;
 
@@ -33,12 +43,20 @@ export type VoidPointer = '@VOID@';
  *
  * The type parameter documents which record type is pointed to; it is not
  * enforced at the type level.
+ *
+ * GEDCOM 5.5.1 §1 Grammar (p.13), `pointer` — identical concept; the
+ * pointers must match a corresponding unique xref_ID within the
+ * transmission. (The 7.0 void pointer `@VOID@` does not exist in 5.5.1.)
  */
 export type Pointer<_TRecord> = Xref | VoidPointer;
 
 /**
  * GEDCOM 7.0 §1.3 Lines, production `stdTag` — a standard tag: an uppercase letter
  * followed by any number of uppercase letters, digits, and underscores.
+ *
+ * GEDCOM 5.5.1 §1 Grammar (p.13), `tag` — identical concept, but 5.5.1 tags
+ * may also start with a digit (production `alphanum`); tags are always
+ * uppercase in practice.
  */
 export type StdTag = string;
 
@@ -46,6 +64,10 @@ export type StdTag = string;
  * GEDCOM 7.0 §1.3 Lines, production `extTag` — an extension tag: an underscore
  * followed by one or more tag characters (uppercase letters, digits,
  * underscores).
+ *
+ * GEDCOM 5.5.1 §2 (p.56), `NEW_TAG` — user-defined tags must begin with an
+ * underscore; 5.5.1 has no documented-extension mechanism (its SCHEMA
+ * concept was removed in draft 5.4).
  */
 export type ExtensionTag = `_${string}`;
 
@@ -62,6 +84,9 @@ export type Tag = StdTag | ExtensionTag;
  * GEDCOM 7.0 §2.1 Text — a free-text string in a human language: an unconstrained
  * sequence of characters (any character except the banned characters of
  * GEDCOM 7.0 §1.1). URI: `xsd:string`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.63), `TEXT` — same concept;
+ * 5.5.1 additionally constrains the length to 248 characters.
  */
 export type Text = string;
 
@@ -73,6 +98,9 @@ export type Text = string;
  * GEDCOM 7.0 §2.2 Integer — a non-negative integer in base-10. Negative integers are
  * not supported by the specification; leading zeros have no semantic
  * meaning. URI: `xsd:nonNegativeInteger`.
+ *
+ * GEDCOM 5.5.1 §1 Grammar (p.12), `digit` / §2 (p.57), `NUMBER` — same
+ * concept.
  */
 export type Integer = number;
 
@@ -89,6 +117,11 @@ export type StdEnum = StdTag | Integer;
 /**
  * GEDCOM 7.0 §2.3 Enumeration, production `Enum` — an enumeration value: standard or
  * extension. URI: `g7:type-Enum`.
+ *
+ * GEDCOM 5.5.1 §2 Usage Conventions (p.21) — the same concept ("controlled
+ * line_value choices"); 5.5.1 defines the choices inline in each primitive
+ * element and requires all controlled values to be considered case
+ * insensitive.
  */
 export type EnumValue = StdEnum | ExtensionTag;
 
@@ -99,6 +132,11 @@ export type EnumValue = StdEnum | ExtensionTag;
 /**
  * GEDCOM 7.0 §2.4 Date, production `calendar` — a calendar name. The four standard
  * calendars are defined in GEDCOM 7.0 §6.1; extension calendars use extension tags.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.45), `DATE_CALENDAR` — the same
+ * four calendars, but written as `@#D…@` escape sequences preceding the
+ * date (e.g. `@#DHEBREW@`); 5.5.1 additionally reserves ROMAN and UNKNOWN
+ * calendar escapes for future definition (see the 5.5.1 overlay notes).
  */
 export type Calendar = 'GREGORIAN' | 'JULIAN' | 'FRENCH_R' | 'HEBREW' | ExtensionTag;
 
@@ -106,6 +144,8 @@ export type Calendar = 'GREGORIAN' | 'JULIAN' | 'FRENCH_R' | 'HEBREW' | Extensio
  * GEDCOM 7.0 §6.1 GREGORIAN — the months permitted in the Gregorian calendar. The
  * same months are permitted in the JULIAN calendar (GEDCOM 7.0 §6.1 JULIAN). Each
  * month has the URI `g7:month-<tag>`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.52), `MONTH` — identical month tags.
  */
 export const GREGORIAN_MONTHS = {
   JAN: 'January',
@@ -130,6 +170,8 @@ export type JulianMonth = GregorianMonth;
 
 /**
  * GEDCOM 7.0 §6.1 FRENCH_R — the months permitted in the French Republican calendar.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.53), `MONTH_FREN` — identical month tags.
  */
 export const FRENCH_REPUBLICAN_MONTHS = {
   VEND: 'Vendémiaire',
@@ -152,6 +194,9 @@ export type FrenchRepublicanMonth = keyof typeof FRENCH_REPUBLICAN_MONTHS;
 
 /**
  * GEDCOM 7.0 §6.1 HEBREW — the months permitted in the Hebrew calendar.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.53), `MONTH_HEBR` — identical month
+ * tags (5.5.1 spells the names slightly differently, e.g. "Tishri").
  */
 export const HEBREW_MONTHS = {
   TSH: 'Tishrei (תִּשְׁרֵי)',
@@ -189,6 +234,9 @@ export type GedcomMonth =
  * standard; it is permitted in the GREGORIAN and JULIAN calendars only
  * (GEDCOM 7.0 §6.1). FRENCH_R and HEBREW permit no epoch marker. Extension calendars
  * may define extension epochs.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.45) — 5.5.1 writes the same concept
+ * as the suffix `B.C.` after the year in GREGORIAN and JULIAN dates.
  */
 export type Epoch = 'BCE' | ExtensionTag;
 
@@ -196,6 +244,11 @@ export type Epoch = 'BCE' | ExtensionTag;
  * GEDCOM 7.0 §2.4 Date, production `date` — a single calendar date. An absent
  * calendar is equivalent to GREGORIAN. Every date must have a year; day
  * and month are optional.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.45), `DATE_GREG` / `DATE_JULN` /
+ * `DATE_HEBR` / `DATE_FREN` — the same partial-precision form (year,
+ * month+year, day+month+year); 5.5.1 writes the BCE epoch as `B.C.` and
+ * allows the dual-year modifier `NUMBER/NUMBER`.
  */
 export interface DateFields {
   /** GEDCOM 7.0 §2.4 — `[calendar D]`, optional; absent means GREGORIAN. */
@@ -258,6 +311,9 @@ export interface DateApprox {
  * days: `FROM date`, `TO date`, `FROM date TO date`, or the empty period.
  * Both boundaries are optional; at least one of `from` / `to` should be
  * present for a meaningful period.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.46), `DATE_PERIOD` — identical
+ * `FROM`/`TO` semantics.
  */
 export interface DatePeriodValue {
   readonly kind: 'period';
@@ -280,6 +336,14 @@ export interface EmptyDateValue {
  * GEDCOM 7.0 §2.4 Date, production `DateValue` — a generic date: a single date, a
  * date range, a bound, an approximate date, a date period, or empty.
  * URI: `g7:type-Date`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.47), `DATE_VALUE` — the same
+ * semantics (`<DATE>`, `<DATE_PERIOD>`, `<DATE_RANGE>`,
+ * `<DATE_APPROXIMATED>`). 5.5.1 additionally allows an interpreted date
+ * with a parenthesized phrase (`INT <DATE> (<DATE_PHRASE>)`) and a
+ * phrase-only form (`(<DATE_PHRASE>)`); in 7.0 the phrase moved to the
+ * PHRASE substructure of g7:DATE. 5.5.1 also writes the year modifier
+ * `1648/49` (dual dates) which 7.0 moved to a PHRASE as well.
  */
 export type DateValue =
   | PlainDate
@@ -292,6 +356,10 @@ export type DateValue =
 /**
  * GEDCOM 7.0 §2.4 Date, production `DateExact` — a fully-known date: `day month year`
  * in the Gregorian calendar, used for timestamps. URI: `g7:type-Date#exact`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.45), `DATE_EXACT` — identical form
+ * (`<DAY> <MONTH> <YEAR_GREG>`); 5.5.1 writes the BCE epoch as the suffix
+ * `B.C.` and additionally allows the year modifier `NUMBER/NUMBER`.
  */
 export interface DateExact {
   /** GEDCOM 7.0 §2.4 — `day`. */
@@ -311,6 +379,9 @@ export interface DateExact {
 /**
  * GEDCOM 7.0 §2.5 Time — a time on a 24-hour clock, in event-local time or in UTC
  * (indicated by the presence of `utc`). URI: `g7:type-Time`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.63), `TIME_VALUE` — same 24-hour
+ * `hh:mm:ss.fs` form; 5.5.1 has no UTC marker (the `utc` flag is 7.0-only).
  */
 export interface TimeValue {
   /** GEDCOM 7.0 §2.5 — `hour`, 0 through 23. */
@@ -339,6 +410,11 @@ export type AgeBound = '<' | '>';
  * GEDCOM 7.0 §2.6 Age — an age as a count of years, months, weeks, and days. At least
  * one of the duration fields should be present; this is not enforceable in
  * TypeScript. URI: `g7:type-Age`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.42), `AGE_AT_EVENT` — the same
+ * `<`/`>` bound plus `YYy MMm DDDd` counts, but without weeks (`w`) and
+ * with the additional keyword values CHILD, INFANT, and STILLBORN (see the
+ * 5.5.1 overlay notes).
  */
 export interface AgeValue {
   /** GEDCOM 7.0 §2.6 — `[ageBound D]`, optional. */
@@ -360,6 +436,9 @@ export interface AgeValue {
 /**
  * GEDCOM 7.0 §2.7 List — `List:Text`: a sequence of Text values, serialized
  * comma-separated. URI: `g7:type-List#Text`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.58), `PLACE_NAME` — the same
+ * comma-separated list form (used by PLAC and FORM).
  */
 export type ListText = Text[];
 
@@ -377,6 +456,11 @@ export type ListEnum<E extends EnumValue> = E[];
  * GEDCOM 7.0 §2.8 Personal Name — a personal name. The character U+002F delimits the
  * portion that most closely matches the concept of a surname: the payload
  * form is `[nameStr] "/" [nameStr] "/" [nameStr]`. URI: `g7:type-Name`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.54), `NAME_PERSONAL` — identical
+ * slash-delimited form (`<NAME_TEXT>`, `/<NAME_TEXT>/`,
+ * `<NAME_TEXT> /<NAME_TEXT>/`, `/<NAME_TEXT>/ <NAME_TEXT>`,
+ * `<NAME_TEXT> /<NAME_TEXT>/ <NAME_TEXT>`).
  */
 export interface PersonalName {
   /** GEDCOM 7.0 §2.8 — the name text before the first slash; optional. */
@@ -395,6 +479,11 @@ export interface PersonalName {
  * GEDCOM 7.0 §2.9 Language — a human language or family of related languages, as
  * defined in BCP 47 (a sequence of language subtags separated by hyphens).
  * URI: `xsd:Language`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.50), `LANGUAGE_ID` — 5.5.1 uses a
+ * fixed table of English language names (e.g. "Spanish", "Russian")
+ * instead of BCP 47 tags; conversion between the two is a serialization
+ * concern.
  */
 export type Language = string;
 
@@ -406,6 +495,10 @@ export type Language = string;
  * GEDCOM 7.0 §2.10 Media Type — the encoding of information in bytes or characters,
  * as defined in RFC 2045 section 5.1 and registered by the IANA.
  * URI: `dcat:mediaType`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.54), `MULTIMEDIA_FORMAT` — 5.5.1
+ * restricts the value to a fixed set (bmp, gif, jpg, ole, pcx, tif, wav)
+ * instead of RFC 2045 media types.
  */
 export type MediaType = string;
 
@@ -418,6 +511,9 @@ export type MediaType = string;
  * constraints unique to the structure type using it (for example, the
  * payload of an IDNO structure depends on its TYPE substructure).
  * URI: `xsd:string`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.63), `TEXT` — 5.5.1 has no named
+ * "special" type; the same case-specific primitives are defined inline.
  */
 export type Special = string;
 
@@ -430,6 +526,9 @@ export type Special = string;
  * (WHATWG): an absolute or relative URL, optionally with a fragment.
  * Version 7.0 supports ftp/http/https/file URLs and local relative paths.
  * URI: `g7:type-FilePath`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.54), `MULTIMEDIA_FILE_REFERENCE` —
+ * a complete local or remote file reference; same concept.
  */
 export type FilePath = string;
 
@@ -466,6 +565,9 @@ export interface TagDefinitionValue {
  * GEDCOM 7.0 §2.15 Latitude — a latitudinal coordinate: `N` or `S` followed by a
  * decimal number of degrees between 0 (the equator) and 90 (a pole).
  * URI: `g7:type-Latitude`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.58), `PLACE_LATITUDE` — identical
+ * `N/S + decimal degrees` form.
  */
 export interface Latitude {
   /** GEDCOM 7.0 §2.15 — `N` north of the equator, `S` south of it. */
@@ -478,6 +580,9 @@ export interface Latitude {
  * GEDCOM 7.0 §2.16 Longitude — a longitudinal coordinate: `E` or `W` followed by a
  * decimal number of degrees between 0 (the prime meridian) and 180 (the
  * 180th meridian). URI: `g7:type-Longitude`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.58), `PLACE_LONGITUDE` — identical
+ * `E/W + decimal degrees` form.
  */
 export interface Longitude {
   /** GEDCOM 7.0 §2.16 — `E` east of the prime meridian, `W` west of it. */
@@ -485,3 +590,17 @@ export interface Longitude {
   /** GEDCOM 7.0 §2.16 — decimal degrees, 0 through 180. */
   degrees: number;
 }
+
+// ---------------------------------------------------------------------------
+// GEDCOM 5.5.1 Chapter 3 — character sets
+// ---------------------------------------------------------------------------
+
+/**
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.44), `CHARACTER_SET` — the
+ * character set used to interpret the transmission, declared in the
+ * header. 5.5.1 prefers ANSEL and requires all codes above 0x7F to be
+ * converted to ANSEL; see GEDCOM 5.5.1 §3 (p.77) and Appendix C.
+ *
+ * Removed in GEDCOM 7.0, which mandates UTF-8 (GEDCOM 7.0 §1.1).
+ */
+export type CharacterSet = 'ANSEL' | 'UTF-8' | 'UNICODE' | 'ASCII';

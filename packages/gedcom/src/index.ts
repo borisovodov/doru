@@ -7,13 +7,16 @@
  * isolation.
  *
  * This module currently exports the complete TypeScript object model of
- * The FamilySearch GEDCOM Specification 7.0.18:
- * - `primitives.ts` — container identifiers (§1.3), data types (chapter 2),
- *   known calendars (chapter 6)
- * - `enumerations.ts` — enumeration sets (§3.4)
- * - `structures.ts` — genealogical structures (chapter 3)
- * - `gedzip.ts` — the GEDZIP file format (chapter 4)
- */
+ * the GEDCOM specifications — a single model spanning both supported
+ * versions:
+ * - `primitives.ts` — container identifiers, data types, known calendars
+ * - `enumerations.ts` — enumeration sets
+ * - `structures.ts` — genealogical structures
+ * - `gedzip.ts` — the GEDZIP file format (GEDCOM 7.0 chapter 4)
+ *
+ * Every element cites both specs where they agree (`GEDCOM 7.0 §…` and
+ * `GEDCOM 5.5.1 §…`); elements that exist in only one version are marked
+ * as such.
 
 /** GEDCOM dialect versions. */
 export type GedcomVersion = '5.5.1' | '7.0';
