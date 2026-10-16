@@ -493,12 +493,118 @@ export interface PersonalName {
  * URI: `xsd:Language`.
  *
  * GEDCOM 5.5.1 §2 Primitive Elements (p.50), `LANGUAGE_ID` — 5.5.1 uses a
- * fixed table of English language names (e.g. "Spanish", "Russian")
- * instead of BCP 47 tags. The table is finite and maps one-to-one onto
- * BCP 47 tags; the mapping lives in the serializer and does not change
- * this type.
+ * fixed table of English language names instead of BCP 47 tags. The table
+ * is preserved verbatim as `LANGUAGE_IDS_551`; the serializer maps these
+ * names to and from BCP 47 tags. A few entries are not one-to-one (e.g.
+ * Catalan vs Catalan_Spn, and the specification's own typos such as
+ * "Mandrin"), so the mapping rules belong to the serializer and this type
+ * stays a plain string.
  */
 export type Language = string;
+
+/**
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.50–51), `LANGUAGE_ID` — the fixed
+ * table of language identifiers permitted in 5.5.1, preserved verbatim
+ * (including the specification's own typos such as "Mandrin" and
+ * "Pusto"). The first group is the Latin-based languages; the second was
+ * listed by the specification as "Other languages not supported until
+ * UNICODE". The authoritative 5.5.1 side of the BCP 47 mapping used by
+ * the serializer.
+ */
+export const LANGUAGE_IDS_551 = [
+  // Latin-based languages.
+  'Afrikaans',
+  'Albanian',
+  'Anglo-Saxon',
+  'Catalan',
+  'Catalan_Spn',
+  'Czech',
+  'Danish',
+  'Dutch',
+  'English',
+  'Esperanto',
+  'Estonian',
+  'Faroese',
+  'Finnish',
+  'French',
+  'German',
+  'Hawaiian',
+  'Hungarian',
+  'Icelandic',
+  'Indonesian',
+  'Italian',
+  'Latvian',
+  'Lithuanian',
+  'Navaho',
+  'Norwegian',
+  'Polish',
+  'Portuguese',
+  'Romanian',
+  'Serbo_Croa',
+  'Slovak',
+  'Slovene',
+  'Spanish',
+  'Swedish',
+  'Turkish',
+  'Wendic',
+  // "Other languages not supported until UNICODE".
+  'Amharic',
+  'Arabic',
+  'Armenian',
+  'Assamese',
+  'Belorusian',
+  'Bengali',
+  'Braj',
+  'Bulgarian',
+  'Burmese',
+  'Cantonese',
+  'Church-Slavic',
+  'Dogri',
+  'Georgian',
+  'Greek',
+  'Gujarati',
+  'Hebrew',
+  'Hindi',
+  'Japanese',
+  'Kannada',
+  'Khmer',
+  'Konkani',
+  'Korean',
+  'Lahnda',
+  'Lao',
+  'Macedonian',
+  'Maithili',
+  'Malayalam',
+  'Mandrin',
+  'Mandarin',
+  'Manipuri',
+  'Marathi',
+  'Mewari',
+  'Nepali',
+  'Oriya',
+  'Pahari',
+  'Pali',
+  'Panjabi',
+  'Persian',
+  'Prakrit',
+  'Pusto',
+  'Rajasthani',
+  'Russian',
+  'Sanskrit',
+  'Serb',
+  'Tagalog',
+  'Tamil',
+  'Telugu',
+  'Thai',
+  'Tibetan',
+  'Ukrainian',
+  'Urdu',
+  'Vietnamese',
+  'Yiddish',
+] as const;
+
+/** A GEDCOM 5.5.1 `LANGUAGE_ID` value. */
+export type LanguageId551 = (typeof LANGUAGE_IDS_551)[number];
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §2.10 Media Type
