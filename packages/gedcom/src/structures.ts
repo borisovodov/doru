@@ -35,6 +35,7 @@ import type {
 } from './enumerations';
 import type {
   AgeValue,
+  Xref,
   CharacterSet,
   DateExact,
   DatePeriodValue,
@@ -88,6 +89,8 @@ export interface ExtensionStructure {
 export interface ExtensionRecord extends ExtensionStructure {
   /** GEDCOM 7.0 §1.5 — extension records are always tagged with an `extTag`. */
   tag: ExtensionTag;
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. */
+  xref?: Xref;
 }
 
 /**
@@ -247,6 +250,11 @@ export interface TagDefinitionStructure extends GedcomStructureBase {
  * obtained through the GEDCOM registration process.
  */
 export interface HeaderSource extends GedcomStructureBase {
+  /**
+   * The SOUR payload, {1:1} — the product identifier (7.0: `Special`;
+   * 5.5.1: `APPROVED_SYSTEM_ID`, whose spaces must be underscores).
+   */
+  payload: Special;
   /** VERS {0:1}, g7:VERS — the version level of the product. GEDCOM 7.0 §3.2.1. */
   version?: Special;
   /** NAME {0:1}, g7:NAME — the name of the product. GEDCOM 7.0 §3.2.1. */
@@ -325,6 +333,8 @@ export interface HeaderPlace extends GedcomStructureBase {
  */
 export interface FamilyRecord extends GedcomStructureBase {
   tag: 'FAM';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
   /** <<FAMILY_ATTRIBUTE_STRUCTURE>> {0:M}. */
@@ -400,6 +410,8 @@ export interface FamilyChildLink extends GedcomStructureBase {
  */
 export interface IndividualRecord extends GedcomStructureBase {
   tag: 'INDI';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
   /** <<PERSONAL_NAME_STRUCTURE>> {0:M}. */
@@ -540,6 +552,8 @@ export interface AliasLink extends GedcomStructureBase {
  */
 export interface MultimediaRecord extends GedcomStructureBase {
   tag: 'OBJE';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
   /** FILE {1:M}, g7:FILE — the external files, grouped together. */
@@ -612,6 +626,8 @@ export interface MediaFileTranslation extends GedcomStructureBase {
  */
 export interface RepositoryRecord extends GedcomStructureBase {
   tag: 'REPO';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** NAME {1:1}, g7:NAME. */
   name: Text;
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
@@ -649,6 +665,8 @@ export interface RepositoryRecord extends GedcomStructureBase {
  */
 export interface SharedNoteRecord extends GedcomStructureBase {
   tag: 'SNOTE';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** The SNOTE payload, {1:1} Text. */
   payload: Text;
   /** MIME {0:1}, g7:MIME — the media type of the payload. */
@@ -675,6 +693,8 @@ export interface SharedNoteRecord extends GedcomStructureBase {
  */
 export interface NoteRecord extends GedcomStructureBase {
   tag: 'NOTE';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** The NOTE payload, {1:1} SUBMITTER_TEXT. */
   payload: Text;
   /** <<IDENTIFIER_STRUCTURE>> {0:M} — 5.5.1 REFN {0:M} + TYPE. */
@@ -701,6 +721,8 @@ export interface NoteRecord extends GedcomStructureBase {
  */
 export interface SourceRecord extends GedcomStructureBase {
   tag: 'SOUR';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** DATA {0:1}, g7:DATA — the content of the source (as opposed to metadata about it). */
   data?: SourceRecordData;
   /** AUTH {0:1}, g7:AUTH — the person, agency, or entity who created the record. */
@@ -794,6 +816,8 @@ export interface SourceText extends GedcomStructureBase {
  */
 export interface SubmitterRecord extends GedcomStructureBase {
   tag: 'SUBM';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** NAME {1:1}, g7:NAME. */
   name: Text;
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
@@ -838,6 +862,8 @@ export interface SubmitterRecord extends GedcomStructureBase {
  */
 export interface SubmissionRecord extends GedcomStructureBase {
   tag: 'SUBN';
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  xref?: Xref;
   /** SUBM {0:1} — the submitter this submission belongs to. */
   submitter?: Pointer<SubmitterRecord>;
   /** FAMF {0:1} — the name of the family file for temple ordinances. */
