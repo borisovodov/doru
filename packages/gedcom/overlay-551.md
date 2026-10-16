@@ -62,3 +62,30 @@ p.31, primitive elements p.41).
    import, an inline 5.5.1 OBJE is normalized by synthesizing a
    MULTIMEDIA_RECORD from its files. Media bytes are always external in
    both versions (5.5.1 removed its BLOB embedding form).
+
+## Minor differences (normalization rules)
+
+These differences do not change the types; the parser and serializer
+handle them:
+
+- **Name type.** A 5.5.1 arbitrary user-defined NAME_TYPE value is
+  normalized on import to OTHER with the text kept in the TYPE.PHRASE
+  substructure (7.0's extension-tag mechanism is not used for 5.5.1
+  input).
+- **Role descriptor.** A 5.5.1 parenthesized ROLE_IN_EVENT descriptor is
+  normalized on import to OTHER with the descriptor kept in the
+  ROLE.PHRASE substructure.
+- **Languages.** 5.5.1's fixed LANGUAGE_ID table (English language names)
+  maps one-to-one onto BCP 47 tags; the mapping lives in the serializer.
+- **Multimedia format.** 5.5.1's closed MULTIMEDIA_FORMAT set (bmp, gif,
+  jpg, ole, pcx, tif, wav — `MULTIMEDIA_FORMATS_551`) maps onto RFC 2045
+  media types in the serializer.
+- **Repository pointer.** An empty 5.5.1 REPO payload (no repository
+  record) is normalized on import to the void pointer `@VOID@`.
+- **Source jurisdiction place.** 5.5.1's plain SOUR.DATA.PLAC place name
+  is modelled as a PlaceStructure with only the payload filled (its
+  comma-separated jurisdictions).
+- **Cardinality {0:3}.** 5.5.1's "at most 3" limits (SUBM.LANG,
+  address PHON/EMAIL/FAX/WWW, ADDR.CONT) are enforced by the 5.5.1
+  validation, not by the types (both versions use arrays).
+
