@@ -887,8 +887,8 @@ export type GedcomRecord =
  *
  * GEDCOM 5.5.1 §2 Substructures (p.31), `ADDRESS_STRUCTURE` — the same
  * structure, but in 5.5.1 it also carries the contact substructures PHON,
- * EMAIL, FAX and WWW {0:3} each (in 7.0 they moved to the record level;
- * see the 5.5.1 overlay notes).
+ * EMAIL, FAX and WWW {0:3} each (modelled as the optional arrays below);
+ * in 7.0 they moved to the record level and are absent here.
  */
 export interface AddressStructure extends GedcomStructureBase {
   /** The ADDR payload, {1:1} Special — the full formatted address. */
@@ -907,6 +907,14 @@ export interface AddressStructure extends GedcomStructureBase {
   postalCode?: Special;
   /** CTRY {0:1}, g7:CTRY — the name of the country. */
   country?: Special;
+  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. */
+  phone?: Special[];
+  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. */
+  email?: Special[];
+  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. */
+  fax?: Special[];
+  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. */
+  www?: Special[];
 }
 
 /**
@@ -916,8 +924,8 @@ export interface AddressStructure extends GedcomStructureBase {
  *
  * GEDCOM 5.5.1 §2 Substructures (p.31), `ASSOCIATION_STRUCTURE` — the same
  * pointer, but 5.5.1 states the association with the RELA tag (a free-text
- * relation descriptor) instead of the ROLE enumeration; see the 5.5.1
- * overlay notes.
+ * relation descriptor, modelled as `relationship`) instead of the ROLE
+ * enumeration; in 5.5.1 `role` is absent, in 7.0 `relationship` is absent.
  */
 export interface AssociationStructure extends GedcomStructureBase {
   tag: 'ASSO';
@@ -925,8 +933,10 @@ export interface AssociationStructure extends GedcomStructureBase {
   individual: Pointer<IndividualRecord>;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
-  /** ROLE {1:1}, g7:ROLE — Enum of g7:enumset-ROLE. */
-  role: RoleStructure;
+  /** ROLE {1:1}, g7:ROLE — Enum of g7:enumset-ROLE. Required in 7.0; 5.5.1 uses RELA instead. */
+  role?: RoleStructure;
+  /** RELA {1:1} — a free-text relation descriptor. GEDCOM 5.5.1 §2 (p.60); 7.0 uses ROLE instead. */
+  relationship?: Text;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}. */
@@ -1285,9 +1295,10 @@ export interface NoteTranslation extends GedcomStructureBase {
  * representation; the pieces are optional auxiliary information.
  *
  * GEDCOM 5.5.1 §2 Substructures (p.38), `PERSONAL_NAME_STRUCTURE` — the
- * same payload, TYPE and PIECES; 5.5.1 additionally has the phonetic (FONE)
- * and romanized (ROMN) variation substructures, NOTE/SOURCE_CITATION are
- * 7.0-only, and TRAN is 7.0-only (see the 5.5.1 overlay notes).
+ * same payload, TYPE and PIECES; 5.5.1 expresses name variants through the
+ * phonetic (FONE) and romanized (ROMN) substructures (modelled as
+ * `phonetic` / `romanized`), while 7.0 uses `translations` (TRAN + LANG).
+ * NOTE and SOURCE_CITATION are 7.0-only here.
  */
 export interface PersonalNameStructure extends GedcomStructureBase {
   tag: 'NAME';
@@ -1299,10 +1310,45 @@ export interface PersonalNameStructure extends GedcomStructureBase {
   pieces?: PersonalNamePieces;
   /** TRAN {0:M}, g7:NAME-TRAN — translations or transliterations. Each must have a LANG substructure. */
   translations?: NameTranslation[];
+  /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  phonetic?: PhoneticNameVariation[];
+  /** ROMN {0:M} — romanized variations by romanization method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  romanized?: RomanizedNameVariation[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM 5.5.1 §2 (p.55), `NAME_PHONETIC_VARIATION` — a phonetic variation
+ * of the name, written in the same form as the payload but phonetically,
+ * using the method given by the required TYPE substructure (`PHONETIC_TYPE`:
+ * kana, hangul, or user-defined). Replaced by NAME.TRAN in GEDCOM 7.0.
+ */
+export interface PhoneticNameVariation extends GedcomStructureBase {
+  /** The FONE payload, {1:1} PersonalName. */
+  payload: PersonalName;
+  /** TYPE {1:1} — the phonetic method. */
+  type: Text;
+  /** <<PERSONAL_NAME_PIECES>> {0:1}. */
+  pieces?: PersonalNamePieces;
+}
+
+/**
+ * GEDCOM 5.5.1 §2 (p.56), `NAME_ROMANIZED_VARIATION` — a romanized
+ * variation of the name, written in the same form as the payload, using
+ * the method given by the required TYPE substructure
+ * (`ROMANIZED_TYPE`: pinyin, romaji, wadegiles, or user-defined).
+ * Replaced by NAME.TRAN in GEDCOM 7.0.
+ */
+export interface RomanizedNameVariation extends GedcomStructureBase {
+  /** The ROMN payload, {1:1} PersonalName. */
+  payload: PersonalName;
+  /** TYPE {1:1} — the romanization method. */
+  type: Text;
+  /** <<PERSONAL_NAME_PIECES>> {0:1}. */
+  pieces?: PersonalNamePieces;
 }
 
 /**
@@ -1370,9 +1416,10 @@ export interface NameTranslation extends GedcomStructureBase {
  * jurisdiction.
  *
  * GEDCOM 5.5.1 §2 Substructures (p.38), `PLACE_STRUCTURE` — the same
- * payload, FORM and MAP; 5.5.1 additionally has the phonetic (FONE) and
- * romanized (ROMN) variation substructures, LANG/TRAN/EXID are 7.0-only
- * (see the 5.5.1 overlay notes).
+ * payload, FORM and MAP; 5.5.1 expresses place variants through the
+ * phonetic (FONE) and romanized (ROMN) substructures (modelled as
+ * `phonetic` / `romanized`), while 7.0 uses `translations` (TRAN + LANG).
+ * LANG and EXID are 7.0-only.
  */
 export interface PlaceStructure extends GedcomStructureBase {
   tag: 'PLAC';
@@ -1384,12 +1431,40 @@ export interface PlaceStructure extends GedcomStructureBase {
   language?: Language;
   /** TRAN {0:M}, g7:PLAC-TRAN — translations or transliterations. Each must have a LANG substructure. */
   translations?: PlaceTranslation[];
+  /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  phonetic?: PhoneticPlaceVariation[];
+  /** ROMN {0:M} — romanized variations by romanization method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  romanized?: RomanizedPlaceVariation[];
   /** MAP {0:1}, g7:MAP — a representative point for the location. */
   map?: MapCoordinates;
   /** EXID {0:M}, g7:EXID — external identifiers for the place. */
   externalIds?: ExternalIdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+}
+
+/**
+ * GEDCOM 5.5.1 §2 (p.59), `PLACE_PHONETIC_VARIATION` — a phonetic
+ * variation of the place name, using the method given by the required
+ * TYPE substructure (`PHONETIC_TYPE`). Replaced by PLAC.TRAN in GEDCOM 7.0.
+ */
+export interface PhoneticPlaceVariation extends GedcomStructureBase {
+  /** The FONE payload, {1:1} List:Text. */
+  payload: Text[];
+  /** TYPE {1:1} — the phonetic method. */
+  type: Text;
+}
+
+/**
+ * GEDCOM 5.5.1 §2 (p.59), `PLACE_ROMANIZED_VARIATION` — a romanized
+ * variation of the place name, using the method given by the required
+ * TYPE substructure (`ROMANIZED_TYPE`). Replaced by PLAC.TRAN in GEDCOM 7.0.
+ */
+export interface RomanizedPlaceVariation extends GedcomStructureBase {
+  /** The ROMN payload, {1:1} List:Text. */
+  payload: Text[];
+  /** TYPE {1:1} — the romanization method. */
+  type: Text;
 }
 
 /**
@@ -1433,13 +1508,19 @@ export interface MapCoordinates extends GedcomStructureBase {
  *
  * GEDCOM 5.5.1 §2 Substructures (p.39), `SOURCE_CITATION` — the same
  * structure; 5.5.1 additionally permits a non-pointer form whose payload
- * is a free-text source description instead of an xref, and its SOUR.EVEN
- * has no PHRASE (see the 5.5.1 overlay notes).
+ * is a free-text source description (modelled as `description`) instead of
+ * an xref, and its SOUR.EVEN has no PHRASE.
  */
 export interface SourceCitation extends GedcomStructureBase {
   tag: 'SOUR';
   /** The SOUR payload, {1:1} pointer to a SOUR record; a voidPtr may be used with the citation text in PAGE. */
   source: Pointer<SourceRecord>;
+  /**
+   * SOUR {1:1} — a free-text source description used by systems without
+   * SOURCE_RECORDs. GEDCOM 5.5.1 §2 (p.61), `SOURCE_DESCRIPTION`;
+   * removed in 7.0 (use a void pointer with PAGE instead).
+   */
+  description?: Text;
   /** PAGE {0:1}, g7:PAGE — a specific location within the information referenced. */
   page?: Text;
   /** DATA {0:1}, g7:SOUR-DATA — the relevant data from the source. */
@@ -1538,7 +1619,11 @@ export interface MediaStructure extends GedcomStructureBase {
  *
  * GEDCOM 5.5.1 §2 Substructures (p.37), `MULTIMEDIA_LINK` — 5.5.1
  * additionally permits an inline form (OBJE without a pointer, carrying
- * FILE/FORM/MEDI/TITL directly); see the 5.5.1 overlay notes.
+ * FILE/FORM/MEDI/TITL directly). This model keeps the 7.0 pointer-only
+ * shape: an inline 5.5.1 OBJE is normalized on import by synthesizing a
+ * MULTIMEDIA_RECORD from its files and replacing the inline form with a
+ * pointer to it. (Both versions always keep the media bytes in external
+ * files; 5.5.1 removed its embedded-BLOB form.)
  */
 export interface MultimediaLink extends GedcomStructureBase {
   tag: 'OBJE';
@@ -1606,10 +1691,18 @@ export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', I
  * residence where a family resided. GEDCOM 7.0 §3.3.2.2.
  *
  * GEDCOM 5.5.1 §2 Substructures (p.32), `FAMILY_EVENT_STRUCTURE` — in
- * 5.5.1 FAM.RESI is a family *event* with no payload (see the 5.5.1
- * overlay notes).
+ * 5.5.1 FAM.RESI is a family *event* with no payload, so the payload is
+ * optional here (required in 7.0, forbidden in 5.5.1).
  */
-export interface FamilyResidenceAttribute extends FamilyAttributeBase<'RESI', Text> {}
+export interface FamilyResidenceAttribute extends GedcomStructureBase {
+  tag: 'RESI';
+  /** The RESI payload, {1:1} Text in 7.0; 5.5.1 forbids a payload. */
+  payload?: Text;
+  /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
+  type?: Text;
+  /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
+  detail?: FamilyEventDetail;
+}
 
 /**
  * GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — g7:FAM-FACT: a generic family

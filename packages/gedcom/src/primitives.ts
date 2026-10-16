@@ -413,8 +413,8 @@ export type AgeBound = '<' | '>';
  *
  * GEDCOM 5.5.1 §2 Primitive Elements (p.42), `AGE_AT_EVENT` — the same
  * `<`/`>` bound plus `YYy MMm DDDd` counts, but without weeks (`w`) and
- * with the additional keyword values CHILD, INFANT, and STILLBORN (see the
- * 5.5.1 overlay notes).
+ * with the additional keyword values CHILD, INFANT, and STILLBORN
+ * (modelled as `description`).
  */
 export interface AgeValue {
   /** GEDCOM 7.0 §2.6 — `[ageBound D]`, optional. */
@@ -427,6 +427,13 @@ export interface AgeValue {
   weeks?: Integer;
   /** GEDCOM 7.0 §2.6 — `days = Integer "d"`, optional. */
   days?: Integer;
+  /**
+   * GEDCOM 5.5.1 §2 (p.42) — a descriptive age keyword: CHILD (less than
+   * 8 years), INFANT (less than 1 year), or STILLBORN (died just prior
+   * to, at, or near birth). Removed in 7.0, which moved such information
+   * to a PHRASE.
+   */
+  description?: 'CHILD' | 'INFANT' | 'STILLBORN';
 }
 
 // ---------------------------------------------------------------------------
