@@ -442,6 +442,25 @@ export interface AgeValue {
 }
 
 // ---------------------------------------------------------------------------
+// GEDCOM 7.0 §2.7 List
+// ---------------------------------------------------------------------------
+
+/**
+ * GEDCOM 7.0 §2.7 List — `List:Text`: a sequence of Text values, serialized
+ * comma-separated. URI: `g7:type-List#Text`.
+ *
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.58), `PLACE_NAME` — the same
+ * comma-separated list form (used by PLAC and FORM).
+ */
+export type ListText = Text[];
+
+/**
+ * GEDCOM 7.0 §2.7 List — `List:Enum`: a sequence of enumeration values, serialized
+ * comma-separated. URI: `g7:type-List#Enum`.
+ */
+export type ListEnum<E extends EnumValue> = E[];
+
+// ---------------------------------------------------------------------------
 // GEDCOM 7.0 §2.8 Personal Name
 // ---------------------------------------------------------------------------
 
