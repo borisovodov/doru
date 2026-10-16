@@ -44,6 +44,8 @@ import type {
   Integer,
   Language,
   Latitude,
+  ListEnum,
+  ListText,
   Longitude,
   MediaType,
   PersonalName,
@@ -304,7 +306,7 @@ export interface HeaderSourceData extends GedcomStructureBase {
  */
 export interface HeaderPlace extends GedcomStructureBase {
   /** FORM {1:1}, g7:HEAD-PLAC-FORM — any PLAC with no FORM shall be treated as if it has this FORM. */
-  form: Text[];
+  form: ListText;
 }
 
 // ---------------------------------------------------------------------------
@@ -324,7 +326,7 @@ export interface HeaderPlace extends GedcomStructureBase {
 export interface FamilyRecord extends GedcomStructureBase {
   tag: 'FAM';
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
-  restriction?: RestrictionEnum[];
+  restriction?: ListEnum<RestrictionEnum>;
   /** <<FAMILY_ATTRIBUTE_STRUCTURE>> {0:M}. */
   attributes?: FamilyAttributeStructure[];
   /** <<FAMILY_EVENT_STRUCTURE>> {0:M}. */
@@ -399,7 +401,7 @@ export interface FamilyChildLink extends GedcomStructureBase {
 export interface IndividualRecord extends GedcomStructureBase {
   tag: 'INDI';
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
-  restriction?: RestrictionEnum[];
+  restriction?: ListEnum<RestrictionEnum>;
   /** <<PERSONAL_NAME_STRUCTURE>> {0:M}. */
   names?: PersonalNameStructure[];
   /** SEX {0:1}, g7:SEX — Enum of g7:enumset-SEX. */
@@ -539,7 +541,7 @@ export interface AliasLink extends GedcomStructureBase {
 export interface MultimediaRecord extends GedcomStructureBase {
   tag: 'OBJE';
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
-  restriction?: RestrictionEnum[];
+  restriction?: ListEnum<RestrictionEnum>;
   /** FILE {1:M}, g7:FILE — the external files, grouped together. */
   files: MediaFile[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
@@ -758,7 +760,7 @@ export interface SourceRecordData extends GedcomStructureBase {
  */
 export interface SourceDataEvent extends GedcomStructureBase {
   /** The EVEN payload, {1:1} List:Enum of g7:enumset-EVENATTR. */
-  payload: EventAttributeEnum[];
+  payload: ListEnum<EventAttributeEnum>;
   /** DATE {0:1}, g7:DATA-EVEN-DATE — the DatePeriod covered by the entire source. */
   date?: DatePeriodStructure;
   /** <<PLACE_STRUCTURE>> {0:1}. */
@@ -1082,7 +1084,7 @@ export interface EventDetail extends GedcomStructureBase {
   /** CAUS {0:1}, g7:CAUS — the reasons which precipitated an event. */
   cause?: Text;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
-  restriction?: RestrictionEnum[];
+  restriction?: ListEnum<RestrictionEnum>;
   /** SDATE {0:1}, g7:SDATE — a sorting hint. */
   sortDate?: SortDateStructure;
   /** <<ASSOCIATION_STRUCTURE>> {0:M}. */
@@ -1427,9 +1429,9 @@ export interface NameTranslation extends GedcomStructureBase {
 export interface PlaceStructure extends GedcomStructureBase {
   tag: 'PLAC';
   /** The PLAC payload, {1:1} List:Text — jurisdiction names, smallest to largest; unknown jurisdictions are empty strings. */
-  payload: Text[];
+  payload: ListText;
   /** FORM {0:1}, g7:PLAC-FORM — the jurisdiction types, with the same number of elements and order as the payload. */
-  form?: Text[];
+  form?: ListText;
   /** LANG {0:1}, g7:LANG — the language of the payload. */
   language?: Language;
   /** TRAN {0:M}, g7:PLAC-TRAN — translations or transliterations. Each must have a LANG substructure. */
@@ -1453,7 +1455,7 @@ export interface PlaceStructure extends GedcomStructureBase {
  */
 export interface PhoneticPlaceVariation extends GedcomStructureBase {
   /** The FONE payload, {1:1} List:Text. */
-  payload: Text[];
+  payload: ListText;
   /** TYPE {1:1} — the phonetic method. */
   type: Text;
 }
@@ -1465,7 +1467,7 @@ export interface PhoneticPlaceVariation extends GedcomStructureBase {
  */
 export interface RomanizedPlaceVariation extends GedcomStructureBase {
   /** The ROMN payload, {1:1} List:Text. */
-  payload: Text[];
+  payload: ListText;
   /** TYPE {1:1} — the romanization method. */
   type: Text;
 }
@@ -1481,7 +1483,7 @@ export interface RomanizedPlaceVariation extends GedcomStructureBase {
  */
 export interface PlaceTranslation extends GedcomStructureBase {
   /** The TRAN payload, {1:1} List:Text. */
-  payload: Text[];
+  payload: ListText;
   /** LANG {1:1}, g7:LANG. */
   language: Language;
 }
