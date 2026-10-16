@@ -223,7 +223,9 @@ export type RestrictionEnum = keyof typeof RESTRICTION_ENUM_VALUES | ExtensionTa
  * HUSB, WIFE, MOTH, FATH, SPOU); 5.5.1 additionally allows any free-form
  * role descriptor enclosed in parentheses. The remaining values here
  * (CLERGY, FRIEND, GODP, MULTIPLE, NGHBR, OFFICIATOR, PARENT, WITN) and
- * OTHER are 7.0-only.
+ * OTHER are 7.0-only. A parenthesized 5.5.1 descriptor is normalized on
+ * import to OTHER with the descriptor kept in the ROLE.PHRASE
+ * substructure (see the 5.5.1 overlay notes).
  */
 export const ROLE_ENUM_VALUES = {
   /** Child. */
@@ -356,7 +358,9 @@ export type OrdinanceStatusEnum =
  * GEDCOM 5.5.1 §2 (p.56), `NAME_TYPE` — values aka, birth, immigrant,
  * maiden, married (lowercase) plus an arbitrary user-defined value;
  * PROFESSIONAL and OTHER are 7.0-only, and 7.0 restricts non-standard
- * values to extension tags.
+ * values to extension tags. An arbitrary 5.5.1 user-defined value is
+ * normalized on import to OTHER with the text kept in the TYPE.PHRASE
+ * substructure (see the 5.5.1 overlay notes).
  */
 export const NAME_TYPE_ENUM_VALUES = {
   /** Also known as, alias, etc. */

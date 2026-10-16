@@ -753,7 +753,8 @@ export interface SourceRecordData extends GedcomStructureBase {
  * GEDCOM 5.5.1 §2 Record Structures (p.27), `SOURCE_RECORD` — identical
  * EVEN {0:M} with the comma-separated `EVENTS_RECORDED` list; 5.5.1's
  * DATA.PLAC payload is a plain place name (`SOURCE_JURISDICTION_PLACE`)
- * rather than a full PLACE_STRUCTURE.
+ * rather than a full PLACE_STRUCTURE and is modelled as a PlaceStructure
+ * with only the payload filled.
  */
 export interface SourceDataEvent extends GedcomStructureBase {
   /** The EVEN payload, {1:1} List:Enum of g7:enumset-EVENATTR. */
@@ -1572,6 +1573,8 @@ export interface SourceCitationEvent extends GedcomStructureBase {
  *
  * GEDCOM 5.5.1 §2 Substructures (p.40), `SOURCE_REPOSITORY_CITATION` — the
  * same structure; in 5.5.1 the REPO payload may be empty (`[ptr|<NULL>]`).
+ * An empty 5.5.1 REPO is normalized on import to the void pointer (see
+ * the 5.5.1 overlay notes).
  */
 export interface SourceRepositoryCitation extends GedcomStructureBase {
   tag: 'REPO';

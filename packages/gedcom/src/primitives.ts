@@ -504,10 +504,22 @@ export type Language = string;
  * URI: `dcat:mediaType`.
  *
  * GEDCOM 5.5.1 §2 Primitive Elements (p.54), `MULTIMEDIA_FORMAT` — 5.5.1
- * restricts the value to a fixed set (bmp, gif, jpg, ole, pcx, tif, wav)
- * instead of RFC 2045 media types.
+ * restricts the value to the fixed set of `MULTIMEDIA_FORMATS_551`
+ * (file extensions) instead of RFC 2045 media types; mapping between the
+ * two (e.g. `jpg` ↔ `image/jpeg`) is a serialization concern.
  */
 export type MediaType = string;
+
+/**
+ * GEDCOM 5.5.1 §2 Primitive Elements (p.54), `MULTIMEDIA_FORMAT` — the
+ * closed set of file formats permitted in 5.5.1 FILE.FORM payloads. The
+ * authoritative 5.5.1 side of the extension ↔ media-type mapping used by
+ * the serializer. Removed in GEDCOM 7.0 (RFC 2045 media types).
+ */
+export const MULTIMEDIA_FORMATS_551 = ['bmp', 'gif', 'jpg', 'ole', 'pcx', 'tif', 'wav'] as const;
+
+/** A GEDCOM 5.5.1 `MULTIMEDIA_FORMAT` value. */
+export type MultimediaFormat551 = (typeof MULTIMEDIA_FORMATS_551)[number];
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §2.11 Special
