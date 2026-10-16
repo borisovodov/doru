@@ -45,39 +45,41 @@ export type AdoptionEnum = keyof typeof ADOPTION_ENUM_VALUES | ExtensionTag;
  * `EVENT_TYPE_FAMILY` (GEDCOM 5.5.1 §2 p.49), which additionally includes
  * the generic EVEN tag (covered here by `EventAttributeEnum`).
  */
-export type EventEnum =
-  | 'ADOP'
-  | 'BAPM'
-  | 'BARM'
-  | 'BASM'
-  | 'BIRT'
-  | 'BLES'
-  | 'BURI'
-  | 'CENS'
-  | 'CHR'
-  | 'CHRA'
-  | 'CONF'
-  | 'CREM'
-  | 'DEAT'
-  | 'EMIG'
-  | 'FCOM'
-  | 'GRAD'
-  | 'IMMI'
-  | 'NATU'
-  | 'ORDN'
-  | 'PROB'
-  | 'RETI'
-  | 'WILL'
-  | 'ANUL'
-  | 'DIV'
-  | 'DIVF'
-  | 'ENGA'
-  | 'MARB'
-  | 'MARC'
-  | 'MARL'
-  | 'MARR'
-  | 'MARS'
-  | ExtensionTag;
+export const EVENT_ENUM_VALUES = {
+  ADOP: 'adoption',
+  BAPM: 'baptism',
+  BARM: 'Bar Mitzvah',
+  BASM: 'Bas Mitzvah',
+  BIRT: 'birth',
+  BLES: 'blessing',
+  BURI: 'depositing remains',
+  CENS: 'census',
+  CHR: 'christening',
+  CHRA: 'adult christening',
+  CONF: 'confirmation',
+  CREM: 'cremation',
+  DEAT: 'death',
+  EMIG: 'emigration',
+  FCOM: 'first communion',
+  GRAD: 'graduation',
+  IMMI: 'immigration',
+  NATU: 'naturalization',
+  ORDN: 'ordination',
+  PROB: 'probate',
+  RETI: 'retirement',
+  WILL: 'will',
+  ANUL: 'annulment',
+  DIV: 'divorce',
+  DIVF: 'divorce filed',
+  ENGA: 'engagement',
+  MARB: 'marriage bann',
+  MARC: 'marriage contract',
+  MARL: 'marriage license',
+  MARR: 'marriage',
+  MARS: 'marriage settlement',
+} as const;
+
+export type EventEnum = keyof typeof EVENT_ENUM_VALUES | ExtensionTag;
 
 /**
  * GEDCOM 7.0 §3.4 g7:enumset-EVENATTR — an event- or attribute-type tag name: the
@@ -90,24 +92,26 @@ export type EventEnum =
  * (CAST, EDUC, NATI, OCCU, PROP, RELI, RESI, TITL, FACT); identical
  * concept, the same tag set as here.
  */
-export type EventAttributeEnum =
-  | EventEnum
-  | 'EVEN'
-  | 'FACT'
-  | 'CAST'
-  | 'DSCR'
-  | 'EDUC'
-  | 'IDNO'
-  | 'NATI'
-  | 'NCHI'
-  | 'NMR'
-  | 'OCCU'
-  | 'PROP'
-  | 'RELI'
-  | 'RESI'
-  | 'SSN'
-  | 'TITL'
-  | ExtensionTag;
+export const EVENT_ATTRIBUTE_ENUM_VALUES = {
+  ...EVENT_ENUM_VALUES,
+  EVEN: 'a generic event',
+  FACT: 'a generic attribute',
+  CAST: 'caste',
+  DSCR: 'physical description',
+  EDUC: 'education',
+  IDNO: 'identification number',
+  NATI: 'nationality',
+  NCHI: 'number of children',
+  NMR: 'number of marriages',
+  OCCU: 'occupation',
+  PROP: 'property',
+  RELI: 'religion',
+  RESI: 'residence',
+  SSN: 'social security number',
+  TITL: 'title',
+} as const;
+
+export type EventAttributeEnum = keyof typeof EVENT_ATTRIBUTE_ENUM_VALUES | ExtensionTag;
 
 /**
  * GEDCOM 7.0 §3.4 g7:enumset-MEDI — the medium in which information is stored.
