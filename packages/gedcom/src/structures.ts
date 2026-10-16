@@ -806,7 +806,7 @@ export interface SubmitterRecord extends GedcomStructureBase {
   www?: Special[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
-  /** LANG {0:M}, g7:SUBM-LANG — languages the subject of the record understands. */
+  /** LANG {0:M}, g7:SUBM-LANG — languages the subject of the record understands. At most 3 in 5.5.1 ({0:3}); the limit is enforced at validation time, not in the types. */
   languages?: Language[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
@@ -892,7 +892,7 @@ export type GedcomRecord =
  * in 7.0 they moved to the record level and are absent here.
  */
 export interface AddressStructure extends GedcomStructureBase {
-  /** The ADDR payload, {1:1} Special — the full formatted address. */
+  /** The ADDR payload, {1:1} Special — the full formatted address. In 5.5.1 the payload is split across ADDR plus up to 3 CONT continuation lines. */
   payload: Special;
   /** ADR1 {0:1}, g7:ADR1 — first line of the address; should not be added to new files. */
   line1?: Special;
@@ -908,13 +908,13 @@ export interface AddressStructure extends GedcomStructureBase {
   postalCode?: Special;
   /** CTRY {0:1}, g7:CTRY — the name of the country. */
   country?: Special;
-  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. */
+  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. */
   phone?: Special[];
-  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. */
+  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. */
   email?: Special[];
-  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. */
+  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. */
   fax?: Special[];
-  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. */
+  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. */
   www?: Special[];
 }
 
@@ -950,7 +950,8 @@ export interface AssociationStructure extends GedcomStructureBase {
  *
  * GEDCOM 5.5.1 §2 (p.61), `ROLE_IN_EVENT` — the same context; 5.5.1
  * additionally allows any free-form role descriptor enclosed in
- * parentheses (see the 5.5.1 overlay notes).
+ * parentheses, which is normalized on import to OTHER with the
+ * descriptor kept in the ROLE.PHRASE substructure.
  */
 export interface RoleStructure extends GedcomStructureBase {
   /** The ROLE payload, {1:1} Enum of g7:enumset-ROLE. */
@@ -1400,7 +1401,8 @@ export interface PersonalNamePieces extends GedcomStructureBase {
  * transliteration of the name into a different language or script.
  *
  * 7.0-only: 5.5.1 expresses name variants through the FONE (phonetic) and
- * ROMN (romanized) substructures instead (see the 5.5.1 overlay notes).
+ * ROMN (romanized) substructures, modelled on PERSONAL_NAME_STRUCTURE as
+ * `phonetic` / `romanized`, instead of TRAN.
  */
 export interface NameTranslation extends GedcomStructureBase {
   /** The TRAN payload, {1:1} PersonalName. */
@@ -1573,8 +1575,8 @@ export interface SourceCitationEvent extends GedcomStructureBase {
  *
  * GEDCOM 5.5.1 §2 Substructures (p.40), `SOURCE_REPOSITORY_CITATION` — the
  * same structure; in 5.5.1 the REPO payload may be empty (`[ptr|<NULL>]`).
- * An empty 5.5.1 REPO is normalized on import to the void pointer (see
- * the 5.5.1 overlay notes).
+ * An empty 5.5.1 REPO is normalized on import to the void pointer
+ * `@VOID@`, which 7.0 provides exactly for this case.
  */
 export interface SourceRepositoryCitation extends GedcomStructureBase {
   tag: 'REPO';
@@ -1734,7 +1736,8 @@ export type FamilyAttributeStructure =
  *
  * GEDCOM 5.5.1 §2 Substructures (p.32), `FAMILY_EVENT_STRUCTURE` — the
  * same event set; in 5.5.1 only MARR has the optional `Y` payload, and
- * RESI is one of the family events (see the 5.5.1 overlay notes).
+ * RESI is one of the family events there (modelled here as
+ * `FamilyResidenceAttribute` with an optional payload).
  */
 interface FamilyEventBase<Tag extends string> extends GedcomStructureBase {
   tag: Tag;
