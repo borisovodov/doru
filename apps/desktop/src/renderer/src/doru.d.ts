@@ -76,7 +76,6 @@ declare global {
         personIds: string[],
       ): Promise<Record<string, { notes: number; sources: number; media: number }>>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
-      getGedcomText(projectPath: string): Promise<string>;
       getFamilies(projectPath: string): Promise<FamilyRecord[]>;
       addFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
       updateFamily(

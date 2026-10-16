@@ -41,7 +41,7 @@ Select a card to reveal the action toolbar:
   dragging).
 
 An empty tree shows an **Add the first person** button; after that, grow the
-tree from the cards themselves or import a GEDCOM file.
+tree from the cards themselves.
 
 ## Families
 
@@ -59,7 +59,7 @@ Removing a person from a family or deleting a family is one click.
 
 `Cmd+Z` / `Shift+Cmd+Z` (Ctrl on Windows/Linux). Every canvas action is one
 undoable step — including adding a person together with their family link.
-Whole GEDCOM imports and edits made by agents can be undone as well.
+Edits made by agents can be undone as well.
 
 ## Command palette
 

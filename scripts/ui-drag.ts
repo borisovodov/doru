@@ -5,6 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedFamily } from './seed-family.ts';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const appDir = join(root, 'apps/desktop');
@@ -30,16 +31,16 @@ await page.waitForSelector('.workbench', { timeout: 20_000 });
 
 const project = join(mkdtempSync(join(tmpdir(), 'doru-drag-project-')), 'family.doru');
 await page.evaluate(
-  async ({ project, fixture }) => {
+  async ({ project }) => {
     await window.doru.openProjectPath(project);
-    await window.doru.importGedcomFile(project, fixture);
   },
-  { project, fixture: join(root, 'e2e', 'fixtures', 'small.ged') },
+  { project },
 );
+await seedFamily(page, project);
 await page.waitForSelector('.editor-pane.active');
-// The import happens through the IPC directly, so the renderer still shows
-// pre-import state; reload the window to re-bind the project and load the
-// imported persons.
+// The seed happens through the IPC directly, so the renderer still shows
+// pre-seed state; reload the window to re-bind the project and load the
+// persons.
 await page.reload();
 await page.waitForSelector('.editor-pane.active .tree-canvas');
 

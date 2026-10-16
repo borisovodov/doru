@@ -6,10 +6,10 @@ import { mkdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedFamily } from './seed-family.ts';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const appDir = join(root, 'apps/desktop');
-const fixture = join(root, 'e2e', 'fixtures', 'small.ged');
 const outDir = join(root, '.ui-shots');
 const viewport = { width: 1440, height: 900 };
 
@@ -48,15 +48,15 @@ await shot('01-welcome-dark.png');
 await setTheme('light');
 await shot('02-welcome-light.png');
 
-// 3. Open a project, import fixture, tree view
+// 3. Open a project, seed the family, tree view
 const project = join(mkdtempSync(join(tmpdir(), 'doru-shots-project-')), 'family.doru');
 await page.evaluate(
-  async ({ project, fixture }) => {
+  async ({ project }) => {
     await window.doru.openProjectPath(project);
-    await window.doru.importGedcomFile(project, fixture);
   },
-  { project, fixture },
+  { project },
 );
+await seedFamily(page, project);
 await page.waitForSelector('.editor-pane.active');
 await shot('03-tree-light.png');
 

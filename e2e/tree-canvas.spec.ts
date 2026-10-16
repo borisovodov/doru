@@ -3,10 +3,10 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedFamilyTree } from './seed';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(root, '../apps/desktop');
-const fixture = resolve(root, 'fixtures', 'small.ged');
 
 test('canvas editing cycle: add a child, reparent by drag, undo everything', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-e2e-')), 'family.doru');
@@ -23,20 +23,20 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   const page = await app.firstWindow();
   await page.waitForSelector('.workbench', { timeout: 20_000 });
 
-  // Seed: import the fixture, give Ivan a second family (Kid2), and give
+  // Seed: the base family, give Ivan a second family (Kid2), and give
   // Kid2 an empty family of their own (the reparent drop target).
+  await seedFamilyTree(page, project);
   await page.evaluate(
-    async ({ project, fixture }) => {
-      await window.doru.importGedcomFile(project, fixture);
+    async ({ project }) => {
       await window.doru.addPerson(project, {
         id: 'KID2',
         names: [{ given: 'Kid2', surname: 'Ivanov' }],
         sex: 'U',
       });
-      await window.doru.addFamily(project, { id: 'F3', parents: ['@I1@'], children: ['KID2'] });
+      await window.doru.addFamily(project, { id: 'F3', parents: ['I1'], children: ['KID2'] });
       await window.doru.addFamily(project, { id: 'F4', parents: ['KID2'], children: [] });
     },
-    { project, fixture },
+    { project },
   );
   await page.reload();
   await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
@@ -90,7 +90,7 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   }, project);
   expect(kidId).toBeDefined();
   const afterReparent = await page.evaluate((p) => window.doru.getFamilies(p), project);
-  const f1 = afterReparent.find((family) => family.id === '@F1@');
+  const f1 = afterReparent.find((family) => family.id === 'F1');
   const f4 = afterReparent.find((family) => family.id === 'F4');
   expect(f1?.children).not.toContain(kidId);
   expect(f4?.children).toContain(kidId);
@@ -99,7 +99,7 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await page.keyboard.press('Meta+z');
   await page.waitForTimeout(900);
   const afterUndoReparent = await page.evaluate((p) => window.doru.getFamilies(p), project);
-  expect(afterUndoReparent.find((family) => family.id === '@F1@')?.children).toContain(kidId);
+  expect(afterUndoReparent.find((family) => family.id === 'F1')?.children).toContain(kidId);
   expect(afterUndoReparent.find((family) => family.id === 'F4')?.children).not.toContain(kidId);
 
   // A second undo removes the added person entirely.
@@ -114,7 +114,8 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await app.close();
 });
 
-test('clicking a person in the People sidebar focuses the canvas', async () => {  const project = join(mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-')), 'family.doru');
+test('clicking a person in the People sidebar focuses the canvas', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-data-'));
   const args = ['.', project];
   if (process.env['CI'] === 'true') {
@@ -127,12 +128,7 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
   });
   const page = await app.firstWindow();
   await page.waitForSelector('.workbench', { timeout: 20_000 });
-  await page.evaluate(
-    async ({ project, fixture }) => {
-      await window.doru.importGedcomFile(project, fixture);
-    },
-    { project, fixture },
-  );
+  await seedFamilyTree(page, project);
   await page.reload();
   await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
 
@@ -160,12 +156,7 @@ test('rename, search and delete with undo on the canvas', async () => {
   });
   const page = await app.firstWindow();
   await page.waitForSelector('.workbench', { timeout: 20_000 });
-  await page.evaluate(
-    async ({ project, fixture }) => {
-      await window.doru.importGedcomFile(project, fixture);
-    },
-    { project, fixture },
-  );
+  await seedFamilyTree(page, project);
   await page.reload();
   await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
 
