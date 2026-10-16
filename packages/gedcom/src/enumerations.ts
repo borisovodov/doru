@@ -1,18 +1,27 @@
 /**
- * §3.4 Enumeration Values of the GEDCOM 7.0.18 specification.
+ * GEDCOM 7.0 §3.4 Enumeration Values of the GEDCOM 7.0.18 specification.
  *
  * Each enumeration set is modelled as a union of string literals derived
  * from a `const` table that records the specification's meaning of every
- * value, plus the extension production `extTag` (§1.5: enumerated values
+ * value, plus the extension production `extTag` (GEDCOM 7.0 §1.5: enumerated values
  * may be extended with new values that match `extTag`). The URI of each
- * value is `g7:enum-<value>` unless noted otherwise in §3.4.
+ * value is `g7:enum-<value>` unless noted otherwise in GEDCOM 7.0 §3.4.
+ *
+ * GEDCOM 5.5.1 defines the same value sets as inline "controlled line_value
+ * choices" of its primitive elements (GEDCOM 5.5.1 §2 Primitive Elements,
+ * p.41–65); each set below cites its 5.5.1 counterpart. 5.5.1 considers
+ * all controlled values case insensitive and spells most of them
+ * lowercase; values added in 7.0 are marked as such.
  */
 
 import type { ExtensionTag } from './primitives';
 
 /**
- * §3.4 g7:enumset-ADOP — which parent(s) in the family adopted this
+ * GEDCOM 7.0 §3.4 g7:enumset-ADOP — which parent(s) in the family adopted this
  * individual. Used by g7:FAMC-ADOP.
+ *
+ * GEDCOM 5.5.1 §2 (p.42), `ADOPTED_BY_WHICH_PARENT` — identical values
+ * (HUSB, WIFE, BOTH), spelled uppercase in both versions.
  */
 export const ADOPTION_ENUM_VALUES = {
   /** Adopted by the HUSB of the FAM pointed to by FAMC. URI: `g7:enum-ADOP-HUSB`. */
@@ -23,13 +32,18 @@ export const ADOPTION_ENUM_VALUES = {
   BOTH: 'Adopted by both HUSB and WIFE of the FAM pointed to by FAMC.',
 } as const;
 
-/** §3.4 g7:enumset-ADOP. */
+/** GEDCOM 7.0 §3.4 g7:enumset-ADOP. */
 export type AdoptionEnum = keyof typeof ADOPTION_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-EVEN — an event-type tag name, but not the generic EVEN
- * tag. Values are the tags of the individual events (§3.3.1.1) and family
- * events (§3.3.1.2). Used by the payload of g7:NO.
+ * GEDCOM 7.0 §3.4 g7:enumset-EVEN — an event-type tag name, but not the generic EVEN
+ * tag. Values are the tags of the individual events (GEDCOM 7.0 §3.3.1.1) and family
+ * events (GEDCOM 7.0 §3.3.1.2). Used by the payload of g7:NO.
+ *
+ * 7.0-only: g7:NO does not exist in 5.5.1. The 5.5.1 counterpart of this
+ * value set is the union of `EVENT_TYPE_INDIVIDUAL` and
+ * `EVENT_TYPE_FAMILY` (GEDCOM 5.5.1 §2 p.49), which additionally includes
+ * the generic EVEN tag (covered here by `EventAttributeEnum`).
  */
 export type EventEnum =
   | 'ADOP'
@@ -66,10 +80,15 @@ export type EventEnum =
   | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-EVENATTR — an event- or attribute-type tag name: the
+ * GEDCOM 7.0 §3.4 g7:enumset-EVENATTR — an event- or attribute-type tag name: the
  * g7:enumset-EVEN values plus the generic EVEN and FACT tags and the tags
- * of the individual attributes (§3.3.2.1). Used by g7:DATA-EVEN and
+ * of the individual attributes (GEDCOM 7.0 §3.3.2.1). Used by g7:DATA-EVEN and
  * g7:SOUR-EVEN.
+ *
+ * GEDCOM 5.5.1 §2 (p.48), `EVENT_ATTRIBUTE_TYPE` — the union of
+ * `EVENT_TYPE_INDIVIDUAL`, `EVENT_TYPE_FAMILY` and `ATTRIBUTE_TYPE`
+ * (CAST, EDUC, NATI, OCCU, PROP, RELI, RESI, TITL, FACT); identical
+ * concept, the same tag set as here.
  */
 export type EventAttributeEnum =
   | EventEnum
@@ -91,7 +110,12 @@ export type EventAttributeEnum =
   | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-MEDI — the medium in which information is stored.
+ * GEDCOM 7.0 §3.4 g7:enumset-MEDI — the medium in which information is stored.
+ *
+ * GEDCOM 5.5.1 §2 (p.62), `SOURCE_MEDIA_TYPE` — identical values spelled
+ * lowercase (audio, book, card, electronic, fiche, film, magazine,
+ * manuscript, map, newspaper, photo, tombstone, video); OTHER is 7.0-only.
+ * In 5.5.1 the set is also used by the FILE.FORM.TYPE tag.
  */
 export const MEDIA_ENUM_VALUES = {
   /** An audio recording. */
@@ -124,12 +148,15 @@ export const MEDIA_ENUM_VALUES = {
   OTHER: 'A value not listed here; should have a PHRASE substructure.',
 } as const;
 
-/** §3.4 g7:enumset-MEDI. */
+/** GEDCOM 7.0 §3.4 g7:enumset-MEDI. */
 export type MediaEnum = keyof typeof MEDIA_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-PEDI — the type of child-to-family relationship
+ * GEDCOM 7.0 §3.4 g7:enumset-PEDI — the type of child-to-family relationship
  * represented by the superstructure.
+ *
+ * GEDCOM 5.5.1 §2 (p.57), `PEDIGREE_LINKAGE_TYPE` — identical values
+ * (adopted, birth, foster, sealing, lowercase); OTHER is 7.0-only.
  */
 export const PEDIGREE_ENUM_VALUES = {
   /** Adoptive parents. */
@@ -144,13 +171,16 @@ export const PEDIGREE_ENUM_VALUES = {
   OTHER: 'A value not listed here; should have a PHRASE substructure.',
 } as const;
 
-/** §3.4 g7:enumset-PEDI. */
+/** GEDCOM 7.0 §3.4 g7:enumset-PEDI. */
 export type PedigreeEnum = keyof typeof PEDIGREE_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-QUAY — the credibility of a piece of information, based
+ * GEDCOM 7.0 §3.4 g7:enumset-QUAY — the credibility of a piece of information, based
  * on its supporting evidence. The values look like integers but do not
  * have numeric meaning.
+ *
+ * GEDCOM 5.5.1 §2 (p.43), `CERTAINTY_ASSESSMENT` — identical values and
+ * meanings.
  */
 export const QUALITY_ENUM_VALUES = {
   /** Unreliable evidence or estimated data. */
@@ -163,12 +193,15 @@ export const QUALITY_ENUM_VALUES = {
   '3': 'Direct and primary evidence used, or by dominance of the evidence.',
 } as const;
 
-/** §3.4 g7:enumset-QUAY. */
+/** GEDCOM 7.0 §3.4 g7:enumset-QUAY. */
 export type QualityEnum = keyof typeof QUALITY_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-RESN — access to information may be denied or otherwise
+ * GEDCOM 7.0 §3.4 g7:enumset-RESN — access to information may be denied or otherwise
  * restricted. When a list of values is present, all apply.
+ *
+ * GEDCOM 5.5.1 §2 (p.60), `RESTRICTION_NOTICE` — identical values
+ * (confidential, locked, privacy, lowercase).
  */
 export const RESTRICTION_ENUM_VALUES = {
   /** This data was marked as confidential by the user. */
@@ -179,12 +212,18 @@ export const RESTRICTION_ENUM_VALUES = {
   PRIVACY: 'This data is not to be shared outside of a trusted circle, generally because it contains information about living individuals. This definition is known to admit multiple interpretations, so use of the PRIVACY restriction notice is not recommended.',
 } as const;
 
-/** §3.4 g7:enumset-RESN. */
+/** GEDCOM 7.0 §3.4 g7:enumset-RESN. */
 export type RestrictionEnum = keyof typeof RESTRICTION_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-ROLE — the role a person played in an event or a
+ * GEDCOM 7.0 §3.4 g7:enumset-ROLE — the role a person played in an event or a
  * person's life.
+ *
+ * GEDCOM 5.5.1 §2 (p.61), `ROLE_IN_EVENT` — a subset of this set (CHIL,
+ * HUSB, WIFE, MOTH, FATH, SPOU); 5.5.1 additionally allows any free-form
+ * role descriptor enclosed in parentheses. The remaining values here
+ * (CLERGY, FRIEND, GODP, MULTIPLE, NGHBR, OFFICIATOR, PARENT, WITN) and
+ * OTHER are 7.0-only.
  */
 export const ROLE_ENUM_VALUES = {
   /** Child. */
@@ -219,13 +258,15 @@ export const ROLE_ENUM_VALUES = {
   OTHER: 'A value not listed here; should have a PHRASE substructure.',
 } as const;
 
-/** §3.4 g7:enumset-ROLE. */
+/** GEDCOM 7.0 §3.4 g7:enumset-ROLE. */
 export type RoleEnum = keyof typeof ROLE_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-SEX — the sex of the individual at birth. This can
+ * GEDCOM 7.0 §3.4 g7:enumset-SEX — the sex of the individual at birth. This can
  * describe an individual's reproductive or sexual anatomy at birth; gender
  * identity or sexual preference are not given their own tag.
+ *
+ * GEDCOM 5.5.1 §2 (p.61), `SEX_VALUE` — values M, F and U; X is 7.0-only.
  */
 export const SEX_ENUM_VALUES = {
   /** Male. */
@@ -238,12 +279,15 @@ export const SEX_ENUM_VALUES = {
   U: 'Cannot be determined from available sources.',
 } as const;
 
-/** §3.4 g7:enumset-SEX. */
+/** GEDCOM 7.0 §3.4 g7:enumset-SEX. */
 export type SexEnum = keyof typeof SEX_ENUM_VALUES | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-FAMC-STAT — the state or condition of a researcher's
+ * GEDCOM 7.0 §3.4 g7:enumset-FAMC-STAT — the state or condition of a researcher's
  * belief in a family connection.
+ *
+ * GEDCOM 5.5.1 §2 (p.44), `CHILD_LINKAGE_STATUS` — identical values
+ * (challenged, disproven, proven, lowercase).
  */
 export const FAMILY_CHILD_STATUS_ENUM_VALUES = {
   /** Linking this child to this family is suspect, but the linkage has been neither proven nor disproven. */
@@ -254,16 +298,24 @@ export const FAMILY_CHILD_STATUS_ENUM_VALUES = {
   PROVEN: 'Linking this child to this family has been proven.',
 } as const;
 
-/** §3.4 g7:enumset-FAMC-STAT. */
+/** GEDCOM 7.0 §3.4 g7:enumset-FAMC-STAT. */
 export type FamilyChildStatusEnum =
   | keyof typeof FAMILY_CHILD_STATUS_ENUM_VALUES
   | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-ord-STAT — the state or condition of a Latter-day Saint
+ * GEDCOM 7.0 §3.4 g7:enumset-ord-STAT — the state or condition of a Latter-day Saint
  * ordinance. The interpretation of these values is subject to individual
  * user interpretation; the "applies to" and "status" columns are
  * recommendations, not requirements.
+ *
+ * GEDCOM 5.5.1 §2 (p.51–52) defines four per-ordinance sets
+ * (`LDS_BAPTISM_DATE_STATUS`, `LDS_ENDOWMENT_DATE_STATUS`,
+ * `LDS_CHILD_SEALING_DATE_STATUS`, `LDS_SPOUSE_SEALING_DATE_STATUS`)
+ * with the same values, but 5.5.1 spells PRE-1970 and DNS/CAN with a
+ * hyphen and slash (7.0: PRE_1970, DNS_CAN) and has no INFANT value. The
+ * per-ordinance "applies to" subsets of 5.5.1 are a subset of this union
+ * (see the 5.5.1 overlay notes).
  */
 export const ORDINANCE_STATUS_ENUM_VALUES = {
   /** Born in the covenant, so child to parent sealing ordinance is not required. Applies to: SLGC. Status: current. */
@@ -292,13 +344,18 @@ export const ORDINANCE_STATUS_ENUM_VALUES = {
   UNCLEARED: 'Data for clearing the ordinance request was insufficient.',
 } as const;
 
-/** §3.4 g7:enumset-ord-STAT. */
+/** GEDCOM 7.0 §3.4 g7:enumset-ord-STAT. */
 export type OrdinanceStatusEnum =
   | keyof typeof ORDINANCE_STATUS_ENUM_VALUES
   | ExtensionTag;
 
 /**
- * §3.4 g7:enumset-NAME-TYPE — the type of a name.
+ * GEDCOM 7.0 §3.4 g7:enumset-NAME-TYPE — the type of a name.
+ *
+ * GEDCOM 5.5.1 §2 (p.56), `NAME_TYPE` — values aka, birth, immigrant,
+ * maiden, married (lowercase) plus an arbitrary user-defined value;
+ * PROFESSIONAL and OTHER are 7.0-only, and 7.0 restricts non-standard
+ * values to extension tags.
  */
 export const NAME_TYPE_ENUM_VALUES = {
   /** Also known as, alias, etc. */
@@ -317,5 +374,5 @@ export const NAME_TYPE_ENUM_VALUES = {
   OTHER: 'A value not listed here; should have a PHRASE substructure.',
 } as const;
 
-/** §3.4 g7:enumset-NAME-TYPE. */
+/** GEDCOM 7.0 §3.4 g7:enumset-NAME-TYPE. */
 export type NameTypeEnum = keyof typeof NAME_TYPE_ENUM_VALUES | ExtensionTag;
