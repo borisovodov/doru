@@ -4,7 +4,8 @@
  * constructs of the other version are reported as typed errors.
  */
 
-import { DOCUMENT_START, fail, ok, run, type ParseResult } from '../errors';
+import { DOCUMENT_START, ok, run, type ParseResult } from '../errors';
+import { prepareFor551, prepareFor70 } from './prepare';
 import { LANGUAGE_IDS_551, MULTIMEDIA_FORMATS_551 } from '../primitives';
 import type {
   AgeValue,
@@ -378,9 +379,6 @@ function formatTime(value: TimeValue, version: Version): string {
 }
 
 function formatAge70(value: AgeValue): string {
-  if (value.description !== undefined) {
-    fail('serialize.unsupported-value', `The age keyword ${value.description} cannot be represented in GEDCOM 7.0`);
-  }
   const parts: string[] = [];
   if (value.years !== undefined) {
     parts.push(`${value.years}y`);
@@ -400,9 +398,6 @@ function formatAge70(value: AgeValue): string {
 function formatAge551(value: AgeValue): string {
   if (value.description !== undefined) {
     return value.description;
-  }
-  if (value.weeks !== undefined) {
-    fail('serialize.unsupported-value', 'Weeks cannot be represented in a GEDCOM 5.5.1 age');
   }
   const parts: string[] = [];
   if (value.years !== undefined) {
@@ -425,6 +420,43 @@ function formatName551(value: PersonalName): string {
   return `${value.given ?? ''}/${value.surname ?? ''}/${value.suffix ?? ''}`;
 }
 
+// Cross-version projection tables: the 5.5.1 phonetic/romanized methods and
+// the 7.0 TRAN languages name the same five writing systems; associations and
+// source-event roles are free text in 5.5.1, so the 7.0 enums are spelled out.
+const METHOD_TO_LANGUAGE_70 = new Map<string, string>([
+  ['kana', 'ja-Kana'],
+  ['hangul', 'ko-Hang'],
+  ['pinyin', 'zh-Latn'],
+  ['romaji', 'ja-Latn'],
+  ['wadegiles', 'zh-Latn-wadegile'],
+]);
+
+const LANGUAGE_TO_METHOD_551 = new Map<string, string>([
+  ['ja-kana', 'kana'],
+  ['ko-hang', 'hangul'],
+  ['zh-latn', 'pinyin'],
+  ['ja-latn', 'romaji'],
+  ['zh-latn-wadegile', 'wadegiles'],
+]);
+
+const ROLE_TO_RELA_551 = new Map<string, string>([
+  ['CHIL', 'Child'],
+  ['CLERGY', 'Clergy'],
+  ['FATH', 'Father'],
+  ['FRIEND', 'Friend'],
+  ['GODP', 'Godparent'],
+  ['HUSB', 'Husband'],
+  ['MOTH', 'Mother'],
+  ['MULTIPLE', 'Multiple-birth sibling'],
+  ['NGHBR', 'Neighbor'],
+  ['OFFICIATOR', 'Officiator'],
+  ['PARENT', 'Parent'],
+  ['SPOU', 'Spouse'],
+  ['WIFE', 'Wife'],
+  ['WITN', 'Witness'],
+  ['OTHER', 'Other'],
+]);
+
 // ---------------------------------------------------------------------------
 // Serializer
 // ---------------------------------------------------------------------------
@@ -438,21 +470,15 @@ class Emitter {
     this.w = new Writer(version);
   }
 
-  private v70(text: string): never {
-    fail('serialize.unsupported-value', `${text} cannot be represented in GEDCOM 7.0`);
-  }
-
-  private v551(text: string): never {
-    fail('serialize.unsupported-value', `${text} cannot be represented in GEDCOM 5.5.1`);
-  }
-
   ptr(level: number, tag: string, pointer: string, options: { empty551?: boolean } = {}): void {
     if (pointer === '@VOID@' && this.version === '5.5.1') {
       if (options.empty551) {
         this.w.line(level, tag);
-        return;
       }
-      this.v551(`the void pointer ${pointer}`);
+      // A void pointer has nothing to point at in 5.5.1; the link is
+      // dropped. (prepareFor551 removes all such links; REPO and SOUR
+      // citations handle theirs inline.)
+      return;
     }
     this.w.line(level, tag, { value: pointer });
   }
@@ -461,8 +487,6 @@ class Emitter {
     this.emitHeader(dataset.header);
     if (this.version === '5.5.1' && dataset.submission !== undefined) {
       this.emitSubmission(dataset.submission);
-    } else if (this.version === '7.0' && dataset.submission !== undefined) {
-      this.v70('the SUBN submission record');
     }
     for (const record of dataset.records) {
       this.emitRecord(record);
@@ -482,25 +506,6 @@ class Emitter {
           this.w.line(2, 'TAG', { value: `${def.payload.tag} ${def.payload.uri}` });
         }
       }
-      if (h.submission !== undefined || h.fileName !== undefined) {
-        this.v70('the 5.5.1 SUBN/FILE header fields');
-      }
-      if (h.gedcom.form !== undefined) {
-        this.v70('the 5.5.1 GEDC.FORM field');
-      }
-    } else {
-      if (h.schema !== undefined) {
-        this.v551('the SCHMA header');
-      }
-      if (h.source === undefined) {
-        fail('serialize.missing-field', 'The 5.5.1 header requires SOUR');
-      }
-      if (h.submitter === undefined) {
-        fail('serialize.missing-field', 'The 5.5.1 header requires SUBM');
-      }
-      if (h.gedcom.form === undefined) {
-        fail('serialize.missing-field', 'The 5.5.1 header requires GEDC.FORM');
-      }
     }
     if (h.source !== undefined) {
       this.emitHeaderSource(h.source);
@@ -511,7 +516,7 @@ class Emitter {
     if (h.date !== undefined) {
       this.emitDateExact(1, 'DATE', h.date, h.date.time);
     }
-    if (h.submitter !== undefined) {
+    if (this.version === '5.5.1' && h.submitter !== undefined) {
       this.ptr(1, 'SUBM', h.submitter);
     }
     if (this.version === '5.5.1') {
@@ -535,7 +540,10 @@ class Emitter {
       this.w.line(1, 'CHAR', { value: 'UTF-8' });
     }
     if (h.language !== undefined) {
-      this.w.line(1, 'LANG', { value: this.language(h.language) });
+      const language = this.language(h.language);
+      if (language !== undefined) {
+        this.w.line(1, 'LANG', { value: language });
+      }
     }
     if (h.place !== undefined) {
       this.w.line(1, 'PLAC');
@@ -595,20 +603,22 @@ class Emitter {
     www?: string[];
   }): void {
     this.w.line(2, 'CORP', { value: corp.payload });
-    if (corp.address !== undefined) {
-      this.emitAddress(3, corp.address);
+    const address = this.mergedAddress(corp.address, corp);
+    if (address !== undefined) {
+      this.emitAddress(3, address);
     }
     if (this.version === '7.0') {
-      for (const value of corp.phone ?? []) {
+      // The 5.5.1-position contacts inside ADDR are relocated here.
+      for (const value of corp.phone ?? corp.address?.phone ?? []) {
         this.w.line(3, 'PHON', { value });
       }
-      for (const value of corp.email ?? []) {
+      for (const value of corp.email ?? corp.address?.email ?? []) {
         this.w.line(3, 'EMAIL', { value });
       }
-      for (const value of corp.fax ?? []) {
+      for (const value of corp.fax ?? corp.address?.fax ?? []) {
         this.w.line(3, 'FAX', { value });
       }
-      for (const value of corp.www ?? []) {
+      for (const value of corp.www ?? corp.address?.www ?? []) {
         this.w.line(3, 'WWW', { value });
       }
     }
@@ -631,16 +641,18 @@ class Emitter {
         this.emitRepository(record);
         return;
       case 'SNOTE':
-        if (this.version !== '7.0') {
-          this.v551('the SNOTE record');
+        if (this.version === '7.0') {
+          this.emitSharedNote(record);
+        } else {
+          this.emitSharedNoteAs551(record);
         }
-        this.emitSharedNote(record);
         return;
       case 'NOTE':
-        if (this.version !== '5.5.1') {
-          this.v70('the NOTE record');
+        if (this.version === '5.5.1') {
+          this.emitNoteRecord(record);
+        } else {
+          this.emitNoteRecordAs70(record);
         }
-        this.emitNoteRecord(record);
         return;
       case 'SOUR':
         this.emitSource(record);
@@ -649,7 +661,8 @@ class Emitter {
         this.emitSubmitter(record);
         return;
       case 'SUBN':
-        this.v551('a SUBN record outside the header position');
+        // A stray SUBN in the records list is dropped.
+        return;
       default:
         this.emitExtension(0, record as ExtensionStructure, (record as { xref?: string }).xref);
         return;
@@ -667,11 +680,9 @@ class Emitter {
     extensions?: ExtensionStructure[];
   }, level: number): void {
     for (const identifier of rec.identifiers ?? []) {
-      if (identifier.tag === 'UID' && this.version !== '7.0') {
-        this.v551('the UID identifier');
-      }
-      if (identifier.tag === 'EXID' && this.version !== '7.0') {
-        this.v551('the EXID identifier');
+      if ((identifier.tag === 'UID' || identifier.tag === 'EXID') && this.version !== '7.0') {
+        // 5.5.1 has no UID/EXID; dropped.
+        continue;
       }
       this.w.line(level, identifier.tag, { value: identifier.payload });
       if (identifier.type !== undefined) {
@@ -694,17 +705,11 @@ class Emitter {
         this.emitNoteStructure(level + 1, note);
       }
     }
-    if (rec.creationDate !== undefined) {
-      if (this.version !== '7.0') {
-        this.v551('the CREA structure');
-      }
+    if (rec.creationDate !== undefined && this.version === '7.0') {
       this.w.line(level, 'CREA');
       this.emitDateExact(level + 1, 'DATE', rec.creationDate.date, rec.creationDate.date.time);
     }
-    if (rec.automatedRecordId !== undefined) {
-      if (this.version !== '5.5.1') {
-        this.v70('the 5.5.1 RIN field');
-      }
+    if (rec.automatedRecordId !== undefined && this.version === '5.5.1') {
       this.w.line(level, 'RIN', { value: rec.automatedRecordId });
     }
     this.emitExtensions(level, rec);
@@ -752,9 +757,9 @@ class Emitter {
         }
         continue;
       }
-      // FACT is 7.0-only.
+      // FAM.FACT is 7.0-only; dropped.
       if (this.version !== '7.0') {
-        this.v551('the FAM.FACT attribute');
+        continue;
       }
       this.w.line(1, 'FACT', { value: (attribute.payload as string) ?? '' });
       if (attribute.type !== undefined) {
@@ -765,22 +770,21 @@ class Emitter {
     for (const event of rec.events ?? []) {
       this.emitFamilyEvent(event);
     }
-    for (const nonEvent of rec.nonEvents ?? []) {
-      if (this.version !== '7.0') {
-        this.v551('the NO structure');
-      }
-      this.w.line(1, 'NO', { value: nonEvent.payload });
-      if (nonEvent.date !== undefined) {
-        this.w.line(2, 'DATE', { value: formatDateValue70(nonEvent.date.value ?? { kind: 'period' }) });
-        if (nonEvent.date.phrase !== undefined) {
-          this.w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
+    if (this.version === '7.0') {
+      for (const nonEvent of rec.nonEvents ?? []) {
+        this.w.line(1, 'NO', { value: nonEvent.payload });
+        if (nonEvent.date !== undefined) {
+          this.w.line(2, 'DATE', { value: formatDateValue70(nonEvent.date.value ?? { kind: 'period' }) });
+          if (nonEvent.date.phrase !== undefined) {
+            this.w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
+          }
         }
-      }
-      for (const note of nonEvent.notes ?? []) {
-        this.emitNoteStructure(2, note);
-      }
-      for (const citation of nonEvent.citations ?? []) {
-        this.emitSourceCitation(2, citation);
+        for (const note of nonEvent.notes ?? []) {
+          this.emitNoteStructure(2, note);
+        }
+        for (const citation of nonEvent.citations ?? []) {
+          this.emitSourceCitation(2, citation);
+        }
       }
     }
     if (rec.husband !== undefined) {
@@ -802,10 +806,10 @@ class Emitter {
       }
     }
     for (const association of rec.associations ?? []) {
-      if (this.version !== '7.0') {
-        this.v551('an ASSO under FAM');
+      // 5.5.1 FAM has no ASSO; dropped.
+      if (this.version === '7.0') {
+        this.emitAssociation(1, association);
       }
-      this.emitAssociation(1, association);
     }
     for (const submitter of rec.submitters ?? []) {
       this.ptr(1, 'SUBM', submitter);
@@ -856,9 +860,8 @@ class Emitter {
       this.w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
     } else if (event.tag === 'MARR') {
       this.w.line(1, 'MARR', { value: event.payload === true ? 'Y' : undefined });
-    } else if (event.payload === true) {
-      this.v551(`the Y payload on ${event.tag}`);
     } else {
+      // 5.5.1 cannot carry the Y assertion here; the value is dropped.
       this.w.line(1, event.tag);
     }
     this.emitFamilyDetail(2, event.detail, event.type);
@@ -900,7 +903,10 @@ class Emitter {
       this.emitPersonalName(1, name);
     }
     if (rec.sex !== undefined) {
-      this.w.line(1, 'SEX', { value: this.sex(rec.sex) });
+      const value = this.sex(rec.sex);
+      if (value !== undefined) {
+        this.w.line(1, 'SEX', { value });
+      }
     }
     for (const attribute of rec.attributes ?? []) {
       if (this.version === '5.5.1' && attribute.type !== undefined && attribute.tag !== 'IDNO' && attribute.tag !== 'FACT') {
@@ -913,22 +919,21 @@ class Emitter {
     for (const event of rec.events ?? []) {
       this.emitIndividualEvent(event);
     }
-    for (const nonEvent of rec.nonEvents ?? []) {
-      if (this.version !== '7.0') {
-        this.v551('the NO structure');
-      }
-      this.w.line(1, 'NO', { value: nonEvent.payload });
-      if (nonEvent.date !== undefined) {
-        this.w.line(2, 'DATE', { value: formatDateValue70(nonEvent.date.value ?? { kind: 'period' }) });
-        if (nonEvent.date.phrase !== undefined) {
-          this.w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
+    if (this.version === '7.0') {
+      for (const nonEvent of rec.nonEvents ?? []) {
+        this.w.line(1, 'NO', { value: nonEvent.payload });
+        if (nonEvent.date !== undefined) {
+          this.w.line(2, 'DATE', { value: formatDateValue70(nonEvent.date.value ?? { kind: 'period' }) });
+          if (nonEvent.date.phrase !== undefined) {
+            this.w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
+          }
         }
-      }
-      for (const note of nonEvent.notes ?? []) {
-        this.emitNoteStructure(2, note);
-      }
-      for (const citation of nonEvent.citations ?? []) {
-        this.emitSourceCitation(2, citation);
+        for (const note of nonEvent.notes ?? []) {
+          this.emitNoteStructure(2, note);
+        }
+        for (const citation of nonEvent.citations ?? []) {
+          this.emitSourceCitation(2, citation);
+        }
       }
     }
     for (const ordinance of rec.ordinances ?? []) {
@@ -941,9 +946,12 @@ class Emitter {
     for (const link of rec.childFamilies ?? []) {
       this.ptr(1, 'FAMC', link.family);
       if (link.pedigree !== undefined) {
-        this.w.line(2, 'PEDI', { value: this.pedigree(link.pedigree.payload) });
-        if (link.pedigree.phrase !== undefined) {
-          this.w.line(3, 'PHRASE', { value: link.pedigree.phrase });
+        const value = this.pedigree(link.pedigree.payload);
+        if (value !== undefined) {
+          this.w.line(2, 'PEDI', { value });
+          if (link.pedigree.phrase !== undefined) {
+            this.w.line(3, 'PHRASE', { value: link.pedigree.phrase });
+          }
         }
       }
       if (link.status !== undefined) {
@@ -980,16 +988,10 @@ class Emitter {
     for (const submitter of rec.descendantInterests ?? []) {
       this.ptr(1, 'DESI', submitter);
     }
-    if (rec.recordFileNumber !== undefined) {
-      if (this.version !== '5.5.1') {
-        this.v70('the 5.5.1 RFN field');
-      }
+    if (rec.recordFileNumber !== undefined && this.version === '5.5.1') {
       this.w.line(1, 'RFN', { value: rec.recordFileNumber });
     }
-    if (rec.ancestralFileNumber !== undefined) {
-      if (this.version !== '5.5.1') {
-        this.v70('the 5.5.1 AFN field');
-      }
+    if (rec.ancestralFileNumber !== undefined && this.version === '5.5.1') {
       this.w.line(1, 'AFN', { value: rec.ancestralFileNumber });
     }
     this.commonRecordFields(rec, 1);
@@ -1025,9 +1027,8 @@ class Emitter {
       this.w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
     } else if (event.tag === 'BIRT' || event.tag === 'CHR' || event.tag === 'DEAT') {
       this.w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
-    } else if (event.payload === true) {
-      this.v551(`the Y payload on ${event.tag}`);
     } else {
+      // 5.5.1 cannot carry the Y assertion here; the value is dropped.
       this.w.line(1, event.tag);
     }
     if (event.tag === 'ADOP' && event.adoptionFamily !== undefined) {
@@ -1059,8 +1060,11 @@ class Emitter {
       this.emitPlace(level, detail.place);
     }
     if (detail.status !== undefined) {
-      this.w.line(level, 'STAT', { value: this.ordStat(detail.status.payload) });
-      this.emitDateExact(level + 1, 'DATE', detail.status.date, detail.status.date.time);
+      const value = this.ordStat(detail.status.payload);
+      if (value !== undefined) {
+        this.w.line(level, 'STAT', { value });
+        this.emitDateExact(level + 1, 'DATE', detail.status.date, detail.status.date.time);
+      }
     }
     for (const note of detail.notes ?? []) {
       this.emitNoteStructure(level, note);
@@ -1084,10 +1088,7 @@ class Emitter {
     xref?: string;
   }): void {
     this.w.line(0, 'OBJE', { xref: rec.xref });
-    if (rec.restriction !== undefined) {
-      if (this.version !== '7.0') {
-        this.v551('a RESN under OBJE');
-      }
+    if (rec.restriction !== undefined && this.version === '7.0') {
       this.w.line(1, 'RESN', { value: this.restrictionList(rec.restriction) });
     }
     for (const file of rec.files) {
@@ -1097,6 +1098,11 @@ class Emitter {
   }
 
   private emitMediaFile(level: number, file: MediaFile): void {
+    if (this.version === '5.5.1' && this.mediaType(file.form.payload) === undefined) {
+      // 5.5.1 can only name the seven fixed formats; a file whose format
+      // cannot be named is dropped together with its substructures.
+      return;
+    }
     this.w.line(level, 'FILE', { value: file.payload });
     this.emitMediaFormat(level + 1, file.form);
     if (file.title !== undefined) {
@@ -1111,12 +1117,19 @@ class Emitter {
   }
 
   private emitMediaFormat(level: number, format: MediaFormatStructure): void {
-    this.w.line(level, 'FORM', { value: this.mediaType(format.payload) });
+    const value = this.mediaType(format.payload);
+    if (value === undefined) {
+      return;
+    }
+    this.w.line(level, 'FORM', { value });
     if (format.medium !== undefined) {
       if (this.version === '7.0') {
         this.emitMedia(level + 1, format.medium);
       } else {
-        this.w.line(level + 1, 'TYPE', { value: this.medi551(format.medium.payload) });
+        const medium = this.medi551(format.medium.payload);
+        if (medium !== undefined) {
+          this.w.line(level + 1, 'TYPE', { value: medium });
+        }
       }
     }
   }
@@ -1146,20 +1159,22 @@ class Emitter {
   }): void {
     this.w.line(0, 'REPO', { xref: rec.xref });
     this.w.line(1, 'NAME', { value: rec.name });
-    if (rec.address !== undefined) {
-      this.emitAddress(1, rec.address);
+    const address = this.mergedAddress(rec.address, rec);
+    if (address !== undefined) {
+      this.emitAddress(1, address);
     }
     if (this.version === '7.0') {
-      for (const value of rec.phone ?? []) {
+      // The 5.5.1-position contacts inside ADDR are relocated here.
+      for (const value of rec.phone ?? rec.address?.phone ?? []) {
         this.w.line(1, 'PHON', { value });
       }
-      for (const value of rec.email ?? []) {
+      for (const value of rec.email ?? rec.address?.email ?? []) {
         this.w.line(1, 'EMAIL', { value });
       }
-      for (const value of rec.fax ?? []) {
+      for (const value of rec.fax ?? rec.address?.fax ?? []) {
         this.w.line(1, 'FAX', { value });
       }
-      for (const value of rec.www ?? []) {
+      for (const value of rec.www ?? rec.address?.www ?? []) {
         this.w.line(1, 'WWW', { value });
       }
     }
@@ -1209,6 +1224,34 @@ class Emitter {
     xref?: string;
   }): void {
     this.w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
+    this.commonRecordFields(rec, 1);
+  }
+
+  /** A SNOTE record projected onto 5.5.1: a NOTE record (MIME/LANG/TRAN, UID, EXID and CREA are dropped). */
+  private emitSharedNoteAs551(rec: {
+    tag: 'SNOTE';
+    payload: string;
+    citations?: SourceCitation[];
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    changeDate?: ChangeDate;
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  }): void {
+    this.w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
+    this.commonRecordFields(rec, 1);
+  }
+
+  /** A 5.5.1 NOTE record projected onto 7.0: a SNOTE record (RIN is dropped). */
+  private emitNoteRecordAs70(rec: {
+    tag: 'NOTE';
+    payload: string;
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    citations?: SourceCitation[];
+    changeDate?: ChangeDate;
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  }): void {
+    this.w.line(0, 'SNOTE', { xref: rec.xref, value: rec.payload });
     this.commonRecordFields(rec, 1);
   }
 
@@ -1331,20 +1374,22 @@ class Emitter {
   }): void {
     this.w.line(0, 'SUBM', { xref: rec.xref });
     this.w.line(1, 'NAME', { value: rec.name });
-    if (rec.address !== undefined) {
-      this.emitAddress(1, rec.address);
+    const address = this.mergedAddress(rec.address, rec);
+    if (address !== undefined) {
+      this.emitAddress(1, address);
     }
     if (this.version === '7.0') {
-      for (const value of rec.phone ?? []) {
+      // The 5.5.1-position contacts inside ADDR are relocated here.
+      for (const value of rec.phone ?? rec.address?.phone ?? []) {
         this.w.line(1, 'PHON', { value });
       }
-      for (const value of rec.email ?? []) {
+      for (const value of rec.email ?? rec.address?.email ?? []) {
         this.w.line(1, 'EMAIL', { value });
       }
-      for (const value of rec.fax ?? []) {
+      for (const value of rec.fax ?? rec.address?.fax ?? []) {
         this.w.line(1, 'FAX', { value });
       }
-      for (const value of rec.www ?? []) {
+      for (const value of rec.www ?? rec.address?.www ?? []) {
         this.w.line(1, 'WWW', { value });
       }
     }
@@ -1352,12 +1397,12 @@ class Emitter {
       this.emitMultimediaLink(1, media);
     }
     for (const language of rec.languages ?? []) {
-      this.w.line(1, 'LANG', { value: this.language(language) });
-    }
-    if (rec.registeredRfn !== undefined) {
-      if (this.version !== '5.5.1') {
-        this.v70('the 5.5.1 RFN field');
+      const value = this.language(language);
+      if (value !== undefined) {
+        this.w.line(1, 'LANG', { value });
       }
+    }
+    if (rec.registeredRfn !== undefined && this.version === '5.5.1') {
       this.w.line(1, 'RFN', { value: rec.registeredRfn });
     }
     this.commonRecordFields(rec, 1);
@@ -1450,29 +1495,75 @@ class Emitter {
       for (const value of address.www ?? []) {
         this.w.line(level + 1, 'WWW', { value });
       }
-    } else if (address.phone !== undefined || address.email !== undefined || address.fax !== undefined || address.www !== undefined) {
-      this.v70('the 5.5.1 contact fields inside ADDR');
     }
+    // For 7.0 the contacts live at the record/detail level; the parent
+    // emitter relocates the 5.5.1-position values there.
+  }
+
+  /** The address as the target version wants it: 5.5.1 keeps the contact
+   * fields inside ADDR, so record-level contacts are merged into it. */
+  private mergedAddress(
+    address: AddressStructure | undefined,
+    contacts: { phone?: string[]; email?: string[]; fax?: string[]; www?: string[] },
+  ): AddressStructure | undefined {
+    if (address === undefined || this.version === '7.0') {
+      return address;
+    }
+    return {
+      ...address,
+      ...(address.phone === undefined && contacts.phone !== undefined ? { phone: contacts.phone } : {}),
+      ...(address.email === undefined && contacts.email !== undefined ? { email: contacts.email } : {}),
+      ...(address.fax === undefined && contacts.fax !== undefined ? { fax: contacts.fax } : {}),
+      ...(address.www === undefined && contacts.www !== undefined ? { www: contacts.www } : {}),
+    };
   }
 
   private emitAssociation(level: number, association: AssociationStructure): void {
+    if (this.version === '5.5.1') {
+      let relationship = association.relationship;
+      if (relationship === undefined) {
+        const role = association.role;
+        if (role === undefined) {
+          // Neither a RELA nor a ROLE: there is nothing to emit.
+          return;
+        }
+        // The 7.0 ROLE enum is spelled out as the free-text RELA descriptor.
+        relationship = role.payload === 'OTHER' ? role.phrase : ROLE_TO_RELA_551.get(role.payload);
+        if (relationship === undefined) {
+          // No descriptor exists for this role; the association is dropped.
+          return;
+        }
+      }
+      this.ptr(level, 'ASSO', association.individual);
+      if (association.phrase !== undefined) {
+        this.w.line(level + 1, 'PHRASE', { value: association.phrase });
+      }
+      this.w.line(level + 1, 'RELA', { value: relationship });
+      for (const note of association.notes ?? []) {
+        this.emitNoteStructure(level + 1, note);
+      }
+      for (const citation of association.citations ?? []) {
+        this.emitSourceCitation(level + 1, citation);
+      }
+      return;
+    }
+    let role = association.role;
+    if (role === undefined) {
+      if (association.relationship === undefined) {
+        // Neither a ROLE nor a RELA: there is nothing to emit.
+        return;
+      }
+      // The 5.5.1 RELA descriptor becomes an OTHER role; the descriptor is
+      // preserved in the PHRASE.
+      role = { payload: 'OTHER', phrase: association.relationship };
+    }
     this.ptr(level, 'ASSO', association.individual);
     if (association.phrase !== undefined) {
       this.w.line(level + 1, 'PHRASE', { value: association.phrase });
     }
-    if (this.version === '7.0') {
-      if (association.role === undefined) {
-        fail('serialize.missing-field', 'A 7.0 ASSO requires a ROLE');
-      }
-      this.w.line(level + 1, 'ROLE', { value: association.role.payload });
-      if (association.role.phrase !== undefined) {
-        this.w.line(level + 2, 'PHRASE', { value: association.role.phrase });
-      }
-    } else {
-      if (association.relationship === undefined) {
-        fail('serialize.missing-field', 'A 5.5.1 ASSO requires a RELA');
-      }
-      this.w.line(level + 1, 'RELA', { value: association.relationship });
+    this.w.line(level + 1, 'ROLE', { value: role.payload });
+    if (role.phrase !== undefined) {
+      this.w.line(level + 2, 'PHRASE', { value: role.phrase });
     }
     for (const note of association.notes ?? []) {
       this.emitNoteStructure(level + 1, note);
@@ -1520,9 +1611,30 @@ class Emitter {
   }
 
   private emitAge(level: number, age: AgeStructure): void {
-    this.w.line(level, 'AGE', { value: this.version === '7.0' ? formatAge70(age.payload) : formatAge551(age.payload) });
-    if (age.phrase !== undefined) {
-      this.w.line(level + 1, 'PHRASE', { value: age.phrase });
+    let value: string;
+    let phrase: string | undefined = age.phrase;
+    if (this.version === '7.0') {
+      if (age.payload.description !== undefined) {
+        // The 5.5.1 keyword is projected onto the closest numeric bound;
+        // the keyword itself is preserved in the PHRASE.
+        const KEYWORD_TO_70: Record<string, string> = { CHILD: '< 8y', INFANT: '< 1y', STILLBORN: '0y' };
+        value = KEYWORD_TO_70[age.payload.description] ?? '< 1y';
+        phrase = phrase ?? age.payload.description;
+      } else {
+        value = formatAge70(age.payload);
+      }
+    } else {
+      value = formatAge551(age.payload);
+      if (value === '') {
+        // The age was only weeks, which 5.5.1 cannot express; dropped.
+        return;
+      }
+      // 5.5.1 has no PHRASE under AGE.
+      phrase = undefined;
+    }
+    this.w.line(level, 'AGE', { value });
+    if (phrase !== undefined) {
+      this.w.line(level + 1, 'PHRASE', { value: phrase });
     }
   }
 
@@ -1533,26 +1645,22 @@ class Emitter {
     if (detail.place !== undefined) {
       this.emitPlace(level, detail.place);
     }
-    if (detail.address !== undefined) {
-      this.emitAddress(level, detail.address);
+    const address = this.mergedAddress(detail.address, detail);
+    if (address !== undefined) {
+      this.emitAddress(level, address);
     }
-    if (detail.phone !== undefined && this.version === '7.0') {
-      for (const value of detail.phone) {
+    if (this.version === '7.0') {
+      // The 5.5.1-position contacts inside ADDR are relocated here.
+      for (const value of detail.phone ?? detail.address?.phone ?? []) {
         this.w.line(level, 'PHON', { value });
       }
-    }
-    if (detail.email !== undefined && this.version === '7.0') {
-      for (const value of detail.email) {
+      for (const value of detail.email ?? detail.address?.email ?? []) {
         this.w.line(level, 'EMAIL', { value });
       }
-    }
-    if (detail.fax !== undefined && this.version === '7.0') {
-      for (const value of detail.fax) {
+      for (const value of detail.fax ?? detail.address?.fax ?? []) {
         this.w.line(level, 'FAX', { value });
       }
-    }
-    if (detail.www !== undefined && this.version === '7.0') {
-      for (const value of detail.www) {
+      for (const value of detail.www ?? detail.address?.www ?? []) {
         this.w.line(level, 'WWW', { value });
       }
     }
@@ -1568,10 +1676,7 @@ class Emitter {
     if (detail.restriction !== undefined) {
       this.w.line(level, 'RESN', { value: this.restrictionList(detail.restriction) });
     }
-    if (detail.sortDate !== undefined) {
-      if (this.version !== '7.0') {
-        this.v551('the SDATE structure');
-      }
+    if (detail.sortDate !== undefined && this.version === '7.0') {
       const raw = detail.sortDate.value === undefined ? '' : formatDateValue70(detail.sortDate.value);
       this.w.line(level, 'SDATE', { value: raw === '' ? undefined : raw });
       if (detail.sortDate.time !== undefined) {
@@ -1581,8 +1686,11 @@ class Emitter {
         this.w.line(level + 1, 'PHRASE', { value: detail.sortDate.phrase });
       }
     }
-    for (const association of detail.associations ?? []) {
-      this.emitAssociation(level, association);
+    if (this.version === '7.0') {
+      // 5.5.1 has no ASSO under events; dropped.
+      for (const association of detail.associations ?? []) {
+        this.emitAssociation(level, association);
+      }
     }
     for (const note of detail.notes ?? []) {
       this.emitNoteStructure(level, note);
@@ -1593,28 +1701,22 @@ class Emitter {
     for (const media of detail.media ?? []) {
       this.emitMultimediaLink(level, media);
     }
-    for (const uid of detail.uniqueIds ?? []) {
-      if (this.version !== '7.0') {
-        this.v551('the UID structure');
+    if (this.version === '7.0') {
+      for (const uid of detail.uniqueIds ?? []) {
+        this.w.line(level, 'UID', { value: uid });
       }
-      this.w.line(level, 'UID', { value: uid });
     }
   }
 
   private emitNoteStructure(level: number, note: NoteStructure): void {
     if (note.tag === 'SNOTE') {
-      if (this.version !== '7.0') {
-        this.v551('the SNOTE pointer');
-      }
-      this.ptr(level, 'SNOTE', note.note);
+      // 5.5.1 spells the shared-note pointer NOTE.
+      this.ptr(level, this.version === '7.0' ? 'SNOTE' : 'NOTE', note.note);
       return;
     }
     if (note.tag === 'NOTE' && 'note' in note) {
-      // The 5.5.1 NOTE-record pointer.
-      if (this.version !== '5.5.1') {
-        this.v70('the NOTE-record pointer');
-      }
-      this.ptr(level, 'NOTE', (note as NoteReference).note);
+      // 7.0 spells the 5.5.1 note-record pointer SNOTE.
+      this.ptr(level, this.version === '7.0' ? 'SNOTE' : 'NOTE', (note as NoteReference).note);
       return;
     }
     const inline = note as Note;
@@ -1635,9 +1737,8 @@ class Emitter {
           this.w.line(level + 2, 'LANG', { value: translation.language });
         }
       }
-    } else if (inline.mediaType !== undefined || inline.language !== undefined || inline.translations !== undefined) {
-      this.v551('the 7.0 MIME/LANG/TRAN note substructures');
     }
+    // 5.5.1 notes have no MIME/LANG/TRAN; dropped.
     for (const citation of inline.citations ?? []) {
       this.emitSourceCitation(level + 1, citation);
     }
@@ -1650,6 +1751,26 @@ class Emitter {
     }
     this.emitNamePieces(level + 1, name.pieces);
     if (this.version === '7.0') {
+      // The 5.5.1 phonetic/romanized variations become TRANs where the
+      // method names a known language; unknown methods are dropped.
+      for (const variation of name.phonetic ?? []) {
+        const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+        if (language === undefined) {
+          continue;
+        }
+        this.w.line(level + 1, 'TRAN', { value: formatName70(variation.payload) });
+        this.w.line(level + 2, 'LANG', { value: language });
+        this.emitNamePieces(level + 2, variation.pieces);
+      }
+      for (const variation of name.romanized ?? []) {
+        const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+        if (language === undefined) {
+          continue;
+        }
+        this.w.line(level + 1, 'TRAN', { value: formatName70(variation.payload) });
+        this.w.line(level + 2, 'LANG', { value: language });
+        this.emitNamePieces(level + 2, variation.pieces);
+      }
       for (const translation of name.translations ?? []) {
         this.w.line(level + 1, 'TRAN', { value: formatName70(translation.payload) });
         this.w.line(level + 2, 'LANG', { value: translation.language });
@@ -1662,8 +1783,17 @@ class Emitter {
         this.emitSourceCitation(level + 1, citation);
       }
     } else {
-      if (name.translations !== undefined) {
-        this.v551('the 7.0 NAME.TRAN structure');
+      // The 7.0 TRANs become FONE/ROMN where the language names a known
+      // method; unknown languages are dropped.
+      for (const translation of name.translations ?? []) {
+        const method = LANGUAGE_TO_METHOD_551.get(translation.language.toLowerCase());
+        if (method === undefined) {
+          continue;
+        }
+        const tag = method === 'kana' || method === 'hangul' ? 'FONE' : 'ROMN';
+        this.w.line(level + 1, tag, { value: formatName551(translation.payload) });
+        this.w.line(level + 2, 'TYPE', { value: method });
+        this.emitNamePieces(level + 2, translation.pieces);
       }
       for (const variation of name.phonetic ?? []) {
         this.w.line(level + 1, 'FONE', { value: formatName551(variation.payload) });
@@ -1694,11 +1824,12 @@ class Emitter {
       this.w.line(level, 'TYPE', { value: spelled });
       return;
     }
-    if (type.payload === 'OTHER' && type.phrase !== undefined) {
+    if (type.phrase !== undefined) {
+      // OTHER and PROFESSIONAL have no 5.5.1 spelling; the phrase becomes
+      // the user-defined value.
       this.w.line(level, 'TYPE', { value: type.phrase });
-      return;
     }
-    this.v551(`the NAME.TYPE value ${type.payload}`);
+    // Without a phrase the value cannot be spelled; dropped.
   }
 
   private emitNamePieces(level: number, pieces: PersonalNamePieces | undefined): void {
@@ -1723,17 +1854,14 @@ class Emitter {
     emit('SPFX', pieces.surnamePrefixes);
     emit('SURN', pieces.surnames);
     emit('NSFX', pieces.nameSuffixes);
-    for (const note of pieces.notes ?? []) {
-      if (this.version !== '5.5.1') {
-        this.v70('the 5.5.1 NOTE under the name pieces');
+    // 5.5.1 allows NOTE/SOUR under the name pieces; 7.0 does not.
+    if (this.version === '5.5.1') {
+      for (const note of pieces.notes ?? []) {
+        this.emitNoteStructure(level, note);
       }
-      this.emitNoteStructure(level, note);
-    }
-    for (const citation of pieces.citations ?? []) {
-      if (this.version !== '5.5.1') {
-        this.v70('the 5.5.1 SOUR under the name pieces');
+      for (const citation of pieces.citations ?? []) {
+        this.emitSourceCitation(level, citation);
       }
-      this.emitSourceCitation(level, citation);
     }
   }
 
@@ -1756,12 +1884,36 @@ class Emitter {
           this.w.line(level + 2, 'TYPE', { value: externalId.type });
         }
       }
+      for (const variation of place.phonetic ?? []) {
+        const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+        if (language === undefined) {
+          continue;
+        }
+        this.w.line(level + 1, 'TRAN', { value: variation.payload.join(', ') });
+        this.w.line(level + 2, 'LANG', { value: language });
+      }
+      for (const variation of place.romanized ?? []) {
+        const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+        if (language === undefined) {
+          continue;
+        }
+        this.w.line(level + 1, 'TRAN', { value: variation.payload.join(', ') });
+        this.w.line(level + 2, 'LANG', { value: language });
+      }
       for (const note of place.notes ?? []) {
         this.emitNoteStructure(level + 1, note);
       }
     } else {
-      if (place.language !== undefined || place.translations !== undefined || place.externalIds !== undefined) {
-        this.v551('the 7.0 PLAC LANG/TRAN/EXID substructures');
+      // 5.5.1 has no LANG/EXID on PLAC; dropped. The 7.0 TRANs become
+      // FONE/ROMN where the language names a known method.
+      for (const translation of place.translations ?? []) {
+        const method = LANGUAGE_TO_METHOD_551.get(translation.language.toLowerCase());
+        if (method === undefined) {
+          continue;
+        }
+        const tag = method === 'kana' || method === 'hangul' ? 'FONE' : 'ROMN';
+        this.w.line(level + 1, tag, { value: translation.payload.join(', ') });
+        this.w.line(level + 2, 'TYPE', { value: method });
       }
       for (const variation of place.phonetic ?? []) {
         this.w.line(level + 1, 'FONE', { value: variation.payload.join(', ') });
@@ -1784,18 +1936,19 @@ class Emitter {
 
   private emitSourceCitation(level: number, citation: SourceCitation): void {
     if (this.version === '7.0') {
-      if (citation.description !== undefined) {
-        this.v70('the 5.5.1 free-text SOUR description');
-      }
+      // The 5.5.1 free-text description becomes the PAGE (see
+      // emitCitationCommon); a void SOUR pointer is legal in 7.0.
       this.ptr(level, 'SOUR', citation.source);
       this.emitCitationCommon(level, citation);
       return;
     }
     if (citation.source === '@VOID@') {
       if (citation.description === undefined) {
-        this.v551('a void SOUR pointer without a description');
+        // A 5.5.1 void citation needs its free text; without it the
+        // citation is dropped.
+        return;
       }
-      this.w.line(level, 'SOUR', { value: citation.description ?? '' });
+      this.w.line(level, 'SOUR', { value: citation.description });
       for (const text of citation.data?.texts ?? []) {
         this.w.line(level + 1, 'TEXT', { value: text.payload });
       }
@@ -1815,8 +1968,9 @@ class Emitter {
   }
 
   private emitCitationCommon(level: number, citation: SourceCitation): void {
-    if (citation.page !== undefined) {
-      this.w.line(level + 1, 'PAGE', { value: citation.page });
+    const page = citation.page ?? (this.version === '7.0' ? citation.description : undefined);
+    if (page !== undefined) {
+      this.w.line(level + 1, 'PAGE', { value: page });
     }
     if (citation.data !== undefined) {
       this.w.line(level + 1, 'DATA');
@@ -1837,10 +1991,7 @@ class Emitter {
     }
     if (citation.event !== undefined) {
       this.w.line(level + 1, 'EVEN', { value: citation.event.payload });
-      if (citation.event.phrase !== undefined) {
-        if (this.version !== '7.0') {
-          this.v551('a PHRASE under SOUR.EVEN');
-        }
+      if (citation.event.phrase !== undefined && this.version === '7.0') {
         this.w.line(level + 2, 'PHRASE', { value: citation.event.phrase });
       }
       if (citation.event.role !== undefined) {
@@ -1854,10 +2005,12 @@ class Emitter {
           const known = ['CHIL', 'HUSB', 'WIFE', 'MOTH', 'FATH', 'SPOU'];
           if (known.includes(role.payload)) {
             this.w.line(level + 2, 'ROLE', { value: role.payload });
-          } else if (role.payload === 'OTHER' && role.phrase !== undefined) {
-            this.w.line(level + 2, 'ROLE', { value: `(${role.phrase})` });
           } else {
-            this.v551(`the role ${role.payload}`);
+            const descriptor = role.payload === 'OTHER' ? role.phrase : ROLE_TO_RELA_551.get(role.payload);
+            if (descriptor !== undefined) {
+              this.w.line(level + 2, 'ROLE', { value: `(${descriptor})` });
+            }
+            // Without a descriptor the role cannot be spelled; dropped.
           }
         }
       }
@@ -1894,9 +2047,8 @@ class Emitter {
       if (link.title !== undefined) {
         this.w.line(level + 1, 'TITL', { value: link.title });
       }
-    } else if (link.crop !== undefined || link.title !== undefined) {
-      this.v551('a CROP/TITL under OBJE');
     }
+    // 5.5.1 has no CROP/TITL under OBJE; dropped.
   }
 
   private emitExtension(level: number, ext: ExtensionStructure, xref: string | undefined): void {
@@ -1919,12 +2071,13 @@ class Emitter {
     return values.map((value) => (this.version === '5.5.1' ? value.toLowerCase() : value)).join(', ');
   }
 
-  private pedigree(value: string): string {
+  private pedigree(value: string): string | undefined {
     if (this.version === '7.0') {
       return value;
     }
     if (value === 'OTHER') {
-      this.v551('the PEDI value OTHER');
+      // 5.5.1 cannot spell OTHER; the PEDI line is dropped.
+      return undefined;
     }
     return value.toLowerCase();
   }
@@ -1936,14 +2089,15 @@ class Emitter {
     return value.toLowerCase();
   }
 
-  private sex(value: string): string {
+  private sex(value: string): string | undefined {
     if (this.version === '5.5.1' && value === 'X') {
-      this.v551('the SEX value X');
+      // 5.5.1 cannot spell X; the SEX line is dropped.
+      return undefined;
     }
     return value;
   }
 
-  private ordStat(value: string): string {
+  private ordStat(value: string): string | undefined {
     if (this.version === '7.0') {
       return value;
     }
@@ -1954,19 +2108,21 @@ class Emitter {
       return 'DNS/CAN';
     }
     if (value === 'INFANT') {
-      this.v551('the INFANT status');
+      // 5.5.1 cannot spell INFANT; the whole STAT substructure is dropped.
+      return undefined;
     }
     return value;
   }
 
-  private medi551(value: string): string {
+  private medi551(value: string): string | undefined {
     if (value === 'OTHER') {
-      this.v551('the MEDI value OTHER');
+      // 5.5.1 cannot spell OTHER; the TYPE line is dropped.
+      return undefined;
     }
     return value.toLowerCase();
   }
 
-  private mediaType(value: MediaType): string {
+  private mediaType(value: MediaType): string | undefined {
     if (this.version === '7.0') {
       return value;
     }
@@ -1978,10 +2134,10 @@ class Emitter {
     if (mapped !== undefined) {
       return mapped;
     }
-    this.v551(`the media type "${value}"`);
+    return undefined;
   }
 
-  private language(value: string): string {
+  private language(value: string): string | undefined {
     if (this.version === '7.0') {
       return value;
     }
@@ -1996,13 +2152,14 @@ class Emitter {
     if (mapped !== undefined) {
       return mapped;
     }
-    this.v551(`the language "${value}"`);
+    return undefined;
   }
 }
 
 function emit(version: Version, dataset: GedcomDataset): string {
+  const prepared = version === '5.5.1' ? prepareFor551(dataset) : prepareFor70(dataset);
   const emitter = new Emitter(version);
-  emitter.emitDataset(dataset);
+  emitter.emitDataset(prepared);
   const text = emitter.w.lines.join('\r\n');
   return `${text}\r\n`;
 }

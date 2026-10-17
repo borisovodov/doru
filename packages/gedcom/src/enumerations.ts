@@ -118,7 +118,8 @@ export type EventAttributeEnum = keyof typeof EVENT_ATTRIBUTE_ENUM_VALUES | Exte
  *
  * GEDCOM 5.5.1 §2 (p.62), `SOURCE_MEDIA_TYPE` — identical values spelled
  * lowercase (audio, book, card, electronic, fiche, film, magazine,
- * manuscript, map, newspaper, photo, tombstone, video); OTHER is 7.0-only.
+ * manuscript, map, newspaper, photo, tombstone, video); OTHER is 7.0-only
+ * and is dropped when serializing to 5.5.1 (the TYPE line disappears).
  * In 5.5.1 the set is also used by the FILE.FORM.TYPE tag.
  */
 export const MEDIA_ENUM_VALUES = {
@@ -160,7 +161,8 @@ export type MediaEnum = keyof typeof MEDIA_ENUM_VALUES | ExtensionTag;
  * represented by the superstructure.
  *
  * GEDCOM 5.5.1 §2 (p.57), `PEDIGREE_LINKAGE_TYPE` — identical values
- * (adopted, birth, foster, sealing, lowercase); OTHER is 7.0-only.
+ * (adopted, birth, foster, sealing, lowercase); OTHER is 7.0-only and is
+ * dropped when serializing to 5.5.1 (the PEDI line disappears).
  */
 export const PEDIGREE_ENUM_VALUES = {
   /** Adoptive parents. */
@@ -272,7 +274,8 @@ export type RoleEnum = keyof typeof ROLE_ENUM_VALUES | ExtensionTag;
  * describe an individual's reproductive or sexual anatomy at birth; gender
  * identity or sexual preference are not given their own tag.
  *
- * GEDCOM 5.5.1 §2 (p.61), `SEX_VALUE` — values M, F and U; X is 7.0-only.
+ * GEDCOM 5.5.1 §2 (p.61), `SEX_VALUE` — values M, F and U; X is 7.0-only
+ * and is dropped when serializing to 5.5.1 (the SEX line disappears).
  */
 export const SEX_ENUM_VALUES = {
   /** Male. */
@@ -319,10 +322,12 @@ export type FamilyChildStatusEnum =
  * (`LDS_BAPTISM_DATE_STATUS`, `LDS_ENDOWMENT_DATE_STATUS`,
  * `LDS_CHILD_SEALING_DATE_STATUS`, `LDS_SPOUSE_SEALING_DATE_STATUS`)
  * with the same values, but 5.5.1 spells PRE-1970 and DNS/CAN with a
- * hyphen and slash (7.0: PRE_1970, DNS_CAN) and has no INFANT value.
- * This model keeps the single 7.0 set: the 5.5.1 spellings are treated as
- * serialization aliases, and the 5.5.1 per-ordinance subsets are a subset
- * of this union and are enforced at validation time, not in the types.
+ * hyphen and slash (7.0: PRE_1970, DNS_CAN) and has no INFANT value
+ * (dropped when serializing to 5.5.1: the whole STAT substructure
+ * disappears). This model keeps the single 7.0 set: the 5.5.1 spellings
+ * are treated as serialization aliases, and the 5.5.1 per-ordinance
+ * subsets are a subset of this union and are enforced at validation
+ * time, not in the types.
  */
 export const ORDINANCE_STATUS_ENUM_VALUES = {
   /** Born in the covenant, so child to parent sealing ordinance is not required. Applies to: SLGC. Status: current. */

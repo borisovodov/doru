@@ -155,7 +155,7 @@ export interface Header extends GedcomStructureBase {
   tag: 'HEAD';
   /** GEDC {1:1}, g7:GEDC — identifies the specification this document conforms to. GEDCOM 7.0 §3.2.1. */
   gedcom: Gedcom;
-  /** SCHMA {0:1}, g7:SCHMA — the meaning of the extension tags used in the document. GEDCOM 7.0 §3.2.1, §1.5. */
+  /** SCHMA {0:1}, g7:SCHMA — the meaning of the extension tags used in the document. GEDCOM 7.0 §3.2.1, §1.5. Dropped when serializing to 5.5.1. */
   schema?: Schema;
   /** SOUR {0:1}, g7:HEAD-SOUR — the product producing this dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. */
   source?: HeaderSource;
@@ -163,16 +163,18 @@ export interface Header extends GedcomStructureBase {
   destination?: Special;
   /** DATE {0:1}, g7:HEAD-DATE — the DateExact this document was created. GEDCOM 7.0 §3.2.1. */
   date?: DateExactStructure;
-  /** SUBM {0:1}, g7:SUBM — the submitter of the dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. */
+  /** SUBM {0:1}, g7:SUBM — the submitter of the dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. Dropped when serializing to 7.0; when serializing to 5.5.1 a missing or void pointer is filled from an existing SUBM record or a synthesized one named "Unknown". */
   submitter?: Pointer<SubmitterRecord>;
   /**
    * SUBN {0:1} — a pointer to the submission record.
-   * GEDCOM 5.5.1 §2 Record Structures (p.23). Removed in GEDCOM 7.0.
+   * GEDCOM 5.5.1 §2 Record Structures (p.23). Removed in GEDCOM 7.0;
+   * dropped when serializing to 7.0.
    */
   submission?: Pointer<SubmissionRecord>;
   /**
    * FILE {0:1} — the name of the GEDCOM transmission file.
-   * GEDCOM 5.5.1 §2 Record Structures (p.23). Removed in GEDCOM 7.0.
+   * GEDCOM 5.5.1 §2 Record Structures (p.23). Removed in GEDCOM 7.0;
+   * dropped when serializing to 7.0.
    */
   fileName?: Text;
   /** COPR {0:1}, g7:COPR — a copyright statement. GEDCOM 7.0 §3.2.1. */
@@ -197,7 +199,8 @@ export interface Gedcom extends GedcomStructureBase {
   version: Special;
   /**
    * FORM {1:1} — the GEDCOM form used to construct the transmission
-   * (`LINEAGE-LINKED`). GEDCOM 5.5.1 §2 (p.50). Removed in GEDCOM 7.0.
+   * (`LINEAGE-LINKED`). GEDCOM 5.5.1 §2 (p.50). Removed in GEDCOM 7.0;
+   * dropped when serializing to 7.0 (5.5.1 emits it unconditionally).
    */
   form?: Text;
 }
@@ -324,7 +327,7 @@ export interface FamilyRecord extends GedcomStructureBase {
   attributes?: FamilyAttributeStructure[];
   /** <<FAMILY_EVENT_STRUCTURE>> {0:M}. */
   events?: FamilyEventStructure[];
-  /** <<NON_EVENT_STRUCTURE>> {0:M} — 7.0-only. */
+  /** <<NON_EVENT_STRUCTURE>> {0:M} — 7.0-only. When serializing to 5.5.1 the NO rule applies: every NO is dropped, records left empty by that are dropped too, and pointers to dropped records are removed (serialize/prepare.ts). */
   nonEvents?: NonEventStructure[];
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
@@ -348,11 +351,12 @@ export interface FamilyRecord extends GedcomStructureBase {
   media?: MultimediaLink[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
-  /** <<CREATION_DATE>> {0:1} — 7.0-only. */
+  /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
   creationDate?: CreationDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -405,7 +409,7 @@ export interface IndividualRecord extends GedcomStructureBase {
   attributes?: IndividualAttributeStructure[];
   /** <<INDIVIDUAL_EVENT_STRUCTURE>> {0:M}. */
   events?: IndividualEventStructure[];
-  /** <<NON_EVENT_STRUCTURE>> {0:M} — 7.0-only. */
+  /** <<NON_EVENT_STRUCTURE>> {0:M} — 7.0-only. When serializing to 5.5.1 the NO rule applies: every NO is dropped, records left empty by that are dropped too, and pointers to dropped records are removed (serialize/prepare.ts). */
   nonEvents?: NonEventStructure[];
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
@@ -433,22 +437,25 @@ export interface IndividualRecord extends GedcomStructureBase {
   media?: MultimediaLink[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
-  /** <<CREATION_DATE>> {0:1} — 7.0-only. */
+  /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
   creationDate?: CreationDate;
   /**
    * RFN {0:1} — a permanent record file number uniquely identifying this
    * record within a registered network resource.
-   * GEDCOM 5.5.1 §2 (p.57). Removed in GEDCOM 7.0.
+   * GEDCOM 5.5.1 §2 (p.57). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   recordFileNumber?: Text;
   /**
    * AFN {0:1} — the unique permanent record number of this individual in
-   * Ancestral File. GEDCOM 5.5.1 §2 (p.42). Removed in GEDCOM 7.0.
+   * Ancestral File. GEDCOM 5.5.1 §2 (p.42). Removed in GEDCOM 7.0;
+   * dropped when serializing to 7.0.
    */
   ancestralFileNumber?: Text;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -549,11 +556,12 @@ export interface MultimediaRecord extends GedcomStructureBase {
   citations?: SourceCitation[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
-  /** <<CREATION_DATE>> {0:1} — 7.0-only. */
+  /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
   creationDate?: CreationDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -629,11 +637,12 @@ export interface RepositoryRecord extends GedcomStructureBase {
   identifiers?: IdentifierStructure[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
-  /** <<CREATION_DATE>> {0:1} — 7.0-only. */
+  /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
   creationDate?: CreationDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -652,11 +661,11 @@ export interface SharedNoteRecord extends GedcomStructureBase {
   xref?: Xref;
   /** The SNOTE payload, {1:1} Text. */
   payload: Text;
-  /** MIME {0:1}, g7:MIME — the media type of the payload. */
+  /** MIME {0:1}, g7:MIME — the media type of the payload. Dropped when serializing to 5.5.1. */
   mediaType?: MediaType;
-  /** LANG {0:1}, g7:LANG — the language of the payload. */
+  /** LANG {0:1}, g7:LANG — the language of the payload. Dropped when serializing to 5.5.1. */
   language?: Language;
-  /** TRAN {0:M}, g7:NOTE-TRAN — translations of the payload. Each must have a MIME or LANG substructure or both. */
+  /** TRAN {0:M}, g7:NOTE-TRAN — translations of the payload. Each must have a MIME or LANG substructure or both. Dropped when serializing to 5.5.1. */
   translations?: NoteTranslation[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
@@ -688,7 +697,8 @@ export interface NoteRecord extends GedcomStructureBase {
   changeDate?: ChangeDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -728,11 +738,12 @@ export interface SourceRecord extends GedcomStructureBase {
   media?: MultimediaLink[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
-  /** <<CREATION_DATE>> {0:1} — 7.0-only. */
+  /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
   creationDate?: CreationDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -823,16 +834,18 @@ export interface SubmitterRecord extends GedcomStructureBase {
   notes?: NoteStructure[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
-  /** <<CREATION_DATE>> {0:1} — 7.0-only. */
+  /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
   creationDate?: CreationDate;
   /**
    * RFN {0:1} — a registered number of a submitter of Ancestral File data.
-   * GEDCOM 5.5.1 §2 (p.63). Removed in GEDCOM 7.0.
+   * GEDCOM 5.5.1 §2 (p.63). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   registeredRfn?: Text;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -865,7 +878,8 @@ export interface SubmissionRecord extends GedcomStructureBase {
   changeDate?: ChangeDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
-   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0.
+   * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
+   * serializing to 7.0.
    */
   automatedRecordId?: Text;
 }
@@ -919,13 +933,13 @@ export interface AddressStructure extends GedcomStructureBase {
   postalCode?: Special;
   /** CTRY {0:1}, g7:CTRY — the name of the country. */
   country?: Special;
-  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. */
+  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
   phone?: Special[];
-  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. */
+  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
   email?: Special[];
-  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. */
+  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
   fax?: Special[];
-  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. */
+  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
   www?: Special[];
 }
 
@@ -945,9 +959,9 @@ export interface AssociationStructure extends GedcomStructureBase {
   individual: Pointer<IndividualRecord>;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
-  /** ROLE {1:1}, g7:ROLE — Enum of g7:enumset-ROLE. Required in 7.0; 5.5.1 uses RELA instead. */
+  /** ROLE {1:1}, g7:ROLE — Enum of g7:enumset-ROLE. Required in 7.0; 5.5.1 uses RELA instead. When serializing to 5.5.1 the role is spelled out as the free-text RELA descriptor (OTHER uses the phrase); an association with neither is dropped. */
   role?: RoleStructure;
-  /** RELA {1:1} — a free-text relation descriptor. GEDCOM 5.5.1 §2 (p.60); 7.0 uses ROLE instead. */
+  /** RELA {1:1} — a free-text relation descriptor. GEDCOM 5.5.1 §2 (p.60); 7.0 uses ROLE instead. When serializing to 7.0 the descriptor becomes ROLE OTHER with the descriptor kept in the PHRASE. */
   relationship?: Text;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
@@ -1094,9 +1108,9 @@ export interface EventDetail extends GedcomStructureBase {
   cause?: Text;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
-  /** SDATE {0:1}, g7:SDATE — a sorting hint. */
+  /** SDATE {0:1}, g7:SDATE — a sorting hint. Dropped when serializing to 5.5.1. */
   sortDate?: SortDateStructure;
-  /** <<ASSOCIATION_STRUCTURE>> {0:M}. */
+  /** <<ASSOCIATION_STRUCTURE>> {0:M} — dropped when serializing to 5.5.1 (5.5.1 events have no ASSO). */
   associations?: AssociationStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
@@ -1104,7 +1118,7 @@ export interface EventDetail extends GedcomStructureBase {
   citations?: SourceCitation[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
-  /** UID {0:M}, g7:UID. */
+  /** UID {0:M}, g7:UID. Dropped when serializing to 5.5.1. */
   uniqueIds?: Special[];
 }
 
@@ -1243,11 +1257,11 @@ export interface Note extends GedcomStructureBase {
   tag: 'NOTE';
   /** The NOTE payload, {1:1} Text. */
   payload: Text;
-  /** MIME {0:1}, g7:MIME — the media type of the payload. */
+  /** MIME {0:1}, g7:MIME — the media type of the payload. Dropped when serializing to 5.5.1. */
   mediaType?: MediaType;
-  /** LANG {0:1}, g7:LANG — the language of the payload. */
+  /** LANG {0:1}, g7:LANG — the language of the payload. Dropped when serializing to 5.5.1. */
   language?: Language;
-  /** TRAN {0:M}, g7:NOTE-TRAN — translations of the payload. Each must have a MIME or LANG substructure or both. */
+  /** TRAN {0:M}, g7:NOTE-TRAN — translations of the payload. Each must have a MIME or LANG substructure or both. Dropped when serializing to 5.5.1. */
   translations?: NoteTranslation[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
@@ -1321,11 +1335,11 @@ export interface PersonalNameStructure extends GedcomStructureBase {
   type?: NameTypeStructure;
   /** <<PERSONAL_NAME_PIECES>> {0:1}. */
   pieces?: PersonalNamePieces;
-  /** TRAN {0:M}, g7:NAME-TRAN — translations or transliterations. Each must have a LANG substructure. */
+  /** TRAN {0:M}, g7:NAME-TRAN — translations or transliterations. Each must have a LANG substructure. When serializing to 5.5.1 each translation becomes FONE or ROMN with the method mapped from the language (kana/hangul → FONE, pinyin/romaji/wadegiles → ROMN); unknown languages are dropped. */
   translations?: NameTranslation[];
-  /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */
   phonetic?: PhoneticNameVariation[];
-  /** ROMN {0:M} — romanized variations by romanization method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  /** ROMN {0:M} — romanized variations by romanization method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */
   romanized?: RomanizedNameVariation[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
@@ -1441,17 +1455,17 @@ export interface PlaceStructure extends GedcomStructureBase {
   payload: ListText;
   /** FORM {0:1}, g7:PLAC-FORM — the jurisdiction types, with the same number of elements and order as the payload. */
   form?: ListText;
-  /** LANG {0:1}, g7:LANG — the language of the payload. */
+  /** LANG {0:1}, g7:LANG — the language of the payload. Dropped when serializing to 5.5.1. */
   language?: Language;
-  /** TRAN {0:M}, g7:PLAC-TRAN — translations or transliterations. Each must have a LANG substructure. */
+  /** TRAN {0:M}, g7:PLAC-TRAN — translations or transliterations. Each must have a LANG substructure. When serializing to 5.5.1 each translation becomes FONE or ROMN with the method mapped from the language; unknown languages are dropped. */
   translations?: PlaceTranslation[];
-  /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */
   phonetic?: PhoneticPlaceVariation[];
-  /** ROMN {0:M} — romanized variations by romanization method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. */
+  /** ROMN {0:M} — romanized variations by romanization method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */
   romanized?: RomanizedPlaceVariation[];
   /** MAP {0:1}, g7:MAP — a representative point for the location. */
   map?: MapCoordinates;
-  /** EXID {0:M}, g7:EXID — external identifiers for the place. */
+  /** EXID {0:M}, g7:EXID — external identifiers for the place. Dropped when serializing to 5.5.1. */
   externalIds?: ExternalIdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
@@ -1532,7 +1546,8 @@ export interface SourceCitation extends GedcomStructureBase {
   /**
    * SOUR {1:1} — a free-text source description used by systems without
    * SOURCE_RECORDs. GEDCOM 5.5.1 §2 (p.61), `SOURCE_DESCRIPTION`;
-   * removed in 7.0 (use a void pointer with PAGE instead).
+   * removed in 7.0 (use a void pointer with PAGE instead). When
+   * serializing to 7.0 the description becomes the PAGE.
    */
   description?: Text;
   /** PAGE {0:1}, g7:PAGE — a specific location within the information referenced. */
@@ -1645,9 +1660,9 @@ export interface MultimediaLink extends GedcomStructureBase {
   tag: 'OBJE';
   /** The OBJE payload, {1:1} pointer to an OBJE record. */
   object: Pointer<MultimediaRecord>;
-  /** CROP {0:1}, g7:CROP — a subregion of an image to display. */
+  /** CROP {0:1}, g7:CROP — a subregion of an image to display. Dropped when serializing to 5.5.1. */
   crop?: CropStructure;
-  /** TITL {0:1}, g7:TITL — supersedes any OBJE.FILE.TITL in the multimedia record. */
+  /** TITL {0:1}, g7:TITL — supersedes any OBJE.FILE.TITL in the multimedia record. Dropped when serializing to 5.5.1. */
   title?: Text;
 }
 

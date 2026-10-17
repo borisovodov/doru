@@ -428,7 +428,7 @@ export interface AgeValue {
   years?: Integer;
   /** GEDCOM 7.0 §2.6 — `months = Integer "m"`, optional. */
   months?: Integer;
-  /** GEDCOM 7.0 §2.6 — `weeks = Integer "w"`, optional. */
+  /** GEDCOM 7.0 §2.6 — `weeks = Integer "w"`, optional. Dropped when serializing to 5.5.1 (an age of only weeks is dropped entirely). */
   weeks?: Integer;
   /** GEDCOM 7.0 §2.6 — `days = Integer "d"`, optional. */
   days?: Integer;
@@ -436,7 +436,9 @@ export interface AgeValue {
    * GEDCOM 5.5.1 §2 (p.42) — a descriptive age keyword: CHILD (less than
    * 8 years), INFANT (less than 1 year), or STILLBORN (died just prior
    * to, at, or near birth). Removed in 7.0, which moved such information
-   * to a PHRASE.
+   * to a PHRASE. When serializing to 7.0 the keyword is projected onto
+   * the numeric bound (`CHILD` → `< 8y`, `INFANT` → `< 1y`,
+   * `STILLBORN` → `0y`) and kept in the PHRASE.
    */
   description?: 'CHILD' | 'INFANT' | 'STILLBORN';
 }

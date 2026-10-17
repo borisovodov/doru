@@ -251,3 +251,66 @@ describe('round trips', () => {
     expect(twice).toBe(once);
   });
 });
+
+describe('cross-version round trips (up to the unrepresentable)', () => {
+  const SAMPLE_REPRESENTABLE = [
+    '0 @I1@ INDI',
+    '1 NAME Ivan /Ivanov/',
+    '2 GIVN Ivan',
+    '2 SURN Ivanov',
+    '1 SEX M',
+    '1 BIRT Y',
+    '2 DATE 12 MAR 1923',
+    '2 PLAC Moscow, Russia',
+    '1 FAMS @F1@',
+    '0 @I2@ INDI',
+    '1 NAME Anna /Ivanova/',
+    '1 SEX F',
+    '1 FAMS @F1@',
+    '0 @F1@ FAM',
+    '1 HUSB @I1@',
+    '1 WIFE @I2@',
+    '1 MARR Y',
+    '2 DATE 1940',
+  ];
+
+  test('5.5.1 → 7.0 → 5.5.1 produces the same model', () => {
+    const first = parseOk551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        ...SAMPLE_REPRESENTABLE,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const via70 = parseOk70(ser70(first));
+    const back = parseOk551(ser551(via70));
+    // The submitter is reused, not synthesized, on the way back.
+    expect(back).toEqual(first);
+  });
+
+  test('7.0 → 5.5.1 → 7.0 produces the same model', () => {
+    const first = parseOk70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '1 SOUR DORU',
+        '0 @_SYNSUB1@ SUBM',
+        '1 NAME Unknown',
+        ...SAMPLE_REPRESENTABLE,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const via551 = parseOk551(ser551(first));
+    const back = parseOk70(ser70(via551));
+    expect(back).toEqual(first);
+  });
+});
