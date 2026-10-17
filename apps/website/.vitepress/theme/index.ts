@@ -1,6 +1,7 @@
 import { h, watchEffect } from 'vue';
 import { inBrowser, useData, type Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
+import '@fontsource/berkshire-swash';
 import DownloadButtons from './DownloadButtons.vue';
 import LangTracker from './LangTracker.vue';
 import './style.css';

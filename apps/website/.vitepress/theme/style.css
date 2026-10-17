@@ -138,6 +138,47 @@
   );
 }
 
+/* Hero name — the brand wordmark in Berkshire Swash (self-hosted via
+   Fontsource), larger than the default VitePress hero text. Only the name
+   changes; the subtitle keeps the system stack. Selector beats VPHero's
+   scoped styles (0,3,0 vs 0,2,0). */
+.VPHero.VPHomeHero .name {
+  font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.35;
+  font-size: 64px;
+  max-width: none;
+}
+
+@media (min-width: 640px) {
+  .VPHero.VPHomeHero .name {
+    font-size: 88px;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero.VPHomeHero .name {
+    font-size: 120px;
+  }
+}
+
+/* The home page is icon-only in the nav bar (the wordmark lives in the
+   hero there); other pages show the site title next to the logo. */
+.Layout:has(.VPHome) .VPNavBarTitle .title span {
+  display: none;
+}
+
+/* Docs pages: keep the nav bar background flush to the right edge. The
+   default theme makes .VPNavBar transparent from 960px on and paints only
+   the inset .content-body (padding-right 32px, growing past 1440px),
+   which left a canvas-colored strip on the right with our surface colors. */
+@media (min-width: 960px) {
+  html .Layout .VPNavBar:not(.home) {
+    background-color: var(--vp-nav-bg-color);
+  }
+}
+
 .doru-screenshot {
   margin: 0 auto 48px;
   max-width: 960px;
