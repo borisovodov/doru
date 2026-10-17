@@ -537,7 +537,9 @@ class Emitter {
       this.w.line(2, 'FORM', { value: 'LINEAGE-LINKED' });
     }
     if (this.version === '5.5.1' && h.characterSet !== undefined) {
-      this.w.line(1, 'CHAR', { value: h.characterSet.payload });
+      // Export is always UTF-8; the model normalizes the declared
+      // source charset to UTF-8 at parse time.
+      this.w.line(1, 'CHAR', { value: 'UTF-8' });
       if (h.characterSet.version !== undefined) {
         this.w.line(2, 'VERS', { value: h.characterSet.version });
       }

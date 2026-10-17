@@ -728,9 +728,10 @@ export interface Longitude {
 
 /**
  * GEDCOM 5.5.1 §2 Primitive Elements (p.44), `CHARACTER_SET` — the
- * character set used to interpret the transmission, declared in the
- * header. 5.5.1 prefers ANSEL and requires all codes above 0x7F to be
- * converted to ANSEL; see GEDCOM 5.5.1 §3 (p.77) and Appendix C.
+ * character set declared in the header, used by the parser to select the
+ * decoder. The model itself always holds UTF-8: the parser decodes the
+ * source encoding at parse time and normalizes this field to UTF-8, so
+ * text fields never carry the source encoding.
  *
  * Removed in GEDCOM 7.0, which mandates UTF-8 (GEDCOM 7.0 §1.1).
  */

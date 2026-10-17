@@ -24,7 +24,7 @@ import {
   SEX_ENUM_VALUES,
 } from '../enumerations';
 import type { MediaEnum, OrdinanceStatusEnum } from '../enumerations';
-import type { CharacterSet, ListEnum } from '../primitives';
+import type { ListEnum } from '../primitives';
 import type {
   AddressStructure,
   AdoptionFamilyLink,
@@ -607,14 +607,15 @@ function parseCharacterSetStructure(node: RawNode): CharacterSetStructure {
   if (upper !== 'ANSEL' && upper !== 'ASCII' && upper !== 'UTF-8' && upper !== 'UNICODE') {
     fail('charset.invalid', `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, or ASCII`, node.position);
   }
-  const out: CharacterSetStructure = { payload: upper as CharacterSet };
+  // The declared value selects the decoder; the model always holds UTF-8.
+  // The CHAR.VERS substructure describes the source charset standard and
+  // is meaningless after normalization, so it is discarded.
+  const out: CharacterSetStructure = { payload: 'UTF-8' };
   dispatch(
     node,
     out,
     {
-      VERS: (child) => {
-        out.version = reqText(child);
-      },
+      VERS: () => undefined,
     },
     { version: '5.5.1', xrefs: new Set(), synthetic: [], syntheticIndex: 0 },
   );

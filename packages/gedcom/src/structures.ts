@@ -182,7 +182,8 @@ export interface Header extends GedcomStructureBase {
   place?: HeaderPlace;
   /**
    * CHAR {1:1} — the character set used to interpret the transmission,
-   * with an optional version substructure.
+   * with an optional version substructure. The declared value selects
+   * the decoder; the model normalizes it to UTF-8.
    * GEDCOM 5.5.1 §2 Record Structures (p.23) and GEDCOM 5.5.1 §3 (p.77).
    * Removed in GEDCOM 7.0, which mandates UTF-8.
    */
@@ -193,13 +194,14 @@ export interface Header extends GedcomStructureBase {
 
 /**
  * GEDCOM 5.5.1 §2 Record Structures (p.23) — the CHAR substructure of the
- * header: the character set of the transmission and its optional version.
- * Removed in GEDCOM 7.0.
+ * header. The declared source character set selects the decoder at parse
+ * time; the model normalizes it to UTF-8 (all text fields are plain
+ * Unicode), so `payload` is always `'UTF-8'` here. Removed in GEDCOM 7.0.
  */
 export interface CharacterSetStructure extends GedcomStructureBase {
-  /** The CHAR payload, {1:1} CHARACTER_SET (ANSEL, UTF-8, UNICODE or ASCII). */
+  /** The CHAR payload — always `'UTF-8'` in the model (normalized at parse time). */
   payload: CharacterSet;
-  /** VERS {0:1} — the version of the character set standard. */
+  /** VERS {0:1} — the version of the declared character set standard; discarded by the parser after decoding. */
   version?: Text;
 }
 
