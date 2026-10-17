@@ -11,7 +11,12 @@
  * versions:
  * - `primitives.ts` — container identifiers, data types, known calendars
  * - `enumerations.ts` — enumeration sets
- * - `structures.ts` — genealogical structures
+ * - `structures.ts` — barrel over `model/`: the genealogical structures
+ *   split by specification section (extensions, document, records, and
+ *   the substructure groups)
+ * - `parsing/` — the strict assemblers, split by structure group
+ * - `serialize/` — the projecting serializers (writer, format, tables,
+ *   emitter sections, prepare)
  * - `gedzip.ts` — the GEDZIP file format (GEDCOM 7.0 chapter 4)
  *
  * Every element cites both specs where they agree (`GEDCOM 7.0 §…` and

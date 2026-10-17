@@ -142,7 +142,15 @@ src/
   index.ts          public API re-exports
   primitives.ts     identifiers, data types, known calendars (both specs)
   enumerations.ts   enumeration sets with per-value meanings
-  structures.ts     the genealogical structures (records + substructures)
+  structures.ts     barrel over model/ (the genealogical structures)
+  model/            the model split by specification section:
+    extensions.ts   §1.5 extension structures
+    document.ts     §3.2.1 header, gedcom, submission
+    records.ts      §3.2.2 the ten record types
+    common.ts       address, dates, identifiers, notes
+    names-places.ts names, places, map coordinates
+    sources-media.ts sources, citations, media links
+    family-structures.ts / individual-structures.ts / lds.ts
   gedzip.ts         GEDZIP read/write (7.0 chapter 4, via fflate)
   errors.ts         GedcomError, ParseResult, error codes
   detect.ts         unified entry point: container + version detection
@@ -150,9 +158,18 @@ src/
     decode.ts       charsets: UTF-8/BOM, ANSEL (Appendix C, NFC), ASCII, UTF-16
     lines.ts        strict container tokenizer and raw tree builder
     types.ts        payload parsers: dates, times, ages, lists, names, enums
-    assemble.ts     raw tree → typed model (per-version assembler)
+    assemble.ts     public entry: parseGedcom70/parseGedcom551
+    context.ts      Ctx, payload readers, children helpers
+    document.ts / header.ts / records.ts / substructures.ts /
+    names-places.ts / sources-media.ts / events.ts   per-group assemblers
   serialize/
-    serialize.ts    typed model → text (per-version writers)
+    serialize.ts    public entry: serializeGedcom70/551 (+Bytes)
+    writer.ts       line writing: escaping, CONT/CONC splitting
+    format.ts       value spellings (dates, times, ages, names)
+    tables.ts       cross-version projection and spelling tables
+    prepare.ts      model-level 5.5.1 projection (NO rule, SOUR/SUBM)
+    emitter/        structure emitters: values, document, records, events,
+                    structures, names-places
 tests/
   decode / lines / parse70 / parse551 / serialize / roundtrip
 ```
