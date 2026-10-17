@@ -231,19 +231,50 @@ The writers emit the canonical form of their version:
 - **7.0** — `GEDC.VERS 7.0`, uppercase enums, calendar keywords and the
   `BCE` epoch inside dates, `PHRASE` substructures, `CONT` for multiline
   payloads, leading `@` doubled, pointers verbatim.
-- **5.5.1** — `CHAR`, `GEDC.FORM LINEAGE-LINKED`, required `SOUR`/`SUBM`,
+- **5.5.1** — `CHAR`, `GEDC.FORM LINEAGE-LINKED`, `SOUR`/`SUBM`
+  (defaulted when missing, see below),
   lowercase spelling where the spec uses it (`privacy`, `birth`, `maiden`,
   …), `@#D…@` calendar escapes and `B.C.`, phrases as a subordinate `NOTE`
   (per 5.5.1 §2 p.48) or the parenthesized form, all `@` doubled (except
   pointers and escapes), `CONC` splitting at the 255-character line limit
   (split points never start with a space).
 
-Serialization is strict in the other direction: a dataset containing
-constructs the target version cannot express (a SNOTE record in 5.5.1,
-a RELA relationship in 7.0, the SEX value `X` in 5.5.1, …) fails with
-`serialize.unsupported-value` or `serialize.missing-field` naming the
-construct. Missing 5.5.1 header requirements (`SOUR`, `SUBM`, `CHAR`,
-`GEDC.FORM`) are errors, not defaults.
+Serialization is a **projection, not a judge**: everything the target
+version can express but stores elsewhere is translated, and everything it
+cannot express is dropped silently. The exact rule for each construct is
+documented in the JSDoc of the affected model field. The summary:
+
+- **Translations** — `NOTE`↔`SNOTE` records and pointers; `RELA` ↔
+  `ROLE OTHER` + `PHRASE` (and 7.0 roles ↔ free-text RELA descriptors);
+  `FONE`/`ROMN` ↔ `TRAN` — only where the method names a known language
+  (`kana`→`ja-Kana`, `hangul`→`ko-Hang`, `pinyin`→`zh-Latn`,
+  `romaji`→`ja-Latn`, `wadegiles`→`zh-Latn-wadegile`), otherwise dropped;
+  the 5.5.1 free-text SOUR citation becomes `SOUR @VOID@` + `PAGE`; the
+  5.5.1 age keywords become numeric bounds (`CHILD`→`< 8y`,
+  `INFANT`→`< 1y`, `STILLBORN`→`0y`) with the keyword kept in the
+  PHRASE; contacts are relocated between the record/detail level (7.0)
+  and inside ADDR (5.5.1).
+- **Silently dropped** — 7.0-only: `SCHMA`, `UID`/`EXID`, `CREA`,
+  `SDATE`, weeks in ages, `SEX X`, `MEDI`/`PEDI OTHER`, the `INFANT`
+  status, `MIME`/`LANG`/`TRAN` on notes, `CROP`/`TITL` under `OBJE`,
+  `FAM.FACT`, event-level `ASSO`, the `Y` payload on 5.5.1 events that
+  cannot carry it, header `SUBM`. 5.5.1-only: `SUBN`, `FILE`,
+  `GEDC.FORM`, `RIN`/`RFN`/`AFN`, piece-level `NOTE`/`SOUR`. A
+  multimedia `FILE` whose format cannot be named in the fixed 5.5.1 set
+  is dropped entirely.
+- **The NO rule (7.0 → 5.5.1)** — every `NO` structure is dropped;
+  records left empty by that are dropped too, and pointers to dropped
+  records are removed, so the file never asserts what the researcher
+  negated.
+- **Required 5.5.1 fields** — a missing `SOUR` becomes `DORU`; a
+  missing `SUBM` reuses an existing SUBM record, or, failing that, a
+  synthesized `@_SYNSUB…@ SUBM` named "Unknown". The input model is
+  never mutated.
+
+The only remaining error is `serialize.invalid-text` (unpaired
+surrogates). The silent drops mean a cross-version round trip is lossy
+by design; a UI integrating this package should tell the user before
+writing a file with constructs the target version cannot hold.
 
 ## GEDZIP (7.0 chapter 4)
 
@@ -297,6 +328,10 @@ would be, or where the model takes a documented position:
   one-to-one with BCP 47 (Catalan/Catalan_Spn), so the mapping lives in
   the serializer, not the type.
 - ANSEL input is NFC-normalized on decode (see Parsing).
+- The serializers are projections, not judges: constructs the target
+  version cannot express are dropped silently, with the rule for each
+  construct documented in the JSDoc of the affected model field (see
+  Serialization).
 
 ## Future work
 
@@ -313,9 +348,11 @@ it without re-deriving context.
   yet).
 - Completed and tested: the dual-version model (`primitives.ts`,
   `enumerations.ts`, `structures.ts`, `gedzip.ts`), the strict parsers
-  (`parsing/`), the strict serializers (`serialize/serialize.ts`), the
-  error model (`errors.ts`), and ANSEL decoding. 126 package tests / 230
-  repo tests, clean typecheck.
+  (`parsing/`), the serializers as cross-version projections
+  (`serialize/serialize.ts`, `serialize/prepare.ts` — translations,
+  silent drops, the NO rule, the SOUR/SUBM defaults), the unified
+  `parse` entry point (`detect.ts`), the error model (`errors.ts`), and
+  ANSEL decoding. 152 package tests / 256 repo tests, clean typecheck.
 - Conventions a later session must follow:
   - every model entity cites both specs (`GEDCOM 7.0 §…`,
     `GEDCOM 5.5.1 §2 (p.…)`);
@@ -359,50 +396,7 @@ arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN`; free-form
 at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
 dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
 
-### 2. Version conversion layer
-
-**Goal:** translate between the versions instead of rejecting (the
-serializers stay strict). This is a *product* decision layered above the
-format: it belongs in its own module (`src/convert.ts`), not inside the
-parsers/serializers.
-
-**API (proposed):**
-
-```ts
-convertTo70(dataset: GedcomDataset): ParseResult<GedcomDataset>
-convertTo551(dataset: GedcomDataset): ParseResult<GedcomDataset>
-```
-
-Strict by default: a construct the target version cannot express is a
-`convert.*` error unless a documented lossy option is added later.
-
-**Mapping table to implement (5.5.1 → 7.0):**
-
-| 5.5.1 | 7.0 |
-|---|---|
-| `RELA` | `ROLE OTHER` + `PHRASE` |
-| `FONE`/`ROMN` | `TRAN` with a `LANG` derived from the method (`kana` → `ja-Kana`, `hangul` → `ko-Hang`, `pinyin` → `zh-Latn`, `romaji` → `ja-Latn`, `wadegiles` → `zh-Latn-wadegile`; user-defined method → error) |
-| `NOTE` record / `NOTE` pointer | `SNOTE` record / `SNOTE` pointer |
-| age keywords `CHILD`/`INFANT`/`STILLBORN` | `bound` (`<8y`, `<1y`) / phrase (`STILLBORN` → PHRASE) |
-| `SUBN`, `RIN`, `RFN`, `AFN` | error (no 7.0 equivalent) |
-
-**Mapping table to implement (7.0 → 5.5.1):**
-
-| 7.0 | 5.5.1 |
-|---|---|
-| `SNOTE` record / pointer | `NOTE` record / pointer |
-| `SEX X`, `MEDI OTHER`, `PEDI OTHER`, `ord-STAT INFANT` | error |
-| `NAME.TYPE PROFESSIONAL`/`OTHER` | user-defined `TYPE` text (via the phrase) |
-| age weeks | error |
-| `NO` structure | error (5.5.1 has no negation) |
-| `UID`, `EXID`, `CREA`, `SDATE` | error (or drop behind an explicit lossy option) |
-| date `PHRASE` | parenthesized form when there is no date, otherwise a `NOTE` under `DATE` (5.5.1 §2 p.48 convention) |
-
-**Tests:** fixture-based conversions that round-trip through both strict
-serializers; one test per mapping-table row; error tests for the
-"error" rows.
-
-### 3. Application integration
+### 2. Application integration
 
 **Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
 no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
@@ -422,7 +416,10 @@ UI was deliberately left untouched.
    inside one transaction/op for undo). Export: `repo.toTreeDocument()`
    → map to `GedcomDataset` → `serializeGedcom70Bytes` → write. Export
    as 7.0 by default (the dialog offers `.ged`; a 5.5.1 choice is a
-   product decision for later).
+   product decision for later). **The UI, not the package, owns the
+   loss warning:** the serializer silently drops what the target
+   version cannot express, so the export flow should tell the user
+   which constructs will not survive the target format before writing.
 2. **Design the mapping `GedcomDataset ↔ @doru/core` `TreeDocument`** —
    the deliberately postponed core decision. Inventory to reconcile
    (GEDCOM constructs → what `@doru/core` can hold):
@@ -449,7 +446,7 @@ UI was deliberately left untouched.
 `packages/core` (mapping module or ops), `packages/gedcom` (only if the
 mapping is generic enough to live there), renderer, e2e.
 
-### 4. Repository follow-ups
+### 3. Repository follow-ups
 
 - Update the GEDCOM section of `docs/architecture.md` (it still
   describes the pre-library stub state).

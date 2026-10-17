@@ -82,9 +82,9 @@ export type GedcomErrorCode =
   | 'charset.invalid'
   | 'filepath.invalid'
   | 'uri.invalid'
-  // Serialization errors (no source position).
-  | 'serialize.missing-field'
-  | 'serialize.unsupported-value'
+  // Serialization errors (no source position). Only
+  // serialize.invalid-text is produced; the serializers otherwise
+  // project silently (see the Serialization section of the README).
   | 'serialize.invalid-text'
   // GEDZIP errors.
   | 'gedzip.invalid-archive'

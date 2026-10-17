@@ -109,11 +109,62 @@ describe('serializeGedcom70', () => {
     expect(text).toContain('3 PHRASE 5 January (year unknown)');
   });
 
-  test('rejects 5.5.1-only constructs', () => {
+  test('projects 5.5.1-only constructs onto 7.0', () => {
     const dataset551 = parseOk551(
-      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 SUBN',
+        '1 SUBM @S1@',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @N1@ NOTE Hello',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '2 NICK Johnny',
+        '2 NOTE piece note',
+        '2 FONE Jo-han /Do-e/',
+        '3 TYPE kana',
+        '1 ASSO @I2@',
+        '2 RELA Godfather',
+        '1 RIN 42',
+        '1 BIRT',
+        '2 PLAC Rome',
+        '2 ADDR Via Appia',
+        '3 PHON +39 06 123',
+        '0 @I2@ INDI',
+        '1 NAME Jane /Roe/',
+        '1 SOUR free text citation',
+        '0 TRLR',
+      ].join('\n'),
     );
-    expect(expectErr(serializeGedcom70(dataset551))).toBe('serialize.unsupported-value');
+    const result = serializeGedcom70(dataset551);
+    expect(result.ok).toBe(true);
+    const text = (result as { value: string }).value;
+    // The NOTE record becomes a SNOTE record.
+    expect(text).toContain('0 @N1@ SNOTE Hello');
+    // The SUBN is dropped.
+    expect(text).not.toContain('SUBN');
+    // The RIN is dropped.
+    expect(text).not.toContain('RIN');
+    // The RELA descriptor becomes an OTHER role with a PHRASE.
+    expect(text).toContain('2 ROLE OTHER');
+    expect(text).toContain('3 PHRASE Godfather');
+    // The FONE variation becomes a TRAN with a language.
+    expect(text).toContain('2 TRAN Jo-han/Do-e/');
+    expect(text).toContain('3 LANG ja-Kana');
+    // The piece-level NOTE is dropped.
+    expect(text).not.toContain('piece note');
+    // The contacts inside ADDR are relocated to the event detail level.
+    expect(text).toContain('2 PHON +39 06 123');
+    // The free-text SOUR becomes a void pointer with the text as PAGE.
+    expect(text).toContain('1 SOUR @VOID@');
+    expect(text).toContain('2 PAGE free text citation');
   });
 });
 
@@ -268,17 +319,74 @@ describe('serializeGedcom551', () => {
     expect(text).toContain('2 STAT PRE-1970');
   });
 
-  test('rejects 7.0-only constructs', () => {
+  test('projects 7.0-only constructs onto 5.5.1', () => {
     const base = parseOk551(
       ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
     );
-    const snote = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @N1@ SNOTE text\n0 TRLR\n');
-    const snoteRecord = snote.records[0];
-    if (snoteRecord === undefined || snoteRecord.tag !== 'SNOTE') {
-      throw new Error('expected SNOTE');
-    }
-    base.records.push(snoteRecord);
-    expect(expectErr(serializeGedcom551(base))).toBe('serialize.unsupported-value');
+    const seven = parseOk70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '1 SCHMA',
+        '2 TAG _CUST https://example.com/cust',
+        '0 @N1@ SNOTE text',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '2 TRAN Johan /Doe/',
+        '3 LANG ja-Latn',
+        '1 SEX X',
+        '1 ASSO @I2@',
+        '2 ROLE FRIEND',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 WIFE @I2@',
+        '1 NO MARR',
+        '0 @I2@ INDI',
+        '1 NAME Jane /Roe/',
+        '1 FAMS @F1@',
+        '1 NO DEAT',
+        '0 @I3@ INDI',
+        '1 NO BIRT',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    base.records.push(...seven.records);
+    const result = serializeGedcom551(base);
+    expect(result.ok).toBe(true);
+    const text = (result as { value: string }).value;
+    // The SNOTE record becomes a NOTE record.
+    expect(text).toContain('0 @N1@ NOTE text');
+    // The TRAN becomes a ROMN variation.
+    expect(text).toContain('2 ROMN Johan/Doe/');
+    expect(text).toContain('3 TYPE romaji');
+    // The ROLE FRIEND becomes the RELA descriptor.
+    expect(text).toContain('2 RELA Friend');
+    // SEX X is dropped.
+    expect(text).not.toContain('SEX');
+    // The NO rule: F1 only asserted the negation, so the record and the
+    // FAMS pointer disappear; the INDI-level NOs disappear too.
+    expect(text).not.toContain('@F1@');
+    expect(text).not.toContain('FAMS');
+    expect(text).not.toContain('NO ');
+    // @I3@ only carried the negation and is dropped entirely.
+    expect(text).not.toContain('@I3@');
+    // The SCHMA header is dropped; the required SOUR/SUBM appear with
+    // the defaults (the base header already has SOUR PAF and SUBM @S1@).
+    expect(text).not.toContain('SCHMA');
+    expect(text).toContain('1 SOUR PAF');
+    expect(text).toContain('1 SUBM @S1@');
+  });
+
+  test('fills the required 5.5.1 SOUR and SUBM with defaults', () => {
+    const seven = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n');
+    const result = serializeGedcom551(seven);
+    expect(result.ok).toBe(true);
+    const text = (result as { value: string }).value;
+    expect(text).toContain('1 SOUR DORU');
+    expect(text).toContain('1 SUBM @_SYNSUB1@');
+    expect(text).toContain('0 @_SYNSUB1@ SUBM');
+    expect(text).toContain('1 NAME Unknown');
   });
 });
 
