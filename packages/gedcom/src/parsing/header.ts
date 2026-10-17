@@ -7,17 +7,22 @@
  * error naming the offending line.
  */
 
-import { fail } from '../errors';
 import {
-  type Corporation,
-  type Gedcom,
-  type Header,
-  type HeaderPlace,
-  type HeaderSource,
-  type HeaderSourceData,
-  type Schema,
-  type TagDefinitionStructure,
+  fail,
+} from '../errors';
+import type {
+  Corporation,
+  Gedcom,
+  Header,
+  HeaderPlace,
+  HeaderSource,
+  HeaderSourceData,
+  Schema,
+  TagDefinitionStructure,
 } from '../structures';
+import type {
+  Ctx,
+} from './context';
 import {
   dispatch,
   noPayload,
@@ -25,9 +30,10 @@ import {
   req,
   reqPtr,
   reqText,
-  type Ctx,
 } from './context';
-import { type RawNode } from './lines';
+import type {
+  RawNode,
+} from './lines';
 import {
   parseAddressStructure,
   parseDateExactStructure,

@@ -11,31 +11,43 @@ import {
   DOCUMENT_START,
   fail,
 } from '../errors';
-import {
-  type ExtensionRecord,
-  type GedcomDataset,
-  type GedcomRecord,
-  type SubmissionRecord,
-  type Trailer,
+import type {
+  ExtensionRecord,
+  GedcomDataset,
+  GedcomRecord,
+  SubmissionRecord,
+  Trailer,
 } from '../structures';
+import type {
+  Ctx,
+} from './context';
 import {
   noPayload,
   parseExtension,
-  type Ctx,
 } from './context';
-import { parseHeader } from './header';
-import { type RawNode } from './lines';
 import {
   parseFamilyRecord,
   parseIndividualRecord,
+} from './family-individual';
+import {
+  parseHeader,
+} from './header';
+import type {
+  RawNode,
+} from './lines';
+import {
   parseMultimediaRecord,
+} from './media';
+import {
   parseNoteRecord,
   parseRepositoryRecord,
   parseSharedNoteRecord,
   parseSourceRecord,
+} from './sources';
+import {
   parseSubmissionRecord,
   parseSubmitterRecord,
-} from './records';
+} from './submitters';
 
 // Document
 // ---------------------------------------------------------------------------

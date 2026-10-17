@@ -11,18 +11,23 @@ import {
   EVENT_ATTRIBUTE_ENUM_VALUES,
   QUALITY_ENUM_VALUES,
 } from '../enumerations';
-import { fail } from '../errors';
 import {
-  type CallNumberStructure,
-  type CropStructure,
-  type MediaFile,
-  type MultimediaLink,
-  type MultimediaRecord,
-  type SourceCitation,
-  type SourceCitationData,
-  type SourceCitationEvent,
-  type SourceRepositoryCitation,
+  fail,
+} from '../errors';
+import type {
+  CallNumberStructure,
+  CropStructure,
+  MediaFile,
+  MultimediaLink,
+  MultimediaRecord,
+  SourceCitation,
+  SourceCitationData,
+  SourceCitationEvent,
+  SourceRepositoryCitation,
 } from '../structures';
+import type {
+  Ctx,
+} from './context';
 import {
   dispatch,
   noPayload,
@@ -31,20 +36,25 @@ import {
   reqPtr,
   reqText,
   resolvePtr,
-  type Ctx,
 } from './context';
-import { type RawNode } from './lines';
+import type {
+  RawNode,
+} from './lines';
 import {
   parseMediaFile,
   parseMediaStructure,
+} from './media';
+import {
   parseSourceText,
-} from './records';
+} from './sources';
 import {
   parseDateStructure,
   parseNoteStructure,
   parseRole,
 } from './substructures';
-import { parseEnum } from './types';
+import {
+  parseEnum,
+} from './types';
 
 // Sources and media links
 // ---------------------------------------------------------------------------

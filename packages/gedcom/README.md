@@ -160,8 +160,9 @@ src/
     types.ts        payload parsers: dates, times, ages, lists, names, enums
     assemble.ts     public entry: parseGedcom70/parseGedcom551
     context.ts      Ctx, payload readers, children helpers
-    document.ts / header.ts / records.ts / substructures.ts /
-    names-places.ts / sources-media.ts / events.ts   per-group assemblers
+    document.ts / header.ts / substructures.ts / names-places.ts /
+    sources-media.ts / events.ts / family-individual.ts / media.ts /
+    sources.ts / submitters.ts     per-group assemblers
   serialize/
     serialize.ts    public entry: serializeGedcom70/551 (+Bytes)
     writer.ts       line writing: escaping, CONT/CONC splitting

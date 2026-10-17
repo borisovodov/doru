@@ -11,28 +11,33 @@ import {
   EVENT_ENUM_VALUES,
   ROLE_ENUM_VALUES,
 } from '../enumerations';
-import { fail } from '../errors';
 import {
-  type AddressStructure,
-  type AgeStructure,
-  type AssociationStructure,
-  type ChangeDate,
-  type CreationDate,
-  type DateExactStructure,
-  type DatePeriodStructure,
-  type DateStructure,
-  type ExternalIdentifierStructure,
-  type NonEventStructure,
-  type Note,
-  type NoteReference,
-  type NoteStructure,
-  type NoteTranslation,
-  type ReferenceIdentifierStructure,
-  type RoleStructure,
-  type SharedNoteReference,
-  type SortDateStructure,
-  type UniqueIdentifierStructure,
+  fail,
+} from '../errors';
+import type {
+  AddressStructure,
+  AgeStructure,
+  AssociationStructure,
+  ChangeDate,
+  CreationDate,
+  DateExactStructure,
+  DatePeriodStructure,
+  DateStructure,
+  ExternalIdentifierStructure,
+  NonEventStructure,
+  Note,
+  NoteReference,
+  NoteStructure,
+  NoteTranslation,
+  ReferenceIdentifierStructure,
+  RoleStructure,
+  SharedNoteReference,
+  SortDateStructure,
+  UniqueIdentifierStructure,
 } from '../structures';
+import type {
+  Ctx,
+} from './context';
 import {
   atMostThree,
   dispatch,
@@ -41,10 +46,13 @@ import {
   reqPtr,
   reqText,
   resolvePtr,
-  type Ctx,
 } from './context';
-import { type RawNode } from './lines';
-import { parseSourceCitation } from './sources-media';
+import type {
+  RawNode,
+} from './lines';
+import {
+  parseSourceCitation,
+} from './sources-media';
 import {
   parseAge551,
   parseAge70,

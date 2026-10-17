@@ -7,13 +7,17 @@
  * error naming the offending line.
  */
 
-import { fail } from '../errors';
 import {
-  type ExtensionStructure,
-  type GedcomStructureBase,
-  type MultimediaRecord,
+  fail,
+} from '../errors';
+import type {
+  ExtensionStructure,
+  GedcomStructureBase,
+  MultimediaRecord,
 } from '../structures';
-import { type RawNode } from './lines';
+import type {
+  RawNode,
+} from './lines';
 
 export interface Ctx {
   version: '7.0' | '5.5.1';

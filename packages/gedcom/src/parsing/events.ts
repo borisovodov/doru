@@ -7,43 +7,50 @@
  * error naming the offending line.
  */
 
+import type {
+  OrdinanceStatusEnum,
+} from '../enumerations';
 import {
   ADOPTION_ENUM_VALUES,
   FAMILY_CHILD_STATUS_ENUM_VALUES,
   ORDINANCE_STATUS_ENUM_VALUES,
   PEDIGREE_ENUM_VALUES,
   RESTRICTION_ENUM_VALUES,
-  type OrdinanceStatusEnum,
 } from '../enumerations';
-import { fail } from '../errors';
 import {
-  type AdoptionFamilyLink,
-  type AdoptionStructure,
-  type AgeStructure,
-  type AliasLink,
-  type ChildFamilyLink,
-  type DateExactStructure,
-  type EventDetail,
-  type FamilyChildCountAttribute,
-  type FamilyChildLink,
-  type FamilyChildStatusStructure,
-  type FamilyEventDetail,
-  type FamilyEventStructure,
-  type FamilyGenericAttribute,
-  type FamilyPartnerEventDetail,
-  type FamilyPartnerLink,
-  type FamilyResidenceAttribute,
-  type GedcomStructureBase,
-  type IndividualAttributeStructure,
-  type IndividualEventDetail,
-  type IndividualEventStructure,
-  type LdsIndividualOrdinance,
-  type LdsOrdinanceDetail,
-  type OrdinanceStatusStructure,
-  type PedigreeStructure,
-  type SpouseFamilyLink,
-  type SpouseSealingOrdinance,
+  fail,
+} from '../errors';
+import type {
+  AdoptionFamilyLink,
+  AdoptionStructure,
+  AgeStructure,
+  AliasLink,
+  ChildFamilyLink,
+  DateExactStructure,
+  EventDetail,
+  FamilyChildCountAttribute,
+  FamilyChildLink,
+  FamilyChildStatusStructure,
+  FamilyEventDetail,
+  FamilyEventStructure,
+  FamilyGenericAttribute,
+  FamilyPartnerEventDetail,
+  FamilyPartnerLink,
+  FamilyResidenceAttribute,
+  GedcomStructureBase,
+  IndividualAttributeStructure,
+  IndividualEventDetail,
+  IndividualEventStructure,
+  LdsIndividualOrdinance,
+  LdsOrdinanceDetail,
+  OrdinanceStatusStructure,
+  PedigreeStructure,
+  SpouseFamilyLink,
+  SpouseSealingOrdinance,
 } from '../structures';
+import type {
+  Ctx,
+} from './context';
 import {
   dispatch,
   noPayload,
@@ -53,11 +60,16 @@ import {
   reqPtr,
   reqText,
   yFlag,
-  type Ctx,
 } from './context';
-import { type RawNode } from './lines';
-import { parsePlaceStructure } from './names-places';
-import { parseSourceJurisdictionPlace } from './records';
+import type {
+  RawNode,
+} from './lines';
+import {
+  parsePlaceStructure,
+} from './names-places';
+import {
+  parseSourceJurisdictionPlace,
+} from './sources';
 import {
   parseMultimediaLink,
   parseSourceCitation,

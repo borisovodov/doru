@@ -7,30 +7,40 @@
  * error naming the offending line.
  */
 
-import { NAME_TYPE_ENUM_VALUES } from '../enumerations';
-import { fail } from '../errors';
 import {
-  type MapCoordinates,
-  type NameTranslation,
-  type NameTypeStructure,
-  type PersonalNamePieces,
-  type PersonalNameStructure,
-  type PhoneticNameVariation,
-  type PhoneticPlaceVariation,
-  type PlaceStructure,
-  type PlaceTranslation,
-  type RomanizedNameVariation,
-  type RomanizedPlaceVariation,
+  NAME_TYPE_ENUM_VALUES,
+} from '../enumerations';
+import {
+  fail,
+} from '../errors';
+import type {
+  MapCoordinates,
+  NameTranslation,
+  NameTypeStructure,
+  PersonalNamePieces,
+  PersonalNameStructure,
+  PhoneticNameVariation,
+  PhoneticPlaceVariation,
+  PlaceStructure,
+  PlaceTranslation,
+  RomanizedNameVariation,
+  RomanizedPlaceVariation,
 } from '../structures';
+import type {
+  Ctx,
+} from './context';
 import {
   dispatch,
   noPayload,
   req,
   reqText,
-  type Ctx,
 } from './context';
-import { type RawNode } from './lines';
-import { parseSourceCitation } from './sources-media';
+import type {
+  RawNode,
+} from './lines';
+import {
+  parseSourceCitation,
+} from './sources-media';
 import {
   parseExternalIdentifier,
   parseNoteStructure,

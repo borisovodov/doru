@@ -4,7 +4,12 @@
  * produces the model value; every deviation is a typed error.
  */
 
-import { fail, type SourcePosition } from '../errors';
+import type {
+  SourcePosition,
+} from '../errors';
+import {
+  fail,
+} from '../errors';
 import type {
   AgeBound,
   AgeValue,
@@ -16,8 +21,8 @@ import type {
   DatePeriodValue,
   DateRange,
   DateValue,
-  Epoch,
   EmptyDateValue,
+  Epoch,
   ExtensionTag,
   GedcomMonth,
   Latitude,

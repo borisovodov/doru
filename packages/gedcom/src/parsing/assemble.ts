@@ -8,14 +8,24 @@
  * offending line.
  */
 
+import type {
+  ParseResult,
+} from '../errors';
 import {
   run,
-  type ParseResult,
 } from '../errors';
-import { type GedcomDataset } from '../structures';
-import { decodeDocument } from './decode';
-import { parseDocument } from './document';
-import { parseRawDocument } from './lines';
+import type {
+  GedcomDataset,
+} from '../structures';
+import {
+  decodeDocument,
+} from './decode';
+import {
+  parseDocument,
+} from './document';
+import {
+  parseRawDocument,
+} from './lines';
 
 // ---------------------------------------------------------------------------
 // Public API
