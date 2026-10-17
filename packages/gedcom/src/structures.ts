@@ -89,7 +89,7 @@ export interface ExtensionStructure {
 export interface ExtensionRecord extends ExtensionStructure {
   /** GEDCOM 7.0 §1.5 — extension records are always tagged with an `extTag`. */
   tag: ExtensionTag;
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it. */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
 }
 
@@ -251,8 +251,10 @@ export interface TagDefinitionStructure extends GedcomStructureBase {
  */
 export interface HeaderSource extends GedcomStructureBase {
   /**
-   * The SOUR payload, {1:1} — the product identifier (7.0: `Special`;
-   * 5.5.1: `APPROVED_SYSTEM_ID`, whose spaces must be underscores).
+   * The SOUR payload, {1:1} — the product identifier. GEDCOM 7.0 §3.2.1
+   * HEADER rule (`Special`); GEDCOM 5.5.1 §2 Primitive Elements (p.42),
+   * `APPROVED_SYSTEM_ID` — the registered identifier, whose spaces must
+   * be underscores.
    */
   payload: Special;
   /** VERS {0:1}, g7:VERS — the version level of the product. GEDCOM 7.0 §3.2.1. */
@@ -333,7 +335,7 @@ export interface HeaderPlace extends GedcomStructureBase {
  */
 export interface FamilyRecord extends GedcomStructureBase {
   tag: 'FAM';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
@@ -410,7 +412,7 @@ export interface FamilyChildLink extends GedcomStructureBase {
  */
 export interface IndividualRecord extends GedcomStructureBase {
   tag: 'INDI';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
@@ -552,7 +554,7 @@ export interface AliasLink extends GedcomStructureBase {
  */
 export interface MultimediaRecord extends GedcomStructureBase {
   tag: 'OBJE';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
@@ -626,7 +628,7 @@ export interface MediaFileTranslation extends GedcomStructureBase {
  */
 export interface RepositoryRecord extends GedcomStructureBase {
   tag: 'REPO';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** NAME {1:1}, g7:NAME. */
   name: Text;
@@ -665,7 +667,7 @@ export interface RepositoryRecord extends GedcomStructureBase {
  */
 export interface SharedNoteRecord extends GedcomStructureBase {
   tag: 'SNOTE';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** The SNOTE payload, {1:1} Text. */
   payload: Text;
@@ -693,7 +695,7 @@ export interface SharedNoteRecord extends GedcomStructureBase {
  */
 export interface NoteRecord extends GedcomStructureBase {
   tag: 'NOTE';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** The NOTE payload, {1:1} SUBMITTER_TEXT. */
   payload: Text;
@@ -721,7 +723,7 @@ export interface NoteRecord extends GedcomStructureBase {
  */
 export interface SourceRecord extends GedcomStructureBase {
   tag: 'SOUR';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** DATA {0:1}, g7:DATA — the content of the source (as opposed to metadata about it). */
   data?: SourceRecordData;
@@ -816,7 +818,7 @@ export interface SourceText extends GedcomStructureBase {
  */
 export interface SubmitterRecord extends GedcomStructureBase {
   tag: 'SUBM';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** NAME {1:1}, g7:NAME. */
   name: Text;
@@ -862,7 +864,7 @@ export interface SubmitterRecord extends GedcomStructureBase {
  */
 export interface SubmissionRecord extends GedcomStructureBase {
   tag: 'SUBN';
-  /** The record's cross-reference identifier (@…@); optional when nothing points to it (GEDCOM 7.0 §1.3). */
+  /** The record's cross-reference identifier (@…@); optional when nothing points to it. GEDCOM 7.0 §1.3; GEDCOM 5.5.1 §2 Primitive Elements (p.64), `XREF` (max 22 characters). */
   xref?: Xref;
   /** SUBM {0:1} — the submitter this submission belongs to. */
   submitter?: Pointer<SubmitterRecord>;

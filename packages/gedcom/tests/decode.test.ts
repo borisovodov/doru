@@ -83,13 +83,37 @@ describe('detectCharset551', () => {
 });
 
 describe('decodeDocument (5.5.1)', () => {
-  test('decodes ANSEL bytes per Appendix C', () => {
-    // "café" as c a f, acute accent, e; ANSEL non-spacing characters are
-    // stored before the base character they modify and decode to the
-    // combining form.
+  test('decodes ANSEL bytes per Appendix C with NFC normalization', () => {
+    // "café" as c a f, acute accent, e. ANSEL non-spacing characters are
+    // stored before the base character they modify; the decoder attaches
+    // them after the base and NFC-normalizes (e + combining acute → é).
     const bytes = new Uint8Array([...enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE caf'), 0xe2, ...enc('e\n0 TRLR')]);
     const result = expectOk(decodeDocument(bytes, '5.5.1'));
-    expect(result.lines[2]?.text).toBe('1 NOTE caf\u0301e');
+    expect(result.lines[2]?.text).toBe('1 NOTE café');
+  });
+
+  test('precomposes ANSEL umlauts', () => {
+    // E8 (umlaut) + 'a' → NFC 'ä' (U+00E4).
+    const bytes = new Uint8Array([...enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE '), 0xe8, ...enc('a\n0 TRLR')]);
+    const result = expectOk(decodeDocument(bytes, '5.5.1'));
+    expect(result.lines[2]?.text).toBe('1 NOTE ä');
+  });
+
+  test('keeps non-precomposable marks in canonical order after the base', () => {
+    // E5 (macron) + 'x' has no precomposed form; NFC keeps x + U+0304.
+    const bytes = new Uint8Array([...enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE '), 0xe5, ...enc('x\n0 TRLR')]);
+    const result = expectOk(decodeDocument(bytes, '5.5.1'));
+    expect(result.lines[2]?.text).toBe('1 NOTE x\u0304');
+  });
+
+  test('rejects a dangling non-spacing character without a base', () => {
+    const bytes = new Uint8Array([...enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE caf'), 0xe2, ...enc('\n0 TRLR')]);
+    const result = decodeDocument(bytes, '5.5.1');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('decoding.invalid-ansel');
+      expect(result.error.position?.line).toBe(3);
+    }
   });
 
   test('decodes ANSEL spacing characters', () => {

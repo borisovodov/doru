@@ -151,21 +151,35 @@ function decodeUtf8Line(line: RawByteLine, lineNumber: number, isFirst: boolean)
 
 /** Decodes one ANSEL line (GEDCOM 5.5.1 Appendix C). */
 function decodeAnselLine(line: RawByteLine, lineNumber: number): ParseResult<string> {
+  // ANSEL stores a non-spacing (combining) character BEFORE the base
+  // character it modifies. The marks are buffered and attached after the
+  // next base character (Unicode canonical order), then the line is
+  // NFC-normalized so that precomposable sequences (e + acute → é)
+  // collapse into single code points.
   let out = '';
+  let pendingMarks = '';
   for (let i = 0; i < line.bytes.length; i++) {
     const b = line.bytes[i] as number;
     if (b <= 0x7f) {
       out += String.fromCharCode(b);
+      if (pendingMarks !== '') {
+        out += pendingMarks;
+        pendingMarks = '';
+      }
       continue;
     }
     const spacing = ANSEL_SPACING.get(b);
     if (spacing !== undefined) {
       out += String.fromCharCode(spacing);
+      if (pendingMarks !== '') {
+        out += pendingMarks;
+        pendingMarks = '';
+      }
       continue;
     }
     const nonspacing = ANSEL_NONSPACING.get(b);
     if (nonspacing !== undefined) {
-      out += String.fromCharCode(nonspacing);
+      pendingMarks += String.fromCharCode(nonspacing);
       continue;
     }
     return {
@@ -177,7 +191,17 @@ function decodeAnselLine(line: RawByteLine, lineNumber: number): ParseResult<str
       },
     };
   }
-  return ok(out);
+  if (pendingMarks !== '') {
+    return {
+      ok: false,
+      error: {
+        code: 'decoding.invalid-ansel',
+        message: 'A non-spacing ANSEL character must be followed by a base character',
+        position: { line: lineNumber, column: line.bytes.length, offset: line.offset },
+      },
+    };
+  }
+  return ok(out.normalize('NFC'));
 }
 
 /** Decodes one ASCII line; bytes above 0x7F are errors. */
