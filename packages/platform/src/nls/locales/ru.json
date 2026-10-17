@@ -130,6 +130,7 @@
   "workbench.activityBar.tasks": "Задачи",
   "workbench.activityBar.tree": "Древо",
   "workbench.closeActiveTab": "Закрыть вкладку",
+  "workbench.keyboardShortcuts": "Сочетания клавиш",
   "workbench.openProject": "Открыть проект…",
   "workbench.recent": "Недавние",
   "workbench.recent.empty": "Нет недавних проектов",

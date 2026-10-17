@@ -18,6 +18,7 @@ export {
   type SettingsViewProps,
 } from './settings/SettingsView';
 export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
+export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEditorPage';
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
 export {
   ChatPanel,

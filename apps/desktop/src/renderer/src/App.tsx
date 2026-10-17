@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CommandService } from '@doru/platform';
-import { ChatPanel, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
+import { ChatPanel, EmptyEditorPage, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import { PersonTab } from './components/PersonTab';
 import { SidebarView } from './components/SidebarView';
@@ -156,12 +156,18 @@ export function App() {
 
   const editor =
     projectPath === undefined ? null : tabs.openTabs.length === 0 ? (
-      <WelcomePage
-        recent={project.recent}
-        onCreateProject={() => void project.createProject()}
-        onOpenProject={() => void project.openProject()}
-        onOpenRecent={(path) => void project.openProject(path)}
-      />
+      projectPath === null ? (
+        <WelcomePage
+          recent={project.recent}
+          onCreateProject={() => void project.createProject()}
+          onOpenProject={() => void project.openProject()}
+          onOpenRecent={(path) => void project.openProject(path)}
+        />
+      ) : (
+        // All tabs closed with a project open: show the wordmark and the
+        // keyboard shortcuts instead of the welcome screen.
+        <EmptyEditorPage platform={window.doru.platform} />
+      )
     ) : (
       <div className="editor-stack">
         {tabs.openTabs.map((tab) => (

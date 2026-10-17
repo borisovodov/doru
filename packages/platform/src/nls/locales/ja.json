@@ -130,6 +130,7 @@
   "workbench.activityBar.tasks": "タスク",
   "workbench.activityBar.tree": "家系図",
   "workbench.closeActiveTab": "タブを閉じる",
+  "workbench.keyboardShortcuts": "キーボードショートカット",
   "workbench.openProject": "プロジェクトを開く…",
   "workbench.recent": "最近",
   "workbench.recent.empty": "最近のプロジェクトはありません",
