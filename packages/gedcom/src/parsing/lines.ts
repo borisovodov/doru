@@ -9,8 +9,16 @@
  * lineage-linked semantics — the per-version assemblers do that.
  */
 
-import { fail, type SourcePosition } from '../errors';
-import type { DecodedDocument, DecodedLine } from './decode';
+import type {
+  SourcePosition,
+} from '../errors';
+import {
+  fail,
+} from '../errors';
+import type {
+  DecodedDocument,
+  DecodedLine,
+} from './decode';
 
 /** The payload of one raw line after continuation merging. */
 export type RawValue =

@@ -12,7 +12,13 @@
  * as a whole and split afterwards.
  */
 
-import { DOCUMENT_START, type ParseResult, ok } from '../errors';
+import type {
+  ParseResult,
+} from '../errors';
+import {
+  DOCUMENT_START,
+  ok,
+} from '../errors';
 
 /** Character sets declared by the GEDCOM 5.5.1 header. */
 export type Charset551 = 'ANSEL' | 'ASCII' | 'UTF-8' | 'UNICODE';
