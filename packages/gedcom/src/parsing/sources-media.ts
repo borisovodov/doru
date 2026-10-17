@@ -115,6 +115,10 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         NOTE: (child) => {
           (out.notes ??= []).push(parseNoteStructure(child, ctx));
         },
+        '_APID': (child) => {
+          // Ancestry record reference; see docs/vendor-extensions.md.
+          (out.ancestryPointers ??= []).push(reqText(child));
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -241,9 +245,17 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   // 5.5.1: pointer form, or inline form (synthesized into a record).
   if (node.value.kind === 'pointer') {
     const out: MultimediaLink = { tag: 'OBJE', object: resolvePtr(node.value.pointer, ctx, node) };
-    if (node.children.length > 0) {
-      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under OBJE`, (node.children[0] as RawNode).position);
-    }
+    dispatch(
+      node,
+      out,
+      {
+        '_PRIM': (child) => {
+          out.primary = parsePrimFlag(child);
+        },
+      },
+      ctx,
+      ['_PRIM'],
+    );
     return out;
   }
   if (node.value.kind !== 'absent') {
@@ -251,6 +263,7 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   }
   const record: MultimediaRecord = { tag: 'OBJE', files: [] };
   let title: string | undefined;
+  let primary: boolean | undefined;
   dispatch(
     node,
     record,
@@ -260,6 +273,9 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       },
       TITL: (child) => {
         title = reqText(child);
+      },
+      '_PRIM': (child) => {
+        primary = parsePrimFlag(child);
       },
     },
     ctx,
@@ -278,7 +294,19 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   } while (ctx.xrefs.has(xref));
   ctx.xrefs.add(xref);
   ctx.synthetic.push(record);
-  return { tag: 'OBJE', object: xref };
+  return { tag: 'OBJE', object: xref, ...(primary === undefined ? {} : { primary }) };
+}
+
+/** The vendor `_PRIM` Y/N flag (see docs/vendor-extensions.md). */
+function parsePrimFlag(node: RawNode): boolean {
+  const text = reqText(node);
+  if (text === 'Y') {
+    return true;
+  }
+  if (text === 'N') {
+    return false;
+  }
+  fail('enum.invalid-value', `The _PRIM value must be Y or N, not "${text}"`, node.position);
 }
 
 export function parseCrop(node: RawNode, ctx: Ctx): CropStructure {

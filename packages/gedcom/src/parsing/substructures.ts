@@ -384,6 +384,56 @@ export function parseReferenceIdentifier(node: RawNode, ctx: Ctx): ReferenceIden
   return out;
 }
 
+/**
+ * GEDCOM 5.5.1 vendor extension `_SDATE` — a sort date with the same
+ * value format as DATE. Normalized into the 7.0 SortDateStructure. See
+ * docs/vendor-extensions.md.
+ */
+export function parseSortDate551(node: RawNode): SortDateStructure {
+  const out: SortDateStructure = {};
+  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  if (raw !== undefined) {
+    const parsed = parseDateValue551(raw, node.position);
+    out.value = parsed.value;
+    const phrase = parsed.phrase ?? (parsed.dualYear ? raw : undefined);
+    if (phrase !== undefined) {
+      out.phrase = phrase;
+    }
+  }
+  if (node.children.length > 0) {
+    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under _SDATE`, (node.children[0] as RawNode).position);
+  }
+  return out;
+}
+
+/**
+ * GEDCOM 5.5.1 vendor extension `_SHAR @xref@` with an optional `_ROLE`
+ * (or `ROLE`) descriptor: a co-participant of an event. Normalized into
+ * the 7.0 ASSOCIATION_STRUCTURE with the free-text descriptor kept as
+ * ROLE OTHER + PHRASE. See docs/vendor-extensions.md.
+ */
+export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStructure {
+  const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
+  let roleSeen = false;
+  const setRole = (child: RawNode): void => {
+    if (roleSeen) {
+      fail('structure.cardinality', 'At most one role is allowed under _SHAR', child.position);
+    }
+    roleSeen = true;
+    out.role = { payload: 'OTHER', phrase: reqText(child) };
+  };
+  dispatch(
+    node,
+    out,
+    {
+      '_ROLE': setRole,
+      ROLE: setRole,
+    },
+    ctx,
+  );
+  return out;
+}
+
 export function parseUniqueIdentifier(node: RawNode): UniqueIdentifierStructure {
   const out: UniqueIdentifierStructure = { tag: 'UID', payload: reqText(node) };
   if (node.children.length > 0) {

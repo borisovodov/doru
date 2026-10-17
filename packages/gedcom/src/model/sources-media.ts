@@ -55,6 +55,15 @@ export interface SourceCitation extends GedcomStructureBase {
   media?: MultimediaLink[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+  /**
+   * _APID {0:M} — Ancestry.com record references, format `dbid::record`
+   * (in the wild often prefixed, e.g. `1,7602::2771226`), written by
+   * Ancestry tree downloads and read by Family Tree Maker. Not part of
+   * any GEDCOM version; see docs/vendor-extensions.md. Dropped when
+   * serializing to 7.0 (Ancestry's GEDCOM 7 exports use the registered
+   * PUBL.DATE/PLAC extensions instead).
+   */
+  ancestryPointers?: Text[];
 }
 
 /**
@@ -157,6 +166,14 @@ export interface MultimediaLink extends GedcomStructureBase {
   crop?: CropStructure;
   /** TITL {0:1}, g7:TITL — supersedes any OBJE.FILE.TITL in the multimedia record. Dropped when serializing to 5.5.1. */
   title?: Text;
+  /**
+   * _PRIM Y {0:1} — marks the preferred/primary multimedia item. A
+   * vendor extension (Legacy Family Tree, Family Tree Maker, RootsMagic,
+   * rootstrust, …); not part of any GEDCOM version. See
+   * docs/vendor-extensions.md. Dropped when serializing to 7.0 (7.0 has
+   * no primary marker; presentation order is used instead).
+   */
+  primary?: boolean;
 }
 
 /**

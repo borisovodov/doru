@@ -352,8 +352,11 @@ would be, or where the model takes a documented position:
   Serialization).
 - Real-world vendor extensions (underscore tags, GEDCOM 7 SCHMA URIs)
   are catalogued with their sources in
-  [docs/vendor-extensions.md](docs/vendor-extensions.md); the catalog is
-  the checklist for the corpus-validation work.
+  [docs/vendor-extensions.md](docs/vendor-extensions.md). The
+  multi-vendor core (`_UID`, `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`,
+  `_FREL`/`_MREL`, `_APID`) is typed in the model and normalized like
+  the 5.5.1 fields; the catalog remains the checklist for the
+  corpus-validation work.
 
 ## Future work
 

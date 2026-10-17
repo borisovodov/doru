@@ -26,6 +26,7 @@ import type {
   IndividualRecord,
   SubmitterRecord,
 } from '../structures';
+import type { PedigreeEnum } from '../enumerations';
 
 /** The SOUR identifier written when exporting to 5.5.1 without one. */
 export const DEFAULT_SYSTEM_ID_551 = 'DORU';
@@ -244,9 +245,56 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
 }
 
 /**
- * Returns the dataset unchanged; the 7.0 projection is performed inline
- * by the emitter. Kept for a symmetric API.
+ * GEDCOM 7.0 §3.4 g7:enumset-PEDI values matching the common
+ * `_FREL`/`_MREL` relationship keywords (case-insensitive). See
+ * docs/vendor-extensions.md.
+ */
+const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
+  ['natural', 'BIRTH'],
+  ['adopted', 'ADOPTED'],
+  ['foster', 'FOSTER'],
+  ['sealing', 'SEALING'],
+]);
+
+/**
+ * The 7.0 projection: `_FREL`/`_MREL` live under FAM.CHIL in 5.5.1;
+ * 7.0 keeps the same information in INDI.FAMC.PEDI. When both relations
+ * name the same known relationship, the matching FAMC link gets its
+ * PEDI filled; otherwise the relations are dropped (the 7.0 emitter
+ * never writes them).
  */
 export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
-  return dataset;
+  const out = clone(dataset);
+  const individuals = new Map<string, IndividualRecord>();
+  for (const record of out.records) {
+    if (record.tag === 'INDI' && record.xref !== undefined) {
+      individuals.set(record.xref, record);
+    }
+  }
+  for (const record of out.records) {
+    if (record.tag !== 'FAM') {
+      continue;
+    }
+    const fam = record as unknown as FamilyRecord;
+    for (const link of fam.children ?? []) {
+      if (link.fatherRelation === undefined && link.motherRelation === undefined) {
+        continue;
+      }
+      const father = link.fatherRelation?.trim().toLowerCase();
+      const mother = link.motherRelation?.trim().toLowerCase();
+      if (father === undefined || mother === undefined || father !== mother) {
+        continue;
+      }
+      const payload = PEDI_BY_RELATION.get(father);
+      if (payload === undefined) {
+        continue;
+      }
+      const individual = individuals.get(link.child);
+      const famc = individual?.childFamilies?.find((entry) => entry.family === fam.xref);
+      if (famc !== undefined && famc.pedigree === undefined) {
+        famc.pedigree = { payload };
+      }
+    }
+  }
+  return out;
 }

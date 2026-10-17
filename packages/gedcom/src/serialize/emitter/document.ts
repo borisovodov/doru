@@ -247,8 +247,13 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
   extensions?: ExtensionStructure[];
 }, level: number): void {
   for (const identifier of rec.identifiers ?? []) {
-    if ((identifier.tag === 'UID' || identifier.tag === 'EXID') && version !== '7.0') {
-      // 5.5.1 has no UID/EXID; dropped.
+    if (identifier.tag === 'EXID' && version !== '7.0') {
+      // 5.5.1 has no EXID; dropped.
+      continue;
+    }
+    if (identifier.tag === 'UID' && version !== '7.0') {
+      // The vendor extension; see docs/vendor-extensions.md.
+      w.line(level, '_UID', { value: identifier.payload });
       continue;
     }
     w.line(level, identifier.tag, { value: identifier.payload });

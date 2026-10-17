@@ -86,6 +86,10 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
     };
   } else {
+    handlers['_UID'] = (child) => {
+      // The vendor extension; see docs/vendor-extensions.md.
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
     };
