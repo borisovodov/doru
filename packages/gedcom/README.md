@@ -145,6 +145,7 @@ src/
   structures.ts     the genealogical structures (records + substructures)
   gedzip.ts         GEDZIP read/write (7.0 chapter 4, via fflate)
   errors.ts         GedcomError, ParseResult, error codes
+  detect.ts         unified entry point: container + version detection
   parsing/
     decode.ts       charsets: UTF-8/BOM, ANSEL (Appendix C, NFC), ASCII, UTF-16
     lines.ts        strict container tokenizer and raw tree builder
@@ -162,6 +163,21 @@ tests/
 parseGedcom70(input: Uint8Array): ParseResult<GedcomDataset>
 parseGedcom551(input: Uint8Array): ParseResult<GedcomDataset>
 ```
+
+A unified entry point takes bare bytes and decides everything itself:
+
+```ts
+parse(bytes: Uint8Array): ParseResult<ParsedGedcom>
+// ParsedGedcom =
+//   | { kind: 'dataset'; version: '7.0' | '5.5.1'; dataset: GedcomDataset }
+//   | { kind: 'gedzip'; archive: GedzipArchive }
+```
+
+Detection: bytes starting with the zip magic `PK` are a GEDZIP archive;
+otherwise the bytes are tried as GEDCOM 7.0 first and fall back to
+GEDCOM 5.5.1 when the header declares 5.x (`document.wrong-version`) or
+the bytes fail to decode as UTF-8 (a 5.5.1 charset). Other 7.0 failures
+are reported as-is, and a failed 5.5.1 attempt reports its own error.
 
 Input is always bytes. Version handling:
 
