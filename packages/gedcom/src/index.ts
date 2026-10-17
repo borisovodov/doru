@@ -29,6 +29,7 @@ export * from './enumerations';
 export * from './structures';
 export * from './gedzip';
 export * from './errors';
+export { parse, type ParsedGedcom } from './detect';
 export { parseGedcom70, parseGedcom551 } from './parsing/assemble';
 export {
   serializeGedcom70,

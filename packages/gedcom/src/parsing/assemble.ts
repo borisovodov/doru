@@ -471,6 +471,16 @@ function parseHeader(node: RawNode, ctx: Ctx): Header {
 function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   noPayload(node);
   const gedcom: Gedcom = { version: reqText(req(node, 'VERS')) };
+  // The version gate comes first: a 5.5.1 GEDC parsed as 7.0 must fail
+  // with `document.wrong-version` (not with a FORM-related error), so
+  // that the unified `parse` can fall back to the 5.5.1 parser.
+  if (ctx.version === '7.0') {
+    if (!/^7\./.test(gedcom.version)) {
+      fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 7.x version`, node.position);
+    }
+  } else if (/^7\./.test(gedcom.version)) {
+    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 5.x version`, node.position);
+  }
   const formNode = one(node, 'FORM');
   if (ctx.version === '5.5.1') {
     if (formNode === undefined) {
@@ -485,13 +495,6 @@ function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     fail('structure.unknown-tag', 'The FORM tag is not allowed under GEDC in GEDCOM 7.0', formNode.position);
   }
   dispatch(node, gedcom, { VERS: () => undefined, FORM: () => undefined }, ctx);
-  if (ctx.version === '7.0') {
-    if (!/^7\./.test(gedcom.version)) {
-      fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 7.x version`, node.position);
-    }
-  } else if (/^7\./.test(gedcom.version)) {
-    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 5.x version`, node.position);
-  }
   return gedcom;
 }
 
