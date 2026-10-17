@@ -726,13 +726,3 @@ export interface Longitude {
 // GEDCOM 5.5.1 Chapter 3 — character sets
 // ---------------------------------------------------------------------------
 
-/**
- * GEDCOM 5.5.1 §2 Primitive Elements (p.44), `CHARACTER_SET` — the
- * character set declared in the header, used by the parser to select the
- * decoder. The model itself always holds UTF-8: the parser decodes the
- * source encoding at parse time and normalizes this field to UTF-8, so
- * text fields never carry the source encoding.
- *
- * Removed in GEDCOM 7.0, which mandates UTF-8 (GEDCOM 7.0 §1.1).
- */
-export type CharacterSet = 'ANSEL' | 'UTF-8' | 'UNICODE' | 'ASCII';

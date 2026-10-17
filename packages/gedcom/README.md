@@ -131,8 +131,8 @@ Version differences that do not change meaning are resolved on import
 and recorded in the JSDoc of the affected entity. Examples: the 5.5.1
 `INT` dates and dual years (`1648/49`) become a date plus a phrase; an
 inline 5.5.1 `OBJE` is synthesized into a `MULTIMEDIA_RECORD`; an empty
-5.5.1 `REPO` becomes the 7.0 void pointer; the declared 5.5.1 charset is
-decoded and normalized to UTF-8. The serializers emit the canonical form
+5.5.1 `REPO` becomes the 7.0 void pointer; the declared 5.5.1 charset
+selects the decoder and is discarded (the model is post-decode). The serializers emit the canonical form
 of their version and reject constructs the version cannot express.
 
 ## Package layout
@@ -180,8 +180,8 @@ continuation merging, and the per-version banned-character rules.
 
 Decoding happens at parse time, and the model is **post-decode**: every
 text field holds plain Unicode, never the source encoding. The declared
-5.5.1 charset (`CHAR`) is used only to select the decoder and is
-normalized to UTF-8 in the model's `header.characterSet`.
+5.5.1 charset (`CHAR`) is validated strictly, used only to select the
+decoder, and then discarded — the model has no `characterSet` field.
 
 What strictness rejects (each with its own error code):
 
@@ -271,8 +271,8 @@ always export as UTF-8**:
 
 The model is already post-decode (see Parsing): parsing re-encodes
 ANSEL/ASCII/UTF-16/UTF-8 input to Unicode (ANEL additionally
-NFC-normalized) and normalizes `header.characterSet` to UTF-8, so the
-byte layer never sees the source encoding. The reverse ANSEL encoding
+NFC-normalized) and discards the declared charset, so the byte layer
+never sees the source encoding. The reverse ANSEL encoding
 (NFC → NFD → Appendix C bytes) is explicitly out of scope — only
 *decoding* of ANSEL/ASCII/UTF-16 input is supported, and it already
 exists.
