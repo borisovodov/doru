@@ -34,7 +34,6 @@ import type {
   AssociationStructure,
   CallNumberStructure,
   ChangeDate,
-  CharacterSetStructure,
   ChildFamilyLink,
   Corporation,
   CreationDate,
@@ -447,7 +446,7 @@ function parseHeader(node: RawNode, ctx: Ctx): Header {
       ...(ctx.version === '5.5.1'
         ? {
             CHAR: (child) => {
-              header.characterSet = parseCharacterSetStructure(child);
+              parseCharacterSetStructure(child);
             },
           }
         : {}),
@@ -464,9 +463,6 @@ function parseHeader(node: RawNode, ctx: Ctx): Header {
     }
     if (header.submitter === undefined) {
       fail('structure.missing-required', 'The 5.5.1 header requires a SUBM substructure', node.position);
-    }
-    if (header.characterSet === undefined) {
-      fail('structure.missing-required', 'The 5.5.1 header requires a CHAR substructure', node.position);
     }
   }
   return header;
@@ -601,25 +597,21 @@ function parseHeaderPlace(node: RawNode, ctx: Ctx): HeaderPlace {
   return place;
 }
 
-function parseCharacterSetStructure(node: RawNode): CharacterSetStructure {
+/** Validates the 5.5.1 CHAR line; the declared value selects the
+ * decoder (checked earlier by the charset detection) and is not stored
+ * in the model. CHAR.VERS is accepted and discarded. */
+function parseCharacterSetStructure(node: RawNode): void {
   const text = reqText(node);
   const upper = text.toUpperCase();
   if (upper !== 'ANSEL' && upper !== 'ASCII' && upper !== 'UTF-8' && upper !== 'UNICODE') {
     fail('charset.invalid', `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, or ASCII`, node.position);
   }
-  // The declared value selects the decoder; the model always holds UTF-8.
-  // The CHAR.VERS substructure describes the source charset standard and
-  // is meaningless after normalization, so it is discarded.
-  const out: CharacterSetStructure = { payload: 'UTF-8' };
   dispatch(
     node,
-    out,
-    {
-      VERS: () => undefined,
-    },
+    { },
+    { VERS: () => undefined },
     { version: '5.5.1', xrefs: new Set(), synthetic: [], syntheticIndex: 0 },
   );
-  return out;
 }
 
 function parseLanguage(node: RawNode, ctx: Ctx): string {

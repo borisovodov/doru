@@ -482,9 +482,6 @@ class Emitter {
           this.w.line(2, 'TAG', { value: `${def.payload.tag} ${def.payload.uri}` });
         }
       }
-      if (h.characterSet !== undefined) {
-        this.v70('the 5.5.1 CHAR header');
-      }
       if (h.submission !== undefined || h.fileName !== undefined) {
         this.v70('the 5.5.1 SUBN/FILE header fields');
       }
@@ -500,9 +497,6 @@ class Emitter {
       }
       if (h.submitter === undefined) {
         fail('serialize.missing-field', 'The 5.5.1 header requires SUBM');
-      }
-      if (h.characterSet === undefined) {
-        fail('serialize.missing-field', 'The 5.5.1 header requires CHAR');
       }
       if (h.gedcom.form === undefined) {
         fail('serialize.missing-field', 'The 5.5.1 header requires GEDC.FORM');
@@ -536,13 +530,9 @@ class Emitter {
     if (this.version === '5.5.1') {
       this.w.line(2, 'FORM', { value: 'LINEAGE-LINKED' });
     }
-    if (this.version === '5.5.1' && h.characterSet !== undefined) {
-      // Export is always UTF-8; the model normalizes the declared
-      // source charset to UTF-8 at parse time.
+    if (this.version === '5.5.1') {
+      // Export is always UTF-8 (the model is post-decode).
       this.w.line(1, 'CHAR', { value: 'UTF-8' });
-      if (h.characterSet.version !== undefined) {
-        this.w.line(2, 'VERS', { value: h.characterSet.version });
-      }
     }
     if (h.language !== undefined) {
       this.w.line(1, 'LANG', { value: this.language(h.language) });

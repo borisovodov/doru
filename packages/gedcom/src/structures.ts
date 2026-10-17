@@ -36,7 +36,6 @@ import type {
 import type {
   AgeValue,
   Xref,
-  CharacterSet,
   DateExact,
   DatePeriodValue,
   DateValue,
@@ -148,7 +147,9 @@ export interface Trailer {
  *
  * GEDCOM 5.5.1 §2 Record Structures (p.23), `HEADER` — the same structure;
  * in 5.5.1 SOUR and SUBM are required ({1:1}) and the header additionally
- * carries SUBN, FILE, CHAR (required) and GEDC.FORM (required).
+ * carries SUBN, FILE, CHAR (required) and GEDC.FORM (required). CHAR is
+ * validated strictly on input and used to select the decoder, but is not
+ * stored in the model (which is post-decode and always UTF-8).
  */
 export interface Header extends GedcomStructureBase {
   tag: 'HEAD';
@@ -180,31 +181,9 @@ export interface Header extends GedcomStructureBase {
   language?: Language;
   /** PLAC {0:1}, g7:HEAD-PLAC — the default PLAC.FORM; must not have a payload. GEDCOM 7.0 §3.2.1. */
   place?: HeaderPlace;
-  /**
-   * CHAR {1:1} — the character set used to interpret the transmission,
-   * with an optional version substructure. The declared value selects
-   * the decoder; the model normalizes it to UTF-8.
-   * GEDCOM 5.5.1 §2 Record Structures (p.23) and GEDCOM 5.5.1 §3 (p.77).
-   * Removed in GEDCOM 7.0, which mandates UTF-8.
-   */
-  characterSet?: CharacterSetStructure;
   /** <<NOTE_STRUCTURE>> {0:1} — should describe the contents of the document. GEDCOM 7.0 §3.2.1. */
   note?: NoteStructure;
 }
-
-/**
- * GEDCOM 5.5.1 §2 Record Structures (p.23) — the CHAR substructure of the
- * header. The declared source character set selects the decoder at parse
- * time; the model normalizes it to UTF-8 (all text fields are plain
- * Unicode), so `payload` is always `'UTF-8'` here. Removed in GEDCOM 7.0.
- */
-export interface CharacterSetStructure extends GedcomStructureBase {
-  /** The CHAR payload — always `'UTF-8'` in the model (normalized at parse time). */
-  payload: CharacterSet;
-  /** VERS {0:1} — the version of the declared character set standard; discarded by the parser after decoding. */
-  version?: Text;
-}
-
 /**
  * GEDCOM 7.0 §3.2.1 HEADER rule — g7:GEDC: a container for information about the
  * entire document.

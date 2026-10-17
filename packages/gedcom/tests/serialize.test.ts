@@ -190,7 +190,6 @@ describe('serializeGedcom551', () => {
     const header = dataset.header;
     header.source = { payload: 'MyApp' };
     header.submitter = '@S1@';
-    header.characterSet = { payload: 'UTF-8' };
     header.gedcom.form = 'LINEAGE-LINKED';
     header.gedcom.version = '5.5.1';
     const text = ser551(dataset);
@@ -204,7 +203,6 @@ describe('serializeGedcom551', () => {
     const header = dataset.header;
     header.source = { payload: 'MyApp' };
     header.submitter = '@S1@';
-    header.characterSet = { payload: 'UTF-8' };
     header.gedcom.form = 'LINEAGE-LINKED';
     header.gedcom.version = '5.5.1';
     dataset.records.push({ tag: 'SUBM', name: 'T' });
@@ -219,7 +217,6 @@ describe('serializeGedcom551', () => {
     const header = dataset.header;
     header.source = { payload: 'MyApp' };
     header.submitter = '@S1@';
-    header.characterSet = { payload: 'UTF-8' };
     header.gedcom.form = 'LINEAGE-LINKED';
     header.gedcom.version = '5.5.1';
     dataset.records.push({ tag: 'SUBM', name: 'T' });
@@ -235,7 +232,6 @@ describe('serializeGedcom551', () => {
     const header = dataset.header;
     header.source = { payload: 'MyApp' };
     header.submitter = '@S1@';
-    header.characterSet = { payload: 'UTF-8' };
     header.gedcom.form = 'LINEAGE-LINKED';
     header.gedcom.version = '5.5.1';
     dataset.records.push({ tag: 'SUBM', name: 'T' });
