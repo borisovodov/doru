@@ -13,9 +13,9 @@ if (result.ok) {
 }
 ```
 
-- Zero runtime dependencies today (GEDZIP will add `fflate` as the single
-  dependency), pure TypeScript, no Electron or `@doru/*` imports — the
-  package is testable and reusable in isolation.
+- One runtime dependency (`fflate`, pure TypeScript, MIT, ~8 kB) for the
+  GEDZIP zip layer; no Electron or `@doru/*` imports — the package is
+  testable and reusable in isolation.
 - Strict by design: every violation of either specification is a typed
   error with a unique code and the source position of the offending line.
 - Every exported type carries the specification references it is derived
@@ -41,8 +41,8 @@ package, the app used `read-gedcom` for import and a hand-written minimal
    is the worst possible failure mode.
 
 The package solves all three: one ideal model (the specification, in
-TypeScript notation), two strict parsers and two strict serializers, and
-GEDZIP modelled and planned on the same layer.
+TypeScript notation), two strict parsers and two strict serializers, and GEDZIP
+read/write on the same layer.
 
 ## Ideology and principles
 
@@ -143,7 +143,7 @@ src/
   primitives.ts     identifiers, data types, known calendars (both specs)
   enumerations.ts   enumeration sets with per-value meanings
   structures.ts     the genealogical structures (records + substructures)
-  gedzip.ts         the GEDZIP container types (7.0 chapter 4)
+  gedzip.ts         GEDZIP read/write (7.0 chapter 4, via fflate)
   errors.ts         GedcomError, ParseResult, error codes
   parsing/
     decode.ts       charsets: UTF-8/BOM, ANSEL (Appendix C, NFC), ASCII, UTF-16
@@ -229,6 +229,28 @@ a RELA relationship in 7.0, the SEX value `X` in 5.5.1, …) fails with
 construct. Missing 5.5.1 header requirements (`SOUR`, `SUBM`, `CHAR`,
 `GEDC.FORM`) are errors, not defaults.
 
+## GEDZIP (7.0 chapter 4)
+
+```ts
+parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive>
+serializeGedzip(archive: GedzipArchive): ParseResult<Uint8Array>
+```
+
+`parseGedzip` unzips the archive, parses the `gedcom.ged` entry as a
+GEDCOM 7.0 data stream, and surfaces every other entry as a media file
+(zip directory markers are skipped). `serializeGedzip` writes the
+dataset as a 7.0 UTF-8 stream plus one entry per media file.
+
+- Zip entry names equal the `FILE` payload strings verbatim (no
+  percent-decoding in either direction); names are case-sensitive UTF-8.
+- External URLs (`ftp`/`http`/`https`/`file`) simply have no entry.
+- Strictness: a missing `gedcom.ged` entry is `gedzip.missing-dataset`,
+  malformed zip data is `gedzip.invalid-archive`, duplicate entry names
+  (and a media name colliding with `gedcom.ged`) are
+  `gedzip.duplicate-entry`. Reserved names (`MANIFEST.MF`, `META-INF/`)
+  pass through untouched, per the specification's "recommended not to
+  use".
+
 ## Testing
 
 The test suite covers every error code, every structure family of both
@@ -289,51 +311,7 @@ it without re-deriving context.
     validated and discarded);
   - export is always UTF-8.
 
-### 1. GEDZIP (7.0 chapter 4)
-
-**Decisions (made):** use `fflate` — the package's single runtime
-dependency (pure TypeScript, MIT, ~8 kB). Add it to
-`packages/gedcom/package.json` (it has no install scripts; keep the
-lockfile in sync). The GEDZIP types already exist in `src/gedzip.ts` —
-implement the functions there.
-
-**API:**
-
-```ts
-parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive>
-serializeGedzip(archive: GedzipArchive): ParseResult<Uint8Array>
-```
-
-- `parseGedzip`: `unzipSync(bytes)` → require the entry `gedcom.ged` →
-  `parseGedcom70` its bytes (GEDZIP bundles a 7.0 data stream, and
-  `parseGedcom70` already enforces `GEDC.VERS` 7.x) → every other entry
-  becomes a `GedzipMediaEntry { name, contents }`.
-- `serializeGedzip`: `serializeGedcom70` → UTF-8 bytes → `zipSync` with
-  `{'gedcom.ged': …}` plus one entry per `mediaFiles` name.
-
-**Rules and edge cases:**
-
-- Zip entry names are **not** percent-escaped; they equal the `FILE`
-  payload strings verbatim (7.0 §4), so there is no percent-decoding
-  step in either direction.
-- Only *local* `FILE` payloads become archive entries; `ftp`/`http`/
-  `https`/`file` URLs are external and simply have no entry. On read,
-  unknown extra entries are surfaced (tolerant); duplicate entry names
-  are an error.
-- `MANIFEST.MF` and `META-INF/` prefixes are "recommended not to use"
-  (§4), not forbidden — pass them through, do not reject.
-- Entry names are case-sensitive UTF-8.
-- New error codes go into `errors.ts`, e.g. `gedzip.missing-dataset`,
-  `gedzip.duplicate-entry`.
-
-**Tests:** round-trip an archive (dataset deep-equal, media bytes
-byte-equal); missing `gedcom.ged`; a `file://` payload without an entry;
-reserved names preserved. Keep a tiny fixture with one small media file.
-
-**Files:** `src/gedzip.ts`, `src/errors.ts`, `tests/gedzip.test.ts`,
-`package.json`.
-
-### 2. Corpus validation runs
+### 1. Corpus validation runs
 
 **Goal:** validate the strict parsers against real-world `.ged` files
 from many producers, aggregate failures by error code, and turn findings
@@ -365,7 +343,7 @@ arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN`; free-form
 at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
 dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
 
-### 3. Version conversion layer
+### 2. Version conversion layer
 
 **Goal:** translate between the versions instead of rejecting (the
 serializers stay strict). This is a *product* decision layered above the
@@ -408,7 +386,7 @@ Strict by default: a construct the target version cannot express is a
 serializers; one test per mapping-table row; error tests for the
 "error" rows.
 
-### 4. Application integration
+### 3. Application integration
 
 **Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
 no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
@@ -455,7 +433,7 @@ UI was deliberately left untouched.
 `packages/core` (mapping module or ops), `packages/gedcom` (only if the
 mapping is generic enough to live there), renderer, e2e.
 
-### 5. Repository follow-ups
+### 4. Repository follow-ups
 
 - Update the GEDCOM section of `docs/architecture.md` (it still
   describes the pre-library stub state).
