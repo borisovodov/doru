@@ -85,7 +85,11 @@ export type GedcomErrorCode =
   // Serialization errors (no source position).
   | 'serialize.missing-field'
   | 'serialize.unsupported-value'
-  | 'serialize.invalid-text';
+  | 'serialize.invalid-text'
+  // GEDZIP errors.
+  | 'gedzip.invalid-archive'
+  | 'gedzip.missing-dataset'
+  | 'gedzip.duplicate-entry';
 
 export interface GedcomError {
   code: GedcomErrorCode;
