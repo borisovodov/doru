@@ -13,8 +13,9 @@ if (result.ok) {
 }
 ```
 
-- Zero runtime dependencies, pure TypeScript, no Electron or `@doru/*`
-  imports — the package is testable and reusable in isolation.
+- Zero runtime dependencies today (GEDZIP will add `fflate` as the single
+  dependency), pure TypeScript, no Electron or `@doru/*` imports — the
+  package is testable and reusable in isolation.
 - Strict by design: every violation of either specification is a typed
   error with a unique code and the source position of the offending line.
 - Every exported type carries the specification references it is derived
@@ -253,44 +254,42 @@ The items below are planned and designed, but **not implemented**; they
 will be built in later sessions. They are listed here so the design
 decisions are written down next to the code they will extend.
 
-### 1. Byte-level output encoding
+### 1. Byte-level output encoding — UTF-8 only
 
 `serializeGedcom70` / `serializeGedcom551` return text today. Writing
-actual files needs an encoding layer:
+actual files needs a thin byte layer, and by decision **both versions
+always export as UTF-8**:
 
-- **7.0** — UTF-8 (with an optional BOM), CRLF line endings.
-- **5.5.1** — encode according to the header `CHAR`:
-  - `ANSEL`: NFC → NFD decomposition, then map combining marks to the
-    Appendix C bytes *before* their base character (the exact inverse of
-    the decoder);
-  - `ASCII`: strict error on any character above 0x7F;
-  - `UTF-8`: as 7.0;
-  - `UNICODE`: UTF-16 with BOM.
+- **7.0** — UTF-8 (no BOM), CRLF line endings.
+- **5.5.1** — also UTF-8; the emitted header declares `1 CHAR UTF-8`
+  (one of the four permitted 5.5.1 charsets), regardless of the
+  `characterSet` field in the model. A dataset parsed from an ANSEL file
+  therefore re-exports as UTF-8 — a deliberate, documented
+  normalization.
 
-The API decision to make here: add byte-returning functions
-(`serializeGedcom70Bytes`) or a separate encoding step that takes the
-declared charset. The round-trip property to verify: decode(bytes) →
-serialize → encode produces byte-identical output for canonical input.
+Because output is always UTF-8, the reverse ANSEL encoding (NFC → NFD →
+Appendix C bytes) is explicitly out of scope; only *decoding* of
+ANSEL/ASCII/UTF-16 input is supported, and it already exists.
+
+Open API decision: byte-returning variants
+(`serializeGedcom70Bytes` / `serializeGedcom551Bytes`) or a separate
+encoding step that takes the text plus the version. Round-trip property:
+decode(bytes) → serialize → encode reproduces the model; byte-identical
+output is expected only for UTF-8 input (ANSEL input re-exports as
+UTF-8).
 
 ### 2. GEDZIP (7.0 chapter 4)
 
 `GedzipArchive` / `GedzipMediaEntry` types exist; read and write are
-missing. The open decision is the zip implementation, because the package
-is declared dependency-free:
+missing. Decision: use **`fflate`** (pure TypeScript, MIT, ~8 kB) — the
+package's single runtime dependency. Reading and writing zip archives by
+hand is a non-core problem not worth owning.
 
-- **Option A: add `fflate`** (pure JavaScript, MIT, ~8 kB). Full DEFLATE
-  support, battle-tested.
-- **Option B: own minimal zip** — store-method entries only (no
-  compression). Enough for GEDZIP correctness, but larger files and no
-  interop guarantees with unusual zips.
-- **Option C: separate adapter package** (`@doru/gedzip` or similar) that
-  depends on a zip library, keeping `@doru/gedcom` dependency-free.
-
-Recommendation: A or C. The API: `parseGedzip(bytes)` /
-`serializeGedzip(archive)`, with the media files surfaced next to the
-dataset. GEDZIP rules to enforce: entry `gedcom.ged` present, one entry
-per local `FILE` payload, reserved names (`MANIFEST.MF`, `META-INF/`)
-left alone.
+API: `parseGedzip(bytes)` / `serializeGedzip(archive)`, with the media
+files surfaced next to the dataset. GEDZIP rules to enforce: the entry
+`gedcom.ged` present; one entry per local `FILE` payload with the same
+(non-percent-escaped) zip name; entry names case-sensitive UTF-8; the
+reserved names (`MANIFEST.MF`, `META-INF/`) left alone.
 
 ### 3. Corpus validation runs
 
