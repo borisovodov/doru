@@ -255,85 +255,230 @@ would be, or where the model takes a documented position:
 
 ## Future work
 
-The items below are planned and designed, but **not implemented**; they
-will be built in later sessions. They are listed here so the design
-decisions are written down next to the code they will extend.
+The items below are planned and designed, but **not implemented**. They
+are written as self-contained briefs: decisions already made, the
+proposed API, the rules and edge cases to enforce, the test plan, and the
+files involved — so that a later session can pick any item and implement
+it without re-deriving context.
+
+### State snapshot (for the next session)
+
+- The package lives in `packages/gedcom` on branch `feat/gedcom-library`
+  (rebased on `main`, force-pushed as it evolves; it has not been merged
+  yet).
+- Completed and tested: the dual-version model (`primitives.ts`,
+  `enumerations.ts`, `structures.ts`, `gedzip.ts`), the strict parsers
+  (`parsing/`), the strict serializers (`serialize/serialize.ts`), the
+  error model (`errors.ts`), and ANSEL decoding. 126 package tests / 230
+  repo tests, clean typecheck.
+- Conventions a later session must follow:
+  - every model entity cites both specs (`GEDCOM 7.0 §…`,
+    `GEDCOM 5.5.1 §2 (p.…)`);
+  - operations return `ParseResult<T>` and never throw; errors carry a
+    unique `code` (see `errors.ts`) and a source position;
+  - normalization decisions are recorded in the JSDoc of the affected
+    entity;
+  - the model is post-decode (always Unicode; the declared charset is
+    validated and discarded);
+  - export is always UTF-8.
 
 ### 1. Byte-level output encoding — UTF-8 only
 
-`serializeGedcom70` / `serializeGedcom551` return text today. Writing
-actual files needs a thin byte layer, and by decision **both versions
-always export as UTF-8**:
-
-- **7.0** — UTF-8 (no BOM), CRLF line endings.
-- **5.5.1** — also UTF-8, with the header line `1 CHAR UTF-8` (one of
-  the four permitted 5.5.1 charsets).
-
-The model is already post-decode (see Parsing): parsing re-encodes
-ANSEL/ASCII/UTF-16/UTF-8 input to Unicode (ANEL additionally
-NFC-normalized) and discards the declared charset, so the byte layer
-never sees the source encoding. The reverse ANSEL encoding
+**Decisions (made):** both versions export strictly as UTF-8, without a
+BOM, with CRLF line endings. 5.5.1 output declares `1 CHAR UTF-8` (one
+of the four permitted 5.5.1 charsets). The reverse ANSEL encoding
 (NFC → NFD → Appendix C bytes) is explicitly out of scope — only
-*decoding* of ANSEL/ASCII/UTF-16 input is supported, and it already
-exists.
+*decoding* of ANSEL/ASCII/UTF-16 input exists, and it already does.
 
-Open API decision: byte-returning variants
-(`serializeGedcom70Bytes` / `serializeGedcom551Bytes`) or a separate
-encoding step that takes the text plus the version.
+**API (proposed, follow it):** add thin byte wrappers next to the text
+serializers:
+
+```ts
+serializeGedcom70Bytes(dataset: GedcomDataset): ParseResult<Uint8Array>
+serializeGedcom551Bytes(dataset: GedcomDataset): ParseResult<Uint8Array>
+```
+
+Implementation is `new TextEncoder().encode(text)` over the existing
+text serializers — `serialize.ts` already joins lines with `\r\n` and
+terminates with `\r\n`, so no line-ending work remains. The text
+serializers stay the tested core; the byte wrappers are one-liners plus
+tests.
+
+**Tests:** encode → `decodeDocument(bytes, '7.0'/'5.5.1')` → parse →
+deep-equal model (this doubles as the file-level round trip); bytes of
+the minimal document equal the expected byte sequence; a non-ASCII
+payload round-trips through UTF-8 (e.g. `NAME Иван /Иванов/`).
+
+**Files:** `src/serialize/serialize.ts` (wrappers), `tests/serialize.test.ts`.
 
 ### 2. GEDZIP (7.0 chapter 4)
 
-`GedzipArchive` / `GedzipMediaEntry` types exist; read and write are
-missing. Decision: use **`fflate`** (pure TypeScript, MIT, ~8 kB) — the
-package's single runtime dependency. Reading and writing zip archives by
-hand is a non-core problem not worth owning.
+**Decisions (made):** use `fflate` — the package's single runtime
+dependency (pure TypeScript, MIT, ~8 kB). Add it to
+`packages/gedcom/package.json` (it has no install scripts; keep the
+lockfile in sync). The GEDZIP types already exist in `src/gedzip.ts` —
+implement the functions there.
 
-API: `parseGedzip(bytes)` / `serializeGedzip(archive)`, with the media
-files surfaced next to the dataset. GEDZIP rules to enforce: the entry
-`gedcom.ged` present; one entry per local `FILE` payload with the same
-(non-percent-escaped) zip name; entry names case-sensitive UTF-8; the
-reserved names (`MANIFEST.MF`, `META-INF/`) left alone.
+**API:**
+
+```ts
+parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive>
+serializeGedzip(archive: GedzipArchive): ParseResult<Uint8Array>
+```
+
+- `parseGedzip`: `unzipSync(bytes)` → require the entry `gedcom.ged` →
+  `parseGedcom70` its bytes (GEDZIP bundles a 7.0 data stream, and
+  `parseGedcom70` already enforces `GEDC.VERS` 7.x) → every other entry
+  becomes a `GedzipMediaEntry { name, contents }`.
+- `serializeGedzip`: `serializeGedcom70` → UTF-8 bytes → `zipSync` with
+  `{'gedcom.ged': …}` plus one entry per `mediaFiles` name.
+
+**Rules and edge cases:**
+
+- Zip entry names are **not** percent-escaped; they equal the `FILE`
+  payload strings verbatim (7.0 §4), so there is no percent-decoding
+  step in either direction.
+- Only *local* `FILE` payloads become archive entries; `ftp`/`http`/
+  `https`/`file` URLs are external and simply have no entry. On read,
+  unknown extra entries are surfaced (tolerant); duplicate entry names
+  are an error.
+- `MANIFEST.MF` and `META-INF/` prefixes are "recommended not to use"
+  (§4), not forbidden — pass them through, do not reject.
+- Entry names are case-sensitive UTF-8.
+- New error codes go into `errors.ts`, e.g. `gedzip.missing-dataset`,
+  `gedzip.duplicate-entry`.
+
+**Tests:** round-trip an archive (dataset deep-equal, media bytes
+byte-equal); missing `gedcom.ged`; a `file://` payload without an entry;
+reserved names preserved. Keep a tiny fixture with one small media file.
+
+**Files:** `src/gedzip.ts`, `src/errors.ts`, `tests/gedzip.test.ts`,
+`package.json`.
 
 ### 3. Corpus validation runs
 
-The strict parser is a hypothesis about the real world. The plan is to
-run it over a large corpus of real `.ged` files from different producers
-(RootsMagic, Gramps, MyHeritage, FamilySearch samples, GEDKeeper, …),
-aggregate failures by error code, and decide per finding whether to:
+**Goal:** validate the strict parsers against real-world `.ged` files
+from many producers, aggregate failures by error code, and turn findings
+into decisions. The strictness is a bet; this is where it gets tested.
 
-- extend the model (new fields or normalization rules), or
-- keep the strict error and document it, or
-- (rarely) accept a specification ambiguity as a documented deviation.
+**Method:**
 
-Already-suspected divergence points to watch: arbitrary user values in
-5.5.1 `DATA.EVEN`/`SOUR.EVEN`; free-form `NAME_TYPE`; parenthesized
-`ROLE` descriptors; non-`@@` at-signs in real 5.5.1 files; `CONC` in 7.0
-files written by tools that migrated badly; partial dates; `B.C.` on
-full dates in 5.5.1.
+- Gather files from public sources (FamilySearch spec samples; the
+  `royal92.ged` referenced by the `read-gedcom` docs; files produced by
+  RootsMagic, Gramps, MyHeritage, GEDKeeper, Ancestry, …). Do **not**
+  commit corpus files to the repository (size/licensing) — the tooling
+  takes a directory path.
+- A dev script (e.g. `scripts/gedcom-corpus.ts`, following the repo's
+  Node type-stripping conventions) walks the directory and parses each
+  file with both parsers. Version detection is simple: `parseGedcom70`
+  rejects 5.5.1 at `document.wrong-version`/decoding, `parseGedcom551`
+  rejects 7.0 at `decoding.missing-charset` — try both, and if both fail
+  report the richer error. Aggregate results per producer and per
+  `GedcomError.code` into a JSON/table report.
+- For every finding, decide exactly one of: extend the model / add a
+  normalization (record it in JSDoc, like the existing ones) / keep the
+  strict error and document it in "Known strict decisions" / (rarely)
+  accept a specification ambiguity as a documented deviation. **Never
+  relax the parser silently.**
+
+**Already-suspected divergence points** (start by checking these):
+arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN`; free-form
+`NAME_TYPE`; parenthesized `ROLE` descriptors; single (non-doubled)
+at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
+dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
 
 ### 4. Version conversion layer
 
-The serializers are strict: they reject constructs of the other version.
-A conversion layer would translate instead of reject — RELA → ROLE +
-PHRASE, FONE/ROMN → TRAN, 5.5.1-only fields dropped or mapped (RIN,
-RFN, AFN), 7.0-only fields mapped down or omitted, phrases reconstructed
-for dual years. This belongs above the format layer (its own module or a
-small `@doru/gedcom-convert`), because "conversion" is a product decision,
-not a format rule.
+**Goal:** translate between the versions instead of rejecting (the
+serializers stay strict). This is a *product* decision layered above the
+format: it belongs in its own module (`src/convert.ts`), not inside the
+parsers/serializers.
+
+**API (proposed):**
+
+```ts
+convertTo70(dataset: GedcomDataset): ParseResult<GedcomDataset>
+convertTo551(dataset: GedcomDataset): ParseResult<GedcomDataset>
+```
+
+Strict by default: a construct the target version cannot express is a
+`convert.*` error unless a documented lossy option is added later.
+
+**Mapping table to implement (5.5.1 → 7.0):**
+
+| 5.5.1 | 7.0 |
+|---|---|
+| `RELA` | `ROLE OTHER` + `PHRASE` |
+| `FONE`/`ROMN` | `TRAN` with a `LANG` derived from the method (`kana` → `ja-Kana`, `hangul` → `ko-Hang`, `pinyin` → `zh-Latn`, `romaji` → `ja-Latn`, `wadegiles` → `zh-Latn-wadegile`; user-defined method → error) |
+| `NOTE` record / `NOTE` pointer | `SNOTE` record / `SNOTE` pointer |
+| age keywords `CHILD`/`INFANT`/`STILLBORN` | `bound` (`<8y`, `<1y`) / phrase (`STILLBORN` → PHRASE) |
+| `SUBN`, `RIN`, `RFN`, `AFN` | error (no 7.0 equivalent) |
+
+**Mapping table to implement (7.0 → 5.5.1):**
+
+| 7.0 | 5.5.1 |
+|---|---|
+| `SNOTE` record / pointer | `NOTE` record / pointer |
+| `SEX X`, `MEDI OTHER`, `PEDI OTHER`, `ord-STAT INFANT` | error |
+| `NAME.TYPE PROFESSIONAL`/`OTHER` | user-defined `TYPE` text (via the phrase) |
+| age weeks | error |
+| `NO` structure | error (5.5.1 has no negation) |
+| `UID`, `EXID`, `CREA`, `SDATE` | error (or drop behind an explicit lossy option) |
+| date `PHRASE` | parenthesized form when there is no date, otherwise a `NOTE` under `DATE` (5.5.1 §2 p.48 convention) |
+
+**Tests:** fixture-based conversions that round-trip through both strict
+serializers; one test per mapping-table row; error tests for the
+"error" rows.
 
 ### 5. Application integration
 
-Replace the no-op import/export IPC handlers in `apps/desktop/src/main`
-with real calls into this package, and design the mapping between the
-ideal model (`GedcomDataset`) and the app's own domain model
-(`@doru/core` `TreeDocument`): persons, families, names, dates, events,
-sources, notes, media. The mapping was deliberately postponed while the
-format layer was built; it is the critical path for re-enabling the
-Import/Export UI. The nls keys for the UI already exist.
+**Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
+no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
+`project:import`/`project:export` (`ipc-project.ts`), the preload API,
+`doru.d.ts`, the `useProject` hook, the SidebarView buttons and the nls
+keys (`features.tree.importGedcom`/`exportGedcom`) are all intact — the
+UI was deliberately left untouched.
+
+**Steps:**
+
+1. **Wire the handlers.** Import: read bytes with the existing
+   `NodeFileSystem.readBinary`, detect the version (try `parseGedcom70`,
+   fall back to `parseGedcom551` on the detection errors from item 3),
+   map the `GedcomDataset` to the app model, and apply it through the
+   existing ops (`importGedcomOp` was removed — either restore an
+   equivalent batch op or apply `addPersonOp`/`addFamilyOp` per record
+   inside one transaction/op for undo). Export: `repo.toTreeDocument()`
+   → map to `GedcomDataset` → `serializeGedcom70Bytes` → write. Export
+   as 7.0 by default (the dialog offers `.ged`; a 5.5.1 choice is a
+   product decision for later).
+2. **Design the mapping `GedcomDataset ↔ @doru/core` `TreeDocument`** —
+   the deliberately postponed core decision. Inventory to reconcile
+   (GEDCOM constructs → what `@doru/core` can hold):
+   - `INDI` → `PersonRecord { id, names, sex, birth?, death? }`; strip
+     the `@` from xrefs for ids and rewrite all pointers consistently
+     (`@I1@` → `I1`); `SEX X` → error or `U` (decide);
+   - `FAM` → `FamilyRecord { id, parents, children }`;
+   - events → `EventRecord { id, type, date?, place?, personId?, familyId? }`; map the GEDCOM `DateValue` union onto the core `DateValue`
+     (`quality`: exact → `'exact'`, approx → `'about'`, bound/range →
+     `'range'`, period → `'range'`, unknown → `'unknown'`);
+   - notes → `NoteRecord`, sources → `SourceRecord` + citations,
+     `OBJE` → `MediaRecord`;
+   - GEDCOM-only constructs the core model has no slot for (TRAN,
+     FONE/ROMN, PEDI/STAT detail, ordinances, shared notes vs inline,
+     media FORM/MEDI, addresses, RESN…) — decide per construct:
+     flatten into text fields, attach as notes, or drop, and record the
+     decision here in the README.
+3. **Re-enable the UI** (remove the disabled states; the nls keys and
+   the `useProject` calls already exist).
+4. **e2e:** extend `e2e/workflows.spec.ts` with an import → export →
+   re-import round trip through the real IPC surface.
+
+**Files:** `apps/desktop/src/main/gedcom.ts`, `ipc-project.ts`,
+`packages/core` (mapping module or ops), `packages/gedcom` (only if the
+mapping is generic enough to live there), renderer, e2e.
 
 ### 6. Repository follow-ups
 
-- Update the GEDCOM section of `docs/architecture.md` (it still describes
-  the pre-library stub state).
-- Open a PR from the feature branch so the package can be reviewed as a
-  unit.
+- Update the GEDCOM section of `docs/architecture.md` (it still
+  describes the pre-library stub state).
+- Open a PR from `feat/gedcom-library` for review.
