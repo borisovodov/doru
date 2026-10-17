@@ -350,6 +350,10 @@ would be, or where the model takes a documented position:
   version cannot express are dropped silently, with the rule for each
   construct documented in the JSDoc of the affected model field (see
   Serialization).
+- Real-world vendor extensions (underscore tags, GEDCOM 7 SCHMA URIs)
+  are catalogued with their sources in
+  [docs/vendor-extensions.md](docs/vendor-extensions.md); the catalog is
+  the checklist for the corpus-validation work.
 
 ## Future work
 
