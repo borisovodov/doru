@@ -201,7 +201,14 @@ Extension tags (`_…`) are accepted anywhere and kept as opaque
 ```ts
 serializeGedcom70(dataset: GedcomDataset): ParseResult<string>
 serializeGedcom551(dataset: GedcomDataset): ParseResult<string>
+serializeGedcom70Bytes(dataset: GedcomDataset): ParseResult<Uint8Array>
+serializeGedcom551Bytes(dataset: GedcomDataset): ParseResult<Uint8Array>
 ```
+
+The byte variants are the file-writing API: UTF-8, no BOM, CRLF line
+endings; 5.5.1 output declares `1 CHAR UTF-8`. A lone (unpaired)
+surrogate in the model text is reported as `serialize.invalid-text`
+rather than silently replaced.
 
 The writers emit the canonical form of their version:
 
@@ -282,36 +289,7 @@ it without re-deriving context.
     validated and discarded);
   - export is always UTF-8.
 
-### 1. Byte-level output encoding — UTF-8 only
-
-**Decisions (made):** both versions export strictly as UTF-8, without a
-BOM, with CRLF line endings. 5.5.1 output declares `1 CHAR UTF-8` (one
-of the four permitted 5.5.1 charsets). The reverse ANSEL encoding
-(NFC → NFD → Appendix C bytes) is explicitly out of scope — only
-*decoding* of ANSEL/ASCII/UTF-16 input exists, and it already does.
-
-**API (proposed, follow it):** add thin byte wrappers next to the text
-serializers:
-
-```ts
-serializeGedcom70Bytes(dataset: GedcomDataset): ParseResult<Uint8Array>
-serializeGedcom551Bytes(dataset: GedcomDataset): ParseResult<Uint8Array>
-```
-
-Implementation is `new TextEncoder().encode(text)` over the existing
-text serializers — `serialize.ts` already joins lines with `\r\n` and
-terminates with `\r\n`, so no line-ending work remains. The text
-serializers stay the tested core; the byte wrappers are one-liners plus
-tests.
-
-**Tests:** encode → `decodeDocument(bytes, '7.0'/'5.5.1')` → parse →
-deep-equal model (this doubles as the file-level round trip); bytes of
-the minimal document equal the expected byte sequence; a non-ASCII
-payload round-trips through UTF-8 (e.g. `NAME Иван /Иванов/`).
-
-**Files:** `src/serialize/serialize.ts` (wrappers), `tests/serialize.test.ts`.
-
-### 2. GEDZIP (7.0 chapter 4)
+### 1. GEDZIP (7.0 chapter 4)
 
 **Decisions (made):** use `fflate` — the package's single runtime
 dependency (pure TypeScript, MIT, ~8 kB). Add it to
@@ -355,7 +333,7 @@ reserved names preserved. Keep a tiny fixture with one small media file.
 **Files:** `src/gedzip.ts`, `src/errors.ts`, `tests/gedzip.test.ts`,
 `package.json`.
 
-### 3. Corpus validation runs
+### 2. Corpus validation runs
 
 **Goal:** validate the strict parsers against real-world `.ged` files
 from many producers, aggregate failures by error code, and turn findings
@@ -387,7 +365,7 @@ arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN`; free-form
 at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
 dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
 
-### 4. Version conversion layer
+### 3. Version conversion layer
 
 **Goal:** translate between the versions instead of rejecting (the
 serializers stay strict). This is a *product* decision layered above the
@@ -430,7 +408,7 @@ Strict by default: a construct the target version cannot express is a
 serializers; one test per mapping-table row; error tests for the
 "error" rows.
 
-### 5. Application integration
+### 4. Application integration
 
 **Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
 no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
@@ -477,7 +455,7 @@ UI was deliberately left untouched.
 `packages/core` (mapping module or ops), `packages/gedcom` (only if the
 mapping is generic enough to live there), renderer, e2e.
 
-### 6. Repository follow-ups
+### 5. Repository follow-ups
 
 - Update the GEDCOM section of `docs/architecture.md` (it still
   describes the pre-library stub state).

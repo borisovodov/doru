@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
-import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
+import {
+  serializeGedcom551,
+  serializeGedcom551Bytes,
+  serializeGedcom70,
+  serializeGedcom70Bytes,
+} from '../src/serialize/serialize';
 import type { GedcomDataset } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
@@ -274,5 +279,95 @@ describe('serializeGedcom551', () => {
     }
     base.records.push(snoteRecord);
     expect(expectErr(serializeGedcom551(base))).toBe('serialize.unsupported-value');
+  });
+});
+
+describe('serializeGedcom70Bytes / serializeGedcom551Bytes', () => {
+  function ser70Bytes(dataset: GedcomDataset): Uint8Array {
+    const result = serializeGedcom70Bytes(dataset);
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    return result.value;
+  }
+
+  function ser551Bytes(dataset: GedcomDataset): Uint8Array {
+    const result = serializeGedcom551Bytes(dataset);
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    return result.value;
+  }
+
+  test('7.0 bytes equal the expected UTF-8 sequence (no BOM, CRLF)', () => {
+    const dataset = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n');
+    const expected = new TextEncoder().encode('0 HEAD\r\n1 GEDC\r\n2 VERS 7.0\r\n0 TRLR\r\n');
+    expect(ser70Bytes(dataset)).toEqual(expected);
+    // No BOM.
+    expect(ser70Bytes(dataset)[0]).toBe(0x30);
+  });
+
+  test('5.5.1 bytes declare CHAR UTF-8', () => {
+    const dataset = parseOk551(
+      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+    );
+    const bytes = ser551Bytes(dataset);
+    expect(new TextDecoder().decode(bytes)).toContain('1 CHAR UTF-8');
+    expect(bytes[0]).toBe(0x30); // no BOM
+  });
+
+  test('7.0 bytes round-trip through the parser with a non-ASCII name', () => {
+    const sample = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Иван /Иванов/',
+      '1 SEX M',
+      '0 TRLR',
+    ].join('\n');
+    const first = parseOk70(sample);
+    const bytes = ser70Bytes(first);
+    const result = parseGedcom70(bytes);
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    expect(result.value).toEqual(first);
+  });
+
+  test('5.5.1 bytes round-trip through the parser', () => {
+    const sample = [
+      '0 HEAD',
+      '1 SOUR PAF',
+      '1 SUBM @S1@',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHAR UTF-8',
+      '0 @I1@ INDI',
+      '1 NAME Иван /Иванов/',
+      '1 BIRT',
+      '2 DATE 12 MAR 1923',
+      '0 @S1@ SUBM',
+      '1 NAME Tester',
+      '0 TRLR',
+    ].join('\n');
+    const first = parseOk551(sample);
+    const bytes = ser551Bytes(first);
+    const result = parseGedcom551(bytes);
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    expect(result.value).toEqual(first);
+  });
+
+  test('rejects an unpaired surrogate instead of throwing', () => {
+    const dataset = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n');
+    dataset.header.note = { tag: 'NOTE', payload: 'bad \ud800 text' };
+    const result = serializeGedcom70Bytes(dataset);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('serialize.invalid-text');
+    }
   });
 });

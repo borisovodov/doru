@@ -30,4 +30,9 @@ export * from './structures';
 export * from './gedzip';
 export * from './errors';
 export { parseGedcom70, parseGedcom551 } from './parsing/assemble';
-export { serializeGedcom70, serializeGedcom551 } from './serialize/serialize';
+export {
+  serializeGedcom70,
+  serializeGedcom551,
+  serializeGedcom70Bytes,
+  serializeGedcom551Bytes,
+} from './serialize/serialize';

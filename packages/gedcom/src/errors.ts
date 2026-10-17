@@ -84,7 +84,8 @@ export type GedcomErrorCode =
   | 'uri.invalid'
   // Serialization errors (no source position).
   | 'serialize.missing-field'
-  | 'serialize.unsupported-value';
+  | 'serialize.unsupported-value'
+  | 'serialize.invalid-text';
 
 export interface GedcomError {
   code: GedcomErrorCode;
