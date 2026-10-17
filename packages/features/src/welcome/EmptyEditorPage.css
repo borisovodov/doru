@@ -19,7 +19,7 @@
   font-size: clamp(64px, 12vw, 144px);
   line-height: 1.3;
   letter-spacing: 0;
-  background: linear-gradient(120deg, var(--doru-accent-hover) 20%, var(--doru-accent) 90%);
+  background: linear-gradient(120deg, var(--doru-fg-faint) 20%, var(--doru-fg-muted) 90%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
