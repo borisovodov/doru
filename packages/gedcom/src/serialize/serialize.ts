@@ -4,7 +4,7 @@
  * constructs of the other version are reported as typed errors.
  */
 
-import { DOCUMENT_START, fail, run, type ParseResult } from '../errors';
+import { DOCUMENT_START, fail, ok, run, type ParseResult } from '../errors';
 import { LANGUAGE_IDS_551, MULTIMEDIA_FORMATS_551 } from '../primitives';
 import type {
   AgeValue,
@@ -2015,6 +2015,63 @@ export function serializeGedcom70(dataset: GedcomDataset): ParseResult<string> {
 /** Serializes the dataset as GEDCOM 5.5.1 text. */
 export function serializeGedcom551(dataset: GedcomDataset): ParseResult<string> {
   return run(() => emit('5.5.1', dataset));
+}
+
+/** True when the text contains a lone (unpaired) UTF-16 surrogate. */
+function hasUnpairedSurrogate(text: string): boolean {
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = text.charCodeAt(i + 1);
+      if (next < 0xdc00 || next > 0xdfff) {
+        return true;
+      }
+      i++;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function encodeUtf8(text: string): ParseResult<Uint8Array> {
+  // TextEncoder silently replaces lone surrogates with U+FFFD; the
+  // strict package reports them instead of corrupting the output.
+  if (hasUnpairedSurrogate(text)) {
+    return {
+      ok: false,
+      error: {
+        code: 'serialize.invalid-text',
+        message: 'The text contains an unpaired surrogate and cannot be encoded as UTF-8',
+      },
+    };
+  }
+  return ok(new TextEncoder().encode(text));
+}
+
+/**
+ * Serializes the dataset as GEDCOM 7.0 UTF-8 bytes (no BOM, CRLF line
+ * endings). A thin encoding of `serializeGedcom70`.
+ */
+export function serializeGedcom70Bytes(dataset: GedcomDataset): ParseResult<Uint8Array> {
+  const text = serializeGedcom70(dataset);
+  if (!text.ok) {
+    return text;
+  }
+  return encodeUtf8(text.value);
+}
+
+/**
+ * Serializes the dataset as GEDCOM 5.5.1 UTF-8 bytes (no BOM, CRLF line
+ * endings, `1 CHAR UTF-8` in the header). A thin encoding of
+ * `serializeGedcom551`.
+ */
+export function serializeGedcom551Bytes(dataset: GedcomDataset): ParseResult<Uint8Array> {
+  const text = serializeGedcom551(dataset);
+  if (!text.ok) {
+    return text;
+  }
+  return encodeUtf8(text.value);
 }
 
 void DOCUMENT_START;
