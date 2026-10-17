@@ -169,6 +169,16 @@
   display: none;
 }
 
+/* Docs pages: keep the nav bar background flush to the right edge. The
+   default theme makes .VPNavBar transparent from 960px on and paints only
+   the inset .content-body (padding-right 32px, growing past 1440px),
+   which left a canvas-colored strip on the right with our surface colors. */
+@media (min-width: 960px) {
+  html .Layout .VPNavBar:not(.home) {
+    background-color: var(--vp-nav-bg-color);
+  }
+}
+
 .doru-screenshot {
   margin: 0 auto 48px;
   max-width: 960px;
