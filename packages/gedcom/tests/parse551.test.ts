@@ -33,6 +33,14 @@ describe('parseGedcom551 — header', () => {
     expect(dataset.header.characterSet?.payload).toBe('UTF-8');
   });
 
+  test('normalizes the declared charset to UTF-8 in the model', () => {
+    const dataset = parse551(
+      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR ANSEL', '2 VERS 1985', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+    );
+    expect(dataset.header.characterSet?.payload).toBe('UTF-8');
+    expect(dataset.header.characterSet?.version).toBeUndefined();
+  });
+
   test('requires SOUR, SUBM and CHAR', () => {
     expect(err551('0 HEAD\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n')).toBe(
       'structure.missing-required',

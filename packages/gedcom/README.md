@@ -131,9 +131,9 @@ Version differences that do not change meaning are resolved on import
 and recorded in the JSDoc of the affected entity. Examples: the 5.5.1
 `INT` dates and dual years (`1648/49`) become a date plus a phrase; an
 inline 5.5.1 `OBJE` is synthesized into a `MULTIMEDIA_RECORD`; an empty
-5.5.1 `REPO` becomes the 7.0 void pointer. The serializers emit the
-canonical form of their version and reject constructs the version cannot
-express.
+5.5.1 `REPO` becomes the 7.0 void pointer; the declared 5.5.1 charset is
+decoded and normalized to UTF-8. The serializers emit the canonical form
+of their version and reject constructs the version cannot express.
 
 ## Package layout
 
@@ -177,6 +177,11 @@ Both versions share the container tokenizer: levels (no leading zeros,
 5.5.1 ≤ 99), single-space delimiters, cross-reference identifiers,
 pointers, `@@` escaping, 5.5.1 `@#…@` escape sequences, `CONT`/`CONC`
 continuation merging, and the per-version banned-character rules.
+
+Decoding happens at parse time, and the model is **post-decode**: every
+text field holds plain Unicode, never the source encoding. The declared
+5.5.1 charset (`CHAR`) is used only to select the decoder and is
+normalized to UTF-8 in the model's `header.characterSet`.
 
 What strictness rejects (each with its own error code):
 
@@ -261,22 +266,20 @@ actual files needs a thin byte layer, and by decision **both versions
 always export as UTF-8**:
 
 - **7.0** — UTF-8 (no BOM), CRLF line endings.
-- **5.5.1** — also UTF-8; the emitted header declares `1 CHAR UTF-8`
-  (one of the four permitted 5.5.1 charsets), regardless of the
-  `characterSet` field in the model. A dataset parsed from an ANSEL file
-  therefore re-exports as UTF-8 — a deliberate, documented
-  normalization.
+- **5.5.1** — also UTF-8, with the header line `1 CHAR UTF-8` (one of
+  the four permitted 5.5.1 charsets).
 
-Because output is always UTF-8, the reverse ANSEL encoding (NFC → NFD →
-Appendix C bytes) is explicitly out of scope; only *decoding* of
-ANSEL/ASCII/UTF-16 input is supported, and it already exists.
+The model is already post-decode (see Parsing): parsing re-encodes
+ANSEL/ASCII/UTF-16/UTF-8 input to Unicode (ANEL additionally
+NFC-normalized) and normalizes `header.characterSet` to UTF-8, so the
+byte layer never sees the source encoding. The reverse ANSEL encoding
+(NFC → NFD → Appendix C bytes) is explicitly out of scope — only
+*decoding* of ANSEL/ASCII/UTF-16 input is supported, and it already
+exists.
 
 Open API decision: byte-returning variants
 (`serializeGedcom70Bytes` / `serializeGedcom551Bytes`) or a separate
-encoding step that takes the text plus the version. Round-trip property:
-decode(bytes) → serialize → encode reproduces the model; byte-identical
-output is expected only for UTF-8 input (ANSEL input re-exports as
-UTF-8).
+encoding step that takes the text plus the version.
 
 ### 2. GEDZIP (7.0 chapter 4)
 
