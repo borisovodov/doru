@@ -216,7 +216,27 @@ Each entry has a YAML file under `structure/extension/` in the
 GEDCOM-registries repository, served as a URI (e.g.
 `https://gedcom.io/terms/v7/HEAD` for standard terms).
 
-## 5. Notes for the Dóru integration
+## 5. Modeled in Dóru
+
+Following the same approach as the 5.5.1-over-7.0 layering, the
+multi-vendor core extensions are typed fields of the unified model
+(normalized on import, canonicalized on export); the long tail of
+single-vendor tags stays generic `ExtensionStructure`/`ExtensionRecord`.
+
+| Vendor tag | Model field | 5.5.1 import | 5.5.1 export | 7.0 export |
+| --- | --- | --- | --- | --- |
+| `_UID` | `identifiers[]` / `EventDetail.uniqueIds` | normalized | `_UID` | standard `UID` |
+| `_SDATE` | `EventDetail.sortDate` | normalized | `_SDATE` | standard `SDATE` |
+| `_SHAR` + `_ROLE`/`ROLE` | `EventDetail.associations` (ROLE OTHER + PHRASE) | normalized | `_SHAR`/`_ROLE` | standard `ASSO`/`ROLE` |
+| `_PRIM` | `MultimediaLink.primary` | normalized | `_PRIM Y` | dropped (no 7.0 equivalent) |
+| `_FREL`/`_MREL` | `FamilyChildLink.fatherRelation`/`motherRelation` | normalized | `_FREL`/`_MREL` | both equal known keyword → `INDI.FAMC.PEDI`; otherwise dropped |
+| `_APID` | `SourceCitation.ancestryPointers` | normalized | `_APID` | dropped (Ancestry 7.0 uses PUBL extensions) |
+
+Every field cites this catalog in its JSDoc. The mapping is covered by
+`tests/vendor-extensions.test.ts` (import, export, and cross-version
+round trips).
+
+## 6. Notes for the Dóru integration
 
 - The underscore convention and the GEDCOM 7 SCHMA mechanism both
   survive in the unified model as `ExtensionStructure` /

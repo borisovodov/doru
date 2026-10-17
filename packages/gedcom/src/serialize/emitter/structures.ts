@@ -267,20 +267,45 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   if (detail.restriction !== undefined) {
     w.line(level, 'RESN', { value: restrictionList(w, version, detail.restriction) });
   }
-  if (detail.sortDate !== undefined && version === '7.0') {
-    const raw = detail.sortDate.value === undefined ? '' : formatDateValue70(detail.sortDate.value);
-    w.line(level, 'SDATE', { value: raw === '' ? undefined : raw });
-    if (detail.sortDate.time !== undefined) {
-      w.line(level + 1, 'TIME', { value: formatTime(detail.sortDate.time, '7.0') });
+  if (detail.sortDate !== undefined) {
+    let raw = '';
+    if (detail.sortDate.value !== undefined) {
+      raw = version === '7.0' ? formatDateValue70(detail.sortDate.value) : formatDateValue551(detail.sortDate.value);
     }
-    if (detail.sortDate.phrase !== undefined) {
-      w.line(level + 1, 'PHRASE', { value: detail.sortDate.phrase });
+    if (version === '5.5.1' && raw === '' && detail.sortDate.phrase !== undefined) {
+      // The vendor _SDATE takes a plain DATE-formatted value; a
+      // phrase-only sort date is written parenthesized, like a 5.5.1 DATE.
+      raw = `(${detail.sortDate.phrase})`;
+    }
+    // 5.5.1 spells SDATE as the vendor extension _SDATE (value only);
+    // see docs/vendor-extensions.md.
+    w.line(level, version === '7.0' ? 'SDATE' : '_SDATE', { value: raw === '' ? undefined : raw });
+    if (version === '7.0') {
+      if (detail.sortDate.time !== undefined) {
+        w.line(level + 1, 'TIME', { value: formatTime(detail.sortDate.time, '7.0') });
+      }
+      if (detail.sortDate.phrase !== undefined) {
+        w.line(level + 1, 'PHRASE', { value: detail.sortDate.phrase });
+      }
     }
   }
   if (version === '7.0') {
-    // 5.5.1 has no ASSO under events; dropped.
     for (const association of detail.associations ?? []) {
       emitAssociation(w, version, level, association);
+    }
+  } else {
+    // 5.5.1 events have no ASSO; the vendor _SHAR/_ROLE pair carries
+    // them (see docs/vendor-extensions.md).
+    for (const association of detail.associations ?? []) {
+      w.line(level, '_SHAR', { value: association.individual });
+      if (association.role !== undefined) {
+        const descriptor = association.role.payload === 'OTHER'
+          ? association.role.phrase
+          : ROLE_TO_RELA_551.get(association.role.payload);
+        if (descriptor !== undefined) {
+          w.line(level + 1, '_ROLE', { value: descriptor });
+        }
+      }
     }
   }
   for (const note of detail.notes ?? []) {
@@ -295,6 +320,11 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   if (version === '7.0') {
     for (const uid of detail.uniqueIds ?? []) {
       w.line(level, 'UID', { value: uid });
+    }
+  } else {
+    // The vendor extension; see docs/vendor-extensions.md.
+    for (const uid of detail.uniqueIds ?? []) {
+      w.line(level, '_UID', { value: uid });
     }
   }
 }
@@ -373,6 +403,12 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   if (page !== undefined) {
     w.line(level + 1, 'PAGE', { value: page });
   }
+  if (version === '5.5.1') {
+    for (const pointer of citation.ancestryPointers ?? []) {
+      // Ancestry record reference; see docs/vendor-extensions.md.
+      w.line(level + 1, '_APID', { value: pointer });
+    }
+  }
   if (citation.data !== undefined) {
     w.line(level + 1, 'DATA');
     if (citation.data.date !== undefined) {
@@ -429,6 +465,10 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
 
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {
   ptr(w, version, level, 'OBJE', link.object);
+  if (version === '5.5.1' && link.primary === true) {
+    // The vendor extension; see docs/vendor-extensions.md.
+    w.line(level + 1, '_PRIM', { value: 'Y' });
+  }
   if (version === '7.0') {
     if (link.crop !== undefined) {
       w.line(level + 1, 'CROP');

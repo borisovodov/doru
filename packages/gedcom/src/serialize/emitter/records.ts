@@ -76,7 +76,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   nonEvents?: NonEventStructure[];
   husband?: { partner: string; phrase?: string };
   wife?: { partner: string; phrase?: string };
-  children?: Array<{ child: string; phrase?: string }>;
+  children?: Array<{ child: string; phrase?: string; fatherRelation?: string; motherRelation?: string }>;
   associations?: AssociationStructure[];
   submitters?: string[];
   spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail }>;
@@ -156,6 +156,16 @@ export function emitFamily(w: Writer, version: Version, rec: {
     ptr(w, version, 1, 'CHIL', child.child);
     if (child.phrase !== undefined) {
       w.line(2, 'PHRASE', { value: child.phrase });
+    }
+    if (version === '5.5.1') {
+      // The FTM vendor extensions; see docs/vendor-extensions.md. The
+      // 7.0 side of the pair (INDI.FAMC.PEDI) is filled by prepareFor70.
+      if (child.fatherRelation !== undefined) {
+        w.line(2, '_FREL', { value: child.fatherRelation });
+      }
+      if (child.motherRelation !== undefined) {
+        w.line(2, '_MREL', { value: child.motherRelation });
+      }
     }
   }
   for (const association of rec.associations ?? []) {

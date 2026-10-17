@@ -146,6 +146,10 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       };
     }
   } else {
+    handlers['_UID'] = (child) => {
+      // The vendor extension; see docs/vendor-extensions.md.
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["NCHI"] = (child) => {
       (rec.attributes ??= []).push(parseFamilyChildCount(child));
     };
@@ -245,6 +249,10 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       };
     }
   } else {
+    handlers['_UID'] = (child) => {
+      // The vendor extension; see docs/vendor-extensions.md.
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
     };

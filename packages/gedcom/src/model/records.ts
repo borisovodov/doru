@@ -122,6 +122,22 @@ export interface FamilyChildLink extends GedcomStructureBase {
   child: Pointer<IndividualRecord>;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
+  /**
+   * _FREL {0:1} — the relationship of the child to the father in the
+   * family (Natural, Adopted, Step, Foster, …). A vendor extension
+   * written by Family Tree Maker and read by several programs; not part
+   * of any GEDCOM version. See the vendor catalog
+   * (docs/vendor-extensions.md, "Per-vendor extensions"). When
+   * serializing to 7.0 the pair maps to PEDI when both relations name
+   * the same known relationship (natural → BIRTH, adopted → ADOPTED,
+   * foster → FOSTER); otherwise it is dropped.
+   */
+  fatherRelation?: Text;
+  /**
+   * _MREL {0:1} — the relationship of the child to the mother; see
+   * `fatherRelation`.
+   */
+  motherRelation?: Text;
 }
 
 /**

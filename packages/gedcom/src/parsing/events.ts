@@ -81,6 +81,8 @@ import {
   parseDateExactStructure,
   parseDateStructure,
   parseNoteStructure,
+  parseSharedParticipant,
+  parseSortDate551,
   parseSortDateStructure,
 } from './substructures';
 import {
@@ -108,16 +110,21 @@ export function parseFamilyPartnerLink(node: RawNode, ctx: Ctx): FamilyPartnerLi
 
 export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
   const out: FamilyChildLink = { child: reqPtr(node, ctx) };
-  dispatch(
-    node,
-    out,
-    {
-      PHRASE: (child) => {
-        out.phrase = reqText(child);
-      },
+  const handlers: Record<string, (child: RawNode) => void> = {
+    PHRASE: (child) => {
+      out.phrase = reqText(child);
     },
-    ctx,
-  );
+  };
+  if (ctx.version === '5.5.1') {
+    // The FTM vendor extensions; see docs/vendor-extensions.md.
+    handlers['_FREL'] = (child) => {
+      out.fatherRelation = reqText(child);
+    };
+    handlers['_MREL'] = (child) => {
+      out.motherRelation = reqText(child);
+    };
+  }
+  dispatch(node, out, handlers, ctx);
   return out;
 }
 
@@ -268,6 +275,19 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       (detail.media ??= []).push(parseMultimediaLink(child, ctx));
     },
   };
+  if (ctx.version === '5.5.1') {
+    // Vendor extensions normalized into the 7.0-shaped fields; see
+    // docs/vendor-extensions.md.
+    handlers['_SDATE'] = (child) => {
+      detail.sortDate = parseSortDate551(child);
+    };
+    handlers['_SHAR'] = (child) => {
+      (detail.associations ??= []).push(parseSharedParticipant(child, ctx));
+    };
+    handlers['_UID'] = (child) => {
+      (detail.uniqueIds ??= []).push(reqText(child));
+    };
+  }
   if (ctx.version === '7.0') {
     handlers["PHON"] = (child) => {
       (detail.phone ??= []).push(reqText(child));

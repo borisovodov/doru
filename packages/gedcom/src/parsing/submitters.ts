@@ -96,6 +96,10 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
     };
   } else {
+    handlers['_UID'] = (child) => {
+      // The vendor extension; see docs/vendor-extensions.md.
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["RFN"] = (child) => {
       rec.registeredRfn = reqText(child);
     };
