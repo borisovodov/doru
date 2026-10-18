@@ -73,6 +73,7 @@ import {
 import {
   parseMultimediaLink,
   parseSourceCitation,
+  parseYNFlag,
 } from './sources-media';
 import {
   parseAddressStructure,
@@ -80,6 +81,7 @@ import {
   parseAssociation,
   parseDateExactStructure,
   parseDateStructure,
+  parseGrampsAssociation,
   parseNoteStructure,
   parseSharedParticipant,
   parseSortDate551,
@@ -136,6 +138,9 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       },
       STAT: (child) => {
         out.status = parseFamilyChildStatus(child, ctx);
+      },
+      '_PRIMARY': (child) => {
+        out.primary = parseYNFlag(child, '_PRIMARY');
       },
       NOTE: (child) => {
         (out.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -287,6 +292,19 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   handlers['_PLAC'] = (child) => {
     (detail.additionalPlaces ??= []).push(parsePlaceStructure(child, ctx));
   };
+  handlers['_PRIV'] = (child) => {
+    noPayload(child);
+    const restriction = (detail.restriction ??= []);
+    if (!restriction.includes('PRIVACY')) {
+      restriction.push('PRIVACY');
+    }
+  };
+  if (ctx.version === '5.5.1') {
+    // The Gramps witness convention; normalized like _SHAR.
+    handlers['ASSO'] = (child) => {
+      (detail.associations ??= []).push(parseGrampsAssociation(child, ctx));
+    };
+  }
   if (ctx.version === '7.0') {
     handlers["PHON"] = (child) => {
       (detail.phone ??= []).push(reqText(child));

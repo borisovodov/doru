@@ -92,12 +92,16 @@ export function emitFamily(w: Writer, version: Version, rec: {
   creationDate?: CreationDate;
   automatedRecordId?: string;
   updatedAt?: string;
+  marriageStatus?: string;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'FAM', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
+  }
+  if (rec.marriageStatus !== undefined) {
+    w.line(1, '_STAT', { value: rec.marriageStatus });
   }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
@@ -200,7 +204,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } } }>;
   nonEvents?: NonEventStructure[];
   ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string }>;
-  childFamilies?: Array<{ family: string; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; notes?: NoteStructure[] }>;
+  childFamilies?: Array<{ family: string; primary?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; notes?: NoteStructure[] }>;
   spouseFamilies?: Array<{ family: string; notes?: NoteStructure[] }>;
   submitters?: string[];
   associations?: AssociationStructure[];
@@ -217,12 +221,16 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   recordFileNumber?: string;
   ancestralFileNumber?: string;
   updatedAt?: string;
+  url?: string;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'INDI', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
+  }
+  if (rec.url !== undefined) {
+    w.line(1, '_URL', { value: rec.url });
   }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
@@ -273,6 +281,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   for (const link of rec.childFamilies ?? []) {
     ptr(w, version, 1, 'FAMC', link.family);
+    if (link.primary === true) {
+      w.line(2, '_PRIMARY', { value: 'Y' });
+    }
     if (link.pedigree !== undefined) {
       const value = pedigree(w, version, link.pedigree.payload);
       if (value !== undefined) {
@@ -330,6 +341,7 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   restriction?: Array<string | `_${string}`>;
   files: MediaFile[];
   date?: DateStructure;
+  objectType?: string;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
   citations?: SourceCitation[];
@@ -348,6 +360,9 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   }
   if (rec.date !== undefined) {
     emitDate(w, version, 1, '_DATE', rec.date);
+  }
+  if (rec.objectType !== undefined) {
+    w.line(1, '_TYPE', { value: rec.objectType });
   }
   commonRecordFields(w, version, rec, 1);
 }
@@ -488,6 +503,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   creationDate?: CreationDate;
   automatedRecordId?: string;
   template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
+  fullFootnote?: string;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -540,6 +556,9 @@ export function emitSource(w: Writer, version: Version, rec: {
   }
   for (const citation of rec.repositoryCitations ?? []) {
     emitRepositoryCitation(w, version, 1, citation);
+  }
+  if (rec.fullFootnote !== undefined) {
+    w.line(1, '_FULL', { value: rec.fullFootnote });
   }
   if (rec.template !== undefined) {
     w.line(1, '_TMPLT');

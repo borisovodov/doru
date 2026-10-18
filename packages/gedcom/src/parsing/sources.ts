@@ -218,6 +218,9 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _TMPLT: (child) => {
       rec.template = parseEvidenceTemplate(child, ctx);
     },
+    _FULL: (child) => {
+      rec.fullFootnote = reqText(child);
+    },
     REPO: (child) => {
       (rec.repositoryCitations ??= []).push(parseSourceRepositoryCitation(child, ctx));
     },

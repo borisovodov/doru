@@ -64,6 +64,14 @@ export interface SourceCitation extends GedcomStructureBase {
    * written back as `_APID` in both versions.
    */
   ancestryPointers?: Text[];
+  /**
+   * _CREF {0:1} — the citation reference value. Written by
+   * TMG-to-GEDCOM (see its "GEDCOM Tag Names" help:
+   * https://tmgtogedcom.com/en/tag-names.htm); not part of any GEDCOM
+   * version. Recognized on input and written back as `_CREF` in both
+   * versions.
+   */
+  reference?: Text;
 }
 
 /**
@@ -175,6 +183,21 @@ export interface MultimediaLink extends GedcomStructureBase {
    * Recognized on input and written back as `_PRIM` in both versions.
    */
   primary?: boolean;
+  /**
+   * _SCBK Y {0:1} — marks the media item for inclusion in a scrapbook
+   * report. Written by Ancestral Quest, Family Origins, PAF and Legacy
+   * (see the Legacy "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
+   * Recognized on input and written back as `_SCBK` in both versions.
+   */
+  scrapbook?: boolean;
+  /**
+   * _SSHOW Y {0:1} — marks the media item for inclusion in a slide
+   * show. Written by Ancestral Quest and PAF (same source as
+   * `scrapbook`). Recognized on input and written back as `_SSHOW` in
+   * both versions.
+   */
+  slideshow?: boolean;
 }
 
 /**

@@ -12,7 +12,10 @@ import {
   SEX_ENUM_VALUES,
 } from '../enumerations';
 import type {
+  EventDetail,
   FamilyRecord,
+  IndividualEventDetail,
+  IndividualEventStructure,
   IndividualRecord,
 } from '../structures';
 import type {
@@ -26,6 +29,7 @@ import {
 } from './context';
 import {
   SEX_551,
+  eventDetailHandlers,
   parseAliasLink,
   parseChildFamilyLink,
   parseFamilyChildCount,
@@ -118,6 +122,13 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     _UPD: (child) => {
       rec.updatedAt = reqText(child);
     },
+    _NONE: (child) => {
+      noPayload(child);
+      (rec.attributes ??= []).push({ tag: 'NCHI', payload: 0 });
+    },
+    _STAT: (child) => {
+      rec.marriageStatus = reqText(child);
+    },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
     },
@@ -199,6 +210,35 @@ function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType
   });
 }
 
+/** The FTM vendor fact tags (_MILT, _MDCL, _FOOT): an EVEN with a TYPE. */
+function parseVendorFact(node: RawNode, ctx: Ctx, type: string): IndividualEventStructure {
+  const detail: EventDetail = {};
+  const handlers = eventDetailHandlers(ctx, detail);
+  handlers['TYPE'] = () => undefined;
+  dispatch(node, detail, handlers, ctx);
+  return {
+    tag: 'EVEN',
+    payload: '',
+    type,
+    ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+  };
+}
+
+/** The FTM _DCAUSE fact: the death cause, kept in the DEAT event's CAUS. */
+function upsertDeathCause(rec: IndividualRecord, node: RawNode, ctx: Ctx): void {
+  let event = rec.events?.find((entry) => entry.tag === 'DEAT');
+  if (event === undefined) {
+    event = { tag: 'DEAT' };
+    (rec.events ??= []).push(event);
+  }
+  event.detail ??= {};
+  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  if (raw !== undefined) {
+    event.detail.cause = raw;
+  }
+  dispatch(node, event.detail, eventDetailHandlers(ctx, event.detail), ctx);
+}
+
 export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord {
   noPayload(node);
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
@@ -223,6 +263,21 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _UPD: (child) => {
       rec.updatedAt = reqText(child);
+    },
+    _URL: (child) => {
+      rec.url = reqText(child);
+    },
+    _DCAUSE: (child) => {
+      upsertDeathCause(rec, child, ctx);
+    },
+    _MILT: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military'));
+    },
+    _MDCL: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Medical'));
+    },
+    _FOOT: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Footnote'));
     },
     SEX: (child) => {
       const table = (ctx.version === '7.0' ? SEX_ENUM_VALUES : SEX_551) as Readonly<

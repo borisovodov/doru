@@ -63,6 +63,9 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     '_DATE': (child) => {
       rec.date = parseDateStructure(child, ctx);
     },
+    '_TYPE': (child) => {
+      rec.objectType = reqText(child);
+    },
     NOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     },

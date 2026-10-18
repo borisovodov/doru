@@ -87,6 +87,9 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_APID': (child) => {
           (out.ancestryPointers ??= []).push(reqText(child));
         },
+        '_CREF': (child) => {
+          out.reference = reqText(child);
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -120,6 +123,9 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         },
         '_APID': (child) => {
           (out.ancestryPointers ??= []).push(reqText(child));
+        },
+        '_CREF': (child) => {
+          out.reference = reqText(child);
         },
       },
       ctx,
@@ -240,7 +246,13 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
           out.title = reqText(child);
         },
         '_PRIM': (child) => {
-          out.primary = parsePrimFlag(child);
+          out.primary = parseYNFlag(child, '_PRIM');
+        },
+        '_SCBK': (child) => {
+          out.scrapbook = parseYNFlag(child, '_SCBK');
+        },
+        '_SSHOW': (child) => {
+          out.slideshow = parseYNFlag(child, '_SSHOW');
         },
       },
       ctx,
@@ -255,11 +267,17 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       out,
       {
         '_PRIM': (child) => {
-          out.primary = parsePrimFlag(child);
+          out.primary = parseYNFlag(child, '_PRIM');
+        },
+        '_SCBK': (child) => {
+          out.scrapbook = parseYNFlag(child, '_SCBK');
+        },
+        '_SSHOW': (child) => {
+          out.slideshow = parseYNFlag(child, '_SSHOW');
         },
       },
       ctx,
-      ['_PRIM'],
+      ['_PRIM', '_SCBK', '_SSHOW'],
     );
     return out;
   }
@@ -269,6 +287,8 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   const record: MultimediaRecord = { tag: 'OBJE', files: [] };
   let title: string | undefined;
   let primary: boolean | undefined;
+  let scrapbook: boolean | undefined;
+  let slideshow: boolean | undefined;
   dispatch(
     node,
     record,
@@ -280,7 +300,16 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         title = reqText(child);
       },
       '_PRIM': (child) => {
-        primary = parsePrimFlag(child);
+        primary = parseYNFlag(child, '_PRIM');
+      },
+      '_SCBK': (child) => {
+        scrapbook = parseYNFlag(child, '_SCBK');
+      },
+      '_SSHOW': (child) => {
+        slideshow = parseYNFlag(child, '_SSHOW');
+      },
+      '_TYPE': (child) => {
+        record.objectType = reqText(child);
       },
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
@@ -302,11 +331,17 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   } while (ctx.xrefs.has(xref));
   ctx.xrefs.add(xref);
   ctx.synthetic.push(record);
-  return { tag: 'OBJE', object: xref, ...(primary === undefined ? {} : { primary }) };
+  return {
+    tag: 'OBJE',
+    object: xref,
+    ...(primary === undefined ? {} : { primary }),
+    ...(scrapbook === undefined ? {} : { scrapbook }),
+    ...(slideshow === undefined ? {} : { slideshow }),
+  };
 }
 
-/** Parses a `_PRIM` Y/N flag. */
-function parsePrimFlag(node: RawNode): boolean {
+/** Parses a vendor Y/N flag (`_PRIM`, `_SCBK`, `_SSHOW`, …). */
+export function parseYNFlag(node: RawNode, tag: string): boolean {
   const text = reqText(node);
   if (text === 'Y') {
     return true;
@@ -314,7 +349,7 @@ function parsePrimFlag(node: RawNode): boolean {
   if (text === 'N') {
     return false;
   }
-  fail('enum.invalid-value', `The _PRIM value must be Y or N, not "${text}"`, node.position);
+  fail('enum.invalid-value', `The ${tag} value must be Y or N, not "${text}"`, node.position);
 }
 
 export function parseCrop(node: RawNode, ctx: Ctx): CropStructure {

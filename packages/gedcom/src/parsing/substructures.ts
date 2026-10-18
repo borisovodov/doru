@@ -406,6 +406,38 @@ export function parseSortDate551(node: RawNode): SortDateStructure {
 }
 
 /** Parses a 5.5.1 `_SHAR @xref@` line with an optional `_ROLE` (or `ROLE`) descriptor into an AssociationStructure. */
+/**
+ * The Gramps witness convention: a standard `ASSO @xref@` under a 5.5.1
+ * family event with a `TYPE INDI` marker and a free-text `RELA` (or
+ * `ROLE`) role. Normalized into the ASSOCIATION_STRUCTURE like `_SHAR`.
+ */
+export function parseGrampsAssociation(node: RawNode, ctx: Ctx): AssociationStructure {
+  const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
+  let roleSeen = false;
+  const setRole = (child: RawNode): void => {
+    if (roleSeen) {
+      fail('structure.cardinality', 'At most one role is allowed under ASSO', child.position);
+    }
+    roleSeen = true;
+    out.role = { payload: 'OTHER', phrase: reqText(child) };
+  };
+  dispatch(
+    node,
+    out,
+    {
+      TYPE: () => undefined,
+      RELA: setRole,
+      ROLE: setRole,
+      '_ROLE': setRole,
+      PHRASE: (child) => {
+        out.phrase = reqText(child);
+      },
+    },
+    ctx,
+  );
+  return out;
+}
+
 export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStructure {
   const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
   let roleSeen = false;

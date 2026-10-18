@@ -407,6 +407,9 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
     // Ancestry record reference.
     w.line(level + 1, '_APID', { value: pointer });
   }
+  if (citation.reference !== undefined) {
+    w.line(level + 1, '_CREF', { value: citation.reference });
+  }
   if (citation.data !== undefined) {
     w.line(level + 1, 'DATA');
     if (citation.data.date !== undefined) {
@@ -465,6 +468,12 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
   ptr(w, version, level, 'OBJE', link.object);
   if (link.primary === true) {
     w.line(level + 1, '_PRIM', { value: 'Y' });
+  }
+  if (link.scrapbook === true) {
+    w.line(level + 1, '_SCBK', { value: 'Y' });
+  }
+  if (link.slideshow === true) {
+    w.line(level + 1, '_SSHOW', { value: 'Y' });
   }
   if (version === '7.0') {
     if (link.crop !== undefined) {

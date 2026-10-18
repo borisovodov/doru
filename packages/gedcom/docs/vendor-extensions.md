@@ -280,6 +280,17 @@ Priorities:
   normalization, `MultimediaRecord.date`, `AddressStructure.email`).
 - **P2** — worth considering: meaningful data or very common vendor,
   but single-vendor or medium effort.
+  **Implemented**: `_NONE` → `NCHI 0`; the FTM facts (`_MILT`/`_MDCL`/
+  `_FOOT` → `EVEN`+TYPE, `_DCAUSE` → `DEAT.CAUS`); Legacy `_STAT` →
+  `FamilyRecord.marriageStatus`; the Gramps `ASSO`/`TYPE INDI`/`RELA`
+  witness convention; TMG `_CREF` → `SourceCitation.reference` and
+  `_FULL` → `SourceRecord.fullFootnote`; `_TYPE` under OBJE →
+  `MultimediaRecord.objectType`; `_SCBK`/`_SSHOW` →
+  `MultimediaLink.scrapbook`/`slideshow`; `_PRIMARY` →
+  `ChildFamilyLink.primary`; `_URL` → `IndividualRecord.url`; `_PRIV`
+  under events → `EventDetail.restriction` PRIVACY. Left generic
+  (documented): FTW `_MSTAT`/`_MEND` (DOS-era, colliding meaning),
+  `_PREF` and `_VERI` (ambiguous contexts), `_PRIV` under ADDR.
 - **P3** — defer: housekeeping/report/presentation data, one vendor;
   let the corpus decide.
 - **P4** — non-underscore relics of dropped standard tags or invented

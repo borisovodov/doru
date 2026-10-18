@@ -76,6 +76,16 @@ export interface FamilyRecord extends GedcomStructureBase {
    * Recognized on input and written back as `_UPD` in both versions.
    */
   updatedAt?: Text;
+  /**
+   * _STAT {0:1} — the status of the marriage (Married, Unmarried, …).
+   * Written by Legacy Family Tree under FAM (see its "Custom GEDCOM
+   * Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not
+   * part of any GEDCOM version. Recognized on input and written back as
+   * `_STAT` in both versions. (The FTW `_MSTAT`/`_MEND` beginning and
+   * ending statuses stay generic extensions.)
+   */
+  marriageStatus?: Text;
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
   /** WIFE {0:1}, g7:FAM-WIFE — the other partner. */
@@ -186,6 +196,14 @@ export interface IndividualRecord extends GedcomStructureBase {
    * Recognized on input and written back as `_UPD` in both versions.
    */
   updatedAt?: Text;
+  /**
+   * _URL {0:1} — an internet address of the individual. Written by
+   * Legacy Family Tree under INDI (see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not
+   * part of any GEDCOM version. Recognized on input and written back as
+   * `_URL` in both versions.
+   */
+  url?: Text;
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
   /** FAMC {0:M}, g7:INDI-FAMC — the families in which this individual appears as a child. */
@@ -245,6 +263,15 @@ export interface IndividualRecord extends GedcomStructureBase {
 export interface ChildFamilyLink extends GedcomStructureBase {
   /** The FAMC payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /**
+   * _PRIMARY Y {0:1} — marks the primary family for an adopted child.
+   * Written by Ancestral Quest and PAF under FAMC (see the Legacy
+   * "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
+   * Recognized on input and written back as `_PRIMARY` in both
+   * versions.
+   */
+  primary?: boolean;
   /** PEDI {0:1}, g7:PEDI — Enum of g7:enumset-PEDI. */
   pedigree?: PedigreeStructure;
   /** STAT {0:1}, g7:FAMC-STAT — Enum of g7:enumset-FAMC-STAT. */
@@ -332,6 +359,15 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * back as `_DATE` in both versions.
    */
   date?: DateStructure;
+  /**
+   * _TYPE {0:1} — the kind of the media object (Photo, Sound, Video,
+   * …). Written by Ancestral Quest, Family Origins, PAF and Legacy
+   * under OBJE (see the Legacy "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_TYPE` in both versions.
+   */
+  objectType?: Text;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -539,6 +575,14 @@ export interface SourceRecord extends GedcomStructureBase {
    * Recognized on input and written back as `_TMPLT` in both versions.
    */
   template?: EvidenceTemplate;
+  /**
+   * _FULL {0:1} — the text created by formatting the source's full
+   * footnote template. Written by TMG-to-GEDCOM (see its "GEDCOM Tag
+   * Names" help: https://tmgtogedcom.com/en/tag-names.htm); not part of
+   * any GEDCOM version. Recognized on input and written back as `_FULL`
+   * in both versions.
+   */
+  fullFootnote?: Text;
 }
 
 /**
