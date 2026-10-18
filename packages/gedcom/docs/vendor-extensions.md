@@ -256,3 +256,139 @@ round trips).
   strict rejection in "Known strict decisions".
 - The PAF checksum UUID format (32+4 hex) is worth a dedicated
   normalizer in the `_UID` handling.
+
+## 7. Exhaustive tag inventory (decision checklist)
+
+Every tag from chapters 2 and 3, with: which vendors write it (from the
+Legacy Family Tree "User-Defined GEDCOM Tags" catalog with its program
+codes, John Cardinal's "Common GEDCOM Extensions", the TMG-to-GEDCOM
+docs, and GED-VIEW; "Legacy cat." below = the Legacy catalog), what it
+means, whether the model already has a field, how hard typing it would
+be, and a recommendation. The FHUG Knowledge Base list could not be
+scraped (bot protection); the Family Historian rows below carry the
+tags confirmed by secondary sources and should be checked against the
+corpus.
+
+Priorities:
+
+- **P0** — already typed (see chapter 5).
+- **P1** — recommended: multi-vendor, real data, low effort.
+- **P2** — worth considering: meaningful data or very common vendor,
+  but single-vendor or medium effort.
+- **P3** — defer: housekeeping/report/presentation data, one vendor;
+  let the corpus decide.
+- **P4** — non-underscore relics of dropped standard tags or invented
+  tags. Today these are strict `structure.unknown-tag` errors (they are
+  not `_`-prefixed, so they do not flow into the generic extensions);
+  a policy decision is needed before any typing.
+
+### 7.1 P0 — already in the model
+
+`_UID`, `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL`, `_APID`,
+the `_PLAC`/`_LOC`/`_PLAC_DEFN` records, the `_LOC` link under PLAC,
+and the `_PLAC` second place — see the table in chapter 5.
+
+### 7.2 P1 — recommended candidates
+
+| Tag | Vendors | Meaning | Model today | Effort | Recommend |
+| --- | --- | --- | --- | --- | --- |
+| `_TMPLT` | RootsMagic, FTM | Evidence Explained source template: `FIELD`/`VALUE` pairs under SOUR (page, URL, film no, …) | none | Medium (new `SourceRecord` field + pair parser) | Yes — two major vendors, real research data |
+| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name | `PersonalNameStructure.names[]` exists; needs mapping to a name with `TYPE MARRIED` | Low (normalization into an existing field) | Yes |
+| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name | same — map to a name with `TYPE AKA` | Low | Yes |
+| `_UPD` | MyHeritage | Record last-updated timestamp | none (CHAN is DATE+TIME; `_UPD` is a bare timestamp) | Low (new `updatedAt`-style field or CHAN reuse) | Yes |
+| `_WT_OBJE_SORT` | webtrees | Per-link media sort order | none | Low (integer on `MultimediaLink`) | Yes — webtrees files are everywhere |
+| `_DATE` | Legacy (under OBJE), webtrees | Date of a media object | none | Low (date field on `MultimediaLink`) | Yes |
+| `_EMAIL` | BKW6, FO9, PAF | E-mail under an address block | `AddressStructure.email` exists (5.5.1 EMAIL) | Low (normalize `_EMAIL` into it) | Yes |
+
+### 7.3 P2 — worth considering
+
+| Tag | Vendors | Meaning | Model today | Effort | Recommend |
+| --- | --- | --- | --- | --- | --- |
+| `_NONE` | Legacy | "Couple had no children" under FAM | none; standard equivalent is `NCHI 0` | Low (normalize to the NCHI attribute) | Maybe — real assertion, one vendor |
+| `_MILT` / `_MDCL` / `_DCAUSE` / `_FOOT` | FTM | Military service / medical / death cause / footnote facts | `_DCAUSE` maps to `DEAT.CAUS`; the rest need EVEN+TYPE synthesis | Medium | Maybe — popular files, awkward mapping |
+| `_STAT` (FAM), `_MSTAT`, `_MEND` | Legacy, FTW | Marriage beginning/ending status | none | Medium (new FAM/MARR field, value sets differ) | Maybe |
+| Gramps witness convention | Gramps | `ASSO @xref@` + `TYPE INDI` + `RELA <role>` under **family events** | partially: `_SHAR` is typed, but the standard `ASSO` tag under a 5.5.1 event is currently a strict error | Low (accept it like `_SHAR`) | Yes — closes a real compatibility gap |
+| `_CREF`, `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | none | Low | Maybe — only TMG exports, but T2G is the migration path for TMG users |
+| `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | `MediaFormatStructure.medium` exists but is per-FILE; OBJE-level type has no slot | Medium | Maybe |
+| `_SCBK`, `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | none (booleans on `MultimediaLink`) | Low | Maybe |
+| `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | none (boolean on `ChildFamilyLink`) | Low | Maybe |
+| `_URL` under INDI | Legacy | Web address of a person | none (5.5.1 ADDR has WWW, INDI does not) | Low | Maybe |
+| `_VERI`, `_PREF`, `_PRIV` | Legacy | Verified / preferred / private flags | none (booleans) | Low | Maybe |
+
+### 7.4 P3 — single-vendor housekeeping, defer to the corpus
+
+Grouped by family; every tag flows through the generic extensions today
+and is preserved verbatim, so nothing is lost.
+
+**Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): `_EVENT_DEFN`
+with `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU` sentence definitions,
+`_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE`
+definition flags, `_ITALIC`/`_PAREN`/`_QUOTED` source print styles,
+`_LIST1`–`_LIST6` address groupings, `_TAG`/`_TAG2`–`_TAG9` tag marks,
+`_TODO` with `_CAT`/`_CDATE`/`_LOCL`/`_RDATE`, `_SORT`/`_SOUND`/
+`_OVER`/`_PREP`/`_STAT` — report and to-do data, one vendor.
+
+**PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
+`_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
+`_SENDPF`/`_SENDOU`/`_SENPOU`/`_SENDPU` variants, `_DATE_TYPE`,
+`_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG`, `_NAME` — sentence
+templates for reports; PAF is discontinued.
+
+**Brother's Keeper descriptors** (BKW6): name variants `_ADPN`/
+`_AKAN`/`_BIRN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/`_GERN`/`_HEBN`/
+`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` and facts `_BRTM`/`_COML`/
+`_EYEC`/`_FNRL`/`_HAIR`/`_HEIG`/`_INTE`/`_MBON`/`_NLIV`/`_NMAR`/
+`_NMR`/`_PRMN`/`_SEPR`/`_WEIG`/`_YART` — one vendor, mostly
+descriptive attributes with no standard slot.
+
+**Family Tree Maker extras**: `_FA1`–`_FA13` user fact definitions,
+`_DETS`, `_ELEC`, `_UNKN`, `_EXCM`, `_MISN`, `_ADPN`, `_SEPR`, and the
+GEDCOM 5.3 schema block (`_SCHEMA`/`SCHEMA`, `DEFN`, `LABL`, `ISA`) —
+presentation and legacy-schema data.
+
+**RootsMagic report fields**: `_SUBQ` (subsequent citation format),
+`_SENT` (event sentence), `_PPFX` (place prefix).
+
+**Family Historian**: `_FLGS` fact flags and the FH7 source-template
+extensions (see the FHUG KB article on exporting templated sources).
+
+**MyHeritage**: `_UPD` is in P1; no other documented tags.
+
+**GEDKeeper**: `_UID` and the `_SHAR` family — already typed; nothing
+else documented.
+
+### 7.5 P4 — non-underscore vendor tags
+
+Written by Generations, Reunion, Family Tree Maker 5 (DOS), The Master
+Genealogist and early Roots versions; mostly tags dropped from GEDCOM
+5.3/5.4 or invented outright (from the Legacy cat. "Tags Not Specified
+in GEDCOM 5.5" list): `AKA`, `ARVL`, `ATTR`, `BIC`, `BLESS`, `BLSL`,
+`CANC`, `CEME`, `CIRC`, `CITN`, `CLAW`, `CLER`, `CNTC`, `CODI`,
+`COLO`, `COMML`, `COYN`, `CPLR`, `CRIM`, `CSTA`, `DAU`, `DEGR`,
+`DESC`, `DESR`, `DETA`, `DETS`, `DPRT`, `DWEL`, `EDTN`, `EDTR`,
+`EMAL`, `ENMPL`, `EXCO`, `EYES`, `FATH`, `FAX`, `FEMA`, `FILN`,
+`FMT`, `FOST`, `FRND`, `HAIR`, `HEAL`, `HEIG`, `HIST`, `HISTID`,
+`HOBB`, `HONO`, `HOSP`, `IDNO`, `ILLE`, `ILLN`, `INFO`, `INTE`,
+`INTV`, `ISA`, `ISSU`, `LABL`, `LDS`, `LOCA`, `LVG`, `LVNG`, `MALE`,
+`MILA`, `MILD`, `MILF`, `MILI`, `MILT`, `MISC`, `MISN`, `MOTH`,
+`MOVE`, `MSTAT`, `NAMG`, `NAMM`, `NAMR`, `NAMS`, `NATI`, `NMAR`,
+`NOTP`, `NULL`, `NUMB`, `ORDI`, `ORDL`, `OWNR`, `PART`, `PASL`,
+`PERI`, `PPFX`, `PRES`, `PRTY`, `PUBL`, `PURC`, `RACE`, `REAS`,
+`REBA`, `RECO`, `REGI`, `REMA`, `RESE`, `RESIR`, `RESP`, `REST`,
+`RPLY`, `SCHEMA`, `SENT`, `SEPA`, `SIBL`, `SLGP`, `SON`, `STAL`,
+`STIL`, `STLB`, `SUBM`, `TOWN`, `UMAR`, `UNIT`, `URL`, `VOIL`, `VOL`,
+`WIFE`.
+
+These are currently **strict errors** in the parser (not `_`-prefixed,
+so they bypass the extension path). Options to decide, in increasing
+order of strictness:
+
+1. accept the known list as generic extensions on input (documented,
+   re-emitted verbatim);
+2. accept any unknown tag as an extension (maximum leniency — against
+   the strict-by-default principle);
+3. keep rejecting them (today's behavior) and file them in "Known
+   strict decisions".
+
+The inventory says: keep rejecting for now; revisit after the corpus
+run shows which of these actually appear in modern files.
