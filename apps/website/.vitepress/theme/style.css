@@ -174,13 +174,13 @@
 .VPNavBar .VPNavBarTitle .title {
   font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
   font-weight: 400;
-  font-size: 26px;
+  font-size: 20px;
   line-height: 1;
 }
 
 .VPNavBar .VPNavBarTitle .title span {
   padding-left: 6px;
-  padding-top: 4px; /* optically center the script on the icon */
+  padding-top: 2px; /* optically center the script on the icon */
 }
 
 /* Docs pages: keep the nav bar background flush to the right edge. The
