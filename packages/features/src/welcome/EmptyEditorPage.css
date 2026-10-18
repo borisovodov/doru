@@ -9,6 +9,8 @@
   overflow: auto;
   padding: 96px 24px;
   text-align: center;
+  /* Nothing on this page is selectable text. */
+  user-select: none;
 }
 
 .empty-editor-name {
