@@ -83,6 +83,19 @@ export default defineConfig({
   appearance: 'force-auto',
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/icon.png' }],
+    // Preload the wordmark face so the hero name never paints in a
+    // fallback font (font-display: swap without a preload flashes the
+    // fallback for the first frames).
+    [
+      'link',
+      {
+        rel: 'preload',
+        as: 'font',
+        type: 'font/woff2',
+        crossorigin: '',
+        href: '/fonts/berkshire-swash-latin-400-normal.woff2',
+      },
+    ],
     [
       'script',
       {},
