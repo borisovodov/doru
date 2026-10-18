@@ -169,6 +169,20 @@
   display: none;
 }
 
+/* The nav bar wordmark uses the same display face as the hero name. The
+   "D" swash overhangs to the left, so the span gets breathing room. */
+.VPNavBar .VPNavBarTitle .title {
+  font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.VPNavBar .VPNavBarTitle .title span {
+  padding-left: 6px;
+  padding-top: 4px; /* optically center the script on the icon */
+}
+
 /* Docs pages: keep the nav bar background flush to the right edge. The
    default theme makes .VPNavBar transparent from 960px on and paints only
    the inset .content-body (padding-right 32px, growing past 1440px),
