@@ -386,8 +386,8 @@ export function parseReferenceIdentifier(node: RawNode, ctx: Ctx): ReferenceIden
 
 /**
  * GEDCOM 5.5.1 vendor extension `_SDATE` — a sort date with the same
- * value format as DATE. Normalized into the 7.0 SortDateStructure. See
- * docs/vendor-extensions.md.
+ * value format as DATE. Normalized into the 7.0 SortDateStructure; see
+ * the JSDoc of EventDetail.sortDate for the serialization rules.
  */
 export function parseSortDate551(node: RawNode): SortDateStructure {
   const out: SortDateStructure = {};
@@ -410,7 +410,8 @@ export function parseSortDate551(node: RawNode): SortDateStructure {
  * GEDCOM 5.5.1 vendor extension `_SHAR @xref@` with an optional `_ROLE`
  * (or `ROLE`) descriptor: a co-participant of an event. Normalized into
  * the 7.0 ASSOCIATION_STRUCTURE with the free-text descriptor kept as
- * ROLE OTHER + PHRASE. See docs/vendor-extensions.md.
+ * ROLE OTHER + PHRASE. See the JSDoc of EventDetail.associations for
+ * the serialization rules.
  */
 export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStructure {
   const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };

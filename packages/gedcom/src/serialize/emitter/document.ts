@@ -252,7 +252,7 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
       continue;
     }
     if (identifier.tag === 'UID' && version !== '7.0') {
-      // The vendor extension; see docs/vendor-extensions.md.
+      // The vendor extension.
       w.line(level, '_UID', { value: identifier.payload });
       continue;
     }

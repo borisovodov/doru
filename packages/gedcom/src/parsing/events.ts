@@ -116,7 +116,7 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
     },
   };
   if (ctx.version === '5.5.1') {
-    // The FTM vendor extensions; see docs/vendor-extensions.md.
+    // The FTM vendor extensions; see the FamilyChildLink JSDoc.
     handlers['_FREL'] = (child) => {
       out.fatherRelation = reqText(child);
     };
@@ -277,7 +277,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   };
   if (ctx.version === '5.5.1') {
     // Vendor extensions normalized into the 7.0-shaped fields; see
-    // docs/vendor-extensions.md.
+    // their JSDoc.
     handlers['_SDATE'] = (child) => {
       detail.sortDate = parseSortDate551(child);
     };

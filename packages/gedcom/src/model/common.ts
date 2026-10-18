@@ -233,13 +233,22 @@ export interface EventDetail extends GedcomStructureBase {
   cause?: Text;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
-  /** SDATE {0:1}, g7:SDATE — a sorting hint. Serialized to 5.5.1 as the vendor extension `_SDATE` (see docs/vendor-extensions.md). */
+  /**
+   * SDATE {0:1}, g7:SDATE — a sorting hint. 5.5.1 has no SDATE; the
+   * vendor extension `_SDATE` with the same value format is written
+   * there instead (documented in the "Common GEDCOM Extensions"
+   * catalog: https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   */
   sortDate?: SortDateStructure;
   /**
-   * <<ASSOCIATION_STRUCTURE>> {0:M} — serialized to 5.5.1 as the vendor
-   * `_SHAR`/`_ROLE` pair (5.5.1 events have no ASSO); an association
-   * without a role (a bare 5.5.1 `_SHAR`) cannot be spelled in 7.0 and
-   * is dropped when serializing to 7.0. See docs/vendor-extensions.md.
+   * <<ASSOCIATION_STRUCTURE>> {0:M} — 5.5.1 events have no ASSO; the
+   * co-participant vendor extensions `_SHAR @xref@` with an optional
+   * `_ROLE` (or `ROLE`) descriptor are written there instead, with the
+   * free-text descriptor kept as ROLE OTHER + PHRASE (see the "Common
+   * GEDCOM Extensions" catalog:
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). An
+   * association without a role (a bare 5.5.1 `_SHAR`) cannot be spelled
+   * in 7.0 and is dropped when serializing to 7.0.
    */
   associations?: AssociationStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -248,7 +257,11 @@ export interface EventDetail extends GedcomStructureBase {
   citations?: SourceCitation[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
-  /** UID {0:M}, g7:UID. Serialized to 5.5.1 as the vendor extension `_UID` (see docs/vendor-extensions.md). */
+  /**
+   * UID {0:M}, g7:UID. 5.5.1 has no UID; the vendor extension `_UID` is
+   * written there instead (see the "Common GEDCOM Extensions" catalog:
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   */
   uniqueIds?: Special[];
 }
 
@@ -328,8 +341,9 @@ export interface ReferenceIdentifierStructure extends GedcomStructureBase {
  *
  * 7.0-only: 5.5.1 has no UID. On 5.5.1 input the vendor extension `_UID`
  * is normalized into this structure, and it is serialized back to 5.5.1
- * as `_UID` (the wild formats include the PAF 32+4-hex checksum form;
- * see docs/vendor-extensions.md).
+ * as `_UID`. The wild formats in real files include the PAF 32+4-hex
+ * checksum form (see the "Common GEDCOM Extensions" catalog:
+ * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
  */
 export interface UniqueIdentifierStructure extends GedcomStructureBase {
   tag: 'UID';

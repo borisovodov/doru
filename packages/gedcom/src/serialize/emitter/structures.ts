@@ -278,7 +278,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
       raw = `(${detail.sortDate.phrase})`;
     }
     // 5.5.1 spells SDATE as the vendor extension _SDATE (value only);
-    // see docs/vendor-extensions.md.
+    // a vendor extension of the specification.
     w.line(level, version === '7.0' ? 'SDATE' : '_SDATE', { value: raw === '' ? undefined : raw });
     if (version === '7.0') {
       if (detail.sortDate.time !== undefined) {
@@ -295,7 +295,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     }
   } else {
     // 5.5.1 events have no ASSO; the vendor _SHAR/_ROLE pair carries
-    // them (see docs/vendor-extensions.md).
+    // them (a vendor extension of the specification).
     for (const association of detail.associations ?? []) {
       w.line(level, '_SHAR', { value: association.individual });
       if (association.role !== undefined) {
@@ -322,7 +322,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
       w.line(level, 'UID', { value: uid });
     }
   } else {
-    // The vendor extension; see docs/vendor-extensions.md.
+    // The vendor extension.
     for (const uid of detail.uniqueIds ?? []) {
       w.line(level, '_UID', { value: uid });
     }
@@ -405,7 +405,7 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (version === '5.5.1') {
     for (const pointer of citation.ancestryPointers ?? []) {
-      // Ancestry record reference; see docs/vendor-extensions.md.
+      // Ancestry record reference.
       w.line(level + 1, '_APID', { value: pointer });
     }
   }
@@ -466,7 +466,7 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {
   ptr(w, version, level, 'OBJE', link.object);
   if (version === '5.5.1' && link.primary === true) {
-    // The vendor extension; see docs/vendor-extensions.md.
+    // The vendor extension.
     w.line(level + 1, '_PRIM', { value: 'Y' });
   }
   if (version === '7.0') {

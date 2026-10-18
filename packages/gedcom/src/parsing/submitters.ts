@@ -97,7 +97,7 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     };
   } else {
     handlers['_UID'] = (child) => {
-      // The vendor extension; see docs/vendor-extensions.md.
+      // The vendor extension.
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["RFN"] = (child) => {

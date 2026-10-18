@@ -104,7 +104,7 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     };
   } else {
     handlers['_UID'] = (child) => {
-      // The vendor extension; see docs/vendor-extensions.md.
+      // The vendor extension.
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["RIN"] = (child) => {
@@ -180,7 +180,7 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
         rec.automatedRecordId = reqText(child);
       },
       _UID: (child) => {
-        // The vendor extension; see docs/vendor-extensions.md.
+        // The vendor extension.
         (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
       },
     },
@@ -240,7 +240,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     };
   } else {
     handlers['_UID'] = (child) => {
-      // The vendor extension; see docs/vendor-extensions.md.
+      // The vendor extension.
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["RIN"] = (child) => {
