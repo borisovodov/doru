@@ -402,6 +402,7 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (version === '5.5.1') {
     for (const pointer of citation.ancestryPointers ?? []) {
+      // Ancestry record reference.
       w.line(level + 1, '_APID', { value: pointer });
     }
   }

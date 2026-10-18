@@ -384,7 +384,7 @@ export function parseReferenceIdentifier(node: RawNode, ctx: Ctx): ReferenceIden
   return out;
 }
 
-/** The 5.5.1 `_SDATE` tag: a sort date with the same value format as DATE. */
+/** Parses a 5.5.1 `_SDATE` line into a SortDateStructure (same value format as DATE). */
 export function parseSortDate551(node: RawNode): SortDateStructure {
   const out: SortDateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
@@ -402,11 +402,7 @@ export function parseSortDate551(node: RawNode): SortDateStructure {
   return out;
 }
 
-/**
- * The 5.5.1 `_SHAR @xref@` tag with an optional `_ROLE` (or `ROLE`)
- * descriptor: a co-participant of an event, normalized into an
- * association with ROLE OTHER + PHRASE.
- */
+/** Parses a 5.5.1 `_SHAR @xref@` line with an optional `_ROLE` (or `ROLE`) descriptor into an AssociationStructure. */
 export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStructure {
   const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
   let roleSeen = false;

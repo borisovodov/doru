@@ -296,7 +296,7 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   return { tag: 'OBJE', object: xref, ...(primary === undefined ? {} : { primary }) };
 }
 
-/** Parses the `_PRIM` Y/N flag. */
+/** Parses a `_PRIM` Y/N flag. */
 function parsePrimFlag(node: RawNode): boolean {
   const text = reqText(node);
   if (text === 'Y') {

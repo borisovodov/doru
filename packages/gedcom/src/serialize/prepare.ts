@@ -245,8 +245,9 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
 }
 
 /**
- * GEDCOM 7.0 §3.4 g7:enumset-PEDI values for the common `_FREL`/`_MREL`
- * relationship keywords (case-insensitive).
+ * GEDCOM 7.0 §3.4 g7:enumset-PEDI values matching the common
+ * `_FREL`/`_MREL` relationship keywords (case-insensitive), mirroring
+ * the mapping documented on FamilyChildLink.
  */
 const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
   ['natural', 'BIRTH'],

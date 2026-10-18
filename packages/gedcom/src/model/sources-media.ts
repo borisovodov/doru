@@ -168,10 +168,10 @@ export interface MultimediaLink extends GedcomStructureBase {
   /** TITL {0:1}, g7:TITL — supersedes any OBJE.FILE.TITL in the multimedia record. Dropped when serializing to 5.5.1. */
   title?: Text;
   /**
-   * _PRIM Y {0:1} — marks the preferred/primary multimedia item.
-   * Written by Legacy Family Tree, Family Tree Maker, RootsMagic,
-   * rootstrust and others; not part of any GEDCOM version (see the
-   * "Common GEDCOM Extensions" catalog:
+   * _PRIM Y {0:1} — marks the preferred/primary multimedia item. A
+   * vendor extension (Legacy Family Tree, Family Tree Maker, RootsMagic,
+   * rootstrust, …); not part of any GEDCOM version (see the "Common
+   * GEDCOM Extensions" catalog:
    * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). Dropped
    * when serializing to 7.0 (7.0 has no primary marker; presentation
    * order is used instead).

@@ -275,6 +275,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     },
   };
   if (ctx.version === '5.5.1') {
+    // Normalized into the 7.0-shaped fields.
     handlers['_SDATE'] = (child) => {
       detail.sortDate = parseSortDate551(child);
     };
