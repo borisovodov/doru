@@ -219,21 +219,29 @@ GEDCOM-registries repository, served as a URI (e.g.
 ## 5. Modeled in Dóru
 
 Following the same approach as the 5.5.1-over-7.0 layering, the
-multi-vendor core extensions are typed fields of the unified model
-(normalized on import, canonicalized on export); the long tail of
-single-vendor tags stays generic `ExtensionStructure`/`ExtensionRecord`.
+multi-vendor core extensions are typed fields of the unified model;
+the long tail of single-vendor tags stays generic
+`ExtensionStructure`/`ExtensionRecord` (preserved verbatim, never
+typed). The unified policy: known tags are recognized on input in both
+versions; on output a construct with a standard equivalent uses the
+target version's standard spelling, and a construct without one is
+written as the vendor tag in both versions. The full rules live in the
+JSDoc of each model field and in the README's "Vendor extensions"
+section.
 
-| Vendor tag | Model field | 5.5.1 import | 5.5.1 export | 7.0 export |
-| --- | --- | --- | --- | --- |
-| `_UID` | `identifiers[]` / `EventDetail.uniqueIds` | normalized | `_UID` | standard `UID` |
-| `_SDATE` | `EventDetail.sortDate` | normalized | `_SDATE` | standard `SDATE` |
-| `_SHAR` + `_ROLE`/`ROLE` | `EventDetail.associations` (ROLE OTHER + PHRASE) | normalized | `_SHAR`/`_ROLE` | standard `ASSO`/`ROLE` |
-| `_PRIM` | `MultimediaLink.primary` | normalized | `_PRIM Y` | dropped (no 7.0 equivalent) |
-| `_FREL`/`_MREL` | `FamilyChildLink.fatherRelation`/`motherRelation` | normalized | `_FREL`/`_MREL` | both equal known keyword → `INDI.FAMC.PEDI`; otherwise dropped |
-| `_APID` | `SourceCitation.ancestryPointers` | normalized | `_APID` | dropped (Ancestry 7.0 uses PUBL extensions) |
+| Vendor tag | Model field | 5.5.1 export | 7.0 export |
+| --- | --- | --- | --- |
+| `_UID` | `identifiers[]` / `EventDetail.uniqueIds` | `_UID` | standard `UID` |
+| `_SDATE` | `EventDetail.sortDate` | `_SDATE` | standard `SDATE` |
+| `_SHAR` + `_ROLE`/`ROLE` | `EventDetail.associations` (ROLE OTHER + PHRASE) | `_SHAR`/`_ROLE` | standard `ASSO`/`ROLE` |
+| `_PRIM` | `MultimediaLink.primary` | `_PRIM Y` | `_PRIM Y` (no standard equivalent) |
+| `_FREL`/`_MREL` | `FamilyChildLink.fatherRelation`/`motherRelation` | `_FREL`/`_MREL` | standard-first: agreeing pair → `INDI.FAMC.PEDI`; otherwise dropped |
+| `_APID` | `SourceCitation.ancestryPointers` | `_APID` | `_APID` (no standard equivalent) |
+| `_PLAC` / `_LOC` / `_PLAC_DEFN` records | `PlaceRecord` (+ `PlaceStructure.location` links) | flattened: metadata merged into referencing `PLAC`, records/links not written | same flattening |
+| `_PLAC` under events | `EventDetail.additionalPlaces` | `_PLAC` | `_PLAC` |
 
-Every field cites this catalog in its JSDoc. The mapping is covered by
-`tests/vendor-extensions.test.ts` (import, export, and cross-version
+Covered by `tests/vendor-extensions.test.ts` and
+`tests/place-records.test.ts` (import, export, and cross-version
 round trips).
 
 ## 6. Notes for the Dóru integration

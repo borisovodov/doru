@@ -33,3 +33,4 @@ export * from './model/sources-media';
 export * from './model/family-structures';
 export * from './model/individual-structures';
 export * from './model/lds';
+export * from './model/place-record';

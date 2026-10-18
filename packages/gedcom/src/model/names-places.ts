@@ -7,6 +7,7 @@ import type {
   ListText,
   Longitude,
   PersonalName,
+  Pointer,
   Text,
 } from '../primitives';
 
@@ -14,6 +15,7 @@ import type { ExternalIdentifierStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { NoteStructure } from './common';
 import type { SourceCitation } from './sources-media';
+import type { PlaceRecord } from './place-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.3 Substructures — names and places
@@ -173,6 +175,17 @@ export interface PlaceStructure extends GedcomStructureBase {
   externalIds?: ExternalIdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+  /**
+   * The vendor master-place link: a `_LOC @xref@` child pointing at a
+   * PlaceRecord (GEDCOM 5.5EL form), filled on input in both versions —
+   * from the explicit pointer, or by name matching against a place
+   * record whose payload equals this place's text. Never written on
+   * output: when serializing, the place record's metadata is merged
+   * into each referencing place and the records are dropped (see
+   * PlaceRecord). See the "Common GEDCOM Extensions" catalog:
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html
+   */
+  location?: Pointer<PlaceRecord>;
 }
 
 /**

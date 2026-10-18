@@ -40,6 +40,7 @@ import type { PlaceStructure } from './names-places';
 import type { SourceCitation } from './sources-media';
 import type { SourceRepositoryCitation } from './sources-media';
 import type { SpouseSealingOrdinance } from './lds';
+import type { PlaceRecord } from './place-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.2 Records
@@ -129,12 +130,13 @@ export interface FamilyChildLink extends GedcomStructureBase {
    * of any GEDCOM version (catalogued in the Legacy Family Tree help,
    * "User-Defined GEDCOM Tags":
    * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
-   * Both versions of the standard keep one PEDI value per INDI.FAMC
-   * link instead of a per-parent pair. When serializing to 7.0 the pair
-   * is projected onto the matching FAMC link's PEDI when both relations
-   * name the same known relationship (natural → BIRTH, adopted →
-   * ADOPTED, foster → FOSTER, sealing → SEALING); otherwise it is
-   * dropped.
+   * Recognized on input in both versions. Both versions of the standard
+   * keep one PEDI value per INDI.FAMC link instead of a per-parent pair.
+   * Serialized to 5.5.1 as `_FREL`/`_MREL`; when serializing to 7.0 the
+   * pair is projected onto the matching FAMC link's PEDI when both
+   * relations name the same known relationship (natural → BIRTH,
+   * adopted → ADOPTED, foster → FOSTER, sealing → SEALING); otherwise
+   * it is dropped.
    */
   fatherRelation?: Text;
   /**
@@ -657,4 +659,5 @@ export type GedcomRecord =
   | SubmitterRecord
   | SubmissionRecord
   | NoteRecord
+  | PlaceRecord
   | ExtensionRecord;

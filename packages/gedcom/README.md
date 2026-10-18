@@ -294,6 +294,44 @@ surrogates). The silent drops mean a cross-version round trip is lossy
 by design; a UI integrating this package should tell the user before
 writing a file with constructs the target version cannot hold.
 
+## Vendor extensions
+
+Real files in the wild extend the standard with underscore tags
+(`_UID`, `_SHAR`, `_PLAC`, …); GEDCOM 7 additionally has its own
+mechanism (`SCHMA` declarations with URIs). The per-vendor catalog with
+sources lives in [docs/vendor-extensions.md](docs/vendor-extensions.md).
+The agreed policy:
+
+- **One model, typed where it matters.** The multi-vendor core — `_UID`,
+  `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL`, `_APID`, and the
+  place records `_PLAC`/`_LOC`/`_PLAC_DEFN` — is typed model fields,
+  with the full rules and the source links in the field JSDoc. Unknown
+  `_` tags are preserved verbatim as generic extensions
+  (`ExtensionStructure`/`ExtensionRecord`) and are never typed; only
+  unknown non-underscore tags are strict errors (`structure.unknown-tag`).
+- **Same behavior in both versions.** Known vendor tags are recognized
+  on input in 5.5.1 and 7.0 alike. On output, a construct that has a
+  standard equivalent is written in the standard spelling of the target
+  version (`_UID` in 5.5.1 vs `UID` in 7.0, `_SDATE` vs `SDATE`,
+  `_SHAR`/`_ROLE` vs `ASSO`/`ROLE`); a construct without one is written
+  as the vendor tag in both versions (`_PRIM`, `_APID`, the `_PLAC`
+  second place).
+- **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
+  while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
+  is projected onto `INDI.FAMC.PEDI` (natural → BIRTH, adopted →
+  ADOPTED, foster → FOSTER, sealing → SEALING) and otherwise dropped;
+  5.5.1 always writes the tags back.
+- **Place records are read-side entities.** `_PLAC`/`_LOC`/
+  `_PLAC_DEFN` cards are parsed into `PlaceRecord` entities and linked
+  to events (`PlaceStructure.location`) from explicit `_LOC` pointers
+  or by name matching; cards without an xref get a synthesized one on
+  their first link. On export — both versions alike — the cards are
+  projected onto the standard: their map, notes, citations and media
+  are merged into each referencing `PLAC` that lacks its own copy, and
+  the cards and links are not written. The card structure therefore
+  flattens on a round trip (documented in the `PlaceRecord` JSDoc);
+  event-level place data is never lost.
+
 ## GEDZIP (7.0 chapter 4)
 
 ```ts
@@ -354,9 +392,10 @@ would be, or where the model takes a documented position:
   are catalogued with their sources in
   [docs/vendor-extensions.md](docs/vendor-extensions.md). The
   multi-vendor core (`_UID`, `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`,
-  `_FREL`/`_MREL`, `_APID`) is typed in the model and normalized like
-  the 5.5.1 fields; the catalog remains the checklist for the
-  corpus-validation work.
+  `_FREL`/`_MREL`, `_APID`, the place records) is typed in the model
+  and handled by the unified policy in the "Vendor extensions" section
+  above; the catalog remains the checklist for the corpus-validation
+  work.
 
 ## Future work
 

@@ -60,9 +60,8 @@ export interface SourceCitation extends GedcomStructureBase {
    * (in the wild often prefixed, e.g. `1,7602::2771226`), written by
    * Ancestry tree downloads and read by Family Tree Maker. Not part of
    * any GEDCOM version (documented by TMG to GEDCOM:
-   * https://tmgtogedcom.com/en/apid.htm). Dropped when serializing to
-   * 7.0 (Ancestry's GEDCOM 7 exports use the registered PUBL.DATE/PLAC
-   * extensions instead).
+   * https://tmgtogedcom.com/en/apid.htm). Recognized on input and
+   * written back as `_APID` in both versions.
    */
   ancestryPointers?: Text[];
 }
@@ -172,9 +171,8 @@ export interface MultimediaLink extends GedcomStructureBase {
    * vendor extension (Legacy Family Tree, Family Tree Maker, RootsMagic,
    * rootstrust, …); not part of any GEDCOM version (see the "Common
    * GEDCOM Extensions" catalog:
-   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). Dropped
-   * when serializing to 7.0 (7.0 has no primary marker; presentation
-   * order is used instead).
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   * Recognized on input and written back as `_PRIM` in both versions.
    */
   primary?: boolean;
 }

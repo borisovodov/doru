@@ -215,6 +215,15 @@ export interface EventDetail extends GedcomStructureBase {
   date?: DateStructure;
   /** <<PLACE_STRUCTURE>> {0:1}, g7:PLAC. */
   place?: PlaceStructure;
+  /**
+   * `_PLAC` {0:M} — additional places of the event (the Family
+   * Historian convention for "from → to" places such as an emigration),
+   * ordered by importance with the primary place first. Not part of any
+   * GEDCOM version (see the "Common GEDCOM Extensions" catalog:
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   * Recognized on input and written back as `_PLAC` in both versions.
+   */
+  additionalPlaces?: PlaceStructure[];
   /** <<ADDRESS_STRUCTURE>> {0:1}, g7:ADDR. */
   address?: AddressStructure;
   /** PHON {0:M}, g7:PHON. */
@@ -238,6 +247,7 @@ export interface EventDetail extends GedcomStructureBase {
    * vendor extension `_SDATE` with the same value format is written
    * there instead (documented in the "Common GEDCOM Extensions"
    * catalog: https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   * The vendor tag is also recognized on 7.0 input.
    */
   sortDate?: SortDateStructure;
   /**
@@ -246,9 +256,10 @@ export interface EventDetail extends GedcomStructureBase {
    * `_ROLE` (or `ROLE`) descriptor are written there instead, with the
    * free-text descriptor kept as ROLE OTHER + PHRASE (see the "Common
    * GEDCOM Extensions" catalog:
-   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). An
-   * association without a role (a bare 5.5.1 `_SHAR`) cannot be spelled
-   * in 7.0 and is dropped when serializing to 7.0.
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). The
+   * vendor tags are also recognized on 7.0 input. An association
+   * without a role (a bare `_SHAR`) cannot be spelled in 7.0 and is
+   * dropped when serializing to 7.0.
    */
   associations?: AssociationStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -260,7 +271,8 @@ export interface EventDetail extends GedcomStructureBase {
   /**
    * UID {0:M}, g7:UID. 5.5.1 has no UID; the vendor extension `_UID` is
    * written there instead (see the "Common GEDCOM Extensions" catalog:
-   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). The
+   * vendor tag is also recognized on 7.0 input.
    */
   uniqueIds?: Special[];
 }
@@ -339,10 +351,11 @@ export interface ReferenceIdentifierStructure extends GedcomStructureBase {
  * the superstructure, to be preserved across edits. It is recommended
  * that new identifiers be formatted as UUIDs per RFC 9562 Section 4.
  *
- * 7.0-only: 5.5.1 has no UID. On 5.5.1 input the vendor extension `_UID`
- * is normalized into this structure, and it is serialized back to 5.5.1
- * as `_UID`. The wild formats in real files include the PAF 32+4-hex
- * checksum form (see the "Common GEDCOM Extensions" catalog:
+ * 7.0-only: 5.5.1 has no UID. The vendor extension `_UID` is
+ * normalized into this structure on input in both versions, and it is
+ * serialized back to 5.5.1 as `_UID`. The wild formats in real files
+ * include the PAF 32+4-hex checksum form (see the "Common GEDCOM
+ * Extensions" catalog:
  * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
  */
 export interface UniqueIdentifierStructure extends GedcomStructureBase {
