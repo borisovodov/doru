@@ -1,6 +1,17 @@
-/* Dóru website theme — mirrors the desktop app's theme tokens
+/* ── Dóru website theme ─────────────────────────────────────────────── */
+/* Mirrors the desktop app's theme tokens
    (themes/doru-light/theme.json and themes/doru-dark/theme.json),
    so the site and the app feel like one product. */
+
+/* The wordmark face, served from public/ so the URL is stable and the
+   font can be preloaded in the <head> (no fallback flash on load). */
+@font-face {
+  font-family: 'Berkshire Swash';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/berkshire-swash-latin-400-normal.woff2') format('woff2');
+}
 
 :root {
   /* Surfaces — canvas (page) < chrome (nav/sidebar) < raised < popover */
@@ -138,12 +149,12 @@
   );
 }
 
-/* Hero name — the brand wordmark in Berkshire Swash (self-hosted via
-   Fontsource), larger than the default VitePress hero text. Only the name
-   changes; the subtitle keeps the system stack. Selector beats VPHero's
-   scoped styles (0,3,0 vs 0,2,0). */
+/* Hero name — the brand wordmark in Berkshire Swash (self-hosted from
+   public/fonts/), larger than the default VitePress hero text. Only the
+   name changes; the subtitle keeps the system stack. Selector beats
+   VPHero's scoped styles (0,3,0 vs 0,2,0). */
 .VPHero.VPHomeHero .name {
-  font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
+  font-family: 'Berkshire Swash', Georgia, serif;
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.35;
@@ -172,7 +183,7 @@
 /* The nav bar wordmark uses the same display face as the hero name. The
    "D" swash overhangs to the left, so the span gets breathing room. */
 .VPNavBar .VPNavBarTitle .title {
-  font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
+  font-family: 'Berkshire Swash', Georgia, serif;
   font-weight: 400;
   font-size: 20px;
   line-height: 1;
