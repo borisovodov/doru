@@ -32,3 +32,15 @@ jobs:
       - name: E2E smoke test (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npx playwright test
+
+  site:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run site:build
