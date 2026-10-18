@@ -124,11 +124,10 @@ export interface FamilyChildLink extends GedcomStructureBase {
   phrase?: Text;
   /**
    * _FREL {0:1} — the relationship of the child to the father in the
-   * family (Natural, Adopted, Step, Foster, …). A vendor extension
-   * written by Family Tree Maker and read by several programs; not part
-   * of any GEDCOM version (catalogued in the Legacy Family Tree help,
-   * "User-Defined GEDCOM Tags":
-   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
+   * family (Natural, Adopted, Step, Foster, …). Written by Family Tree
+   * Maker and read by several programs; not part of any GEDCOM version
+   * (catalogued in the Legacy Family Tree help, "User-Defined GEDCOM
+   * Tags": https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
    * Both versions of the standard keep one PEDI value per INDI.FAMC
    * link instead of a per-parent pair. When serializing to 7.0 the pair
    * is projected onto the matching FAMC link's PEDI when both relations

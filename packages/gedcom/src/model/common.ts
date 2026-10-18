@@ -235,15 +235,15 @@ export interface EventDetail extends GedcomStructureBase {
   restriction?: ListEnum<RestrictionEnum>;
   /**
    * SDATE {0:1}, g7:SDATE — a sorting hint. 5.5.1 has no SDATE; the
-   * vendor extension `_SDATE` with the same value format is written
-   * there instead (documented in the "Common GEDCOM Extensions"
-   * catalog: https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
+   * `_SDATE` tag with the same value format is written there instead
+   * (documented in the "Common GEDCOM Extensions" catalog:
+   * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
    */
   sortDate?: SortDateStructure;
   /**
    * <<ASSOCIATION_STRUCTURE>> {0:M} — 5.5.1 events have no ASSO; the
-   * co-participant vendor extensions `_SHAR @xref@` with an optional
-   * `_ROLE` (or `ROLE`) descriptor are written there instead, with the
+   * co-participant tags `_SHAR @xref@` with an optional `_ROLE` (or
+   * `ROLE`) descriptor are written there instead, with the
    * free-text descriptor kept as ROLE OTHER + PHRASE (see the "Common
    * GEDCOM Extensions" catalog:
    * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). An
@@ -258,8 +258,8 @@ export interface EventDetail extends GedcomStructureBase {
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
   /**
-   * UID {0:M}, g7:UID. 5.5.1 has no UID; the vendor extension `_UID` is
-   * written there instead (see the "Common GEDCOM Extensions" catalog:
+   * UID {0:M}, g7:UID. 5.5.1 has no UID; the `_UID` tag is written
+   * there instead (see the "Common GEDCOM Extensions" catalog:
    * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
    */
   uniqueIds?: Special[];
@@ -339,9 +339,9 @@ export interface ReferenceIdentifierStructure extends GedcomStructureBase {
  * the superstructure, to be preserved across edits. It is recommended
  * that new identifiers be formatted as UUIDs per RFC 9562 Section 4.
  *
- * 7.0-only: 5.5.1 has no UID. On 5.5.1 input the vendor extension `_UID`
- * is normalized into this structure, and it is serialized back to 5.5.1
- * as `_UID`. The wild formats in real files include the PAF 32+4-hex
+ * 7.0-only: 5.5.1 has no UID. On 5.5.1 input the `_UID` tag is
+ * normalized into this structure, and it is serialized back to 5.5.1 as
+ * `_UID`. The wild formats in real files include the PAF 32+4-hex
  * checksum form (see the "Common GEDCOM Extensions" catalog:
  * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html).
  */

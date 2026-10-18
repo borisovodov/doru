@@ -116,7 +116,6 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           (out.notes ??= []).push(parseNoteStructure(child, ctx));
         },
         '_APID': (child) => {
-          // Ancestry record reference; see the SourceCitation JSDoc.
           (out.ancestryPointers ??= []).push(reqText(child));
         },
       },
@@ -297,7 +296,7 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   return { tag: 'OBJE', object: xref, ...(primary === undefined ? {} : { primary }) };
 }
 
-/** The vendor `_PRIM` Y/N flag; see the MultimediaLink JSDoc. */
+/** Parses the `_PRIM` Y/N flag. */
 function parsePrimFlag(node: RawNode): boolean {
   const text = reqText(node);
   if (text === 'Y') {

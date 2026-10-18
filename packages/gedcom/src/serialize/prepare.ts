@@ -245,9 +245,8 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
 }
 
 /**
- * GEDCOM 7.0 §3.4 g7:enumset-PEDI values matching the common
- * `_FREL`/`_MREL` relationship keywords (case-insensitive), mirroring
- * the mapping documented on FamilyChildLink.
+ * GEDCOM 7.0 §3.4 g7:enumset-PEDI values for the common `_FREL`/`_MREL`
+ * relationship keywords (case-insensitive).
  */
 const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
   ['natural', 'BIRTH'],
@@ -261,7 +260,7 @@ const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
  * 7.0 keeps the same information in INDI.FAMC.PEDI. When both relations
  * name the same known relationship, the matching FAMC link gets its
  * PEDI filled; otherwise the relations are dropped (the 7.0 emitter
- * never writes them). See the JSDoc of FamilyChildLink for the rules.
+ * never writes them).
  */
 export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);

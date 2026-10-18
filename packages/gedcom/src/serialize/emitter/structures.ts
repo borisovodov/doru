@@ -277,8 +277,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
       // phrase-only sort date is written parenthesized, like a 5.5.1 DATE.
       raw = `(${detail.sortDate.phrase})`;
     }
-    // 5.5.1 spells SDATE as the vendor extension _SDATE (value only);
-    // a vendor extension of the specification.
+    // 5.5.1 spells SDATE as _SDATE (value only).
     w.line(level, version === '7.0' ? 'SDATE' : '_SDATE', { value: raw === '' ? undefined : raw });
     if (version === '7.0') {
       if (detail.sortDate.time !== undefined) {
@@ -294,8 +293,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
       emitAssociation(w, version, level, association);
     }
   } else {
-    // 5.5.1 events have no ASSO; the vendor _SHAR/_ROLE pair carries
-    // them (a vendor extension of the specification).
+    // 5.5.1 events have no ASSO; the _SHAR/_ROLE pair carries them.
     for (const association of detail.associations ?? []) {
       w.line(level, '_SHAR', { value: association.individual });
       if (association.role !== undefined) {
@@ -322,7 +320,6 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
       w.line(level, 'UID', { value: uid });
     }
   } else {
-    // The vendor extension.
     for (const uid of detail.uniqueIds ?? []) {
       w.line(level, '_UID', { value: uid });
     }
@@ -405,7 +402,6 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (version === '5.5.1') {
     for (const pointer of citation.ancestryPointers ?? []) {
-      // Ancestry record reference.
       w.line(level + 1, '_APID', { value: pointer });
     }
   }
@@ -466,7 +462,6 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {
   ptr(w, version, level, 'OBJE', link.object);
   if (version === '5.5.1' && link.primary === true) {
-    // The vendor extension.
     w.line(level + 1, '_PRIM', { value: 'Y' });
   }
   if (version === '7.0') {

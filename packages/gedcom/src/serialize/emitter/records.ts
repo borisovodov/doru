@@ -158,8 +158,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
       w.line(2, 'PHRASE', { value: child.phrase });
     }
     if (version === '5.5.1') {
-      // The FTM vendor extensions. The
-      // 7.0 side of the pair (INDI.FAMC.PEDI) is filled by prepareFor70.
+      // The 7.0 side of the pair (INDI.FAMC.PEDI) is filled by prepareFor70.
       if (child.fatherRelation !== undefined) {
         w.line(2, '_FREL', { value: child.fatherRelation });
       }

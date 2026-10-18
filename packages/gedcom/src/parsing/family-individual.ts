@@ -147,7 +147,6 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     }
   } else {
     handlers['_UID'] = (child) => {
-      // The vendor extension.
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["NCHI"] = (child) => {
@@ -250,7 +249,6 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     }
   } else {
     handlers['_UID'] = (child) => {
-      // The vendor extension.
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["RIN"] = (child) => {
