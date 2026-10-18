@@ -236,6 +236,9 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   if (detail.place !== undefined) {
     emitPlace(w, version, level, detail.place);
   }
+  for (const additional of detail.additionalPlaces ?? []) {
+    emitPlace(w, version, level, additional, '_PLAC');
+  }
   const address = mergedAddress(w, version, detail.address, detail);
   if (address !== undefined) {
     emitAddress(w, version, level, address);
@@ -400,11 +403,9 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   if (page !== undefined) {
     w.line(level + 1, 'PAGE', { value: page });
   }
-  if (version === '5.5.1') {
-    for (const pointer of citation.ancestryPointers ?? []) {
-      // Ancestry record reference.
-      w.line(level + 1, '_APID', { value: pointer });
-    }
+  for (const pointer of citation.ancestryPointers ?? []) {
+    // Ancestry record reference.
+    w.line(level + 1, '_APID', { value: pointer });
   }
   if (citation.data !== undefined) {
     w.line(level + 1, 'DATA');
@@ -462,7 +463,7 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
 
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {
   ptr(w, version, level, 'OBJE', link.object);
-  if (version === '5.5.1' && link.primary === true) {
+  if (link.primary === true) {
     w.line(level + 1, '_PRIM', { value: 'Y' });
   }
   if (version === '7.0') {

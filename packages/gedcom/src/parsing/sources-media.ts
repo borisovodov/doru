@@ -84,6 +84,9 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         NOTE: (child) => {
           (out.notes ??= []).push(parseNoteStructure(child, ctx));
         },
+        '_APID': (child) => {
+          (out.ancestryPointers ??= []).push(reqText(child));
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -235,6 +238,9 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         },
         TITL: (child) => {
           out.title = reqText(child);
+        },
+        '_PRIM': (child) => {
+          out.primary = parsePrimFlag(child);
         },
       },
       ctx,

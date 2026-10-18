@@ -203,8 +203,8 @@ export function emitNamePieces(w: Writer, version: Version, level: number, piece
   }
 }
 
-export function emitPlace(w: Writer, version: Version, level: number, place: PlaceStructure): void {
-  w.line(level, 'PLAC', { value: place.payload.join(', ') });
+export function emitPlace(w: Writer, version: Version, level: number, place: PlaceStructure, tag: 'PLAC' | '_PLAC' = 'PLAC'): void {
+  w.line(level, tag, { value: place.payload.join(', ') });
   if (place.form !== undefined) {
     w.line(level + 1, 'FORM', { value: place.form.join(', ') });
   }

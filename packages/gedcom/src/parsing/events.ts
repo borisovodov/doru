@@ -115,14 +115,12 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
       out.phrase = reqText(child);
     },
   };
-  if (ctx.version === '5.5.1') {
-    handlers['_FREL'] = (child) => {
-      out.fatherRelation = reqText(child);
-    };
-    handlers['_MREL'] = (child) => {
-      out.motherRelation = reqText(child);
-    };
-  }
+  handlers['_FREL'] = (child) => {
+    out.fatherRelation = reqText(child);
+  };
+  handlers['_MREL'] = (child) => {
+    out.motherRelation = reqText(child);
+  };
   dispatch(node, out, handlers, ctx);
   return out;
 }
@@ -274,18 +272,18 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       (detail.media ??= []).push(parseMultimediaLink(child, ctx));
     },
   };
-  if (ctx.version === '5.5.1') {
-    // Normalized into the 7.0-shaped fields.
-    handlers['_SDATE'] = (child) => {
-      detail.sortDate = parseSortDate551(child);
-    };
-    handlers['_SHAR'] = (child) => {
-      (detail.associations ??= []).push(parseSharedParticipant(child, ctx));
-    };
-    handlers['_UID'] = (child) => {
-      (detail.uniqueIds ??= []).push(reqText(child));
-    };
-  }
+  handlers['_SDATE'] = (child) => {
+    detail.sortDate = parseSortDate551(child);
+  };
+  handlers['_SHAR'] = (child) => {
+    (detail.associations ??= []).push(parseSharedParticipant(child, ctx));
+  };
+  handlers['_UID'] = (child) => {
+    (detail.uniqueIds ??= []).push(reqText(child));
+  };
+  handlers['_PLAC'] = (child) => {
+    (detail.additionalPlaces ??= []).push(parsePlaceStructure(child, ctx));
+  };
   if (ctx.version === '7.0') {
     handlers["PHON"] = (child) => {
       (detail.phone ??= []).push(reqText(child));

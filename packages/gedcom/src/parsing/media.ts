@@ -82,6 +82,9 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     handlers["UID"] = (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
+    handlers["_UID"] = (child) => {
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["EXID"] = (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
     };

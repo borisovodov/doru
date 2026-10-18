@@ -137,6 +137,9 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     handlers["UID"] = (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
+    handlers["_UID"] = (child) => {
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["EXID"] = (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
     };
@@ -237,6 +240,9 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       rec.creationDate = parseCreationDate(child, ctx);
     };
     handlers["UID"] = (child) => {
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
+    handlers["_UID"] = (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["EXID"] = (child) => {

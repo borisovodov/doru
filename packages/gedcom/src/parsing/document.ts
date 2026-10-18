@@ -44,6 +44,7 @@ import {
   parseSharedNoteRecord,
   parseSourceRecord,
 } from './sources';
+import { linkPlacesByName, parsePlaceRecord } from './places';
 import {
   parseSubmissionRecord,
   parseSubmitterRecord,
@@ -100,6 +101,8 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: '7.0' | '5.5.1
     fail('document.missing-trailer', 'The document must end with a TRLR line', DOCUMENT_START);
   }
 
+  linkPlacesByName(records, ctx);
+
   records.push(...ctx.synthetic);
   return {
     header,
@@ -135,6 +138,10 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseSubmitterRecord(node, ctx);
     case 'SUBN':
       fail('structure.unknown-tag', 'The SUBN record must immediately follow the header', node.position);
+    case '_PLAC':
+    case '_LOC':
+    case '_PLAC_DEFN':
+      return parsePlaceRecord(node, ctx);
     default:
       if (node.tag.startsWith('_')) {
         return parseExtension(node) as ExtensionRecord;

@@ -475,11 +475,11 @@ describe('parseGedcom551 — strictness', () => {
 
   test('parses an extension record and extension substructures', () => {
     const dataset = parse551(
-      [...HEADER, '0 @L1@ _LOC', '1 NAME Byzantion', '2 _POP 15149358', ...SUBM, '0 TRLR'].join('\n'),
+      [...HEADER, '0 @L1@ _SOMEREC', '1 NAME Byzantion', '2 _POP 15149358', ...SUBM, '0 TRLR'].join('\n'),
     );
     const ext = dataset.records[0];
-    expect(ext?.tag).toBe('_LOC');
-    if (ext?.tag === '_LOC') {
+    expect(ext?.tag).toBe('_SOMEREC');
+    if (ext?.tag === '_SOMEREC') {
       expect(ext.children[0]?.tag).toBe('NAME');
       expect(ext.children[0]?.children[0]?.tag).toBe('_POP');
     }

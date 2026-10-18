@@ -23,16 +23,17 @@
  * The catalog source is John Cardinal's "Common GEDCOM Extensions":
  * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html
  *
- * On 5.5.1 input every dialect is normalized to tag `_PLAC` with the
- * name as the payload, and events that name a place whose text matches
- * a record's payload get their `PlaceStructure.location` filled (records
- * without an xref receive a synthesized one, like the OBJE synthesis).
- * On 5.5.1 output the records are written in the `@xref@ _PLAC <name>`
- * form with the link as `_LOC @xref@` under PLAC. When serializing to
- * 7.0 the records are dropped and their map, notes, citations and media
- * are merged into each referencing place that lacks its own copy (see
- * prepareFor70). On 7.0 input these records stay generic extension
- * records (the model does not type them there).
+ * On input (both versions) every dialect is normalized to tag `_PLAC`
+ * with the name as the payload, and events that name a place whose text
+ * matches a record's payload get their `PlaceStructure.location` filled
+ * (records without an xref receive a synthesized one, like the OBJE
+ * synthesis). The records are read-side entities: on output — both
+ * versions alike — they are projected onto the standard: their map and
+ * notes are merged into each referencing place that lacks its own copy
+ * (citations and media have no standard slot under PLAC and are
+ * dropped), the location links are consumed, and the records are not
+ * written. The card structure therefore flattens on a round trip;
+ * event-level place data is never lost.
  */
 import type { Pointer, Text, Xref } from '../primitives';
 import type {

@@ -26,14 +26,15 @@ import type {
   RomanizedNameVariation,
   RomanizedPlaceVariation,
 } from '../structures';
-import type {
-  Ctx,
-} from './context';
 import {
   dispatch,
   noPayload,
   req,
+  reqPtr,
   reqText,
+} from './context';
+import type {
+  Ctx,
 } from './context';
 import type {
   RawNode,
@@ -251,6 +252,9 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    '_LOC': (child) => {
+      out.location = reqPtr(child, ctx);
     },
   };
   if (ctx.version === '7.0') {

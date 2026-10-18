@@ -26,6 +26,8 @@ import type {
   IndividualRecord,
   SubmitterRecord,
 } from '../structures';
+import { collectPlaces } from '../parsing/places';
+import type { PlaceRecord } from '../structures';
 import type { PedigreeEnum } from '../enumerations';
 
 /** The SOUR identifier written when exporting to 5.5.1 without one. */
@@ -197,8 +199,44 @@ function fill551Header(dataset: GedcomDataset): void {
  * Applies the NO rule and the required-field defaults, returning a new
  * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
  */
+/**
+ * Projects the vendor place records onto the standard: each card's map
+ * and notes are merged into every referencing place that lacks its own
+ * copy (citations and media have no standard slot under PLAC and are
+ * dropped), the location links are consumed, and the records are
+ * removed. See the PlaceRecord JSDoc.
+ */
+function flattenPlaceRecords(dataset: GedcomDataset): void {
+  const places = collectPlaces(dataset.records);
+  for (const record of dataset.records) {
+    if (record.tag !== '_PLAC') {
+      continue;
+    }
+    const card = record as unknown as PlaceRecord;
+    if (card.xref === undefined) {
+      continue;
+    }
+    for (const place of places) {
+      if (place.location !== card.xref) {
+        continue;
+      }
+      if (place.map === undefined && card.map !== undefined) {
+        place.map = card.map;
+      }
+      if (place.notes === undefined && card.notes !== undefined) {
+        place.notes = card.notes;
+      }
+    }
+  }
+  for (const place of places) {
+    delete (place as { location?: unknown }).location;
+  }
+  dataset.records = dataset.records.filter((record) => record.tag !== '_PLAC');
+}
+
 export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
+  flattenPlaceRecords(out);
 
   // 1. Drop every NO structure; remember which records carried one, so
   //    the empty-record rule below only applies to them.
@@ -265,6 +303,7 @@ const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
  */
 export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
+  flattenPlaceRecords(out);
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (record.tag === 'INDI' && record.xref !== undefined) {

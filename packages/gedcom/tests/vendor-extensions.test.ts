@@ -189,9 +189,10 @@ describe('vendor extensions on 7.0 output', () => {
     expect(text).toContain('3 ROLE OTHER');
     expect(text).toContain('4 PHRASE Witness');
     expect(text).toContain('4 PHRASE Maid of Honor');
-    // Not representable in 7.0: dropped.
-    expect(text).not.toContain('_PRIM');
-    expect(text).not.toContain('_APID');
+    // No standard 7.0 equivalent: the vendor tags are written in both versions.
+    expect(text).toContain('2 _PRIM Y');
+    expect(text).toContain('3 _APID 1,7602::2771226');
+    // The disagreeing relation pair has no PEDI projection: dropped.
     expect(text).not.toContain('_FREL');
     expect(text).not.toContain('_MREL');
     // The _FOO extension is preserved verbatim.

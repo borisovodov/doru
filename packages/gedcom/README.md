@@ -326,9 +326,10 @@ The agreed policy:
   to events (`PlaceStructure.location`) from explicit `_LOC` pointers
   or by name matching; cards without an xref get a synthesized one on
   their first link. On export — both versions alike — the cards are
-  projected onto the standard: their map, notes, citations and media
-  are merged into each referencing `PLAC` that lacks its own copy, and
-  the cards and links are not written. The card structure therefore
+  projected onto the standard: their map and notes are merged into
+  each referencing `PLAC` that lacks its own copy (citations and media
+  have no standard slot under `PLAC` and are dropped), and the cards
+  and links are not written. The card structure therefore
   flattens on a round trip (documented in the `PlaceRecord` JSDoc);
   event-level place data is never lost.
 

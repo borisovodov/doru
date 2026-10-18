@@ -99,6 +99,9 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     handlers["UID"] = (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
+    handlers["_UID"] = (child) => {
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
     handlers["EXID"] = (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
     };
@@ -231,6 +234,9 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       rec.creationDate = parseCreationDate(child, ctx);
     };
     handlers["UID"] = (child) => {
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
+    handlers["_UID"] = (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["EXID"] = (child) => {
