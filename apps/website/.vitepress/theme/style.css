@@ -72,9 +72,8 @@
   --vp-nav-bg-color: var(--vp-c-bg-alt);
   --vp-local-nav-bg-color: var(--vp-c-bg-alt);
 
-  /* Hero — sage gradient on the name, soft accent glow behind */
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, #6aa280 10%, #23432f 95%);
+  /* Hero — solid accent on the name, soft accent glow behind */
+  --vp-home-hero-name-color: #3f7355; /* accent */
   --vp-home-hero-image-background-image: radial-gradient(
     60% 60% at 50% 40%,
     rgba(63, 115, 85, 0.18) 0%,
@@ -141,7 +140,7 @@
   --vp-button-brand-active-text: #0c1510;
 
   /* Hero */
-  --vp-home-hero-name-background: linear-gradient(120deg, #9dd4b9 10%, #4a8564 95%);
+  --vp-home-hero-name-color: #63a37f; /* accent */
   --vp-home-hero-image-background-image: radial-gradient(
     60% 60% at 50% 40%,
     rgba(99, 163, 127, 0.16) 0%,
