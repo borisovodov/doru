@@ -273,6 +273,11 @@ Priorities:
 
 - **P0** — already typed (see chapter 5).
 - **P1** — recommended: multi-vendor, real data, low effort.
+  **Implemented**: `_TMPLT`, `_MARNM`/`_MARN`, `_AKA`/`_AKAN`, `_UPD`,
+  `_WT_OBJE_SORT`, `_DATE` and `_EMAIL` are typed (see the field JSDoc:
+  `SourceRecord.template`, the NAME-type normalization,
+  `IndividualRecord`/`FamilyRecord.updatedAt`, the media-link
+  normalization, `MultimediaRecord.date`, `AddressStructure.email`).
 - **P2** — worth considering: meaningful data or very common vendor,
   but single-vendor or medium effort.
 - **P3** — defer: housekeeping/report/presentation data, one vendor;

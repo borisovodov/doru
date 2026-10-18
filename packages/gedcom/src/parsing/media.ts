@@ -41,6 +41,7 @@ import {
 import {
   parseChangeDate,
   parseCreationDate,
+  parseDateStructure,
   parseExternalIdentifier,
   parseNoteStructure,
   parseReferenceIdentifier,
@@ -58,6 +59,9 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
   const handlers: Record<string, (child: RawNode) => void> = {
     FILE: (child) => {
       rec.files.push(parseMediaFile(child, ctx));
+    },
+    '_DATE': (child) => {
+      rec.date = parseDateStructure(child, ctx);
     },
     NOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));

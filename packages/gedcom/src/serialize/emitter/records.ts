@@ -56,6 +56,7 @@ import {
 import {
   emitAddress,
   emitAssociation,
+  emitDate,
   emitNoteStructure,
   emitSourceCitation,
   mergedAddress,
@@ -67,6 +68,9 @@ import {
   restrictionList,
   sex,
 } from './values';
+import type {
+  DateStructure,
+} from '../../structures';
 
 export function emitFamily(w: Writer, version: Version, rec: {
   tag: 'FAM';
@@ -87,10 +91,14 @@ export function emitFamily(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
+  updatedAt?: string;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'FAM', { xref: rec.xref });
+  if (rec.updatedAt !== undefined) {
+    w.line(1, '_UPD', { value: rec.updatedAt });
+  }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
   }
@@ -208,10 +216,14 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   automatedRecordId?: string;
   recordFileNumber?: string;
   ancestralFileNumber?: string;
+  updatedAt?: string;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'INDI', { xref: rec.xref });
+  if (rec.updatedAt !== undefined) {
+    w.line(1, '_UPD', { value: rec.updatedAt });
+  }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
   }
@@ -317,6 +329,7 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   tag: 'OBJE';
   restriction?: Array<string | `_${string}`>;
   files: MediaFile[];
+  date?: DateStructure;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
   citations?: SourceCitation[];
@@ -332,6 +345,9 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   }
   for (const file of rec.files) {
     emitMediaFile(w, version, 1, file);
+  }
+  if (rec.date !== undefined) {
+    emitDate(w, version, 1, '_DATE', rec.date);
   }
   commonRecordFields(w, version, rec, 1);
 }
@@ -471,6 +487,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
+  template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -523,6 +540,19 @@ export function emitSource(w: Writer, version: Version, rec: {
   }
   for (const citation of rec.repositoryCitations ?? []) {
     emitRepositoryCitation(w, version, 1, citation);
+  }
+  if (rec.template !== undefined) {
+    w.line(1, '_TMPLT');
+    if (rec.template.templateId !== undefined) {
+      w.line(2, 'TID', { value: rec.template.templateId });
+    }
+    for (const field of rec.template.fields) {
+      w.line(2, 'FIELD');
+      w.line(3, 'NAME', { value: field.name });
+      if (field.value !== undefined) {
+        w.line(3, 'VALUE', { value: field.value });
+      }
+    }
   }
   commonRecordFields(w, version, rec, 1);
 }

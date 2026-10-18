@@ -71,6 +71,9 @@ import {
 export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure {
   const out: AddressStructure = { payload: reqText(node) };
   const handlers: Record<string, (child: RawNode) => void> = {
+    _EMAIL: (child) => {
+      (out.email ??= []).push(reqText(child));
+    },
     ADR1: (child) => {
       out.line1 = reqText(child);
     },

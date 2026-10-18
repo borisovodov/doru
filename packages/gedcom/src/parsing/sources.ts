@@ -17,6 +17,8 @@ import type {
   ListEnum,
 } from '../primitives';
 import type {
+  EvidenceTemplate,
+  EvidenceTemplateField,
   NoteRecord,
   PlaceStructure,
   RepositoryRecord,
@@ -213,6 +215,9 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     TEXT: (child) => {
       rec.text = parseSourceText(child, ctx);
     },
+    _TMPLT: (child) => {
+      rec.template = parseEvidenceTemplate(child, ctx);
+    },
     REPO: (child) => {
       (rec.repositoryCitations ??= []).push(parseSourceRepositoryCitation(child, ctx));
     },
@@ -258,6 +263,46 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     ctx.version === '7.0' ? ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA'] : ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'RIN'],
   );
   return rec;
+}
+
+/** Parses the vendor `_TMPLT` source template (see SourceRecord.template). */
+export function parseEvidenceTemplate(node: RawNode, ctx: Ctx): EvidenceTemplate {
+  noPayload(node);
+  const out: EvidenceTemplate = { tag: '_TMPLT', fields: [] };
+  dispatch(
+    node,
+    out,
+    {
+      TID: (child) => {
+        out.templateId = reqText(child);
+      },
+      FIELD: (child) => {
+        out.fields.push(parseEvidenceTemplateField(child, ctx));
+      },
+    },
+    ctx,
+    ['TID'],
+  );
+  return out;
+}
+
+/** Parses one FIELD of an evidence template (NAME {1:1}, VALUE {0:1}). */
+function parseEvidenceTemplateField(node: RawNode, ctx: Ctx): EvidenceTemplateField {
+  noPayload(node);
+  const out: EvidenceTemplateField = { tag: 'FIELD', name: reqText(req(node, 'NAME')) };
+  dispatch(
+    node,
+    out,
+    {
+      NAME: () => undefined,
+      VALUE: (child) => {
+        out.value = reqText(child);
+      },
+    },
+    ctx,
+    ['VALUE'],
+  );
+  return out;
 }
 
 export function parseSourceRecordData(node: RawNode, ctx: Ctx): SourceRecordData {

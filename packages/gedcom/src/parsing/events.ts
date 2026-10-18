@@ -271,6 +271,9 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     OBJE: (child) => {
       (detail.media ??= []).push(parseMultimediaLink(child, ctx));
     },
+    '_WT_OBJE_SORT': (child) => {
+      (detail.media ??= []).push(parseMultimediaLink(child, ctx));
+    },
   };
   handlers['_SDATE'] = (child) => {
     detail.sortDate = parseSortDate551(child);

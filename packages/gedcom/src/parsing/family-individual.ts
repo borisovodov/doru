@@ -64,7 +64,11 @@ import {
 import {
   parseEnum,
   parseListEnum,
+  parsePersonalName,
 } from './types';
+import type {
+  NameTypeEnum,
+} from '../enumerations';
 
 // ---------------------------------------------------------------------------
 
@@ -107,6 +111,12 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     OBJE: (child) => {
       (rec.media ??= []).push(parseMultimediaLink(child, ctx));
+    },
+    _WT_OBJE_SORT: (child) => {
+      (rec.media ??= []).push(parseMultimediaLink(child, ctx));
+    },
+    _UPD: (child) => {
+      rec.updatedAt = reqText(child);
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -177,6 +187,18 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
   return rec;
 }
 
+/**
+ * A vendor name tag (`_MARNM`, `_AKA`, …): normalized into a NAME with
+ * the given type; see the JSDoc of PersonalNameStructure.
+ */
+function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType: NameTypeEnum): void {
+  (rec.names ??= []).push({
+    tag: 'NAME',
+    payload: parsePersonalName(reqText(node), ctx.version, node.position),
+    type: { payload: nameType },
+  });
+}
+
 export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord {
   noPayload(node);
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
@@ -186,6 +208,21 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     NAME: (child) => {
       (rec.names ??= []).push(parsePersonalNameStructure(child, ctx));
+    },
+    _MARNM: (child) => {
+      pushVendorName(rec, child, ctx, 'MARRIED');
+    },
+    _MARN: (child) => {
+      pushVendorName(rec, child, ctx, 'MARRIED');
+    },
+    _AKA: (child) => {
+      pushVendorName(rec, child, ctx, 'AKA');
+    },
+    _AKAN: (child) => {
+      pushVendorName(rec, child, ctx, 'AKA');
+    },
+    _UPD: (child) => {
+      rec.updatedAt = reqText(child);
     },
     SEX: (child) => {
       const table = (ctx.version === '7.0' ? SEX_ENUM_VALUES : SEX_551) as Readonly<
@@ -221,6 +258,9 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.citations ??= []).push(parseSourceCitation(child, ctx));
     },
     OBJE: (child) => {
+      (rec.media ??= []).push(parseMultimediaLink(child, ctx));
+    },
+    _WT_OBJE_SORT: (child) => {
       (rec.media ??= []).push(parseMultimediaLink(child, ctx));
     },
     CHAN: (child) => {

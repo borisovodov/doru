@@ -21,6 +21,7 @@ import type { AddressStructure } from './common';
 import type { AssociationStructure } from './common';
 import type { ChangeDate } from './common';
 import type { CreationDate } from './common';
+import type { DateStructure } from './common';
 import type { DatePeriodStructure } from './common';
 import type { ExtensionRecord } from './extensions';
 import type { FamilyAttributeStructure } from './family-structures';
@@ -68,6 +69,13 @@ export interface FamilyRecord extends GedcomStructureBase {
   events?: FamilyEventStructure[];
   /** <<NON_EVENT_STRUCTURE>> {0:M} — 7.0-only. When serializing to 5.5.1 the NO rule applies: every NO is dropped, records left empty by that are dropped too, and pointers to dropped records are removed (serialize/prepare.ts). */
   nonEvents?: NonEventStructure[];
+  /**
+   * _UPD {0:1} — the record's last-updated timestamp (a free text
+   * value). Written by MyHeritage; not part of any GEDCOM version (see
+   * GED-VIEW's summary: https://ged-view.com/guides/custom-gedcom-tags).
+   * Recognized on input and written back as `_UPD` in both versions.
+   */
+  updatedAt?: Text;
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
   /** WIFE {0:1}, g7:FAM-WIFE — the other partner. */
@@ -171,6 +179,13 @@ export interface IndividualRecord extends GedcomStructureBase {
   events?: IndividualEventStructure[];
   /** <<NON_EVENT_STRUCTURE>> {0:M} — 7.0-only. When serializing to 5.5.1 the NO rule applies: every NO is dropped, records left empty by that are dropped too, and pointers to dropped records are removed (serialize/prepare.ts). */
   nonEvents?: NonEventStructure[];
+  /**
+   * _UPD {0:1} — the record's last-updated timestamp (a free text
+   * value). Written by MyHeritage; not part of any GEDCOM version (see
+   * GED-VIEW's summary: https://ged-view.com/guides/custom-gedcom-tags).
+   * Recognized on input and written back as `_UPD` in both versions.
+   */
+  updatedAt?: Text;
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
   /** FAMC {0:M}, g7:INDI-FAMC — the families in which this individual appears as a child. */
@@ -308,6 +323,15 @@ export interface MultimediaRecord extends GedcomStructureBase {
   restriction?: ListEnum<RestrictionEnum>;
   /** FILE {1:M}, g7:FILE — the external files, grouped together. */
   files: MediaFile[];
+  /**
+   * _DATE {0:1} — a date associated with the media object, usually the
+   * date of a picture or video. Written by Legacy Family Tree under
+   * OBJE (see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_DATE` in both versions.
+   */
+  date?: DateStructure;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -506,6 +530,39 @@ export interface SourceRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _TMPLT {0:1} — the Evidence Explained source template used to enter
+   * the source: named FIELD/VALUE pairs (page, URL, film number, …)
+   * plus an optional TID template identifier. Written by RootsMagic and
+   * Family Tree Maker; not part of any GEDCOM version (see GED-VIEW's
+   * summary: https://ged-view.com/guides/custom-gedcom-tags).
+   * Recognized on input and written back as `_TMPLT` in both versions.
+   */
+  template?: EvidenceTemplate;
+}
+
+/**
+ * The vendor `_TMPLT` Evidence Explained source template: a template
+ * identifier plus named field/value pairs. See SourceRecord.template.
+ */
+export interface EvidenceTemplate extends GedcomStructureBase {
+  tag: '_TMPLT';
+  /** TID {0:1} — the template identifier. */
+  templateId?: Text;
+  /** FIELD {1:M} — the template fields. */
+  fields: EvidenceTemplateField[];
+}
+
+/**
+ * One FIELD of an EvidenceTemplate: a NAME {1:1} with an optional
+ * VALUE {0:1}. See SourceRecord.template.
+ */
+export interface EvidenceTemplateField extends GedcomStructureBase {
+  tag: 'FIELD';
+  /** NAME {1:1} — the field name. */
+  name: Text;
+  /** VALUE {0:1} — the field value. */
+  value?: Text;
 }
 
 /**

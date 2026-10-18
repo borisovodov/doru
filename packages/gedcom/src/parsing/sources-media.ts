@@ -282,6 +282,9 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       '_PRIM': (child) => {
         primary = parsePrimFlag(child);
       },
+      '_DATE': (child) => {
+        record.date = parseDateStructure(child, ctx);
+      },
     },
     ctx,
   );
