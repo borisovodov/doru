@@ -87,6 +87,19 @@ export interface FamilyRecord extends GedcomStructureBase {
    * ending statuses stay generic extensions.)
    */
   marriageStatus?: Text;
+  /**
+   * `_TYPE same-sex` {0:1} — the family is a same-sex union (marriage
+   * or partnership): the German GEDCOM-L convention written by
+   * Ahnenblatt and Familienbuch (see the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * catalog: https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). The
+   * GEDCOM 7.0 FAMILY_RECORD describes its HUSB and WIFE as partners
+   * but has no same-sex slot (its §1.5.3 even sketches a `_PARTNER`
+   * extension); 5.5.1 has none either. Recognized on input in both
+   * versions (case-insensitive) and written back as `_TYPE same-sex`
+   * in both versions; the HUSB/WIFE tags carry the two partners
+   * without gender semantics when this flag is set.
+   */
+  sameSexUnion?: true;
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
   /** WIFE {0:1}, g7:FAM-WIFE — the other partner. */

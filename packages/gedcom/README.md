@@ -407,8 +407,10 @@ The agreed policy:
   `_GOVTYPE`, `_MAIDENHEAD`, name variants, hierarchy links with
   `POLI|RELI|GEOG|CULT`), `_GOV`/`_POST`/`_MAIDENHEAD` under event
   places, `_RUFNAME` (call name) under NAME, and `_GODP`/`_WITN`
-  (godparents/witnesses, free text) under events. The vendor tags and
-  the `_LOC` records are written back in both versions (see the
+  (godparents/witnesses, free text) under events, plus the `_TYPE
+  same-sex` union marker on FAM (the HUSB/WIFE tags then carry the
+  two partners without gender semantics). The vendor tags and the
+  `_LOC` records are written back in both versions (see the
   place-records bullet above).
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
@@ -477,6 +479,10 @@ would be, or where the model takes a documented position:
 - The GEDCOM-L hierarchy link `TYPE` is validated strictly to
   `POLI|RELI|GEOG|CULT` (`enum.invalid-value` for anything else); the
   group's agreement defines no other relationship kinds.
+- The FAM `_TYPE` is validated strictly to the value `same-sex`
+  (`enum.invalid-value` for anything else) — the only value the
+  German convention defines; GEDCOM 7.0 has no same-sex slot (its
+  §1.5.3 sketches a `_PARTNER` extension).
 - Integers are bounded by what a JavaScript `number` can hold exactly: a
   year, age, or count beyond `Number.MAX_SAFE_INTEGER` is rejected
   (`date.bad-year` / `integer.out-of-range`) rather than silently

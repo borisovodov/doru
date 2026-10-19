@@ -54,6 +54,7 @@ const SAMPLE = [
   '2 _GODP Erna Beispiel',
   '1 FAMC @F1@',
   '0 @F1@ FAM',
+  '1 _TYPE same-sex',
   '1 HUSB @I1@',
   '1 MARR',
   '2 _WITN Otto Mustermann, Franz-Xaver Gabler',
@@ -115,6 +116,7 @@ describe('the GEDCOM-L German extension on 5.5.1 input', () => {
     const christening = indi.events?.find((e) => e.tag === 'CHR');
     expect(christening?.detail?.godparents).toEqual(['Max Herbert Mustermann, Musiker', 'Erna Beispiel']);
     const family = dataset.records.find((r) => r.xref === '@F1@');
+    expect(family?.tag === 'FAM' ? family.sameSexUnion : undefined).toBe(true);
     const marriage = family?.tag === 'FAM' ? family.events?.find((e) => e.tag === 'MARR') : undefined;
     expect(marriage?.detail?.detail?.witnesses).toEqual(['Otto Mustermann, Franz-Xaver Gabler']);
   });
@@ -158,6 +160,16 @@ describe('the GEDCOM-L German extension on 5.5.1 input', () => {
   });
 });
 
+describe('the FAM _TYPE strictness', () => {
+  test('only the value same-sex is defined', () => {
+    const withOther = parseGedcom551(enc(SAMPLE.replace('1 _TYPE same-sex', '1 _TYPE sonstiges')));
+    expect(withOther.ok).toBe(false);
+    if (!withOther.ok) {
+      expect(withOther.error.code).toBe('enum.invalid-value');
+    }
+  });
+});
+
 describe('the GEDCOM-L German extension on output', () => {
   test('5.5.1 writes the _LOC record back with the pointer', () => {
     const text = ser551(parseOk551(SAMPLE));
@@ -186,6 +198,7 @@ describe('the GEDCOM-L German extension on output', () => {
     expect(text).toContain('2 _RUFNAME Anna');
     expect(text).toContain('2 _GODP Max Herbert Mustermann, Musiker');
     expect(text).toContain('2 _WITN Otto Mustermann, Franz-Xaver Gabler');
+    expect(text).toContain('1 _TYPE same-sex');
   });
 
   test('7.0 writes the _LOC record back too (extension records are legal in 7.0)', () => {
@@ -208,6 +221,7 @@ describe('the GEDCOM-L German extension on output', () => {
     expect(text).toContain('2 _RUFNAME Anna');
     expect(text).toContain('2 _GODP Max Herbert Mustermann, Musiker');
     expect(text).toContain('2 _WITN Otto Mustermann, Franz-Xaver Gabler');
+    expect(text).toContain('1 _TYPE same-sex');
   });
 
   test('7.0 round trip is model-stable (idempotent)', () => {

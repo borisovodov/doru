@@ -139,6 +139,16 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     _STAT: (child) => {
       rec.marriageStatus = reqText(child);
     },
+    _TYPE: (child) => {
+      // The GEDCOM-L convention: _TYPE same-sex marks a same-sex
+      // union; no other FAM _TYPE value is defined.
+      const value = reqText(child).toUpperCase();
+      if (value === 'SAME-SEX') {
+        rec.sameSexUnion = true;
+      } else {
+        fail('enum.invalid-value', `The FAM _TYPE "${value}" must be "same-sex"`, child.position);
+      }
+    },
     _COML: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'MARR', 'Common law marriage');
     },

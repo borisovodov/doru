@@ -94,6 +94,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   automatedRecordId?: string;
   updatedAt?: string;
   marriageStatus?: string;
+  sameSexUnion?: true;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -158,6 +159,9 @@ export function emitFamily(w: Writer, version: Version, rec: {
       // prepareFor551, everything else was dropped.
       w.line(1, nonEvent.payload === 'MARR' ? '_NMAR' : '_NLIV');
     }
+  }
+  if (rec.sameSexUnion === true) {
+    w.line(1, '_TYPE', { value: 'same-sex' });
   }
   if (rec.husband !== undefined) {
     ptr(w, version, 1, 'HUSB', rec.husband.partner);

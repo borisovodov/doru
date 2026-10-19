@@ -355,9 +355,11 @@ fields; `_RUFNAME` → `PersonalNameStructure.callName`; `_GODP`/`_WITN`
 vendor tags are written back in both versions, and a GEDCOM-L card
 survives into both outputs as a `_LOC` record with its pointers
 (GEDCOM 7.0 §1.5 allows extension records; the hierarchy closes over
-the surviving parents). The `_TYPE same-sex` FAM convention stays
-generic — it needs a modeling decision of its own (7.0 has no
-same-sex slot either).
+the surviving parents). The `_TYPE same-sex` FAM convention is typed
+too: `FamilyRecord.sameSexUnion`, validated strictly to the value
+`same-sex` and written back in both versions — GEDCOM 7.0 has no
+same-sex slot (its FAMILY_RECORD describes HUSB/WIFE as partners and
+§1.5.3 sketches a `_PARTNER` extension).
 
 Covered by `tests/vendor-extensions*.test.ts` with same-version round
 trips.
