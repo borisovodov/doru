@@ -34,3 +34,4 @@ export * from './model/family-structures';
 export * from './model/individual-structures';
 export * from './model/lds';
 export * from './model/place-record';
+export * from './model/todo-record';

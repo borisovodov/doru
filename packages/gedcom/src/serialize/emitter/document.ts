@@ -34,6 +34,7 @@ import {
   emitSharedNote,
   emitSharedNoteAs551,
   emitSource,
+  emitTodoRecord,
 } from './records';
 import {
   emitAddress,
@@ -229,6 +230,9 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       return;
     case 'SUBN':
       // A stray SUBN in the records list is dropped.
+      return;
+    case '_TODO':
+      emitTodoRecord(w, version, record as Parameters<typeof emitTodoRecord>[2]);
       return;
     default:
       emitExtension(w, version, 0, record as ExtensionStructure, (record as { xref?: string }).xref);

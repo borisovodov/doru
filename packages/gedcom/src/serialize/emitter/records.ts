@@ -57,6 +57,7 @@ import {
   emitAddress,
   emitAssociation,
   emitDate,
+  emitExtensions,
   emitNoteStructure,
   emitSourceCitation,
   mergedAddress,
@@ -80,7 +81,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   nonEvents?: NonEventStructure[];
   husband?: { partner: string; phrase?: string };
   wife?: { partner: string; phrase?: string };
-  children?: Array<{ child: string; phrase?: string; preferred?: boolean; fatherRelation?: string; motherRelation?: string }>;
+  children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string }>;
   associations?: AssociationStructure[];
   submitters?: string[];
   spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail }>;
@@ -172,6 +173,18 @@ export function emitFamily(w: Writer, version: Version, rec: {
     if (child.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
+    if (child.multiplicity !== undefined) {
+      const spelling = child.multiplicity.payload === 'OTHER'
+        ? child.multiplicity.phrase
+        : child.multiplicity.payload === 'TWIN'
+          ? 'Twin'
+          : child.multiplicity.payload === 'TRIPLET'
+            ? 'Triplet'
+            : child.multiplicity.payload;
+      if (spelling !== undefined) {
+        w.line(2, '_STAT', { value: spelling });
+      }
+    }
     if (version === '5.5.1') {
       // The 7.0 side of the pair (INDI.FAMC.PEDI) is filled by prepareFor70.
       if (child.fatherRelation !== undefined) {
@@ -225,6 +238,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   ancestralFileNumber?: string;
   updatedAt?: string;
   url?: string;
+  marks?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -234,6 +248,13 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   if (rec.url !== undefined) {
     w.line(1, '_URL', { value: rec.url });
+  }
+  if (rec.marks !== undefined) {
+    rec.marks.forEach((mark, index) => {
+      if (mark !== '') {
+        w.line(1, index === 0 ? '_TAG' : `_TAG${index + 1}`, { value: mark });
+      }
+    });
   }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
@@ -345,12 +366,40 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
+/** Emits the Legacy `_TODO` record (see TodoRecord). */
+export function emitTodoRecord(w: Writer, _version: Version, rec: {
+  tag: '_TODO';
+  payload: string;
+  category?: string;
+  closedDate?: string;
+  locality?: string;
+  reminderDate?: string;
+  extensions?: ExtensionStructure[];
+  xref?: string;
+}): void {
+  w.line(0, '_TODO', { xref: rec.xref, value: rec.payload });
+  if (rec.category !== undefined) {
+    w.line(1, '_CAT', { value: rec.category });
+  }
+  if (rec.closedDate !== undefined) {
+    w.line(1, '_CDATE', { value: rec.closedDate });
+  }
+  if (rec.locality !== undefined) {
+    w.line(1, '_LOCL', { value: rec.locality });
+  }
+  if (rec.reminderDate !== undefined) {
+    w.line(1, '_RDATE', { value: rec.reminderDate });
+  }
+  emitExtensions(w, _version, 1, rec);
+}
+
 export function emitMultimedia(w: Writer, version: Version, rec: {
   tag: 'OBJE';
   restriction?: Array<string | `_${string}`>;
   files: MediaFile[];
   date?: DateStructure;
   objectType?: string;
+  soundFile?: string;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
   citations?: SourceCitation[];
@@ -372,6 +421,9 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   }
   if (rec.objectType !== undefined) {
     w.line(1, '_TYPE', { value: rec.objectType });
+  }
+  if (rec.soundFile !== undefined) {
+    w.line(1, '_SOUND', { value: rec.soundFile });
   }
   commonRecordFields(w, version, rec, 1);
 }

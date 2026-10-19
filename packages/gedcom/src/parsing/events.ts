@@ -127,6 +127,15 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
   handlers['_PREF'] = (child) => {
     out.preferred = parseYNFlag(child, '_PREF');
   };
+  handlers['_STAT'] = (child) => {
+    const text = reqText(child);
+    const key = text.trim().toLowerCase();
+    out.multiplicity = key === 'twin'
+      ? { payload: 'TWIN' }
+      : key === 'triplet'
+        ? { payload: 'TRIPLET' }
+        : { payload: 'OTHER', phrase: text };
+  };
   dispatch(node, out, handlers, ctx);
   return out;
 }

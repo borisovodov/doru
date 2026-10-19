@@ -1,4 +1,5 @@
 import type {
+  ChildMultiplicityEnum,
   EventAttributeEnum,
   FamilyChildStatusEnum,
   PedigreeEnum,
@@ -42,6 +43,7 @@ import type { SourceCitation } from './sources-media';
 import type { SourceRepositoryCitation } from './sources-media';
 import type { SpouseSealingOrdinance } from './lds';
 import type { PlaceRecord } from './place-record';
+import type { TodoRecord } from './todo-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.2 Records
@@ -133,6 +135,18 @@ export interface FamilyPartnerLink extends GedcomStructureBase {
 }
 
 /**
+ * The Legacy `_STAT` child-status structure: the birth multiplicity
+ * (Twin, Triplet, …) with the free text of an unknown value kept in the
+ * PHRASE. See FamilyChildLink.multiplicity.
+ */
+export interface ChildMultiplicityStructure extends GedcomStructureBase {
+  /** The multiplicity, {1:1} Enum. */
+  payload: ChildMultiplicityEnum;
+  /** PHRASE {0:1} — the original free text when the value is OTHER. */
+  phrase?: Text;
+}
+
+/**
  * GEDCOM 7.0 §3.2.2 FAMILY_RECORD — g7:CHIL: a pointer to a child of the family,
  * with an optional phrase.
  */
@@ -148,6 +162,14 @@ export interface FamilyChildLink extends GedcomStructureBase {
    * `_PREF` in both versions.
    */
   preferred?: boolean;
+  /**
+   * _STAT {0:1} — the child's birth multiplicity (Twin, Triplet, …).
+   * Written by Legacy Family Tree under CHIL (see its "Custom GEDCOM
+   * Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part of any GEDCOM version (note this is
+   * unrelated to the FAMC.STAT proof values). Recognized on input and
+   * written back as `_STAT` under CHIL in both versions.
+   */
+  multiplicity?: ChildMultiplicityStructure;
   /**
    * _FREL {0:1} — the relationship of the child to the father in the
    * family (Natural, Adopted, Step, Foster, …). A vendor extension
@@ -206,11 +228,18 @@ export interface IndividualRecord extends GedcomStructureBase {
   /**
    * _URL {0:1} — an internet address of the individual. Written by
    * Legacy Family Tree under INDI (see its "Custom GEDCOM Tags" help:
-   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not
-   * part of any GEDCOM version. Recognized on input and written back as
-   * `_URL` in both versions.
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part of any GEDCOM version. Recognized on input and
+   * written back as `_URL` in both versions.
    */
   url?: Text;
+  /**
+   * _TAG {0:1} and _TAG2–_TAG9 {0:1 each} — the individual's named
+   * tag marks (Tag 1 through Tag 9), kept in order. Written by Legacy
+   * Family Tree under INDI (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_TAG`/`_TAG2`… in both versions.
+   */
+  marks?: Text[];
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
   /** FAMC {0:M}, g7:INDI-FAMC — the families in which this individual appears as a child. */
@@ -391,6 +420,13 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * back as `_TYPE` in both versions.
    */
   objectType?: Text;
+  /**
+   * _SOUND {0:1} — a sound file attached to the picture or video.
+   * Written by Legacy Family Tree under OBJE (see its "Custom GEDCOM
+   * Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part of any GEDCOM version. Recognized
+   * on input and written back as `_SOUND` in both versions.
+   */
+  soundFile?: Text;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -784,4 +820,5 @@ export type GedcomRecord =
   | SubmissionRecord
   | NoteRecord
   | PlaceRecord
+  | TodoRecord
   | ExtensionRecord;

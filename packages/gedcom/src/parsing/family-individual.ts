@@ -239,6 +239,15 @@ function upsertDeathCause(rec: IndividualRecord, node: RawNode, ctx: Ctx): void 
   dispatch(node, event.detail, eventDetailHandlers(ctx, event.detail), ctx);
 }
 
+/** Sets the n-th tag mark, padding the gaps (see IndividualRecord.marks). */
+function setMark(rec: IndividualRecord, index: number, node: RawNode): void {
+  const marks = (rec.marks ??= []);
+  while (marks.length <= index) {
+    marks.push('');
+  }
+  marks[index] = reqText(node);
+}
+
 export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord {
   noPayload(node);
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
@@ -266,6 +275,33 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _URL: (child) => {
       rec.url = reqText(child);
+    },
+    _TAG: (child) => {
+      setMark(rec, 0, child);
+    },
+    _TAG2: (child) => {
+      setMark(rec, 1, child);
+    },
+    _TAG3: (child) => {
+      setMark(rec, 2, child);
+    },
+    _TAG4: (child) => {
+      setMark(rec, 3, child);
+    },
+    _TAG5: (child) => {
+      setMark(rec, 4, child);
+    },
+    _TAG6: (child) => {
+      setMark(rec, 5, child);
+    },
+    _TAG7: (child) => {
+      setMark(rec, 6, child);
+    },
+    _TAG8: (child) => {
+      setMark(rec, 7, child);
+    },
+    _TAG9: (child) => {
+      setMark(rec, 8, child);
     },
     _DCAUSE: (child) => {
       upsertDeathCause(rec, child, ctx);

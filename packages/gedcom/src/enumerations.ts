@@ -292,6 +292,26 @@ export const SEX_ENUM_VALUES = {
 export type SexEnum = keyof typeof SEX_ENUM_VALUES | ExtensionTag;
 
 /**
+ * The Legacy Family Tree `_STAT` child-status values: the multiplicity
+ * of a birth (Twin, Triplet, …). Not part of any GEDCOM version; the
+ * vendor documents "Twin, Triplet, etc."
+ * (https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm), so
+ * the open-ended rest is kept as OTHER with the free text in the
+ * PHRASE.
+ */
+export const CHILD_MULTIPLICITY_ENUM_VALUES = {
+  /** A twin. */
+  TWIN: 'A twin.',
+  /** A triplet. */
+  TRIPLET: 'A triplet.',
+  /** Another multiplicity; the free text is kept in the PHRASE. */
+  OTHER: 'Another multiplicity.',
+} as const;
+
+/** The Legacy `_STAT` child-status values. */
+export type ChildMultiplicityEnum = keyof typeof CHILD_MULTIPLICITY_ENUM_VALUES | ExtensionTag;
+
+/**
  * GEDCOM 7.0 §3.4 g7:enumset-FAMC-STAT — the state or condition of a researcher's
  * belief in a family connection.
  *

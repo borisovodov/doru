@@ -278,12 +278,18 @@ Priorities:
   but single-vendor or medium effort. **Fully implemented** — every row
   in the table below is typed; the only P2 item deferred is FTW
   `_MSTAT`/`_MEND`, which moved to P3 (DOS-era, colliding meaning).
-- **P3** — defer: housekeeping/report/presentation data, one vendor;
-  let the corpus decide.
-- **P4** — non-underscore relics of dropped standard tags or invented
-  tags. Today these are strict `structure.unknown-tag` errors (they are
-  not `_`-prefixed, so they do not flow into the generic extensions);
-  a policy decision is needed before any typing.
+- **P3** — defer: single-vendor housekeeping, one vendor. The Legacy
+  data tags in this family are now typed: `_STAT` under CHIL →
+  `FamilyChildLink.multiplicity` (an enum, see
+  `CHILD_MULTIPLICITY_ENUM_VALUES`), the `_TODO` record →
+  `TodoRecord`, `_TAG`/`_TAG2`–`_TAG9` → `IndividualRecord.marks`,
+  `_SOUND` → `MultimediaRecord.soundFile`.
+- **P4** — defer: pure presentation/UI state (sentence templates,
+  print styles, mailing-list groupings, definition flags).
+- **P5** — the non-underscore relics of dropped standard tags or
+  invented tags; today these are strict `structure.unknown-tag` errors
+  (they are not `_`-prefixed, so they do not flow into the generic
+  extensions); a policy decision is needed before any typing.
 
 ### 7.1 P0 — already in the model
 
@@ -326,13 +332,13 @@ and the `_PLAC` second place — see the table in chapter 5.
 Grouped by family; every tag flows through the generic extensions today
 and is preserved verbatim, so nothing is lost.
 
-**Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): `_EVENT_DEFN`
-with `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU` sentence definitions,
-`_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE`
-definition flags, `_ITALIC`/`_PAREN`/`_QUOTED` source print styles,
-`_LIST1`–`_LIST6` address groupings, `_TAG`/`_TAG2`–`_TAG9` tag marks,
-`_TODO` with `_CAT`/`_CDATE`/`_LOCL`/`_RDATE`, `_SORT`/`_SOUND`/
-`_OVER`/`_PREP`/`_STAT` — report and to-do data, one vendor.
+**Legacy data tags — typed** (Legacy cat. "Custom GEDCOM Tags"): `_STAT`
+under CHIL → `FamilyChildLink.multiplicity` (enum TWIN/TRIPLET, other
+values as OTHER + PHRASE); the `_TODO` record with `_CAT`/`_CDATE`/
+`_LOCL`/`_RDATE` → `TodoRecord`; `_TAG`/`_TAG2`–`_TAG9` →
+`IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
+`MultimediaRecord.soundFile`. The remaining Legacy report machinery is
+pure presentation and moved to P4.
 
 **PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
 `_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
@@ -365,7 +371,27 @@ extensions (see the FHUG KB article on exporting templated sources).
 **GEDKeeper**: `_UID` and the `_SHAR` family — already typed; nothing
 else documented.
 
-### 7.5 P4 — non-underscore vendor tags
+### 7.5 P4 — presentation and UI state
+
+Pure report/interface data; a viewer that ignores these loses nothing
+genealogical. Preserved verbatim as generic extensions; revisit only if
+the corpus shows a concrete use.
+
+**Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): the
+`_EVENT_DEFN` record with `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU`
+sentence definitions, `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/
+`_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, `_ITALIC`/`_PAREN`/
+`_QUOTED` source print styles, `_LIST1`–`_LIST6` address groupings,
+`_SORT`/`_OVER`/`_PREP` — how reports are worded, printed and grouped.
+
+**PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
+`_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
+`_SENDPF`/`_SENDOU`/`_SENPOU`/`_SENDPU` variants, `_DATE_TYPE`,
+`_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG`, `_NAME` — sentence
+templates for reports; PAF is discontinued. (Shares the sentence
+family with Legacy above.)
+
+### 7.6 P5 — non-underscore vendor tags
 
 Written by Generations, Reunion, Family Tree Maker 5 (DOS), The Master
 Genealogist and early Roots versions; mostly tags dropped from GEDCOM

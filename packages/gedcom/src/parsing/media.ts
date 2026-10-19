@@ -66,6 +66,9 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     '_TYPE': (child) => {
       rec.objectType = reqText(child);
     },
+    '_SOUND': (child) => {
+      rec.soundFile = reqText(child);
+    },
     NOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     },

@@ -317,6 +317,9 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       '_TYPE': (child) => {
         record.objectType = reqText(child);
       },
+      '_SOUND': (child) => {
+        record.soundFile = reqText(child);
+      },
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
       },

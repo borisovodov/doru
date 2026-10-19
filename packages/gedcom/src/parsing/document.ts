@@ -45,6 +45,7 @@ import {
   parseSourceRecord,
 } from './sources';
 import { linkPlacesByName, parsePlaceRecord } from './places';
+import { parseTodoRecord } from './todo';
 import {
   parseSubmissionRecord,
   parseSubmitterRecord,
@@ -142,6 +143,8 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case '_LOC':
     case '_PLAC_DEFN':
       return parsePlaceRecord(node, ctx);
+    case '_TODO':
+      return parseTodoRecord(node, ctx);
     default:
       if (node.tag.startsWith('_')) {
         return parseExtension(node) as ExtensionRecord;
