@@ -40,6 +40,9 @@ import {
   parseNoteStructure,
 } from './substructures';
 import {
+  normalizeCharset551,
+} from './decode';
+import {
   parseLanguage551,
   parseListText,
   parseTagDefinition,
@@ -267,9 +270,8 @@ export function parseHeaderPlace(node: RawNode, ctx: Ctx): HeaderPlace {
  * in the model. CHAR.VERS is accepted and discarded. */
 export function parseCharacterSetStructure(node: RawNode): void {
   const text = reqText(node);
-  const upper = text.toUpperCase();
-  if (upper !== 'ANSEL' && upper !== 'ASCII' && upper !== 'UTF-8' && upper !== 'UNICODE') {
-    fail('charset.invalid', `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, or ASCII`, node.position);
+  if (normalizeCharset551(text) === undefined) {
+    fail('charset.invalid', `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, or MACINTOSH`, node.position);
   }
   dispatch(
     node,

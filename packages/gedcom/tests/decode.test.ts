@@ -73,7 +73,14 @@ describe('detectCharset551', () => {
   });
 
   test('reports an unknown character set', () => {
-    expect(expectErr(detectCharset551(enc('0 HEAD\n1 CHAR IBM850\n0 TRLR')))).toBe('decoding.unknown-charset');
+    expect(expectErr(detectCharset551(enc('0 HEAD\n1 CHAR EBCDIC\n0 TRLR')))).toBe('decoding.unknown-charset');
+  });
+
+  test('accepts the out-of-spec spellings written by real software', () => {
+    expect(expectOk(detectCharset551(enc('0 HEAD\n1 CHAR ANSI\n0 TRLR')))).toBe('CP1252');
+    expect(expectOk(detectCharset551(enc('0 HEAD\n1 CHAR IBM-PC\n0 TRLR')))).toBe('CP850');
+    expect(expectOk(detectCharset551(enc('0 HEAD\n1 CHAR MACINTOSH\n0 TRLR')))).toBe('MACINTOSH');
+    expect(expectOk(detectCharset551(enc('0 HEAD\n1 CHAR WINDOWS-1252\n0 TRLR')))).toBe('CP1252');
   });
 
   test('recognizes a UTF-16 BOM', () => {

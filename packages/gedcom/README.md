@@ -2,13 +2,7 @@
 
 The GEDCOM layer of [Dóru](https://github.com/borisovodov/doru): a strict
 reader and writer for **GEDCOM 7.0.18** and **GEDCOM 5.5.1**, built around a
-single TypeScript object model that spans both versions. The model types
-the two specifications in full, so data read from either version can be
-written as either version, with GEDZIP handled on the same layer: the
-parsers turn foreign files into typed values or typed errors, the
-serializers project those values onto the target version's canonical
-spelling, and the vendor extensions that real files carry are typed
-where they matter and preserved where they do not.
+single TypeScript object model that spans both versions.
 
 ```ts
 import { parseGedcom70, serializeGedcom551 } from '@doru/gedcom';
@@ -27,18 +21,59 @@ if (result.ok) {
 - Every exported type carries the specification references it is derived
   from (`GEDCOM 7.0 §…`, `GEDCOM 5.5.1 §2 (p.…)`).
 
+## What this package does
+
+The complete picture, at a glance:
+
+- **Both versions, one model.** GEDCOM 7.0.18 and 5.5.1 parse into a
+  single typed object model — no lowest-common-denominator, no
+  per-version branches in the consumer. Every field's JSDoc cites the
+  section of the specification it was derived from.
+- **Complete coverage.** Every record type, structure, and enum of
+  both versions is modeled — including the 7.0-only machinery (shared
+  notes, schema declarations, non-events, exact timestamps, external
+  identifiers) and the 5.5.1-only forms (the four calendars, `B.C.`
+  epochs, dual years, `INT` dates, `@#…@` escapes).
+- **Strict in, strict out.** Every violation of either specification —
+  unknown tags, misplaced substructures, invalid enums, malformed
+  payloads — is a typed error carrying the source position of the
+  offending line. Nothing is silently dropped or reinterpreted on the
+  way in.
+- **Real-world character sets.** 7.0 is decoded as UTF-8; 5.5.1 as
+  ANSEL (the full Appendix C tables, NFC-normalized), ASCII, UTF-8,
+  or UTF-16 — plus the out-of-spec Windows-1252, CP850, and Mac
+  Roman written by real software. The model is post-decode Unicode;
+  the exporters always write UTF-8.
+- **Dates, for real.** Dates are parsed into structured values
+  (calendars, periods, ranges, bounds, epochs) and converted onto the
+  proleptic Gregorian timeline as JS `Date`s — for all four calendars
+  (Gregorian, Julian, French Republican, Hebrew) — with
+  `convertCalendar` for moving dates between calendars and exact
+  bounds for partial precision (see Dates).
+- **Serialization as a projection.** The writers translate the model
+  into what the target version can express, with the rule for every
+  construct documented in its JSDoc (see Serialization).
+- **Vendor extensions with a policy.** Known vendor tags are typed on
+  input and standardized on output; unknown `_`-tags are preserved
+  verbatim, and the inventory of every recognized tag with its
+  sources lives in `docs/vendor-extensions.md` (see Vendor
+  extensions).
+- **GEDZIP.** FamilySearch `.gdz` archives read and write on the same
+  layer (see GEDZIP).
+- **Errors are values.** `ParseResult<T>` end to end — no exceptions,
+  no try/catch, fully typed error codes.
+
 ## Motivation
 
 GEDCOM is how genealogical data enters and leaves Dóru. Before this
-package, the app used a tolerant 5.5.5-oriented reader for import and a
-hand-written minimal 7.0 writer for export. That combination had three
-structural problems:
+package, the app used `read-gedcom` for import and a hand-written minimal
+7.0 writer for export. That combination had three structural problems:
 
-1. **No shared model.** The reader parsed into its own low-level tree
+1. **No shared model.** `read-gedcom` parses into its own low-level tree
    (5.5.5-oriented), and the app mapped it ad hoc into its domain model.
    Every mapping decision lived in one importer function and could not be
    tested in isolation.
-2. **No version coverage.** The reader is "mostly GEDCOM 5.5.5
+2. **No version coverage.** `read-gedcom` is "mostly GEDCOM 5.5.5
    compliant"; GEDCOM 7.0 is outside its target, and GEDZIP is not
    supported at all. The export side could only write a minimal 7.0
    subset.
@@ -47,15 +82,9 @@ structural problems:
    gate between foreign files and the user's database: silent data loss
    is the worst possible failure mode.
 
-The package solves all three and sets a higher bar around them: one
-ideal model (the specification, in TypeScript notation) that both
-versions produce and consume, two strict parsers and two serializers
-that project between the versions instead of re-spelling what was read,
-GEDZIP read/write on the same layer, and a documented, tested treatment
-of the vendor extensions that real files carry. An import lands in the
-same typed model whether it came from a 5.5.1 file, a 7.0 file, or a
-GEDZIP archive, and an export can leave as either version — the model
-stays the same on both legs of the trip.
+The package solves all three: one ideal model (the specification, in
+TypeScript notation), two strict parsers and two strict serializers, and GEDZIP
+read/write on the same layer.
 
 ## Ideology and principles
 
@@ -165,10 +194,13 @@ src/
     sources-media.ts sources, citations, media links
     family-structures.ts / individual-structures.ts / lds.ts
   gedzip.ts         GEDZIP read/write (7.0 chapter 4, via fflate)
+  dates.ts          calendar arithmetic: DateFields/DateValue bounds,
+                    JS Date conversion, convertCalendar
   errors.ts         GedcomError, ParseResult, error codes
   detect.ts         unified entry point: container + version detection
   parsing/
-    decode.ts       charsets: UTF-8/BOM, ANSEL (Appendix C, NFC), ASCII, UTF-16
+    decode.ts       charsets: UTF-8/BOM, ANSEL (Appendix C, NFC), ASCII,
+                    UTF-16, CP1252, CP850, Mac Roman
     lines.ts        strict container tokenizer and raw tree builder
     types.ts        payload parsers: dates, times, ages, lists, names, enums
     assemble.ts     public entry: parseGedcom70/parseGedcom551
@@ -218,7 +250,11 @@ Input is always bytes. Version handling:
   (required). `ANSEL` uses the Appendix C tables; non-spacing characters
   are buffered and attached to their base character, and the result is
   NFC-normalized (`e` + combining acute → `é`). `ASCII` rejects bytes
-  above 0x7F, `UNICODE` is UTF-16 and requires a BOM.
+  above 0x7F, `UNICODE` is UTF-16 and requires a BOM. Beyond the spec's
+  set, the de-facto charsets written by real software are accepted
+  under their common spellings: `ANSI`/`CP1252`/`WINDOWS-1252`
+  (Windows Western, with the CP1252 holes rejected), `IBM-PC`/`CP850`/
+  `DOS` (DOS Western), and `MAC`/`MACINTOSH` (Mac Roman).
 
 Both versions share the container tokenizer: levels (no leading zeros,
 5.5.1 ≤ 99), single-space delimiters, cross-reference identifiers,
@@ -234,7 +270,7 @@ What strictness rejects (each with its own error code):
 
 | Group | Codes |
 |---|---|
-| Decoding | `decoding.invalid-utf8`, `invalid-utf16`, `bom`, `missing-charset`, `unknown-charset`, `invalid-ansel` |
+| Decoding | `decoding.invalid-utf8`, `invalid-utf16`, `bom`, `missing-charset`, `unknown-charset`, `invalid-ansel`, `invalid-cp1252` |
 | Lines | `line.blank`, `leading-whitespace`, `bad-level`, `level-limit`, `level-skip`, `missing-delimiter`, `bad-tag`, `reserved-tag`, `bad-xref`, `xref-on-substructure`, `bad-pointer`, `unescaped-at`, `bad-escape`, `banned-char`, `too-long`, `continuation-*` |
 | Document | `document.missing-header`, `missing-trailer`, `trailer-not-last`, `duplicate-xref`, `xref-not-found`, `missing-gedc`, `missing-gedc-vers`, `wrong-version` |
 | Structures | `structure.unknown-tag`, `cardinality`, `missing-required`, `missing-payload`, `unexpected-payload`, `record-without-xref` |
@@ -257,10 +293,7 @@ endings; 5.5.1 output declares `1 CHAR UTF-8`. A lone (unpaired)
 surrogate in the model text is reported as `serialize.invalid-text`
 rather than silently replaced.
 
-A dataset parsed from a 5.5.1 file can be written as 7.0 and vice
-versa: the two writers are projections of one model, not re-spellings
-of whatever version happened to be read. They emit the canonical form
-of their version:
+The writers emit the canonical form of their version:
 
 - **7.0** — `GEDC.VERS 7.0`, uppercase enums, calendar keywords and the
   `BCE` epoch inside dates, `PHRASE` substructures, `CONT` for multiline
@@ -311,16 +344,47 @@ surrogates). The silent drops mean a cross-version round trip is lossy
 by design; a UI integrating this package should tell the user before
 writing a file with constructs the target version cannot hold.
 
+## Dates
+
+The model keeps dates as structured values (GEDCOM 7.0 §2.4); the
+`dates` module does calendar arithmetic on them. Everything returns
+UTC-midnight `Date`s, so calendar comparisons are never shifted by the
+host time zone.
+
+```ts
+dateFieldsBounds(fields: DateFields): DateBounds | undefined
+dateBounds(value: DateValue): DateBounds
+toJsDate(value: DateValue): Date | undefined
+toJsDateTime(fields: DateFields, time?: TimeValue): Date | undefined
+convertCalendar(fields: DateFields, target: Calendar): DateFields | undefined
+```
+
+`DateBounds` is `{ earliest?, latest? }`: an exact day is a single
+point, a month widens to the whole month, a year to the whole year;
+`BET`/`AND` and `FROM`/`TO` combine the boundary spans, `BEF`/`AFT`
+bound one side, and the empty date form is unbounded. `toJsDate`
+returns the single day only when the value determines one;
+`toJsDateTime` adds the optional TIME (with fraction) onto that day.
+
+All four GEDCOM 7.0 §6.1 calendars are supported. The pivot is the
+Julian day number: Gregorian and Julian via the standard civil
+formulas (valid over the whole proleptic range, `B.C.` epochs
+included), the Hebrew calendar via the fixed arithmetic rules
+(Hillel II postponements; epoch 1 Tishri, year 1), and the French
+Republican calendar as the historical An I–XIV (Paris equinox year
+starts, leap years III/VII/XI). `convertCalendar` moves an exact day
+between calendars, keeping the `BCE` epoch where the target calendar
+permits it. Anything unrepresentable — extension calendars or epochs,
+a Hebrew `ADR` month in a common year, a French year outside I–XIV —
+is `undefined`, never a guess.
+
 ## Vendor extensions
 
 Real files in the wild extend the standard with underscore tags
 (`_UID`, `_SHAR`, `_PLAC`, …); GEDCOM 7 additionally has its own
 mechanism (`SCHMA` declarations with URIs). The per-vendor catalog with
 sources lives in [docs/vendor-extensions.md](docs/vendor-extensions.md).
-Because real files lean on these tags heavily, the model goes further
-than preserving them verbatim: the multi-vendor core is typed and the
-rest survives as generic extensions, so an import loses neither the
-standard data nor the vendor's extras. The agreed policy:
+The agreed policy:
 
 - **One model, typed where it matters.** The multi-vendor core — `_UID`,
   `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL`, `_APID`, and the
@@ -377,13 +441,10 @@ dataset as a 7.0 UTF-8 stream plus one entry per media file.
 
 ## Testing
 
-Strictness is only worth as much as it is provable, so the suite is
-built to match the claims above: every error code, every structure
-family of both versions, the 5.5.1 normalizations, and the
-serialization spellings have dedicated coverage. Round-trip tests parse
-→ serialize → parse representative documents of both versions and
-require deep model equality plus idempotent output — the same model on
-both legs of the trip, as the one-model principle demands.
+The test suite covers every error code, every structure family of both
+versions, the 5.5.1 normalizations, and the serialization spellings.
+Round-trip tests parse → serialize → parse representative documents of
+both versions and require deep model equality plus idempotent output.
 
 ```sh
 npm test -w @doru/gedcom   # vitest
@@ -400,14 +461,21 @@ would be, or where the model takes a documented position:
   rejects them with `enum.invalid-value`. The model will be extended when
   the corpus shows them in the wild.
 - Hebrew month lengths are validated as 1–30 (the specification states a
-  month-specific maximum without giving the calendar algorithm);
-  Gregorian and Julian days are validated precisely, including the
-  different leap-year rules.
+  month-specific maximum without giving the calendar algorithm); the
+  calendar arithmetic itself — including the real Hebrew month lengths
+  and leap rules — lives in the `dates` module. Gregorian and Julian
+  days are validated precisely, including the different leap-year
+  rules.
 - The 5.5.1 `LANGUAGE_ID` table is preserved verbatim (including the
   spec's own typos, e.g. `Mandrin`) as `LANGUAGE_IDS_551`; it is not
   one-to-one with BCP 47 (Catalan/Catalan_Spn), so the mapping lives in
   the serializer, not the type.
 - ANSEL input is NFC-normalized on decode (see Parsing).
+- 5.5.1 `CHAR` declarations are accepted beyond the spec's set: the
+  out-of-spec CP1252, CP850, and Mac Roman charsets (and their
+  de-facto spellings such as `ANSI` and `IBM-PC`) decode rather than
+  fail, because real software writes them; anything else is a
+  `decoding.unknown-charset` error (see Parsing).
 - The serializers are projections, not judges: constructs the target
   version cannot express are dropped silently, with the rule for each
   construct documented in the JSDoc of the affected model field (see
@@ -440,7 +508,7 @@ it without re-deriving context.
   (`serialize/serialize.ts`, `serialize/prepare.ts` — translations,
   silent drops, the NO rule, the SOUR/SUBM defaults), the unified
   `parse` entry point (`detect.ts`), the error model (`errors.ts`), and
-  ANSEL decoding. 191 package tests / 295 repo tests, clean typecheck.
+  ANSEL decoding. 152 package tests / 256 repo tests, clean typecheck.
 - Conventions a later session must follow:
   - every model entity cites both specs (`GEDCOM 7.0 §…`,
     `GEDCOM 5.5.1 §2 (p.…)`);
@@ -461,7 +529,7 @@ into decisions. The strictness is a bet; this is where it gets tested.
 **Method:**
 
 - Gather files from public sources (FamilySearch spec samples; the
-  well-known `royal92.ged` public test file; files produced by
+  `royal92.ged` referenced by the `read-gedcom` docs; files produced by
   RootsMagic, Gramps, MyHeritage, GEDKeeper, Ancestry, …). Do **not**
   commit corpus files to the repository (size/licensing) — the tooling
   takes a directory path.

@@ -30,6 +30,7 @@ export type GedcomVersion = '5.5.1' | '7.0';
 export type GedcomContainer = 'plain' | 'gedzip';
 
 export * from './primitives';
+export * from './dates';
 export * from './enumerations';
 export * from './structures';
 export * from './gedzip';

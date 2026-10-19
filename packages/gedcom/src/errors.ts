@@ -30,6 +30,9 @@ export type GedcomErrorCode =
   | 'decoding.missing-charset'
   | 'decoding.unknown-charset'
   | 'decoding.invalid-ansel'
+  | 'decoding.invalid-cp1252'
+  | 'decoding.invalid-cp850'
+  | 'decoding.invalid-macintosh'
   // Line-level container errors.
   | 'line.blank'
   | 'line.leading-whitespace'

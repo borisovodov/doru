@@ -20,8 +20,47 @@ import {
   ok,
 } from '../errors';
 
-/** Character sets declared by the GEDCOM 5.5.1 header. */
-export type Charset551 = 'ANSEL' | 'ASCII' | 'UTF-8' | 'UNICODE';
+/**
+ * Character sets declared by the GEDCOM 5.5.1 header. ANSEL, ASCII,
+ * UTF-8, and UNICODE are the GEDCOM 5.5.1 §3 (p.77) set; CP1252
+ * (Windows Western), CP850 (DOS Western), and MACINTOSH (classic Mac
+ * Roman) are not in the specification but are written by real software,
+ * so the parser accepts them under the de-facto CHAR spellings below.
+ */
+export type Charset551 = 'ANSEL' | 'ASCII' | 'UTF-8' | 'UNICODE' | 'CP1252' | 'CP850' | 'MACINTOSH';
+
+/**
+ * Maps a 5.5.1 CHAR value to a decoder. The GEDCOM 5.5.1 §3 (p.77)
+ * spellings (ANSEL, ASCII, UTF-8, UNICODE) plus the de-facto spellings
+ * found in files: UTF8, UTF-16 (UNICODE); ANSI, WINDOWS, WINDOWS-1252,
+ * CP1252 (Windows Western; FTM writes ANSI); IBM-PC, IBMPC, DOS, CP850,
+ * IBM850 (DOS Western); MAC, MACINTOSH (Mac Roman). The value is
+ * matched case-insensitively; anything else is a decoding error.
+ */
+const CHARSET551_ALIASES: Readonly<Record<string, Charset551>> = {
+  ANSEL: 'ANSEL',
+  ASCII: 'ASCII',
+  'UTF-8': 'UTF-8',
+  UTF8: 'UTF-8',
+  UNICODE: 'UNICODE',
+  'UTF-16': 'UNICODE',
+  ANSI: 'CP1252',
+  CP1252: 'CP1252',
+  WINDOWS: 'CP1252',
+  'WINDOWS-1252': 'CP1252',
+  'IBM-PC': 'CP850',
+  IBMPC: 'CP850',
+  DOS: 'CP850',
+  CP850: 'CP850',
+  IBM850: 'CP850',
+  MAC: 'MACINTOSH',
+  MACINTOSH: 'MACINTOSH',
+};
+
+/** Normalizes a CHAR value to a decoder charset, or undefined when unknown. */
+export function normalizeCharset551(value: string): Charset551 | undefined {
+  return CHARSET551_ALIASES[value.trim().toUpperCase()];
+}
 
 /**
  * GEDCOM 5.5.1 Appendix C — ANSEL spacing characters (single-byte
@@ -210,6 +249,96 @@ function decodeAnselLine(line: RawByteLine, lineNumber: number): ParseResult<str
   return ok(out.normalize('NFC'));
 }
 
+/**
+ * GEDCOM 5.5.1 out-of-spec character sets written by real software,
+ * indexed by the byte value minus 0x80. CP1252 defines only 0x80-0x9F
+ * (0x81, 0x8D, 0x8F, 0x90, 0x9D are holes); bytes at and above 0xA0
+ * are ISO 8859-1 identity. CP850 and Mac Roman define all of
+ * 0x80-0xFF.
+ */
+const CP1252_TABLE: ReadonlyMap<number, number> = new Map([
+  [0x80, 0x20ac], [0x82, 0x201a], [0x83, 0x0192], [0x84, 0x201e],
+  [0x85, 0x2026], [0x86, 0x2020], [0x87, 0x2021], [0x88, 0x02c6],
+  [0x89, 0x2030], [0x8a, 0x0160], [0x8b, 0x2039], [0x8c, 0x0152],
+  [0x8e, 0x017d], [0x91, 0x2018], [0x92, 0x2019], [0x93, 0x201c],
+  [0x94, 0x201d], [0x95, 0x2022], [0x96, 0x2013], [0x97, 0x2014],
+  [0x98, 0x02dc], [0x99, 0x2122], [0x9a, 0x0161], [0x9b, 0x203a],
+  [0x9c, 0x0153], [0x9e, 0x017e], [0x9f, 0x0178],
+]);
+const CP850_TABLE: readonly number[] = [
+  0x00c7, 0x00fc, 0x00e9, 0x00e2, 0x00e4, 0x00e0, 0x00e5, 0x00e7,
+  0x00ea, 0x00eb, 0x00e8, 0x00ef, 0x00ee, 0x00ec, 0x00c4, 0x00c5,
+  0x00c9, 0x00e6, 0x00c6, 0x00f4, 0x00f6, 0x00f2, 0x00fb, 0x00f9,
+  0x00ff, 0x00d6, 0x00dc, 0x00f8, 0x00a3, 0x00d8, 0x00d7, 0x0192,
+  0x00e1, 0x00ed, 0x00f3, 0x00fa, 0x00f1, 0x00d1, 0x00aa, 0x00ba,
+  0x00bf, 0x00ae, 0x00ac, 0x00bd, 0x00bc, 0x00a1, 0x00ab, 0x00bb,
+  0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x00c1, 0x00c2, 0x00c0,
+  0x00a9, 0x2563, 0x2551, 0x2557, 0x255d, 0x00a2, 0x00a5, 0x2510,
+  0x2514, 0x2534, 0x252c, 0x251c, 0x2500, 0x253c, 0x00e3, 0x00c3,
+  0x255a, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256c, 0x00a4,
+  0x00f0, 0x00d0, 0x00ca, 0x00cb, 0x00c8, 0x0131, 0x00cd, 0x00ce,
+  0x00cf, 0x2518, 0x250c, 0x2588, 0x2584, 0x00a6, 0x00cc, 0x2580,
+  0x00d3, 0x00df, 0x00d4, 0x00d2, 0x00f5, 0x00d5, 0x00b5, 0x00fe,
+  0x00de, 0x00da, 0x00db, 0x00d9, 0x00fd, 0x00dd, 0x00af, 0x00b4,
+  0x00ad, 0x00b1, 0x2017, 0x00be, 0x00b6, 0x00a7, 0x00f7, 0x00b8,
+  0x00b0, 0x00a8, 0x00b7, 0x00b9, 0x00b3, 0x00b2, 0x25a0, 0x00a0,
+];
+const MACINTOSH_TABLE: readonly number[] = [
+  0x00c4, 0x00c5, 0x00c7, 0x00c9, 0x00d1, 0x00d6, 0x00dc, 0x00e1,
+  0x00e0, 0x00e2, 0x00e4, 0x00e3, 0x00e5, 0x00e7, 0x00e9, 0x00e8,
+  0x00ea, 0x00eb, 0x00ed, 0x00ec, 0x00ee, 0x00ef, 0x00f1, 0x00f3,
+  0x00f2, 0x00f4, 0x00f6, 0x00f5, 0x00fa, 0x00f9, 0x00fb, 0x00fc,
+  0x2020, 0x00b0, 0x00a2, 0x00a3, 0x00a7, 0x2022, 0x00b6, 0x00df,
+  0x00ae, 0x00a9, 0x2122, 0x00b4, 0x00a8, 0x2260, 0x00c6, 0x00d8,
+  0x221e, 0x00b1, 0x2264, 0x2265, 0x00a5, 0x00b5, 0x2202, 0x2211,
+  0x220f, 0x03c0, 0x222b, 0x00aa, 0x00ba, 0x03a9, 0x00e6, 0x00f8,
+  0x00bf, 0x00a1, 0x00ac, 0x221a, 0x0192, 0x2248, 0x2206, 0x00ab,
+  0x00bb, 0x2026, 0x00a0, 0x00c0, 0x00c3, 0x00d5, 0x0152, 0x0153,
+  0x2013, 0x2014, 0x201c, 0x201d, 0x2018, 0x2019, 0x00f7, 0x25ca,
+  0x00ff, 0x0178, 0x2044, 0x20ac, 0x2039, 0x203a, 0xfb01, 0xfb02,
+  0x2021, 0x00b7, 0x201a, 0x201e, 0x2030, 0x00c2, 0x00ca, 0x00c1,
+  0x00cb, 0x00c8, 0x00cd, 0x00ce, 0x00cf, 0x00cc, 0x00d3, 0x00d4,
+  0xf8ff, 0x00d2, 0x00da, 0x00db, 0x00d9, 0x0131, 0x02c6, 0x02dc,
+  0x00af, 0x02d8, 0x02d9, 0x02da, 0x00b8, 0x02dd, 0x02db, 0x02c7,
+];
+
+/** Decodes one single-byte out-of-spec line (CP1252, CP850, Mac Roman). */
+function decodeSingleByteLine(
+  line: RawByteLine,
+  lineNumber: number,
+  charset: 'CP1252' | 'CP850' | 'MACINTOSH',
+): ParseResult<string> {
+  let out = '';
+  for (let i = 0; i < line.bytes.length; i++) {
+    const b = line.bytes[i] as number;
+    let code: number;
+    if (b <= 0x7f) {
+      code = b;
+    } else if (charset === 'CP850') {
+      code = CP850_TABLE[b - 0x80] as number;
+    } else if (charset === 'MACINTOSH') {
+      code = MACINTOSH_TABLE[b - 0x80] as number;
+    } else if (b >= 0xa0) {
+      code = b;
+    } else {
+      const mapped = CP1252_TABLE.get(b);
+      if (mapped === undefined) {
+        return {
+          ok: false,
+          error: {
+            code: 'decoding.invalid-cp1252',
+            message: `Byte 0x${b.toString(16).toUpperCase()} is not defined in the ${charset} character set`,
+            position: { line: lineNumber, column: i + 1, offset: line.offset },
+          },
+        };
+      }
+      code = mapped;
+    }
+    out += String.fromCharCode(code);
+  }
+  return ok(out);
+}
+
 /** Decodes one ASCII line; bytes above 0x7F are errors. */
 function decodeAsciiLine(line: RawByteLine, lineNumber: number): ParseResult<string> {
   for (let i = 0; i < line.bytes.length; i++) {
@@ -376,15 +505,15 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
       },
     };
   }
-  const upper = charset.toUpperCase();
-  if (upper === 'ANSEL' || upper === 'UTF-8' || upper === 'UNICODE' || upper === 'ASCII') {
-    return ok(upper);
+  const normalized = normalizeCharset551(charset);
+  if (normalized !== undefined) {
+    return ok(normalized);
   }
   return {
     ok: false,
     error: {
       code: 'decoding.unknown-charset',
-      message: `Unknown character set "${charset}"; expected ANSEL, UTF-8, UNICODE, or ASCII`,
+      message: `Unknown character set "${charset}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, or MACINTOSH`,
       position: DOCUMENT_START,
     },
   };
@@ -420,6 +549,12 @@ export function decodeDocument(bytes: Uint8Array, version: '7.0' | '5.5.1'): Par
       result = decodeUtf8Line(raw, lineNumber, isFirst);
     } else if (charset === 'ANSEL') {
       result = decodeAnselLine(raw, lineNumber);
+    } else if (charset === 'CP1252') {
+      result = decodeSingleByteLine(raw, lineNumber, charset);
+    } else if (charset === 'CP850') {
+      result = decodeSingleByteLine(raw, lineNumber, charset);
+    } else if (charset === 'MACINTOSH') {
+      result = decodeSingleByteLine(raw, lineNumber, charset);
     } else {
       result = decodeAsciiLine(raw, lineNumber);
     }
