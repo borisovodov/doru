@@ -20,6 +20,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - All code — identifiers, comments, docstrings — is written in **English
   only**.
 - Commit messages: English, concise, imperative mood.
+- **Pull request titles are user-facing; the rest of a PR is for
+  maintainers.** GitHub release notes are generated from merged PR titles,
+  and the releases page doubles as the changelog that users are pointed to.
+  Write PR titles as plain sentences a non-technical reader understands — no
+  conventional-commit or area prefixes (`feat:`, `fix:`, `chore:`, `docs:`,
+  `ci:`, `style:`, `website:`, …). The PR body and commit messages stay as
+  they are today: technical, imperative, written for maintainers.
 
 ## Localization rules (applies to all UI code)
 
