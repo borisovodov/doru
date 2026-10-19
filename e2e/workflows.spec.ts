@@ -3,10 +3,10 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedFamilyTree } from './seed';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(root, '../apps/desktop');
-const fixture = resolve(root, 'fixtures', 'small.ged');
 
 test('full workflow through the desktop APIs and UI sections', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-')), 'family.doru');
@@ -24,15 +24,16 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(home.locator('.welcome-page')).toBeVisible();
 
   await home.evaluate(
-    async ({ project, fixture }) => {
+    async ({ project }) => {
       const summary = await window.doru.openProjectPath(project);
       if (!summary) throw new Error('project open failed');
+    },
+    { project },
+  );
+  await seedFamilyTree(home, project);
 
-      const imported = await window.doru.importGedcomFile(project, fixture);
-      if (!imported || imported.importedPersons !== 3) {
-        throw new Error(`import failed: ${JSON.stringify(imported)}`);
-      }
-
+  await home.evaluate(
+    async ({ project }) => {
       const persons = await window.doru.listPersons(project);
       if (persons.length !== 3) throw new Error(`persons: ${persons.length}`);
 
@@ -48,7 +49,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
       await window.doru.addFamily(project, {
         id: 'E2EF1',
         parents: ['E2E1'],
-        children: ['@I3@'],
+        children: ['I3'],
       });
       const families = await window.doru.getFamilies(project);
       if (!families.some((f) => f.id === 'E2EF1' && f.parents.includes('E2E1'))) {
@@ -76,14 +77,11 @@ test('full workflow through the desktop APIs and UI sections', async () => {
       const notes = await window.doru.listNotes(project, 'E2E1');
       if (notes.length !== 1) throw new Error('note missing');
 
-      const gedcom = await window.doru.getGedcomText(project);
-      if (!gedcom.includes('E2E')) throw new Error('gedcom export missing person');
-
       const undo = await window.doru.undo(project);
       if (!undo.canRedo) throw new Error('undo failed');
       await window.doru.redo(project);
     },
-    { project, fixture },
+    { project },
   );
 
   const page = home;

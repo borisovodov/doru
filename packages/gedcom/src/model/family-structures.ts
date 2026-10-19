@@ -1,0 +1,156 @@
+import type {
+  Integer,
+  Text,
+} from '../primitives';
+
+import type { FamilyEventDetail } from './common';
+import type { GedcomStructureBase } from './extensions';
+
+// ---------------------------------------------------------------------------
+// GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE / FAMILY_EVENT_STRUCTURE
+// ---------------------------------------------------------------------------
+
+/**
+ * GEDCOM 7.0 §2.4 / GEDCOM 7.0 §3.2.3 — the optional `Y` payload of event structures: the event
+ * is known to have occurred without providing any additional information
+ * about it (GEDCOM 7.0 §3.3.1).
+ */
+export type EventAssertion = 'Y';
+
+/** Base of the family attribute structures of GEDCOM 7.0 §3.2.3. */
+interface FamilyAttributeBase<Tag extends string, TPayload> extends GedcomStructureBase {
+  tag: Tag;
+  /** {1:1} — the payload of the attribute. */
+  payload: TPayload;
+  /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
+  type?: Text;
+  /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
+  detail?: FamilyEventDetail;
+}
+
+/**
+ * GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — g7:FAM-NCHI: the number of children
+ * that belong to this family. GEDCOM 7.0 §3.3.2.2.
+ *
+ * GEDCOM 5.5.1 §2 Record Structures (p.24), `FAM_RECORD` — in 5.5.1 NCHI
+ * sits directly under the FAM record ({0:1}) with the same
+ * `COUNT_OF_CHILDREN` meaning.
+ */
+export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', Integer> {}
+
+/**
+ * GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — g7:FAM-RESI: an address or place of
+ * residence where a family resided. GEDCOM 7.0 §3.3.2.2.
+ *
+ * GEDCOM 5.5.1 §2 Substructures (p.32), `FAMILY_EVENT_STRUCTURE` — in
+ * 5.5.1 FAM.RESI is a family *event* with no payload, so the payload is
+ * optional here (required in 7.0, forbidden in 5.5.1).
+ */
+export interface FamilyResidenceAttribute extends GedcomStructureBase {
+  tag: 'RESI';
+  /** The RESI payload, {1:1} Text in 7.0; 5.5.1 forbids a payload. */
+  payload?: Text;
+  /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
+  type?: Text;
+  /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
+  detail?: FamilyEventDetail;
+}
+
+/**
+ * GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — g7:FAM-FACT: a generic family
+ * attribute; must have a TYPE substructure to define what kind of
+ * attribute is being provided. GEDCOM 7.0 §3.3.2.2.
+ *
+ * 7.0-only: 5.5.1 has no FAM.FACT.
+ */
+export interface FamilyGenericAttribute extends GedcomStructureBase {
+  tag: 'FACT';
+  /** The FACT payload, {1:1} Text. */
+  payload: Text;
+  /** TYPE {1:1}, g7:TYPE — required for FAM.FACT. */
+  type: Text;
+  /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
+  detail?: FamilyEventDetail;
+}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — the union of family attributes. */
+export type FamilyAttributeStructure =
+  | FamilyChildCountAttribute
+  | FamilyResidenceAttribute
+  | FamilyGenericAttribute;
+
+/** Base of the family event structures of GEDCOM 7.0 §3.2.3.
+ *
+ * GEDCOM 5.5.1 §2 Substructures (p.32), `FAMILY_EVENT_STRUCTURE` — the
+ * same event set; in 5.5.1 only MARR has the optional `Y` payload, and
+ * RESI is one of the family events there (modelled here as
+ * `FamilyResidenceAttribute` with an optional payload).
+ */
+interface FamilyEventBase<Tag extends string> extends GedcomStructureBase {
+  tag: Tag;
+  /** {1:1} — `[Y|<NULL>]`: the optional `Y` payload asserting the event occurred (GEDCOM 7.0 §3.3.1). */
+  payload?: EventAssertion;
+  /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the event. */
+  type?: Text;
+  /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
+  detail?: FamilyEventDetail;
+}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:ANUL: annulment. GEDCOM 7.0 §3.3.1.2. */
+export interface AnnulmentEvent extends FamilyEventBase<'ANUL'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:FAM-CENS: census. GEDCOM 7.0 §3.3.1.2. */
+export interface FamilyCensusEvent extends FamilyEventBase<'CENS'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:DIV: divorce. GEDCOM 7.0 §3.3.1.2. */
+export interface DivorceEvent extends FamilyEventBase<'DIV'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:DIVF: divorce filed. GEDCOM 7.0 §3.3.1.2. */
+export interface DivorceFilingEvent extends FamilyEventBase<'DIVF'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:ENGA: engagement. GEDCOM 7.0 §3.3.1.2. */
+export interface EngagementEvent extends FamilyEventBase<'ENGA'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARB: marriage bann. GEDCOM 7.0 §3.3.1.2. */
+export interface MarriageBannEvent extends FamilyEventBase<'MARB'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARC: marriage contract. GEDCOM 7.0 §3.3.1.2. */
+export interface MarriageContractEvent extends FamilyEventBase<'MARC'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARL: marriage license. GEDCOM 7.0 §3.3.1.2. */
+export interface MarriageLicenseEvent extends FamilyEventBase<'MARL'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARR: marriage. GEDCOM 7.0 §3.3.1.2. */
+export interface MarriageEvent extends FamilyEventBase<'MARR'> {}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARS: marriage settlement. GEDCOM 7.0 §3.3.1.2. */
+export interface MarriageSettlementEvent extends FamilyEventBase<'MARS'> {}
+
+/**
+ * GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:FAM-EVEN: a generic family event;
+ * must have a TYPE substructure to define what kind of event is being
+ * provided. GEDCOM 7.0 §3.3.1.2.
+ */
+export interface FamilyGenericEvent extends GedcomStructureBase {
+  tag: 'EVEN';
+  /** The EVEN payload, {1:1} Text — may be the empty string. */
+  payload: Text;
+  /** TYPE {1:1}, g7:TYPE — required for FAM.EVEN. */
+  type: Text;
+  /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
+  detail?: FamilyEventDetail;
+}
+
+/** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — the union of family events. */
+export type FamilyEventStructure =
+  | AnnulmentEvent
+  | FamilyCensusEvent
+  | DivorceEvent
+  | DivorceFilingEvent
+  | EngagementEvent
+  | MarriageBannEvent
+  | MarriageContractEvent
+  | MarriageLicenseEvent
+  | MarriageEvent
+  | MarriageSettlementEvent
+  | FamilyGenericEvent;

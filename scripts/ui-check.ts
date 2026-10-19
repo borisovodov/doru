@@ -5,6 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedFamily } from './seed-family.ts';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const appDir = join(root, 'apps/desktop');
@@ -61,10 +62,10 @@ console.log(JSON.stringify(report, null, 2));
 
 // Open a project so the people view (with sidebar) is reachable
 const project = join(mkdtempSync(join(tmpdir(), 'doru-check-project-')), 'family.doru');
-await page.evaluate(async ({ project, fixture }) => {
+await page.evaluate(async ({ project }) => {
   await window.doru.openProjectPath(project);
-  await window.doru.importGedcomFile(project, fixture);
-}, { project, fixture: join(root, 'e2e', 'fixtures', 'small.ged') });
+}, { project });
+await seedFamily(page, project);
 await page.waitForSelector('.editor-pane.active');
 await page.evaluate(() => {
   const items = [...document.querySelectorAll('.activity-bar .activity-bar-item:not(.activity-bar-bottom)')];

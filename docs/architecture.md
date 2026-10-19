@@ -52,13 +52,11 @@ decisions about what we deliberately do **not** build, see
 
 ## GEDCOM
 
-- **Import**: `read-gedcom` for tolerant parsing (encoding detection,
-  non-standard dialects). The importer walks the low-level `TreeNode` tree
-  rather than the `Selection` API — the tree is plain data and far easier to
-  map. A sanitization layer above it handles ANSEL/BOM/dialect quirks.
-- **Export**: our own minimal GEDCOM 7.0 writer. There are no mature
-  TypeScript GEDCOM writers; writing is an order of magnitude simpler than
-  parsing, and we only ever write canonical output.
+- GEDCOM import and export live in the dedicated `@doru/gedcom` package
+  (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP), kept free of runtime dependencies and
+  of Electron. Nothing imports it yet: the desktop IPC handlers
+  (`project:import`, `project:export`) stay wired to the UI but are no-ops
+  while the library is being built.
 
 ## Localization
 

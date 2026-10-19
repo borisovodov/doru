@@ -38,7 +38,6 @@ export { updatePersonOp, deletePersonOp, reparentOp, addRelativeOp } from './ops
 export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp, type CitationRecord } from './ops/source';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
 export { addEventOp, addMediaOp, deleteEventOp, deleteMediaOp } from './ops/record';
-export { importGedcomOp, type GedcomImportOp } from './ops/importGedcom';
 export { computePedigree, type PedigreeNode } from './pedigree';
 export {
   layoutPedigree,
@@ -70,6 +69,4 @@ export interface UndoRedoState {
   canUndo: boolean;
   canRedo: boolean;
 }
-export { ReadGedcomImporter, type GedcomImporter } from './gedcom/importer';
-export { Gedcom70Writer, type GedcomWriter } from './gedcom/writer';
 export { detectParentCycles, type ValidationIssue } from './validate/validator';

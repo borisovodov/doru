@@ -1,0 +1,136 @@
+/**
+ * Cross-version projection and spelling tables used by the serializers.
+ * See the Serialization section of the README for the rules.
+ */
+
+
+/** GEDCOM 5.5.1 media-type to MULTIMEDIA_FORMAT mapping (reverse table). */
+export const MEDIA_TYPE_TO_551: ReadonlyMap<string, string> = new Map([
+  ['image/bmp', 'bmp'],
+  ['image/gif', 'gif'],
+  ['image/jpeg', 'jpg'],
+  ['image/tiff', 'tif'],
+  ['image/x-tiff', 'tif'],
+  ['audio/wav', 'wav'],
+  ['audio/x-wav', 'wav'],
+  ['audio/vnd.wave', 'wav'],
+]);
+
+/** BCP 47 primary subtag to the 5.5.1 LANGUAGE_ID name. */
+export const LANGUAGE_TO_551: ReadonlyMap<string, string> = new Map([
+  ['af', 'Afrikaans'],
+  ['sq', 'Albanian'],
+  ['ang', 'Anglo-Saxon'],
+  ['ca', 'Catalan'],
+  ['cs', 'Czech'],
+  ['da', 'Danish'],
+  ['nl', 'Dutch'],
+  ['en', 'English'],
+  ['eo', 'Esperanto'],
+  ['et', 'Estonian'],
+  ['fo', 'Faroese'],
+  ['fi', 'Finnish'],
+  ['fr', 'French'],
+  ['de', 'German'],
+  ['haw', 'Hawaiian'],
+  ['hu', 'Hungarian'],
+  ['is', 'Icelandic'],
+  ['id', 'Indonesian'],
+  ['it', 'Italian'],
+  ['lv', 'Latvian'],
+  ['lt', 'Lithuanian'],
+  ['nv', 'Navaho'],
+  ['no', 'Norwegian'],
+  ['nb', 'Norwegian'],
+  ['nn', 'Norwegian'],
+  ['pl', 'Polish'],
+  ['pt', 'Portuguese'],
+  ['ro', 'Romanian'],
+  ['sh', 'Serbo_Croa'],
+  ['sk', 'Slovak'],
+  ['sl', 'Slovene'],
+  ['es', 'Spanish'],
+  ['sv', 'Swedish'],
+  ['tr', 'Turkish'],
+  ['wen', 'Wendic'],
+  ['hsb', 'Wendic'],
+  ['dsb', 'Wendic'],
+  ['am', 'Amharic'],
+  ['ar', 'Arabic'],
+  ['hy', 'Armenian'],
+  ['as', 'Assamese'],
+  ['be', 'Belorusian'],
+  ['bn', 'Bengali'],
+  ['bg', 'Bulgarian'],
+  ['my', 'Burmese'],
+  ['yue', 'Cantonese'],
+  ['cu', 'Church-Slavic'],
+  ['ka', 'Georgian'],
+  ['el', 'Greek'],
+  ['gu', 'Gujarati'],
+  ['he', 'Hebrew'],
+  ['hi', 'Hindi'],
+  ['ja', 'Japanese'],
+  ['kn', 'Kannada'],
+  ['km', 'Khmer'],
+  ['ko', 'Korean'],
+  ['lo', 'Lao'],
+  ['mk', 'Macedonian'],
+  ['ml', 'Malayalam'],
+  ['zh', 'Mandarin'],
+  ['mr', 'Marathi'],
+  ['ne', 'Nepali'],
+  ['or', 'Oriya'],
+  ['pa', 'Panjabi'],
+  ['fa', 'Persian'],
+  ['ru', 'Russian'],
+  ['sa', 'Sanskrit'],
+  ['sr', 'Serb'],
+  ['tl', 'Tagalog'],
+  ['ta', 'Tamil'],
+  ['te', 'Telugu'],
+  ['th', 'Thai'],
+  ['bo', 'Tibetan'],
+  ['uk', 'Ukrainian'],
+  ['ur', 'Urdu'],
+  ['vi', 'Vietnamese'],
+  ['yi', 'Yiddish'],
+]);
+
+// Cross-version projection tables: the 5.5.1 phonetic/romanized methods and
+// the 7.0 TRAN languages name the same five writing systems; associations and
+// source-event roles are free text in 5.5.1, so the 7.0 enums are spelled out.
+export const METHOD_TO_LANGUAGE_70 = new Map<string, string>([
+  ['kana', 'ja-Kana'],
+  ['hangul', 'ko-Hang'],
+  ['pinyin', 'zh-Latn'],
+  ['romaji', 'ja-Latn'],
+  ['wadegiles', 'zh-Latn-wadegile'],
+]);
+
+export const LANGUAGE_TO_METHOD_551 = new Map<string, string>([
+  ['ja-kana', 'kana'],
+  ['ko-hang', 'hangul'],
+  ['zh-latn', 'pinyin'],
+  ['ja-latn', 'romaji'],
+  ['zh-latn-wadegile', 'wadegiles'],
+]);
+
+export const ROLE_TO_RELA_551 = new Map<string, string>([
+  ['CHIL', 'Child'],
+  ['CLERGY', 'Clergy'],
+  ['FATH', 'Father'],
+  ['FRIEND', 'Friend'],
+  ['GODP', 'Godparent'],
+  ['HUSB', 'Husband'],
+  ['MOTH', 'Mother'],
+  ['MULTIPLE', 'Multiple-birth sibling'],
+  ['NGHBR', 'Neighbor'],
+  ['OFFICIATOR', 'Officiator'],
+  ['PARENT', 'Parent'],
+  ['SPOU', 'Spouse'],
+  ['WIFE', 'Wife'],
+  ['WITN', 'Witness'],
+  ['OTHER', 'Other'],
+]);
+
