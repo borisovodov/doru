@@ -23,6 +23,11 @@ mac:
     - zip
 dmg:
   icon: build/icon.icns
+  # Stores and package managers update the app; no self-update artifacts.
+  writeUpdateInfo: false
+nsis:
+  # Same: no differential-update blockmap for the site installer.
+  differentialPackage: false
 # Mac App Store builds are signed with the Apple Distribution certificate and
 # run under the App Sandbox. The entitlements grant outbound network (agent
 # chat, remote MCP), user-selected file access (.doru open/save dialogs) and
