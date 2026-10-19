@@ -322,14 +322,17 @@ and the `_PLAC` second place — see the table in chapter 5.
 | --- | --- | --- | --- | --- | --- |
 | `_NONE` | Legacy | "Couple had no children" under FAM | none; standard equivalent is `NCHI 0` | Low (normalize to the NCHI attribute) | Maybe — real assertion, one vendor |
 | `_MILT` / `_MDCL` / `_DCAUSE` / `_FOOT` | FTM | Military service / medical / death cause / footnote facts | `_DCAUSE` maps to `DEAT.CAUS`; the rest need EVEN+TYPE synthesis | Medium | Maybe — popular files, awkward mapping |
-| `_STAT` (FAM), `_MSTAT`, `_MEND` | Legacy, FTW | Marriage beginning/ending status | none | Medium (new FAM/MARR field, value sets differ) | Maybe |
+| `_STAT` (FAM) | Legacy | Marriage status (Married, Unmarried, …) | typed → `FamilyRecord.marriageStatus` | — | Done |
+| `_MSTAT`, `_MEND` | FTW (DOS) | Marriage beginning/ending status under MARR | none | Medium (colliding meaning, dead vendor) | Deferred to P3 |
 | Gramps witness convention | Gramps | `ASSO @xref@` + `TYPE INDI` + `RELA <role>` under **family events** | partially: `_SHAR` is typed, but the standard `ASSO` tag under a 5.5.1 event is currently a strict error | Low (accept it like `_SHAR`) | Yes — closes a real compatibility gap |
 | `_CREF`, `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | none | Low | Maybe — only TMG exports, but T2G is the migration path for TMG users |
 | `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | `MediaFormatStructure.medium` exists but is per-FILE; OBJE-level type has no slot | Medium | Maybe |
 | `_SCBK`, `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | none (booleans on `MultimediaLink`) | Low | Maybe |
 | `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | none (boolean on `ChildFamilyLink`) | Low | Maybe |
 | `_URL` under INDI | Legacy | Web address of a person | none (5.5.1 ADDR has WWW, INDI does not) | Low | Maybe |
-| `_VERI`, `_PREF`, `_PRIV` | Legacy | Verified / preferred / private flags | none (booleans) | Low | Maybe |
+| `_PRIV` under events | Legacy | Event marked private | typed → `EventDetail.restriction` PRIVACY | — | Done |
+| `_PRIV` under ADDR | Legacy | Address marked private | none (no RESN slot under ADDR) | Low | Deferred to P3 |
+| `_PREF`, `_VERI` | Legacy | Preferred spouse/child/parents; verified checkmark on citations and places | none | Low–Medium (one tag, several contexts) | Deferred to P3 |
 
 ### 7.4 P3 — single-vendor housekeeping, defer to the corpus
 
@@ -358,9 +361,19 @@ templates for reports; PAF is discontinued.
 descriptive attributes with no standard slot.
 
 **Family Tree Maker extras**: `_FA1`–`_FA13` user fact definitions,
-`_DETS`, `_ELEC`, `_UNKN`, `_EXCM`, `_MISN`, `_ADPN`, `_SEPR`, and the
+`_DETS`, `_ELEC`, `_UNKN`, `_EXCM`, `_MISN`, `_ADPN`, `_SEPR`, the
 GEDCOM 5.3 schema block (`_SCHEMA`/`SCHEMA`, `DEFN`, `LABL`, `ISA`) —
-presentation and legacy-schema data.
+presentation and legacy-schema data — and the FTW marriage statuses
+`_MSTAT`/`_MEND` (beginning/ending status under MARR; the meaning
+collides with `_STAT`, the writing product is discontinued).
+
+**Legacy workflow flags (deferred from P2)**: `_PREF` (preferred
+spouse/child/parents — one tag, three structural contexts), `_VERI`
+(verified checkmark on citations and places — two contexts), `_PRIV`
+under ADDR (no standard RESN slot exists under an address). All are
+single-vendor workflow/presentation markers; they stay generic
+extensions and will be revisited only if the corpus shows them in
+common use.
 
 **RootsMagic report fields**: `_SUBQ` (subsequent citation format),
 `_SENT` (event sentence), `_PPFX` (place prefix).
