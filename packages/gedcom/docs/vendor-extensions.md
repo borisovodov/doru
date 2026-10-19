@@ -375,6 +375,11 @@ sentence definitions, `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/
 `_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, `_ITALIC`/`_PAREN`/
 `_QUOTED` source print styles, `_LIST1`–`_LIST6` address groupings,
 `_SORT`/`_OVER`/`_PREP` — how reports are worded, printed and grouped.
+Decision on `_CONF_FLAG`: it marks the event *type* as confidential in
+the vendor's configuration (and the mechanism that links a definition
+to its event type is undocumented), so it is not projected onto
+individual events; it stays a generic extension, and a UI may interpret
+the definition itself.
 
 **PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
 `_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
