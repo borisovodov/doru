@@ -412,8 +412,10 @@ The agreed policy:
   same-sex` union marker on FAM (the HUSB/WIFE tags then carry the
   two partners without gender semantics), the negatives `_MARR N`/
   `_NMR Y` (a bare FAM `NO MARR`; 5.5.1 writes it back as `_MARR N`),
-  and `_LIV` (cohabitation → FAM `EVEN` + TYPE). The vendor tags and
-  the `_LOC` records are written back in both versions (see the
+  `_LIV` (cohabitation → FAM `EVEN` + TYPE), and the `_ASSO @xref@` +
+  `RELA` participant links (event-level ones in the canonical
+  `_SHAR`/`_ROLE` form, the FAM-level one as `_ASSO`). The vendor tags
+  and the `_LOC` records are written back in both versions (see the
   place-records bullet above).
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair

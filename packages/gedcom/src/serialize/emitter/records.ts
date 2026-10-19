@@ -199,9 +199,11 @@ export function emitFamily(w: Writer, version: Version, rec: {
     }
   }
   for (const association of rec.associations ?? []) {
-    // 5.5.1 FAM has no ASSO; dropped.
     if (version === '7.0') {
       emitAssociation(w, version, 1, association);
+    } else {
+      // 5.5.1 FAM has no ASSO slot; the German _ASSO form carries it.
+      emitAssociation(w, version, 1, association, '_ASSO');
     }
   }
   for (const submitter of rec.submitters ?? []) {

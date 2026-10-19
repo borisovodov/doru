@@ -290,9 +290,10 @@ export interface EventDetail extends GedcomStructureBase {
    * free-text descriptor kept as ROLE OTHER + PHRASE (see the "Common
    * GEDCOM Extensions" catalog:
    * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html). The
-   * vendor tags are also recognized on 7.0 input. An association
-   * without a role (a bare `_SHAR`) cannot be spelled in 7.0 and is
-   * dropped when serializing to 7.0.
+   * vendor tags are also recognized on 7.0 input, as is the German
+   * GEDCOM-L `_ASSO` (agreement A3). An association without a role (a
+   * bare `_SHAR`) cannot be spelled in 7.0 and is dropped when
+   * serializing to 7.0.
    */
   associations?: AssociationStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */

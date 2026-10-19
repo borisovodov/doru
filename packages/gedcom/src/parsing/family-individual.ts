@@ -60,6 +60,7 @@ import {
 } from './sources-media';
 import {
   parseAssociation,
+  parseGrampsAssociation,
   parseChangeDate,
   parseCreationDate,
   parseExternalIdentifier,
@@ -162,6 +163,12 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       // GenPlus/PRO-GEN: Lebensgemeinschaft (cohabitation), an event
       // with the usual DATE/PLAC/... detail.
       pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Cohabitation');
+    },
+    _ASSO: (child) => {
+      // The German GEDCOM-L agreement A3: a person's relation to the
+      // family as a pointer; 5.5.1 FAM has no standard ASSO slot. The
+      // RELA descriptor normalizes like the Gramps ASSO convention.
+      (rec.associations ??= []).push(parseGrampsAssociation(child, ctx));
     },
     _COML: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'MARR', 'Common law marriage');

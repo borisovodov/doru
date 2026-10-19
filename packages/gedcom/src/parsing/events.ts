@@ -305,6 +305,12 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   handlers['_SHAR'] = (child) => {
     (detail.associations ??= []).push(parseSharedParticipant(child, ctx));
   };
+  handlers['_ASSO'] = (child) => {
+    // The German GEDCOM-L agreement A3: an event participant as a
+    // pointer, like _SHAR (Taufpate, Arbeitgeber, Trauzeuge, ...). The
+    // RELA descriptor normalizes like the Gramps ASSO convention.
+    (detail.associations ??= []).push(parseGrampsAssociation(child, ctx));
+  };
   handlers['_UID'] = (child) => {
     (detail.uniqueIds ??= []).push(reqText(child));
   };

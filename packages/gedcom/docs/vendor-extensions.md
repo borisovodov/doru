@@ -364,7 +364,11 @@ same-sex slot (its FAMILY_RECORD describes HUSB/WIFE as partners and
 (`_MARR` accepts only N, `_NMR` only Y); 5.5.1 writes a bare FAM NO
 MARR back as `_MARR N`, 7.0 as the standard `NO MARR`. `_LIV`
 (GenPlus/PRO-GEN cohabitation) becomes a FAM `EVEN` with TYPE
-"Cohabitation".
+"Cohabitation". The `_ASSO @xref@` + RELA participant links
+(agreement A3) normalize into the associations model like the Gramps
+convention: event-level links are written back in the canonical
+`_SHAR`/`_ROLE` form, and the FAM-level link (no standard 5.5.1
+slot) as `_ASSO` (7.0 uses the standard ASSO).
 
 Covered by `tests/vendor-extensions*.test.ts` with same-version round
 trips.

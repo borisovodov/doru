@@ -106,7 +106,12 @@ export interface FamilyRecord extends GedcomStructureBase {
   wife?: FamilyPartnerLink;
   /** CHIL {0:M}, g7:CHIL — the children, chronological by birth; a voidPtr marks a placeholder for an unknown child. */
   children?: FamilyChildLink[];
-  /** <<ASSOCIATION_STRUCTURE>> {0:M} — 7.0-only. */
+  /**
+   * <<ASSOCIATION_STRUCTURE>> {0:M} — 7.0-only: 5.5.1 FAM has no ASSO
+   * slot. The German GEDCOM-L `_ASSO` form (agreement A3) is
+   * recognized on input in both versions and written back to 5.5.1 as
+   * `_ASSO` (7.0 uses the standard ASSO).
+   */
   associations?: AssociationStructure[];
   /** SUBM {0:M}, g7:SUBM — submitters that contributed this record. */
   submitters?: Pointer<SubmitterRecord>[];

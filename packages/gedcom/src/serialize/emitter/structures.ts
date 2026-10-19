@@ -115,7 +115,7 @@ export function mergedAddress(_w: Writer, version: Version,
   };
 }
 
-export function emitAssociation(w: Writer, version: Version, level: number, association: AssociationStructure): void {
+export function emitAssociation(w: Writer, version: Version, level: number, association: AssociationStructure, tag: 'ASSO' | '_ASSO' = 'ASSO'): void {
   if (version === '5.5.1') {
     let relationship = association.relationship;
     if (relationship === undefined) {
@@ -131,7 +131,7 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
         return;
       }
     }
-    ptr(w, version, level, 'ASSO', association.individual);
+    ptr(w, version, level, tag, association.individual);
     if (association.phrase !== undefined) {
       w.line(level + 1, 'PHRASE', { value: association.phrase });
     }

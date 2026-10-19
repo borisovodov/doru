@@ -244,6 +244,109 @@ describe('the FAM negatives and cohabitation', () => {
   });
 });
 
+
+describe('the GEDCOM-L _ASSO associations', () => {
+  test('_ASSO under FAM and under events', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD',
+        '1 SOUR X',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 CHR',
+        '2 _ASSO @I3@',
+        '3 RELA Taufpate',
+        '0 @I3@ INDI',
+        '1 NAME Erna /Beispiel/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 _ASSO @I3@',
+        '2 RELA Patin',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.xref === '@I1@');
+    const christening = indi?.tag === 'INDI' ? indi.events?.find((e) => e.tag === 'CHR') : undefined;
+    expect(christening?.detail?.associations).toEqual([
+      { tag: 'ASSO', individual: '@I3@', role: { payload: 'OTHER', phrase: 'Taufpate' } },
+    ]);
+    const family = dataset.records.find((r) => r.xref === '@F1@');
+    expect(family?.tag === 'FAM' ? family.associations : undefined).toEqual([
+      { tag: 'ASSO', individual: '@I3@', role: { payload: 'OTHER', phrase: 'Patin' } },
+    ]);
+  });
+
+  test('5.5.1 round-trips: the FAM link stays _ASSO, the event link becomes _SHAR', () => {
+    const sample = [
+      '0 HEAD',
+      '1 SOUR X',
+      '1 SUBM @S1@',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHAR UTF-8',
+      '0 @S1@ SUBM',
+      '1 NAME T',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 CHR',
+      '2 _ASSO @I3@',
+      '3 RELA Taufpate',
+      '0 @I3@ INDI',
+      '1 NAME Erna /Beispiel/',
+      '0 @F1@ FAM',
+      '1 HUSB @I1@',
+      '1 _ASSO @I3@',
+      '2 RELA Patin',
+      '0 TRLR',
+    ].join('\n');
+    const first = parseOk551(sample);
+    const text = ser551(first);
+    // The FAM-level association has no standard 5.5.1 slot: _ASSO back.
+    expect(text).toContain('1 _ASSO @I3@');
+    expect(text).toContain('2 RELA Patin');
+    // The event-level association is written in the canonical _SHAR form.
+    expect(text).toContain('2 _SHAR @I3@');
+    expect(parseOk551(text)).toEqual(first);
+  });
+
+  test('7.0 writes the standard ASSO for the family', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD',
+        '1 SOUR X',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '0 @I3@ INDI',
+        '1 NAME Erna /Beispiel/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 _ASSO @I3@',
+        '2 RELA Patin',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser70(dataset);
+    expect(text).toContain('1 ASSO @I3@');
+    expect(text).toContain('2 ROLE OTHER');
+    expect(text).toContain('3 PHRASE Patin');
+  });
+});
+
 describe('the FAM _TYPE strictness', () => {
   test('only the value same-sex is defined', () => {
     const withOther = parseGedcom551(enc(SAMPLE.replace('1 _TYPE same-sex', '1 _TYPE sonstiges')));
