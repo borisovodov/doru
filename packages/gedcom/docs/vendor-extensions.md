@@ -279,20 +279,9 @@ Priorities:
   `IndividualRecord`/`FamilyRecord.updatedAt`, the media-link
   normalization, `MultimediaRecord.date`, `AddressStructure.email`).
 - **P2** — worth considering: meaningful data or very common vendor,
-  but single-vendor or medium effort.
-  **Implemented**: `_NONE` → `NCHI 0`; the FTM facts (`_MILT`/`_MDCL`/
-  `_FOOT` → `EVEN`+TYPE, `_DCAUSE` → `DEAT.CAUS`); Legacy `_STAT` →
-  `FamilyRecord.marriageStatus`; the Gramps `ASSO`/`TYPE INDI`/`RELA`
-  witness convention; TMG `_CREF` → `SourceCitation.reference` and
-  `_FULL` → `SourceRecord.fullFootnote`; `_TYPE` under OBJE →
-  `MultimediaRecord.objectType`; `_SCBK`/`_SSHOW` →
-  `MultimediaLink.scrapbook`/`slideshow`; `_PRIMARY` →
-  `ChildFamilyLink.primary`; `_URL` → `IndividualRecord.url`; `_PRIV`
-  under events → `EventDetail.restriction` PRIVACY and under ADDR →
-  `AddressStructure.private`; `_PREF` → `SpouseFamilyLink.preferred` /
-  `FamilyChildLink.preferred` / `ChildFamilyLink.preferred`; `_VERI` →
-  `SourceCitation.verified` / `PlaceStructure.verified`. Left generic
-  (documented): FTW `_MSTAT`/`_MEND` (DOS-era, colliding meaning).
+  but single-vendor or medium effort. **Fully implemented** — every row
+  in the table below is typed; the only P2 item deferred is FTW
+  `_MSTAT`/`_MEND`, which moved to P3 (DOS-era, colliding meaning).
 - **P3** — defer: housekeeping/report/presentation data, one vendor;
   let the corpus decide.
 - **P4** — non-underscore relics of dropped standard tags or invented
@@ -322,15 +311,15 @@ and the `_PLAC` second place — see the table in chapter 5.
 
 | Tag | Vendors | Meaning | Model today | Effort | Recommend |
 | --- | --- | --- | --- | --- | --- |
-| `_NONE` | Legacy | "Couple had no children" under FAM | none; standard equivalent is `NCHI 0` | Low (normalize to the NCHI attribute) | Maybe — real assertion, one vendor |
-| `_MILT` / `_MDCL` / `_DCAUSE` / `_FOOT` | FTM | Military service / medical / death cause / footnote facts | `_DCAUSE` maps to `DEAT.CAUS`; the rest need EVEN+TYPE synthesis | Medium | Maybe — popular files, awkward mapping |
+| `_NONE` | Legacy | "Couple had no children" under FAM | typed → `attributes` `NCHI 0` | — | Done |
+| `_MILT` / `_MDCL` / `_DCAUSE` / `_FOOT` | FTM | Military service / medical / death cause / footnote facts | typed → `EVEN`+TYPE; `_DCAUSE` → `DEAT.CAUS` | — | Done |
 | `_STAT` (FAM) | Legacy | Marriage status (Married, Unmarried, …) | typed → `FamilyRecord.marriageStatus` | — | Done |
-| Gramps witness convention | Gramps | `ASSO @xref@` + `TYPE INDI` + `RELA <role>` under **family events** | partially: `_SHAR` is typed, but the standard `ASSO` tag under a 5.5.1 event is currently a strict error | Low (accept it like `_SHAR`) | Yes — closes a real compatibility gap |
-| `_CREF`, `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | none | Low | Maybe — only TMG exports, but T2G is the migration path for TMG users |
-| `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | `MediaFormatStructure.medium` exists but is per-FILE; OBJE-level type has no slot | Medium | Maybe |
-| `_SCBK`, `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | none (booleans on `MultimediaLink`) | Low | Maybe |
-| `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | none (boolean on `ChildFamilyLink`) | Low | Maybe |
-| `_URL` under INDI | Legacy | Web address of a person | none (5.5.1 ADDR has WWW, INDI does not) | Low | Maybe |
+| Gramps witness convention | Gramps | `ASSO @xref@` + `TYPE INDI` + `RELA <role>` under **family events** | typed → `EventDetail.associations` (like `_SHAR`) | — | Done |
+| `_CREF`, `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | typed → `SourceCitation.reference` / `SourceRecord.fullFootnote` | — | Done |
+| `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | typed → `MultimediaRecord.objectType` | — | Done |
+| `_SCBK`, `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | typed → `MultimediaLink.scrapbook` / `slideshow` | — | Done |
+| `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | typed → `ChildFamilyLink.primary` | — | Done |
+| `_URL` under INDI | Legacy | Web address of a person | typed → `IndividualRecord.url` | — | Done |
 | `_PRIV` under events | Legacy | Event marked private | typed → `EventDetail.restriction` PRIVACY | — | Done |
 | `_PRIV` under ADDR | Legacy | Address marked private | typed → `AddressStructure.private` | — | Done |
 | `_PREF` | Legacy | Preferred spouse / child / parents | typed → `SpouseFamilyLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` | — | Done |
