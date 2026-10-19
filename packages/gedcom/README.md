@@ -2,7 +2,13 @@
 
 The GEDCOM layer of [Dóru](https://github.com/borisovodov/doru): a strict
 reader and writer for **GEDCOM 7.0.18** and **GEDCOM 5.5.1**, built around a
-single TypeScript object model that spans both versions.
+single TypeScript object model that spans both versions. The model types
+the two specifications in full, so data read from either version can be
+written as either version, with GEDZIP handled on the same layer: the
+parsers turn foreign files into typed values or typed errors, the
+serializers project those values onto the target version's canonical
+spelling, and the vendor extensions that real files carry are typed
+where they matter and preserved where they do not.
 
 ```ts
 import { parseGedcom70, serializeGedcom551 } from '@doru/gedcom';
@@ -24,14 +30,15 @@ if (result.ok) {
 ## Motivation
 
 GEDCOM is how genealogical data enters and leaves Dóru. Before this
-package, the app used `read-gedcom` for import and a hand-written minimal
-7.0 writer for export. That combination had three structural problems:
+package, the app used a tolerant 5.5.5-oriented reader for import and a
+hand-written minimal 7.0 writer for export. That combination had three
+structural problems:
 
-1. **No shared model.** `read-gedcom` parses into its own low-level tree
+1. **No shared model.** The reader parsed into its own low-level tree
    (5.5.5-oriented), and the app mapped it ad hoc into its domain model.
    Every mapping decision lived in one importer function and could not be
    tested in isolation.
-2. **No version coverage.** `read-gedcom` is "mostly GEDCOM 5.5.5
+2. **No version coverage.** The reader is "mostly GEDCOM 5.5.5
    compliant"; GEDCOM 7.0 is outside its target, and GEDZIP is not
    supported at all. The export side could only write a minimal 7.0
    subset.
@@ -40,9 +47,15 @@ package, the app used `read-gedcom` for import and a hand-written minimal
    gate between foreign files and the user's database: silent data loss
    is the worst possible failure mode.
 
-The package solves all three: one ideal model (the specification, in
-TypeScript notation), two strict parsers and two strict serializers, and GEDZIP
-read/write on the same layer.
+The package solves all three and sets a higher bar around them: one
+ideal model (the specification, in TypeScript notation) that both
+versions produce and consume, two strict parsers and two serializers
+that project between the versions instead of re-spelling what was read,
+GEDZIP read/write on the same layer, and a documented, tested treatment
+of the vendor extensions that real files carry. An import lands in the
+same typed model whether it came from a 5.5.1 file, a 7.0 file, or a
+GEDZIP archive, and an export can leave as either version — the model
+stays the same on both legs of the trip.
 
 ## Ideology and principles
 
@@ -244,7 +257,10 @@ endings; 5.5.1 output declares `1 CHAR UTF-8`. A lone (unpaired)
 surrogate in the model text is reported as `serialize.invalid-text`
 rather than silently replaced.
 
-The writers emit the canonical form of their version:
+A dataset parsed from a 5.5.1 file can be written as 7.0 and vice
+versa: the two writers are projections of one model, not re-spellings
+of whatever version happened to be read. They emit the canonical form
+of their version:
 
 - **7.0** — `GEDC.VERS 7.0`, uppercase enums, calendar keywords and the
   `BCE` epoch inside dates, `PHRASE` substructures, `CONT` for multiline
@@ -301,7 +317,10 @@ Real files in the wild extend the standard with underscore tags
 (`_UID`, `_SHAR`, `_PLAC`, …); GEDCOM 7 additionally has its own
 mechanism (`SCHMA` declarations with URIs). The per-vendor catalog with
 sources lives in [docs/vendor-extensions.md](docs/vendor-extensions.md).
-The agreed policy:
+Because real files lean on these tags heavily, the model goes further
+than preserving them verbatim: the multi-vendor core is typed and the
+rest survives as generic extensions, so an import loses neither the
+standard data nor the vendor's extras. The agreed policy:
 
 - **One model, typed where it matters.** The multi-vendor core — `_UID`,
   `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL`, `_APID`, and the
@@ -358,10 +377,13 @@ dataset as a 7.0 UTF-8 stream plus one entry per media file.
 
 ## Testing
 
-The test suite covers every error code, every structure family of both
-versions, the 5.5.1 normalizations, and the serialization spellings.
-Round-trip tests parse → serialize → parse representative documents of
-both versions and require deep model equality plus idempotent output.
+Strictness is only worth as much as it is provable, so the suite is
+built to match the claims above: every error code, every structure
+family of both versions, the 5.5.1 normalizations, and the
+serialization spellings have dedicated coverage. Round-trip tests parse
+→ serialize → parse representative documents of both versions and
+require deep model equality plus idempotent output — the same model on
+both legs of the trip, as the one-model principle demands.
 
 ```sh
 npm test -w @doru/gedcom   # vitest
@@ -418,7 +440,7 @@ it without re-deriving context.
   (`serialize/serialize.ts`, `serialize/prepare.ts` — translations,
   silent drops, the NO rule, the SOUR/SUBM defaults), the unified
   `parse` entry point (`detect.ts`), the error model (`errors.ts`), and
-  ANSEL decoding. 152 package tests / 256 repo tests, clean typecheck.
+  ANSEL decoding. 191 package tests / 295 repo tests, clean typecheck.
 - Conventions a later session must follow:
   - every model entity cites both specs (`GEDCOM 7.0 §…`,
     `GEDCOM 5.5.1 §2 (p.…)`);
@@ -439,7 +461,7 @@ into decisions. The strictness is a bet; this is where it gets tested.
 **Method:**
 
 - Gather files from public sources (FamilySearch spec samples; the
-  `royal92.ged` referenced by the `read-gedcom` docs; files produced by
+  well-known `royal92.ged` public test file; files produced by
   RootsMagic, Gramps, MyHeritage, GEDKeeper, Ancestry, …). Do **not**
   commit corpus files to the repository (size/licensing) — the tooling
   takes a directory path.
