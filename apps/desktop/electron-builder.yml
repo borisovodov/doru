@@ -1,4 +1,4 @@
-appId: dev.doru.app
+appId: ru.ovodov.doru
 productName: Doru
 executableName: doru
 directories:
@@ -23,6 +23,14 @@ mac:
     - zip
 dmg:
   icon: build/icon.icns
+# Mac App Store builds are signed with the Apple Distribution certificate and
+# run under the App Sandbox. The entitlements grant outbound network (agent
+# chat, remote MCP), user-selected file access (.doru open/save dialogs) and
+# app-scope bookmarks (recents). Build explicitly with `electron-builder
+# --mac mas`; the default dmg/zip targets are unaffected.
+mas:
+  entitlements: build/entitlements.mas.plist
+  entitlementsInherit: build/entitlements.mas.inherit.plist
 win:
   icon: resources/icon.png
   artifactName: doru-windows-${arch}.${ext}
