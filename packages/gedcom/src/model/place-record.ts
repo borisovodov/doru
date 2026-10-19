@@ -27,21 +27,26 @@
  * with the name as the payload, and events that name a place whose text
  * matches a record's payload get their `PlaceStructure.location` filled
  * (records without an xref receive a synthesized one, like the OBJE
- * synthesis). The records are read-side entities: on output — both
- * versions alike — they are projected onto the standard: their map and
- * notes are merged into each referencing place that lacks its own copy
- * (citations and media have no standard slot under PLAC and are
- * dropped), the location links are consumed, and the records are not
- * written. The card structure therefore flattens on a round trip;
- * event-level place data is never lost.
+ * synthesis). On output the records are read-side entities that
+ * flatten onto the standard: their map and notes are merged into each
+ * referencing place that lacks its own copy (citations and media have
+ * no standard slot under PLAC and are dropped), the location links are
+ * consumed, and the records are not written. The exception is the
+ * GEDCOM-L dialect: a record carrying the German fields below (govId,
+ * postalCodes, administrativeIds, demographicData, types, extra names,
+ * parents, denomination, or events) is written back to 5.5.1 as a
+ * `_LOC` record with the `_LOC` pointer kept on its referencing
+ * places; 7.0 has no German ecosystem and still flattens them.
  */
-import type { Pointer, Text, Xref } from '../primitives';
+import type { Language, Pointer, Text, Xref } from '../primitives';
 import type {
   ChangeDate,
+  DateStructure,
+  EventDetail,
   IdentifierStructure,
   NoteStructure,
 } from './common';
-import type { MapCoordinates } from './names-places';
+import type { MapCoordinates, PostalCodeStructure } from './names-places';
 import type { MultimediaLink, SourceCitation } from './sources-media';
 import type { GedcomStructureBase } from './extensions';
 
@@ -62,12 +67,137 @@ export interface PlaceRecord extends GedcomStructureBase {
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
   /**
-   * _LOC {0:1} — the parent place in the 5.5EL hierarchy. Dropped when
-   * serializing to 7.0.
+   * `_GOV` {0:1} — the place's identifier in the GOV gazetteer (GEDCOM-L,
+   * e.g. `WEIHEN_W6051`). Written back as `_GOV` in 5.5.1 (the record
+   * survives for this); dropped in 7.0 with the record.
    */
-  parent?: Pointer<PlaceRecord>;
+  govId?: Text;
+  /**
+   * `_MAIDENHEAD` {0:1} — the place's Maidenhead QTH locator (GEDCOM-L).
+   * Written back as `_MAIDENHEAD` in 5.5.1; dropped in 7.0.
+   */
+  maidenhead?: Text;
+  /** `TYPE` {0:M} — the kind of place object (Ort, Kreis, …; GEDCOM-L), each optionally dated. */
+  types?: PlaceTypeStructure[];
+  /** `_POST` {0:M} — postal codes, each with the period it was in force (GEDCOM-L). */
+  postalCodes?: PostalCodeStructure[];
+  /** `_AIDN` {0:M} — administrative identifiers (Gemeindekennzahl, ISO 3166, …; GEDCOM-L). */
+  administrativeIds?: AdministrativeIdStructure[];
+  /** `_DMGD` {0:M} — demographical data with the required TYPE (GEDCOM-L). */
+  demographicData?: DemographicDataStructure[];
+  /** `NAME` {1:M} — the place names; `payload` is the first. The further entries are name variants (GEDCOM-L). */
+  names?: PlaceNameStructure[];
+  /** `RELI` {0:1} — the denomination of the place object (GEDCOM-L; churches in particular). */
+  denomination?: Text;
+  /** `EVEN` {0:M} — events of the place object with an event detail (GEDCOM-L). */
+  events?: PlaceEventStructure[];
+  /**
+   * `_LOC @xref@` {0:M} — the parent places in the GEDCOM-L hierarchy,
+   * each optionally qualified by the relationship kind (POLI =
+   * administrative, RELI = ecclesiastical, GEOG = geographic, CULT =
+   * cultural). Written back in 5.5.1; dropped in 7.0 with the record.
+   */
+  parents?: PlaceHierarchyLink[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M} — REFN and the vendor `_UID` are recognized. */
   identifiers?: IdentifierStructure[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `TYPE` — the kind of a place object,
+ * optionally dated and backed by the GOV object-type id. The GEDCOM-L
+ * agreements (L1/L1.5) are documented in the GenWiki article
+ * "GEDCOM/_LOC-Tag" (https://wiki.genealogy.net/GEDCOM/_LOC-Tag).
+ */
+export interface PlaceTypeStructure extends GedcomStructureBase {
+  /** The TYPE payload, {1:1} Text — the place-object kind. */
+  type: Text;
+  /** `_GOVTYPE` {0:1} — the GOV object-type id (a small positive integer). */
+  govTypeId?: Text;
+  /** `DATE` {0:1} — the period the type was in force. */
+  date?: DateStructure;
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `_AIDN` — an administrative or
+ * official identifier (Gemeindekennzahl, ISO 3166, …) with the required
+ * TYPE naming the identifier's kind.
+ */
+export interface AdministrativeIdStructure extends GedcomStructureBase {
+  /** The `_AIDN` payload, {1:1} Text. */
+  identifier: Text;
+  /** `TYPE` {1:1} — the kind of identifier. */
+  type: Text;
+  /** `DATE` {0:1} — the period the identifier was in force. */
+  date?: DateStructure;
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `_DMGD` — demographical data about
+ * the place object (households, inhabitants, occupations, …) with the
+ * required TYPE naming the data kind and an optional survey DATE.
+ */
+export interface DemographicDataStructure extends GedcomStructureBase {
+  /** The `_DMGD` payload, {1:1} Text. */
+  data: Text;
+  /** `TYPE` {1:1} — the kind of demographical data. */
+  type: Text;
+  /** `DATE` {0:1} — when the data was surveyed. */
+  date?: DateStructure;
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `NAME` — a place name, optionally
+ * dated (names change: the validity period says when this name was in
+ * force) and abbreviated. `payload` holds the first entry's name.
+ */
+export interface PlaceNameStructure extends GedcomStructureBase {
+  /** The NAME payload, {1:1} Text. */
+  name: Text;
+  /** `DATE` {0:1} — the period the name was in force. */
+  date?: DateStructure;
+  /** `ABBR` {0:1} — an abbreviation of the name. */
+  abbreviation?: Text;
+  /** `ABBR.TYPE` {0:1} — the kind of abbreviation (e.g. ISO 3166). */
+  abbreviationType?: Text;
+  /** `LANG` {0:1} — the language of the name. */
+  language?: Language;
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `_LOC` — a link to a parent place
+ * in the hierarchy, optionally qualified by the relationship kind and
+ * the period the assignment was in force.
+ */
+export interface PlaceHierarchyLink extends GedcomStructureBase {
+  /** The `_LOC` payload, {1:1} Pointer to the parent PlaceRecord. */
+  parent: Pointer<PlaceRecord>;
+  /** `TYPE` {0:1} — POLI (administrative), RELI (ecclesiastical), GEOG (geographic), or CULT (cultural). */
+  type?: 'POLI' | 'RELI' | 'GEOG' | 'CULT';
+  /** `DATE` {0:1} — the period the assignment was in force. */
+  date?: DateStructure;
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `EVEN` — an event of the place
+ * object (e.g. the granting of city rights) with an event detail.
+ */
+export interface PlaceEventStructure extends GedcomStructureBase {
+  /** GEDCOM 5.5.1 §2 (p.33) `EVENT_DETAIL` context; the tag is EVEN. */
+  tag: 'EVEN';
+  /** The EVEN payload, {0:1} Text — the event descriptor. */
+  payload?: Text;
+  /** <<EVENT_DETAIL>> {0:1}. */
+  detail?: EventDetail;
 }

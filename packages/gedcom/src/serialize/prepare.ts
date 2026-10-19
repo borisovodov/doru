@@ -201,21 +201,45 @@ function fill551Header(dataset: GedcomDataset): void {
  * Applies the NO rule and the required-field defaults, returning a new
  * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
  */
+/** Whether the card carries the GEDCOM-L fields that force the 5.5.1 write-back. */
+function hasGermanPlaceFields(card: PlaceRecord): boolean {
+  return card.govId !== undefined
+    || card.maidenhead !== undefined
+    || card.types !== undefined
+    || card.postalCodes !== undefined
+    || card.administrativeIds !== undefined
+    || card.demographicData !== undefined
+    || card.denomination !== undefined
+    || card.events !== undefined
+    || card.parents !== undefined
+    || (card.names ?? []).some(
+      (name) => name.date !== undefined || name.abbreviation !== undefined || name.language !== undefined || name.citations !== undefined,
+    )
+    || (card.names ?? []).length > 1;
+}
+
 /**
  * Projects the vendor place records onto the standard: each card's map
  * and notes are merged into every referencing place that lacks its own
  * copy (citations and media have no standard slot under PLAC and are
  * dropped), the location links are consumed, and the records are
- * removed. See the PlaceRecord JSDoc.
+ * removed. The exception: on 5.5.1 a GEDCOM-L card carrying the
+ * German fields survives as a `_LOC` record and its referencing places
+ * keep the pointer. See the PlaceRecord JSDoc.
  */
-function flattenPlaceRecords(dataset: GedcomDataset): void {
+function flattenPlaceRecords(dataset: GedcomDataset, version: '7.0' | '5.5.1'): void {
   const places = collectPlaces(dataset.records);
+  const survivors = new Set<string>();
   for (const record of dataset.records) {
     if (record.tag !== '_PLAC') {
       continue;
     }
     const card = record as unknown as PlaceRecord;
     if (card.xref === undefined) {
+      continue;
+    }
+    if (version === '5.5.1' && hasGermanPlaceFields(card)) {
+      survivors.add(card.xref);
       continue;
     }
     for (const place of places) {
@@ -230,15 +254,43 @@ function flattenPlaceRecords(dataset: GedcomDataset): void {
       }
     }
   }
-  for (const place of places) {
-    delete (place as { location?: unknown }).location;
+  if (version === '5.5.1') {
+    // The hierarchy closes over the survivors: a card referenced as a
+    // parent by a surviving card must survive too, even when it carries
+    // no German fields of its own (a fixpoint over the parent links).
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const record of dataset.records) {
+        if (record.tag !== '_PLAC') {
+          continue;
+        }
+        const card = record as unknown as PlaceRecord;
+        if (card.xref === undefined || !survivors.has(card.xref)) {
+          continue;
+        }
+        for (const parent of card.parents ?? []) {
+          if (parent.parent !== '@VOID@' && !survivors.has(parent.parent)) {
+            survivors.add(parent.parent);
+            changed = true;
+          }
+        }
+      }
+    }
   }
-  dataset.records = dataset.records.filter((record) => record.tag !== '_PLAC');
+  for (const place of places) {
+    if (place.location !== undefined && !survivors.has(place.location)) {
+      delete (place as { location?: unknown }).location;
+    }
+  }
+  dataset.records = dataset.records.filter(
+    (record) => record.tag !== '_PLAC' || survivors.has((record as unknown as PlaceRecord).xref as string),
+  );
 }
 
 export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
-  flattenPlaceRecords(out);
+  flattenPlaceRecords(out, '5.5.1');
 
   // 1. Drop the NO structures; remember which records carried one, so
   //    the empty-record rule below only applies to them. Exception: a
@@ -322,7 +374,7 @@ const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
  */
 export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
-  flattenPlaceRecords(out);
+  flattenPlaceRecords(out, '7.0');
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (record.tag === 'INDI' && record.xref !== undefined) {

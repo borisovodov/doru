@@ -33,6 +33,7 @@ import type {
   RoleStructure,
   SharedNoteReference,
   SortDateStructure,
+  SourceCitation,
   UniqueIdentifierStructure,
 } from '../structures';
 import type {
@@ -233,6 +234,21 @@ export function parseCreationDate(node: RawNode, ctx: Ctx): CreationDate {
     fail('structure.missing-required', 'The CREA structure requires a DATE substructure', node.position);
   }
   return out;
+}
+
+/** Handlers for a `DATE {0:1}` + `<<SOURCE_CITATION>> {0:M}` pair (the GEDCOM-L place records). */
+export function datedSourceHandlers(
+  ctx: Ctx,
+  target: { date?: DateStructure; citations?: SourceCitation[] },
+): Record<string, (child: RawNode) => void> {
+  return {
+    DATE: (child) => {
+      target.date = parseDateStructure(child, ctx);
+    },
+    SOUR: (child) => {
+      (target.citations ??= []).push(parseSourceCitation(child, ctx));
+    },
+  };
 }
 
 export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {

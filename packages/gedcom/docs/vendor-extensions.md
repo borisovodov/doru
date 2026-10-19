@@ -65,6 +65,14 @@ results and secondary sources.
 - Tamura Jones, "GEDCOM 5.5.1 Annotated Edition" / "GEDCOM 5.5.5"
   (annotated spec with vendor deviations):
   <https://www.tamurajones.net/GEDCOM551AnnotatedEdition.xhtml>
+- GEDCOM-L working group (CompGen): the German extension agreements —
+  the `_LOC` place records (L1–L3) and the recommended user-defined
+  tags (N7). The GenWiki articles are bot-protected; the content was
+  verified via the Wayback Machine:
+  - <https://wiki.genealogy.net/GEDCOM/_LOC-Tag>
+    (archived: <https://web.archive.org/web/2024/https://wiki.genealogy.net/GEDCOM/_LOC-Tag>)
+  - <https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>
+    (archived: <https://web.archive.org/web/2025/https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>)
 
 ## 3. Per-vendor extensions
 
@@ -201,6 +209,34 @@ Open-source, targets full 5.5.1 conformance; uses `_UID` and the common
 `_SHAR`-family extensions. No separate tag documentation; the source of
 record is the repository: <https://github.com/Serg-Norseman/GEDKeeper>.
 
+### GEDCOM-L / GEDCOM 5.5EL (German extension standards)
+
+An extension agreement of the GEDCOM-L working group (CompGen), the de
+facto standard of German genealogy software (Ahnenblatt, Ages!, GES,
+Stammbaumdrucker, webtrees, …). Two parts:
+
+- **Place records** (agreements PLAC/P3 and `_LOC` L1–L3): `0 @P@ _LOC`
+  records with `NAME {1:M}` (each optionally dated, abbreviated, and
+  language-tagged), `TYPE` (the place kind, with the `_GOVTYPE` GOV
+  object-type id), `_GOV` (the GOV gazetteer id), `_POST` (postal
+  codes, each with a validity DATE), `_AIDN` (administrative
+  identifiers with the required TYPE), `_DMGD` (demographical data
+  with the required TYPE), `_MAIDENHEAD` (QTH locator), `RELI`
+  (denomination), `EVEN` (place events with an event detail), and the
+  `_LOC` hierarchy links qualified by `TYPE POLI|RELI|GEOG|CULT` and a
+  DATE. Events link with `_LOC @xref@` under PLAC, and `_GOV`/`_POST`/
+  `_MAIDENHEAD` also appear directly under PLAC. The deprecated FOKO
+  tags (`_FPOST`/`_FSTAE`/`_FCTRY`/`_FOKOID`/`_NAMC`) were removed
+  from the agreement in 2019 and stay generic. Source: the GenWiki
+  "GEDCOM/_LOC-Tag" article (chapter 2).
+- **Person-side tags** (agreements N7, ASSO A4, NAME Ruf.B2):
+  `_RUFNAME` (call name) under INDI.NAME; `_GODP` (godparents) and
+  `_WITN` (witnesses) under events — both **free text**, not pointers;
+  `_ASSO @xref@` + `RELA` for event participants. The `_TYPE same-sex`
+  FAM convention (Ahnenblatt) is not part of the N7 list. Source: the
+  GenWiki "GEDCOM/_Nutzerdef-Tag" article with the full known-tag
+  table (chapter 2).
+
 ## 4. Registered GEDCOM 7.0 extensions (official registry)
 
 From the registry manifest
@@ -307,6 +343,20 @@ The Legacy report machinery is deferred in chapter 7.
 
 **GEDKeeper**: `_UID` and the `_SHAR` family (chapter 5); nothing else
 documented.
+
+**GEDCOM-L / GEDCOM 5.5EL — typed**: the `_LOC` record fields
+(`_GOV` → `govId`, `_MAIDENHEAD`, `TYPE`+`_GOVTYPE` → `types`,
+`_POST` → `postalCodes`, `_AIDN` → `administrativeIds`, `_DMGD` →
+`demographicData`, `NAME {1:M}` → `names`, `RELI` → `denomination`,
+`EVEN` → `events`, `_LOC`+`TYPE POLI|RELI|GEOG|CULT` → `parents`);
+`_GOV`/`_POST`/`_MAIDENHEAD` under event PLACs → `PlaceStructure`
+fields; `_RUFNAME` → `PersonalNameStructure.callName`; `_GODP`/`_WITN`
+→ `EventDetail.godparents`/`witnesses` (free text). On output the
+vendor tags are written back in both versions, and a GEDCOM-L card
+survives into 5.5.1 as a `_LOC` record with its pointers (7.0
+flattens it; the hierarchy closes over the surviving parents). The
+`_TYPE same-sex` FAM convention stays generic — it needs a modeling
+decision of its own (7.0 has no same-sex slot either).
 
 Covered by `tests/vendor-extensions*.test.ts` with same-version round
 trips.

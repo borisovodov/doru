@@ -265,6 +265,12 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     PLAC: (child) => {
       detail.place = parsePlaceStructure(child, ctx);
     },
+    '_GODP': (child) => {
+      (detail.godparents ??= []).push(reqText(child));
+    },
+    '_WITN': (child) => {
+      (detail.witnesses ??= []).push(reqText(child));
+    },
     ADDR: (child) => {
       detail.address = parseAddressStructure(child, ctx);
     },

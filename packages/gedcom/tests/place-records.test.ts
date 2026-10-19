@@ -133,7 +133,7 @@ describe('place records on 5.5.1 input', () => {
     );
     const ames = places(dataset).find((c) => c.xref === '@L1@');
     expect(ames?.payload).toBe('Ames');
-    expect(ames?.parent).toBe('@L2@');
+    expect(ames?.parents?.[0]?.parent).toBe('@L2@');
     expect(places(dataset).find((c) => c.xref === '@L2@')?.payload).toBe('Iowa');
     const death = indi(dataset, '@I1@').events?.find((e) => e.tag === 'DEAT');
     expect(death?.detail?.place?.location).toBe('@L1@');

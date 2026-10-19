@@ -13,6 +13,7 @@ import type {
   NameTypeStructure,
   PersonalNamePieces,
   PersonalNameStructure,
+  PlaceRecord,
   PlaceStructure,
 } from '../../structures';
 import {
@@ -29,13 +30,17 @@ import type {
 import {
   Writer,
 } from '../writer';
+import { commonRecordFields } from './document';
 import {
+  emitDate,
+  emitEventDetail,
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
 import {
   medi551,
   mediaType,
+  ptr,
 } from './values';
 
 export function emitMediaFile(w: Writer, version: Version, level: number, file: MediaFile): void {
@@ -88,6 +93,9 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     emitNameType(w, version, level + 1, name.type);
   }
   emitNamePieces(w, version, level + 1, name.pieces);
+  if (name.callName !== undefined) {
+    w.line(level + 1, '_RUFNAME', { value: name.callName });
+  }
   if (version === '7.0') {
     // The 5.5.1 phonetic/romanized variations become TRANs where the
     // method names a known language; unknown methods are dropped.
@@ -203,6 +211,103 @@ export function emitNamePieces(w: Writer, version: Version, level: number, piece
   }
 }
 
+export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord): void {
+  // Reached only for 5.5.1 (prepareFor551 keeps the GEDCOM-L cards).
+  w.line(0, '_LOC', { xref: record.xref });
+  for (const name of record.names ?? []) {
+    w.line(1, 'NAME', { value: name.name });
+    if (name.date !== undefined) {
+      emitDate(w, version, 2, 'DATE', name.date);
+    }
+    if (name.abbreviation !== undefined) {
+      w.line(2, 'ABBR', { value: name.abbreviation });
+      if (name.abbreviationType !== undefined) {
+        w.line(3, 'TYPE', { value: name.abbreviationType });
+      }
+    }
+    if (name.language !== undefined) {
+      w.line(2, 'LANG', { value: name.language });
+    }
+    for (const citation of name.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+  }
+  for (const type of record.types ?? []) {
+    w.line(1, 'TYPE', { value: type.type });
+    if (type.govTypeId !== undefined) {
+      w.line(2, '_GOVTYPE', { value: type.govTypeId });
+    }
+    if (type.date !== undefined) {
+      emitDate(w, version, 2, 'DATE', type.date);
+    }
+    for (const citation of type.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+  }
+  if (record.govId !== undefined) {
+    w.line(1, '_GOV', { value: record.govId });
+  }
+  for (const postal of record.postalCodes ?? []) {
+    w.line(1, '_POST', { value: postal.code });
+    if (postal.date !== undefined) {
+      emitDate(w, version, 2, 'DATE', postal.date);
+    }
+    for (const citation of postal.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+  }
+  for (const aidn of record.administrativeIds ?? []) {
+    w.line(1, '_AIDN', { value: aidn.identifier });
+    w.line(2, 'TYPE', { value: aidn.type });
+    if (aidn.date !== undefined) {
+      emitDate(w, version, 2, 'DATE', aidn.date);
+    }
+    for (const citation of aidn.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+  }
+  for (const dmgd of record.demographicData ?? []) {
+    w.line(1, '_DMGD', { value: dmgd.data });
+    w.line(2, 'TYPE', { value: dmgd.type });
+    if (dmgd.date !== undefined) {
+      emitDate(w, version, 2, 'DATE', dmgd.date);
+    }
+    for (const citation of dmgd.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+  }
+  if (record.maidenhead !== undefined) {
+    w.line(1, '_MAIDENHEAD', { value: record.maidenhead });
+  }
+  if (record.denomination !== undefined) {
+    w.line(1, 'RELI', { value: record.denomination });
+  }
+  for (const event of record.events ?? []) {
+    w.line(1, 'EVEN', { value: event.payload });
+    if (event.detail !== undefined) {
+      emitEventDetail(w, version, 2, event.detail);
+    }
+  }
+  for (const parent of record.parents ?? []) {
+    ptr(w, version, 1, '_LOC', parent.parent);
+    if (parent.type !== undefined) {
+      w.line(2, 'TYPE', { value: parent.type });
+    }
+    if (parent.date !== undefined) {
+      emitDate(w, version, 2, 'DATE', parent.date);
+    }
+    for (const citation of parent.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+  }
+  if (record.map !== undefined) {
+    w.line(1, 'MAP');
+    w.line(2, 'LATI', { value: `${record.map.latitude.direction}${record.map.latitude.degrees}` });
+    w.line(2, 'LONG', { value: `${record.map.longitude.direction}${record.map.longitude.degrees}` });
+  }
+  commonRecordFields(w, version, record, 1);
+}
+
 export function emitPlace(w: Writer, version: Version, level: number, place: PlaceStructure, tag: 'PLAC' | '_PLAC' = 'PLAC'): void {
   w.line(level, tag, { value: place.payload.join(', ') });
   if (place.form !== undefined) {
@@ -210,6 +315,25 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
   }
   if (place.verified === true) {
     w.line(level + 1, '_VERI', { value: 'Y' });
+  }
+  if (place.govId !== undefined) {
+    w.line(level + 1, '_GOV', { value: place.govId });
+  }
+  for (const postal of place.postalCodes ?? []) {
+    w.line(level + 1, '_POST', { value: postal.code });
+    if (postal.date !== undefined) {
+      emitDate(w, version, level + 2, 'DATE', postal.date);
+    }
+    for (const citation of postal.citations ?? []) {
+      emitSourceCitation(w, version, level + 2, citation);
+    }
+  }
+  if (place.maidenhead !== undefined) {
+    w.line(level + 1, '_MAIDENHEAD', { value: place.maidenhead });
+  }
+  if (version === '5.5.1' && place.location !== undefined) {
+    // The GEDCOM-L card survived prepareFor551; the pointer is kept.
+    ptr(w, version, level + 1, '_LOC', place.location);
   }
   if (version === '7.0') {
     if (place.language !== undefined) {

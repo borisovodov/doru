@@ -400,6 +400,16 @@ The agreed policy:
   `_SHAR`/`_ROLE` vs `ASSO`/`ROLE`); a construct without one is written
   as the vendor tag in both versions (`_PRIM`, `_APID`, the `_PLAC`
   second place).
+- **The German extension standards are typed too.** The GEDCOM-L /
+  GEDCOM 5.5EL agreements (the de-facto standard of German
+  genealogy software) are modeled: the `_LOC` record fields (`_GOV`,
+  `_POST` with validity dates, `_AIDN`, `_DMGD`, place `TYPE` with
+  `_GOVTYPE`, `_MAIDENHEAD`, name variants, hierarchy links with
+  `POLI|RELI|GEOG|CULT`), `_GOV`/`_POST`/`_MAIDENHEAD` under event
+  places, `_RUFNAME` (call name) under NAME, and `_GODP`/`_WITN`
+  (godparents/witnesses, free text) under events. The vendor tags are
+  written back in both versions; the `_LOC` records themselves only
+  into 5.5.1 (see the place-records bullet above).
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
   is projected onto `INDI.FAMC.PEDI` (natural → BIRTH, adopted →
@@ -409,13 +419,17 @@ The agreed policy:
   `_PLAC_DEFN` cards are parsed into `PlaceRecord` entities and linked
   to events (`PlaceStructure.location`) from explicit `_LOC` pointers
   or by name matching; cards without an xref get a synthesized one on
-  their first link. On export — both versions alike — the cards are
-  projected onto the standard: their map and notes are merged into
-  each referencing `PLAC` that lacks its own copy (citations and media
-  have no standard slot under `PLAC` and are dropped), and the cards
-  and links are not written. The card structure therefore
-  flattens on a round trip (documented in the `PlaceRecord` JSDoc);
-  event-level place data is never lost.
+  their first link. On export the cards are projected onto the
+  standard: their map and notes are merged into each referencing
+  `PLAC` that lacks its own copy (citations and media have no standard
+  slot under `PLAC` and are dropped), and the cards and links are not
+  written — the card structure flattens on a round trip (documented
+  in the `PlaceRecord` JSDoc); event-level place data is never lost.
+  The exception is the German GEDCOM-L dialect: a card carrying the
+  GEDCOM-L fields (GOV id, postal codes, administrative ids, place
+  types, hierarchy links, …) is written back to 5.5.1 as a `_LOC`
+  record and its referencing places keep the pointer; 7.0 still
+  flattens them.
 
 ## GEDZIP (7.0 chapter 4)
 
@@ -460,6 +474,9 @@ would be, or where the model takes a documented position:
   `SOUR.EVEN` ("classified in the category of other"); the strict parser
   rejects them with `enum.invalid-value`. The model will be extended when
   the corpus shows them in the wild.
+- The GEDCOM-L hierarchy link `TYPE` is validated strictly to
+  `POLI|RELI|GEOG|CULT` (`enum.invalid-value` for anything else); the
+  group's agreement defines no other relationship kinds.
 - Integers are bounded by what a JavaScript `number` can hold exactly: a
   year, age, or count beyond `Number.MAX_SAFE_INTEGER` is rejected
   (`date.bad-year` / `integer.out-of-range`) rather than silently

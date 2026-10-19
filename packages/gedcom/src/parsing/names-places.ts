@@ -23,6 +23,7 @@ import type {
   PhoneticPlaceVariation,
   PlaceStructure,
   PlaceTranslation,
+  PostalCodeStructure,
   RomanizedNameVariation,
   RomanizedPlaceVariation,
 } from '../structures';
@@ -44,6 +45,7 @@ import {
   parseSourceCitation,
 } from './sources-media';
 import {
+  datedSourceHandlers,
   parseExternalIdentifier,
   parseNoteStructure,
 } from './substructures';
@@ -124,6 +126,9 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
   const handlers: Record<string, (child: RawNode) => void> = {
     TYPE: (child) => {
       out.type = parseNameType(child, ctx);
+    },
+    '_RUFNAME': (child) => {
+      out.callName = reqText(child);
     },
   };
   for (const tag of PIECE_TAGS) {
@@ -259,6 +264,17 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     },
     '_VERI': (child) => {
       out.verified = parsePrivacyFlag(child, '_VERI');
+    },
+    '_GOV': (child) => {
+      out.govId = reqText(child);
+    },
+    '_POST': (child) => {
+      const entry: PostalCodeStructure = { code: reqText(child) };
+      (out.postalCodes ??= []).push(entry);
+      dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
+    },
+    '_MAIDENHEAD': (child) => {
+      out.maidenhead = reqText(child);
     },
   };
   if (ctx.version === '7.0') {

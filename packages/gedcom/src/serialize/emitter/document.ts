@@ -36,6 +36,12 @@ import {
   emitSource,
   emitTodoRecord,
 } from './records';
+import type {
+  PlaceRecord,
+} from '../../structures';
+import {
+  emitPlaceRecord,
+} from './names-places';
 import {
   emitAddress,
   emitDateExact,
@@ -233,6 +239,12 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       return;
     case '_TODO':
       emitTodoRecord(w, version, record as Parameters<typeof emitTodoRecord>[2]);
+      return;
+    case '_PLAC':
+      if (version === '5.5.1') {
+        emitPlaceRecord(w, version, record as PlaceRecord);
+      }
+      // 7.0 never carries place records (prepareFor70 flattened them).
       return;
     default:
       emitExtension(w, version, 0, record as ExtensionStructure, (record as { xref?: string }).xref);

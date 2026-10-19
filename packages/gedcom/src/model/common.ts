@@ -258,6 +258,21 @@ export interface EventDetail extends GedcomStructureBase {
   religiousAffiliation?: Text;
   /** CAUS {0:1}, g7:CAUS — the reasons which precipitated an event. */
   cause?: Text;
+  /**
+   * `_GODP` {0:M} — the godparents, as free text (names and
+   * descriptions, not pointers): the German GEDCOM-L convention
+   * (agreement ASSO A4), usually under a baptism or christening. Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `_GODP` in both versions.
+   */
+  godparents?: Text[];
+  /**
+   * `_WITN` {0:M} — the witnesses, as free text (names, not pointers):
+   * the German GEDCOM-L convention (agreement ASSO A4), usually under
+   * a marriage. Not part of any GEDCOM version. Recognized on input
+   * and written back as `_WITN` in both versions.
+   */
+  witnesses?: Text[];
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
   /**

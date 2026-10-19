@@ -11,9 +11,8 @@ import type {
   Text,
 } from '../primitives';
 
-import type { ExternalIdentifierStructure } from './common';
+import type { DateStructure, ExternalIdentifierStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
-import type { NoteStructure } from './common';
 import type { SourceCitation } from './sources-media';
 import type { PlaceRecord } from './place-record';
 
@@ -41,6 +40,14 @@ export interface PersonalNameStructure extends GedcomStructureBase {
   type?: NameTypeStructure;
   /** <<PERSONAL_NAME_PIECES>> {0:1}. */
   pieces?: PersonalNamePieces;
+  /**
+   * `_RUFNAME` {0:1} — the call name (Rufname): the given name that
+   * official German documents mark as the one in use (GEDCOM-L
+   * agreement "NAME Ruf.B2"). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_RUFNAME` in both
+   * versions.
+   */
+  callName?: Text;
   /** TRAN {0:M}, g7:NAME-TRAN — translations or transliterations. Each must have a LANG substructure. When serializing to 5.5.1 each translation becomes FONE or ROMN with the method mapped from the language (kana/hangul → FONE, pinyin/romaji/wadegiles → ROMN); unknown languages are dropped. */
   translations?: NameTranslation[];
   /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */
@@ -155,6 +162,21 @@ export interface NameTranslation extends GedcomStructureBase {
  * `phonetic` / `romanized`), while 7.0 uses `translations` (TRAN + LANG).
  * LANG and EXID are 7.0-only.
  */
+/**
+ * GEDCOM-L `_POST` — a postal code with the period it was in force
+ * (postal systems change: old and new codes are stored side by side,
+ * each dated). Used under a PLAC substructure and in the GEDCOM-L
+ * `_LOC` place record (see PlaceRecord).
+ */
+export interface PostalCodeStructure extends GedcomStructureBase {
+  /** The `_POST` payload, {1:1} Text. */
+  code: Text;
+  /** `DATE` {0:1} — the period the code was in force. */
+  date?: DateStructure;
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
 export interface PlaceStructure extends GedcomStructureBase {
   tag: 'PLAC';
   /** The PLAC payload, {1:1} List:Text — jurisdiction names, smallest to largest; unknown jurisdictions are empty strings. */
@@ -183,13 +205,34 @@ export interface PlaceStructure extends GedcomStructureBase {
    */
   verified?: boolean;
   /**
+   * `_GOV` {0:1} — the place's identifier in the GOV gazetteer
+   * (GEDCOM-L, e.g. `WEIHEN_W6051`), written directly under the PLAC.
+   * Recognized on input and written back as `_GOV` in both versions.
+   */
+  govId?: Text;
+  /**
+   * `_POST` {0:M} — postal codes with their validity periods (GEDCOM-L,
+   * written directly under the PLAC). Recognized on input and written
+   * back as `_POST` in both versions.
+   */
+  postalCodes?: PostalCodeStructure[];
+  /**
+   * `_MAIDENHEAD` {0:1} — the place's Maidenhead QTH locator (GEDCOM-L,
+   * written directly under the PLAC). Recognized on input and written
+   * back as `_MAIDENHEAD` in both versions.
+   */
+  maidenhead?: Text;
+  /**
    * The vendor master-place link: a `_LOC @xref@` child pointing at a
    * PlaceRecord (GEDCOM 5.5EL form), filled on input in both versions —
    * from the explicit pointer, or by name matching against a place
-   * record whose payload equals this place's text. Never written on
-   * output: when serializing, the place record's metadata is merged
-   * into each referencing place and the records are dropped (see
-   * PlaceRecord). See the "Common GEDCOM Extensions" catalog:
+   * record whose payload equals this place's text. On output the link
+   * is consumed: the record's map and notes are merged into each
+   * referencing place and the records are dropped — except that a
+   * GEDCOM-L record carrying the German fields (see PlaceRecord)
+   * survives into a 5.5.1 output as a `_LOC` record, and then this
+   * pointer is written back as `_LOC` (7.0 still flattens). See the
+   * "Common GEDCOM Extensions" catalog:
    * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html
    */
   location?: Pointer<PlaceRecord>;

@@ -273,6 +273,12 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   if (detail.cause !== undefined) {
     w.line(level, 'CAUS', { value: detail.cause });
   }
+  for (const godparent of detail.godparents ?? []) {
+    w.line(level, '_GODP', { value: godparent });
+  }
+  for (const witness of detail.witnesses ?? []) {
+    w.line(level, '_WITN', { value: witness });
+  }
   if (detail.restriction !== undefined) {
     w.line(level, 'RESN', { value: restrictionList(w, version, detail.restriction) });
   }
