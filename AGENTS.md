@@ -142,6 +142,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   generated notes and assets. Just bump the versions and push the tag — never
   run `gh release create` by hand and never force-move a release tag: every
   workflow run appends its own notes block to the existing release body.
+- **macOS installers are Developer ID–signed and notarized in CI.** The
+  Release workflow imports the signing certificate into a throwaway keychain
+  on the macOS runner (`MAC_CSC_LINK` base64 PKCS#12, `MAC_CSC_KEY_PASSWORD`)
+  and notarizes the dmg/zip through the App Store Connect API
+  (`APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY` written to
+  `/tmp/AuthKey.p8`, `--config.mac.notarize=true`). This is what makes
+  Squirrel.Mac auto-update possible for site builds. Rotate the repo secrets
+  whenever the certificates or API keys are renewed.
 - **Version bumps and the lockfile land in one commit.** After bumping
   `version` in the root and workspace `package.json` files, run
   `npm install --package-lock-only` so `package-lock.json` records the new
