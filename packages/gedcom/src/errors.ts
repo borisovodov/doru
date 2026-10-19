@@ -83,6 +83,7 @@ export type GedcomErrorCode =
   | 'longitude.invalid'
   | 'tagdef.invalid'
   | 'charset.invalid'
+  | 'integer.out-of-range'
   | 'filepath.invalid'
   | 'uri.invalid'
   // Serialization errors (no source position). Only

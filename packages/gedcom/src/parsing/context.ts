@@ -86,7 +86,11 @@ export function reqDigits(node: RawNode): number {
   if (!/^\d+$/.test(text)) {
     fail('structure.unexpected-payload', `The ${node.tag} payload must be a non-negative integer, got "${text}"`, node.position);
   }
-  return Number(text);
+  const value = Number(text);
+  if (!Number.isSafeInteger(value)) {
+    fail('integer.out-of-range', `The integer "${text}" is beyond the exactly representable range`, node.position);
+  }
+  return value;
 }
 
 // ---------------------------------------------------------------------------

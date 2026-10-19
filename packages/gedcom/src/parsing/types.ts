@@ -157,12 +157,21 @@ function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: numbe
   }
 }
 
+/** Converts a validated digit token to a number, rejecting values Number cannot hold exactly. */
+function safeInteger(token: string, position: SourcePosition, code: 'date.bad-year' | 'integer.out-of-range'): number {
+  const value = Number(token);
+  if (!Number.isSafeInteger(value)) {
+    fail(code, `The integer "${token}" is beyond the exactly representable range`, position);
+  }
+  return value;
+}
+
 /** Parses a bare year token (digits). */
 function parseYear(token: string, position: SourcePosition): number {
   if (!/^\d+$/.test(token)) {
     fail('date.bad-year', `Invalid year "${token}"`, position);
   }
-  return Number(token);
+  return safeInteger(token, position, 'date.bad-year');
 }
 
 /** Builds a DateFields object, keeping absent components unset. */
@@ -473,9 +482,13 @@ function parseDate551(
     const slash = yearToken.indexOf('/');
     const first = yearToken.slice(0, slash);
     const second = yearToken.slice(slash + 1);
-    let year = Number(first.slice(0, Math.max(first.length - second.length, 0)) + second);
-    if (year < Number(first)) {
+    const composed = first.slice(0, Math.max(first.length - second.length, 0)) + second;
+    let year = safeInteger(composed, position, 'date.bad-year');
+    if (year < safeInteger(first, position, 'date.bad-year')) {
       year += 10 ** second.length;
+      if (!Number.isSafeInteger(year)) {
+        fail('date.bad-year', `The year "${yearToken}" is beyond the exactly representable range`, position);
+      }
     }
     rest = [...rest.slice(0, -1), String(year)];
   }
@@ -580,7 +593,7 @@ export function parseAge70(text: string, position: SourcePosition): AgeValue {
       fail('age.invalid', `Age components must appear in the order years, months, weeks, days; got "${part}" after "${lastKind}"`, position);
     }
     lastKind = kind;
-    const count = Number(match[1]);
+    const count = safeInteger(match[1] as string, position, 'integer.out-of-range');
     if (kind === 'y') {
       age.years = count;
     } else if (kind === 'm') {
@@ -629,7 +642,7 @@ export function parseAge551(text: string, position: SourcePosition): AgeValue {
       fail('age.invalid', `Age components must appear in the order years, months, days; got "${part}" after "${lastKind}"`, position);
     }
     lastKind = kind;
-    const count = Number(match[1]);
+    const count = safeInteger(match[1] as string, position, 'integer.out-of-range');
     if (kind === 'y') {
       age.years = count;
     } else if (kind === 'm') {

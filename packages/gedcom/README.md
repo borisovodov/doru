@@ -460,6 +460,11 @@ would be, or where the model takes a documented position:
   `SOUR.EVEN` ("classified in the category of other"); the strict parser
   rejects them with `enum.invalid-value`. The model will be extended when
   the corpus shows them in the wild.
+- Integers are bounded by what a JavaScript `number` can hold exactly: a
+  year, age, or count beyond `Number.MAX_SAFE_INTEGER` is rejected
+  (`date.bad-year` / `integer.out-of-range`) rather than silently
+  rounded on the round trip. The specification allows unbounded
+  integers, but files with sixteen-digit years do not exist.
 - Hebrew month lengths are validated as 1–30 (the specification states a
   month-specific maximum without giving the calendar algorithm); the
   calendar arithmetic itself — including the real Hebrew month lengths
