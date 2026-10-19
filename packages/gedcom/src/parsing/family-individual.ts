@@ -455,6 +455,15 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _FOOT: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Footnote'));
     },
+    _EXCM: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Excommunicated'));
+    },
+    _MISN: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Mission'));
+    },
+    _UNKN: (child) => {
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    },
     SEX: (child) => {
       const table = (ctx.version === '7.0' ? SEX_ENUM_VALUES : SEX_551) as Readonly<
         Record<'M' | 'F' | 'U' | 'X', string>

@@ -278,11 +278,10 @@ Priorities:
   but single-vendor or medium effort. **Fully implemented** — every row
   in the table below is typed; the only P2 item deferred is FTW
   `_MSTAT`/`_MEND`, which moved to P3 (DOS-era, colliding meaning).
-- **P3** — defer: single-vendor housekeeping, one vendor. The Legacy
-  data tags in this family are now typed: `_STAT` under CHIL →
-  `FamilyChildLink.multiplicity` (free text), the `_TODO` record →
-  `TodoRecord`, `_TAG`/`_TAG2`–`_TAG9` → `IndividualRecord.marks`,
-  `_SOUND` → `MultimediaRecord.soundFile`.
+- **P3** — single-vendor housekeeping: **resolved** — every
+  data-bearing tag is typed (the Legacy data tags, the Brother's
+  Keeper family, the FTM `_EXCM`/`_MISN`/`_UNKN`), everything else
+  moved to P4.
 - **P4** — defer: pure presentation/UI state (sentence templates,
   print styles, mailing-list groupings, definition flags).
 - **P5** — the non-underscore relics of dropped standard tags or
@@ -326,18 +325,18 @@ and the `_PLAC` second place — see the table in chapter 5.
 | `_PREF` | Legacy | Preferred spouse / child / parents | typed → `SpouseFamilyLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` | — | Done |
 | `_VERI` | Legacy | Verified checkmark on citations and places | typed → `SourceCitation.verified`, `PlaceStructure.verified` | — | Done |
 
-### 7.4 P3 — single-vendor housekeeping, defer to the corpus
+### 7.4 P3 — single-vendor housekeeping
 
-Grouped by family; every tag flows through the generic extensions today
-and is preserved verbatim, so nothing is lost.
+Resolved: every data-bearing tag in this family is typed, everything
+else moved to P4.
 
 **Legacy data tags — typed** (Legacy cat. "Custom GEDCOM Tags"): `_STAT`
 under CHIL → `FamilyChildLink.multiplicity` (free text: the vendor
 writes "Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
 `_LOCL`/`_RDATE` → `TodoRecord`; `_TAG`/`_TAG2`–`_TAG9` →
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
-`MultimediaRecord.soundFile`. The remaining Legacy report machinery is
-pure presentation and moved to P4.
+`MultimediaRecord.soundFile`; `_NAME` under ADDR →
+`AddressStructure.name` (see the PAF family).
 
 **Brother's Keeper descriptors** (BKW6) — **typed**: name variants
 (`_BIRN` → NAME TYPE BIRTH; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
@@ -349,18 +348,8 @@ marriage-related (`_COML` → MARR + TYPE, `_MBON`/`_SEPR` → FAM.EVEN +
 TYPE); `_PRMN` → REFN; the negatives `_NLIV`/`_NMAR`/`_NMR` → bare NO
 DEAT / NO MARR (5.5.1 writes them back as `_NLIV`/`_NMAR`).
 
-**Family Tree Maker extras**: `_FA1`–`_FA13` user fact definitions,
-`_DETS`, `_ELEC`, `_UNKN`, `_EXCM`, `_MISN`, `_ADPN`, `_SEPR`, the
-GEDCOM 5.3 schema block (`_SCHEMA`/`SCHEMA`, `DEFN`, `LABL`, `ISA`) —
-presentation and legacy-schema data — and the FTW marriage statuses
-`_MSTAT`/`_MEND` (beginning/ending status under MARR; the meaning
-collides with `_STAT`, the writing product is discontinued).
-
-**RootsMagic report fields**: `_SUBQ` (subsequent citation format),
-`_SENT` (event sentence), `_PPFX` (place prefix).
-
-**Family Historian**: `_FLGS` fact flags and the FH7 source-template
-extensions (see the FHUG KB article on exporting templated sources).
+**Family Tree Maker extras — typed**: `_EXCM` and `_MISN` → EVEN +
+TYPE; `_UNKN` → the UID identifier. The rest moved to P4.
 
 **MyHeritage**: `_UPD` is in P1; no other documented tags.
 
@@ -384,6 +373,21 @@ the vendor's configuration (and the mechanism that links a definition
 to its event type is undocumented), so it is not projected onto
 individual events; it stays a generic extension, and a UI may interpret
 the definition itself.
+
+**Family Tree Maker extras** (deferred): `_FA1`–`_FA13` user fact
+definitions, `_DETS` and `_ELEC` (undocumented meaning), the GEDCOM
+5.3 schema block (`_SCHEMA`/`SCHEMA`, `DEFN`, `LABL`, `ISA`) — and the
+FTW marriage statuses `_MSTAT`/`_MEND` (beginning/ending status under
+MARR; the meaning collides with `_STAT`, the writing product is
+discontinued).
+
+**RootsMagic report fields**: `_SUBQ` (subsequent citation format),
+`_SENT` (event sentence), `_PPFX` (place prefix) — report wording.
+
+**Family Historian**: `_FLGS` fact flags and the FH7 source-template
+extensions — the wire format is not documented in our sources (the
+FHUG Knowledge Base blocks scrapers); typing them would invent a model.
+Needs the corpus.
 
 **PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
 `_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/

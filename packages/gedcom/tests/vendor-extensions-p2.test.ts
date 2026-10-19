@@ -199,3 +199,63 @@ describe('P2 vendor tags on output', () => {
     expect(text).toContain('3 _CREF ref-1');
   });
 });
+
+describe('the FTM extras', () => {
+  test('types _EXCM, _MISN and _UNKN', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _EXCM',
+        '2 DATE 1900',
+        '1 _MISN',
+        '1 _UNKN 12345678123412341234123456789abc1234',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const john = indi(dataset, '@I1@');
+    const excomm = john.events?.find((e) => e.type === 'Excommunicated');
+    expect(excomm?.tag).toBe('EVEN');
+    expect(excomm?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1900 });
+    expect(john.events?.find((e) => e.type === 'Mission')?.tag).toBe('EVEN');
+    expect(john.identifiers).toEqual([{ tag: 'UID', payload: '12345678123412341234123456789abc1234' }]);
+  });
+
+  test('round-trips through the 5.5.1 serializer', () => {
+    const sample = parseOk551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _EXCM',
+        '2 DATE 1900',
+        '1 _MISN',
+        '1 _UNKN 12345678123412341234123456789abc1234',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(sample);
+    // The UID normalizes to the standard _UID; the facts become EVEN + TYPE.
+    expect(text).toContain('1 _UID 12345678123412341234123456789abc1234');
+    expect(text).toContain('2 TYPE Excommunicated');
+    expect(text).toContain('2 TYPE Mission');
+    expect(parseOk551(text)).toEqual(sample);
+  });
+});
