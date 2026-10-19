@@ -58,6 +58,15 @@ The complete picture, at a glance:
   verbatim, and the inventory of every recognized tag with its
   sources lives in `docs/vendor-extensions.md` (see Vendor
   extensions).
+- **The extension standards are modeled in full.** The German
+  GEDCOM-L / GEDCOM 5.5EL agreements (the de-facto standard of German
+  genealogy software) are typed end to end — the `_LOC` place records
+  with GOV ids, postal codes with validity dates, administrative
+  identifiers, and the POLI|RELI|GEOG|CULT hierarchy, plus the
+  person-side tags, same-sex unions, negatives, and cohabitation —
+  and written back in both versions. The GEDCOM 5.5.5 draft's
+  extension vocabulary is covered too; the draft format itself is
+  not a target (files claiming 5.5.5 parse under the 5.5.1 rules).
 - **GEDZIP.** FamilySearch `.gdz` archives read and write on the same
   layer (see GEDZIP).
 - **Errors are values.** `ParseResult<T>` end to end — no exceptions,
