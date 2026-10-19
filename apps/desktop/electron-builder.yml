@@ -1,4 +1,4 @@
-appId: dev.doru.app
+appId: org.doru.doru
 productName: Doru
 executableName: doru
 directories:
