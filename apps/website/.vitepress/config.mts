@@ -1,30 +1,31 @@
 import { defineConfig, type DefaultTheme } from 'vitepress';
 
 const LOCALIZED = {
-  en: { label: 'English', nav: 'Docs', footer: 'Dóru — local-first genealogy for the AI era.' },
-  ru: { label: 'Русский', nav: 'Документация', footer: 'Dóru — генеалогия local-first в эру ИИ' },
-  fr: { label: 'Français', nav: 'Documentation', footer: "Dóru — la généalogie local-first à l'ère de l'IA" },
-  de: { label: 'Deutsch', nav: 'Dokumentation', footer: 'Dóru — Local-first-Genealogie im KI-Zeitalter' },
-  it: { label: 'Italiano', nav: 'Documentazione', footer: "Dóru — genealogia local-first nell'era dell'IA" },
-  es: { label: 'Español', nav: 'Documentación', footer: 'Dóru — genealogía local-first en la era de la IA' },
-  'pt-br': { label: 'Português (Brasil)', nav: 'Documentação', footer: 'Dóru — genealogia local-first na era da IA' },
-  cs: { label: 'Čeština', nav: 'Dokumentace', footer: 'Dóru — local-first genealogie v éře AI' },
-  pl: { label: 'Polski', nav: 'Dokumentacja', footer: 'Dóru — genealogia local-first w erze AI' },
-  hu: { label: 'Magyar', nav: 'Dokumentáció', footer: 'Dóru — local-first családfakutatás a mesterséges intelligencia korában' },
-  bg: { label: 'Български', nav: 'Документация', footer: 'Dóru — local-first генеалогия в ерата на ИИ' },
-  el: { label: 'Ελληνικά', nav: 'Τεκμηρίωση', footer: 'Dóru — local-first γενεαλογία στην εποχή της τεχνητής νοημοσύνης' },
-  tr: { label: 'Türkçe', nav: 'Belgeler', footer: 'Dóru — yapay zekâ çağında local-first soy ağacı' },
-  ja: { label: '日本語', nav: 'ドキュメント', footer: 'Dóru — AI時代のlocal-first系図' },
-  ko: { label: '한국어', nav: '문서', footer: 'Dóru — AI 시대의 local-first 계보' },
-  'zh-cn': { label: '简体中文', nav: '文档', footer: 'Dóru — AI 时代的本地优先家谱' },
-  'zh-tw': { label: '繁體中文', nav: '文件', footer: 'Dóru — AI 時代的本地優先家譜' },
+  en: { label: 'English', nav: 'Docs', relnotes: 'Release notes', footer: 'The name comes from Proto-Indo-European <em>*dóru</em> — “tree”.' },
+  ru: { label: 'Русский', nav: 'Документация', relnotes: 'Примечания к выпускам', footer: 'Название происходит от праиндоевропейского <em>*dóru</em> — «дерево».' },
+  fr: { label: 'Français', nav: 'Documentation', relnotes: 'Notes de version', footer: 'Le nom vient du proto-indo-européen <em>*dóru</em> — « arbre ».' },
+  de: { label: 'Deutsch', nav: 'Dokumentation', relnotes: 'Versionshinweise', footer: 'Der Name kommt vom urindogermanischen <em>*dóru</em> — „Baum“.' },
+  it: { label: 'Italiano', nav: 'Documentazione', relnotes: 'Note di rilascio', footer: 'Il nome deriva dal proto-indoeuropeo <em>*dóru</em> — «albero».' },
+  es: { label: 'Español', nav: 'Documentación', relnotes: 'Notas de la versión', footer: 'El nombre viene del protoindoeuropeo <em>*dóru</em> — «árbol».' },
+  'pt-br': { label: 'Português (Brasil)', nav: 'Documentação', relnotes: 'Notas de versão', footer: 'O nome vem do protoindo-europeu <em>*dóru</em> — «árvore».' },
+  cs: { label: 'Čeština', nav: 'Dokumentace', relnotes: 'Poznámky k vydání', footer: 'Název pochází z praindoevropského <em>*dóru</em> — „strom“.' },
+  pl: { label: 'Polski', nav: 'Dokumentacja', relnotes: 'Informacje o wydaniu', footer: 'Nazwa pochodzi od praindoeuropejskiego <em>*dóru</em> — „drzewo“.' },
+  hu: { label: 'Magyar', nav: 'Dokumentáció', relnotes: 'Kiadási megjegyzések', footer: 'A név a protoindoeurópai <em>*dóru</em> szóból ered — „fa“.' },
+  bg: { label: 'Български', nav: 'Документация', relnotes: 'Бележки към изданието', footer: 'Името идва от праиндоевропейското <em>*dóru</em> — „дърво“.' },
+  el: { label: 'Ελληνικά', nav: 'Τεκμηρίωση', relnotes: 'Σημειώσεις έκδοσης', footer: 'Το όνομα προέρχεται από το πρωτοϊνδοευρωπαϊκό <em>*dóru</em> — «δέντρο».' },
+  tr: { label: 'Türkçe', nav: 'Belgeler', relnotes: 'Sürüm notları', footer: 'Adı, Proto-Hint-Avrupa dilindeki <em>*dóru</em> — „ağaç“ sözcüğünden gelir.' },
+  ja: { label: '日本語', nav: 'ドキュメント', relnotes: 'リリースノート', footer: '名前は印欧祖語の <em>*dóru</em>「木」に由来します。' },
+  ko: { label: '한국어', nav: '문서', relnotes: '릴리스 노트', footer: '이름은 인도유럽조어 <em>*dóru</em> — “나무”에서 유래했습니다.' },
+  'zh-cn': { label: '简体中文', nav: '文档', relnotes: '发布说明', footer: '名字源自原始印欧语的 <em>*dóru</em>——“树”。' },
+  'zh-tw': { label: '繁體中文', nav: '文件', relnotes: '發行說明', footer: '名字源自原始印歐語的 <em>*dóru</em>——「樹」。' },
 } as const;
 
-function themeConfig(nav: string, footer: string): DefaultTheme.Config {
+function themeConfig(nav: string, relnotes: string, footer: string): DefaultTheme.Config {
   return {
     logo: '/icon.png',
     nav: [
       { text: nav, link: '/docs/' },
+      { text: relnotes, link: 'https://github.com/borisovodov/doru/releases' },
       { text: 'GitHub', link: 'https://github.com/borisovodov/doru' },
     ],
     sidebar: {
@@ -67,8 +68,8 @@ const localeConfig = Object.fromEntries(
   (Object.keys(LOCALIZED) as Array<keyof typeof LOCALIZED>)
     .filter((key) => key !== 'en')
     .map((key) => {
-      const { label, nav, footer } = LOCALIZED[key];
-      return [key, { label, lang: key, themeConfig: themeConfig(nav, footer) }];
+      const { label, nav, relnotes, footer } = LOCALIZED[key];
+      return [key, { label, lang: key, themeConfig: themeConfig(nav, relnotes, footer) }];
     }),
 );
 
@@ -125,7 +126,7 @@ export default defineConfig({
     ],
   ],
   locales: {
-    root: { label: 'English', lang: 'en-US', themeConfig: themeConfig('Docs', LOCALIZED.en.footer) },
+    root: { label: 'English', lang: 'en-US', themeConfig: themeConfig('Docs', LOCALIZED.en.relnotes, LOCALIZED.en.footer) },
     ...localeConfig,
   },
 });
