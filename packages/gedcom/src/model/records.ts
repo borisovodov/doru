@@ -142,6 +142,13 @@ export interface FamilyChildLink extends GedcomStructureBase {
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
   /**
+   * _PREF Y {0:1} — marks the preferred child. Written by Legacy
+   * Family Tree (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part
+   * of any GEDCOM version. Recognized on input and written back as
+   * `_PREF` in both versions.
+   */
+  preferred?: boolean;
+  /**
    * _FREL {0:1} — the relationship of the child to the father in the
    * family (Natural, Adopted, Step, Foster, …). A vendor extension
    * written by Family Tree Maker and read by several programs; not part
@@ -272,6 +279,14 @@ export interface ChildFamilyLink extends GedcomStructureBase {
    * versions.
    */
   primary?: boolean;
+  /**
+   * _PREF Y {0:1} — marks the preferred parents for this child.
+   * Written by Legacy Family Tree (see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part of any GEDCOM version. Recognized on input and
+   * written back as `_PREF` in both versions. (Distinct from `primary`,
+   * the AQ/PAF mark for an adopted child's main family.)
+   */
+  preferred?: boolean;
   /** PEDI {0:1}, g7:PEDI — Enum of g7:enumset-PEDI. */
   pedigree?: PedigreeStructure;
   /** STAT {0:1}, g7:FAMC-STAT — Enum of g7:enumset-FAMC-STAT. */
@@ -316,6 +331,14 @@ export interface FamilyChildStatusStructure extends GedcomStructureBase {
 export interface SpouseFamilyLink extends GedcomStructureBase {
   /** The FAMS payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /**
+   * _PREF Y {0:1} — marks the preferred spouse. Written by Legacy
+   * Family Tree (see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not
+   * part of any GEDCOM version. Recognized on input and written back as
+   * `_PREF` in both versions.
+   */
+  preferred?: boolean;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
 }

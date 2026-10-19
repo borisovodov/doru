@@ -80,7 +80,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   nonEvents?: NonEventStructure[];
   husband?: { partner: string; phrase?: string };
   wife?: { partner: string; phrase?: string };
-  children?: Array<{ child: string; phrase?: string; fatherRelation?: string; motherRelation?: string }>;
+  children?: Array<{ child: string; phrase?: string; preferred?: boolean; fatherRelation?: string; motherRelation?: string }>;
   associations?: AssociationStructure[];
   submitters?: string[];
   spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail }>;
@@ -169,6 +169,9 @@ export function emitFamily(w: Writer, version: Version, rec: {
     if (child.phrase !== undefined) {
       w.line(2, 'PHRASE', { value: child.phrase });
     }
+    if (child.preferred === true) {
+      w.line(2, '_PREF', { value: 'Y' });
+    }
     if (version === '5.5.1') {
       // The 7.0 side of the pair (INDI.FAMC.PEDI) is filled by prepareFor70.
       if (child.fatherRelation !== undefined) {
@@ -204,8 +207,8 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } } }>;
   nonEvents?: NonEventStructure[];
   ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string }>;
-  childFamilies?: Array<{ family: string; primary?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; notes?: NoteStructure[] }>;
-  spouseFamilies?: Array<{ family: string; notes?: NoteStructure[] }>;
+  childFamilies?: Array<{ family: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; notes?: NoteStructure[] }>;
+  spouseFamilies?: Array<{ family: string; preferred?: boolean; notes?: NoteStructure[] }>;
   submitters?: string[];
   associations?: AssociationStructure[];
   aliases?: Array<{ individual: string; phrase?: string }>;
@@ -284,6 +287,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     if (link.primary === true) {
       w.line(2, '_PRIMARY', { value: 'Y' });
     }
+    if (link.preferred === true) {
+      w.line(2, '_PREF', { value: 'Y' });
+    }
     if (link.pedigree !== undefined) {
       const value = pedigree(w, version, link.pedigree.payload);
       if (value !== undefined) {
@@ -305,6 +311,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   for (const link of rec.spouseFamilies ?? []) {
     ptr(w, version, 1, 'FAMS', link.family);
+    if (link.preferred === true) {
+      w.line(2, '_PREF', { value: 'Y' });
+    }
     for (const note of link.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }

@@ -208,6 +208,9 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
   if (place.form !== undefined) {
     w.line(level + 1, 'FORM', { value: place.form.join(', ') });
   }
+  if (place.verified === true) {
+    w.line(level + 1, '_VERI', { value: 'Y' });
+  }
   if (version === '7.0') {
     if (place.language !== undefined) {
       w.line(level + 1, 'LANG', { value: place.language });

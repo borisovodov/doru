@@ -40,6 +40,7 @@ import type {
   RawNode,
 } from './lines';
 import {
+  parsePrivacyFlag,
   parseSourceCitation,
 } from './sources-media';
 import {
@@ -255,6 +256,9 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     },
     '_LOC': (child) => {
       out.location = reqPtr(child, ctx);
+    },
+    '_VERI': (child) => {
+      out.verified = parsePrivacyFlag(child, '_VERI');
     },
   };
   if (ctx.version === '7.0') {

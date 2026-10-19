@@ -51,6 +51,7 @@ import type {
   RawNode,
 } from './lines';
 import {
+  parsePrivacyFlag,
   parseSourceCitation,
 } from './sources-media';
 import {
@@ -73,6 +74,9 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
   const handlers: Record<string, (child: RawNode) => void> = {
     _EMAIL: (child) => {
       (out.email ??= []).push(reqText(child));
+    },
+    _PRIV: (child) => {
+      out.private = parsePrivacyFlag(child, '_PRIV');
     },
     ADR1: (child) => {
       out.line1 = reqText(child);

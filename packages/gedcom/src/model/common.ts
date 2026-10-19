@@ -58,6 +58,14 @@ export interface AddressStructure extends GedcomStructureBase {
   postalCode?: Special;
   /** CTRY {0:1}, g7:CTRY — the name of the country. */
   country?: Special;
+  /**
+   * _PRIV {0:1} — marks the address as private. Written by Legacy
+   * Family Tree (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part
+   * of any GEDCOM version (no standard has a restriction slot under an
+   * address). Recognized on input and written back as `_PRIV` in both
+   * versions.
+   */
+  private?: boolean;
   /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
   phone?: Special[];
   /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */

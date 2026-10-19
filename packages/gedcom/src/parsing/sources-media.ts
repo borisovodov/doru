@@ -90,6 +90,9 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_CREF': (child) => {
           out.reference = reqText(child);
         },
+        '_VERI': (child) => {
+          out.verified = parsePrivacyFlag(child, '_VERI');
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -126,6 +129,9 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         },
         '_CREF': (child) => {
           out.reference = reqText(child);
+        },
+        '_VERI': (child) => {
+          out.verified = parsePrivacyFlag(child, '_VERI');
         },
       },
       ctx,
@@ -338,6 +344,25 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     ...(scrapbook === undefined ? {} : { scrapbook }),
     ...(slideshow === undefined ? {} : { slideshow }),
   };
+}
+
+/**
+ * Parses a presence-style privacy flag (`_PRIV`): an absent value or `Y`
+ * marks the flag set, `N` clears it. Used where the flag has no standard
+ * slot (addresses) and where it projects onto RESN (event details).
+ */
+export function parsePrivacyFlag(node: RawNode, tag: string): boolean {
+  if (node.value.kind === 'absent') {
+    return true;
+  }
+  const text = reqText(node);
+  if (text === 'Y') {
+    return true;
+  }
+  if (text === 'N') {
+    return false;
+  }
+  fail('enum.invalid-value', `The ${tag} value must be Y or N, not "${text}"`, node.position);
 }
 
 /** Parses a vendor Y/N flag (`_PRIM`, `_SCBK`, `_SSHOW`, …). */

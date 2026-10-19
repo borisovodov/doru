@@ -72,6 +72,9 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
   if (address.country !== undefined) {
     w.line(level + 1, 'CTRY', { value: address.country });
   }
+  if (address.private === true) {
+    w.line(level + 1, '_PRIV', { value: 'Y' });
+  }
   if (version === '5.5.1') {
     for (const value of address.phone ?? []) {
       w.line(level + 1, 'PHON', { value });
@@ -409,6 +412,9 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (citation.reference !== undefined) {
     w.line(level + 1, '_CREF', { value: citation.reference });
+  }
+  if (citation.verified === true) {
+    w.line(level + 1, '_VERI', { value: 'Y' });
   }
   if (citation.data !== undefined) {
     w.line(level + 1, 'DATA');

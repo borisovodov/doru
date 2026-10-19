@@ -176,6 +176,13 @@ export interface PlaceStructure extends GedcomStructureBase {
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /**
+   * _VERI Y {0:1} — the "verified" checkmark on the place. Written by
+   * Legacy Family Tree (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_VERI` in both versions.
+   */
+  verified?: boolean;
+  /**
    * The vendor master-place link: a `_LOC @xref@` child pointing at a
    * PlaceRecord (GEDCOM 5.5EL form), filled on input in both versions —
    * from the explicit pointer, or by name matching against a place

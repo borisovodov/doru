@@ -72,6 +72,7 @@ import {
 } from './sources';
 import {
   parseMultimediaLink,
+  parsePrivacyFlag,
   parseSourceCitation,
   parseYNFlag,
 } from './sources-media';
@@ -123,6 +124,9 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
   handlers['_MREL'] = (child) => {
     out.motherRelation = reqText(child);
   };
+  handlers['_PREF'] = (child) => {
+    out.preferred = parseYNFlag(child, '_PREF');
+  };
   dispatch(node, out, handlers, ctx);
   return out;
 }
@@ -141,6 +145,9 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       },
       '_PRIMARY': (child) => {
         out.primary = parseYNFlag(child, '_PRIMARY');
+      },
+      '_PREF': (child) => {
+        out.preferred = parseYNFlag(child, '_PREF');
       },
       NOTE: (child) => {
         (out.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -202,6 +209,9 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
     {
       NOTE: (child) => {
         (out.notes ??= []).push(parseNoteStructure(child, ctx));
+      },
+      '_PREF': (child) => {
+        out.preferred = parseYNFlag(child, '_PREF');
       },
     },
     ctx,
@@ -293,10 +303,11 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     (detail.additionalPlaces ??= []).push(parsePlaceStructure(child, ctx));
   };
   handlers['_PRIV'] = (child) => {
-    noPayload(child);
-    const restriction = (detail.restriction ??= []);
-    if (!restriction.includes('PRIVACY')) {
-      restriction.push('PRIVACY');
+    if (parsePrivacyFlag(child, '_PRIV')) {
+      const restriction = (detail.restriction ??= []);
+      if (!restriction.includes('PRIVACY')) {
+        restriction.push('PRIVACY');
+      }
     }
   };
   if (ctx.version === '5.5.1') {
