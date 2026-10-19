@@ -338,13 +338,6 @@ writes "Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
 `MultimediaRecord.soundFile`. The remaining Legacy report machinery is
 pure presentation and moved to P4.
-
-**PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
-`_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
-`_SENDPF`/`_SENDOU`/`_SENPOU`/`_SENDPU` variants, `_DATE_TYPE`,
-`_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG`, `_NAME` — sentence
-templates for reports; PAF is discontinued.
-
 **Brother's Keeper descriptors** (BKW6): name variants `_ADPN`/
 `_AKAN`/`_BIRN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/`_GERN`/`_HEBN`/
 `_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` and facts `_BRTM`/`_COML`/
@@ -386,9 +379,10 @@ sentence definitions, `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/
 **PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
 `_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
 `_SENDPF`/`_SENDOU`/`_SENPOU`/`_SENDPU` variants, `_DATE_TYPE`,
-`_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG`, `_NAME` — sentence
+`_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG` — sentence
 templates for reports; PAF is discontinued. (Shares the sentence
-family with Legacy above.)
+family with Legacy above.) The `_NAME` under ADDR (the name of the
+addressee) is data and is typed → `AddressStructure.name`.
 
 ### 7.6 P5 — non-underscore vendor tags
 

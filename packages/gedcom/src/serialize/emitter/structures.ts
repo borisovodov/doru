@@ -75,6 +75,9 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
   if (address.private === true) {
     w.line(level + 1, '_PRIV', { value: 'Y' });
   }
+  if (address.name !== undefined) {
+    w.line(level + 1, '_NAME', { value: address.name });
+  }
   if (version === '5.5.1') {
     for (const value of address.phone ?? []) {
       w.line(level + 1, 'PHON', { value });

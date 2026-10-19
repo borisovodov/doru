@@ -78,6 +78,9 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
     _PRIV: (child) => {
       out.private = parsePrivacyFlag(child, '_PRIV');
     },
+    _NAME: (child) => {
+      out.name = reqText(child);
+    },
     ADR1: (child) => {
       out.line1 = reqText(child);
     },

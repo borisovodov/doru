@@ -41,6 +41,7 @@ const SAMPLE551 = [
   '1 BIRT',
   '2 ADDR 1 Main St',
   '3 _PRIV',
+  '3 _NAME John Doe',
   '2 PLAC Ames, Iowa',
   '3 _VERI Y',
   '2 SOUR @S1@',
@@ -87,10 +88,11 @@ describe('Legacy workflow flags', () => {
     expect(john.childFamilies?.[0]?.preferred).toBe(true);
     expect(fam(dataset, '@F1@').children?.[0]?.preferred).toBe(true);
 
-    // _PRIV under ADDR (bare form means true).
+    // _PRIV under ADDR (bare form means true) and _NAME.
     // _VERI on the place and on the citation.
     const birth = john.events?.find((e) => e.tag === 'BIRT');
     expect(birth?.detail?.address?.private).toBe(true);
+    expect(birth?.detail?.address?.name).toBe('John Doe');
     expect(birth?.detail?.place?.verified).toBe(true);
     expect(birth?.detail?.citations?.[0]?.verified).toBe(true);
   });
