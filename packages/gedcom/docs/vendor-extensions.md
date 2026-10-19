@@ -244,123 +244,80 @@ Covered by `tests/vendor-extensions.test.ts` and
 `tests/place-records.test.ts` (import, export, and cross-version
 round trips).
 
-## 6. Notes for the Dóru integration
+## 6. Implemented tag inventory
 
-- The underscore convention and the GEDCOM 7 SCHMA mechanism both
-  survive in the unified model as `ExtensionStructure` /
-  `ExtensionRecord` (`GEDCOM 7.0 §1.5`, model file
-  `src/model/extensions.ts`).
-- When the corpus work starts (see the README "Future work" brief),
-  this catalog is the checklist: every tag above is a candidate for a
-  documented normalization (tag → standard structure) or a documented
-  strict rejection in "Known strict decisions".
-- The PAF checksum UUID format (32+4 hex) is worth a dedicated
-  normalizer in the `_UID` handling.
-
-## 7. Exhaustive tag inventory (decision checklist)
-
-Every tag from chapters 2 and 3, with: which vendors write it (from the
-Legacy Family Tree "User-Defined GEDCOM Tags" catalog with its program
-codes, John Cardinal's "Common GEDCOM Extensions", the TMG-to-GEDCOM
-docs, and GED-VIEW; "Legacy cat." below = the Legacy catalog), what it
-means, whether the model already has a field, how hard typing it would
-be, and a recommendation. The FHUG Knowledge Base list could not be
-scraped (bot protection); the Family Historian rows below carry the
-tags confirmed by secondary sources and should be checked against the
-corpus.
-
-Priorities:
-
-- **P0** — already typed (see chapter 5).
-- **P1** — recommended: multi-vendor, real data, low effort.
-  **Fully implemented** — every row in the table below is typed.
-- **P2** — worth considering: meaningful data or very common vendor,
-  but single-vendor or medium effort. **Fully implemented** — every row
-  in the table below is typed; the only P2 item deferred is FTW
-  `_MSTAT`/`_MEND`, which moved to P3 (DOS-era, colliding meaning).
-- **P3** — single-vendor housekeeping: **resolved** — every
-  data-bearing tag is typed (the Legacy data tags, the Brother's
-  Keeper family, the FTM `_EXCM`/`_MISN`/`_UNKN`), everything else
-  moved to P4.
-- **P4** — defer: pure presentation/UI state (sentence templates,
-  print styles, mailing-list groupings, definition flags).
-- **P5** — the non-underscore relics of dropped standard tags or
-  invented tags; today these are strict `structure.unknown-tag` errors
-  (they are not `_`-prefixed, so they do not flow into the generic
-  extensions); a policy decision is needed before any typing.
-
-### 7.1 P0 — already in the model
-
+All of the priority tiers of the original checklist are now
+implemented, so the checklist is gone: this chapter is the final
+inventory of what the parsers type today. The core cross-vendor set —
 `_UID`, `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL`, `_APID`,
-the `_PLAC`/`_LOC`/`_PLAC_DEFN` records, the `_LOC` link under PLAC,
-and the `_PLAC` second place — see the table in chapter 5.
+the `_PLAC`/`_LOC`/`_PLAC_DEFN` place records, the `_LOC` link under
+`PLAC`, and the `_PLAC` second place — is the table in chapter 5. The
+rest follows; each model field carries its sources and export rules in
+its JSDoc.
 
-### 7.2 P1 — recommended candidates
+| Tag | Vendors | Meaning | Model field |
+| --- | --- | --- | --- |
+| `_TMPLT` | RootsMagic, FTM | Evidence Explained source template: `FIELD`/`VALUE` pairs under SOUR (page, URL, film no, …) | `SourceRecord.template` (TID + FIELD NAME/VALUE) |
+| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name | `names[]` with `TYPE MARRIED` |
+| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name | `names[]` with `TYPE AKA` |
+| `_UPD` | MyHeritage | Record last-updated timestamp | `IndividualRecord.updatedAt` / `FamilyRecord.updatedAt` |
+| `_WT_OBJE_SORT` | webtrees | Per-link media sort order | `media` (array order preserves the sort) |
+| `_DATE` under OBJE | Legacy, webtrees | Date of a media object | `MultimediaRecord.date` |
+| `_EMAIL` | BKW6, FO9, PAF | E-mail under an address block | `AddressStructure.email` |
+| `_NONE` | Legacy | "Couple had no children" under FAM | FAM `attributes` `NCHI 0` |
+| `_MILT` / `_MDCL` / `_FOOT` | FTM | Military service / medical / footnote facts | `EVEN` + TYPE |
+| `_DCAUSE` | FTM | Death cause | `DEAT.CAUS` |
+| `_STAT` under FAM | Legacy | Marriage status (Married, Unmarried, …) | `FamilyRecord.marriageStatus` |
+| Gramps `ASSO` + `TYPE INDI` + `RELA` | Gramps | Event witnesses under family events | `EventDetail.associations` (like `_SHAR`) |
+| `_CREF` / `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | `SourceCitation.reference` / `SourceRecord.fullFootnote` |
+| `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | `MultimediaRecord.objectType` |
+| `_SCBK` / `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | `MultimediaLink.scrapbook` / `slideshow` |
+| `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | `ChildFamilyLink.primary` |
+| `_URL` under INDI | Legacy | Web address of a person | `IndividualRecord.url` |
+| `_PRIV` under events / ADDR | Legacy | Event or address marked private | `EventDetail.restriction` PRIVACY / `AddressStructure.private` |
+| `_PREF` | Legacy | Preferred spouse / child / parents | `SpouseFamilyLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` |
+| `_VERI` | Legacy | Verified checkmark on citations and places | `SourceCitation.verified`, `PlaceStructure.verified` |
+| `_EXCM` / `_MISN` | FTM | Excommunicated / Mission facts | `EVEN` + TYPE |
+| `_UNKN` | FTW8 | Special individual ID for later file comparisons | the `UID` identifier (exports as `_UID`) |
+| `_NAME` under ADDR | PAF | Name of the addressee | `AddressStructure.name` |
 
-| Tag | Vendors | Meaning | Model today | Effort | Recommend |
-| --- | --- | --- | --- | --- | --- |
-| `_TMPLT` | RootsMagic, FTM | Evidence Explained source template: `FIELD`/`VALUE` pairs under SOUR (page, URL, film no, …) | typed → `SourceRecord.template` (TID + FIELD NAME/VALUE) | — | Done |
-| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name | typed → `names[]` with `TYPE MARRIED` | — | Done |
-| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name | typed → `names[]` with `TYPE AKA` | — | Done |
-| `_UPD` | MyHeritage | Record last-updated timestamp | typed → `IndividualRecord.updatedAt` / `FamilyRecord.updatedAt` | — | Done |
-| `_WT_OBJE_SORT` | webtrees | Per-link media sort order | typed → `media` (like OBJE, array order preserves the sort) | — | Done |
-| `_DATE` | Legacy (under OBJE), webtrees | Date of a media object | typed → `MultimediaRecord.date` | — | Done |
-| `_EMAIL` | BKW6, FO9, PAF | E-mail under an address block | typed → `AddressStructure.email` | — | Done |
+**Brother's Keeper family** (BKW6, Legacy cat.): name variants
+(`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
+`_GERN`/`_HEBN`/`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` → `NAME` `TYPE
+OTHER` with a PHRASE label; `_AKAN`/`_MARN` are in the table above);
+physical descriptors (`_EYEC`/`_HAIR`/`_HEIG`/`_WEIG` → `FACT` + TYPE);
+ceremonies (`_BRTM`/`_FNRL`/`_INTE`/`_YART` → `EVEN` + TYPE);
+marriage-related (`_COML` → `MARR` + TYPE, `_MBON`/`_SEPR` → FAM `EVEN`
++ TYPE); `_PRMN` → the `REFN` identifier. The negatives `_NLIV` and
+`_NMAR`/`_NMR` become bare `NO DEAT` / `NO MARR`; on the 5.5.1 export a
+bare `NO MARR`/`NO DEAT` on an individual is written back as
+`_NMAR`/`_NLIV`, while 7.0 writes the standard `NO` (the exception to
+the NO rule is documented in the README's "Vendor extensions"
+section).
 
-### 7.3 P2 — worth considering
-
-| Tag | Vendors | Meaning | Model today | Effort | Recommend |
-| --- | --- | --- | --- | --- | --- |
-| `_NONE` | Legacy | "Couple had no children" under FAM | typed → `attributes` `NCHI 0` | — | Done |
-| `_MILT` / `_MDCL` / `_DCAUSE` / `_FOOT` | FTM | Military service / medical / death cause / footnote facts | typed → `EVEN`+TYPE; `_DCAUSE` → `DEAT.CAUS` | — | Done |
-| `_STAT` (FAM) | Legacy | Marriage status (Married, Unmarried, …) | typed → `FamilyRecord.marriageStatus` | — | Done |
-| Gramps witness convention | Gramps | `ASSO @xref@` + `TYPE INDI` + `RELA <role>` under **family events** | typed → `EventDetail.associations` (like `_SHAR`) | — | Done |
-| `_CREF`, `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | typed → `SourceCitation.reference` / `SourceRecord.fullFootnote` | — | Done |
-| `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | typed → `MultimediaRecord.objectType` | — | Done |
-| `_SCBK`, `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | typed → `MultimediaLink.scrapbook` / `slideshow` | — | Done |
-| `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | typed → `ChildFamilyLink.primary` | — | Done |
-| `_URL` under INDI | Legacy | Web address of a person | typed → `IndividualRecord.url` | — | Done |
-| `_PRIV` under events | Legacy | Event marked private | typed → `EventDetail.restriction` PRIVACY | — | Done |
-| `_PRIV` under ADDR | Legacy | Address marked private | typed → `AddressStructure.private` | — | Done |
-| `_PREF` | Legacy | Preferred spouse / child / parents | typed → `SpouseFamilyLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` | — | Done |
-| `_VERI` | Legacy | Verified checkmark on citations and places | typed → `SourceCitation.verified`, `PlaceStructure.verified` | — | Done |
-
-### 7.4 P3 — single-vendor housekeeping
-
-Resolved: every data-bearing tag in this family is typed, everything
-else moved to P4.
-
-**Legacy data tags — typed** (Legacy cat. "Custom GEDCOM Tags"): `_STAT`
-under CHIL → `FamilyChildLink.multiplicity` (free text: the vendor
-writes "Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
+**Legacy data tags** (Legacy cat. "Custom GEDCOM Tags"): `_STAT` under
+CHIL → `FamilyChildLink.multiplicity` (free text: the vendor writes
+"Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
 `_LOCL`/`_RDATE` → `TodoRecord`; `_TAG`/`_TAG2`–`_TAG9` →
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
-`MultimediaRecord.soundFile`; `_NAME` under ADDR →
-`AddressStructure.name` (see the PAF family).
+`MultimediaRecord.soundFile`; `_NAME` under ADDR is in the table above.
+The Legacy report machinery is deferred in chapter 7.
 
-**Brother's Keeper descriptors** (BKW6) — **typed**: name variants
-(`_BIRN` → NAME TYPE BIRTH; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
-`_GERN`/`_HEBN`/`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` → NAME TYPE
-OTHER with a PHRASE label; `_AKAN`/`_MARN` were already typed in P1);
-physical descriptors (`_EYEC`/`_HAIR`/`_HEIG`/`_WEIG` → FACT + TYPE);
-ceremonies (`_BRTM`/`_FNRL`/`_INTE`/`_YART` → EVEN + TYPE);
-marriage-related (`_COML` → MARR + TYPE, `_MBON`/`_SEPR` → FAM.EVEN +
-TYPE); `_PRMN` → REFN; the negatives `_NLIV`/`_NMAR`/`_NMR` → bare NO
-DEAT / NO MARR (5.5.1 writes them back as `_NLIV`/`_NMAR`).
+**MyHeritage**: `_UPD` (in the table above); no other documented tags.
 
-**Family Tree Maker extras — typed**: `_EXCM` and `_MISN` → EVEN +
-TYPE; `_UNKN` → the UID identifier. The rest moved to P4.
+**GEDKeeper**: `_UID` and the `_SHAR` family (chapter 5); nothing else
+documented.
 
-**MyHeritage**: `_UPD` is in P1; no other documented tags.
+Covered by `tests/vendor-extensions*.test.ts` with same-version round
+trips.
 
-**GEDKeeper**: `_UID` and the `_SHAR` family — already typed; nothing
-else documented.
-
-### 7.5 P4 — presentation and UI state
+## 7. Deferred: presentation and UI state
 
 Pure report/interface data; a viewer that ignores these loses nothing
-genealogical. Preserved verbatim as generic extensions; revisit only if
-the corpus shows a concrete use.
+genealogical. They stay generic `ExtensionStructure`/`ExtensionRecord`
+(GEDCOM 7.0 §1.5, model file `src/model/extensions.ts`) and are
+preserved verbatim, so nothing is lost on re-export. Revisit only if
+the corpus validation runs (README "Future work") show a concrete use.
 
 **Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): the
 `_EVENT_DEFN` record with `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU`
@@ -394,10 +351,9 @@ Needs the corpus.
 `_SENDPF`/`_SENDOU`/`_SENPOU`/`_SENDPU` variants, `_DATE_TYPE`,
 `_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG` — sentence
 templates for reports; PAF is discontinued. (Shares the sentence
-family with Legacy above.) The `_NAME` under ADDR (the name of the
-addressee) is data and is typed → `AddressStructure.name`.
+family with Legacy above.)
 
-### 7.6 P5 — non-underscore vendor tags
+## 8. Deferred: non-underscore vendor tags
 
 Written by Generations, Reunion, Family Tree Maker 5 (DOS), The Master
 Genealogist and early Roots versions; mostly tags dropped from GEDCOM
@@ -419,16 +375,15 @@ in GEDCOM 5.5" list): `AKA`, `ARVL`, `ATTR`, `BIC`, `BLESS`, `BLSL`,
 `STIL`, `STLB`, `SUBM`, `TOWN`, `UMAR`, `UNIT`, `URL`, `VOIL`, `VOL`,
 `WIFE`.
 
-These are currently **strict errors** in the parser (not `_`-prefixed,
-so they bypass the extension path). Options to decide, in increasing
-order of strictness:
-
-1. accept the known list as generic extensions on input (documented,
-   re-emitted verbatim);
-2. accept any unknown tag as an extension (maximum leniency — against
-   the strict-by-default principle);
-3. keep rejecting them (today's behavior) and file them in "Known
-   strict decisions".
-
-The inventory says: keep rejecting for now; revisit after the corpus
-run shows which of these actually appear in modern files.
+These are **strict errors** in the parser today: not `_`-prefixed, they
+bypass the generic extension path, so a file containing one fails with
+`structure.unknown-tag` instead of silently round-tripping. The policy
+decision is open; the options considered, in increasing order of
+strictness: accept the known list as generic extensions on input
+(documented, re-emitted verbatim); accept any unknown tag as an
+extension (maximum leniency — against the strict-by-default
+principle); or keep rejecting them (today's behavior) and record each
+real-world occurrence in the README's "Known strict decisions". The
+inventory says: keep rejecting for now; revisit after the corpus
+validation runs (README "Future work") show which of these actually
+appear in modern files.
