@@ -428,7 +428,10 @@ export type IdentifierStructure =
  * events to a future release. On 5.5.1 input the Brother's Keeper
  * negatives `_NLIV` and `_NMAR`/`_NMR` normalize into bare NO DEAT and
  * NO MARR structures, and a bare NO DEAT/NO MARR on an individual is
- * written back to 5.5.1 as `_NLIV`/`_NMAR`.
+ * written back to 5.5.1 as `_NLIV`/`_NMAR`. The FAM-level Ahnenblatt
+ * `_MARR N` (and the BKW `_NMR Y`) are the same concept for a couple:
+ * they normalize into a bare FAM NO MARR, which 5.5.1 writes back as
+ * `_MARR N`.
  */
 export interface NonEventStructure extends GedcomStructureBase {
   tag: 'NO';

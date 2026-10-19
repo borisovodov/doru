@@ -293,9 +293,10 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   flattenPlaceRecords(out, '5.5.1');
 
   // 1. Drop the NO structures; remember which records carried one, so
-  //    the empty-record rule below only applies to them. Exception: a
+  //    the empty-record rule below only applies to them. Exceptions: a
   //    bare NO MARR or NO DEAT on an INDI survives — it is written back
-  //    as the vendor negatives _NMAR/_NLIV (see the emitter).
+  //    as the vendor negatives _NMAR/_NLIV (see the emitter) — and a
+  //    bare NO MARR on a FAM survives as the Ahnenblatt `_MARR N`.
   const emptied = new Set<string>();
   for (const record of out.records) {
     if (record.tag === 'FAM' || record.tag === 'INDI') {
@@ -304,13 +305,10 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
         xref?: string;
       };
       if (rec.nonEvents !== undefined) {
-        const kept = record.tag === 'INDI'
-          ? rec.nonEvents.filter(
-              (nonEvent) => nonEvent.payload === 'MARR' || nonEvent.payload === 'DEAT'
-                ? nonEvent.date === undefined && nonEvent.notes === undefined && nonEvent.citations === undefined
-                : false,
-            )
-          : [];
+        const kept = rec.nonEvents.filter(
+          (nonEvent) => nonEvent.date === undefined && nonEvent.notes === undefined && nonEvent.citations === undefined
+            && (nonEvent.payload === 'MARR' || (record.tag === 'INDI' && nonEvent.payload === 'DEAT')),
+        );
         const droppedAny = kept.length < rec.nonEvents.length;
         if (droppedAny && record.xref !== undefined) {
           emptied.add(record.xref);

@@ -364,10 +364,13 @@ describe('serializeGedcom551', () => {
     expect(text).toContain('2 RELA Friend');
     // SEX X is dropped.
     expect(text).not.toContain('SEX');
-    // The NO rule: F1 only asserted the negation, so the record and the
-    // FAMS pointer disappear; the INDI-level NOs disappear too.
-    expect(text).not.toContain('@F1@');
-    expect(text).not.toContain('FAMS');
+    // The NO rule: the bare FAM NO MARR survives as the Ahnenblatt
+    // negative _MARR N (so the record and the FAMS pointer stay); the
+    // bare INDI NO DEAT survives as _NLIV; everything else disappears.
+    expect(text).toContain('1 _MARR N');
+    expect(text).toContain('@F1@');
+    expect(text).toContain('FAMS @F1@');
+    expect(text).toContain('1 _NLIV');
     expect(text).not.toContain('NO ');
     // @I3@ only carried the negation and is dropped entirely.
     expect(text).not.toContain('@I3@');

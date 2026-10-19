@@ -155,9 +155,11 @@ export function emitFamily(w: Writer, version: Version, rec: {
     }
   } else {
     for (const nonEvent of rec.nonEvents ?? []) {
-      // The BKW vendor negatives; only bare NO MARR / NO DEAT survive
+      // The Ahnenblatt negative; only a bare FAM NO MARR survives
       // prepareFor551, everything else was dropped.
-      w.line(1, nonEvent.payload === 'MARR' ? '_NMAR' : '_NLIV');
+      if (nonEvent.payload === 'MARR') {
+        w.line(1, '_MARR', { value: 'N' });
+      }
     }
   }
   if (rec.sameSexUnion === true) {

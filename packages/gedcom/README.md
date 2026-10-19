@@ -332,8 +332,9 @@ documented in the JSDoc of the affected model field. The summary:
 - **The NO rule (7.0 → 5.5.1)** — every `NO` structure is dropped;
   records left empty by that are dropped too, and pointers to dropped
   records are removed, so the file never asserts what the researcher
-  negated. Exception: a bare `NO MARR`/`NO DEAT` on an individual is
-  written back as the Brother's Keeper negatives `_NMAR`/`_NLIV`.
+  negated. Exceptions: a bare `NO MARR`/`NO DEAT` on an individual is
+  written back as the Brother's Keeper negatives `_NMAR`/`_NLIV`, and
+  a bare `NO MARR` on a family as the Ahnenblatt negative `_MARR N`.
 - **Required 5.5.1 fields** — a missing `SOUR` becomes `DORU`; a
   missing `SUBM` reuses an existing SUBM record, or, failing that, a
   synthesized `@_SYNSUB…@ SUBM` named "Unknown". The input model is
@@ -409,8 +410,10 @@ The agreed policy:
   places, `_RUFNAME` (call name) under NAME, and `_GODP`/`_WITN`
   (godparents/witnesses, free text) under events, plus the `_TYPE
   same-sex` union marker on FAM (the HUSB/WIFE tags then carry the
-  two partners without gender semantics). The vendor tags and the
-  `_LOC` records are written back in both versions (see the
+  two partners without gender semantics), the negatives `_MARR N`/
+  `_NMR Y` (a bare FAM `NO MARR`; 5.5.1 writes it back as `_MARR N`),
+  and `_LIV` (cohabitation → FAM `EVEN` + TYPE). The vendor tags and
+  the `_LOC` records are written back in both versions (see the
   place-records bullet above).
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
@@ -483,6 +486,8 @@ would be, or where the model takes a documented position:
   (`enum.invalid-value` for anything else) — the only value the
   German convention defines; GEDCOM 7.0 has no same-sex slot (its
   §1.5.3 sketches a `_PARTNER` extension).
+- The FAM negatives are validated strictly: `_MARR` accepts only `N`
+  and `_NMR` only `Y` (both normalize into a bare FAM `NO MARR`).
 - Integers are bounded by what a JavaScript `number` can hold exactly: a
   year, age, or count beyond `Number.MAX_SAFE_INTEGER` is rejected
   (`date.bad-year` / `integer.out-of-range`) rather than silently

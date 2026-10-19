@@ -149,6 +149,20 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
         fail('enum.invalid-value', `The FAM _TYPE "${value}" must be "same-sex"`, child.position);
       }
     },
+    _MARR: (child) => {
+      // Ahnenblatt: _MARR N marks the couple as NOT married (the only
+      // defined value, analogous to MARR Y) — a FAM-level NO MARR.
+      pushFamNonEvent(rec, child, ctx, 'N');
+    },
+    _NMR: (child) => {
+      // BKW: _NMR Y marks the couple as not married — the same NO MARR.
+      pushFamNonEvent(rec, child, ctx, 'Y');
+    },
+    _LIV: (child) => {
+      // GenPlus/PRO-GEN: Lebensgemeinschaft (cohabitation), an event
+      // with the usual DATE/PLAC/... detail.
+      pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Cohabitation');
+    },
     _COML: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'MARR', 'Common law marriage');
     },
@@ -259,6 +273,19 @@ function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, typ
 }
 
 /** A vendor family-level fact (_COML, _MBON, _SEPR): a MARR or FAM.EVEN with a TYPE. */
+/** A FAM-level vendor negative (`_MARR N` / `_NMR Y`): a bare NO MARR. */
+function pushFamNonEvent(rec: FamilyRecord, node: RawNode, ctx: Ctx, expected: 'N' | 'Y'): void {
+  void ctx;
+  const value = reqText(node).toUpperCase();
+  if (value !== expected) {
+    fail('enum.invalid-value', `The ${node.tag} payload must be "${expected}"`, node.position);
+  }
+  if (node.children.length > 0) {
+    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
+  }
+  (rec.nonEvents ??= []).push({ tag: 'NO', payload: 'MARR' });
+}
+
 function pushVendorFamilyEvent(rec: FamilyRecord, node: RawNode, ctx: Ctx, tag: 'MARR' | 'EVEN', type: string): void {
   const detail: EventDetail = {};
   const handlers = eventDetailHandlers(ctx, detail);

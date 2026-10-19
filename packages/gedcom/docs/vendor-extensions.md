@@ -359,7 +359,12 @@ the surviving parents). The `_TYPE same-sex` FAM convention is typed
 too: `FamilyRecord.sameSexUnion`, validated strictly to the value
 `same-sex` and written back in both versions — GEDCOM 7.0 has no
 same-sex slot (its FAMILY_RECORD describes HUSB/WIFE as partners and
-§1.5.3 sketches a `_PARTNER` extension).
+§1.5.3 sketches a `_PARTNER` extension). The FAM negatives `_MARR N`
+(Ahnenblatt) and `_NMR Y` (BKW) normalize into a bare FAM `NO MARR`
+(`_MARR` accepts only N, `_NMR` only Y); 5.5.1 writes a bare FAM NO
+MARR back as `_MARR N`, 7.0 as the standard `NO MARR`. `_LIV`
+(GenPlus/PRO-GEN cohabitation) becomes a FAM `EVEN` with TYPE
+"Cohabitation".
 
 Covered by `tests/vendor-extensions*.test.ts` with same-version round
 trips.

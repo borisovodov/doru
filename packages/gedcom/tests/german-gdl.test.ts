@@ -160,6 +160,90 @@ describe('the GEDCOM-L German extension on 5.5.1 input', () => {
   });
 });
 
+
+describe('the FAM negatives and cohabitation', () => {
+  const famDoc = (body: string): string => [
+    '0 HEAD',
+    '1 SOUR X',
+    '1 SUBM @S1@',
+    '1 GEDC',
+    '2 VERS 5.5.1',
+    '2 FORM LINEAGE-LINKED',
+    '1 CHAR UTF-8',
+    '0 @S1@ SUBM',
+    '1 NAME T',
+    '0 @I1@ INDI',
+    '1 NAME John /Doe/',
+    '0 @F1@ FAM',
+    '1 HUSB @I1@',
+    ...body.split('\n'),
+    '0 TRLR',
+  ].join('\n');
+
+  test('_MARR N normalizes into a FAM NO MARR', () => {
+    const dataset = parseOk551(famDoc('1 _MARR N'));
+    const family = dataset.records.find((r) => r.xref === '@F1@');
+    expect(family?.tag === 'FAM' ? family.nonEvents : undefined).toEqual([{ tag: 'NO', payload: 'MARR' }]);
+  });
+
+  test('_NMR Y is the same NO MARR', () => {
+    const dataset = parseOk551(famDoc('1 _NMR Y'));
+    const family = dataset.records.find((r) => r.xref === '@F1@');
+    expect(family?.tag === 'FAM' ? family.nonEvents : undefined).toEqual([{ tag: 'NO', payload: 'MARR' }]);
+  });
+
+  test('the payloads are validated strictly', () => {
+    const wrongMarr = parseGedcom551(enc(famDoc('1 _MARR X')));
+    expect(wrongMarr.ok).toBe(false);
+    if (!wrongMarr.ok) {
+      expect(wrongMarr.error.code).toBe('enum.invalid-value');
+    }
+    const wrongNmr = parseGedcom551(enc(famDoc('1 _NMR N')));
+    expect(wrongNmr.ok).toBe(false);
+    if (!wrongNmr.ok) {
+      expect(wrongNmr.error.code).toBe('enum.invalid-value');
+    }
+  });
+
+  test('round-trips through the 5.5.1 serializer as _MARR N', () => {
+    const first = parseOk551(famDoc('1 _MARR N'));
+    const text = ser551(first);
+    expect(text).toContain('1 _MARR N');
+    expect(parseOk551(text)).toEqual(first);
+  });
+
+  test('7.0 writes the standard NO MARR', () => {
+    const text = ser70(parseOk551(famDoc('1 _MARR N')));
+    expect(text).toContain('1 NO MARR');
+    expect(text).not.toContain('_MARR');
+  });
+
+  test('a FAM NO MARR with a date is still dropped on 5.5.1', () => {
+    const result = parseGedcom70(enc(
+      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 NO MARR', '2 DATE TO 1880', '0 TRLR'].join('\n'),
+    ));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result.error));
+    }
+    const text = ser551(result.value);
+    expect(text).not.toContain('_MARR');
+    expect(text).not.toContain('NO ');
+  });
+
+  test('_LIV becomes FAM.EVEN + TYPE Cohabitation', () => {
+    const dataset = parseOk551(famDoc('1 _LIV\n2 DATE 1920'));
+    const family = dataset.records.find((r) => r.xref === '@F1@');
+    const event = family?.tag === 'FAM' ? family.events?.find((e) => e.tag === 'EVEN') : undefined;
+    expect(event?.type).toBe('Cohabitation');
+    expect(event?.detail?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1920 });
+    const text = ser551(dataset);
+    expect(text).toContain('1 EVEN');
+    expect(text).toContain('2 TYPE Cohabitation');
+    expect(text).toContain('2 DATE 1920');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+});
+
 describe('the FAM _TYPE strictness', () => {
   test('only the value same-sex is defined', () => {
     const withOther = parseGedcom551(enc(SAMPLE.replace('1 _TYPE same-sex', '1 _TYPE sonstiges')));
