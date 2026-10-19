@@ -41,3 +41,6 @@ export const acpClients = new Map<string, AcpAgentClient>();
 
 /** Recent-projects service; initialized lazily in `whenReady`. */
 export const recents: { current: RecentProjects | null } = { current: null };
+
+/** Stop functions for bookmarks whose access is currently held, by project path (macOS). */
+export const activeBookmarks = new Map<string, () => void>();

@@ -1,15 +1,41 @@
 import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { TREE_FILE_EXTENSION, type ProjectSummary } from '@doru/core';
+import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
 import { ensureRuntime } from './runtime';
 import { updateSession } from './session';
-import { projectWindows, recents, runtimes, windowProject } from './state';
+import { activeBookmarks, projectWindows, recents, runtimes, windowProject } from './state';
 import { bindWindowToProject, createWindow, focusedWindow, windowById } from './windows';
+
+/**
+ * Regrants access to a project file before opening it (macOS).
+ *
+ * Files picked in a dialog or double-clicked in Finder are accessible for the
+ * current launch by themselves. A file reopened from recents or the session
+ * restore is only accessible if a stored security-scoped bookmark resolves —
+ * otherwise the open below fails and the caller falls back to the dialog.
+ */
+async function grantAccess(filePath: string): Promise<void> {
+  if (activeBookmarks.has(filePath)) {
+    return;
+  }
+  const entry = (await recents.current?.list())?.find((item) => item.path === filePath);
+  const stop = entry?.bookmark ? startAccessing(entry.bookmark) : null;
+  if (stop) {
+    activeBookmarks.set(filePath, stop);
+  }
+}
+
+function releaseAccess(filePath: string): void {
+  releaseBookmarkAccess(activeBookmarks.get(filePath));
+  activeBookmarks.delete(filePath);
+}
 
 export async function openProject(
   options: { dialog?: boolean; path?: string },
   senderId?: number,
 ): Promise<ProjectSummary | null> {
   let filePath = options.path;
+  const pickedViaDialog = filePath === undefined;
   if (!filePath) {
     const dialogOptions: OpenDialogOptions = {
       properties: ['openFile'],
@@ -45,7 +71,20 @@ export async function openProject(
       };
     }
   }
-  const { summary } = await ensureRuntime(filePath);
+  let summary: ProjectSummary;
+  try {
+    await grantAccess(filePath);
+    summary = (await ensureRuntime(filePath)).summary;
+  } catch (error) {
+    // The file is not readable: a sandboxed build without a working bookmark,
+    // or the file was moved or deleted. Drop the held access, if any.
+    releaseAccess(filePath);
+    if (senderId !== undefined && !pickedViaDialog) {
+      // A user-initiated reopen failed — let them pick the file again.
+      return openProject({ dialog: true }, senderId);
+    }
+    return null;
+  }
   const senderWindow = senderId !== undefined ? windowById(senderId) : null;
   const senderBound = senderId !== undefined ? windowProject.get(senderId) : undefined;
   if (senderWindow && !senderWindow.isDestroyed() && senderBound === null) {
@@ -64,7 +103,8 @@ export async function openProject(
     createWindow(filePath);
   }
   if (recents.current) {
-    await recents.current.touch(summary.path);
+    const bookmark = await createBookmark(summary.path);
+    await recents.current.touch(summary.path, bookmark);
     updateSession((session) => {
       const paths = session.paths.filter((entry) => entry !== summary.path);
       return { paths: [...paths, summary.path], activePath: summary.path };

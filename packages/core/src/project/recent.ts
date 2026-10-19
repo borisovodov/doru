@@ -4,6 +4,12 @@ import type { IFileSystem } from '../fs';
 export interface RecentProject {
   path: string;
   lastOpenedAt: string;
+  /**
+   * Base64 security-scoped bookmark data (macOS). Lets a sandboxed MAS build
+   * reopen the file without making the user pick it again. Absent on other
+   * platforms and for entries recorded before bookmarks were introduced.
+   */
+  bookmark?: string;
 }
 
 export class RecentProjects {
@@ -32,12 +38,14 @@ export class RecentProjects {
     }
   }
 
-  async touch(path: string): Promise<RecentProject[]> {
+  async touch(path: string, bookmark?: string | null): Promise<RecentProject[]> {
     const current = (await this.list()).filter((item) => item.path !== path);
-    const next = [{ path, lastOpenedAt: new Date().toISOString() }, ...current].slice(
-      0,
-      RecentProjects.MAX_ENTRIES,
-    );
+    const entry: RecentProject = {
+      path,
+      lastOpenedAt: new Date().toISOString(),
+      ...(bookmark ? { bookmark } : {}),
+    };
+    const next = [entry, ...current].slice(0, RecentProjects.MAX_ENTRIES);
     await this.fs.mkdir(dirname(this.file));
     await this.fs.writeFile(this.file, `${JSON.stringify(next, null, 2)}\n`);
     return next;

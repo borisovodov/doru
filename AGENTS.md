@@ -89,6 +89,16 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   `Icon.icon`. Dev uses that PNG because Electron's `nativeImage` cannot load
   `.icns` files — the packaged app gets its icon via Info.plist
   (`CFBundleIconName`/`Assets.car`), which is macOS, not Electron.
+- **Recent projects carry security-scoped bookmarks (macOS).** Every macOS
+  build — MAS, Homebrew, direct download alike — mints a security-scoped
+  bookmark for a tree file the moment it opens (koffi FFI →
+  CoreFoundation `CFURLCreateBookmarkData`; Electron can only resolve them
+  via `app.startAccessingSecurityScopedResource`) and stores it in
+  `recent.json`. Reopening a recent project resolves the bookmark, so a
+  sandboxed MAS build behaves exactly like an unsandboxed one; if the file is
+  still not readable, a user-initiated open falls back to the file dialog.
+  MAS entitlements (`apps/desktop/build/entitlements.mas*.plist`) cover
+  outbound network, user-selected file access, and app-scope bookmarks.
 - **Future work lives in GitHub issues, not in docs.** When a design document
   lists "future work"/"todo" items, file them as issues (`gh issue create`)
   and keep the document to what exists and why. Never leave roadmap-style
@@ -142,6 +152,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   generated notes and assets. Just bump the versions and push the tag — never
   run `gh release create` by hand and never force-move a release tag: every
   workflow run appends its own notes block to the existing release body.
+- **macOS installers are Developer ID–signed and notarized in CI.** The
+  Release workflow imports the signing certificate into a throwaway keychain
+  on the macOS runner (`MAC_CSC_LINK` base64 PKCS#12, `MAC_CSC_KEY_PASSWORD`)
+  and notarizes the dmg/zip through the App Store Connect API
+  (`APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY` written to
+  `/tmp/AuthKey.p8`, `--config.mac.notarize=true`). This is what makes
+  Squirrel.Mac auto-update possible for site builds. Rotate the repo secrets
+  whenever the certificates or API keys are renewed.
 - **Version bumps and the lockfile land in one commit.** After bumping
   `version` in the root and workspace `package.json` files, run
   `npm install --package-lock-only` so `package-lock.json` records the new
