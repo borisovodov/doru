@@ -13,10 +13,13 @@ import {
 } from '../enumerations';
 import type {
   EventDetail,
+  FamilyEventDetail,
+  FamilyEventStructure,
   FamilyRecord,
   IndividualEventDetail,
   IndividualEventStructure,
   IndividualRecord,
+  NameTypeStructure,
 } from '../structures';
 import type {
   Ctx,
@@ -71,8 +74,15 @@ import {
   parsePersonalName,
 } from './types';
 import type {
+  EventEnum,
   NameTypeEnum,
 } from '../enumerations';
+import {
+  fail,
+} from '../errors';
+import type {
+  Text,
+} from '../primitives';
 
 // ---------------------------------------------------------------------------
 
@@ -128,6 +138,15 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     _STAT: (child) => {
       rec.marriageStatus = reqText(child);
+    },
+    _COML: (child) => {
+      pushVendorFamilyEvent(rec, child, ctx, 'MARR', 'Common law marriage');
+    },
+    _MBON: (child) => {
+      pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Marriage bond');
+    },
+    _SEPR: (child) => {
+      pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Separated');
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -202,12 +221,58 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
  * A vendor name tag (`_MARNM`, `_AKA`, …): normalized into a NAME with
  * the given type; see the JSDoc of PersonalNameStructure.
  */
-function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType: NameTypeEnum): void {
+function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType: NameTypeEnum, phrase?: string): void {
+  const type: NameTypeStructure = { payload: nameType };
+  if (phrase !== undefined) {
+    type.phrase = phrase as Text;
+  }
   (rec.names ??= []).push({
     tag: 'NAME',
     payload: parsePersonalName(reqText(node), ctx.version, node.position),
-    type: { payload: nameType },
+    type,
   });
+}
+
+/** A vendor physical descriptor (_EYEC, _HAIR, …): a FACT with a TYPE. */
+function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, type: string): void {
+  const detail: EventDetail = {};
+  const handlers = eventDetailHandlers(ctx, detail);
+  handlers['TYPE'] = () => undefined;
+  dispatch(node, detail, handlers, ctx);
+  const raw = node.value.kind === 'text' ? node.value.text : '';
+  (rec.attributes ??= []).push({
+    tag: 'FACT',
+    payload: raw,
+    type,
+    ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+  });
+}
+
+/** A vendor family-level fact (_COML, _MBON, _SEPR): a MARR or FAM.EVEN with a TYPE. */
+function pushVendorFamilyEvent(rec: FamilyRecord, node: RawNode, ctx: Ctx, tag: 'MARR' | 'EVEN', type: string): void {
+  const detail: EventDetail = {};
+  const handlers = eventDetailHandlers(ctx, detail);
+  handlers['TYPE'] = () => undefined;
+  dispatch(node, detail, handlers, ctx);
+  const familyDetail: FamilyEventDetail = {
+    ...(Object.keys(detail).length === 0 ? {} : { detail }),
+  };
+  const eventDetail = Object.keys(detail).length === 0 ? {} : { detail: familyDetail };
+  if (tag === 'MARR') {
+    (rec.events ??= []).push({ tag: 'MARR', type, ...eventDetail } as FamilyEventStructure);
+  } else {
+    (rec.events ??= []).push({ tag: 'EVEN', payload: '', type, ...eventDetail } as FamilyEventStructure);
+  }
+}
+
+/** A vendor negative (_NLIV, _NMAR, _NMR): a 7.0-style NO structure. */
+function pushVendorNonEvent(rec: IndividualRecord, node: RawNode, ctx: Ctx, payload: EventEnum): void {
+  void ctx;
+  noPayload(node);
+  if (node.children.length > 0) {
+    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
+  }
+  (rec.nonEvents ??= []).push({ tag: 'NO', payload });
 }
 
 /** The FTM vendor fact tags (_MILT, _MDCL, _FOOT): an EVEN with a TYPE. */
@@ -302,6 +367,81 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _TAG9: (child) => {
       setMark(rec, 8, child);
+    },
+    _BIRN: (child) => {
+      pushVendorName(rec, child, ctx, 'BIRTH');
+    },
+    _ADPN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Adopted name');
+    },
+    _CENN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Census name');
+    },
+    _CURN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Currently known as');
+    },
+    _FARN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Farm name');
+    },
+    _FKAN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Formally known as');
+    },
+    _GERN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'German name');
+    },
+    _HEBN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Hebrew name');
+    },
+    _INDN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Indian name');
+    },
+    _OTHN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Other name');
+    },
+    _RELN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Religious name');
+    },
+    _SHON: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Short name');
+    },
+    _SLDN: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Soldier name');
+    },
+    _EYEC: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'Eye color');
+    },
+    _HAIR: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'Hair color');
+    },
+    _HEIG: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'Height');
+    },
+    _WEIG: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'Weight');
+    },
+    _BRTM: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Brit Mila'));
+    },
+    _FNRL: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Funeral'));
+    },
+    _INTE: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Interred'));
+    },
+    _YART: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Yahrzeit'));
+    },
+    _PRMN: (child) => {
+      (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
+    },
+    _NLIV: (child) => {
+      pushVendorNonEvent(rec, child, ctx, 'DEAT');
+    },
+    _NMAR: (child) => {
+      pushVendorNonEvent(rec, child, ctx, 'MARR');
+    },
+    _NMR: (child) => {
+      pushVendorNonEvent(rec, child, ctx, 'MARR');
     },
     _DCAUSE: (child) => {
       upsertDeathCause(rec, child, ctx);

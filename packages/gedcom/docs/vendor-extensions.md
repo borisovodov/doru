@@ -338,12 +338,16 @@ writes "Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
 `MultimediaRecord.soundFile`. The remaining Legacy report machinery is
 pure presentation and moved to P4.
-**Brother's Keeper descriptors** (BKW6): name variants `_ADPN`/
-`_AKAN`/`_BIRN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/`_GERN`/`_HEBN`/
-`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` and facts `_BRTM`/`_COML`/
-`_EYEC`/`_FNRL`/`_HAIR`/`_HEIG`/`_INTE`/`_MBON`/`_NLIV`/`_NMAR`/
-`_NMR`/`_PRMN`/`_SEPR`/`_WEIG`/`_YART` — one vendor, mostly
-descriptive attributes with no standard slot.
+
+**Brother's Keeper descriptors** (BKW6) — **typed**: name variants
+(`_BIRN` → NAME TYPE BIRTH; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
+`_GERN`/`_HEBN`/`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` → NAME TYPE
+OTHER with a PHRASE label; `_AKAN`/`_MARN` were already typed in P1);
+physical descriptors (`_EYEC`/`_HAIR`/`_HEIG`/`_WEIG` → FACT + TYPE);
+ceremonies (`_BRTM`/`_FNRL`/`_INTE`/`_YART` → EVEN + TYPE);
+marriage-related (`_COML` → MARR + TYPE, `_MBON`/`_SEPR` → FAM.EVEN +
+TYPE); `_PRMN` → REFN; the negatives `_NLIV`/`_NMAR`/`_NMR` → bare NO
+DEAT / NO MARR (5.5.1 writes them back as `_NLIV`/`_NMAR`).
 
 **Family Tree Maker extras**: `_FA1`–`_FA13` user fact definitions,
 `_DETS`, `_ELEC`, `_UNKN`, `_EXCM`, `_MISN`, `_ADPN`, `_SEPR`, the

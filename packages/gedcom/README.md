@@ -283,7 +283,8 @@ documented in the JSDoc of the affected model field. The summary:
 - **The NO rule (7.0 → 5.5.1)** — every `NO` structure is dropped;
   records left empty by that are dropped too, and pointers to dropped
   records are removed, so the file never asserts what the researcher
-  negated.
+  negated. Exception: a bare `NO MARR`/`NO DEAT` on an individual is
+  written back as the Brother's Keeper negatives `_NMAR`/`_NLIV`.
 - **Required 5.5.1 fields** — a missing `SOUR` becomes `DORU`; a
   missing `SUBM` reuses an existing SUBM record, or, failing that, a
   synthesized `@_SYNSUB…@ SUBM` named "Unknown". The input model is

@@ -410,7 +410,10 @@ export type IdentifierStructure =
  * (or never happened if there is no DATE substructure).
  *
  * 7.0-only: 5.5.1 explicitly leaves a convention for never-happened
- * events to a future release.
+ * events to a future release. On 5.5.1 input the Brother's Keeper
+ * negatives `_NLIV` and `_NMAR`/`_NMR` normalize into bare NO DEAT and
+ * NO MARR structures, and a bare NO DEAT/NO MARR on an individual is
+ * written back to 5.5.1 as `_NLIV`/`_NMAR`.
  */
 export interface NonEventStructure extends GedcomStructureBase {
   tag: 'NO';

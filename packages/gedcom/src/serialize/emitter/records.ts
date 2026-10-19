@@ -152,6 +152,12 @@ export function emitFamily(w: Writer, version: Version, rec: {
         emitSourceCitation(w, version, 2, citation);
       }
     }
+  } else {
+    for (const nonEvent of rec.nonEvents ?? []) {
+      // The BKW vendor negatives; only bare NO MARR / NO DEAT survive
+      // prepareFor551, everything else was dropped.
+      w.line(1, nonEvent.payload === 'MARR' ? '_NMAR' : '_NLIV');
+    }
   }
   if (rec.husband !== undefined) {
     ptr(w, version, 1, 'HUSB', rec.husband.partner);
@@ -285,6 +291,12 @@ export function emitIndividual(w: Writer, version: Version, rec: {
       for (const citation of nonEvent.citations ?? []) {
         emitSourceCitation(w, version, 2, citation);
       }
+    }
+  } else {
+    for (const nonEvent of rec.nonEvents ?? []) {
+      // The BKW vendor negatives; only bare NO MARR / NO DEAT survive
+      // prepareFor551, everything else was dropped.
+      w.line(1, nonEvent.payload === 'MARR' ? '_NMAR' : '_NLIV');
     }
   }
   for (const ordinance of rec.ordinances ?? []) {

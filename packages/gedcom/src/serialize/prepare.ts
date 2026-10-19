@@ -7,10 +7,12 @@
  * equivalent representation is translated. This module performs the
  * model-level part of that projection for GEDCOM 5.5.1:
  *
- * - the NO rule: all `NO` structures are dropped; records left empty by
+ * - the NO rule: the `NO` structures are dropped; records left empty by
  *   that are dropped too, and pointers to dropped records are removed
  *   (5.5.1 has no negation and no void pointers, so a dangling pointer
- *   would be invalid output);
+ *   would be invalid output). Exception: a bare NO MARR or NO DEAT on
+ *   an INDI survives and is written back as the vendor negatives
+ *   `_NMAR`/`_NLIV`;
  * - the required 5.5.1 header fields: a missing SOUR becomes the
  *   constant `DEFAULT_SYSTEM_ID_551` and a missing SUBM becomes a
  *   synthesized submitter record named "Unknown".
@@ -238,16 +240,33 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
   flattenPlaceRecords(out);
 
-  // 1. Drop every NO structure; remember which records carried one, so
-  //    the empty-record rule below only applies to them.
+  // 1. Drop the NO structures; remember which records carried one, so
+  //    the empty-record rule below only applies to them. Exception: a
+  //    bare NO MARR or NO DEAT on an INDI survives — it is written back
+  //    as the vendor negatives _NMAR/_NLIV (see the emitter).
   const emptied = new Set<string>();
   for (const record of out.records) {
     if (record.tag === 'FAM' || record.tag === 'INDI') {
-      const rec = record as unknown as { nonEvents?: unknown; xref?: string };
+      const rec = record as unknown as {
+        nonEvents?: Array<{ payload?: string; date?: unknown; notes?: unknown; citations?: unknown }>;
+        xref?: string;
+      };
       if (rec.nonEvents !== undefined) {
-        delete rec.nonEvents;
-        if (rec.xref !== undefined) {
-          emptied.add(rec.xref);
+        const kept = record.tag === 'INDI'
+          ? rec.nonEvents.filter(
+              (nonEvent) => nonEvent.payload === 'MARR' || nonEvent.payload === 'DEAT'
+                ? nonEvent.date === undefined && nonEvent.notes === undefined && nonEvent.citations === undefined
+                : false,
+            )
+          : [];
+        const droppedAny = kept.length < rec.nonEvents.length;
+        if (droppedAny && record.xref !== undefined) {
+          emptied.add(record.xref);
+        }
+        if (kept.length === 0) {
+          delete rec.nonEvents;
+        } else {
+          rec.nonEvents = kept;
         }
       }
     }
