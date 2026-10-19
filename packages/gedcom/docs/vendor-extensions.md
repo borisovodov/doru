@@ -280,8 +280,7 @@ Priorities:
   `_MSTAT`/`_MEND`, which moved to P3 (DOS-era, colliding meaning).
 - **P3** — defer: single-vendor housekeeping, one vendor. The Legacy
   data tags in this family are now typed: `_STAT` under CHIL →
-  `FamilyChildLink.multiplicity` (an enum, see
-  `CHILD_MULTIPLICITY_ENUM_VALUES`), the `_TODO` record →
+  `FamilyChildLink.multiplicity` (free text), the `_TODO` record →
   `TodoRecord`, `_TAG`/`_TAG2`–`_TAG9` → `IndividualRecord.marks`,
   `_SOUND` → `MultimediaRecord.soundFile`.
 - **P4** — defer: pure presentation/UI state (sentence templates,
@@ -333,8 +332,8 @@ Grouped by family; every tag flows through the generic extensions today
 and is preserved verbatim, so nothing is lost.
 
 **Legacy data tags — typed** (Legacy cat. "Custom GEDCOM Tags"): `_STAT`
-under CHIL → `FamilyChildLink.multiplicity` (enum TWIN/TRIPLET, other
-values as OTHER + PHRASE); the `_TODO` record with `_CAT`/`_CDATE`/
+under CHIL → `FamilyChildLink.multiplicity` (free text: the vendor
+writes "Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
 `_LOCL`/`_RDATE` → `TodoRecord`; `_TAG`/`_TAG2`–`_TAG9` →
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
 `MultimediaRecord.soundFile`. The remaining Legacy report machinery is

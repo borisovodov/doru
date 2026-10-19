@@ -81,7 +81,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   nonEvents?: NonEventStructure[];
   husband?: { partner: string; phrase?: string };
   wife?: { partner: string; phrase?: string };
-  children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string }>;
+  children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: string; fatherRelation?: string; motherRelation?: string }>;
   associations?: AssociationStructure[];
   submitters?: string[];
   spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail }>;
@@ -174,16 +174,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
       w.line(2, '_PREF', { value: 'Y' });
     }
     if (child.multiplicity !== undefined) {
-      const spelling = child.multiplicity.payload === 'OTHER'
-        ? child.multiplicity.phrase
-        : child.multiplicity.payload === 'TWIN'
-          ? 'Twin'
-          : child.multiplicity.payload === 'TRIPLET'
-            ? 'Triplet'
-            : child.multiplicity.payload;
-      if (spelling !== undefined) {
-        w.line(2, '_STAT', { value: spelling });
-      }
+      w.line(2, '_STAT', { value: child.multiplicity });
     }
     if (version === '5.5.1') {
       // The 7.0 side of the pair (INDI.FAMC.PEDI) is filled by prepareFor70.

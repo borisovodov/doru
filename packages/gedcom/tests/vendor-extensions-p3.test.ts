@@ -98,7 +98,7 @@ describe('Legacy data tags on 5.5.1 input', () => {
     expect(indi(dataset, '@I1@').marks).toEqual(['VIP', '', 'Blue']);
 
     // _STAT under CHIL becomes the multiplicity enum.
-    expect(fam(dataset, '@F1@').children?.[0]?.multiplicity).toEqual({ payload: 'TWIN' });
+    expect(fam(dataset, '@F1@').children?.[0]?.multiplicity).toBe('Twin');
 
     // _SOUND on the media record.
     const media = dataset.records.find((r) => r.tag === 'OBJE') as MultimediaRecord | undefined;
@@ -111,7 +111,7 @@ describe('Legacy data tags on 5.5.1 input', () => {
     ]);
   });
 
-  test('keeps an unknown multiplicity as OTHER with the free text in the phrase', () => {
+  test('keeps any multiplicity text verbatim', () => {
     const dataset = parseOk551(
       [
         '0 HEAD',
@@ -131,10 +131,7 @@ describe('Legacy data tags on 5.5.1 input', () => {
         '0 TRLR',
       ].join('\n'),
     );
-    expect(fam(dataset, '@F1@').children?.[0]?.multiplicity).toEqual({
-      payload: 'OTHER',
-      phrase: 'Quadruplet',
-    });
+    expect(fam(dataset, '@F1@').children?.[0]?.multiplicity).toBe('Quadruplet');
   });
 
   test('round-trips through the 5.5.1 serializer', () => {
