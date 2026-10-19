@@ -273,11 +273,7 @@ Priorities:
 
 - **P0** — already typed (see chapter 5).
 - **P1** — recommended: multi-vendor, real data, low effort.
-  **Implemented**: `_TMPLT`, `_MARNM`/`_MARN`, `_AKA`/`_AKAN`, `_UPD`,
-  `_WT_OBJE_SORT`, `_DATE` and `_EMAIL` are typed (see the field JSDoc:
-  `SourceRecord.template`, the NAME-type normalization,
-  `IndividualRecord`/`FamilyRecord.updatedAt`, the media-link
-  normalization, `MultimediaRecord.date`, `AddressStructure.email`).
+  **Fully implemented** — every row in the table below is typed.
 - **P2** — worth considering: meaningful data or very common vendor,
   but single-vendor or medium effort. **Fully implemented** — every row
   in the table below is typed; the only P2 item deferred is FTW
@@ -299,13 +295,13 @@ and the `_PLAC` second place — see the table in chapter 5.
 
 | Tag | Vendors | Meaning | Model today | Effort | Recommend |
 | --- | --- | --- | --- | --- | --- |
-| `_TMPLT` | RootsMagic, FTM | Evidence Explained source template: `FIELD`/`VALUE` pairs under SOUR (page, URL, film no, …) | none | Medium (new `SourceRecord` field + pair parser) | Yes — two major vendors, real research data |
-| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name | `PersonalNameStructure.names[]` exists; needs mapping to a name with `TYPE MARRIED` | Low (normalization into an existing field) | Yes |
-| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name | same — map to a name with `TYPE AKA` | Low | Yes |
-| `_UPD` | MyHeritage | Record last-updated timestamp | none (CHAN is DATE+TIME; `_UPD` is a bare timestamp) | Low (new `updatedAt`-style field or CHAN reuse) | Yes |
-| `_WT_OBJE_SORT` | webtrees | Per-link media sort order | none | Low (integer on `MultimediaLink`) | Yes — webtrees files are everywhere |
-| `_DATE` | Legacy (under OBJE), webtrees | Date of a media object | none | Low (date field on `MultimediaLink`) | Yes |
-| `_EMAIL` | BKW6, FO9, PAF | E-mail under an address block | `AddressStructure.email` exists (5.5.1 EMAIL) | Low (normalize `_EMAIL` into it) | Yes |
+| `_TMPLT` | RootsMagic, FTM | Evidence Explained source template: `FIELD`/`VALUE` pairs under SOUR (page, URL, film no, …) | typed → `SourceRecord.template` (TID + FIELD NAME/VALUE) | — | Done |
+| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name | typed → `names[]` with `TYPE MARRIED` | — | Done |
+| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name | typed → `names[]` with `TYPE AKA` | — | Done |
+| `_UPD` | MyHeritage | Record last-updated timestamp | typed → `IndividualRecord.updatedAt` / `FamilyRecord.updatedAt` | — | Done |
+| `_WT_OBJE_SORT` | webtrees | Per-link media sort order | typed → `media` (like OBJE, array order preserves the sort) | — | Done |
+| `_DATE` | Legacy (under OBJE), webtrees | Date of a media object | typed → `MultimediaRecord.date` | — | Done |
+| `_EMAIL` | BKW6, FO9, PAF | E-mail under an address block | typed → `AddressStructure.email` | — | Done |
 
 ### 7.3 P2 — worth considering
 
