@@ -1,11 +1,11 @@
 {
   "name": "@doru/desktop",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "private": true,
   "type": "module",
   "productName": "Doru",
   "desktopName": "org.doru.doru",
-  "description": "Dóru — local-first, MIT-licensed genealogy for the AI era. Your data stays on your machine.",
+  "description": "D\u00f3ru \u2014 local-first, MIT-licensed genealogy for the AI era. Your data stays on your machine.",
   "author": "Boris Ovodov <boris@ovodov.me>",
   "homepage": "https://github.com/borisovodov/doru",
   "license": "MIT",
