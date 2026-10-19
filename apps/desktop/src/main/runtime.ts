@@ -5,9 +5,10 @@ import {
   TreeStore,
   type ProjectSummary,
 } from '@doru/core';
+import { releaseBookmarkAccess } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
-import { acpClients, runtimes, type ProjectRuntime } from './state';
+import { acpClients, activeBookmarks, runtimes, type ProjectRuntime } from './state';
 
 const fs = new NodeFileSystem();
 
@@ -46,6 +47,8 @@ export function closeProjectRuntime(projectPath: string): void {
     void acp.close();
     acpClients.delete(projectPath);
   }
+  releaseBookmarkAccess(activeBookmarks.get(projectPath));
+  activeBookmarks.delete(projectPath);
 }
 
 export function closeAllRuntimes(): void {
@@ -53,4 +56,8 @@ export function closeAllRuntimes(): void {
     runtime.store.close();
   }
   runtimes.clear();
+  for (const stop of activeBookmarks.values()) {
+    releaseBookmarkAccess(stop);
+  }
+  activeBookmarks.clear();
 }

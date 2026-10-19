@@ -28,6 +28,23 @@ describe('RecentProjects', () => {
     expect(capped[0]?.path).toBe('/projects/p11');
   });
 
+  it('stores and updates security-scoped bookmarks per entry', async () => {
+    const fs = new MemoryFileSystem();
+    const recents = new RecentProjects(fs, '/data/recent.json');
+
+    await recents.touch('/projects/a', 'Ym9vaw==');
+    await recents.touch('/projects/b');
+
+    let list = await recents.list();
+    expect(list.find((entry) => entry.path === '/projects/a')?.bookmark).toBe('Ym9vaw==');
+    expect(list.find((entry) => entry.path === '/projects/b')?.bookmark).toBeUndefined();
+
+    // A re-touch without a bookmark clears the stored one.
+    await recents.touch('/projects/a');
+    list = await recents.list();
+    expect(list.find((entry) => entry.path === '/projects/a')?.bookmark).toBeUndefined();
+  });
+
   it('survives a corrupt store file', async () => {
     const fs = new MemoryFileSystem();
     await fs.writeFile('/data/recent.json', '{not json');

@@ -89,6 +89,16 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   `Icon.icon`. Dev uses that PNG because Electron's `nativeImage` cannot load
   `.icns` files — the packaged app gets its icon via Info.plist
   (`CFBundleIconName`/`Assets.car`), which is macOS, not Electron.
+- **Recent projects carry security-scoped bookmarks (macOS).** Every macOS
+  build — MAS, Homebrew, direct download alike — mints a security-scoped
+  bookmark for a tree file the moment it opens (koffi FFI →
+  CoreFoundation `CFURLCreateBookmarkData`; Electron can only resolve them
+  via `app.startAccessingSecurityScopedResource`) and stores it in
+  `recent.json`. Reopening a recent project resolves the bookmark, so a
+  sandboxed MAS build behaves exactly like an unsandboxed one; if the file is
+  still not readable, a user-initiated open falls back to the file dialog.
+  MAS entitlements (`apps/desktop/build/entitlements.mas*.plist`) cover
+  outbound network, user-selected file access, and app-scope bookmarks.
 - **Future work lives in GitHub issues, not in docs.** When a design document
   lists "future work"/"todo" items, file them as issues (`gh issue create`)
   and keep the document to what exists and why. Never leave roadmap-style
