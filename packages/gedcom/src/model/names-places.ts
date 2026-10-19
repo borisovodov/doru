@@ -230,8 +230,8 @@ export interface PlaceStructure extends GedcomStructureBase {
    * is consumed: the record's map and notes are merged into each
    * referencing place and the records are dropped — except that a
    * GEDCOM-L record carrying the German fields (see PlaceRecord)
-   * survives into a 5.5.1 output as a `_LOC` record, and then this
-   * pointer is written back as `_LOC` (7.0 still flattens). See the
+   * survives into the output as a `_LOC` record (both versions), and
+   * then this pointer is written back as `_LOC`. See the
    * "Common GEDCOM Extensions" catalog:
    * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html
    */

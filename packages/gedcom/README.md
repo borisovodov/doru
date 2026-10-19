@@ -407,9 +407,9 @@ The agreed policy:
   `_GOVTYPE`, `_MAIDENHEAD`, name variants, hierarchy links with
   `POLI|RELI|GEOG|CULT`), `_GOV`/`_POST`/`_MAIDENHEAD` under event
   places, `_RUFNAME` (call name) under NAME, and `_GODP`/`_WITN`
-  (godparents/witnesses, free text) under events. The vendor tags are
-  written back in both versions; the `_LOC` records themselves only
-  into 5.5.1 (see the place-records bullet above).
+  (godparents/witnesses, free text) under events. The vendor tags and
+  the `_LOC` records are written back in both versions (see the
+  place-records bullet above).
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
   is projected onto `INDI.FAMC.PEDI` (natural → BIRTH, adopted →
@@ -427,9 +427,9 @@ The agreed policy:
   in the `PlaceRecord` JSDoc); event-level place data is never lost.
   The exception is the German GEDCOM-L dialect: a card carrying the
   GEDCOM-L fields (GOV id, postal codes, administrative ids, place
-  types, hierarchy links, …) is written back to 5.5.1 as a `_LOC`
-  record and its referencing places keep the pointer; 7.0 still
-  flattens them.
+  types, hierarchy links, …) is written back as a `_LOC` record in
+  both versions (GEDCOM 7.0 §1.5 allows extension records) and its
+  referencing places keep the pointer.
 
 ## GEDZIP (7.0 chapter 4)
 

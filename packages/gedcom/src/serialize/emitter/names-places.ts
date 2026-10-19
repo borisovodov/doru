@@ -212,7 +212,8 @@ export function emitNamePieces(w: Writer, version: Version, level: number, piece
 }
 
 export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord): void {
-  // Reached only for 5.5.1 (prepareFor551 keeps the GEDCOM-L cards).
+  // Reached only for the GEDCOM-L cards kept by the prepare projection
+  // (both versions; GEDCOM 7.0 allows extension records).
   w.line(0, '_LOC', { xref: record.xref });
   for (const name of record.names ?? []) {
     w.line(1, 'NAME', { value: name.name });
@@ -331,8 +332,9 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
   if (place.maidenhead !== undefined) {
     w.line(level + 1, '_MAIDENHEAD', { value: place.maidenhead });
   }
-  if (version === '5.5.1' && place.location !== undefined) {
-    // The GEDCOM-L card survived prepareFor551; the pointer is kept.
+  if (place.location !== undefined) {
+    // The GEDCOM-L card survived the prepare projection; the pointer
+    // is kept.
     ptr(w, version, level + 1, '_LOC', place.location);
   }
   if (version === '7.0') {

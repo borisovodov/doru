@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseGedcom551 } from '../src/parsing/assemble';
+import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset, PlaceRecord } from '../src/structures';
 
@@ -188,26 +188,46 @@ describe('the GEDCOM-L German extension on output', () => {
     expect(text).toContain('2 _WITN Otto Mustermann, Franz-Xaver Gabler');
   });
 
-  test('7.0 flattens the records but keeps the event-level German tags', () => {
+  test('7.0 writes the _LOC record back too (extension records are legal in 7.0)', () => {
     const text = ser70(parseOk551(SAMPLE));
-    // The _LOC records and the record-only fields flatten away.
-    expect(text).not.toContain('_LOC');
-    expect(text).not.toContain('_AIDN');
-    expect(text).not.toContain('_DMGD');
-    expect(text).not.toContain('_GOVTYPE');
-    // The event- and name-level vendor tags have no standard
-    // equivalent and are written back in both versions.
-    expect(text).toContain('_GOV WEIHEN_W6051');
-    expect(text).toContain('_POST 63110');
-    // _MAIDENHEAD sits on the record in the sample, so it flattens
-    // away; only the event-level German tags survive in 7.0.
-    expect(text).not.toContain('_MAIDENHEAD');
-    expect(text).toContain('_RUFNAME Anna');
-    expect(text).toContain('_GODP Max Herbert Mustermann, Musiker');
-    expect(text).toContain('_WITN Otto Mustermann, Franz-Xaver Gabler');
-    // The card's map is merged into the referencing place (level 3,
-    // under the level-2 PLAC).
-    expect(text).toContain('3 MAP');
-    expect(text).toContain('4 LATI N50.05');
+    expect(text).toContain('0 @P1@ _LOC');
+    expect(text).toContain('1 NAME Weiskirchen');
+    expect(text).toContain('1 TYPE Ortsteil');
+    expect(text).toContain('2 _GOVTYPE 123');
+    expect(text).toContain('1 _GOV WEIHEN_W6051');
+    expect(text).toContain('1 _POST 63110');
+    expect(text).toContain('1 _AIDN 06438011');
+    expect(text).toContain('1 _DMGD 1234 Einwohner');
+    expect(text).toContain('1 _MAIDENHEAD JO40KB');
+    expect(text).toContain('1 RELI ev');
+    expect(text).toContain('1 EVEN Stadtrecht');
+    expect(text).toContain('1 _LOC @P2@');
+    expect(text).toContain('2 TYPE POLI');
+    expect(text).toContain('3 _LOC @P1@');
+    expect(text).toContain('3 _GOV WEIHEN_W6051');
+    expect(text).toContain('2 _RUFNAME Anna');
+    expect(text).toContain('2 _GODP Max Herbert Mustermann, Musiker');
+    expect(text).toContain('2 _WITN Otto Mustermann, Franz-Xaver Gabler');
+  });
+
+  test('7.0 round trip is model-stable (idempotent)', () => {
+    // The cross-version wire differs (5.5.1 parses dates with an
+    // explicit GREGORIAN calendar); a 7.0-to-7.0 round trip must hold.
+    const first = parseGedcom70(enc(ser70(parseOk551(SAMPLE))));
+    if (!first.ok) {
+      throw new Error(JSON.stringify(first.error));
+    }
+    const second = parseGedcom70(enc(ser70(first.value)));
+    if (!second.ok) {
+      throw new Error(JSON.stringify(second.error));
+    }
+    expect(second.value).toEqual(first.value);
+    // The German data survived the 7.0 projection.
+    const card = second.value.records.find((r) => r.xref === '@P1@');
+    if (card === undefined || card.tag !== '_PLAC') {
+      throw new Error('expected the _LOC card in the 7.0 output');
+    }
+    expect(card.govId).toBe('WEIHEN_W6051');
+    expect(card.postalCodes).toHaveLength(2);
   });
 });

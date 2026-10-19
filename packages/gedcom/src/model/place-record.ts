@@ -34,9 +34,9 @@
  * consumed, and the records are not written. The exception is the
  * GEDCOM-L dialect: a record carrying the German fields below (govId,
  * postalCodes, administrativeIds, demographicData, types, extra names,
- * parents, denomination, or events) is written back to 5.5.1 as a
- * `_LOC` record with the `_LOC` pointer kept on its referencing
- * places; 7.0 has no German ecosystem and still flattens them.
+ * parents, denomination, or events) is written back as a `_LOC`
+ * record in both versions (GEDCOM 7.0 §1.5 allows extension records)
+ * with the `_LOC` pointer kept on its referencing places.
  */
 import type { Language, Pointer, Text, Xref } from '../primitives';
 import type {
@@ -68,13 +68,13 @@ export interface PlaceRecord extends GedcomStructureBase {
   media?: MultimediaLink[];
   /**
    * `_GOV` {0:1} — the place's identifier in the GOV gazetteer (GEDCOM-L,
-   * e.g. `WEIHEN_W6051`). Written back as `_GOV` in 5.5.1 (the record
-   * survives for this); dropped in 7.0 with the record.
+   * e.g. `WEIHEN_W6051`). Written back as `_GOV` in both versions (the
+   * record survives for this).
    */
   govId?: Text;
   /**
    * `_MAIDENHEAD` {0:1} — the place's Maidenhead QTH locator (GEDCOM-L).
-   * Written back as `_MAIDENHEAD` in 5.5.1; dropped in 7.0.
+   * Written back as `_MAIDENHEAD` in both versions.
    */
   maidenhead?: Text;
   /** `TYPE` {0:M} — the kind of place object (Ort, Kreis, …; GEDCOM-L), each optionally dated. */
@@ -95,7 +95,7 @@ export interface PlaceRecord extends GedcomStructureBase {
    * `_LOC @xref@` {0:M} — the parent places in the GEDCOM-L hierarchy,
    * each optionally qualified by the relationship kind (POLI =
    * administrative, RELI = ecclesiastical, GEOG = geographic, CULT =
-   * cultural). Written back in 5.5.1; dropped in 7.0 with the record.
+   * cultural). Written back in both versions.
    */
   parents?: PlaceHierarchyLink[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M} — REFN and the vendor `_UID` are recognized. */

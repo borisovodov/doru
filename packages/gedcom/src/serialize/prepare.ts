@@ -223,11 +223,13 @@ function hasGermanPlaceFields(card: PlaceRecord): boolean {
  * and notes are merged into every referencing place that lacks its own
  * copy (citations and media have no standard slot under PLAC and are
  * dropped), the location links are consumed, and the records are
- * removed. The exception: on 5.5.1 a GEDCOM-L card carrying the
- * German fields survives as a `_LOC` record and its referencing places
- * keep the pointer. See the PlaceRecord JSDoc.
+ * removed. The exception: a GEDCOM-L card carrying the German fields
+ * survives as a `_LOC` record (in both versions — GEDCOM 7.0 allows
+ * extension records) and its referencing places keep the pointer. See
+ * the PlaceRecord JSDoc.
  */
 function flattenPlaceRecords(dataset: GedcomDataset, version: '7.0' | '5.5.1'): void {
+  void version;
   const places = collectPlaces(dataset.records);
   const survivors = new Set<string>();
   for (const record of dataset.records) {
@@ -238,7 +240,7 @@ function flattenPlaceRecords(dataset: GedcomDataset, version: '7.0' | '5.5.1'): 
     if (card.xref === undefined) {
       continue;
     }
-    if (version === '5.5.1' && hasGermanPlaceFields(card)) {
+    if (hasGermanPlaceFields(card)) {
       survivors.add(card.xref);
       continue;
     }
@@ -254,26 +256,24 @@ function flattenPlaceRecords(dataset: GedcomDataset, version: '7.0' | '5.5.1'): 
       }
     }
   }
-  if (version === '5.5.1') {
-    // The hierarchy closes over the survivors: a card referenced as a
-    // parent by a surviving card must survive too, even when it carries
-    // no German fields of its own (a fixpoint over the parent links).
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const record of dataset.records) {
-        if (record.tag !== '_PLAC') {
-          continue;
-        }
-        const card = record as unknown as PlaceRecord;
-        if (card.xref === undefined || !survivors.has(card.xref)) {
-          continue;
-        }
-        for (const parent of card.parents ?? []) {
-          if (parent.parent !== '@VOID@' && !survivors.has(parent.parent)) {
-            survivors.add(parent.parent);
-            changed = true;
-          }
+  // The hierarchy closes over the survivors: a card referenced as a
+  // parent by a surviving card must survive too, even when it carries
+  // no German fields of its own (a fixpoint over the parent links).
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const record of dataset.records) {
+      if (record.tag !== '_PLAC') {
+        continue;
+      }
+      const card = record as unknown as PlaceRecord;
+      if (card.xref === undefined || !survivors.has(card.xref)) {
+        continue;
+      }
+      for (const parent of card.parents ?? []) {
+        if (parent.parent !== '@VOID@' && !survivors.has(parent.parent)) {
+          survivors.add(parent.parent);
+          changed = true;
         }
       }
     }

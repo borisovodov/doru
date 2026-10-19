@@ -241,10 +241,7 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       emitTodoRecord(w, version, record as Parameters<typeof emitTodoRecord>[2]);
       return;
     case '_PLAC':
-      if (version === '5.5.1') {
-        emitPlaceRecord(w, version, record as PlaceRecord);
-      }
-      // 7.0 never carries place records (prepareFor70 flattened them).
+      emitPlaceRecord(w, version, record as PlaceRecord);
       return;
     default:
       emitExtension(w, version, 0, record as ExtensionStructure, (record as { xref?: string }).xref);
