@@ -274,8 +274,12 @@ export type RoleEnum = keyof typeof ROLE_ENUM_VALUES | ExtensionTag;
  * describe an individual's reproductive or sexual anatomy at birth; gender
  * identity or sexual preference are not given their own tag.
  *
- * GEDCOM 5.5.1 §2 (p.61), `SEX_VALUE` — values M, F and U; X is 7.0-only
- * and is dropped when serializing to 5.5.1 (the SEX line disappears).
+ * GEDCOM 5.5.1 §2 (p.61), `SEX_VALUE` — values M, F and U only. X and N
+ * are the GEDCOM 5.5.5 additions (`SEX_VALUE`, 5.5.5 §2 p.104: X =
+ * intersex; N = "Not recorded", distinguished from U: the record did
+ * not record a sex, or it is sure that there is no record). The 5.x
+ * parser accepts all five values in any 5.x file; the serializers
+ * project: 5.5.1 drops X and N (the SEX line disappears), 7.0 drops N.
  */
 export const SEX_ENUM_VALUES = {
   /** Male. */
@@ -286,6 +290,8 @@ export const SEX_ENUM_VALUES = {
   X: 'Does not fit the typical definition of only Male or only Female.',
   /** Cannot be determined from available sources. */
   U: 'Cannot be determined from available sources.',
+  /** The record did not record a sex, or it is sure that there is no record. GEDCOM 5.5.5 §2 (p.104) only. */
+  N: 'The record did not record a sex, or it is sure that there is no record.',
 } as const;
 
 /** GEDCOM 7.0 §3.4 g7:enumset-SEX. */

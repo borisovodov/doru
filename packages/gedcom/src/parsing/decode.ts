@@ -13,6 +13,9 @@
  */
 
 import type {
+  GedcomVersion,
+} from '../primitives';
+import type {
   ParseResult,
 } from '../errors';
 import {
@@ -126,7 +129,7 @@ export interface DecodedLine {
   offset: number;
 }
 
-/** A decoded document: the full text and its lines with byte offsets. */
+/* A decoded document: the full text and its lines with byte offsets. */
 export interface DecodedDocument {
   text: string;
   lines: DecodedLine[];
@@ -164,7 +167,7 @@ function splitByteLines(bytes: Uint8Array): RawByteLine[] {
   return lines;
 }
 
-/** Decodes one UTF-8 line (with fatal errors); BOM allowed on line 1. */
+/* Decodes one UTF-8 line (with fatal errors); BOM allowed on line 1. */
 function decodeUtf8Line(line: RawByteLine, lineNumber: number, isFirst: boolean): ParseResult<string> {
   try {
     const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(line.bytes);
@@ -523,7 +526,7 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
  * Decodes a document for GEDCOM 7.0 (UTF-8) or GEDCOM 5.5.1 (per the
  * header CHAR tag) into lines with byte offsets.
  */
-export function decodeDocument(bytes: Uint8Array, version: '7.0' | '5.5.1'): ParseResult<DecodedDocument> {
+export function decodeDocument(bytes: Uint8Array, version: GedcomVersion): ParseResult<DecodedDocument> {
   let charset: Charset551;
   if (version === '7.0') {
     charset = 'UTF-8';

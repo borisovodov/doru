@@ -57,6 +57,7 @@ import {
   emitAddress,
   emitAssociation,
   emitDate,
+  emitDateExact,
   emitExtensions,
   emitNoteStructure,
   emitSourceCitation,
@@ -71,6 +72,7 @@ import {
 } from './values';
 import type {
   DateStructure,
+  SourcePublicationDetails,
 } from '../../structures';
 
 export function emitFamily(w: Writer, version: Version, rec: {
@@ -141,7 +143,10 @@ export function emitFamily(w: Writer, version: Version, rec: {
     for (const nonEvent of rec.nonEvents ?? []) {
       w.line(1, 'NO', { value: nonEvent.payload });
       if (nonEvent.date !== undefined) {
-        w.line(2, 'DATE', { value: formatDateValue70(nonEvent.date.value ?? { kind: 'period' }) });
+        const dateValue = formatDateValue70(nonEvent.date.value ?? { kind: 'period' });
+        if (dateValue !== undefined) {
+          w.line(2, 'DATE', { value: dateValue });
+        }
         if (nonEvent.date.phrase !== undefined) {
           w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
         }
@@ -243,6 +248,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   ancestralFileNumber?: string;
   updatedAt?: string;
   url?: string;
+  sosaNumber?: string;
   marks?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -253,6 +259,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   if (rec.url !== undefined) {
     w.line(1, '_URL', { value: rec.url });
+  }
+  if (rec.sosaNumber !== undefined) {
+    w.line(1, '_SOSA', { value: rec.sosaNumber });
   }
   if (rec.marks !== undefined) {
     rec.marks.forEach((mark, index) => {
@@ -288,7 +297,10 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     for (const nonEvent of rec.nonEvents ?? []) {
       w.line(1, 'NO', { value: nonEvent.payload });
       if (nonEvent.date !== undefined) {
-        w.line(2, 'DATE', { value: formatDateValue70(nonEvent.date.value ?? { kind: 'period' }) });
+        const dateValue = formatDateValue70(nonEvent.date.value ?? { kind: 'period' });
+        if (dateValue !== undefined) {
+          w.line(2, 'DATE', { value: dateValue });
+        }
         if (nonEvent.date.phrase !== undefined) {
           w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
         }
@@ -449,6 +461,7 @@ export function emitRepository(w: Writer, version: Version, rec: {
   www?: string[];
   notes?: NoteStructure[];
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+  dates?: DateStructure[];
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
@@ -457,6 +470,10 @@ export function emitRepository(w: Writer, version: Version, rec: {
 }): void {
   w.line(0, 'REPO', { xref: rec.xref });
   w.line(1, 'NAME', { value: rec.name });
+  for (const date of rec.dates ?? []) {
+    // The community _DATE extension under REPO (registry: _DATE.yaml).
+    emitDate(w, version, 1, '_DATE', date);
+  }
   const address = mergedAddress(w, version, rec.address, rec);
   if (address !== undefined) {
     emitAddress(w, version, 1, address);
@@ -566,6 +583,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   title?: string;
   abbreviation?: string;
   publication?: string;
+  publicationDetails?: SourcePublicationDetails;
   text?: SourceText;
   repositoryCitations?: Array<{ repository: string; notes?: NoteStructure[]; callNumbers?: CallNumberStructure[] }>;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
@@ -585,9 +603,13 @@ export function emitSource(w: Writer, version: Version, rec: {
     for (const event of rec.data.events ?? []) {
       w.line(2, 'EVEN', { value: event.payload.join(', ') });
       if (event.date !== undefined) {
-        w.line(3, 'DATE', {
-          value: version === '7.0' ? formatDateValue70(event.date.value ?? { kind: 'period' }) : formatDateValue551(event.date.value ?? { kind: 'period' }),
-        });
+        const dateValue =
+          version === '7.0'
+            ? formatDateValue70(event.date.value ?? { kind: 'period' })
+            : formatDateValue551(event.date.value ?? { kind: 'period' });
+        if (dateValue !== undefined) {
+          w.line(3, 'DATE', { value: dateValue });
+        }
         if (event.date.phrase !== undefined) {
           w.line(4, 'PHRASE', { value: event.date.phrase });
         }
@@ -614,6 +636,16 @@ export function emitSource(w: Writer, version: Version, rec: {
   }
   if (rec.publication !== undefined) {
     w.line(1, 'PUBL', { value: rec.publication });
+    if (version === '7.0' && rec.publicationDetails !== undefined) {
+      // The Ancestry publication details (registry: Ancestry_PUBL_DATE /
+      // Ancestry_PUBL_PLAC yaml); 5.5.1 has no slot for them.
+      if (rec.publicationDetails.date !== undefined) {
+        emitDateExact(w, version, 2, 'DATE', rec.publicationDetails.date, rec.publicationDetails.date.time);
+      }
+      if (rec.publicationDetails.place !== undefined) {
+        w.line(2, 'PLAC', { value: rec.publicationDetails.place });
+      }
+    }
   }
   if (rec.text !== undefined) {
     w.line(1, 'TEXT', { value: rec.text.payload });

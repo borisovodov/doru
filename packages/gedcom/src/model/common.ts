@@ -363,6 +363,15 @@ export interface AgeStructure extends GedcomStructureBase {
   payload: AgeValue;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
+  /**
+   * _AGER {0:1} — an age range "Integer-Integer" (e.g. 16-26: at
+   * least the first, less than the second), bounding the AGE payload
+   * from both sides where the AGE grammar only allows one bound. The
+   * MagiKey extension, registered in the FamilySearch GEDCOM registry
+   * (structure/extension/MagiKey_AGER.yaml; a substructure of AGE).
+   * Recognized on input and written back as `_AGER` in both versions.
+   */
+  ageRange?: Text;
 }
 
 /**

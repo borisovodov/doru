@@ -41,11 +41,8 @@ describe('parseGedcom551 — header', () => {
     expect(dataset.header.characterSet?.version).toBeUndefined();
   });
 
-  test('requires SOUR, SUBM and CHAR', () => {
+  test('requires SOUR and CHAR', () => {
     expect(err551('0 HEAD\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n')).toBe(
-      'structure.missing-required',
-    );
-    expect(err551('0 HEAD\n1 SOUR PAF\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 TRLR\n')).toBe(
       'structure.missing-required',
     );
     expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n')).toBe(
@@ -421,7 +418,6 @@ describe('parseGedcom551 — strictness', () => {
     );
     expect(err551([...HEADER, '0 @I1@ INDI', '1 UID abc', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
     expect(err551([...HEADER, '0 @I1@ INDI', '1 INIL', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 SEX X', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
   });
 
   test('rejects a Y payload on 5.5.1 family events other than MARR', () => {

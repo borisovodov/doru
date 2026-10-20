@@ -16,11 +16,15 @@ import type {
   MultimediaRecord,
 } from '../structures';
 import type {
+  GedcomVersion,
+} from '../primitives';
+import type {
   RawNode,
 } from './lines';
 
+/** The declared specification version of the document being parsed. */
 export interface Ctx {
-  version: '7.0' | '5.5.1';
+  version: GedcomVersion;
   xrefs: Set<string>;
   synthetic: MultimediaRecord[];
   syntheticIndex: number;

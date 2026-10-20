@@ -27,6 +27,7 @@
 export * from './model/extensions';
 export * from './model/document';
 export * from './model/records';
+export * from './model/census-record';
 export * from './model/common';
 export * from './model/names-places';
 export * from './model/sources-media';

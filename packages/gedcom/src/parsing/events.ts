@@ -161,8 +161,16 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
   return out;
 }
 
-/** The 5.5.1 SEX_VALUE set (no X). */
-export const SEX_551: Record<'M' | 'F' | 'U', string> = { M: 'male', F: 'female', U: 'undetermined' };
+/**
+ * The SEX_VALUE set accepted in any 5.x file: the 5.5.1 values M, F, U
+ * (GEDCOM 5.5.1 §2 p.61) plus the GEDCOM 5.5.5 additions X (intersex)
+ * and N (not recorded; the record did not record a sex, unlike U which
+ * merely says it is not known yet — 5.5.5 §2 p.104). The 5.5.1
+ * serializer drops X and N.
+ */
+export const SEX_551: Record<'M' | 'F' | 'U' | 'X' | 'N', string> = {
+  M: 'male', F: 'female', U: 'undetermined', X: 'intersex', N: 'not recorded',
+};
 
 /** The 5.5.1 PEDIGREE_LINKAGE_TYPE set (no OTHER). */
 export const PEDI_551: Record<'ADOPTED' | 'BIRTH' | 'FOSTER' | 'SEALING', string> = {

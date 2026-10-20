@@ -12,6 +12,8 @@ import {
 } from '../errors';
 import type {
   Corporation,
+  FtmSchemaBlock,
+  FtmSchemaEntry,
   Gedcom,
   Header,
   HeaderPlace,
@@ -111,13 +113,26 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       ...(ctx.version === '5.5.1'
         ? {
             CHAR: (child) => {
-              parseCharacterSetStructure(child);
+              parseCharacterSetStructure(child, ctx);
+            },
+            SCHEMA: (child) => {
+              if (header.schema53 !== undefined) {
+                fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
+              }
+              header.schema53 = parseSchema53(child, ctx);
+            },
+            _SCHEMA: (child) => {
+              // The Family Tree Maker spelling of the same block.
+              if (header.schema53 !== undefined) {
+                fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
+              }
+              header.schema53 = parseSchema53(child, ctx);
             },
           }
         : {}),
     },
     ctx,
-    ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR'],
+    ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR', 'SCHEMA'],
   );
   if (header.gedcom === (null as unknown as Gedcom)) {
     fail('structure.missing-required', 'The header requires a GEDC substructure', node.position);
@@ -126,9 +141,11 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
     if (header.source === undefined) {
       fail('structure.missing-required', 'The 5.5.1 header requires a SOUR substructure', node.position);
     }
-    if (header.submitter === undefined) {
-      fail('structure.missing-required', 'The 5.5.1 header requires a SUBM substructure', node.position);
-    }
+    // The 5.5.1 spec also requires the HEAD.SUBM pointer, but it is not
+    // enforced: GEDCOM 5.5.5 deprecated it in favour of the submitter
+    // record after the header, and real 5.5.5 files omit it — they
+    // parse under these rules. The 5.5.1 serializer still synthesizes
+    // a SUBM when writing.
   }
   return header;
 }
@@ -136,9 +153,9 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
 export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   noPayload(node);
   const gedcom: Gedcom = { version: reqText(req(node, 'VERS')) };
-  // The version gate comes first: a 5.5.1 GEDC parsed as 7.0 must fail
+  // The version gate comes first: a 5.x GEDC parsed as 7.0 must fail
   // with `document.wrong-version` (not with a FORM-related error), so
-  // that the unified `parse` can fall back to the 5.5.1 parser.
+  // that the unified `parse` can fall back to the 5.x parser.
   if (ctx.version === '7.0') {
     if (!/^7\./.test(gedcom.version)) {
       fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 7.x version`, node.position);
@@ -156,6 +173,13 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
       fail('enum.invalid-value', `Unknown GEDCOM form "${form}"; expected LINEAGE-LINKED`, formNode.position);
     }
     gedcom.form = form;
+    // GEDCOM 5.5.5 added GEDC.FORM.VERS (a version number for the
+    // GEDCOM form, distinct from GEDC.VERS; 5.5.5 §1 p.49–50). The
+    // package does not store it — the writers emit 5.5.1 and 7.0,
+    // neither of which has the slot — so the line is accepted and
+    // discarded (its cardinality is still checked).
+    one(formNode, 'VERS');
+    dispatch(formNode, { }, { VERS: () => undefined }, ctx);
   } else if (formNode !== undefined) {
     fail('structure.unknown-tag', 'The FORM tag is not allowed under GEDC in GEDCOM 7.0', formNode.position);
   }
@@ -189,7 +213,7 @@ export function parseTagDefinitionStructure(node: RawNode): TagDefinitionStructu
 export function parseHeaderSource(node: RawNode, ctx: Ctx): HeaderSource {
   const source: HeaderSource = { payload: reqText(node) };
   if (ctx.version === '5.5.1' && /\s/.test(source.payload)) {
-    fail('enum.invalid-value', 'The 5.5.1 APPROVED_SYSTEM_ID must not contain spaces (use underscores)', node.position);
+    fail('enum.invalid-value', `The ${ctx.version} APPROVED_SYSTEM_ID must not contain spaces (use underscores)`, node.position);
   }
   dispatch(
     node,
@@ -265,10 +289,10 @@ export function parseHeaderPlace(node: RawNode, ctx: Ctx): HeaderPlace {
   return place;
 }
 
-/** Validates the 5.5.1 CHAR line; the declared value selects the
+/* Validates the 5.5.1 CHAR line; the declared value selects the
  * decoder (checked earlier by the charset detection) and is not stored
  * in the model. CHAR.VERS is accepted and discarded. */
-export function parseCharacterSetStructure(node: RawNode): void {
+export function parseCharacterSetStructure(node: RawNode, ctx: Ctx): void {
   const text = reqText(node);
   if (normalizeCharset551(text) === undefined) {
     fail('charset.invalid', `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, or MACINTOSH`, node.position);
@@ -277,8 +301,62 @@ export function parseCharacterSetStructure(node: RawNode): void {
     node,
     { },
     { VERS: () => undefined },
-    { version: '5.5.1', xrefs: new Set(), synthetic: [], syntheticIndex: 0 },
+    ctx,
   );
+}
+
+/**
+ * Parses the GEDCOM 5.3 SCHEMA block: context chains of tags ending in
+ * the declared user tag, with LABL/DEFN/ISA leaves beneath it (GEDCOM
+ * 5.3 `USER_TAG_SCHEMA`, p.25–26 of the Tamura Jones PDF). The context
+ * tags carry no payloads; the leaves are payload texts and have no
+ * substructures of their own.
+ */
+export function parseSchema53(node: RawNode, ctx: Ctx): FtmSchemaBlock {
+  noPayload(node);
+  const out: FtmSchemaBlock = { tag: 'SCHEMA', entries: [] };
+  for (const child of node.children) {
+    collectSchemaEntry(child, [], out.entries, ctx);
+  }
+  return out;
+}
+
+/** Walks one branch of the SCHEMA tree, collecting the declaration leaves. */
+function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchemaEntry[], ctx: Ctx): void {
+  if (node.tag === 'LABL' || node.tag === 'DEFN' || node.tag === 'ISA') {
+    if (node.children.length > 0) {
+      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
+    }
+    const key = context.join('/');
+    let entry = entries[entries.length - 1];
+    if (entry === undefined || entry.context.join('/') !== key) {
+      entry = { context: [...context] };
+      entries.push(entry);
+    }
+    if (node.tag === 'LABL') {
+      if (entry.label !== undefined) {
+        fail('structure.cardinality', 'At most one LABL is allowed under a declared tag', node.position);
+      }
+      entry.label = reqText(node);
+    } else if (node.tag === 'DEFN') {
+      if (entry.definition !== undefined) {
+        fail('structure.cardinality', 'At most one DEFN is allowed under a declared tag', node.position);
+      }
+      entry.definition = reqText(node);
+    } else {
+      if (entry.parent !== undefined) {
+        fail('structure.cardinality', 'At most one ISA is allowed under a declared tag', node.position);
+      }
+      entry.parent = reqText(node);
+    }
+    return;
+  }
+  if (node.value.kind !== 'absent') {
+    fail('structure.unexpected-payload', `The SCHEMA context tag ${node.tag} must not carry a value`, node.position);
+  }
+  for (const child of node.children) {
+    collectSchemaEntry(child, [...context, node.tag], entries, ctx);
+  }
 }
 
 export function parseLanguage(node: RawNode, ctx: Ctx): string {

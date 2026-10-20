@@ -68,6 +68,10 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       {
         PAGE: (child) => {
           out.page = reqText(child);
+          // Dispatch keeps underscore extensions under PAGE (the
+          // community _SOUR is a relocated citation there — registry:
+          // _SOUR.yaml) and rejects the rest.
+          dispatch(child, out, {}, ctx);
         },
         DATA: (child) => {
           out.data = parseSourceCitationData(child, ctx);
@@ -108,6 +112,7 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       {
         PAGE: (child) => {
           out.page = reqText(child);
+          dispatch(child, out, {}, ctx);
         },
         DATA: (child) => {
           out.data = parseSourceCitationData(child, ctx);

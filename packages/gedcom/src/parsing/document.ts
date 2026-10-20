@@ -12,6 +12,9 @@ import {
   fail,
 } from '../errors';
 import type {
+  GedcomVersion,
+} from '../primitives';
+import type {
   ExtensionRecord,
   GedcomDataset,
   GedcomRecord,
@@ -29,6 +32,9 @@ import {
   parseFamilyRecord,
   parseIndividualRecord,
 } from './family-individual';
+import {
+  parseCensusRecord,
+} from './census';
 import {
   parseHeader,
 } from './header';
@@ -54,7 +60,7 @@ import {
 // Document
 // ---------------------------------------------------------------------------
 
-export function parseDocument(raw: { nodes: RawNode[] }, version: '7.0' | '5.5.1'): GedcomDataset {
+export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion): GedcomDataset {
   const ctx: Ctx = {
     version,
     xrefs: new Set(raw.nodes.map((node) => node.xref).filter((xref): xref is string => xref !== undefined)),
@@ -129,7 +135,7 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       }
       return parseSharedNoteRecord(node, ctx);
     case 'NOTE':
-      if (ctx.version !== '5.5.1') {
+      if (ctx.version === '7.0') {
         fail('structure.unknown-tag', 'The NOTE record does not exist in GEDCOM 7.0 (use SNOTE)', node.position);
       }
       return parseNoteRecord(node, ctx);
@@ -143,6 +149,8 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case '_LOC':
     case '_PLAC_DEFN':
       return parsePlaceRecord(node, ctx);
+    case '_CENR':
+      return parseCensusRecord(node, ctx);
     case '_TODO':
       return parseTodoRecord(node, ctx);
     default:

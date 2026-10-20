@@ -53,7 +53,8 @@ decisions about what we deliberately do **not** build, see
 ## GEDCOM
 
 - GEDCOM import and export live in the dedicated `@doru/gedcom` package
-  (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP), kept free of runtime dependencies and
+  (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP; the GEDCOM 5.5.5 vocabulary parses
+  on 5.x import), kept free of runtime dependencies and
   of Electron. The package is not wired to the tree database yet: the
   desktop IPC handlers (`project:import`, `project:export`) stay wired to
   the UI but are no-ops until the dataset → tree mapping lands.

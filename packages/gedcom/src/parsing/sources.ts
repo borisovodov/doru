@@ -24,6 +24,7 @@ import type {
   RepositoryRecord,
   SharedNoteRecord,
   SourceDataEvent,
+  SourcePublicationDetails,
   SourceRecord,
   SourceRecordData,
   SourceText,
@@ -52,7 +53,9 @@ import {
   parseAddressStructure,
   parseChangeDate,
   parseCreationDate,
+  parseDateExactStructure,
   parseDatePeriodStructure,
+  parseDateStructure,
   parseExternalIdentifier,
   parseNoteStructure,
   parseNoteTranslation,
@@ -74,6 +77,10 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     },
     NOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    '_DATE': (child) => {
+      // The community _DATE extension under REPO (registry: _DATE.yaml).
+      (rec.dates ??= []).push(parseDateStructure(child, ctx));
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -202,15 +209,40 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     },
     AUTH: (child) => {
       rec.author = reqText(child);
+      // The leaf payload fields have no substructures of their own;
+      // dispatch keeps underscore extensions and rejects the rest.
+      dispatch(child, rec, {}, ctx);
     },
     TITL: (child) => {
       rec.title = reqText(child);
+      dispatch(child, rec, {}, ctx);
     },
     ABBR: (child) => {
       rec.abbreviation = reqText(child);
+      dispatch(child, rec, {}, ctx);
     },
     PUBL: (child) => {
       rec.publication = reqText(child);
+      // The Ancestry publication details (registry: Ancestry_PUBL_DATE
+      // and Ancestry_PUBL_PLAC yaml): DATE {0:1} and PLAC {0:1}.
+      const details: SourcePublicationDetails = {};
+      dispatch(
+        child,
+        details,
+        {
+          DATE: (dateChild) => {
+            details.date = parseDateExactStructure(dateChild, ctx, true);
+          },
+          PLAC: (placeChild) => {
+            details.place = reqText(placeChild);
+          },
+        },
+        ctx,
+        ['DATE', 'PLAC'],
+      );
+      if (Object.keys(details).length > 0) {
+        rec.publicationDetails = details;
+      }
     },
     TEXT: (child) => {
       rec.text = parseSourceText(child, ctx);
