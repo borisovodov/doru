@@ -3,14 +3,16 @@ import { contextBridge, ipcRenderer } from 'electron';
 const api = {
   platform: process.platform,
   getCurrentProject: (): Promise<unknown> => ipcRenderer.invoke('project:current'),
-  onProjectBound: (callback: (info: { path: string }) => void): (() => void) => {
-    const listener = (_event: unknown, info: { path: string }) => callback(info);
+  onProjectBound: (callback: (info: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, info: unknown) => callback(info);
     ipcRenderer.on('project:bind', listener);
     return () => ipcRenderer.removeListener('project:bind', listener);
   },
   openProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:open', { dialog: true }),
   openProjectPath: (path: string): Promise<unknown> => ipcRenderer.invoke('project:open', { path }),
   createProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:create'),
+  saveProject: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('project:save', { projectPath }),
   importGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:import', { projectPath, dialog: true }),
   importGedcomFile: (projectPath: string, filePath: string): Promise<unknown> =>

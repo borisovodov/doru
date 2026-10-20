@@ -53,10 +53,20 @@ decisions about what we deliberately do **not** build, see
 ## GEDCOM
 
 - GEDCOM import and export live in the dedicated `@doru/gedcom` package
-  (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP), kept free of runtime dependencies and
-  of Electron. Nothing imports it yet: the desktop IPC handlers
-  (`project:import`, `project:export`) stay wired to the UI but are no-ops
-  until the dataset mapping is wired up.
+  (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP; the GEDCOM 5.5.5 vocabulary parses
+  on 5.x import), kept free of runtime dependencies and
+  of Electron. The package is not wired to the tree database yet: the
+  desktop IPC handlers (`project:import`, `project:export`) stay wired to
+  the UI but are no-ops until the dataset → tree mapping lands.
+- The app registers `.ged`/`.gdz` file associations (next to `.doru`) and
+  routes every opened file by extension. Opening a GEDCOM file imports it
+  into a new **not-yet-saved project** — the import itself is currently
+  stubbed, so the project opens empty: the data lives in a temporary
+  `.doru` store under the OS temp directory, keyed `untitled:<uuid>`, and
+  the window shows the imported file's name with an unsaved marker. The
+  first save asks for a `.doru` location, moves the store and media folder
+  there and rebinds the window to the real path; from then on the project
+  autosaves like any other.
 
 ## Localization
 

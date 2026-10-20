@@ -135,6 +135,7 @@
   "workbench.recent": "Récents",
   "workbench.recent.empty": "Aucun projet récent",
   "workbench.redo": "Rétablir",
+  "workbench.saveProject": "Enregistrer",
   "workbench.settings": "Paramètres",
   "workbench.tab.close": "Fermer",
   "workbench.toggleSecondarySideBar": "Afficher/masquer la barre latérale secondaire",

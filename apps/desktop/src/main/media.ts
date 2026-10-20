@@ -4,7 +4,7 @@ import { dirname, extname, join } from 'node:path';
 import { MEDIA_DIR_NAME, addMediaOp, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
-import { ensureRuntime } from './runtime';
+import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
 
 const fs = new NodeFileSystem();
@@ -18,7 +18,7 @@ function mediaAbsolutePath(projectPath: string, mediaPath: string): string | nul
   if (!normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
     return null;
   }
-  return join(dirname(projectPath), mediaPath);
+  return join(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
 export async function listMediaForPerson(
@@ -26,9 +26,10 @@ export async function listMediaForPerson(
   personId: string,
 ): Promise<Array<MediaRecord & { absolutePath: string }>> {
   const { runtime } = await ensureRuntime(projectPath);
+  const base = dirname(runtimeFilePath(projectPath));
   return runtime.repo
     .listMediaFor('person', personId)
-    .map((media) => ({ ...media, absolutePath: join(dirname(projectPath), media.path) }));
+    .map((media) => ({ ...media, absolutePath: join(base, media.path) }));
 }
 
 export async function addMediaToPerson(
@@ -48,7 +49,7 @@ export async function addMediaToPerson(
     return [];
   }
   const { runtime } = await ensureRuntime(projectPath);
-  const mediaDir = join(dirname(projectPath), MEDIA_DIR_NAME);
+  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
   const added: Array<MediaRecord & { absolutePath: string }> = [];
   for (const source of result.filePaths) {

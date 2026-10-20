@@ -1,9 +1,10 @@
 import { BrowserWindow, Menu, app, type MenuItemConstructorOptions } from 'electron';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { ProjectBinding } from '@doru/core';
 import { closeProjectRuntime } from './runtime';
 import { updateSession } from './session';
-import { projectWindows, windowProject } from './state';
+import { projectWindows, untitledProjects, windowProject } from './state';
 import { titleBarOverlayOptions, windowBackgroundColor } from './themes';
 
 export function iconPath(): string {
@@ -31,6 +32,18 @@ export function windowById(id: number): BrowserWindow | null {
   );
 }
 
+/**
+ * The renderer-facing identity of a project key: a real `.doru` path, or an
+ * `untitled:` id carrying the imported file name.
+ */
+export function bindingOf(projectKey: string): ProjectBinding {
+  const untitled = untitledProjects.get(projectKey);
+  if (untitled) {
+    return { path: projectKey, untitled: true, name: untitled.name };
+  }
+  return { path: projectKey, untitled: false, name: basename(projectKey) };
+}
+
 export function installMenu(): void {
   const template: MenuItemConstructorOptions[] = [];
   if (process.platform === 'darwin') {
@@ -42,20 +55,47 @@ export function installMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-export function bindWindowToProject(window: BrowserWindow, projectPath: string): void {
-  windowProject.set(window.webContents.id, projectPath);
-  projectWindows.set(projectPath, window);
-  window.setTitle(`${basename(projectPath)} — Dóru`);
-  window.webContents.send('project:bind', { path: projectPath });
+export function bindWindowToProject(window: BrowserWindow, projectKey: string): void {
+  const binding = bindingOf(projectKey);
+  windowProject.set(window.webContents.id, projectKey);
+  projectWindows.set(projectKey, window);
+  window.setTitle(`${binding.name} — Dóru`);
+  window.webContents.send('project:bind', binding);
 }
 
-export function createWindow(projectPath: string | null): BrowserWindow {
+/**
+ * Attaches an open project to a window: reuses the sender window when it is
+ * an unbound (welcome) window, otherwise reuses any unbound window, and only
+ * then creates a new one. Mirrors the one-window-per-project invariant.
+ */
+export function openProjectInWindow(projectKey: string, senderId?: number): BrowserWindow {
+  const senderWindow = senderId !== undefined ? windowById(senderId) : null;
+  const senderBound = senderId !== undefined ? windowProject.get(senderId) : undefined;
+  if (senderWindow && !senderWindow.isDestroyed() && senderBound === null) {
+    bindWindowToProject(senderWindow, projectKey);
+    return senderWindow;
+  }
+  if (senderId === undefined) {
+    const emptyWindow =
+      BrowserWindow.getAllWindows().find(
+        (window) => !window.isDestroyed() && windowProject.get(window.webContents.id) === null,
+      ) ?? null;
+    if (emptyWindow) {
+      bindWindowToProject(emptyWindow, projectKey);
+      return emptyWindow;
+    }
+  }
+  return createWindow(projectKey);
+}
+
+export function createWindow(projectKey: string | null): BrowserWindow {
   const preload = fileURLToPath(new URL('../preload/index.mjs', import.meta.url));
   const icon = process.platform === 'darwin' ? undefined : iconPath();
+  const title = projectKey ? `${bindingOf(projectKey).name} — Dóru` : 'Dóru';
   const window = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: projectPath ? `${basename(projectPath)} — Dóru` : 'Dóru',
+    title,
     ...(icon ? { icon } : {}),
     // Match the shell color so live window resizes never flash the default
     // white native surface under the content.
@@ -74,12 +114,12 @@ export function createWindow(projectPath: string | null): BrowserWindow {
     },
   });
   const webContentsId = window.webContents.id;
-  windowProject.set(webContentsId, projectPath);
+  windowProject.set(webContentsId, projectKey);
 
   window.on('page-title-updated', (event) => {
     event.preventDefault();
     const bound = windowProject.get(webContentsId);
-    window.setTitle(bound ? `${basename(bound)} — Dóru` : 'Dóru');
+    window.setTitle(bound ? `${bindingOf(bound).name} — Dóru` : 'Dóru');
   });
 
   const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
@@ -102,8 +142,8 @@ export function createWindow(projectPath: string | null): BrowserWindow {
     }
   });
 
-  if (projectPath) {
-    projectWindows.set(projectPath, window);
+  if (projectKey) {
+    projectWindows.set(projectKey, window);
   }
   return window;
 }

@@ -69,12 +69,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   undo/redo stays consistent.
 - Keep the service layer free of Electron-specific APIs where feasible
   (allows future Capacitor/mobile reuse).
-- **One window per open project file.** The main process maps project paths to
-  `BrowserWindow`s (`projectWindows`) and webContents ids to projects
-  (`windowProject`); opening a file focuses its window or binds a welcome
-  window instead of creating duplicates. Window-close cleanup must read the
-  *current* binding from `windowProject` — never capture the creation-time
-  path in the `closed` closure (a rebinding leaks a destroyed window).
+- **One window per open project file.** The main process maps project keys
+  (`.doru` paths, or `untitled:` ids for GEDCOM imports that were never
+  saved) to `BrowserWindow`s (`projectWindows`) and webContents ids to
+  projects (`windowProject`); opening a file focuses its window or binds a
+  welcome window instead of creating duplicates. Window-close cleanup must
+  read the *current* binding from `windowProject` — never capture the
+  creation-time path in the `closed` closure (a rebinding leaks a destroyed
+  window).
 - **Tabs are entities, not projects.** The renderer keeps open tabs in
   `openTabs` with ids `tree`, `settings`, `person:<id>`, `person:new:<uuid>`.
   Tabs are kept alive via the `.editor-stack`/`.editor-pane` pattern (inactive

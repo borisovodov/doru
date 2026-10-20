@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
 import { ChatPanel, EmptyEditorPage, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
+import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
@@ -18,6 +20,8 @@ import { useTreeData } from './hooks/useTreeData';
 
 export function App() {
   const [projectPath, setProjectPath] = useState<string | null | undefined>(undefined);
+  const [projectUntitled, setProjectUntitled] = useState(false);
+  const [untitledName, setUntitledName] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
   const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(
     null,
@@ -33,26 +37,30 @@ export function App() {
   const commands = useMemo(() => new CommandService(), []);
 
   const startProject = useCallback(
-    (path: string) => {
-      setProjectPath(path);
+    (info: ProjectBinding) => {
+      setProjectPath(info.path);
+      setProjectUntitled(info.untitled);
+      setUntitledName(info.untitled ? info.name : null);
       tabs.resetToTree();
     },
     [tabs.resetToTree],
   );
 
   useEffect(() => {
-    void window.doru.getCurrentProject().then((path) => {
-      if (path) {
-        startProject(path);
+    void window.doru.getCurrentProject().then((binding) => {
+      if (binding) {
+        startProject(binding);
       } else {
         setProjectPath(null);
+        setProjectUntitled(false);
+        setUntitledName(null);
       }
     });
   }, [startProject]);
 
   useEffect(() => {
     return window.doru.onProjectBound((info) => {
-      startProject(info.path);
+      startProject(info);
     });
   }, [startProject]);
 
@@ -61,6 +69,11 @@ export function App() {
       id: 'workbench.openProject',
       title: nls.t('workbench.openProject'),
       handler: () => project.openProject(),
+    });
+    const removeSave = commands.register({
+      id: 'workbench.saveProject',
+      title: nls.t('workbench.saveProject'),
+      handler: () => project.saveProject(),
     });
     const removeUndo = commands.register({
       id: 'tree.undo',
@@ -74,10 +87,11 @@ export function App() {
     });
     return () => {
       removeOpen.dispose();
+      removeSave.dispose();
       removeUndo.dispose();
       removeRedo.dispose();
     };
-  }, [commands, project.openProject, tree.undo, tree.redo]);
+  }, [commands, project.openProject, project.saveProject, tree.undo, tree.redo]);
 
   const keybindings = useMemo(
     () => [
@@ -85,6 +99,8 @@ export function App() {
       { key: 'ctrl+z', command: 'tree.undo' },
       { key: 'meta+shift+z', command: 'tree.redo' },
       { key: 'ctrl+shift+z', command: 'tree.redo' },
+      { key: 'meta+s', command: 'workbench.saveProject' },
+      { key: 'ctrl+s', command: 'workbench.saveProject' },
     ],
     [],
   );
@@ -191,8 +207,26 @@ export function App() {
       <Workbench
         commands={commands}
         keybindings={keybindings}
-        title={projectPath ? projectName(projectPath) : nls.t('app.name')}
+        title={
+          projectPath
+            ? projectUntitled
+              ? `${untitledName ?? projectName(projectPath)} •`
+              : projectName(projectPath)
+            : nls.t('app.name')
+        }
         platform={window.doru.platform}
+        titleActions={
+          projectUntitled ? (
+            <button
+              className="title-bar-action"
+              title={nls.t('workbench.saveProject')}
+              aria-label={nls.t('workbench.saveProject')}
+              onClick={() => void project.saveProject()}
+            >
+              <Save size={16} aria-hidden="true" />
+            </button>
+          ) : undefined
+        }
         sidebar={
           <SidebarView
             activeView={activeView}
