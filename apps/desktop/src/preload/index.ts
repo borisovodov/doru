@@ -53,16 +53,15 @@ const api = {
   respondChatPermission: (id: string, allow: boolean): void =>
     ipcRenderer.send('chat:permission-response', { id, allow }),
   getThemeState: (): Promise<unknown> => ipcRenderer.invoke('theme:state'),
-  getThemeCss: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:css', { name }),
+  getThemeCss: (name: string, mode: 'dark' | 'light'): Promise<unknown> =>
+    ipcRenderer.invoke('theme:css', { name, mode }),
   onThemeSystemChanged: (callback: (info: { systemDark: boolean }) => void): (() => void) => {
     const listener = (_event: unknown, info: { systemDark: boolean }) => callback(info);
     ipcRenderer.on('theme:system-changed', listener);
     return () => ipcRenderer.removeListener('theme:system-changed', listener);
   },
-  onThemeConfigChanged: (
-    callback: (config: { dark: string; light: string }) => void,
-  ): (() => void) => {
-    const listener = (_event: unknown, config: { dark: string; light: string }) => callback(config);
+  onThemeConfigChanged: (callback: (name: string) => void): (() => void) => {
+    const listener = (_event: unknown, name: string) => callback(name);
     ipcRenderer.on('theme:config-changed', listener);
     return () => ipcRenderer.removeListener('theme:config-changed', listener);
   },

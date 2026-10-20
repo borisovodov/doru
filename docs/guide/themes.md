@@ -3,17 +3,44 @@
 The interface is styled entirely through CSS custom properties, applied at the
 app level — never per project.
 
-- **Built-in themes** — `doru-dark` and `doru-light`, chosen per OS appearance
-  in `doru.json` (see [Configuration](configuration.md)). Switch your OS to
-  light mode and Dóru follows instantly; there is no in-app toggle.
-- Built-in themes are single JSON palette files in the app's `themes/`
-  directory: the `colors` map is resolved to `--doru-*` CSS custom properties
-  at startup (one file per theme, no CSS). The same mechanism could serve
-  user-installed themes later.
+- **Built-in theme** — `doru`, a single JSON palette file in the app's
+  `themes/` directory: one file per theme, no CSS. The file holds both the
+  `dark` and the `light` palette; the operating system appearance decides
+  which one applies — switch your OS to light mode and Dóru follows
+  instantly. The file name is the theme id (`doru.json`); the `name` field
+  inside is the display name.
+- Pick the theme in `doru.json` (see [Configuration](configuration.md)) with
+  a single string; there is no in-app toggle.
+- The `colors` of the active palette are resolved to `--doru-*` CSS custom
+  properties at startup.
 
-The palette follows the app icon: a deep forest green with warm paper tones.
-The dark theme layers surfaces from a near-black green-tinted canvas to
-lighter chrome and popovers; the light theme uses warm paper and cream.
+## User themes
+
+Drop a `<id>.json` file with `dark` and `light` palettes into the `themes`
+directory inside the app's data directory (the same place where `doru.json`
+lives — see [Configuration](configuration.md)), then pick it with
+`"theme": "<id>"` in `doru.json`. Restart the app after adding a file so it
+is picked up. The directory is created on first run; a user theme whose id
+matches a bundled one overrides it.
+
+Bundled themes, each with a dark and a light palette:
+
+| Theme id | Display name |
+|---|---|
+| `doru` (default) | Dóru |
+| `one-dark` | One Dark |
+| `github` | GitHub |
+| `solarized` | Solarized |
+| `gruvbox` | Gruvbox |
+| `catppuccin` | Catppuccin |
+| `ayu` | Ayu |
+| `rose-pine` | Rosé Pine |
+| `everforest` | Everforest |
+
+The default Dóru palette follows the app icon: a deep forest green with warm
+paper tones. The dark palette layers surfaces from a near-black green-tinted
+canvas to lighter chrome and popovers; the light palette uses warm paper and
+cream.
 
 Available variables:
 

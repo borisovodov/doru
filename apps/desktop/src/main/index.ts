@@ -16,7 +16,7 @@ import { openExternalPath, openProject } from './projects';
 import { closeAllRuntimes, ensureRuntime } from './runtime';
 import { readSession } from './session';
 import { pendingExternalPaths, projectWindows, recents } from './state';
-import { themeConfig, updateTitleBarOverlays, updateWindowBackgrounds } from './themes';
+import { ensureUserThemesDir, themeName, updateTitleBarOverlays, updateWindowBackgrounds } from './themes';
 import { createWindow, iconPath, installMenu } from './windows';
 
 if (process.env['DORU_USER_DATA']) {
@@ -111,6 +111,7 @@ if (!gotLock) {
 }
 
 void app.whenReady().then(async () => {
+  ensureUserThemesDir();
   const fs = new NodeFileSystem();
   recents.current = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
   installMenu();
@@ -147,7 +148,7 @@ void app.whenReady().then(async () => {
     updateTitleBarOverlays();
     updateWindowBackgrounds();
     for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send('theme:config-changed', themeConfig());
+      window.webContents.send('theme:config-changed', themeName());
     }
   });
 

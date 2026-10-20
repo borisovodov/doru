@@ -23,7 +23,7 @@ agents — through the built-in chat or any MCP/ACP client.
 | [Working with the tree](tree.md) | The interactive tree canvas: charts, focus navigation, editing, families, sources, notes. |
 | [Configuration](configuration.md) | The full `doru.json` reference and environment variables. |
 | [AI and agents](agents.md) | The in-app chat, ACP agents, MCP server mode, example prompts. |
-| [Themes](themes.md) | Dark and light themes, chosen per OS appearance. |
+| [Themes](themes.md) | One theme with dark and light palettes, chosen per OS appearance. |
 | [Data and backups](data-backups.md) | Data ownership, privacy, backing up and restoring projects. |
 | [Troubleshooting](troubleshooting.md) | Common problems and their fixes. |
 

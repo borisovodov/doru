@@ -40,11 +40,9 @@ Full reference:
     ]
   },
 
-  // Themes: pick one per OS appearance. The OS decides which is used.
-  "theme": {
-    "dark": "doru-dark",
-    "light": "doru-light"
-  }
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
+  "theme": "doru"
 }
 ```
 
