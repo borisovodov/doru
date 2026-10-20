@@ -24,6 +24,14 @@ results and secondary sources.
     GEDCOM 3.0–5.5.5, including the 5.3 `SCHEMA`/`DEFN`/`LABL`/`ISA`
     mechanism that Family Tree Maker still writes):
     <https://www.tamurajones.net/GEDCOMTags.xhtml>
+- **GEDCOM 5.5.5** (gedcom.org, 2019-10-02,
+  <https://www.gedcom.org/gedcom.html>) is not a separate dialect in
+  this package: files declaring it parse under the 5.5.1 rules, and
+  its vocabulary additions — `SEX X`/`N`, the `BCE`/`BC` epoch
+  spellings, the year-less `day month` dates, the `JPEG`/`TIFF` media
+  formats — are accepted in any 5.x file (`GEDC.FORM.VERS` is
+  tolerated but not stored). See the README's Parsing and "Known
+  strict decisions" sections.
 - **GEDCOM 5.3** had a schema mechanism (`SCHEMA`, `DEFN`, `LABL`,
   `ISA`) that was dropped in 5.4 but survives in Family Tree Maker
   files. Same Tamura Jones source as above.
@@ -209,6 +217,33 @@ Open-source, targets full 5.5.1 conformance; uses `_UID` and the common
 `_SHAR`-family extensions. No separate tag documentation; the source of
 record is the repository: <https://github.com/Serg-Norseman/GEDKeeper>.
 
+### Heredis
+
+French desktop genealogy (heredis.com). No documented private tag set:
+Heredis exports standard GEDCOM 5.5.1 with media, URLs and notes, and
+is known for a sloppy header (no byte-order mark, per Tamura Jones'
+"Heredis 2025 Place Name Handling":
+<https://www.tamurajones.net/Heredis2025PlaceNameHandling.xhtml>).
+Nothing to type; unknown `_` tags round-trip generically. The T2G
+template notes it has no sort dates:
+<https://www.tmgtogedcom.com/en/template-heredis.htm>.
+
+### Ancestris
+
+Open-source French GEDCOM editor (ancestris.org). It manages all
+standard tags plus user-defined ones and contributes its own, most
+notably `_SOSA` (the Sosa–Stradonitz Ahnentafel number of an
+individual) — see the user guide, "Tags":
+<https://docs.ancestris.org/books/user-guide/page/tags>. `_SOSA` is
+typed (chapter 6); its other `_` tags round-trip generically.
+
+### Agelong Tree
+
+Russian genealogy suite (Genery Software, genery.com). No documented
+private tag set; it exports standard 5.5.1 with the common `_UID`
+record identifiers. Nothing to type; unknown `_` tags round-trip
+generically.
+
 ### GEDCOM-L / GEDCOM 5.5EL (German extension standards)
 
 An extension agreement of the GEDCOM-L working group (CompGen), the de
@@ -239,18 +274,33 @@ Stammbaumdrucker, webtrees, …). Two parts:
 
 ## 4. Registered GEDCOM 7.0 extensions (official registry)
 
-From the registry manifest
-(<https://github.com/FamilySearch/GEDCOM-registries/blob/main/manifest/extension/manifest-extensions-en-US.tsv>):
+The FamilySearch GEDCOM registry (the GEDCOM-registries repository) is
+the official registry of 7.0 extension tags: each entry is a YAML file
+under `structure/extension/` plus a row in the manifest
+(<https://github.com/FamilySearch/GEDCOM-registries/blob/main/manifest/extension/manifest-extensions-en-US.tsv>).
+Every registered construct below is treated as valid input and is typed
+in the model; the registry YAML is the cited source of each field.
 
-| Tag | Registered by (HEAD.SOUR) |
-| --- | --- |
-| `DATE`, `PLAC` under `PUBL` | Ancestry.com Family Trees |
-| `FATH`, `MOTH`, `INDI` (census), `_AGER`, `_CENR`, `_MSTAT`, `_SCHD` | MagiKey |
-| `_DATE`, `_SOUR` | unowned (community) |
+| Registry entry | Tag | Position | Model field | Export |
+| --- | --- | --- | --- | --- |
+| [Ancestry_PUBL_DATE.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/Ancestry_PUBL_DATE.yaml) | `DATE` | under `SOUR.PUBL` {0:1}, DateExact | `SourceRecord.publicationDetails.date` | 7.0; dropped on 5.5.1 |
+| [Ancestry_PUBL_PLAC.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/Ancestry_PUBL_PLAC.yaml) | `PLAC` | under `SOUR.PUBL` {0:1}, place name | `SourceRecord.publicationDetails.place` | 7.0; dropped on 5.5.1 |
+| [MagiKey_record_CENR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_record_CENR.yaml) | `_CENR` | record: `_SCHD` {0:1}, `SEX` {0:M}, `INDI` {1:M}, `DATE` {1:1}, `PLAC` {1:1}, `SOUR` {0:1}, `CHAN` {0:1} | `CensusRecord` | both versions |
+| [MagiKey_CENR_INDI.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR_INDI.yaml) | `INDI` | under `_CENR`: pointer to INDI, with `FATH`/`MOTH` {0:1}, `_MSTAT` {0:1}, `AGE`, `BIRT`, `FACT` {0:M}, `NAME`, `OCCU`, `ROLE`, `SEX` | `CensusRecord.entries` | both |
+| [MagiKey_FATH.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_FATH.yaml) / [MagiKey_MOTH.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_MOTH.yaml) | `FATH` / `MOTH` | under the census `INDI`: `AGE`, `BIRT`, `FACT`, `MARR`, `OCCU` {0:1} each | `CensusIndividual.father` / `mother` | both |
+| [MagiKey_AGER.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_AGER.yaml) | `_AGER` | under `AGE` {0:1}, payload `Integer-Integer` | `AgeStructure.ageRange` | both |
+| [MagiKey_MSTAT.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_MSTAT.yaml) | `_MSTAT` | under the census `INDI` | `CensusIndividual.maritalStatus` | both |
+| [MagiKey_SCHD.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_SCHD.yaml) | `_SCHD` | under `_CENR` | `CensusRecord.schedule` | both |
+| [_DATE.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_DATE.yaml) | `_DATE` | under `REPO` {0:M}, DateValue + TIME/PHRASE (marked prerelease) | `RepositoryRecord.dates` | both |
+| [_SOUR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_SOUR.yaml) | `_SOUR` | under `PAGE` {0:M} and `record-SOUR` {0:M}, a relocated citation (marked prerelease) | generic extension, preserved verbatim | both |
 
-Each entry has a YAML file under `structure/extension/` in the
-GEDCOM-registries repository, served as a URI (e.g.
-`https://gedcom.io/terms/v7/HEAD` for standard terms).
+Note on the nonconformant uses of standard tags (PUBL.DATE/PLAC and
+the census INDI/FATH/MOTH/SEX): the core of GEDCOM 7.0 §1.5 permits
+extension-defined substructures only under extension tags, so these
+are invalid core 7.0; the registry documents them as vendor practice,
+and this package accepts them per the registry — the rule is recorded
+in the JSDoc of each affected field. Covered by
+`tests/registry-extensions.test.ts`.
 
 ## 5. Modeled in Dóru
 
@@ -316,6 +366,8 @@ its JSDoc.
 | `_EXCM` / `_MISN` | FTM | Excommunicated / Mission facts | `EVEN` + TYPE |
 | `_UNKN` | FTW8 | Special individual ID for later file comparisons | the `UID` identifier (exports as `_UID`) |
 | `_NAME` under ADDR | PAF | Name of the addressee | `AddressStructure.name` |
+| `_SOSA` | Ancestris | Sosa–Stradonitz (Ahnentafel) number of the individual | `IndividualRecord.sosaNumber` (written back in both versions) |
+| `SCHEMA` / `_SCHEMA` | FTM | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA) | `Header.schema53` (written back in 5.5.1 as `SCHEMA`; dropped on 7.0) |
 
 **Brother's Keeper family** (BKW6, Legacy cat.): name variants
 (`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
@@ -394,11 +446,11 @@ individual events; it stays a generic extension, and a UI may interpret
 the definition itself.
 
 **Family Tree Maker extras** (deferred): `_FA1`–`_FA13` user fact
-definitions, `_DETS` and `_ELEC` (undocumented meaning), the GEDCOM
-5.3 schema block (`_SCHEMA`/`SCHEMA`, `DEFN`, `LABL`, `ISA`) — and the
-FTW marriage statuses `_MSTAT`/`_MEND` (beginning/ending status under
-MARR; the meaning collides with `_STAT`, the writing product is
-discontinued).
+definitions, `_DETS` and `_ELEC` (undocumented meaning) — and the FTW
+marriage statuses `_MSTAT`/`_MEND` (beginning/ending status under MARR;
+the meaning collides with `_STAT`, the writing product is
+discontinued). The GEDCOM 5.3 schema block is no longer deferred: it is
+typed as `Header.schema53` and written back in 5.5.1 (chapter 6).
 
 **RootsMagic report fields**: `_SUBQ` (subsequent citation format),
 `_SENT` (event sentence), `_PPFX` (place prefix) — report wording.
@@ -439,7 +491,9 @@ in GEDCOM 5.5" list): `AKA`, `ARVL`, `ATTR`, `BIC`, `BLESS`, `BLSL`,
 
 These are **strict errors** in the parser today: not `_`-prefixed, they
 bypass the generic extension path, so a file containing one fails with
-`structure.unknown-tag` instead of silently round-tripping. The policy
+`structure.unknown-tag` instead of silently round-tripping. (The
+exception is the GEDCOM 5.3 `SCHEMA` block under HEAD — typed, chapter
+6.) The policy
 decision is open; the options considered, in increasing order of
 strictness: accept the known list as generic extensions on input
 (documented, re-emitted verbatim); accept any unknown tag as an

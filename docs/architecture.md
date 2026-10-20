@@ -56,7 +56,7 @@ decisions about what we deliberately do **not** build, see
   (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP), kept free of runtime dependencies and
   of Electron. Nothing imports it yet: the desktop IPC handlers
   (`project:import`, `project:export`) stay wired to the UI but are no-ops
-  while the library is being built.
+  until the dataset mapping is wired up.
 
 ## Localization
 

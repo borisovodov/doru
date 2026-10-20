@@ -1,8 +1,10 @@
 # @doru/gedcom
 
 The GEDCOM layer of [Dóru](https://github.com/borisovodov/doru): a strict
-reader and writer for **GEDCOM 7.0.18** and **GEDCOM 5.5.1**, built around a
-single TypeScript object model that spans both versions.
+reader and writer for **GEDCOM 7.0.18** and **GEDCOM 5.5.1**, built
+around a single TypeScript object model. Files declaring GEDCOM 5.5.5
+(gedcom.org, 2019) parse under the 5.5.1 rules — the 5.5.5 vocabulary
+is part of the 5.x grammar (see Parsing).
 
 ```ts
 import { parseGedcom70, serializeGedcom551 } from '@doru/gedcom';
@@ -25,15 +27,19 @@ if (result.ok) {
 
 The complete picture, at a glance:
 
-- **Both versions, one model.** GEDCOM 7.0.18 and 5.5.1 parse into a
-  single typed object model — no lowest-common-denominator, no
-  per-version branches in the consumer. Every field's JSDoc cites the
-  section of the specification it was derived from.
+- **One model for all versions.** GEDCOM 7.0.18 and 5.5.1 (plus the
+  5.5.5 vocabulary, accepted on any 5.x import) parse into a single
+  typed object model — no lowest-common-denominator, no per-version
+  branches in the consumer. Every field's JSDoc cites the section of
+  the specification it was derived from. The writers emit 5.5.1 and
+  7.0 only.
 - **Complete coverage.** Every record type, structure, and enum of
-  both versions is modeled — including the 7.0-only machinery (shared
-  notes, schema declarations, non-events, exact timestamps, external
-  identifiers) and the 5.5.1-only forms (the four calendars, `B.C.`
-  epochs, dual years, `INT` dates, `@#…@` escapes).
+  the supported versions is modeled — including the 7.0-only
+  machinery (shared notes, schema declarations, non-events, exact
+  timestamps, external identifiers), the 5.5.1-only forms (the four
+  calendars, `B.C.` epochs, dual years, `INT` dates, `@#…@` escapes),
+  and the 5.5.5 additions (`SEX X`/`N`, the `BCE`/`BC` spellings,
+  year-less birthday dates, the `JPEG`/`TIFF` media formats).
 - **Strict in, strict out.** Every violation of either specification —
   unknown tags, misplaced substructures, invalid enums, malformed
   payloads — is a typed error carrying the source position of the
@@ -64,9 +70,9 @@ The complete picture, at a glance:
   with GOV ids, postal codes with validity dates, administrative
   identifiers, and the POLI|RELI|GEOG|CULT hierarchy, plus the
   person-side tags, same-sex unions, negatives, and cohabitation —
-  and written back in both versions. The GEDCOM 5.5.5 draft's
-  extension vocabulary is covered too; the draft format itself is
-  not a target (files claiming 5.5.5 parse under the 5.5.1 rules).
+  and written back in both versions. The GEDCOM 5.5.5 vocabulary is
+  accepted on any 5.x import as part of the 5.x grammar (see
+  Parsing); the 5.5.5 container rules are not a target.
 - **GEDZIP.** FamilySearch `.gdz` archives read and write on the same
   layer (see GEDZIP).
 - **Errors are values.** `ParseResult<T>` end to end — no exceptions,
@@ -264,15 +270,27 @@ Input is always bytes. Version handling:
   under their common spellings: `ANSI`/`CP1252`/`WINDOWS-1252`
   (Windows Western, with the CP1252 holes rejected), `IBM-PC`/`CP850`/
   `DOS` (DOS Western), and `MAC`/`MACINTOSH` (Mac Roman).
+- **The 5.5.5 vocabulary** — files declaring `GEDC.VERS 5.5.5` parse
+  under the same 5.5.1 rules, and the 5.5.5 additions are accepted in
+  any 5.x file: `SEX X` (intersex) and `SEX N` (not recorded; 5.5.5
+  §2 p.104), the `BCE`/`BC` epoch spellings on year-only dates (5.5.5
+  §2 p.77), the year-less `day month` birthday form (Gregorian only;
+  5.5.5 §2 p.83), and the `JPEG`/`TIFF` media formats (5.5.5 §2
+  p.94; the union with the 5.5.1 set is accepted, `OLE` included).
+  `GEDC.FORM.VERS` is accepted and discarded — the writers emit 5.5.1
+  and 7.0, neither of which has the slot. The 5.5.5 container
+  relaxations are not enforced, the constructs 5.5.5 removed still
+  parse, and the HEAD.SUBM pointer is not required (5.5.5 deprecated
+  it; see Known strict decisions).
 
-Both versions share the container tokenizer: levels (no leading zeros,
-5.5.1 ≤ 99), single-space delimiters, cross-reference identifiers,
-pointers, `@@` escaping, 5.5.1 `@#…@` escape sequences, `CONT`/`CONC`
+All three versions share the container tokenizer: levels (no leading
+zeros, 5.5.x ≤ 99), single-space delimiters, cross-reference identifiers,
+pointers, `@@` escaping, 5.5.x `@#…@` escape sequences, `CONT`/`CONC`
 continuation merging, and the per-version banned-character rules.
 
 Decoding happens at parse time, and the model is **post-decode**: every
 text field holds plain Unicode, never the source encoding. The declared
-5.5.1 charset (`CHAR`) is validated strictly, used only to select the
+5.5.x charset (`CHAR`) is validated strictly, used only to select the
 decoder, and then discarded — the model has no `characterSet` field.
 
 What strictness rejects (each with its own error code):
@@ -335,9 +353,11 @@ documented in the JSDoc of the affected model field. The summary:
   status, `MIME`/`LANG`/`TRAN` on notes, `CROP`/`TITL` under `OBJE`,
   `FAM.FACT`, event-level `ASSO`, the `Y` payload on 5.5.1 events that
   cannot carry it, header `SUBM`. 5.5.1-only: `SUBN`, `FILE`,
-  `GEDC.FORM`, `RIN`/`RFN`/`AFN`, piece-level `NOTE`/`SOUR`. A
-  multimedia `FILE` whose format cannot be named in the fixed 5.5.1 set
-  is dropped entirely.
+  `GEDC.FORM`, `RIN`/`RFN`/`AFN`, piece-level `NOTE`/`SOUR`.
+  5.5.5-only: `SEX N` (both targets) and the year-less `day month`
+  dates (both targets require a year; the whole DATE is dropped). A multimedia `FILE` whose format cannot be named in the
+  fixed 5.5.1 set (including a 5.5.5-parsed `JPEG`/`TIFF`) is dropped
+  entirely.
 - **The NO rule (7.0 → 5.5.1)** — every `NO` structure is dropped;
   records left empty by that are dropped too, and pointers to dropped
   records are removed, so the file never asserts what the researcher
@@ -426,6 +446,23 @@ The agreed policy:
   `_SHAR`/`_ROLE` form, the FAM-level one as `_ASSO`). The vendor tags
   and the `_LOC` records are written back in both versions (see the
   place-records bullet above).
+- **The registered GEDCOM 7.0 extensions are typed.** Everything in
+  the official FamilySearch registry (the GEDCOM-registries repository)
+  is valid input: the Ancestry publication details under `SOUR.PUBL`
+  (`DATE`/`PLAC`), the MagiKey `_CENR` census record (the shared census
+  with its `INDI` entries, `FATH`/`MOTH` details, `_SCHD`, `_MSTAT` and
+  the `_AGER` age range under `AGE`), the community `_DATE` under
+  `REPO` and `_SOUR` under `PAGE` (preserved generically). Each field
+  cites its registry YAML; the export rules are documented per field
+  (the full inventory is docs/vendor-extensions.md chapter 4).
+- **The Family Tree Maker 5.3 schema block is typed.** The GEDCOM 5.3
+  `SCHEMA` declaration block (dropped in 5.4, still written by FTM in
+  5.5.1 files; the `_SCHEMA` spelling normalizes to it) is `Header.schema53`
+  — context chains with their LABL/DEFN/ISA leaves, kept as opaque
+  metadata (it declares vendor tags; it holds no genealogical data).
+  Written back as `SCHEMA` in 5.5.1; dropped on 7.0 (its SCHMA needs
+  URIs, which the block lacks). Source: the GEDCOM 5.3 draft
+  (`USER_TAG_SCHEMA`) and Tamura Jones "GEDCOM Tags".
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
   is projected onto `INDI.FAMC.PEDI` (natural → BIRTH, adopted →
@@ -488,8 +525,8 @@ would be, or where the model takes a documented position:
 
 - 5.5.1 permits arbitrary user-supplied values in `DATA.EVEN` /
   `SOUR.EVEN` ("classified in the category of other"); the strict parser
-  rejects them with `enum.invalid-value`. The model will be extended when
-  the corpus shows them in the wild.
+  rejects them with `enum.invalid-value`. The planned model extension is
+  written up as Future work #1.
 - The GEDCOM-L hierarchy link `TYPE` is validated strictly to
   `POLI|RELI|GEOG|CULT` (`enum.invalid-value` for anything else); the
   group's agreement defines no other relationship kinds.
@@ -520,6 +557,16 @@ would be, or where the model takes a documented position:
   de-facto spellings such as `ANSI` and `IBM-PC`) decode rather than
   fail, because real software writes them; anything else is a
   `decoding.unknown-charset` error (see Parsing).
+- GEDCOM 5.5.5 is not a separate dialect: files declaring it parse
+  under the 5.5.1 rules, and its vocabulary (`SEX X`/`N`, `BCE`/`BC`,
+  the year-less dates, `JPEG`/`TIFF`) is accepted in **any** 5.x file
+  — a deliberate leniency over the 5.5.1 spec, so that no import
+  fails or loses data on these constructs (the writers still project
+  them away: see Serialization). The 5.5.5 container relaxations are
+  not enforced, and the constructs 5.5.5 removed still parse. The
+  HEAD.SUBM pointer is not enforced on input either (5.5.5 deprecated
+  it); the 5.5.1 serializer still synthesizes a SUBM. `GEDC.FORM.VERS`
+  is tolerated but not stored.
 - The serializers are projections, not judges: constructs the target
   version cannot express are dropped silently, with the rule for each
   construct documented in the JSDoc of the affected model field (see
@@ -543,16 +590,16 @@ it without re-deriving context.
 
 ### State snapshot (for the next session)
 
-- The package lives in `packages/gedcom` on branch `feat/gedcom-library`
-  (rebased on `main`, force-pushed as it evolves; it has not been merged
-  yet).
+- The package lives in `packages/gedcom` and is merged into `main`
+  (PR #72).
 - Completed and tested: the dual-version model (`primitives.ts`,
   `enumerations.ts`, `structures.ts`, `gedzip.ts`), the strict parsers
-  (`parsing/`), the serializers as cross-version projections
+  (`parsing/` — 7.0 and the 5.5.1 pipeline, with the 5.5.5 vocabulary
+  accepted on 5.x import), the serializers as cross-version projections
   (`serialize/serialize.ts`, `serialize/prepare.ts` — translations,
   silent drops, the NO rule, the SOUR/SUBM defaults), the unified
   `parse` entry point (`detect.ts`), the error model (`errors.ts`), and
-  ANSEL decoding. 152 package tests / 256 repo tests, clean typecheck.
+  ANSEL decoding. 289 package tests, clean typecheck.
 - Conventions a later session must follow:
   - every model entity cites both specs (`GEDCOM 7.0 §…`,
     `GEDCOM 5.5.1 §2 (p.…)`);
@@ -564,7 +611,45 @@ it without re-deriving context.
     validated and discarded);
   - export is always UTF-8.
 
-### 1. Corpus validation runs
+### 1. Accept the user-defined values of 5.5.1 DATA.EVEN / SOUR.EVEN
+
+**Goal:** 5.5.1 defines the `EVENTS_RECORDED` list (under
+`SOUR.DATA.EVEN`) and `EVENT_TYPE_CITED_FROM` (under `SOUR.EVEN`) as
+event-type tags plus any user-supplied value "classified in the category
+of other" (GEDCOM 5.5.1 §2 p.48–49). The strict parser currently rejects
+such values with `enum.invalid-value`, which makes valid 5.5.1 files
+unparseable (see Known strict decisions). Extend the model instead of
+relaxing the parser.
+
+**Decision:** follow the dual-field precedent set by `role`/`relationship`
+(ROLE vs RELA): the model holds both spellings explicitly.
+
+- `SourceDataEvent` (model/records.ts) and `SourceCitationEvent`
+  (model/sources-media.ts) each get a parallel field holding the values
+  outside the enum set verbatim — `userDefined?: Text[]` on the former
+  and `userDefined?: Text` on the latter (SOUR.EVEN is {0:1}). Record
+  the rule in the field JSDoc with the 5.5.1 citation.
+- Parsing (parsing/sources.ts `parseSourceDataEvent`,
+  parsing/sources-media.ts `parseSourceCitationEvent`): on 5.5.1 input,
+  split the payload — enum values into `payload`, everything else into
+  the parallel field. The list has no ordering semantics in 5.5.1, so
+  grouping enum values first and user values after is not lossy. 7.0
+  input stays strict (7.0 permits only extTag extension values, which
+  the parser already accepts).
+- Serialization: 5.5.1 writes both fields back verbatim (the emitters
+  at serialize/emitter/records.ts and serialize/emitter/structures.ts
+  currently join only `payload`). 7.0 drops the user-defined values
+  silently — 7.0 has no slot for them — with the rule documented in the
+  field JSDoc (serializers are projections, not judges); a
+  `SOUR.EVEN` whose only content is the user value is dropped entirely.
+
+**Tests:** parse 5.5.1 with a user value in `SOUR.EVEN` and mixed enum +
+user values in `DATA.EVEN`; round-trip 5.5.1 → 5.5.1 verbatim; 7.0
+export drops the user values and keeps the enums; 7.0 input still
+rejects non-extTag values. Extend parse551.test.ts, serialize.test.ts
+and roundtrip.test.ts.
+
+### 2. Corpus validation runs
 
 **Goal:** validate the strict parsers against real-world `.ged` files
 from many producers, aggregate failures by error code, and turn findings
@@ -591,12 +676,12 @@ into decisions. The strictness is a bet; this is where it gets tested.
   relax the parser silently.**
 
 **Already-suspected divergence points** (start by checking these):
-arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN`; free-form
-`NAME_TYPE`; parenthesized `ROLE` descriptors; single (non-doubled)
-at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
+arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN` (the response is
+already decided — see item 1); free-form `NAME_TYPE`; parenthesized
+`ROLE` descriptors; single (non-doubled) at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
 dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
 
-### 2. Application integration
+### 3. Application integration
 
 **Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
 no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
@@ -609,7 +694,8 @@ UI was deliberately left untouched.
 
 1. **Wire the handlers.** Import: read bytes with the existing
    `NodeFileSystem.readBinary`, detect the version (try `parseGedcom70`,
-   fall back to `parseGedcom551` on the detection errors from item 3),
+   fall back to `parseGedcom551` on the `document.wrong-version` /
+   `decoding.missing-charset` detection errors described in item 2),
    map the `GedcomDataset` to the app model, and apply it through the
    existing ops (`importGedcomOp` was removed — either restore an
    equivalent batch op or apply `addPersonOp`/`addFamilyOp` per record
@@ -645,9 +731,3 @@ UI was deliberately left untouched.
 **Files:** `apps/desktop/src/main/gedcom.ts`, `ipc-project.ts`,
 `packages/core` (mapping module or ops), `packages/gedcom` (only if the
 mapping is generic enough to live there), renderer, e2e.
-
-### 3. Repository follow-ups
-
-- Update the GEDCOM section of `docs/architecture.md` (it still
-  describes the pre-library stub state).
-- Open a PR from `feat/gedcom-library` for review.
