@@ -5,6 +5,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  ProjectBinding,
   ProjectSummary,
   RecentProject,
   SourceRecord,
@@ -23,11 +24,12 @@ declare global {
   interface Window {
     doru: {
       readonly platform: string;
-      getCurrentProject(): Promise<string | null>;
-      onProjectBound(callback: (info: { path: string }) => void): () => void;
-      openProjectDialog(): Promise<ProjectSummary | null>;
-      openProjectPath(path: string): Promise<ProjectSummary | null>;
+      getCurrentProject(): Promise<ProjectBinding | null>;
+      onProjectBound(callback: (info: ProjectBinding) => void): () => void;
+      openProjectDialog(): Promise<ProjectSummary | ProjectBinding | null>;
+      openProjectPath(path: string): Promise<ProjectSummary | ProjectBinding | null>;
       createProjectDialog(): Promise<ProjectSummary | null>;
+      saveProject(projectPath: string): Promise<ProjectBinding | null>;
       importGedcom(projectPath: string): Promise<GedcomImportResult | null>;
       importGedcomFile(
         projectPath: string,

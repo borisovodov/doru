@@ -15,6 +15,8 @@ export interface WorkbenchProps {
   keybindings?: Array<{ key: string; command: string }>;
   title?: string;
   platform?: string;
+  /** Extra actions rendered in the title bar, before the built-in toggle. */
+  titleActions?: ReactNode;
   sidebar?: ReactNode;
   secondarySidebar?: ReactNode;
   editor?: ReactNode;
@@ -41,6 +43,7 @@ export function Workbench({
   commands,
   keybindings: externalKeybindings = [],
   title,
+  titleActions,
   platform,
   sidebar,
   secondarySidebar,
@@ -136,6 +139,7 @@ export function Workbench({
       <div className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions">
+          {titleActions}
           <button
             className={secondarySideBarOpen ? 'title-bar-action active' : 'title-bar-action'}
             title={nls.t('workbench.toggleSecondarySideBar')}

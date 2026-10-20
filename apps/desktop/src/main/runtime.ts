@@ -8,7 +8,8 @@ import {
 import { releaseBookmarkAccess } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
-import { acpClients, activeBookmarks, runtimes, type ProjectRuntime } from './state';
+import { acpClients, activeBookmarks, isUntitledKey, runtimes, type ProjectRuntime } from './state';
+import { disposeUntitled } from './untitled';
 
 const fs = new NodeFileSystem();
 
@@ -28,6 +29,12 @@ export async function ensureRuntime(
       runtime: existing,
     };
   }
+  if (isUntitledKey(projectPath)) {
+    // Untitled projects are created by the import flow itself; a key with
+    // no runtime means the window is talking to a project that no longer
+    // exists (closed or saved under a real path).
+    throw new Error(`Untitled project is not open: ${projectPath}`);
+  }
   const { summary, store } = await opener.open(projectPath);
   const repo = new SqliteTreeRepository(store.db);
   const queue = new OpQueue();
@@ -36,7 +43,36 @@ export async function ensureRuntime(
   return { summary, runtime };
 }
 
-export function closeProjectRuntime(projectPath: string): void {
+/**
+ * The real path of the store backing a project key. For untitled projects
+ * the key is not a file path, so media and other path-relative code must go
+ * through this helper.
+ */
+export function runtimeFilePath(projectKey: string): string {
+  return runtimes.get(projectKey)?.store.path ?? projectKey;
+}
+
+/**
+ * Opens (or reopens) the store of a not-yet-saved project at its temporary
+ * path: used by the import flow and by a failed save attempt that closed the
+ * runtime first.
+ */
+export function openUntitledStore(projectKey: string, tempPath: string): void {
+  if (runtimes.has(projectKey)) {
+    return;
+  }
+  const store = TreeStore.open(tempPath);
+  runtimes.set(projectKey, {
+    store,
+    repo: new SqliteTreeRepository(store.db),
+    queue: new OpQueue(),
+  });
+}
+
+export function closeProjectRuntime(
+  projectPath: string,
+  options: { removeUntitledFiles?: boolean } = {},
+): void {
   const runtime = runtimes.get(projectPath);
   if (runtime) {
     runtime.store.close();
@@ -49,6 +85,10 @@ export function closeProjectRuntime(projectPath: string): void {
   }
   releaseBookmarkAccess(activeBookmarks.get(projectPath));
   activeBookmarks.delete(projectPath);
+  if (isUntitledKey(projectPath) && options.removeUntitledFiles !== false) {
+    // The save flow removes the files itself after moving them.
+    void disposeUntitled(projectPath);
+  }
 }
 
 export function closeAllRuntimes(): void {

@@ -36,6 +36,14 @@ export function useProject(
     void refreshRecent();
   }, [refreshRecent]);
 
+  const saveProject = useCallback(async () => {
+    if (!projectPath) {
+      return;
+    }
+    await window.doru.saveProject(projectPath);
+    void refreshRecent();
+  }, [projectPath, refreshRecent]);
+
   const importGedcom = useCallback(async () => {
     if (!projectPath) {
       return;
@@ -58,6 +66,7 @@ export function useProject(
     refreshRecent,
     openProject,
     createProject,
+    saveProject,
     importGedcom,
     exportGedcom,
   };

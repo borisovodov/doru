@@ -14,6 +14,12 @@ fileAssociations:
   - ext: doru
     name: Dóru Tree
     role: Editor
+  - ext: ged
+    name: GEDCOM file
+    role: Viewer
+  - ext: gdz
+    name: GEDZIP archive
+    role: Viewer
 mac:
   category: public.app-category.lifestyle
   icon: build/Icon.icon
