@@ -1,10 +1,35 @@
 import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
-import { TREE_FILE_EXTENSION, type ProjectSummary } from '@doru/core';
+import { dirname, join } from 'node:path';
+import {
+  MEDIA_DIR_NAME,
+  TREE_FILE_EXTENSION,
+  type ProjectBinding,
+  type ProjectSummary,
+} from '@doru/core';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
-import { ensureRuntime } from './runtime';
+import { NodeFileSystem } from './filesystem';
+import { openGedcomAsProject } from './gedcom';
+import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
-import { activeBookmarks, projectWindows, recents, runtimes, windowProject } from './state';
-import { bindWindowToProject, createWindow, focusedWindow, windowById } from './windows';
+import {
+  activeBookmarks,
+  isUntitledKey,
+  projectWindows,
+  recents,
+  runtimes,
+  untitledProjects,
+} from './state';
+import { bindingOf, bindWindowToProject, createWindow, focusedWindow, openProjectInWindow, windowById } from './windows';
+
+const fs = new NodeFileSystem();
+
+/** File extensions the app opens directly (imports or opens a project). */
+export const GEDCOM_EXTENSIONS = ['.ged', '.gdz'];
+
+export function isGedcomFile(path: string): boolean {
+  const lower = path.toLowerCase();
+  return GEDCOM_EXTENSIONS.some((extension) => lower.endsWith(extension));
+}
 
 /**
  * Regrants access to a project file before opening it (macOS).
@@ -85,23 +110,7 @@ export async function openProject(
     }
     return null;
   }
-  const senderWindow = senderId !== undefined ? windowById(senderId) : null;
-  const senderBound = senderId !== undefined ? windowProject.get(senderId) : undefined;
-  if (senderWindow && !senderWindow.isDestroyed() && senderBound === null) {
-    bindWindowToProject(senderWindow, filePath);
-  } else if (senderId === undefined) {
-    const emptyWindow =
-      BrowserWindow.getAllWindows().find(
-        (window) => !window.isDestroyed() && windowProject.get(window.webContents.id) === null,
-      ) ?? null;
-    if (emptyWindow) {
-      bindWindowToProject(emptyWindow, filePath);
-    } else {
-      createWindow(filePath);
-    }
-  } else {
-    createWindow(filePath);
-  }
+  openProjectInWindow(filePath, senderId);
   if (recents.current) {
     const bookmark = await createBookmark(summary.path);
     await recents.current.touch(summary.path, bookmark);
@@ -111,6 +120,50 @@ export async function openProject(
     });
   }
   return summary;
+}
+
+/**
+ * Opens a file picked by the user (or handed over by the OS): a `.doru`
+ * file opens its project, a `.ged`/`.gdz` file is imported into a new,
+ * not-yet-saved project.
+ */
+export function openFileAsProject(
+  filePath: string,
+  senderId?: number,
+): Promise<ProjectSummary | ProjectBinding | null> {
+  if (filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
+    return openProject({ path: filePath }, senderId);
+  }
+  if (isGedcomFile(filePath)) {
+    return openGedcomAsProject(filePath, senderId);
+  }
+  return Promise.resolve(null);
+}
+
+/**
+ * The Open dialog: offers both project files and GEDCOM files, routing the
+ * picked file through `openFileAsProject`.
+ */
+export async function openAnyProjectDialog(
+  senderId?: number,
+): Promise<ProjectSummary | ProjectBinding | null> {
+  const dialogOptions: OpenDialogOptions = {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Dóru project', extensions: ['doru'] },
+      { name: 'GEDCOM file', extensions: ['ged', 'gdz'] },
+    ],
+    title: 'Open Project',
+  };
+  const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
+  const result =
+    parent !== null
+      ? await dialog.showOpenDialog(parent, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+  if (result.canceled || result.filePaths[0] === undefined) {
+    return null;
+  }
+  return openFileAsProject(result.filePaths[0], senderId);
 }
 
 export async function createProject(senderId?: number): Promise<ProjectSummary | null> {
@@ -133,9 +186,103 @@ export async function createProject(senderId?: number): Promise<ProjectSummary |
   return openProject({ path: filePath }, senderId);
 }
 
-export function openExternalPath(path: string): void {
-  if (!path.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
-    return;
+/**
+ * Saves a not-yet-saved project: asks for a `.doru` location, moves the
+ * temporary files there, reopens the store at the real path and rebinds the
+ * window. Saved projects autosave on every mutation, so saving them is a
+ * no-op that reports the current binding.
+ */
+export async function saveProject(projectKey: string): Promise<ProjectBinding | null> {
+  if (!isUntitledKey(projectKey)) {
+    return bindingOf(projectKey);
   }
-  void openProject({ path });
+  const untitled = untitledProjects.get(projectKey);
+  if (!untitled) {
+    return null;
+  }
+  const parent = projectWindows.get(projectKey) ?? focusedWindow();
+  const dialogOptions: SaveDialogOptions = {
+    filters: [{ name: 'Dóru project', extensions: ['doru'] }],
+    title: 'Save Project',
+    buttonLabel: 'Save',
+    defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
+  };
+  const result =
+    parent !== null
+      ? await dialog.showSaveDialog(parent, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+  if (result.canceled || !result.filePath) {
+    return null;
+  }
+  const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
+    ? result.filePath
+    : `${result.filePath}${TREE_FILE_EXTENSION}`;
+  const openElsewhere = projectWindows.get(filePath);
+  if (openElsewhere && !openElsewhere.isDestroyed()) {
+    const message = 'This file is already open in another window.';
+    if (parent) {
+      await dialog.showMessageBox(parent, { type: 'error', message });
+    } else {
+      dialog.showErrorBox('Save Project', message);
+    }
+    return null;
+  }
+
+  // Flush and detach the temporary store before moving its files. The
+  // temporary files are kept: they are moved below.
+  closeProjectRuntime(projectKey, { removeUntitledFiles: false });
+  try {
+    await fs.mkdir(dirname(filePath));
+    await fs.copyFile(untitled.tempPath, filePath);
+    const tempMediaDir = join(untitled.tempDir, MEDIA_DIR_NAME);
+    if (await fs.exists(tempMediaDir)) {
+      const mediaDir = join(dirname(filePath), MEDIA_DIR_NAME);
+      await fs.mkdir(mediaDir);
+      for (const entry of await fs.readdir(tempMediaDir)) {
+        await fs.copyFile(join(tempMediaDir, entry), join(mediaDir, entry));
+      }
+    }
+  } catch (error) {
+    // The temporary files stay where they were; reopen the store so the
+    // window keeps working and the project can be saved again.
+    openUntitledStore(projectKey, untitled.tempPath);
+    const message = `Could not save the project: ${error instanceof Error ? error.message : String(error)}`;
+    if (parent) {
+      await dialog.showMessageBox(parent, { type: 'error', message });
+    } else {
+      dialog.showErrorBox('Save Project', message);
+    }
+    return null;
+  }
+
+  // The destination holds the project now; drop the temporary copy.
+  await fs.remove(untitled.tempDir);
+  untitledProjects.delete(projectKey);
+
+  const { summary } = await ensureRuntime(filePath);
+  const window = projectWindows.get(projectKey);
+  projectWindows.delete(projectKey);
+  if (window && !window.isDestroyed()) {
+    bindWindowToProject(window, filePath);
+  } else {
+    createWindow(filePath);
+  }
+  const binding = bindingOf(filePath);
+  if (recents.current) {
+    const bookmark = await createBookmark(summary.path);
+    await recents.current.touch(summary.path, bookmark);
+  }
+  updateSession((session) => {
+    const paths = session.paths.filter((entry) => entry !== filePath);
+    return { paths: [...paths, filePath], activePath: filePath };
+  });
+  return binding;
+}
+
+export function openExternalPath(path: string): void {
+  if (path.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
+    void openProject({ path });
+  } else if (isGedcomFile(path)) {
+    void openGedcomAsProject(path);
+  }
 }

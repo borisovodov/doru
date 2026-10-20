@@ -543,9 +543,7 @@ it without re-deriving context.
 
 ### State snapshot (for the next session)
 
-- The package lives in `packages/gedcom` on branch `feat/gedcom-library`
-  (rebased on `main`, force-pushed as it evolves; it has not been merged
-  yet).
+- The package lives in `packages/gedcom` (merged into `main`).
 - Completed and tested: the dual-version model (`primitives.ts`,
   `enumerations.ts`, `structures.ts`, `gedzip.ts`), the strict parsers
   (`parsing/`), the serializers as cross-version projections
@@ -604,6 +602,17 @@ no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
 `doru.d.ts`, the `useProject` hook, the SidebarView buttons and the nls
 keys (`features.tree.importGedcom`/`exportGedcom`) are all intact — the
 UI was deliberately left untouched.
+
+What *is* in place since: the app registers `.ged`/`.gdz` file
+associations (electron-builder `fileAssociations`, next to `.doru`) and
+routes every opened file by extension (`projects.ts`). Opening a GEDCOM
+file creates a **not-yet-saved project** — a temporary `.doru` store under
+the OS temp directory keyed `untitled:<uuid>` — with the import itself
+stubbed, so the tree opens empty; the first save asks for a `.doru`
+location, moves the store and media folder there and rebinds the window
+(`saveProject`). The steps below start from that plumbing: step 1 fills
+the stub, and the untitled open flow then imports before opening the
+window.
 
 **Steps:**
 

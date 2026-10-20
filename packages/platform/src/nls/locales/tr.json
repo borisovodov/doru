@@ -135,6 +135,7 @@
   "workbench.recent": "Son kullanılanlar",
   "workbench.recent.empty": "Son proje yok",
   "workbench.redo": "Yinele",
+  "workbench.saveProject": "Kaydet",
   "workbench.settings": "Ayarlar",
   "workbench.tab.close": "Kapat",
   "workbench.toggleSecondarySideBar": "İkincil kenar çubuğunu aç/kapat",
