@@ -167,3 +167,117 @@ describe('Legacy data tags on output', () => {
     expect(text).toContain('1 _CDATE 1 JAN 2020');
   });
 });
+
+describe('the Ancestris _SOSA tag', () => {
+  const SAMPLE = [
+    '0 HEAD',
+    '1 SOUR DORU',
+    '1 SUBM @S1@',
+    '1 GEDC',
+    '2 VERS 5.5.1',
+    '2 FORM LINEAGE-LINKED',
+    '1 CHAR UTF-8',
+    '0 @S1@ SUBM',
+    '1 NAME T',
+    '0 @I1@ INDI',
+    '1 NAME John /Doe/',
+    '1 _SOSA 7',
+    '0 TRLR',
+  ].join('\n');
+
+  test('types the Sosa number on input', () => {
+    const dataset = parseOk551(SAMPLE);
+    expect(indi(dataset, '@I1@').sosaNumber).toBe('7');
+  });
+
+  test('writes it back in both versions', () => {
+    expect(ser551(parseOk551(SAMPLE))).toContain('1 _SOSA 7');
+    expect(ser70(parseOk551(SAMPLE))).toContain('1 _SOSA 7');
+  });
+});
+
+describe('the GEDCOM 5.3 SCHEMA block (Family Tree Maker)', () => {
+  const SAMPLE = [
+    '0 HEAD',
+    '1 SOUR FTM',
+    '1 SUBM @S1@',
+    '1 GEDC',
+    '2 VERS 5.5.1',
+    '2 FORM LINEAGE-LINKED',
+    '1 CHAR UTF-8',
+    '1 SCHEMA',
+    '2 INDI',
+    '3 BIRT',
+    '4 _HOSP',
+    '5 LABL HOSPITAL',
+    '5 DEFN The name of a hospital',
+    '5 ISA SITE',
+    '4 _NURS',
+    '5 LABL NURSE',
+    '0 @S1@ SUBM',
+    '1 NAME T',
+    '0 TRLR',
+  ].join('\n');
+
+  test('types the context chains and their leaves', () => {
+    const dataset = parseOk551(SAMPLE);
+    expect(dataset.header.schema53).toEqual({
+      tag: 'SCHEMA',
+      entries: [
+        { context: ['INDI', 'BIRT', '_HOSP'], label: 'HOSPITAL', definition: 'The name of a hospital', parent: 'SITE' },
+        { context: ['INDI', 'BIRT', '_NURS'], label: 'NURSE' },
+      ],
+    });
+  });
+
+  test('the _SCHEMA spelling normalizes to the same block', () => {
+    const variant = SAMPLE.replace('1 SCHEMA', '1 _SCHEMA');
+    const dataset = parseOk551(variant);
+    expect(dataset.header.schema53?.entries).toHaveLength(2);
+  });
+
+  test('round-trips through the 5.5.1 serializer as SCHEMA', () => {
+    const first = parseOk551(SAMPLE);
+    const text = ser551(first);
+    expect(text).toContain('1 SCHEMA');
+    expect(text).toContain('5 LABL HOSPITAL');
+    expect(text).toContain('5 DEFN The name of a hospital');
+    expect(text).toContain('5 ISA SITE');
+    expect(parseOk551(text)).toEqual(first);
+  });
+
+  test('7.0 drops the block (its SCHMA needs URIs, which the block lacks)', () => {
+    const text = ser70(parseOk551(SAMPLE));
+    expect(text).not.toContain('SCHEMA');
+  });
+
+  test('a 7.0 file with SCHEMA is still a strict error', () => {
+    const as70 = parseGedcom70(
+      enc(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '1 SCHMA',
+          '2 TAG _X https://example.com/x',
+          '1 SCHEMA',
+          '2 INDI',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
+    expect(as70.ok).toBe(false);
+    if (!as70.ok) {
+      expect(as70.error.code).toBe('structure.unknown-tag');
+    }
+  });
+
+  test('a context tag with a payload is an error', () => {
+    const bad = SAMPLE.replace('2 INDI', '2 INDI x');
+    const result = parseGedcom551(enc(bad));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('structure.unexpected-payload');
+    }
+  });
+});

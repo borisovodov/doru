@@ -385,6 +385,9 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _URL: (child) => {
       rec.url = reqText(child);
     },
+    _SOSA: (child) => {
+      rec.sosaNumber = reqText(child);
+    },
     _TAG: (child) => {
       setMark(rec, 0, child);
     },
@@ -510,7 +513,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     SEX: (child) => {
       const table = (ctx.version === '7.0' ? SEX_ENUM_VALUES : SEX_551) as Readonly<
-        Record<'M' | 'F' | 'U' | 'X', string>
+        Record<'M' | 'F' | 'U' | 'X' | 'N', string>
       >;
       rec.sex = parseEnum(reqText(child), table, ctx.version, child.position);
     },

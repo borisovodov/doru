@@ -70,6 +70,19 @@ export interface Header extends GedcomStructureBase {
   gedcom: Gedcom;
   /** SCHMA {0:1}, g7:SCHMA — the meaning of the extension tags used in the document. GEDCOM 7.0 §3.2.1, §1.5. Dropped when serializing to 5.5.1. */
   schema?: Schema;
+  /**
+   * SCHEMA {0:1} — the user-tag declaration block of GEDCOM 5.3
+   * (dropped in 5.4, still written by Family Tree Maker in 5.5.1
+   * files; the vendor spelling `_SCHEMA` normalizes to this). Kept as
+   * opaque metadata: the context chains and their LABL/DEFN/ISA
+   * leaves have no genealogical meaning. Recognized on 5.x input and
+   * written back as `SCHEMA` in 5.5.1; dropped when serializing to 7.0
+   * (7.0's own SCHMA carries URIs, which this block lacks). Sources:
+   * the GEDCOM 5.3 draft (`USER_TAG_SCHEMA`, p.25–26 of the Tamura
+   * Jones PDF) and Tamura Jones "GEDCOM Tags":
+   * https://www.tamurajones.net/GEDCOMTags.xhtml
+   */
+  schema53?: FtmSchemaBlock;
   /** SOUR {0:1}, g7:HEAD-SOUR — the product producing this dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. */
   source?: HeaderSource;
   /** DEST {0:1}, g7:DEST — an identifier for the system expected to receive this document. GEDCOM 7.0 §3.2.1. */
@@ -214,4 +227,36 @@ export interface HeaderSourceData extends GedcomStructureBase {
 export interface HeaderPlace extends GedcomStructureBase {
   /** FORM {1:1}, g7:HEAD-PLAC-FORM — any PLAC with no FORM shall be treated as if it has this FORM. */
   form: ListText;
+}
+
+/**
+ * GEDCOM 5.3 `SCHEMA` block — the user-tag declaration mechanism of the
+ * GEDCOM 5.3 draft: a set of context chains, each a path of standard
+ * tags (e.g. `INDI` → `BIRT`) ending in the declared user-defined tag
+ * (e.g. `_HOSP`), with the declaration leaves LABL/DEFN/ISA beneath.
+ * Dropped in GEDCOM 5.4 but still written by Family Tree Maker in
+ * 5.5.1 files; see Header.schema53.
+ */
+export interface FtmSchemaBlock extends GedcomStructureBase {
+  tag: 'SCHEMA';
+  /** GEDCOM 5.3 `USER_TAG_SCHEMA {1:M}` — the declared tags, each with its context chain. */
+  entries: FtmSchemaEntry[];
+}
+
+/**
+ * GEDCOM 5.3 `USER_TAG_SCHEMA` — one declared user-defined tag: its
+ * context chain (outermost record tag first, the declared tag last)
+ * plus the LABL/DEFN/ISA leaves (GEDCOM 5.3 §2 p.25–26 marks all three
+ * {1:1}; real Family Tree Maker files omit some, so they are optional
+ * here).
+ */
+export interface FtmSchemaEntry extends GedcomStructureBase {
+  /** The chain of context tags, from the record down to the declared user tag. */
+  context: Text[];
+  /** LABL — the full tag name used as a field label. */
+  label?: Text;
+  /** DEFN — the user tag definition. */
+  definition?: Text;
+  /** ISA — the standard tag this user tag "is a kind of". */
+  parent?: Text;
 }

@@ -20,7 +20,9 @@ import type {
 import type { AddressStructure } from './common';
 import type { AssociationStructure } from './common';
 import type { ChangeDate } from './common';
+import type { CensusRecord } from './census-record';
 import type { CreationDate } from './common';
+import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
 import type { DatePeriodStructure } from './common';
 import type { ExtensionRecord } from './extensions';
@@ -239,6 +241,14 @@ export interface IndividualRecord extends GedcomStructureBase {
    * written back as `_URL` in both versions.
    */
   url?: Text;
+  /**
+   * _SOSA {0:1} — the individual's Sosa–Stradonitz (Ahnentafel)
+   * number. Written by Ancestris, the French GEDCOM editor (see its
+   * user guide, "Tags": https://docs.ancestris.org/books/user-guide/page/tags);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_SOSA` in both versions.
+   */
+  sosaNumber?: Text;
   /**
    * _TAG {0:1} and _TAG2–_TAG9 {0:1 each} — the individual's named
    * tag marks (Tag 1 through Tag 9), kept in order. Written by Legacy
@@ -507,6 +517,14 @@ export interface RepositoryRecord extends GedcomStructureBase {
   xref?: Xref;
   /** NAME {1:1}, g7:NAME. */
   name: Text;
+  /**
+   * _DATE {0:M} — the principal date of the repository. The community
+   * extension `_DATE`, registered in the FamilySearch GEDCOM registry
+   * (structure/extension/_DATE.yaml; marked prerelease there): a
+   * DateValue with the optional TIME and PHRASE substructures.
+   * Recognized on input and written back as `_DATE` in both versions.
+   */
+  dates?: DateStructure[];
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
   address?: AddressStructure;
   /** PHON {0:M}, g7:PHON — 7.0-only. */
@@ -612,6 +630,17 @@ export interface SourceRecord extends GedcomStructureBase {
   abbreviation?: Text;
   /** PUBL {0:1}, g7:PUBL — when and where the record was created. */
   publication?: Text;
+  /**
+   * DATE / PLAC under PUBL {0:1 each} — the publication date and
+   * place: the Ancestry.com Family Trees extensions, registered in the
+   * FamilySearch GEDCOM registry
+   * (structure/extension/Ancestry_PUBL_DATE.yaml and
+   * Ancestry_PUBL_PLAC.yaml). Nonconformant uses of the standard tags
+   * (GEDCOM 7.0 §1.5 permits them only under extension tags), accepted
+   * per the registry. Written back in 7.0; dropped when serializing to
+   * 5.5.1.
+   */
+  publicationDetails?: SourcePublicationDetails;
   /** TEXT {0:1}, g7:TEXT — a verbatim copy of any description contained within the source. */
   text?: SourceText;
   /** <<SOURCE_REPOSITORY_CITATION>> {0:M}. */
@@ -708,6 +737,18 @@ export interface SourceDataEvent extends GedcomStructureBase {
   date?: DatePeriodStructure;
   /** <<PLACE_STRUCTURE>> {0:1}. */
   place?: PlaceStructure;
+}
+
+/**
+ * The Ancestry.com Family Trees publication details under SOUR.PUBL:
+ * the publication date (a DateExact) and place (a place name), each
+ * {0:1}. See SourceRecord.publicationDetails.
+ */
+export interface SourcePublicationDetails extends GedcomStructureBase {
+  /** DATE {0:1} — the publication date (a DateExact). */
+  date?: DateExactStructure;
+  /** PLAC {0:1} — the publication place (a plain place name). */
+  place?: Text;
 }
 
 /**
@@ -826,6 +867,7 @@ export type GedcomRecord =
   | SubmitterRecord
   | SubmissionRecord
   | NoteRecord
+  | CensusRecord
   | PlaceRecord
   | TodoRecord
   | ExtensionRecord;

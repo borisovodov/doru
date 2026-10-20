@@ -76,6 +76,12 @@ export type ExtensionTag = `_${string}`;
  */
 export type Tag = StdTag | ExtensionTag;
 
+/** GEDCOM dialect versions. The parsers know 7.0 and 5.5.1; a file
+ * declaring GEDCOM 5.5.5 parses under the 5.5.1 rules, with the 5.5.5
+ * vocabulary accepted as part of the 5.x grammar (see the README's
+ * Parsing section). The serializers emit 5.5.1 and 7.0 only. */
+export type GedcomVersion = '5.5.1' | '7.0';
+
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §2.1 Text
 // ---------------------------------------------------------------------------
@@ -250,6 +256,12 @@ export type Epoch = 'BCE' | ExtensionTag;
  * `DATE_HEBR` / `DATE_FREN` — the same partial-precision form (year,
  * month+year, day+month+year); 5.5.1 writes the BCE epoch as `B.C.` and
  * allows the dual-year modifier `NUMBER/NUMBER`.
+ *
+ * GEDCOM 5.5.5 §2 Primitive Elements (p.83) additionally allows the
+ * year-less form `day month` (a birthday whose year is unknown) in
+ * `DATE_GREG` — modelled as an absent `year`. Both serializers drop
+ * such a date (7.0 and 5.5.1 both require a year), and the calendar
+ * arithmetic leaves it unbounded.
  */
 export interface DateFields {
   /** GEDCOM 7.0 §2.4 — `[calendar D]`, optional; absent means GREGORIAN. */
@@ -258,8 +270,8 @@ export interface DateFields {
   day?: Integer;
   /** GEDCOM 7.0 §2.4 — `month`, optional; constrained by the calendar (GEDCOM 7.0 §6.1). */
   month?: GedcomMonth;
-  /** GEDCOM 7.0 §2.4 — `year`, required: `year = Integer`. */
-  year: Integer;
+  /** GEDCOM 7.0 §2.4 — `year`, required; absent only in the GEDCOM 5.5.5 year-less `day month` form (GEDCOM 5.5.5 §2 p.83). */
+  year?: Integer;
   /** GEDCOM 7.0 §2.4 — `[D epoch]`, optional. */
   epoch?: Epoch;
 }
@@ -634,6 +646,21 @@ export const MULTIMEDIA_FORMATS_551 = ['bmp', 'gif', 'jpg', 'ole', 'pcx', 'tif',
 
 /** A GEDCOM 5.5.1 `MULTIMEDIA_FORMAT` value. */
 export type MultimediaFormat551 = (typeof MULTIMEDIA_FORMATS_551)[number];
+
+/**
+ * GEDCOM 5.5.5 §2 Primitive Elements (p.94), `MULTIMEDIA_FORMAT` — the
+ * 5.5.5 set: the 5.5.1 set expanded with the four-letter `JPEG` and
+ * `TIFF` (the spellings GEDCOM 5.5 already used; 5.5.5 makes them the
+ * required spellings, keeping `JPG`/`TIF` supported but deprecated) and
+ * with `OLE` removed (OLE is a technology, not a multimedia format —
+ * GEDCOM 5.5.5 §2 p.94). The 5.x parser accepts the union of this set
+ * and `MULTIMEDIA_FORMATS_551` (including `OLE`); the 5.5.1 serializer
+ * still writes only the 5.5.1 set.
+ */
+export const MULTIMEDIA_FORMATS_555 = ['bmp', 'gif', 'jpg', 'jpeg', 'pcx', 'tif', 'tiff', 'wav'] as const;
+
+/** A GEDCOM 5.5.5 `MULTIMEDIA_FORMAT` value. */
+export type MultimediaFormat555 = (typeof MULTIMEDIA_FORMATS_555)[number];
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §2.11 Special

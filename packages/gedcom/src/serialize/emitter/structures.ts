@@ -172,8 +172,13 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
 
 export function emitDate(w: Writer, version: Version, level: number, tag: string, date: DateStructure): void {
   if (version === '7.0') {
-    const raw = date.value === undefined ? '' : formatDateValue70(date.value);
-    w.line(level, tag, { value: raw === '' ? undefined : raw });
+    const raw = date.value === undefined ? undefined : formatDateValue70(date.value);
+    // A value the target cannot spell (the year-less 5.5.5 date form)
+    // is dropped; TIME and PHRASE substructures still make the DATE
+    // meaningful.
+    if (raw !== undefined || date.time !== undefined || date.phrase !== undefined) {
+      w.line(level, tag, { value: raw === '' ? undefined : raw });
+    }
     if (date.time !== undefined) {
       w.line(level + 1, 'TIME', { value: formatTime(date.time, '7.0') });
     }
@@ -194,6 +199,11 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     return;
   }
   const raw = formatDateValue551(date.value);
+  if (raw === undefined) {
+    // The year-less 5.5.5 date form; 5.5.1 cannot spell it, so the
+    // whole DATE (including its phrase NOTE) is dropped.
+    return;
+  }
   w.line(level, tag, { value: raw === '' ? undefined : raw });
   if (date.phrase !== undefined) {
     w.line(level + 1, 'NOTE', { value: date.phrase });
@@ -232,6 +242,10 @@ export function emitAge(w: Writer, version: Version, level: number, age: AgeStru
   w.line(level, 'AGE', { value });
   if (phrase !== undefined) {
     w.line(level + 1, 'PHRASE', { value: phrase });
+  }
+  if (age.ageRange !== undefined) {
+    // The MagiKey age range (MagiKey_AGER.yaml), written back in both versions.
+    w.line(level + 1, '_AGER', { value: age.ageRange });
   }
 }
 
@@ -283,7 +297,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     w.line(level, 'RESN', { value: restrictionList(w, version, detail.restriction) });
   }
   if (detail.sortDate !== undefined) {
-    let raw = '';
+    let raw: string | undefined = '';
     if (detail.sortDate.value !== undefined) {
       raw = version === '7.0' ? formatDateValue70(detail.sortDate.value) : formatDateValue551(detail.sortDate.value);
     }
@@ -477,6 +491,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   if (citation.quality !== undefined) {
     w.line(level + 1, 'QUAY', { value: citation.quality });
   }
+  // Generic extensions of the citation (e.g. the community _SOUR
+  // attached under PAGE — registry: _SOUR.yaml) are written back at
+  // the citation level: a documented extension tag may appear under
+  // any structure (GEDCOM 7.0 §1.5).
+  emitExtensions(w, version, level, citation);
 }
 
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {

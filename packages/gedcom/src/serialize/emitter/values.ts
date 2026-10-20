@@ -60,8 +60,14 @@ export function famcStat(_w: Writer, version: Version, value: string): string {
 }
 
 export function sex(_w: Writer, version: Version, value: string): string | undefined {
-  if (version === '5.5.1' && value === 'X') {
-    // 5.5.1 cannot spell X; the SEX line is dropped.
+  if (version === '5.5.1' && (value === 'X' || value === 'N')) {
+    // 5.5.1 cannot spell X (7.0/5.5.5-only) or N (5.5.5-only); the SEX
+    // line is dropped.
+    return undefined;
+  }
+  if (version === '7.0' && value === 'N') {
+    // N is GEDCOM 5.5.5-only (5.5.5 §2 p.104); 7.0 has no such value,
+    // so the SEX line is dropped.
     return undefined;
   }
   return value;

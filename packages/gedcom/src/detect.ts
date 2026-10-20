@@ -27,8 +27,9 @@ export type ParsedGedcom =
   | { kind: 'gedzip'; archive: GedzipArchive };
 
 /**
- * Parses GEDCOM bytes of any supported form: a GEDCOM 7.0 or 5.5.1 data
- * stream or a GEDZIP archive.
+ * Parses GEDCOM bytes of any supported form: a GEDCOM 7.0 or 5.5.1
+ * data stream (a file declaring 5.5.5 parses as 5.5.1) or a GEDZIP
+ * archive.
  */
 export function parse(bytes: Uint8Array): ParseResult<ParsedGedcom> {
   if (bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b) {

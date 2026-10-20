@@ -308,11 +308,11 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx, allowTime: bool
   }
   const parsed = parseDateValue551(raw, node.position);
   const value = parsed.value;
-  if (value.kind !== 'date' || value.day === undefined || value.month === undefined) {
-    fail('date.invalid', `Invalid 5.5.1 DATE_EXACT "${raw}"; expected "<day> <month> <year>"`, node.position);
+  if (value.kind !== 'date' || value.day === undefined || value.month === undefined || value.year === undefined) {
+    fail('date.invalid', `Invalid ${ctx.version} DATE_EXACT "${raw}"; expected "<day> <month> <year>"`, node.position);
   }
   if (parsed.dualYear || parsed.phrase !== undefined) {
-    fail('date.invalid', `Invalid 5.5.1 DATE_EXACT "${raw}"`, node.position);
+    fail('date.invalid', `Invalid ${ctx.version} DATE_EXACT "${raw}"`, node.position);
   }
   const out: DateExactStructure = {
     value: {
@@ -389,8 +389,18 @@ export function parseAge(node: RawNode, ctx: Ctx): AgeStructure {
       PHRASE: (child) => {
         out.phrase = reqText(child);
       },
+      '_AGER': (child) => {
+        // The MagiKey age range "Integer-Integer" (MagiKey_AGER.yaml):
+        // at least the first bound, less than the second.
+        const text = reqText(child);
+        if (!/^\d+-\d+$/.test(text)) {
+          fail('age.invalid', `Invalid age range "${text}"; expected "<integer>-<integer>"`, child.position);
+        }
+        out.ageRange = text;
+      },
     },
     ctx,
+    ['PHRASE', '_AGER'],
   );
   return out;
 }

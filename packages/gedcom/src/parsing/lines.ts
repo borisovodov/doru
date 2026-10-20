@@ -10,6 +10,9 @@
  */
 
 import type {
+  GedcomVersion,
+} from '../primitives';
+import type {
   SourcePosition,
 } from '../errors';
 import {
@@ -19,6 +22,7 @@ import type {
   DecodedDocument,
   DecodedLine,
 } from './decode';
+
 
 /** The payload of one raw line after continuation merging. */
 export type RawValue =
@@ -85,7 +89,7 @@ function checkBanned551(text: string, position: SourcePosition): void {
 }
 
 /** Validates a cross-reference identifier per version. */
-function checkXref(raw: string, version: '7.0' | '5.5.1', position: SourcePosition): void {
+function checkXref(raw: string, version: GedcomVersion, position: SourcePosition): void {
   const body = raw.slice(1, -1);
   if (body.length === 0) {
     fail('line.bad-xref', 'A cross-reference identifier must not be empty', position);
@@ -126,7 +130,7 @@ function checkXref(raw: string, version: '7.0' | '5.5.1', position: SourcePositi
 }
 
 /** Validates a tag per version. */
-function checkTag(tag: string, version: '7.0' | '5.5.1', position: SourcePosition): void {
+function checkTag(tag: string, version: GedcomVersion, position: SourcePosition): void {
   if (tag.length === 0) {
     fail('line.bad-tag', 'A line must have a tag', position);
   }
@@ -165,7 +169,7 @@ function checkTag(tag: string, version: '7.0' | '5.5.1', position: SourcePositio
  * Parses a line value: a pointer, void pointer (7.0), or text with the
  * version's at-sign and escape rules.
  */
-function parseValue(raw: string, version: '7.0' | '5.5.1', position: SourcePosition): RawValue {
+function parseValue(raw: string, version: GedcomVersion, position: SourcePosition): RawValue {
   if (version === '7.0') {
     checkBanned70(raw, position);
     if (raw[0] === '@') {
@@ -228,7 +232,7 @@ function parseValue(raw: string, version: '7.0' | '5.5.1', position: SourcePosit
  * decides whether that is an error). The value is returned with `@@`
  * unescaped and, for 5.5.1, the space after an escape discarded.
  */
-function tokenizeLine(line: DecodedLine, version: '7.0' | '5.5.1'): RawNode | null {
+function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null {
   const linePosition: SourcePosition = { line: line.line, column: 1, offset: line.offset };
   let text = line.text;
   let trimCount = 0;
@@ -324,7 +328,7 @@ function tokenizeLine(line: DecodedLine, version: '7.0' | '5.5.1'): RawNode | nu
  * Builds the raw tree from decoded lines: level hierarchy, xref
  * collection and CONT/CONC continuation merging.
  */
-export function parseRawDocument(document: DecodedDocument, version: '7.0' | '5.5.1'): RawDocument {
+export function parseRawDocument(document: DecodedDocument, version: GedcomVersion): RawDocument {
   const roots: RawNode[] = [];
   const stack: RawNode[] = [];
   let sawContent = false;

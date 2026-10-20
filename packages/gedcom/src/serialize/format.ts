@@ -44,34 +44,53 @@ export function epochSuffix(epoch: Epoch | undefined, version: Version): string 
 }
 
 export function formatDateFields(
-  fields: { calendar?: Calendar; day?: number; month?: GedcomMonth; year: number; epoch?: Epoch },
+  fields: { calendar?: Calendar; day?: number; month?: GedcomMonth; year?: number; epoch?: Epoch },
   version: Version,
-): string {
+): string | undefined {
+  if (fields.year === undefined) {
+    // The year-less GEDCOM 5.5.5 day+month form: neither 7.0 nor 5.5.1
+    // can spell it; the caller drops the date (see DateFields).
+    return undefined;
+  }
   const calendar = fields.calendar ?? 'GREGORIAN';
   const escape = version === '5.5.1' ? calendarEscape551(calendar) : calendar === 'GREGORIAN' ? '' : `${calendar} `;
   const dayMonth = fields.day !== undefined && fields.month !== undefined ? `${fields.day} ${fields.month} ` : fields.month !== undefined ? `${fields.month} ` : '';
   return `${escape}${dayMonth}${fields.year}${epochSuffix(fields.epoch, version)}`;
 }
 
-export function formatDateValue70(value: DateValue): string {
+export function formatDateValue70(value: DateValue): string | undefined {
   switch (value.kind) {
     case 'date':
       return formatDateFields(value, '7.0');
-    case 'range':
-      return `BET ${formatDateFields(value.start, '7.0')} AND ${formatDateFields(value.end, '7.0')}`;
-    case 'bound':
-      return `${value.modifier} ${formatDateFields(value.date, '7.0')}`;
-    case 'approx':
-      return `${value.modifier} ${formatDateFields(value.date, '7.0')}`;
+    case 'range': {
+      const start = formatDateFields(value.start, '7.0');
+      const end = formatDateFields(value.end, '7.0');
+      return start === undefined || end === undefined ? undefined : `BET ${start} AND ${end}`;
+    }
+    case 'bound': {
+      const date = formatDateFields(value.date, '7.0');
+      return date === undefined ? undefined : `${value.modifier} ${date}`;
+    }
+    case 'approx': {
+      const date = formatDateFields(value.date, '7.0');
+      return date === undefined ? undefined : `${value.modifier} ${date}`;
+    }
     case 'period': {
       if (value.from !== undefined && value.to !== undefined) {
-        return `FROM ${formatDateFields(value.from, '7.0')} TO ${formatDateFields(value.to, '7.0')}`;
+        const from = formatDateFields(value.from, '7.0');
+        const to = formatDateFields(value.to, '7.0');
+        if (from === undefined || to === undefined) {
+          return undefined;
+        }
+        return `FROM ${from} TO ${to}`;
       }
       if (value.from !== undefined) {
-        return `FROM ${formatDateFields(value.from, '7.0')}`;
+        const from = formatDateFields(value.from, '7.0');
+        return from === undefined ? undefined : `FROM ${from}`;
       }
       if (value.to !== undefined) {
-        return `TO ${formatDateFields(value.to, '7.0')}`;
+        const to = formatDateFields(value.to, '7.0');
+        return to === undefined ? undefined : `TO ${to}`;
       }
       return '';
     }
@@ -80,25 +99,39 @@ export function formatDateValue70(value: DateValue): string {
   }
 }
 
-export function formatDateValue551(value: DateValue): string {
+export function formatDateValue551(value: DateValue): string | undefined {
   switch (value.kind) {
     case 'date':
       return formatDateFields(value, '5.5.1');
-    case 'range':
-      return `BET ${formatDateFields(value.start, '5.5.1')} AND ${formatDateFields(value.end, '5.5.1')}`;
-    case 'bound':
-      return `${value.modifier} ${formatDateFields(value.date, '5.5.1')}`;
-    case 'approx':
-      return `${value.modifier} ${formatDateFields(value.date, '5.5.1')}`;
+    case 'range': {
+      const start = formatDateFields(value.start, '5.5.1');
+      const end = formatDateFields(value.end, '5.5.1');
+      return start === undefined || end === undefined ? undefined : `BET ${start} AND ${end}`;
+    }
+    case 'bound': {
+      const date = formatDateFields(value.date, '5.5.1');
+      return date === undefined ? undefined : `${value.modifier} ${date}`;
+    }
+    case 'approx': {
+      const date = formatDateFields(value.date, '5.5.1');
+      return date === undefined ? undefined : `${value.modifier} ${date}`;
+    }
     case 'period': {
       if (value.from !== undefined && value.to !== undefined) {
-        return `FROM ${formatDateFields(value.from, '5.5.1')} TO ${formatDateFields(value.to, '5.5.1')}`;
+        const from = formatDateFields(value.from, '5.5.1');
+        const to = formatDateFields(value.to, '5.5.1');
+        if (from === undefined || to === undefined) {
+          return undefined;
+        }
+        return `FROM ${from} TO ${to}`;
       }
       if (value.from !== undefined) {
-        return `FROM ${formatDateFields(value.from, '5.5.1')}`;
+        const from = formatDateFields(value.from, '5.5.1');
+        return from === undefined ? undefined : `FROM ${from}`;
       }
       if (value.to !== undefined) {
-        return `TO ${formatDateFields(value.to, '5.5.1')}`;
+        const to = formatDateFields(value.to, '5.5.1');
+        return to === undefined ? undefined : `TO ${to}`;
       }
       return '';
     }
@@ -120,7 +153,8 @@ export function formatDateExact(value: DateExact, version: Version): string {
   if (value.epoch !== undefined) {
     fields.epoch = value.epoch;
   }
-  return formatDateFields(fields, '5.5.1');
+  // DateExact always carries a year, so the formatter cannot fail here.
+  return formatDateFields(fields, '5.5.1') as string;
 }
 
 export function formatTime(value: TimeValue, version: Version): string {

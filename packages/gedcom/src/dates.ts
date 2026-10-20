@@ -311,6 +311,11 @@ function solarMonthLength(year: number, monthNumber: number, julian: boolean): n
  */
 export function dateFieldsBounds(fields: DateFields): DateBounds | undefined {
   const calendar = fields.calendar ?? 'GREGORIAN';
+  if (fields.year === undefined) {
+    // The year-less GEDCOM 5.5.5 day+month form cannot be placed on the
+    // timeline; it is unbounded (like the empty date).
+    return undefined;
+  }
   const year = astronomicalYear(fields.year, fields.epoch);
   if (year === undefined) {
     return undefined;

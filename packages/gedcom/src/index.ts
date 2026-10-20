@@ -23,9 +23,6 @@
  * `GEDCOM 5.5.1 §…`); elements that exist in only one version are marked
  * as such.
 
-/** GEDCOM dialect versions. */
-export type GedcomVersion = '5.5.1' | '7.0';
-
 /** How a GEDCOM stream is packed on disk: plain text or gzip (GEDZIP). */
 export type GedcomContainer = 'plain' | 'gedzip';
 

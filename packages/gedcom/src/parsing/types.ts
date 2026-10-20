@@ -25,6 +25,8 @@ import type {
   Epoch,
   ExtensionTag,
   GedcomMonth,
+  GedcomVersion,
+  GregorianMonth,
   Latitude,
   ListText,
   Longitude,
@@ -39,6 +41,7 @@ import {
   HEBREW_MONTHS,
   LANGUAGE_IDS_551,
   MULTIMEDIA_FORMATS_551,
+  MULTIMEDIA_FORMATS_555,
 } from '../primitives';
 
 const CALENDAR_NAMES: ReadonlyMap<string, Calendar> = new Map([
@@ -74,7 +77,7 @@ function monthTable(calendar: Calendar): Readonly<Record<string, string>> | null
  * Validates a month token for the calendar (case-sensitive for 7.0,
  * case-insensitive for 5.5.1) and returns the canonical tag.
  */
-function monthOf(calendar: Calendar, token: string, version: '7.0' | '5.5.1', position: SourcePosition): GedcomMonth {
+function monthOf(calendar: Calendar, token: string, version: GedcomVersion, position: SourcePosition): GedcomMonth {
   if (calendar === 'GREGORIAN' || calendar === 'JULIAN' || calendar === 'FRENCH_R' || calendar === 'HEBREW') {
     const table = monthTable(calendar) as Readonly<Record<string, string>>;
     if (version === '7.0') {
@@ -99,7 +102,7 @@ function monthOf(calendar: Calendar, token: string, version: '7.0' | '5.5.1', po
 }
 
 /** Validates an epoch token for the calendar. */
-function epochOf(calendar: Calendar, token: string, version: '7.0' | '5.5.1', position: SourcePosition): Epoch {
+function epochOf(calendar: Calendar, token: string, version: GedcomVersion, position: SourcePosition): Epoch {
   if (token === 'BCE') {
     if (calendar === 'GREGORIAN' || calendar === 'JULIAN') {
       return 'BCE';
@@ -112,8 +115,8 @@ function epochOf(calendar: Calendar, token: string, version: '7.0' | '5.5.1', po
     }
     return token as Epoch;
   }
-  if (version === '5.5.1' && token.toUpperCase() === 'B.C.') {
-    // Handled by the 5.5.1 date parser; defensive only.
+  if (version !== '7.0' && token.toUpperCase() === 'B.C.') {
+    // Handled by the 5.5.1/5.5.5 date parser; defensive only.
     return 'BCE';
   }
   fail('date.bad-epoch', `Unknown epoch marker "${token}"`, position);
@@ -157,6 +160,13 @@ function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: numbe
   }
 }
 
+/** The maximum day of each Gregorian month; FEB is 29 because the
+ * year-less GEDCOM 5.5.5 date form has no year to decide the leap. */
+const GREGORIAN_DAY_MAX: Readonly<Record<GregorianMonth, number>> = {
+  JAN: 31, FEB: 29, MAR: 31, APR: 30, MAY: 31, JUN: 30,
+  JUL: 31, AUG: 31, SEP: 30, OCT: 31, NOV: 30, DEC: 31,
+};
+
 /** Converts a validated digit token to a number, rejecting values Number cannot hold exactly. */
 function safeInteger(token: string, position: SourcePosition, code: 'date.bad-year' | 'integer.out-of-range'): number {
   const value = Number(token);
@@ -177,12 +187,12 @@ function parseYear(token: string, position: SourcePosition): number {
 /** Builds a DateFields object, keeping absent components unset. */
 function makeFields(
   calendar: Calendar,
-  year: number,
+  year: number | undefined,
   day: number | undefined,
   month: GedcomMonth | undefined,
   epoch: Epoch | undefined,
 ): DateFields {
-  const fields: DateFields = { calendar, year };
+  const fields: DateFields = { calendar, ...(year === undefined ? {} : { year }) };
   if (day !== undefined) {
     fields.day = day;
   }
@@ -384,7 +394,7 @@ export function parseDateValue551(
   return parseDate551Body(trimmed, position);
 }
 
-/** Parses a 5.5.1 date body: DATE, DATE_PERIOD, DATE_RANGE, DATE_APPROXIMATED. */
+/* Parses a 5.5.1 date body: DATE, DATE_PERIOD, DATE_RANGE, DATE_APPROXIMATED. */
 function parseDate551Body(text: string, position: SourcePosition): { value: DateValue; dualYear: boolean } {
   const tokens = text.trim().split(/ +/);
   const first = (tokens[0] as string).toUpperCase();
@@ -457,11 +467,15 @@ function parseDate551(
     fail('date.invalid', 'A date must have a year', position);
   }
 
-  // B.C. suffix (year-only form).
+  // The BCE suffix (year-only form). 5.5.1 spells it B.C.; GEDCOM 5.5.5
+  // (p.77) additionally makes the spellings BCE and BC official, with
+  // BCE preferred — all three mean the same thing, are accepted in any
+  // 5.x file, and normalize to the BCE epoch.
   let epoch: Epoch | undefined;
-  if ((rest[rest.length - 1] as string).toUpperCase() === 'B.C.') {
+  const lastUpper = (rest[rest.length - 1] as string).toUpperCase();
+  if (lastUpper === 'B.C.' || lastUpper === 'BCE' || lastUpper === 'BC') {
     if (rest.length !== 2) {
-      fail('date.bad-epoch', 'The B.C. suffix is only permitted on a year-only date', position);
+      fail('date.bad-epoch', `The ${lastUpper} suffix is only permitted on a year-only date`, position);
     }
     epoch = 'BCE';
     rest = rest.slice(0, -1);
@@ -493,11 +507,24 @@ function parseDate551(
     rest = [...rest.slice(0, -1), String(year)];
   }
 
-  let year: number;
+  let year: number | undefined;
   let month: GedcomMonth | undefined;
   let day: number | undefined;
   if (rest.length === 1) {
     year = parseYear(rest[0] as string, position);
+  } else if (rest.length === 2 && /^\d+$/.test(rest[0] as string)) {
+    // The year-less form "<DAY> <MONTH>" of GEDCOM 5.5.5 DATE_GREG
+    // (p.83) — a birthday whose year is unknown. Accepted in any 5.x
+    // file. Gregorian only; DATE_JULN has no such alternative.
+    if (calendar !== 'GREGORIAN') {
+      fail('date.invalid', 'A year-less day+month date is only valid in the GREGORIAN calendar', position);
+    }
+    day = Number(rest[0]);
+    month = monthOf(calendar, rest[1] as string, '5.5.1', position);
+    const max = month === 'FEB' ? 29 : GREGORIAN_DAY_MAX[month as GregorianMonth];
+    if (max === undefined || day < 1 || day > max) {
+      fail('date.bad-day', `Day ${day} is invalid for the month ${month as string}`, position);
+    }
   } else if (rest.length === 2) {
     month = monthOf(calendar, rest[0] as string, '5.5.1', position);
     year = parseYear(rest[1] as string, position);
@@ -664,13 +691,13 @@ export function parseListText(text: string): ListText {
 
 /**
  * Parses an enumeration value: exact table membership for 7.0,
- * case-insensitive membership for 5.5.1 (the canonical value is
- * returned). Extension values (`_…`) are accepted only for 7.0.
+ * case-insensitive membership for 5.5.1 and 5.5.5 (the canonical value
+ * is returned). Extension values (`_…`) are accepted only for 7.0.
  */
 export function parseEnum<K extends string>(
   text: string,
   table: Readonly<Record<K, string>>,
-  version: '7.0' | '5.5.1',
+  version: GedcomVersion,
   position: SourcePosition,
 ): K | ExtensionTag {
   if (version === '7.0') {
@@ -697,16 +724,16 @@ export function parseEnum<K extends string>(
 export function parseListEnum<K extends string>(
   text: string,
   table: Readonly<Record<K, string>>,
-  version: '7.0' | '5.5.1',
+  version: GedcomVersion,
   position: SourcePosition,
 ): Array<K | ExtensionTag> {
   return text.split(',').map((item) => parseEnum(item.trim(), table, version, position));
 }
 
 /** Parses a Personal Name payload (slash-delimited). */
-export function parsePersonalName(text: string, version: '7.0' | '5.5.1', position: SourcePosition): PersonalName {
-  if (version === '5.5.1' && text.includes(',')) {
-    fail('name.invalid', 'A 5.5.1 personal name must not contain commas', position);
+export function parsePersonalName(text: string, version: GedcomVersion, position: SourcePosition): PersonalName {
+  if (version !== '7.0' && text.includes(',')) {
+    fail('name.invalid', `A ${version} personal name must not contain commas`, position);
   }
   const parts = text.split('/');
   if (parts.length === 1) {
@@ -773,11 +800,21 @@ export function parseTagDefinition(text: string, position: SourcePosition): TagD
   return { tag: tag as `_${string}`, uri };
 }
 
-/** Parses a 5.5.1 MULTIMEDIA_FORMAT payload (closed set of extensions). */
-export function parseMediaFormat551(text: string, position: SourcePosition): (typeof MULTIMEDIA_FORMATS_551)[number] {
-  const known: readonly string[] = MULTIMEDIA_FORMATS_551;
-  if (known.includes(text)) {
-    return text as (typeof MULTIMEDIA_FORMATS_551)[number];
+/**
+ * Parses a 5.x MULTIMEDIA_FORMAT payload: the union of the 5.5.1 set
+ * (GEDCOM 5.5.1 §2 p.54) and the GEDCOM 5.5.5 additions `JPEG` and
+ * `TIFF` (5.5.5 §2 p.94) — 5.5.5 dropped OLE, but 5.x import accepts
+ * the union. The 5.5.1 serializer still writes only the 5.5.1 set.
+ */
+export function parseMediaFormat551(
+  text: string,
+  position: SourcePosition,
+): (typeof MULTIMEDIA_FORMATS_551)[number] | (typeof MULTIMEDIA_FORMATS_555)[number] {
+  const known: readonly string[] = [...MULTIMEDIA_FORMATS_551, ...MULTIMEDIA_FORMATS_555];
+  const lower = text.toLowerCase();
+  const match = known.find((format) => format.toLowerCase() === lower);
+  if (match !== undefined) {
+    return match as (typeof MULTIMEDIA_FORMATS_551)[number];
   }
   fail(
     'enum.invalid-value',

@@ -36,6 +36,9 @@ import {
   emitSource,
   emitTodoRecord,
 } from './records';
+import {
+  emitCensusRecord,
+} from './census';
 import type {
   PlaceRecord,
 } from '../../structures';
@@ -103,6 +106,28 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   }
   if (h.copyright !== undefined) {
     w.line(1, 'COPR', { value: h.copyright });
+  }
+  if (version === '5.5.1' && h.schema53 !== undefined) {
+    // The GEDCOM 5.3 user-tag declaration block (Family Tree Maker
+    // dialect); 7.0 cannot spell it, so it is dropped there (see
+    // Header.schema53).
+    w.line(1, 'SCHEMA');
+    for (const entry of h.schema53.entries) {
+      let level = 2;
+      for (const tag of entry.context) {
+        w.line(level, tag);
+        level += 1;
+      }
+      if (entry.label !== undefined) {
+        w.line(level, 'LABL', { value: entry.label });
+      }
+      if (entry.definition !== undefined) {
+        w.line(level, 'DEFN', { value: entry.definition });
+      }
+      if (entry.parent !== undefined) {
+        w.line(level, 'ISA', { value: entry.parent });
+      }
+    }
   }
   w.line(1, 'GEDC');
   w.line(2, 'VERS', { value: version === '7.0' ? '7.0' : '5.5.1' });
@@ -239,6 +264,9 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       return;
     case '_TODO':
       emitTodoRecord(w, version, record as Parameters<typeof emitTodoRecord>[2]);
+      return;
+    case '_CENR':
+      emitCensusRecord(w, version, record as Parameters<typeof emitCensusRecord>[2]);
       return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);
