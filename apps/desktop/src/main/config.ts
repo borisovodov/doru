@@ -27,12 +27,9 @@ export const DEFAULT_CONFIG = `{
   //     { "name": "web", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-brave-search"], "env": { "BRAVE_API_KEY": "..." } }
   //   ]
   // },
-  // Built-in themes are chosen separately for dark and light mode; which one
-  // is applied is decided by the operating system appearance.
-  // "theme": {
-  //   "dark": "doru-dark",
-  //   "light": "doru-light"
-  // }
+  // The theme: one palette file with a dark and a light section. The
+  // operating system appearance decides which palette applies.
+  // "theme": "doru"
 }
 `;
 

@@ -4,9 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 export function useTheme() {
   const [builtinThemeCss, setBuiltinThemeCss] = useState('');
 
-  const applyBuiltinTheme = useCallback(async (systemDark: boolean, config: { dark: string; light: string }) => {
-    const name = systemDark ? config.dark : config.light;
-    setBuiltinThemeCss(await window.doru.getThemeCss(name));
+  const applyBuiltinTheme = useCallback(async (systemDark: boolean, name: string) => {
+    setBuiltinThemeCss(await window.doru.getThemeCss(name, systemDark ? 'dark' : 'light'));
   }, []);
 
   useEffect(() => {
@@ -20,8 +19,8 @@ export function useTheme() {
   }, [applyBuiltinTheme]);
 
   useEffect(() => {
-    return window.doru.onThemeConfigChanged((config) => {
-      void window.doru.getThemeState().then((state) => applyBuiltinTheme(state.systemDark, config));
+    return window.doru.onThemeConfigChanged((name) => {
+      void window.doru.getThemeState().then((state) => applyBuiltinTheme(state.systemDark, name));
     });
   }, [applyBuiltinTheme]);
 

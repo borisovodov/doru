@@ -27,4 +27,5 @@ Double-clicking a `*.doru` file (or opening a
 - [Working with the tree](tree.md) — persons, families, sources, notes.
 - [Configuration](configuration.md) — the `doru.json` reference.
 - [AI and agents](agents.md) — let an agent read and edit your tree.
-- [Themes](themes.md) — dark and light themes, chosen per OS appearance.
+- [Themes](themes.md) — one theme with dark and light palettes, chosen per OS
+  appearance.

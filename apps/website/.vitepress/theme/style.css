@@ -1,6 +1,5 @@
 /* ── Dóru website theme ─────────────────────────────────────────────── */
-/* Mirrors the desktop app's theme tokens
-   (themes/doru-light/theme.json and themes/doru-dark/theme.json),
+/* Mirrors the desktop app's theme palettes (themes/doru.json),
    so the site and the app feel like one product. */
 
 /* The wordmark face, served from public/ so the URL is stable and the

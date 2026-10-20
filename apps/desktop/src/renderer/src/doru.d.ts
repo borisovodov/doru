@@ -66,12 +66,12 @@ declare global {
       respondChatPermission(id: string, allow: boolean): void;
       getThemeState(): Promise<{
         systemDark: boolean;
-        config: { dark: string; light: string };
-        themes: Array<{ name: string; type: 'dark' | 'light' }>;
+        config: string;
+        themes: Array<{ id: string; name: string }>;
       }>;
-      getThemeCss(name: string): Promise<string>;
+      getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
-      onThemeConfigChanged(callback: (config: { dark: string; light: string }) => void): () => void;
+      onThemeConfigChanged(callback: (name: string) => void): () => void;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
       personCounts(
         projectPath: string,
