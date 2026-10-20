@@ -1,7 +1,7 @@
 /**
  * Strict parse and serialization errors of the GEDCOM reader/writer.
  *
- * The parser is deliberately strict: every violation of GEDCOM 7.0.18 or
+ * The parser is deliberately strict: every violation of GEDCOM 7.0 or
  * GEDCOM 5.5.1 is reported as a typed error with a unique code and the
  * source position of the offending line. Internally the parser fails fast
  * (the first problem aborts the parse); the public API surfaces the error

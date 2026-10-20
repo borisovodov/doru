@@ -22,6 +22,7 @@
  * Every element cites both specs where they agree (`GEDCOM 7.0 §…` and
  * `GEDCOM 5.5.1 §…`); elements that exist in only one version are marked
  * as such.
+ */
 
 /** How a GEDCOM stream is packed on disk: plain text or gzip (GEDZIP). */
 export type GedcomContainer = 'plain' | 'gedzip';

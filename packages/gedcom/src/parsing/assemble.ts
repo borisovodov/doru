@@ -34,7 +34,7 @@ import {
 // Public API
 // ---------------------------------------------------------------------------
 
-/** Parses a GEDCOM 7.0.18 data stream into the typed model. */
+/** Parses a GEDCOM 7.0 data stream into the typed model. */
 export function parseGedcom70(input: Uint8Array): ParseResult<GedcomDataset> {
   return run(() => parseGedcom(input, '7.0'));
 }
