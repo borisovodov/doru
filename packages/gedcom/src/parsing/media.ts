@@ -120,16 +120,17 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
 }
 
 export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
-  const file: MediaFile = { payload: reqText(node), form: null as unknown as MediaFormatStructure };
+  const file: Omit<MediaFile, 'form'> = { payload: reqText(node) };
+  let form: MediaFormatStructure | undefined;
   dispatch(
     node,
     file,
     {
       FORM: (child) => {
-        if (file.form !== (null as unknown as MediaFormatStructure)) {
+        if (form !== undefined) {
           fail('structure.cardinality', 'At most one FORM is allowed under FILE', child.position);
         }
-        file.form = parseMediaFormatStructure(child, ctx);
+        form = parseMediaFormatStructure(child, ctx);
       },
       TITL: (child) => {
         file.title = reqText(child);
@@ -144,10 +145,10 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
     },
     ctx,
   );
-  if (file.form === (null as unknown as MediaFormatStructure)) {
+  if (form === undefined) {
     fail('structure.missing-required', 'The FILE structure requires a FORM substructure', node.position);
   }
-  return file;
+  return { ...file, form };
 }
 
 export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatStructure {
@@ -208,22 +209,23 @@ export function parseMediaType551(node: RawNode): MediaStructure {
 }
 
 export function parseMediaFileTranslation(node: RawNode, ctx: Ctx): MediaFileTranslation {
-  const out: MediaFileTranslation = { payload: reqText(node), form: null as unknown as MediaFormatStructure };
+  const out: Omit<MediaFileTranslation, 'form'> = { payload: reqText(node) };
+  let form: MediaFormatStructure | undefined;
   dispatch(
     node,
     out,
     {
       FORM: (child) => {
-        if (out.form !== (null as unknown as MediaFormatStructure)) {
+        if (form !== undefined) {
           fail('structure.cardinality', 'At most one FORM is allowed under TRAN', child.position);
         }
-        out.form = parseMediaFormatStructure(child, ctx);
+        form = parseMediaFormatStructure(child, ctx);
       },
     },
     ctx,
   );
-  if (out.form === (null as unknown as MediaFormatStructure)) {
+  if (form === undefined) {
     fail('structure.missing-required', 'The TRAN structure requires a FORM substructure', node.position);
   }
-  return out;
+  return { ...out, form };
 }

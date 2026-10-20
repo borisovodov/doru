@@ -11,6 +11,7 @@ import type {
   ChangeDate,
   CreationDate,
   DateExactStructure,
+  ExtensionRecord,
   ExtensionStructure,
   GedcomDataset,
   Header,
@@ -272,7 +273,7 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       emitPlaceRecord(w, version, record as PlaceRecord);
       return;
     default:
-      emitExtension(w, version, 0, record as ExtensionStructure, (record as { xref?: string }).xref);
+      emitExtension(w, version, 0, record as ExtensionStructure, (record as ExtensionRecord).xref);
       return;
   }
 }

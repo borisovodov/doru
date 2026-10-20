@@ -1,5 +1,5 @@
 /**
- * GEDCOM 7.0 §3.4 Enumeration Values of the GEDCOM 7.0.18 specification.
+ * GEDCOM 7.0 §3.4 Enumeration Values of the GEDCOM 7.0 specification.
  *
  * Each enumeration set is modelled as a union of string literals derived
  * from a `const` table that records the specification's meaning of every

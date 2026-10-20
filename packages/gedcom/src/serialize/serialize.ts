@@ -89,25 +89,19 @@ function encodeUtf8(text: string): ParseResult<Uint8Array> {
 
 /**
  * Serializes the dataset as GEDCOM 7.0 UTF-8 bytes (no BOM, CRLF line
- * endings). A thin encoding of `serializeGedcom70`.
+ * endings). The only reported error is `serialize.invalid-text` (unpaired
+ * surrogates), which the text serialization cannot produce.
  */
 export function serializeGedcom70Bytes(dataset: GedcomDataset): ParseResult<Uint8Array> {
-  const text = serializeGedcom70(dataset);
-  if (!text.ok) {
-    return text;
-  }
-  return encodeUtf8(text.value);
+  return encodeUtf8(emit('7.0', dataset));
 }
 
 /**
  * Serializes the dataset as GEDCOM 5.5.1 UTF-8 bytes (no BOM, CRLF line
- * endings, `1 CHAR UTF-8` in the header). A thin encoding of
- * `serializeGedcom551`.
+ * endings, `1 CHAR UTF-8` in the header). The only reported error is
+ * `serialize.invalid-text` (unpaired surrogates), which the text
+ * serialization cannot produce.
  */
 export function serializeGedcom551Bytes(dataset: GedcomDataset): ParseResult<Uint8Array> {
-  const text = serializeGedcom551(dataset);
-  if (!text.ok) {
-    return text;
-  }
-  return encodeUtf8(text.value);
+  return encodeUtf8(emit('5.5.1', dataset));
 }

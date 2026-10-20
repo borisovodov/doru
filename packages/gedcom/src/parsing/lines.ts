@@ -332,7 +332,7 @@ export function parseRawDocument(document: DecodedDocument, version: GedcomVersi
   const roots: RawNode[] = [];
   const stack: RawNode[] = [];
   let sawContent = false;
-  let lastXref: string | null = null;
+  const seenXrefs = new Set<string>();
 
   const attach = (node: RawNode): void => {
     if (node.level === 0) {
@@ -352,10 +352,10 @@ export function parseRawDocument(document: DecodedDocument, version: GedcomVersi
       if (node.level > 0) {
         fail('line.xref-on-substructure', 'A cross-reference identifier is only allowed on a record (level 0)', node.position);
       }
-      if (lastXref === node.xref) {
+      if (seenXrefs.has(node.xref)) {
         fail('document.duplicate-xref', `Duplicate cross-reference identifier ${node.xref}`, node.position);
       }
-      lastXref = node.xref;
+      seenXrefs.add(node.xref);
     }
   };
 

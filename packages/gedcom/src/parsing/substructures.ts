@@ -37,6 +37,9 @@ import type {
   UniqueIdentifierStructure,
 } from '../structures';
 import type {
+  DateValue,
+} from '../primitives';
+import type {
   Ctx,
 } from './context';
 import {
@@ -189,7 +192,7 @@ export function parseRole(node: RawNode, ctx: Ctx): RoleStructure {
   if (upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU') {
     return { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
   }
-  if (raw.startsWith('(') && raw.endsWith(')') && raw.length >= 2) {
+  if (raw.startsWith('(') && raw.endsWith(')')) {
     return { payload: 'OTHER', phrase: raw.slice(1, -1) };
   }
   fail('enum.invalid-value', `"${raw}" is not a permitted ROLE_IN_EVENT value`, node.position);
@@ -197,43 +200,44 @@ export function parseRole(node: RawNode, ctx: Ctx): RoleStructure {
 
 export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
   noPayload(node);
-  const out: ChangeDate = { tag: 'CHAN', date: null as unknown as DateExactStructure };
+  const base: Omit<ChangeDate, 'date'> = { tag: 'CHAN' };
+  let date: DateExactStructure | undefined;
   dispatch(
     node,
-    out,
+    base,
     {
       DATE: (child) => {
-        out.date = parseDateExactStructure(child, ctx, true);
+        date = parseDateExactStructure(child, ctx, true);
       },
       NOTE: (child) => {
-        (out.notes ??= []).push(parseNoteStructure(child, ctx));
+        (base.notes ??= []).push(parseNoteStructure(child, ctx));
       },
     },
     ctx,
   );
-  if (out.date === (null as unknown as DateExactStructure)) {
+  if (date === undefined) {
     fail('structure.missing-required', 'The CHAN structure requires a DATE substructure', node.position);
   }
-  return out;
+  return { ...base, date };
 }
 
 export function parseCreationDate(node: RawNode, ctx: Ctx): CreationDate {
   noPayload(node);
-  const out: CreationDate = { tag: 'CREA', date: null as unknown as DateExactStructure };
+  let date: DateExactStructure | undefined;
   dispatch(
     node,
-    out,
+    {},
     {
       DATE: (child) => {
-        out.date = parseDateExactStructure(child, ctx, true);
+        date = parseDateExactStructure(child, ctx, true);
       },
     },
     ctx,
   );
-  if (out.date === (null as unknown as DateExactStructure)) {
+  if (date === undefined) {
     fail('structure.missing-required', 'The CREA structure requires a DATE substructure', node.position);
   }
-  return out;
+  return { tag: 'CREA', date };
 }
 
 /** Handlers for a `DATE {0:1}` + `<<SOURCE_CITATION>> {0:M}` pair (the GEDCOM-L place records). */
@@ -249,6 +253,23 @@ export function datedSourceHandlers(
       (target.citations ??= []).push(parseSourceCitation(child, ctx));
     },
   };
+}
+
+/**
+ * Applies a 5.5.1 DateValue parse result to a `{ value, phrase }` target:
+ * a dual year keeps the raw text as the phrase when no explicit phrase
+ * was present.
+ */
+function applyDateValue551(
+  target: { value?: DateValue; phrase?: string },
+  parsed: { value: DateValue; dualYear: boolean; phrase?: string },
+  raw: string,
+): void {
+  target.value = parsed.value;
+  const phrase = parsed.phrase ?? (parsed.dualYear ? raw : undefined);
+  if (phrase !== undefined) {
+    target.phrase = phrase;
+  }
 }
 
 export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
@@ -278,12 +299,7 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   if (node.children.length > 0) {
     fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under DATE`, (node.children[0] as RawNode).position);
   }
-  const parsed = parseDateValue551(raw, node.position);
-  out.value = parsed.value;
-  const phrase = parsed.phrase ?? (parsed.dualYear ? raw : undefined);
-  if (phrase !== undefined) {
-    out.phrase = phrase;
-  }
+  applyDateValue551(out, parseDateValue551(raw, node.position), raw);
   return out;
 }
 
@@ -425,12 +441,7 @@ export function parseSortDate551(node: RawNode): SortDateStructure {
   const out: SortDateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   if (raw !== undefined) {
-    const parsed = parseDateValue551(raw, node.position);
-    out.value = parsed.value;
-    const phrase = parsed.phrase ?? (parsed.dualYear ? raw : undefined);
-    if (phrase !== undefined) {
-      out.phrase = phrase;
-    }
+    applyDateValue551(out, parseDateValue551(raw, node.position), raw);
   }
   if (node.children.length > 0) {
     fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under _SDATE`, (node.children[0] as RawNode).position);

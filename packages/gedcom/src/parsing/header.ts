@@ -58,16 +58,17 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
   if (node.xref !== undefined) {
     fail('line.xref-on-substructure', 'The HEAD pseudo-structure must not have a cross-reference identifier', node.position);
   }
-  const header: Header = { tag: 'HEAD', gedcom: null as unknown as Gedcom };
+  const header: Omit<Header, 'gedcom'> = { tag: 'HEAD' };
+  let gedcom: Gedcom | undefined;
   dispatch(
     node,
     header,
     {
       GEDC: (child) => {
-        if (header.gedcom !== (null as unknown as Gedcom)) {
+        if (gedcom !== undefined) {
           fail('structure.cardinality', 'At most one GEDC is allowed in the header', child.position);
         }
-        header.gedcom = parseGedc(child, ctx);
+        gedcom = parseGedc(child, ctx);
       },
       ...(ctx.version === '7.0'
         ? {
@@ -134,7 +135,7 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
     ctx,
     ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR', 'SCHEMA'],
   );
-  if (header.gedcom === (null as unknown as Gedcom)) {
+  if (gedcom === undefined) {
     fail('structure.missing-required', 'The header requires a GEDC substructure', node.position);
   }
   if (ctx.version === '5.5.1') {
@@ -147,7 +148,7 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
     // parse under these rules. The 5.5.1 serializer still synthesizes
     // a SUBM when writing.
   }
-  return header;
+  return { ...header, gedcom };
 }
 
 export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {

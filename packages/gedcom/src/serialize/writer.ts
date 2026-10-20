@@ -20,6 +20,29 @@ export class Writer {
     this.version = version;
   }
 
+  /**
+   * Splits a value into pieces of at most `limit` characters without
+   * breaking after a space: when the cut lands on spaces, it walks back
+   * to the preceding non-space so the next piece never starts with one.
+   */
+  private static splitAtLimit(segment: string, limit: number): string[] {
+    const pieces: string[] = [];
+    let rest = segment;
+    while (rest.length > limit) {
+      let cut = limit;
+      while (cut > 0 && rest[cut] === ' ') {
+        cut--;
+      }
+      if (cut <= 0) {
+        cut = limit;
+      }
+      pieces.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
+    }
+    pieces.push(rest);
+    return pieces;
+  }
+
   line(level: number, tag: string, options: { xref?: string | undefined; value?: string | undefined } = {}): void {
     const prefix = `${level} ${options.xref === undefined ? '' : `${options.xref} `}${tag}`;
     let value = options.value ?? '';
@@ -59,61 +82,22 @@ export class Writer {
     const parts = value.split('\n');
     const overhead = prefix.length + 1;
     const limit = 255 - overhead;
-    const emitSegment = (segment: string, baseLevel: number): void => {
-      if (segment.length <= limit) {
-        this.lines.push(segment === '' ? prefix : `${prefix} ${segment}`);
-        return;
-      }
-      // Split at the largest non-space position within the limit so that
-      // the next segment does not start with a space.
-      let cut = limit;
-      while (cut > 0 && segment[cut] === ' ') {
-        cut--;
-      }
-      if (cut <= 0) {
-        cut = limit;
-      }
-      this.lines.push(`${prefix} ${segment.slice(0, cut)}`);
-      let rest = segment.slice(cut);
-      while (rest.length > limit) {
-        let next = limit;
-        while (next > 0 && rest[next] === ' ') {
-          next--;
-        }
-        if (next <= 0) {
-          next = limit;
-        }
-        this.lines.push(`${baseLevel + 1} CONC ${rest.slice(0, next)}`);
-        rest = rest.slice(next);
-      }
-      this.lines.push(rest === '' ? `${baseLevel + 1} CONC` : `${baseLevel + 1} CONC ${rest}`);
-    };
-    emitSegment(parts[0] ?? '', level);
+    const pieces = Writer.splitAtLimit(parts[0] ?? '', limit);
+    this.lines.push(pieces[0] === '' ? prefix : `${prefix} ${pieces[0]}`);
+    for (let i = 1; i < pieces.length; i++) {
+      const piece = pieces[i] as string;
+      this.lines.push(piece === '' ? `${level + 1} CONC` : `${level + 1} CONC ${piece}`);
+    }
     for (let i = 1; i < parts.length; i++) {
-      const cont = new Writer('5.5.1');
-      const part = parts[i] as string;
       const contPrefix = `${level + 1} CONT`;
       const contOverhead = contPrefix.length + 1;
       const contLimit = 255 - contOverhead;
-      if (part.length <= contLimit) {
-        this.lines.push(part === '' ? contPrefix : `${contPrefix} ${part}`);
-      } else {
-        let cut = contLimit;
-        while (cut > 0 && part[cut] === ' ') {
-          cut--;
-        }
-        if (cut <= 0) {
-          cut = contLimit;
-        }
-        this.lines.push(`${contPrefix} ${part.slice(0, cut)}`);
-        let rest = part.slice(cut);
-        while (rest.length > contLimit) {
-          this.lines.push(`${level + 2} CONC ${rest.slice(0, contLimit)}`);
-          rest = rest.slice(contLimit);
-        }
-        this.lines.push(rest === '' ? `${level + 2} CONC` : `${level + 2} CONC ${rest}`);
+      const contPieces = Writer.splitAtLimit(parts[i] as string, contLimit);
+      this.lines.push(contPieces[0] === '' ? contPrefix : `${contPrefix} ${contPieces[0]}`);
+      for (let j = 1; j < contPieces.length; j++) {
+        const piece = contPieces[j] as string;
+        this.lines.push(piece === '' ? `${level + 2} CONC` : `${level + 2} CONC ${piece}`);
       }
-      void cont;
     }
   }
 }

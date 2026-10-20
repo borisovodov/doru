@@ -102,7 +102,7 @@ function monthOf(calendar: Calendar, token: string, version: GedcomVersion, posi
 }
 
 /** Validates an epoch token for the calendar. */
-function epochOf(calendar: Calendar, token: string, version: GedcomVersion, position: SourcePosition): Epoch {
+function epochOf(calendar: Calendar, token: string, position: SourcePosition): Epoch {
   if (token === 'BCE') {
     if (calendar === 'GREGORIAN' || calendar === 'JULIAN') {
       return 'BCE';
@@ -115,16 +115,7 @@ function epochOf(calendar: Calendar, token: string, version: GedcomVersion, posi
     }
     return token as Epoch;
   }
-  if (version !== '7.0' && token.toUpperCase() === 'B.C.') {
-    // Handled by the 5.5.1/5.5.5 date parser; defensive only.
-    return 'BCE';
-  }
   fail('date.bad-epoch', `Unknown epoch marker "${token}"`, position);
-}
-
-/** The astronomical year of a BCE year (1 BCE is year 0). */
-function astronomicalYear(year: number, epoch: Epoch | undefined): number {
-  return epoch === 'BCE' ? 1 - year : year;
 }
 
 /** Validates the day against the calendar and month. */
@@ -137,12 +128,11 @@ function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: numbe
     const monthLengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const index = monthNames.indexOf(month as string);
-    if (index === -1) {
-      fail('date.bad-month', 'A day requires a month of the calendar', position);
-    }
     max = monthLengths[index] as number;
     if (month === 'FEB') {
-      const astro = astronomicalYear(year, epoch);
+      // The astronomical year (1 BCE is year 0); monthOf guarantees a
+      // GREGORIAN/JULIAN month here, so the epoch is BCE or absent.
+      const astro = epoch === 'BCE' ? 1 - year : year;
       const leap = calendar === 'JULIAN' ? astro % 4 === 0 : astro % 4 === 0 && (astro % 100 !== 0 || astro % 400 === 0);
       max = leap ? 29 : 28;
     }
@@ -221,7 +211,7 @@ function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | 
     epoch = 'BCE';
     rest = rest.slice(0, -1);
   } else if (version === '7.0' && last.startsWith('_')) {
-    epoch = epochOf(calendar, last, version, position);
+    epoch = epochOf(calendar, last, position);
     rest = rest.slice(0, -1);
   } else if (version === '5.5.1' && lastUpper === 'B.C.') {
     // GEDCOM 5.5.1 DATE_GREG permits [B.C.] only on the year-only form.
@@ -599,25 +589,28 @@ export function parseTime551(text: string, position: SourcePosition): TimeValue 
   return time;
 }
 
-/** Parses a GEDCOM 7.0 Age value. */
-export function parseAge70(text: string, position: SourcePosition): AgeValue {
+/**
+ * The shared numeric core of the 7.0 and 5.5.1 age grammars: an optional
+ * bound followed by `<number><unit>` components in the version's order.
+ * The `expected` string spells the allowed units in the error message.
+ */
+function parseAgeParts(text: string, order: readonly string[], expected: string, position: SourcePosition): AgeValue {
+  const KIND_NAMES: Record<string, string> = { y: 'years', m: 'months', w: 'weeks', d: 'days' };
   let rest = text.trim();
   const age: AgeValue = {};
   if (rest.startsWith('<') || rest.startsWith('>')) {
     age.bound = rest[0] as AgeBound;
     rest = rest.slice(1).trim();
   }
-  const parts = rest === '' ? [] : rest.split(/ +/);
   let lastKind = '';
-  const order = ['y', 'm', 'w', 'd'];
-  for (const part of parts) {
+  for (const part of rest === '' ? [] : rest.split(/ +/)) {
     const match = /^(\d+)([ymwd])$/.exec(part);
-    if (!match) {
-      fail('age.invalid', `Invalid age component "${part}"; expected "<number>y|m|w|d"`, position);
+    if (!match || !order.includes(match[2] as string)) {
+      fail('age.invalid', `Invalid age component "${part}"; expected "${expected}"`, position);
     }
     const kind = match[2] as string;
     if (order.indexOf(kind) <= order.indexOf(lastKind)) {
-      fail('age.invalid', `Age components must appear in the order years, months, weeks, days; got "${part}" after "${lastKind}"`, position);
+      fail('age.invalid', `Age components must appear in the order ${order.map((k) => KIND_NAMES[k] as string).join(', ')}; got "${part}" after "${lastKind}"`, position);
     }
     lastKind = kind;
     const count = safeInteger(match[1] as string, position, 'integer.out-of-range');
@@ -637,10 +630,14 @@ export function parseAge70(text: string, position: SourcePosition): AgeValue {
   return age;
 }
 
+/** Parses a GEDCOM 7.0 Age value. */
+export function parseAge70(text: string, position: SourcePosition): AgeValue {
+  return parseAgeParts(text, ['y', 'm', 'w', 'd'], '<number>y|m|w|d', position);
+}
+
 /** Parses a GEDCOM 5.5.1 Age value (no weeks; CHILD/INFANT/STILLBORN keywords). */
 export function parseAge551(text: string, position: SourcePosition): AgeValue {
-  const trimmed = text.trim();
-  const upper = trimmed.toUpperCase();
+  const upper = text.trim().toUpperCase();
   if (upper === 'CHILD') {
     return { description: 'CHILD' };
   }
@@ -650,38 +647,7 @@ export function parseAge551(text: string, position: SourcePosition): AgeValue {
   if (upper === 'STILLBORN') {
     return { description: 'STILLBORN' };
   }
-  let rest = trimmed;
-  const age: AgeValue = {};
-  if (rest.startsWith('<') || rest.startsWith('>')) {
-    age.bound = rest[0] as AgeBound;
-    rest = rest.slice(1).trim();
-  }
-  const parts = rest === '' ? [] : rest.split(/ +/);
-  let lastKind = '';
-  const order = ['y', 'm', 'd'];
-  for (const part of parts) {
-    const match = /^(\d+)([ymd])$/.exec(part);
-    if (!match) {
-      fail('age.invalid', `Invalid age component "${part}"; expected "<number>y|m|d"`, position);
-    }
-    const kind = match[2] as string;
-    if (order.indexOf(kind) <= order.indexOf(lastKind)) {
-      fail('age.invalid', `Age components must appear in the order years, months, days; got "${part}" after "${lastKind}"`, position);
-    }
-    lastKind = kind;
-    const count = safeInteger(match[1] as string, position, 'integer.out-of-range');
-    if (kind === 'y') {
-      age.years = count;
-    } else if (kind === 'm') {
-      age.months = count;
-    } else {
-      age.days = count;
-    }
-  }
-  if (lastKind === '' && age.bound === undefined) {
-    fail('age.invalid', 'An age must have at least one duration component', position);
-  }
-  return age;
+  return parseAgeParts(text, ['y', 'm', 'd'], '<number>y|m|d', position);
 }
 
 /** Parses a List:Text payload (comma-separated, spaces around items trimmed). */

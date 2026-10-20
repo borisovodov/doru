@@ -4,7 +4,7 @@
  * Every type in this file maps to a concept of the GEDCOM specifications.
  * Section references carry the spec version explicitly because the two
  * supported versions number their chapters differently:
- * - `GEDCOM 7.0 §…` — The FamilySearch GEDCOM Specification 7.0.18:
+ * - `GEDCOM 7.0 §…` — The FamilySearch GEDCOM Specification 7.0:
  *   chapter 1 (container format identifiers), chapter 2 (data types) and
  *   chapter 6 (known calendars).
  * - `GEDCOM 5.5.1 §…` — The GEDCOM Standard 5.5.1: chapter 1 (data

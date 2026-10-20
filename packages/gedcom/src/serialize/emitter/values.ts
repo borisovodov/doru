@@ -24,11 +24,8 @@ import {
   Writer,
 } from '../writer';
 
-export function ptr(w: Writer, version: Version, level: number, tag: string, pointer: string, options: { empty551?: boolean } = {}): void {
+export function ptr(w: Writer, version: Version, level: number, tag: string, pointer: string): void {
   if (pointer === '@VOID@' && version === '5.5.1') {
-    if (options.empty551) {
-      w.line(level, tag);
-    }
     // A void pointer has nothing to point at in 5.5.1; the link is
     // dropped. (prepareFor551 removes all such links; REPO and SOUR
     // citations handle theirs inline.)

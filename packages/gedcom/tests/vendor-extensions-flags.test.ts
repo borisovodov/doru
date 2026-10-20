@@ -44,7 +44,7 @@ const SAMPLE551 = [
   '3 _NAME John Doe',
   '2 PLAC Ames, Iowa',
   '3 _VERI Y',
-  '2 SOUR @S1@',
+  '2 SOUR @S2@',
   '3 _VERI Y',
   '0 @F1@ FAM',
   '1 HUSB @I1@',
@@ -54,7 +54,7 @@ const SAMPLE551 = [
   '0 @F3@ FAM',
   '0 @I2@ INDI',
   '1 NAME Kid /Doe/',
-  '0 @S1@ SOUR',
+  '0 @S2@ SOUR',
   '1 TITL Book',
   '0 TRLR',
 ].join('\n');

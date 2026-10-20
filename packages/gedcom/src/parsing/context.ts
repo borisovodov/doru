@@ -144,6 +144,7 @@ export function parseExtension(node: RawNode): ExtensionStructure {
   return {
     tag: node.tag,
     ...(payload === undefined ? {} : { payload }),
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
     children: node.children.map(parseExtension),
   };
 }

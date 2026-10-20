@@ -1,5 +1,5 @@
 /**
- * GEDCOM 7.0 §3 Genealogical structures of the GEDCOM 7.0.18 specification.
+ * GEDCOM 7.0 §3 Genealogical structures of the GEDCOM 7.0 specification.
  *
  * The structure organization rules are defined in GEDCOM 7.0 §3.2 (metasyntax rules
  * such as FAMILY_RECORD or PLACE_STRUCTURE); the meaning of each structure
