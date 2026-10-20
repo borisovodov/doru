@@ -99,9 +99,6 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
       }
       continue;
     }
-    if (trailer !== undefined) {
-      fail('document.trailer-not-last', 'The TRLR line must be the last line of the document', node.position);
-    }
     records.push(parseRecord(node, ctx));
   }
   if (trailer === undefined) {

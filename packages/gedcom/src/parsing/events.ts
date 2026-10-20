@@ -247,21 +247,21 @@ export function parseAliasLink(node: RawNode, ctx: Ctx): AliasLink {
 
 export function parseFamilyPartnerEventDetail(node: RawNode, ctx: Ctx): FamilyPartnerEventDetail {
   noPayload(node);
-  const out: FamilyPartnerEventDetail = { age: null as unknown as AgeStructure };
+  let age: AgeStructure | undefined;
   dispatch(
     node,
-    out,
+    {},
     {
       AGE: (child) => {
-        out.age = parseAge(child, ctx);
+        age = parseAge(child, ctx);
       },
     },
     ctx,
   );
-  if (out.age === (null as unknown as AgeStructure)) {
+  if (age === undefined) {
     fail('structure.missing-required', `The ${node.tag} structure requires an AGE substructure`, node.position);
   }
-  return out;
+  return { age };
 }
 
 /** The event-detail handlers (DATE/PLAC/…), mutating the given detail. */
@@ -640,18 +640,16 @@ export const LDS_STATUS_551: Record<string, Record<string, string>> = {
 
 export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string): OrdinanceStatusStructure {
   const raw = reqText(node);
-  const out: OrdinanceStatusStructure = {
-    payload: null as unknown as OrdinanceStatusEnum,
-    date: null as unknown as DateExactStructure,
-  };
+  let payload: OrdinanceStatusEnum;
+  let date: DateExactStructure | undefined;
   if (ctx.version === '7.0') {
-    out.payload = parseEnum(raw, ORDINANCE_STATUS_ENUM_VALUES, '7.0', node.position);
+    payload = parseEnum(raw, ORDINANCE_STATUS_ENUM_VALUES, '7.0', node.position);
     dispatch(
       node,
-      out,
+      {},
       {
         DATE: (child) => {
-          out.date = parseDateExactStructure(child, ctx, true);
+          date = parseDateExactStructure(child, ctx, true);
         },
       },
       ctx,
@@ -666,17 +664,17 @@ export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string)
     if (canonical === undefined) {
       fail('enum.invalid-value', `"${raw}" is not a permitted status for ${ordinance} in 5.5.1`, node.position);
     }
-    out.payload = (canonical === '' ? upper : canonical) as OrdinanceStatusEnum;
+    payload = (canonical === '' ? upper : canonical) as OrdinanceStatusEnum;
     const dateNode = req(node, 'DATE');
-    out.date = parseDateExactStructure(dateNode, ctx, false);
+    date = parseDateExactStructure(dateNode, ctx, false);
     if (node.children.some((child) => child.tag !== 'DATE')) {
       fail('structure.unknown-tag', 'Only a DATE substructure is allowed under STAT', node.position);
     }
   }
-  if (out.date === (null as unknown as DateExactStructure)) {
+  if (date === undefined) {
     fail('structure.missing-required', 'The STAT structure requires a DATE substructure', node.position);
   }
-  return out;
+  return { payload, date };
 }
 
 export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdinance {

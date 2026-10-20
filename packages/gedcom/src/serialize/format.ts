@@ -209,6 +209,7 @@ export function formatName70(value: PersonalName): string {
   return `${value.given ?? ''}/${value.surname ?? ''}/${value.suffix ?? ''}`;
 }
 
+/** GEDCOM 5.5.1 spells personal names exactly like 7.0. */
 export function formatName551(value: PersonalName): string {
-  return `${value.given ?? ''}/${value.surname ?? ''}/${value.suffix ?? ''}`;
+  return formatName70(value);
 }
