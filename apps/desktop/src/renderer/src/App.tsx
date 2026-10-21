@@ -29,7 +29,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const tabs = useTabs(tree.persons);
-  const project = useProject(projectPath, tree.refreshTree, tabs.ensureTreeTab);
+  const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
 
@@ -317,7 +317,6 @@ export function App() {
             persons={tree.persons}
             projectPath={projectPath}
             onOpenPerson={openPersonAndFocus}
-            onImportGedcom={() => void project.importGedcom()}
             onExportGedcom={() => void project.exportGedcom()}
           />
         }

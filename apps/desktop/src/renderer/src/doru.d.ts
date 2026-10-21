@@ -1,7 +1,6 @@
 import type {
   EventRecord,
   FamilyRecord,
-  GedcomImportResult,
   MediaRecord,
   NoteRecord,
   PersonRecord,
@@ -30,11 +29,6 @@ declare global {
       openProjectPath(path: string): Promise<ProjectSummary | ProjectBinding | null>;
       createProjectDialog(): Promise<ProjectSummary | null>;
       saveProject(projectPath: string): Promise<ProjectBinding | null>;
-      importGedcom(projectPath: string): Promise<GedcomImportResult | null>;
-      importGedcomFile(
-        projectPath: string,
-        filePath: string,
-      ): Promise<GedcomImportResult | null>;
       recentProjects(): Promise<RecentProject[]>;
       removeRecentProject(path: string): Promise<RecentProject[]>;
       listPersons(projectPath: string, search?: string): Promise<PersonRecord[]>;

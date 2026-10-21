@@ -1,6 +1,6 @@
 import { dialog } from 'electron';
 import { basename } from 'node:path';
-import type { GedcomImportResult, ProjectBinding } from '@doru/core';
+import type { ProjectBinding } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { openUntitledStore } from './runtime';
 import { createUntitledProject, disposeUntitled } from './untitled';
@@ -10,21 +10,10 @@ const fs = new NodeFileSystem();
 
 // The actual GEDCOM parsing and the dataset → tree mapping live in the
 // @doru/gedcom package, which is not wired to the tree database yet. Until
-// that integration lands, the import handlers are stubs: opening a
-// .ged/.gdz file still opens a new, not-yet-saved project (empty for now),
-// and importing into an open project is a no-op.
-
-/**
- * Imports a GEDCOM/GEDZIP file into an open project. Not implemented yet —
- * returns null, leaving the tree untouched.
- */
-export async function importGedcom(_options: {
-  projectPath: string;
-  filePath?: string;
-  dialog?: boolean;
-}): Promise<GedcomImportResult | null> {
-  return null;
-}
+// that integration lands, opening a .ged/.gdz file still opens a new,
+// not-yet-saved project (empty for now); GEDCOM files enter the app only
+// through the Open dialog, so there is no separate import-into-project
+// flow.
 
 /**
  * Opens a GEDCOM/GEDZIP file as a new, not-yet-saved project. The import
