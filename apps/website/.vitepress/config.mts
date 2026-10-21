@@ -44,7 +44,8 @@ function themeConfig(nav: string, relnotes: string, footer: string): DefaultThem
           collapsed: false,
           items: [
             { text: 'Working with the tree', link: '/docs/tree' },
-            { text: 'Configuration', link: '/docs/configuration' },
+            { text: 'Keyboard shortcuts', link: '/docs/shortcuts' },
+            { text: 'Settings', link: '/docs/settings' },
             { text: 'AI and agents', link: '/docs/agents' },
             { text: 'Themes', link: '/docs/themes' },
           ],
