@@ -160,7 +160,7 @@ export function registerSettingsIpc(): void {
       } = {},
     ) => {
       const settings = settingsWithOverrides(options);
-      if (settings.provider.kind === 'acp' || !settings.baseUrl || !settings.apiKey) {
+      if (settings.provider.kind === 'acp' || !settings.baseUrl || (settings.provider.requiresKey && !settings.apiKey)) {
         return { models: [] as string[], error: 'Provider is not configured' };
       }
       try {

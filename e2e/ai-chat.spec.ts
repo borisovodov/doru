@@ -41,15 +41,15 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
   const { app, page } = await launchApp(project, userData);
 
   try {
-    // Configure the mock provider and verify the connection test and the
-    // dynamic model list.
+    // Configure the mock provider (the ollama preset needs no API key, so the
+    // flow is independent of the OS keychain) and verify the connection test
+    // and the dynamic model list.
     const configured = await page.evaluate(
       async ({ baseUrl }) => {
         const state = await window.doru.setAiSettings({
-          provider: 'custom',
+          provider: 'ollama',
           baseUrl,
           model: 'mock-model',
-          apiKey: 'x',
         });
         return { configured: state.configured };
       },
@@ -108,10 +108,9 @@ test('the Stop button cancels a streaming reply and keeps the partial text', asy
     await page.evaluate(
       async ({ baseUrl }) => {
         await window.doru.setAiSettings({
-          provider: 'custom',
+          provider: 'ollama',
           baseUrl,
           model: 'mock-model',
-          apiKey: 'x',
         });
       },
       { baseUrl: mock.url() },
