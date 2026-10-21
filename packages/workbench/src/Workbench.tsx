@@ -12,7 +12,7 @@ import './workbench.css';
 
 export interface WorkbenchProps {
   commands: CommandService;
-  keybindings?: Array<{ key: string; command: string }>;
+  keybindings?: Array<{ key: string; command: string; args?: unknown[] }>;
   title?: string;
   platform?: string;
   /** Extra actions rendered in the title bar, before the built-in toggle. */
@@ -68,7 +68,7 @@ export function Workbench({
     keybindings.register('meta+w', 'workbench.closeActiveTab');
     keybindings.register('ctrl+w', 'workbench.closeActiveTab');
     for (const binding of externalKeybindings) {
-      keybindings.register(binding.key, binding.command);
+      keybindings.register(binding.key, binding.command, binding.args);
     }
     const removeToggleSecondarySideBar = commands.register({
       id: 'workbench.toggleSecondarySideBar',
@@ -89,10 +89,10 @@ export function Workbench({
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         return;
       }
-      const command = keybindings.onKeydown(event);
-      if (command) {
+      const match = keybindings.onKeydown(event);
+      if (match) {
         event.preventDefault();
-        void commands.execute(command);
+        void commands.execute(match.command, ...match.args);
       }
     };
     window.addEventListener('keydown', onKeydown);

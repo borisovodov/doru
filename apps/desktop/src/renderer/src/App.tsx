@@ -86,6 +86,36 @@ export function App() {
       title: nls.t('workbench.saveProject'),
       handler: () => project.saveProject(),
     });
+    const removeCreate = commands.register({
+      id: 'workbench.createProject',
+      title: nls.t('workbench.createProject'),
+      handler: () => project.createProject(),
+    });
+    const removeExport = commands.register({
+      id: 'workbench.exportGedcom',
+      title: nls.t('workbench.exportGedcom'),
+      handler: () => project.exportGedcom(),
+    });
+    const removeOpenSettings = commands.register({
+      id: 'workbench.openSettings',
+      title: nls.t('workbench.settings'),
+      handler: () => tabs.openSettingsTab(),
+    });
+    const removeNextTab = commands.register({
+      id: 'workbench.nextTab',
+      title: nls.t('workbench.nextTab'),
+      handler: () => tabs.nextTab(),
+    });
+    const removePrevTab = commands.register({
+      id: 'workbench.prevTab',
+      title: nls.t('workbench.prevTab'),
+      handler: () => tabs.prevTab(),
+    });
+    const removeSwitchToTab = commands.register({
+      id: 'workbench.switchToTab',
+      title: nls.t('workbench.switchToTab'),
+      handler: (index) => tabs.openTabAt(Number(index) - 1),
+    });
     const removeUndo = commands.register({
       id: 'tree.undo',
       title: nls.t('workbench.undo'),
@@ -99,10 +129,28 @@ export function App() {
     return () => {
       removeOpen.dispose();
       removeSave.dispose();
+      removeCreate.dispose();
+      removeExport.dispose();
+      removeOpenSettings.dispose();
+      removeNextTab.dispose();
+      removePrevTab.dispose();
+      removeSwitchToTab.dispose();
       removeUndo.dispose();
       removeRedo.dispose();
     };
-  }, [commands, project.openProject, project.saveProject, tree.undo, tree.redo]);
+  }, [
+    commands,
+    project.openProject,
+    project.saveProject,
+    project.createProject,
+    project.exportGedcom,
+    tabs.openSettingsTab,
+    tabs.nextTab,
+    tabs.prevTab,
+    tabs.openTabAt,
+    tree.undo,
+    tree.redo,
+  ]);
 
   useEffect(() => {
     return window.doru.onMenuToggleSecondarySideBar(() => {
@@ -119,6 +167,22 @@ export function App() {
       { key: 'ctrl+shift+z', command: 'tree.redo' },
       { key: 'meta+s', command: 'workbench.saveProject' },
       { key: 'ctrl+s', command: 'workbench.saveProject' },
+      { key: 'meta+o', command: 'workbench.openProject' },
+      { key: 'ctrl+o', command: 'workbench.openProject' },
+      { key: 'meta+n', command: 'workbench.createProject' },
+      { key: 'ctrl+n', command: 'workbench.createProject' },
+      { key: 'meta+,', command: 'workbench.openSettings' },
+      { key: 'ctrl+,', command: 'workbench.openSettings' },
+      { key: 'meta+shift+]', command: 'workbench.nextTab' },
+      { key: 'meta+shift+[', command: 'workbench.prevTab' },
+      { key: 'ctrl+tab', command: 'workbench.nextTab' },
+      { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
+      { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
+      { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
+      ...Array.from({ length: 9 }, (_, index) => [
+        { key: `meta+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
+        { key: `ctrl+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
+      ]).flat(),
     ],
     [],
   );
