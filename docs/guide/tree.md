@@ -54,13 +54,3 @@ Removing a person from a family or deleting a family is one click.
 - **Sources**: attach sources to a person (with a title and author) or reuse
   an existing source. Each attachment is a citation and can be removed.
 - **Notes**: free-form research notes attached to a person.
-
-## Undo/redo
-
-`Cmd+Z` / `Shift+Cmd+Z` (Ctrl on Windows/Linux). Every canvas action is one
-undoable step — including adding a person together with their family link.
-Edits made by agents can be undone as well.
-
-## Command palette
-
-`F1` — searchable list of commands (Open Project, Undo, Redo).
