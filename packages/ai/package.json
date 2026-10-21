@@ -11,8 +11,13 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.8.0",
+    "@ai-sdk/anthropic": "4.0.85",
+    "@ai-sdk/mcp": "2.0.81",
+    "@ai-sdk/openai-compatible": "3.0.75",
     "@doru/core": "*",
     "@modelcontextprotocol/sdk": "1.32.1",
+    "@opencode-ai/models": "0.0.111",
+    "ai": "7.0.148",
     "zod": "4.6.7"
   }
 }
