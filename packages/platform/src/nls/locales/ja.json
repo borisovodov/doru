@@ -127,6 +127,7 @@
   "workbench.prevTab": "前のタブ",
   "workbench.recent": "最近",
   "workbench.recent.empty": "最近のプロジェクトはありません",
+  "workbench.recent.remove": "最近から削除",
   "workbench.redo": "やり直す",
   "workbench.saveProject": "保存",
   "workbench.settings": "設定",

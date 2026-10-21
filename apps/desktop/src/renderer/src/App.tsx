@@ -261,6 +261,7 @@ export function App() {
           onCreateProject={() => void project.createProject()}
           onOpenProject={() => void project.openProject()}
           onOpenRecent={(path) => void project.openProject(path)}
+          onRemoveRecent={(path) => void project.removeRecent(path)}
         />
       ) : (
         // All tabs closed with a project open: show the wordmark and the

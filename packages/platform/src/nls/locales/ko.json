@@ -127,6 +127,7 @@
   "workbench.prevTab": "이전 탭",
   "workbench.recent": "최근",
   "workbench.recent.empty": "최근 프로젝트 없음",
+  "workbench.recent.remove": "최근에서 제거",
   "workbench.redo": "다시 실행",
   "workbench.saveProject": "저장",
   "workbench.settings": "설정",

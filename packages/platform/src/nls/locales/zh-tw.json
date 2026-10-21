@@ -127,6 +127,7 @@
   "workbench.prevTab": "上一個分頁",
   "workbench.recent": "最近",
   "workbench.recent.empty": "尚無最近專案",
+  "workbench.recent.remove": "從最近移除",
   "workbench.redo": "重做",
   "workbench.saveProject": "儲存",
   "workbench.settings": "設定",

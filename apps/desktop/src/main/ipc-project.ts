@@ -28,6 +28,10 @@ export function registerProjectIpc(): void {
 
   ipcMain.handle('project:recent', () => recents.current?.list() ?? []);
 
+  ipcMain.handle('project:recent:remove', (_event, options: { path: string }) =>
+    recents.current?.remove(options.path) ?? [],
+  );
+
   ipcMain.handle('project:current', (event): ProjectBinding | null => {
     const bound = windowProject.get(event.sender.id) ?? null;
     return bound === null ? null : bindingOf(bound);

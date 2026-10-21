@@ -127,6 +127,7 @@
   "workbench.prevTab": "Vorheriger Tab",
   "workbench.recent": "Zuletzt verwendet",
   "workbench.recent.empty": "Keine zuletzt verwendeten Projekte",
+  "workbench.recent.remove": "Aus „Zuletzt verwendet“ entfernen",
   "workbench.redo": "Wiederholen",
   "workbench.saveProject": "Speichern",
   "workbench.settings": "Einstellungen",

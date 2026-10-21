@@ -127,6 +127,7 @@
   "workbench.prevTab": "上一个标签页",
   "workbench.recent": "最近",
   "workbench.recent.empty": "暂无最近项目",
+  "workbench.recent.remove": "从最近移除",
   "workbench.redo": "重做",
   "workbench.saveProject": "保存",
   "workbench.settings": "设置",

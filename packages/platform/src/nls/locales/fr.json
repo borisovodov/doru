@@ -127,6 +127,7 @@
   "workbench.prevTab": "Onglet précédent",
   "workbench.recent": "Récents",
   "workbench.recent.empty": "Aucun projet récent",
+  "workbench.recent.remove": "Retirer des récents",
   "workbench.redo": "Rétablir",
   "workbench.saveProject": "Enregistrer",
   "workbench.settings": "Paramètres",

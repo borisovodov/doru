@@ -127,6 +127,7 @@
   "workbench.prevTab": "Önceki sekme",
   "workbench.recent": "Son kullanılanlar",
   "workbench.recent.empty": "Son proje yok",
+  "workbench.recent.remove": "Son kullanılanlardan kaldır",
   "workbench.redo": "Yinele",
   "workbench.saveProject": "Kaydet",
   "workbench.settings": "Ayarlar",

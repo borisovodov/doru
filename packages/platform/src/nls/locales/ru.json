@@ -127,6 +127,7 @@
   "workbench.prevTab": "Предыдущая вкладка",
   "workbench.recent": "Недавние",
   "workbench.recent.empty": "Нет недавних проектов",
+  "workbench.recent.remove": "Убрать из недавних",
   "workbench.redo": "Повторить",
   "workbench.saveProject": "Сохранить",
   "workbench.settings": "Настройки",

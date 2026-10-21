@@ -127,6 +127,7 @@
   "workbench.prevTab": "Previous Tab",
   "workbench.recent": "Recent",
   "workbench.recent.empty": "No recent projects",
+  "workbench.recent.remove": "Remove from recent",
   "workbench.redo": "Redo",
   "workbench.saveProject": "Save",
   "workbench.settings": "Settings",

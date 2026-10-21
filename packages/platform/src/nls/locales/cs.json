@@ -127,6 +127,7 @@
   "workbench.prevTab": "Předchozí karta",
   "workbench.recent": "Nedávné",
   "workbench.recent.empty": "Žádné nedávné projekty",
+  "workbench.recent.remove": "Odebrat z nedávných",
   "workbench.redo": "Znovu",
   "workbench.saveProject": "Uložit",
   "workbench.settings": "Nastavení",

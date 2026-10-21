@@ -127,6 +127,7 @@
   "workbench.prevTab": "Poprzednia karta",
   "workbench.recent": "Ostatnie",
   "workbench.recent.empty": "Brak ostatnich projektów",
+  "workbench.recent.remove": "Usuń z ostatnich",
   "workbench.redo": "Ponów",
   "workbench.saveProject": "Zapisz",
   "workbench.settings": "Ustawienia",

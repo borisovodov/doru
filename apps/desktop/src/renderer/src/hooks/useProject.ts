@@ -44,6 +44,14 @@ export function useProject(
     void refreshRecent();
   }, [projectPath, refreshRecent]);
 
+  const removeRecent = useCallback(
+    async (path: string) => {
+      await window.doru.removeRecentProject(path);
+      void refreshRecent();
+    },
+    [refreshRecent],
+  );
+
   const importGedcom = useCallback(async () => {
     if (!projectPath) {
       return;
@@ -67,6 +75,7 @@ export function useProject(
     openProject,
     createProject,
     saveProject,
+    removeRecent,
     importGedcom,
     exportGedcom,
   };

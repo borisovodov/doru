@@ -95,24 +95,67 @@
   padding: 0;
 }
 
+.welcome-recent li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--doru-radius-md);
+}
+
+.welcome-recent li:hover {
+  background: var(--doru-overlay-hover);
+}
+
 .welcome-recent-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   text-align: left;
-  padding: 9px 12px;
+  /* Leave room under the remove button overlaid on the right edge. */
+  padding: 9px 38px 9px 12px;
   border-radius: var(--doru-radius-md);
   cursor: pointer;
   color: var(--doru-fg);
   font-size: var(--doru-font-size);
 }
 
-.welcome-recent-item:hover {
+.welcome-recent-remove {
+  /* Icon-only button: reset the UA padding so the SVG is not collapsed.
+     Overlaid on the row's hover background, shown on row hover/focus. */
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg-muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms ease;
+}
+
+.welcome-recent li:hover .welcome-recent-remove,
+.welcome-recent li:focus-within .welcome-recent-remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.welcome-recent-remove:hover {
   background: var(--doru-overlay-hover);
+  color: var(--doru-fg);
 }
 
 .welcome-recent-name {

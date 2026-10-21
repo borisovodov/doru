@@ -127,6 +127,7 @@
   "workbench.prevTab": "Aba anterior",
   "workbench.recent": "Recentes",
   "workbench.recent.empty": "Nenhum projeto recente",
+  "workbench.recent.remove": "Remover dos recentes",
   "workbench.redo": "Refazer",
   "workbench.saveProject": "Salvar",
   "workbench.settings": "Configurações",
