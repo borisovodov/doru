@@ -109,12 +109,10 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   const [baseUrlDraft, setBaseUrlDraft] = useState<string | null>(null);
 
   const model = provider?.models.find((entry) => entry.id === settings.model);
+  const hasCatalog = (provider?.models.length ?? 0) > 0;
   const modelOptions = [
     ...(provider?.models ?? []).map((entry) => entry.id),
-    ...fetchedModels.filter((id) => !provider?.models.some((entry) => entry.id === id)),
-    ...(!provider?.models.some((entry) => entry.id === settings.model) &&
-    !fetchedModels.includes(settings.model) &&
-    settings.model !== ''
+    ...(!provider?.models.some((entry) => entry.id === settings.model) && settings.model !== ''
       ? [settings.model]
       : []),
   ];
@@ -163,28 +161,49 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         <>
           <label className="settings-field">
             <span>{nls.t('settings.ai.model')}</span>
-            <select
-              value={settings.model}
-              onChange={(event) => props.onSetModel(event.target.value)}
-              aria-label={nls.t('settings.ai.model')}
-            >
-              {modelOptions.map((id) => {
-                const entry = provider?.models.find((candidate) => candidate.id === id);
-                const label = entry
-                  ? `${entry.name} — ${modelBadge(entry)}`
-                  : id;
-                return (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
+            {hasCatalog ? (
+              <select
+                value={settings.model}
+                onChange={(event) => props.onSetModel(event.target.value)}
+                aria-label={nls.t('settings.ai.model')}
+              >
+                {modelOptions.map((id) => {
+                  const entry = provider?.models.find((candidate) => candidate.id === id);
+                  const label = entry ? `${entry.name} — ${modelBadge(entry)}` : id;
+                  return (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
+            ) : (
+              // Providers without a catalog (Ollama, LM Studio, custom) have no
+              // in-app model list: the model id is typed, with the provider's
+              // own list as suggestions after an explicit fetch.
+              <>
+                <input
+                  list="doru-model-suggestions"
+                  value={settings.model}
+                  onChange={(event) => props.onSetModel(event.target.value)}
+                  aria-label={nls.t('settings.ai.model')}
+                />
+                <datalist id="doru-model-suggestions">
+                  {fetchedModels.map((id) => (
+                    <option key={id} value={id} />
+                  ))}
+                </datalist>
+              </>
+            )}
           </label>
-          <button className="settings-link" onClick={props.onFetchModels}>
-            {nls.t('settings.ai.modelRefresh')}
-          </button>
-          {modelOptions.length === 0 ? <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p> : null}
+          {!hasCatalog ? (
+            <button className="settings-link" onClick={props.onFetchModels}>
+              {nls.t('settings.ai.modelRefresh')}
+            </button>
+          ) : null}
+          {!hasCatalog && fetchedModels.length === 0 && settings.model === '' ? (
+            <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p>
+          ) : null}
 
           {model?.reasoning || model?.reasoningOptions ? (
             <label className="settings-field">
