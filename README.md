@@ -119,11 +119,11 @@ they are built by CI, but have not yet been verified on real Windows/Linux
 machines — expect rough edges. On Windows, SmartScreen may show a warning —
 click “More info → Run anyway”. On Linux, the `.deb` installs with
 `sudo apt install ./doru-*.deb`; the AppImage needs `chmod +x` and then just
-runs. See the [documentation](https://doru.ovodov.me/docs/) for details.
+runs. See the [documentation](https://doru.family/docs/) for details.
 
 ## Documentation
 
-See the [documentation](https://doru.ovodov.me/docs/) for installation,
+See the [documentation](https://doru.family/docs/) for installation,
 tree editing, AI agents, themes, and troubleshooting.
 
 ## Development
