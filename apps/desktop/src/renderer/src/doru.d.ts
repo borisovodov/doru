@@ -62,6 +62,7 @@ declare global {
       ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
+      cancelChat(projectPath: string): void;
       onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
       respondChatPermission(id: string, allow: boolean): void;
       onChatEvent(

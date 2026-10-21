@@ -7,6 +7,7 @@
   "chat.permission.deny": "Elutasítás",
   "chat.placeholder": "Kérje meg az ügynököt a fa szerkesztésére vagy kutatására…",
   "chat.send": "Küldés",
+  "chat.stop": "Leállítás",
   "chat.title": "Agent-csevegés",
   "chat.toolCall": "Eszköz: {0}",
   "features.people.placeholder": "Itt jelenik meg a családfában szereplő személyek listája.",

@@ -21,10 +21,11 @@ export interface ChatPanelProps {
   busy: boolean;
   permission: ChatPermissionRequest | null;
   onSend: (text: string) => void;
+  onStop: () => void;
   onPermission: (allow: boolean) => void;
 }
 
-export function ChatPanel({ messages, busy, permission, onSend, onPermission }: ChatPanelProps) {
+export function ChatPanel({ messages, busy, permission, onSend, onStop, onPermission }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +91,11 @@ export function ChatPanel({ messages, busy, permission, onSend, onPermission }: 
         <button disabled={busy} onClick={submit}>
           {nls.t('chat.send')}
         </button>
+        {busy ? (
+          <button className="chat-stop" onClick={onStop}>
+            {nls.t('chat.stop')}
+          </button>
+        ) : null}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@
   "chat.permission.deny": "Nega",
   "chat.placeholder": "Chiedi all'agente di modificare o ricercare nel tuo albero…",
   "chat.send": "Invia",
+  "chat.stop": "Ferma",
   "chat.title": "Chat con l'agente",
   "chat.toolCall": "Strumento: {0}",
   "features.people.placeholder": "Qui apparirà l'elenco delle persone dell'albero.",

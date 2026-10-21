@@ -7,6 +7,7 @@
   "chat.permission.deny": "Deny",
   "chat.placeholder": "Ask the agent to edit or research your tree…",
   "chat.send": "Send",
+  "chat.stop": "Stop",
   "chat.title": "Agent Chat",
   "chat.toolCall": "Tool: {0}",
   "features.people.placeholder": "The list of persons in the tree will appear here.",

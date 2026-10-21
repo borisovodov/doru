@@ -144,14 +144,13 @@ describe('runAgent', () => {
 });
 
 describe('toModelMessages', () => {
-  it('converts plain transcript messages', () => {
+  it('converts plain transcript messages and drops system messages', () => {
     const messages: ChatMessage[] = [
       { role: 'system', content: 'You are a genealogy assistant.' },
       { role: 'user', content: 'Hello' },
       { role: 'assistant', content: 'Hi!' },
     ];
     expect(toModelMessages(messages)).toEqual([
-      { role: 'system', content: 'You are a genealogy assistant.' },
       { role: 'user', content: 'Hello' },
       { role: 'assistant', content: [{ type: 'text', text: 'Hi!' }] },
     ]);

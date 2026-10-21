@@ -7,6 +7,7 @@
   "chat.permission.deny": "拒绝",
   "chat.placeholder": "让智能体编辑或研究你的家谱…",
   "chat.send": "发送",
+  "chat.stop": "停止",
   "chat.title": "智能体聊天",
   "chat.toolCall": "工具: {0}",
   "features.people.placeholder": "树中人物的列表将显示在这里。",

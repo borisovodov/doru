@@ -27,6 +27,8 @@ export interface AgentRunResult {
 
 export interface ChatSendResult extends AgentRunResult {
   error?: string;
+  /** True when the user cancelled the run; text and steps stay partial. */
+  cancelled?: boolean;
 }
 
 export type PermissionGate = (tool: string, args: Record<string, unknown>) => Promise<boolean>;
@@ -42,11 +44,15 @@ export interface AgentEvents {
 export interface RunAgentOptions {
   model: LanguageModel;
   messages: ChatMessage[];
+  /** System prompt; passed via the AI SDK `system` option (v7 rejects system messages in `messages`). */
+  system?: string;
   tools: ToolSet;
   /** Maximum number of model/tool iterations. Defaults to 8. */
   maxSteps?: number;
   /** Reasoning level; absent means the provider default. */
   reasoning?: ReasoningLevel;
+  /** Aborts the run (streaming stops, awaiting rejects with an AbortError). */
+  signal?: AbortSignal;
   events?: AgentEvents;
 }
 
@@ -59,6 +65,8 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
     messages: toModelMessages(options.messages),
     tools: options.tools,
     stopWhen: stepCountIs(options.maxSteps ?? 8),
+    ...(options.system !== undefined ? { system: options.system } : {}),
+    ...(options.signal !== undefined ? { abortSignal: options.signal } : {}),
     ...(options.reasoning !== undefined ? { reasoning: options.reasoning } : {}),
     onChunk: ({ chunk }) => {
       if (chunk.type === 'text-delta' && chunk.text) {
@@ -105,6 +113,11 @@ export function toModelMessages(messages: ChatMessage[]): ModelMessage[] {
   const converted: ModelMessage[] = [];
   const toolNames = new Map<string, string>();
   for (const message of messages) {
+    if (message.role === 'system') {
+      // v7 rejects system messages in `messages`; the system prompt travels
+      // via the `system` option instead.
+      continue;
+    }
     if (message.role === 'assistant') {
       const parts: Array<
         { type: 'text'; text: string } | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }

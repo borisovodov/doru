@@ -52,6 +52,7 @@ const api = {
   },
   respondChatPermission: (id: string, allow: boolean): void =>
     ipcRenderer.send('chat:permission-response', { id, allow }),
+  cancelChat: (projectPath: string): void => ipcRenderer.send('chat:cancel', projectPath),
   onChatEvent: (callback: (event: unknown) => void): (() => void) => {
     const listener = (_event: unknown, chatEvent: unknown) => callback(chatEvent);
     ipcRenderer.on('chat:event', listener);

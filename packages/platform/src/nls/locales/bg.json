@@ -7,6 +7,7 @@
   "chat.permission.deny": "Отказ",
   "chat.placeholder": "Помолете агента да редактира или изследва вашето дърво…",
   "chat.send": "Изпращане",
+  "chat.stop": "Спри",
   "chat.title": "Чат с агента",
   "chat.toolCall": "Инструмент: {0}",
   "features.people.placeholder": "Тук ще се появи списъкът с лица в дървото.",

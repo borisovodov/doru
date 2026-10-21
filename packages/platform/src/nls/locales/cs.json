@@ -7,6 +7,7 @@
   "chat.permission.deny": "Zamítnout",
   "chat.placeholder": "Požádejte agenta o úpravu nebo průzkum vašeho stromu…",
   "chat.send": "Odeslat",
+  "chat.stop": "Zastavit",
   "chat.title": "Chat s agentem",
   "chat.toolCall": "Nástroj: {0}",
   "features.people.placeholder": "Zde se objeví seznam osob v rodokmenu.",

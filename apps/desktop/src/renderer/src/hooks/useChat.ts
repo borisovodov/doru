@@ -66,7 +66,7 @@ export function useChat(
         setChatMessages((previous) => {
           const next = [...previous];
           const last = next[next.length - 1];
-          if (last && last.role === 'assistant') {
+          if (last && last.role === 'assistant' && !result.cancelled) {
             next[next.length - 1] = {
               role: 'assistant',
               content: result.finalText,
@@ -76,7 +76,9 @@ export function useChat(
           }
           return next;
         });
-        chatConversation.current.push({ role: 'assistant', content: result.finalText || '' });
+        if (!result.cancelled) {
+          chatConversation.current.push({ role: 'assistant', content: result.finalText || '' });
+        }
       } finally {
         setChatBusy(false);
       }
@@ -84,6 +86,12 @@ export function useChat(
     },
     [projectPath, chatBusy, refreshTree],
   );
+
+  const cancelChat = useCallback(() => {
+    if (projectPath) {
+      window.doru.cancelChat(projectPath);
+    }
+  }, [projectPath]);
 
   const respondPermission = useCallback(
     (allow: boolean) => {
@@ -96,5 +104,5 @@ export function useChat(
     [permission],
   );
 
-  return { chatMessages, chatBusy, permission, sendChatMessage, respondPermission };
+  return { chatMessages, chatBusy, permission, sendChatMessage, cancelChat, respondPermission };
 }

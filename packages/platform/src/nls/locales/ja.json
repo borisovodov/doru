@@ -7,6 +7,7 @@
   "chat.permission.deny": "拒否",
   "chat.placeholder": "ツリーの編集や調査をエージェントに依頼してください…",
   "chat.send": "送信",
+  "chat.stop": "停止",
   "chat.title": "エージェント チャット",
   "chat.toolCall": "ツール: {0}",
   "features.people.placeholder": "ツリー内の人物一覧がここに表示されます。",

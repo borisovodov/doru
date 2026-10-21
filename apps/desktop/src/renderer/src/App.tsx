@@ -288,6 +288,7 @@ export function App() {
             busy={chat.chatBusy}
             permission={chat.permission}
             onSend={(text) => void chat.sendChatMessage(text)}
+            onStop={chat.cancelChat}
             onPermission={(allow) => chat.respondPermission(allow)}
           />
         }
