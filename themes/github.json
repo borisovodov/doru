@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "GitHub",
   "dark": {
     "bg-canvas": "#0d1117",

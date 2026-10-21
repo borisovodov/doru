@@ -9,19 +9,25 @@ app level — never per project.
   which one applies — switch your OS to light mode and Dóru follows
   instantly. The file name is the theme id (`doru.json`); the `name` field
   inside is the display name.
-- Pick the theme in `doru.json` (see [Configuration](configuration.md)) with
-  a single string; there is no in-app toggle.
+- Pick the theme in `settings.json` (see [Settings](settings.md)) with
+  a single string, or from the in-app **Settings** page (Theme dropdown);
+  the choice is stored in `settings.json` either way.
 - The `colors` of the active palette are resolved to `--doru-*` CSS custom
   properties at startup.
 
 ## User themes
 
 Drop a `<id>.json` file with `dark` and `light` palettes into the `themes`
-directory inside the app's data directory (the same place where `doru.json`
-lives — see [Configuration](configuration.md)), then pick it with
-`"theme": "<id>"` in `doru.json`. Restart the app after adding a file so it
+directory inside the app's data directory (the same place where `settings.json`
+lives — see [Settings](settings.md)), then pick it with
+`"theme": "<id>"` in `settings.json`. Restart the app after adding a file so it
 is picked up. The directory is created on first run; a user theme whose id
-matches a bundled one overrides it.
+matches a bundled one overrides it. A theme file that is malformed or does not
+match the schema is skipped (a warning is logged), like a missing one, and does
+not appear in the theme list. Bundled themes carry a `$schema` reference
+(`https://doru.family/theme.json`) — add the same line to your own
+file to get autocompletion and validation in editors that understand JSON
+Schema.
 
 Bundled themes, each with a dark and a light palette:
 

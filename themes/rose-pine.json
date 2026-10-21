@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "Rosé Pine",
   "dark": {
     "bg-canvas": "#191724",

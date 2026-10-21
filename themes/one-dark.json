@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "One Dark",
   "dark": {
     "bg-canvas": "#282c34",

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "Everforest",
   "dark": {
     "bg-canvas": "#2d353b",

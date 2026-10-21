@@ -1,14 +1,22 @@
-import { ipcMain, safeStorage } from 'electron';
+import { app, ipcMain, safeStorage, shell } from 'electron';
 import { AnthropicChatConnector, OpenAIChatConnector, AI_PROVIDERS } from '@doru/ai';
 import {
   aiSettingsPayload,
-  configWithOverrides,
-  loadAiConfig,
-} from './ai-config';
-import { writeConfigEdits } from './config';
+  settingsWithOverrides,
+  loadAiSettings,
+} from './ai-settings';
+import { writeSettingsEdits } from './settings';
+import { ensureLogFile, logFilePath } from './log';
 
 export function registerSettingsIpc(): void {
-  ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiConfig()));
+  ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiSettings()));
+
+  ipcMain.handle('app:about', () => ({ version: app.getVersion() }));
+
+  ipcMain.handle('logs:open', () => {
+    ensureLogFile();
+    return shell.openPath(logFilePath());
+  });
 
   ipcMain.handle('settings:ai:providers', () =>
     AI_PROVIDERS.map((preset) => ({
@@ -62,9 +70,9 @@ export function registerSettingsIpc(): void {
         edits.push({ path: ['ai', 'apiKey'] });
       }
       if (edits.length > 0) {
-        writeConfigEdits(edits);
+        writeSettingsEdits(edits);
       }
-      return aiSettingsPayload(loadAiConfig());
+      return aiSettingsPayload(loadAiSettings());
     },
   );
 
@@ -79,24 +87,24 @@ export function registerSettingsIpc(): void {
         model?: string;
       } = {},
     ) => {
-      const config = configWithOverrides(options);
-      if (config.preset.dialect === 'acp') {
-        return { ok: config.acpCommand !== '', error: config.acpCommand !== '' ? undefined : 'ACP command is not set' };
+      const settings = settingsWithOverrides(options);
+      if (settings.preset.dialect === 'acp') {
+        return { ok: settings.acpCommand !== '', error: settings.acpCommand !== '' ? undefined : 'ACP command is not set' };
       }
-      if (!config.model) {
+      if (!settings.model) {
         return { ok: false, error: 'Model is not set' };
       }
-      if (!config.baseUrl) {
+      if (!settings.baseUrl) {
         return { ok: false, error: 'Base URL is not set' };
       }
-      if (config.preset.requiresKey && !config.apiKey) {
+      if (settings.preset.requiresKey && !settings.apiKey) {
         return { ok: false, error: 'API key is not set' };
       }
       try {
         const model =
-          config.preset.dialect === 'anthropic'
-            ? new AnthropicChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
-            : new OpenAIChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model });
+          settings.preset.dialect === 'anthropic'
+            ? new AnthropicChatConnector({ baseUrl: settings.baseUrl, apiKey: settings.apiKey, model: settings.model })
+            : new OpenAIChatConnector({ baseUrl: settings.baseUrl, apiKey: settings.apiKey, model: settings.model });
         await model.complete([{ role: 'user', content: 'ping' }], []);
         return { ok: true };
       } catch (error) {
@@ -116,14 +124,14 @@ export function registerSettingsIpc(): void {
         model?: string;
       } = {},
     ) => {
-      const config = configWithOverrides(options);
-      if (config.preset.dialect === 'acp' || !config.baseUrl || !config.apiKey) {
+      const settings = settingsWithOverrides(options);
+      if (settings.preset.dialect === 'acp' || !settings.baseUrl || !settings.apiKey) {
         return { models: [] as string[], error: 'Provider is not configured' };
       }
       try {
-        if (config.preset.dialect === 'anthropic') {
-          const response = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/v1/models`, {
-            headers: { 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' },
+        if (settings.preset.dialect === 'anthropic') {
+          const response = await fetch(`${settings.baseUrl.replace(/\/+$/, '')}/v1/models`, {
+            headers: { 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01' },
           });
           if (!response.ok) {
             return { models: [] as string[], error: `HTTP ${response.status}` };
@@ -131,8 +139,8 @@ export function registerSettingsIpc(): void {
           const data = (await response.json()) as { data?: Array<{ id: string }> };
           return { models: (data.data ?? []).map((model) => model.id) };
         }
-        const response = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/models`, {
-          headers: { authorization: `Bearer ${config.apiKey}` },
+        const response = await fetch(`${settings.baseUrl.replace(/\/+$/, '')}/models`, {
+          headers: { authorization: `Bearer ${settings.apiKey}` },
         });
         if (!response.ok) {
           return { models: [] as string[], error: `HTTP ${response.status}` };

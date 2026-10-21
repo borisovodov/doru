@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doru.family/settings.json",
+  "title": "Dóru app settings",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Reference to the settings schema; enables autocompletion and validation in editors that understand JSON Schema.",
+      "type": "string"
+    },
+    "ai": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "description": "Provider preset id. \"acp\" spawns an Agent Client Protocol agent (see \"command\") instead of calling an HTTP API.",
+          "type": "string",
+          "enum": [
+            "openai",
+            "anthropic",
+            "gemini",
+            "openrouter",
+            "deepseek",
+            "ollama",
+            "lmstudio",
+            "custom",
+            "acp"
+          ],
+          "default": "openai"
+        },
+        "baseUrl": {
+          "description": "API base URL. Empty means the preset's default endpoint. Ignored for provider \"acp\".",
+          "type": "string"
+        },
+        "model": {
+          "description": "Model name. Empty means the preset's first default model. The DORU_AI_MODEL environment variable overrides this value. Ignored for provider \"acp\".",
+          "type": "string"
+        },
+        "apiKey": {
+          "description": "API key in plaintext. On first load the app encrypts it with the OS keychain, moves it to \"apiKeyEncrypted\" and removes this field. The DORU_AI_API_KEY environment variable overrides any stored key.",
+          "type": "string"
+        },
+        "apiKeyEncrypted": {
+          "description": "API key encrypted with the OS keychain (safeStorage), base64-encoded. Written by the app; do not edit by hand.",
+          "type": "string"
+        },
+        "command": {
+          "description": "For provider \"acp\" only: the agent binary to spawn.",
+          "type": "string"
+        },
+        "args": {
+          "description": "For provider \"acp\" only: arguments for the agent command.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "AI provider settings for the agent chat."
+    },
+    "mcp": {
+      "type": "object",
+      "properties": {
+        "servers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Tool namespace, e.g. \"web\" for web:search."
+              },
+              "command": {
+                "type": "string",
+                "description": "Executable to run (npx, a binary path, …)."
+              },
+              "args": {
+                "description": "Arguments for the command.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "env": {
+                "description": "Extra environment variables, e.g. API keys the server needs.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name",
+              "command"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional external MCP servers whose tools the in-app agent can use (web search, FamilySearch, filesystem, …). Each server is spawned as a subprocess; tools are prefixed with the server name, e.g. \"web:search\"."
+    },
+    "theme": {
+      "description": "Theme id: the file name (without the .json extension) of a bundled theme or of a file in <userData>/themes. Defaults to \"doru\". The operating system appearance decides which palette applies.",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Settings for the Dóru desktop app (settings.json in the app's data directory). The file is JSONC — comments are allowed and changes are picked up live while the app is running. Defaults live in the app; the file only records explicit overrides, which the app writes when settings change."
+}

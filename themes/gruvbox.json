@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "Gruvbox",
   "dark": {
     "bg-canvas": "#282828",

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "Catppuccin",
   "dark": {
     "bg-canvas": "#1e1e2e",

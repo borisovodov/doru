@@ -34,7 +34,7 @@ const palette = {
 
 test('a user theme with a bundled id overrides it', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'doru-usertheme-'));
-  writeFileSync(join(userData, 'doru.json'), '{"theme":"doru"}\n');
+  writeFileSync(join(userData, 'settings.json'), '{"theme":"doru"}\n');
   mkdirSync(join(userData, 'themes'), { recursive: true });
   writeFileSync(
     join(userData, 'themes', 'doru.json'),
