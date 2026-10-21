@@ -8,7 +8,7 @@ import {
   type SessionBuilder,
   type Stream,
 } from '@agentclientprotocol/sdk';
-import type { AgentStep, PermissionGate } from './agent';
+import type { AgentEvents, AgentStep, PermissionGate } from './agent';
 
 export interface AcpMcpServerEntry {
   name: string;
@@ -117,7 +117,10 @@ export class AcpAgentClient {
     return ndJsonStream(output, input);
   }
 
-  async prompt(text: string): Promise<{ steps: AgentStep[]; finalText: string }> {
+  async prompt(
+    text: string,
+    events?: AgentEvents,
+  ): Promise<{ steps: AgentStep[]; finalText: string }> {
     const session = this.session;
     if (!session) {
       throw new Error('ACP session is not started');
@@ -135,34 +138,40 @@ export class AcpAgentClient {
         case 'agent_message_chunk': {
           const chunk = (update as { content?: { text?: string } }).content?.text ?? '';
           if (chunk) {
-            steps.push({ type: 'text', content: chunk });
             finalText += chunk;
+            events?.onTextDelta?.(chunk);
           }
           break;
         }
         case 'tool_call': {
           const call = update as unknown as ToolCallUpdateLike;
-          steps.push({
+          const step: AgentStep = {
             type: 'toolCall',
             name: call.name ?? call.title ?? call.toolCallId,
             arguments: (call.rawInput as Record<string, unknown> | undefined) ?? {},
-          });
+          };
+          steps.push(step);
+          events?.onStep?.(step);
           break;
         }
         case 'tool_call_update': {
           const call = update as unknown as ToolCallUpdateLike;
           if (call.status === 'completed') {
-            steps.push({
+            const step: AgentStep = {
               type: 'toolResult',
               name: call.name ?? call.title ?? call.toolCallId,
               result: call.output ?? call.rawOutput ?? '',
-            });
+            };
+            steps.push(step);
+            events?.onStep?.(step);
           } else if (call.status === 'failed') {
-            steps.push({
+            const step: AgentStep = {
               type: 'toolError',
               name: call.name ?? call.title ?? call.toolCallId,
               message: typeof call.rawOutput === 'string' ? call.rawOutput : 'Tool failed',
-            });
+            };
+            steps.push(step);
+            events?.onStep?.(step);
           }
           break;
         }

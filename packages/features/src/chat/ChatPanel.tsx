@@ -53,6 +53,7 @@ export function ChatPanel({ messages, busy, permission, onSend, onPermission }: 
               <div className="chat-bubble">{message.content}</div>
             ) : (
               <div className="chat-bubble">
+                <div className="chat-text">{message.content}</div>
                 {message.steps?.map((step, stepIndex) => (
                   <ChatStep key={stepIndex} step={step} />
                 ))}
@@ -96,8 +97,6 @@ export function ChatPanel({ messages, busy, permission, onSend, onPermission }: 
 
 function ChatStep({ step }: { step: AgentStep }) {
   switch (step.type) {
-    case 'text':
-      return <div className="chat-text">{step.content}</div>;
     case 'toolCall':
       return <div className="chat-tool">{nls.t('chat.toolCall', step.name)}</div>;
     case 'toolResult':

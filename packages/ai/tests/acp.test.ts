@@ -50,15 +50,12 @@ describe('AcpAgentClient', () => {
     });
     await client.startWithAgent(mockAgentApp(), async () => true);
 
-    const result = await client.prompt('Inspect my tree');
+    const deltas: string[] = [];
+    const result = await client.prompt('Inspect my tree', { onTextDelta: (delta) => deltas.push(delta) });
     expect(result.finalText).toBe('Hello world');
-    expect(result.steps.map((step) => step.type)).toEqual([
-      'text',
-      'text',
-      'toolCall',
-      'toolResult',
-    ]);
-    const toolCall = result.steps[2];
+    expect(deltas.join('')).toBe('Hello world');
+    expect(result.steps.map((step) => step.type)).toEqual(['toolCall', 'toolResult']);
+    const toolCall = result.steps[0];
     if (toolCall?.type === 'toolCall') {
       expect(toolCall.name).toBe('tree_stats');
     }

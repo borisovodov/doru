@@ -1,21 +1,36 @@
-export type { AgentEvent, AgentIdentity, ChatMessage, ChatRole, ToolCall } from './types';
-export { type AgentConnector, type AgentChatOptions, type ConnectorKind } from './connector';
-export { type ChatModel, type ModelResponse } from './model';
-export { OpenAIChatConnector, type OpenAIChatOptions } from './openai';
-export { AnthropicChatConnector, type AnthropicChatOptions } from './anthropic';
-export { AI_PROVIDERS, findProvider, type AiDialect, type AiProviderPreset } from './providers';
+export type { ChatMessage, ChatRole, ToolCall } from './types';
+export { buildLanguageModel, type ModelConfig } from './model';
 export {
-  AgentRuntime,
+  AI_PROVIDERS,
+  findProvider,
+  wireDialect,
+  type AiProvider,
+  type ProviderKind,
+  type WireDialect,
+} from './providers';
+export {
+  catalogProvider,
+  modelsDevCatalog,
+  type CatalogModel,
+  type CatalogProvider,
+  type ModelsDevCatalog,
+} from './catalog';
+export {
+  runAgent,
+  toModelMessages,
+  type AgentEvents,
   type AgentRunResult,
   type AgentStep,
   type ChatSendResult,
   type PermissionGate,
+  type ReasoningLevel,
+  type RunAgentOptions,
 } from './agent';
 export { TreeMcpBackend, type TreeEditOp } from './backend';
 export { DoruMcpServer } from './server';
-export { McpHostClient, McpHostManager, type HostToolSource, type McpServerSettings } from './host';
+export { connectMcpServers, type McpServerSettings, type McpToolSetHandle } from './mcp-tools';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry } from './acp';
-export { doruTools, type ToolDefinition } from './tools';
+export { doruTools, doruToolSet, type ToolDefinition } from './tools';
 export {
   DEFAULT_PERMISSION_POLICY,
   toolPermission,

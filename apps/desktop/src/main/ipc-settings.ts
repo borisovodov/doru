@@ -1,5 +1,6 @@
 import { app, ipcMain, safeStorage, shell } from 'electron';
-import { AnthropicChatConnector, OpenAIChatConnector, AI_PROVIDERS } from '@doru/ai';
+import { generateText } from 'ai';
+import { AI_PROVIDERS, buildLanguageModel, wireDialect, type McpServerSettings } from '@doru/ai';
 import {
   aiSettingsPayload,
   settingsWithOverrides,
@@ -19,13 +20,27 @@ export function registerSettingsIpc(): void {
   });
 
   ipcMain.handle('settings:ai:providers', () =>
-    AI_PROVIDERS.map((preset) => ({
-      id: preset.id,
-      label: preset.label,
-      dialect: preset.dialect,
-      defaultBaseUrl: preset.defaultBaseUrl ?? '',
-      defaultModels: preset.defaultModels,
-      requiresKey: preset.requiresKey,
+    AI_PROVIDERS.map((provider) => ({
+      id: provider.id,
+      label: provider.label,
+      kind: provider.kind,
+      doc: provider.doc,
+      defaultBaseUrl: provider.defaultBaseUrl,
+      requiresKey: provider.requiresKey,
+      defaultModels: provider.defaultModels,
+      models: (provider.catalog?.models ?? []).map((model) => ({
+        id: model.id,
+        name: model.name,
+        description: model.description,
+        reasoning: model.reasoning,
+        reasoningOptions: model.reasoning_options,
+        toolCall: model.tool_call,
+        status: model.status,
+        context: model.limit?.context,
+        maxOutput: model.limit?.output,
+        costInput: model.cost?.input,
+        costOutput: model.cost?.output,
+      })),
     })),
   );
 
@@ -35,10 +50,12 @@ export function registerSettingsIpc(): void {
       provider?: string;
       baseUrl?: string;
       model?: string;
+      reasoning?: string;
       apiKey?: string;
       clearKey?: boolean;
       acpCommand?: string;
       acpArgs?: string[];
+      mcpServers?: McpServerSettings[];
     }) => {
       const edits: Array<{ path: (string | number)[]; value?: unknown }> = [];
       if (options.provider !== undefined) {
@@ -50,11 +67,21 @@ export function registerSettingsIpc(): void {
       if (options.model !== undefined) {
         edits.push({ path: ['ai', 'model'], value: options.model });
       }
+      if (options.reasoning !== undefined) {
+        if (options.reasoning === '') {
+          edits.push({ path: ['ai', 'reasoning'] });
+        } else {
+          edits.push({ path: ['ai', 'reasoning'], value: options.reasoning });
+        }
+      }
       if (options.acpCommand !== undefined) {
         edits.push({ path: ['ai', 'command'], value: options.acpCommand });
       }
       if (options.acpArgs !== undefined) {
         edits.push({ path: ['ai', 'args'], value: options.acpArgs });
+      }
+      if (options.mcpServers !== undefined) {
+        edits.push({ path: ['mcp', 'servers'], value: options.mcpServers });
       }
       if (options.clearKey) {
         edits.push({ path: ['ai', 'apiKeyEncrypted'] });
@@ -88,7 +115,7 @@ export function registerSettingsIpc(): void {
       } = {},
     ) => {
       const settings = settingsWithOverrides(options);
-      if (settings.preset.dialect === 'acp') {
+      if (settings.provider.kind === 'acp') {
         return { ok: settings.acpCommand !== '', error: settings.acpCommand !== '' ? undefined : 'ACP command is not set' };
       }
       if (!settings.model) {
@@ -97,15 +124,22 @@ export function registerSettingsIpc(): void {
       if (!settings.baseUrl) {
         return { ok: false, error: 'Base URL is not set' };
       }
-      if (settings.preset.requiresKey && !settings.apiKey) {
+      if (settings.provider.requiresKey && !settings.apiKey) {
         return { ok: false, error: 'API key is not set' };
       }
       try {
-        const model =
-          settings.preset.dialect === 'anthropic'
-            ? new AnthropicChatConnector({ baseUrl: settings.baseUrl, apiKey: settings.apiKey, model: settings.model })
-            : new OpenAIChatConnector({ baseUrl: settings.baseUrl, apiKey: settings.apiKey, model: settings.model });
-        await model.complete([{ role: 'user', content: 'ping' }], []);
+        const model = buildLanguageModel({
+          providerId: settings.provider.id,
+          baseUrl: settings.baseUrl,
+          apiKey: settings.apiKey,
+          model: settings.model,
+        });
+        await generateText({
+          model,
+          prompt: 'ping',
+          maxOutputTokens: 8,
+          ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
+        });
         return { ok: true };
       } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : String(error) };
@@ -125,11 +159,11 @@ export function registerSettingsIpc(): void {
       } = {},
     ) => {
       const settings = settingsWithOverrides(options);
-      if (settings.preset.dialect === 'acp' || !settings.baseUrl || !settings.apiKey) {
+      if (settings.provider.kind === 'acp' || !settings.baseUrl || !settings.apiKey) {
         return { models: [] as string[], error: 'Provider is not configured' };
       }
       try {
-        if (settings.preset.dialect === 'anthropic') {
+        if (wireDialect(settings.provider) === 'anthropic') {
           const response = await fetch(`${settings.baseUrl.replace(/\/+$/, '')}/v1/models`, {
             headers: { 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01' },
           });

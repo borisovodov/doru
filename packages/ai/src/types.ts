@@ -1,5 +1,6 @@
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
+/** A message in the chat transcript sent to the agent. */
 export interface ChatMessage {
   role: ChatRole;
   content: string | null;
@@ -12,15 +13,3 @@ export interface ToolCall {
   name: string;
   arguments: Record<string, unknown>;
 }
-
-export interface AgentIdentity {
-  provider: string;
-  model: string;
-  sessionId: string;
-}
-
-export type AgentEvent =
-  | { type: 'text'; content: string }
-  | { type: 'toolCall'; call: ToolCall }
-  | { type: 'done' }
-  | { type: 'error'; message: string };
