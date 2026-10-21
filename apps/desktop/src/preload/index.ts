@@ -52,6 +52,11 @@ const api = {
   },
   respondChatPermission: (id: string, allow: boolean): void =>
     ipcRenderer.send('chat:permission-response', { id, allow }),
+  onChatEvent: (callback: (event: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, chatEvent: unknown) => callback(chatEvent);
+    ipcRenderer.on('chat:event', listener);
+    return () => ipcRenderer.removeListener('chat:event', listener);
+  },
   getThemeState: (): Promise<unknown> => ipcRenderer.invoke('theme:state'),
   setTheme: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:set', name),
   openThemesFolder: (): Promise<unknown> => ipcRenderer.invoke('themes:open-folder'),

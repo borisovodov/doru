@@ -60,3 +60,101 @@
   font-size: 12px;
   color: var(--doru-fg-muted);
 }
+
+/* Labeled form fields in the AI settings section. */
+.settings-field {
+  display: block;
+  margin-top: 12px;
+}
+
+.settings-field > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+
+.settings-field > input,
+.settings-field > textarea,
+.settings-field > select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-section input,
+.settings-section textarea {
+  min-height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 4px 10px;
+  font-size: var(--doru-font-size);
+}
+
+.settings-section input:focus,
+.settings-section textarea:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.settings-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-inline button {
+  height: var(--doru-control-height);
+  padding: 0 14px;
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.settings-inline button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.settings-inline button:not(:disabled):hover {
+  border-color: var(--doru-accent);
+}
+
+.settings-subsection {
+  margin-top: 20px;
+}
+
+.settings-subsection h4 {
+  margin: 0 0 4px;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+}
+
+.settings-mcp-server {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.settings-mcp-server .settings-link {
+  margin-top: 8px;
+}
+
+.settings-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--doru-danger, #e5484d);
+}

@@ -7,6 +7,7 @@ import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
+import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
 import {
   PERSON_TAB_PREFIX,
@@ -28,6 +29,7 @@ export function App() {
 
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
+  const ai = useAiSettings();
   const tabs = useTabs(tree.persons);
   const project = useProject(projectPath, tree.refreshTree, tabs.ensureTreeTab);
   const theme = useTheme();
@@ -173,6 +175,27 @@ export function App() {
           onOpenLogs={() => void window.doru.openLogs()}
           onOpenThemesFolder={() => void window.doru.openThemesFolder()}
           version={version}
+          ai={
+            ai.settings
+              ? {
+                  settings: ai.settings,
+                  providers: ai.providers,
+                  test: ai.test,
+                  fetchedModels: ai.fetchedModels,
+                  onSetProvider: (id) => void ai.setProvider(id),
+                  onSetModel: ai.setModel,
+                  onSetBaseUrl: ai.setBaseUrl,
+                  onSetReasoning: ai.setReasoning,
+                  onSetApiKey: ai.setApiKey,
+                  onClearApiKey: ai.clearApiKey,
+                  onSetAcpCommand: ai.setAcpCommand,
+                  onSetAcpArgs: ai.setAcpArgs,
+                  onSetMcpServers: ai.setMcpServers,
+                  onTest: () => void ai.runTest(),
+                  onFetchModels: () => void ai.fetchModels(),
+                }
+              : null
+          }
         />
       );
     }

@@ -197,7 +197,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
 
   await page.locator('.activity-bar .activity-bar-bottom').click();
   await expect(page.locator('.settings-view')).toBeVisible();
-  await expect(page.locator('.settings-view select')).toBeVisible();
+  await expect(page.getByLabel('Theme')).toBeVisible();
 
   await app.close();
 });

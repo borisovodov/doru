@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ChatMessage } from '@doru/ai';
+import type { AgentStep, ChatMessage } from '@doru/ai';
 import type { ChatPermissionRequest, ChatTranscriptMessage } from '@doru/features';
 
 export function useChat(
@@ -23,6 +23,31 @@ export function useChat(
     });
   }, []);
 
+  useEffect(() => {
+    return window.doru.onChatEvent((event) => {
+      if (event.type === 'textDelta') {
+        setChatMessages((previous) => {
+          const next = [...previous];
+          const last = next[next.length - 1];
+          if (last && last.role === 'assistant') {
+            next[next.length - 1] = { ...last, content: last.content + event.text };
+          }
+          return next;
+        });
+      } else {
+        const step: AgentStep = event.step;
+        setChatMessages((previous) => {
+          const next = [...previous];
+          const last = next[next.length - 1];
+          if (last && last.role === 'assistant') {
+            next[next.length - 1] = { ...last, steps: [...(last.steps ?? []), step] };
+          }
+          return next;
+        });
+      }
+    });
+  }, []);
+
   const sendChatMessage = useCallback(
     async (text: string) => {
       if (!projectPath || chatBusy) {
@@ -33,19 +58,22 @@ export function useChat(
       setChatMessages((previous) => [
         ...previous,
         { role: 'user', content: text },
-        { role: 'assistant', content: '' },
+        { role: 'assistant', content: '', steps: [] },
       ]);
       setChatBusy(true);
       try {
         const result = await window.doru.sendChat(projectPath, chatConversation.current);
         setChatMessages((previous) => {
           const next = [...previous];
-          next[next.length - 1] = {
-            role: 'assistant',
-            content: result.finalText,
-            steps: result.steps,
-            error: result.error,
-          };
+          const last = next[next.length - 1];
+          if (last && last.role === 'assistant') {
+            next[next.length - 1] = {
+              role: 'assistant',
+              content: result.finalText,
+              steps: result.steps,
+              error: result.error,
+            };
+          }
           return next;
         });
         chatConversation.current.push({ role: 'assistant', content: result.finalText || '' });
