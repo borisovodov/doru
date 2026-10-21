@@ -1,5 +1,6 @@
 import { app, ipcMain, safeStorage, shell } from 'electron';
 import { generateText } from 'ai';
+import Anthropic from '@anthropic-ai/sdk';
 import { AI_PROVIDERS, buildLanguageModel, wireDialect, type McpServerSettings } from '@doru/ai';
 import {
   aiSettingsPayload,
@@ -164,14 +165,13 @@ export function registerSettingsIpc(): void {
       }
       try {
         if (wireDialect(settings.provider) === 'anthropic') {
-          const response = await fetch(`${settings.baseUrl.replace(/\/+$/, '')}/v1/models`, {
-            headers: { 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01' },
+          // The Anthropic SDK appends /v1/<path> to its base URL.
+          const client = new Anthropic({
+            apiKey: settings.apiKey,
+            baseURL: settings.baseUrl.replace(/\/v1\/?$/, ''),
           });
-          if (!response.ok) {
-            return { models: [] as string[], error: `HTTP ${response.status}` };
-          }
-          const data = (await response.json()) as { data?: Array<{ id: string }> };
-          return { models: (data.data ?? []).map((model) => model.id) };
+          const page = await client.models.list({ limit: 200 });
+          return { models: page.data.map((model) => model.id) };
         }
         const response = await fetch(`${settings.baseUrl.replace(/\/+$/, '')}/models`, {
           headers: { authorization: `Bearer ${settings.apiKey}` },
