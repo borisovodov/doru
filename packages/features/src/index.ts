@@ -11,8 +11,8 @@ export {
 export type { CitationInfo, MediaWithPath, PersonEditorApi } from './person/types';
 export { PersonList, type PersonListProps } from './person/PersonList';
 export { displayName } from './person/format';
-export { SettingsView, type SettingsViewProps, type ThemeEntry } from './settings/SettingsView';
-export type { AiProviderInfo, AiSettingsState } from './settings/types';
+export { SettingsView, type SettingsViewProps, type ThemeEntry, type AiTestState } from './settings/SettingsView';
+export type { AiCatalogModelInfo, AiProviderInfo, AiSettingsState } from './settings/types';
 export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
 export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEditorPage';
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';

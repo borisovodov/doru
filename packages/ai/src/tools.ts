@@ -1,3 +1,8 @@
+import { jsonSchema, tool, type JSONSchema7, type ToolSet } from 'ai';
+import type { PermissionGate } from './agent';
+import { toolPermission, type PermissionPolicy } from './permissions';
+import type { TreeMcpBackend } from './backend';
+
 export interface ToolDefinition {
   name: string;
   description: string;
@@ -69,3 +74,33 @@ export const doruTools: ToolDefinition[] = [
     },
   },
 ];
+
+/** Builds the AI SDK tool set for the built-in Dóru tree tools. */
+export function doruToolSet(
+  backend: TreeMcpBackend,
+  gate: PermissionGate,
+  policy: PermissionPolicy,
+): ToolSet {
+  return Object.fromEntries(
+    doruTools.map((definition) => [
+      definition.name,
+      tool({
+        description: definition.description,
+        inputSchema: jsonSchema(definition.inputSchema as unknown as JSONSchema7),
+        execute: async (args) => {
+          const permission = toolPermission(policy, definition.name);
+          if (permission === 'deny') {
+            throw new Error('Permission denied by the user.');
+          }
+          if (permission === 'ask') {
+            const allowed = await gate(definition.name, (args as Record<string, unknown> | undefined) ?? {});
+            if (!allowed) {
+              throw new Error('Permission denied by the user.');
+            }
+          }
+          return backend.invoke(definition.name, (args as Record<string, unknown> | undefined) ?? {});
+        },
+      }),
+    ]),
+  );
+}

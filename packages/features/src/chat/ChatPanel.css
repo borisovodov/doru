@@ -173,3 +173,14 @@
   opacity: 0.45;
   cursor: default;
 }
+
+.chat-input .chat-stop {
+  background: var(--doru-bg-raised);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+}
+
+.chat-input .chat-stop:hover {
+  border-color: var(--doru-danger, #e5484d);
+  color: var(--doru-danger, #e5484d);
+}

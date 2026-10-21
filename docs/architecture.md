@@ -91,13 +91,29 @@ decisions about what we deliberately do **not** build, see
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
   agent's `session/request_permission` is routed into the same UI gate.
-- **Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama,
-  LM Studio, a custom OpenAI-compatible endpoint, and ACP. Everything except
-  Anthropic and ACP speaks the OpenAI-compatible chat dialect (Gemini exposes
-  one); Anthropic has its own connector (`/v1/messages`, `x-api-key`,
-  tool_use/tool_result). Presets live in `packages/ai/src/providers.ts`;
-  defaults (provider, base URL, model) are resolved in `ai-settings.ts`, and
-  `settings.json` only records explicit overrides.
+- **Runtime**: the agent loop is powered by the Vercel AI SDK (`streamText`
+  with tools and step-count stop); text streams to the chat as deltas, tool
+  activity lands in the transcript as steps, and a Stop button aborts the run
+  through an `AbortSignal`. Anthropic uses `@ai-sdk/anthropic`;
+  everything else speaks the OpenAI-compatible chat dialect through
+  `@ai-sdk/openai-compatible`; external MCP servers run via `@ai-sdk/mcp`.
+  The wire dialect is derived from the provider registry, not stored in
+  settings. Permission policy and the UI gate wrap every tool's `execute`.
+- **Model catalog**: `@opencode-ai/models` (the official models.dev package)
+  ships the offline snapshot — provider lists, pricing, limits, capabilities
+  and reasoning options — curated in `packages/ai/src/catalog.ts`. Providers
+  resolve in `packages/ai/src/providers.ts`; a refresh at release time is a
+  version bump of that package.
+- **Model lists**: catalog providers (OpenAI, Anthropic, Gemini, OpenRouter,
+  DeepSeek) pick models from the shipped catalog. Providers without a catalog
+  (Ollama, LM Studio, custom OpenAI-compatible endpoints) have the model id
+  typed as text, with an explicit "Fetch models" button that asks the
+  provider's own endpoint — the only runtime model fetch in the app, and only
+  on user action against a provider the user configured.
+- **Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek,
+  Ollama, LM Studio, a custom OpenAI-compatible endpoint, and ACP.
+  `settings.json` records the provider id, model, base URL, reasoning level,
+  API key (encrypted) and MCP servers; defaults resolve in `ai-settings.ts`.
 - **API keys** are entered only in the Settings UI and stored via
   `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `settings.json`; the
   plaintext never sits in the file. `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars
@@ -112,9 +128,11 @@ decisions about what we deliberately do **not** build, see
   authority for light vs dark.
 - User themes live in `<userData>/themes/*.json` (the directory is created
   on startup) and override a bundled theme with the same id.
-- The Settings page offers a Theme dropdown and a "Open log file" button;
-  picking a theme goes through the `theme:set` IPC, which writes
-  `settings.json` — the same path as editing the file by hand.
+- The Settings page hosts the AI provider section (provider and model pickers,
+  base URL, API key, reasoning level, MCP servers, connection test) plus the
+  Theme dropdown and an "Open log file" button; picking a theme goes through
+  the `theme:set` IPC, which writes `settings.json` — the same path as editing
+  the file by hand.
 - Built-in themes are single JSON palette files in app resources (`themes/`),
   resolved to CSS custom properties at startup — the same mechanism could
   serve user-installed themes later.

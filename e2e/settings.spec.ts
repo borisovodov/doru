@@ -30,13 +30,14 @@ test('the theme dropdown lists valid themes, hides broken ones, and persists the
   await expect(page.locator('.welcome-page')).toBeVisible();
 
   await page.locator('.activity-bar .activity-bar-bottom').click();
-  await expect(page.locator('.settings-view select')).toBeVisible();
+  const themeSelect = page.getByLabel('Theme');
+  await expect(themeSelect).toBeVisible();
 
-  const options = await page.locator('.settings-view select option').allTextContents();
+  const options = await themeSelect.locator('option').allTextContents();
   expect(options).toContain('Custom Theme');
   expect(options.join('|')).not.toContain('broken');
 
-  await page.locator('.settings-view select').selectOption('custom');
+  await themeSelect.selectOption('custom');
 
   // The choice is persisted into settings.json…
   await expect

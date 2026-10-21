@@ -90,6 +90,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   the drag region on macOS), and always reset `padding: 0` on icon-only
   buttons — the UA button padding collapses flex child SVGs. See the
   "Interaction conventions" bullet in docs/architecture.md.
+- **The AI model catalog ships as the `@opencode-ai/models` dependency.** Model lists, pricing, limits, capabilities and reasoning options come from its offline `./snapshot` export (models.dev data, MIT) via `packages/ai/src/catalog.ts`; the app never fetches model data at runtime. Refreshing the catalog at release time is a version bump of that package — no other step.
+- **The agent runtime is the Vercel AI SDK.** `packages/ai` wraps `streamText` (tools, step-count stop, permission gate inside each tool's `execute`); Anthropic goes through `@ai-sdk/anthropic`, everything else through `@ai-sdk/openai-compatible`, external MCP servers through `@ai-sdk/mcp`. Hand-rolled connectors and agent loops are a non-goal; the wire dialect derives from the provider registry.
 - **macOS app icons.** The icon source of truth is the Icon Composer project
   `apps/desktop/build/Icon.icon`. electron-builder renders the app bundle icon
   from it at package time (actool, Xcode 26+). `npm run icon:mac -w

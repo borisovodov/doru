@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import type { ChatMessage } from '@doru/ai';
-import { resolvePermission, sendChat } from './chat';
+import { cancelChat, resolvePermission, sendChat } from './chat';
 
 export function registerChatIpc(): void {
   ipcMain.handle(
@@ -10,5 +10,9 @@ export function registerChatIpc(): void {
 
   ipcMain.on('chat:permission-response', (_event, options: { id: string; allow: boolean }) => {
     resolvePermission(options.id, options.allow);
+  });
+
+  ipcMain.on('chat:cancel', (_event, projectPath: string) => {
+    cancelChat(projectPath);
   });
 }

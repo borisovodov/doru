@@ -11,7 +11,7 @@ import type {
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
-import type { ChatMessage, ChatSendResult } from '@doru/ai';
+import type { AgentStep, ChatMessage, ChatSendResult } from '@doru/ai';
 import type {
   AiProviderInfo,
   AiSettingsState,
@@ -57,8 +57,12 @@ declare global {
       ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
+      cancelChat(projectPath: string): void;
       onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
       respondChatPermission(id: string, allow: boolean): void;
+      onChatEvent(
+        callback: (event: { type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep }) => void,
+      ): () => void;
       getThemeState(): Promise<{
         systemDark: boolean;
         theme: string;
@@ -120,10 +124,12 @@ declare global {
         provider?: string;
         baseUrl?: string;
         model?: string;
+        reasoning?: string;
         apiKey?: string;
         clearKey?: boolean;
         acpCommand?: string;
         acpArgs?: string[];
+        mcpServers?: AiSettingsState['mcpServers'];
       }): Promise<AiSettingsState>;
       testAiConnection(options?: {
         provider?: string;

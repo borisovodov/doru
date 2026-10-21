@@ -35,6 +35,19 @@
           "description": "Model name. Empty means the preset's first default model. The DORU_AI_MODEL environment variable overrides this value. Ignored for provider \"acp\".",
           "type": "string"
         },
+        "reasoning": {
+          "description": "Reasoning level for models that support it, translated to each provider's native mechanism. Absent means the provider default.",
+          "type": "string",
+          "enum": [
+            "none",
+            "minimal",
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        },
         "apiKey": {
           "description": "API key in plaintext. On first load the app encrypts it with the OS keychain, moves it to \"apiKeyEncrypted\" and removes this field. The DORU_AI_API_KEY environment variable overrides any stored key.",
           "type": "string"

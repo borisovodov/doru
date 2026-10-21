@@ -8,7 +8,7 @@ import {
   type SessionBuilder,
   type Stream,
 } from '@agentclientprotocol/sdk';
-import type { AgentStep, PermissionGate } from './agent';
+import type { AgentEvents, AgentStep, PermissionGate } from './agent';
 
 export interface AcpMcpServerEntry {
   name: string;
@@ -117,60 +117,88 @@ export class AcpAgentClient {
     return ndJsonStream(output, input);
   }
 
-  async prompt(text: string): Promise<{ steps: AgentStep[]; finalText: string }> {
+  async prompt(
+    text: string,
+    events?: AgentEvents,
+    signal?: AbortSignal,
+  ): Promise<{ steps: AgentStep[]; finalText: string }> {
     const session = this.session;
     if (!session) {
       throw new Error('ACP session is not started');
     }
-    await session.prompt(text);
+    if (signal?.aborted) {
+      throw new DOMException('The operation was aborted', 'AbortError');
+    }
+    // Killing the child process is the ACP way to stop a running turn; the
+    // session is recreated on the next prompt via start().
+    const onAbort = () => {
+      void this.close();
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+
     const steps: AgentStep[] = [];
     let finalText = '';
-    for (;;) {
-      const message = await session.nextUpdate();
-      if (message.kind === 'stop') {
-        break;
-      }
-      const update = message.update;
-      switch (update.sessionUpdate) {
-        case 'agent_message_chunk': {
-          const chunk = (update as { content?: { text?: string } }).content?.text ?? '';
-          if (chunk) {
-            steps.push({ type: 'text', content: chunk });
-            finalText += chunk;
+    try {
+      // The prompt request and the update stream run concurrently: updates
+      // arrive while the turn is still in flight, and nextUpdate() rejects
+      // when the agent process dies (Stop button).
+      const response = session.prompt(text);
+      for (;;) {
+        const message = await session.nextUpdate();
+        if (message.kind === 'stop') {
+          break;
+        }
+        const update = message.update;
+        switch (update.sessionUpdate) {
+          case 'agent_message_chunk': {
+            const chunk = (update as { content?: { text?: string } }).content?.text ?? '';
+            if (chunk) {
+              finalText += chunk;
+              events?.onTextDelta?.(chunk);
+            }
+            break;
           }
-          break;
-        }
-        case 'tool_call': {
-          const call = update as unknown as ToolCallUpdateLike;
-          steps.push({
-            type: 'toolCall',
-            name: call.name ?? call.title ?? call.toolCallId,
-            arguments: (call.rawInput as Record<string, unknown> | undefined) ?? {},
-          });
-          break;
-        }
-        case 'tool_call_update': {
-          const call = update as unknown as ToolCallUpdateLike;
-          if (call.status === 'completed') {
-            steps.push({
-              type: 'toolResult',
+          case 'tool_call': {
+            const call = update as unknown as ToolCallUpdateLike;
+            const step: AgentStep = {
+              type: 'toolCall',
               name: call.name ?? call.title ?? call.toolCallId,
-              result: call.output ?? call.rawOutput ?? '',
-            });
-          } else if (call.status === 'failed') {
-            steps.push({
-              type: 'toolError',
-              name: call.name ?? call.title ?? call.toolCallId,
-              message: typeof call.rawOutput === 'string' ? call.rawOutput : 'Tool failed',
-            });
+              arguments: (call.rawInput as Record<string, unknown> | undefined) ?? {},
+            };
+            steps.push(step);
+            events?.onStep?.(step);
+            break;
           }
-          break;
+          case 'tool_call_update': {
+            const call = update as unknown as ToolCallUpdateLike;
+            if (call.status === 'completed') {
+              const step: AgentStep = {
+                type: 'toolResult',
+                name: call.name ?? call.title ?? call.toolCallId,
+                result: call.output ?? call.rawOutput ?? '',
+              };
+              steps.push(step);
+              events?.onStep?.(step);
+            } else if (call.status === 'failed') {
+              const step: AgentStep = {
+                type: 'toolError',
+                name: call.name ?? call.title ?? call.toolCallId,
+                message: typeof call.rawOutput === 'string' ? call.rawOutput : 'Tool failed',
+              };
+              steps.push(step);
+              events?.onStep?.(step);
+            }
+            break;
+          }
+          default:
+            break;
         }
-        default:
-          break;
       }
+      await response;
+      return { steps, finalText };
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
     }
-    return { steps, finalText };
   }
 
   async close(): Promise<void> {

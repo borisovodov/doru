@@ -21,10 +21,11 @@ export interface ChatPanelProps {
   busy: boolean;
   permission: ChatPermissionRequest | null;
   onSend: (text: string) => void;
+  onStop: () => void;
   onPermission: (allow: boolean) => void;
 }
 
-export function ChatPanel({ messages, busy, permission, onSend, onPermission }: ChatPanelProps) {
+export function ChatPanel({ messages, busy, permission, onSend, onStop, onPermission }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +54,7 @@ export function ChatPanel({ messages, busy, permission, onSend, onPermission }: 
               <div className="chat-bubble">{message.content}</div>
             ) : (
               <div className="chat-bubble">
+                <div className="chat-text">{message.content}</div>
                 {message.steps?.map((step, stepIndex) => (
                   <ChatStep key={stepIndex} step={step} />
                 ))}
@@ -89,6 +91,11 @@ export function ChatPanel({ messages, busy, permission, onSend, onPermission }: 
         <button disabled={busy} onClick={submit}>
           {nls.t('chat.send')}
         </button>
+        {busy ? (
+          <button className="chat-stop" onClick={onStop}>
+            {nls.t('chat.stop')}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -96,8 +103,6 @@ export function ChatPanel({ messages, busy, permission, onSend, onPermission }: 
 
 function ChatStep({ step }: { step: AgentStep }) {
   switch (step.type) {
-    case 'text':
-      return <div className="chat-text">{step.content}</div>;
     case 'toolCall':
       return <div className="chat-tool">{nls.t('chat.toolCall', step.name)}</div>;
     case 'toolResult':

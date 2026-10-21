@@ -35,6 +35,12 @@ export const AiSectionSchema = z
       .describe(
         'Model name. Empty means the preset\'s first default model. The DORU_AI_MODEL environment variable overrides this value. Ignored for provider "acp".',
       ),
+    reasoning: z
+      .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
+      .optional()
+      .describe(
+        'Reasoning level for models that support it, translated to each provider\'s native mechanism. Absent means the provider default.',
+      ),
     apiKey: z
       .string()
       .optional()
