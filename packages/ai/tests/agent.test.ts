@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PersonRecord } from '@doru/core';
+import { jsonSchema, tool } from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { runAgent, toModelMessages } from '../src/agent';
 import { TreeMcpBackend } from '../src/backend';
@@ -141,6 +142,101 @@ describe('runAgent', () => {
       cleanupAiFixture(fixture);
     }
   });
+
+  it('passes the system prompt, reasoning level and an abort signal through', async () => {
+    const model = new MockLanguageModelV4({ doStream: [textStream('Ok.')] });
+    const controller = new AbortController();
+
+    const result = await runAgent({
+      model,
+      messages: [{ role: 'user', content: 'Hi' }],
+      system: 'You are a genealogy assistant.',
+      reasoning: 'low',
+      signal: controller.signal,
+      tools: {},
+    });
+
+    expect(result.finalText).toBe('Ok.');
+  });
+
+  it('denies tools through the policy without asking the gate', async () => {
+    const fixture = makeAiFixture();
+    try {
+      fixture.repo.insertPerson(ivan);
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+      let asked = false;
+      const model = new MockLanguageModelV4({
+        doStream: [
+          toolCallStream('call-1', 'tree_query', { query: 'ivan' }),
+          textStream('Skipped.'),
+        ],
+      });
+
+      const result = await runAgent({
+        model,
+        messages: [{ role: 'user', content: 'Find Ivan' }],
+        tools: doruToolSet(
+          backend,
+          async () => {
+            asked = true;
+            return true;
+          },
+          { default: 'deny', overrides: {} },
+        ),
+      });
+
+      expect(asked).toBe(false);
+      expect(result.steps.some((step) => step.type === 'toolError')).toBe(true);
+    } finally {
+      cleanupAiFixture(fixture);
+    }
+  });
+
+  it('handles tool calls without arguments', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: [toolCallStream('call-1', 'tree_query', undefined), textStream('Listed.')],
+    });
+    const fixture = makeAiFixture();
+    try {
+      fixture.repo.insertPerson(ivan);
+      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+      const result = await runAgent({
+        model,
+        messages: [{ role: 'user', content: 'List' }],
+        tools: doruToolSet(backend, async () => true, DEFAULT_PERMISSION_POLICY),
+      });
+
+      expect(result.finalText).toBe('Listed.');
+      // The SDK marks a call without input as invalid; the transcript still
+      // records the call and its error.
+      expect(result.steps.map((step) => step.type)).toEqual(['toolCall', 'toolError']);
+    } finally {
+      cleanupAiFixture(fixture);
+    }
+  });
+
+  it('records non-Error tool failures with their message', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: [toolCallStream('call-1', 'bad_tool', {}), textStream('Recovered.')],
+    });
+    const result = await runAgent({
+      model,
+      messages: [{ role: 'user', content: 'Break it' }],
+      tools: {
+        bad_tool: tool({
+          description: 'Always fails with a string.',
+          inputSchema: jsonSchema({ type: 'object', properties: {} }),
+          execute: async () => {
+            throw 'nope';
+          },
+        }),
+      },
+    });
+
+    const errorStep = result.steps.find((step) => step.type === 'toolError');
+    expect(errorStep?.type === 'toolError' && errorStep.message).toBe('nope');
+    expect(result.finalText).toBe('Recovered.');
+  });
 });
 
 describe('toModelMessages', () => {
@@ -183,6 +279,18 @@ describe('toModelMessages', () => {
             toolName: 'tree_query',
             output: { type: 'text', value: '[{"id":"@I1@"}]' },
           },
+        ],
+      },
+    ]);
+  });
+
+  it('fills in blanks for tool results without a known call', () => {
+    const messages: ChatMessage[] = [{ role: 'tool', content: null }];
+    expect(toModelMessages(messages)).toEqual([
+      {
+        role: 'tool',
+        content: [
+          { type: 'tool-result', toolCallId: '', toolName: '', output: { type: 'text', value: '' } },
         ],
       },
     ]);

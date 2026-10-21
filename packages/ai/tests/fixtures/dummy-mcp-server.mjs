@@ -16,4 +16,16 @@ server.registerTool(
   async (args) => ({ content: [{ type: 'text', text: String(args.text.length) }] }),
 );
 
+server.registerTool(
+  'fail',
+  { description: 'Always fails.', inputSchema: {} },
+  async () => ({ content: [{ type: 'text', text: 'boom' }], isError: true }),
+);
+
+server.registerTool(
+  'odd',
+  { description: 'Returns non-text content.', inputSchema: {} },
+  async () => ({ content: [{ type: 'resource', resource: { uri: 'file:///tmp/x', text: 'hey' } }] }),
+);
+
 await server.connect(new StdioServerTransport());

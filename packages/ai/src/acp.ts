@@ -135,10 +135,14 @@ export class AcpAgentClient {
       void this.close();
     };
     signal?.addEventListener('abort', onAbort, { once: true });
+
+    const steps: AgentStep[] = [];
+    let finalText = '';
     try {
-      await session.prompt(text);
-      const steps: AgentStep[] = [];
-      let finalText = '';
+      // The prompt request and the update stream run concurrently: updates
+      // arrive while the turn is still in flight, and nextUpdate() rejects
+      // when the agent process dies (Stop button).
+      const response = session.prompt(text);
       for (;;) {
         const message = await session.nextUpdate();
         if (message.kind === 'stop') {
@@ -190,6 +194,7 @@ export class AcpAgentClient {
             break;
         }
       }
+      await response;
       return { steps, finalText };
     } finally {
       signal?.removeEventListener('abort', onAbort);
