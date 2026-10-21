@@ -250,6 +250,13 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
               }
               onSelect(tab.id);
             }}
+            onAuxClick={(event) => {
+              // Middle-click closes the tab, like a browser tab.
+              if (event.button === 1 && tab.closable !== false) {
+                event.preventDefault();
+                onClose(tab.id);
+              }
+            }}
             onPointerDown={onPointerDown(tab.id)}
             onPointerMove={onPointerMove(tab.id)}
             onPointerUp={finishDrag(tab.id)}

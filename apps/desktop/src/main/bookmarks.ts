@@ -108,6 +108,11 @@ export function startAccessing(bookmark: string): (() => void) | null {
   if (process.platform !== 'darwin') {
     return null;
   }
+  // The API only exists in MAS (App Sandbox) builds; regular builds simply
+  // keep the access they already have and the call would throw.
+  if (typeof app.startAccessingSecurityScopedResource !== 'function') {
+    return null;
+  }
   try {
     const stop = app.startAccessingSecurityScopedResource(bookmark);
     return typeof stop === 'function' ? (stop as () => void) : null;

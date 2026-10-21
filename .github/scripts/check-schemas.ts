@@ -42,11 +42,14 @@ const report = (message: string): void => {
 
 const generated = (schema: Record<string, unknown>): string => `${JSON.stringify(schema, null, 2)}\n`;
 
+// Checkouts on Windows may normalize line endings; compare content only.
+const normalize = (text: string): string => text.replace(/\r\n/g, '\n');
+
 // 1. The published schemas must match the zod-generated output.
-if (readFileSync(join(PUBLIC_DIR, 'settings.json'), 'utf8') !== generated(settingsJsonSchema())) {
+if (normalize(readFileSync(join(PUBLIC_DIR, 'settings.json'), 'utf8')) !== generated(settingsJsonSchema())) {
   report('apps/website/public/settings.json is out of sync with the zod schema — run scripts/generate-schemas.ts');
 }
-if (readFileSync(join(PUBLIC_DIR, 'theme.json'), 'utf8') !== generated(themeJsonSchema())) {
+if (normalize(readFileSync(join(PUBLIC_DIR, 'theme.json'), 'utf8')) !== generated(themeJsonSchema())) {
   report('apps/website/public/theme.json is out of sync with the zod schema — run scripts/generate-schemas.ts');
 }
 

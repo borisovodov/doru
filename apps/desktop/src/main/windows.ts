@@ -2,6 +2,7 @@ import { BrowserWindow, Menu, app, type MenuItemConstructorOptions } from 'elect
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ProjectBinding } from '@doru/core';
+import { LocalizationService, resolveLocale } from '@doru/platform';
 import { closeProjectRuntime } from './runtime';
 import { updateSession } from './session';
 import { projectWindows, untitledProjects, windowProject } from './state';
@@ -45,13 +46,41 @@ export function bindingOf(projectKey: string): ProjectBinding {
 }
 
 export function installMenu(): void {
+  const nls = new LocalizationService(resolveLocale(app.getLocale()));
+  const sendToFocused = (channel: string): void => {
+    BrowserWindow.getFocusedWindow()?.webContents.send(channel);
+  };
   const template: MenuItemConstructorOptions[] = [];
   if (process.platform === 'darwin') {
     template.push({ role: 'appMenu' });
   } else {
     template.push({ label: 'File', submenu: [{ role: 'quit' }] });
   }
-  template.push({ role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' });
+  template.push({ role: 'editMenu' });
+  // Built from roles so extra app commands can live next to the standard
+  // items; the renderer executes them through its CommandService.
+  template.push({
+    label: nls.t('menu.view'),
+    submenu: [
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' },
+      { type: 'separator' },
+      {
+        id: 'toggle-secondary-side-bar',
+        label: nls.t('workbench.toggleSecondarySideBar'),
+        accelerator: 'CmdOrCtrl+Alt+B',
+        click: () => sendToFocused('menu:toggle-secondary-side-bar'),
+      },
+    ],
+  });
+  template.push({ role: 'windowMenu' });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 

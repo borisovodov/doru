@@ -1,0 +1,5 @@
+# The published JSON Schemas are byte-compared against the generator output
+# by `check:schemas`; keep them LF on every checkout so the comparison holds
+# on Windows too.
+apps/website/public/settings.json text eol=lf
+apps/website/public/theme.json text eol=lf
