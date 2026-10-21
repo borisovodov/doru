@@ -17,7 +17,7 @@ features:
     details: "Aplikacja nigdy nie łączy się sama: bez kont, bez chmury, bez telemetrii. Jedyne połączenia sieciowe idą do dostawców AI i serwerów MCP, które sam konfigurujesz. Klucze API pozostają w pęku kluczy systemu, a z Ollamą lub LM Studio AI działa w całości na Twoim komputerze."
   - icon: 🎨
     title: Konfiguracja w tekście
-    details: "Ustawienia w doru.json: dostawcy AI, motywy i więcej. Zwykły tekst, przeładowanie na żywo, edytowalne przez ludzi i agentów."
+    details: "Ustawienia w settings.json: dostawcy AI, motywy i więcej. Zwykły tekst, przeładowanie na żywo, edytowalne przez ludzi i agentów."
   - icon: 🌍
     title: Wieloplatformowość i 17 języków
     details: "Działa na macOS, Windows i Linuksie. Interfejs jest w pełni zlokalizowany — od polskiego i angielskiego po japoński i chiński uproszczony."

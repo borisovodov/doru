@@ -17,7 +17,7 @@ features:
     details: "앱이 스스로 외부에 접속하는 일은 없습니다:계정도, 클라우드도, 텔레메트리도 없습니다. 네트워크 연결은 여러분이 직접 설정한 AI 제공자와 MCP 서버뿐입니다. API 키는 OS 키체인에 보관되며, Ollama나 LM Studio를 쓰면 AI가 전적으로 내 컴퓨터에서 실행됩니다."
   - icon: 🎨
     title: 텍스트 설정
-    details: "설정은 doru.json — AI 제공자, 테마 등. 일반 텍스트, 핫 리로드, 사람과 에이전트 모두 편집 가능."
+    details: "설정은 settings.json — AI 제공자, 테마 등. 일반 텍스트, 핫 리로드, 사람과 에이전트 모두 편집 가능."
   - icon: 🌍
     title: 크로스 플랫폼과 17개 언어
     details: "macOS, Windows, Linux에서 실행됩니다. 인터페이스는 완전히 현지화되어 있습니다 — 한국어와 영어부터 일본어와 중국어 간체까지."

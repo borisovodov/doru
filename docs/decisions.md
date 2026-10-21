@@ -42,13 +42,13 @@ in a half-written state and corrupt it. Dóru uses a single-file journal mode
 close the project (or the app) before syncing. Copying a closed project is
 always safe.
 
-## Config and data locations
+## Settings and data locations
 
-Dóru follows each OS's native conventions for its config directory (Electron
+Dóru follows each OS's native conventions for its settings directory (Electron
 `userData`): `~/Library/Application Support/Doru` on macOS,
 `%APPDATA%\Doru` on Windows, `~/.config/Doru` on Linux. Dev-tool culture
 (gh, zed, OpenCode) uses `~/.config` everywhere, but for a GUI app the native
-locations are intentional — do not move the macOS config to `~/.config`.
+locations are intentional — do not move the macOS settings to `~/.config`.
 
 ## API stability before 1.0.0
 

@@ -7,19 +7,16 @@ can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
 `tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render`
 (the last one renders a person's ancestor chart as an SVG image).
 
-Set the provider up from **Settings** (gear icon in the left bar) → AI
-Provider:
+The provider is configured in the `ai` section of `settings.json` (see
+[Settings](settings.md)):
 
 - **Provider presets**: OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama
   (local), LM Studio (local), a custom OpenAI-compatible endpoint, or an ACP
-  agent. Each preset pre-fills the base URL and suggests common models.
-- **API keys** are entered in the UI and stored encrypted in the OS keychain
-  (macOS Keychain / Windows Credential Manager / libsecret). The key never
-  appears in the config file in plaintext.
-- **Model**: type one or use the suggestions; with a key set, “Fetch models”
-  lists the models available from the endpoint.
-- **Test connection** sends a small request and reports whether the provider
-  answers. Local providers (Ollama, LM Studio) need no key.
+  agent. Set the id in `"provider"`; each preset provides a default base URL
+  and model, so `"baseUrl"` and `"model"` are optional overrides.
+- **API keys** are stored encrypted in the OS keychain (macOS Keychain /
+  Windows Credential Manager / libsecret). The key never appears in the
+  settings file in plaintext.
 - **Permissions**: read-only tools run freely; mutating tools (`tree_edit`,
   `sources_add`, `notes_write`) ask for confirmation inline. External MCP tools
   always ask.

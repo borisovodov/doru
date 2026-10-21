@@ -17,7 +17,7 @@ features:
     details: "Az alkalmazás soha nem telefonál haza magától: nincs fiók, nincs felhő, nincs telemetria. Az egyetlen hálózati kapcsolat az Ön által beállított MI-szolgáltatók és MCP-szerverek felé irányul. Az API-kulcsok a rendszer kulcstartójában maradnak, az Ollama vagy LM Studio használatával pedig a MI teljesen a saját gépén fut."
   - icon: 🎨
     title: Szöveges konfiguráció
-    details: "Beállítások a doru.json-ban: MI-szolgáltatók, témák és még több. Egyszerű szöveg, élő újratöltés, emberek és ügynökök is szerkeszthetik."
+    details: "Beállítások a settings.json-ban: MI-szolgáltatók, témák és még több. Egyszerű szöveg, élő újratöltés, emberek és ügynökök is szerkeszthetik."
   - icon: 🌍
     title: Többplatformos és 17 nyelv
     details: "macOS-en, Windowson és Linuxon fut. A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."

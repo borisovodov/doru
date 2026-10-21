@@ -8,7 +8,6 @@ import { PersonTab } from './components/PersonTab';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
 import { useProject } from './hooks/useProject';
-import { useSettings } from './hooks/useSettings';
 import {
   PERSON_TAB_PREFIX,
   SETTINGS_TAB_ID,
@@ -31,8 +30,20 @@ export function App() {
   const chat = useChat(projectPath, tree.refreshTree);
   const tabs = useTabs(tree.persons);
   const project = useProject(projectPath, tree.refreshTree, tabs.ensureTreeTab);
-  const settings = useSettings();
-  const builtinThemeCss = useTheme();
+  const theme = useTheme();
+  const [version, setVersion] = useState('');
+
+  useEffect(() => {
+    void window.doru.getAbout().then((info) => setVersion(info.version));
+  }, []);
+
+  // Re-read the theme list whenever the Settings tab opens: user themes are
+  // plain files in <userData>/themes and may appear/change at any time.
+  useEffect(() => {
+    if (tabs.activeTabId === SETTINGS_TAB_ID) {
+      void theme.refreshThemes();
+    }
+  }, [tabs.activeTabId, theme.refreshThemes]);
 
   const commands = useMemo(() => new CommandService(), []);
 
@@ -93,6 +104,13 @@ export function App() {
     };
   }, [commands, project.openProject, project.saveProject, tree.undo, tree.redo]);
 
+  useEffect(() => {
+    return window.doru.onMenuToggleSecondarySideBar(() => {
+      // The command is registered by the Workbench on the same CommandService.
+      void commands.execute('workbench.toggleSecondarySideBar');
+    });
+  }, [commands]);
+
   const keybindings = useMemo(
     () => [
       { key: 'meta+z', command: 'tree.undo' },
@@ -149,11 +167,12 @@ export function App() {
     if (tab.id === SETTINGS_TAB_ID) {
       return (
         <SettingsView
-          providers={settings.aiProviders}
-          settings={settings.aiSettings}
-          onSave={settings.saveSettings}
-          onTest={(options) => window.doru.testAiConnection(options)}
-          onFetchModels={(options) => window.doru.fetchAiModels(options)}
+          theme={theme.theme}
+          themes={theme.themes}
+          onThemeChange={theme.selectTheme}
+          onOpenLogs={() => void window.doru.openLogs()}
+          onOpenThemesFolder={() => void window.doru.openThemesFolder()}
+          version={version}
         />
       );
     }
@@ -203,7 +222,7 @@ export function App() {
 
   return (
     <>
-      <style id="doru-builtin-theme">{builtinThemeCss}</style>
+      <style id="doru-builtin-theme">{theme.builtinThemeCss}</style>
       <Workbench
         commands={commands}
         keybindings={keybindings}

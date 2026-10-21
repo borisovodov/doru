@@ -46,7 +46,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
   (`agent:{host}/{model}#{promptHash}`). AI edits are always reviewable and
   gated by permission prompts.
 - **Workbench-style UI.** Activity bar, sidebar, tabs, editor area, panel,
-  command palette, themes as text files, text-based configuration, codicons.
+  command palette, themes as text files, text-based settings, codicons.
 
 ## Features
 
@@ -94,9 +94,9 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
   (Claude Desktop, Cursor) can query and edit your tree; the in-app agent can
   also use tools from external MCP servers, and ACP agents are supported.
 
-### Configuration and themes
+### Settings and themes
 
-- **`doru.json`** — plain JSON with comments, edited in any editor, picked up
+- **`settings.json`** — plain JSON with comments, edited in any editor, picked up
   live while the app runs.
 - **Themes** — the interface is styled through CSS custom properties; a dark
   and a light theme are built in and chosen per OS appearance.

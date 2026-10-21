@@ -3,10 +3,11 @@
 .settings-view {
   max-width: 560px;
   padding: 8px 16px;
+  user-select: none;
 }
 
 .settings-section {
-  margin-top: 16px;
+  margin-top: 28px;
 }
 
 .settings-section h3 {
@@ -15,19 +16,11 @@
   color: var(--doru-fg);
 }
 
-.settings-section label {
-  display: block;
-  margin: 10px 0;
-  color: var(--doru-fg-muted);
-}
-
-.settings-section input,
-.settings-section select,
-.settings-section textarea {
-  width: 100%;
+.settings-section select {
+  width: auto;
+  min-width: 200px;
   height: var(--doru-control-height);
   box-sizing: border-box;
-  margin-top: 4px;
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -36,58 +29,34 @@
   font-size: var(--doru-font-size);
 }
 
-.settings-section input:focus,
-.settings-section select:focus,
-.settings-section textarea:focus {
+.settings-section select:focus {
   border-color: var(--doru-focus);
   outline: none;
 }
 
-.settings-section textarea {
-  height: auto;
-  min-height: 64px;
-  font-family: inherit;
-  padding: 8px 10px;
-  resize: vertical;
-}
-
-.settings-hint {
-  font-size: 12px;
-  color: var(--doru-fg-muted);
-  margin: 4px 0;
-}
-
-.settings-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.settings-actions button {
-  height: var(--doru-control-height);
-  padding: 0 13px;
+/* Secondary actions on the settings page render as quiet text links. */
+.settings-link {
+  display: block;
+  padding: 0;
   border: none;
-  border-radius: var(--doru-radius-md);
-  background: var(--doru-accent);
-  color: var(--doru-on-accent);
+  background: none;
+  color: var(--doru-accent);
   font-size: var(--doru-font-size);
+  text-decoration: underline;
+  text-underline-offset: 3px;
   cursor: pointer;
 }
 
-.settings-actions button:hover {
-  background: var(--doru-accent-hover);
+.settings-link:hover {
+  color: var(--doru-accent-hover);
 }
 
-.settings-status {
+.settings-section select + .settings-link {
+  margin-top: 8px;
+}
+
+.settings-note {
+  margin: 4px 0;
   font-size: 12px;
+  color: var(--doru-fg-muted);
 }
-
-.settings-status.ok {
-  color: var(--doru-success);
-}
-
-.settings-status.fail {
-  color: var(--doru-danger);
-}
-
