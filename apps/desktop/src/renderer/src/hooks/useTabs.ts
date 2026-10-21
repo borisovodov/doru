@@ -75,6 +75,43 @@ export function useTabs(persons: PersonRecord[]) {
     [openTabs],
   );
 
+  /** Cycles to the tab after the active one, wrapping at the end. */
+  const nextTab = useCallback(() => {
+    setActiveTabId((active) => {
+      if (openTabs.length === 0) {
+        return active;
+      }
+      const index = openTabs.findIndex((entry) => entry.id === active);
+      return openTabs[(index + 1) % openTabs.length]?.id ?? active;
+    });
+  }, [openTabs]);
+
+  /** Cycles to the tab before the active one, wrapping at the start. */
+  const prevTab = useCallback(() => {
+    setActiveTabId((active) => {
+      if (openTabs.length === 0) {
+        return active;
+      }
+      const index = openTabs.findIndex((entry) => entry.id === active);
+      const previous = (index - 1 + openTabs.length) % openTabs.length;
+      return openTabs[previous]?.id ?? active;
+    });
+  }, [openTabs]);
+
+  /**
+   * Selects the tab at the given 0-based position, clamped to the last tab
+   * so ⌘9 still lands on a tab when fewer than nine are open.
+   */
+  const openTabAt = useCallback(
+    (index: number) => {
+      const target = openTabs[Math.min(Math.max(index, 0), openTabs.length - 1)];
+      if (target) {
+        setActiveTabId(target.id);
+      }
+    },
+    [openTabs],
+  );
+
   const openPersonTab = useCallback(
     (personId: string) => {
       const person = persons.find((entry) => entry.id === personId);
@@ -116,6 +153,9 @@ export function useTabs(persons: PersonRecord[]) {
     ensureTreeTab,
     openTab,
     closeTab,
+    nextTab,
+    prevTab,
+    openTabAt,
     openPersonTab,
     openNewPersonTab,
     openSettingsTab,

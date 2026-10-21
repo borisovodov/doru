@@ -14,7 +14,10 @@ describe('KeybindingService', () => {
   test('matches plain letter shortcuts', () => {
     const service = new KeybindingService();
     service.register('meta+z', 'tree.undo');
-    expect(service.onKeydown(event({ key: 'z', code: 'KeyZ', metaKey: true }))).toBe('tree.undo');
+    expect(service.onKeydown(event({ key: 'z', code: 'KeyZ', metaKey: true }))).toEqual({
+      command: 'tree.undo',
+      args: [],
+    });
   });
 
   test('matches alt-letter shortcuts regardless of the Option character', () => {
@@ -23,10 +26,10 @@ describe('KeybindingService', () => {
     // macOS US layout reports Option+B as '∫'.
     expect(
       service.onKeydown(event({ key: '∫', code: 'KeyB', metaKey: true, altKey: true })),
-    ).toBe('workbench.toggleSecondarySideBar');
+    ).toEqual({ command: 'workbench.toggleSecondarySideBar', args: [] });
     expect(
       service.onKeydown(event({ key: 'b', code: 'KeyB', metaKey: true, altKey: true })),
-    ).toBe('workbench.toggleSecondarySideBar');
+    ).toEqual({ command: 'workbench.toggleSecondarySideBar', args: [] });
   });
 
   test('matches shift combos', () => {
@@ -34,13 +37,34 @@ describe('KeybindingService', () => {
     service.register('meta+shift+z', 'tree.redo');
     expect(
       service.onKeydown(event({ key: 'Z', code: 'KeyZ', metaKey: true, shiftKey: true })),
-    ).toBe('tree.redo');
+    ).toEqual({ command: 'tree.redo', args: [] });
   });
 
   test('matches digit keys via code when shift changes the character', () => {
     const service = new KeybindingService();
     service.register('ctrl+1', 'view.one');
-    expect(service.onKeydown(event({ key: '!', code: 'Digit1', ctrlKey: true }))).toBe('view.one');
+    expect(service.onKeydown(event({ key: '!', code: 'Digit1', ctrlKey: true }))).toEqual({
+      command: 'view.one',
+      args: [],
+    });
+  });
+
+  test('matches punctuation keys via code when shift changes the character', () => {
+    const service = new KeybindingService();
+    service.register('meta+shift+]', 'workbench.nextTab');
+    // US layouts report Shift+] as '}'.
+    expect(
+      service.onKeydown(event({ key: '}', code: 'BracketRight', metaKey: true, shiftKey: true })),
+    ).toEqual({ command: 'workbench.nextTab', args: [] });
+  });
+
+  test('passes through registered args', () => {
+    const service = new KeybindingService();
+    service.register('meta+2', 'workbench.switchToTab', [2]);
+    expect(service.onKeydown(event({ key: '2', code: 'Digit2', metaKey: true }))).toEqual({
+      command: 'workbench.switchToTab',
+      args: [2],
+    });
   });
 
   test('returns undefined for unregistered combos', () => {

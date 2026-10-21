@@ -141,8 +141,12 @@ export function openFileAsProject(
 }
 
 /**
- * The Open dialog: offers both project files and GEDCOM files, routing the
- * picked file through `openFileAsProject`.
+ * The Open dialog: project files and GEDCOM files in one list. A `.doru`
+ * file opens its project; a `.ged`/`.gdz` file starts a new, not-yet-saved
+ * project that the user saves to `.doru` later (see `openFileAsProject`).
+ *
+ * A single filter entry keeps every extension selectable on macOS, where a
+ * multi-filter panel greys out files outside the active filter.
  */
 export async function openAnyProjectDialog(
   senderId?: number,
@@ -150,10 +154,9 @@ export async function openAnyProjectDialog(
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile'],
     filters: [
-      { name: 'Dóru project', extensions: ['doru'] },
-      { name: 'GEDCOM file', extensions: ['ged', 'gdz'] },
+      { name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] },
     ],
-    title: 'Open Project',
+    title: 'Open or Import GEDCOM',
   };
   const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
   const result =

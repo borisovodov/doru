@@ -50,4 +50,12 @@ export class RecentProjects {
     await this.fs.writeFile(this.file, `${JSON.stringify(next, null, 2)}\n`);
     return next;
   }
+
+  /** Removes a project from the list, keeping every other entry in place. */
+  async remove(path: string): Promise<RecentProject[]> {
+    const next = (await this.list()).filter((item) => item.path !== path);
+    await this.fs.mkdir(dirname(this.file));
+    await this.fs.writeFile(this.file, `${JSON.stringify(next, null, 2)}\n`);
+    return next;
+  }
 }

@@ -13,11 +13,9 @@ const api = {
   createProjectDialog: (): Promise<unknown> => ipcRenderer.invoke('project:create'),
   saveProject: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:save', { projectPath }),
-  importGedcom: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('project:import', { projectPath, dialog: true }),
-  importGedcomFile: (projectPath: string, filePath: string): Promise<unknown> =>
-    ipcRenderer.invoke('project:import', { projectPath, filePath }),
   recentProjects: (): Promise<unknown> => ipcRenderer.invoke('project:recent'),
+  removeRecentProject: (path: string): Promise<unknown> =>
+    ipcRenderer.invoke('project:recent:remove', { path }),
   listPersons: (projectPath: string, search?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:list', { projectPath, search }),
   all: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:all', { projectPath }),

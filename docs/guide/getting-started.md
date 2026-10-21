@@ -1,10 +1,13 @@
 # Quick start
 
-1. Launch Dóru and click **Create New Project** (or **Open Project…**) on the
-   start page.
+1. Launch Dóru and click **Create New Project** (or **Open or Import
+   GEDCOM…**) on the start page.
 2. **Create** asks for a location and a name and creates a `.doru` file there;
-   **Open** opens an existing `.doru` file. The file *is* the project — its
-   name is the project's name:
+   **Open or Import GEDCOM** opens an existing `.doru` file, or a
+   `.ged`/`.gdz` GEDCOM file — a GEDCOM file starts a new, not-yet-saved
+   project (the import itself is still being rebuilt, so it opens empty for
+   now; save it to `.doru` afterwards). The file *is* the project — its name
+   is the project's name:
 
 ```
 My Family.doru      the tree itself (SQLite, branded with an app id)
@@ -12,9 +15,9 @@ media/              photos and scans, created on demand (optional)
 ```
 
 3. Get data in: an empty tree offers **Add the first person**, and every
-   card can add children, spouses and parents. The **Import GEDCOM…** and
-   **Export GEDCOM…** buttons are currently inactive: GEDCOM support is
-   being rebuilt in the `@doru/gedcom` package.
+   card can add children, spouses and parents. GEDCOM files come in through
+   **Open or Import GEDCOM** (step 2); **Export GEDCOM…** is not wired up
+   yet — GEDCOM support is being rebuilt in the `@doru/gedcom` package.
 
 Each project opens in its **own window**; persons, the tree editor and the
 settings open as tabs inside it. Recently used projects are listed on the

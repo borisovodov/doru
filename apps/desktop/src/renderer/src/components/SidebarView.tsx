@@ -10,14 +10,12 @@ export function SidebarView({
   persons,
   projectPath,
   onOpenPerson,
-  onImportGedcom,
   onExportGedcom,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
   projectPath: string | null | undefined;
   onOpenPerson: (personId: string) => void;
-  onImportGedcom: () => void;
   onExportGedcom: () => void;
 }) {
   switch (activeView) {
@@ -67,17 +65,6 @@ export function SidebarView({
           title={nls.t('workbench.activityBar.search')}
           description={nls.t('features.search.placeholder')}
         />
-      );
-    case 'import':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.import')}
-          description={projectPath ? undefined : nls.t('workbench.tree.empty')}
-        >
-          <button disabled={!projectPath} onClick={onImportGedcom}>
-            {nls.t('features.tree.importGedcom')}
-          </button>
-        </PlaceholderView>
       );
     case 'export':
       return (

@@ -3,7 +3,6 @@ import type { RecentProject } from '@doru/core';
 
 export function useProject(
   projectPath: string | null | undefined,
-  refreshTree: () => Promise<void>,
   ensureTreeTab: () => void,
 ) {
   const [recent, setRecent] = useState<RecentProject[]>([]);
@@ -44,15 +43,13 @@ export function useProject(
     void refreshRecent();
   }, [projectPath, refreshRecent]);
 
-  const importGedcom = useCallback(async () => {
-    if (!projectPath) {
-      return;
-    }
-    const result = await window.doru.importGedcom(projectPath);
-    if (result) {
-      void refreshTree();
-    }
-  }, [projectPath, refreshTree]);
+  const removeRecent = useCallback(
+    async (path: string) => {
+      await window.doru.removeRecentProject(path);
+      void refreshRecent();
+    },
+    [refreshRecent],
+  );
 
   const exportGedcom = useCallback(async () => {
     if (!projectPath) {
@@ -67,7 +64,7 @@ export function useProject(
     openProject,
     createProject,
     saveProject,
-    importGedcom,
+    removeRecent,
     exportGedcom,
   };
 }

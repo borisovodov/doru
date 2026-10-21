@@ -692,11 +692,17 @@ dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
 ### 3. Application integration
 
 **Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
-no-op `importGedcom`/`exportGedcom` returning `null`; the IPC channels
-`project:import`/`project:export` (`ipc-project.ts`), the preload API,
-`doru.d.ts`, the `useProject` hook, the SidebarView buttons and the nls
-keys (`features.tree.importGedcom`/`exportGedcom`) are all intact — the
-UI was deliberately left untouched.
+a no-op `exportGedcom` returning `null` and `openGedcomAsProject`, which
+opens an empty untitled project; the IPC channel `project:export`
+(`ipc-project.ts`), the preload API, `doru.d.ts`, the `useProject` hook,
+the SidebarView export button and the nls key
+(`features.tree.exportGedcom`) are intact. There is no separate
+"import into an open project" flow anymore: GEDCOM files enter through
+the Open dialog (`openAnyProjectDialog` → `openFileAsProject` →
+`openGedcomAsProject`), which starts a not-yet-saved project. The steps
+below start from that plumbing: step 1 fills the import inside
+`openGedcomAsProject` (and the export stub), and the untitled open flow
+then imports before opening the window.
 
 What *is* in place since: the app registers `.ged`/`.gdz` file
 associations (electron-builder `fileAssociations`, next to `.doru`) and
@@ -742,8 +748,10 @@ window.
      media FORM/MEDI, addresses, RESN…) — decide per construct:
      flatten into text fields, attach as notes, or drop, and record the
      decision here in the README.
-3. **Re-enable the UI** (remove the disabled states; the nls keys and
-   the `useProject` calls already exist).
+3. **The UI is already in place** — the export button (SidebarView), the
+   `⌘⇧E` shortcut and the nls key exist, and GEDCOM files already enter
+   through the Open dialog; nothing to re-enable once the handlers are
+   wired.
 4. **e2e:** extend `e2e/workflows.spec.ts` with an import → export →
    re-import round trip through the real IPC surface.
 

@@ -1,4 +1,5 @@
 import '@fontsource/berkshire-swash';
+import { X } from 'lucide-react';
 import type { RecentProject } from '@doru/core';
 import { nls } from '../nls';
 import './WelcomePage.css';
@@ -8,9 +9,16 @@ export interface WelcomePageProps {
   onCreateProject: () => void;
   onOpenProject: () => void;
   onOpenRecent: (path: string) => void;
+  onRemoveRecent: (path: string) => void;
 }
 
-export function WelcomePage({ recent, onCreateProject, onOpenProject, onOpenRecent }: WelcomePageProps) {
+export function WelcomePage({
+  recent,
+  onCreateProject,
+  onOpenProject,
+  onOpenRecent,
+  onRemoveRecent,
+}: WelcomePageProps) {
   return (
     <div className="welcome-page">
       <div className="welcome-hero">
@@ -39,6 +47,14 @@ export function WelcomePage({ recent, onCreateProject, onOpenProject, onOpenRece
                 >
                   <span className="welcome-recent-name">{projectName(project.path)}</span>
                   <span className="welcome-recent-path">{project.path}</span>
+                </button>
+                <button
+                  type="button"
+                  className="welcome-recent-remove"
+                  aria-label={nls.t('workbench.recent.remove')}
+                  onClick={() => onRemoveRecent(project.path)}
+                >
+                  <X size={14} aria-hidden="true" />
                 </button>
               </li>
             ))}

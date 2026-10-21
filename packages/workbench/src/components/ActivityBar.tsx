@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
 import {
   BookOpenText,
-  FileDown,
   Globe,
   ListTodo,
   Search,
@@ -19,7 +18,6 @@ export type ActivityViewId =
   | 'sources'
   | 'tasks'
   | 'search'
-  | 'import'
   | 'export';
 
 export interface ActivityBarProps {
@@ -102,11 +100,6 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       id: 'search',
       title: nls.t('workbench.activityBar.search'),
       icon: <Search size={ICON_SIZE} aria-hidden="true" />,
-    },
-    {
-      id: 'import',
-      title: nls.t('workbench.activityBar.import'),
-      icon: <FileDown size={ICON_SIZE} aria-hidden="true" />,
     },
     {
       id: 'export',
