@@ -17,7 +17,7 @@ features:
     details: "Die App telefoniert nie nach Hause: keine Konten, keine Cloud, keine Telemetrie. Die einzigen Netzwerkverbindungen gehen zu KI-Anbietern und MCP-Servern, die Sie selbst konfigurieren. API-Schlüssel bleiben im Schlüsselbund des Systems, und mit Ollama oder LM Studio läuft die KI komplett auf Ihrem Rechner."
   - icon: 🎨
     title: Text-Konfiguration
-    details: "Einstellungen in doru.json — KI-Anbieter, Themes und mehr. Klartext, Live-Neuladen, editierbar für Menschen und Agenten."
+    details: "Einstellungen in settings.json — KI-Anbieter, Themes und mehr. Klartext, Live-Neuladen, editierbar für Menschen und Agenten."
   - icon: 🌍
     title: Plattformübergreifend und 17 Sprachen
     details: "Läuft auf macOS, Windows und Linux. Die Oberfläche ist vollständig lokalisiert — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."

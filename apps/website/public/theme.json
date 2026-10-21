@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doru.family/theme.json",
+  "title": "Dóru color theme",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Reference to the theme schema; enables autocompletion and validation in editors that understand JSON Schema.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Display name. Falls back to the file name (the theme id).",
+      "type": "string"
+    },
+    "dark": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "CSS custom-property values: every key becomes --doru-<key> in the app stylesheet. Values may be any CSS value (hex, rgb(), gradients, …). See the theme guide for the standard variables."
+    },
+    "light": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "CSS custom-property values: every key becomes --doru-<key> in the app stylesheet. Values may be any CSS value (hex, rgb(), gradients, …). See the theme guide for the standard variables."
+    }
+  },
+  "additionalProperties": false,
+  "description": "A Dóru theme: one palette file with a dark and a light section. The operating system appearance decides which palette applies. The file name (without the .json extension) is the theme id."
+}

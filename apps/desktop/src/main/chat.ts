@@ -12,7 +12,7 @@ import {
   type ChatMessage,
   type ChatSendResult,
 } from '@doru/ai';
-import { loadAiConfig, type ResolvedAiConfig } from './ai-config';
+import { loadAiSettings, type ResolvedAiSettings } from './ai-settings';
 import { ensureRuntime } from './runtime';
 import { acpClients, pendingPermissions, projectWindows } from './state';
 
@@ -45,18 +45,18 @@ function doruMcpServerEntry(projectPath: string): AcpMcpServerEntry {
   return { name: 'doru', command: process.execPath, args };
 }
 
-async function ensureAcpClient(projectPath: string, config: ResolvedAiConfig): Promise<AcpAgentClient> {
+async function ensureAcpClient(projectPath: string, settings: ResolvedAiSettings): Promise<AcpAgentClient> {
   const existing = acpClients.get(projectPath);
   if (existing) {
     return existing;
   }
   const client = new AcpAgentClient({
-    command: config.acpCommand,
-    args: config.acpArgs,
+    command: settings.acpCommand,
+    args: settings.acpArgs,
     cwd: dirname(projectPath),
     mcpServers: [
       doruMcpServerEntry(projectPath),
-      ...config.mcpServers.map((server) => ({
+      ...settings.mcpServers.map((server) => ({
         name: server.name,
         command: server.command,
         args: server.args,
@@ -70,8 +70,8 @@ async function ensureAcpClient(projectPath: string, config: ResolvedAiConfig): P
 }
 
 export async function sendChat(options: { projectPath: string; messages: ChatMessage[] }): Promise<ChatSendResult> {
-  const config = loadAiConfig();
-  if (!config.configured) {
+  const settings = loadAiSettings();
+  if (!settings.configured) {
     return {
       steps: [],
       finalText: '',
@@ -91,9 +91,9 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
   };
   const conversation = [systemMessage, ...options.messages];
 
-  if (config.preset.dialect === 'acp') {
+  if (settings.preset.dialect === 'acp') {
     try {
-      const client = await ensureAcpClient(options.projectPath, config);
+      const client = await ensureAcpClient(options.projectPath, settings);
       const result = await client.prompt(lastUser?.content ?? '');
       return { steps: result.steps, finalText: result.finalText };
     } catch (error) {
@@ -107,13 +107,13 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
 
   const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
   const model =
-    config.preset.dialect === 'anthropic'
-      ? new AnthropicChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
-      : new OpenAIChatConnector({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model });
+    settings.preset.dialect === 'anthropic'
+      ? new AnthropicChatConnector({ baseUrl: settings.baseUrl, apiKey: settings.apiKey, model: settings.model })
+      : new OpenAIChatConnector({ baseUrl: settings.baseUrl, apiKey: settings.apiKey, model: settings.model });
 
   let host: McpHostManager | null = null;
-  if (config.mcpServers.length > 0) {
-    host = new McpHostManager(config.mcpServers);
+  if (settings.mcpServers.length > 0) {
+    host = new McpHostManager(settings.mcpServers);
     await host.connectAll();
   }
   const extraTools = host?.externalTools() ?? [];

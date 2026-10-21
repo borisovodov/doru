@@ -91,15 +91,15 @@ decisions about what we deliberately do **not** build, see
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
   agent's `session/request_permission` is routed into the same UI gate.
-- **Providers**: the in-app Settings (gear icon) offers presets — OpenAI,
-  Anthropic, Google Gemini, OpenRouter, Ollama, LM Studio, a custom
-  OpenAI-compatible endpoint, and ACP. Everything except Anthropic and ACP
-  speaks the OpenAI-compatible chat dialect (Gemini exposes one); Anthropic
-  has its own connector (`/v1/messages`, `x-api-key`, tool_use/tool_result).
-  Presets live in `packages/ai/src/providers.ts`; the config file stores only
-  the provider id, base URL override, and model.
+- **Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama,
+  LM Studio, a custom OpenAI-compatible endpoint, and ACP. Everything except
+  Anthropic and ACP speaks the OpenAI-compatible chat dialect (Gemini exposes
+  one); Anthropic has its own connector (`/v1/messages`, `x-api-key`,
+  tool_use/tool_result). Presets live in `packages/ai/src/providers.ts`;
+  defaults (provider, base URL, model) are resolved in `ai-settings.ts`, and
+  `settings.json` only records explicit overrides.
 - **API keys** are entered only in the Settings UI and stored via
-  `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `doru.json`; the
+  `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `settings.json`; the
   plaintext never sits in the file. `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars
   still override. Settings changes go through `jsonc-parser` edits so the
   file stays human-readable JSONC.
@@ -107,14 +107,37 @@ decisions about what we deliberately do **not** build, see
 ## Theming
 
 - Cascade: hardcoded baseline palette < selected built-in theme. One theme
-  file holds both the dark and the light palette; `doru.json` picks the
+  file holds both the dark and the light palette; `settings.json` picks the
   theme (`"theme": "doru"`). The operating system appearance is the only
   authority for light vs dark.
 - User themes live in `<userData>/themes/*.json` (the directory is created
   on startup) and override a bundled theme with the same id.
+- The Settings page offers a Theme dropdown and a "Open log file" button;
+  picking a theme goes through the `theme:set` IPC, which writes
+  `settings.json` — the same path as editing the file by hand.
 - Built-in themes are single JSON palette files in app resources (`themes/`),
   resolved to CSS custom properties at startup — the same mechanism could
   serve user-installed themes later.
+- JSON Schemas for `settings.json` and theme files are generated from the zod
+  schemas in `apps/desktop/src/main/schemas.ts` into `apps/website/public/`
+  (published at `doru.family/`) — run `scripts/generate-schemas.ts` after
+  edits; `check:schemas` (CI) fails when the committed files drift and
+  validates the settings template and bundled themes with the same zod schemas.
+  The main process also validates at load time: a `settings.json` that fails
+  to parse or fails the schema is replaced with the empty template (a warning
+  is logged), and an invalid theme file is skipped and hidden from the theme
+  list.
+
+## Logging
+
+- Logs go to the console (stderr — stdout carries the MCP protocol in server
+  mode) and to `<userData>/doru.log` via `electron-log` (appended across
+  runs, rotated at 5 MB). The default verbosity is `warn` — quiet on user
+  machines; `npm run dev` raises it to `debug` (`import.meta.env.DEV`).
+  `DORU_LOG_LEVEL` (trace|debug|info|warn|error) always wins; the main
+  process wires it up in `apps/desktop/src/main/log.ts`. Runtime diagnostics
+  (e.g. a `settings.json` or theme file that fails schema validation) end up
+  in the log.
 
 ## Design system
 

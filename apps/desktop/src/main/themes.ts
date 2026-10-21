@@ -1,7 +1,10 @@
 import { BrowserWindow, app, nativeTheme } from 'electron';
 import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { readConfig } from './config';
+import { z } from 'zod';
+import { readSettings } from './settings';
+import { log } from './log';
+import { ThemeFileSchema } from './schemas';
 
 export const TITLE_BAR_HEIGHT = 38;
 
@@ -14,7 +17,7 @@ interface ThemeDefinition {
 }
 
 export interface ThemeInfo {
-  /** The file name without the extension; also the id used in `doru.json`. */
+  /** The file name without the extension; also the id used in `settings.json`. */
   id: string;
   /** The display name (`name` field inside the file, or the id). */
   name: string;
@@ -38,10 +41,18 @@ export function ensureUserThemesDir(): void {
   mkdirSync(userThemesDir(), { recursive: true });
 }
 
-/** Reads one theme file, or null when the file is missing or malformed. */
+/** Reads one theme file, or null when the file is missing, malformed or does
+ *  not match the theme schema (an invalid user theme is skipped like a
+ *  broken one; a warning is logged). */
 function readTheme(dir: string, name: string): ThemeDefinition | null {
   try {
-    return JSON.parse(readFileSync(join(dir, `${name}.json`), 'utf8')) as ThemeDefinition;
+    const parsed = JSON.parse(readFileSync(join(dir, `${name}.json`), 'utf8')) as unknown;
+    const result = ThemeFileSchema.safeParse(parsed);
+    if (!result.success) {
+      log.warn(`theme "${name}" does not match the theme schema:\n${z.prettifyError(result.error)}`);
+      return null;
+    }
+    return result.data as ThemeDefinition;
   } catch {
     return null;
   }
@@ -59,12 +70,10 @@ function themesIn(dir: string): ThemeInfo[] {
       .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
       .map((entry) => entry.name.slice(0, -'.json'.length))
       .map((id) => {
-        try {
-          const definition = themeDefinition(id);
-          return { id, name: definition.name ?? id } as ThemeInfo;
-        } catch {
-          return null;
-        }
+        // Malformed files and files that fail schema validation are skipped —
+        // they must not appear in the theme list (and cannot be selected).
+        const definition = readTheme(dir, id);
+        return definition ? ({ id, name: definition.name ?? id } as ThemeInfo) : null;
       })
       .filter((theme): theme is ThemeInfo => theme !== null);
   } catch {
@@ -85,9 +94,9 @@ export function listThemes(): ThemeInfo[] {
   return [...themes.values()];
 }
 
-/** The active theme id from `doru.json` (`"theme": "doru"`). */
+/** The active theme id from `settings.json` (`"theme": "doru"`). */
 export function themeName(): string {
-  const theme = readConfig()['theme'];
+  const theme = readSettings()['theme'];
   return typeof theme === 'string' && theme !== '' ? theme : DEFAULT_THEME;
 }
 

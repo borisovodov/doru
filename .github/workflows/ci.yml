@@ -31,6 +31,7 @@ jobs:
         run: npm run test:coverage
       - run: npm run typecheck
       - run: npm run check:nls
+      - run: npm run check:schemas
       - run: npm run build
       - name: E2E smoke test (Linux)
         if: runner.os == 'Linux'

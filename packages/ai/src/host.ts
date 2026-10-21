@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { ToolDefinition } from './tools';
 
-export interface McpServerConfig {
+export interface McpServerSettings {
   name: string;
   command: string;
   args?: string[];
@@ -22,13 +22,13 @@ export class McpHostClient implements HostToolSource {
   private readonly transport: StdioClientTransport;
   private tools: ToolDefinition[] = [];
 
-  constructor(config: McpServerConfig) {
-    this.name = config.name;
+  constructor(settings: McpServerSettings) {
+    this.name = settings.name;
     this.client = new Client({ name: 'doru', version: '1.0.0' }, { capabilities: {} });
     this.transport = new StdioClientTransport({
-      command: config.command,
-      args: config.args ?? [],
-      env: { ...(config.env ?? {}) },
+      command: settings.command,
+      args: settings.args ?? [],
+      env: { ...(settings.env ?? {}) },
       stderr: 'pipe',
     });
   }
@@ -63,16 +63,16 @@ export class McpHostClient implements HostToolSource {
 export class McpHostManager {
   private readonly clients = new Map<string, McpHostClient>();
 
-  constructor(private readonly configs: McpServerConfig[]) {}
+  constructor(private readonly serverSettings: McpServerSettings[]) {}
 
   async connectAll(): Promise<void> {
-    for (const config of this.configs) {
+    for (const settings of this.serverSettings) {
       try {
-        const client = new McpHostClient(config);
+        const client = new McpHostClient(settings);
         await client.connect();
-        this.clients.set(config.name, client);
+        this.clients.set(settings.name, client);
       } catch (error) {
-        console.warn(`[doru] failed to connect MCP host "${config.name}":`, error instanceof Error ? error.message : error);
+        console.warn(`[doru] failed to connect MCP host "${settings.name}":`, error instanceof Error ? error.message : error);
       }
     }
   }

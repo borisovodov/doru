@@ -17,7 +17,7 @@ features:
     details: "Aplikace sama nikam nevolá: žádné účty, žádný cloud, žádná telemetrie. Jediná síťová spojení vedou k poskytovatelům AI a MCP serverům, které si sami nakonfigurujete. API klíče zůstávají v systémové klíčence a s Ollamou nebo LM Studiem běží AI kompletně na vašem počítači."
   - icon: 🎨
     title: Textová konfigurace
-    details: "Nastavení v doru.json: poskytovatelé AI, motivy a další. Prostý text, živé znovunačtení, upravitelné lidmi i agenty."
+    details: "Nastavení v settings.json: poskytovatelé AI, motivy a další. Prostý text, živé znovunačtení, upravitelné lidmi i agenty."
   - icon: 🌍
     title: Multiplatformní a 17 jazyků
     details: "Běží na macOS, Windows a Linuxu. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."

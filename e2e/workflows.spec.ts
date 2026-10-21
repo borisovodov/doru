@@ -121,6 +121,12 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(tabLabels).toHaveText([orderBefore[1]!, orderBefore[0]!, orderBefore[2]!]);
   await expect(page.locator('.tab-bar .tab').first()).toHaveClass(/active/);
 
+  // Middle-click closes a tab.
+  const labelsAfterReorder = page.locator('.tab-bar .tab .tab-label');
+  await page.locator('.tab-bar .tab').first().click({ button: 'middle' });
+  await expect(page.locator('.tab-bar .tab')).toHaveCount(2);
+  await expect(labelsAfterReorder).toHaveText([orderBefore[0]!, orderBefore[2]!]);
+
   // Primary sidebar resizing: switch to the people view and drag its sash.
   await page.locator('.activity-bar .activity-bar-item').nth(1).click();
   await expect(page.locator('.side-bar')).toBeVisible();
@@ -152,6 +158,16 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await page.locator('.title-bar-action').click();
   await expect(page.locator('.secondary-side-bar')).toBeHidden();
   await page.locator('.title-bar-action').click();
+  await expect(page.locator('.secondary-side-bar')).toBeVisible();
+
+  // The same toggle lives in the application menu (View section).
+  const toggleFromMenu = () =>
+    app.evaluate(({ Menu }) => {
+      Menu.getApplicationMenu()?.getMenuItemById('toggle-secondary-side-bar')?.click();
+    });
+  await toggleFromMenu();
+  await expect(page.locator('.secondary-side-bar')).toBeHidden();
+  await toggleFromMenu();
   await expect(page.locator('.secondary-side-bar')).toBeVisible();
 
   // Secondary sidebar resizing: drag its left sash inwards (it grows).

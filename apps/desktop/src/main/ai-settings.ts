@@ -1,20 +1,20 @@
 import { safeStorage } from 'electron';
-import { findProvider, type AiProviderPreset, type McpServerConfig } from '@doru/ai';
-import { readConfig, writeConfigEdits } from './config';
+import { findProvider, type AiProviderPreset, type McpServerSettings } from '@doru/ai';
+import { readSettings, writeSettingsEdits } from './settings';
 import { log } from './log';
 
-export type ResolvedAiConfig = {
+export type ResolvedAiSettings = {
   preset: AiProviderPreset;
   baseUrl: string;
   apiKey: string;
   model: string;
   acpCommand: string;
   acpArgs: string[];
-  mcpServers: McpServerConfig[];
+  mcpServers: McpServerSettings[];
   configured: boolean;
 };
 
-interface AiConfigJson {
+interface AiSettingsJson {
   provider?: string;
   baseUrl?: string;
   apiKey?: string;
@@ -24,9 +24,9 @@ interface AiConfigJson {
   args?: string[];
 }
 
-export function loadAiConfig(): ResolvedAiConfig {
-  const parsed = readConfig();
-  const ai = (parsed['ai'] ?? {}) as AiConfigJson;
+export function loadAiSettings(): ResolvedAiSettings {
+  const parsed = readSettings();
+  const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
 
   const presetId = ai.provider ?? 'openai';
   const preset = findProvider(presetId);
@@ -45,7 +45,7 @@ export function loadAiConfig(): ResolvedAiConfig {
   }
 
   if (ai.apiKey && !ai.apiKeyEncrypted && safeStorage.isEncryptionAvailable()) {
-    writeConfigEdits([
+    writeSettingsEdits([
       { path: ['ai', 'apiKeyEncrypted'], value: safeStorage.encryptString(ai.apiKey).toString('base64') },
       { path: ['ai', 'apiKey'] },
     ]);
@@ -53,10 +53,10 @@ export function loadAiConfig(): ResolvedAiConfig {
   }
 
   const baseUrl = ai.baseUrl ?? preset.defaultBaseUrl ?? '';
-  const model = process.env['DORU_AI_MODEL'] ?? ai.model ?? '';
+  const model = process.env['DORU_AI_MODEL'] ?? ai.model ?? preset.defaultModels[0] ?? '';
   const acpCommand = ai.command ?? '';
   const acpArgs = ai.args ?? [];
-  const mcpServers = (parsed['mcp'] as { servers?: McpServerConfig[] } | undefined)?.servers ?? [];
+  const mcpServers = (parsed['mcp'] as { servers?: McpServerSettings[] } | undefined)?.servers ?? [];
 
   const configured =
     preset.dialect === 'acp'
@@ -66,7 +66,7 @@ export function loadAiConfig(): ResolvedAiConfig {
   return { preset, baseUrl, apiKey, model, acpCommand, acpArgs, mcpServers, configured };
 }
 
-export function aiSettingsPayload(config: ResolvedAiConfig): {
+export function aiSettingsPayload(settings: ResolvedAiSettings): {
   provider: string;
   baseUrl: string;
   model: string;
@@ -76,32 +76,32 @@ export function aiSettingsPayload(config: ResolvedAiConfig): {
   configured: boolean;
 } {
   return {
-    provider: config.preset.id,
-    baseUrl: config.baseUrl,
-    model: config.model,
-    hasKey: config.apiKey !== '',
-    acpCommand: config.acpCommand,
-    acpArgs: config.acpArgs,
-    configured: config.configured,
+    provider: settings.preset.id,
+    baseUrl: settings.baseUrl,
+    model: settings.model,
+    hasKey: settings.apiKey !== '',
+    acpCommand: settings.acpCommand,
+    acpArgs: settings.acpArgs,
+    configured: settings.configured,
   };
 }
 
-export function configWithOverrides(overrides: {
+export function settingsWithOverrides(overrides: {
   provider?: string;
   baseUrl?: string;
   apiKey?: string;
   model?: string;
-}): ResolvedAiConfig {
-  const config = loadAiConfig();
-  const preset = overrides.provider ? findProvider(overrides.provider) : config.preset;
-  const providerChanged = overrides.provider !== undefined && overrides.provider !== config.preset.id;
+}): ResolvedAiSettings {
+  const settings = loadAiSettings();
+  const preset = overrides.provider ? findProvider(overrides.provider) : settings.preset;
+  const providerChanged = overrides.provider !== undefined && overrides.provider !== settings.preset.id;
   return {
-    ...config,
+    ...settings,
     preset,
     baseUrl:
       overrides.baseUrl ??
-      (providerChanged ? (preset.defaultBaseUrl ?? '') : config.baseUrl),
-    apiKey: overrides.apiKey !== undefined ? overrides.apiKey : config.apiKey,
-    model: overrides.model ?? config.model,
+      (providerChanged ? (preset.defaultBaseUrl ?? '') : settings.baseUrl),
+    apiKey: overrides.apiKey !== undefined ? overrides.apiKey : settings.apiKey,
+    model: overrides.model ?? settings.model,
   };
 }

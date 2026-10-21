@@ -17,7 +17,7 @@ features:
     details: "The app never phones home: no accounts, no cloud, no telemetry. The only network calls are the AI providers and MCP servers you configure yourself — API keys stay in your OS keychain, and with Ollama or LM Studio even the AI runs entirely on your machine."
   - icon: 🎨
     title: Text config
-    details: "Settings live in doru.json — AI providers, themes, and more. Plain text, hot reloaded, editable by humans and agents alike."
+    details: "Settings live in settings.json — AI providers, themes, and more. Plain text, hot reloaded, editable by humans and agents alike."
   - icon: 🌍
     title: Cross-platform & 17 languages
     details: "Runs on macOS, Windows, and Linux. The interface is fully localized — from English and Russian to Japanese and Simplified Chinese."

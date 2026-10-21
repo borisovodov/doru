@@ -17,7 +17,7 @@ features:
     details: "应用绝不会自行联网：没有账户，没有云端，没有遥测。唯一的网络连接是您自己配置的 AI 提供方和 MCP 服务器。API 密钥保存在系统钥匙串中；使用 Ollama 或 LM Studio 时，AI 完全在您自己的电脑上运行。"
   - icon: 🎨
     title: 文本配置
-    details: "配置在 doru.json：AI 提供方、主题等。纯文本、热重载，人和智能体都能编辑。"
+    details: "配置在 settings.json：AI 提供方、主题等。纯文本、热重载，人和智能体都能编辑。"
   - icon: 🌍
     title: 跨平台与 17 种语言
     details: "支持 macOS、Windows 和 Linux。界面已完全本地化——从中英文到日文和简体中文。"

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://doru.family/theme.json",
   "name": "Solarized",
   "dark": {
     "bg-canvas": "#002b36",

@@ -13,7 +13,7 @@ export {
 } from './agent';
 export { TreeMcpBackend, type TreeEditOp } from './backend';
 export { DoruMcpServer } from './server';
-export { McpHostClient, McpHostManager, type HostToolSource, type McpServerConfig } from './host';
+export { McpHostClient, McpHostManager, type HostToolSource, type McpServerSettings } from './host';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry } from './acp';
 export { doruTools, type ToolDefinition } from './tools';
 export {

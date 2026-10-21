@@ -65,8 +65,6 @@ export function Workbench({
 
   useEffect(() => {
     const keybindings = new KeybindingService();
-    keybindings.register('meta+alt+b', 'workbench.toggleSecondarySideBar');
-    keybindings.register('ctrl+alt+b', 'workbench.toggleSecondarySideBar');
     keybindings.register('meta+w', 'workbench.closeActiveTab');
     keybindings.register('ctrl+w', 'workbench.closeActiveTab');
     for (const binding of externalKeybindings) {

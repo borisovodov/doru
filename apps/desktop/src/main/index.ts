@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
-import { watchConfig } from './config';
+import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
 import { registerProjectIpc } from './ipc-project';
 import { registerSettingsIpc } from './ipc-settings';
@@ -144,11 +144,11 @@ void app.whenReady().then(async () => {
       window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
     }
   });
-  watchConfig(() => {
+  watchSettings(() => {
     updateTitleBarOverlays();
     updateWindowBackgrounds();
     for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send('theme:config-changed', themeName());
+      window.webContents.send('theme:settings-changed', themeName());
     }
   });
 

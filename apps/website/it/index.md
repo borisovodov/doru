@@ -17,7 +17,7 @@ features:
     details: "L'app non fa mai chiamate di propria iniziativa: niente account, niente cloud, niente telemetria. Le uniche connessioni di rete vanno ai provider IA e ai server MCP che configuri tu stesso. Le chiavi API restano nel portachiavi di sistema e con Ollama o LM Studio l'IA gira interamente sulla tua macchina."
   - icon: 🎨
     title: Config in testo
-    details: "Impostazioni in doru.json: provider IA, temi e altro. Testo semplice, ricarica a caldo, modificabile da persone e agenti."
+    details: "Impostazioni in settings.json: provider IA, temi e altro. Testo semplice, ricarica a caldo, modificabile da persone e agenti."
   - icon: 🌍
     title: Multipiattaforma e 17 lingue
     details: "Funziona su macOS, Windows e Linux. L'interfaccia è completamente localizzata — dall'italiano e l'inglese al giapponese e al cinese semplificato."

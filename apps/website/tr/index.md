@@ -17,7 +17,7 @@ features:
     details: "Uygulama kendiliğinden hiçbir yere bağlanmaz: hesap yok, bulut yok, telemetri yok. Tek ağ bağlantıları, kendinizin yapılandırdığı YZ sağlayıcıları ve MCP sunucularıdır. API anahtarları sistem anahtarlığında kalır; Ollama veya LM Studio ile YZ tamamen kendi makinenizde çalışır."
   - icon: 🎨
     title: Metin yapılandırma
-    details: "Ayarlar doru.json'da: YZ sağlayıcıları, temalar ve daha fazlası. Düz metin, canlı yeniden yükleme, insanlar ve ajanlar tarafından düzenlenebilir."
+    details: "Ayarlar settings.json'da: YZ sağlayıcıları, temalar ve daha fazlası. Düz metin, canlı yeniden yükleme, insanlar ve ajanlar tarafından düzenlenebilir."
   - icon: 🌍
     title: Çok platformlu ve 17 dil
     details: "macOS, Windows ve Linux'ta çalışır. Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."

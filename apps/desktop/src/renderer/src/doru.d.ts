@@ -66,12 +66,17 @@ declare global {
       respondChatPermission(id: string, allow: boolean): void;
       getThemeState(): Promise<{
         systemDark: boolean;
-        config: string;
+        theme: string;
         themes: Array<{ id: string; name: string }>;
       }>;
+      setTheme(name: string): Promise<string>;
+      openThemesFolder(): Promise<void>;
+      getAbout(): Promise<{ version: string }>;
+      openLogs(): Promise<string>;
       getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
-      onThemeConfigChanged(callback: (name: string) => void): () => void;
+      onThemeSettingsChanged(callback: (name: string) => void): () => void;
+      onMenuToggleSecondarySideBar(callback: () => void): () => void;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
       personCounts(
         projectPath: string,

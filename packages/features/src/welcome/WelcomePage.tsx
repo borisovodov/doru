@@ -1,3 +1,4 @@
+import '@fontsource/berkshire-swash';
 import type { RecentProject } from '@doru/core';
 import { nls } from '../nls';
 import './WelcomePage.css';
@@ -13,8 +14,7 @@ export function WelcomePage({ recent, onCreateProject, onOpenProject, onOpenRece
   return (
     <div className="welcome-page">
       <div className="welcome-hero">
-        <h1>{nls.t('app.name')}</h1>
-        <p className="welcome-tagline">{nls.t('app.tagline')}</p>
+        <h1 className="welcome-name">{nls.t('app.name')}</h1>
         <div className="welcome-actions">
           <button className="welcome-primary" onClick={onCreateProject}>
             {nls.t('workbench.welcome.createProject')}

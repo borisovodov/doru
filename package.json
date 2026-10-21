@@ -12,6 +12,7 @@
     "build": "npm run build --workspace @doru/desktop",
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "check:nls": "node .github/scripts/check-nls.ts",
+    "check:schemas": "node .github/scripts/check-schemas.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
@@ -23,9 +24,11 @@
     "@playwright/test": "1.64.0",
     "@types/node": "26.6.5",
     "@vitest/coverage-v8": "5.0.4",
+    "jsonc-parser": "3.3.1",
     "typescript": "7.0.2",
     "vite": "7.3.7",
-    "vitest": "5.0.4"
+    "vitest": "5.0.4",
+    "zod": "4.6.7"
   },
   "allowScripts": {
     "electron-winstaller@5.4.0": true,

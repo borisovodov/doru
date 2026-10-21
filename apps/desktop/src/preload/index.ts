@@ -53,6 +53,10 @@ const api = {
   respondChatPermission: (id: string, allow: boolean): void =>
     ipcRenderer.send('chat:permission-response', { id, allow }),
   getThemeState: (): Promise<unknown> => ipcRenderer.invoke('theme:state'),
+  setTheme: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:set', name),
+  openThemesFolder: (): Promise<unknown> => ipcRenderer.invoke('themes:open-folder'),
+  getAbout: (): Promise<unknown> => ipcRenderer.invoke('app:about'),
+  openLogs: (): Promise<unknown> => ipcRenderer.invoke('logs:open'),
   getThemeCss: (name: string, mode: 'dark' | 'light'): Promise<unknown> =>
     ipcRenderer.invoke('theme:css', { name, mode }),
   onThemeSystemChanged: (callback: (info: { systemDark: boolean }) => void): (() => void) => {
@@ -60,10 +64,15 @@ const api = {
     ipcRenderer.on('theme:system-changed', listener);
     return () => ipcRenderer.removeListener('theme:system-changed', listener);
   },
-  onThemeConfigChanged: (callback: (name: string) => void): (() => void) => {
+  onThemeSettingsChanged: (callback: (name: string) => void): (() => void) => {
     const listener = (_event: unknown, name: string) => callback(name);
-    ipcRenderer.on('theme:config-changed', listener);
-    return () => ipcRenderer.removeListener('theme:config-changed', listener);
+    ipcRenderer.on('theme:settings-changed', listener);
+    return () => ipcRenderer.removeListener('theme:settings-changed', listener);
+  },
+  onMenuToggleSecondarySideBar: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('menu:toggle-secondary-side-bar', listener);
+    return () => ipcRenderer.removeListener('menu:toggle-secondary-side-bar', listener);
   },
   listNotes: (projectPath: string, personId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:notes', { projectPath, personId }),
