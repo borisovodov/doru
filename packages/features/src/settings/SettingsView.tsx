@@ -124,6 +124,17 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
       : [...new Set(settings.model !== '' ? [settings.model, ...fetchedModels] : fetchedModels)];
   const fetching = modelFetch.status === 'loading';
   const fetchLabel = fetching ? nls.t('settings.ai.modelFetching') : nls.t('settings.ai.modelRefresh');
+  const testRow = (
+    <div className="settings-inline">
+      <button onClick={props.onTest} disabled={test.status === 'testing'}>
+        {test.status === 'testing' ? nls.t('settings.ai.testing') : nls.t('settings.ai.test')}
+      </button>
+      {test.status === 'ok' ? <span className="settings-note">{nls.t('settings.ai.test.ok')}</span> : null}
+      {test.status === 'fail' ? (
+        <span className="settings-error">{nls.t('settings.ai.test.fail', test.message)}</span>
+      ) : null}
+    </div>
+  );
 
   return (
     <div className="settings-section">
@@ -156,117 +167,37 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
               placeholder="npx @some/agent"
             />
           </label>
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.acp.args')}</span>
-            <input
-              value={settings.acpArgs.join(' ')}
-              placeholder={nls.t('settings.ai.acp.argsHint')}
-              onChange={(event) => props.onSetAcpArgs(event.target.value.trim() === '' ? [] : event.target.value.trim().split(/\s+/))}
-            />
-          </label>
+          {settings.acpCommand !== '' ? (
+            <label className="settings-field">
+              <span>{nls.t('settings.ai.acp.args')}</span>
+              <input
+                value={settings.acpArgs.join(' ')}
+                placeholder={nls.t('settings.ai.acp.argsHint')}
+                onChange={(event) => props.onSetAcpArgs(event.target.value.trim() === '' ? [] : event.target.value.trim().split(/\s+/))}
+              />
+            </label>
+          ) : null}
         </>
       ) : (
         <>
-          {/* The endpoint comes before the model: the model list is fetched
-              from it, so it must be visible and editable first. */}
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.baseUrl')}</span>
-            <input
-              value={baseUrlDraft ?? settings.baseUrl}
-              onChange={(event) => setBaseUrlDraft(event.target.value)}
-              onBlur={() => {
-                if (baseUrlDraft !== null && baseUrlDraft !== settings.baseUrl) {
-                  props.onSetBaseUrl(baseUrlDraft);
-                }
-                setBaseUrlDraft(null);
-              }}
-            />
-          </label>
-
-          {hasCatalog || settings.model !== '' ? (
+          {/* The endpoint and the key come before the model: the model list
+              is fetched from them. Cloud presets keep their public default
+              endpoint hidden until the key is saved. */}
+          {(!hasCatalog || settings.hasKey) && (
             <label className="settings-field">
-              <span>{nls.t('settings.ai.model')}</span>
-              {hasCatalog ? (
-                <select
-                  value={settings.model}
-                  onChange={(event) => props.onSetModel(event.target.value)}
-                  aria-label={nls.t('settings.ai.model')}
-                >
-                  {modelOptions.map((id) => {
-                    const entry = provider?.models.find((candidate) => candidate.id === id);
-                    const label = entry ? `${entry.name} — ${modelBadge(entry)}` : id;
-                    return (
-                      <option key={id} value={id}>
-                        {label}
-                      </option>
-                    );
-                  })}
-                </select>
-              ) : modelFetch.status !== 'empty' ? (
-                // Local providers: a dropdown over the fetched list.
-                <select
-                  value={settings.model}
-                  onChange={(event) => props.onSetModel(event.target.value)}
-                  aria-label={nls.t('settings.ai.model')}
-                >
-                  {localModelOptions.map((id) => (
-                    <option key={id} value={id}>
-                      {id}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
+              <span>{nls.t('settings.ai.baseUrl')}</span>
+              <input
+                value={baseUrlDraft ?? settings.baseUrl}
+                onChange={(event) => setBaseUrlDraft(event.target.value)}
+                onBlur={() => {
+                  if (baseUrlDraft !== null && baseUrlDraft !== settings.baseUrl) {
+                    props.onSetBaseUrl(baseUrlDraft);
+                  }
+                  setBaseUrlDraft(null);
+                }}
+              />
             </label>
-          ) : null}
-          {!hasCatalog && settings.model === '' ? (
-            // Wizard step: no model chosen yet — the only task is to reach
-            // the provider and pick from its list.
-            <button
-              className="settings-action"
-              disabled={fetching}
-              onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
-            >
-              {fetchLabel}
-            </button>
-          ) : null}
-          {!hasCatalog && settings.model !== '' ? (
-            <button
-              className="settings-link"
-              disabled={fetching}
-              onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
-            >
-              {fetchLabel}
-            </button>
-          ) : null}
-          {!hasCatalog && modelFetch.status === 'error' ? (
-            <p className="settings-note">
-              {settings.model === ''
-                ? nls.t('settings.ai.modelFetchError')
-                : nls.t('settings.ai.modelStale')}
-            </p>
-          ) : null}
-          {!hasCatalog && modelFetch.status === 'empty' ? (
-            <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p>
-          ) : null}
-
-          {model?.reasoning || model?.reasoningOptions ? (
-            <label className="settings-field">
-              <span>{nls.t('settings.ai.reasoning')}</span>
-              <select
-                value={settings.reasoning}
-                onChange={(event) => props.onSetReasoning(event.target.value)}
-                aria-label={nls.t('settings.ai.reasoning')}
-              >
-                <option value="">{nls.t('settings.ai.reasoning.default')}</option>
-                {REASONING_LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {nls.t(REASONING_LABELS[level])}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
+          )}
           {provider?.requiresKey ? (
             <div className="settings-field">
               <span>{nls.t('settings.ai.apiKey')}</span>
@@ -293,16 +224,97 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
             </div>
           ) : null}
 
-          {(hasCatalog || settings.model !== '') && (
-            <div className="settings-inline">
-              <button onClick={props.onTest} disabled={test.status === 'testing'}>
-                {test.status === 'testing' ? nls.t('settings.ai.testing') : nls.t('settings.ai.test')}
-              </button>
-              {test.status === 'ok' ? <span className="settings-note">{nls.t('settings.ai.test.ok')}</span> : null}
-              {test.status === 'fail' ? (
-                <span className="settings-error">{nls.t('settings.ai.test.fail', test.message)}</span>
+          {hasCatalog ? (
+            <>
+              <label className="settings-field">
+                <span>{nls.t('settings.ai.model')}</span>
+                <select
+                  value={settings.model}
+                  onChange={(event) => props.onSetModel(event.target.value)}
+                  aria-label={nls.t('settings.ai.model')}
+                >
+                  {modelOptions.map((id) => {
+                    const entry = provider?.models.find((candidate) => candidate.id === id);
+                    const label = entry ? `${entry.name} — ${modelBadge(entry)}` : id;
+                    return (
+                      <option key={id} value={id}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              {settings.hasKey && (model?.reasoning || model?.reasoningOptions) ? (
+                <label className="settings-field">
+                  <span>{nls.t('settings.ai.reasoning')}</span>
+                  <select
+                    value={settings.reasoning}
+                    onChange={(event) => props.onSetReasoning(event.target.value)}
+                    aria-label={nls.t('settings.ai.reasoning')}
+                  >
+                    <option value="">{nls.t('settings.ai.reasoning.default')}</option>
+                    {REASONING_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {nls.t(REASONING_LABELS[level])}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               ) : null}
-            </div>
+              {settings.hasKey ? testRow : null}
+            </>
+          ) : (
+            <>
+              {settings.model === '' ? (
+                <>
+                  {/* Wizard step: no model chosen yet — the only task is to
+                      reach the provider and pick from its list. */}
+                  <button
+                    className="settings-action"
+                    disabled={fetching}
+                    onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
+                  >
+                    {fetchLabel}
+                  </button>
+                  {modelFetch.status === 'error' ? (
+                    <p className="settings-note">{nls.t('settings.ai.modelFetchError')}</p>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  {modelFetch.status !== 'empty' ? (
+                    <label className="settings-field">
+                      <span>{nls.t('settings.ai.model')}</span>
+                      <select
+                        value={settings.model}
+                        onChange={(event) => props.onSetModel(event.target.value)}
+                        aria-label={nls.t('settings.ai.model')}
+                      >
+                        {localModelOptions.map((id) => (
+                          <option key={id} value={id}>
+                            {id}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  <button
+                    className="settings-link"
+                    disabled={fetching}
+                    onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
+                  >
+                    {fetchLabel}
+                  </button>
+                  {modelFetch.status === 'error' ? (
+                    <p className="settings-note">{nls.t('settings.ai.modelStale')}</p>
+                  ) : null}
+                </>
+              )}
+              {modelFetch.status === 'empty' ? (
+                <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p>
+              ) : null}
+              {settings.model !== '' ? testRow : null}
+            </>
           )}
         </>
       )}

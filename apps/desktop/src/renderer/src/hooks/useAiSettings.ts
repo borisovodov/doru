@@ -14,7 +14,9 @@ export function useAiSettings() {
   }, []);
 
   const update = useCallback(async (patch: Parameters<typeof window.doru.setAiSettings>[0]) => {
-    setSettings(await window.doru.setAiSettings(patch));
+    const next = await window.doru.setAiSettings(patch);
+    setSettings(next);
+    return next;
   }, []);
 
   /**
@@ -63,7 +65,7 @@ export function useAiSettings() {
   const setProvider = useCallback(
     async (id: string) => {
       const provider = providers.find((entry) => entry.id === id);
-      await update({
+      const next = await update({
         provider: id,
         baseUrl: provider?.defaultBaseUrl ?? '',
         model: provider?.defaultModels[0] ?? '',
@@ -71,7 +73,10 @@ export function useAiSettings() {
       setFetchedModels([]);
       setTest({ status: 'idle' });
       setModelFetch({ status: 'idle' });
-      if (provider?.kind === 'local') {
+      // Auto-fetch local model lists, but not for key-requiring endpoints
+      // until the key exists — the fetch would only fail while the user is
+      // still filling the form.
+      if (provider?.kind === 'local' && !(provider.requiresKey && !next.hasKey)) {
         void fetchModels({ provider: id, baseUrl: provider.defaultBaseUrl });
       }
     },
@@ -84,7 +89,7 @@ export function useAiSettings() {
       return;
     }
     const provider = providers.find((entry) => entry.id === settings.provider);
-    if (provider?.kind === 'local') {
+    if (provider?.kind === 'local' && !(provider.requiresKey && !settings.hasKey)) {
       void fetchModels();
     }
   }, [settings, providers, fetchModels]);
