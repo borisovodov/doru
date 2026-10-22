@@ -55,6 +55,11 @@
   margin-top: 8px;
 }
 
+/* The fetch-models link right below the model text field. */
+.settings-field + .settings-link {
+  margin-top: 8px;
+}
+
 .settings-note {
   margin: 4px 0;
   font-size: 12px;
@@ -130,27 +135,6 @@
 
 .settings-inline button:not(:disabled):hover {
   border-color: var(--doru-accent);
-}
-
-.settings-subsection {
-  margin-top: 20px;
-}
-
-.settings-subsection h4 {
-  margin: 0 0 4px;
-  font-size: var(--doru-font-size);
-  color: var(--doru-fg);
-}
-
-.settings-mcp-server {
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
-.settings-mcp-server .settings-link {
-  margin-top: 8px;
 }
 
 .settings-error {

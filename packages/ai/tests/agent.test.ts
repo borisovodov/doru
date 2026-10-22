@@ -5,7 +5,6 @@ import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { runAgent, toModelMessages } from '../src/agent';
 import { TreeMcpBackend } from '../src/backend';
 import { doruToolSet } from '../src/tools';
-import { DEFAULT_PERMISSION_POLICY } from '../src/permissions';
 import type { ChatMessage } from '../src/types';
 import { cleanupAiFixture, makeAiFixture } from './helpers';
 
@@ -69,7 +68,7 @@ describe('runAgent', () => {
       const result = await runAgent({
         model,
         messages: [{ role: 'user', content: 'Find Ivan' }],
-        tools: doruToolSet(backend, async () => true, DEFAULT_PERMISSION_POLICY),
+        tools: doruToolSet(backend),
         events: {
           onTextDelta: (delta) => deltas.push(delta),
           onStep: (step) => eventSteps.push(step.type),
@@ -89,7 +88,7 @@ describe('runAgent', () => {
     }
   });
 
-  it('applies tree edits through ops when the gate allows', async () => {
+  it('applies tree edits through ops', async () => {
     const fixture = makeAiFixture();
     try {
       const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
@@ -105,39 +104,11 @@ describe('runAgent', () => {
       await runAgent({
         model,
         messages: [{ role: 'user', content: 'Add a person' }],
-        tools: doruToolSet(backend, async () => true, DEFAULT_PERMISSION_POLICY),
+        tools: doruToolSet(backend),
       });
 
       expect(fixture.repo.countPersons()).toBe(1);
       expect(fixture.queue.canUndo()).toBe(true);
-    } finally {
-      cleanupAiFixture(fixture);
-    }
-  });
-
-  it('denies tools when the permission gate rejects', async () => {
-    const fixture = makeAiFixture();
-    try {
-      fixture.repo.insertPerson(ivan);
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
-      const model = new MockLanguageModelV4({
-        doStream: [
-          toolCallStream('call-1', 'tree_edit', {
-            op: { kind: 'person.add', person: { id: '@I2@', names: [], sex: 'U' } },
-          }),
-          textStream('Ok, I will not touch the tree.'),
-        ],
-      });
-
-      const result = await runAgent({
-        model,
-        messages: [{ role: 'user', content: 'Add a person' }],
-        tools: doruToolSet(backend, async () => false, { default: 'ask', overrides: {} }),
-      });
-
-      expect(fixture.repo.countPersons()).toBe(1);
-      expect(result.steps.some((step) => step.type === 'toolError')).toBe(true);
-      expect(result.finalText).toBe('Ok, I will not touch the tree.');
     } finally {
       cleanupAiFixture(fixture);
     }
@@ -159,39 +130,6 @@ describe('runAgent', () => {
     expect(result.finalText).toBe('Ok.');
   });
 
-  it('denies tools through the policy without asking the gate', async () => {
-    const fixture = makeAiFixture();
-    try {
-      fixture.repo.insertPerson(ivan);
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
-      let asked = false;
-      const model = new MockLanguageModelV4({
-        doStream: [
-          toolCallStream('call-1', 'tree_query', { query: 'ivan' }),
-          textStream('Skipped.'),
-        ],
-      });
-
-      const result = await runAgent({
-        model,
-        messages: [{ role: 'user', content: 'Find Ivan' }],
-        tools: doruToolSet(
-          backend,
-          async () => {
-            asked = true;
-            return true;
-          },
-          { default: 'deny', overrides: {} },
-        ),
-      });
-
-      expect(asked).toBe(false);
-      expect(result.steps.some((step) => step.type === 'toolError')).toBe(true);
-    } finally {
-      cleanupAiFixture(fixture);
-    }
-  });
-
   it('handles tool calls without arguments', async () => {
     const model = new MockLanguageModelV4({
       doStream: [toolCallStream('call-1', 'tree_query', undefined), textStream('Listed.')],
@@ -203,7 +141,7 @@ describe('runAgent', () => {
       const result = await runAgent({
         model,
         messages: [{ role: 'user', content: 'List' }],
-        tools: doruToolSet(backend, async () => true, DEFAULT_PERMISSION_POLICY),
+        tools: doruToolSet(backend),
       });
 
       expect(result.finalText).toBe('Listed.');

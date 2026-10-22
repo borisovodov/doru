@@ -3,9 +3,9 @@ import { PanelRight } from 'lucide-react';
 import { CommandService, KeybindingService } from '@doru/platform';
 import { nls } from './nls';
 import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
+import { AgentChatPanel } from './components/AgentChatPanel';
 import { EditorArea } from './components/EditorArea';
 import { Sash } from './components/Sash';
-import { SecondarySideBar } from './components/SecondarySideBar';
 import { SideBar } from './components/SideBar';
 import type { TabInfo } from './components/TabBar';
 import './workbench.css';
@@ -18,7 +18,8 @@ export interface WorkbenchProps {
   /** Extra actions rendered in the title bar, before the built-in toggle. */
   titleActions?: ReactNode;
   sidebar?: ReactNode;
-  secondarySidebar?: ReactNode;
+  /** The right-hand panel content: the chat with the AI agent. */
+  agentChat?: ReactNode;
   editor?: ReactNode;
   tabs?: TabInfo[] | undefined;
   activeTabId?: string | null | undefined;
@@ -31,11 +32,11 @@ export interface WorkbenchProps {
 }
 
 const DEFAULT_SIDE_BAR_WIDTH = 260;
-const DEFAULT_SECONDARY_WIDTH = 320;
+const DEFAULT_AGENT_CHAT_WIDTH = 320;
 const MIN_SIDE_BAR_WIDTH = 160;
 const MAX_SIDE_BAR_WIDTH = 520;
-const MIN_SECONDARY_WIDTH = 220;
-const MAX_SECONDARY_WIDTH = 560;
+const MIN_AGENT_CHAT_WIDTH = 220;
+const MAX_AGENT_CHAT_WIDTH = 560;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
 
@@ -46,7 +47,7 @@ export function Workbench({
   titleActions,
   platform,
   sidebar,
-  secondarySidebar,
+  agentChat,
   editor,
   tabs,
   activeTabId,
@@ -57,11 +58,11 @@ export function Workbench({
   onSelectView,
   onOpenSettings,
 }: WorkbenchProps) {
-  const [secondarySideBarOpen, setSecondarySideBarOpen] = useState(true);
+  const [agentChatOpen, setAgentChatOpen] = useState(true);
   const [sideBarWidth, setSideBarWidth] = useState(DEFAULT_SIDE_BAR_WIDTH);
-  const [secondaryWidth, setSecondaryWidth] = useState(DEFAULT_SECONDARY_WIDTH);
+  const [agentChatWidth, setAgentChatWidth] = useState(DEFAULT_AGENT_CHAT_WIDTH);
   const sideBarStartRef = useRef(DEFAULT_SIDE_BAR_WIDTH);
-  const secondaryStartRef = useRef(DEFAULT_SECONDARY_WIDTH);
+  const agentChatStartRef = useRef(DEFAULT_AGENT_CHAT_WIDTH);
 
   useEffect(() => {
     const keybindings = new KeybindingService();
@@ -70,10 +71,10 @@ export function Workbench({
     for (const binding of externalKeybindings) {
       keybindings.register(binding.key, binding.command, binding.args);
     }
-    const removeToggleSecondarySideBar = commands.register({
-      id: 'workbench.toggleSecondarySideBar',
-      title: nls.t('workbench.toggleSecondarySideBar'),
-      handler: () => setSecondarySideBarOpen((open) => !open),
+    const removeToggleAgentChat = commands.register({
+      id: 'workbench.toggleAgentChat',
+      title: nls.t('workbench.toggleAgentChat'),
+      handler: () => setAgentChatOpen((open) => !open),
     });
     const removeCloseActiveTab = commands.register({
       id: 'workbench.closeActiveTab',
@@ -97,26 +98,26 @@ export function Workbench({
     };
     window.addEventListener('keydown', onKeydown);
     return () => {
-      removeToggleSecondarySideBar.dispose();
+      removeToggleAgentChat.dispose();
       removeCloseActiveTab.dispose();
       window.removeEventListener('keydown', onKeydown);
     };
   }, [commands, externalKeybindings, activeTabId, onCloseTab]);
 
   const layoutClasses = ['workbench'];
-  if (secondarySideBarOpen) {
-    layoutClasses.push('secondary-open');
+  if (agentChatOpen) {
+    layoutClasses.push('agent-chat-open');
   }
 
   const layoutStyle = {
     '--doru-sidebar-width': `${sideBarWidth}px`,
-    '--doru-secondary-column': `${secondaryWidth + 8}px`,
+    '--doru-agent-chat-column': `${agentChatWidth + 8}px`,
     // Sash positions: the sashes live in the 4px gutters BETWEEN the floating
     // cards, centered on the gap. The side cluster's right
     // border sits at 4 (gutter) + 48 (rail) + 2 (borders) + sideBarWidth, and
-    // the secondary card's left border sits 4px into its column.
+    // the agent chat card's left border sits 4px into its column.
     '--doru-side-sash-left': `${sideBarWidth + 52}px`,
-    '--doru-secondary-sash-right': `${secondaryWidth + 2}px`,
+    '--doru-agent-chat-sash-right': `${agentChatWidth + 2}px`,
   } as CSSProperties;
 
   const onSideSashStart = () => {
@@ -125,11 +126,13 @@ export function Workbench({
   const onSideSashResize = (delta: number) => {
     setSideBarWidth(clamp(sideBarStartRef.current + delta, MIN_SIDE_BAR_WIDTH, MAX_SIDE_BAR_WIDTH));
   };
-  const onSecondarySashStart = () => {
-    secondaryStartRef.current = secondaryWidth;
+  const onAgentChatSashStart = () => {
+    agentChatStartRef.current = agentChatWidth;
   };
-  const onSecondarySashResize = (delta: number) => {
-    setSecondaryWidth(clamp(secondaryStartRef.current - delta, MIN_SECONDARY_WIDTH, MAX_SECONDARY_WIDTH));
+  const onAgentChatSashResize = (delta: number) => {
+    setAgentChatWidth(
+      clamp(agentChatStartRef.current - delta, MIN_AGENT_CHAT_WIDTH, MAX_AGENT_CHAT_WIDTH),
+    );
   };
 
   return (
@@ -139,10 +142,10 @@ export function Workbench({
         <div className="title-bar-actions">
           {titleActions}
           <button
-            className={secondarySideBarOpen ? 'title-bar-action active' : 'title-bar-action'}
-            title={nls.t('workbench.toggleSecondarySideBar')}
-            aria-pressed={secondarySideBarOpen}
-            onClick={() => setSecondarySideBarOpen((open) => !open)}
+            className={agentChatOpen ? 'title-bar-action active' : 'title-bar-action'}
+            title={nls.t('workbench.toggleAgentChat')}
+            aria-pressed={agentChatOpen}
+            onClick={() => setAgentChatOpen((open) => !open)}
           >
             <PanelRight size={16} aria-hidden="true" />
           </button>
@@ -165,7 +168,7 @@ export function Workbench({
       >
         {editor}
       </EditorArea>
-      {secondarySideBarOpen && <SecondarySideBar>{secondarySidebar}</SecondarySideBar>}
+      {agentChatOpen && <AgentChatPanel>{agentChat}</AgentChatPanel>}
       {/* The sashes live in the gutters between the floating cards, so they
           are children of the workbench, not of the cards. */}
       {activeView !== 'tree' && (
@@ -175,11 +178,11 @@ export function Workbench({
           onResize={onSideSashResize}
         />
       )}
-      {secondarySideBarOpen && (
+      {agentChatOpen && (
         <Sash
-          className="secondary-sash"
-          onDragStart={onSecondarySashStart}
-          onResize={onSecondarySashResize}
+          className="agent-chat-sash"
+          onDragStart={onAgentChatSashStart}
+          onResize={onAgentChatSashResize}
         />
       )}
     </div>

@@ -28,7 +28,6 @@ export interface AiSettingsSectionProps {
   onClearApiKey: () => void;
   onSetAcpCommand: (command: string) => void;
   onSetAcpArgs: (args: string[]) => void;
-  onSetMcpServers: (servers: AiSettingsState['mcpServers']) => void;
   onTest: () => void;
   onFetchModels: () => void;
 }
@@ -274,88 +273,6 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
           </div>
         </>
       )}
-
-      <McpServersEditor servers={settings.mcpServers} onChange={props.onSetMcpServers} />
-    </div>
-  );
-}
-
-function McpServersEditor({
-  servers,
-  onChange,
-}: {
-  servers: AiSettingsState['mcpServers'];
-  onChange: (servers: AiSettingsState['mcpServers']) => void;
-}) {
-  const update = (index: number, patch: Partial<AiSettingsState['mcpServers'][number]>) => {
-    onChange(servers.map((server, i) => (i === index ? { ...server, ...patch } : server)));
-  };
-
-  return (
-    <div className="settings-subsection">
-      <h4>{nls.t('settings.ai.mcp.title')}</h4>
-      <p className="settings-note">{nls.t('settings.ai.mcp.description')}</p>
-      {servers.map((server, index) => (
-        <div key={index} className="settings-mcp-server">
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.mcp.name')}</span>
-            <input
-              value={server.name}
-              onChange={(event) => update(index, { name: event.target.value })}
-              // nls-ignore: tool-prefix example, not translatable
-              placeholder="web"
-            />
-          </label>
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.mcp.command')}</span>
-            <input
-              value={server.command}
-              onChange={(event) => update(index, { command: event.target.value })}
-              // nls-ignore: command example, not translatable
-              placeholder="npx"
-            />
-          </label>
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.mcp.args')}</span>
-            <input
-              value={(server.args ?? []).join(' ')}
-              onChange={(event) =>
-                update(index, {
-                  args: event.target.value.trim() === '' ? [] : event.target.value.trim().split(/\s+/),
-                })
-              }
-            />
-          </label>
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.mcp.env')}</span>
-            <textarea
-              rows={3}
-              value={Object.entries(server.env ?? {})
-                .map(([key, value]) => `${key}=${value}`)
-                .join('\n')}
-              onChange={(event) => {
-                const env: Record<string, string> = {};
-                for (const line of event.target.value.split('\n')) {
-                  const separator = line.indexOf('=');
-                  if (separator > 0) {
-                    env[line.slice(0, separator).trim()] = line.slice(separator + 1).trim();
-                  }
-                }
-                update(index, { ...(Object.keys(env).length > 0 ? { env } : {}) });
-              }}
-            />
-          </label>
-          <button className="settings-link" onClick={() => onChange(servers.filter((_, i) => i !== index))}>
-            {nls.t('settings.ai.mcp.remove')}
-          </button>
-        </div>
-      ))}
-      <button
-        className="settings-link"
-        onClick={() => onChange([...servers, { name: '', command: '', args: [] }])}
-      >
-        {nls.t('settings.ai.mcp.add')}
-      </button>
     </div>
   );
 }

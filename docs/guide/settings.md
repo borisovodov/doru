@@ -40,18 +40,6 @@ Full reference:
     // "args": []
   },
 
-  // External MCP servers whose tools the in-app agent may use.
-  "mcp": {
-    "servers": [
-      {
-        "name": "web",
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-        "env": { "BRAVE_API_KEY": "…" }
-      }
-    ]
-  },
-
   // Theme: one palette file with a dark and a light section. The OS
   // appearance decides which palette applies.
   "theme": "doru"

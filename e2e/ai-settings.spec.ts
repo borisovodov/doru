@@ -29,15 +29,16 @@ test('the AI settings section configures and tests a provider', async () => {
     await page.locator('.activity-bar .activity-bar-bottom').click();
     await expect(page.getByLabel('Provider')).toBeVisible();
 
-    // A catalog provider shows the shipped model list, reasoning control,
-    // and no fetch button.
-    await page.getByLabel('Provider').selectOption('openai');
-    const modelSelect = page.getByLabel('Model');
-    expect(await modelSelect.locator('option').count()).toBeGreaterThan(10);
-    await expect(page.getByLabel('Reasoning')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Fetch models from the provider' })).toHaveCount(0);
+    // Cloud presets are unlisted for now, so only the local and ACP
+    // providers show up in the dropdown.
+    await expect(page.getByLabel('Provider').locator('option')).toHaveText([
+      'Ollama (local)',
+      'LM Studio (local)',
+      'Custom (OpenAI-compatible)',
+      'ACP agent',
+    ]);
 
-    // A catalog-less provider switches the model field to a text input and
+    // A catalog-less provider shows the model field as a text input and
     // offers the fetch button. The ollama preset needs no API key, so the
     // flow is independent of the OS keychain.
     await page.getByLabel('Provider').selectOption('ollama');

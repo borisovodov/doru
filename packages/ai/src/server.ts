@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { z } from 'zod';
 import type { TreeMcpBackend } from './backend';
+import { doruTools } from './tools';
 
 function asText(value: unknown): { content: Array<{ type: 'text'; text: string }> } {
   return {
@@ -11,6 +11,12 @@ function asText(value: unknown): { content: Array<{ type: 'text'; text: string }
   };
 }
 
+/**
+ * The Dóru tree as an MCP server: the same toolset the in-app agent uses,
+ * served over stdio for ACP agents and external MCP clients. Tool definitions
+ * come from the shared `doruTools` list, so both surfaces can never drift
+ * apart.
+ */
 export class DoruMcpServer {
   readonly server: McpServer;
 
@@ -20,106 +26,18 @@ export class DoruMcpServer {
   ) {
     this.server = new McpServer({ name: 'doru', version });
 
-    this.server.registerTool(
-      'tree_query',
-      {
-        description:
-          'Search persons in the tree by name. Omit the query to list the first 20 persons — use this to list everyone when no specific name is known.',
-        inputSchema: {
-          query: z.string().optional().describe('Free-text search query, matched against names'),
-          limit: z.number().optional().describe('Maximum number of results (default 20)'),
+    for (const definition of doruTools) {
+      this.server.registerTool(
+        definition.name,
+        {
+          description: definition.description,
+          // The MCP SDK takes the zod raw shape directly.
+          inputSchema: definition.inputSchema,
         },
-      },
-      async (args) => asText(await backend.invoke('tree_query', args)),
-    );
-
-    this.server.registerTool(
-      'tree_get',
-      {
-        description: 'Read a person with the families they belong to.',
-        inputSchema: { personId: z.string().describe('Person id (e.g. @I1@)') },
-      },
-      async (args) => asText(await backend.invoke('tree_get', args)),
-    );
-
-    this.server.registerTool(
-      'tree_stats',
-      { description: 'Return person and family counts for the tree.' },
-      async () => asText(await backend.invoke('tree_stats', {})),
-    );
-
-    this.server.registerTool(
-      'tree_edit',
-      {
-        description:
-          'Apply an edit to the tree. Supports person.add and person.update.',
-        inputSchema: {
-          op: z
-            .discriminatedUnion('kind', [
-              z.object({
-                kind: z.literal('person.add'),
-                person: z.object({
-                  id: z.string(),
-                  names: z.array(
-                    z.object({
-                      given: z.string().optional(),
-                      surname: z.string().optional(),
-                      full: z.string().optional(),
-                    }),
-                  ),
-                  sex: z.enum(['M', 'F', 'U']),
-                }),
-              }),
-              z.object({
-                kind: z.literal('person.update'),
-                before: z.unknown(),
-                after: z.unknown(),
-              }),
-            ])
-            .describe('Edit operation'),
-        },
-      },
-      async (args) => asText(await backend.invoke('tree_edit', { op: args.op })),
-    );
-
-    this.server.registerTool(
-      'sources_add',
-      {
-        description: 'Add a source, optionally citing a person or family.',
-        inputSchema: {
-          title: z.string().describe('Source title'),
-          author: z.string().optional(),
-          targetType: z.string().optional().describe('"person" or "family"'),
-          targetId: z.string().optional().describe('Id of the cited record'),
-        },
-      },
-      async (args) => asText(await backend.invoke('sources_add', args)),
-    );
-
-    this.server.registerTool(
-      'notes_write',
-      {
-        description: 'Write a research note, optionally attached to a record.',
-        inputSchema: {
-          text: z.string().describe('Note text'),
-          targetType: z.string().optional(),
-          targetId: z.string().optional(),
-        },
-      },
-      async (args) => asText(await backend.invoke('notes_write', args)),
-    );
-
-    this.server.registerTool(
-      'charts_render',
-      {
-        description: 'Render chart data for a person (pedigree is supported).',
-        inputSchema: {
-          personId: z.string().describe('Root person id'),
-          kind: z.enum(['pedigree']).describe('Chart kind'),
-        },
-      },
-      async (args) => asText(await backend.invoke('charts_render', args)),
-    );
+        async (args) =>
+          asText(await backend.invoke(definition.name, (args ?? {}) as Record<string, unknown>)),
+      );
+    }
   }
 
   async connect(transport: Transport): Promise<void> {

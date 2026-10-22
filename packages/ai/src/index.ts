@@ -22,18 +22,10 @@ export {
   type AgentRunResult,
   type AgentStep,
   type ChatSendResult,
-  type PermissionGate,
   type ReasoningLevel,
   type RunAgentOptions,
 } from './agent';
 export { TreeMcpBackend, type TreeEditOp } from './backend';
 export { DoruMcpServer } from './server';
-export { connectMcpServers, type McpServerSettings, type McpToolSetHandle } from './mcp-tools';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry } from './acp';
 export { doruTools, doruToolSet, type ToolDefinition } from './tools';
-export {
-  DEFAULT_PERMISSION_POLICY,
-  toolPermission,
-  type PermissionPolicy,
-  type ToolPermission,
-} from './permissions';

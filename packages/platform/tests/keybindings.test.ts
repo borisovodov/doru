@@ -22,14 +22,14 @@ describe('KeybindingService', () => {
 
   test('matches alt-letter shortcuts regardless of the Option character', () => {
     const service = new KeybindingService();
-    service.register('meta+alt+b', 'workbench.toggleSecondarySideBar');
+    service.register('meta+alt+b', 'workbench.toggleAgentChat');
     // macOS US layout reports Option+B as '∫'.
     expect(
       service.onKeydown(event({ key: '∫', code: 'KeyB', metaKey: true, altKey: true })),
-    ).toEqual({ command: 'workbench.toggleSecondarySideBar', args: [] });
+    ).toEqual({ command: 'workbench.toggleAgentChat', args: [] });
     expect(
       service.onKeydown(event({ key: 'b', code: 'KeyB', metaKey: true, altKey: true })),
-    ).toEqual({ command: 'workbench.toggleSecondarySideBar', args: [] });
+    ).toEqual({ command: 'workbench.toggleAgentChat', args: [] });
   });
 
   test('matches shift combos', () => {

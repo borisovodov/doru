@@ -19,6 +19,5 @@ export { PlaceholderView, type PlaceholderViewProps } from './placeholder/Placeh
 export {
   ChatPanel,
   type ChatPanelProps,
-  type ChatPermissionRequest,
   type ChatTranscriptMessage,
 } from './chat/ChatPanel';

@@ -81,13 +81,6 @@ export function useAiSettings() {
     [update],
   );
 
-  const setMcpServers = useCallback(
-    (mcpServers: AiSettingsState['mcpServers']) => {
-      void update({ mcpServers });
-    },
-    [update],
-  );
-
   const runTest = useCallback(async () => {
     if (!settings) {
       return;
@@ -127,7 +120,6 @@ export function useAiSettings() {
     clearApiKey,
     setAcpCommand,
     setAcpArgs,
-    setMcpServers,
     runTest,
     fetchModels,
   };

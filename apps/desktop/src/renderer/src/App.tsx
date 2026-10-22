@@ -155,9 +155,9 @@ export function App() {
   ]);
 
   useEffect(() => {
-    return window.doru.onMenuToggleSecondarySideBar(() => {
+    return window.doru.onMenuToggleAgentChat(() => {
       // The command is registered by the Workbench on the same CommandService.
-      void commands.execute('workbench.toggleSecondarySideBar');
+      void commands.execute('workbench.toggleAgentChat');
     });
   }, [commands]);
 
@@ -254,7 +254,6 @@ export function App() {
                   onClearApiKey: ai.clearApiKey,
                   onSetAcpCommand: ai.setAcpCommand,
                   onSetAcpArgs: ai.setAcpArgs,
-                  onSetMcpServers: ai.setMcpServers,
                   onTest: () => void ai.runTest(),
                   onFetchModels: () => void ai.fetchModels(),
                 }
@@ -346,14 +345,13 @@ export function App() {
         activeView={activeView}
         onSelectView={handleSelectView}
         editor={editor}
-        secondarySidebar={
+        agentChat={
           <ChatPanel
             messages={chat.chatMessages}
             busy={chat.chatBusy}
-            permission={chat.permission}
             onSend={(text) => void chat.sendChatMessage(text)}
             onStop={chat.cancelChat}
-            onPermission={(allow) => chat.respondPermission(allow)}
+            onOpenLink={(url) => void window.doru.openExternal(url)}
           />
         }
         tabs={tabs.tabInfos}

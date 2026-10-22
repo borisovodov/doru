@@ -15,7 +15,6 @@ import type { AgentStep, ChatMessage, ChatSendResult } from '@doru/ai';
 import type {
   AiProviderInfo,
   AiSettingsState,
-  ChatPermissionRequest,
   MediaWithPath,
 } from '@doru/features';
 
@@ -58,8 +57,6 @@ declare global {
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
       cancelChat(projectPath: string): void;
-      onChatPermission(callback: (request: ChatPermissionRequest) => void): () => void;
-      respondChatPermission(id: string, allow: boolean): void;
       onChatEvent(
         callback: (event: { type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep }) => void,
       ): () => void;
@@ -75,7 +72,9 @@ declare global {
       getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
       onThemeSettingsChanged(callback: (name: string) => void): () => void;
-      onMenuToggleSecondarySideBar(callback: () => void): () => void;
+      onMenuToggleAgentChat(callback: () => void): () => void;
+      /** Opens a link from a chat reply in the system browser (http/https only). */
+      openExternal(url: string): Promise<boolean>;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
       personCounts(
         projectPath: string,
@@ -129,7 +128,6 @@ declare global {
         clearKey?: boolean;
         acpCommand?: string;
         acpArgs?: string[];
-        mcpServers?: AiSettingsState['mcpServers'];
       }): Promise<AiSettingsState>;
       testAiConnection(options?: {
         provider?: string;

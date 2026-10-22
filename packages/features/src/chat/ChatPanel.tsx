@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { Send, Square } from 'lucide-react';
 import type { AgentStep } from '@doru/ai';
 import { nls } from '../nls';
+import { ChatMarkdown } from './ChatMarkdown';
 import './ChatPanel.css';
 
 export interface ChatTranscriptMessage {
@@ -10,22 +12,23 @@ export interface ChatTranscriptMessage {
   error?: string | undefined;
 }
 
-export interface ChatPermissionRequest {
-  id: string;
-  tool: string;
-  arguments: Record<string, unknown>;
-}
-
 export interface ChatPanelProps {
   messages: ChatTranscriptMessage[];
   busy: boolean;
-  permission: ChatPermissionRequest | null;
   onSend: (text: string) => void;
-  onStop: () => void;
-  onPermission: (allow: boolean) => void;
+  /** Stops the run and returns the sent message text ('' when none) so the input can restore it. */
+  onStop: () => string;
+  /** Opens a link from a markdown reply; without it, link clicks do nothing. */
+  onOpenLink?: (url: string) => void;
 }
 
-export function ChatPanel({ messages, busy, permission, onSend, onStop, onPermission }: ChatPanelProps) {
+export function ChatPanel({
+  messages,
+  busy,
+  onSend,
+  onStop,
+  onOpenLink,
+}: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +37,7 @@ export function ChatPanel({ messages, busy, permission, onSend, onStop, onPermis
     if (element) {
       element.scrollTop = element.scrollHeight;
     }
-  }, [messages, busy, permission]);
+  }, [messages, busy]);
 
   const submit = () => {
     const text = draft.trim();
@@ -45,36 +48,49 @@ export function ChatPanel({ messages, busy, permission, onSend, onStop, onPermis
     onSend(text);
   };
 
+  const stop = () => {
+    const restored = onStop();
+    if (restored !== '') {
+      setDraft(restored);
+    }
+  };
+
   return (
     <div className="chat-panel">
       <div className="chat-messages" ref={scrollRef}>
-        {messages.map((message, index) => (
-          <div key={index} className={`chat-message ${message.role}`}>
-            {message.role === 'user' ? (
-              <div className="chat-bubble">{message.content}</div>
-            ) : (
-              <div className="chat-bubble">
-                <div className="chat-text">{message.content}</div>
-                {message.steps?.map((step, stepIndex) => (
-                  <ChatStep key={stepIndex} step={step} />
-                ))}
-                {message.error ? (
-                  <div className="chat-error">{nls.t('chat.error', message.error)}</div>
-                ) : null}
-              </div>
-            )}
-          </div>
-        ))}
-        {permission && (
-          <div className="chat-permission">
-            <p>{nls.t('chat.permission.ask', permission.tool)}</p>
-            <pre>{JSON.stringify(permission.arguments, null, 2)}</pre>
-            <div className="chat-permission-actions">
-              <button onClick={() => onPermission(true)}>{nls.t('chat.permission.allow')}</button>
-              <button onClick={() => onPermission(false)}>{nls.t('chat.permission.deny')}</button>
+        {messages.map((message, index) => {
+          const isLastUser = message.role === 'user' && busy && index === lastUserIndex(messages);
+          const isEmptyAssistant =
+            message.role === 'assistant' &&
+            message.content === '' &&
+            (message.steps?.length ?? 0) === 0 &&
+            !message.error;
+          return (
+            <div key={index} className={`chat-message ${message.role}`}>
+              {message.role === 'user' ? (
+                <>
+                  <div className="chat-bubble">{message.content}</div>
+                  {isLastUser ? <ThinkingDots /> : null}
+                </>
+              ) : isEmptyAssistant && busy ? null : (
+                <div className="chat-bubble">
+                  <div className="chat-text">
+                    <ChatMarkdown
+                      text={message.content}
+                      {...(onOpenLink ? { onOpenLink } : {})}
+                    />
+                  </div>
+                  {message.steps?.map((step, stepIndex) => (
+                    <ChatStep key={stepIndex} step={step} />
+                  ))}
+                  {message.error ? (
+                    <div className="chat-error">{nls.t('chat.error', message.error)}</div>
+                  ) : null}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })}
       </div>
       <div className="chat-input">
         <input
@@ -88,17 +104,43 @@ export function ChatPanel({ messages, busy, permission, onSend, onStop, onPermis
             }
           }}
         />
-        <button disabled={busy} onClick={submit}>
-          {nls.t('chat.send')}
+        <button
+          className="chat-action"
+          disabled={busy}
+          aria-label={nls.t('chat.send')}
+          onClick={submit}
+        >
+          <Send size={16} aria-hidden="true" />
         </button>
         {busy ? (
-          <button className="chat-stop" onClick={onStop}>
-            {nls.t('chat.stop')}
+          <button className="chat-action chat-stop" aria-label={nls.t('chat.stop')} onClick={stop}>
+            <Square size={14} fill="currentColor" aria-hidden="true" />
           </button>
         ) : null}
       </div>
     </div>
   );
+}
+
+/** Shimmering dots shown under the sent message while the agent works. */
+function ThinkingDots() {
+  return (
+    <div className="chat-thinking" role="status" aria-label={nls.t('chat.thinking')}>
+      <span />
+      <span />
+      <span />
+    </div>
+  );
+}
+
+/** Index of the last user message; -1 when there is none. */
+function lastUserIndex(messages: ChatTranscriptMessage[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === 'user') {
+      return index;
+    }
+  }
+  return -1;
 }
 
 function ChatStep({ step }: { step: AgentStep }) {

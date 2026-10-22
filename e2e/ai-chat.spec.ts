@@ -64,17 +64,12 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
     expect(fetched.models).toEqual(['mock-model']);
 
     // Open the chat panel and send a message.
-    await expect(page.locator('.secondary-side-bar')).toBeVisible();
+    await expect(page.locator('.agent-chat-panel')).toBeVisible();
     await page.locator('.chat-input input').fill('Find Ivan');
     await page.getByRole('button', { name: 'Send' }).click();
 
-    // The mock calls tree_query (auto-allowed), then tree_edit — the
-    // permission card appears; allow it.
-    const allowButton = page.getByRole('button', { name: 'Allow' });
-    await expect(allowButton).toBeVisible({ timeout: 15_000 });
-    await allowButton.click();
-
-    // The final reply streams into the assistant bubble.
+    // The mock calls tree_query, then tree_edit — tools run without a
+    // permission prompt, so the final reply streams straight in.
     await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.', {
       timeout: 15_000,
     });
@@ -95,7 +90,7 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
   }
 });
 
-test('the Stop button cancels a streaming reply and keeps the partial text', async () => {
+test('the Stop button cancels the run and returns the message to the input', async () => {
   const mock = startMockProvider();
   mock.setSlow(true);
   await new Promise<void>((resolve) => mock.server.listen(0, '127.0.0.1', resolve));
@@ -116,7 +111,7 @@ test('the Stop button cancels a streaming reply and keeps the partial text', asy
       { baseUrl: mock.url() },
     );
 
-    await expect(page.locator('.secondary-side-bar')).toBeVisible();
+    await expect(page.locator('.agent-chat-panel')).toBeVisible();
     await page.locator('.chat-input input').fill('Hello');
     await page.getByRole('button', { name: 'Send' }).click();
 
@@ -126,9 +121,11 @@ test('the Stop button cancels a streaming reply and keeps the partial text', asy
     });
     await page.getByRole('button', { name: 'Stop' }).click();
 
-    // The run ends, the partial text stays, and no error card appears.
-    await expect(page.locator('.chat-input input')).toBeEnabled({ timeout: 15_000 });
-    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Slow ');
+    // Stop reclaims the send: the message leaves the transcript, its text
+    // returns to the input for editing, and no error card appears.
+    await expect(page.locator('.chat-input input')).toHaveValue('Hello', { timeout: 15_000 });
+    await expect(page.locator('.chat-message.user')).toHaveCount(0);
+    await expect(page.locator('.chat-message.assistant')).toHaveCount(0);
     await expect(page.locator('.chat-error')).toHaveCount(0);
   } finally {
     await app.close();

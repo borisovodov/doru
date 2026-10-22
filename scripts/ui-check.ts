@@ -54,7 +54,7 @@ const report = await page.evaluate(() => {
     activityBar: rect('.activity-bar'),
     sideBar: rect('.side-bar'),
     editor: rect('.editor-area'),
-    secondary: rect('.secondary-side-bar'),
+    agentChat: rect('.agent-chat-panel'),
   };
 });
 
@@ -91,7 +91,7 @@ const withSidebar = await page.evaluate(() => {
     sideCluster: r('.side-cluster'),
     sideBar: r('.side-bar'),
     editor: r('.editor-area'),
-    secondary: r('.secondary-side-bar'),
+    agentChat: r('.agent-chat-panel'),
   };
 });
 console.log('with sidebar:', JSON.stringify(withSidebar, null, 2));

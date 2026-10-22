@@ -25,9 +25,8 @@ decisions about what we deliberately do **not** build, see
 
 - The app makes no network calls on its own: no accounts, no cloud backend,
   no telemetry, no analytics, no update checks. The only network activity is
-  what the user explicitly configures — an AI provider in Settings or external
-  MCP servers — and local providers (Ollama, LM Studio) keep even that on the
-  machine.
+  what the user explicitly configures — an AI provider in Settings — and
+  local providers (Ollama, LM Studio) keep even that on the machine.
 - AI provider keys are entered only in the Settings UI and stored encrypted
   via the OS keychain; the plaintext never sits in a file.
 - Tree data leaves the machine only when the user sends it: a chat message to
@@ -80,25 +79,21 @@ decisions about what we deliberately do **not** build, see
 
 ## AI and agents
 
-- **Permissions**: read-only tools (`tree_query`, `charts_render`) run freely,
-  mutating tools ask via an inline card (2-minute timeout denies), and tools
-  from external MCP servers always ask.
 - **MCP server mode** runs the same Electron binary over stdio
   (`doru --mcp-server <project>`); no separate build artifact.
-- **MCP host** tools are prefixed `server:tool` so external servers cannot
-  collide with built-ins; servers are spawned per chat turn and closed after.
 - **ACP** (Agent Client Protocol): Dóru passes its own MCP server — a
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
-  agent's `session/request_permission` is routed into the same UI gate.
+  agent's `session/request_permission` requests are auto-allowed for now.
 - **Runtime**: the agent loop is powered by the Vercel AI SDK (`streamText`
   with tools and step-count stop); text streams to the chat as deltas, tool
   activity lands in the transcript as steps, and a Stop button aborts the run
   through an `AbortSignal`. Anthropic uses `@ai-sdk/anthropic`;
   everything else speaks the OpenAI-compatible chat dialect through
-  `@ai-sdk/openai-compatible`; external MCP servers run via `@ai-sdk/mcp`.
+  `@ai-sdk/openai-compatible`.
   The wire dialect is derived from the provider registry, not stored in
-  settings. Permission policy and the UI gate wrap every tool's `execute`.
+  settings. The toolset comes from a single shared definition list
+  (`doruTools`), which feeds both the in-app AI SDK tools and the MCP server.
 - **Model catalog**: `@opencode-ai/models` (the official models.dev package)
   ships the offline snapshot — provider lists, pricing, limits, capabilities
   and reasoning options — curated in `packages/ai/src/catalog.ts`. Providers
@@ -112,8 +107,8 @@ decisions about what we deliberately do **not** build, see
   on user action against a provider the user configured.
 - **Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek,
   Ollama, LM Studio, a custom OpenAI-compatible endpoint, and ACP.
-  `settings.json` records the provider id, model, base URL, reasoning level,
-  API key (encrypted) and MCP servers; defaults resolve in `ai-settings.ts`.
+  `settings.json` records the provider id, model, base URL, reasoning level
+  and API key (encrypted); defaults resolve in `ai-settings.ts`.
 - **API keys** are entered only in the Settings UI and stored via
   `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `settings.json`; the
   plaintext never sits in the file. `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars
@@ -129,7 +124,7 @@ decisions about what we deliberately do **not** build, see
 - User themes live in `<userData>/themes/*.json` (the directory is created
   on startup) and override a bundled theme with the same id.
 - The Settings page hosts the AI provider section (provider and model pickers,
-  base URL, API key, reasoning level, MCP servers, connection test) plus the
+  base URL, API key, reasoning level, connection test) plus the
   Theme dropdown and an "Open log file" button; picking a theme goes through
   the `theme:set` IPC, which writes `settings.json` — the same path as editing
   the file by hand.
@@ -174,19 +169,19 @@ decisions about what we deliberately do **not** build, see
   shell — a plain surface in the chrome color. The activity bar and the
   primary side bar share one rounded card (1px border, 8px radius) with a
   hairline seam between them; the editor is its own rounded card in the
-  canvas color (`overflow: hidden` clips the tab strip); the secondary side
-  bar floats on the right as a standalone card. Cards sit 4px from the
+  canvas color (`overflow: hidden` clips the tab strip); the agent chat
+  panel floats on the right as a standalone card. Cards sit 4px from the
   window edges and from each other (`--doru-panel-gutter`), so only their
   borders separate them from the shell — they are framed, not cut. The title
   bar is not a card: it spans the full width under the window controls.
 - **Resizable side bars**: the primary side bar (260px default) and the
-  secondary side bar (320px default) are resized with pointer-based sashes
+  agent chat panel (320px default) are resized with pointer-based sashes
   (`.sash`, 8px hit strip in the gutter between the cards, a 2px accent line
   with a short hover delay and an always-visible faint three-dot grip that
   yields to the line, `col-resize` cursor via a body class); widths are
   clamped (160–520 / 220–560), live in `Workbench` state and feed the grid
-  via `--doru-sidebar-width` / `--doru-secondary-column` custom properties.
-  The title bar carries a toggle button for the secondary side bar (also
+  via `--doru-sidebar-width` / `--doru-agent-chat-column` custom properties.
+  The title bar carries a toggle button for the agent chat panel (also
   `Meta/Ctrl+Alt+B`).
 - **Component conventions**: controls are 28px tall with 6px radius and a
   0.5px ring; hover/pressed are alpha overlays, not hardcoded colors; focus is
