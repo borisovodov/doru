@@ -155,6 +155,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   (`npm run build` first, then `npm run e2e`).
 - Localization guard: `npm run check:nls` (runs in CI). Fails on incomplete
   locale bundles or hardcoded user-facing UI strings.
+- Schema guard: `npm run check:schemas` (runs in CI). Changing the settings or
+  theme zod schema in `apps/desktop/src/main/schemas.ts` requires regenerating
+  the published schemas first: `node scripts/generate-schemas.ts` — the
+  generated files in `apps/website/public/` are committed.
 - Typecheck all workspaces: `npm run typecheck` (this also covers the root
   `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
   dev helper scripts).
