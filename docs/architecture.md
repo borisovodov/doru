@@ -25,8 +25,10 @@ decisions about what we deliberately do **not** build, see
 
 - The app makes no network calls on its own: no accounts, no cloud backend,
   no telemetry, no analytics, no update checks. The only network activity is
-  what the user explicitly configures — an AI provider in Settings — and
-  local providers (Ollama, LM Studio) keep even that on the machine.
+  what the user explicitly configures — an AI provider in Settings. Model
+  lists are fetched only from endpoints the user configured: automatically
+  for local ones (localhost — Ollama, LM Studio), by an explicit button press
+  for anything else.
 - AI provider keys are entered only in the Settings UI and stored encrypted
   via the OS keychain; the plaintext never sits in a file.
 - Tree data leaves the machine only when the user sends it: a chat message to
@@ -99,14 +101,17 @@ decisions about what we deliberately do **not** build, see
   and reasoning options — curated in `packages/ai/src/catalog.ts`. Providers
   resolve in `packages/ai/src/providers.ts`; a refresh at release time is a
   version bump of that package.
-- **Model lists**: catalog providers (OpenAI, Anthropic, Gemini, OpenRouter,
-  DeepSeek) pick models from the shipped catalog. Providers without a catalog
-  (Ollama, LM Studio, custom OpenAI-compatible endpoints) have the model id
-  typed as text, with an explicit "Fetch models" button that asks the
-  provider's own endpoint — the only runtime model fetch in the app, and only
-  on user action against a provider the user configured.
-- **Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek,
-  Ollama, LM Studio, a custom OpenAI-compatible endpoint, and ACP.
+- **Model lists**: catalog providers pick models from the shipped offline
+  catalog. Catalog-less providers (Ollama, LM Studio, custom
+  OpenAI-compatible endpoints) walk a Settings wizard: a fetch button pulls
+  the list from the provider's own endpoint and the pick becomes a dropdown;
+  local providers also auto-fetch when Settings opens or the provider
+  changes. The fetched list is the truth — a saved model missing from it is
+  replaced by the first entry and persisted; a failed or empty fetch never
+  touches the saved settings.
+- **Providers**: Ollama, LM Studio, a custom OpenAI-compatible endpoint, and
+  ACP. Cloud presets (OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek) are
+  temporarily unlisted while they are rebuilt one by one.
   `settings.json` records the provider id, model, base URL, reasoning level
   and API key (encrypted); defaults resolve in `ai-settings.ts`.
 - **API keys** are entered only in the Settings UI and stored via
@@ -123,8 +128,10 @@ decisions about what we deliberately do **not** build, see
   authority for light vs dark.
 - User themes live in `<userData>/themes/*.json` (the directory is created
   on startup) and override a bundled theme with the same id.
-- The Settings page hosts the AI provider section (provider and model pickers,
-  base URL, API key, reasoning level, connection test) plus the
+- The Settings page hosts the AI provider section as a step-by-step wizard per
+  provider kind — endpoint and key first, then the model (fetched for local
+  providers, picked from the offline catalog for cloud presets, typed as a
+  command for ACP), then reasoning and the connection test — plus the
   Theme dropdown and an "Open log file" button; picking a theme goes through
   the `theme:set` IPC, which writes `settings.json` — the same path as editing
   the file by hand.

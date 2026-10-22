@@ -31,8 +31,8 @@ Full reference:
 
   // AI provider — set from Settings (gear icon) or here directly.
   "ai": {
-    // openai | anthropic | gemini | openrouter | ollama | lmstudio | custom | acp
-    "provider": "openai",
+    // ollama | lmstudio | custom | acp (cloud presets return one by one)
+    "provider": "ollama",
     "baseUrl": "",   // optional override of the provider's default endpoint
     "model": "",
     // For "acp" only: the agent binary to spawn.

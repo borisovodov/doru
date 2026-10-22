@@ -3,17 +3,19 @@
 ## The in-app chat
 
 The chat panel sits at the bottom of the window. Type a question and the agent
-can read and edit the tree using built-in tools: `tree_query`, `tree_edit`,
-`sources_add`, `notes_write`, `charts_render` (the last one renders a person's
-ancestor chart as an SVG image).
+can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
+`tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render` (the
+last one renders a person's ancestor chart as an SVG image).
 
 The provider is configured in the `ai` section of `settings.json` (see
 [Settings](settings.md)):
 
-- **Provider presets**: OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama
-  (local), LM Studio (local), a custom OpenAI-compatible endpoint, or an ACP
-  agent. Set the id in `"provider"`; each preset provides a default base URL
-  and model, so `"baseUrl"` and `"model"` are optional overrides.
+- **Provider presets**: Ollama (local), LM Studio (local), a custom
+  OpenAI-compatible endpoint, or an ACP agent. Cloud presets return one by
+  one as their integrations are rebuilt. Set the id in `"provider"`; each
+  preset provides a default base URL, while the model is picked in the
+  Settings wizard — fetched from the provider for local endpoints, selected
+  from the shipped catalog for cloud presets.
 - **API keys** are stored encrypted in the OS keychain (macOS Keychain /
   Windows Credential Manager / libsecret). The key never appears in the
   settings file in plaintext.
