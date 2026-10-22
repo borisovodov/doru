@@ -21,6 +21,7 @@
     "remark-gfm": "4.0.1"
   },
   "devDependencies": {
-    "@types/react": "19.3.0"
+    "@types/react": "19.3.0",
+    "react-dom": "19.3.0"
   }
 }
