@@ -12,7 +12,6 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "1.8.0",
     "@ai-sdk/anthropic": "4.0.85",
-    "@ai-sdk/mcp": "2.0.81",
     "@ai-sdk/openai-compatible": "3.0.75",
     "@anthropic-ai/sdk": "1.0.0",
     "@doru/core": "*",

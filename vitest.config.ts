@@ -10,6 +10,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**', 'apps/*/src/**'],
+      // View components (.tsx) are exercised by the Playwright e2e suite;
+      // the unit-coverage gate tracks the logic underneath them.
+      exclude: ['**/*.tsx'],
       reporter: ['text', 'json-summary'],
       thresholds: {
         lines: 65,

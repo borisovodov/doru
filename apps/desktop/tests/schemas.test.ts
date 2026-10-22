@@ -13,33 +13,43 @@ describe('settings schema', () => {
     const settings = {
       $schema: SETTINGS_SCHEMA_URL,
       ai: {
-        provider: 'openai',
-        baseUrl: 'https://api.openai.com/v1',
+        provider: 'ollama',
+        baseUrl: 'http://localhost:11434/v1',
         apiKey: '',
-        model: 'gpt-4o-mini',
+        model: 'llama3.3',
       },
     };
     expect(SettingsFileSchema.safeParse(settings).success).toBe(true);
   });
 
-  test('accepts an ACP provider, MCP servers and a theme', () => {
+  test('accepts an ACP provider and a theme', () => {
     const settings = {
       ai: { provider: 'acp', command: 'my-agent', args: ['--verbose'] },
-      mcp: {
-        servers: [{ name: 'web', command: 'npx', args: ['-y', 'pkg'], env: { KEY: 'value' } }],
-      },
       theme: 'catppuccin',
     };
     expect(SettingsFileSchema.safeParse(settings).success).toBe(true);
   });
 
-  test('rejects unknown provider ids, unknown keys and wrong types', () => {
-    expect(SettingsFileSchema.safeParse({ ai: { provider: 'openai-compatible' } }).success).toBe(false);
-    expect(SettingsFileSchema.safeParse({ ai: { provider: 'openai' }, extra: true }).success).toBe(false);
-    expect(SettingsFileSchema.safeParse({ ai: { provider: 'openai', baseUrl: 42 } }).success).toBe(false);
-    expect(
-      SettingsFileSchema.safeParse({ mcp: { servers: [{ name: 'web' }] } }).success,
-    ).toBe(false);
+  test('keeps any provider id as plain text and rejects unknown keys and wrong types', () => {
+    // Provider ids are free-form strings: the runtime falls back to the
+    // default preset for ids it does not know, so no id can invalidate a
+    // settings file.
+    expect(SettingsFileSchema.safeParse({ ai: { provider: 'openai-compatible' } }).success).toBe(true);
+    expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama' } }).success).toBe(true);
+    expect(SettingsFileSchema.safeParse({ ai: { provider: 42 } }).success).toBe(false);
+    expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama' }, extra: true }).success).toBe(false);
+    expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama', baseUrl: 42 } }).success).toBe(false);
+    // The raw MCP host section is gone: unknown top-level sections still fail.
+    expect(SettingsFileSchema.safeParse({ mcp: { servers: [] } }).success).toBe(false);
+  });
+
+  test('keeps the reasoning level as plain text and rejects wrong types', () => {
+    // Reasoning levels are free-form strings: levels the running version
+    // does not know fall back to the provider default at runtime, so no
+    // value can invalidate a settings file.
+    expect(SettingsFileSchema.safeParse({ ai: { reasoning: 'high' } }).success).toBe(true);
+    expect(SettingsFileSchema.safeParse({ ai: { reasoning: 'some-future-level' } }).success).toBe(true);
+    expect(SettingsFileSchema.safeParse({ ai: { reasoning: 42 } }).success).toBe(false);
   });
 
   test('the published schema is 2020-12, strict and addressed at the URL', () => {
@@ -49,7 +59,7 @@ describe('settings schema', () => {
     expect(schema['additionalProperties']).toBe(false);
     const ai = (schema['properties'] as Record<string, Record<string, unknown>>)['ai'];
     const provider = ai?.['properties'] as Record<string, Record<string, unknown>> | undefined;
-    expect(provider?.['provider']?.['default']).toBe('openai');
+    expect(provider?.['provider']?.['default']).toBe('ollama');
   });
 });
 

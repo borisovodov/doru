@@ -1,10 +1,16 @@
 import { safeStorage } from 'electron';
-import { findProvider, type AiProvider, type McpServerSettings } from '@doru/ai';
+import { findProvider, type AiProvider } from '@doru/ai';
 import { readSettings, writeSettingsEdits } from './settings';
 import { log } from './log';
 
 /** AI SDK reasoning levels Dóru exposes (provider default is the absence of a level). */
-export type ReasoningLevel = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+const REASONING_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
+
+/** Unknown reasoning levels degrade to the provider default instead of breaking the agent. */
+function normalizeReasoning(value: string): ReasoningLevel | '' {
+  return (REASONING_LEVELS as readonly string[]).includes(value) ? (value as ReasoningLevel) : '';
+}
 
 export interface ResolvedAiSettings {
   provider: AiProvider;
@@ -15,7 +21,6 @@ export interface ResolvedAiSettings {
   reasoning: ReasoningLevel | '';
   acpCommand: string;
   acpArgs: string[];
-  mcpServers: McpServerSettings[];
   configured: boolean;
 }
 
@@ -34,7 +39,7 @@ export function loadAiSettings(): ResolvedAiSettings {
   const parsed = readSettings();
   const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
 
-  const provider = findProvider(ai.provider ?? 'openai');
+  const provider = findProvider(ai.provider ?? 'ollama');
 
   let apiKey = ai.apiKey ?? '';
   if (!apiKey && ai.apiKeyEncrypted) {
@@ -59,17 +64,16 @@ export function loadAiSettings(): ResolvedAiSettings {
 
   const baseUrl = ai.baseUrl ?? provider.defaultBaseUrl ?? '';
   const model = process.env['DORU_AI_MODEL'] ?? ai.model ?? provider.defaultModels[0] ?? '';
-  const reasoning = (ai.reasoning ?? '') as ReasoningLevel | '';
+  const reasoning = normalizeReasoning(ai.reasoning ?? '');
   const acpCommand = ai.command ?? '';
   const acpArgs = ai.args ?? [];
-  const mcpServers = (parsed['mcp'] as { servers?: McpServerSettings[] } | undefined)?.servers ?? [];
 
   const configured =
     provider.kind === 'acp'
       ? acpCommand !== ''
       : model !== '' && baseUrl !== '' && (!provider.requiresKey || apiKey !== '');
 
-  return { provider, baseUrl, apiKey, model, reasoning, acpCommand, acpArgs, mcpServers, configured };
+  return { provider, baseUrl, apiKey, model, reasoning, acpCommand, acpArgs, configured };
 }
 
 export function aiSettingsPayload(settings: ResolvedAiSettings): {
@@ -80,7 +84,6 @@ export function aiSettingsPayload(settings: ResolvedAiSettings): {
   hasKey: boolean;
   acpCommand: string;
   acpArgs: string[];
-  mcpServers: McpServerSettings[];
   configured: boolean;
 } {
   return {
@@ -91,7 +94,6 @@ export function aiSettingsPayload(settings: ResolvedAiSettings): {
     hasKey: settings.apiKey !== '',
     acpCommand: settings.acpCommand,
     acpArgs: settings.acpArgs,
-    mcpServers: settings.mcpServers,
     configured: settings.configured,
   };
 }

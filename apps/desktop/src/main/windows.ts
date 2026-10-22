@@ -73,10 +73,10 @@ export function installMenu(): void {
       { role: 'togglefullscreen' },
       { type: 'separator' },
       {
-        id: 'toggle-secondary-side-bar',
-        label: nls.t('workbench.toggleSecondarySideBar'),
+        id: 'toggle-agent-chat',
+        label: nls.t('workbench.toggleAgentChat'),
         accelerator: 'CmdOrCtrl+Alt+B',
-        click: () => sendToFocused('menu:toggle-secondary-side-bar'),
+        click: () => sendToFocused('menu:toggle-agent-chat'),
       },
     ],
   });
@@ -144,6 +144,19 @@ export function createWindow(projectKey: string | null): BrowserWindow {
   });
   const webContentsId = window.webContents.id;
   windowProject.set(webContentsId, projectKey);
+
+  // Chat renders model-generated markdown: links must never open windows or
+  // navigate the app away (they go through shell:openExternal instead).
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  window.webContents.on('will-navigate', (event, url) => {
+    if (process.env['ELECTRON_RENDERER_URL'] && url.startsWith(process.env['ELECTRON_RENDERER_URL'])) {
+      return;
+    }
+    if (!process.env['ELECTRON_RENDERER_URL'] && url.startsWith('file:')) {
+      return;
+    }
+    event.preventDefault();
+  });
 
   window.on('page-title-updated', (event) => {
     event.preventDefault();

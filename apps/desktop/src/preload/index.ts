@@ -43,13 +43,6 @@ const api = {
     ipcRenderer.invoke('project:export', { projectPath }),
   sendChat: (projectPath: string, messages: unknown[]): Promise<unknown> =>
     ipcRenderer.invoke('chat:send', { projectPath, messages }),
-  onChatPermission: (callback: (request: unknown) => void): (() => void) => {
-    const listener = (_event: unknown, request: unknown) => callback(request);
-    ipcRenderer.on('chat:permission', listener);
-    return () => ipcRenderer.removeListener('chat:permission', listener);
-  },
-  respondChatPermission: (id: string, allow: boolean): void =>
-    ipcRenderer.send('chat:permission-response', { id, allow }),
   cancelChat: (projectPath: string): void => ipcRenderer.send('chat:cancel', projectPath),
   onChatEvent: (callback: (event: unknown) => void): (() => void) => {
     const listener = (_event: unknown, chatEvent: unknown) => callback(chatEvent);
@@ -73,11 +66,12 @@ const api = {
     ipcRenderer.on('theme:settings-changed', listener);
     return () => ipcRenderer.removeListener('theme:settings-changed', listener);
   },
-  onMenuToggleSecondarySideBar: (callback: () => void): (() => void) => {
+  onMenuToggleAgentChat: (callback: () => void): (() => void) => {
     const listener = () => callback();
-    ipcRenderer.on('menu:toggle-secondary-side-bar', listener);
-    return () => ipcRenderer.removeListener('menu:toggle-secondary-side-bar', listener);
+    ipcRenderer.on('menu:toggle-agent-chat', listener);
+    return () => ipcRenderer.removeListener('menu:toggle-agent-chat', listener);
   },
+  openExternal: (url: string): Promise<unknown> => ipcRenderer.invoke('shell:openExternal', url),
   listNotes: (projectPath: string, personId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:notes', { projectPath, personId }),
   personCounts: (projectPath: string, personIds: string[]): Promise<unknown> =>

@@ -16,11 +16,6 @@ export interface ProjectRuntime {
   queue: OpQueue;
 }
 
-export interface PendingPermission {
-  resolve: (allowed: boolean) => void;
-  timer: NodeJS.Timeout;
-}
-
 /** Keys of projects created from a GEDCOM import that are not saved yet. */
 export const UNTITLED_PREFIX = 'untitled:';
 
@@ -40,9 +35,6 @@ export interface UntitledProjectInfo {
 
 /** Open project runtimes, keyed by project file path or `untitled:` id. */
 export const runtimes = new Map<string, ProjectRuntime>();
-
-/** In-flight chat permission requests, keyed by request id. */
-export const pendingPermissions = new Map<string, PendingPermission>();
 
 /** One window per open project, keyed by project file path or `untitled:` id. */
 export const projectWindows = new Map<string, BrowserWindow>();

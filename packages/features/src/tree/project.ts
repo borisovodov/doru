@@ -1,5 +1,5 @@
 import type { PedigreeLayout, PersonRecord } from '@doru/core';
-import type { Edge, Node } from '@xyflow/react';
+import { Position, type Edge, type Node } from '@xyflow/react';
 import type { CanvasEdgeData } from './PedigreeEdges';
 import type { PersonCardData } from './PersonCard';
 import type { GenerationBandData } from './GenerationBand';
@@ -41,6 +41,11 @@ export function projectLayout(
         y: generation * ROW_HEIGHT - ROW_HEIGHT / 2,
       },
       style: { width: layout.width + 480, height: ROW_HEIGHT },
+      // Dimensions are known upfront, so React Flow never has to measure
+      // the node (an unmeasured node stays `visibility: hidden` until its
+      // ResizeObserver fires — which after a wholesale node replacement can
+      // never happen, leaving an empty canvas).
+      measured: { width: layout.width + 480, height: ROW_HEIGHT },
       data: { generation },
       selectable: false,
       draggable: false,
@@ -50,6 +55,16 @@ export function projectLayout(
     id: card.key,
     type: 'personCard',
     position: { x: card.x - CARD_WIDTH / 2, y: card.y - CARD_HEIGHT / 2 },
+    measured: { width: CARD_WIDTH, height: CARD_HEIGHT },
+    // Edge paths come from the precomputed layout geometry, but React Flow
+    // drops an edge (`EdgeWrapper` renders null) until both endpoint nodes
+    // are "initialized" — i.e. have measured dimensions AND handle bounds.
+    // Explicit handles make that state deterministic without any DOM
+    // measurement, so edges can never be skipped after a re-projection.
+    handles: [
+      { type: 'source', position: Position.Bottom, id: 'bottom', x: CARD_WIDTH / 2, y: CARD_HEIGHT },
+      { type: 'target', position: Position.Top, id: 'top', x: CARD_WIDTH / 2, y: 0 },
+    ],
     data: {
       person: personById.get(card.personId) ?? fallbackPerson(card.personId),
       line: card.line,

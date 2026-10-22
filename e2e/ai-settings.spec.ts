@@ -29,30 +29,31 @@ test('the AI settings section configures and tests a provider', async () => {
     await page.locator('.activity-bar .activity-bar-bottom').click();
     await expect(page.getByLabel('Provider')).toBeVisible();
 
-    // A catalog provider shows the shipped model list, reasoning control,
-    // and no fetch button.
-    await page.getByLabel('Provider').selectOption('openai');
-    const modelSelect = page.getByLabel('Model');
-    expect(await modelSelect.locator('option').count()).toBeGreaterThan(10);
-    await expect(page.getByLabel('Reasoning')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Fetch models from the provider' })).toHaveCount(0);
+    // Cloud presets are unlisted for now, so only the local and ACP
+    // providers show up in the dropdown.
+    await expect(page.getByLabel('Provider').locator('option')).toHaveText([
+      'Ollama (local)',
+      'LM Studio (local)',
+      'Custom (OpenAI-compatible)',
+      'ACP agent',
+    ]);
 
-    // A catalog-less provider switches the model field to a text input and
-    // offers the fetch button. The ollama preset needs no API key, so the
-    // flow is independent of the OS keychain.
+    // A catalog-less provider walks a wizard: no model field and no test
+    // button until the model list is fetched. The ollama preset needs no API
+    // key, so the flow is independent of the OS keychain. Selecting the
+    // provider auto-fetches against its default endpoint; whether that
+    // succeeds (a real Ollama running) or fails, the next steps converge.
     await page.getByLabel('Provider').selectOption('ollama');
     await expect(page.getByRole('button', { name: 'Fetch models from the provider' })).toBeVisible();
     await expect(page.getByLabel('Reasoning')).toHaveCount(0);
     await expect(page.getByText('API key')).toHaveCount(0);
 
-    const modelInput = page.getByLabel('Model');
-    await modelInput.fill('mock-model');
+    // Point at the mock endpoint and fetch the list: the model dropdown
+    // appears with the mock model already selected.
     await page.getByLabel('Base URL').fill(mock.url());
     await page.getByLabel('Base URL').blur();
-
-    // Fetching the provider's own list fills the model suggestions.
     await page.getByRole('button', { name: 'Fetch models from the provider' }).click();
-    await expect(page.locator('#doru-model-suggestions option')).toHaveCount(1);
+    await expect(page.getByLabel('Model')).toHaveValue('mock-model');
 
     // The connection test runs against the configured endpoint.
     await page.getByRole('button', { name: 'Test connection' }).click();

@@ -50,7 +50,7 @@ describe('AcpAgentClient', () => {
       cwd: '/tmp',
       mcpServers: [],
     });
-    await client.startWithAgent(mockAgentApp(), async () => true);
+    await client.startWithAgent(mockAgentApp());
 
     const deltas: string[] = [];
     const eventSteps: string[] = [];
@@ -70,7 +70,7 @@ describe('AcpAgentClient', () => {
 
   it('throws an AbortError when the signal is already aborted', async () => {
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
-    await client.startWithAgent(mockAgentApp(), async () => true);
+    await client.startWithAgent(mockAgentApp());
 
     const controller = new AbortController();
     controller.abort();
@@ -81,7 +81,7 @@ describe('AcpAgentClient', () => {
 
   it('runs a full turn while the signal stays live', async () => {
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
-    await client.startWithAgent(mockAgentApp(), async () => true);
+    await client.startWithAgent(mockAgentApp());
 
     const controller = new AbortController();
     const result = await client.prompt('Inspect my tree', {}, controller.signal);
@@ -117,7 +117,7 @@ describe('AcpAgentClient', () => {
       });
 
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
-    await client.startWithAgent(agentApp, async () => true);
+    await client.startWithAgent(agentApp);
 
     const result = await client.prompt('Break something');
     expect(result.steps.map((step) => step.type)).toEqual(['toolCall', 'toolError']);
@@ -135,7 +135,7 @@ describe('AcpAgentClient', () => {
       cwd: '/tmp',
       mcpServers: [],
     });
-    await client.start(async () => true);
+    await client.start();
 
     const deltas: string[] = [];
     const controller = new AbortController();
@@ -151,15 +151,12 @@ describe('AcpAgentClient', () => {
     await client.close();
   });
 
-  it('answers permission requests through the gate', async () => {
-    let asked: string | null = null;
-    const gate = async (tool: string) => {
-      asked = tool;
-      return false;
-    };
+  it('auto-allows permission requests from the agent', async () => {
+    let asked = false;
     const agentApp = agent({ name: 'mock-agent' })
       .onRequest('session/new', async () => ({ sessionId: 'sess-1' }))
       .onRequest('session/prompt', async ({ params, client }) => {
+        asked = true;
         await client.request('session/request_permission', {
           sessionId: params.sessionId,
           toolCall: { toolCallId: 'tc-1', title: 'Edit', name: 'tree_edit', rawInput: {} },
@@ -172,8 +169,11 @@ describe('AcpAgentClient', () => {
       });
 
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
-    await client.startWithAgent(agentApp, gate);
-    await client.prompt('Edit something');
-    expect(asked).toBe('tree_edit');
+    await client.startWithAgent(agentApp);
+    const result = await client.prompt('Edit something');
+    expect(asked).toBe(true);
+    // The permission request was answered (auto-allowed), so the turn
+    // completes instead of hanging or rejecting.
+    expect(result.finalText).toBe('');
   });
 });

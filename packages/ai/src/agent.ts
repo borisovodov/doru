@@ -31,8 +31,6 @@ export interface ChatSendResult extends AgentRunResult {
   cancelled?: boolean;
 }
 
-export type PermissionGate = (tool: string, args: Record<string, unknown>) => Promise<boolean>;
-
 /** Live events emitted while the agent runs. */
 export interface AgentEvents {
   /** A text delta to append to the assistant bubble. */

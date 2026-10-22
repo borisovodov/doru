@@ -84,14 +84,14 @@ body {
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'titlebar titlebar titlebar'
-    'sidecluster editor secondary';
+    'sidecluster editor agent-chat';
   height: 100%;
   /* The shell backdrop visible through the gutters between the floating panels. */
   background: var(--doru-bg-chrome);
 }
 
-.workbench.secondary-open {
-  grid-template-columns: auto 1fr var(--doru-secondary-column, 328px);
+.workbench.agent-chat-open {
+  grid-template-columns: auto 1fr var(--doru-agent-chat-column, 328px);
 }
 
 .title-bar {
@@ -156,7 +156,7 @@ body {
 /*
  * Floating panels: the activity bar and the primary
  * side bar share one rounded card with a hairline seam between them, the
- * editor is its own rounded card, and the secondary side bar floats on the
+ * editor is its own rounded card, and the agent chat panel floats on the
  * right. The shell background shows through the 4px gutters; the cards
  * themselves keep the chrome color, so only their borders set them apart.
  */
@@ -244,8 +244,8 @@ body {
   padding: 12px;
 }
 
-.secondary-side-bar {
-  grid-area: secondary;
+.agent-chat-panel {
+  grid-area: agent-chat;
   position: relative;
   margin: 0 var(--doru-panel-gutter) var(--doru-panel-gutter) var(--doru-panel-gutter);
   border: 1px solid var(--doru-border);
@@ -336,8 +336,8 @@ body {
   left: var(--doru-side-sash-left, 312px);
 }
 
-.secondary-sash {
-  right: var(--doru-secondary-sash-right, 322px);
+.agent-chat-sash {
+  right: var(--doru-agent-chat-sash-right, 322px);
 }
 
 body.sash-resizing,
@@ -360,9 +360,9 @@ body.sash-resizing * {
   overflow: hidden;
 }
 
-/* Without the secondary side bar the editor is the rightmost card and owns
+/* Without the agent chat panel the editor is the rightmost card and owns
    the window-edge gutter itself. */
-.workbench:not(.secondary-open) .editor-area {
+.workbench:not(.agent-chat-open) .editor-area {
   margin-right: var(--doru-panel-gutter);
 }
 

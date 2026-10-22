@@ -8,7 +8,7 @@ import {
   type SessionBuilder,
   type Stream,
 } from '@agentclientprotocol/sdk';
-import type { AgentEvents, AgentStep, PermissionGate } from './agent';
+import type { AgentEvents, AgentStep } from './agent';
 
 export interface AcpMcpServerEntry {
   name: string;
@@ -40,22 +40,19 @@ export class AcpAgentClient {
   private readonly app: ClientApp;
   private child: ChildProcess | null = null;
   private session: ActiveAcpSession | null = null;
-  private gate: PermissionGate = async () => false;
 
   constructor(private readonly options: AcpConnectorOptions) {
     this.app = client({ name: 'doru' });
   }
 
-  async start(onPermission: PermissionGate): Promise<void> {
-    this.gate = onPermission;
+  async start(): Promise<void> {
     this.registerPermissionHandler();
     const stream = this.spawnStream();
     const connection = this.app.connect(stream);
     await this.attach(connection.agent);
   }
 
-  async startWithAgent(agentApp: AgentApp, onPermission: PermissionGate): Promise<void> {
-    this.gate = onPermission;
+  async startWithAgent(agentApp: AgentApp): Promise<void> {
     this.registerPermissionHandler();
     const connection = this.app.connect(agentApp);
     await this.attach(connection.agent);
@@ -75,21 +72,16 @@ export class AcpAgentClient {
       .start();
   }
 
+  /**
+   * The agent asks before running a tool. Permissions are removed for now,
+   * so every request auto-allows; the handler stays because the ACP protocol
+   * requires the client to answer `session/request_permission`.
+   */
   private registerPermissionHandler(): void {
     this.app.onRequest('session/request_permission', async ({ params }) => {
-      const name = params.toolCall.name ?? params.toolCall.title ?? params.toolCall.toolCallId;
-      const rawInput = params.toolCall.rawInput;
-      const allowed = await this.gate(name, (rawInput as Record<string, unknown> | undefined) ?? {});
-      if (allowed) {
-        const option = params.options.find((entry) => entry.kind.startsWith('allow'));
-        if (option) {
-          return { outcome: { outcome: 'selected', optionId: option.optionId } };
-        }
-      } else {
-        const reject = params.options.find((entry) => entry.kind.startsWith('reject'));
-        if (reject) {
-          return { outcome: { outcome: 'selected', optionId: reject.optionId } };
-        }
+      const option = params.options.find((entry) => entry.kind.startsWith('allow'));
+      if (option) {
+        return { outcome: { outcome: 'selected', optionId: option.optionId } };
       }
       return { outcome: { outcome: 'cancelled' } };
     });

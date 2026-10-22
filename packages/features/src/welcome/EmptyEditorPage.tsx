@@ -61,7 +61,7 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
         keys: isMac ? [modKey, shiftKey, '['] : ['Ctrl', shiftKey, 'Tab'],
       },
       { label: nls.t('workbench.settings'), keys: [modKey, ','] },
-      { label: nls.t('workbench.toggleSecondarySideBar'), keys: [modKey, altKey, 'B'] },
+      { label: nls.t('workbench.toggleAgentChat'), keys: [modKey, altKey, 'B'] },
     ],
     [isMac, modKey, shiftKey, altKey],
   );

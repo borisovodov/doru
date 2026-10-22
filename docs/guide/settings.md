@@ -31,25 +31,13 @@ Full reference:
 
   // AI provider — set from Settings (gear icon) or here directly.
   "ai": {
-    // openai | anthropic | gemini | openrouter | ollama | lmstudio | custom | acp
-    "provider": "openai",
+    // ollama | lmstudio | custom | acp (cloud presets return one by one)
+    "provider": "ollama",
     "baseUrl": "",   // optional override of the provider's default endpoint
     "model": "",
     // For "acp" only: the agent binary to spawn.
     // "command": "my-agent",
     // "args": []
-  },
-
-  // External MCP servers whose tools the in-app agent may use.
-  "mcp": {
-    "servers": [
-      {
-        "name": "web",
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-        "env": { "BRAVE_API_KEY": "…" }
-      }
-    ]
   },
 
   // Theme: one palette file with a dark and a light section. The OS

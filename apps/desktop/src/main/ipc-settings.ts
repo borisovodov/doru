@@ -1,7 +1,7 @@
 import { app, ipcMain, safeStorage, shell } from 'electron';
 import { generateText } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
-import { AI_PROVIDERS, buildLanguageModel, wireDialect, type McpServerSettings } from '@doru/ai';
+import { AI_PROVIDERS, buildLanguageModel, wireDialect } from '@doru/ai';
 import {
   aiSettingsPayload,
   settingsWithOverrides,
@@ -18,6 +18,20 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('logs:open', () => {
     ensureLogFile();
     return shell.openPath(logFilePath());
+  });
+
+  // Links from markdown replies: only web URLs ever reach the browser.
+  ipcMain.handle('shell:openExternal', (_event, url: string) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return false;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+    return shell.openExternal(url);
   });
 
   ipcMain.handle('settings:ai:providers', () =>
@@ -56,7 +70,6 @@ export function registerSettingsIpc(): void {
       clearKey?: boolean;
       acpCommand?: string;
       acpArgs?: string[];
-      mcpServers?: McpServerSettings[];
     }) => {
       const edits: Array<{ path: (string | number)[]; value?: unknown }> = [];
       if (options.provider !== undefined) {
@@ -80,9 +93,6 @@ export function registerSettingsIpc(): void {
       }
       if (options.acpArgs !== undefined) {
         edits.push({ path: ['ai', 'args'], value: options.acpArgs });
-      }
-      if (options.mcpServers !== undefined) {
-        edits.push({ path: ['mcp', 'servers'], value: options.mcpServers });
       }
       if (options.clearKey) {
         edits.push({ path: ['ai', 'apiKeyEncrypted'] });

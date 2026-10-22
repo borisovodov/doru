@@ -153,44 +153,44 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   const sideAfter = (await page.locator('.side-bar').boundingBox())!.width;
   expect(sideAfter).toBeGreaterThan(sideBefore + 40);
 
-  // The title-bar button toggles the secondary side bar.
-  await expect(page.locator('.secondary-side-bar')).toBeVisible();
+  // The title-bar button toggles the agent chat panel.
+  await expect(page.locator('.agent-chat-panel')).toBeVisible();
   await page.locator('.title-bar-action').click();
-  await expect(page.locator('.secondary-side-bar')).toBeHidden();
+  await expect(page.locator('.agent-chat-panel')).toBeHidden();
   await page.locator('.title-bar-action').click();
-  await expect(page.locator('.secondary-side-bar')).toBeVisible();
+  await expect(page.locator('.agent-chat-panel')).toBeVisible();
 
   // The same toggle lives in the application menu (View section).
   const toggleFromMenu = () =>
     app.evaluate(({ Menu }) => {
-      Menu.getApplicationMenu()?.getMenuItemById('toggle-secondary-side-bar')?.click();
+      Menu.getApplicationMenu()?.getMenuItemById('toggle-agent-chat')?.click();
     });
   await toggleFromMenu();
-  await expect(page.locator('.secondary-side-bar')).toBeHidden();
+  await expect(page.locator('.agent-chat-panel')).toBeHidden();
   await toggleFromMenu();
-  await expect(page.locator('.secondary-side-bar')).toBeVisible();
+  await expect(page.locator('.agent-chat-panel')).toBeVisible();
 
-  // Secondary sidebar resizing: drag its left sash inwards (it grows).
-  const secondarySash = page.locator('.secondary-sash');
-  const secondarySashBox = await secondarySash.boundingBox();
-  const secondaryBefore = (await page.locator('.secondary-side-bar').boundingBox())!.width;
+  // Agent chat panel resizing: drag its left sash inwards (it grows).
+  const agentChatSash = page.locator('.agent-chat-sash');
+  const agentChatSashBox = await agentChatSash.boundingBox();
+  const agentChatBefore = (await page.locator('.agent-chat-panel').boundingBox())!.width;
   await page.mouse.move(
-    secondarySashBox!.x + secondarySashBox!.width / 2,
-    secondarySashBox!.y + secondarySashBox!.height / 2,
+    agentChatSashBox!.x + agentChatSashBox!.width / 2,
+    agentChatSashBox!.y + agentChatSashBox!.height / 2,
   );
   await page.mouse.down();
   await page.mouse.move(
-    secondarySashBox!.x + secondarySashBox!.width / 2 - 10,
-    secondarySashBox!.y + secondarySashBox!.height / 2,
+    agentChatSashBox!.x + agentChatSashBox!.width / 2 - 10,
+    agentChatSashBox!.y + agentChatSashBox!.height / 2,
   );
   await page.mouse.move(
-    secondarySashBox!.x + secondarySashBox!.width / 2 - 50,
-    secondarySashBox!.y + secondarySashBox!.height / 2,
+    agentChatSashBox!.x + agentChatSashBox!.width / 2 - 50,
+    agentChatSashBox!.y + agentChatSashBox!.height / 2,
     { steps: 8 },
   );
   await page.mouse.up();
-  const secondaryAfter = (await page.locator('.secondary-side-bar').boundingBox())!.width;
-  expect(secondaryAfter).toBeGreaterThan(secondaryBefore + 30);
+  const agentChatAfter = (await page.locator('.agent-chat-panel').boundingBox())!.width;
+  expect(agentChatAfter).toBeGreaterThan(agentChatBefore + 30);
 
   const aiSettings = await page.evaluate(() => window.doru.getAiSettings());
   expect(aiSettings).toHaveProperty('provider');

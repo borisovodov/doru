@@ -43,7 +43,7 @@ npm run e2e        # Playwright smoke test against the built app
 - `packages/workbench` — the desktop workbench UI shell (activity bar,
   sidebars, editor area, tabs)
 - `packages/features` — domain UI
-- `packages/ai` — agent layer: connectors, tools, permissions
+- `packages/ai` — agent layer: connectors, tools
 
 Note: `apps/website/docs/` and `apps/website/public/icon.png` are generated
 from `docs/guide/` and the app icon by the sync script (part of

@@ -28,21 +28,12 @@ interface CloudPreset {
   fallbackModels: string[];
 }
 
-const CLOUD_PRESETS: CloudPreset[] = [
-  { id: 'openai', fallbackBaseUrl: 'https://api.openai.com/v1', fallbackModels: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'] },
-  { id: 'anthropic', fallbackBaseUrl: 'https://api.anthropic.com', fallbackModels: ['claude-sonnet-4-5', 'claude-haiku-4-5', 'claude-opus-4-5'] },
-  {
-    id: 'gemini',
-    fallbackBaseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    fallbackModels: ['gemini-2.5-flash', 'gemini-2.5-pro'],
-  },
-  {
-    id: 'openrouter',
-    fallbackBaseUrl: 'https://openrouter.ai/api/v1',
-    fallbackModels: ['openai/gpt-4o-mini', 'anthropic/claude-sonnet-4-5'],
-  },
-  { id: 'deepseek', fallbackBaseUrl: 'https://api.deepseek.com', fallbackModels: ['deepseek-chat', 'deepseek-reasoner'] },
-];
+/**
+ * Cloud provider presets. The list is empty on purpose: cloud providers are
+ * added back one at a time as their integration is finished. LOCAL_PRESETS
+ * below stay as they are.
+ */
+const CLOUD_PRESETS: CloudPreset[] = [];
 
 const LOCAL_PRESETS: Array<Omit<AiProvider, 'catalog'>> = [
   {
@@ -50,7 +41,9 @@ const LOCAL_PRESETS: Array<Omit<AiProvider, 'catalog'>> = [
     label: 'Ollama (local)',
     kind: 'local',
     defaultBaseUrl: 'http://localhost:11434/v1',
-    defaultModels: ['llama3.3', 'qwen3'],
+    // No default model: the local inventory is unknown until the user
+    // fetches it from the server (or types a model id).
+    defaultModels: [],
     requiresKey: false,
   },
   {

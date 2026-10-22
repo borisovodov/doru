@@ -37,16 +37,16 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
   repo — no source-available bait, no proprietary parts.
 - **AI-native.** Dóru is both an MCP server — run `doru --mcp-server <project>`
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
-  through `tree_query`, `tree_edit`, `sources_add`, `notes_write`,
-  `charts_render` — and an agent chat built into the UI: provider presets
-  (OpenAI, Anthropic, Gemini, OpenRouter, Ollama, LM Studio, custom
-  endpoints) configured in the in-app settings with keys stored in the OS
-  keychain, external MCP servers, and ACP agents.
+  through `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `sources_add`,
+  `notes_write`, `charts_render` — and an agent chat built into the UI: a
+  step-by-step wizard sets up the provider (Ollama and LM Studio locally,
+  custom OpenAI-compatible endpoints, or ACP agents; cloud presets return one
+  by one), and keys are stored in the OS keychain.
 - **Auditable.** Every mutation is recorded with its actor — user or agent
   (`agent:{host}/{model}#{promptHash}`). AI edits are always reviewable and
-  gated by permission prompts.
+  undoable.
 - **Workbench-style UI.** Activity bar, sidebar, tabs, editor area, panel,
-  command palette, themes as text files, text-based settings, codicons.
+  themes as text files, text-based settings.
 
 ## Features
 
@@ -85,14 +85,13 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 - **In-app chat** — the agent reads and edits the tree with built-in tools:
   `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `sources_add`,
   `notes_write`, `charts_render`.
-- **Any provider** — presets for OpenAI, Anthropic, Gemini, OpenRouter,
-  Ollama, LM Studio, and custom OpenAI-compatible endpoints; API keys are
-  stored encrypted in the OS keychain.
-- **Permission prompts** — read-only tools run freely; mutating tools and
-  external MCP tools ask for confirmation inline.
+- **Any provider** — presets for Ollama (local), LM Studio (local), custom
+  OpenAI-compatible endpoints, and ACP agents; a step-by-step wizard walks
+  through the setup and fetches the model list for local providers; API keys
+  are stored encrypted in the OS keychain.
 - **MCP server mode** — run `doru --mcp-server <project>` and any MCP client
-  (Claude Desktop, Cursor) can query and edit your tree; the in-app agent can
-  also use tools from external MCP servers, and ACP agents are supported.
+  (Claude Desktop, Cursor) can query and edit your tree; ACP agents are
+  supported too.
 
 ### Settings and themes
 

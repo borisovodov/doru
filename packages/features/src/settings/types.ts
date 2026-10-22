@@ -41,6 +41,13 @@ export interface AiSettingsState {
   hasKey: boolean;
   acpCommand: string;
   acpArgs: string[];
-  mcpServers: Array<{ name: string; command: string; args?: string[]; env?: Record<string, string> }>;
   configured: boolean;
 }
+
+/** Fetch state of the provider's model list (catalog-less providers). */
+export type ModelFetchState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ok' }
+  | { status: 'empty' }
+  | { status: 'error' };

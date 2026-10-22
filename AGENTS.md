@@ -6,7 +6,7 @@ Instructions for AI agents and contributors working on this repository.
 
 Dóru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
 SQLite-based tree documents (`.doru` files), text-based config/themes, MCP
-host+server, ACP agents, agent chat. MIT-licensed; no
+server mode, ACP agents, agent chat. MIT-licensed; no
 accounts, no cloud, no telemetry — user data never leaves the machine unless
 the user explicitly sends it.
 
@@ -44,6 +44,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   fallback value. Add the English bundle entry first, then translations.
 - Locale bundles mirror the common IDE display language set: en, ru, fr, de,
   it, es, pt-br, cs, pl, hu, bg, el, tr, ja, ko, zh-cn, zh-tw.
+- Bundle files are plain JSON with alphabetically sorted keys. Renames and
+  bulk text changes touch all 17 files at once — script the edit instead of
+  hand-editing each file.
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
 - MCP tool names must match `^[a-zA-Z0-9_-]+$` — use underscore separators
@@ -91,7 +94,38 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   buttons — the UA button padding collapses flex child SVGs. See the
   "Interaction conventions" bullet in docs/architecture.md.
 - **The AI model catalog ships as the `@opencode-ai/models` dependency.** Model lists, pricing, limits, capabilities and reasoning options come from its offline `./snapshot` export (models.dev data, MIT) via `packages/ai/src/catalog.ts`; the app never fetches model data at runtime. Refreshing the catalog at release time is a version bump of that package — no other step.
-- **The agent runtime is the Vercel AI SDK.** `packages/ai` wraps `streamText` (tools, step-count stop, permission gate inside each tool's `execute`); Anthropic goes through `@ai-sdk/anthropic`, everything else through `@ai-sdk/openai-compatible`, external MCP servers through `@ai-sdk/mcp`. Hand-rolled connectors and agent loops are a non-goal; the wire dialect derives from the provider registry.
+- **The agent runtime is the Vercel AI SDK.** `packages/ai` wraps `streamText`
+  (tools, step-count stop); Anthropic goes through `@ai-sdk/anthropic`,
+  everything else through `@ai-sdk/openai-compatible`. Hand-rolled connectors
+  and agent loops are a non-goal; the wire dialect derives from the provider
+  registry.
+- **Agent tools have a single source.** `doruTools` in
+  `packages/ai/src/tools.ts` is the only definition list; both surfaces
+  register from it (the in-app AI SDK toolset and the MCP server). Never
+  define a tool twice. Permissions are removed for now — tools execute
+  directly and ACP `session/request_permission` auto-allows; if they return,
+  restore the gate deliberately.
+- **The settings schema must be forward-compatible.** Any setting whose value
+  set may grow over time (provider ids, reasoning levels) must be a plain
+  string in the schema, and the runtime must tolerate unknown values with a
+  fallback: `readSettings` replaces a file that fails validation with the
+  default template, so an unknown value must never invalidate it.
+- **Model-generated content is untrusted.** Markdown from the agent is
+  rendered without raw HTML and without remote images (a remote `<img>` would
+  fetch a model-chosen URL and leak the user's IP). Links go through the
+  protocol-validated `shell:openExternal` IPC; windows deny `window.open` and
+  off-app navigation (`setWindowOpenHandler` + `will-navigate` guard).
+- **IPC events and replies are unordered.** Main→renderer `webContents.send`
+  events (chat deltas, tool steps) and the corresponding `invoke` reply can
+  arrive in either order across channels. The reply carries the authoritative
+  state; renderers must ignore streamed events that arrive after the reply
+  finalizes it.
+- **Tree canvas nodes carry preset dimensions and handles.** React Flow keeps
+  an unmeasured node `visibility: hidden` and drops its edges until handle
+  bounds exist, and after a wholesale node replacement its ResizeObserver may
+  never fire. Every projected node in `projectLayout` must set `measured`,
+  and edge endpoints must set explicit `handles` — never rely on runtime
+  measurement.
 - **macOS app icons.** The icon source of truth is the Icon Composer project
   `apps/desktop/build/Icon.icon`. electron-builder renders the app bundle icon
   from it at package time (actool, Xcode 26+). `npm run icon:mac -w
@@ -121,6 +155,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   (`npm run build` first, then `npm run e2e`).
 - Localization guard: `npm run check:nls` (runs in CI). Fails on incomplete
   locale bundles or hardcoded user-facing UI strings.
+- Schema guard: `npm run check:schemas` (runs in CI). Changing the settings or
+  theme zod schema in `apps/desktop/src/main/schemas.ts` requires regenerating
+  the published schemas first: `node scripts/generate-schemas.ts` — the
+  generated files in `apps/website/public/` are committed.
 - Typecheck all workspaces: `npm run typecheck` (this also covers the root
   `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
   dev helper scripts).

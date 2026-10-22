@@ -5,25 +5,13 @@ export const SETTINGS_SCHEMA_URL = 'https://doru.family/settings.json';
 /** The published editor schema for theme palette files. */
 export const THEME_SCHEMA_URL = 'https://doru.family/theme.json';
 
-const PROVIDER_IDS = [
-  'openai',
-  'anthropic',
-  'gemini',
-  'openrouter',
-  'deepseek',
-  'ollama',
-  'lmstudio',
-  'custom',
-  'acp',
-] as const;
-
 export const AiSectionSchema = z
   .strictObject({
     provider: z
-      .enum(PROVIDER_IDS)
+      .string()
       .optional()
       .describe(
-        'Provider preset id. "acp" spawns an Agent Client Protocol agent (see "command") instead of calling an HTTP API.',
+        'Provider preset id, e.g. "ollama" or "acp". Any string is accepted: ids the running version does not know fall back to the default provider instead of invalidating the file. "acp" spawns an Agent Client Protocol agent (see "command") instead of calling an HTTP API.',
       ),
     baseUrl: z
       .string()
@@ -36,10 +24,10 @@ export const AiSectionSchema = z
         'Model name. Empty means the preset\'s first default model. The DORU_AI_MODEL environment variable overrides this value. Ignored for provider "acp".',
       ),
     reasoning: z
-      .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
+      .string()
       .optional()
       .describe(
-        'Reasoning level for models that support it, translated to each provider\'s native mechanism. Absent means the provider default.',
+        'Reasoning level for models that support it, translated to each provider\'s native mechanism. Any string is accepted: levels the running version does not know fall back to the provider default. Absent means the provider default.',
       ),
     apiKey: z
       .string()
@@ -64,24 +52,6 @@ export const AiSectionSchema = z
   })
   .describe('AI provider settings for the agent chat.');
 
-export const McpServerSchema = z.strictObject({
-  name: z.string().describe('Tool namespace, e.g. "web" for web:search.'),
-  command: z.string().describe('Executable to run (npx, a binary path, …).'),
-  args: z.array(z.string()).optional().describe('Arguments for the command.'),
-  env: z
-    .record(z.string(), z.string())
-    .optional()
-    .describe('Extra environment variables, e.g. API keys the server needs.'),
-});
-
-export const McpSectionSchema = z
-  .strictObject({
-    servers: z.array(McpServerSchema).optional(),
-  })
-  .describe(
-    'Optional external MCP servers whose tools the in-app agent can use (web search, FamilySearch, filesystem, …). Each server is spawned as a subprocess; tools are prefixed with the server name, e.g. "web:search".',
-  );
-
 export const SettingsFileSchema = z
   .strictObject({
     $schema: z
@@ -91,7 +61,6 @@ export const SettingsFileSchema = z
         'Reference to the settings schema; enables autocompletion and validation in editors that understand JSON Schema.',
       ),
     ai: AiSectionSchema.optional(),
-    mcp: McpSectionSchema.optional(),
     theme: z
       .string()
       .optional()
@@ -135,7 +104,7 @@ export function settingsJsonSchema(): Record<string, unknown> {
     | undefined;
   const provider = aiProperties?.['provider'];
   if (provider) {
-    provider['default'] = 'openai';
+    provider['default'] = 'ollama';
   }
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',

@@ -3,10 +3,8 @@ import { dirname, resolve } from 'node:path';
 import type { ToolSet } from 'ai';
 import {
   AcpAgentClient,
-  DEFAULT_PERMISSION_POLICY,
   TreeMcpBackend,
   buildLanguageModel,
-  connectMcpServers,
   doruToolSet,
   runAgent,
   type AcpMcpServerEntry,
@@ -16,32 +14,11 @@ import {
   type ChatSendResult,
 } from '@doru/ai';
 import { loadAiSettings, type ResolvedAiSettings } from './ai-settings';
+import { log } from './log';
 import { ensureRuntime } from './runtime';
-import { acpClients, pendingPermissions, projectWindows } from './state';
+import { acpClients, projectWindows } from './state';
 
 export type ChatEvent = { type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep };
-
-function requestPermission(projectPath: string, tool: string, args: Record<string, unknown>): Promise<boolean> {
-  const id = crypto.randomUUID();
-  projectWindows.get(projectPath)?.webContents.send('chat:permission', { id, tool, arguments: args });
-  return new Promise<boolean>((resolve) => {
-    const timer = setTimeout(() => {
-      pendingPermissions.delete(id);
-      resolve(false);
-    }, 120_000);
-    pendingPermissions.set(id, { resolve, timer });
-  });
-}
-
-export function resolvePermission(id: string, allow: boolean): void {
-  const pending = pendingPermissions.get(id);
-  if (!pending) {
-    return;
-  }
-  clearTimeout(pending.timer);
-  pendingPermissions.delete(id);
-  pending.resolve(allow === true);
-}
 
 function doruMcpServerEntry(projectPath: string): AcpMcpServerEntry {
   const args = app.isPackaged
@@ -59,17 +36,9 @@ async function ensureAcpClient(projectPath: string, settings: ResolvedAiSettings
     command: settings.acpCommand,
     args: settings.acpArgs,
     cwd: dirname(projectPath),
-    mcpServers: [
-      doruMcpServerEntry(projectPath),
-      ...settings.mcpServers.map((server) => ({
-        name: server.name,
-        command: server.command,
-        args: server.args,
-        env: server.env,
-      })),
-    ],
+    mcpServers: [doruMcpServerEntry(projectPath)],
   });
-  await client.start((tool, args) => requestPermission(projectPath, tool, args));
+  await client.start();
   acpClients.set(projectPath, client);
   return client;
 }
@@ -90,6 +59,7 @@ function projectEvents(projectPath: string): AgentEvents {
 const chatAborts = new Map<string, AbortController>();
 
 export function cancelChat(projectPath: string): void {
+  log.debug('chat: cancel requested', { projectPath });
   chatAborts.get(projectPath)?.abort();
   // For ACP the abort kills the agent process via the signal listener; drop
   // the cached client so the next turn spawns a fresh session.
@@ -100,9 +70,34 @@ export function cancelChat(projectPath: string): void {
   }
 }
 
+/**
+ * Non-sensitive run context for the log: no message contents, no tool
+ * arguments or results — chat may carry family data that must never land in
+ * doru.log.
+ */
+interface ChatRunContext {
+  projectPath: string;
+  provider: string;
+  model: string;
+  messages: number;
+}
+
+function logRunError(message: string, context: ChatRunContext, error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error);
+  log.error(message, { ...context, error: text, stack: error instanceof Error ? error.stack : undefined });
+  return text;
+}
+
 export async function sendChat(options: { projectPath: string; messages: ChatMessage[] }): Promise<ChatSendResult> {
   const settings = loadAiSettings();
+  const runContext: ChatRunContext = {
+    projectPath: options.projectPath,
+    provider: settings.provider.id,
+    model: settings.model,
+    messages: options.messages.length,
+  };
   if (!settings.configured) {
+    log.warn('chat: provider is not configured', runContext);
     return {
       steps: [],
       finalText: '',
@@ -116,7 +111,16 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
     finalText: '',
     cancelled: true,
   });
+  const fail = (error: unknown): ChatSendResult => ({
+    steps: [],
+    finalText: '',
+    error: logRunError('chat: run failed', runContext, error),
+  });
 
+  log.debug('chat: run started', runContext);
+  const startedAt = Date.now();
+
+  let result: ChatSendResult;
   try {
     const { runtime } = await ensureRuntime(options.projectPath);
     const lastUser = [...options.messages].reverse().find((message) => message.role === 'user');
@@ -132,57 +136,68 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
     if (settings.provider.kind === 'acp') {
       try {
         const client = await ensureAcpClient(options.projectPath, settings);
-        const result = await client.prompt(lastUser?.content ?? '', events, abort.signal);
-        return { steps: result.steps, finalText: result.finalText };
+        const acpResult = await client.prompt(lastUser?.content ?? '', events, abort.signal);
+        result = { steps: acpResult.steps, finalText: acpResult.finalText };
       } catch (error) {
         if (abort.signal.aborted) {
-          return cancelled([]);
+          log.debug('chat: run cancelled', runContext);
+          result = cancelled([]);
+        } else {
+          result = fail(error);
         }
-        return {
-          steps: [],
-          finalText: '',
-          error: error instanceof Error ? error.message : String(error),
-        };
+      }
+    } else {
+      const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
+      const model = buildLanguageModel({
+        providerId: settings.provider.id,
+        baseUrl: settings.baseUrl,
+        apiKey: settings.apiKey,
+        model: settings.model,
+      });
+
+      const tools: ToolSet = doruToolSet(backend);
+
+      try {
+        const agentResult = await runAgent({
+          model,
+          messages: conversation,
+          system,
+          tools,
+          events,
+          signal: abort.signal,
+          ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
+        });
+        result = { steps: agentResult.steps, finalText: agentResult.finalText };
+      } catch (error) {
+        if (abort.signal.aborted) {
+          log.debug('chat: run cancelled', runContext);
+          result = cancelled([]);
+        } else {
+          result = fail(error);
+        }
       }
     }
-
-    const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
-    const gate = (tool: string, args: Record<string, unknown>) => requestPermission(options.projectPath, tool, args);
-    const model = buildLanguageModel({
-      providerId: settings.provider.id,
-      baseUrl: settings.baseUrl,
-      apiKey: settings.apiKey,
-      model: settings.model,
-    });
-
-    const tools: ToolSet = doruToolSet(backend, gate, DEFAULT_PERMISSION_POLICY);
-    const mcp = await connectMcpServers(settings.mcpServers, gate, DEFAULT_PERMISSION_POLICY);
-    Object.assign(tools, mcp.tools);
-
-    try {
-      const result = await runAgent({
-        model,
-        messages: conversation,
-        system,
-        tools,
-        events,
-        signal: abort.signal,
-        ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
-      });
-      return { steps: result.steps, finalText: result.finalText };
-    } catch (error) {
-      if (abort.signal.aborted) {
-        return cancelled([]);
-      }
-      return {
-        steps: [],
-        finalText: '',
-        error: error instanceof Error ? error.message : String(error),
-      };
-    } finally {
-      await mcp.close();
+  } catch (error) {
+    // ensureRuntime and anything else outside the inner handlers: convert
+    // to an error result so the renderer shows it.
+    if (abort.signal.aborted) {
+      log.debug('chat: run cancelled', runContext);
+      result = cancelled([]);
+    } else {
+      result = fail(error);
     }
   } finally {
     chatAborts.delete(options.projectPath);
   }
+
+  if (!result.cancelled && result.finalText === '' && result.steps.length === 0) {
+    log.warn('chat: run produced no text and no tool steps', { ...runContext, error: result.error });
+  }
+  log.debug('chat: run finished', {
+    ...runContext,
+    durationMs: Date.now() - startedAt,
+    steps: result.steps.length,
+    cancelled: result.cancelled === true,
+  });
+  return result;
 }
