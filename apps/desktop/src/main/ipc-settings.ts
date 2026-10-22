@@ -42,6 +42,7 @@ export function registerSettingsIpc(): void {
       doc: provider.doc,
       defaultBaseUrl: provider.defaultBaseUrl,
       requiresKey: provider.requiresKey,
+      allowKey: provider.allowKey ?? false,
       defaultModels: provider.defaultModels,
       models: (provider.catalog?.models ?? []).map((model) => ({
         id: model.id,
@@ -184,7 +185,7 @@ export function registerSettingsIpc(): void {
           return { models: page.data.map((model) => model.id) };
         }
         const response = await fetch(`${settings.baseUrl.replace(/\/+$/, '')}/models`, {
-          headers: { authorization: `Bearer ${settings.apiKey}` },
+          headers: settings.apiKey !== '' ? { authorization: `Bearer ${settings.apiKey}` } : {},
         });
         if (!response.ok) {
           return { models: [] as string[], error: `HTTP ${response.status}` };
