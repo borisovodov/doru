@@ -49,6 +49,11 @@ const api = {
     ipcRenderer.on('chat:event', listener);
     return () => ipcRenderer.removeListener('chat:event', listener);
   },
+  onTreeExternalChange: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('tree:externalChange', listener);
+    return () => ipcRenderer.removeListener('tree:externalChange', listener);
+  },
   getThemeState: (): Promise<unknown> => ipcRenderer.invoke('theme:state'),
   setTheme: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:set', name),
   openThemesFolder: (): Promise<unknown> => ipcRenderer.invoke('themes:open-folder'),
@@ -61,8 +66,8 @@ const api = {
     ipcRenderer.on('theme:system-changed', listener);
     return () => ipcRenderer.removeListener('theme:system-changed', listener);
   },
-  onThemeSettingsChanged: (callback: (name: string) => void): (() => void) => {
-    const listener = (_event: unknown, name: string) => callback(name);
+  onThemeSettingsChanged: (callback: (state: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, state: unknown) => callback(state);
     ipcRenderer.on('theme:settings-changed', listener);
     return () => ipcRenderer.removeListener('theme:settings-changed', listener);
   },

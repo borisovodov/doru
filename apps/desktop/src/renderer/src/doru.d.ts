@@ -60,6 +60,8 @@ declare global {
       onChatEvent(
         callback: (event: { type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep }) => void,
       ): () => void;
+      /** Fires when the project file changed on disk outside the app (agents, MCP clients). */
+      onTreeExternalChange(callback: () => void): () => void;
       getThemeState(): Promise<{
         systemDark: boolean;
         theme: string;
@@ -71,7 +73,13 @@ declare global {
       openLogs(): Promise<string>;
       getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;
-      onThemeSettingsChanged(callback: (name: string) => void): () => void;
+      onThemeSettingsChanged(
+        callback: (state: {
+          systemDark: boolean;
+          theme: string;
+          themes: Array<{ id: string; name: string }>;
+        }) => void,
+      ): () => void;
       onMenuToggleAgentChat(callback: () => void): () => void;
       /** Opens a link from a chat reply in the system browser (http/https only). */
       openExternal(url: string): Promise<boolean>;

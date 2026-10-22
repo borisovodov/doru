@@ -9,6 +9,7 @@ import { releaseBookmarkAccess } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { acpClients, activeBookmarks, isUntitledKey, runtimes, type ProjectRuntime } from './state';
+import { markSelfWrite, StampedOpQueue, stopTreeWatcher } from './tree-watcher';
 import { disposeUntitled } from './untitled';
 
 const fs = new NodeFileSystem();
@@ -37,7 +38,7 @@ export async function ensureRuntime(
   }
   const { summary, store } = await opener.open(projectPath);
   const repo = new SqliteTreeRepository(store.db);
-  const queue = new OpQueue();
+  const queue = new StampedOpQueue(() => markSelfWrite(summary.path));
   const runtime: ProjectRuntime = { store, repo, queue };
   runtimes.set(summary.path, runtime);
   return { summary, runtime };
@@ -78,6 +79,7 @@ export function closeProjectRuntime(
     runtime.store.close();
     runtimes.delete(projectPath);
   }
+  stopTreeWatcher(projectPath);
   const acp = acpClients.get(projectPath);
   if (acp) {
     void acp.close();
