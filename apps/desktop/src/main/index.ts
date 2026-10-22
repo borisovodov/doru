@@ -16,7 +16,7 @@ import { openExternalPath, openProject } from './projects';
 import { closeAllRuntimes, ensureRuntime } from './runtime';
 import { readSession } from './session';
 import { pendingExternalPaths, projectWindows, recents } from './state';
-import { ensureUserThemesDir, themeName, updateTitleBarOverlays, updateWindowBackgrounds } from './themes';
+import { ensureUserThemesDir, themeState, updateTitleBarOverlays, updateWindowBackgrounds, watchUserThemes } from './themes';
 import { createWindow, iconPath, installMenu } from './windows';
 
 if (process.env['DORU_USER_DATA']) {
@@ -64,10 +64,19 @@ function parseMcpServerArg(argv: string[]): string | null {
   return argv[index + 1] ?? null;
 }
 
-const gotLock = app.requestSingleInstanceLock();
+// MCP server mode (`--mcp-server`) is a headless helper process that ACP
+// agents and external MCP clients spawn next to the GUI. It shares the
+// userData with the GUI, so it must not fight it over the single-instance
+// lock, and it must stay completely headless: no protocol registration, no
+// file/open events, no menu, no dock icon, no windows — otherwise file opens
+// and dock activations land in the helper and it turns into a surprise
+// second app instance.
+const mcpProject = parseMcpServerArg(process.argv);
+
+const gotLock = mcpProject !== null || app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
-} else {
+} else if (!mcpProject) {
   if (process.defaultApp && process.argv[1]) {
     app.setAsDefaultProtocolClient('doru', process.execPath, [process.argv[1]]);
   } else {
@@ -111,6 +120,18 @@ if (!gotLock) {
 }
 
 void app.whenReady().then(async () => {
+  if (mcpProject) {
+    // Headless helper: open the tree, serve the shared toolset over stdio,
+    // and stay out of everything GUI (no menu, no dock icon, no windows).
+    app.dock?.hide();
+    const { runtime } = await ensureRuntime(mcpProject);
+    const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
+    const server = new DoruMcpServer(backend, app.getVersion());
+    await server.connect(new StdioServerTransport());
+    log.info(`Dóru MCP server started for ${mcpProject}`);
+    return;
+  }
+
   ensureUserThemesDir();
   const fs = new NodeFileSystem();
   recents.current = new RecentProjects(fs, join(app.getPath('userData'), 'recent.json'));
@@ -144,23 +165,18 @@ void app.whenReady().then(async () => {
       window.webContents.send('theme:system-changed', { systemDark: nativeTheme.shouldUseDarkColors });
     }
   });
-  watchSettings(() => {
+  // Settings.json edits and theme-file edits (drop/add/edit in the user
+  // themes folder) both re-apply the theme live: window chrome plus the
+  // renderer-side theme list and CSS.
+  const onThemeChanged = (): void => {
     updateTitleBarOverlays();
     updateWindowBackgrounds();
     for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send('theme:settings-changed', themeName());
+      window.webContents.send('theme:settings-changed', themeState());
     }
-  });
-
-  const mcpProject = parseMcpServerArg(process.argv);
-  if (mcpProject) {
-    const { runtime } = await ensureRuntime(mcpProject);
-    const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
-    const server = new DoruMcpServer(backend, app.getVersion());
-    await server.connect(new StdioServerTransport());
-    log.info(`Dóru MCP server started for ${mcpProject}`);
-    return;
-  }
+  };
+  watchSettings(onThemeChanged);
+  watchUserThemes(onThemeChanged);
 
   const argvPaths = [...extractPathArgs(process.argv), ...pendingExternalPaths];
   if (argvPaths.length > 0) {
