@@ -3,7 +3,6 @@
 // collected into AgentStep[] so the transcript can show what the agent did.
 import { stepCountIs, streamText, type LanguageModel, type ModelMessage, type ToolSet } from 'ai';
 import type { ChatMessage } from './types';
-
 /** AI SDK reasoning levels; absent means the provider default. */
 export type ReasoningLevel =
   | 'provider-default'
@@ -23,6 +22,14 @@ export type AgentStep =
 export interface AgentRunResult {
   steps: AgentStep[];
   finalText: string;
+  /**
+   * A stream error observed via the AI SDK `onError` callback. The AI SDK
+   * resolves `.text` with partial content instead of rejecting on mid-stream
+   * failures (e.g. a provider's 500 after the role chunk), so the error is
+   * carried on the result instead — otherwise the run looks successful with
+   * an empty answer.
+   */
+  error?: string;
 }
 
 export interface ChatSendResult extends AgentRunResult {
@@ -54,9 +61,80 @@ export interface RunAgentOptions {
   events?: AgentEvents;
 }
 
+/**
+ * Recovers the first complete JSON object from a malformed tool-input
+ * string. Small local models often append trailing garbage after the
+ * arguments JSON (`{"query": "x"}]}.`) or prepend filler text while the
+ * object itself is intact. Returns the cleaned JSON text, or null when no
+ * complete object parses.
+ */
+export function repairToolInput(raw: string): string | null {
+  const start = raw.indexOf('{');
+  if (start === -1) {
+    return null;
+  }
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < raw.length; i += 1) {
+    const char = raw[i]!;
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+    } else if (char === '{') {
+      depth += 1;
+    } else if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        const candidate = raw.slice(start, i + 1);
+        try {
+          JSON.parse(candidate);
+          return candidate;
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Normalizes sloppy `tree_query` inputs from small models: a free-text query
+ * that is really a sex filter (`sex:M`, `gender: female`, …) is moved into
+ * the proper `sex` field. Anything else passes through untouched.
+ */
+export function refineTreeQueryInput(input: unknown): unknown {
+  if (typeof input !== 'object' || input === null) {
+    return input;
+  }
+  const record = input as { query?: unknown; sex?: unknown; [key: string]: unknown };
+  if (record['sex'] !== undefined || typeof record['query'] !== 'string') {
+    return input;
+  }
+  const match = record['query'].trim().match(/^(?:sex|gender)\s*[:=]\s*(male|female|unknown|m|f|u)$/i);
+  if (!match) {
+    return input;
+  }
+  const value = match[1]!.toLowerCase();
+  const sex = value === 'male' || value === 'm' ? 'M' : value === 'female' || value === 'f' ? 'F' : 'U';
+  const { query: _removed, ...rest } = record;
+  return { ...rest, sex };
+}
+
 export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult> {
   const steps: AgentStep[] = [];
   const events = options.events ?? {};
+  let streamError: string | undefined;
 
   const result = streamText({
     model: options.model,
@@ -66,6 +144,20 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
     ...(options.system !== undefined ? { system: options.system } : {}),
     ...(options.signal !== undefined ? { abortSignal: options.signal } : {}),
     ...(options.reasoning !== undefined ? { reasoning: options.reasoning } : {}),
+    // Small local models emit tool calls with broken argument JSON (trailing
+    // garbage after the object) or sloppy arguments (a free-text query that
+    // is really a sex filter). Repair and refine locally instead of failing
+    // the whole run.
+    repairToolCall: async ({ toolCall }) => {
+      const repaired = typeof toolCall.input === 'string' ? repairToolInput(toolCall.input) : null;
+      return repaired === null ? null : { ...toolCall, input: repaired };
+    },
+    experimental_refineToolInput: {
+      tree_query: refineTreeQueryInput,
+    },
+    onError: ({ error }: { error: unknown }) => {
+      streamError = error instanceof Error ? error.message : String(error);
+    },
     onChunk: ({ chunk }) => {
       if (chunk.type === 'text-delta' && chunk.text) {
         events.onTextDelta?.(chunk.text);
@@ -99,7 +191,7 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
   });
 
   const finalText = await result.text;
-  return { steps, finalText };
+  return { steps, finalText, ...(streamError !== undefined ? { error: streamError } : {}) };
 }
 
 /**
