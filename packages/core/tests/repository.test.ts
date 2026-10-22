@@ -35,6 +35,18 @@ describe('SqliteTreeRepository', () => {
       const found = repo.listPersons({ search: 'petr' });
       expect(found.map((p) => p.id)).toEqual(['P2']);
 
+      const males = repo.listPersons({ sex: 'M' });
+      expect(males.map((p) => p.id)).toEqual(['P1']);
+
+      const females = repo.listPersons({ sex: 'F' });
+      expect(females.map((p) => p.id)).toEqual(['P2']);
+
+      const femaleIvanovs = repo.listPersons({ search: 'ivan', sex: 'F' });
+      expect(femaleIvanovs).toEqual([]);
+
+      const maleIvanovs = repo.listPersons({ search: 'ivan', sex: 'M' });
+      expect(maleIvanovs.map((p) => p.id)).toEqual(['P1']);
+
       const limited = repo.listPersons({ limit: 1 });
       expect(limited).toHaveLength(1);
     } finally {

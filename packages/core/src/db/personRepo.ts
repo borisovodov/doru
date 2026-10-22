@@ -3,6 +3,8 @@ import type { DateValue, NamePart, PersonRecord, Sex } from '../model/types';
 
 export interface PersonQuery {
   search?: string | undefined;
+  /** Only persons with this sex ('M', 'F' or 'U'). */
+  sex?: Sex | undefined;
   limit?: number | undefined;
   offset?: number | undefined;
 }
@@ -66,17 +68,22 @@ export class PersonRepo {
     const limit = query.limit ?? 100;
     const offset = query.offset ?? 0;
     const search = query.search?.trim();
-    if (search) {
+    const sex = query.sex;
+    if (search && !sex) {
       const rows = this.searchByFts(search, limit, offset);
       if (rows !== null) {
         return rows.map(rowToPerson);
       }
     }
     const conditions: string[] = [];
-    const params: string[] = [];
+    const params: Array<string | number> = [];
     if (search) {
       conditions.push('instr(lower(names), lower(?)) > 0');
       params.push(search);
+    }
+    if (sex) {
+      conditions.push('sex = ?');
+      params.push(sex);
     }
     const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
     const sql = `SELECT id, names, sex, birth_json, death_json FROM person${where} ORDER BY id LIMIT ? OFFSET ?`;
