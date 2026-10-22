@@ -25,6 +25,18 @@ export function useTreeData(projectPath: string | null | undefined) {
     void reloadTree(projectPath);
   }, [projectPath, reloadTree]);
 
+  // External writers (the in-app agent, ACP agents, MCP clients) mutate the
+  // project file through their own connections; reload when the main process
+  // reports a change so the tree stays in sync without manual reopening.
+  useEffect(() => {
+    if (!projectPath) {
+      return;
+    }
+    return window.doru.onTreeExternalChange(() => {
+      void reloadTree(projectPath);
+    });
+  }, [projectPath, reloadTree]);
+
   const refreshTree = useCallback(async () => {
     if (projectPath) {
       await reloadTree(projectPath);

@@ -75,8 +75,9 @@ export function useAiSettings() {
       setModelFetch({ status: 'idle' });
       // Auto-fetch local model lists, but not for key-requiring endpoints
       // until the key exists — the fetch would only fail while the user is
-      // still filling the form.
-      if (provider?.kind === 'local' && !(provider.requiresKey && !next.hasKey)) {
+      // still filling the form — and not for providers that start with an
+      // empty base URL (custom endpoints need the user's URL first).
+      if (provider?.kind === 'local' && provider.defaultBaseUrl !== '' && !(provider.requiresKey && !next.hasKey)) {
         void fetchModels({ provider: id, baseUrl: provider.defaultBaseUrl });
       }
     },

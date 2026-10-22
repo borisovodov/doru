@@ -130,6 +130,7 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
       'You are a genealogy assistant working with the user\'s family tree. ' +
       'Use tree_stats to see how large the tree is, and tree_query without a query to list persons. ' +
       'Wildcards are not needed: an empty query already lists the tree. ' +
+      'tree_query accepts an optional sex filter ("M", "F" or "U") — e.g. use sex "M" to list men. ' +
       'For edits, use tree_edit.';
     const conversation = [...options.messages];
 
@@ -167,7 +168,11 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
           signal: abort.signal,
           ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
         });
-        result = { steps: agentResult.steps, finalText: agentResult.finalText };
+        result = {
+          steps: agentResult.steps,
+          finalText: agentResult.finalText,
+          ...(agentResult.error !== undefined ? { error: agentResult.error } : {}),
+        };
       } catch (error) {
         if (abort.signal.aborted) {
           log.debug('chat: run cancelled', runContext);
@@ -192,6 +197,9 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
 
   if (!result.cancelled && result.finalText === '' && result.steps.length === 0) {
     log.warn('chat: run produced no text and no tool steps', { ...runContext, error: result.error });
+  }
+  if (result.error) {
+    log.warn('chat: run finished with an error', { ...runContext, error: result.error });
   }
   log.debug('chat: run finished', {
     ...runContext,

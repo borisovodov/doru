@@ -1,5 +1,5 @@
 import { BrowserWindow, app, nativeTheme } from 'electron';
-import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, watch } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { z } from 'zod';
 import { readSettings } from './settings';
@@ -98,6 +98,45 @@ export function listThemes(): ThemeInfo[] {
 export function themeName(): string {
   const theme = readSettings()['theme'];
   return typeof theme === 'string' && theme !== '' ? theme : DEFAULT_THEME;
+}
+
+/** The complete renderer-facing theme state (mirrors the `theme:state` IPC). */
+export function themeState(): { systemDark: boolean; theme: string; themes: ThemeInfo[] } {
+  return {
+    systemDark: nativeTheme.shouldUseDarkColors,
+    theme: themeName(),
+    themes: listThemes(),
+  };
+}
+
+/** Coalesces the event burst of a theme-file save into one notification. */
+const THEMES_DEBOUNCE_MS = 250;
+
+let themesDirTimer: NodeJS.Timeout | null = null;
+
+/**
+ * Watches the user themes directory (`<userData>/themes`): dropping,
+ * editing or deleting a theme file applies it live, like the settings
+ * watcher. The app never writes theme files itself, so there is no
+ * self-write suppression.
+ */
+export function watchUserThemes(onChange: () => void): void {
+  ensureUserThemesDir();
+  try {
+    const watcher = watch(userThemesDir(), () => {
+      if (themesDirTimer) {
+        clearTimeout(themesDirTimer);
+      }
+      themesDirTimer = setTimeout(() => {
+        themesDirTimer = null;
+        log.debug('user theme files changed');
+        onChange();
+      }, THEMES_DEBOUNCE_MS);
+    });
+    watcher.unref();
+  } catch {
+    log.warn('could not watch the user themes directory');
+  }
 }
 
 /** The palette that applies right now. The operating system appearance is

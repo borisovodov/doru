@@ -140,6 +140,13 @@
   margin-top: 12px;
 }
 
+/* The API key row nests inside .settings-field: the label span already
+   provides the 4px field spacing, so the standalone-row margin must not
+   collapse into it. */
+.settings-field > .settings-inline {
+  margin-top: 0;
+}
+
 .settings-inline input {
   flex: 1;
   min-width: 0;

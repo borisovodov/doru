@@ -16,7 +16,10 @@ export interface AiProvider {
   defaultBaseUrl: string;
   /** Suggested models (catalog defaults or static for local providers). */
   defaultModels: string[];
+  /** The key is mandatory (cloud providers). */
   requiresKey: boolean;
+  /** The key is accepted but optional (custom OpenAI-compatible endpoints). */
+  allowKey?: boolean;
   /** The models.dev catalog entry when this provider ships catalog data. */
   catalog?: CatalogProvider;
 }
@@ -60,7 +63,11 @@ const LOCAL_PRESETS: Array<Omit<AiProvider, 'catalog'>> = [
     kind: 'local',
     defaultBaseUrl: '',
     defaultModels: [],
-    requiresKey: true,
+    // Keyless local servers (LM Studio, llama.cpp server, vLLM) ignore
+    // authentication; the AI SDK omits the Authorization header when the key
+    // is empty, so a key stays optional — but accepted for keyed endpoints.
+    requiresKey: false,
+    allowKey: true,
   },
   {
     id: 'acp',

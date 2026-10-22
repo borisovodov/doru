@@ -5,7 +5,10 @@ export interface AiProviderInfo {
   kind: 'cloud' | 'local' | 'acp';
   doc?: string;
   defaultBaseUrl: string;
+  /** The key is mandatory before the provider can be used. */
   requiresKey: boolean;
+  /** The key is accepted but optional (custom OpenAI-compatible endpoints). */
+  allowKey: boolean;
   defaultModels: string[];
   models: AiCatalogModelInfo[];
 }

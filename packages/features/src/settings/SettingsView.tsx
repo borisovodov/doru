@@ -198,7 +198,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
               />
             </label>
           )}
-          {provider?.requiresKey ? (
+          {provider?.requiresKey || provider?.allowKey ? (
             <div className="settings-field">
               <span>{nls.t('settings.ai.apiKey')}</span>
               <div className="settings-inline">

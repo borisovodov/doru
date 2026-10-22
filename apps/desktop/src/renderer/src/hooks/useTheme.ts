@@ -31,9 +31,10 @@ export function useTheme() {
   }, [applyBuiltinTheme]);
 
   useEffect(() => {
-    return window.doru.onThemeSettingsChanged((name) => {
-      setTheme(name);
-      void window.doru.getThemeState().then((state) => applyBuiltinTheme(state.systemDark, name));
+    return window.doru.onThemeSettingsChanged((state) => {
+      setTheme(state.theme);
+      setThemes(state.themes);
+      void applyBuiltinTheme(state.systemDark, state.theme);
     });
   }, [applyBuiltinTheme]);
 

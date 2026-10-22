@@ -19,6 +19,7 @@ import {
   runtimes,
   untitledProjects,
 } from './state';
+import { startTreeWatcher } from './tree-watcher';
 import { bindingOf, bindWindowToProject, createWindow, focusedWindow, openProjectInWindow, windowById } from './windows';
 
 const fs = new NodeFileSystem();
@@ -111,6 +112,7 @@ export async function openProject(
     return null;
   }
   openProjectInWindow(filePath, senderId);
+  startTreeWatcher(filePath);
   if (recents.current) {
     const bookmark = await createBookmark(summary.path);
     await recents.current.touch(summary.path, bookmark);
@@ -270,6 +272,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   } else {
     createWindow(filePath);
   }
+  startTreeWatcher(filePath);
   const binding = bindingOf(filePath);
   if (recents.current) {
     const bookmark = await createBookmark(summary.path);

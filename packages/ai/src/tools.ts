@@ -20,9 +20,13 @@ export const doruTools: ToolDefinition[] = [
   {
     name: 'tree_query',
     description:
-      'Search persons in the tree by name. If the query is omitted, returns the first 20 persons in the tree — use this to list everyone when no specific name is known.',
+      'Search persons in the tree by name, optionally filtered by sex. If the query is omitted, returns the first 20 persons in the tree — use this to list everyone when no specific name is known.',
     inputSchema: {
       query: z.string().optional().describe('Free-text search query, matched against names'),
+      sex: z
+        .enum(['M', 'F', 'U'])
+        .optional()
+        .describe('Only persons with this sex: M (male), F (female), U (unknown). Omit to include every sex.'),
       limit: z.number().optional().describe('Maximum number of results (default 20)'),
     },
   },
@@ -66,6 +70,28 @@ export const doruTools: ToolDefinition[] = [
           }),
         ])
         .describe('Edit operation'),
+    },
+  },
+  {
+    name: 'tree_add_relative',
+    description:
+      'Add a new relative to an existing person: a child, a spouse or a parent. Creates the person and the family link in one step.',
+    inputSchema: {
+      relation: z
+        .enum(['child', 'spouse', 'parent'])
+        .describe('How the new person relates to the anchor person'),
+      anchorId: z.string().describe('Id of the existing person (e.g. @I1@)'),
+      person: z.object({
+        id: z.string(),
+        names: z.array(
+          z.object({
+            given: z.string().optional(),
+            surname: z.string().optional(),
+            full: z.string().optional(),
+          }),
+        ),
+        sex: z.enum(['M', 'F', 'U']),
+      }),
     },
   },
   {

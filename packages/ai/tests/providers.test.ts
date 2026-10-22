@@ -25,7 +25,8 @@ describe('AI_PROVIDERS', () => {
 
     const custom = findProvider('custom');
     expect(custom.kind).toBe('local');
-    expect(custom.requiresKey).toBe(true);
+    expect(custom.requiresKey).toBe(false);
+    expect(custom.allowKey).toBe(true);
     expect(custom.defaultModels).toEqual([]);
 
     const acp = findProvider('acp');

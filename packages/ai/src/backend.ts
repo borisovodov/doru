@@ -2,10 +2,12 @@ import {
   OpQueue,
   addNoteOp,
   addPersonOp,
+  addRelativeOp,
   addSourceOp,
   layoutPedigree,
   renderPedigreeSvg,
   updatePersonOp,
+  type FamilyRecord,
   type PersonRecord,
   type TreeRepository,
   type TreeStats,
@@ -24,13 +26,23 @@ export class TreeMcpBackend {
   async invoke(name: string, args: Record<string, unknown>): Promise<unknown> {
     switch (name) {
       case 'tree_query':
-        return this.query(args['query'] as string | undefined, args['limit'] as number | undefined);
+        return this.query(
+          args['query'] as string | undefined,
+          args['limit'] as number | undefined,
+          args['sex'] as string | undefined,
+        );
       case 'tree_get':
         return this.get(args['personId'] as string);
       case 'tree_stats':
         return this.stats();
       case 'tree_edit':
         return this.edit(args['op'] as TreeEditOp);
+      case 'tree_add_relative':
+        return this.addRelative(
+          args['relation'] as 'child' | 'spouse' | 'parent',
+          args['anchorId'] as string,
+          args['person'] as PersonRecord,
+        );
       case 'sources_add':
         return this.addSource(args);
       case 'notes_write':
@@ -42,9 +54,10 @@ export class TreeMcpBackend {
     }
   }
 
-  private query(query?: string, limit?: number): PersonRecord[] {
+  private query(query?: string, limit?: number, sex?: string): PersonRecord[] {
     const normalized = normalizeSearch(query);
-    return this.repo.listPersons({ search: normalized, limit: limit ?? 20 });
+    const sexFilter = sex === 'M' || sex === 'F' || sex === 'U' ? sex : undefined;
+    return this.repo.listPersons({ search: normalized, sex: sexFilter, limit: limit ?? 20 });
   }
 
   private get(personId: string): unknown {
@@ -75,6 +88,49 @@ export class TreeMcpBackend {
       return { ok: true, canUndo: this.queue.canUndo() };
     }
     throw new Error(`Unsupported op kind: ${(op as { kind?: string }).kind}`);
+  }
+
+  /**
+   * Creates a person and links them to the anchor as a child, spouse or
+   * parent, mirroring the app's `tree:addRelative` IPC: the anchor's family
+   * is reused when it exists, otherwise a new one is created.
+   */
+  private addRelative(
+    relation: 'child' | 'spouse' | 'parent',
+    anchorId: string,
+    person: PersonRecord,
+  ): unknown {
+    const anchor = this.repo.getPerson(anchorId);
+    if (!anchor) {
+      return { ok: false, error: `Unknown anchor person: ${anchorId}` };
+    }
+    const families = this.repo.listFamilies();
+    let links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
+    let created: FamilyRecord | undefined;
+    if (relation === 'parent') {
+      created = {
+        id: crypto.randomUUID(),
+        parents: [person.id],
+        children: [anchorId],
+      };
+    } else {
+      const target = families.find((family) => family.parents.includes(anchorId));
+      if (target) {
+        const after =
+          relation === 'child'
+            ? { ...target, children: [...target.children, person.id] }
+            : { ...target, parents: [...target.parents, person.id] };
+        links = [{ before: target, after }];
+      } else {
+        created = {
+          id: crypto.randomUUID(),
+          parents: relation === 'child' ? [anchorId] : [anchorId, person.id],
+          children: relation === 'child' ? [person.id] : [],
+        };
+      }
+    }
+    this.queue.apply(addRelativeOp(person, links, created), { repo: this.repo });
+    return { ok: true, canUndo: this.queue.canUndo() };
   }
 
   private addSource(args: Record<string, unknown>): unknown {
