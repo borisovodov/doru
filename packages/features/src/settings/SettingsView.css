@@ -51,6 +51,35 @@
   color: var(--doru-accent-hover);
 }
 
+.settings-link:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The primary action of the AI settings wizard (fetch the model list). */
+.settings-action {
+  display: inline-flex;
+  align-items: center;
+  height: var(--doru-control-height);
+  padding: 0 14px;
+  margin-top: 8px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  font-size: var(--doru-font-size);
+  cursor: pointer;
+}
+
+.settings-action:hover:not(:disabled) {
+  background: var(--doru-accent-hover);
+}
+
+.settings-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .settings-section select + .settings-link {
   margin-top: 8px;
 }

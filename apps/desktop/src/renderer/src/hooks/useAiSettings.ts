@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AiProviderInfo, AiSettingsState, AiTestState } from '@doru/features';
+import type { AiProviderInfo, AiSettingsState, AiTestState, ModelFetchState } from '@doru/features';
 
 export function useAiSettings() {
   const [settings, setSettings] = useState<AiSettingsState | null>(null);
   const [providers, setProviders] = useState<AiProviderInfo[]>([]);
   const [test, setTest] = useState<AiTestState>({ status: 'idle' });
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
+  const [modelFetch, setModelFetch] = useState<ModelFetchState>({ status: 'idle' });
 
   useEffect(() => {
     void window.doru.getAiSettings().then(setSettings);
@@ -15,6 +16,49 @@ export function useAiSettings() {
   const update = useCallback(async (patch: Parameters<typeof window.doru.setAiSettings>[0]) => {
     setSettings(await window.doru.setAiSettings(patch));
   }, []);
+
+  /**
+   * Fetches the model list for a catalog-less (local) provider. On success
+   * with models, a saved model missing from the list is replaced by the
+   * first entry and persisted — the fetched list is the truth. Failures and
+   * empty lists never touch the saved settings.
+   */
+  const fetchModels = useCallback(
+    async (overrides?: { provider?: string | undefined; baseUrl?: string | undefined }) => {
+      if (!settings) {
+        return;
+      }
+      const provider = overrides?.provider ?? settings.provider;
+      const baseUrl = overrides?.baseUrl ?? settings.baseUrl;
+      setModelFetch({ status: 'loading' });
+      try {
+        const result = await window.doru.fetchAiModels({
+          provider,
+          baseUrl,
+          model: settings.model,
+        });
+        setTest({ status: 'idle' });
+        if (result.error) {
+          setModelFetch({ status: 'error' });
+          return;
+        }
+        const models = result.models ?? [];
+        setFetchedModels(models);
+        if (models.length === 0) {
+          setModelFetch({ status: 'empty' });
+          return;
+        }
+        setModelFetch({ status: 'ok' });
+        if (settings.model === '' || !models.includes(settings.model)) {
+          await update({ model: models[0]! });
+        }
+      } catch (error) {
+        console.error('failed to fetch the model list', error);
+        setModelFetch({ status: 'error' });
+      }
+    },
+    [settings, update],
+  );
 
   const setProvider = useCallback(
     async (id: string) => {
@@ -26,9 +70,24 @@ export function useAiSettings() {
       });
       setFetchedModels([]);
       setTest({ status: 'idle' });
+      setModelFetch({ status: 'idle' });
+      if (provider?.kind === 'local') {
+        void fetchModels({ provider: id, baseUrl: provider.defaultBaseUrl });
+      }
     },
-    [providers, update],
+    [providers, update, fetchModels],
   );
+
+  /** Quiet refresh when the Settings tab opens: only for a configured local provider. */
+  const refreshModelsOnSettingsOpen = useCallback(() => {
+    if (!settings || settings.model === '') {
+      return;
+    }
+    const provider = providers.find((entry) => entry.id === settings.provider);
+    if (provider?.kind === 'local') {
+      void fetchModels();
+    }
+  }, [settings, providers, fetchModels]);
 
   const setModel = useCallback(
     (model: string) => {
@@ -94,24 +153,12 @@ export function useAiSettings() {
     setTest(result.ok ? { status: 'ok' } : { status: 'fail', message: result.error ?? 'unknown error' });
   }, [settings]);
 
-  const fetchModels = useCallback(async () => {
-    if (!settings) {
-      return;
-    }
-    const result = await window.doru.fetchAiModels({
-      provider: settings.provider,
-      baseUrl: settings.baseUrl,
-      model: settings.model,
-    });
-    setFetchedModels(result.models ?? []);
-    setTest({ status: 'idle' });
-  }, [settings]);
-
   return {
     settings,
     providers,
     test,
     fetchedModels,
+    modelFetch,
     setProvider,
     setModel,
     setReasoning,
@@ -122,5 +169,6 @@ export function useAiSettings() {
     setAcpArgs,
     runTest,
     fetchModels,
+    refreshModelsOnSettingsOpen,
   };
 }

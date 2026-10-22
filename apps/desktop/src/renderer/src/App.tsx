@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
 import { ChatPanel, EmptyEditorPage, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
@@ -41,11 +41,16 @@ export function App() {
 
   // Re-read the theme list whenever the Settings tab opens: user themes are
   // plain files in <userData>/themes and may appear/change at any time.
+  // A configured local provider also quietly refreshes its model list.
+  const settingsWasOpen = useRef(false);
   useEffect(() => {
-    if (tabs.activeTabId === SETTINGS_TAB_ID) {
+    const isSettings = tabs.activeTabId === SETTINGS_TAB_ID;
+    if (isSettings && !settingsWasOpen.current) {
       void theme.refreshThemes();
+      ai.refreshModelsOnSettingsOpen();
     }
-  }, [tabs.activeTabId, theme.refreshThemes]);
+    settingsWasOpen.current = isSettings;
+  }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
 
   const commands = useMemo(() => new CommandService(), []);
 
@@ -246,6 +251,7 @@ export function App() {
                   providers: ai.providers,
                   test: ai.test,
                   fetchedModels: ai.fetchedModels,
+                  modelFetch: ai.modelFetch,
                   onSetProvider: (id) => void ai.setProvider(id),
                   onSetModel: ai.setModel,
                   onSetBaseUrl: ai.setBaseUrl,
@@ -255,7 +261,8 @@ export function App() {
                   onSetAcpCommand: ai.setAcpCommand,
                   onSetAcpArgs: ai.setAcpArgs,
                   onTest: () => void ai.runTest(),
-                  onFetchModels: () => void ai.fetchModels(),
+                  onFetchModels: (baseUrl) =>
+                    void ai.fetchModels(baseUrl !== undefined ? { baseUrl } : undefined),
                 }
               : null
           }

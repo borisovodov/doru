@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { MessageKey } from '@doru/platform';
 import { nls } from '../nls';
-import type { AiProviderInfo, AiSettingsState } from './types';
+import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';
 import './SettingsView.css';
 
 export interface ThemeEntry {
@@ -20,6 +20,7 @@ export interface AiSettingsSectionProps {
   providers: AiProviderInfo[];
   test: AiTestState;
   fetchedModels: string[];
+  modelFetch: ModelFetchState;
   onSetProvider: (id: string) => void;
   onSetModel: (model: string) => void;
   onSetBaseUrl: (url: string) => void;
@@ -29,7 +30,7 @@ export interface AiSettingsSectionProps {
   onSetAcpCommand: (command: string) => void;
   onSetAcpArgs: (args: string[]) => void;
   onTest: () => void;
-  onFetchModels: () => void;
+  onFetchModels: (baseUrl?: string | undefined) => void;
 }
 
 export interface SettingsViewProps {
@@ -102,7 +103,7 @@ const REASONING_LABELS: Record<(typeof REASONING_LEVELS)[number], MessageKey> = 
 };
 
 function AiSettingsSection(props: AiSettingsSectionProps) {
-  const { settings, providers, test, fetchedModels } = props;
+  const { settings, providers, test, fetchedModels, modelFetch } = props;
   const provider = providers.find((entry) => entry.id === settings.provider);
   const [apiKeyDraft, setApiKeyDraft] = useState('');
   const [baseUrlDraft, setBaseUrlDraft] = useState<string | null>(null);
@@ -115,6 +116,14 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
       ? [settings.model]
       : []),
   ];
+  // For local providers the fetched list is the truth; while it refreshes or
+  // after a failure, the saved model stays as the only option.
+  const localModelOptions =
+    modelFetch.status === 'ok'
+      ? fetchedModels
+      : [...new Set(settings.model !== '' ? [settings.model, ...fetchedModels] : fetchedModels)];
+  const fetching = modelFetch.status === 'loading';
+  const fetchLabel = fetching ? nls.t('settings.ai.modelFetching') : nls.t('settings.ai.modelRefresh');
 
   return (
     <div className="settings-section">
@@ -158,49 +167,85 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         </>
       ) : (
         <>
+          {/* The endpoint comes before the model: the model list is fetched
+              from it, so it must be visible and editable first. */}
           <label className="settings-field">
-            <span>{nls.t('settings.ai.model')}</span>
-            {hasCatalog ? (
-              <select
-                value={settings.model}
-                onChange={(event) => props.onSetModel(event.target.value)}
-                aria-label={nls.t('settings.ai.model')}
-              >
-                {modelOptions.map((id) => {
-                  const entry = provider?.models.find((candidate) => candidate.id === id);
-                  const label = entry ? `${entry.name} — ${modelBadge(entry)}` : id;
-                  return (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-            ) : (
-              // Providers without a catalog (Ollama, LM Studio, custom) have no
-              // in-app model list: the model id is typed, with the provider's
-              // own list as suggestions after an explicit fetch.
-              <>
-                <input
-                  list="doru-model-suggestions"
+            <span>{nls.t('settings.ai.baseUrl')}</span>
+            <input
+              value={baseUrlDraft ?? settings.baseUrl}
+              onChange={(event) => setBaseUrlDraft(event.target.value)}
+              onBlur={() => {
+                if (baseUrlDraft !== null && baseUrlDraft !== settings.baseUrl) {
+                  props.onSetBaseUrl(baseUrlDraft);
+                }
+                setBaseUrlDraft(null);
+              }}
+            />
+          </label>
+
+          {hasCatalog || settings.model !== '' ? (
+            <label className="settings-field">
+              <span>{nls.t('settings.ai.model')}</span>
+              {hasCatalog ? (
+                <select
                   value={settings.model}
                   onChange={(event) => props.onSetModel(event.target.value)}
                   aria-label={nls.t('settings.ai.model')}
-                />
-                <datalist id="doru-model-suggestions">
-                  {fetchedModels.map((id) => (
-                    <option key={id} value={id} />
+                >
+                  {modelOptions.map((id) => {
+                    const entry = provider?.models.find((candidate) => candidate.id === id);
+                    const label = entry ? `${entry.name} — ${modelBadge(entry)}` : id;
+                    return (
+                      <option key={id} value={id}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : modelFetch.status !== 'empty' ? (
+                // Local providers: a dropdown over the fetched list.
+                <select
+                  value={settings.model}
+                  onChange={(event) => props.onSetModel(event.target.value)}
+                  aria-label={nls.t('settings.ai.model')}
+                >
+                  {localModelOptions.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
                   ))}
-                </datalist>
-              </>
-            )}
-          </label>
-          {!hasCatalog ? (
-            <button className="settings-link" onClick={props.onFetchModels}>
-              {nls.t('settings.ai.modelRefresh')}
+                </select>
+              ) : null}
+            </label>
+          ) : null}
+          {!hasCatalog && settings.model === '' ? (
+            // Wizard step: no model chosen yet — the only task is to reach
+            // the provider and pick from its list.
+            <button
+              className="settings-action"
+              disabled={fetching}
+              onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
+            >
+              {fetchLabel}
             </button>
           ) : null}
-          {!hasCatalog && fetchedModels.length === 0 && settings.model === '' ? (
+          {!hasCatalog && settings.model !== '' ? (
+            <button
+              className="settings-link"
+              disabled={fetching}
+              onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
+            >
+              {fetchLabel}
+            </button>
+          ) : null}
+          {!hasCatalog && modelFetch.status === 'error' ? (
+            <p className="settings-note">
+              {settings.model === ''
+                ? nls.t('settings.ai.modelFetchError')
+                : nls.t('settings.ai.modelStale')}
+            </p>
+          ) : null}
+          {!hasCatalog && modelFetch.status === 'empty' ? (
             <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p>
           ) : null}
 
@@ -221,20 +266,6 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
               </select>
             </label>
           ) : null}
-
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.baseUrl')}</span>
-            <input
-              value={baseUrlDraft ?? settings.baseUrl}
-              onChange={(event) => setBaseUrlDraft(event.target.value)}
-              onBlur={() => {
-                if (baseUrlDraft !== null && baseUrlDraft !== settings.baseUrl) {
-                  props.onSetBaseUrl(baseUrlDraft);
-                }
-                setBaseUrlDraft(null);
-              }}
-            />
-          </label>
 
           {provider?.requiresKey ? (
             <div className="settings-field">
@@ -262,15 +293,17 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
             </div>
           ) : null}
 
-          <div className="settings-inline">
-            <button onClick={props.onTest} disabled={test.status === 'testing'}>
-              {test.status === 'testing' ? nls.t('settings.ai.testing') : nls.t('settings.ai.test')}
-            </button>
-            {test.status === 'ok' ? <span className="settings-note">{nls.t('settings.ai.test.ok')}</span> : null}
-            {test.status === 'fail' ? (
-              <span className="settings-error">{nls.t('settings.ai.test.fail', test.message)}</span>
-            ) : null}
-          </div>
+          {(hasCatalog || settings.model !== '') && (
+            <div className="settings-inline">
+              <button onClick={props.onTest} disabled={test.status === 'testing'}>
+                {test.status === 'testing' ? nls.t('settings.ai.testing') : nls.t('settings.ai.test')}
+              </button>
+              {test.status === 'ok' ? <span className="settings-note">{nls.t('settings.ai.test.ok')}</span> : null}
+              {test.status === 'fail' ? (
+                <span className="settings-error">{nls.t('settings.ai.test.fail', test.message)}</span>
+              ) : null}
+            </div>
+          )}
         </>
       )}
     </div>
