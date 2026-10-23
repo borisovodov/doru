@@ -71,7 +71,7 @@ describe('ChatSessionsStore', () => {
     const { store, dir } = makeStore();
     try {
       const a = store.create('/trees/a.doru');
-      const b = store.create('/trees/b.doru');
+      store.create('/trees/b.doru');
       store.appendExchange('/trees/a.doru', a.id, { user: 'q', assistant: { role: 'assistant', content: 'x' } });
       expect(store.list('/trees/b.doru')).toHaveLength(1);
       expect(store.list('/trees/b.doru')[0]?.title).toBe('');

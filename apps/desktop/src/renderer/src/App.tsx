@@ -363,6 +363,7 @@ export function App() {
             onSelectSession={(id) => void chat.switchSession(id)}
             onNewSession={() => void chat.newSession()}
             onDeleteSession={(id) => void chat.deleteSession(id)}
+            onCopy={(text) => void window.doru.copyText(text)}
             onOpenLink={(url) => void window.doru.openExternal(url)}
           />
         }

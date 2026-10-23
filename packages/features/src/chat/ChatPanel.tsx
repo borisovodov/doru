@@ -16,6 +16,8 @@ export interface ChatPanelProps {
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
   onDeleteSession: (id: string) => void;
+  /** Copies text to the system clipboard (the desktop layer owns the access). */
+  onCopy?: (text: string) => void;
   /** Opens a link from a markdown reply; without it, link clicks do nothing. */
   onOpenLink?: (url: string) => void;
 }
@@ -30,6 +32,7 @@ export function ChatPanel({
   onSelectSession,
   onNewSession,
   onDeleteSession,
+  onCopy,
   onOpenLink,
 }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
@@ -63,10 +66,10 @@ export function ChatPanel({
   /** Copies the reply's raw markdown to the system clipboard. */
   const copyReply = (index: number, message: ChatTranscriptMessage) => {
     const text = message.content !== '' ? message.content : (message.error ?? '');
-    if (text === '') {
+    if (text === '' || !onCopy) {
       return;
     }
-    void window.doru.copyText(text);
+    onCopy(text);
     setCopiedIndex(index);
     if (copyTimer.current !== null) {
       window.clearTimeout(copyTimer.current);

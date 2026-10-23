@@ -50,7 +50,16 @@ electronLog.transports.console.writeFn = ({ message }) => {
   console.error(...message.data);
 };
 
-electronLog.transports.file.resolvePathFn = () => logFilePath();
+electronLog.transports.file.resolvePathFn = () => {
+  try {
+    return logFilePath();
+  } catch {
+    // electron-log resolves the path before Electron's app is ready in
+    // some contexts (unit tests, headless runs): fall back to a relative
+    // file name instead of surfacing an unhandled error.
+    return 'doru.log';
+  }
+};
 electronLog.transports.file.maxSize = 5 * 1024 * 1024;
 
 electronLog.transports.console.level = envLevel();

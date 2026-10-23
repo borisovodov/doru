@@ -128,11 +128,12 @@ function acpPromptBlocks(system: string, transcript: ChatTranscriptMessage[], us
     .filter((message) => message.content !== '')
     .map((message) => (message.role === 'user' ? `User: ${message.content}` : `Assistant: ${message.content}`))
     .join('\n');
-  return [
-    { type: 'text', text: system },
-    ...(history === '' ? [] : [{ type: 'text', text: `Previous conversation:\n${history}` }]),
-    { type: 'text', text: userText },
-  ];
+  const blocks: AcpPromptBlock[] = [{ type: 'text', text: system }];
+  if (history !== '') {
+    blocks.push({ type: 'text', text: `Previous conversation:\n${history}` });
+  }
+  blocks.push({ type: 'text', text: userText });
+  return blocks;
 }
 
 export async function sendChat(options: {
