@@ -5,14 +5,8 @@ export const SETTINGS_SCHEMA_URL = 'https://doru.family/settings.json';
 /** The published editor schema for theme palette files. */
 export const THEME_SCHEMA_URL = 'https://doru.family/theme.json';
 
-export const AiSectionSchema = z
+export const ProviderSettingsSchema = z
   .strictObject({
-    provider: z
-      .string()
-      .optional()
-      .describe(
-        'Provider preset id, e.g. "ollama" or "acp". Any string is accepted: ids the running version does not know fall back to the default provider instead of invalidating the file. "acp" spawns an Agent Client Protocol agent (see "command") instead of calling an HTTP API.',
-      ),
     baseUrl: z
       .string()
       .optional()
@@ -20,26 +14,12 @@ export const AiSectionSchema = z
     model: z
       .string()
       .optional()
-      .describe(
-        'Model name. Empty means the preset\'s first default model. The DORU_AI_MODEL environment variable overrides this value. Ignored for provider "acp".',
-      ),
+      .describe('Model name. Empty means the preset\'s first default model. Ignored for provider "acp".'),
     reasoning: z
       .string()
       .optional()
       .describe(
         'Reasoning level for models that support it, translated to each provider\'s native mechanism. Any string is accepted: levels the running version does not know fall back to the provider default. Absent means the provider default.',
-      ),
-    apiKey: z
-      .string()
-      .optional()
-      .describe(
-        'API key in plaintext. On first load the app encrypts it with the OS keychain, moves it to "apiKeyEncrypted" and removes this field. The DORU_AI_API_KEY environment variable overrides any stored key.',
-      ),
-    apiKeyEncrypted: z
-      .string()
-      .optional()
-      .describe(
-        'API key encrypted with the OS keychain (safeStorage), base64-encoded. Written by the app; do not edit by hand.',
       ),
     command: z
       .string()
@@ -49,6 +29,23 @@ export const AiSectionSchema = z
       .array(z.string())
       .optional()
       .describe('For provider "acp" only: arguments for the agent command.'),
+  })
+  .describe('Settings of one AI provider. Keys are provider ids.');
+
+export const AiSectionSchema = z
+  .strictObject({
+    provider: z
+      .string()
+      .optional()
+      .describe(
+        'Active provider preset id, e.g. "ollama" or "acp". Any string is accepted: ids the running version does not know fall back to the default provider instead of invalidating the file. "acp" spawns an Agent Client Protocol agent (see "providers") instead of calling an HTTP API.',
+      ),
+    providers: z
+      .record(z.string(), ProviderSettingsSchema)
+      .optional()
+      .describe(
+        'Settings per provider, keyed by provider id. The app reads the entry of the active provider ("provider" above); the other entries keep their values and are restored when switching back.',
+      ),
   })
   .describe('AI provider settings for the agent chat.');
 

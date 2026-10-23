@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MessageKey } from '@doru/platform';
 import { nls } from '../nls';
 import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';
@@ -107,6 +107,15 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   const provider = providers.find((entry) => entry.id === settings.provider);
   const [apiKeyDraft, setApiKeyDraft] = useState('');
   const [baseUrlDraft, setBaseUrlDraft] = useState<string | null>(null);
+  const [argsDraft, setArgsDraft] = useState<string | null>(null);
+
+  // Drafts never survive a provider switch: a key or URL typed for one
+  // provider must not leak into another's fields.
+  useEffect(() => {
+    setApiKeyDraft('');
+    setBaseUrlDraft(null);
+    setArgsDraft(null);
+  }, [settings.provider]);
 
   const model = provider?.models.find((entry) => entry.id === settings.model);
   const hasCatalog = (provider?.models.length ?? 0) > 0;
@@ -131,7 +140,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
       </button>
       {test.status === 'ok' ? <span className="settings-note">{nls.t('settings.ai.test.ok')}</span> : null}
       {test.status === 'fail' ? (
-        <span className="settings-error">{nls.t('settings.ai.test.fail', test.message)}</span>
+        <span className="settings-error">{test.message}</span>
       ) : null}
     </div>
   );
@@ -170,10 +179,19 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
           {settings.acpCommand !== '' ? (
             <label className="settings-field">
               <span>{nls.t('settings.ai.acp.args')}</span>
+              {/* A draft while typing: splitting on every keystroke would
+                  swallow the space that separates the next argument. */}
               <input
-                value={settings.acpArgs.join(' ')}
+                value={argsDraft ?? settings.acpArgs.join(' ')}
                 placeholder={nls.t('settings.ai.acp.argsHint')}
-                onChange={(event) => props.onSetAcpArgs(event.target.value.trim() === '' ? [] : event.target.value.trim().split(/\s+/))}
+                onChange={(event) => setArgsDraft(event.target.value)}
+                onBlur={() => {
+                  const draft = argsDraft;
+                  if (draft !== null && draft !== settings.acpArgs.join(' ')) {
+                    props.onSetAcpArgs(draft.trim() === '' ? [] : draft.trim().split(/\s+/));
+                  }
+                  setArgsDraft(null);
+                }}
               />
             </label>
           ) : null}

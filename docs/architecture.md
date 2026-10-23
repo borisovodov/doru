@@ -112,13 +112,15 @@ decisions about what we deliberately do **not** build, see
 - **Providers**: Ollama, LM Studio, a custom OpenAI-compatible endpoint, and
   ACP. Cloud presets (OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek) are
   temporarily unlisted while they are rebuilt one by one.
-  `settings.json` records the provider id, model, base URL, reasoning level
-  and API key (encrypted); defaults resolve in `ai-settings.ts`.
-- **API keys** are entered only in the Settings UI and stored via
-  `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `settings.json`; the
-  plaintext never sits in the file. `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars
-  still override. Settings changes go through `jsonc-parser` edits so the
-  file stays human-readable JSONC.
+  `settings.json` records the active provider id plus per-provider entries
+  (model, base URL, reasoning level, ACP command/args) keyed by provider id —
+  only the active provider's entry is used, so switching restores each
+  provider's own setup. Defaults resolve in `ai-settings.ts`.
+- **API keys** are entered only in the Settings UI and stored in
+  `secrets.json` (mode 0600) in the data directory, keyed by provider id and
+  separate from `settings.json` so sharing settings never leaks keys. No OS
+  keychain is involved. Settings changes go through `jsonc-parser` edits so
+  the file stays human-readable JSONC.
 
 ## Theming
 

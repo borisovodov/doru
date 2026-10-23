@@ -1,7 +1,6 @@
-import { safeStorage } from 'electron';
 import { findProvider, type AiProvider } from '@doru/ai';
-import { readSettings, writeSettingsEdits } from './settings';
-import { log } from './log';
+import { readSettings } from './settings';
+import { loadAiApiKey } from './secrets';
 
 /** AI SDK reasoning levels Dóru exposes (provider default is the absence of a level). */
 const REASONING_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
@@ -24,49 +23,36 @@ export interface ResolvedAiSettings {
   configured: boolean;
 }
 
-interface AiSettingsJson {
-  provider?: string;
+interface ProviderSettingsJson {
   baseUrl?: string;
-  apiKey?: string;
-  apiKeyEncrypted?: string;
   model?: string;
   reasoning?: string;
   command?: string;
   args?: string[];
 }
 
-export function loadAiSettings(): ResolvedAiSettings {
+interface AiSettingsJson {
+  provider?: string;
+  providers?: Record<string, ProviderSettingsJson>;
+}
+
+/**
+ * Resolves one provider's effective settings: its own stored entry (or the
+ * preset defaults) plus its API key slot. The global `ai.provider` flag only
+ * decides which entry is active.
+ */
+function resolveSettings(providerId: string): ResolvedAiSettings {
+  const provider = findProvider(providerId);
   const parsed = readSettings();
   const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
+  const stored = ai.providers?.[providerId] ?? {};
 
-  const provider = findProvider(ai.provider ?? 'ollama');
-
-  let apiKey = ai.apiKey ?? '';
-  if (!apiKey && ai.apiKeyEncrypted) {
-    try {
-      apiKey = safeStorage.decryptString(Buffer.from(ai.apiKeyEncrypted, 'base64'));
-    } catch {
-      apiKey = '';
-    }
-  }
-  const envKey = process.env['DORU_AI_API_KEY'];
-  if (envKey) {
-    apiKey = envKey;
-  }
-
-  if (ai.apiKey && !ai.apiKeyEncrypted && safeStorage.isEncryptionAvailable()) {
-    writeSettingsEdits([
-      { path: ['ai', 'apiKeyEncrypted'], value: safeStorage.encryptString(ai.apiKey).toString('base64') },
-      { path: ['ai', 'apiKey'] },
-    ]);
-    log.info('migrated the plaintext API key into safeStorage');
-  }
-
-  const baseUrl = ai.baseUrl ?? provider.defaultBaseUrl ?? '';
-  const model = process.env['DORU_AI_MODEL'] ?? ai.model ?? provider.defaultModels[0] ?? '';
-  const reasoning = normalizeReasoning(ai.reasoning ?? '');
-  const acpCommand = ai.command ?? '';
-  const acpArgs = ai.args ?? [];
+  const baseUrl = stored.baseUrl ?? provider.defaultBaseUrl ?? '';
+  const model = stored.model ?? provider.defaultModels[0] ?? '';
+  const reasoning = normalizeReasoning(stored.reasoning ?? '');
+  const acpCommand = stored.command ?? '';
+  const acpArgs = stored.args ?? [];
+  const apiKey = loadAiApiKey(providerId);
 
   const configured =
     provider.kind === 'acp'
@@ -74,6 +60,12 @@ export function loadAiSettings(): ResolvedAiSettings {
       : model !== '' && baseUrl !== '' && (!provider.requiresKey || apiKey !== '');
 
   return { provider, baseUrl, apiKey, model, reasoning, acpCommand, acpArgs, configured };
+}
+
+export function loadAiSettings(): ResolvedAiSettings {
+  const parsed = readSettings();
+  const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
+  return resolveSettings(ai.provider ?? 'ollama');
 }
 
 export function aiSettingsPayload(settings: ResolvedAiSettings): {
@@ -98,20 +90,24 @@ export function aiSettingsPayload(settings: ResolvedAiSettings): {
   };
 }
 
+/**
+ * Settings for an operation that targets a possibly different provider than
+ * the active one (test connection, model-list fetch while switching). An
+ * explicit override always wins; otherwise the targeted provider's own saved
+ * values are used.
+ */
 export function settingsWithOverrides(overrides: {
   provider?: string;
   baseUrl?: string;
   apiKey?: string;
   model?: string;
 }): ResolvedAiSettings {
-  const settings = loadAiSettings();
-  const provider = overrides.provider ? findProvider(overrides.provider) : settings.provider;
-  const providerChanged = overrides.provider !== undefined && overrides.provider !== settings.provider.id;
+  const active = loadAiSettings();
+  const base = overrides.provider !== undefined ? resolveSettings(overrides.provider) : active;
   return {
-    ...settings,
-    provider,
-    baseUrl: overrides.baseUrl ?? (providerChanged ? provider.defaultBaseUrl : settings.baseUrl),
-    apiKey: overrides.apiKey !== undefined ? overrides.apiKey : settings.apiKey,
-    model: overrides.model ?? settings.model,
+    ...base,
+    baseUrl: overrides.baseUrl ?? base.baseUrl,
+    apiKey: overrides.apiKey !== undefined ? overrides.apiKey : base.apiKey,
+    model: overrides.model ?? base.model,
   };
 }
