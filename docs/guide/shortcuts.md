@@ -2,8 +2,8 @@
 
 Dóru follows the usual editor conventions: on macOS shortcuts use ⌘, on
 Windows and Linux Ctrl; Shift and Alt/Option (⌥) are the same everywhere.
-Shortcuts are inactive while you are typing in a text field or the chat
-input.
+Shortcut chords (with ⌘/Ctrl/Alt) work from anywhere, including text fields
+and the chat input; plain typing never triggers a shortcut.
 
 ## Projects
 
