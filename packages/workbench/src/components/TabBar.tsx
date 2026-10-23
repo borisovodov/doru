@@ -16,6 +16,8 @@ export interface TabBarProps {
   onClose: (id: string) => void;
   /** When provided, tabs can be reordered by dragging; drops call this with the insertion index. */
   onReorder?: ((sourceId: string, dropIndex: number) => void) | undefined;
+  /** Host platform (`process.platform`); on macOS the close action sits on the left side of the tab. */
+  platform?: string | undefined;
 }
 
 interface DragState {
@@ -40,13 +42,16 @@ const DRAG_THRESHOLD_PX = 4;
  * frames of a native drag regardless of `effectAllowed`, and pointer capture
  * gives us full control of both the cursor and the drop indicator.
  */
-export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarProps) {
+export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform }: TabBarProps) {
   const barRef = useRef<HTMLDivElement | null>(null);
   const ghostRef = useRef<HTMLDivElement | null>(null);
   const ghostGrabRef = useRef({ offsetX: 0, offsetY: 0 });
   const pointerRef = useRef<PointerState | null>(null);
   const suppressClickRef = useRef(false);
   const [drag, setDrag] = useState<DragState | null>(null);
+
+  // macOS tabs carry the close action on the left, Safari-style.
+  const closeOnLeft = platform === 'darwin';
 
   // Latest props for the event handlers, which only ever see their own tab id.
   const tabsRef = useRef(tabs);
@@ -87,8 +92,9 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
   // measure the rendered text width on a canvas for subpixel precision, so
   // every sliver of overflow flips the label to the fading mask. When the
   // close action is visible (active or hovered) the label's usable width
-  // excludes the 22px it occupies. Tracks the strip width, the tab set and
-  // hover changes.
+  // excludes the 22px it overlays on the right — on macOS the close sits on
+  // the left instead, in space the label permanently yields to it. Tracks
+  // the strip width, the tab set and hover changes.
   useLayoutEffect(() => {
     const bar = barRef.current;
     if (!bar) {
@@ -110,9 +116,15 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
       const labels = bar.querySelectorAll<HTMLElement>('.tab-label');
       for (const label of labels) {
         const tab = label.closest<HTMLElement>('.tab');
-        const reserveClose =
-          tab && (tab.classList.contains('active') || tab.matches(':hover')) ? 22 : 0;
-        label.classList.toggle('fading', textWidth(label) > label.clientWidth - reserveClose);
+        // On macOS the close action sits on the left, in the space the label
+        // permanently yields, so only the right-side overlay reserves width.
+        const reserve =
+          !closeOnLeft &&
+          tab &&
+          (tab.classList.contains('active') || tab.matches(':hover'))
+            ? 22
+            : 0;
+        label.classList.toggle('fading', textWidth(label) > label.clientWidth - reserve);
       }
     };
     const scheduleUpdate = () => requestAnimationFrame(updateFades);
@@ -126,7 +138,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
       bar.removeEventListener('pointerover', scheduleUpdate);
       bar.removeEventListener('pointerout', scheduleUpdate);
     };
-  }, [tabs]);
+  }, [tabs, closeOnLeft]);
 
   if (tabs.length === 0) {
     return null;
@@ -226,7 +238,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
   const draggedIndex = drag ? tabs.findIndex((tab) => tab.id === drag.draggedId) : -1;
 
   return (
-    <div className="tab-bar" ref={barRef}>
+    <div className={closeOnLeft ? 'tab-bar tab-bar-mac' : 'tab-bar'} ref={barRef}>
       {tabs.map((tab, index) => {
         const isDragged = drag !== null && drag.draggedId === tab.id;
         const isDropTarget =
@@ -234,6 +246,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder }: TabBarP
         const className = [
           'tab',
           tab.id === activeId ? 'active' : '',
+          tab.closable === false ? 'no-close' : '',
           isDragged ? 'dragging' : '',
           isDropTarget ? (drag!.before ? 'drop-before' : 'drop-after') : '',
         ]

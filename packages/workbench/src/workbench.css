@@ -489,6 +489,26 @@ body.sash-resizing * {
   color: var(--doru-fg);
 }
 
+/* macOS: the close action sits on the left side of the tab, Safari-style.
+   The label always yields to it with a fixed left padding, so the text never
+   shifts when the close action appears. */
+.tab-bar-mac .tab-close {
+  right: auto;
+  left: 6px;
+}
+
+.tab-bar-mac .tab:not(.no-close) .tab-label {
+  padding-left: 20px;
+}
+
+/* With the close action on the left the right edge stays free, so the
+   fading label keeps its plain dissolve. */
+.tab-bar-mac .tab:hover .tab-label.fading,
+.tab-bar-mac .tab.active .tab-label.fading {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+}
+
 /* Drop indicator for tab reordering: a 2px accent line in the gap before or
    after the hovered pill. */
 .tab.drop-before::before,
