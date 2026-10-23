@@ -14,8 +14,8 @@ everything else falls back to built-in defaults, so new defaults ship to
 existing users with app updates. The `$schema` reference is the single source
 of documentation: editors with JSON Schema support (VS Code, Zed, JetBrains)
 offer autocompletion, validation and field descriptions from it. The app
-writes entries into the file only when you change a setting in **Settings**
-(or a secret like the API key is stored); everything else stays untouched.
+writes entries into the file only when you change a setting in **Settings**;
+everything else stays untouched.
 The file is plain JSON with comments allowed — edit it with any editor;
 changes are picked up live while the app is running. The app validates the
 file against the schema on load; if it does not parse or does not match the
@@ -29,15 +29,23 @@ Full reference:
 {
   "$schema": "https://doru.family/settings.json",
 
-  // AI provider — set from Settings (gear icon) or here directly.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // ollama | lmstudio | custom | acp (cloud presets return one by one)
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
-    "baseUrl": "",   // optional override of the provider's default endpoint
-    "model": "",
-    // For "acp" only: the agent binary to spawn.
-    // "command": "my-agent",
-    // "args": []
+
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
+    "providers": {
+      "ollama": {
+        "baseUrl": "", // optional override of the provider's default endpoint
+        "model": ""
+      }
+      // For "acp" only: the agent binary to spawn.
+      // "acp": { "command": "my-agent", "args": [] }
+    }
   },
 
   // Theme: one palette file with a dark and a light section. The OS
@@ -45,9 +53,6 @@ Full reference:
   "theme": "doru"
 }
 ```
-
-Environment variables (useful for secrets): `DORU_AI_API_KEY` and
-`DORU_AI_MODEL` override the corresponding values.
 
 ## Logs
 

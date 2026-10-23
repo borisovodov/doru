@@ -2,6 +2,7 @@
 // (`streamText`). Text streams to the renderer as deltas; tool activity is
 // collected into AgentStep[] so the transcript can show what the agent did.
 import { stepCountIs, streamText, type LanguageModel, type ModelMessage, type ToolSet } from 'ai';
+import { classifyError, type AiErrorCode } from './errors';
 import type { ChatMessage } from './types';
 /** AI SDK reasoning levels; absent means the provider default. */
 export type ReasoningLevel =
@@ -27,9 +28,19 @@ export interface AgentRunResult {
    * resolves `.text` with partial content instead of rejecting on mid-stream
    * failures (e.g. a provider's 500 after the role chunk), so the error is
    * carried on the result instead — otherwise the run looks successful with
-   * an empty answer.
+   * an empty answer. The raw text goes to the log; `errorCode` picks the
+   * localized message for the user.
    */
   error?: string;
+  errorCode?: AiErrorCode;
+}
+
+/** A transcript message: what Dóru persists and displays per chat session. */
+export interface ChatTranscriptMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  steps?: AgentStep[];
+  error?: string | undefined;
 }
 
 export interface ChatSendResult extends AgentRunResult {
@@ -134,7 +145,7 @@ export function refineTreeQueryInput(input: unknown): unknown {
 export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult> {
   const steps: AgentStep[] = [];
   const events = options.events ?? {};
-  let streamError: string | undefined;
+  let streamError: { message: string; code: AiErrorCode } | undefined;
 
   const result = streamText({
     model: options.model,
@@ -156,7 +167,10 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
       tree_query: refineTreeQueryInput,
     },
     onError: ({ error }: { error: unknown }) => {
-      streamError = error instanceof Error ? error.message : String(error);
+      streamError = {
+        message: error instanceof Error ? error.message : String(error),
+        code: classifyError(error),
+      };
     },
     onChunk: ({ chunk }) => {
       if (chunk.type === 'text-delta' && chunk.text) {
@@ -191,7 +205,11 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
   });
 
   const finalText = await result.text;
-  return { steps, finalText, ...(streamError !== undefined ? { error: streamError } : {}) };
+  return {
+    steps,
+    finalText,
+    ...(streamError !== undefined ? { error: streamError.message, errorCode: streamError.code } : {}),
+  };
 }
 
 /**

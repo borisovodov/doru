@@ -26,18 +26,19 @@ export function useAiSettings() {
    * empty lists never touch the saved settings.
    */
   const fetchModels = useCallback(
-    async (overrides?: { provider?: string | undefined; baseUrl?: string | undefined }) => {
+    async (overrides?: { provider?: string | undefined; baseUrl?: string | undefined; model?: string | undefined }) => {
       if (!settings) {
         return;
       }
       const provider = overrides?.provider ?? settings.provider;
       const baseUrl = overrides?.baseUrl ?? settings.baseUrl;
+      const model = overrides?.model ?? settings.model;
       setModelFetch({ status: 'loading' });
       try {
         const result = await window.doru.fetchAiModels({
           provider,
           baseUrl,
-          model: settings.model,
+          model,
         });
         setTest({ status: 'idle' });
         if (result.error) {
@@ -51,7 +52,7 @@ export function useAiSettings() {
           return;
         }
         setModelFetch({ status: 'ok' });
-        if (settings.model === '' || !models.includes(settings.model)) {
+        if (model === '' || !models.includes(model)) {
           await update({ model: models[0]! });
         }
       } catch (error) {
@@ -65,11 +66,7 @@ export function useAiSettings() {
   const setProvider = useCallback(
     async (id: string) => {
       const provider = providers.find((entry) => entry.id === id);
-      const next = await update({
-        provider: id,
-        baseUrl: provider?.defaultBaseUrl ?? '',
-        model: provider?.defaultModels[0] ?? '',
-      });
+      const next = await update({ provider: id });
       setFetchedModels([]);
       setTest({ status: 'idle' });
       setModelFetch({ status: 'idle' });
@@ -77,8 +74,8 @@ export function useAiSettings() {
       // until the key exists — the fetch would only fail while the user is
       // still filling the form — and not for providers that start with an
       // empty base URL (custom endpoints need the user's URL first).
-      if (provider?.kind === 'local' && provider.defaultBaseUrl !== '' && !(provider.requiresKey && !next.hasKey)) {
-        void fetchModels({ provider: id, baseUrl: provider.defaultBaseUrl });
+      if (provider?.kind === 'local' && next.baseUrl !== '' && !(provider.requiresKey && !next.hasKey)) {
+        void fetchModels({ provider: id, baseUrl: next.baseUrl, model: next.model });
       }
     },
     [providers, update, fetchModels],

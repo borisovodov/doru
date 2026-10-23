@@ -87,7 +87,16 @@ export function Workbench({
     });
     const onKeydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      // Plain typing in fields never triggers shortcuts, but modifier
+      // combinations (meta+o and friends) stay available wherever the focus
+      // is — the chat input included.
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
         return;
       }
       const match = keybindings.onKeydown(event);

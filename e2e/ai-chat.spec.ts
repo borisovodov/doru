@@ -84,6 +84,89 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
 
     // The chat is idle again.
     await expect(page.locator('.chat-input input')).toBeEnabled();
+
+    // The copy button puts the reply's markdown on the system clipboard.
+    await page.getByRole('button', { name: 'Copy reply' }).click();
+    await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
+    const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
+    expect(copied).toBe('Done.');
+
+    // The exchange persisted into a session with an auto-generated title.
+    const sessionSelect = page.locator('.chat-session-select');
+    await expect(sessionSelect).toHaveCount(1);
+    await expect(sessionSelect.locator('option')).toHaveText(['Find Ivan']);
+
+    // A new chat starts empty; switching back restores the transcript.
+    await page.getByRole('button', { name: 'New chat' }).click();
+    await expect(page.locator('.chat-message')).toHaveCount(0);
+    await expect(sessionSelect.locator('option')).toHaveCount(2);
+    await sessionSelect.selectOption({ label: 'Find Ivan' });
+    await expect(page.locator('.chat-message.user .chat-bubble')).toHaveText('Find Ivan');
+    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.');
+
+    // The second chat can be deleted; the first one survives.
+    await sessionSelect.selectOption({ label: 'Untitled chat' });
+    await page.getByRole('button', { name: 'Delete chat' }).click();
+    await expect(sessionSelect.locator('option')).toHaveCount(1);
+  } finally {
+    await app.close();
+    await new Promise<void>((resolve) => mock.server.close(() => resolve()));
+  }
+});
+
+test('chat sessions persist across app restarts', async () => {
+  const mock = startMockProvider();
+  await new Promise<void>((resolve) => mock.server.listen(0, '127.0.0.1', resolve));
+
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-persist-')), 'family.doru');
+  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-persist-data-'));
+
+  const configureAndChat = async (page: import('@playwright/test').Page) => {
+    await page.evaluate(
+      async ({ baseUrl }) => {
+        await window.doru.setAiSettings({ provider: 'ollama', baseUrl, model: 'mock-model' });
+      },
+      { baseUrl: mock.url() },
+    );
+    await expect(page.locator('.agent-chat-panel')).toBeVisible();
+    await page.locator('.chat-input input').fill('Hello tree');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.', {
+      timeout: 15_000,
+    });
+  };
+
+  const first = await launchApp(project, userData);
+  try {
+    await configureAndChat(first.page);
+  } finally {
+    await first.app.close();
+  }
+
+  // Relaunch with the same userData (no re-seeding): the session and its
+  // transcript come back from the JSONL store.
+  const args = ['.'];
+  if (process.env['CI'] === 'true') {
+    args.push('--no-sandbox');
+  }
+  const app = await electron.launch({
+    args,
+    cwd: appDir,
+    env: { ...process.env, DORU_USER_DATA: userData },
+  });
+  const page = await app.firstWindow();
+  await expect(page.locator('.welcome-page')).toBeVisible();
+  await page.evaluate(
+    async ({ path }) => {
+      await window.doru.openProjectPath(path);
+    },
+    { path: project },
+  );
+  try {
+    const sessionSelect = page.locator('.chat-session-select');
+    await expect(sessionSelect.locator('option')).toHaveText(['Hello tree']);
+    await expect(page.locator('.chat-message.user .chat-bubble')).toHaveText('Hello tree');
+    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.');
   } finally {
     await app.close();
     await new Promise<void>((resolve) => mock.server.close(() => resolve()));

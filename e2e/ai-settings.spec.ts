@@ -64,6 +64,13 @@ test('the AI settings section configures and tests a provider', async () => {
     expect(state.provider).toBe('ollama');
     expect(state.model).toBe('mock-model');
     expect(state.configured).toBe(true);
+
+    // Per-provider profiles: switching away and back restores the values.
+    await page.getByLabel('Provider').selectOption('custom');
+    await expect(page.getByLabel('Base URL')).toHaveValue('');
+    await page.getByLabel('Provider').selectOption('ollama');
+    await expect(page.getByLabel('Base URL')).toHaveValue(mock.url());
+    await expect(page.getByLabel('Model')).toHaveValue('mock-model');
   } finally {
     await app.close();
     await new Promise<void>((resolve) => mock.server.close(() => resolve()));
@@ -71,10 +78,8 @@ test('the AI settings section configures and tests a provider', async () => {
 });
 
 test('the API key field saves and clears the key', async () => {
-  // Saving goes through safeStorage (the OS keychain), which exists on macOS
-  // dev machines but not on headless Linux CI.
-  test.skip(process.platform !== 'darwin', 'safeStorage needs the OS keychain');
-
+  // The key lives in secrets.json (mode 0600) in the app data directory —
+  // no OS keychain involved, so this runs on every platform.
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-ai-key-'));
   const args = ['.'];
   if (process.env['CI'] === 'true') {
@@ -96,7 +101,7 @@ test('the API key field saves and clears the key', async () => {
     const keyInput = page.getByPlaceholder('Paste an API key');
     await keyInput.fill('test-key');
     await page.getByRole('button', { name: 'Save key' }).click();
-    await expect(page.getByPlaceholder('Saved in the system keychain')).toBeVisible();
+    await expect(page.getByPlaceholder('Saved on this computer')).toBeVisible();
 
     const saved = await page.evaluate(() => window.doru.getAiSettings());
     expect(saved.hasKey).toBe(true);

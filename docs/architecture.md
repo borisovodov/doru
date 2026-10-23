@@ -96,6 +96,14 @@ decisions about what we deliberately do **not** build, see
   The wire dialect is derived from the provider registry, not stored in
   settings. The toolset comes from a single shared definition list
   (`doruTools`), which feeds both the in-app AI SDK tools and the MCP server.
+- **Chat sessions**: Dóru owns every conversation — transcripts live as JSONL
+  files under `<userData>/sessions/<projectKeyHash>/` (never inside the
+  `.doru` document; chat is not family data). The transcript is the single
+  source of truth for every provider: models get it replayed as message
+  context each turn, and an ACP agent gets a fresh agent session with the
+  transcript replayed into it whenever the user switches chat sessions — no
+  `session/resume` bookkeeping. The panel header lists sessions with
+  auto-generated titles plus new/delete.
 - **Model catalog**: `@opencode-ai/models` (the official models.dev package)
   ships the offline snapshot — provider lists, pricing, limits, capabilities
   and reasoning options — curated in `packages/ai/src/catalog.ts`. Providers
@@ -112,13 +120,15 @@ decisions about what we deliberately do **not** build, see
 - **Providers**: Ollama, LM Studio, a custom OpenAI-compatible endpoint, and
   ACP. Cloud presets (OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek) are
   temporarily unlisted while they are rebuilt one by one.
-  `settings.json` records the provider id, model, base URL, reasoning level
-  and API key (encrypted); defaults resolve in `ai-settings.ts`.
-- **API keys** are entered only in the Settings UI and stored via
-  `safeStorage` (OS keychain) into `ai.apiKeyEncrypted` in `settings.json`; the
-  plaintext never sits in the file. `DORU_AI_API_KEY`/`DORU_AI_MODEL` env vars
-  still override. Settings changes go through `jsonc-parser` edits so the
-  file stays human-readable JSONC.
+  `settings.json` records the active provider id plus per-provider entries
+  (model, base URL, reasoning level, ACP command/args) keyed by provider id —
+  only the active provider's entry is used, so switching restores each
+  provider's own setup. Defaults resolve in `ai-settings.ts`.
+- **API keys** are entered only in the Settings UI and stored in
+  `secrets.json` (mode 0600) in the data directory, keyed by provider id and
+  separate from `settings.json` so sharing settings never leaks keys. No OS
+  keychain is involved. Settings changes go through `jsonc-parser` edits so
+  the file stays human-readable JSONC.
 
 ## Theming
 

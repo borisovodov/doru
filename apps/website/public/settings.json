@@ -12,39 +12,45 @@
       "type": "object",
       "properties": {
         "provider": {
-          "description": "Provider preset id, e.g. \"ollama\" or \"acp\". Any string is accepted: ids the running version does not know fall back to the default provider instead of invalidating the file. \"acp\" spawns an Agent Client Protocol agent (see \"command\") instead of calling an HTTP API.",
+          "description": "Active provider preset id, e.g. \"ollama\" or \"acp\". Any string is accepted: ids the running version does not know fall back to the default provider instead of invalidating the file. \"acp\" spawns an Agent Client Protocol agent (see \"providers\") instead of calling an HTTP API.",
           "type": "string",
           "default": "ollama"
         },
-        "baseUrl": {
-          "description": "API base URL. Empty means the preset's default endpoint. Ignored for provider \"acp\".",
-          "type": "string"
-        },
-        "model": {
-          "description": "Model name. Empty means the preset's first default model. The DORU_AI_MODEL environment variable overrides this value. Ignored for provider \"acp\".",
-          "type": "string"
-        },
-        "reasoning": {
-          "description": "Reasoning level for models that support it, translated to each provider's native mechanism. Any string is accepted: levels the running version does not know fall back to the provider default. Absent means the provider default.",
-          "type": "string"
-        },
-        "apiKey": {
-          "description": "API key in plaintext. On first load the app encrypts it with the OS keychain, moves it to \"apiKeyEncrypted\" and removes this field. The DORU_AI_API_KEY environment variable overrides any stored key.",
-          "type": "string"
-        },
-        "apiKeyEncrypted": {
-          "description": "API key encrypted with the OS keychain (safeStorage), base64-encoded. Written by the app; do not edit by hand.",
-          "type": "string"
-        },
-        "command": {
-          "description": "For provider \"acp\" only: the agent binary to spawn.",
-          "type": "string"
-        },
-        "args": {
-          "description": "For provider \"acp\" only: arguments for the agent command.",
-          "type": "array",
-          "items": {
+        "providers": {
+          "description": "Settings per provider, keyed by provider id. The app reads the entry of the active provider (\"provider\" above); the other entries keep their values and are restored when switching back.",
+          "type": "object",
+          "propertyNames": {
             "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "baseUrl": {
+                "description": "API base URL. Empty means the preset's default endpoint. Ignored for provider \"acp\".",
+                "type": "string"
+              },
+              "model": {
+                "description": "Model name. Empty means the preset's first default model. Ignored for provider \"acp\".",
+                "type": "string"
+              },
+              "reasoning": {
+                "description": "Reasoning level for models that support it, translated to each provider's native mechanism. Any string is accepted: levels the running version does not know fall back to the provider default. Absent means the provider default.",
+                "type": "string"
+              },
+              "command": {
+                "description": "For provider \"acp\" only: the agent binary to spawn.",
+                "type": "string"
+              },
+              "args": {
+                "description": "For provider \"acp\" only: arguments for the agent command.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false,
+            "description": "Settings of one AI provider. Keys are provider ids."
           }
         }
       },

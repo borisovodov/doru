@@ -41,14 +41,23 @@ const api = {
   ): Promise<unknown> => ipcRenderer.invoke('tree:addRelative', { projectPath, relation, anchorId, person }),
   exportGedcom: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('project:export', { projectPath }),
-  sendChat: (projectPath: string, messages: unknown[]): Promise<unknown> =>
-    ipcRenderer.invoke('chat:send', { projectPath, messages }),
-  cancelChat: (projectPath: string): void => ipcRenderer.send('chat:cancel', projectPath),
+  sendChat: (projectPath: string, sessionId: string, text: string): Promise<unknown> =>
+    ipcRenderer.invoke('chat:send', { projectPath, sessionId, text }),
+  cancelChat: (projectPath: string, sessionId: string): void =>
+    ipcRenderer.send('chat:cancel', { projectPath, sessionId }),
   onChatEvent: (callback: (event: unknown) => void): (() => void) => {
     const listener = (_event: unknown, chatEvent: unknown) => callback(chatEvent);
     ipcRenderer.on('chat:event', listener);
     return () => ipcRenderer.removeListener('chat:event', listener);
   },
+  listChatSessions: (projectKey: string): Promise<unknown> =>
+    ipcRenderer.invoke('chat:sessions:list', projectKey),
+  createChatSession: (projectKey: string): Promise<unknown> =>
+    ipcRenderer.invoke('chat:sessions:create', projectKey),
+  deleteChatSession: (projectKey: string, id: string): Promise<unknown> =>
+    ipcRenderer.invoke('chat:sessions:delete', { projectKey, id }),
+  getChatTranscript: (projectKey: string, id: string): Promise<unknown> =>
+    ipcRenderer.invoke('chat:sessions:transcript', { projectKey, id }),
   onTreeExternalChange: (callback: () => void): (() => void) => {
     const listener = () => callback();
     ipcRenderer.on('tree:externalChange', listener);
@@ -58,6 +67,7 @@ const api = {
   setTheme: (name: string): Promise<unknown> => ipcRenderer.invoke('theme:set', name),
   openThemesFolder: (): Promise<unknown> => ipcRenderer.invoke('themes:open-folder'),
   getAbout: (): Promise<unknown> => ipcRenderer.invoke('app:about'),
+  copyText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:writeText', text),
   openLogs: (): Promise<unknown> => ipcRenderer.invoke('logs:open'),
   getThemeCss: (name: string, mode: 'dark' | 'light'): Promise<unknown> =>
     ipcRenderer.invoke('theme:css', { name, mode }),

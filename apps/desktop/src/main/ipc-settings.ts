@@ -1,4 +1,4 @@
-import { app, ipcMain, safeStorage, shell } from 'electron';
+import { app, clipboard, ipcMain, shell } from 'electron';
 import { generateText } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { AI_PROVIDERS, buildLanguageModel, wireDialect } from '@doru/ai';
@@ -7,13 +7,20 @@ import {
   settingsWithOverrides,
   loadAiSettings,
 } from './ai-settings';
+import { userErrorMessage } from './ai-errors';
+import { ensureLogFile, log, logFilePath } from './log';
+import { nls } from './nls';
+import { clearAiApiKey, saveAiApiKey } from './secrets';
 import { writeSettingsEdits } from './settings';
-import { ensureLogFile, logFilePath } from './log';
 
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiSettings()));
 
   ipcMain.handle('app:about', () => ({ version: app.getVersion() }));
+
+  ipcMain.handle('clipboard:writeText', (_event, text: string) => {
+    clipboard.writeText(typeof text === 'string' ? text : String(text));
+  });
 
   ipcMain.handle('logs:open', () => {
     ensureLogFile();
@@ -76,37 +83,33 @@ export function registerSettingsIpc(): void {
       if (options.provider !== undefined) {
         edits.push({ path: ['ai', 'provider'], value: options.provider });
       }
+      // Every value except the active-provider flag is stored per provider,
+      // so switching providers restores each one's own configuration.
+      const providerId = options.provider ?? loadAiSettings().provider.id;
+      const section = ['ai', 'providers', providerId];
       if (options.baseUrl !== undefined) {
-        edits.push({ path: ['ai', 'baseUrl'], value: options.baseUrl });
+        edits.push({ path: [...section, 'baseUrl'], value: options.baseUrl });
       }
       if (options.model !== undefined) {
-        edits.push({ path: ['ai', 'model'], value: options.model });
+        edits.push({ path: [...section, 'model'], value: options.model });
       }
       if (options.reasoning !== undefined) {
         if (options.reasoning === '') {
-          edits.push({ path: ['ai', 'reasoning'] });
+          edits.push({ path: [...section, 'reasoning'] });
         } else {
-          edits.push({ path: ['ai', 'reasoning'], value: options.reasoning });
+          edits.push({ path: [...section, 'reasoning'], value: options.reasoning });
         }
       }
       if (options.acpCommand !== undefined) {
-        edits.push({ path: ['ai', 'command'], value: options.acpCommand });
+        edits.push({ path: [...section, 'command'], value: options.acpCommand });
       }
       if (options.acpArgs !== undefined) {
-        edits.push({ path: ['ai', 'args'], value: options.acpArgs });
+        edits.push({ path: [...section, 'args'], value: options.acpArgs });
       }
       if (options.clearKey) {
-        edits.push({ path: ['ai', 'apiKeyEncrypted'] });
-        edits.push({ path: ['ai', 'apiKey'] });
+        clearAiApiKey(providerId);
       } else if (options.apiKey !== undefined && options.apiKey !== '') {
-        if (!safeStorage.isEncryptionAvailable()) {
-          throw new Error('OS keychain is not available');
-        }
-        edits.push({
-          path: ['ai', 'apiKeyEncrypted'],
-          value: safeStorage.encryptString(options.apiKey).toString('base64'),
-        });
-        edits.push({ path: ['ai', 'apiKey'] });
+        saveAiApiKey(providerId, options.apiKey);
       }
       if (edits.length > 0) {
         writeSettingsEdits(edits);
@@ -128,16 +131,19 @@ export function registerSettingsIpc(): void {
     ) => {
       const settings = settingsWithOverrides(options);
       if (settings.provider.kind === 'acp') {
-        return { ok: settings.acpCommand !== '', error: settings.acpCommand !== '' ? undefined : 'ACP command is not set' };
+        return {
+          ok: settings.acpCommand !== '',
+          error: settings.acpCommand !== '' ? undefined : nls.t('settings.ai.acp.commandEmpty'),
+        };
       }
       if (!settings.model) {
-        return { ok: false, error: 'Model is not set' };
+        return { ok: false, error: nls.t('settings.ai.modelNotSet') };
       }
       if (!settings.baseUrl) {
-        return { ok: false, error: 'Base URL is not set' };
+        return { ok: false, error: nls.t('settings.ai.baseUrlNotSet') };
       }
       if (settings.provider.requiresKey && !settings.apiKey) {
-        return { ok: false, error: 'API key is not set' };
+        return { ok: false, error: nls.t('settings.ai.apiKeyNotSet') };
       }
       try {
         const model = buildLanguageModel({
@@ -154,7 +160,11 @@ export function registerSettingsIpc(): void {
         });
         return { ok: true };
       } catch (error) {
-        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+        // Raw text for the log; the renderer shows a localized explanation.
+        log.debug('settings: ai test failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return { ok: false, error: userErrorMessage(error) };
       }
     },
   );

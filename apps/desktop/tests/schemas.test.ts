@@ -9,14 +9,17 @@ import {
 } from '../src/main/schemas';
 
 describe('settings schema', () => {
-  test('accepts the default settings shape', () => {
+  test('accepts per-provider settings', () => {
     const settings = {
       $schema: SETTINGS_SCHEMA_URL,
       ai: {
         provider: 'ollama',
-        baseUrl: 'http://localhost:11434/v1',
-        apiKey: '',
-        model: 'llama3.3',
+        providers: {
+          ollama: {
+            baseUrl: 'http://localhost:11434/v1',
+            model: 'llama3.3',
+          },
+        },
       },
     };
     expect(SettingsFileSchema.safeParse(settings).success).toBe(true);
@@ -24,7 +27,10 @@ describe('settings schema', () => {
 
   test('accepts an ACP provider and a theme', () => {
     const settings = {
-      ai: { provider: 'acp', command: 'my-agent', args: ['--verbose'] },
+      ai: {
+        provider: 'acp',
+        providers: { acp: { command: 'my-agent', args: ['--verbose'] } },
+      },
       theme: 'catppuccin',
     };
     expect(SettingsFileSchema.safeParse(settings).success).toBe(true);
@@ -38,7 +44,10 @@ describe('settings schema', () => {
     expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama' } }).success).toBe(true);
     expect(SettingsFileSchema.safeParse({ ai: { provider: 42 } }).success).toBe(false);
     expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama' }, extra: true }).success).toBe(false);
-    expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama', baseUrl: 42 } }).success).toBe(false);
+    expect(SettingsFileSchema.safeParse({ ai: { providers: { ollama: { baseUrl: 42 } } } }).success).toBe(false);
+    // The old flat settings shape is gone: unknown fields fail validation
+    // and the file is replaced with the default template.
+    expect(SettingsFileSchema.safeParse({ ai: { provider: 'ollama', baseUrl: 'http://x' } }).success).toBe(false);
     // The raw MCP host section is gone: unknown top-level sections still fail.
     expect(SettingsFileSchema.safeParse({ mcp: { servers: [] } }).success).toBe(false);
   });
@@ -47,9 +56,13 @@ describe('settings schema', () => {
     // Reasoning levels are free-form strings: levels the running version
     // does not know fall back to the provider default at runtime, so no
     // value can invalidate a settings file.
-    expect(SettingsFileSchema.safeParse({ ai: { reasoning: 'high' } }).success).toBe(true);
-    expect(SettingsFileSchema.safeParse({ ai: { reasoning: 'some-future-level' } }).success).toBe(true);
-    expect(SettingsFileSchema.safeParse({ ai: { reasoning: 42 } }).success).toBe(false);
+    expect(
+      SettingsFileSchema.safeParse({ ai: { providers: { ollama: { reasoning: 'high' } } } }).success,
+    ).toBe(true);
+    expect(
+      SettingsFileSchema.safeParse({ ai: { providers: { ollama: { reasoning: 'some-future-level' } } } }).success,
+    ).toBe(true);
+    expect(SettingsFileSchema.safeParse({ ai: { providers: { ollama: { reasoning: 42 } } } }).success).toBe(false);
   });
 
   test('the published schema is 2020-12, strict and addressed at the URL', () => {
