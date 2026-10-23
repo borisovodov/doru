@@ -8,6 +8,8 @@ export interface EditorAreaProps {
   onSelectTab?: ((id: string) => void) | undefined;
   onCloseTab?: ((id: string) => void) | undefined;
   onReorderTab?: ((sourceId: string, dropIndex: number) => void) | undefined;
+  /** Host platform (`process.platform`); on macOS tab close actions sit on the left. */
+  platform?: string | undefined;
 }
 
 export function EditorArea({
@@ -17,6 +19,7 @@ export function EditorArea({
   onSelectTab,
   onCloseTab,
   onReorderTab,
+  platform,
 }: EditorAreaProps) {
   return (
     <div className="editor-area">
@@ -27,6 +30,7 @@ export function EditorArea({
           onSelect={onSelectTab ?? (() => {})}
           onClose={onCloseTab ?? (() => {})}
           onReorder={onReorderTab}
+          platform={platform}
         />
       )}
       <div className="editor-content">{children}</div>

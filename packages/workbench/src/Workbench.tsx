@@ -174,6 +174,7 @@ export function Workbench({
         onSelectTab={onSelectTab}
         onCloseTab={onCloseTab}
         onReorderTab={onReorderTab}
+        platform={platform}
       >
         {editor}
       </EditorArea>
