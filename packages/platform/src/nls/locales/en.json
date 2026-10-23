@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Copied",
+  "chat.copy": "Copy reply",
   "chat.empty": "Open a project to start chatting.",
   "chat.errors.acp.agentError": "The AI assistant reported a problem and could not finish. Please try again.",
   "chat.errors.acp.connectionClosed": "The connection to the AI assistant was interrupted. Check the command and arguments in the AI settings.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "Cannot reach the AI provider. Check the address in the AI settings and your internet connection.",
   "chat.placeholder": "Ask the agent to edit or research your tree…",
   "chat.send": "Send",
+  "chat.sessions.delete": "Delete chat",
+  "chat.sessions.new": "New chat",
+  "chat.sessions.title": "Chat session",
+  "chat.sessions.untitled": "Untitled chat",
   "chat.stop": "Stop",
   "chat.thinking": "The agent is thinking…",
   "chat.title": "Agent Chat",

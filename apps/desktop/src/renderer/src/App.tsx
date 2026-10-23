@@ -356,8 +356,13 @@ export function App() {
           <ChatPanel
             messages={chat.chatMessages}
             busy={chat.chatBusy}
+            sessions={chat.sessions}
+            activeSessionId={chat.activeSessionId}
             onSend={(text) => void chat.sendChatMessage(text)}
             onStop={chat.cancelChat}
+            onSelectSession={(id) => void chat.switchSession(id)}
+            onNewSession={() => void chat.newSession()}
+            onDeleteSession={(id) => void chat.deleteSession(id)}
             onOpenLink={(url) => void window.doru.openExternal(url)}
           />
         }

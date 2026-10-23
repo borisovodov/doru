@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Kopiert",
+  "chat.copy": "Antwort kopieren",
   "chat.empty": "Öffnen Sie ein Projekt, um zu chatten.",
   "chat.errors.acp.agentError": "Der KI-Assistent hat ein Problem gemeldet und konnte nicht fertig werden. Bitte versuchen Sie es erneut.",
   "chat.errors.acp.connectionClosed": "Die Verbindung zum KI-Assistenten wurde unterbrochen. Prüfen Sie Befehl und Argumente in den KI-Einstellungen.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "Der KI-Anbieter ist nicht erreichbar. Prüfen Sie die Adresse in den KI-Einstellungen und Ihre Internetverbindung.",
   "chat.placeholder": "Bitten Sie den Agenten, Ihren Baum zu bearbeiten oder zu recherchieren…",
   "chat.send": "Senden",
+  "chat.sessions.delete": "Chat löschen",
+  "chat.sessions.new": "Neuer Chat",
+  "chat.sessions.title": "Chat-Sitzung",
+  "chat.sessions.untitled": "Unbenannter Chat",
   "chat.stop": "Stopp",
   "chat.thinking": "Der Agent denkt nach…",
   "chat.title": "Agent-Chat",

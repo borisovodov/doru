@@ -96,6 +96,14 @@ decisions about what we deliberately do **not** build, see
   The wire dialect is derived from the provider registry, not stored in
   settings. The toolset comes from a single shared definition list
   (`doruTools`), which feeds both the in-app AI SDK tools and the MCP server.
+- **Chat sessions**: Dóru owns every conversation — transcripts live as JSONL
+  files under `<userData>/sessions/<projectKeyHash>/` (never inside the
+  `.doru` document; chat is not family data). The transcript is the single
+  source of truth for every provider: models get it replayed as message
+  context each turn, and an ACP agent gets a fresh agent session with the
+  transcript replayed into it whenever the user switches chat sessions — no
+  `session/resume` bookkeeping. The panel header lists sessions with
+  auto-generated titles plus new/delete.
 - **Model catalog**: `@opencode-ai/models` (the official models.dev package)
   ships the offline snapshot — provider lists, pricing, limits, capabilities
   and reasoning options — curated in `packages/ai/src/catalog.ts`. Providers

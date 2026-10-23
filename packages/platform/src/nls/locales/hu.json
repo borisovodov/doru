@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Másolva",
+  "chat.copy": "Válasz másolása",
   "chat.empty": "A csevegéshez nyisson meg egy projektet.",
   "chat.errors.acp.agentError": "Az AI-asszisztens hibát jelzett, és nem tudta befejezni. Próbálja újra.",
   "chat.errors.acp.connectionClosed": "Megszakadt a kapcsolat az AI-asszisztenssel. Ellenőrizze a parancsot és az argumentumokat az AI-beállításokban.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "Az AI-szolgáltató nem érhető el. Ellenőrizze a címet az AI-beállításokban és az internetkapcsolatot.",
   "chat.placeholder": "Kérje meg az ügynököt a fa szerkesztésére vagy kutatására…",
   "chat.send": "Küldés",
+  "chat.sessions.delete": "Csevegés törlése",
+  "chat.sessions.new": "Új csevegés",
+  "chat.sessions.title": "Csevegési munkamenet",
+  "chat.sessions.untitled": "Névtelen csevegés",
   "chat.stop": "Leállítás",
   "chat.thinking": "Az ügynök gondolkodik…",
   "chat.title": "Agent-csevegés",

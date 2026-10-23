@@ -8,7 +8,7 @@ import {
 import { releaseBookmarkAccess } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
-import { acpClients, activeBookmarks, isUntitledKey, runtimes, type ProjectRuntime } from './state';
+import { acpClients, acpSessionOwner, activeBookmarks, isUntitledKey, runtimes, type ProjectRuntime } from './state';
 import { markSelfWrite, StampedOpQueue, stopTreeWatcher } from './tree-watcher';
 import { disposeUntitled } from './untitled';
 
@@ -85,6 +85,7 @@ export function closeProjectRuntime(
     void acp.close();
     acpClients.delete(projectPath);
   }
+  acpSessionOwner.delete(projectPath);
   releaseBookmarkAccess(activeBookmarks.get(projectPath));
   activeBookmarks.delete(projectPath);
   if (isUntitledKey(projectPath) && options.removeUntitledFiles !== false) {

@@ -11,7 +11,12 @@ import type {
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
-import type { AgentStep, ChatMessage, ChatSendResult } from '@doru/ai';
+import type {
+  AgentStep,
+  ChatSendResult,
+  ChatSessionMeta,
+  ChatTranscriptMessage,
+} from '@doru/ai';
 import type {
   AiProviderInfo,
   AiSettingsState,
@@ -55,11 +60,17 @@ declare global {
         person: PersonRecord,
       ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
-      sendChat(projectPath: string, messages: ChatMessage[]): Promise<ChatSendResult>;
-      cancelChat(projectPath: string): void;
+      sendChat(projectPath: string, sessionId: string, text: string): Promise<ChatSendResult>;
+      cancelChat(projectPath: string, sessionId: string): void;
       onChatEvent(
-        callback: (event: { type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep }) => void,
+        callback: (
+          event: { sessionId: string } & ({ type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep }),
+        ) => void,
       ): () => void;
+      listChatSessions(projectKey: string): Promise<ChatSessionMeta[]>;
+      createChatSession(projectKey: string): Promise<ChatSessionMeta>;
+      deleteChatSession(projectKey: string, id: string): Promise<void>;
+      getChatTranscript(projectKey: string, id: string): Promise<ChatTranscriptMessage[]>;
       /** Fires when the project file changed on disk outside the app (agents, MCP clients). */
       onTreeExternalChange(callback: () => void): () => void;
       getThemeState(): Promise<{
@@ -70,6 +81,7 @@ declare global {
       setTheme(name: string): Promise<string>;
       openThemesFolder(): Promise<void>;
       getAbout(): Promise<{ version: string }>;
+      copyText(text: string): Promise<void>;
       openLogs(): Promise<string>;
       getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;
       onThemeSystemChanged(callback: (info: { systemDark: boolean }) => void): () => void;

@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Zkopírováno",
+  "chat.copy": "Kopírovat odpověď",
   "chat.empty": "Otevřete projekt a začněte chatovat.",
   "chat.errors.acp.agentError": "Asistent AI nahlásil problém a nemohl dokončit práci. Zkuste to znovu.",
   "chat.errors.acp.connectionClosed": "Spojení s asistentem AI bylo přerušeno. Zkontrolujte příkaz a argumenty v nastavení AI.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "Poskytovatele AI nelze kontaktovat. Zkontrolujte adresu v nastavení AI a připojení k internetu.",
   "chat.placeholder": "Požádejte agenta o úpravu nebo průzkum vašeho stromu…",
   "chat.send": "Odeslat",
+  "chat.sessions.delete": "Smazat chat",
+  "chat.sessions.new": "Nový chat",
+  "chat.sessions.title": "Relace chatu",
+  "chat.sessions.untitled": "Chat bez názvu",
   "chat.stop": "Zastavit",
   "chat.thinking": "Agent přemýšlí…",
   "chat.title": "Chat s agentem",

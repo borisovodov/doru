@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Kopyalandı",
+  "chat.copy": "Yanıtı kopyala",
   "chat.empty": "Sohbet etmek için bir proje açın.",
   "chat.errors.acp.agentError": "Yapay zekâ asistanı bir sorun bildirdi ve tamamlayamadı. Lütfen tekrar deneyin.",
   "chat.errors.acp.connectionClosed": "Yapay zekâ asistanıyla bağlantı kesildi. YZ ayarlarındaki komutu ve bağımsız değişkenleri kontrol edin.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "YZ sağlayıcısına ulaşılamıyor. YZ ayarlarındaki adresi ve internet bağlantınızı kontrol edin.",
   "chat.placeholder": "Ajandan ağacınızı düzenlemesini veya araştırmasını isteyin…",
   "chat.send": "Gönder",
+  "chat.sessions.delete": "Sohbeti sil",
+  "chat.sessions.new": "Yeni sohbet",
+  "chat.sessions.title": "Sohbet oturumu",
+  "chat.sessions.untitled": "Adsız sohbet",
   "chat.stop": "Durdur",
   "chat.thinking": "Ajan düşünüyor…",
   "chat.title": "Ajan Sohbeti",

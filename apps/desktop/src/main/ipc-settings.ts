@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from 'electron';
+import { app, clipboard, ipcMain, shell } from 'electron';
 import { generateText } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { AI_PROVIDERS, buildLanguageModel, wireDialect } from '@doru/ai';
@@ -17,6 +17,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiSettings()));
 
   ipcMain.handle('app:about', () => ({ version: app.getVersion() }));
+
+  ipcMain.handle('clipboard:writeText', (_event, text: string) => {
+    clipboard.writeText(typeof text === 'string' ? text : String(text));
+  });
 
   ipcMain.handle('logs:open', () => {
     ensureLogFile();

@@ -35,6 +35,14 @@ export interface AgentRunResult {
   errorCode?: AiErrorCode;
 }
 
+/** A transcript message: what Dóru persists and displays per chat session. */
+export interface ChatTranscriptMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  steps?: AgentStep[];
+  error?: string | undefined;
+}
+
 export interface ChatSendResult extends AgentRunResult {
   error?: string;
   /** True when the user cancelled the run; text and steps stay partial. */

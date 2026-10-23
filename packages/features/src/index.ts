@@ -16,8 +16,5 @@ export type { AiCatalogModelInfo, AiProviderInfo, AiSettingsState, ModelFetchSta
 export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
 export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEditorPage';
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
-export {
-  ChatPanel,
-  type ChatPanelProps,
-  type ChatTranscriptMessage,
-} from './chat/ChatPanel';
+export { ChatPanel, type ChatPanelProps } from './chat/ChatPanel';
+export type { ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';

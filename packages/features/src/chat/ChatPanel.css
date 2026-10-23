@@ -7,6 +7,60 @@
   min-height: 0;
 }
 
+/* The session picker row in the panel header. */
+.chat-sessions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px 0;
+}
+
+.chat-session-select {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  box-sizing: border-box;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-lg);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+}
+
+.chat-session-select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.chat-session-select:disabled {
+  opacity: 0.55;
+}
+
+.chat-sessions .chat-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0; /* the UA button padding collapses the flex child SVG */
+  background: transparent;
+  color: var(--doru-fg-muted, var(--doru-fg));
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-lg);
+  cursor: pointer;
+}
+
+.chat-sessions .chat-action:hover:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.chat-sessions .chat-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .chat-messages {
   flex: 1;
   min-height: 0;
@@ -28,6 +82,37 @@
 
 .chat-message.assistant {
   justify-content: flex-start;
+}
+
+/* The assistant bubble plus its copy action, stacked in a column. */
+.chat-assistant {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.chat-message-actions {
+  display: flex;
+}
+
+.chat-message-actions .chat-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0; /* the UA button padding collapses the flex child SVG */
+  background: transparent;
+  color: var(--doru-fg-faint);
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  cursor: pointer;
+}
+
+.chat-message-actions .chat-copy:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+  color: var(--doru-fg);
 }
 
 .chat-bubble {

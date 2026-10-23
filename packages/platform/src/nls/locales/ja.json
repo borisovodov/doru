@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "コピーしました",
+  "chat.copy": "回答をコピー",
   "chat.empty": "チャットを開始するにはプロジェクトを開いてください。",
   "chat.errors.acp.agentError": "AIアシスタントが問題を報告し、完了できませんでした。もう一度お試しください。",
   "chat.errors.acp.connectionClosed": "AIアシスタントとの接続が切れました。AI設定のコマンドと引数を確認してください。",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "AIプロバイダーに接続できません。AI設定のアドレスとインターネット接続を確認してください。",
   "chat.placeholder": "ツリーの編集や調査をエージェントに依頼してください…",
   "chat.send": "送信",
+  "chat.sessions.delete": "チャットを削除",
+  "chat.sessions.new": "新しいチャット",
+  "chat.sessions.title": "チャットセッション",
+  "chat.sessions.untitled": "無題のチャット",
   "chat.stop": "停止",
   "chat.thinking": "エージェントが考えています…",
   "chat.title": "エージェント チャット",

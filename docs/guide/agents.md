@@ -7,6 +7,13 @@ can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
 `tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render` (the
 last one renders a person's ancestor chart as an SVG image).
 
+Conversations are saved as **chat sessions**: the header of the chat panel
+lists your sessions, and you can switch between them, start a new chat or
+delete them. Sessions are stored per project in the app data directory
+(not inside the `.doru` file), the title comes from your first message, and
+everything survives app restarts. Every reply has a copy button that puts
+its raw markdown on the system clipboard.
+
 The provider is configured in the `ai` section of `settings.json` (see
 [Settings](settings.md)):
 

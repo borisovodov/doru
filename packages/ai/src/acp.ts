@@ -28,6 +28,12 @@ export interface AcpConnectorOptions {
   startTimeoutMs?: number;
 }
 
+/** A text block of an ACP prompt (the protocol has no dedicated system role). */
+export interface AcpPromptBlock {
+  type: 'text';
+  text: string;
+}
+
 interface ToolCallUpdateLike {
   toolCallId: string;
   name?: string | null;
@@ -46,6 +52,7 @@ const DEFAULT_START_TIMEOUT_MS = 60_000;
 export class AcpAgentClient {
   private readonly app: ClientApp;
   private child: ChildProcess | null = null;
+  private connection: ReturnType<ClientApp['connect']> | null = null;
   private session: ActiveAcpSession | null = null;
   private stderrTail = '';
   private stdoutTail = '';
@@ -61,13 +68,28 @@ export class AcpAgentClient {
   async start(): Promise<void> {
     this.registerPermissionHandler();
     const stream = this.spawnStream();
-    const connection = this.app.connect(stream);
-    await this.withStartGuard(this.attach(connection.agent));
+    this.connection = this.app.connect(stream);
+    await this.withStartGuard(this.attach(this.connection.agent));
   }
 
   async startWithAgent(agentApp: AgentApp): Promise<void> {
     this.registerPermissionHandler();
-    const connection = this.app.connect(agentApp);
+    this.connection = this.app.connect(agentApp);
+    await this.withStartGuard(this.attach(this.connection.agent));
+  }
+
+  /**
+   * Starts a fresh agent session on the existing connection. Dóru owns the
+   * conversation (the transcript) and replays it into a new agent session
+   * when the user switches chat sessions, so the agent never needs
+   * `session/resume` bookkeeping.
+   */
+  async resetSession(): Promise<void> {
+    const connection = this.connection;
+    if (!connection) {
+      throw new AcpError('acp-connection-closed', 'The ACP connection is not started');
+    }
+    this.captureStdout = true;
     await this.withStartGuard(this.attach(connection.agent));
   }
 
@@ -212,10 +234,9 @@ export class AcpAgentClient {
   }
 
   async prompt(
-    text: string,
+    blocks: AcpPromptBlock[],
     events?: AgentEvents,
     signal?: AbortSignal,
-    system?: string,
   ): Promise<{ steps: AgentStep[]; finalText: string }> {
     const session = this.session;
     if (!session) {
@@ -239,11 +260,7 @@ export class AcpAgentClient {
       // when the agent process dies (Stop button).
       // ACP has no dedicated system channel, so the instructions travel as a
       // leading text block in front of the user's message.
-      const promptContent = [
-        ...(system !== undefined && system !== '' ? [{ type: 'text' as const, text: system }] : []),
-        { type: 'text' as const, text },
-      ];
-      const response = session.prompt(promptContent);
+      const response = session.prompt(blocks);
       for (;;) {
         const message = await session.nextUpdate();
         if (message.kind === 'stop') {
@@ -314,6 +331,7 @@ export class AcpAgentClient {
 
   async close(): Promise<void> {
     this.session = null;
+    this.connection = null;
     this.child?.kill();
     this.child = null;
   }

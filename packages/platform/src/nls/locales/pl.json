@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Skopiowano",
+  "chat.copy": "Kopíruj odpowiedź",
   "chat.empty": "Otwórz projekt, aby rozpocząć czat.",
   "chat.errors.acp.agentError": "Asystent AI zgłosił problem i nie mógł dokończyć pracy. Spróbuj ponownie.",
   "chat.errors.acp.connectionClosed": "Połączenie z asystentem AI zostało przerwane. Sprawdź polecenie i argumenty w ustawieniach AI.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "Nie można połączyć się z dostawcą AI. Sprawdź adres w ustawieniach AI i połączenie z internetem.",
   "chat.placeholder": "Poproś agenta o edycję lub wyszukiwanie w drzewie…",
   "chat.send": "Wyślij",
+  "chat.sessions.delete": "Usuń czat",
+  "chat.sessions.new": "Nowy czat",
+  "chat.sessions.title": "Sesja czatu",
+  "chat.sessions.untitled": "Czat bez nazwy",
   "chat.stop": "Zatrzymaj",
   "chat.thinking": "Agent myśli…",
   "chat.title": "Czat z agentem",

@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "Copié",
+  "chat.copy": "Copier la réponse",
   "chat.empty": "Ouvrez un projet pour commencer à discuter.",
   "chat.errors.acp.agentError": "L'assistant IA a signalé un problème et n'a pas pu terminer. Veuillez réessayer.",
   "chat.errors.acp.connectionClosed": "La connexion avec l'assistant IA a été interrompue. Vérifiez la commande et les arguments dans les réglages IA.",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "Impossible de joindre le fournisseur IA. Vérifiez l'adresse dans les réglages IA et votre connexion internet.",
   "chat.placeholder": "Demandez à l'agent de modifier ou de rechercher dans votre arbre…",
   "chat.send": "Envoyer",
+  "chat.sessions.delete": "Supprimer la discussion",
+  "chat.sessions.new": "Nouvelle discussion",
+  "chat.sessions.title": "Session de discussion",
+  "chat.sessions.untitled": "Discussion sans titre",
   "chat.stop": "Arrêter",
   "chat.thinking": "L'agent réfléchit…",
   "chat.title": "Chat avec l'agent",

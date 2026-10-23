@@ -1,5 +1,7 @@
 {
   "app.name": "Dóru",
+  "chat.copied": "已复制",
+  "chat.copy": "复制回复",
   "chat.empty": "打开项目以开始聊天。",
   "chat.errors.acp.agentError": "AI 助手报告了问题，无法完成。请重试。",
   "chat.errors.acp.connectionClosed": "与 AI 助手的连接已中断。请检查 AI 设置中的命令和参数。",
@@ -12,6 +14,10 @@
   "chat.errors.provider.unreachable": "无法连接 AI 提供商。请检查 AI 设置中的地址和网络连接。",
   "chat.placeholder": "让智能体编辑或研究你的家谱…",
   "chat.send": "发送",
+  "chat.sessions.delete": "删除对话",
+  "chat.sessions.new": "新对话",
+  "chat.sessions.title": "对话会话",
+  "chat.sessions.untitled": "未命名对话",
   "chat.stop": "停止",
   "chat.thinking": "智能体正在思考…",
   "chat.title": "智能体聊天",

@@ -48,6 +48,13 @@ export const pendingExternalPaths: string[] = [];
 /** Live ACP agent clients, keyed by project key. */
 export const acpClients = new Map<string, AcpAgentClient>();
 
+/**
+ * Which chat session the ACP agent session currently serves, keyed by
+ * project key. Opening another chat session resets the agent session and
+ * replays the transcript into it.
+ */
+export const acpSessionOwner = new Map<string, string>();
+
 /** Recent-projects service; initialized lazily in `whenReady`. */
 export const recents: { current: RecentProjects | null } = { current: null };
 
