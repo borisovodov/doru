@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import {
   client,
   ndJsonStream,
+  RequestError,
   type AgentApp,
   type ClientApp,
   type ClientContext,
@@ -9,6 +10,7 @@ import {
   type Stream,
 } from '@agentclientprotocol/sdk';
 import type { AgentEvents, AgentStep } from './agent';
+import { AcpError } from './errors';
 
 export interface AcpMcpServerEntry {
   name: string;
@@ -22,6 +24,8 @@ export interface AcpConnectorOptions {
   args: string[];
   cwd: string;
   mcpServers: AcpMcpServerEntry[];
+  /** How long to wait for the agent to complete the ACP handshake. */
+  startTimeoutMs?: number;
 }
 
 interface ToolCallUpdateLike {
@@ -36,10 +40,19 @@ interface ToolCallUpdateLike {
 
 type ActiveAcpSession = Awaited<ReturnType<SessionBuilder['start']>>;
 
+/** Default ACP handshake timeout: generous enough for slow agent boots. */
+const DEFAULT_START_TIMEOUT_MS = 60_000;
+
 export class AcpAgentClient {
   private readonly app: ClientApp;
   private child: ChildProcess | null = null;
   private session: ActiveAcpSession | null = null;
+  private stderrTail = '';
+  private stdoutTail = '';
+  /** Captured only until the session is up: after the handshake the stdout
+   *  stream carries agent messages (family data) that must never be logged. */
+  private captureStdout = false;
+  private spawnFailed: Promise<never> | null = null;
 
   constructor(private readonly options: AcpConnectorOptions) {
     this.app = client({ name: 'doru' });
@@ -49,13 +62,67 @@ export class AcpAgentClient {
     this.registerPermissionHandler();
     const stream = this.spawnStream();
     const connection = this.app.connect(stream);
-    await this.attach(connection.agent);
+    await this.withStartGuard(this.attach(connection.agent));
   }
 
   async startWithAgent(agentApp: AgentApp): Promise<void> {
     this.registerPermissionHandler();
     const connection = this.app.connect(agentApp);
-    await this.attach(connection.agent);
+    await this.withStartGuard(this.attach(connection.agent));
+  }
+
+  /**
+   * The handshake fails when the command is not an ACP agent at all (it may
+   * sit in interactive mode forever) or cannot be spawned. Fail with the
+   * agent's own diagnostics instead of hanging the chat turn.
+   */
+  private async withStartGuard(attach: Promise<void>): Promise<void> {
+    const timeoutMs = this.options.startTimeoutMs ?? DEFAULT_START_TIMEOUT_MS;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        void this.close();
+        reject(
+          new AcpError(
+            'acp-handshake-timeout',
+            this.rawFailure(`did not answer the ACP handshake within ${timeoutMs} ms`),
+          ),
+        );
+      }, timeoutMs);
+    });
+    const guardedAttach = attach.catch((error: unknown) => {
+      // The agent died or rejected the session setup; the raw text stays on
+      // the error for the log, the code picks the localized UI message.
+      if (error instanceof AcpError) {
+        throw error;
+      }
+      if (error instanceof RequestError) {
+        throw new AcpError('acp-agent-error', error.message);
+      }
+      throw new AcpError(
+        'acp-connection-closed',
+        this.rawFailure(`closed the connection: ${error instanceof Error ? error.message : String(error)}`),
+      );
+    });
+    try {
+      await Promise.race([guardedAttach, timeout, this.spawnFailed ?? new Promise<never>(() => {})]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  private rawFailure(detail: string): string {
+    const command = [this.options.command, ...this.options.args].join(' ');
+    const stdout = this.stdoutTail.trim();
+    const stderr = this.stderrTail.trim();
+    const outputs = [
+      ...(stdout === '' ? [] : [`stdout: ${stdout}`]),
+      ...(stderr === '' ? [] : [`stderr: ${stderr}`]),
+    ];
+    const suffix = outputs.length === 0 ? '' : ` Last output: ${outputs.join('; ')}`;
+    return `The ACP agent command ('${command}') ${detail}.${suffix}`;
   }
 
   private async attach(ctx: ClientContext): Promise<void> {
@@ -70,6 +137,9 @@ export class AcpAgentClient {
         })),
       })
       .start();
+    // The handshake is done: stop keeping raw stdout for diagnostics —
+    // from here on it carries the session protocol (family data).
+    this.captureStdout = false;
   }
 
   /**
@@ -89,20 +159,52 @@ export class AcpAgentClient {
 
   private spawnStream(): Stream {
     const child = spawn(this.options.command, this.options.args, {
-      stdio: ['pipe', 'pipe', 'inherit'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.child = child;
+    this.captureStdout = true;
+    this.spawnFailed = new Promise<never>((_, reject) => {
+      child.on('error', (error: Error) =>
+        reject(new AcpError('acp-spawn-failed', error.message)),
+      );
+    });
+    // Keep the agent's diagnostics on the dev console (stderr was inherited
+    // before) while remembering the tail for handshake error messages.
+    child.stderr.on('data', (chunk: Uint8Array) => {
+      process.stderr.write(chunk);
+      this.stderrTail = (this.stderrTail + String(chunk)).slice(-4000);
+    });
+    // The agent can die mid-write (Stop button, handshake timeout): its
+    // stdin pipe is gone and further writes fail with EPIPE. Swallow those
+    // instead of letting them surface as uncaught exceptions.
+    child.stdin.on('error', () => {});
     const output = new WritableStream<Uint8Array>({
       write(chunk) {
-        child.stdin.write(chunk);
+        if (child.exitCode !== null || !child.stdin.writable) {
+          return;
+        }
+        try {
+          child.stdin.write(chunk);
+        } catch {
+          // EPIPE thrown synchronously after the child exited.
+        }
       },
       close() {
-        child.stdin.end();
+        if (child.exitCode === null && !child.stdin.destroyed) {
+          child.stdin.end();
+        }
       },
     });
     const input = new ReadableStream<Uint8Array>({
-      start(controller) {
-        child.stdout.on('data', (chunk: Uint8Array) => controller.enqueue(chunk));
+      start: (controller) => {
+        child.stdout.on('data', (chunk: Uint8Array) => {
+          // Pre-handshake stdout is startup noise (version, help, banners);
+          // keep a short tail for handshake-failure diagnostics only.
+          if (this.captureStdout) {
+            this.stdoutTail = (this.stdoutTail + String(chunk)).slice(-4000);
+          }
+          controller.enqueue(chunk);
+        });
         child.stdout.on('end', () => controller.close());
       },
     });
@@ -113,6 +215,7 @@ export class AcpAgentClient {
     text: string,
     events?: AgentEvents,
     signal?: AbortSignal,
+    system?: string,
   ): Promise<{ steps: AgentStep[]; finalText: string }> {
     const session = this.session;
     if (!session) {
@@ -134,7 +237,13 @@ export class AcpAgentClient {
       // The prompt request and the update stream run concurrently: updates
       // arrive while the turn is still in flight, and nextUpdate() rejects
       // when the agent process dies (Stop button).
-      const response = session.prompt(text);
+      // ACP has no dedicated system channel, so the instructions travel as a
+      // leading text block in front of the user's message.
+      const promptContent = [
+        ...(system !== undefined && system !== '' ? [{ type: 'text' as const, text: system }] : []),
+        { type: 'text' as const, text },
+      ];
+      const response = session.prompt(promptContent);
       for (;;) {
         const message = await session.nextUpdate();
         if (message.kind === 'stop') {
@@ -188,6 +297,16 @@ export class AcpAgentClient {
       }
       await response;
       return { steps, finalText };
+    } catch (error) {
+      if (error instanceof AcpError || signal?.aborted) {
+        throw error;
+      }
+      if (error instanceof RequestError) {
+        // The agent answered the turn with a JSON-RPC error (its own
+        // failure — e.g. an unreachable model upstream).
+        throw new AcpError('acp-agent-error', error.message);
+      }
+      throw new AcpError('acp-connection-closed', error instanceof Error ? error.message : String(error));
     } finally {
       signal?.removeEventListener('abort', onAbort);
     }

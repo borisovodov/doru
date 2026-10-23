@@ -14,7 +14,9 @@ import {
   type ChatSendResult,
 } from '@doru/ai';
 import { loadAiSettings, type ResolvedAiSettings } from './ai-settings';
+import { userErrorMessage, userMessageFor } from './ai-errors';
 import { log } from './log';
+import { nls } from './nls';
 import { ensureRuntime } from './runtime';
 import { acpClients, projectWindows } from './state';
 
@@ -82,10 +84,9 @@ interface ChatRunContext {
   messages: number;
 }
 
-function logRunError(message: string, context: ChatRunContext, error: unknown): string {
+function logRunError(message: string, context: ChatRunContext, error: unknown): void {
   const text = error instanceof Error ? error.message : String(error);
   log.error(message, { ...context, error: text, stack: error instanceof Error ? error.stack : undefined });
-  return text;
 }
 
 export async function sendChat(options: { projectPath: string; messages: ChatMessage[] }): Promise<ChatSendResult> {
@@ -101,7 +102,7 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
     return {
       steps: [],
       finalText: '',
-      error: `AI provider is not configured. Open the settings (gear icon) to set it up.`,
+      error: nls.t('chat.errors.notConfigured'),
     };
   }
   const abort = new AbortController();
@@ -111,11 +112,11 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
     finalText: '',
     cancelled: true,
   });
-  const fail = (error: unknown): ChatSendResult => ({
-    steps: [],
-    finalText: '',
-    error: logRunError('chat: run failed', runContext, error),
-  });
+  // The raw error goes to the log; the user sees a localized explanation.
+  const fail = (error: unknown): ChatSendResult => {
+    logRunError('chat: run failed', runContext, error);
+    return { steps: [], finalText: '', error: userErrorMessage(error) };
+  };
 
   log.debug('chat: run started', runContext);
   const startedAt = Date.now();
@@ -137,13 +138,21 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
     if (settings.provider.kind === 'acp') {
       try {
         const client = await ensureAcpClient(options.projectPath, settings);
-        const acpResult = await client.prompt(lastUser?.content ?? '', events, abort.signal);
+        const acpResult = await client.prompt(lastUser?.content ?? '', events, abort.signal, system);
         result = { steps: acpResult.steps, finalText: acpResult.finalText };
       } catch (error) {
         if (abort.signal.aborted) {
           log.debug('chat: run cancelled', runContext);
           result = cancelled([]);
         } else {
+          // A failed turn can leave the agent session dead (the agent
+          // errors the session or dies); drop the cached client so the
+          // next message spawns a fresh one.
+          const acp = acpClients.get(options.projectPath);
+          if (acp) {
+            void acp.close();
+            acpClients.delete(options.projectPath);
+          }
           result = fail(error);
         }
       }
@@ -168,10 +177,16 @@ export async function sendChat(options: { projectPath: string; messages: ChatMes
           signal: abort.signal,
           ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
         });
+        if (agentResult.error !== undefined) {
+          // Raw stream error for the log; a localized message for the UI.
+          log.warn('chat: run error', { ...runContext, error: agentResult.error });
+        }
         result = {
           steps: agentResult.steps,
           finalText: agentResult.finalText,
-          ...(agentResult.error !== undefined ? { error: agentResult.error } : {}),
+          ...(agentResult.error !== undefined
+            ? { error: userMessageFor(agentResult.errorCode ?? 'unknown') }
+            : {}),
         };
       } catch (error) {
         if (abort.signal.aborted) {

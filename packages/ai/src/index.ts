@@ -28,4 +28,5 @@ export {
 export { TreeMcpBackend, type TreeEditOp } from './backend';
 export { DoruMcpServer } from './server';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry } from './acp';
+export { AcpError, classifyError, type AcpErrorCode, type AiErrorCode } from './errors';
 export { doruTools, doruToolSet, type ToolDefinition } from './tools';

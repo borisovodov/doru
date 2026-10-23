@@ -84,7 +84,7 @@ export function ChatPanel({
                     <ChatStep key={stepIndex} step={step} />
                   ))}
                   {message.error ? (
-                    <div className="chat-error">{nls.t('chat.error', message.error)}</div>
+                    <div className="chat-error">{message.error}</div>
                   ) : null}
                 </div>
               )}

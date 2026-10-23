@@ -35,6 +35,6 @@ describe('LocalizationService', () => {
 
   it('interpolates arguments', () => {
     const service = new LocalizationService('en');
-    expect(service.t('chat.error', 'boom')).toBe('Error: boom');
+    expect(service.t('chat.toolCall', 'tree_query')).toBe('Tool: tree_query');
   });
 });
