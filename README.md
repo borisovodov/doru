@@ -10,9 +10,11 @@
   <a href="https://github.com/borisovodov/doru/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/borisovodov/doru/ci.yml?branch=main" /></a>
 </p>
 
-🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
+🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
+
 PROJECT UNDER ACTIVE DEVELOPMENT, NOTHING WORKS, EVERYTHING CHANGES EVERY DAY UNTIL VERSION 0.1.0.
-🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
+
+🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
 
 A cross-platform desktop app for working with family trees: your data stays in
 plain folders on your disk, works fully offline, and is designed to be driven
