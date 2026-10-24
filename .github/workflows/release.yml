@@ -68,8 +68,7 @@ jobs:
           name: dist-${{ matrix.os }}
           path: |
             apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
-            apps/desktop/release/doru-windows-*.exe
+            apps/desktop/release/doru-windows-*.zip
             apps/desktop/release/*.AppImage
           if-no-files-found: error
 
