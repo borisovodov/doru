@@ -61,3 +61,14 @@ linux:
       arch:
         - x64
         - arm64
+# The flatpak build (run by the borisovodov/flatpak bot) ships the AppStream
+# metainfo so software centers and `flatpak remote-ls` show the app's name,
+# version, and screenshots. The metainfo file is stamped with the release
+# version at build time; the copy in packaging/metadata stays release-free.
+flatpak:
+  baseVersion: '26.08'
+  runtimeVersion: '25.08'
+  branch: stable
+  files:
+    - - ../../packaging/metadata/org.doru.doru.metainfo.xml
+      - share/metainfo/org.doru.doru.metainfo.xml
