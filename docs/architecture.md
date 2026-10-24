@@ -218,11 +218,11 @@ decisions about what we deliberately do **not** build, see
   Chat: user bubbles are accent-alpha pills,
   tool steps are raised chips, the input is a 32px rounded field.
 - **Custom title bar** (see `createWindow` in the main process): macOS uses
-  `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Windows and
-  Linux use `frame: false` + a Window Controls Overlay colored from the theme
+  `titleBarStyle: 'hiddenInset'` with positioned traffic lights; Linux and
+  Windows use `frame: false` + a Window Controls Overlay colored from the theme
   and updated on theme change. The renderer always draws a 38px `.title-bar`
   (drag region, `-webkit-app-region: drag`) and reserves room for the OS
-  controls via `env(titlebar-area-*)` (Windows/Linux) or left padding (macOS).
+  controls via `env(titlebar-area-*)` (Linux/Windows) or left padding (macOS).
 - **Interaction conventions** (learned the hard way): every drag gesture
   (tab reordering, side-bar sashes) is pointer-based — `setPointerCapture`,
   a 4px threshold, Escape to cancel — never native HTML5 drag: the OS drag

@@ -20,10 +20,10 @@ features:
     details: "Beállítások a settings.json-ban: MI-szolgáltatók, témák és még több. Egyszerű szöveg, élő újratöltés, emberek és ügynökök is szerkeszthetik."
   - icon: 🌍
     title: Többplatformos és 17 nyelv
-    details: "macOS-en, Windowson és Linuxon fut. A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."
+    details: "macOS-en, Linuxon és Windowson fut. A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."
   - icon: 💾
     title: Hordozható felépítés
-    details: "Biztonsági mentés egy mappa másolásával. Nyissa meg macOS-en, Windowson vagy Linuxon. A GEDCOM-import és -export biztosítja az interoperabilitást."
+    details: "Biztonsági mentés egy mappa másolásával. Nyissa meg macOS-en, Linuxon vagy Windowson. A GEDCOM-import és -export biztosítja az interoperabilitást."
   - icon: 🐙
     title: Valódi nyílt forráskód
     details: "A teljes alkalmazás MIT-licencű: szabadon használható, módosítható és terjeszthető bármilyen célra. A forráskód teljes egészében nyilvános — nincsenek zárt részek, nincsenek open-core trükkök."

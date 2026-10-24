@@ -20,10 +20,10 @@ features:
     details: "Ayarlar settings.json'da: YZ sağlayıcıları, temalar ve daha fazlası. Düz metin, canlı yeniden yükleme, insanlar ve ajanlar tarafından düzenlenebilir."
   - icon: 🌍
     title: Çok platformlu ve 17 dil
-    details: "macOS, Windows ve Linux'ta çalışır. Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
+    details: "macOS, Linux ve Windows'ta çalışır. Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
   - icon: 💾
     title: Doğası gereği taşınabilir
-    details: "Bir klasörü kopyalayarak yedekleyin. macOS, Windows veya Linux'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."
+    details: "Bir klasörü kopyalayarak yedekleyin. macOS, Linux veya Windows'ta açın. GEDCOM içe ve dışa aktarma birlikte çalışabilirliği sağlar."
   - icon: 🐙
     title: Gerçek açık kaynak
     details: "Uygulamanın tamamı MIT lisansı altındadır: her türlü kullanım, değişiklik ve yeniden dağıtım için özgürdür. Kaynak kodu tamamen açıktır — özel mülk parçalar yok, open-core oyunları yok."

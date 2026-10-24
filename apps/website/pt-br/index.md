@@ -20,10 +20,10 @@ features:
     details: "Configurações no settings.json: provedores de IA, temas e mais. Texto simples, recarga a quente, editável por pessoas e agentes."
   - icon: 🌍
     title: Multiplataforma e 17 idiomas
-    details: "Funciona no macOS, Windows e Linux. A interface é totalmente localizada — do português e inglês ao japonês e chinês simplificado."
+    details: "Funciona no macOS, Linux e Windows. A interface é totalmente localizada — do português e inglês ao japonês e chinês simplificado."
   - icon: 💾
     title: Portátil por natureza
-    details: "Backup copiando uma pasta. Abra-a no macOS, Windows ou Linux. Importação e exportação GEDCOM mantêm a interoperabilidade."
+    details: "Backup copiando uma pasta. Abra-a no macOS, Linux ou Windows. Importação e exportação GEDCOM mantêm a interoperabilidade."
   - icon: 🐙
     title: Open source de verdade
     details: "O aplicativo inteiro está sob a licença MIT: livre para qualquer uso, modificação e redistribuição. Código-fonte totalmente aberto — sem partes proprietárias, sem truques open-core."

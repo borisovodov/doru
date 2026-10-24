@@ -1,13 +1,13 @@
 # Keyboard shortcuts
 
 Dóru follows the usual editor conventions: on macOS shortcuts use ⌘, on
-Windows and Linux Ctrl; Shift and Alt/Option (⌥) are the same everywhere.
+Linux and Windows Ctrl; Shift and Alt/Option (⌥) are the same everywhere.
 Shortcut chords (with ⌘/Ctrl/Alt) work from anywhere, including text fields
 and the chat input; plain typing never triggers a shortcut.
 
 ## Projects
 
-| Action | macOS | Windows / Linux |
+| Action | macOS | Linux / Windows |
 |---|---|---|
 | New Project | `⌘N` | `Ctrl+N` |
 | Open or Import GEDCOM… | `⌘O` | `Ctrl+O` |
@@ -17,7 +17,7 @@ and the chat input; plain typing never triggers a shortcut.
 
 ## Tabs
 
-| Action | macOS | Windows / Linux |
+| Action | macOS | Linux / Windows |
 |---|---|---|
 | Close tab | `⌘W` | `Ctrl+W` |
 | Next tab | `⌘⇧]` | `Ctrl+Tab` |
@@ -29,7 +29,7 @@ last tab, even when fewer than nine are open.
 
 ## Editing
 
-| Action | macOS | Windows / Linux |
+| Action | macOS | Linux / Windows |
 |---|---|---|
 | Undo | `⌘Z` | `Ctrl+Z` |
 | Redo | `⌘⇧Z` | `Ctrl+Shift+Z` |
@@ -39,7 +39,7 @@ link — is one undoable step; edits made by AI agents can be undone too.
 
 ## Panels
 
-| Action | macOS | Windows / Linux |
+| Action | macOS | Linux / Windows |
 |---|---|---|
 | Toggle the chat panel | `⌘⌥B` | `Ctrl+Alt+B` |
 

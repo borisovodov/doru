@@ -20,10 +20,10 @@ features:
     details: "Settings live in settings.json — AI providers, themes, and more. Plain text, hot reloaded, editable by humans and agents alike."
   - icon: 🌍
     title: Cross-platform & 17 languages
-    details: "Runs on macOS, Windows, and Linux. The interface is fully localized — from English and Russian to Japanese and Simplified Chinese."
+    details: "Runs on macOS, Linux, and Windows. The interface is fully localized — from English and Russian to Japanese and Simplified Chinese."
   - icon: 💾
     title: Portable by design
-    details: "Back up by copying a folder. Open it on macOS, Windows, or Linux. GEDCOM import and export keep you interoperable."
+    details: "Back up by copying a folder. Open it on macOS, Linux, or Windows. GEDCOM import and export keep you interoperable."
   - icon: 🐙
     title: Open source
     details: "The entire app is MIT-licensed: free for any use, modification, and redistribution. Full source in the open — no proprietary parts, no open-core tricks."

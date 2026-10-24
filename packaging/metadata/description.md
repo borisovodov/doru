@@ -3,8 +3,8 @@ file (SQLite) with photos in a media folder next to it — nothing is hidden,
 nothing is uploaded.
 
 - **Your tree, your disk.** Trees live in plain files on your machine and work
-  fully offline. Back up by copying a folder; open it on macOS, Windows, or
-  Linux.
+  fully offline. Back up by copying a folder; open it on macOS, Linux, or
+  Windows.
 - **AI-native.** Agent chat with tree tools, an MCP server mode for Claude
   Desktop and Cursor, an MCP host for external servers, and ACP agents.
 - **Private by design.** No accounts, no cloud, no telemetry. The only network

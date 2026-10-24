@@ -20,10 +20,10 @@ features:
     details: "配置在 settings.json：AI 提供方、主题等。纯文本、热重载，人和智能体都能编辑。"
   - icon: 🌍
     title: 跨平台与 17 种语言
-    details: "支持 macOS、Windows 和 Linux。界面已完全本地化——从中英文到日文和简体中文。"
+    details: "支持 macOS、Linux 和 Windows。界面已完全本地化——从中英文到日文和简体中文。"
   - icon: 💾
     title: 天生可移植
-    details: "复制文件夹即可备份。在 macOS、Windows 或 Linux 上打开。GEDCOM 导入导出保证互操作性。"
+    details: "复制文件夹即可备份。在 macOS、Linux 或 Windows 上打开。GEDCOM 导入导出保证互操作性。"
   - icon: 🐙
     title: 真正的开源
     details: "整个应用采用 MIT 许可证：可自由使用、修改和再分发。源代码完全公开——没有专有部分，没有 open-core 套路。"

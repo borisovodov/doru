@@ -20,10 +20,10 @@ features:
     details: "Nastavení v settings.json: poskytovatelé AI, motivy a další. Prostý text, živé znovunačtení, upravitelné lidmi i agenty."
   - icon: 🌍
     title: Multiplatformní a 17 jazyků
-    details: "Běží na macOS, Windows a Linuxu. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
+    details: "Běží na macOS, Linuxu a Windows. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
   - icon: 💾
     title: Přenosné z podstaty
-    details: "Záloha zkopírováním složky. Otevřete ji na macOS, Windows nebo Linuxu. Import a export GEDCOM zajišťují interoperabilitu."
+    details: "Záloha zkopírováním složky. Otevřete ji na macOS, Linuxu nebo Windows. Import a export GEDCOM zajišťují interoperabilitu."
   - icon: 🐙
     title: Skutečný open source
     details: "Celá aplikace je pod licencí MIT: volná pro jakékoli použití, úpravy i šíření. Zdrojový kód je kompletně veřejný — bez proprietárních částí, bez open-core triků."

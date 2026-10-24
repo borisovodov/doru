@@ -46,7 +46,7 @@ always safe.
 
 Dóru follows each OS's native conventions for its settings directory (Electron
 `userData`): `~/Library/Application Support/Doru` on macOS,
-`%APPDATA%\Doru` on Windows, `~/.config/Doru` on Linux. Dev-tool culture
+`~/.config/Doru` on Linux, `%APPDATA%\Doru` on Windows. Dev-tool culture
 (gh, zed, OpenCode) uses `~/.config` everywhere, but for a GUI app the native
 locations are intentional — do not move the macOS settings to `~/.config`.
 
