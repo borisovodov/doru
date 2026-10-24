@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AppStream metainfo for Flathub (and any flatpak distribution).
+
+  Consumed by the Flathub build: copy this file (as org.doru.doru.metainfo.xml)
+  into the flathub/org.doru.doru repository. The description, summary, and
+  keywords mirror packaging/metadata/description.md and summary.md — edit
+  those first, then update this file.
+
+  Validate locally with:
+    appstreamcli validate org.doru.doru.metainfo.xml
+  (available on Linux; part of the flathub review via flatpak-builder-lint).
+-->
+<component type="desktop-application">
+  <id>org.doru.doru</id>
+  <name>Dóru</name>
+  <summary>Local-first genealogy for the AI era</summary>
+  <developer_name>Boris Ovodov</developer_name>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <categories>
+    <category>Education</category>
+    <category>Science</category>
+  </categories>
+
+  <keywords>
+    <keyword>genealogy</keyword>
+    <keyword>genealogist</keyword>
+    <keyword>family tree</keyword>
+    <keyword>ancestry</keyword>
+    <keyword>family history</keyword>
+    <keyword>GEDCOM</keyword>
+    <keyword>offline</keyword>
+  </keywords>
+
+  <url type="homepage">https://doru.family</url>
+  <url type="bugtracker">https://github.com/borisovodov/doru/issues</url>
+  <url type="vcs-browser">https://github.com/borisovodov/doru</url>
+  <url type="help">https://doru.family/docs/</url>
+
+  <launchable type="desktop-id">org.doru.doru.desktop</launchable>
+
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-cartoon">none</content_attribute>
+    <content_attribute id="violence-fantasy">none</content_attribute>
+    <content_attribute id="violence-realistic">none</content_attribute>
+    <content_attribute id="violence-bloodshed">none</content_attribute>
+    <content_attribute id="violence-sexual">none</content_attribute>
+    <content_attribute id="violence-desecration">none</content_attribute>
+    <content_attribute id="violence-slavery">none</content_attribute>
+    <content_attribute id="drugs-alcohol">none</content_attribute>
+    <content_attribute id="drugs-narcotics">none</content_attribute>
+    <content_attribute id="drugs-tobacco">none</content_attribute>
+    <content_attribute id="sex-nudity">none</content_attribute>
+    <content_attribute id="sex-theme">none</content_attribute>
+    <content_attribute id="sex-homosexuality">none</content_attribute>
+    <content_attribute id="sex-prostitution">none</content_attribute>
+    <content_attribute id="sex-adultery">none</content_attribute>
+    <content_attribute id="sex-appearance">none</content_attribute>
+    <content_attribute id="language-profanity">none</content_attribute>
+    <content_attribute id="language-humor">none</content_attribute>
+    <content_attribute id="language-discrimination">none</content_attribute>
+    <content_attribute id="money-advertising">none</content_attribute>
+    <content_attribute id="money-gambling">none</content_attribute>
+    <content_attribute id="money-purchasing">none</content_attribute>
+    <content_attribute id="social-chat">none</content_attribute>
+    <content_attribute id="social-audio">none</content_attribute>
+    <content_attribute id="social-contacts">none</content_attribute>
+    <content_attribute id="social-info">none</content_attribute>
+    <content_attribute id="social-location">none</content_attribute>
+  </content_rating>
+
+  <description>
+    <p>
+      Dóru is local-first genealogy for the AI era. A project is a single
+      .doru file (SQLite) with photos in a media folder next to it — nothing
+      is hidden, nothing is uploaded.
+    </p>
+    <p>
+      Your family tree lives on your disk and works fully offline. Back up by
+      copying a folder; open it on macOS, Windows, or Linux.
+    </p>
+    <p>
+      AI-native: agent chat with tree tools, a built-in MCP server for Claude
+      Desktop and Cursor, an MCP host for external servers, and ACP agents.
+    </p>
+    <p>
+      Private by design: no accounts, no cloud, no telemetry. The only network
+      calls are the AI providers and MCP servers you configure yourself — API
+      keys stay in your OS keychain, and with Ollama or LM Studio even the AI
+      runs entirely on your machine.
+    </p>
+    <p>
+      Settings and themes are plain text files that hot-reload, GEDCOM import
+      and export keep you interoperable, and the interface is localized in 17
+      languages. Dóru is free and open source (MIT).
+    </p>
+  </description>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The family tree canvas</caption>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/tree.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>People sidebar</caption>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/people.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Person editor</caption>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/person.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Welcome screen</caption>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/welcome.png</image>
+    </screenshot>
+  </screenshots>
+</component>
