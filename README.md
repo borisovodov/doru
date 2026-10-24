@@ -75,7 +75,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 - **Sources and notes** — attach a source (title and author) as a citation or
   reuse an existing one; keep free-form research notes on any person.
 - **Undo/redo** — every change, including whole GEDCOM imports and edits made
-  by agents, can be undone (`Cmd+Z` / `Shift+Cmd+Z`, Ctrl on Windows/Linux).
+  by agents, can be undone (`Cmd+Z` / `Shift+Cmd+Z`, Ctrl on Linux/Windows).
 
 ### Import and export
 
@@ -112,7 +112,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 Dóru is installed through the app stores and package managers of your
 platform — no manual downloads. See the
 [installation guide](https://doru.family/docs/installation) for step-by-step
-instructions: Homebrew on macOS, Scoop on Windows, Flatpak on Linux.
+instructions: Homebrew on macOS, Flatpak on Linux, Scoop on Windows.
 
 ## Documentation
 

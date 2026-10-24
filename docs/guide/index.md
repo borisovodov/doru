@@ -18,10 +18,10 @@ agents — through the built-in chat or any MCP/ACP client.
 
 | Page | What it covers |
 |---|---|
-| [Installation](installation.md) | Download links and notes for macOS, Windows, and Linux. |
+| [Installation](installation.md) | Installation instructions for macOS, Linux, and Windows. |
 | [Quick start](getting-started.md) | Create your first project, understand the `.doru` file, add your first persons. |
 | [Working with the tree](tree.md) | The interactive tree canvas: charts, focus navigation, editing, families, sources, notes. |
-| [Keyboard shortcuts](shortcuts.md) | The full list of keyboard shortcuts for macOS and Windows/Linux. |
+| [Keyboard shortcuts](shortcuts.md) | The full list of keyboard shortcuts for macOS, Linux, and Windows. |
 | [Settings](settings.md) | The full `settings.json` reference and environment variables. |
 | [AI and agents](agents.md) | The in-app chat, ACP agents, MCP server mode, example prompts. |
 | [Themes](themes.md) | One theme with dark and light palettes, chosen per OS appearance. |

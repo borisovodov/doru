@@ -20,10 +20,10 @@ features:
     details: "설정은 settings.json — AI 제공자, 테마 등. 일반 텍스트, 핫 리로드, 사람과 에이전트 모두 편집 가능."
   - icon: 🌍
     title: 크로스 플랫폼과 17개 언어
-    details: "macOS, Windows, Linux에서 실행됩니다. 인터페이스는 완전히 현지화되어 있습니다 — 한국어와 영어부터 일본어와 중국어 간체까지."
+    details: "macOS, Linux, Windows에서 실행됩니다. 인터페이스는 완전히 현지화되어 있습니다 — 한국어와 영어부터 일본어와 중국어 간체까지."
   - icon: 💾
     title: 설계부터 이식 가능
-    details: "폴더를 복사하는 것만으로 백업. macOS, Windows, Linux에서 열 수 있습니다. GEDCOM 가져오기와 내보내기가 상호 운용성을 보장합니다."
+    details: "폴더를 복사하는 것만으로 백업. macOS, Linux, Windows에서 열 수 있습니다. GEDCOM 가져오기와 내보내기가 상호 운용성을 보장합니다."
   - icon: 🐙
     title: 진짜 오픈소스
     details: "앱 전체가 MIT 라이선스입니다: 어떤 용도로든 사용, 수정, 재배포가 자유롭습니다. 소스 코드가 완전히 공개되어 있습니다——독점 부분도, open-core 술책도 없습니다."

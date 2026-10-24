@@ -20,10 +20,10 @@ features:
     details: "Einstellungen in settings.json — KI-Anbieter, Themes und mehr. Klartext, Live-Neuladen, editierbar für Menschen und Agenten."
   - icon: 🌍
     title: Plattformübergreifend und 17 Sprachen
-    details: "Läuft auf macOS, Windows und Linux. Die Oberfläche ist vollständig lokalisiert — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."
+    details: "Läuft auf macOS, Linux und Windows. Die Oberfläche ist vollständig lokalisiert — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."
   - icon: 💾
     title: Tragbar von Grund auf
-    details: "Backup durch Kopieren eines Ordners. Öffnen Sie ihn unter macOS, Windows oder Linux. GEDCOM-Import und -Export sichern die Interoperabilität."
+    details: "Backup durch Kopieren eines Ordners. Öffnen Sie ihn unter macOS, Linux oder Windows. GEDCOM-Import und -Export sichern die Interoperabilität."
   - icon: 🐙
     title: Echtes Open Source
     details: "Die gesamte App steht unter der MIT-Lizenz: frei für jede Nutzung, Änderung und Weitergabe. Vollständiger Quellcode öffentlich — keine proprietären Teile, keine Open-Core-Tricks."

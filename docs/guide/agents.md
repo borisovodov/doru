@@ -59,9 +59,9 @@ Claude Desktop configuration example
 }
 ```
 
-Windows: `"command": "C:\\Program Files\\Doru\\doru.exe"`. Linux AppImage: the
-path to the AppImage file. Tool names stay in English regardless of the UI
-language.
+Linux AppImage: the path to the AppImage file. Windows:
+`"command": "C:\\Program Files\\Doru\\doru.exe"`. Tool names stay in English
+regardless of the UI language.
 
 ## Example prompts
 

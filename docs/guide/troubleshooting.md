@@ -7,5 +7,3 @@
   `http://localhost:11434/v1`); no API key is needed. Press “Fetch models
   from the provider” — if it reports the provider is unreachable, make sure
   Ollama is running locally.
-- **Windows SmartScreen warning** — Windows builds are experimental; see
-  [Installation](installation.md).

@@ -5,8 +5,8 @@ Global settings live in `settings.json` in the app's data directory:
 | OS | Path |
 |---|---|
 | macOS | `~/Library/Application Support/Doru/settings.json` |
-| Windows | `%APPDATA%\Doru\settings.json` |
 | Linux | `~/.config/Doru/settings.json` |
+| Windows | `%APPDATA%\Doru\settings.json` |
 
 **Defaults live in the app; the file only records explicit overrides.** On
 first run the app creates the file with just the `$schema` reference —

@@ -19,22 +19,6 @@ brew install --cask doru
 Dóru now appears in your Applications. To update it later, run
 `brew upgrade --cask doru` in Terminal from time to time.
 
-## Windows (experimental)
-
-Dóru on Windows is distributed through **Scoop**, a command-line installer
-that keeps applications up to date. If you don't have Scoop yet, install it
-from [scoop.sh](https://scoop.sh) first.
-
-To install Dóru, open PowerShell and run the commands below:
-
-```powershell
-scoop bucket add bucket https://github.com/borisovodov/bucket
-scoop install doru
-```
-
-Dóru now appears in your Start menu. To update it later, run
-`scoop update doru` in PowerShell from time to time.
-
 ## Linux (experimental)
 
 Dóru on Linux is distributed through **Flatpak**, the standard way to
@@ -64,9 +48,25 @@ brew trust borisovodov/taps
 brew install --cask doru
 ```
 
+## Windows (experimental)
+
+Dóru on Windows is distributed through **Scoop**, a command-line installer
+that keeps applications up to date. If you don't have Scoop yet, install it
+from [scoop.sh](https://scoop.sh) first.
+
+To install Dóru, open PowerShell and run the commands below:
+
+```powershell
+scoop bucket add bucket https://github.com/borisovodov/bucket
+scoop install doru
+```
+
+Dóru now appears in your Start menu. To update it later, run
+`scoop update doru` in PowerShell from time to time.
+
 ## Updates
 
-Updates come through the channel you used: Homebrew on macOS, Scoop on
-Windows, Flatpak (or Homebrew) on Linux. Dóru itself never updates in place
+Updates come through the channel you used: Homebrew on macOS, Flatpak (or
+Homebrew) on Linux, Scoop on Windows. Dóru itself never updates in place
 and never downloads anything behind your back — the app store you installed
 from is the only update channel.
