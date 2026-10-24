@@ -1,5 +1,7 @@
 # Installation
 
+Dóru is installed from your platform's app store or package manager.
+
 ## macOS
 
 Dóru on macOS is distributed through **Homebrew**, a package manager that
