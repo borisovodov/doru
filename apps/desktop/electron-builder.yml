@@ -24,6 +24,9 @@ mac:
   category: public.app-category.lifestyle
   icon: build/Icon.icon
   artifactName: doru-mac-${arch}.${ext}
+  # Capitalized bundle name (Doru.app) on macOS; the lowercase global
+  # executableName stays for Windows and Linux, where it is conventional.
+  executableName: Doru
   target:
     - dmg
     - zip
@@ -47,6 +50,12 @@ win:
   artifactName: doru-windows-${arch}.${ext}
   target:
     - target: nsis
+      arch:
+        - x64
+        - arm64
+    # The plain zip is the Scoop artifact: package managers extract the
+    # portable app directory instead of running the NSIS installer.
+    - target: zip
       arch:
         - x64
         - arm64
