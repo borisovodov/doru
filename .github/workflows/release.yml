@@ -71,7 +71,6 @@ jobs:
             apps/desktop/release/*.zip
             apps/desktop/release/doru-windows-*.exe
             apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
           if-no-files-found: error
 
   release:

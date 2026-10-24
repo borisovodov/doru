@@ -109,22 +109,10 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ## Installation
 
-Every link below downloads the installer for the latest release directly:
-
-| Platform | Installer |
-|---|---|
-| macOS (Apple Silicon) | [doru-mac-arm64.dmg](https://github.com/borisovodov/doru/releases/latest/download/doru-mac-arm64.dmg) |
-| Windows (x64) *(experimental)* | [doru-windows-x64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-x64.exe) |
-| Windows (arm64) *(experimental)* | [doru-windows-arm64.exe](https://github.com/borisovodov/doru/releases/latest/download/doru-windows-arm64.exe) |
-| Linux (x64) *(experimental)* | [doru-linux-x86_64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-x86_64.AppImage) or [doru-linux-amd64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-amd64.deb) |
-| Linux (arm64) *(experimental)* | [doru-linux-arm64.AppImage](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.AppImage) or [doru-linux-arm64.deb](https://github.com/borisovodov/doru/releases/latest/download/doru-linux-arm64.deb) |
-
-macOS is the primary platform. **Windows and Linux builds are experimental**:
-they are built by CI, but have not yet been verified on real Windows/Linux
-machines — expect rough edges. On Windows, SmartScreen may show a warning —
-click “More info → Run anyway”. On Linux, the `.deb` installs with
-`sudo apt install ./doru-*.deb`; the AppImage needs `chmod +x` and then just
-runs. See the [documentation](https://doru.family/docs/) for details.
+Dóru is installed through the app stores and package managers of your
+platform — no manual downloads. See the
+[installation guide](https://doru.family/docs/installation) for step-by-step
+instructions: Homebrew on macOS, Scoop on Windows, Flatpak on Linux.
 
 ## Documentation
 
