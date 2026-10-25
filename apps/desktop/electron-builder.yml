@@ -1,5 +1,8 @@
 appId: org.doru.doru
-productName: Doru
+# Display name for the packaged artifacts (menus, macOS display name). The
+# filesystem identity — the userData directory — comes from package.json's
+# productName, which stays ASCII ('Doru'); keep the accent out of paths.
+productName: Dóru
 executableName: doru
 # Static AppImage runtime (AppImageKit toolset): the legacy fuse2 runtime is
 # dynamically linked against an unversioned libz.so that stock systems do not

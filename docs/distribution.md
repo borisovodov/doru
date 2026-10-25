@@ -93,3 +93,7 @@ GitHub APIs):
   `mac.executableName`; the cask references that exact name.
 - **Scoop** — the channel artifact is the plain zip target: no `#/dl.7z`
   fragment, no installer execution, no `post_install` cleanup.
+- **Product name split** — the display name for packaged artifacts lives in
+  `electron-builder.yml` (`productName: Dóru`); the filesystem identity lives
+  in `package.json` (`productName: Doru`), because Electron derives the
+  userData path from it (`~/.config/Doru`). Keep the accent out of paths.
