@@ -3,7 +3,7 @@
   "version": "0.0.19",
   "private": true,
   "type": "module",
-  "productName": "Dóru",
+  "productName": "Doru",
   "desktopName": "org.doru.doru",
   "description": "Dóru — local-first, MIT-licensed genealogy for the AI era. Your data stays on your machine.",
   "author": "Boris Ovodov <boris@ovodov.me>",
