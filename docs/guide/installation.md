@@ -27,7 +27,7 @@ Dóru now appears in your Applications. To update it later, run
 
 ## Linux
 
-Dóru on Linux is tested on **Ubuntu**, **Fedora**, and **Arch Linux**; other
+Dóru on Linux is tested on **Ubuntu** and **Fedora**; other
 distributions will most likely work too, but are not verified. Pick either
 method below — both install the same app.
 
@@ -61,15 +61,7 @@ Software or Discover), or run `flatpak update` in a terminal.
 Dóru is also distributed through **Homebrew** on Linux. If you don't have
 Homebrew yet, install it from [brew.sh](https://brew.sh) first.
 
-To install Dóru, open a terminal and run these commands.
-
-On Ubuntu and Debian, first install the fuse2 library:
-
-```sh
-sudo apt install libfuse2
-```
-
-Then, on every distribution:
+To install Dóru, open a terminal and run these commands:
 
 ```sh
 brew tap borisovodov/taps
@@ -83,8 +75,7 @@ brew trust borisovodov/taps
 brew install --cask doru
 ```
 
-Homebrew installs the app as an AppImage without a menu entry — launch it
-with `~/Applications/Doru.AppImage`. To update it later, run
+Dóru now appears in your applications menu. To update it later, run
 `brew upgrade --cask doru` in a terminal from time to time.
 
 ## Windows (experimental)
