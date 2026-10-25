@@ -38,8 +38,11 @@ To install Dóru, open a terminal and run the commands below:
 
 ```sh
 flatpak remote-add borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo --user
-flatpak install borisovodov org.doru.doru
+flatpak install borisovodov doru
 ```
+
+The short name `doru` uniquely identifies the app; its full identifier is
+`org.doru.doru`. Run Dóru with `flatpak run doru`.
 
 Dóru now appears in your applications menu. To update it later, let your
 system's software application handle Flatpak updates (for example GNOME
