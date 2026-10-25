@@ -13,7 +13,7 @@
 -->
 <component type="desktop-application">
   <id>org.doru.doru</id>
-  <name>Dóru</name>
+  <name>Doru</name>
   <summary>Local-first genealogy for the AI era</summary>
   <developer id="me.ovodov">
     <name>Boris Ovodov</name>
