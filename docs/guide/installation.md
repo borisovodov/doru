@@ -45,7 +45,7 @@ flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo --use
 ```
 
 ```sh
-flatpak remote-add borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo --user
+flatpak remote-add borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo --user --if-not-exists
 ```
 
 ```sh
