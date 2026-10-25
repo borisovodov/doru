@@ -27,10 +27,11 @@ installed yet, follow the setup steps for your distribution at
 [flatpak.org/setup](https://flatpak.org/setup/).
 
 Dóru's runtime comes from the Flathub repository. If your distribution did
-not add it for you, add it first:
+not add it for you, add it first (to your user installation, where Dóru
+itself is installed):
 
 ```sh
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 ```
 
 To install Dóru, open a terminal and run the commands below:
