@@ -18,7 +18,7 @@ agents — through the built-in chat or any MCP/ACP client.
 
 | Page | What it covers |
 |---|---|
-| [Installation](installation.md) | Installation instructions for macOS, Linux, and Windows. |
+| [Installation and updates](installation.md) | Install Dóru from your platform's app store and keep it updated. |
 | [Quick start](getting-started.md) | Create your first project, understand the `.doru` file, add your first persons. |
 | [Working with the tree](tree.md) | The interactive tree canvas: charts, focus navigation, editing, families, sources, notes. |
 | [Keyboard shortcuts](shortcuts.md) | The full list of keyboard shortcuts for macOS, Linux, and Windows. |
