@@ -4,7 +4,7 @@
 
   Consumed by the Flathub build: copy this file (as org.doru.doru.metainfo.xml)
   into the flathub/org.doru.doru repository. The description, summary, and
-  keywords mirror packaging/metadata/description.md and summary.md — edit
+  keywords mirror distribution/metadata/description.md and summary.md — edit
   those first, then update this file.
 
   Validate locally with:
@@ -104,19 +104,19 @@
   <screenshots>
     <screenshot type="default">
       <caption>The family tree canvas</caption>
-      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/tree.png</image>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/distribution/metadata/screenshots/tree.png</image>
     </screenshot>
     <screenshot>
       <caption>People sidebar</caption>
-      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/people.png</image>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/distribution/metadata/screenshots/people.png</image>
     </screenshot>
     <screenshot>
       <caption>Person editor</caption>
-      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/person.png</image>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/distribution/metadata/screenshots/person.png</image>
     </screenshot>
     <screenshot>
       <caption>Welcome screen</caption>
-      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/packaging/metadata/screenshots/welcome.png</image>
+      <image type="source" width="3200" height="1800">https://raw.githubusercontent.com/borisovodov/doru/main/distribution/metadata/screenshots/welcome.png</image>
     </screenshot>
   </screenshots>
 </component>

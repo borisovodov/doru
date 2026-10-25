@@ -1,4 +1,4 @@
-// Captures the store screenshots in packaging/metadata/screenshots from a
+// Captures the store screenshots in distribution/metadata/screenshots from a
 // built desktop app. Build first, then run:
 //   node scripts/capture-screenshots.ts
 // The app runs against throwaway temp dirs (isolated DORU_USER_DATA, seeded
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appDir = resolve(root, 'apps/desktop');
-const outDir = resolve(root, 'packaging/metadata/screenshots');
+const outDir = resolve(root, 'distribution/metadata/screenshots');
 
 /** Store screenshots are 1600x900 PNGs. */
 const WIDTH = 1600;
