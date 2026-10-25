@@ -31,13 +31,13 @@ not add it for you, add it first (to your user installation, where Dóru
 itself is installed):
 
 ```sh
-flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo --user --if-not-exists
 ```
 
 To install Dóru, open a terminal and run the commands below:
 
 ```sh
-flatpak remote-add --user borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo
+flatpak remote-add borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo --user
 flatpak install borisovodov org.doru.doru
 ```
 
