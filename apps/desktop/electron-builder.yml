@@ -1,6 +1,11 @@
 appId: org.doru.doru
 productName: Doru
 executableName: doru
+# Static AppImage runtime (AppImageKit toolset): the legacy fuse2 runtime is
+# dynamically linked against an unversioned libz.so that stock systems do not
+# ship, so AppImages failed to start on Ubuntu 24.04+.
+toolsets:
+  appimage: '1.0.3'
 directories:
   output: release
 files:

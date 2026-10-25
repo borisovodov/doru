@@ -56,6 +56,10 @@ brew trust borisovodov/taps
 brew install --cask doru
 ```
 
+Note: Homebrew installs the app as an AppImage without a menu entry —
+launch it with `~/Applications/Doru.AppImage`. On Ubuntu 24.04 and newer,
+AppImages also need the `libfuse2` package (`sudo apt install libfuse2`).
+
 ## Windows (experimental)
 
 Dóru on Windows is distributed through **Scoop**, a command-line installer
