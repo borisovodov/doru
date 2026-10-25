@@ -54,7 +54,9 @@ win:
 linux:
   category: Education
   syncDesktopName: true
-  icon: resources/icon.png
+  # A sized set (16–512): the flatpak target skips single icons larger than
+  # 512px, and without any icon the AppStream compose step fails.
+  icon: resources/icons
   artifactName: doru-linux-${arch}.${ext}
   target:
     - target: AppImage
