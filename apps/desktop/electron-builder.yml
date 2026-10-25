@@ -1,3 +1,5 @@
+# The reverse-DNS id: the macOS bundle id and the Flatpak id. Keep in sync
+# with `desktopName` in apps/desktop/package.json and the metainfo <id>.
 appId: org.doru.doru
 # Display name for the packaged artifacts (menus, macOS display name). The
 # filesystem identity — the userData directory — comes from package.json's

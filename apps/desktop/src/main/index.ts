@@ -77,6 +77,8 @@ const gotLock = mcpProject !== null || app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else if (!mcpProject) {
+  // The doru:// protocol scheme — keep in sync with executableName in
+  // electron-builder.yml.
   if (process.defaultApp && process.argv[1]) {
     app.setAsDefaultProtocolClient('doru', process.execPath, [process.argv[1]]);
   } else {

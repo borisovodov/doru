@@ -65,6 +65,24 @@ GitHub APIs):
 - macOS: Developer ID plus notarization, see [signing.md](signing.md).
   Windows binaries are not signed.
 
+## Identifiers
+
+The names below appear as literals in several formats and repositories and
+cannot be derived from one another — keep them in sync deliberately:
+
+- `org.doru.doru` — the reverse-DNS id: `appId` in `electron-builder.yml`
+  (macOS bundle id, Flatpak id), `desktopName` in
+  `apps/desktop/package.json` (Linux desktop file name), the AppStream
+  metainfo `<id>`, and the Homebrew cask's zap paths
+  (`org.doru.doru.plist`).
+- `doru` — the executable name (`executableName` in `electron-builder.yml`),
+  the `doru://` protocol scheme (main process), and the MCP server name for
+  ACP agents (`main/chat.ts`). The `.doru` file extension shares the string
+  but is a separate concept.
+- `Dóru` / `Doru` — display name (`productName` in `electron-builder.yml`)
+  vs filesystem name (`productName` in `package.json`); see the gotcha
+  above.
+
 ## Gotchas that cost real time
 
 - **electron-builder AppImage** — `toolsets.appimage: '1.0.3'` builds with
