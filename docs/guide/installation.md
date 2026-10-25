@@ -63,8 +63,10 @@ Homebrew yet, install it from [brew.sh](https://brew.sh) first.
 
 To install Dóru, open a terminal and run these commands:
 
+Only on Ubuntu and Debian, install the fuse2 library first:
+
 ```sh
-sudo apt install libfuse2   # Ubuntu/Debian only; other distributions ship an equivalent fuse2 package
+sudo apt install libfuse2
 ```
 
 ```sh
