@@ -1,10 +1,11 @@
 # The reverse-DNS id: the macOS bundle id and the Flatpak id. Keep in sync
 # with `desktopName` in apps/desktop/package.json and the metainfo <id>.
 appId: org.doru.doru
-# Display name for the packaged artifacts (menus, macOS display name). The
-# filesystem identity — the userData directory — comes from package.json's
-# productName, which stays ASCII ('Doru'); keep the accent out of paths.
-productName: Dóru
+# productName stays ASCII everywhere: a non-ASCII CFBundleName makes Electron
+# crash at startup on macOS (verified: SIGTRAP before any logging). Menus and
+# launchers on every platform show plain Doru; the Dóru spelling is reserved
+# for in-app UI text. No per-platform name overrides.
+productName: Doru
 executableName: doru
 # Static AppImage runtime (AppImageKit toolset): the legacy fuse2 runtime is
 # dynamically linked against an unversioned libz.so that stock systems do not
@@ -22,7 +23,7 @@ extraResources:
     to: icon.png
 fileAssociations:
   - ext: doru
-    name: Dóru Tree
+    name: Doru Tree
     role: Editor
   - ext: ged
     name: GEDCOM file
