@@ -38,7 +38,7 @@ To install Dóru, open a terminal and run the commands below:
 
 ```sh
 flatpak remote-add borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo --user
-flatpak install borisovodov org.doru.doru
+flatpak install borisovodov doru
 ```
 
 Dóru now appears in your applications menu. To update it later, let your
