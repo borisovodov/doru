@@ -1,4 +1,4 @@
-# Installation
+# Installation and updates
 
 Dóru is installed from your platform's app store or package manager.
 
@@ -21,22 +21,21 @@ Dóru now appears in your Applications. To update it later, run
 
 ## Linux (experimental)
 
-Dóru on Linux is distributed through **Flatpak**, the standard way to
-install applications on most Linux distributions. If Flatpak is not
-installed yet, follow the setup steps for your distribution at
+Dóru on Linux is tested on **Ubuntu**, **Fedora**, and **Arch Linux**; other
+distributions will most likely work too, but are not verified. Pick either
+method below — both install the same app.
+
+### Flatpak
+
+Dóru is distributed through **Flatpak**, the standard way to install
+applications on most Linux distributions. If Flatpak is not installed yet,
+follow the setup steps for your distribution at
 [flatpak.org/setup](https://flatpak.org/setup/).
-
-Dóru's runtime comes from the Flathub repository. If your distribution did
-not add it for you, add it first (to your user installation, where Dóru
-itself is installed):
-
-```sh
-flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo --user --if-not-exists
-```
 
 To install Dóru, open a terminal and run the commands below:
 
 ```sh
+flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo --user --if-not-exists
 flatpak remote-add borisovodov https://borisovodov.github.io/flatpak/borisovodov.flatpakrepo --user
 flatpak install borisovodov doru
 ```
@@ -45,20 +44,23 @@ Dóru now appears in your applications menu. To update it later, let your
 system's software application handle Flatpak updates (for example GNOME
 Software or Discover), or run `flatpak update` in a terminal.
 
-### Homebrew as an alternative
+### Homebrew
 
-If you already use Homebrew on Linux, you can install Dóru the same way as
-on macOS:
+Dóru is also distributed through **Homebrew** on Linux. If you don't have
+Homebrew yet, install it from [brew.sh](https://brew.sh) first.
+
+To install Dóru, open a terminal and run the commands below:
 
 ```sh
+sudo apt install libfuse2   # Ubuntu/Debian only; other distributions ship an equivalent fuse2 package
 brew tap borisovodov/taps
 brew trust borisovodov/taps
 brew install --cask doru
 ```
 
-Note: Homebrew installs the app as an AppImage without a menu entry —
-launch it with `~/Applications/Doru.AppImage`. On Ubuntu 24.04 and newer,
-AppImages also need the `libfuse2` package (`sudo apt install libfuse2`).
+Homebrew installs the app as an AppImage without a menu entry — launch it
+with `~/Applications/Doru.AppImage`. To update it later, run
+`brew upgrade --cask doru` in a terminal from time to time.
 
 ## Windows (experimental)
 
@@ -75,10 +77,3 @@ scoop install doru
 
 Dóru now appears in your Start menu. To update it later, run
 `scoop update doru` in PowerShell from time to time.
-
-## Updates
-
-Updates come through the channel you used: Homebrew on macOS, Flatpak (or
-Homebrew) on Linux, Scoop on Windows. Dóru itself never updates in place
-and never downloads anything behind your back — the app store you installed
-from is the only update channel.
