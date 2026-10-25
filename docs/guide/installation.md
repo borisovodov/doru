@@ -61,13 +61,15 @@ Software or Discover), or run `flatpak update` in a terminal.
 Dóru is also distributed through **Homebrew** on Linux. If you don't have
 Homebrew yet, install it from [brew.sh](https://brew.sh) first.
 
-To install Dóru, open a terminal and run these commands:
+To install Dóru, open a terminal and run these commands.
 
-Only on Ubuntu and Debian, install the fuse2 library first:
+On Ubuntu and Debian, first install the fuse2 library:
 
 ```sh
 sudo apt install libfuse2
 ```
+
+Then, on every distribution:
 
 ```sh
 brew tap borisovodov/taps
