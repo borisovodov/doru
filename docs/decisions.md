@@ -76,3 +76,14 @@ and colons in function names.
   deferred to issue #2.
 - **Monaco for the raw GEDCOM view** — heavy for a read-only view; a plain
   `<pre>` is enough until GEDCOM editing becomes a real feature.
+
+## Distribution
+
+### Stores-only distribution
+
+Dóru is distributed exclusively through app stores and package managers —
+Homebrew, Scoop, Flatpak. Releases contain only the artifacts those channels
+consume: the macOS dmg, the portable Windows zips, the Linux AppImages. No
+installers for direct download, no deb/rpm. Each channel is a publisher-level
+repository with its own update automation; the operational details live in
+[distribution.md](distribution.md).
