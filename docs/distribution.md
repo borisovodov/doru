@@ -123,10 +123,11 @@ cannot be derived from one another — keep them in sync deliberately:
   (ProductName/FileDescription, set via `--config.productName=Dóru` on the
   Windows release job). The override never reaches the packaged
   package.json, so `app.getName()` and the userData path stay Doru.
-  On macOS the display name must be **localized**, and macOS resolves two
-  different names: the full name (`CFBundleDisplayName` — Force Quit,
-  Mission Control) and the short name (`CFBundleName` — the Dock tooltip,
-  Launchpad, the app switcher). Both keys live in
-  `en.lproj/InfoPlist.strings` (shipped via extraResources) with
-  `CFBundleDevelopmentRegion: en`; the raw Info.plist values stay ASCII, so
-  the startup crash cannot happen and the menu bar keeps the plain name.
+  On macOS the display name is **localized** (`en.lproj/InfoPlist.strings`
+  via extraResources, `CFBundleDevelopmentRegion: en`): the localized
+  CFBundleName drives the menu bar and the About window, and the localized
+  CFBundleDisplayName drives Force Quit and Mission Control. The Dock
+  tooltip, Launchpad, and the app switcher show the on-disk bundle name
+  (`Doru.app`) instead — electron-builder sanitizes non-ASCII out of the
+  bundle directory name, and the bundle stays ASCII on purpose. The raw
+  Info.plist values stay ASCII, so the startup crash cannot happen.
