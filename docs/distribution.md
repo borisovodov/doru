@@ -123,7 +123,10 @@ cannot be derived from one another — keep them in sync deliberately:
   (ProductName/FileDescription, set via `--config.productName=Dóru` on the
   Windows release job). The override never reaches the packaged
   package.json, so `app.getName()` and the userData path stay Doru.
-  On macOS the display name must be **localized**: the Dock, Finder, and
-  Spotlight resolve it from `en.lproj/InfoPlist.strings` (shipped via
-  extraResources) with `CFBundleDevelopmentRegion: en` — a plain Info.plist
-  `CFBundleDisplayName` alone is not honored for display.
+  On macOS the display name must be **localized**, and macOS resolves two
+  different names: the full name (`CFBundleDisplayName` — Force Quit,
+  Mission Control) and the short name (`CFBundleName` — the Dock tooltip,
+  Launchpad, the app switcher). Both keys live in
+  `en.lproj/InfoPlist.strings` (shipped via extraResources) with
+  `CFBundleDevelopmentRegion: en`; the raw Info.plist values stay ASCII, so
+  the startup crash cannot happen and the menu bar keeps the plain name.
