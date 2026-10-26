@@ -119,4 +119,7 @@ cannot be derived from one another — keep them in sync deliberately:
   non-ASCII CFBundleName crashes Electron at startup on macOS (SIGTRAP before
   any logging). Display surfaces carry the Dóru spelling instead —
   CFBundleDisplayName on macOS (Dock/Spotlight), the desktop entry Name on
-  Linux, and the AppStream metainfo name.
+  Linux, the AppStream metainfo name, and the Windows exe metadata
+  (ProductName/FileDescription, set via `--config.productName=Dóru` on the
+  Windows release job). The override never reaches the packaged
+  package.json, so `app.getName()` and the userData path stay Doru.
