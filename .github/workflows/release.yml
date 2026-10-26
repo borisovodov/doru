@@ -58,9 +58,20 @@ jobs:
           echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/AuthKey.p8
           export APPLE_API_KEY=/tmp/AuthKey.p8
           npx electron-builder --mac --publish never --config.mac.notarize=true
-      - name: Build installers (Linux/Windows)
-        if: runner.os != 'macOS'
+      - name: Build Linux installers
+        if: runner.os == 'Linux'
         run: npm run package --workspace @doru/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # The Windows exe metadata (ProductName/FileDescription) is display-only,
+      # so it carries the Dóru spelling via a release-time override. The global
+      # productName stays ASCII: a non-ASCII CFBundleName crashes Electron at
+      # startup on macOS, and the packaged package.json — which decides
+      # app.getName() and the userData path — is a plain copy that this
+      # override does not touch.
+      - name: Build Windows installers (Dóru in the exe metadata)
+        if: runner.os == 'Windows'
+        run: npm run package --workspace @doru/desktop -- --config.productName=Dóru
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v7

@@ -79,10 +79,12 @@ cannot be derived from one another — keep them in sync deliberately:
   the `doru://` protocol scheme (main process), and the MCP server name for
   ACP agents (`main/chat.ts`). The `.doru` file extension shares the string
   but is a separate concept.
-- `Dóru` / `Doru` — the product name in every build (config, package.json,
-  desktop entries, store metadata) is plain ASCII Doru, because a non-ASCII
-  CFBundleName crashes Electron at startup on macOS. The Dóru spelling
-  appears only in in-app UI text.
+- `Dóru` / `Doru` — technical names stay ASCII: `productName` drives
+  CFBundleName, the helper app names, and the userData path, and a non-ASCII
+  CFBundleName crashes Electron at startup on macOS. The Dóru spelling lives
+  in display-only fields: `mac.extendInfo.CFBundleDisplayName`,
+  `linux.desktop.entry.Name`, the AppStream metainfo name, and the Homebrew
+  cask's name stanza.
 
 ## Gotchas that cost real time
 
@@ -112,7 +114,12 @@ cannot be derived from one another — keep them in sync deliberately:
   `mac.executableName`; the cask references that exact name.
 - **Scoop** — the channel artifact is the plain zip target: no `#/dl.7z`
   fragment, no installer execution, no `post_install` cleanup.
-- **Accent in names** — `productName` stays ASCII everywhere: a non-ASCII
-  CFBundleName makes Electron crash at startup on macOS (SIGTRAP before any
-  logging). Launchers and menus show plain Doru with no per-platform desktop
-  entries overriding it; the Dóru spelling appears only in in-app UI text.
+- **Accent in names** — `productName` stays ASCII: Electron derives
+  CFBundleName, the helper app names, and the userData path from it, and a
+  non-ASCII CFBundleName crashes Electron at startup on macOS (SIGTRAP before
+  any logging). Display surfaces carry the Dóru spelling instead —
+  CFBundleDisplayName on macOS (Dock/Spotlight), the desktop entry Name on
+  Linux, the AppStream metainfo name, and the Windows exe metadata
+  (ProductName/FileDescription, set via `--config.productName=Dóru` on the
+  Windows release job). The override never reaches the packaged
+  package.json, so `app.getName()` and the userData path stay Doru.

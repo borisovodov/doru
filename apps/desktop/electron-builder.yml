@@ -1,10 +1,11 @@
 # The reverse-DNS id: the macOS bundle id and the Flatpak id. Keep in sync
 # with `desktopName` in apps/desktop/package.json and the metainfo <id>.
 appId: org.doru.doru
-# productName stays ASCII everywhere: a non-ASCII CFBundleName makes Electron
-# crash at startup on macOS (verified: SIGTRAP before any logging). Menus and
-# launchers on every platform show plain Doru; the Dóru spelling is reserved
-# for in-app UI text. No per-platform name overrides.
+# productName stays ASCII: Electron derives technical names from it
+# (CFBundleName, the helper app names, the userData path), and a non-ASCII
+# CFBundleName crashes Electron at startup on macOS (verified: SIGTRAP before
+# any logging). Display surfaces carry the Dóru spelling instead — see the
+# extendInfo and desktop entries below.
 productName: Doru
 executableName: doru
 # Static AppImage runtime (AppImageKit toolset): the legacy fuse2 runtime is
@@ -23,7 +24,7 @@ extraResources:
     to: icon.png
 fileAssociations:
   - ext: doru
-    name: Doru Tree
+    name: Dóru Tree
     role: Editor
   - ext: ged
     name: GEDCOM file
@@ -35,6 +36,10 @@ mac:
   category: public.app-category.lifestyle
   icon: build/Icon.icon
   artifactName: doru-mac-${arch}.${ext}
+  # The Dock and Spotlight show CFBundleDisplayName; the technical
+  # CFBundleName (and the helper app names it drives) stays ASCII.
+  extendInfo:
+    CFBundleDisplayName: Dóru
   # Capitalized bundle name (Doru.app) on macOS; the lowercase global
   # executableName stays for Windows and Linux, where it is conventional.
   executableName: Doru
@@ -65,6 +70,11 @@ win:
 linux:
   category: Education
   syncDesktopName: true
+  # Display name for the generated desktop entries (AppImage and flatpak);
+  # the file name and WM class stay ASCII via desktopName/StartupWMClass.
+  desktop:
+    entry:
+      Name: Dóru
   # A sized set (16–512): the flatpak target skips single icons larger than
   # 512px, and without any icon the AppStream compose step fails.
   icon: resources/icons
