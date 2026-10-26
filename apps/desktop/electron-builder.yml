@@ -20,10 +20,13 @@ files:
 extraResources:
   - from: ../../themes
     to: themes
-  # The Dóru display name is localized: macOS reads CFBundleDisplayName from
-  # InfoPlist.strings (the plain Info.plist key alone is not honored by the
-  # Dock, Finder, and Spotlight). CFBundleDevelopmentRegion below selects the
-  # en.lproj as the default localization, so every locale falls back to it.
+  # The Dóru display name is localized. macOS has two display-name lookups,
+  # and both need an entry in InfoPlist.strings: the full name
+  # (CFBundleDisplayName — Force Quit, Mission Control) and the short name
+  # (CFBundleName — the Dock tooltip, Launchpad, the app switcher). The raw
+  # Info.plist values stay ASCII, so the startup crash cannot happen and
+  # Electron's menu bar keeps the plain name. CFBundleDevelopmentRegion below
+  # selects en.lproj as the default localization, so every locale falls back.
   - from: build/InfoPlist.strings
     to: en.lproj/InfoPlist.strings
   - from: resources/icon.png
