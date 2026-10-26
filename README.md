@@ -111,8 +111,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 Dóru is installed through the app stores and package managers of your
 platform. See the [installation guide](https://doru.family/docs/installation)
-for step-by-step instructions: Homebrew on macOS, Flatpak (or Homebrew) on
-Linux, Scoop on Windows.
+for step-by-step instructions.
 
 ## Documentation
 
