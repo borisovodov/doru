@@ -20,6 +20,12 @@ files:
 extraResources:
   - from: ../../themes
     to: themes
+  # The Dóru display name is localized: macOS reads CFBundleDisplayName from
+  # InfoPlist.strings (the plain Info.plist key alone is not honored by the
+  # Dock, Finder, and Spotlight). CFBundleDevelopmentRegion below selects the
+  # en.lproj as the default localization, so every locale falls back to it.
+  - from: build/InfoPlist.strings
+    to: en.lproj/InfoPlist.strings
   - from: resources/icon.png
     to: icon.png
 fileAssociations:
@@ -40,6 +46,7 @@ mac:
   # CFBundleName (and the helper app names it drives) stays ASCII.
   extendInfo:
     CFBundleDisplayName: Dóru
+    CFBundleDevelopmentRegion: en
   # Capitalized bundle name (Doru.app) on macOS; the lowercase global
   # executableName stays for Windows and Linux, where it is conventional.
   executableName: Doru
