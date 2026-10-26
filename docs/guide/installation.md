@@ -27,9 +27,9 @@ Dóru now appears in your Applications. To update it later, run
 
 ## Linux
 
-Dóru on Linux is tested on **Ubuntu** and **Fedora**; other
-distributions will most likely work too, but are not verified. Pick either
-method below — both install the same app.
+Dóru on Linux is tested on the latest versions of **Ubuntu** and **Fedora**;
+other distributions will most likely work too, but are not verified. Pick
+either method below — both install the same app.
 
 ### Flatpak
 
