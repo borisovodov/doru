@@ -17,4 +17,5 @@ export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
 export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEditorPage';
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
 export { ChatPanel, type ChatPanelProps } from './chat/ChatPanel';
+export { ChatSetupPlaceholder, type ChatSetupPlaceholderProps } from './chat/ChatSetupPlaceholder';
 export type { ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';

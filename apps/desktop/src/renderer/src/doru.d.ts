@@ -93,6 +93,7 @@ declare global {
         }) => void,
       ): () => void;
       onMenuToggleAgentChat(callback: () => void): () => void;
+      onAiSettingsChanged(callback: (state: AiSettingsState) => void): () => void;
       /** Opens a link from a chat reply in the system browser (http/https only). */
       openExternal(url: string): Promise<boolean>;
       listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;

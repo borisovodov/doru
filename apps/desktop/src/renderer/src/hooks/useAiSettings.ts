@@ -13,6 +13,14 @@ export function useAiSettings() {
     void window.doru.getAiProviders().then(setProviders);
   }, []);
 
+  // Settings writes can come from outside the Settings tab (direct IPC calls,
+  // hand edits of settings.json); the main process broadcasts the fresh state.
+  useEffect(() => {
+    return window.doru.onAiSettingsChanged((state) => {
+      setSettings(state);
+    });
+  }, []);
+
   const update = useCallback(async (patch: Parameters<typeof window.doru.setAiSettings>[0]) => {
     const next = await window.doru.setAiSettings(patch);
     setSettings(next);

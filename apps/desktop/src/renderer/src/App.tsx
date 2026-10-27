@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
-import { ChatPanel, EmptyEditorPage, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
+import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
@@ -353,19 +353,23 @@ export function App() {
         onSelectView={handleSelectView}
         editor={editor}
         agentChat={
-          <ChatPanel
-            messages={chat.chatMessages}
-            busy={chat.chatBusy}
-            sessions={chat.sessions}
-            activeSessionId={chat.activeSessionId}
-            onSend={(text) => void chat.sendChatMessage(text)}
-            onStop={chat.cancelChat}
-            onSelectSession={(id) => void chat.switchSession(id)}
-            onNewSession={() => void chat.newSession()}
-            onDeleteSession={(id) => void chat.deleteSession(id)}
-            onCopy={(text) => void window.doru.copyText(text)}
-            onOpenLink={(url) => void window.doru.openExternal(url)}
-          />
+          ai.settings === null ? null : ai.settings.configured ? (
+            <ChatPanel
+              messages={chat.chatMessages}
+              busy={chat.chatBusy}
+              sessions={chat.sessions}
+              activeSessionId={chat.activeSessionId}
+              onSend={(text) => void chat.sendChatMessage(text)}
+              onStop={chat.cancelChat}
+              onSelectSession={(id) => void chat.switchSession(id)}
+              onNewSession={() => void chat.newSession()}
+              onDeleteSession={(id) => void chat.deleteSession(id)}
+              onCopy={(text) => void window.doru.copyText(text)}
+              onOpenLink={(url) => void window.doru.openExternal(url)}
+            />
+          ) : (
+            <ChatSetupPlaceholder onOpenSettings={tabs.openSettingsTab} />
+          )
         }
         tabs={tabs.tabInfos}
         activeTabId={tabs.activeTabId}

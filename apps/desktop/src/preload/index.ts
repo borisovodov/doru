@@ -81,6 +81,11 @@ const api = {
     ipcRenderer.on('theme:settings-changed', listener);
     return () => ipcRenderer.removeListener('theme:settings-changed', listener);
   },
+  onAiSettingsChanged: (callback: (state: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, state: unknown) => callback(state);
+    ipcRenderer.on('settings:ai:changed', listener);
+    return () => ipcRenderer.removeListener('settings:ai:changed', listener);
+  },
   onMenuToggleAgentChat: (callback: () => void): (() => void) => {
     const listener = () => callback();
     ipcRenderer.on('menu:toggle-agent-chat', listener);

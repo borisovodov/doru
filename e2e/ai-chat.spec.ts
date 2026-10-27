@@ -65,7 +65,7 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
 
     // Open the chat panel and send a message.
     await expect(page.locator('.agent-chat-panel')).toBeVisible();
-    await page.locator('.chat-input input').fill('Find Ivan');
+    await page.locator('.chat-input textarea').fill('Find Ivan');
     await page.getByRole('button', { name: 'Send' }).click();
 
     // The mock calls tree_query, then tree_edit — tools run without a
@@ -83,7 +83,7 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
     expect(persons.some((person) => person.id === 'E2EM1')).toBe(true);
 
     // The chat is idle again.
-    await expect(page.locator('.chat-input input')).toBeEnabled();
+    await expect(page.locator('.chat-input textarea')).toBeEnabled();
 
     // The copy button puts the reply's markdown on the system clipboard.
     await page.getByRole('button', { name: 'Copy reply' }).click();
@@ -129,7 +129,7 @@ test('chat sessions persist across app restarts', async () => {
       { baseUrl: mock.url() },
     );
     await expect(page.locator('.agent-chat-panel')).toBeVisible();
-    await page.locator('.chat-input input').fill('Hello tree');
+    await page.locator('.chat-input textarea').fill('Hello tree');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.', {
       timeout: 15_000,
@@ -195,8 +195,11 @@ test('the Stop button cancels the run and returns the message to the input', asy
     );
 
     await expect(page.locator('.agent-chat-panel')).toBeVisible();
-    await page.locator('.chat-input input').fill('Hello');
-    await page.getByRole('button', { name: 'Send' }).click();
+    await page.locator('.chat-input textarea').fill('Hello');
+    // Shift+Enter inserts a newline instead of sending; Enter sends.
+    await page.locator('.chat-input textarea').press('Shift+Enter');
+    await expect(page.locator('.chat-input textarea')).toHaveValue('Hello\n');
+    await page.locator('.chat-input textarea').press('Enter');
 
     // The first chunk arrives, then the provider stalls.
     await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Slow ', {
@@ -206,7 +209,7 @@ test('the Stop button cancels the run and returns the message to the input', asy
 
     // Stop reclaims the send: the message leaves the transcript, its text
     // returns to the input for editing, and no error card appears.
-    await expect(page.locator('.chat-input input')).toHaveValue('Hello', { timeout: 15_000 });
+    await expect(page.locator('.chat-input textarea')).toHaveValue('Hello', { timeout: 15_000 });
     await expect(page.locator('.chat-message.user')).toHaveCount(0);
     await expect(page.locator('.chat-message.assistant')).toHaveCount(0);
     await expect(page.locator('.chat-error')).toHaveCount(0);

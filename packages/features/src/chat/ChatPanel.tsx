@@ -39,6 +39,7 @@ export function ChatPanel({
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const copyTimer = useRef<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -46,6 +47,16 @@ export function ChatPanel({
       element.scrollTop = element.scrollHeight;
     }
   }, [messages, busy]);
+
+  // Grow the input with its content, capped at the CSS max-height.
+  useEffect(() => {
+    const element = inputRef.current;
+    if (!element) {
+      return;
+    }
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, [draft]);
 
   const submit = () => {
     const text = draft.trim();
@@ -140,13 +151,18 @@ export function ChatPanel({
         })}
       </div>
       <div className="chat-input">
-        <input
+        <textarea
+          ref={inputRef}
           value={draft}
           placeholder={nls.t('chat.placeholder')}
+          rows={1}
           disabled={busy}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+            // Enter sends, Shift+Enter inserts a newline; IME composition
+            // confirms with Enter too, so those keydowns must stay untouched.
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+              event.preventDefault();
               submit();
             }
           }}
@@ -155,6 +171,7 @@ export function ChatPanel({
           className="chat-action"
           disabled={busy}
           aria-label={nls.t('chat.send')}
+          title={nls.t('chat.inputHint')}
           onClick={submit}
         >
           <Send size={16} aria-hidden="true" />

@@ -7,7 +7,7 @@ import { RecentProjects } from '@doru/core';
 import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
 import { registerProjectIpc } from './ipc-project';
-import { registerSettingsIpc } from './ipc-settings';
+import { broadcastAiSettingsChanged, registerSettingsIpc } from './ipc-settings';
 import { registerThemeIpc } from './ipc-theme';
 import { registerTreeIpc } from './ipc-tree';
 import { log } from './log';
@@ -177,7 +177,10 @@ void app.whenReady().then(async () => {
       window.webContents.send('theme:settings-changed', themeState());
     }
   };
-  watchSettings(onThemeChanged);
+  watchSettings(() => {
+    onThemeChanged();
+    broadcastAiSettingsChanged();
+  });
   watchUserThemes(onThemeChanged);
 
   const argvPaths = [...extractPathArgs(process.argv), ...pendingExternalPaths];

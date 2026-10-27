@@ -7,6 +7,25 @@
   min-height: 0;
 }
 
+/* The "no provider configured" placeholder fills the panel with padding. */
+.chat-setup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.chat-setup .placeholder-view {
+  max-width: 260px;
+}
+
+.chat-setup .placeholder-view p {
+  margin-bottom: 14px;
+}
+
 /* The session picker row in the panel header. */
 .chat-sessions {
   display: flex;
@@ -167,30 +186,40 @@
 .chat-input {
   display: flex;
   gap: 8px;
+  align-items: flex-end;
   padding: 8px 12px 12px;
   border-top: 1px solid var(--doru-border);
 }
 
-.chat-input input {
+.chat-input textarea {
   flex: 1;
   min-width: 0;
-  height: 32px;
+  min-height: 32px;
+  max-height: 160px;
   box-sizing: border-box;
   background: var(--doru-bg-raised);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-lg);
   color: var(--doru-fg);
-  padding: 0 12px;
+  padding: 6px 12px;
+  font: inherit;
   font-size: var(--doru-font-size);
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
 }
 
-.chat-input input::placeholder {
+.chat-input textarea::placeholder {
   color: var(--doru-fg-faint);
 }
 
-.chat-input input:focus {
+.chat-input textarea:focus {
   border-color: var(--doru-focus);
   outline: none;
+}
+
+.chat-input textarea:disabled {
+  opacity: 0.55;
 }
 
 .chat-input button.chat-action {

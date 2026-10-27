@@ -1,4 +1,4 @@
-import { app, clipboard, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron';
 import { generateText } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { AI_PROVIDERS, buildLanguageModel, wireDialect } from '@doru/ai';
@@ -12,6 +12,19 @@ import { ensureLogFile, log, logFilePath } from './log';
 import { nls } from './nls';
 import { clearAiApiKey, saveAiApiKey } from './secrets';
 import { writeSettingsEdits } from './settings';
+
+/**
+ * Tells every window about the current AI settings. The renderer uses this
+ * to flip between the chat panel and the "not configured" placeholder, so it
+ * must fire on every settings write no matter who did it (the Settings tab,
+ * a direct IPC call, or a hand edit of settings.json).
+ */
+export function broadcastAiSettingsChanged(): void {
+  const payload = aiSettingsPayload(loadAiSettings());
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('settings:ai:changed', payload);
+  }
+}
 
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiSettings()));
@@ -111,8 +124,15 @@ export function registerSettingsIpc(): void {
       } else if (options.apiKey !== undefined && options.apiKey !== '') {
         saveAiApiKey(providerId, options.apiKey);
       }
+      const changed =
+        edits.length > 0 ||
+        options.clearKey === true ||
+        (options.apiKey !== undefined && options.apiKey !== '');
       if (edits.length > 0) {
         writeSettingsEdits(edits);
+      }
+      if (changed) {
+        broadcastAiSettingsChanged();
       }
       return aiSettingsPayload(loadAiSettings());
     },
