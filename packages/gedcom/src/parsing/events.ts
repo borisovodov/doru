@@ -105,8 +105,12 @@ export function parseFamilyPartnerLink(node: RawNode, ctx: Ctx): FamilyPartnerLi
       PHRASE: (child) => {
         out.phrase = reqText(child);
       },
+      '_PREF': (child) => {
+        out.preferred = parseYNFlag(child, '_PREF');
+      },
     },
     ctx,
+    ['PHRASE', '_PREF'],
   );
   return out;
 }
@@ -152,11 +156,20 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       '_PREF': (child) => {
         out.preferred = parseYNFlag(child, '_PREF');
       },
+      '_FREL': (child) => {
+        // The AGES! position of the relation tags (under INDI.FAMC;
+        // under FAM.CHIL they are typed on FamilyChildLink).
+        out.fatherRelation = reqText(child);
+      },
+      '_MREL': (child) => {
+        out.motherRelation = reqText(child);
+      },
       NOTE: (child) => {
         (out.notes ??= []).push(parseNoteStructure(child, ctx));
       },
     },
     ctx,
+    ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL'],
   );
   return out;
 }
@@ -270,6 +283,10 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     DATE: (child) => {
       detail.date = parseDateStructure(child, ctx);
     },
+    '_DATE2': (child) => {
+      // The vendor end date ("bis-Datum"); same value grammar as DATE.
+      detail.endDate = parseDateStructure(child, ctx);
+    },
     PLAC: (child) => {
       detail.place = parsePlaceStructure(child, ctx);
     },
@@ -332,6 +349,17 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
         restriction.push('PRIVACY');
       }
     }
+  };
+  handlers['_CENR'] = (child) => {
+    // The MagiKey census link (registry: MagiKey_CENR.yaml): a pointer
+    // to the shared census record, used under events and attributes
+    // like SOUR points to a source record. The pointer must resolve.
+    (detail.censusLinks ??= []).push(reqPtr(child, ctx));
+  };
+  handlers['_APID'] = (child) => {
+    // The Ancestry record reference attached to events and attributes
+    // (see EventDetail.ancestryPointers).
+    (detail.ancestryPointers ??= []).push(reqText(child));
   };
   if (ctx.version === '5.5.1') {
     // The Gramps witness convention; normalized like _SHAR.
@@ -437,7 +465,13 @@ export function parseFamilyChildCount(node: RawNode): FamilyChildCountAttribute 
 export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAttribute {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
-  const out: FamilyResidenceAttribute = { tag: 'RESI', payload: reqText(node) };
+  const out: FamilyResidenceAttribute = {
+    tag: 'RESI',
+    // The 7.0 Text payload may be empty: a missing payload is
+    // equivalent to the empty string (GEDCOM 7.0 §1.2), and the
+    // residence is carried by the detail's ADDR/PLAC.
+    ...(node.value.kind === 'absent' ? {} : { payload: reqText(node) }),
+  };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
     out.type = reqText(child);
@@ -571,6 +605,11 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
   event.tag = tag;
   if (tag === 'NCHI' || tag === 'NMR') {
     event.payload = reqDigits(node);
+  } else if (tag === 'RESI' && node.value.kind === 'absent') {
+    // The 5.5.1 grammar (GEDCOM 5.5.1 §2 p.33) gives INDI.RESI no
+    // payload: the residence is carried by the detail's ADDR/PLAC. In
+    // 7.0 the Text payload may be empty and a missing payload is
+    // equivalent to the empty string (GEDCOM 7.0 §1.2).
   } else {
     event.payload = reqText(node);
   }

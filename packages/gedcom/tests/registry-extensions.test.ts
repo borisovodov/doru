@@ -236,3 +236,83 @@ describe('the community _SOUR under PAGE', () => {
     parse70(text); // re-parses without error
   });
 });
+
+describe('the MagiKey _CENR census link', () => {
+  const SAMPLE = (version: '7.0' | '5.5.1'): string =>
+    [
+      ...(version === '7.0' ? HEADER70 : [...HEADER551, ...SUBM551]),
+      '0 @C1@ _CENR',
+      '1 DATE 1 APR 1940',
+      '1 PLAC Springfield',
+      '1 INDI @I1@',
+      '2 NAME John /Doe/',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '2 _CENR @C1@',
+      '1 CENS',
+      '2 DATE 1 APR 1940',
+      '2 _CENR @C1@',
+      '1 BIRT',
+      '2 DATE 12 MAR 1905',
+      '2 _CENR @C1@',
+      '1 OCCU Farmer',
+      '2 _CENR @C1@',
+      '0 TRLR',
+    ].join('\n');
+
+  const indi = (dataset: GedcomDataset): Record<string, unknown> => {
+    const record = dataset.records.find((r) => r.tag === 'INDI');
+    if (record === undefined) {
+      throw new Error('expected INDI');
+    }
+    return record as unknown as Record<string, unknown>;
+  };
+
+  test('parses the links under CENS, BIRT, OCCU and NAME (registry: MagiKey_CENR.yaml)', () => {
+    const dataset = parse70(SAMPLE('7.0'));
+    const person = indi(dataset);
+    const names = person['names'] as Array<{ censusLinks?: string[] }>;
+    const events = person['events'] as Array<{ tag: string; detail?: { censusLinks?: string[] } }>;
+    const attributes = person['attributes'] as Array<{ tag: string; detail?: { censusLinks?: string[] } }>;
+    expect(names[0]?.censusLinks).toEqual(['@C1@']);
+    expect(events.find((e) => e.tag === 'CENS')?.detail?.censusLinks).toEqual(['@C1@']);
+    expect(events.find((e) => e.tag === 'BIRT')?.detail?.censusLinks).toEqual(['@C1@']);
+    expect(attributes.find((a) => a.tag === 'OCCU')?.detail?.censusLinks).toEqual(['@C1@']);
+  });
+
+  test('accepts the links on 5.5.1 input too', () => {
+    const dataset = parse551(SAMPLE('5.5.1'));
+    const person = indi(dataset);
+    expect((person['names'] as Array<{ censusLinks?: string[] }>)[0]?.censusLinks).toEqual(['@C1@']);
+  });
+
+  test('rejects a dangling link pointer', () => {
+    const sample = SAMPLE('7.0').replace('@C1@', '@C9@');
+    const result = parseGedcom70(enc(sample));
+    if (result.ok) {
+      throw new Error('expected an error');
+    }
+    expect((result.error as { code: string }).code).toBe('document.xref-not-found');
+  });
+
+  test('round-trips the links in both versions', () => {
+    const first = parse70(SAMPLE('7.0'));
+    const text70 = ser70(first);
+    expect(text70).toContain('2 _CENR @C1@');
+    const via70 = parse70(text70);
+    const person70 = indi(via70);
+    expect(
+      (person70['events'] as Array<{ tag: string; detail?: { censusLinks?: string[] } }>).find((e) => e.tag === 'CENS')
+        ?.detail?.censusLinks,
+    ).toEqual(['@C1@']);
+
+    const text551 = ser551(first);
+    expect(text551).toContain('2 _CENR @C1@');
+    const via551 = parse551(text551);
+    const person551 = indi(via551);
+    expect(
+      (person551['events'] as Array<{ tag: string; detail?: { censusLinks?: string[] } }>).find((e) => e.tag === 'CENS')
+        ?.detail?.censusLinks,
+    ).toEqual(['@C1@']);
+  });
+});

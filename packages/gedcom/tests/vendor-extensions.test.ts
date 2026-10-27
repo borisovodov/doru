@@ -268,3 +268,243 @@ describe('vendor extensions on 7.0 output', () => {
     expect(text).not.toContain('PEDI');
   });
 });
+
+describe('the additionally typed vendor tags', () => {
+  const indi = (dataset: GedcomDataset): IndividualRecord => {
+    const record = dataset.records.find((r) => r.tag === 'INDI');
+    if (record === undefined) {
+      throw new Error('expected INDI');
+    }
+    return record as IndividualRecord;
+  };
+  const fam = (dataset: GedcomDataset): FamilyRecord => {
+    const record = dataset.records.find((r) => r.tag === 'FAM');
+    if (record === undefined) {
+      throw new Error('expected FAM');
+    }
+    return record as FamilyRecord;
+  };
+
+  test('_FSFTID under INDI', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _FSFTID KWJ1-2B3',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    expect(indi(dataset).familySearchId).toBe('KWJ1-2B3');
+    const text = ser551(dataset);
+    expect(text).toContain('1 _FSFTID KWJ1-2B3');
+    expect(ser70(dataset)).toContain('1 _FSFTID KWJ1-2B3');
+  });
+
+  test('_TODO under INDI and FAM with DESC/PRTY/STAT/DATE/NOTE', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _TODO Find the will',
+        '2 DESC Search the probate records',
+        '2 PRTY high',
+        '2 STAT open',
+        '2 DATE 2026',
+        '2 NOTE Start in the county archive',
+        '0 @F1@ FAM',
+        '1 _TODO',
+        '2 DESC Order the marriage record',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const person = indi(dataset);
+    expect(person.todos?.[0]?.payload).toBe('Find the will');
+    expect(person.todos?.[0]?.description).toBe('Search the probate records');
+    expect(person.todos?.[0]?.priority).toBe('high');
+    expect(person.todos?.[0]?.status).toBe('open');
+    expect(person.todos?.[0]?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 2026 });
+    expect(person.todos?.[0]?.notes?.[0]?.payload).toBe('Start in the county archive');
+    expect(fam(dataset).todos?.[0]?.payload).toBeUndefined();
+    expect(fam(dataset).todos?.[0]?.description).toBe('Order the marriage record');
+
+    const text = ser551(dataset);
+    expect(text).toContain('1 _TODO Find the will');
+    expect(text).toContain('2 DESC Search the probate records');
+    expect(text).toContain('2 PRTY high');
+    expect(text).toContain('2 STAT open');
+    expect(text).toContain('2 DATE 2026');
+    expect(parseOk551(text)).toEqual(dataset);
+    expect(ser70(dataset)).toContain('1 _TODO Find the will');
+  });
+
+  test('_PREF under FAM.HUSB and FAM.WIFE', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI', '1 NAME John /Doe/',
+        '0 @I2@ INDI', '1 NAME Jane /Roe/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '2 _PREF Y',
+        '1 WIFE @I2@',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const family = fam(dataset);
+    expect(family.husband?.preferred).toBe(true);
+    expect(family.wife?.preferred).toBeUndefined();
+    const text = ser551(dataset);
+    expect(text).toContain('2 _PREF Y');
+    expect(ser70(dataset)).toContain('2 _PREF Y');
+  });
+
+  test('_FREL/_MREL under INDI.FAMC round-trip in 5.5.1 and project onto PEDI in 7.0', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME Kid /Doe/',
+        '1 FAMC @F1@',
+        '2 _FREL adopted',
+        '2 _MREL adopted',
+        '0 @F1@ FAM',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const person = indi(dataset);
+    expect(person.childFamilies?.[0]?.fatherRelation).toBe('adopted');
+    expect(person.childFamilies?.[0]?.motherRelation).toBe('adopted');
+
+    const text551 = ser551(dataset);
+    expect(text551).toContain('2 _FREL adopted');
+    expect(text551).toContain('2 _MREL adopted');
+    expect(parseOk551(text551)).toEqual(dataset);
+
+    // 7.0: the agreeing pair projects onto the link's own PEDI.
+    const text70 = ser70(dataset);
+    expect(text70).not.toContain('_FREL');
+    expect(text70).not.toContain('_MREL');
+    expect(text70).toContain('2 PEDI ADOPTED');
+    const via70 = parseOk70(text70);
+    expect(indi(via70).childFamilies?.[0]?.pedigree?.payload).toBe('ADOPTED');
+  });
+
+  test('_APID under events, attributes and names', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '2 _APID 1,7602::2771226',
+        '1 BIRT',
+        '2 DATE 12 MAR 1923',
+        '2 _APID 1,7602::2771226',
+        '1 OCCU Farmer',
+        '2 _APID 1,7602::2771226',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const person = indi(dataset);
+    expect(person.names?.[0]?.ancestryPointers).toEqual(['1,7602::2771226']);
+    expect(person.events?.[0]?.detail?.ancestryPointers).toEqual(['1,7602::2771226']);
+    expect(person.attributes?.[0]?.detail?.ancestryPointers).toEqual(['1,7602::2771226']);
+
+    const text551 = ser551(dataset);
+    expect(text551).toContain('2 _APID 1,7602::2771226');
+    expect(parseOk551(text551)).toEqual(dataset);
+    expect(ser70(dataset)).toContain('2 _APID 1,7602::2771226');
+  });
+});
+
+describe('_DATE2 and the FTM201x facts', () => {
+  const indi = (dataset: GedcomDataset): IndividualRecord => {
+    const record = dataset.records.find((r) => r.tag === 'INDI');
+    if (record === undefined) {
+      throw new Error('expected INDI');
+    }
+    return record as IndividualRecord;
+  };
+
+  test('_DATE2 parses as the end date and round-trips in both versions', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 RESI',
+        '2 DATE FROM 1950',
+        '2 _DATE2 TO 1960',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const person = indi(dataset);
+    expect(person.attributes?.[0]?.detail?.date?.value).toEqual({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1950 } });
+    expect(person.attributes?.[0]?.detail?.endDate?.value).toEqual({ kind: 'period', to: { calendar: 'GREGORIAN', year: 1960 } });
+
+    const text551 = ser551(dataset);
+    expect(text551).toContain('2 _DATE2 TO 1960');
+    expect(parseOk551(text551)).toEqual(dataset);
+    expect(ser70(dataset)).toContain('2 _DATE2 TO 1960');
+    const via70 = parseOk70(ser70(dataset));
+    expect(indi(via70).attributes?.[0]?.detail?.endDate?.value).toEqual(
+      { kind: 'period', to: { calendar: 'GREGORIAN', year: 1960 } },
+    );
+  });
+
+  test('the FTM201x facts normalize like the older FTM set', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _CIRC',
+        '2 DATE 1910',
+        '1 _FUN',
+        '1 _DEG B.A.',
+        '1 _EMPLOY Merchant',
+        '1 _DNA R1b-M269',
+        '1 _NAMS John Senior',
+        '1 _MILTID 123-45',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const person = indi(dataset);
+    expect(person.events?.find((e) => e.tag === 'EVEN' && e.type === 'Circumcision')?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1910 });
+    expect(person.events?.some((e) => e.tag === 'EVEN' && e.type === 'Funeral')).toBe(true);
+    expect(person.attributes?.find((a) => a.tag === 'EDUC')?.payload).toBe('B.A.');
+    expect(person.attributes?.find((a) => a.tag === 'EDUC')?.type).toBe('Degree');
+    expect(person.attributes?.find((a) => a.tag === 'FACT' && a.type === 'Employment')?.payload).toBe('Merchant');
+    expect(person.attributes?.find((a) => a.tag === 'FACT' && a.type === 'DNA')?.payload).toBe('R1b-M269');
+    expect(person.attributes?.find((a) => a.tag === 'FACT' && a.type === 'Namesake')?.payload).toBe('John Senior');
+    expect(person.identifiers).toContainEqual({ tag: 'REFN', payload: '123-45', type: 'Military' });
+
+    // The standard spellings come back; the vendor tags do not.
+    const text = ser551(dataset);
+    expect(text).toContain('2 TYPE Circumcision');
+    expect(text).toContain('2 TYPE Funeral');
+    expect(text).toContain('1 EDUC B.A.');
+    expect(text).toContain('2 TYPE Degree');
+    expect(text).toContain('2 TYPE Employment');
+    expect(text).toContain('2 TYPE DNA');
+    expect(text).toContain('2 TYPE Namesake');
+    expect(text).toContain('1 REFN 123-45');
+    expect(text).toContain('2 TYPE Military');
+    expect(text).not.toContain('_CIRC');
+    expect(text).not.toContain('_FUN');
+    expect(text).not.toContain('_DEG');
+    expect(text).not.toContain('_EMPLOY');
+    expect(text).not.toContain('_DNA');
+    expect(text).not.toContain('_NAMS');
+    expect(text).not.toContain('_MILTID');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+});

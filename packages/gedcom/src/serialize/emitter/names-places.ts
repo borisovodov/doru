@@ -96,6 +96,12 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   if (name.callName !== undefined) {
     w.line(level + 1, '_RUFNAME', { value: name.callName });
   }
+  for (const link of name.censusLinks ?? []) {
+    ptr(w, version, level + 1, '_CENR', link);
+  }
+  for (const apid of name.ancestryPointers ?? []) {
+    w.line(level + 1, '_APID', { value: apid });
+  }
   if (version === '7.0') {
     // The 5.5.1 phonetic/romanized variations become TRANs where the
     // method names a known language; unknown methods are dropped.
@@ -220,10 +226,10 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     if (name.date !== undefined) {
       emitDate(w, version, 2, 'DATE', name.date);
     }
-    if (name.abbreviation !== undefined) {
-      w.line(2, 'ABBR', { value: name.abbreviation });
-      if (name.abbreviationType !== undefined) {
-        w.line(3, 'TYPE', { value: name.abbreviationType });
+    for (const abbr of name.abbreviations ?? []) {
+      w.line(2, 'ABBR', { value: abbr.abbreviation });
+      if (abbr.type !== undefined) {
+        w.line(3, 'TYPE', { value: abbr.type });
       }
     }
     if (name.language !== undefined) {

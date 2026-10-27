@@ -35,6 +35,23 @@ interface FamilyAttributeBase<Tag extends string, TPayload> extends GedcomStruct
  * GEDCOM 5.5.1 §2 Record Structures (p.24), `FAM_RECORD` — in 5.5.1 NCHI
  * sits directly under the FAM record ({0:1}) with the same
  * `COUNT_OF_CHILDREN` meaning.
+ *
+ * The vendor childless marker `_NONE` under FAM — "the couple had no
+ * children", an explicit assertion that distinguishes a childless
+ * couple from one whose children are merely unrecorded — normalizes on
+ * input (both versions) into this structure with the payload 0. Two
+ * spellings exist in the wild and both are accepted: the bare `_NONE`
+ * of Legacy Family Tree ("Custom GEDCOM Tags" help: "_NONE = Indicates
+ * that a couple had no children (under a FAM record)",
+ * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm) and
+ * the `_NONE Y` of Ahnenblatt — the only documented value, a positive
+ * assertion by analogy with the standard `MARR Y` event payload,
+ * catalogued by the GEDCOM-L working group in the GenWiki
+ * "GEDCOM/_Nutzerdef-Tag" table
+ * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Any other value
+ * is a strict error (`enum.invalid-value`). The serializers write the
+ * standard `NCHI 0` in both versions; the vendor tag itself is not
+ * written back (the construct has a standard equivalent).
  */
 export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', Integer> {}
 
@@ -48,7 +65,7 @@ export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', I
  */
 export interface FamilyResidenceAttribute extends GedcomStructureBase {
   tag: 'RESI';
-  /** The RESI payload, {1:1} Text in 7.0; 5.5.1 forbids a payload. */
+  /** The RESI payload, {1:1} Text in 7.0 (may be empty; a missing payload is equivalent to the empty string, GEDCOM 7.0 §1.2); 5.5.1 forbids a payload. */
   payload?: Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
   type?: Text;

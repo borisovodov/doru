@@ -45,6 +45,7 @@ import type { SourceRepositoryCitation } from './sources-media';
 import type { SpouseSealingOrdinance } from './lds';
 import type { PlaceRecord } from './place-record';
 import type { TodoRecord } from './todo-record';
+import type { TodoStructure } from './todo-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.2 Records
@@ -66,7 +67,7 @@ export interface FamilyRecord extends GedcomStructureBase {
   xref?: Xref;
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
   restriction?: ListEnum<RestrictionEnum>;
-  /** <<FAMILY_ATTRIBUTE_STRUCTURE>> {0:M}. */
+  /** <<FAMILY_ATTRIBUTE_STRUCTURE>> {0:M}; the vendor childless markers `_NONE`/`_NONE Y` normalize into a `NCHI 0` entry here (see FamilyChildCountAttribute). */
   attributes?: FamilyAttributeStructure[];
   /** <<FAMILY_EVENT_STRUCTURE>> {0:M}. */
   events?: FamilyEventStructure[];
@@ -102,6 +103,16 @@ export interface FamilyRecord extends GedcomStructureBase {
    * without gender semantics when this flag is set.
    */
   sameSexUnion?: true;
+  /**
+   * _TODO {0:M} — research tasks attached to the family: the GenoPro /
+   * RootsMagic / Ahnenblatt to-do structure with the sub-tags DESC,
+   * PRTY, STAT, DATE and NOTE (see TodoStructure; the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" catalog lists it under FAM too:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_TODO` in both versions.
+   */
+  todos?: TodoStructure[];
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
   /** WIFE {0:1}, g7:FAM-WIFE — the other partner. */
@@ -151,6 +162,18 @@ export interface FamilyPartnerLink extends GedcomStructureBase {
   partner: Pointer<IndividualRecord>;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
+  /**
+   * _PREF Y {0:1} — marks the preferred partner. Written by Legacy
+   * Family Tree under HUSB and WIFE (see its "Custom GEDCOM Tags"
+   * help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm
+   * — "_PREF = Indicates a Preferred spouse, child or parents"; the
+   * FAM.HUSB/FAM.WIFE positions are catalogued in the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_PREF` in
+   * both versions.
+   */
+  preferred?: boolean;
 }
 
 /**
@@ -250,6 +273,20 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   sosaNumber?: Text;
   /**
+   * _FSFTID {0:1} — the person's FamilySearch Family Tree identifier
+   * (PID, e.g. `KWJ1-2B3`), the permanent id of the person in the
+   * FamilySearch shared tree. Written by Familienbuch, Legacy Family
+   * Tree, Ancestral Quest, Family Historian and webtrees (catalogued
+   * by the GEDCOM-L working group in the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as `_FSFTID`
+   * in both versions. (The non-underscore `FSFTID` spelling of
+   * RootsMagic stays a strict error, per the non-underscore vendor tag
+   * policy in docs/vendor-extensions.md chapter 8.)
+   */
+  familySearchId?: Text;
+  /**
    * _TAG {0:1} and _TAG2–_TAG9 {0:1 each} — the individual's named
    * tag marks (Tag 1 through Tag 9), kept in order. Written by Legacy
    * Family Tree under INDI (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
@@ -257,6 +294,16 @@ export interface IndividualRecord extends GedcomStructureBase {
    * back as `_TAG`/`_TAG2`… in both versions.
    */
   marks?: Text[];
+  /**
+   * _TODO {0:M} — research tasks attached to the individual: the
+   * GenoPro / RootsMagic / Ahnenblatt to-do structure with the
+   * sub-tags DESC, PRTY, STAT, DATE and NOTE (see TodoStructure; the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" catalog lists it under INDI:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_TODO` in both versions.
+   */
+  todos?: TodoStructure[];
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
   /** FAMC {0:M}, g7:INDI-FAMC — the families in which this individual appears as a child. */
@@ -316,6 +363,25 @@ export interface IndividualRecord extends GedcomStructureBase {
 export interface ChildFamilyLink extends GedcomStructureBase {
   /** The FAMC payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /**
+   * _FREL {0:1} — the relationship of this child to the father in the
+   * family (Natural, Adopted, Step, Foster, …). Under FAM.CHIL the tag
+   * is written by Family Tree Maker and read by several programs;
+   * AGES! writes the same tag under the INDI.FAMC link — "Beziehung
+   * eines Kindes zum Vater" (catalogued by the GEDCOM-L working group
+   * in the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Recognized on
+   * input in both versions. Serialized to 5.5.1 as `_FREL`/`_MREL`;
+   * when serializing to 7.0 an agreeing pair is projected onto this
+   * link's PEDI (natural → BIRTH, adopted → ADOPTED, foster → FOSTER,
+   * sealing → SEALING) and otherwise dropped (see serialize/prepare.ts).
+   */
+  fatherRelation?: Text;
+  /**
+   * _MREL {0:1} — the relationship of this child to the mother; see
+   * `fatherRelation`.
+   */
+  motherRelation?: Text;
   /**
    * _PRIMARY Y {0:1} — marks the primary family for an adopted child.
    * Written by Ancestral Quest and PAF under FAMC (see the Legacy
@@ -737,6 +803,21 @@ export interface SourceDataEvent extends GedcomStructureBase {
   date?: DatePeriodStructure;
   /** <<PLACE_STRUCTURE>> {0:1}. */
   place?: PlaceStructure;
+  /**
+   * The user-supplied values of the 5.5.1 `EVENTS_RECORDED` list,
+   * kept verbatim: GEDCOM 5.5.1 §2 (p.50) permits any value alongside
+   * the `EVENT_ATTRIBUTE_TYPE` tags — "If the event or attribute
+   * doesn't translate to one of these tag codes, then a user supplied
+   * value is expected and will be generally classified in the category
+   * of other". The known tags go to `payload`, everything else here;
+   * the list has no ordering semantics in 5.5.1, so the grouping is
+   * lossless. 7.0 has no slot for these values (only extTag extension
+   * values, which stay in `payload`): when serializing to 7.0 an EVEN
+   * whose payload is empty is dropped entirely, otherwise the
+   * user-defined values are dropped silently. 5.5.1 writes them back
+   * verbatim after the enums.
+   */
+  userDefined?: Text[];
 }
 
 /**

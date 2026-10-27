@@ -75,11 +75,20 @@ function checkBanned70(text: string, position: SourcePosition): void {
   }
 }
 
-/** Checks GEDCOM 5.5.1 banned characters (control chars, DEL) in a value. */
+/**
+ * Checks GEDCOM 5.x banned characters in a line value: the C0 control
+ * characters other than the horizontal tab, plus DEL. GEDCOM 5.5.1 §1
+ * disallows every control character; GEDCOM 5.5.5 (gedcom.org, 2019)
+ * legalized the tab in user text ("Tab is Legal": most applications
+ * already wrote tabs despite 5.5.1). The 5.x parser accepts both
+ * versions under one grammar, so the tab is accepted in any 5.x value —
+ * a deliberate leniency over the 5.5.1 letter, mirroring the 7.0 rule
+ * (see the README's "Known strict decisions").
+ */
 function checkBanned551(text: string, position: SourcePosition): void {
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
-    if (c <= 0x1f || c === 0x7f) {
+    if ((c <= 0x1f && c !== 0x09) || c === 0x7f) {
       fail('line.banned-char', `Banned character U+${c.toString(16).toUpperCase()} in a line value`, {
         ...position,
         column: position.column + i,

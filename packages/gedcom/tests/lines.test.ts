@@ -168,8 +168,15 @@ describe('line tokenization (5.5.1)', () => {
     );
   });
 
-  test('rejects tabs in values', () => {
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a\tb\n0 TRLR\n'))).toBe('line.banned-char');
+  test('allows tabs in values (5.5.5 legalized them)', () => {
+    const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a\tb\n0 TRLR\n');
+    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
+  });
+
+  test('still rejects the other control characters', () => {
+    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u0001'}b\n0 TRLR\n`))).toBe('line.banned-char');
+    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u000b'}b\n0 TRLR\n`))).toBe('line.banned-char');
+    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u007f'}b\n0 TRLR\n`))).toBe('line.banned-char');
   });
 
   test('merges CONC without a line break', () => {

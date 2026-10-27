@@ -267,13 +267,40 @@ export function parseDateValue70(text: string, position: SourcePosition): DateVa
   }
   if (firstUpper === 'AFT' || firstUpper === 'BEF') {
     const date = parseDate70(tokens.slice(1), position);
-    return { kind: 'bound', modifier: firstUpper as 'AFT' | 'BEF', date } satisfies DateBound;
+    return { kind: 'bound', modifier: firstUpper as 'AFT' | 'BEF', date: plainFields(date) } satisfies DateBound;
   }
   if (firstUpper === 'ABT' || firstUpper === 'CAL' || firstUpper === 'EST') {
     const date = parseDate70(tokens.slice(1), position);
-    return { kind: 'approx', modifier: firstUpper as 'ABT' | 'CAL' | 'EST', date } satisfies DateApprox;
+    return { kind: 'approx', modifier: firstUpper as 'ABT' | 'CAL' | 'EST', date: plainFields(date) } satisfies DateApprox;
   }
   return parseDate70(tokens, position);
+}
+
+/**
+ * Drops the `kind` discriminator of a parsed 7.0 date. The boundary
+ * dates of ranges, bounds, approximations and periods are plain
+ * `DateFields` in the model (their kind is always `date`), matching
+ * the 5.5.1 parser's shape, so cross-version round trips compare
+ * equal.
+ */
+function plainFields(date: PlainDate): DateFields {
+  const fields: DateFields = {};
+  if (date.calendar !== undefined) {
+    fields.calendar = date.calendar;
+  }
+  if (date.day !== undefined) {
+    fields.day = date.day;
+  }
+  if (date.month !== undefined) {
+    fields.month = date.month;
+  }
+  if (date.year !== undefined) {
+    fields.year = date.year;
+  }
+  if (date.epoch !== undefined) {
+    fields.epoch = date.epoch;
+  }
+  return fields;
 }
 
 /** Parses the plain `date` production of GEDCOM 7.0. */
@@ -299,14 +326,14 @@ export function parseDate70(tokens: string[], position: SourcePosition): PlainDa
 function parsePeriod70(tokens: string[], position: SourcePosition): DatePeriodValue {
   const first = (tokens[0] as string).toUpperCase();
   if (first === 'TO') {
-    return { kind: 'period', to: parseDate70(tokens.slice(1), position) };
+    return { kind: 'period', to: plainFields(parseDate70(tokens.slice(1), position)) };
   }
   const toIndex = tokens.findIndex((token) => token.toUpperCase() === 'TO');
   if (toIndex === -1) {
-    return { kind: 'period', from: parseDate70(tokens.slice(1), position) };
+    return { kind: 'period', from: plainFields(parseDate70(tokens.slice(1), position)) };
   }
-  const from = parseDate70(tokens.slice(1, toIndex), position);
-  const to = parseDate70(tokens.slice(toIndex + 1), position);
+  const from = plainFields(parseDate70(tokens.slice(1, toIndex), position));
+  const to = plainFields(parseDate70(tokens.slice(toIndex + 1), position));
   return { kind: 'period', from, to };
 }
 
@@ -316,8 +343,8 @@ function parseRange70(tokens: string[], position: SourcePosition): DateRange {
   if (andIndex === -1) {
     fail('date.invalid', 'A BET date must contain AND: "BET <date> AND <date>"', position);
   }
-  const start = parseDate70(tokens.slice(1, andIndex), position);
-  const end = parseDate70(tokens.slice(andIndex + 1), position);
+  const start = plainFields(parseDate70(tokens.slice(1, andIndex), position));
+  const end = plainFields(parseDate70(tokens.slice(andIndex + 1), position));
   return { kind: 'range', start, end };
 }
 
@@ -384,9 +411,26 @@ export function parseDateValue551(
   return parseDate551Body(trimmed, position);
 }
 
+/**
+ * Splits a 5.5.1 date payload into tokens, keeping calendar escape
+ * sequences (`@#…@`) whole: the French Republican escape
+ * `@#DFRENCH R@` (GEDCOM 5.5.1 §2 Primitive Elements p.45) contains a
+ * space, which a plain whitespace split would break into two tokens.
+ */
+function dateTokens551(text: string): string[] {
+  const trimmed = text.trim();
+  const tokens: string[] = [];
+  const re = /@#[^@]*@|\S+/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(trimmed)) !== null) {
+    tokens.push(match[0]);
+  }
+  return tokens;
+}
+
 /* Parses a 5.5.1 date body: DATE, DATE_PERIOD, DATE_RANGE, DATE_APPROXIMATED. */
 function parseDate551Body(text: string, position: SourcePosition): { value: DateValue; dualYear: boolean } {
-  const tokens = text.trim().split(/ +/);
+  const tokens = dateTokens551(text);
   const first = (tokens[0] as string).toUpperCase();
   if (first === 'FROM' || first === 'TO') {
     const from = first === 'FROM';

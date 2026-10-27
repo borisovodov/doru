@@ -104,12 +104,27 @@ export interface SourceCitationData extends GedcomStructureBase {
  * PHRASE is 7.0-only.
  */
 export interface SourceCitationEvent extends GedcomStructureBase {
-  /** The EVEN payload, {1:1} Enum of g7:enumset-EVENATTR. */
-  payload: EventAttributeEnum;
+  /**
+   * The EVEN payload, {1:1} Enum of g7:enumset-EVENATTR; absent when
+   * the 5.5.1 `EVENT_TYPE_CITED_FROM` value was a user-supplied
+   * descriptor (GEDCOM 5.5.1 §2 p.49: "a user supplied value is
+   * expected and will be generally classified in the category of
+   * other"), which is then kept in `userDefined` instead.
+   */
+  payload?: EventAttributeEnum;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
   /** ROLE {0:1}, g7:ROLE — Enum of g7:enumset-ROLE: what role the subject played in the event. */
   role?: RoleStructure;
+  /**
+   * The 5.5.1 `EVENT_TYPE_CITED_FROM` value when it is a user-supplied
+   * descriptor rather than a known tag (GEDCOM 5.5.1 §2 p.49; see
+   * `payload`). Kept verbatim. 5.5.1 writes it back; 7.0 has no slot
+   * for it, so an EVEN carrying only the user-defined value is dropped
+   * entirely on 7.0 export (the serializers are projections, not
+   * judges).
+   */
+  userDefined?: Text;
 }
 
 /**

@@ -10,12 +10,12 @@
 import {
   EVENT_ATTRIBUTE_ENUM_VALUES,
 } from '../enumerations';
+import type {
+  EventAttributeEnum,
+} from '../enumerations';
 import {
   fail,
 } from '../errors';
-import type {
-  ListEnum,
-} from '../primitives';
 import type {
   EvidenceTemplate,
   EvidenceTemplateField,
@@ -363,9 +363,29 @@ export function parseSourceRecordData(node: RawNode, ctx: Ctx): SourceRecordData
 }
 
 export function parseSourceDataEvent(node: RawNode, ctx: Ctx): SourceDataEvent {
-  const out: SourceDataEvent = {
-    payload: parseListEnum(reqText(node), EVENT_ATTRIBUTE_ENUM_VALUES, ctx.version, node.position) as ListEnum<never>,
-  };
+  const raw = reqText(node);
+  let out: SourceDataEvent;
+  if (ctx.version === '7.0') {
+    out = {
+      payload: parseListEnum(raw, EVENT_ATTRIBUTE_ENUM_VALUES, '7.0', node.position),
+    };
+  } else {
+    // 5.5.1 `EVENTS_RECORDED` (p.50): event-type tags plus any
+    // user-supplied value, comma-separated. The known tags go to
+    // `payload`, the rest to `userDefined` verbatim (the list has no
+    // ordering semantics in 5.5.1, so the grouping is lossless).
+    out = { payload: [] };
+    for (const item of raw.split(',').map((part) => part.trim())) {
+      const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find(
+        (value) => value.toLowerCase() === item.toLowerCase(),
+      );
+      if (key !== undefined) {
+        (out.payload as EventAttributeEnum[]).push(key as EventAttributeEnum);
+      } else {
+        (out.userDefined ??= []).push(item);
+      }
+    }
+  }
   dispatch(
     node,
     out,

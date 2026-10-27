@@ -331,3 +331,87 @@ describe('the unified policy on 7.0 input', () => {
     expect(second).toEqual(first);
   });
 });
+
+describe('GEDCOM-L NAME abbreviations (ABBR {0:M})', () => {
+  const err551 = (text: string): string => {
+    const result = parseGedcom551(enc(text));
+    if (result.ok) {
+      throw new Error('expected an error');
+    }
+    return (result.error as { code: string }).code;
+  };
+
+  test('parses several abbreviations per name, each with its own TYPE', () => {
+    const dataset = parseOk551(
+      [
+        ...HEADER551,
+        '0 @P1@ _LOC',
+        '1 NAME Frankfurt am Main',
+        '2 ABBR Ffm.',
+        '3 TYPE railway',
+        '2 ABBR Frankfurt/M.',
+        '2 LANG de',
+        '0 @I1@ INDI',
+        '1 BIRT',
+        '2 PLAC Frankfurt am Main',
+        '3 _LOC @P1@',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const card = places(dataset)[0];
+    expect(card?.names?.[0]?.abbreviations).toEqual([
+      { abbreviation: 'Ffm.', type: 'railway' },
+      { abbreviation: 'Frankfurt/M.' },
+    ]);
+    expect(card?.names?.[0]?.language).toBe('de');
+  });
+
+  test('rejects a second TYPE under one ABBR', () => {
+    expect(
+      err551(
+        [
+          ...HEADER551,
+          '0 @P1@ _LOC',
+          '1 NAME Frankfurt am Main',
+          '2 ABBR Ffm.',
+          '3 TYPE railway',
+          '3 TYPE other',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    ).toBe('structure.cardinality');
+  });
+
+  test('round-trips all abbreviations through the _LOC write-back', () => {
+    const first = parseOk551(
+      [
+        ...HEADER551,
+        '0 @P1@ _LOC',
+        '1 NAME Frankfurt am Main',
+        '2 ABBR Ffm.',
+        '3 TYPE railway',
+        '2 ABBR Frankfurt/M.',
+        '0 @I1@ INDI',
+        '1 BIRT',
+        '2 PLAC Frankfurt am Main',
+        '3 _LOC @P1@',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(first);
+    // The card carries the abbreviation and survives as a _LOC record;
+    // every abbreviation is written back.
+    expect(text).toContain('0 @P1@ _LOC');
+    expect(text).toContain('2 ABBR Ffm.');
+    expect(text).toContain('3 TYPE railway');
+    expect(text).toContain('2 ABBR Frankfurt/M.');
+    const second = parseOk551(text);
+    expect(places(second)[0]?.names?.[0]?.abbreviations).toEqual(
+      places(first)[0]?.names?.[0]?.abbreviations,
+    );
+    const via70 = parseOk70(ser70(first));
+    expect(places(via70)[0]?.names?.[0]?.abbreviations).toEqual(
+      places(first)[0]?.names?.[0]?.abbreviations,
+    );
+  });
+});

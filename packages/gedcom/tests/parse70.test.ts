@@ -247,8 +247,8 @@ describe('parseGedcom70 — records', () => {
     expect(sour.data?.events?.[0]?.payload).toEqual(['BIRT', 'DEAT']);
     expect(sour.data?.events?.[0]?.date?.value).toEqual({
       kind: 'period',
-      from: { kind: 'date', year: 1900, calendar: 'GREGORIAN' },
-      to: { kind: 'date', year: 1910, calendar: 'GREGORIAN' },
+      from: { year: 1900, calendar: 'GREGORIAN' },
+      to: { year: 1910, calendar: 'GREGORIAN' },
     });
     expect(sour.data?.events?.[0]?.place?.payload).toEqual(['Oneida', 'Idaho']);
     expect(sour.author).toBe('County Clerk');
@@ -274,14 +274,14 @@ describe('parseGedcom70 — records', () => {
 describe('parseGedcom70 — dates and payloads', () => {
   test('parses all DateValue forms', () => {
     const cases: Array<[string, unknown]> = [
-      ['FROM 1900 TO 1910', { kind: 'period', from: { kind: 'date', year: 1900, calendar: 'GREGORIAN' }, to: { kind: 'date', year: 1910, calendar: 'GREGORIAN' } }],
-      ['TO 1800', { kind: 'period', to: { kind: 'date', year: 1800, calendar: 'GREGORIAN' } }],
-      ['BET 1900 AND 1910', { kind: 'range', start: { kind: 'date', year: 1900, calendar: 'GREGORIAN' }, end: { kind: 'date', year: 1910, calendar: 'GREGORIAN' } }],
-      ['AFT 1800', { kind: 'bound', modifier: 'AFT', date: { kind: 'date', year: 1800, calendar: 'GREGORIAN' } }],
-      ['BEF 1800', { kind: 'bound', modifier: 'BEF', date: { kind: 'date', year: 1800, calendar: 'GREGORIAN' } }],
-      ['ABT 1800', { kind: 'approx', modifier: 'ABT', date: { kind: 'date', year: 1800, calendar: 'GREGORIAN' } }],
-      ['CAL 1800', { kind: 'approx', modifier: 'CAL', date: { kind: 'date', year: 1800, calendar: 'GREGORIAN' } }],
-      ['EST 1800', { kind: 'approx', modifier: 'EST', date: { kind: 'date', year: 1800, calendar: 'GREGORIAN' } }],
+      ['FROM 1900 TO 1910', { kind: 'period', from: { year: 1900, calendar: 'GREGORIAN' }, to: { year: 1910, calendar: 'GREGORIAN' } }],
+      ['TO 1800', { kind: 'period', to: { year: 1800, calendar: 'GREGORIAN' } }],
+      ['BET 1900 AND 1910', { kind: 'range', start: { year: 1900, calendar: 'GREGORIAN' }, end: { year: 1910, calendar: 'GREGORIAN' } }],
+      ['AFT 1800', { kind: 'bound', modifier: 'AFT', date: { year: 1800, calendar: 'GREGORIAN' } }],
+      ['BEF 1800', { kind: 'bound', modifier: 'BEF', date: { year: 1800, calendar: 'GREGORIAN' } }],
+      ['ABT 1800', { kind: 'approx', modifier: 'ABT', date: { year: 1800, calendar: 'GREGORIAN' } }],
+      ['CAL 1800', { kind: 'approx', modifier: 'CAL', date: { year: 1800, calendar: 'GREGORIAN' } }],
+      ['EST 1800', { kind: 'approx', modifier: 'EST', date: { year: 1800, calendar: 'GREGORIAN' } }],
       ['JAN 1920', { kind: 'date', month: 'JAN', year: 1920, calendar: 'GREGORIAN' }],
       ['JULIAN 12 FEB 1600', { kind: 'date', calendar: 'JULIAN', day: 12, month: 'FEB', year: 1600 }],
       ['HEBREW 15 TSH 5750', { kind: 'date', calendar: 'HEBREW', day: 15, month: 'TSH', year: 5750 }],
@@ -413,7 +413,7 @@ describe('parseGedcom70 — strictness', () => {
       throw new Error('expected INDI');
     }
     expect(indi.nonEvents?.[0]?.payload).toBe('MARR');
-    expect(indi.nonEvents?.[0]?.date?.value).toEqual({ kind: 'period', to: { kind: 'date', year: 1880, calendar: 'GREGORIAN' } });
+    expect(indi.nonEvents?.[0]?.date?.value).toEqual({ kind: 'period', to: { year: 1880, calendar: 'GREGORIAN' } });
     const adop = indi.events?.find((event) => event.tag === 'ADOP');
     expect(adop?.adoptionFamily?.adoption?.payload).toBe('BOTH');
     const birt = indi.events?.find((event) => event.tag === 'BIRT');
@@ -523,5 +523,73 @@ describe('parseGedcom70 — strictness', () => {
     expect(indi.events[0].detail?.place?.map?.longitude).toEqual({ direction: 'W', degrees: 111.992 });
     expect(indi.events[0].detail?.media?.[0]?.crop).toEqual({ top: 10, left: 20, height: 100, width: 200 });
     expect(indi.events[0].detail?.media?.[0]?.title).toBe('Zoom');
+  });
+});
+
+describe('parseGedcom70 — empty AGE payload', () => {
+  test('parses an AGE with no payload and a PHRASE', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 DEAT Y',
+        '2 AGE',
+        '3 PHRASE very old',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'DEAT') {
+      throw new Error('expected DEAT');
+    }
+    expect(indi.events[0].detail?.age?.payload).toBeUndefined();
+    expect(indi.events[0].detail?.age?.phrase).toBe('very old');
+  });
+});
+
+describe('parseGedcom70 — payload-less RESI attributes', () => {
+  test('parses an INDI.RESI without a payload', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME Jane /Doe/',
+        '1 RESI',
+        '2 PLAC Paris, France',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.attributes?.[0]?.tag).toBe('RESI');
+    expect(indi.attributes?.[0]).not.toHaveProperty('payload');
+    expect(indi.attributes?.[0]?.detail?.place?.payload).toEqual(['Paris', 'France']);
+  });
+
+  test('parses a FAM.RESI without a payload', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @F1@ FAM',
+        '1 RESI',
+        '2 PLAC Paris, France',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const fam = dataset.records[0];
+    if (fam?.tag !== 'FAM') {
+      throw new Error('expected FAM');
+    }
+    expect(fam.attributes?.[0]?.tag).toBe('RESI');
+    expect(fam.attributes?.[0]).not.toHaveProperty('payload');
+    expect(fam.attributes?.[0]?.detail?.detail?.place?.payload).toEqual(['Paris', 'France']);
   });
 });

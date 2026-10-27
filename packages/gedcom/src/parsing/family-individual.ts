@@ -48,6 +48,9 @@ import {
   parseSpouseFamilyLink,
   parseSpouseSealing,
 } from './events';
+import {
+  parseTodoStructure,
+} from './todo';
 import type {
   RawNode,
 } from './lines';
@@ -134,11 +137,28 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       rec.updatedAt = reqText(child);
     },
     _NONE: (child) => {
-      noPayload(child);
+      // The "couple had no children" marker: Legacy Family Tree writes
+      // the bare `_NONE`, Ahnenblatt writes `_NONE Y` (the only value
+      // the GenWiki catalog documents, by analogy with `MARR Y`). Both
+      // spell the same fact and normalize into the standard `NCHI 0`;
+      // the sources and export rule are recorded on
+      // FamilyChildCountAttribute.
+      if (child.value.kind === 'pointer') {
+        fail('structure.unexpected-payload', 'The _NONE line must not carry a pointer', child.position);
+      }
+      if (child.value.kind === 'text' && child.value.text.toUpperCase() !== 'Y') {
+        fail('enum.invalid-value', `The _NONE value must be Y or absent (the couple had no children), got "${child.value.text}"`, child.position);
+      }
+      if (child.children.length > 0) {
+        fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under _NONE`, (child.children[0] as RawNode).position);
+      }
       (rec.attributes ??= []).push({ tag: 'NCHI', payload: 0 });
     },
     _STAT: (child) => {
       rec.marriageStatus = reqText(child);
+    },
+    _TODO: (child) => {
+      (rec.todos ??= []).push(parseTodoStructure(child, ctx));
     },
     _TYPE: (child) => {
       // The GEDCOM-L convention: _TYPE same-sex marks a same-sex
@@ -265,14 +285,14 @@ function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType
 }
 
 /** A vendor physical descriptor (_EYEC, _HAIR, …): a FACT with a TYPE. */
-function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, type: string): void {
+function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag: 'FACT' | 'EDUC', type: string): void {
   const detail: EventDetail = {};
   const handlers = eventDetailHandlers(ctx, detail);
   handlers['TYPE'] = () => undefined;
   dispatch(node, detail, handlers, ctx);
   const raw = node.value.kind === 'text' ? node.value.text : '';
   (rec.attributes ??= []).push({
-    tag: 'FACT',
+    tag,
     payload: raw,
     type,
     ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
@@ -388,6 +408,12 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _SOSA: (child) => {
       rec.sosaNumber = reqText(child);
     },
+    _FSFTID: (child) => {
+      rec.familySearchId = reqText(child);
+    },
+    _TODO: (child) => {
+      (rec.todos ??= []).push(parseTodoStructure(child, ctx));
+    },
     _TAG: (child) => {
       setMark(rec, 0, child);
     },
@@ -455,16 +481,16 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       pushVendorName(rec, child, ctx, 'OTHER', 'Soldier name');
     },
     _EYEC: (child) => {
-      pushVendorAttribute(rec, child, ctx, 'Eye color');
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Eye color');
     },
     _HAIR: (child) => {
-      pushVendorAttribute(rec, child, ctx, 'Hair color');
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Hair color');
     },
     _HEIG: (child) => {
-      pushVendorAttribute(rec, child, ctx, 'Height');
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Height');
     },
     _WEIG: (child) => {
-      pushVendorAttribute(rec, child, ctx, 'Weight');
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Weight');
     },
     _BRTM: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Brit Mila'));
@@ -501,6 +527,42 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _FOOT: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Footnote'));
+    },
+    // The FTM201x / Ancestry fact tags (GenWiki "GEDCOM/_Nutzerdef-Tag"
+    // table: https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag), the same
+    // normalization as the older FTM set above:
+    // - _CIRC (circumcision) and _FUN (funeral) become EVEN + TYPE, like
+    //   the BKW _BRTM/_FNRL spellings of the same facts;
+    // - _DEG (degree) becomes the standard EDUC attribute with TYPE
+    //   "Degree";
+    // - _EMPLOY (employment) becomes FACT + TYPE "Employment" — not the
+    //   standard OCCU: Ancestry distinguishes the two ("_EMPLOY = Beruf,
+    //   OCCU = Beschäftigung"), so merging would collide;
+    // - _DNA (DNA markers) and _NAMS (namesake, kept free text: the
+    //   catalog does not say whether it is a name or a pointer) become
+    //   FACT + TYPE;
+    // - _MILTID (military identification number) becomes the REFN
+    //   identifier with TYPE "Military" (like the BKW _PRMN).
+    _CIRC: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Circumcision'));
+    },
+    _FUN: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Funeral'));
+    },
+    _DEG: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'EDUC', 'Degree');
+    },
+    _EMPLOY: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Employment');
+    },
+    _DNA: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'DNA');
+    },
+    _NAMS: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Namesake');
+    },
+    _MILTID: (child) => {
+      (rec.identifiers ??= []).push({ tag: 'REFN', payload: reqText(child), type: 'Military' });
     },
     _EXCM: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Excommunicated'));

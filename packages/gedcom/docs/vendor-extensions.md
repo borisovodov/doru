@@ -278,14 +278,16 @@ The FamilySearch GEDCOM registry (the GEDCOM-registries repository) is
 the official registry of 7.0 extension tags: each entry is a YAML file
 under `structure/extension/` plus a row in the manifest
 (<https://github.com/FamilySearch/GEDCOM-registries/blob/main/manifest/extension/manifest-extensions-en-US.tsv>).
-Every registered construct below is treated as valid input and is typed
-in the model; the registry YAML is the cited source of each field.
+Every registered construct below is treated as valid input; except for
+the prerelease `_SOUR` (kept generic, preserved verbatim), each is typed
+in the model, with the registry YAML cited in the field JSDoc.
 
 | Registry entry | Tag | Position | Model field | Export |
 | --- | --- | --- | --- | --- |
 | [Ancestry_PUBL_DATE.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/Ancestry_PUBL_DATE.yaml) | `DATE` | under `SOUR.PUBL` {0:1}, DateExact | `SourceRecord.publicationDetails.date` | 7.0; dropped on 5.5.1 |
 | [Ancestry_PUBL_PLAC.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/Ancestry_PUBL_PLAC.yaml) | `PLAC` | under `SOUR.PUBL` {0:1}, place name | `SourceRecord.publicationDetails.place` | 7.0; dropped on 5.5.1 |
 | [MagiKey_record_CENR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_record_CENR.yaml) | `_CENR` | record: `_SCHD` {0:1}, `SEX` {0:M}, `INDI` {1:M}, `DATE` {1:1}, `PLAC` {1:1}, `SOUR` {0:1}, `CHAN` {0:1} | `CensusRecord` | both versions |
+| [MagiKey_CENR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR.yaml) | `_CENR` | under `BIRT`, `INDI-CENS` and `OCCU` {0:M} each (event/attribute details) and `INDI-NAME` {0:M}: a pointer to the census record, "semantically similar to `SOUR`" | `EventDetail.censusLinks` / `PersonalNameStructure.censusLinks` | both versions |
 | [MagiKey_CENR_INDI.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR_INDI.yaml) | `INDI` | under `_CENR`: pointer to INDI, with `FATH`/`MOTH` {0:1}, `_MSTAT` {0:1}, `AGE`, `BIRT`, `FACT` {0:M}, `NAME`, `OCCU`, `ROLE`, `SEX` | `CensusRecord.entries` | both |
 | [MagiKey_FATH.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_FATH.yaml) / [MagiKey_MOTH.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_MOTH.yaml) | `FATH` / `MOTH` | under the census `INDI`: `AGE`, `BIRT`, `FACT`, `MARR`, `OCCU` {0:1} each | `CensusIndividual.father` / `mother` | both |
 | [MagiKey_AGER.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_AGER.yaml) | `_AGER` | under `AGE` {0:1}, payload `Integer-Integer` | `AgeStructure.ageRange` | both |
@@ -321,8 +323,8 @@ section.
 | `_SDATE` | `EventDetail.sortDate` | `_SDATE` | standard `SDATE` |
 | `_SHAR` + `_ROLE`/`ROLE` | `EventDetail.associations` (ROLE OTHER + PHRASE) | `_SHAR`/`_ROLE` | standard `ASSO`/`ROLE` |
 | `_PRIM` | `MultimediaLink.primary` | `_PRIM Y` | `_PRIM Y` (no standard equivalent) |
-| `_FREL`/`_MREL` | `FamilyChildLink.fatherRelation`/`motherRelation` | `_FREL`/`_MREL` | standard-first: agreeing pair → `INDI.FAMC.PEDI`; otherwise dropped |
-| `_APID` | `SourceCitation.ancestryPointers` | `_APID` | `_APID` (no standard equivalent) |
+| `_FREL`/`_MREL` | `FamilyChildLink.fatherRelation`/`motherRelation`, `ChildFamilyLink.fatherRelation`/`motherRelation` | `_FREL`/`_MREL` | standard-first: agreeing pair → the matching `INDI.FAMC.PEDI`; otherwise dropped |
+| `_APID` | `SourceCitation.ancestryPointers`, `EventDetail.ancestryPointers`, `PersonalNameStructure.ancestryPointers` | `_APID` | `_APID` (no standard equivalent) |
 | `_PLAC` / `_LOC` / `_PLAC_DEFN` records | `PlaceRecord` (+ `PlaceStructure.location` links) | flattened: map/notes merged into referencing `PLAC` (citations/media dropped), records/links not written | same flattening |
 | `_PLAC` under events | `EventDetail.additionalPlaces` | `_PLAC` | `_PLAC` |
 
@@ -350,9 +352,15 @@ its JSDoc.
 | `_WT_OBJE_SORT` | webtrees | Per-link media sort order | `media` (array order preserves the sort) |
 | `_DATE` under OBJE | Legacy, webtrees | Date of a media object | `MultimediaRecord.date` |
 | `_EMAIL` | BKW6, FO9, PAF | E-mail under an address block | `AddressStructure.email` |
-| `_NONE` | Legacy | "Couple had no children" under FAM | FAM `attributes` `NCHI 0` |
+| `_NONE` | Legacy, Ahnenblatt | "Couple had no children" under FAM — Legacy writes the bare tag, Ahnenblatt `_NONE Y` (the only documented value, by analogy with `MARR Y`); both normalize into the standard `NCHI 0` | FAM `attributes` `NCHI 0` |
 | `_MILT` / `_MDCL` / `_FOOT` | FTM | Military service / medical / footnote facts | `EVEN` + TYPE |
 | `_DCAUSE` | FTM | Death cause | `DEAT.CAUS` |
+| `_CIRC` / `_FUN` | FTM201x, Ancestry | Circumcision / funeral (the FTM/Ancestry spellings of the facts BKW writes as `_BRTM`/`_FNRL`) | `EVEN` + TYPE |
+| `_DEG` | FTM201x, webtrees, Gramps | Degree (educational attainment) | `EDUC` + TYPE "Degree" |
+| `_EMPLOY` | FTM201x, Ancestry | Employment — kept as FACT, not OCCU: Ancestry distinguishes the two ("_EMPLOY = Beruf, OCCU = Beschäftigung") | `FACT` + TYPE "Employment" |
+| `_DNA` / `_NAMS` | FTM201x, webtrees | DNA markers / namesake (kept free text; the catalog does not say whether _NAMS is a name or a pointer) | `FACT` + TYPE |
+| `_MILTID` | FTM201x | Military identification number | `REFN` identifier + TYPE "Military" |
+| `_DATE2` | PAF, AQ3, Ancestry, FTQ&E, Heritage, PhpGedView | The end date of an event ("bis-Datum"), value like DATE | `EventDetail.endDate` (written back as `_DATE2` in both versions) |
 | `_STAT` under FAM | Legacy | Marriage status (Married, Unmarried, …) | `FamilyRecord.marriageStatus` |
 | Gramps `ASSO` + `TYPE INDI` + `RELA` | Gramps | Event witnesses under family events | `EventDetail.associations` (like `_SHAR`) |
 | `_CREF` / `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | `SourceCitation.reference` / `SourceRecord.fullFootnote` |
@@ -361,12 +369,14 @@ its JSDoc.
 | `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | `ChildFamilyLink.primary` |
 | `_URL` under INDI | Legacy | Web address of a person | `IndividualRecord.url` |
 | `_PRIV` under events / ADDR | Legacy | Event or address marked private | `EventDetail.restriction` PRIVACY / `AddressStructure.private` |
-| `_PREF` | Legacy | Preferred spouse / child / parents | `SpouseFamilyLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` |
+| `_PREF` | Legacy | Preferred spouse / child / parents | `SpouseFamilyLink.preferred`, `FamilyPartnerLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` |
 | `_VERI` | Legacy | Verified checkmark on citations and places | `SourceCitation.verified`, `PlaceStructure.verified` |
 | `_EXCM` / `_MISN` | FTM | Excommunicated / Mission facts | `EVEN` + TYPE |
 | `_UNKN` | FTW8 | Special individual ID for later file comparisons | the `UID` identifier (exports as `_UID`) |
 | `_NAME` under ADDR | PAF | Name of the addressee | `AddressStructure.name` |
 | `_SOSA` | Ancestris | Sosa–Stradonitz (Ahnentafel) number of the individual | `IndividualRecord.sosaNumber` (written back in both versions) |
+| `_FSFTID` | Familienbuch, Legacy, AQ, Family Historian, webtrees | FamilySearch Family Tree person id (PID) under INDI | `IndividualRecord.familySearchId` (written back in both versions) |
+| `_TODO` under INDI/FAM | GenoPro, RootsMagic, Ahnenblatt, webtrees, GDO, FO7, Legacy, BKW | To-do structure with `DESC`/`PRTY`/`STAT`/`DATE`/`NOTE` (the Legacy level-0 `_TODO` record is the separate `TodoRecord`) | `IndividualRecord.todos` / `FamilyRecord.todos` (written back in both versions) |
 | `SCHEMA` / `_SCHEMA` | FTM | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA) | `Header.schema53` (written back in 5.5.1 as `SCHEMA`; dropped on 7.0) |
 
 **Brother's Keeper family** (BKW6, Legacy cat.): name variants
@@ -386,7 +396,9 @@ section).
 **Legacy data tags** (Legacy cat. "Custom GEDCOM Tags"): `_STAT` under
 CHIL → `FamilyChildLink.multiplicity` (free text: the vendor writes
 "Twin, Triplet, etc."); the `_TODO` record with `_CAT`/`_CDATE`/
-`_LOCL`/`_RDATE` → `TodoRecord`; `_TAG`/`_TAG2`–`_TAG9` →
+`_LOCL`/`_RDATE` → `TodoRecord` (the INDI/FAM `_TODO` structure of
+GenoPro/RootsMagic/Ahnenblatt is typed separately as `TodoStructure`,
+see the table above); `_TAG`/`_TAG2`–`_TAG9` →
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
 `MultimediaRecord.soundFile`; `_NAME` under ADDR is in the table above.
 The Legacy report machinery is deferred in chapter 7.
@@ -399,7 +411,8 @@ documented.
 **GEDCOM-L / GEDCOM 5.5EL — typed**: the `_LOC` record fields
 (`_GOV` → `govId`, `_MAIDENHEAD`, `TYPE`+`_GOVTYPE` → `types`,
 `_POST` → `postalCodes`, `_AIDN` → `administrativeIds`, `_DMGD` →
-`demographicData`, `NAME {1:M}` → `names`, `RELI` → `denomination`,
+`demographicData`, `NAME {1:M}` → `names` (each with its `ABBR {0:M}`
+abbreviations + optional `TYPE`, e.g. ISO 3166), `RELI` → `denomination`,
 `EVEN` → `events`, `_LOC`+`TYPE POLI|RELI|GEOG|CULT` → `parents`);
 `_GOV`/`_POST`/`_MAIDENHEAD` under event PLACs → `PlaceStructure`
 fields; `_RUFNAME` → `PersonalNameStructure.callName`; `_GODP`/`_WITN`
@@ -451,6 +464,18 @@ marriage statuses `_MSTAT`/`_MEND` (beginning/ending status under MARR;
 the meaning collides with `_STAT`, the writing product is
 discontinued). The GEDCOM 5.3 schema block is no longer deferred: it is
 typed as `Header.schema53` and written back in 5.5.1 (chapter 6).
+
+**Family Tree Maker / Family Tree Builder media tags** (deferred):
+`_PHOTO` (FTM) and `_PHOTO_RIN` (FTB). None of our sources documents
+the wire format: the GenWiki "GEDCOM/_Nutzerdef-Tag" table lists both
+without a description or a superstructure
+(<https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>), the Legacy
+"User-Defined GEDCOM Tags" catalog does not list them, and Tamura Jones
+only documents the *standard* `PHOTO` tag of GEDCOM 5.3 (removed in
+5.4), which is not the vendor tag. Typing them now would invent a
+model; they stay generic extensions (preserved verbatim in both
+versions) until the corpus validation runs (README "Future work")
+show their actual structure.
 
 **RootsMagic report fields**: `_SUBQ` (subsequent citation format),
 `_SENT` (event sentence), `_PPFX` (place prefix) — report wording.
