@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Installs the locally built dmg through the Homebrew cask taken live from
 # borisovodov/homebrew-taps (`main`) and verifies the install location, the
-# display names, the icon, the .doru/.ged/.gdz file associations, a real
-# launch, and the first-run files.
+# display names, the icon, the .doru/.ged/.gdz file associations, the doru://
+# URL scheme (Info.plist declaration and a real link open delivered through
+# Launch Services), a real launch, and the first-run files.
 #
 # The cask is transformed in place: the released version/sha256 are replaced
 # with the test artifact's, and the url points at a local HTTP server.
@@ -119,6 +120,11 @@ for ext in doru ged gdz; do
 done
 echo "::endgroup::"
 
+echo "::group::URL scheme declaration (Info.plist)"
+test "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$PLIST")" = "doru" \
+  || fail "Info.plist does not declare the doru URL scheme"
+echo "::endgroup::"
+
 echo "::group::Launch and first-run files"
 # Discrepancy with a real user install: the test build is unsigned, and on a
 # headless runner there is nobody to click through the first-launch
@@ -147,6 +153,35 @@ if [ ! -f "$FIRST_RUN/settings.json" ]; then
   fail "first-run settings not created at $FIRST_RUN/settings.json"
 fi
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
+
+echo "::group::doru:// deep link (warm — Launch Services delivery)"
+# The link must be opened by the *running* app: `open` resolves the scheme
+# through Launch Services and delivers a kAEGetURL Apple Event — the real
+# registration check. A cold-start link open would launch the unsigned test
+# build through Launch Services and hang on the first-launch verification
+# dialog (the same reason the app is launched directly above).
+TEST_FILE="$HOME/doru-deeplink-test/family.doru"
+rm -rf "$HOME/doru-deeplink-test"
+for _ in $(seq 1 15); do
+  open "doru://open?path=$TEST_FILE" 2>/dev/null && break
+  sleep 2
+done
+# The link points at a path that does not exist yet: openProject creates the
+# .doru file itself, so the file appearing proves the link went through
+# registration → delivery → parsing → opening.
+for _ in $(seq 1 30); do
+  [ -f "$TEST_FILE" ] && break
+  sleep 1
+done
+if [ ! -f "$TEST_FILE" ]; then
+  cat /tmp/doru-app.log
+  fail "the doru:// link did not open the project ($TEST_FILE was not created)"
+fi
+grep -q "$TEST_FILE" "$FIRST_RUN/session.json" \
+  || fail "session.json does not contain the linked project path"
+echo "deep link opened: $TEST_FILE"
+echo "::endgroup::"
+
 kill "$APP_PID" 2>/dev/null || true
 echo "::endgroup::"
 

@@ -76,9 +76,10 @@ cannot be derived from one another — keep them in sync deliberately:
   metainfo `<id>`, and the Homebrew cask's zap paths
   (`org.doru.doru.plist`).
 - `doru` — the executable name (`executableName` in `electron-builder.yml`),
-  the `doru://` protocol scheme (main process), and the MCP server name for
-  ACP agents (`main/chat.ts`). The `.doru` file extension shares the string
-  but is a separate concept.
+  the `doru://` protocol scheme (`protocols` in `electron-builder.yml` plus
+  `app.setAsDefaultProtocolClient` in the main process), and the MCP server
+  name for ACP agents (`main/chat.ts`). The `.doru` file extension shares the
+  string but is a separate concept.
 - `Dóru` / `Doru` — technical names stay ASCII: `productName` drives
   CFBundleName, the helper app names, and the userData path, and a non-ASCII
   CFBundleName crashes Electron at startup on macOS. The Dóru spelling lives

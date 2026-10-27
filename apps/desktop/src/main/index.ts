@@ -13,6 +13,7 @@ import { registerTreeIpc } from './ipc-tree';
 import { log } from './log';
 import { NodeFileSystem } from './filesystem';
 import { openExternalPath, openProject } from './projects';
+import { parseProtocolUrl } from './protocol-url';
 import { closeAllRuntimes, ensureRuntime } from './runtime';
 import { readSession } from './session';
 import { pendingExternalPaths, projectWindows, recents } from './state';
@@ -34,21 +35,15 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function handleProtocolUrl(url: string): void {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'doru:') {
-      return;
-    }
-    const projectPath = parsed.searchParams.get('path');
-    if (projectPath) {
-      if (app.isReady()) {
-        openExternalPath(projectPath);
-      } else {
-        pendingExternalPaths.push(projectPath);
-      }
-    }
-  } catch {
+  const projectPath = parseProtocolUrl(url);
+  if (projectPath === null) {
     log.warn('malformed protocol url', url);
+    return;
+  }
+  if (app.isReady()) {
+    openExternalPath(projectPath);
+  } else {
+    pendingExternalPaths.push(projectPath);
   }
 }
 

@@ -25,6 +25,24 @@ start page, and your open project windows are restored on the next launch.
 Double-clicking a `*.doru` file (or opening a
 `doru://open?path=/…/family.doru` link) opens it in the running app.
 
+## Opening projects from links
+
+The app registers the `doru://` URL scheme, so a `doru://open?path=…` link
+opens the project — or imports the file, for `.ged`/`.gdz` — even when the
+app is not running yet:
+
+- The path must be **absolute and URL-encoded** (`%20` for spaces, and so
+  on), e.g. `doru://open?path=%2FUsers%2Fyou%2FFamily.doru`.
+- If the app is not running, the link launches it and opens the project
+  right away.
+- If the app is already running, the project opens in the running instance
+  — a second instance is never started, the existing window is focused.
+- Links only work for the file types the app opens directly: `.doru`
+  projects and `.ged`/`.gdz` GEDCOM files.
+
+On macOS, `open "doru://open?path=…"` sends the link from the terminal or
+from other apps; on Linux, `xdg-open` does the same.
+
 ## Next steps
 
 - [Working with the tree](tree.md) — persons, families, sources, notes.

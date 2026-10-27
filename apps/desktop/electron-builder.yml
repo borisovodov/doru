@@ -50,6 +50,13 @@ fileAssociations:
     name: GEDZIP archive
     role: Viewer
     mimeType: application/x-gedzip
+# The doru:// URL scheme: generates CFBundleURLTypes in the macOS Info.plist
+# and the x-scheme-handler MimeType in the Linux desktop entry. Keep in sync
+# with `app.setAsDefaultProtocolClient('doru', …)` in src/main/index.ts.
+protocols:
+  - name: Dóru tree link
+    schemes: [doru]
+    role: Editor
 mac:
   category: public.app-category.lifestyle
   icon: build/Icon.icon
