@@ -134,6 +134,12 @@ const mcpProject = parseMcpServerArg(process.argv);
 
 const gotLock = mcpProject !== null || app.requestSingleInstanceLock();
 if (!gotLock) {
+  // A running instance received the second-instance event with our argv and
+  // opens the link/file itself. Register no startup or teardown hooks here:
+  // Electron defers a pre-ready quit() until after the ready event, so
+  // anything registered below would run in the quitting instance too — its
+  // window-close teardown used to overwrite the running instance's
+  // session.json with an empty session.
   app.quit();
 } else if (!mcpProject) {
   // The doru:// protocol scheme — keep in sync with executableName in
@@ -181,7 +187,21 @@ if (!gotLock) {
   });
 }
 
-void app.whenReady().then(async () => {
+if (gotLock) {
+  void app.whenReady().then(startApp);
+
+  app.on('will-quit', () => {
+    closeAllRuntimes();
+  });
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+}
+
+async function startApp(): Promise<void> {
   if (mcpProject) {
     // Headless helper: open the tree, serve the shared toolset over stdio,
     // and stay out of everything GUI (no menu, no dock icon, no windows).
@@ -271,14 +291,4 @@ void app.whenReady().then(async () => {
       createWindow(null);
     }
   });
-});
-
-app.on('will-quit', () => {
-  closeAllRuntimes();
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+}
