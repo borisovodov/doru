@@ -45,3 +45,41 @@ files in `metadata/`.
   `raw.githubusercontent.com` URLs, so they render everywhere without a
   website deploy. If they move (e.g. to a CDN on doru.family), update the
   metainfo in the same commit.
+
+## Distribution tests
+
+`distribution-tests.yml` installs the freshly built artifact through each
+real channel and verifies the install location, display names, icon, the
+`.doru`/`.ged`/`.gdz` file associations, a real launch, and the first-run
+files. It runs only from the Release workflow (which waits for it) or
+manually via `workflow_dispatch` (with a `channels` input) — it is
+deliberately not part of the per-push CI.
+
+The channel manifests are taken live from the distributor repositories
+(`borisovodov/homebrew-taps`, `borisovodov/flatpak`,
+`borisovodov/bucket`) at their current `main` — a breakage there means users
+are broken right now. Each manifest is transformed in place: the released
+version/hashes are replaced with the locally built artifact's and the
+artifact is served from a local HTTP server. Nothing is duplicated into
+this repository.
+
+Known deviations of the test environment from a real user install, decided
+one by one (each is documented at the point of use in
+`.github/scripts/dist-tests/`):
+
+- **macOS**: the test build is unsigned, and a headless runner has nobody
+  to click through the first-launch verification dialog — `open` would
+  block forever, so the app is launched by direct exec.
+- **Linux (cask)**: no display server — the app runs under `xvfb` +
+  `dbus-run-session` with `--no-sandbox --disable-gpu`.
+- **Flatpak**: the bundle is unsigned and installed from a local
+  `--no-gpg-verify` remote; `XDG_DATA_DIRS` is set explicitly (on a real
+  machine the flatpak profile snippet adds the exports dir); first-run
+  files are checked in `~/.var/app/org.doru.doru/config/Doru`, where
+  flatpak redirects `XDG_CONFIG_HOME`.
+- **Windows (Scoop)**: only the x64 manifest variant is exercised (no
+  arm64 runners); the bucket is cloned from the local checkout instead of
+  GitHub.
+- **Common**: manifests get a synthetic version (`0.0.0-test`); file
+  association checks poll with retries because Launch Services and the
+  gio MIME caches are asynchronous.
