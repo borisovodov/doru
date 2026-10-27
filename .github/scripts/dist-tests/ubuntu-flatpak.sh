@@ -141,11 +141,12 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
   kill -0 "$APP_PID" 2>/dev/null || { echo "app died within 8s of startup"; cat /tmp/doru-app.log; exit 1; }
   kill "$APP_PID"
 '
-# --filesystem=home maps the real home inside the sandbox: Electron's userData
-# lands in ~/.config/Doru, not in ~/.var/app/org.doru.doru.
+# Flatpak always redirects XDG_CONFIG_HOME inside the sandbox to
+# ~/.var/app/<id>/config (flatpak-context.c apply_env_appid), regardless of
+# --filesystem=home — so Electron's userData lands there, not in ~/.config.
 # settings.json is written by readSettings on boot — the deterministic
 # first-run marker.
-FIRST_RUN="$HOME/.config/Doru"
+FIRST_RUN="$HOME/.var/app/org.doru.doru/config/Doru"
 for _ in $(seq 1 30); do
   [ -f "$FIRST_RUN/settings.json" ] && break
   sleep 1

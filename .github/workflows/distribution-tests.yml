@@ -127,6 +127,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             /tmp/doru-app.log
+            ~/.var/app/org.doru.doru
             ~/.config/Doru
 
   windows-scoop:
