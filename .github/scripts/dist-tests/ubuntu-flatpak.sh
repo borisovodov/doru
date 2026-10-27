@@ -187,15 +187,15 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
     sleep 1
   done
   [ -f "$DEEP_LINK_FILE" ] || { echo "the link did not open the project"; cat /tmp/doru-app.log; exit 1; }
-  # The durable proof of the open is the recents entry (recent.json): the
-  # session file is racing a second-instance teardown write on Linux and
-  # cannot be asserted here.
+  # The durable proof of the open is the session entry (session.json); it
+  # lands a beat after the project file (window creation and recents come
+  # first), so poll like the other markers.
   for _ in $(seq 1 30); do
-    grep -q "$DEEP_LINK_FILE" "$HOME/.var/app/org.doru.doru/config/Doru/recent.json" 2>/dev/null && break
+    grep -q "$DEEP_LINK_FILE" "$HOME/.var/app/org.doru.doru/config/Doru/session.json" 2>/dev/null && break
     sleep 1
   done
-  grep -q "$DEEP_LINK_FILE" "$HOME/.var/app/org.doru.doru/config/Doru/recent.json" \
-    || { echo "recent.json does not contain the linked project path"; cat /tmp/doru-app.log; exit 1; }
+  grep -q "$DEEP_LINK_FILE" "$HOME/.var/app/org.doru.doru/config/Doru/session.json" \
+    || { echo "session.json does not contain the linked project path"; cat /tmp/doru-app.log; exit 1; }
   echo "deep link opened: $DEEP_LINK_FILE"
   kill "$APP_PID"
 '
