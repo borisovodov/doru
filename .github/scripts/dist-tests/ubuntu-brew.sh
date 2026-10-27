@@ -2,8 +2,9 @@
 # Installs the locally built AppImage through the Homebrew cask taken live
 # from borisovodov/homebrew-taps (`main`) and verifies the install location,
 # the desktop entry (name, icon, MimeType), the installed icon, the
-# .doru/.ged/.gdz file associations, a real launch under xvfb, and the
-# first-run files.
+# .doru/.ged/.gdz file associations, the doru:// URL scheme (registration
+# after first launch plus a warm and a cold-start link open through the
+# desktop entry), a real launch under xvfb, and the first-run files.
 #
 # Discrepancies with a real user install, decided case by case:
 # - the app is launched headless with `--no-sandbox --disable-gpu` (no
@@ -140,10 +141,16 @@ for mime in application/x-doru application/x-gedzip text/vnd.familysearch.gedcom
 done
 echo "::endgroup::"
 
-echo "::group::Launch and first-run files"
-# Discrepancy: headless launch under xvfb/dbus with --no-sandbox --disable-gpu.
+echo "::group::Launch, first-run files, and doru:// deep links"
+export DEEP_LINK_FILE="$HOME/doru-deeplink-test/family.doru"
+export DEEP_LINK_URL="doru://open?path=$DEEP_LINK_FILE"
+rm -rf "$HOME/doru-deeplink-test"
+# Discrepancy: headless launch under xvfb/dbus. ELECTRON_DISABLE_SANDBOX
+# covers the instance a link spawns through the desktop entry — that one
+# cannot receive the --no-sandbox flag the first instance gets.
 xvfb-run --auto-servernum dbus-run-session -- bash -c '
   set -e
+  export ELECTRON_DISABLE_SANDBOX=1
   DORU_LOG_LEVEL=debug "$HOME/Applications/Doru.AppImage" --no-sandbox --disable-gpu \
     >/tmp/doru-app.log 2>&1 &
   APP_PID=$!
@@ -159,6 +166,35 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
   fi
   sleep 8
   kill -0 "$APP_PID" 2>/dev/null || { echo "app died within 8s of startup"; cat /tmp/doru-app.log; exit 1; }
+  # Launching registers the doru:// scheme: Electron writes its own desktop
+  # entry next to the cask one and sets it as the x-scheme-handler/doru
+  # default via xdg-mime.
+  default=""
+  for _ in $(seq 1 15); do
+    default=$(xdg-mime query default x-scheme-handler/doru || true)
+    [ -n "$default" ] && break
+    sleep 2
+  done
+  [ -n "$default" ] || { echo "no default handler for x-scheme-handler/doru"; cat /tmp/doru-app.log; exit 1; }
+  echo "x-scheme-handler/doru -> $default"
+  handler="$HOME/.local/share/applications/$default"
+  test -f "$handler" || { echo "the registered handler desktop entry is missing: $handler"; exit 1; }
+  grep -q "^MimeType=.*x-scheme-handler/doru;" "$handler" \
+    || { echo "$handler lacks the scheme MimeType"; exit 1; }
+  grep -q "^Exec=.*Doru.AppImage %U" "$handler" \
+    || { echo "$handler Exec does not point at the AppImage with %U"; exit 1; }
+  # Warm open: xdg-open resolves the scheme and starts a second instance,
+  # which forwards the link to the running one via the single-instance lock.
+  xdg-open "$DEEP_LINK_URL"
+  # The link points at a path that does not exist yet: openProject creates
+  # the .doru file itself — the file appearing proves the link went through
+  # registration → delivery → parsing → opening.
+  for _ in $(seq 1 30); do
+    [ -f "$DEEP_LINK_FILE" ] && break
+    sleep 1
+  done
+  [ -f "$DEEP_LINK_FILE" ] || { echo "the link did not open the project"; cat /tmp/doru-app.log; exit 1; }
+  echo "deep link opened: $DEEP_LINK_FILE"
   kill "$APP_PID"
 '
 FIRST_RUN="$HOME/.config/Doru"
@@ -170,7 +206,25 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 test -f "$FIRST_RUN/settings.json" || fail "first-run settings not created at $FIRST_RUN/settings.json"
+grep -q "$DEEP_LINK_FILE" "$FIRST_RUN/session.json" \
+  || fail "session.json does not contain the linked project path"
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
+echo "::endgroup::"
+
+echo "::group::doru:// deep link (cold start through the desktop entry)"
+rm -rf "$HOME/doru-deeplink-test"
+xvfb-run --auto-servernum dbus-run-session -- bash -c '
+  set -e
+  export ELECTRON_DISABLE_SANDBOX=1
+  xdg-open "$DEEP_LINK_URL"
+  for _ in $(seq 1 60); do
+    [ -f "$DEEP_LINK_FILE" ] && break
+    sleep 1
+  done
+  [ -f "$DEEP_LINK_FILE" ] || { echo "the cold-start link did not open the project"; exit 1; }
+  echo "cold-start link opened: $DEEP_LINK_FILE"
+'
+pkill -f 'Doru.AppImage' 2>/dev/null || true
 echo "::endgroup::"
 
 echo "Ubuntu · Homebrew cask install verified."

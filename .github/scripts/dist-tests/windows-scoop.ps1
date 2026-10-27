@@ -2,8 +2,10 @@
 # from borisovodov/bucket (`main`) and verifies the install location, the exe
 # display metadata, the Start Menu shortcut (name, target, icon), the
 # materialized association .reg templates, the registry registration after
-# `reg import` (the opt-in step the manifest tells users to run), a real
-# launch, and the first-run files.
+# `reg import` (the opt-in step the manifest tells users to run), the doru://
+# URL scheme (registry registration after first launch plus a warm and a
+# cold-start link open through ShellExecute), a real launch, and the
+# first-run files.
 #
 # Discrepancies with a real user install, decided case by case:
 # - only the x64 manifest variant is exercised (no arm64 Windows runners);
@@ -118,7 +120,7 @@ if ($fileAssoc.'.ged' -ne 'Doru.Gedcom') { Fail 'Capabilities\FileAssociations l
 if ($fileAssoc.'.gdz' -ne 'Doru.Gedzip') { Fail 'Capabilities\FileAssociations lacks .gdz' }
 Write-Host '::endgroup::'
 
-Write-Host '::group::Launch and first-run files'
+Write-Host '::group::Launch, first-run files, and the doru:// deep link'
 $env:DORU_LOG_LEVEL = 'debug'
 $process = Start-Process -FilePath (Join-Path $appDir 'doru.exe') -PassThru
 Start-Sleep -Seconds 10
@@ -135,7 +137,56 @@ for ($i = 0; $i -lt 30; $i++) {
 }
 if (-not (Test-Path $marker)) { Fail "first-run settings not created at $marker" }
 Write-Host "first-run files: $((Get-ChildItem $firstRun | Select-Object -ExpandProperty Name) -join ' ')"
+
+# The launch registers the doru:// scheme under HKCU\Software\Classes.
+$schemeKey = 'HKCU:\Software\Classes\doru'
+$registered = $false
+for ($i = 0; $i -lt 15; $i++) {
+    if (Test-Path $schemeKey) { $registered = $true; break }
+    Start-Sleep -Seconds 1
+}
+if (-not $registered) { Fail 'the doru scheme was not registered in HKCU\Software\Classes' }
+if ($null -eq (Get-Item $schemeKey).GetValue('URL Protocol')) { Fail 'the doru scheme key lacks the URL Protocol value' }
+$schemeCommand = (Get-Item "$schemeKey\shell\open\command").GetValue('')
+if ($schemeCommand -notlike '*doru.exe*' -or $schemeCommand -notlike '*%1*') {
+    Fail "the doru scheme command is '$schemeCommand'"
+}
+Write-Host "doru:// -> $schemeCommand"
+
+# Warm open: ShellExecute resolves the scheme through the registry and starts
+# a second doru.exe, which forwards the link to the running instance via the
+# single-instance lock.
+$testDir = Join-Path $env:USERPROFILE 'doru-deeplink-test'
+$testFile = Join-Path $testDir 'family.doru'
+$testUrl = 'doru://open?path=' + ($testFile -replace '\\', '/')
+Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
+Start-Process $testUrl
+# The link points at a path that does not exist yet: openProject creates the
+# .doru file itself — the file appearing proves the link went through
+# registration → delivery → parsing → opening.
+for ($i = 0; $i -lt 30; $i++) {
+    if (Test-Path $testFile) { break }
+    Start-Sleep -Seconds 1
+}
+if (-not (Test-Path $testFile)) { Fail "the doru:// link did not open the project ($testFile was not created)" }
+$session = Join-Path $firstRun 'session.json'
+if (-not (Select-String -Path $session -Pattern $testFile.Replace('\', '\\') -Quiet)) {
+    Fail 'session.json does not contain the linked project path'
+}
+Write-Host "deep link opened: $testFile"
 Stop-Process -Id $process.Id -Force
+Write-Host '::endgroup::'
+
+Write-Host '::group::doru:// deep link (cold start through the registry)'
+Remove-Item -Force $testFile -ErrorAction SilentlyContinue
+Start-Process $testUrl
+for ($i = 0; $i -lt 60; $i++) {
+    if (Test-Path $testFile) { break }
+    Start-Sleep -Seconds 1
+}
+if (-not (Test-Path $testFile)) { Fail "the cold-start doru:// link did not open the project ($testFile was not created)" }
+Write-Host "cold-start link opened: $testFile"
+Get-Process -Name 'doru' -ErrorAction SilentlyContinue | Stop-Process -Force
 Write-Host '::endgroup::'
 
 Write-Host 'Windows · Scoop install verified.'

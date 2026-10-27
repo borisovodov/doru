@@ -3,7 +3,9 @@
 # stamps the metainfo with its script, builds the flatpak with
 # electron-builder, imports the bundle into a local OSTree repo, and installs
 # it — then verifies the exported desktop entry, MIME registration, icons,
-# file associations, a real launch, and the first-run files.
+# file associations, the doru:// URL scheme (exported MimeType, host-side
+# handler resolution, plus a warm and a cold-start link open), a real launch,
+# and the first-run files.
 #
 # Discrepancies with a real user install, decided case by case:
 # - XDG_DATA_DIRS is set explicitly (on a real machine the flatpak profile
@@ -62,6 +64,7 @@ grep -q '^Name=Dóru$' "$DESKTOP" || fail "desktop Name is not Dóru"
 grep -q '^MimeType=.*application/x-doru;' "$DESKTOP" || fail "MimeType lacks application/x-doru"
 grep -q '^MimeType=.*application/x-gedzip;' "$DESKTOP" || fail "MimeType lacks application/x-gedzip"
 grep -q '^MimeType=.*text/vnd.familysearch.gedcom;' "$DESKTOP" || fail "MimeType lacks text/vnd.familysearch.gedcom"
+grep -q '^MimeType=.*x-scheme-handler/doru;' "$DESKTOP" || fail "MimeType lacks x-scheme-handler/doru"
 grep -q '^X-Flatpak=org.doru.doru$' "$DESKTOP" || fail "exported entry lacks the X-Flatpak tag"
 grep -q '^Exec=.*flatpak run.*org.doru.doru' "$DESKTOP" || fail "Exec was not rewritten to flatpak run"
 echo "::endgroup::"
@@ -125,7 +128,22 @@ for mime in application/x-doru application/x-gedzip text/vnd.familysearch.gedcom
 done
 echo "::endgroup::"
 
-echo "::group::Launch and first-run files"
+echo "::group::URL scheme handler resolution"
+# `gio mime` consults the mimeinfo.cache in the exports dir (in XDG_DATA_DIRS
+# above) — the same resolution `xdg-open` uses on the host. `xdg-mime` alone
+# only reads mimeapps.list, which a flatpak install does not populate.
+for _ in $(seq 1 15); do
+  gio mime x-scheme-handler/doru 2>/dev/null | grep -q 'org.doru.doru.desktop' && break
+  sleep 2
+done
+gio mime x-scheme-handler/doru 2>/dev/null | grep -q 'org.doru.doru.desktop' \
+  || fail "gio does not resolve x-scheme-handler/doru to the flatpak app"
+echo "::endgroup::"
+
+echo "::group::Launch, first-run files, and doru:// deep links"
+export DEEP_LINK_FILE="$HOME/doru-deeplink-test/family.doru"
+export DEEP_LINK_URL="doru://open?path=$DEEP_LINK_FILE"
+rm -rf "$HOME/doru-deeplink-test"
 xvfb-run --auto-servernum dbus-run-session -- bash -c '
   set -e
   DORU_LOG_LEVEL=debug flatpak run org.doru.doru --disable-gpu \
@@ -143,6 +161,21 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
   fi
   sleep 8
   kill -0 "$APP_PID" 2>/dev/null || { echo "app died within 8s of startup"; cat /tmp/doru-app.log; exit 1; }
+  # Warm open: xdg-open resolves the scheme through the exported desktop
+  # entry and spawns `flatpak run … doru://open?path=…`; the new sandboxed
+  # instance forwards the link to the running one via the single-instance
+  # lock on the shared userData.
+  xdg-open "$DEEP_LINK_URL"
+  # The link points at a path that does not exist yet: openProject creates
+  # the .doru file itself — the file appearing proves the link went through
+  # resolution → delivery → parsing → opening (the sandbox sees $HOME because
+  # the flatpak build defaults to --filesystem=home).
+  for _ in $(seq 1 30); do
+    [ -f "$DEEP_LINK_FILE" ] && break
+    sleep 1
+  done
+  [ -f "$DEEP_LINK_FILE" ] || { echo "the link did not open the project"; cat /tmp/doru-app.log; exit 1; }
+  echo "deep link opened: $DEEP_LINK_FILE"
   kill "$APP_PID"
 '
 # Flatpak always redirects XDG_CONFIG_HOME inside the sandbox to
@@ -156,7 +189,24 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 test -f "$FIRST_RUN/settings.json" || fail "first-run settings not created at $FIRST_RUN/settings.json"
+grep -q "$DEEP_LINK_FILE" "$FIRST_RUN/session.json" \
+  || fail "session.json does not contain the linked project path"
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
+echo "::endgroup::"
+
+echo "::group::doru:// deep link (cold start through the exported desktop entry)"
+rm -rf "$HOME/doru-deeplink-test"
+xvfb-run --auto-servernum dbus-run-session -- bash -c '
+  set -e
+  xdg-open "$DEEP_LINK_URL"
+  for _ in $(seq 1 60); do
+    [ -f "$DEEP_LINK_FILE" ] && break
+    sleep 1
+  done
+  [ -f "$DEEP_LINK_FILE" ] || { echo "the cold-start link did not open the project"; exit 1; }
+  echo "cold-start link opened: $DEEP_LINK_FILE"
+'
+flatpak kill org.doru.doru 2>/dev/null || true
 echo "::endgroup::"
 
 echo "Ubuntu · Flatpak install verified."
