@@ -215,3 +215,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   versions, and commit the bump together with the lockfile update. Note:
   `npm run build` does *not* touch the lockfile — releasing without the sync
   leaves a stale lock and forces a lockfile-only follow-up commit.
+
+## Collaboration
+
+- **Agents never merge pull requests.** Open the PR, wait for CI, report the
+  result — merging is always the repository owner's decision, in this
+  repository and in any other.
