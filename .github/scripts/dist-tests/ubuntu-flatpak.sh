@@ -21,10 +21,11 @@ fail() { echo "::error::$1"; exit 1; }
 
 echo "::group::Install flatpak tooling"
 sudo apt-get update -qq
-# No appstream/appstream-util: the test never calls appstreamcli, and
-# appstream-util (appstream-glib) drags in the whole gstreamer/ffmpeg stack —
-# a ~20 minute download on the runner's apt mirror.
-sudo apt-get install -y -qq \
+# No appstream/appstream-util here — but flatpak-builder hard-depends on
+# appstream-compose, which *recommends* ffmpeg. --no-install-recommends keeps
+# the whole ffmpeg/VAAPI/VDPAU stack out: ~190 packages instead of ~395 and
+# minutes instead of a ~20-minute download on the runner's apt mirror.
+sudo apt-get install -y -qq --no-install-recommends \
   flatpak flatpak-builder ostree \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 xvfb dbus-x11
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
