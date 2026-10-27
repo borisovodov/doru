@@ -37,6 +37,12 @@
     <keyword>offline</keyword>
   </keywords>
 
+  <provides>
+    <mediatype>application/x-doru</mediatype>
+    <mediatype>application/x-gedzip</mediatype>
+    <mediatype>text/vnd.familysearch.gedcom</mediatype>
+  </provides>
+
   <url type="homepage">https://doru.family</url>
   <url type="bugtracker">https://github.com/borisovodov/doru/issues</url>
   <url type="vcs-browser">https://github.com/borisovodov/doru</url>
