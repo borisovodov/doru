@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The file types Dóru registers on Linux (freedesktop shared-mime-info).
+
+  Consumed by:
+  - the flatpak build: flatpak.files copies this file into
+    /app/share/mime/packages/, flatpak exports it on install;
+  - the Homebrew cask, which writes the same content inline (keep the two
+    in sync when editing).
+
+  `.ged` files are not registered here: GEDCOM text already has the type
+  text/vnd.familysearch.gedcom in shared-mime-info; the desktop entries
+  only declare it.
+-->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-doru">
+    <comment>Dóru family tree</comment>
+    <glob pattern="*.doru"/>
+    <icon name="org.doru.doru"/>
+  </mime-type>
+  <mime-type type="application/x-gedzip">
+    <comment>GEDZIP genealogy archive</comment>
+    <glob pattern="*.gdz"/>
+    <icon name="org.doru.doru"/>
+  </mime-type>
+</mime-info>
