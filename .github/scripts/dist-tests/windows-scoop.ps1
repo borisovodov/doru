@@ -89,7 +89,10 @@ if (-not (Test-Path $shortcut)) { Fail "shortcut missing: $shortcut" }
 $shell = New-Object -ComObject WScript.Shell
 $sc = $shell.CreateShortcut($shortcut)
 if (-not $sc.TargetPath.EndsWith('doru.exe')) { Fail "shortcut target is '$($sc.TargetPath)'" }
-if (-not $sc.IconLocation.Contains('doru.exe')) { Fail "shortcut icon is '$($sc.IconLocation)'" }
+# IconLocation is "path,index"; when no explicit icon is set, the path part
+# is empty and Windows uses the target exe's icon (",0") — that is expected.
+$iconPath = ($sc.IconLocation -split ',')[0]
+if ($iconPath -ne '' -and $iconPath -notlike '*doru.exe*') { Fail "shortcut icon is '$($sc.IconLocation)'" }
 Write-Host "target: $($sc.TargetPath)"
 Write-Host "icon: $($sc.IconLocation)"
 Write-Host '::endgroup::'

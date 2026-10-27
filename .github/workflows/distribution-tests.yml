@@ -57,15 +57,19 @@ jobs:
           path: external/homebrew-taps
       - name: Install through the cask and verify
         run: bash .github/scripts/dist-tests/macos-brew.sh
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p dist-logs
+          cp -R "$HOME/Library/Logs/Doru" dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/Library/Application Support/Doru" dist-logs/ 2>/dev/null || true
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: macos-brew-logs
           if-no-files-found: ignore
-          path: |
-            ~/Library/Logs/Doru
-            ~/Library/Application Support/Doru
+          path: dist-logs/**
 
   ubuntu-brew:
     name: Ubuntu · Homebrew cask
@@ -90,16 +94,20 @@ jobs:
           path: external/homebrew-taps
       - name: Install through the cask and verify
         run: bash .github/scripts/dist-tests/ubuntu-brew.sh
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p dist-logs
+          cp /tmp/doru-app.log dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.config/Doru" dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.cache/Doru" dist-logs/ 2>/dev/null || true
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: ubuntu-brew-logs
           if-no-files-found: ignore
-          path: |
-            /tmp/doru-app.log
-            ~/.config/Doru
-            ~/.cache/Doru
+          path: dist-logs/**
 
   ubuntu-flatpak:
     name: Ubuntu · Flatpak
@@ -119,16 +127,20 @@ jobs:
       - run: npm ci
       - name: Install through Flatpak and verify
         run: bash .github/scripts/dist-tests/ubuntu-flatpak.sh
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p dist-logs
+          cp /tmp/doru-app.log dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.var/app/org.doru.doru" dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.config/Doru" dist-logs/ 2>/dev/null || true
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: ubuntu-flatpak-logs
           if-no-files-found: ignore
-          path: |
-            /tmp/doru-app.log
-            ~/.var/app/org.doru.doru
-            ~/.config/Doru
+          path: dist-logs/**
 
   windows-scoop:
     name: Windows · Scoop
@@ -154,12 +166,17 @@ jobs:
       - name: Install through Scoop and verify
         shell: pwsh
         run: .github/scripts/dist-tests/windows-scoop.ps1
+      - name: Collect logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist-logs | Out-Null
+          if (Test-Path "$env:APPDATA\Doru") { Copy-Item -Recurse "$env:APPDATA\Doru" dist-logs\ }
+          if (Test-Path "$env:USERPROFILE\scoop\apps\doru") { Copy-Item -Recurse "$env:USERPROFILE\scoop\apps\doru" dist-logs\ }
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: windows-scoop-logs
           if-no-files-found: ignore
-          path: |
-            $env:APPDATA\Doru
-            ~/scoop/apps/doru
+          path: dist-logs/**
