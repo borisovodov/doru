@@ -16,7 +16,9 @@ $ErrorActionPreference = 'Stop'
 $workspace = $env:GITHUB_WORKSPACE
 $bucketDir = Join-Path $workspace 'external/bucket'
 $manifest = Join-Path $bucketDir 'bucket/doru.json'
-$zip = Get-ChildItem (Join-Path $workspace 'apps/desktop/release') -Filter '*.zip' | Select-Object -First 1
+# Only the x64 variant is exercised (no arm64 Windows runners); pick its zip
+# explicitly — the alphabetical first match would be the arm64 artifact.
+$zip = Get-ChildItem (Join-Path $workspace 'apps/desktop/release') -Filter 'doru-windows-x64.zip' | Select-Object -First 1
 $port = 8475
 $scoopRoot = Join-Path $env:USERPROFILE 'scoop'
 $appDir = Join-Path $scoopRoot 'apps/doru/current'
@@ -65,6 +67,9 @@ New-Item -ItemType Directory -Force $buckets | Out-Null
 if (-not (Test-Path (Join-Path $buckets 'test'))) {
     git clone "$bucketDir" (Join-Path $buckets 'test') | Out-Null
 }
+# git clone only carries the committed state — the rewritten manifest above
+# is a working-tree change, so copy it over the clone explicitly.
+Copy-Item -Force $manifest (Join-Path $buckets 'test/bucket/doru.json')
 scoop install test/doru
 Write-Host '::endgroup::'
 
@@ -170,7 +175,17 @@ for ($i = 0; $i -lt 30; $i++) {
 }
 if (-not (Test-Path $testFile)) { Fail "the doru:// link did not open the project ($testFile was not created)" }
 $session = Join-Path $firstRun 'session.json'
-if (-not (Select-String -Path $session -Pattern $testFile.Replace('\', '\\') -Quiet)) {
+# session.json is written a beat after the project file (window creation and
+# recents come first) — poll like the other markers.
+for ($i = 0; $i -lt 30; $i++) {
+    if (Test-Path $session) { break }
+    Start-Sleep -Seconds 1
+}
+# The path arrives from the doru:// URL with forward slashes, and that is how
+# the session stores it.
+$sessionText = Get-Content $session -Raw
+if (-not $sessionText.Contains($testFile.Replace('\', '/')) -and
+    -not $sessionText.Contains($testFile.Replace('\', '\\'))) {
     Fail 'session.json does not contain the linked project path'
 }
 Write-Host "deep link opened: $testFile"

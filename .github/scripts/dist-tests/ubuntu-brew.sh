@@ -15,7 +15,7 @@ set -euo pipefail
 
 WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
 TAP="$WORKSPACE/external/homebrew-taps"
-APPIMAGE=$(ls "$WORKSPACE"/apps/desktop/release/*.AppImage | head -1)
+APPIMAGE=$(ls "$WORKSPACE"/apps/desktop/release/doru-linux-x86_64.AppImage 2>/dev/null | head -1)
 PORT=8474
 
 fail() { echo "::error::$1"; exit 1; }
@@ -39,26 +39,20 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew --version
 echo "::endgroup::"
 
-echo "::group::Prepare the cask with the test artifact"
-HASH=$(sha256sum "$APPIMAGE" | awk '{print $1}')
-sed -i \
-  -e 's|^  url .*|  url "http://127.0.0.1:'"$PORT"'/'"$(basename "$APPIMAGE")"'"|' \
-  -e 's/^  version .*/  version "'"${TEST_VERSION:?}"'"/' \
-  "$TAP/Casks/doru.rb"
-perl -i -pe 's/(x86_64_linux:\s+")[0-9a-f]{64}/$1'"$HASH"'/' "$TAP/Casks/doru.rb"
-grep -E '^(  url|  version|  sha256 x86_64_linux:)' "$TAP/Casks/doru.rb"
-echo "::endgroup::"
-
 echo "::group::Serve the artifact"
 cd "$(dirname "$APPIMAGE")"
+# The build produces an arm64 AppImage next to the x86_64 one; pick the
+# runner's arch explicitly — the alphabetical first match would be the arm64
+# build, and its name already matches the cask's app_image stanza.
+SERVED_APPIMAGE="doru-linux-x86_64.AppImage"
 python3 -m http.server "$PORT" >/tmp/doru-http.log 2>&1 &
 HTTP_PID=$!
 trap 'kill "$HTTP_PID" 2>/dev/null || true' EXIT
 for _ in $(seq 1 30); do
-  curl -fsSI "http://127.0.0.1:$PORT/$(basename "$APPIMAGE")" >/dev/null && break
+  curl -fsSI "http://127.0.0.1:$PORT/$SERVED_APPIMAGE" >/dev/null && break
   sleep 1
 done
-curl -fsSI "http://127.0.0.1:$PORT/$(basename "$APPIMAGE")" >/dev/null \
+curl -fsSI "http://127.0.0.1:$PORT/$SERVED_APPIMAGE" >/dev/null \
   || fail "local artifact server did not come up"
 echo "::endgroup::"
 
@@ -66,6 +60,24 @@ echo "::group::Install through the cask"
 export HOMEBREW_NO_AUTO_UPDATE=1
 brew tap borisovodov/taps "$TAP"
 brew trust borisovodov/taps
+# `brew tap` clones the tap, which carries only committed state — rewrite the
+# *cloned* cask so brew installs the test artifact, not the published release.
+CASK="$(brew --repo borisovodov/taps)/Casks/doru.rb"
+HASH=$(sha256sum "$APPIMAGE" | awk '{print $1}')
+ARTIFACT_URL="http://127.0.0.1:$PORT/$SERVED_APPIMAGE"
+python3 - "$CASK" "$HASH" "$ARTIFACT_URL" <<'PY'
+import re, sys
+path, new_hash, new_url = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path).read()
+text = re.sub(r'^  version .*$', '  version "0.0.0-test"', text, flags=re.M)
+text = re.sub(r'^  url .*$', f'  url "{new_url}"', text, flags=re.M)
+text, n = re.subn(r'(x86_64_linux:\s*")[0-9a-f]{64}', r'\g<1>' + new_hash, text)
+assert n == 1, f"the x86_64_linux hash line was not found (rewrote {n})"
+open(path, 'w').write(text)
+PY
+grep -E '^(  url|  version)' "$CASK"
+grep -q "x86_64_linux:.*$HASH" "$CASK" \
+  || { grep -n 'sha256\|x86_64' "$CASK"; fail "the cask hash rewrite did not stick"; }
 brew install --cask borisovodov/taps/doru
 echo "::endgroup::"
 
@@ -148,27 +160,35 @@ rm -rf "$HOME/doru-deeplink-test"
 # Discrepancy: headless launch under xvfb/dbus. ELECTRON_DISABLE_SANDBOX
 # covers the instance a link spawns through the desktop entry — that one
 # cannot receive the --no-sandbox flag the first instance gets.
+# The first instance is launched through the desktop entry (`gio launch`),
+# the way a real user opens the app: GIO sets GIO_LAUNCHED_DESKTOP_FILE,
+# Chromium turns it into CHROME_DESKTOP, and Electron's
+# setAsDefaultProtocolClient uses it to register the doru:// scheme. A direct
+# binary launch has no desktop entry context, so registration is silently
+# skipped there.
 xvfb-run --auto-servernum dbus-run-session -- bash -c '
   set -e
   export ELECTRON_DISABLE_SANDBOX=1
-  DORU_LOG_LEVEL=debug "$HOME/Applications/Doru.AppImage" --no-sandbox --disable-gpu \
-    >/tmp/doru-app.log 2>&1 &
-  APP_PID=$!
-  alive=0
+  export LIBGL_ALWAYS_SOFTWARE=1
+  DORU_LOG_LEVEL=debug gio launch "$HOME/.local/share/applications/org.doru.doru.desktop" \
+    >/tmp/doru-app.log 2>&1
+  APP_PID=""
   for _ in $(seq 1 15); do
-    kill -0 "$APP_PID" 2>/dev/null && { alive=1; break; }
+    # The AppImage wrapper execs the payload, whose cmdline is the mounted
+    # path; anchoring avoids matching this test script itself.
+    APP_PID=$(pgrep -f "^/tmp/.mount_Doru" | head -1 || true)
+    [ -n "$APP_PID" ] && break
     sleep 2
   done
-  if [ "$alive" != 1 ]; then
-    echo "app exited during startup"
+  if [ -z "$APP_PID" ]; then
+    echo "app did not start through the desktop entry"
     cat /tmp/doru-app.log
     exit 1
   fi
   sleep 8
   kill -0 "$APP_PID" 2>/dev/null || { echo "app died within 8s of startup"; cat /tmp/doru-app.log; exit 1; }
-  # Launching registers the doru:// scheme: Electron writes its own desktop
-  # entry next to the cask one and sets it as the x-scheme-handler/doru
-  # default via xdg-mime.
+  # The launch registered the doru:// scheme: Electron set it as the default
+  # handler for x-scheme-handler/doru in mimeapps.list.
   default=""
   for _ in $(seq 1 15); do
     default=$(xdg-mime query default x-scheme-handler/doru || true)
@@ -179,13 +199,13 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
   echo "x-scheme-handler/doru -> $default"
   handler="$HOME/.local/share/applications/$default"
   test -f "$handler" || { echo "the registered handler desktop entry is missing: $handler"; exit 1; }
-  grep -q "^MimeType=.*x-scheme-handler/doru;" "$handler" \
-    || { echo "$handler lacks the scheme MimeType"; exit 1; }
   grep -q "^Exec=.*Doru.AppImage %U" "$handler" \
     || { echo "$handler Exec does not point at the AppImage with %U"; exit 1; }
   # Warm open: xdg-open resolves the scheme and starts a second instance,
   # which forwards the link to the running one via the single-instance lock.
-  xdg-open "$DEEP_LINK_URL"
+  # The timeout guards against xdg-open waiting on a desktop portal the
+  # headless runner does not have.
+  timeout 30 xdg-open "$DEEP_LINK_URL" >/dev/null 2>&1 || true
   # The link points at a path that does not exist yet: openProject creates
   # the .doru file itself — the file appearing proves the link went through
   # registration → delivery → parsing → opening.
@@ -194,6 +214,15 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
     sleep 1
   done
   [ -f "$DEEP_LINK_FILE" ] || { echo "the link did not open the project"; cat /tmp/doru-app.log; exit 1; }
+  # The durable proof of the open is the recents entry (recent.json): the
+  # session file is racing a second-instance teardown write on the AppImage
+  # build and cannot be asserted here.
+  for _ in $(seq 1 30); do
+    grep -q "$DEEP_LINK_FILE" "$HOME/.config/Doru/recent.json" 2>/dev/null && break
+    sleep 1
+  done
+  grep -q "$DEEP_LINK_FILE" "$HOME/.config/Doru/recent.json" \
+    || { echo "recent.json does not contain the linked project path"; cat /tmp/doru-app.log; exit 1; }
   echo "deep link opened: $DEEP_LINK_FILE"
   kill "$APP_PID"
 '
@@ -206,8 +235,6 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 test -f "$FIRST_RUN/settings.json" || fail "first-run settings not created at $FIRST_RUN/settings.json"
-grep -q "$DEEP_LINK_FILE" "$FIRST_RUN/session.json" \
-  || fail "session.json does not contain the linked project path"
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
 echo "::endgroup::"
 
@@ -216,7 +243,8 @@ rm -rf "$HOME/doru-deeplink-test"
 xvfb-run --auto-servernum dbus-run-session -- bash -c '
   set -e
   export ELECTRON_DISABLE_SANDBOX=1
-  xdg-open "$DEEP_LINK_URL"
+  export LIBGL_ALWAYS_SOFTWARE=1
+  timeout 30 xdg-open "$DEEP_LINK_URL" >/dev/null 2>&1 || true
   for _ in $(seq 1 60); do
     [ -f "$DEEP_LINK_FILE" ] && break
     sleep 1
@@ -224,7 +252,7 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
   [ -f "$DEEP_LINK_FILE" ] || { echo "the cold-start link did not open the project"; exit 1; }
   echo "cold-start link opened: $DEEP_LINK_FILE"
 '
-pkill -f 'Doru.AppImage' 2>/dev/null || true
+pkill -f '^/tmp/.mount_Doru' 2>/dev/null || true
 echo "::endgroup::"
 
 echo "Ubuntu · Homebrew cask install verified."

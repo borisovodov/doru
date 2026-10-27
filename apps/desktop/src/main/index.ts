@@ -1,5 +1,7 @@
 import { BrowserWindow, app, nativeTheme, net, protocol } from 'electron';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
@@ -47,6 +49,68 @@ function handleProtocolUrl(url: string): void {
   }
 }
 
+/**
+ * Makes `setAsDefaultProtocolClient` work on Linux (Electron 44).
+ *
+ * Electron registers the scheme through g_app_info_set_as_default_for_type,
+ * which identifies the app by the CHROME_DESKTOP environment variable — but
+ * Electron never sets that variable itself (Chromium sets it only in its
+ * ChromeBrowserMainParts, which Electron does not use). Without it the
+ * registration silently does nothing and doru:// links never resolve.
+ * The desktop entry is normally provided by the install channel (the
+ * Homebrew cask writes org.doru.doru.desktop); for bare AppImage installs a
+ * minimal entry is written here instead. The default-handler association is
+ * then written to mimeapps.list directly — the file xdg-open consults —
+ * instead of relying on GIO's desktop lookup. Flatpak registration happens
+ * through the desktop entry exported to the host, so the sandbox is skipped.
+ */
+function prepareLinuxProtocolRegistration(): void {
+  if (process.platform !== 'linux' || process.env['FLATPAK_ID']) {
+    return;
+  }
+  const dataHome = process.env['XDG_DATA_HOME'] ?? join(homedir(), '.local', 'share');
+  const desktopFile = join(dataHome, 'applications', 'org.doru.doru.desktop');
+  if (!existsSync(desktopFile)) {
+    mkdirSync(dirname(desktopFile), { recursive: true });
+    // In dev the executable is the Electron binary itself and needs the app
+    // directory as an argument to launch anything.
+    const devArg =
+      process.defaultApp && process.argv[1] ? ` "${process.argv[1].replace(/"/g, '\\"')}"` : '';
+    writeFileSync(
+      desktopFile,
+      [
+        '[Desktop Entry]',
+        'Name=Dóru',
+        `Exec="${process.execPath}"${devArg} %U`,
+        'Terminal=false',
+        'Type=Application',
+        'MimeType=x-scheme-handler/doru;',
+        '',
+      ].join('\n'),
+    );
+  }
+  // Electron's registration reads CHROME_DESKTOP, which Electron never sets
+  // itself — point it at the desktop entry explicitly.
+  process.env['CHROME_DESKTOP'] = 'org.doru.doru.desktop';
+  const configHome = process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config');
+  const mimeappsFile = join(configHome, 'mimeapps.list');
+  const entry = 'x-scheme-handler/doru=org.doru.doru.desktop';
+  const existing = existsSync(mimeappsFile) ? readFileSync(mimeappsFile, 'utf8') : '';
+  const lines = existing.split('\n').filter((line) => {
+    const trimmed = line.trim();
+    return trimmed !== entry && !trimmed.startsWith('x-scheme-handler/doru=');
+  });
+  while (lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+  if (!lines.some((line) => line.trim() === '[Default Applications]')) {
+    lines.push('[Default Applications]');
+  }
+  lines.push(entry);
+  writeFileSync(mimeappsFile, `${lines.join('\n')}\n`);
+  log.info('registered doru:// as the default scheme handler', { desktopFile, mimeappsFile });
+}
+
 function extractPathArgs(argv: string[]): string[] {
   return argv.slice(1).filter((arg) => !arg.startsWith('-') && arg !== '.');
 }
@@ -74,6 +138,7 @@ if (!gotLock) {
 } else if (!mcpProject) {
   // The doru:// protocol scheme — keep in sync with executableName in
   // electron-builder.yml.
+  prepareLinuxProtocolRegistration();
   if (process.defaultApp && process.argv[1]) {
     app.setAsDefaultProtocolClient('doru', process.execPath, [process.argv[1]]);
   } else {
