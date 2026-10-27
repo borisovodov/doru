@@ -120,12 +120,20 @@ done
 echo "::endgroup::"
 
 echo "::group::Launch and first-run files"
-open "$APP"
+# Discrepancy with a real user install: the test build is unsigned, and on a
+# headless runner there is nobody to click through the first-launch
+# verification dialog — `open` blocks on it forever. Launch the binary
+# directly instead, with bounded waits throughout.
+"$APP/Contents/MacOS/Doru" >/tmp/doru-app.log 2>&1 &
+APP_PID=$!
 for _ in $(seq 1 15); do
-  pgrep -f "$APP/Contents/MacOS/Doru" >/dev/null && break
+  kill -0 "$APP_PID" 2>/dev/null && break
   sleep 2
 done
-pgrep -f "$APP/Contents/MacOS/Doru" >/dev/null || fail "the app is not running after open"
+if ! kill -0 "$APP_PID" 2>/dev/null; then
+  cat /tmp/doru-app.log
+  fail "the app exited during startup"
+fi
 FIRST_RUN="$HOME/Library/Application Support/Doru"
 # settings.json is written by readSettings on boot — the deterministic
 # first-run marker. (The log file is not: it only exists once something has
@@ -134,10 +142,12 @@ for _ in $(seq 1 30); do
   [ -f "$FIRST_RUN/settings.json" ] && break
   sleep 1
 done
-test -f "$FIRST_RUN/settings.json" \
-  || fail "first-run settings not created at $FIRST_RUN/settings.json"
+if [ ! -f "$FIRST_RUN/settings.json" ]; then
+  cat /tmp/doru-app.log
+  fail "first-run settings not created at $FIRST_RUN/settings.json"
+fi
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
-osascript -e 'quit app "Doru"'
+kill "$APP_PID" 2>/dev/null || true
 echo "::endgroup::"
 
 echo "macOS · Homebrew cask install verified."

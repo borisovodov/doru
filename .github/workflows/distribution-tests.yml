@@ -61,6 +61,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p dist-logs
+          cp /tmp/doru-app.log dist-logs/ 2>/dev/null || true
           cp -R "$HOME/Library/Logs/Doru" dist-logs/ 2>/dev/null || true
           cp -R "$HOME/Library/Application Support/Doru" dist-logs/ 2>/dev/null || true
       - name: Upload logs on failure
