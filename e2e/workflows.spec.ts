@@ -95,7 +95,18 @@ test('full workflow through the desktop APIs and UI sections', async () => {
 
   await page.locator('.person-list li').first().click();
   await expect(page.locator('.person-editor')).toBeVisible();
+
+  // A fresh profile has no AI provider configured: the agent chat shows the
+  // setup placeholder instead of the conversation UI.
+  await expect(page.locator('.chat-setup')).toBeVisible();
+  await expect(page.locator('.chat-panel')).toBeHidden();
+
+  // Configuring a provider swaps the placeholder back to the chat panel.
+  await page.evaluate(() =>
+    window.doru.setAiSettings({ provider: 'ollama', model: 'e2e-model' }),
+  );
   await expect(page.locator('.chat-panel')).toBeVisible();
+  await expect(page.locator('.chat-setup')).toBeHidden();
 
   // Tab drag-and-drop: move the first person tab in front of the tree tab.
   await page.locator('.tab-bar .tab').first().click();
