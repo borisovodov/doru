@@ -16,8 +16,8 @@ $bucketDir = Join-Path $workspace 'external/bucket'
 $manifest = Join-Path $bucketDir 'bucket/doru.json'
 $zip = Get-ChildItem (Join-Path $workspace 'apps/desktop/release') -Filter '*.zip' | Select-Object -First 1
 $port = 8475
-$scoopDir = Join-Path $env:USERPROFILE 'scoop'
-$appDir = Join-Path $scoopDir 'apps/doru/current'
+$scoopRoot = Join-Path $env:USERPROFILE 'scoop'
+$appDir = Join-Path $scoopRoot 'apps/doru/current'
 
 function Fail([string]$message) {
     Write-Host "::error::$message"
@@ -58,7 +58,7 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned -Force
     Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 }
-$buckets = Join-Path $scoopDir 'buckets'
+$buckets = Join-Path $scoopRoot 'buckets'
 New-Item -ItemType Directory -Force $buckets | Out-Null
 if (-not (Test-Path (Join-Path $buckets 'test'))) {
     git clone "$bucketDir" (Join-Path $buckets 'test') | Out-Null
@@ -122,12 +122,15 @@ Start-Sleep -Seconds 10
 if ($process.HasExited) { Fail "the app exited during startup (code $($process.ExitCode))" }
 if (-not (Get-Process -Id $process.Id -ErrorAction SilentlyContinue)) { Fail 'the app is not running' }
 $firstRun = Join-Path $env:APPDATA 'Doru'
-$log = Join-Path $firstRun 'doru.log'
+# settings.json is written by readSettings on boot — the deterministic
+# first-run marker. (The log file is not: it only exists once something has
+# been logged or the settings page created it.)
+$marker = Join-Path $firstRun 'settings.json'
 for ($i = 0; $i -lt 30; $i++) {
-    if (Test-Path $log) { break }
+    if (Test-Path $marker) { break }
     Start-Sleep -Seconds 1
 }
-if (-not (Test-Path $log)) { Fail "first-run log not created at $log" }
+if (-not (Test-Path $marker)) { Fail "first-run settings not created at $marker" }
 Write-Host "first-run files: $((Get-ChildItem $firstRun | Select-Object -ExpandProperty Name) -join ' ')"
 Stop-Process -Id $process.Id -Force
 Write-Host '::endgroup::'
