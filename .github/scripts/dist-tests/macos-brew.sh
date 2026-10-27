@@ -66,9 +66,26 @@ plutil -p "$APP/Contents/Resources/en.lproj/InfoPlist.strings" | grep -q CFBundl
 echo "::endgroup::"
 
 echo "::group::Icon"
-test -f "$APP/Contents/Resources/icon.icns" || fail "Resources/icon.icns missing"
-cmp "$APP/Contents/Resources/icon.icns" "$WORKSPACE/apps/desktop/build/icon.icns" \
-  || fail "the shipped icon.icns differs from the source icon"
+SHIPPED_ICON="$APP/Contents/Resources/icon.icns"
+SOURCE_ICON="$WORKSPACE/apps/desktop/build/icon.icns"
+test -f "$SHIPPED_ICON" || fail "Resources/icon.icns missing"
+file "$SHIPPED_ICON" | grep -q "Mac OS X icon" || fail "the shipped icon is not an icns file"
+# The packager may re-encode the icns (actool on newer Xcode), so the bytes
+# can legitimately differ from the committed build/icon.icns. Compare the
+# decoded representations instead: the same set, each with the same size.
+ICON_TMP=$(mktemp -d)
+iconutil -c iconset "$SHIPPED_ICON" -o "$ICON_TMP/shipped.iconset" || fail "cannot decode the shipped icon"
+iconutil -c iconset "$SOURCE_ICON" -o "$ICON_TMP/source.iconset" || fail "cannot decode the source icon"
+diff <(ls "$ICON_TMP/shipped.iconset" | sort) <(ls "$ICON_TMP/source.iconset" | sort) \
+  || fail "the shipped icon has different representations than the source icon"
+for rep in "$ICON_TMP/source.iconset"/*.png; do
+  name=$(basename "$rep")
+  sw=$(sips -g pixelWidth "$ICON_TMP/shipped.iconset/$name" | awk '/pixelWidth/{print $2}')
+  sh=$(sips -g pixelHeight "$ICON_TMP/shipped.iconset/$name" | awk '/pixelHeight/{print $2}')
+  tw=$(sips -g pixelWidth "$rep" | awk '/pixelWidth/{print $2}')
+  th=$(sips -g pixelHeight "$rep" | awk '/pixelHeight/{print $2}')
+  [ "$sw" = "$tw" ] && [ "$sh" = "$th" ] || fail "icon representation $name differs in size"
+done
 # Launch Services must resolve an icon for the app (a broken icon falls back
 # to the generic application image — still an image, so this is only a sanity
 # check that icon lookup itself works).
