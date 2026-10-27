@@ -21,8 +21,11 @@ fail() { echo "::error::$1"; exit 1; }
 
 echo "::group::Install flatpak tooling"
 sudo apt-get update -qq
+# No appstream/appstream-util: the test never calls appstreamcli, and
+# appstream-util (appstream-glib) drags in the whole gstreamer/ffmpeg stack —
+# a ~20 minute download on the runner's apt mirror.
 sudo apt-get install -y -qq \
-  flatpak flatpak-builder ostree appstream appstream-util \
+  flatpak flatpak-builder ostree \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 xvfb dbus-x11
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 echo "::endgroup::"
