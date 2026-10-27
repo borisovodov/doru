@@ -84,7 +84,9 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         header.destination = reqText(child);
       },
       DATE: (child) => {
-        header.date = parseDateExactStructure(child, ctx, ctx.version === '7.0');
+        // GEDCOM 5.5.1 §2 Record Structures (p.23) allows a TIME under
+        // HEAD.DATE (TRANSMISSION_DATE), like 7.0's HEAD-DATE.
+        header.date = parseDateExactStructure(child, ctx, true);
       },
       SUBM: (child) => {
         header.submitter = reqPtr(child, ctx);

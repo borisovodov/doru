@@ -163,14 +163,37 @@ export interface PlaceNameStructure extends GedcomStructureBase {
   name: Text;
   /** `DATE` {0:1} — the period the name was in force. */
   date?: DateStructure;
-  /** `ABBR` {0:1} — an abbreviation of the name. */
-  abbreviation?: Text;
-  /** `ABBR.TYPE` {0:1} — the kind of abbreviation (e.g. ISO 3166). */
-  abbreviationType?: Text;
+  /**
+   * `ABBR` {0:M} — the abbreviations of the name. The GEDCOM-L
+   * agreement L1 gives each NAME several abbreviations, each
+   * optionally qualified by a TYPE naming its kind (GenWiki
+   * "GEDCOM/_LOC-Tag": https://wiki.genealogy.net/GEDCOM/_LOC-Tag).
+   * One place object typically carries several short forms of
+   * different kinds side by side — an ISO 3166 code, the official
+   * short form used in documents, a colloquial one — and the TYPE
+   * keeps them apart. Written back as `_LOC` in both versions.
+   */
+  abbreviations?: PlaceAbbreviation[];
   /** `LANG` {0:1} — the language of the name. */
   language?: Language;
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
+}
+
+/**
+ * GEDCOM-L `_LOC` record, production `ABBR` (L1/L3) — one abbreviation
+ * of a place name, optionally qualified by the kind of abbreviation.
+ * L3 definitions: `<ABBREVIATION_OF_NAME>` {Size=1:20} — the
+ * abbreviation of the place name, whose kind is further explained by
+ * the optional TYPE; `<TYPE_OF_ABBREVIATION>` {Size=1:20} — the kind
+ * of abbreviation, "z.B. ISO 3166". Documented in the GenWiki article
+ * "GEDCOM/_LOC-Tag" (https://wiki.genealogy.net/GEDCOM/_LOC-Tag).
+ */
+export interface PlaceAbbreviation extends GedcomStructureBase {
+  /** The ABBR payload, {1:1} Text — the abbreviation of the name. */
+  abbreviation: Text;
+  /** `TYPE` {0:1} — the kind of abbreviation (e.g. ISO 3166). */
+  type?: Text;
 }
 
 /**

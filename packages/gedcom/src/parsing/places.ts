@@ -25,6 +25,7 @@ import type {
   AdministrativeIdStructure,
   DemographicDataStructure,
   GedcomRecord,
+  PlaceAbbreviation,
   PlaceHierarchyLink,
   PlaceNameStructure,
   PlaceRecord,
@@ -63,10 +64,19 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       dispatch(child, entry, {
         ...datedSourceHandlers(ctx, entry),
         ABBR: (grandchild) => {
-          entry.abbreviation = reqText(grandchild);
-          dispatch(grandchild, entry, {
+          // GEDCOM-L L1: ABBR {0:M} — a name carries several
+          // abbreviations of different kinds, each optionally
+          // qualified by one TYPE (L3, e.g. "ISO 3166").
+          const abbr: PlaceAbbreviation = { abbreviation: reqText(grandchild) };
+          (entry.abbreviations ??= []).push(abbr);
+          let sawType = false;
+          dispatch(grandchild, abbr, {
             TYPE: (greatGrandchild) => {
-              entry.abbreviationType = reqText(greatGrandchild);
+              if (sawType) {
+                fail('structure.cardinality', 'At most one TYPE is allowed under ABBR', greatGrandchild.position);
+              }
+              sawType = true;
+              abbr.type = reqText(greatGrandchild);
             },
           }, ctx);
         },

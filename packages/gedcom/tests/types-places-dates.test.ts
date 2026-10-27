@@ -431,6 +431,7 @@ describe('place records', () => {
         '1 NAME Berlin',
         '2 ABBR B',
         '3 TYPE short',
+        '2 ABBR BLN',
         '2 LANG de',
         '2 DATE 1900',
         '2 SOUR @S2@',
@@ -481,7 +482,7 @@ describe('place records', () => {
     }
     const card = result.value.records[2] as {
       payload: string;
-      names?: Array<{ name: string; abbreviation?: string; abbreviationType?: string; language?: string; date?: unknown; citations?: unknown[] }>;
+      names?: Array<{ name: string; abbreviations?: Array<{ abbreviation: string; type?: string }>; language?: string; date?: unknown; citations?: unknown[] }>;
       types?: Array<{ type: string; govTypeId?: string; date?: unknown; citations?: unknown[] }>;
       govId?: string; maidenhead?: string;
       postalCodes?: Array<{ code: string; date?: unknown; citations?: unknown[] }>;
@@ -494,8 +495,10 @@ describe('place records', () => {
       identifiers?: Array<{ tag: string }>; changeDate?: unknown;
     };
     expect(card.payload).toBe('Berlin');
-    expect(card.names?.[0]?.abbreviation).toBe('B');
-    expect(card.names?.[0]?.abbreviationType).toBe('short');
+    expect(card.names?.[0]?.abbreviations).toEqual([
+      { abbreviation: 'B', type: 'short' },
+      { abbreviation: 'BLN' },
+    ]);
     expect(card.names?.[0]?.language).toBe('de');
     expect(card.names?.[0]?.date).toBeDefined();
     expect(card.names?.[0]?.citations).toHaveLength(1);

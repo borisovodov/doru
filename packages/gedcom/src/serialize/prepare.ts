@@ -85,6 +85,7 @@ function isEmpty(record: GedcomRecord): boolean {
         (fam.media ?? []).length === 0 &&
         (fam.identifiers ?? []).length === 0 &&
         (fam.associations ?? []).length === 0 &&
+        (fam.todos ?? []).length === 0 &&
         (fam.restriction ?? []).length === 0 &&
         (fam.extensions ?? []).length === 0
       );
@@ -106,6 +107,7 @@ function isEmpty(record: GedcomRecord): boolean {
         (indi.aliases ?? []).length === 0 &&
         (indi.ancestorInterests ?? []).length === 0 &&
         (indi.descendantInterests ?? []).length === 0 &&
+        (indi.todos ?? []).length === 0 &&
         (indi.restriction ?? []).length === 0 &&
         (indi.extensions ?? []).length === 0
       );
@@ -213,7 +215,7 @@ function hasGermanPlaceFields(card: PlaceRecord): boolean {
     || card.events !== undefined
     || card.parents !== undefined
     || (card.names ?? []).some(
-      (name) => name.date !== undefined || name.abbreviation !== undefined || name.language !== undefined || name.citations !== undefined,
+      (name) => name.date !== undefined || (name.abbreviations ?? []).length > 0 || name.language !== undefined || name.citations !== undefined,
     )
     || (card.names ?? []).length > 1;
 }
@@ -401,6 +403,29 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
       const famc = individual?.childFamilies?.find((entry) => entry.family === fam.xref);
       if (famc !== undefined && famc.pedigree === undefined) {
         famc.pedigree = { payload };
+      }
+    }
+  }
+  // The AGES! position of the relation tags (under INDI.FAMC): an
+  // agreeing pair is projected onto the same link's PEDI; the 7.0
+  // emitter never writes the tags themselves (5.5.1 keeps them).
+  for (const record of out.records) {
+    if (record.tag !== 'INDI') {
+      continue;
+    }
+    const indi = record as unknown as IndividualRecord;
+    for (const link of indi.childFamilies ?? []) {
+      if (link.fatherRelation === undefined && link.motherRelation === undefined) {
+        continue;
+      }
+      const father = link.fatherRelation?.trim().toLowerCase();
+      const mother = link.motherRelation?.trim().toLowerCase();
+      if (father === undefined || mother === undefined || father !== mother) {
+        continue;
+      }
+      const payload = PEDI_BY_RELATION.get(father);
+      if (payload !== undefined && link.pedigree === undefined) {
+        link.pedigree = { payload };
       }
     }
   }

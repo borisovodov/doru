@@ -19,6 +19,7 @@ import type {
 } from '../primitives';
 
 import type { GedcomStructureBase } from './extensions';
+import type { CensusRecord } from './census-record';
 import type { IndividualRecord } from './records';
 import type { MultimediaLink } from './sources-media';
 import type { NoteRecord } from './records';
@@ -231,6 +232,26 @@ export interface SortDateStructure extends GedcomStructureBase {
 export interface EventDetail extends GedcomStructureBase {
   /** <<DATE_VALUE>> {0:1}, g7:DATE. */
   date?: DateStructure;
+  /**
+   * `_DATE2` {0:1} — the end date of an event ("bis-Datum"): the
+   * second date of a date range, complementing DATE (a marriage "from
+   * … to …", a residence period). Written by PAF, Ancestral Quest,
+   * Ancestry Family Tree, Family Trees Quick & Easy, Heritage Family
+   * Tree Deluxe and PhpGedView; the Legacy catalog records AQ3's
+   * meaning ("used for second date in a date range",
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm)
+   * and the GenWiki "GEDCOM/_Nutzerdef-Tag" table of the GEDCOM-L
+   * working group spells out the semantics — "'bis-Datum', also
+   * Endedatum eines Ereignisses. Wert wie be DATE — Value same as
+   * DATE" (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). The
+   * payload uses the same date grammar as DATE. Not part of any GEDCOM
+   * version (neither 5.5.1 nor 7.0 has a separate end-date slot; the
+   * 7.0 DATE can express FROM/TO inside one payload, but merging two
+   * separately entered dates would invent data the vendor did not
+   * record). Recognized on input in both versions and written back as
+   * `_DATE2` in both versions.
+   */
+  endDate?: DateStructure;
   /** <<PLACE_STRUCTURE>> {0:1}, g7:PLAC. */
   place?: PlaceStructure;
   /**
@@ -309,6 +330,33 @@ export interface EventDetail extends GedcomStructureBase {
    * vendor tag is also recognized on 7.0 input.
    */
   uniqueIds?: Special[];
+  /**
+   * `_CENR @xref@` {0:M} — a pointer to the shared MagiKey census
+   * record (MagiKey_CENR.yaml in the FamilySearch GEDCOM registry:
+   * https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR.yaml).
+   * The registry names `BIRT`, `INDI-CENS` and `OCCU` {0:M} each as
+   * superstructures: the link is "semantically similar to `SOUR`, but
+   * points to a census record rather than a source record", so the
+   * census is stored once and the events of every recorded person
+   * reference it. The parser recognizes the link in any event or
+   * attribute detail (the pointer payload is unambiguous); the pointer
+   * must resolve to an existing `_CENR` record
+   * (`document.xref-not-found` otherwise). Written back as `_CENR` in
+   * both versions.
+   */
+  censusLinks?: Pointer<CensusRecord>[];
+  /**
+   * _APID {0:M} — Ancestry.com record references, format `dbid::record`
+   * (in the wild often prefixed, e.g. `1,7602::2771226`), written by
+   * Ancestry tree downloads under events and attributes — not only
+   * under source citations (the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * catalog lists `INDI.Events` as a superstructure:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version (documented by TMG to GEDCOM:
+   * https://tmgtogedcom.com/en/apid.htm). Recognized on input and
+   * written back as `_APID` in both versions.
+   */
+  ancestryPointers?: Text[];
 }
 
 /**
@@ -359,8 +407,14 @@ export interface FamilyPartnerEventDetail extends GedcomStructureBase {
  * `AgeValue` primitive for the 5.5.1 keyword values.
  */
 export interface AgeStructure extends GedcomStructureBase {
-  /** The AGE payload, {1:1} Age. */
-  payload: AgeValue;
+  /**
+   * The AGE payload, {1:1} Age; absent for the empty age form. The 7.0
+   * grammar permits omitting the payload entirely "if no suitable form
+   * is known but a substructure (such as a PHRASE) is desired"
+   * (GEDCOM 7.0 §2.6), and the 5.5.1 AGE_AT_EVENT grammar
+   * (GEDCOM 5.5.1 §2 p.42) is likewise satisfied by the empty form.
+   */
+  payload?: AgeValue;
   /** PHRASE {0:1}, g7:PHRASE. */
   phrase?: Text;
   /**

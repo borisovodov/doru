@@ -525,3 +525,71 @@ describe('parseGedcom70 — strictness', () => {
     expect(indi.events[0].detail?.media?.[0]?.title).toBe('Zoom');
   });
 });
+
+describe('parseGedcom70 — empty AGE payload', () => {
+  test('parses an AGE with no payload and a PHRASE', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 DEAT Y',
+        '2 AGE',
+        '3 PHRASE very old',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'DEAT') {
+      throw new Error('expected DEAT');
+    }
+    expect(indi.events[0].detail?.age?.payload).toBeUndefined();
+    expect(indi.events[0].detail?.age?.phrase).toBe('very old');
+  });
+});
+
+describe('parseGedcom70 — payload-less RESI attributes', () => {
+  test('parses an INDI.RESI without a payload', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME Jane /Doe/',
+        '1 RESI',
+        '2 PLAC Paris, France',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.attributes?.[0]?.tag).toBe('RESI');
+    expect(indi.attributes?.[0]).not.toHaveProperty('payload');
+    expect(indi.attributes?.[0]?.detail?.place?.payload).toEqual(['Paris', 'France']);
+  });
+
+  test('parses a FAM.RESI without a payload', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @F1@ FAM',
+        '1 RESI',
+        '2 PLAC Paris, France',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const fam = dataset.records[0];
+    if (fam?.tag !== 'FAM') {
+      throw new Error('expected FAM');
+    }
+    expect(fam.attributes?.[0]?.tag).toBe('RESI');
+    expect(fam.attributes?.[0]).not.toHaveProperty('payload');
+    expect(fam.attributes?.[0]?.detail?.detail?.place?.payload).toEqual(['Paris', 'France']);
+  });
+});

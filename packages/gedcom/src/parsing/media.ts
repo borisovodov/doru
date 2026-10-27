@@ -155,6 +155,13 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
   const format: MediaFormatStructure = {
     payload: ctx.version === '7.0' ? reqText(node) : parseMediaFormat551(reqText(node), node.position),
   };
+  let medium: MediaStructure | undefined;
+  const setMedium = (child: RawNode): void => {
+    if (medium !== undefined) {
+      fail('structure.cardinality', 'At most one of TYPE and MEDI is allowed under FORM', child.position);
+    }
+    medium = parseMediaType551(child);
+  };
   dispatch(
     node,
     format,
@@ -166,13 +173,20 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
             },
           }
         : {
-            TYPE: (child) => {
-              format.medium = parseMediaType551(child);
-            },
+            // The 5.5.1 specification disagrees with itself: the
+            // MULTIMEDIA_RECORD grammar (p.26) spells the medium TYPE,
+            // the inline MULTIMEDIA_LINK grammar (p.37) spells it MEDI.
+            // Both name the same SOURCE_MEDIA_TYPE and both are
+            // accepted (see Known strict decisions in the README).
+            TYPE: setMedium,
+            MEDI: setMedium,
           }),
     },
     ctx,
   );
+  if (medium !== undefined) {
+    format.medium = medium;
+  }
   return format;
 }
 

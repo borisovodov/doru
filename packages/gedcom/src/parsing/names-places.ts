@@ -130,6 +130,17 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     '_RUFNAME': (child) => {
       out.callName = reqText(child);
     },
+    '_CENR': (child) => {
+      // The MagiKey census link (registry: MagiKey_CENR.yaml,
+      // superstructure INDI-NAME): a pointer to the shared census
+      // record the name was recorded in. The pointer must resolve.
+      (out.censusLinks ??= []).push(reqPtr(child, ctx));
+    },
+    '_APID': (child) => {
+      // The Ancestry record reference attached to names (see
+      // PersonalNameStructure.ancestryPointers).
+      (out.ancestryPointers ??= []).push(reqText(child));
+    },
   };
   for (const tag of PIECE_TAGS) {
     handlers[tag] = (child) => {

@@ -26,6 +26,7 @@ import type {
   PlaceStructure,
   SourceCitation,
   SourceText,
+  TodoStructure,
 } from '../../structures';
 import {
   formatDateValue551,
@@ -81,8 +82,8 @@ export function emitFamily(w: Writer, version: Version, rec: {
   attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail }>;
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: FamilyEventDetail }>;
   nonEvents?: NonEventStructure[];
-  husband?: { partner: string; phrase?: string };
-  wife?: { partner: string; phrase?: string };
+  husband?: { partner: string; phrase?: string; preferred?: boolean };
+  wife?: { partner: string; phrase?: string; preferred?: boolean };
   children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: string; fatherRelation?: string; motherRelation?: string }>;
   associations?: AssociationStructure[];
   submitters?: string[];
@@ -91,6 +92,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   notes?: NoteStructure[];
   citations?: SourceCitation[];
   media?: MultimediaLink[];
+  todos?: TodoStructure[];
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
@@ -170,16 +172,25 @@ export function emitFamily(w: Writer, version: Version, rec: {
   if (rec.sameSexUnion === true) {
     w.line(1, '_TYPE', { value: 'same-sex' });
   }
+  for (const todo of rec.todos ?? []) {
+    emitTodoStructure(w, version, 1, todo);
+  }
   if (rec.husband !== undefined) {
     ptr(w, version, 1, 'HUSB', rec.husband.partner);
     if (rec.husband.phrase !== undefined) {
       w.line(2, 'PHRASE', { value: rec.husband.phrase });
+    }
+    if (rec.husband.preferred === true) {
+      w.line(2, '_PREF', { value: 'Y' });
     }
   }
   if (rec.wife !== undefined) {
     ptr(w, version, 1, 'WIFE', rec.wife.partner);
     if (rec.wife.phrase !== undefined) {
       w.line(2, 'PHRASE', { value: rec.wife.phrase });
+    }
+    if (rec.wife.preferred === true) {
+      w.line(2, '_PREF', { value: 'Y' });
     }
   }
   for (const child of rec.children ?? []) {
@@ -226,11 +237,11 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   restriction?: Array<string | `_${string}`>;
   names?: PersonalNameStructure[];
   sex?: string;
-  attributes?: Array<{ tag: string; payload: string | number; type?: string; detail?: IndividualEventDetail }>;
+  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail }>;
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } } }>;
   nonEvents?: NonEventStructure[];
   ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string }>;
-  childFamilies?: Array<{ family: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; notes?: NoteStructure[] }>;
+  childFamilies?: Array<{ family: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; notes?: NoteStructure[] }>;
   spouseFamilies?: Array<{ family: string; preferred?: boolean; notes?: NoteStructure[] }>;
   submitters?: string[];
   associations?: AssociationStructure[];
@@ -249,7 +260,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   updatedAt?: string;
   url?: string;
   sosaNumber?: string;
+  familySearchId?: string;
   marks?: string[];
+  todos?: TodoStructure[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -262,6 +275,12 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   if (rec.sosaNumber !== undefined) {
     w.line(1, '_SOSA', { value: rec.sosaNumber });
+  }
+  if (rec.familySearchId !== undefined) {
+    w.line(1, '_FSFTID', { value: rec.familySearchId });
+  }
+  for (const todo of rec.todos ?? []) {
+    emitTodoStructure(w, version, 1, todo);
   }
   if (rec.marks !== undefined) {
     rec.marks.forEach((mark, index) => {
@@ -283,11 +302,8 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     }
   }
   for (const attribute of rec.attributes ?? []) {
-    if (version === '5.5.1' && attribute.type !== undefined && attribute.tag !== 'IDNO' && attribute.tag !== 'FACT') {
-      // 5.5.1 keeps TYPE inside the event detail; the emission is the
-      // same level, so it is fine to emit it.
-    }
-    w.line(1, attribute.tag, { value: String(attribute.payload) });
+    const payload = attribute.payload;
+    w.line(1, attribute.tag, payload === undefined ? {} : { value: String(payload) });
     emitIndividualDetail(w, version, 2, attribute.detail, attribute.type);
   }
   for (const event of rec.events ?? []) {
@@ -347,6 +363,16 @@ export function emitIndividual(w: Writer, version: Version, rec: {
       w.line(2, 'STAT', { value: famcStat(w, version, link.status.payload) });
       if (link.status.phrase !== undefined) {
         w.line(3, 'PHRASE', { value: link.status.phrase });
+      }
+    }
+    if (version === '5.5.1') {
+      // The AGES! position of the relation tags (under INDI.FAMC);
+      // 7.0 drops them after the prepareFor70 PEDI projection.
+      if (link.fatherRelation !== undefined) {
+        w.line(2, '_FREL', { value: link.fatherRelation });
+      }
+      if (link.motherRelation !== undefined) {
+        w.line(2, '_MREL', { value: link.motherRelation });
       }
     }
     for (const note of link.notes ?? []) {
@@ -414,6 +440,26 @@ export function emitTodoRecord(w: Writer, _version: Version, rec: {
     w.line(1, '_RDATE', { value: rec.reminderDate });
   }
   emitExtensions(w, _version, 1, rec);
+}
+
+/** Emits the `_TODO` substructure under INDI/FAM (see TodoStructure). */
+export function emitTodoStructure(w: Writer, version: Version, level: number, rec: TodoStructure): void {
+  w.line(level, '_TODO', rec.payload === undefined ? {} : { value: rec.payload });
+  if (rec.description !== undefined) {
+    w.line(level + 1, 'DESC', { value: rec.description });
+  }
+  if (rec.priority !== undefined) {
+    w.line(level + 1, 'PRTY', { value: rec.priority });
+  }
+  if (rec.status !== undefined) {
+    w.line(level + 1, 'STAT', { value: rec.status });
+  }
+  if (rec.date !== undefined) {
+    emitDate(w, version, level + 1, 'DATE', rec.date);
+  }
+  for (const note of rec.notes ?? []) {
+    emitNoteStructure(w, version, level + 1, note);
+  }
 }
 
 export function emitMultimedia(w: Writer, version: Version, rec: {

@@ -12,6 +12,7 @@ import type {
 } from '../primitives';
 
 import type { DateStructure, ExternalIdentifierStructure, NoteStructure } from './common';
+import type { CensusRecord } from './census-record';
 import type { GedcomStructureBase } from './extensions';
 import type { SourceCitation } from './sources-media';
 import type { PlaceRecord } from './place-record';
@@ -48,6 +49,28 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * versions.
    */
   callName?: Text;
+  /**
+   * `_CENR @xref@` {0:M} — a pointer to the shared MagiKey census
+   * record (MagiKey_CENR.yaml in the FamilySearch GEDCOM registry:
+   * https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR.yaml),
+   * linking the name as recorded in the census to the census it came
+   * from (the registry's `INDI-NAME` superstructure). The pointer must
+   * resolve to an existing `_CENR` record (`document.xref-not-found`
+   * otherwise). Written back as `_CENR` in both versions.
+   */
+  censusLinks?: Pointer<CensusRecord>[];
+  /**
+   * _APID {0:M} — Ancestry.com record references, format `dbid::record`
+   * (in the wild often prefixed, e.g. `1,7602::2771226`), written by
+   * Ancestry tree downloads under names — not only under source
+   * citations (the GenWiki "GEDCOM/_Nutzerdef-Tag" catalog lists
+   * `INDI.NAME` as a superstructure:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version (documented by TMG to GEDCOM:
+   * https://tmgtogedcom.com/en/apid.htm). Recognized on input and
+   * written back as `_APID` in both versions.
+   */
+  ancestryPointers?: Text[];
   /** TRAN {0:M}, g7:NAME-TRAN — translations or transliterations. Each must have a LANG substructure. When serializing to 5.5.1 each translation becomes FONE or ROMN with the method mapped from the language (kana/hangul → FONE, pinyin/romaji/wadegiles → ROMN); unknown languages are dropped. */
   translations?: NameTranslation[];
   /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */

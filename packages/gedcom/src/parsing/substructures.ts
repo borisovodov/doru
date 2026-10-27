@@ -395,9 +395,13 @@ export function parseSortDateStructure(node: RawNode, ctx: Ctx): SortDateStructu
 }
 
 export function parseAge(node: RawNode, ctx: Ctx): AgeStructure {
-  const out: AgeStructure = {
-    payload: ctx.version === '7.0' ? parseAge70(reqText(node), node.position) : parseAge551(reqText(node), node.position),
-  };
+  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  const out: AgeStructure =
+    raw === undefined || raw.trim() === ''
+      ? // The empty age form (GEDCOM 7.0 §2.6 / 5.5.1 AGE_AT_EVENT):
+        // no payload, optionally a PHRASE.
+        {}
+      : { payload: ctx.version === '7.0' ? parseAge70(raw, node.position) : parseAge551(raw, node.position) };
   dispatch(
     node,
     out,

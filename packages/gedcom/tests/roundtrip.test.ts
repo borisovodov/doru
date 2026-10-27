@@ -303,6 +303,7 @@ describe('cross-version round trips (up to the unrepresentable)', () => {
         '1 GEDC',
         '2 VERS 7.0',
         '1 SOUR DORU',
+        '1 SUBM @_SYNSUB1@',
         '0 @_SYNSUB1@ SUBM',
         '1 NAME Unknown',
         ...SAMPLE_REPRESENTABLE,
@@ -311,6 +312,9 @@ describe('cross-version round trips (up to the unrepresentable)', () => {
     );
     const via551 = parseOk551(ser551(first));
     const back = parseOk70(ser70(via551));
+    // The 5.5.1 intermediate reuses the existing SUBM record, and the
+    // 7.0 writer now keeps the header pointer, so the round trip is
+    // lossless here.
     expect(back).toEqual(first);
   });
 });

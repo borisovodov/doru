@@ -218,20 +218,33 @@ export function emitDateExact(w: Writer, version: Version, level: number, tag: s
 }
 
 export function emitAge(w: Writer, version: Version, level: number, age: AgeStructure): void {
+  const payload = age.payload;
+  if (payload === undefined) {
+    // The empty age form (GEDCOM 7.0 §2.6): the AGE line has no
+    // payload; a PHRASE may carry what the payload cannot.
+    w.line(level, 'AGE');
+    if (version === '7.0' && age.phrase !== undefined) {
+      w.line(level + 1, 'PHRASE', { value: age.phrase });
+    }
+    if (age.ageRange !== undefined) {
+      w.line(level + 1, '_AGER', { value: age.ageRange });
+    }
+    return;
+  }
   let value: string;
   let phrase: string | undefined = age.phrase;
   if (version === '7.0') {
-    if (age.payload.description !== undefined) {
+    if (payload.description !== undefined) {
       // The 5.5.1 keyword is projected onto the closest numeric bound;
       // the keyword itself is preserved in the PHRASE.
       const KEYWORD_TO_70: Record<string, string> = { CHILD: '< 8y', INFANT: '< 1y', STILLBORN: '0y' };
-      value = KEYWORD_TO_70[age.payload.description] ?? '< 1y';
-      phrase = phrase ?? age.payload.description;
+      value = KEYWORD_TO_70[payload.description] ?? '< 1y';
+      phrase = phrase ?? payload.description;
     } else {
-      value = formatAge70(age.payload);
+      value = formatAge70(payload);
     }
   } else {
-    value = formatAge551(age.payload);
+    value = formatAge551(payload);
     if (value === '') {
       // The age was only weeks, which 5.5.1 cannot express; dropped.
       return;
@@ -252,6 +265,9 @@ export function emitAge(w: Writer, version: Version, level: number, age: AgeStru
 export function emitEventDetail(w: Writer, version: Version, level: number, detail: EventDetail): void {
   if (detail.date !== undefined) {
     emitDate(w, version, level, 'DATE', detail.date);
+  }
+  if (detail.endDate !== undefined) {
+    emitDate(w, version, level, '_DATE2', detail.endDate);
   }
   if (detail.place !== undefined) {
     emitPlace(w, version, level, detail.place);
@@ -352,6 +368,12 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     for (const uid of detail.uniqueIds ?? []) {
       w.line(level, '_UID', { value: uid });
     }
+  }
+  for (const link of detail.censusLinks ?? []) {
+    ptr(w, version, level, '_CENR', link);
+  }
+  for (const apid of detail.ancestryPointers ?? []) {
+    w.line(level, '_APID', { value: apid });
   }
 }
 

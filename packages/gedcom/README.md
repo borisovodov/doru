@@ -355,7 +355,7 @@ documented in the JSDoc of the affected model field. The summary:
   `SDATE`, weeks in ages, `SEX X`, `MEDI`/`PEDI OTHER`, the `INFANT`
   status, `MIME`/`LANG`/`TRAN` on notes, `CROP`/`TITL` under `OBJE`,
   `FAM.FACT`, event-level `ASSO`, the `Y` payload on 5.5.1 events that
-  cannot carry it, header `SUBM`. 5.5.1-only: `SUBN`, `FILE`,
+  cannot carry it. 5.5.1-only: `SUBN`, `FILE`,
   `GEDC.FORM`, `RIN`/`RFN`/`AFN`, piece-level `NOTE`/`SOUR`.
   5.5.5-only: `SEX N` (both targets) and the year-less `day month`
   dates (both targets require a year; the whole DATE is dropped). A multimedia `FILE` whose format cannot be named in the
@@ -420,7 +420,12 @@ sources lives in [docs/vendor-extensions.md](docs/vendor-extensions.md).
 The agreed policy:
 
 - **One model, typed where it matters.** The multi-vendor core — `_UID`,
-  `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL`, `_APID`, and the
+  `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL` (under both
+  FAM.CHIL and INDI.FAMC), `_APID` (under citations, event/attribute
+  details and names), `_FSFTID`, the `_TODO` structures under INDI/FAM,
+  `_PREF` (all four positions), `_NONE`, `_DATE2` (the event end date),
+  the FTM201x facts (`_CIRC`, `_FUN`, `_DEG`, `_EMPLOY`, `_DNA`,
+  `_NAMS`, `_MILTID`), and the
   place records `_PLAC`/`_LOC`/`_PLAC_DEFN` — is typed model fields,
   with the full rules and the source links in the field JSDoc. Unknown
   `_` tags are preserved verbatim as generic extensions
@@ -437,13 +442,15 @@ The agreed policy:
   GEDCOM 5.5EL agreements (the de-facto standard of German
   genealogy software) are modeled: the `_LOC` record fields (`_GOV`,
   `_POST` with validity dates, `_AIDN`, `_DMGD`, place `TYPE` with
-  `_GOVTYPE`, `_MAIDENHEAD`, name variants, hierarchy links with
+  `_GOVTYPE`, `_MAIDENHEAD`, name variants with their `ABBR {0:M}`
+  abbreviations + `TYPE`, hierarchy links with
   `POLI|RELI|GEOG|CULT`), `_GOV`/`_POST`/`_MAIDENHEAD` under event
   places, `_RUFNAME` (call name) under NAME, and `_GODP`/`_WITN`
   (godparents/witnesses, free text) under events, plus the `_TYPE
   same-sex` union marker on FAM (the HUSB/WIFE tags then carry the
   two partners without gender semantics), the negatives `_MARR N`/
   `_NMR Y` (a bare FAM `NO MARR`; 5.5.1 writes it back as `_MARR N`),
+  the childless marker `_NONE`/`_NONE Y` (→ the standard `NCHI 0`),
   `_LIV` (cohabitation → FAM `EVEN` + TYPE), and the `_ASSO @xref@` +
   `RELA` participant links (event-level ones in the canonical
   `_SHAR`/`_ROLE` form, the FAM-level one as `_ASSO`). The vendor tags
@@ -454,7 +461,9 @@ The agreed policy:
   is valid input: the Ancestry publication details under `SOUR.PUBL`
   (`DATE`/`PLAC`), the MagiKey `_CENR` census record (the shared census
   with its `INDI` entries, `FATH`/`MOTH` details, `_SCHD`, `_MSTAT` and
-  the `_AGER` age range under `AGE`), the community `_DATE` under
+  the `_AGER` age range under `AGE`) and its `_CENR @xref@` links under
+  event/attribute details and names (the pointer must resolve to a
+  census record), the community `_DATE` under
   `REPO` and `_SOUR` under `PAGE` (preserved generically). Each field
   cites its registry YAML; the export rules are documented per field
   (the full inventory is docs/vendor-extensions.md chapter 4).
@@ -544,7 +553,9 @@ would be, or where the model takes a documented position:
   German convention defines; GEDCOM 7.0 has no same-sex slot (its
   §1.5.3 sketches a `_PARTNER` extension).
 - The FAM negatives are validated strictly: `_MARR` accepts only `N`
-  and `_NMR` only `Y` (both normalize into a bare FAM `NO MARR`).
+  and `_NMR` only `Y` (both normalize into a bare FAM `NO MARR`), and
+  the childless marker `_NONE` accepts only an absent value (Legacy)
+  or `Y` (Ahnenblatt) — both normalize into the standard `NCHI 0`.
 - Integers are bounded by what a JavaScript `number` can hold exactly: a
   year, age, or count beyond `Number.MAX_SAFE_INTEGER` is rejected
   (`date.bad-year` / `integer.out-of-range`) rather than silently
@@ -566,6 +577,12 @@ would be, or where the model takes a documented position:
   de-facto spellings such as `ANSI` and `IBM-PC`) decode rather than
   fail, because real software writes them; anything else is a
   `decoding.unknown-charset` error (see Parsing).
+- The 5.5.1 `FILE.FORM` medium is accepted under both spellings the
+  specification itself uses: `TYPE` (the MULTIMEDIA_RECORD grammar,
+  p.26) and `MEDI` (the inline MULTIMEDIA_LINK grammar, p.37). Both
+  name the same `SOURCE_MEDIA_TYPE` set and normalize into the model's
+  MEDI slot; a FORM carrying both is a cardinality error. The
+  serializers write `TYPE`.
 - GEDCOM 5.5.5 is not a separate dialect: files declaring it parse
   under the 5.5.1 rules, and its vocabulary (`SEX X`/`N`, `BCE`/`BC`,
   the year-less dates, `JPEG`/`TIFF`) is accepted in **any** 5.x file
@@ -576,6 +593,12 @@ would be, or where the model takes a documented position:
   HEAD.SUBM pointer is not enforced on input either (5.5.5 deprecated
   it); the 5.5.1 serializer still synthesizes a SUBM. `GEDC.FORM.VERS`
   is tolerated but not stored.
+- The 5.x parser accepts the horizontal tab in line values, although
+  GEDCOM 5.5.1 §1 disallows every control character: GEDCOM 5.5.5
+  legalized the tab in user text ("Tab is Legal" — most applications
+  already wrote tabs despite 5.5.1), and both versions parse under one
+  grammar. The other C0 controls and DEL remain `line.banned-char`
+  errors (see `checkBanned551` in parsing/lines.ts).
 - The serializers are projections, not judges: constructs the target
   version cannot express are dropped silently, with the rule for each
   construct documented in the JSDoc of the affected model field (see

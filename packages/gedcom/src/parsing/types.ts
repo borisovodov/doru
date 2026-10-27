@@ -384,9 +384,26 @@ export function parseDateValue551(
   return parseDate551Body(trimmed, position);
 }
 
+/**
+ * Splits a 5.5.1 date payload into tokens, keeping calendar escape
+ * sequences (`@#…@`) whole: the French Republican escape
+ * `@#DFRENCH R@` (GEDCOM 5.5.1 §2 Primitive Elements p.45) contains a
+ * space, which a plain whitespace split would break into two tokens.
+ */
+function dateTokens551(text: string): string[] {
+  const trimmed = text.trim();
+  const tokens: string[] = [];
+  const re = /@#[^@]*@|\S+/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(trimmed)) !== null) {
+    tokens.push(match[0]);
+  }
+  return tokens;
+}
+
 /* Parses a 5.5.1 date body: DATE, DATE_PERIOD, DATE_RANGE, DATE_APPROXIMATED. */
 function parseDate551Body(text: string, position: SourcePosition): { value: DateValue; dualYear: boolean } {
-  const tokens = text.trim().split(/ +/);
+  const tokens = dateTokens551(text);
   const first = (tokens[0] as string).toUpperCase();
   if (first === 'FROM' || first === 'TO') {
     const from = first === 'FROM';

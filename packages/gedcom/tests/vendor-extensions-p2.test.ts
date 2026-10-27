@@ -259,3 +259,78 @@ describe('the FTM extras', () => {
     expect(parseOk551(text)).toEqual(sample);
   });
 });
+
+describe('the FAM childless marker _NONE', () => {
+  const FAM551 = (marker: string): string =>
+    [
+      '0 HEAD',
+      '1 SOUR PAF',
+      '1 SUBM @S1@',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHAR UTF-8',
+      '0 @S1@ SUBM',
+      '1 NAME T',
+      '0 @F1@ FAM',
+      '1 HUSB @I1@',
+      '1 WIFE @I2@',
+      marker,
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '0 @I2@ INDI',
+      '1 NAME Jane /Roe/',
+      '0 TRLR',
+    ].join('\n');
+
+  const err551 = (text: string): string => {
+    const result = parseGedcom551(enc(text));
+    if (result.ok) {
+      throw new Error('expected an error');
+    }
+    return (result.error as { code: string }).code;
+  };
+
+  test('accepts the Ahnenblatt _NONE Y form and normalizes it to NCHI 0', () => {
+    const dataset = parseOk551(FAM551('1 _NONE Y'));
+    expect(fam(dataset, '@F1@').attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
+  });
+
+  test('accepts the Legacy bare _NONE form and normalizes it to NCHI 0', () => {
+    const dataset = parseOk551(FAM551('1 _NONE'));
+    expect(fam(dataset, '@F1@').attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
+  });
+
+  test('accepts the _NONE Y form on 7.0 input too', () => {
+    const dataset = parseOk70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @F1@ FAM',
+        '1 _NONE Y',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    expect(fam(dataset, '@F1@').attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
+  });
+
+  test('rejects any other _NONE value', () => {
+    expect(err551(FAM551('1 _NONE N'))).toBe('enum.invalid-value');
+    expect(err551(FAM551('1 _NONE yes'))).toBe('enum.invalid-value');
+    expect(err551(FAM551('1 _NONE @I1@'))).toBe('structure.unexpected-payload');
+  });
+
+  test('rejects substructures under _NONE', () => {
+    expect(err551(FAM551('1 _NONE Y\n2 NOTE not allowed'))).toBe('structure.unknown-tag');
+  });
+
+  test('writes the standard NCHI 0 in both versions', () => {
+    const dataset = parseOk551(FAM551('1 _NONE Y'));
+    expect(ser551(dataset)).toContain('1 NCHI 0');
+    expect(ser70(dataset)).toContain('1 NCHI 0');
+    // The vendor tag is not written back.
+    expect(ser551(dataset)).not.toContain('_NONE');
+    expect(ser70(dataset)).not.toContain('_NONE');
+  });
+});

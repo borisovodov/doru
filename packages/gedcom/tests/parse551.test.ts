@@ -481,3 +481,108 @@ describe('parseGedcom551 — strictness', () => {
     }
   });
 });
+
+describe('parseGedcom551 — spec coverage', () => {
+  test('parses the @#DFRENCH R@ calendar escape', () => {
+    const dataset = parse551(
+      [...HEADER, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DFRENCH R@ 8 VEND 8', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'BIRT') {
+      throw new Error('expected BIRT');
+    }
+    expect(indi.events[0].detail?.date?.value).toEqual({
+      kind: 'date',
+      calendar: 'FRENCH_R',
+      day: 8,
+      month: 'VEND',
+      year: 8,
+    });
+  });
+
+  test('parses an INDI.RESI without a payload (5.5.1 grammar has none)', () => {
+    const dataset = parse551(
+      [...HEADER, '0 @I1@ INDI', '1 NAME Jane /Doe/', '1 RESI', '2 PLAC Paris, France', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const resi = indi.attributes?.[0];
+    expect(resi?.tag).toBe('RESI');
+    expect(resi).not.toHaveProperty('payload');
+    expect(resi?.detail?.place?.payload).toEqual(['Paris', 'France']);
+  });
+
+  test('parses HEAD.DATE with a TIME substructure (5.5.1 p.23)', () => {
+    const dataset = parse551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 DATE 12 FEB 2020',
+        '2 TIME 10:00:00',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    expect(dataset.header.date?.value).toEqual({ day: 12, month: 'FEB', year: 2020 });
+    expect(dataset.header.date?.time).toEqual({ hour: 10, minute: 0, second: 0 });
+  });
+
+  test('parses an inline OBJE whose FILE.FORM spells the medium MEDI (5.5.1 p.37)', () => {
+    const dataset = parse551(
+      [...HEADER, '0 @I1@ INDI', '1 OBJE', '2 FILE photo.jpg', '3 FORM jpg', '4 MEDI photo', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.media?.[0]?.tag).toBe('OBJE');
+    const media = dataset.records.find((record) => record.tag === 'OBJE');
+    if (media?.tag !== 'OBJE') {
+      throw new Error('expected a synthesized OBJE record');
+    }
+    expect(media.files[0]?.form?.medium?.payload).toBe('PHOTO');
+  });
+
+  test('parses an AGE without a payload', () => {
+    const dataset = parse551(
+      [...HEADER, '0 @I1@ INDI', '1 DEAT Y', '2 AGE', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'DEAT') {
+      throw new Error('expected DEAT');
+    }
+    expect(indi.events[0].detail?.age).toEqual({});
+  });
+
+  test('accepts a tab in user text (5.5.5 "Tab is Legal")', () => {
+    const dataset = parse551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.5',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME Jane /Doe/',
+        '1 NOTE first\tsecond',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((record) => record.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.notes?.[0]?.payload).toBe('first\tsecond');
+  });
+});

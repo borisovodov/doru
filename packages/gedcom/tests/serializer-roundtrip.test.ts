@@ -192,6 +192,20 @@ describe('age emission', () => {
     const text = ser551(dataset);
     expect(text).not.toContain('2 AGE');
   });
+
+  test('an empty 7.0 AGE with a PHRASE round-trips', () => {
+    const dataset = parse70(H70.concat('0 @I1@ INDI', '1 DEAT Y', '2 AGE', '3 PHRASE very old', '0 TRLR').join('\n'));
+    const text = ser70(dataset);
+    expect(text).toContain('2 AGE');
+    expect(text).toContain('3 PHRASE very old');
+    const reparsed = parse70(text);
+    const indi = reparsed.records[0];
+    if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'DEAT') {
+      throw new Error('expected DEAT');
+    }
+    expect(indi.events[0].detail?.age?.payload).toBeUndefined();
+    expect(indi.events[0].detail?.age?.phrase).toBe('very old');
+  });
 });
 
 describe('dates, sort dates and event details', () => {
@@ -278,6 +292,40 @@ describe('dates, sort dates and event details', () => {
     expect(text).toContain('2 _WITN A Witness');
     expect(text).toContain('2 _SHAR @I2@');
     expect(text).toContain('3 _ROLE Witness');
+  });
+
+  test('a 5.5.1 French Republican date round-trips', () => {
+    const dataset = parse551(
+      [...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DFRENCH R@ 8 VEND 8', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).toContain('2 DATE @#DFRENCH R@ 8 VEND 8');
+    parse551(text); // must re-parse without error
+  });
+
+  test('a 5.5.1 payload-less INDI.RESI round-trips', () => {
+    const dataset = parse551(
+      [...H551, '0 @I1@ INDI', '1 NAME Jane /Doe/', '1 RESI', '2 PLAC Paris, France', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).toContain('1 RESI');
+    expect(text).toContain('2 PLAC Paris, France');
+    const reparsed = parse551(text);
+    const indi = reparsed.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.attributes?.[0]?.tag).toBe('RESI');
+    expect(indi.attributes?.[0]).not.toHaveProperty('payload');
+    // The 7.0 export writes an empty-Text RESI, which the 7.0 parser
+    // must accept back (a missing payload is the empty string).
+    const via70 = parse70(ser70(dataset));
+    const indi70 = via70.records[0];
+    if (indi70?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi70.attributes?.[0]?.tag).toBe('RESI');
+    expect(indi70.attributes?.[0]).not.toHaveProperty('payload');
   });
 });
 
@@ -398,9 +446,49 @@ describe('media links', () => {
     expect(text).toContain('2 FORM jpg');
     expect(text).toContain('3 TYPE photo');
   });
+
+  test('a 5.5.1 inline OBJE spelling the medium MEDI normalizes to TYPE', () => {
+    const dataset = parse551(
+      [...H551, '0 @I1@ INDI', '1 OBJE', '2 FILE photo.jpg', '3 FORM jpg', '4 MEDI photo', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).toContain('2 FORM jpg');
+    expect(text).toContain('3 TYPE photo');
+    parse551(text); // must re-parse without error
+  });
 });
 
 describe('header and submission emission', () => {
+  test('7.0 writes the header SUBM pointer', () => {
+    const dataset = parse70([...H70, '1 SUBM @S1@', ...SUBM, '0 TRLR'].join('\n'));
+    const text = ser70(dataset);
+    expect(text).toContain('1 SUBM @S1@');
+    const reparsed = parse70(text);
+    expect(reparsed.header.submitter).toBe('@S1@');
+  });
+
+  test('a 5.5.1 HEAD.DATE with TIME round-trips', () => {
+    const dataset = parse551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 DATE 12 FEB 2020',
+        '2 TIME 10:30',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).toContain('1 DATE 12 FEB 2020');
+    expect(text).toContain('2 TIME 10:30');
+    parse551(text); // must re-parse without error
+  });
+
   test('7.0 header source corporation and data', () => {
     const dataset = parse70(
       [

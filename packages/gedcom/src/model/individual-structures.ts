@@ -75,7 +75,22 @@ export interface PropertyAttribute extends IndividualAttributeBase<'PROP', Text>
 export interface IndividualReligionAttribute extends IndividualAttributeBase<'RELI', Text> {}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:INDI-RESI: residence. GEDCOM 7.0 §3.3.2.1. */
-export interface IndividualResidenceAttribute extends IndividualAttributeBase<'RESI', Text> {}
+export interface IndividualResidenceAttribute extends GedcomStructureBase {
+  tag: 'RESI';
+  /**
+   * The RESI payload, {1:1} Text in 7.0 (may be empty; a missing
+   * payload is equivalent to the empty string, GEDCOM 7.0 §1.2); the
+   * 5.5.1 grammar (GEDCOM 5.5.1 §2 p.33) gives INDI.RESI no payload —
+   * the residence is carried by the ADDR/PLAC substructures of the
+   * detail. 5.5.1 input may still carry a payload (real files do); it
+   * is kept.
+   */
+  payload?: Text;
+  /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
+  type?: Text;
+  /** <<INDIVIDUAL_EVENT_DETAIL>> {0:1}. */
+  detail?: IndividualEventDetail;
+}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:SSN: social security number; a type of IDNO. GEDCOM 7.0 §3.3.2.1. */
 export interface SocialSecurityNumberAttribute extends IndividualAttributeBase<'SSN', Special> {}

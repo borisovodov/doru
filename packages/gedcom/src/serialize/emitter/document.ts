@@ -94,7 +94,10 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   if (h.date !== undefined) {
     emitDateExact(w, version, 1, 'DATE', h.date, h.date.time);
   }
-  if (version === '5.5.1' && h.submitter !== undefined) {
+  if (h.submitter !== undefined) {
+    // Written in both versions: 7.0 HEAD.SUBM is {0:1} (the pointer is
+    // kept verbatim, @VOID@ included); prepareFor551 fills a live
+    // pointer for 5.5.1, where SUBM is required.
     ptr(w, version, 1, 'SUBM', h.submitter);
   }
   if (version === '5.5.1') {

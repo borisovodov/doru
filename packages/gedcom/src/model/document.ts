@@ -89,7 +89,7 @@ export interface Header extends GedcomStructureBase {
   destination?: Special;
   /** DATE {0:1}, g7:HEAD-DATE — the DateExact this document was created. GEDCOM 7.0 §3.2.1. */
   date?: DateExactStructure;
-  /** SUBM {0:1}, g7:SUBM — the submitter of the dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. Dropped when serializing to 7.0; when serializing to 5.5.1 a missing or void pointer is filled from an existing SUBM record or a synthesized one named "Unknown". */
+  /** SUBM {0:1}, g7:SUBM — the submitter of the dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. Written in both versions; when serializing to 5.5.1 a missing or void pointer is filled from an existing SUBM record or a synthesized one named "Unknown". */
   submitter?: Pointer<SubmitterRecord>;
   /**
    * SUBN {0:1} — a pointer to the submission record.
