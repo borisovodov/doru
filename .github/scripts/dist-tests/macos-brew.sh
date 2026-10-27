@@ -102,15 +102,20 @@ echo "::group::File associations (.doru/.ged/.gdz)"
 lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 "$lsregister" -f "$APP"
 brew install duti >/dev/null
+# duti -x prints the default app's *name* (see its man page: `duti -x html`
+# → `Safari`), not the bundle id — so compare against the bundle names.
+BUNDLE_NAME=$(plutil -extract CFBundleName raw "$PLIST")
+DISPLAY_NAME=$(plutil -extract CFBundleDisplayName raw "$PLIST")
 for ext in doru ged gdz; do
   handler=""
   for _ in $(seq 1 30); do
     handler=$(duti -x "$ext" 2>/dev/null | head -1) || true
-    [ "$handler" = "org.doru.doru" ] && break
+    { [ "$handler" = "$BUNDLE_NAME" ] || [ "$handler" = "$DISPLAY_NAME" ]; } && break
     sleep 2
   done
   echo ".$ext -> $handler"
-  [ "$handler" = "org.doru.doru" ] || fail ".$ext is not associated with org.doru.doru"
+  { [ "$handler" = "$BUNDLE_NAME" ] || [ "$handler" = "$DISPLAY_NAME" ]; } \
+    || fail ".$ext is not associated with Dóru (got: '$handler')"
 done
 echo "::endgroup::"
 
