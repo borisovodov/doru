@@ -8,7 +8,20 @@ permissions:
   contents: write
 
 jobs:
+  # Every check that CI runs, including the distribution tests: the release
+  # publishes exactly the code that passed them, so no check is duplicated
+  # between the two workflows. The reusable workflows resolve at the caller's
+  # ref, i.e. the release tag itself.
+  checks:
+    name: All checks
+    uses: ./.github/workflows/ci.yml
+
+  dist-checks:
+    name: Distribution checks
+    uses: ./.github/workflows/distribution-tests.yml
+
   build:
+    needs: [checks, dist-checks]
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -27,9 +40,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1
       - run: npm ci
-      - run: npm test
-      - run: npm run typecheck
-      - run: npm run check:nls
       - name: Prepare macOS signing keychain
         if: runner.os == 'macOS'
         env:
