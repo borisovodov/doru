@@ -16,16 +16,6 @@ PORT=8473
 
 fail() { echo "::error::$1"; exit 1; }
 
-echo "::group::Prepare the cask with the test artifact"
-HASH=$(shasum -a 256 "$DMG" | awk '{print $1}')
-sed -i '' \
-  -e 's|^  url .*|  url "http://127.0.0.1:'"$PORT"'/'"$(basename "$DMG")"'"|' \
-  -e 's/^  version .*/  version "'"${TEST_VERSION:?}"'"/' \
-  "$TAP/Casks/doru.rb"
-perl -i -pe 's/(arm:\s+")[0-9a-f]{64}/$1'"$HASH"'/' "$TAP/Casks/doru.rb"
-grep -E '^(  url|  version|  sha256 arm:)' "$TAP/Casks/doru.rb"
-echo "::endgroup::"
-
 echo "::group::Serve the artifact"
 cd "$(dirname "$DMG")"
 python3 -m http.server "$PORT" >/tmp/doru-http.log 2>&1 &
@@ -43,6 +33,24 @@ echo "::group::Install through the cask"
 export HOMEBREW_NO_AUTO_UPDATE=1
 brew tap borisovodov/taps "$TAP"
 brew trust borisovodov/taps
+# `brew tap` clones the tap, which carries only committed state — rewrite the
+# *cloned* cask so brew installs the test artifact, not the published release.
+CASK="$(brew --repo borisovodov/taps)/Casks/doru.rb"
+HASH=$(shasum -a 256 "$DMG" | awk '{print $1}')
+ARTIFACT_URL="http://127.0.0.1:$PORT/$(basename "$DMG")"
+python3 - "$CASK" "$HASH" "$ARTIFACT_URL" <<'PY'
+import re, sys
+path, new_hash, new_url = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path).read()
+text = re.sub(r'^  version .*$', '  version "0.0.0-test"', text, flags=re.M)
+text = re.sub(r'^  url .*$', f'  url "{new_url}"', text, flags=re.M)
+text, n = re.subn(r'(sha256 arm:\s*")[0-9a-f]{64}', r'\g<1>' + new_hash, text)
+assert n == 1, f"the arm: hash line was not found (rewrote {n})"
+open(path, 'w').write(text)
+PY
+grep -E '^(  url|  version)' "$CASK"
+grep -q "sha256 arm:.*$HASH" "$CASK" \
+  || { grep -n 'sha256' "$CASK"; fail "the cask hash rewrite did not stick"; }
 brew install --cask borisovodov/taps/doru
 echo "::endgroup::"
 
@@ -121,8 +129,13 @@ done
 echo "::endgroup::"
 
 echo "::group::URL scheme declaration (Info.plist)"
-test "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$PLIST")" = "doru" \
-  || fail "Info.plist does not declare the doru URL scheme"
+# PlistBuddy, not `plutil -extract`: the plutil array-index keypath syntax
+# (CFBundleURLTypes.0.…) is not accepted by the older plutil on the runner.
+SCHEME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$PLIST" 2>/dev/null || true)
+if [ "$SCHEME" != "doru" ]; then
+  plutil -p "$PLIST" | grep -A6 CFBundleURLTypes || echo "(no CFBundleURLTypes in Info.plist)"
+  fail "Info.plist does not declare the doru URL scheme"
+fi
 echo "::endgroup::"
 
 echo "::group::Launch and first-run files"
@@ -177,6 +190,12 @@ if [ ! -f "$TEST_FILE" ]; then
   cat /tmp/doru-app.log
   fail "the doru:// link did not open the project ($TEST_FILE was not created)"
 fi
+# session.json lands a beat after the project file (window creation and
+# recents come first) — poll like the other markers.
+for _ in $(seq 1 30); do
+  grep -q "$TEST_FILE" "$FIRST_RUN/session.json" 2>/dev/null && break
+  sleep 1
+done
 grep -q "$TEST_FILE" "$FIRST_RUN/session.json" \
   || fail "session.json does not contain the linked project path"
 echo "deep link opened: $TEST_FILE"
