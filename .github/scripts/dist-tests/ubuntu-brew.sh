@@ -23,10 +23,10 @@ echo "::group::Install system dependencies"
 sudo apt-get update -qq
 sudo apt-get install -y -qq \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 \
-  xvfb dbus-x11 libfuse2t64 \
+  xvfb dbus-x11 libfuse2t64 desktop-file-utils \
   || sudo apt-get install -y -qq \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libgbm1 \
-  xvfb dbus-x11 libfuse2
+  xvfb dbus-x11 libfuse2 desktop-file-utils
 echo "::endgroup::"
 
 echo "::group::Install Homebrew on Linux"
@@ -162,11 +162,14 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
   kill "$APP_PID"
 '
 FIRST_RUN="$HOME/.config/Doru"
+# settings.json is written by readSettings on boot — the deterministic
+# first-run marker. (The log file is not: it only exists once something has
+# been logged or the settings page created it.)
 for _ in $(seq 1 30); do
-  [ -f "$FIRST_RUN/doru.log" ] && break
+  [ -f "$FIRST_RUN/settings.json" ] && break
   sleep 1
 done
-test -f "$FIRST_RUN/doru.log" || fail "first-run log not created at $FIRST_RUN/doru.log"
+test -f "$FIRST_RUN/settings.json" || fail "first-run settings not created at $FIRST_RUN/settings.json"
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
 echo "::endgroup::"
 

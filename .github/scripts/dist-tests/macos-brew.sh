@@ -59,7 +59,9 @@ test "$(plutil -extract CFBundleDisplayName raw "$PLIST")" = "Dóru" \
   || fail "CFBundleDisplayName is not Dóru"
 test "$(plutil -extract CFBundleName raw "$PLIST")" = "Doru" \
   || fail "CFBundleName is not Doru (must stay ASCII)"
-grep -q 'CFBundleDisplayName' "$APP/Contents/Resources/en.lproj/InfoPlist.strings" \
+# InfoPlist.strings is UTF-16 (the format .strings requires), so grep cannot
+# see into it — parse with plutil instead.
+plutil -p "$APP/Contents/Resources/en.lproj/InfoPlist.strings" | grep -q CFBundleDisplayName \
   || fail "en.lproj/InfoPlist.strings lacks CFBundleDisplayName"
 echo "::endgroup::"
 
@@ -103,12 +105,15 @@ for _ in $(seq 1 15); do
 done
 pgrep -f "$APP/Contents/MacOS/Doru" >/dev/null || fail "the app is not running after open"
 FIRST_RUN="$HOME/Library/Application Support/Doru"
+# settings.json is written by readSettings on boot — the deterministic
+# first-run marker. (The log file is not: it only exists once something has
+# been logged or the settings page created it.)
 for _ in $(seq 1 30); do
-  [ -f "$FIRST_RUN/doru.log" ] && break
+  [ -f "$FIRST_RUN/settings.json" ] && break
   sleep 1
 done
-test -f "$FIRST_RUN/doru.log" \
-  || fail "first-run log not created at $FIRST_RUN/doru.log"
+test -f "$FIRST_RUN/settings.json" \
+  || fail "first-run settings not created at $FIRST_RUN/settings.json"
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
 osascript -e 'quit app "Doru"'
 echo "::endgroup::"

@@ -143,12 +143,14 @@ xvfb-run --auto-servernum dbus-run-session -- bash -c '
 '
 # --filesystem=home maps the real home inside the sandbox: Electron's userData
 # lands in ~/.config/Doru, not in ~/.var/app/org.doru.doru.
+# settings.json is written by readSettings on boot — the deterministic
+# first-run marker.
 FIRST_RUN="$HOME/.config/Doru"
 for _ in $(seq 1 30); do
-  [ -f "$FIRST_RUN/doru.log" ] && break
+  [ -f "$FIRST_RUN/settings.json" ] && break
   sleep 1
 done
-test -f "$FIRST_RUN/doru.log" || fail "first-run log not created at $FIRST_RUN/doru.log"
+test -f "$FIRST_RUN/settings.json" || fail "first-run settings not created at $FIRST_RUN/settings.json"
 echo "first-run files: $(ls "$FIRST_RUN" | tr '\n' ' ')"
 echo "::endgroup::"
 
