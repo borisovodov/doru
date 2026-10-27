@@ -60,10 +60,10 @@ describe('date value parsers (7.0)', () => {
     expect(parseDateValue70('BET 1900 AND 1910', pos).kind).toBe('range');
     expect(parseDateValue70('FROM 1900 TO 1910', pos).kind).toBe('period');
     expect(parseDateValue70('TO 1910', pos)).toEqual({
-      kind: 'period', to: { kind: 'date', calendar: 'GREGORIAN', year: 1910 },
+      kind: 'period', to: { calendar: 'GREGORIAN', year: 1910 },
     });
     expect(parseDateValue70('FROM 1900', pos)).toEqual({
-      kind: 'period', from: { kind: 'date', calendar: 'GREGORIAN', year: 1900 },
+      kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 },
     });
     expect(parseDateValue70('AFT 1900', pos).kind).toBe('bound');
     expect(parseDateValue70('BEF 1900', pos).kind).toBe('bound');

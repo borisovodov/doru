@@ -621,7 +621,7 @@ export function emitNoteRecordAs70(w: Writer, version: Version, rec: {
 export function emitSource(w: Writer, version: Version, rec: {
   tag: 'SOUR';
   data?: {
-    events?: Array<{ payload: Array<string | `_${string}`>; date?: DatePeriodStructure; place?: PlaceStructure }>;
+    events?: Array<{ payload: Array<string | `_${string}`>; userDefined?: string[]; date?: DatePeriodStructure; place?: PlaceStructure }>;
     agency?: string;
     notes?: NoteStructure[];
   };
@@ -647,7 +647,18 @@ export function emitSource(w: Writer, version: Version, rec: {
   if (rec.data !== undefined) {
     w.line(1, 'DATA');
     for (const event of rec.data.events ?? []) {
-      w.line(2, 'EVEN', { value: event.payload.join(', ') });
+      if (version === '7.0') {
+        if (event.payload.length === 0) {
+          // The EVEN carried only 5.5.1 user-defined values; 7.0 has
+          // no slot for them and an empty List payload would be
+          // invalid — the whole structure (payload, DATE and PLAC) is
+          // dropped.
+          continue;
+        }
+        w.line(2, 'EVEN', { value: event.payload.join(', ') });
+      } else {
+        w.line(2, 'EVEN', { value: [...event.payload, ...(event.userDefined ?? [])].join(', ') });
+      }
       if (event.date !== undefined) {
         const dateValue =
           version === '7.0'

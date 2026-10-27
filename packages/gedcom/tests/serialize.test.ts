@@ -482,3 +482,68 @@ describe('serializeGedcom70Bytes / serializeGedcom551Bytes', () => {
     }
   });
 });
+
+describe('the 5.5.1 user-defined EVENT values on 7.0 export', () => {
+  const SAMPLE551 = [
+    '0 HEAD',
+    '1 SOUR PAF',
+    '1 SUBM @S1@',
+    '1 GEDC',
+    '2 VERS 5.5.1',
+    '2 FORM LINEAGE-LINKED',
+    '1 CHAR UTF-8',
+    '0 @S1@ SUBM',
+    '1 NAME T',
+    '0 @S2@ SOUR',
+    '1 DATA',
+    "2 EVEN BIRT, Ships' manifests",
+    '0 @I1@ INDI',
+    '1 BIRT',
+    '2 SOUR @S2@',
+    "3 EVEN Ships' manifests",
+    '0 TRLR',
+  ].join('\n');
+
+  test('drops the user-defined values and keeps the enums', () => {
+    const dataset = parseOk551(SAMPLE551);
+    const text = ser70(dataset);
+    expect(text).toContain('2 EVEN BIRT');
+    expect(text).not.toContain("Ships' manifests");
+    // The citation EVEN carried only the user-defined value; the whole
+    // structure is dropped on 7.0.
+    expect(text).not.toContain('3 EVEN');
+  });
+
+  test('an EVEN with only user-defined values is dropped entirely', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 @S1@ SUBM', '1 NAME T',
+        '0 @S2@ SOUR',
+        '1 DATA',
+        "2 EVEN Ships' manifests",
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser70(dataset);
+    expect(text).not.toContain('EVEN');
+  });
+
+  test('5.5.1 round-trips the user-defined values verbatim', () => {
+    const first = parseOk551(SAMPLE551);
+    const text = ser551(first);
+    expect(text).toContain("2 EVEN BIRT, Ships' manifests");
+    expect(text).toContain("3 EVEN Ships' manifests");
+    expect(parseOk551(text)).toEqual(first);
+  });
+
+  test('7.0 input still rejects non-extension values', () => {
+    const result = parseGedcom70(
+      enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 DATA\n2 EVEN BIRT, X\n0 TRLR\n'),
+    );
+    if (result.ok) {
+      throw new Error('expected an error');
+    }
+    expect((result.error as { code: string }).code).toBe('enum.invalid-value');
+  });
+});

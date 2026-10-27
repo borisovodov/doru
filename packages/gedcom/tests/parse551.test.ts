@@ -586,3 +586,42 @@ describe('parseGedcom551 — spec coverage', () => {
     expect(indi.notes?.[0]?.payload).toBe('first\tsecond');
   });
 });
+
+describe('parseGedcom551 — user-defined EVENT values', () => {
+  test('splits 5.5.1 DATA.EVEN and SOUR.EVEN into enums and user values', () => {
+    const dataset = parse551(
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @S2@ SOUR',
+        '1 DATA',
+        "2 EVEN BIRT, Ships' manifests",
+        '0 @I1@ INDI',
+        '1 BIRT',
+        '2 SOUR @S2@',
+        "3 EVEN Ships' manifests",
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const sour = dataset.records.find((record) => record.tag === 'SOUR');
+    if (sour?.tag !== 'SOUR') {
+      throw new Error('expected SOUR');
+    }
+    expect(sour.data?.events?.[0]?.payload).toEqual(['BIRT']);
+    expect(sour.data?.events?.[0]?.userDefined).toEqual(["Ships' manifests"]);
+    const indi = dataset.records.find((record) => record.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const citation = indi.events?.[0]?.detail?.citations?.[0];
+    expect(citation?.event?.payload).toBeUndefined();
+    expect(citation?.event?.userDefined).toBe("Ships' manifests");
+  });
+});

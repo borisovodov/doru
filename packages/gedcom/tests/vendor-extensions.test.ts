@@ -454,9 +454,9 @@ describe('_DATE2 and the FTM201x facts', () => {
     expect(parseOk551(text551)).toEqual(dataset);
     expect(ser70(dataset)).toContain('2 _DATE2 TO 1960');
     const via70 = parseOk70(ser70(dataset));
-    const end70 = indi(via70).attributes?.[0]?.detail?.endDate?.value;
-    expect(end70?.kind).toBe('period');
-    expect((end70 as { to?: { year?: number } }).to?.year).toBe(1960);
+    expect(indi(via70).attributes?.[0]?.detail?.endDate?.value).toEqual(
+      { kind: 'period', to: { calendar: 'GREGORIAN', year: 1960 } },
+    );
   });
 
   test('the FTM201x facts normalize like the older FTM set', () => {

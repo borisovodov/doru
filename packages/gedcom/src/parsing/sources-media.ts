@@ -11,6 +11,9 @@ import {
   EVENT_ATTRIBUTE_ENUM_VALUES,
   QUALITY_ENUM_VALUES,
 } from '../enumerations';
+import type {
+  EventAttributeEnum,
+} from '../enumerations';
 import {
   fail,
 } from '../errors';
@@ -192,9 +195,22 @@ export function parseSourceCitationData(node: RawNode, ctx: Ctx): SourceCitation
 }
 
 export function parseSourceCitationEvent(node: RawNode, ctx: Ctx): SourceCitationEvent {
-  const out: SourceCitationEvent = {
-    payload: parseEnum(reqText(node), EVENT_ATTRIBUTE_ENUM_VALUES, ctx.version, node.position),
-  };
+  const raw = reqText(node);
+  const out: SourceCitationEvent = {};
+  if (ctx.version === '7.0') {
+    out.payload = parseEnum(raw, EVENT_ATTRIBUTE_ENUM_VALUES, '7.0', node.position);
+  } else {
+    // 5.5.1 `EVENT_TYPE_CITED_FROM` (p.49): a known tag or a
+    // user-supplied descriptor, "classified in the category of other".
+    const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find(
+      (value) => value.toLowerCase() === raw.toLowerCase(),
+    );
+    if (key !== undefined) {
+      out.payload = key as EventAttributeEnum;
+    } else {
+      out.userDefined = raw;
+    }
+  }
   const handlers: Record<string, (child: RawNode) => void> = {
     ROLE: (child) => {
       out.role = parseRole(child, ctx);

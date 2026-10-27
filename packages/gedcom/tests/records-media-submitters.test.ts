@@ -572,7 +572,7 @@ describe('repository, note and source records', () => {
       notes?: unknown[]; media?: unknown[]; changeDate?: unknown; creationDate?: unknown; identifiers?: Array<{ tag: string }>;
     };
     expect(rec.data?.events?.[0]?.payload).toEqual(['BIRT', 'DEAT']);
-    expect(rec.data?.events?.[0]?.date?.value).toEqual({ kind: 'period', from: { kind: 'date', calendar: 'GREGORIAN', year: 1900 }, to: { kind: 'date', calendar: 'GREGORIAN', year: 1910 } });
+    expect(rec.data?.events?.[0]?.date?.value).toEqual({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 }, to: { calendar: 'GREGORIAN', year: 1910 } });
     expect(rec.data?.events?.[0]?.date?.phrase).toBe('approx');
     expect(rec.data?.events?.[0]?.place?.payload).toEqual(['Paris']);
     expect(rec.data?.agency).toBe('The Agency');
@@ -645,7 +645,7 @@ describe('repository, note and source records', () => {
       repositoryCitations?: Array<{ repository: string; callNumbers?: Array<{ payload: string; medium?: { payload: string } }> }>;
       notes?: unknown[]; media?: unknown[]; changeDate?: unknown; identifiers?: Array<{ tag: string }>; automatedRecordId?: string;
     };
-    expect(rec.data?.events?.[0]?.date?.value).toEqual({ kind: 'period', from: { kind: 'date', calendar: 'GREGORIAN', year: 1900 }, to: { kind: 'date', calendar: 'GREGORIAN', year: 1910 } });
+    expect(rec.data?.events?.[0]?.date?.value).toEqual({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 }, to: { calendar: 'GREGORIAN', year: 1910 } });
     expect(rec.data?.events?.[0]?.place?.payload).toEqual(['Paris']);
     expect(rec.data?.agency).toBe('The Agency');
     expect(rec.data?.notes).toHaveLength(1);

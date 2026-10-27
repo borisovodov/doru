@@ -803,6 +803,21 @@ export interface SourceDataEvent extends GedcomStructureBase {
   date?: DatePeriodStructure;
   /** <<PLACE_STRUCTURE>> {0:1}. */
   place?: PlaceStructure;
+  /**
+   * The user-supplied values of the 5.5.1 `EVENTS_RECORDED` list,
+   * kept verbatim: GEDCOM 5.5.1 §2 (p.50) permits any value alongside
+   * the `EVENT_ATTRIBUTE_TYPE` tags — "If the event or attribute
+   * doesn't translate to one of these tag codes, then a user supplied
+   * value is expected and will be generally classified in the category
+   * of other". The known tags go to `payload`, everything else here;
+   * the list has no ordering semantics in 5.5.1, so the grouping is
+   * lossless. 7.0 has no slot for these values (only extTag extension
+   * values, which stay in `payload`): when serializing to 7.0 an EVEN
+   * whose payload is empty is dropped entirely, otherwise the
+   * user-defined values are dropped silently. 5.5.1 writes them back
+   * verbatim after the enums.
+   */
+  userDefined?: Text[];
 }
 
 /**

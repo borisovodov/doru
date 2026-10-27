@@ -542,9 +542,13 @@ Deliberate places where the strict parser is stricter than a tolerant one
 would be, or where the model takes a documented position:
 
 - 5.5.1 permits arbitrary user-supplied values in `DATA.EVEN` /
-  `SOUR.EVEN` ("classified in the category of other"); the strict parser
-  rejects them with `enum.invalid-value`. The planned model extension is
-  written up as Future work #1.
+  `SOUR.EVEN` ("classified in the category of other", GEDCOM 5.5.1 §2
+  p.48–49). The model keeps them apart from the enum values in the
+  `userDefined` fields (see `SourceDataEvent.userDefined` /
+  `SourceCitationEvent.userDefined`): 5.5.1 writes them back verbatim
+  after the enums, while 7.0 — which permits only extTag extension
+  values — drops them (an EVEN carrying only the user-defined value is
+  dropped entirely). 7.0 input stays strict.
 - The GEDCOM-L hierarchy link `TYPE` is validated strictly to
   `POLI|RELI|GEOG|CULT` (`enum.invalid-value` for anything else); the
   group's agreement defines no other relationship kinds.
@@ -630,7 +634,7 @@ it without re-deriving context.
   (`serialize/serialize.ts`, `serialize/prepare.ts` — translations,
   silent drops, the NO rule, the SOUR/SUBM defaults), the unified
   `parse` entry point (`detect.ts`), the error model (`errors.ts`), and
-  ANSEL decoding. 289 package tests, clean typecheck.
+  ANSEL decoding. 556 package tests, clean typecheck.
 - Conventions a later session must follow:
   - every model entity cites both specs (`GEDCOM 7.0 §…`,
     `GEDCOM 5.5.1 §2 (p.…)`);
@@ -642,45 +646,7 @@ it without re-deriving context.
     validated and discarded);
   - export is always UTF-8.
 
-### 1. Accept the user-defined values of 5.5.1 DATA.EVEN / SOUR.EVEN
-
-**Goal:** 5.5.1 defines the `EVENTS_RECORDED` list (under
-`SOUR.DATA.EVEN`) and `EVENT_TYPE_CITED_FROM` (under `SOUR.EVEN`) as
-event-type tags plus any user-supplied value "classified in the category
-of other" (GEDCOM 5.5.1 §2 p.48–49). The strict parser currently rejects
-such values with `enum.invalid-value`, which makes valid 5.5.1 files
-unparseable (see Known strict decisions). Extend the model instead of
-relaxing the parser.
-
-**Decision:** follow the dual-field precedent set by `role`/`relationship`
-(ROLE vs RELA): the model holds both spellings explicitly.
-
-- `SourceDataEvent` (model/records.ts) and `SourceCitationEvent`
-  (model/sources-media.ts) each get a parallel field holding the values
-  outside the enum set verbatim — `userDefined?: Text[]` on the former
-  and `userDefined?: Text` on the latter (SOUR.EVEN is {0:1}). Record
-  the rule in the field JSDoc with the 5.5.1 citation.
-- Parsing (parsing/sources.ts `parseSourceDataEvent`,
-  parsing/sources-media.ts `parseSourceCitationEvent`): on 5.5.1 input,
-  split the payload — enum values into `payload`, everything else into
-  the parallel field. The list has no ordering semantics in 5.5.1, so
-  grouping enum values first and user values after is not lossy. 7.0
-  input stays strict (7.0 permits only extTag extension values, which
-  the parser already accepts).
-- Serialization: 5.5.1 writes both fields back verbatim (the emitters
-  at serialize/emitter/records.ts and serialize/emitter/structures.ts
-  currently join only `payload`). 7.0 drops the user-defined values
-  silently — 7.0 has no slot for them — with the rule documented in the
-  field JSDoc (serializers are projections, not judges); a
-  `SOUR.EVEN` whose only content is the user value is dropped entirely.
-
-**Tests:** parse 5.5.1 with a user value in `SOUR.EVEN` and mixed enum +
-user values in `DATA.EVEN`; round-trip 5.5.1 → 5.5.1 verbatim; 7.0
-export drops the user values and keeps the enums; 7.0 input still
-rejects non-extTag values. Extend parse551.test.ts, serialize.test.ts
-and roundtrip.test.ts.
-
-### 2. Corpus validation runs
+### 1. Corpus validation runs
 
 **Goal:** validate the strict parsers against real-world `.ged` files
 from many producers, aggregate failures by error code, and turn findings
@@ -707,12 +673,12 @@ into decisions. The strictness is a bet; this is where it gets tested.
   relax the parser silently.**
 
 **Already-suspected divergence points** (start by checking these):
-arbitrary user values in 5.5.1 `DATA.EVEN`/`SOUR.EVEN` (the response is
-already decided — see item 1); free-form `NAME_TYPE`; parenthesized
-`ROLE` descriptors; single (non-doubled) at-signs in real 5.5.1 files; `CONC` in files claiming 7.0; partial
-dates; `B.C.` on full dates in 5.5.1; lowercase tags; trailing spaces.
+free-form `NAME_TYPE`; parenthesized `ROLE` descriptors; single
+(non-doubled) at-signs in real 5.5.1 files; `CONC` in files claiming
+7.0; partial dates; `B.C.` on full dates in 5.5.1; lowercase tags;
+trailing spaces.
 
-### 3. Application integration
+### 2. Application integration
 
 **Current state (do not redo):** `apps/desktop/src/main/gedcom.ts` holds
 a no-op `exportGedcom` returning `null` and `openGedcomAsProject`, which
@@ -743,7 +709,7 @@ window.
 1. **Wire the handlers.** Import: read bytes with the existing
    `NodeFileSystem.readBinary`, detect the version (try `parseGedcom70`,
    fall back to `parseGedcom551` on the `document.wrong-version` /
-   `decoding.missing-charset` detection errors described in item 2),
+   `decoding.missing-charset` detection errors described in item 1),
    map the `GedcomDataset` to the app model, and apply it through the
    existing ops (`importGedcomOp` was removed — either restore an
    equivalent batch op or apply `addPersonOp`/`addFamilyOp` per record

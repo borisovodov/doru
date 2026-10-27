@@ -478,8 +478,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
       }
     }
   }
-  if (citation.event !== undefined) {
-    w.line(level + 1, 'EVEN', { value: citation.event.payload });
+  if (citation.event !== undefined && !(version === '7.0' && citation.event.payload === undefined)) {
+    // 7.0: an EVEN carrying only a 5.5.1 user-defined descriptor has
+    // nothing to write (the whole structure is dropped); 5.5.1 writes
+    // the known tag or the user-defined value.
+    w.line(level + 1, 'EVEN', { value: citation.event.payload ?? citation.event.userDefined });
     if (citation.event.phrase !== undefined && version === '7.0') {
       w.line(level + 2, 'PHRASE', { value: citation.event.phrase });
     }
