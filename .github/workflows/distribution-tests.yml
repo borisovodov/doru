@@ -1,0 +1,183 @@
+name: Distribution tests
+
+# Installs the locally built artifacts through the real distribution channels
+# (Homebrew cask, Flatpak, Scoop), using the manifests from the external
+# distributor repositories (borisovodov/homebrew-taps, borisovodov/flatpak,
+# borisovodov/bucket) at their current `main` — a breakage there means users
+# are broken right now, and this workflow is the signal. The external
+# manifests are transformed in place: the released version/hashes are replaced
+# with the locally built artifact's, which is served over a local HTTP server.
+#
+# These jobs are intentionally NOT part of the per-push CI: they are slow and
+# exercise the release pipeline, so they run only when a release is cut (the
+# Release workflow calls this one) or manually via workflow_dispatch.
+
+on:
+  workflow_call:
+    inputs:
+      channels:
+        description: 'Space-separated channels to run'
+        type: string
+        default: 'macos-brew ubuntu-brew ubuntu-flatpak windows-scoop'
+  workflow_dispatch:
+    inputs:
+      channels:
+        description: 'Space-separated channels to run'
+        default: 'macos-brew ubuntu-brew ubuntu-flatpak windows-scoop'
+
+permissions:
+  contents: read
+
+env:
+  # The manifests get a synthetic version; the freshly built artifact replaces
+  # the released one, so no published release is touched.
+  TEST_VERSION: 0.0.0-test
+
+jobs:
+  macos-brew:
+    name: macOS · Homebrew cask
+    if: contains(inputs.channels, 'macos-brew')
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build the dmg
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run package:mac
+      - uses: actions/checkout@v5
+        with:
+          repository: borisovodov/homebrew-taps
+          path: external/homebrew-taps
+      - name: Install through the cask and verify
+        run: bash .github/scripts/dist-tests/macos-brew.sh
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p dist-logs
+          cp /tmp/doru-app.log dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/Library/Logs/Doru" dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/Library/Application Support/Doru" dist-logs/ 2>/dev/null || true
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-brew-logs
+          if-no-files-found: ignore
+          path: dist-logs/**
+
+  ubuntu-brew:
+    name: Ubuntu · Homebrew cask
+    if: contains(inputs.channels, 'ubuntu-brew')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build the AppImage
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run package:linux
+      - uses: actions/checkout@v5
+        with:
+          repository: borisovodov/homebrew-taps
+          path: external/homebrew-taps
+      - name: Install through the cask and verify
+        run: bash .github/scripts/dist-tests/ubuntu-brew.sh
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p dist-logs
+          cp /tmp/doru-app.log dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.config/Doru" dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.cache/Doru" dist-logs/ 2>/dev/null || true
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ubuntu-brew-logs
+          if-no-files-found: ignore
+          path: dist-logs/**
+
+  ubuntu-flatpak:
+    name: Ubuntu · Flatpak
+    if: contains(inputs.channels, 'ubuntu-flatpak')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/checkout@v5
+        with:
+          repository: borisovodov/flatpak
+          path: external/flatpak
+      - run: npm ci
+      - name: Install through Flatpak and verify
+        run: bash .github/scripts/dist-tests/ubuntu-flatpak.sh
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p dist-logs
+          cp /tmp/doru-app.log dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.var/app/org.doru.doru" dist-logs/ 2>/dev/null || true
+          cp -R "$HOME/.config/Doru" dist-logs/ 2>/dev/null || true
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ubuntu-flatpak-logs
+          if-no-files-found: ignore
+          path: dist-logs/**
+
+  windows-scoop:
+    name: Windows · Scoop
+    if: contains(inputs.channels, 'windows-scoop')
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build the zip
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run package:win -- --config.productName=Dóru
+      - uses: actions/checkout@v5
+        with:
+          repository: borisovodov/bucket
+          path: external/bucket
+      - name: Install through Scoop and verify
+        shell: pwsh
+        run: .github/scripts/dist-tests/windows-scoop.ps1
+      - name: Collect logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist-logs | Out-Null
+          if (Test-Path "$env:APPDATA\Doru") { Copy-Item -Recurse "$env:APPDATA\Doru" dist-logs\ }
+          if (Test-Path "$env:USERPROFILE\scoop\apps\doru") { Copy-Item -Recurse "$env:USERPROFILE\scoop\apps\doru" dist-logs\ }
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-scoop-logs
+          if-no-files-found: ignore
+          path: dist-logs/**

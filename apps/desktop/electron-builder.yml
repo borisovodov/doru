@@ -32,15 +32,24 @@ extraResources:
   - from: resources/icon.png
     to: icon.png
 fileAssociations:
+  # `mimeType` drives the Linux desktop entry (MimeType=) and, for the
+  # AppImage target, a generated MIME XML. The flatpak target generates no
+  # MIME XML of its own — distribution/mime/org.doru.doru.xml is copied in
+  # via flatpak.files below. `.ged` uses the type that ships in
+  # shared-mime-info (text/vnd.familysearch.gedcom); `.doru` and `.gdz` are
+  # registered by our own MIME XML.
   - ext: doru
     name: Dóru Tree
     role: Editor
+    mimeType: application/x-doru
   - ext: ged
     name: GEDCOM file
     role: Viewer
+    mimeType: text/vnd.familysearch.gedcom
   - ext: gdz
     name: GEDZIP archive
     role: Viewer
+    mimeType: application/x-gedzip
 # The doru:// URL scheme: generates CFBundleURLTypes in the macOS Info.plist
 # and the x-scheme-handler MimeType in the Linux desktop entry. Keep in sync
 # with `app.setAsDefaultProtocolClient('doru', …)` in src/main/index.ts.
@@ -112,3 +121,7 @@ flatpak:
   files:
     - - ../../distribution/metadata/org.doru.doru.metainfo.xml
       - share/metainfo/org.doru.doru.metainfo.xml
+    # Flatpak exports share/mime/packages on install, so the .doru/.gdz
+    # types become visible to the host's file managers.
+    - - ../../distribution/mime/org.doru.doru.xml
+      - share/mime/packages/org.doru.doru.xml
