@@ -317,6 +317,17 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     for (const value of detail.www ?? detail.address?.www ?? []) {
       w.line(level, 'WWW', { value });
     }
+  } else if (address === undefined) {
+    // 5.5.1 spells the contacts inside the ADDRESS_STRUCTURE; with no
+    // address block the Family Historian spellings `_EMAIL`/`_WEB`
+    // carry the fact-level e-mail and web address (the vendor
+    // convention the parser reads into EventDetail.email/www).
+    for (const value of detail.email ?? []) {
+      w.line(level, '_EMAIL', { value });
+    }
+    for (const value of detail.www ?? []) {
+      w.line(level, '_WEB', { value });
+    }
   }
   if (detail.agency !== undefined) {
     w.line(level, 'AGNC', { value: detail.agency });
@@ -415,8 +426,36 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // BKW6+: the event number (see EventDetail.eventNumber).
     w.line(level, '_EVN', { value: detail.eventNumber });
   }
+  if (version === '5.5.1') {
+    // The USM6 event marks; 7.0 cannot spell the non-underscore tags.
+    if (detail.posthumous !== undefined) {
+      w.line(level, 'POTM', { value: detail.posthumous ? '1' : '0' });
+    }
+    if (detail.furtherResearch !== undefined) {
+      w.line(level, 'SRCH', { value: detail.furtherResearch });
+    }
+    if (detail.notary !== undefined) {
+      w.line(level, 'NOTRY', { value: detail.notary });
+    }
+  }
+  if (detail.factFlags !== undefined && detail.factFlags.length > 0) {
+    // FH: the fact flags (see EventDetail.factFlags), written as the
+    // `_FLGS` block with the canonical flag names in both versions.
+    w.line(level, '_FLGS');
+    for (const flag of detail.factFlags) {
+      w.line(level + 1, `__${flag}`, { value: FACT_FLAG_NAMES[flag] });
+    }
+  }
   emitExtensions(w, version, level, detail);
 }
+
+/** The canonical Family Historian fact-flag names (see FactFlag). */
+const FACT_FLAG_NAMES: Readonly<Record<'PRIVATE' | 'PREFERRED' | 'TENTATIVE' | 'REJECTED', string>> = {
+  PRIVATE: 'Private',
+  PREFERRED: 'Preferred',
+  TENTATIVE: 'Tentative',
+  REJECTED: 'Rejected',
+};
 
 export function emitNoteStructure(w: Writer, version: Version, level: number, note: NoteStructure): void {
   if (note.tag === 'SNOTE') {
@@ -538,6 +577,22 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   if (citation.verified === true) {
     w.line(level + 1, '_VERI', { value: 'Y' });
   }
+  if (citation.assessment !== undefined) {
+    // FH7: the citation assessment options (see SourceCitation.assessment).
+    w.line(level + 1, '_QUAY', { value: citation.assessment });
+  }
+  for (const metafield of citation.metafields ?? []) {
+    // FH7: the source-template metafield (see SourceCitation.metafields).
+    w.line(level + 1, '_FIELD', { value: metafield.name });
+    if (metafield.text !== undefined) {
+      w.line(level + 2, 'TEXT', { value: metafield.text });
+    }
+  }
+  if (version === '5.5.1' && citation.foundBy !== undefined) {
+    // USM6: who found the source information (see
+    // SourceCitation.foundBy); 7.0 cannot spell the non-underscore tag.
+    w.line(level + 1, 'RINI', { value: citation.foundBy });
+  }
   if (citation.data !== undefined) {
     w.line(level + 1, 'DATA');
     if (citation.data.date !== undefined) {
@@ -633,7 +688,7 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
   // 5.5.1 has no CROP/TITL under OBJE; dropped.
 }
 
-export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, xref: string | undefined, top = true): void {
+export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, top = true): void {
   if (top && version === '7.0' && !ext.tag.startsWith('_')) {
     // GEDCOM 7.0 §1.5 extension tags must be underscore-prefixed
     // (extTag): a non-underscore vendor extension accepted from 5.x
@@ -644,9 +699,12 @@ export function emitExtension(w: Writer, version: Version, level: number, ext: E
     return;
   }
   const payload = ext.payload === undefined ? undefined : ext.payload;
-  w.line(level, ext.tag, { xref, value: payload });
+  // The cross-reference identifier is written at every level: GEDCOM
+  // 7.0 §1.5 permits an xref on a tagged extension structure wherever
+  // it occurs (see ExtensionStructure.xref).
+  w.line(level, ext.tag, { xref: ext.xref, value: payload });
   for (const child of ext.children) {
-    emitExtension(w, version, level + 1, child, undefined, false);
+    emitExtension(w, version, level + 1, child, false);
   }
 }
 

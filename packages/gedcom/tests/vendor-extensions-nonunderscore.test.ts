@@ -178,7 +178,13 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
   });
 
   test('keeps the undocumented tail generic, preserved verbatim', () => {
+    // SIGN is typed at the INDI position (see IndividualRecord.canSign);
+    // the other tags are typed only in their documented positions, so an
+    // INDI-level occurrence stays generic.
     for (const tag of LEGACY_GENERIC_TAGS) {
+      if (tag === 'SIGN') {
+        continue;
+      }
       const dataset = parseOk551(indi551([`1 ${tag} x`]));
       const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
       const extension = (indi as IndividualRecord).extensions?.find((entry) => entry.tag === tag);

@@ -92,6 +92,39 @@ export interface SourceCitation extends GedcomStructureBase {
    * back as `_VERI` in both versions.
    */
   verified?: boolean;
+  /**
+   * _QUAY {0:1} — the citation assessment options: the Family
+   * Historian 7 assessment of how credible the cited information is
+   * (a hex code such as `0x98`), supplementing the standard QUAY.
+   * Documented in the Family Historian User Group knowledge base,
+   * "GEDCOM Extension List":
+   * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>.
+   * The value is kept verbatim (the vendor documents no value
+   * grammar). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_QUAY` in both versions.
+   */
+  assessment?: Text;
+  /**
+   * _FIELD {0:M} — the source-template metafields of the citation:
+   * the Family Historian 7 template field values (`_FIELD TX-PAGE`
+   * with a `TEXT` child), one per metafield. Documented in the Family
+   * Historian User Group knowledge base, "GEDCOM Extension List":
+   * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>.
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as the `_FIELD` lines in both versions.
+   */
+  metafields?: SourceMetafieldStructure[];
+  /**
+   * RINI {0:1} — the name of the person who found the source
+   * information. Written by Der Stammbaum ≤ V6 (USM6) under the
+   * citation (see the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
+   * "Tabelle 2", "Name der Person, die Info in Quelle gefunden hat":
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on 5.x input and written back as `RINI`
+   * in 5.5.1; dropped on 7.0 output (7.0 cannot spell a non-underscore
+   * extension tag).
+   */
+  foundBy?: Text;
 }
 
 /**
@@ -116,6 +149,22 @@ export interface PageStructure extends GedcomStructureBase {
    * as `_SOUR` in both versions, under the PAGE line they belong to.
    */
   citations?: SourceCitation[];
+}
+
+/**
+ * The Family Historian source-template metafield under a citation
+ * (`_FIELD <name>` with a `TEXT <value>` child): one named field of
+ * the source template, filled in for this citation. Documented in the
+ * Family Historian User Group knowledge base, "GEDCOM Extension List":
+ * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>. See
+ * SourceCitation.metafields.
+ */
+export interface SourceMetafieldStructure extends GedcomStructureBase {
+  tag: '_FIELD';
+  /** The metafield name, {1:1} Text — the `_FIELD` payload (e.g. `TX-PAGE`). */
+  name: Text;
+  /** TEXT {0:1} — the field value. */
+  text?: Text;
 }
 
 /**

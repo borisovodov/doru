@@ -63,6 +63,9 @@ import {
 import {
   parseMultimediaLink,
   parseSourceCitation,
+  parseUsmCode,
+  parseUsmFlag,
+  parseVendorFlag,
 } from './sources-media';
 import {
   parseAssociation,
@@ -76,6 +79,9 @@ import {
   parseUniqueIdentifier,
   parseAge,
 } from './substructures';
+import {
+  USM_UNION_KINDS,
+} from './events';
 import {
   parseEnum,
   parseListEnum,
@@ -290,6 +296,11 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
     };
+    handlers['UTYP'] = (child) => {
+      // USM6: the kind of relationship the partners are in (see
+      // FamilyRecord.unionKind).
+      rec.unionKind = parseUsmCode(child, 'UTYP', USM_UNION_KINDS);
+    };
     applyLegacyFamilyTags(rec, handlers, ctx);
   }
   dispatch(
@@ -297,7 +308,9 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['RESN', 'HUSB', 'WIFE', 'CHAN', 'CREA', '_MSTAT', '_MEND'] : ['RESN', 'NCHI', 'HUSB', 'WIFE', 'CHAN', 'RIN', '_MSTAT', '_MEND'],
+    ctx.version === '7.0'
+      ? ['RESN', 'HUSB', 'WIFE', 'CHAN', 'CREA', '_MSTAT', '_MEND']
+      : ['RESN', 'NCHI', 'HUSB', 'WIFE', 'CHAN', 'RIN', '_MSTAT', '_MEND', 'UTYP'],
   );
   return rec;
 }
@@ -614,6 +627,19 @@ function setMark(rec: IndividualRecord, index: number, node: RawNode): void {
   marks[index] = reqText(node);
 }
 
+/** Parses the FH record flags: a `_FLGS` block whose children each
+ *  spell one flag as the generated `__` tag plus the flag name as the
+ *  payload (see IndividualRecord.recordFlags). */
+function parseFhRecordFlags(rec: IndividualRecord, node: RawNode): void {
+  noPayload(node);
+  for (const flag of node.children) {
+    if (flag.children.length > 0) {
+      fail('structure.unknown-tag', `The tag ${(flag.children[0] as RawNode).tag} is not allowed under ${flag.tag}`, (flag.children[0] as RawNode).position);
+    }
+    (rec.recordFlags ??= []).push({ tag: flag.tag, name: reqText(flag) });
+  }
+}
+
 export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord {
   noPayload(node);
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
@@ -664,6 +690,18 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // GenPlus: the date the record was created (see
       // IndividualRecord.createdAt).
       rec.createdAt = reqText(child);
+    },
+    _BKM: (child) => {
+      // MFT7: the person is bookmarked (see IndividualRecord.bookmarked).
+      rec.bookmarked = parseVendorFlag(child, '_BKM');
+    },
+    _STP: (child) => {
+      // MFT7: the start person (see IndividualRecord.startPerson).
+      rec.startPerson = parseVendorFlag(child, '_STP');
+    },
+    _FLGS: (child) => {
+      // FH: the record flags (see IndividualRecord.recordFlags).
+      parseFhRecordFlags(rec, child);
     },
     _TODO: (child) => {
       (rec.todos ??= []).push(parseTodoStructure(child, ctx));
@@ -945,6 +983,10 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     handlers["AFN"] = (child) => {
       rec.ancestralFileNumber = reqText(child);
     };
+    handlers['SIGN'] = (child) => {
+      // USM6: the person can sign (see IndividualRecord.canSign).
+      rec.canSign = parseUsmFlag(child, 'SIGN');
+    };
     for (const tag of ['BAPL', 'CONL', 'ENDL', 'SLGC']) {
       handlers[tag] = (child) => {
         (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, tag));
@@ -967,7 +1009,9 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['RESN', 'SEX', 'CHAN', 'CREA'] : ['RESN', 'SEX', 'CHAN', 'RIN', 'RFN', 'AFN'],
+    ctx.version === '7.0'
+      ? ['RESN', 'SEX', 'CHAN', 'CREA', '_BKM', '_STP', '_FLGS']
+      : ['RESN', 'SEX', 'CHAN', 'RIN', 'RFN', 'AFN', '_BKM', '_STP', '_FLGS', 'SIGN'],
   );
   return rec;
 }

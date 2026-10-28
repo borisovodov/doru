@@ -27,6 +27,7 @@ import type {
   SourceCitation,
   SourceCitationData,
   SourceCitationEvent,
+  SourceMetafieldStructure,
   SourceRepositoryCitation,
 } from '../structures';
 import type {
@@ -85,6 +86,25 @@ export function parsePageStructure(node: RawNode, ctx: Ctx): PageStructure {
   return out;
 }
 
+/** Parses an FH source-template metafield under a citation
+ *  (`_FIELD <name>` with a `TEXT <value>` child; see
+ *  SourceMetafieldStructure). */
+function parseSourceMetafield(node: RawNode, ctx: Ctx): SourceMetafieldStructure {
+  const out: SourceMetafieldStructure = { tag: '_FIELD', name: reqText(node) };
+  dispatch(
+    node,
+    out,
+    {
+      TEXT: (child) => {
+        out.text = reqText(child);
+      },
+    },
+    ctx,
+    ['TEXT'],
+  );
+  return out;
+}
+
 export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
   if (ctx.version === '7.0') {
     const out: SourceCitation = { tag: 'SOUR', source: reqPtr(node, ctx) };
@@ -127,6 +147,14 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         },
         '_VERI': (child) => {
           out.verified = parsePrivacyFlag(child, '_VERI');
+        },
+        '_QUAY': (child) => {
+          // FH7: the citation assessment options (see
+          // SourceCitation.assessment).
+          out.assessment = reqText(child);
+        },
+        '_FIELD': (child) => {
+          (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
         },
       },
       ctx,
@@ -172,6 +200,19 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_VERI': (child) => {
           out.verified = parsePrivacyFlag(child, '_VERI');
         },
+        '_QUAY': (child) => {
+          // FH7: the citation assessment options (see
+          // SourceCitation.assessment).
+          out.assessment = reqText(child);
+        },
+        '_FIELD': (child) => {
+          (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
+        },
+        'RINI': (child) => {
+          // USM6: who found the source information (see
+          // SourceCitation.foundBy).
+          out.foundBy = reqText(child);
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -198,6 +239,19 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       },
       NOTE: (child) => {
         (out.notes ??= []).push(parseNoteStructure(child, ctx));
+      },
+      '_QUAY': (child) => {
+        // FH7: the citation assessment options (see
+        // SourceCitation.assessment).
+        out.assessment = reqText(child);
+      },
+      '_FIELD': (child) => {
+        (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
+      },
+      'RINI': (child) => {
+        // USM6: who found the source information (see
+        // SourceCitation.foundBy).
+        out.foundBy = reqText(child);
       },
     },
     ctx,
@@ -454,6 +508,57 @@ export function parseVendorFlag(node: RawNode, tag: string): boolean {
     return false;
   }
   fail('enum.invalid-value', `The ${tag} value must be Y, YES, N or NO, not "${text}"`, node.position);
+}
+
+/**
+ * Parses a USM6 (Der Stammbaum ≤ V6) yes/no flag (`SIGN`, `POTM`): the
+ * wire value is undocumented (the GenWiki "GEDCOM/_Nutzerdef-Tag"
+ * article's "Tabelle 2" describes the value set only as "[ja/nein]"),
+ * so an absent value or the usual positive spellings (`Y`, `YES`, `J`,
+ * `JA`, `1`) mark the flag set and the negative ones (`N`, `NO`,
+ * `NEIN`, `0`) clear it.
+ */
+export function parseUsmFlag(node: RawNode, tag: string): boolean {
+  if (node.value.kind === 'absent') {
+    return true;
+  }
+  const text = reqText(node).toUpperCase();
+  if (text === 'Y' || text === 'YES' || text === 'J' || text === 'JA' || text === '1') {
+    return true;
+  }
+  if (text === 'N' || text === 'NO' || text === 'NEIN' || text === '0') {
+    return false;
+  }
+  fail('enum.invalid-value', `The ${tag} value must be a yes/no flag, not "${text}"`, node.position);
+}
+
+/**
+ * Parses the USM6 `SURE` certainty marker under an INDI or FAM NCHI:
+ * `1` marks the given child count certain, `0` clears the mark (the
+ * GenWiki example is "SURE 1").
+ */
+export function parseSureFlag(node: RawNode): boolean {
+  const text = reqText(node);
+  if (text === '1') {
+    return true;
+  }
+  if (text === '0') {
+    return false;
+  }
+  fail('enum.invalid-value', `The SURE value must be 1 or 0, not "${text}"`, node.position);
+}
+
+/**
+ * Parses one of the USM6 digit codes (BTYP, MTYP, UTYP): the accepted
+ * digits are the documented value set of the tag, and the returned
+ * literal is one of them (the meanings live in the model types).
+ */
+export function parseUsmCode<T extends string>(node: RawNode, tag: string, allowed: readonly T[]): T {
+  const text = reqText(node);
+  if (!allowed.includes(text as T)) {
+    fail('enum.invalid-value', `The ${tag} value must be one of ${allowed.join(', ')}, not "${text}"`, node.position);
+  }
+  return text as T;
 }
 
 export function parseCrop(node: RawNode, ctx: Ctx): CropStructure {

@@ -106,6 +106,7 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   detail?: IndividualEventDetail;
   familyChild?: string;
   adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } };
+  birthType?: string;
   extensions?: ExtensionStructure[];
 }): void {
   if (event.tag === 'EVEN') {
@@ -133,6 +134,11 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   }
   if ((event.tag === 'BIRT' || event.tag === 'CHR') && event.familyChild !== undefined) {
     ptr(w, version, 2, 'FAMC', event.familyChild);
+  }
+  if (version === '5.5.1' && event.tag === 'BIRT' && event.birthType !== undefined) {
+    // USM6: the birth type (see BirthEvent.birthType); 7.0 cannot spell
+    // the non-underscore tag.
+    w.line(2, 'BTYP', { value: event.birthType });
   }
   emitIndividualDetail(w, version, 2, event.detail, event.type);
   emitExtensions(w, version, 2, event);

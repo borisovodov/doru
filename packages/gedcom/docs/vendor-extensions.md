@@ -43,6 +43,13 @@ results and secondary sources.
     <https://github.com/FamilySearch/GEDCOM-registries>
   - Registry manifest of registered vendor extensions:
     <https://github.com/FamilySearch/GEDCOM-registries/blob/main/manifest/extension/manifest-extensions-en-US.tsv>
+  - Cross-reference identifiers on extension structures (GEDCOM 7.0
+    §1.5: "A tagged extension structure … may also have a
+    cross-reference identifier") are first-class: `ExtensionStructure`
+    carries the `xref`, the line parser accepts one on any
+    underscore-prefixed tag at any depth (records and substructures
+    alike), it registers as a pointer target, and the serializers write
+    it back at its level.
   - Official test files exercising every extension form:
     <https://gedcom.io/testfiles/gedcom70/extensions.ged> and
     <https://gedcom.io/testfiles/gedcom70/extension-record.ged>.
@@ -495,6 +502,32 @@ its JSDoc.
 | `_TODO` under INDI/FAM | GenoPro, RootsMagic, Ahnenblatt, webtrees, GDO, FO7, Legacy, BKW | To-do structure with `DESC`/`PRTY`/`STAT`/`DATE`/`NOTE` (the Legacy level-0 `_TODO` record is the separate `TodoRecord`) | `IndividualRecord.todos` / `FamilyRecord.todos` (written back in both versions) |
 | `_EVENT_DEFN` record | Legacy, PAF5 | The Event Definition record: the defined event tag (payload, standard-tag child, or TYPE child), the `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, the `_SEN1`–`_SEN8` sentences and the PAF5 sentence set (`_SENM`/`_SENF`/`_SENU` + Date-Only/Place-Only/Date-and-Place variants) | `EventDefinitionRecord` (written back in both versions; the event tag is written as the record payload) |
 | `SCHEMA` / `_SCHEMA` | FTM | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA) | `Header.schema53` (written back in 5.5.1 as `SCHEMA`; dropped on 7.0) |
+| `_TAG` / `_TAG2`–`_TAG4` under SOUR | Legacy | The report inclusion flags of a source citation — the citation detail, the citation itself, the detail text, the detail notes (the vendor's help documents the value spellings `_TAG NO`, `_TAG2 NO`, `_TAG3 YES`, `_TAG4 YES`) | `SourceRecord.citationDetailIncluded` / `citationIncluded` / `citationDetailTextIncluded` / `citationDetailNotesIncluded` (written back as `_TAG YES`/`_TAG NO` … in both versions; the value is required — an absent value under SOUR is ambiguous, see chapter 7) |
+| `_TYPE` under SOUR | Family Historian | The source record type (Census, Birth Certificate, …) | `SourceRecord.sourceType` (written back in both versions; under OBJE the same tag is the media kind) |
+| `_MASTER` under SOUR | Ancestral Quest | The source is to appear in the Master listing | `SourceRecord.masterListing` (written back as `_MASTER Y` in both versions) |
+| `_QUAL` with `_SOUR`/`_INFO`/`_EVID` under SOUR | MFT7 | The quality of the source / of the information in it / of the evidence | `SourceRecord.quality` (written back as the `_QUAL` block in both versions) |
+| `_QUAY` under citations | Family Historian 7 | The citation assessment options (a hex code such as `0x98`), supplementing the standard QUAY | `SourceCitation.assessment` (written back in both versions) |
+| `_FIELD` + `TEXT` under citations | Family Historian 7 | Source-template metafield values (`_FIELD TX-PAGE` + `TEXT Page 321`) | `SourceCitation.metafields` (written back in both versions) |
+| `_FLGS` + `__TAG` under INDI | Family Historian | Record flags: one `__` child per flag, the tag generated from the flag name, the payload the full name | `IndividualRecord.recordFlags` (written back as the `_FLGS` block in both versions) |
+| `_FLGS` + `__PRIVATE`/… under facts | Family Historian 7 | Fact flags: only PRIVATE, PREFERRED, TENTATIVE and REJECTED | `EventDetail.factFlags` (written back as the `_FLGS` block with the canonical names in both versions) |
+| `_SHAN` under facts | Family Historian | A fact witness given by name only (the `_SHAR` pointer's name-only sibling) | `EventDetail.witnesses` (written back as `_WITN`) |
+| `_EMAIL` / `_WEB` under facts, REPO and SUBM | Family Historian (≤ V6.2) | The fact-level and record-level e-mail / web address — the vendor spelling of the standard EMAIL/WWW slots | `EventDetail.email`/`www`, `RepositoryRecord.email`/`www`, `SubmitterRecord.email`/`www` (standard-first; on 5.5.1 output an event detail with no address block writes `_EMAIL`/`_WEB` back) |
+| `_USED` under NAME | Family Historian | The given name used (`2 _USED Tony` under `NAME Anthony Edward /Munro/`) | `PersonalNameStructure.givenNameUsed` (written back in both versions) |
+| `_HUSB` / `_WIFE` under INDI.FAMC | Ancestral Quest | The child's status within the family on the father's / mother's side | `ChildFamilyLink.fatherChildStatus` / `motherChildStatus` (written back in both versions) |
+| `_BKM` / `_STP` under INDI | MFT7 | The person is bookmarked / is the start person | `IndividualRecord.bookmarked` / `startPerson` (written back as `_BKM Y`/`_STP Y` in both versions) |
+| `SIGN` under INDI | USM6 | The person can sign [yes/no] | `IndividualRecord.canSign` (the wire value is undocumented; 5.5.1 writes `SIGN 1`/`SIGN 0`, 7.0 drops the tag) |
+| `BTYP` under BIRT | USM6 | Birth type: 1=single, 2=twin, 3=multiple, 4=died at birth | `BirthEvent.birthType` (5.5.1 writes `BTYP`; dropped on 7.0) |
+| `AGED` under BURI | USM6 | The age at death, a plain number of years (`AGED 80`) | the burial detail's standard `AGE` (standard-first: written back as `AGE`) |
+| `MTYP` under INDI.FAMC | USM6 | Parent–child relation kind: 1=marital, 2=non-marital, 3/4=adoption without/with incorporation, 5=unknown, 6=uncertain | `ChildFamilyLink.parentalRelationKind` (5.5.1 writes `MTYP`; dropped on 7.0) |
+| `UTYP` under FAM | USM6 | Family relationship kind: 1=married, 2=married+separated, 3=married+divorced, 4=annulled, 5=non-marital | `FamilyRecord.unionKind` (5.5.1 writes `UTYP`; dropped on 7.0) |
+| `SURE` under NCHI | USM6 | The given child count is certain (`SURE 1`) | `FamilyChildCountAttribute.childCountCertain` / `IndividualChildCountAttribute.childCountCertain` (5.5.1 writes `SURE 1`/`SURE 0`; dropped on 7.0) |
+| `POTM` under events | USM6 | The event occurred post mortem | `EventDetail.posthumous` (5.5.1 writes `POTM 1`/`POTM 0`; dropped on 7.0) |
+| `SRCH` under events | USM6 | Where to research the event further | `EventDetail.furtherResearch` (5.5.1 writes `SRCH`; dropped on 7.0) |
+| `NOTRY` under events | USM6 | The notary of the event (marriage contract, will) | `EventDetail.notary` (5.5.1 writes `NOTRY`; dropped on 7.0) |
+| `RINI` under citations | USM6 | Who found the source information | `SourceCitation.foundBy` (5.5.1 writes `RINI`; dropped on 7.0) |
+| `UGNM` under NAME | USM6 | The call name (Rufname) | `PersonalNameStructure.callName` (the same slot `_RUFNAME` carries; written back as `_RUFNAME`) |
+| `NAME_` under NAME | USM6 | Surname variants | `PersonalNameStructure.surnameVariants` (5.5.1 writes `NAME_`; dropped on 7.0) |
+| `SECG` under NAME | MFT7 | The second and further given names | `PersonalNameStructure.furtherGivenNames` (5.5.1 writes `SECG`; dropped on 7.0) |
 
 **Brother's Keeper family** (BKW6, Legacy cat.): name variants
 (`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
@@ -536,13 +569,14 @@ addressee's name); `_OVER` under events → `EventDetail.sentence`
 (see chapter 6, `EventDefinitionRecord`) — the `_SEN1`–`_SEN8`/
 `_SENM`/`_SENF`/`_SENU` sentence definitions, the
 `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE`
-definition flags and the PAF5 sentence set. Still deferred: the
-`_TAG`/`_TAG2`–`_TAG4` report flags under SOUR (`_TAG NO`, `_TAG2 NO`,
-`_TAG3 YES`, `_TAG4 YES` — exclude the citation detail / the citation
-itself / include the detail text / the detail notes) and the
-address/place "tagged" marking of the same tags — the same tag names
-mean different things per position, and only the SOUR-position
-meaning is documented.
+definition flags and the PAF5 sentence set. The SOUR-position report
+flags `_TAG`/`_TAG2`–`_TAG4` (`_TAG NO`, `_TAG2 NO`, `_TAG3 YES`,
+`_TAG4 YES` — exclude the citation detail / the citation itself /
+include the detail text / the detail notes) are typed as
+`SourceRecord.citationDetailIncluded` and siblings (chapter 6). Still
+deferred: the address/place "tagged" marking of the same tags — the
+same tag names mean different things per position, and only the
+SOUR-position meaning is documented.
 Decision on `_CONF_FLAG`: it marks the event *type* as
 confidential in the vendor's configuration (and the mechanism that links
 a definition to its event type is undocumented — the parser accepts the
@@ -610,14 +644,18 @@ print styles, address groupings and sentence overrides are typed
 print-style flags, `_LIST1`–`_LIST6` → `AddressStructure` list
 memberships, `_SORT` → `AddressStructure.sortName`, `_OVER` →
 `EventDetail.sentence`. The `_EVENT_DEFN` record is typed (chapter 6,
-`EventDefinitionRecord`). Still deferred: the `_TAG`/`_TAG2`–`_TAG4`
-report flags under SOUR and the address/place "tagged" marking of the
-same tags (chapter 6). Decision on `_CONF_FLAG`: it marks the event
-*type* as confidential in the vendor's configuration (and the mechanism
-that links a definition to its event type is undocumented — the parser
-accepts the event tag in every documented form: the record payload, a
-standard-tag child, or a TYPE child), so it is not projected onto
-individual events; a UI may interpret the definition itself.
+`EventDefinitionRecord`). The SOUR-position report flags
+`_TAG`/`_TAG2`–`_TAG4` are typed too (chapter 6:
+`SourceRecord.citationDetailIncluded` and siblings). Still deferred:
+the address/place "tagged" marking of the same tags — the vendor's
+help documents the tag names there but not a value set or a wire
+shape, so only the SOUR-position meaning is typed. Decision on
+`_CONF_FLAG`: it marks the event *type* as confidential in the
+vendor's configuration (and the mechanism that links a definition to
+its event type is undocumented — the parser accepts the event tag in
+every documented form: the record payload, a standard-tag child, or a
+TYPE child), so it is not projected onto individual events; a UI may
+interpret the definition itself.
 
 **The Legacy place preposition** (`_PREP` under `_PLAC_DEFN`) is typed
 (chapter 6): `PlaceRecord.preposition`, written back in both versions
@@ -642,14 +680,16 @@ unknown, so typing it would invent a structure. Deliberately generic
 `REAS`/`RESP`/`RPLY` under INDI are already typed as `FACT` + TYPE
 (chapter 8), which covers the common spelling.
 
-**Ancestral Quest family-child status and source tags** (deferred):
-`_HUSB`/`_WIFE` under INDI.FAMC ("child status within a family", per
-the GenWiki table) — the meaning is known but no source documents the
-value set or the wire shape; `_MASTER` under SOUR ("the source is to
-appear in the Master listing", per the Legacy catalog) — the catalog
-gives no position beyond "source" and no value convention; `_VERB`
-(AQ11) — both catalogs list it with a blank description. Deliberately
-generic; typed only if a source or the corpus shows their actual form.
+**Ancestral Quest family-child status and source tags**: `_HUSB`/`_WIFE`
+under INDI.FAMC and `_MASTER` under SOUR are typed (chapter 6:
+`ChildFamilyLink.fatherChildStatus`/`motherChildStatus`,
+`SourceRecord.masterListing`) — the positions are documented (the
+GenWiki table names INDI.FAMC; the Legacy catalog names the SOUR
+record) and the values are free text or a presence flag, so no wire
+shape had to be invented. Still deferred: `_VERB` (AQ11) — both
+catalogs list it with a blank description, so there is no meaning to
+type. Deliberately generic; typed only if a source or the corpus
+shows its actual form.
 
 **Family Tree Maker / Family Tree Builder media tags** (deferred):
 `_PHOTO` (FTM) and `_PHOTO_RIN` (FTB). None of our sources documents
@@ -663,10 +703,22 @@ model; they stay generic extensions (preserved verbatim in both
 versions) until the corpus validation runs (README "Future work")
 show their actual structure.
 
-**Family Historian**: `_FLGS` fact flags and the FH7 source-template
-extensions — the wire format is not documented in our sources (the
-FHUG Knowledge Base blocks scrapers); typing them would invent a model.
-Needs the corpus.
+**Family Historian**: the genealogically relevant tags are typed from
+the FHUG Knowledge Base "GEDCOM Extension List"
+(<https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>,
+which blocks scrapers but is readable via the Wayback Machine):
+`_FLGS` record flags and fact flags, `_TYPE` under SOUR, `_QUAY` and
+`_FIELD` under citations, `_SHAN` witness names, `_USED` under NAME,
+and the `_EMAIL`/`_WEB` contact spellings (chapter 6). What stays
+generic is the presentation/UI state the page itself says other
+programs "typically ignore": the header state (`_ROOT`, `_VAR`,
+`_UID`, `_PCIT`, `_USED`, the `_LIST` named lists), the media display
+attributes (`_ASID`/`_SEQ`/`_AREA`/`_EXCL`/`_CAPT`/`_NOTA`/`_KEYS`/
+`_FILE`), the FH7 rich-text block (`_TEXT`/`_FMT`/`_LINK_*`/`_LKID`),
+`_PEDI` (an additional-relationship sibling of the standard PEDI whose
+subsidiary field data is not documented), and the `_RNOT`/`_SRCT`
+record types (their internal structure is not documented; a `_SRCT`
+record's `_FIELD` metafields round-trip verbatim as extensions).
 
 **RootsMagic report fields** (`_SUBQ` under source citations and
 `_SENT`/`_PPFX` under event details) are typed (chapter 6); the
@@ -696,10 +748,14 @@ The GenWiki "GEDCOM/_Nutzerdef-Tag" article's second table
 <http://www.gencom.org.nz/GEDCOM_tags.html>) adds the non-underscore
 deviations the Legacy catalog does not list: the tags of Der Stammbaum
 ≤ V6 (USM6), Mac Family Tree 7/8 (MFT7/MFT8) and the RootsMagic
-`FSFTID` spelling. 22 of them stay generic (`AGED`, `BTYP`, `DEED`,
-`FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`, `MTYP`, `NAME_`, `NOTRY`,
-`POTM`, `PRIV`, `RECT`, `RINI`, `SECG`, `SIGN`, `SRCH`, `SURE`,
-`UGNM`, `UTYP`, and the non-underscore `CREA` spelling of MFT7);
+`FSFTID` spelling. 13 of them are now typed at their documented
+positions (chapter 6): `SIGN` under INDI, `BTYP` under BIRT, `AGED`
+under BURI (into the standard `AGE`), `MTYP` under INDI.FAMC, `UTYP`
+under FAM, `SURE` under NCHI, `POTM`/`SRCH`/`NOTRY` under event
+details, `RINI` under citations, and `UGNM`/`NAME_`/`SECG` under NAME
+— anywhere else they stay generic, so nothing is lost. Nine stay
+generic everywhere (`DEED`, `FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`,
+`PRIV`, `RECT`, and the non-underscore `CREA` spelling of MFT7);
 `FSFTID` is typed — the same normalization as the underscore `_FSFTID`.
 The full set is 154 tags.
 
@@ -756,11 +812,17 @@ tables are the inventory, so the list is not repeated here):
   standard spelling of the target version (the vendor tag itself is not
   written back), and both versions can spell all of them — nothing is
   lost in either direction.
-- **The deliberately generic tail** (32 tags, accepted on 5.x input
-  where the standard grammar has no slot for them, preserved verbatim
-  on 5.5.1 export, dropped on 7.0 export — 7.0 §1.5 can only spell
-  underscore-prefixed extension tags). Every tag below stays generic
-  for a recorded reason; none of them is typed by accident:
+- **The deliberately generic tail** (32 tags in
+  `LEGACY_GENERIC_TAGS`, accepted on 5.x input wherever no typed rule
+  applies, preserved verbatim on 5.5.1 export, dropped on 7.0 export —
+  7.0 §1.5 can only spell underscore-prefixed extension tags). Several
+  of them are typed at their documented positions (SIGN under INDI,
+  BTYP under BIRT, MTYP under INDI.FAMC, UTYP under FAM, SURE under
+  NCHI, POTM/SRCH/NOTRY under event details, RINI under citations,
+  UGNM/NAME_/SECG under NAME, AGED under BURI — chapter 6) and stay in
+  the set only as the generic fallback for every other position. Every
+  tag below stays generic for a recorded reason; none of them is typed
+  by accident:
 
   - `COMP`, `DATV`, `DETS`, `EARL`, `HISTB`, `PRTY` — the catalog
     marks the meanings "???"; there is nothing to type.
@@ -790,19 +852,19 @@ tables are the inventory, so the list is not repeated here):
     chapter 7 (the same reasoning as for the deferred underscore
     tags).
   - The GenWiki "Tabelle 2" deviations of USM6 and Mac Family Tree —
-    `AGED`, `BTYP`, `DEED`, `FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`,
-    `MTYP`, `NAME_`, `NOTRY`, `POTM`, `PRIV`, `RECT`, `RINI`, `SECG`,
-    `SIGN`, `SRCH`, `SURE`, `UGNM`, `UTYP`, and the non-underscore
-    `CREA`. The GenWiki table documents each meaning ("Age at death",
-    "birth type", "the person is marked private", …) but no wire
+    `DEED`, `FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`, `PRIV`, `RECT`, and
+    the non-underscore `CREA`. The GenWiki table documents each meaning
+    ("document info", "the person is marked private", …) but no wire
     format beyond the tag itself — no position grammar, value set, or
     substructure rules — so typing any of them would invent a model.
-    (The one exception, the RootsMagic `FSFTID`, is typed: it is the
-    documented twin of `_FSFTID`.) They stay generic extensions,
-    preserved verbatim on 5.5.1 export (this is what fixed the import
-    of real MacFamilyTree files, which previously failed with
-    `structure.unknown-tag`); on 7.0 export they are dropped — 7.0
-    cannot spell a non-underscore extension tag.
+    (The other Tabelle 2 tags with a documented position and value set
+    are typed: chapter 6. `FPRF`/`MPRF` are the USM settings blocks
+    under HEAD, which round-trip verbatim as header extensions.) They
+    stay generic extensions, preserved verbatim on 5.5.1 export (this
+    is what fixed the import of real MacFamilyTree files, which
+    previously failed with `structure.unknown-tag`); on 7.0 export
+    they are dropped — 7.0 cannot spell a non-underscore extension
+    tag.
 
 Where a tag's position *is* standard, the standard structure always
 wins: `NATI` under INDI stays a standard attribute, `WIFE` under FAM

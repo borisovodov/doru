@@ -103,6 +103,19 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   if (name.callName !== undefined) {
     w.line(level + 1, '_RUFNAME', { value: name.callName });
   }
+  if (name.givenNameUsed !== undefined) {
+    // FH: the given name used (see PersonalNameStructure.givenNameUsed).
+    w.line(level + 1, '_USED', { value: name.givenNameUsed });
+  }
+  if (version === '5.5.1') {
+    // The USM6/MFT7 name extras; 7.0 cannot spell the non-underscore tags.
+    if (name.surnameVariants !== undefined) {
+      w.line(level + 1, 'NAME_', { value: name.surnameVariants });
+    }
+    if (name.furtherGivenNames !== undefined) {
+      w.line(level + 1, 'SECG', { value: name.furtherGivenNames });
+    }
+  }
   for (const link of name.censusLinks ?? []) {
     ptr(w, version, level + 1, '_CENR', link);
   }

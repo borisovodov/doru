@@ -68,10 +68,30 @@ import {
 // Document
 // ---------------------------------------------------------------------------
 
+/** Collects every cross-reference identifier in the raw tree: the
+ *  top-level records plus any tagged extension structure at a deeper
+ *  level (GEDCOM 7.0 §1.5 permits an xref on an extension structure at
+ *  any depth, and a pointer may address it). */
+function collectXrefs(nodes: RawNode[]): Set<string> {
+  const xrefs = new Set<string>();
+  const walk = (node: RawNode): void => {
+    if (node.xref !== undefined) {
+      xrefs.add(node.xref);
+    }
+    for (const child of node.children) {
+      walk(child);
+    }
+  };
+  for (const node of nodes) {
+    walk(node);
+  }
+  return xrefs;
+}
+
 export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion): GedcomDataset {
   const ctx: Ctx = {
     version,
-    xrefs: new Set(raw.nodes.map((node) => node.xref).filter((xref): xref is string => xref !== undefined)),
+    xrefs: collectXrefs(raw.nodes),
     synthetic: [],
     syntheticIndex: 0,
     schemaTags: new Map(),

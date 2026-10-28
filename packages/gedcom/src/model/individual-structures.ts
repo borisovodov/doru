@@ -10,6 +10,7 @@ import type {
 
 import type { EventAssertion } from './family-structures';
 import type { FamilyRecord } from './records';
+import type { UsmBirthType } from './records';
 import type { GedcomStructureBase } from './extensions';
 import type { IndividualEventDetail } from './common';
 
@@ -60,7 +61,20 @@ export interface IdentificationNumberAttribute extends GedcomStructureBase {
 export interface NationalityAttribute extends IndividualAttributeBase<'NATI', Text> {}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:INDI-NCHI: the number of children this person is known to be the parent of. GEDCOM 7.0 §3.3.2.1. */
-export interface IndividualChildCountAttribute extends IndividualAttributeBase<'NCHI', Integer> {}
+export interface IndividualChildCountAttribute extends IndividualAttributeBase<'NCHI', Integer> {
+  /**
+   * SURE {0:1} — the given child count is certain. Written by Der
+   * Stammbaum ≤ V6 (USM6) under the INDI or FAM NCHI with the value
+   * `1` (the documented example: "SURE 1 in INDI/FAM.NCHI - angeg.
+   * Anz Kinder gesichert", the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * article's "Tabelle 2":
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on 5.x input (`1` marks the flag set,
+   * `0` clears it) and written back as `SURE 1`/`SURE 0` under the
+   * NCHI line in 5.5.1; dropped on 7.0 output.
+   */
+  childCountCertain?: boolean;
+}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:NMR: the number of times this person has participated in a family as a spouse or parent. GEDCOM 7.0 §3.3.2.1. */
 export interface MarriageCountAttribute extends IndividualAttributeBase<'NMR', Integer> {}
@@ -199,6 +213,16 @@ export interface BasMitzvahEvent extends IndividualEventBase<'BASM'> {}
 export interface BirthEvent extends IndividualEventBase<'BIRT'> {
   /** FAMC {0:1}, g7:FAMC — the family with which this event is associated. */
   familyChild?: Pointer<FamilyRecord>;
+  /**
+   * BTYP {0:1} — the birth type: 1 = single birth, 2 = twin, 3 =
+   * multiple birth, 4 = the child died at birth. Written by Der
+   * Stammbaum ≤ V6 (USM6) under BIRT; the values are documented in the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2" (see
+   * UsmBirthType). Not part of any GEDCOM version. Recognized on 5.x
+   * input and written back as `BTYP` in 5.5.1; dropped on 7.0 output
+   * (7.0 cannot spell a non-underscore extension tag).
+   */
+  birthType?: UsmBirthType;
 }
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_EVENT_STRUCTURE — g7:BLES: blessing. GEDCOM 7.0 §3.3.1.1. */

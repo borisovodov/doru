@@ -44,11 +44,45 @@ export interface PersonalNameStructure extends GedcomStructureBase {
   /**
    * `_RUFNAME` {0:1} — the call name (Rufname): the given name that
    * official German documents mark as the one in use (GEDCOM-L
-   * agreement "NAME Ruf.B2"). Not part of any GEDCOM version.
+   * agreement "NAME Ruf.B2"). The USM6 spelling `UGNM` (Der Stammbaum
+   * ≤ V6, "Tabelle 2" of the GenWiki "GEDCOM/_Nutzerdef-Tag" article:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) normalizes into
+   * this slot on 5.x input. Not part of any GEDCOM version.
    * Recognized on input and written back as `_RUFNAME` in both
    * versions.
    */
   callName?: Text;
+  /**
+   * `_USED` {0:1} — the given name used: which of the person's given
+   * names they actually use (a "Tony" out of "Anthony Edward"). The
+   * Family Historian convention under the NAME tag, documented in the
+   * Family Historian User Group knowledge base, "GEDCOM Extension
+   * List": <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>.
+   * Not part of any GEDCOM version (under the header the same tag is
+   * FH's used-record-ids list, which stays generic). Recognized on
+   * input and written back as `_USED` in both versions.
+   */
+  givenNameUsed?: Text;
+  /**
+   * NAME_ {0:1} — the variants of the family name (surname variants).
+   * Written by Der Stammbaum ≤ V6 (USM6) under the NAME tag (see the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2",
+   * "Varianten des Familiennamens"). Not part of any GEDCOM version.
+   * Recognized on 5.x input and written back as `NAME_` in 5.5.1;
+   * dropped on 7.0 output.
+   */
+  surnameVariants?: Text;
+  /**
+   * SECG {0:1} — the second and further given names: with several
+   * given names, all of them from the second onward, kept apart from
+   * the first (the vendor's "SECond Given name"). Written by Mac
+   * Family Tree 7 as a subtag of NAME (see the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2": "bei mehreren
+   * Vornamen alle ab dem 2. als UnterTag von NAME"). Not part of any
+   * GEDCOM version. Recognized on 5.x input and written back as `SECG`
+   * in 5.5.1; dropped on 7.0 output.
+   */
+  furtherGivenNames?: Text;
   /**
    * `_CENR @xref@` {0:M} — a pointer to the shared MagiKey census
    * record (MagiKey_CENR.yaml in the FamilySearch GEDCOM registry:

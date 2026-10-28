@@ -85,34 +85,36 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     '2 SURE 1',
     '1 NAME John /Doe/',
     '2 SECG Johann',
-    '1 NAME_ Variant',
+    '2 NAME_ Variant',
     '1 FSFTID KWJ1-2B3',
   ];
 
-  test('accepts the tags as generic extensions on 5.5.1 input and round-trips them', () => {
+  test('types the documented tags and keeps the undocumented tail generic', () => {
     const dataset = parseOk551(indi551(MFT_SAMPLE));
     const person = indi(dataset);
+    // The documented USM6/MFT tags are typed…
+    const birth = person.events?.find((entry) => entry.tag === 'BIRT');
+    expect(birth?.tag === 'BIRT' ? birth.birthType : undefined).toBe('2');
+    const burial = person.events?.find((entry) => entry.tag === 'BURI');
+    expect(burial?.detail?.age?.payload).toEqual({ years: 80 });
+    const nchi = person.attributes?.find((entry) => entry.tag === 'NCHI');
+    expect(nchi?.tag === 'NCHI' ? nchi.childCountCertain : undefined).toBe(true);
+    const name = person.names?.[0];
+    expect(name?.furtherGivenNames).toBe('Johann');
+    expect(name?.surnameVariants).toBe('Variant');
+    // …and the undocumented tail stays generic, preserved verbatim.
     const extensionTags = (person.extensions ?? []).map((entry) => entry.tag);
     expect(extensionTags).toEqual(
-      expect.arrayContaining(['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT', 'NAME_']),
+      expect.arrayContaining(['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT']),
     );
     // The children under a generic extension survive verbatim too.
     const mrci = person.extensions?.find((entry) => entry.tag === 'MRCI');
     expect(mrci?.children).toEqual([{ tag: 'DATE', payload: '12 JUN 1910', children: [] }]);
-    const birth = person.events?.find((entry) => entry.tag === 'BIRT');
-    expect(birth?.extensions?.map((entry) => entry.tag)).toEqual(['BTYP']);
-    const burial = person.events?.find((entry) => entry.tag === 'BURI');
-    expect(burial?.extensions?.map((entry) => entry.tag)).toEqual(['AGED']);
-    const nchi = person.attributes?.find((entry) => entry.tag === 'NCHI');
-    expect(nchi?.extensions?.map((entry) => entry.tag)).toEqual(['SURE']);
-    // SECG under NAME stays with its position.
-    const name = person.names?.[0];
-    expect(name?.extensions?.map((entry) => entry.tag)).toEqual(['SECG']);
-    // The 5.5.1 round trip preserves everything verbatim.
+    // The 5.5.1 round trip preserves everything.
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 
-  test('the FAM-level USM6 SURE under NCHI is accepted too', () => {
+  test('the FAM-level USM6 SURE under NCHI is typed too', () => {
     const text = [
       ...H551,
       '0 @F1@ FAM',
@@ -125,7 +127,7 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     ].join('\n');
     const dataset = parseOk551(text);
     const fam = dataset.records.find((entry) => entry.tag === 'FAM');
-    expect(fam?.tag === 'FAM' ? fam.attributes?.[0]?.extensions?.map((entry) => entry.tag) : undefined).toEqual(['SURE']);
+    expect(fam?.tag === 'FAM' ? fam.attributes?.[0]?.childCountCertain : undefined).toBe(true);
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 

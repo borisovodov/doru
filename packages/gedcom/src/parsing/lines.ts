@@ -358,8 +358,8 @@ export function parseRawDocument(document: DecodedDocument, version: GedcomVersi
       stack.push(node);
     }
     if (node.xref !== undefined) {
-      if (node.level > 0) {
-        fail('line.xref-on-substructure', 'A cross-reference identifier is only allowed on a record (level 0)', node.position);
+      if (node.level > 0 && !node.tag.startsWith('_')) {
+        fail('line.xref-on-substructure', 'A cross-reference identifier is only allowed on a record or on a tagged extension structure', node.position);
       }
       if (seenXrefs.has(node.xref)) {
         fail('document.duplicate-xref', `Duplicate cross-reference identifier ${node.xref}`, node.position);

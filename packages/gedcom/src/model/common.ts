@@ -32,6 +32,17 @@ import type { PlaceStructure } from './names-places';
 // ---------------------------------------------------------------------------
 
 /**
+ * The Family Historian fact flags (the `_FLGS` block under an event or
+ * attribute; see EventDetail.factFlags): the four flag names the vendor
+ * supports — PRIVATE (the fact is not to be shared), PREFERRED (the
+ * fact is the preferred one of its kind), TENTATIVE (the fact is not
+ * yet certain), REJECTED (the fact is known to be wrong). The source is
+ * the Family Historian User Group knowledge base, "GEDCOM Extension
+ * List": <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>.
+ */
+export type FactFlag = 'PRIVATE' | 'PREFERRED' | 'TENTATIVE' | 'REJECTED';
+
+/**
  * GEDCOM 7.0 §3.2.3 ADDRESS_STRUCTURE — g7:ADDR: a specific building, plot, or
  * location. The payload is the full formatted address as it would appear
  * on a mailing label; if the substructures and the payload disagree, the
@@ -325,11 +336,22 @@ export interface EventDetail extends GedcomStructureBase {
   address?: AddressStructure;
   /** PHON {0:M}, g7:PHON. */
   phone?: Special[];
-  /** EMAIL {0:M}, g7:EMAIL. */
+  /**
+   * EMAIL {0:M}, g7:EMAIL. The Family Historian spelling `_EMAIL` (its
+   * fact-level e-mail, up to V6.2 — see the FHUG "GEDCOM Extension
+   * List": https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
+   * normalizes into this slot; when serializing to 5.5.1 with no
+   * address block to carry it, the value is written back as `_EMAIL`.
+   */
   email?: Special[];
   /** FAX {0:M}, g7:FAX. */
   fax?: Special[];
-  /** WWW {0:M}, g7:WWW. */
+  /**
+   * WWW {0:M}, g7:WWW. The Family Historian spelling `_WEB` (its
+   * fact-level web address, up to V6.2; same source as `email`)
+   * normalizes into this slot and is written back as `_WEB` in the
+   * same situation.
+   */
   www?: Special[];
   /** AGNC {0:1}, g7:AGNC — the entity responsible for the associated context. */
   agency?: Text;
@@ -372,8 +394,11 @@ export interface EventDetail extends GedcomStructureBase {
   /**
    * `_WITN` {0:M} — the witnesses, as free text (names, not pointers):
    * the German GEDCOM-L convention (agreement ASSO A4), usually under
-   * a marriage. Not part of any GEDCOM version. Recognized on input
-   * and written back as `_WITN` in both versions.
+   * a marriage. The Family Historian `_SHAN` ("fact witness role name
+   * only", the FHUG "GEDCOM Extension List":
+   * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
+   * normalizes into this slot too. Not part of any GEDCOM version.
+   * Recognized on input and written back as `_WITN` in both versions.
    */
   witnesses?: Text[];
   /** RESN {0:1}, g7:RESN — List:Enum of g7:enumset-RESN. */
@@ -459,6 +484,58 @@ export interface EventDetail extends GedcomStructureBase {
    * both versions.
    */
   eventNumber?: Text;
+  /**
+   * POTM {0:1} — the event occurred "post mortem": after the subject's
+   * death (a birth posthumously registered, a title granted to a
+   * deceased person, …). Written by Der Stammbaum ≤ V6 (USM6); the
+   * meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * article's "Tabelle 2" ("Abweichungen vom Standard bei der
+   * Verwendung", itself based on gencom.org.nz/GEDCOM_tags.html):
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag. Not part of any
+   * GEDCOM version. Recognized on 5.x input (an absent value, `Y`,
+   * `YES`, `J`/`JA`, or `1` marks the flag set; `N`, `NO`, `NEIN`, or
+   * `0` clears it — the wire value is undocumented, so the usual flag
+   * spellings are accepted) and written back as `POTM 1`/`POTM 0` in
+   * 5.5.1; dropped on 7.0 output (7.0 cannot spell a non-underscore
+   * extension tag).
+   */
+  posthumous?: boolean;
+  /**
+   * SRCH {0:1} — where to research the event further: the name of an
+   * archive, church book, or other place holding further records of
+   * the event. Written by Der Stammbaum ≤ V6 (USM6); the meaning is
+   * documented in the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
+   * "Tabelle 2" ("Ort für weitere Recherchen zum Ereignis"; see
+   * `posthumous` for the URL). Not part of any GEDCOM version.
+   * Recognized on 5.x input and written back as `SRCH` in 5.5.1;
+   * dropped on 7.0 output.
+   */
+  furtherResearch?: Text;
+  /**
+   * NOTRY {0:1} — the name of the notary who recorded the event
+   * (marriage contract, will). Written by Der Stammbaum ≤ V6 (USM6);
+   * the meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * article's "Tabelle 2" ("Name des Notars - Ehevertrag, Testament";
+   * see `posthumous` for the URL). Not part of any GEDCOM version.
+   * Recognized on 5.x input and written back as `NOTRY` in 5.5.1;
+   * dropped on 7.0 output.
+   */
+  notary?: Text;
+  /**
+   * _FLGS {0:1} — the fact flags of the event or attribute: the
+   * Family Historian marks attached to an individual fact. The Family
+   * Historian User Group knowledge base ("GEDCOM Extension List",
+   * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>)
+   * documents the structure: a `_FLGS` block whose children each spell
+   * one flag — a double-underscore tag carrying the flag name as the
+   * payload (`__PRIVATE Private`); only the four flag names PRIVATE,
+   * PREFERRED, TENTATIVE and REJECTED are supported. Not part of any
+   * GEDCOM version. Recognized on input in both versions (an
+   * unrecognized `__` tag under `_FLGS` stays a generic extension of
+   * the detail) and written back as the `_FLGS` block with the
+   * canonical flag names in both versions.
+   */
+  factFlags?: FactFlag[];
 }
 
 /**
