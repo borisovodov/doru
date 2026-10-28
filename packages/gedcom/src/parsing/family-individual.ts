@@ -20,15 +20,18 @@ import type {
   IndividualEventStructure,
   IndividualRecord,
   NameTypeStructure,
+  Note,
 } from '../structures';
 import type {
   Ctx,
 } from './context';
 import {
   dispatch,
+  addExtension,
   noPayload,
   reqPtr,
   reqText,
+  resolvePtr,
 } from './context';
 import {
   SEX_551,
@@ -71,12 +74,18 @@ import {
   parseNoteStructure,
   parseReferenceIdentifier,
   parseUniqueIdentifier,
+  parseAge,
 } from './substructures';
 import {
   parseEnum,
   parseListEnum,
   parsePersonalName,
 } from './types';
+import {
+  LEGACY_FAMILY_TAGS,
+  LEGACY_INDIVIDUAL_TAGS,
+  NON_UNDERSCORE_VENDOR_TAGS,
+} from './vendor-tags';
 import type {
   EventEnum,
   NameTypeEnum,
@@ -156,6 +165,14 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     _STAT: (child) => {
       rec.marriageStatus = reqText(child);
+    },
+    _MSTAT: (child) => {
+      // FTW: the status at the beginning of the marriage.
+      rec.marriageBeginningStatus = reqText(child);
+    },
+    _MEND: (child) => {
+      // FTW: the status at the end of the marriage.
+      rec.marriageEndingStatus = reqText(child);
     },
     _TODO: (child) => {
       (rec.todos ??= []).push(parseTodoStructure(child, ctx));
@@ -257,13 +274,14 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
     };
+    applyLegacyFamilyTags(rec, handlers, ctx);
   }
   dispatch(
     node,
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['RESN', 'HUSB', 'WIFE', 'CHAN', 'CREA'] : ['RESN', 'NCHI', 'HUSB', 'WIFE', 'CHAN', 'RIN'],
+    ctx.version === '7.0' ? ['RESN', 'HUSB', 'WIFE', 'CHAN', 'CREA', '_MSTAT', '_MEND'] : ['RESN', 'NCHI', 'HUSB', 'WIFE', 'CHAN', 'RIN', '_MSTAT', '_MEND'],
   );
   return rec;
 }
@@ -297,6 +315,180 @@ function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag
     type,
     ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
   });
+}
+
+// ---------------------------------------------------------------------------
+// The non-underscore legacy vendor tags of GEDCOM 5.x (see vendor-tags.ts)
+// ---------------------------------------------------------------------------
+
+/** An INDI-level legacy event tag: EVEN with the TYPE; the payload text
+ *  is kept (a bare `Y` assertion is dropped, like the standard event
+ *  payloads). */
+function pushLegacyIndividualEvent(rec: IndividualRecord, node: RawNode, ctx: Ctx, type: string): void {
+  const detail: IndividualEventDetail = {};
+  const handlers = eventDetailHandlers(ctx, detail);
+  handlers['TYPE'] = () => undefined;
+  handlers['AGE'] = (child) => {
+    detail.age = parseAge(child, ctx);
+  };
+  dispatch(node, detail, handlers, ctx);
+  const raw = node.value.kind === 'text' ? node.value.text : '';
+  (rec.events ??= []).push({
+    tag: 'EVEN',
+    payload: raw === 'Y' ? '' : raw,
+    type,
+    ...(Object.keys(detail).length === 0 ? {} : { detail }),
+  });
+}
+
+/** An INDI-level legacy attribute tag: FACT (or EDUC) with the TYPE; a
+ *  TYPE child overrides the default. The payload text is kept. */
+function pushLegacyIndividualAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag: 'FACT' | 'EDUC', type: string): void {
+  const detail: EventDetail = {};
+  const handlers = eventDetailHandlers(ctx, detail);
+  let typeValue = type;
+  handlers['TYPE'] = (child) => {
+    typeValue = reqText(child);
+  };
+  dispatch(node, detail, handlers, ctx);
+  const raw = node.value.kind === 'text' ? node.value.text : '';
+  (rec.attributes ??= []).push({
+    tag,
+    payload: raw,
+    type: typeValue,
+    ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+  });
+}
+
+/** An INDI-level legacy person link: a pointer payload becomes an ASSO
+ *  with the RELA descriptor; a text payload becomes FACT + TYPE. */
+function pushLegacyAssociation(rec: IndividualRecord, node: RawNode, ctx: Ctx, relationship: string): void {
+  if (node.value.kind === 'pointer') {
+    if (node.children.length > 0) {
+      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
+    }
+    (rec.associations ??= []).push({
+      tag: 'ASSO',
+      individual: resolvePtr(node.value.pointer, ctx, node),
+      relationship,
+    });
+    return;
+  }
+  pushLegacyIndividualAttribute(rec, node, ctx, 'FACT', relationship);
+}
+
+/** The FTM5 `LDS` wrapper: its children parse as LDS individual
+ *  ordinances (BAPL/CONL/ENDL/SLGC); anything else falls back to the
+ *  extension rules. */
+function parseLegacyLdsBlock(rec: IndividualRecord, node: RawNode, ctx: Ctx): void {
+  noPayload(node);
+  for (const child of node.children) {
+    const tag = child.tag;
+    if (tag === 'BAPL' || tag === 'CONL' || tag === 'ENDL' || tag === 'SLGC') {
+      (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, tag));
+      continue;
+    }
+    if (tag.startsWith('_') || NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
+      addExtension(rec, child);
+      continue;
+    }
+    fail('structure.unknown-tag', `The tag ${tag} is not allowed under LDS`, child.position);
+  }
+}
+
+/** An INDI-level legacy note tag (HIST, INFO, …): an inline NOTE. */
+function pushLegacyNote(rec: IndividualRecord, node: RawNode, ctx: Ctx): void {
+  const raw = node.value.kind === 'text' ? node.value.text : '';
+  if (raw === '') {
+    fail('structure.missing-payload', `The ${node.tag} line requires a text value`, node.position);
+  }
+  const note: Note = { tag: 'NOTE', payload: raw };
+  dispatch(
+    node,
+    note,
+    {
+      SOUR: (child) => {
+        (note.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+    },
+    ctx,
+  );
+  (rec.notes ??= []).push(note);
+}
+
+/** Applies the typed legacy INDI rules (see vendor-tags.ts) on 5.x input. */
+function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
+  for (const [tag, rule] of Object.entries(LEGACY_INDIVIDUAL_TAGS)) {
+    handlers[tag] = (child) => {
+      switch (rule.kind) {
+        case 'name':
+          pushVendorName(rec, child, ctx, rule.nameType);
+          return;
+        case 'nameOther':
+          pushVendorName(rec, child, ctx, 'OTHER', rule.phrase);
+          return;
+        case 'standardEvent':
+          (rec.events ??= []).push(parseIndividualEvent(child, ctx, rule.tag));
+          return;
+        case 'event':
+          pushLegacyIndividualEvent(rec, child, ctx, rule.type);
+          return;
+        case 'fact':
+          pushLegacyIndividualAttribute(rec, child, ctx, 'FACT', rule.type);
+          return;
+        case 'educ':
+          pushLegacyIndividualAttribute(rec, child, ctx, 'EDUC', rule.type);
+          return;
+        case 'attribute':
+          (rec.attributes ??= []).push(parseIndividualAttribute(child, ctx, rule.tag));
+          return;
+        case 'note':
+          pushLegacyNote(rec, child, ctx);
+          return;
+        case 'negative':
+          pushVendorNonEvent(rec, child, ctx, rule.event);
+          return;
+        case 'url':
+          rec.url = reqText(child);
+          return;
+        case 'refn':
+          if (rule.type === undefined) {
+            (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
+          } else {
+            (rec.identifiers ??= []).push({ tag: 'REFN', payload: reqText(child), type: rule.type });
+          }
+          return;
+        case 'association':
+          pushLegacyAssociation(rec, child, ctx, rule.relationship);
+          return;
+        case 'lds':
+          parseLegacyLdsBlock(rec, child, ctx);
+          return;
+      }
+    };
+  }
+}
+
+/** Applies the typed legacy FAM rules (see vendor-tags.ts) on 5.x input. */
+function applyLegacyFamilyTags(rec: FamilyRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
+  for (const [tag, rule] of Object.entries(LEGACY_FAMILY_TAGS)) {
+    handlers[tag] = (child) => {
+      const detail: EventDetail = {};
+      const eventHandlers = eventDetailHandlers(ctx, detail);
+      eventHandlers['TYPE'] = () => undefined;
+      dispatch(child, detail, eventHandlers, ctx);
+      const raw = child.value.kind === 'text' ? child.value.text : '';
+      const familyDetail: FamilyEventDetail = {
+        ...(Object.keys(detail).length === 0 ? {} : { detail }),
+      };
+      const eventDetail = Object.keys(familyDetail).length === 0 ? {} : { detail: familyDetail };
+      if (rule.kind === 'marriage') {
+        (rec.events ??= []).push({ tag: 'MARR', type: rule.type, ...eventDetail } as FamilyEventStructure);
+      } else {
+        (rec.events ??= []).push({ tag: 'EVEN', payload: raw === 'Y' ? '' : raw, type: rule.type, ...eventDetail } as FamilyEventStructure);
+      }
+    };
+  }
 }
 
 /** A vendor family-level fact (_COML, _MBON, _SEPR): a MARR or FAM.EVEN with a TYPE. */
@@ -660,6 +852,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
         (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, tag));
       };
     }
+    applyLegacyIndividualTags(rec, handlers, ctx);
   }
   for (const tag of eventTags) {
     handlers[tag] = (child) => {

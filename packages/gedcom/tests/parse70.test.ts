@@ -482,7 +482,7 @@ describe('parseGedcom70 — strictness', () => {
     }
     const citation = indi.names?.[0]?.citations?.[0];
     expect(citation?.source).toBe('@S1@');
-    expect(citation?.page).toBe('Film: 1, Frame: 2');
+    expect(citation?.page?.payload).toBe('Film: 1, Frame: 2');
     expect(citation?.data?.date?.value).toEqual({ kind: 'date', day: 12, month: 'MAR', year: 1900, calendar: 'GREGORIAN' });
     expect(citation?.data?.texts?.[0]?.payload).toBe('Birth entry');
     expect(citation?.event?.payload).toBe('BIRT');

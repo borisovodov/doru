@@ -21,6 +21,9 @@ import type {
 import type {
   RawNode,
 } from './lines';
+import {
+  NON_UNDERSCORE_VENDOR_TAGS,
+} from './vendor-tags';
 
 /** The declared specification version of the document being parsed. */
 export interface Ctx {
@@ -153,7 +156,7 @@ export function dispatch(
   node: RawNode,
   out: GedcomStructureBase,
   handlers: Record<string, (child: RawNode) => void>,
-  _ctx: Ctx,
+  ctx: Ctx,
   singles: readonly string[] = [],
 ): void {
   const seen = new Set<string>();
@@ -161,6 +164,13 @@ export function dispatch(
     const handler = handlers[child.tag];
     if (handler === undefined) {
       if (child.tag.startsWith('_')) {
+        addExtension(out, child);
+        continue;
+      }
+      if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(child.tag)) {
+        // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
+        // accepted as generic extensions where the standard grammar has
+        // no slot for them. 7.0 input stays strict.
         addExtension(out, child);
         continue;
       }

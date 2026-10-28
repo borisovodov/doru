@@ -120,6 +120,19 @@ function isEmpty(record: GedcomRecord): boolean {
 
 /** Strips dangling and void pointers from one record. */
 function stripPointers(record: LinkRecord, valid: Set<string>): void {
+  // The census entries point at INDI records, which the NO rule can
+  // drop; a dangling census pointer would be invalid output.
+  if (record.tag === '_CENR') {
+    const census = record as unknown as { entries?: Array<{ individual?: string }> };
+    census.entries = (census.entries ?? []).filter((entry) => entry.individual === undefined || isLive(entry.individual, valid));
+    return;
+  }
+  // Only FAM and INDI records participate in the NO rule (see isEmpty),
+  // so only their pointers can dangle. Extension records in particular
+  // carry an opaque `children` array that must never be touched here.
+  if (record.tag !== 'FAM' && record.tag !== 'INDI') {
+    return;
+  }
   record.submitters = (record.submitters ?? []).filter((pointer) => isLive(pointer, valid));
   record.associations = (record.associations ?? []).filter((link) => isLive(link.individual, valid));
   record.aliases = (record.aliases ?? []).filter((link) => isLive(link.individual, valid));
@@ -149,6 +162,10 @@ function stripPointers(record: LinkRecord, valid: Set<string>): void {
   }
   record.notes = (record.notes ?? []).filter((note) => {
     if (note.tag !== 'NOTE' && note.tag !== 'SNOTE') {
+      return true;
+    }
+    if (!('note' in note)) {
+      // An inline note carries its text directly; nothing dangles.
       return true;
     }
     return note.note !== undefined && isLive(note.note, valid);

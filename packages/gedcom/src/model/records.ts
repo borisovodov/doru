@@ -46,6 +46,7 @@ import type { SpouseSealingOrdinance } from './lds';
 import type { PlaceRecord } from './place-record';
 import type { TodoRecord } from './todo-record';
 import type { TodoStructure } from './todo-record';
+import type { EventDefinitionRecord } from './event-definition-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.2 Records
@@ -87,9 +88,28 @@ export interface FamilyRecord extends GedcomStructureBase {
    * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not
    * part of any GEDCOM version. Recognized on input and written back as
    * `_STAT` in both versions. (The FTW `_MSTAT`/`_MEND` beginning and
-   * ending statuses stay generic extensions.)
+   * ending statuses are the separate fields below.)
    */
   marriageStatus?: Text;
+  /**
+   * _MSTAT {0:1} — the status at the beginning of the marriage
+   * (Friends, Engaged, Married, …). Written by Family Tree Maker
+   * (Windows) under FAM (catalogued by the GEDCOM-L working group in
+   * the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag and by Legacy:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_MSTAT` in both versions.
+   */
+  marriageBeginningStatus?: Text;
+  /**
+   * _MEND {0:1} — the status at the end of the marriage (Married,
+   * Divorced, Annulled, Widowed, …). Written by Family Tree Maker
+   * (Windows) under FAM (same sources as `marriageBeginningStatus`);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_MEND` in both versions.
+   */
+  marriageEndingStatus?: Text;
   /**
    * `_TYPE same-sex` {0:1} — the family is a same-sex union (marriage
    * or partnership): the German GEDCOM-L convention written by
@@ -282,8 +302,9 @@ export interface IndividualRecord extends GedcomStructureBase {
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
    * GEDCOM version. Recognized on input and written back as `_FSFTID`
    * in both versions. (The non-underscore `FSFTID` spelling of
-   * RootsMagic stays a strict error, per the non-underscore vendor tag
-   * policy in docs/vendor-extensions.md chapter 8.)
+   * RootsMagic stays a strict error: it is not in the accepted
+   * non-underscore catalog — see docs/vendor-extensions.md chapter 8
+   * and parsing/vendor-tags.ts.)
    */
   familySearchId?: Text;
   /**
@@ -744,6 +765,18 @@ export interface SourceRecord extends GedcomStructureBase {
    * in both versions.
    */
   fullFootnote?: Text;
+  /**
+   * `_SOUR {0:M}` — a relocated citation under the source record
+   * (structure/extension/_SOUR.yaml in the FamilySearch GEDCOM
+   * registry, marked prerelease there): the standard `SOUR` tag moved
+   * under the SOUR record, linking this source to another source it
+   * was relocated from. The registry gives it the same payload (a
+   * pointer to a SOUR record) and the same substructures as
+   * SOURCE_CITATION (NOTE, OBJE, PAGE, QUAY, SNOTE, SOUR-DATA,
+   * SOUR-EVEN). Recognized on input in both versions and written back
+   * as `_SOUR` under the record in both versions.
+   */
+  relocatedCitations?: SourceCitation[];
 }
 
 /**
@@ -951,4 +984,5 @@ export type GedcomRecord =
   | CensusRecord
   | PlaceRecord
   | TodoRecord
+  | EventDefinitionRecord
   | ExtensionRecord;

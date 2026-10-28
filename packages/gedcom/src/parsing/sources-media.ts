@@ -23,6 +23,7 @@ import type {
   MediaFile,
   MultimediaLink,
   MultimediaRecord,
+  PageStructure,
   SourceCitation,
   SourceCitationData,
   SourceCitationEvent,
@@ -62,6 +63,28 @@ import {
 // Sources and media links
 // ---------------------------------------------------------------------------
 
+/**
+ * Parses a PAGE structure: the location payload plus the relocated
+ * `_SOUR` citations (registry: _SOUR.yaml — the standard SOUR tag moved
+ * under PAGE, with the same payload and substructures as
+ * SOURCE_CITATION). Other `_` tags under PAGE stay generic extensions
+ * of the page structure, so their position is preserved too.
+ */
+export function parsePageStructure(node: RawNode, ctx: Ctx): PageStructure {
+  const out: PageStructure = { tag: 'PAGE', payload: reqText(node) };
+  dispatch(
+    node,
+    out,
+    {
+      _SOUR: (child) => {
+        (out.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+    },
+    ctx,
+  );
+  return out;
+}
+
 export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
   if (ctx.version === '7.0') {
     const out: SourceCitation = { tag: 'SOUR', source: reqPtr(node, ctx) };
@@ -70,11 +93,7 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       out,
       {
         PAGE: (child) => {
-          out.page = reqText(child);
-          // Dispatch keeps underscore extensions under PAGE (the
-          // community _SOUR is a relocated citation there — registry:
-          // _SOUR.yaml) and rejects the rest.
-          dispatch(child, out, {}, ctx);
+          out.page = parsePageStructure(child, ctx);
         },
         DATA: (child) => {
           out.data = parseSourceCitationData(child, ctx);
@@ -97,6 +116,10 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_CREF': (child) => {
           out.reference = reqText(child);
         },
+        '_SUBQ': (child) => {
+          // RootsMagic: the subsequent-citation format (report wording).
+          out.subsequentCitationFormat = reqText(child);
+        },
         '_VERI': (child) => {
           out.verified = parsePrivacyFlag(child, '_VERI');
         },
@@ -114,8 +137,7 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       out,
       {
         PAGE: (child) => {
-          out.page = reqText(child);
-          dispatch(child, out, {}, ctx);
+          out.page = parsePageStructure(child, ctx);
         },
         DATA: (child) => {
           out.data = parseSourceCitationData(child, ctx);
@@ -137,6 +159,10 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         },
         '_CREF': (child) => {
           out.reference = reqText(child);
+        },
+        '_SUBQ': (child) => {
+          // RootsMagic: the subsequent-citation format (report wording).
+          out.subsequentCitationFormat = reqText(child);
         },
         '_VERI': (child) => {
           out.verified = parsePrivacyFlag(child, '_VERI');

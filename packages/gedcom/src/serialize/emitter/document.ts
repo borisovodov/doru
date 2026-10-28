@@ -36,6 +36,7 @@ import {
   emitSharedNoteAs551,
   emitSource,
   emitTodoRecord,
+  emitEventDefinition,
 } from './records';
 import {
   emitCensusRecord,
@@ -268,6 +269,9 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       return;
     case '_TODO':
       emitTodoRecord(w, version, record as Parameters<typeof emitTodoRecord>[2]);
+      return;
+    case '_EVENT_DEFN':
+      emitEventDefinition(w, version, record as Parameters<typeof emitEventDefinition>[2]);
       return;
     case '_CENR':
       emitCensusRecord(w, version, record as Parameters<typeof emitCensusRecord>[2]);
