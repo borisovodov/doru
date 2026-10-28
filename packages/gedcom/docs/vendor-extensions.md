@@ -35,6 +35,15 @@ results and secondary sources.
 - **GEDCOM 5.3** had a schema mechanism (`SCHEMA`, `DEFN`, `LABL`,
   `ISA`) that was dropped in 5.4 but survives in Family Tree Maker
   files. Same Tamura Jones source as above.
+- **Versions outside the supported set are rejected explicitly.** The
+  5.x parser accepts `GEDC.VERS` 5.5 (1996), 5.5.1 and 5.5.5; the
+  pre-5.5 versions (3.0, 4.0, 5.0) and the superseded drafts (5.3,
+  5.4) fail up front with `document.wrong-version` instead of
+  mid-file unknown-tag errors. GEDCOM 6.0 (the 2001–2002 XML beta
+  draft, never adopted) and GEDCOM X (FamilySearch's successor
+  standard family with its own XML/JSON syntax) are different
+  formats, not text GEDCOM — deliberately out of scope, with no
+  import planned.
 - **GEDCOM 7.0** has an official mechanism: extension tags declared in
   `HEAD.SCHMA` with URIs, plus an official registry of extensions:
   - FamilySearch GEDCOM 7 specification (extension rules):

@@ -179,6 +179,14 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     }
   } else if (/^7\./.test(gedcom.version)) {
     fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 5.x version`, node.position);
+  } else if (!/^5\.5(\.\d+)?$/.test(gedcom.version)) {
+    // The 5.x parser reads the 5.5 lineage — 5.5 (1996), 5.5.1 and
+    // 5.5.5 (whose vocabulary additions are accepted in any 5.x file).
+    // Older versions (3.0, 4.0, 5.0) and the superseded drafts (5.3,
+    // 5.4) have incompatible grammars and are rejected here with an
+    // explicit error instead of failing mid-file with
+    // `structure.unknown-tag` errors.
+    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (5.5, 5.5.1 or 5.5.5)`, node.position);
   }
   const formNode = one(node, 'FORM');
   if (ctx.version === '5.5.1') {
