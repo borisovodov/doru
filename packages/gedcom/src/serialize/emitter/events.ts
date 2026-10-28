@@ -117,7 +117,9 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   }
   if (version === '7.0') {
     w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
-  } else if (event.tag === 'BIRT' || event.tag === 'CHR' || event.tag === 'DEAT') {
+  } else if (event.tag === 'ADOP' || event.tag === 'BIRT' || event.tag === 'CHR' || event.tag === 'DEAT') {
+    // GEDCOM 5.5.1 §2 (p.34): these four events take the `[Y|<NULL>]`
+    // assertion payload; the others are bare.
     w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
   } else {
     // 5.5.1 cannot carry the Y assertion here; the value is dropped.

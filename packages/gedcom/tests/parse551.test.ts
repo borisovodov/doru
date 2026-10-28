@@ -56,6 +56,32 @@ describe('parseGedcom551 — header', () => {
     ).toBe('document.wrong-version');
   });
 
+  test('rejects pre-5.5 versions with an explicit error', () => {
+    for (const version of ['3.0', '4.0', '5.0', '5.3', '5.4']) {
+      const result = parseGedcom551(
+        enc(
+          `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
+        ),
+      );
+      expect(result.ok, version).toBe(false);
+      if (!result.ok) {
+        expect((result.error as { code: string }).code, version).toBe('document.wrong-version');
+        expect((result.error as { message: string }).message, version).toContain('not a supported GEDCOM version');
+      }
+    }
+  });
+
+  test('accepts the 5.5 lineage (5.5, 5.5.1, 5.5.5)', () => {
+    for (const version of ['5.5', '5.5.1', '5.5.5']) {
+      const result = parseGedcom551(
+        enc(
+          `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
+        ),
+      );
+      expect(result.ok, version).toBe(true);
+    }
+  });
+
   test('rejects a SOUR id with spaces', () => {
     expect(
       err551('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
@@ -433,6 +459,23 @@ describe('parseGedcom551 — strictness', () => {
 
   test('rejects a Y payload on 5.5.1 family events other than MARR', () => {
     expect(err551([...HEADER, '0 @F1@ FAM', '1 ANUL Y', ...SUBM, '0 TRLR'].join('\n'))).toBe(
+      'structure.unexpected-payload',
+    );
+  });
+
+  test('accepts the Y payload on the 5.5.1 individual events ADOP, BIRT, CHR and DEAT', () => {
+    for (const tag of ['ADOP', 'BIRT', 'CHR', 'DEAT']) {
+      const result = parseGedcom551(enc([...HEADER, '0 @I1@ INDI', `1 ${tag} Y`, ...SUBM, '0 TRLR'].join('\n')));
+      expect(result.ok, tag).toBe(true);
+      if (result.ok) {
+        const indi = result.value.records.find((record) => record.tag === 'INDI');
+        const event = indi?.tag === 'INDI' ? indi.events?.find((entry) => entry.tag === tag) : undefined;
+        expect(event?.payload, tag).toBe(true);
+      }
+    }
+    // The other individual events stay bare in 5.5.1 (GEDCOM 5.5.1 §2
+    // p.34).
+    expect(err551([...HEADER, '0 @I1@ INDI', '1 BAPM Y', ...SUBM, '0 TRLR'].join('\n'))).toBe(
       'structure.unexpected-payload',
     );
   });

@@ -285,6 +285,17 @@ Input is always bytes. Version handling:
   relaxations are not enforced, the constructs 5.5.5 removed still
   parse, and the HEAD.SUBM pointer is not required (5.5.5 deprecated
   it; see Known strict decisions).
+- **Only the 5.5 lineage and 7.x are supported versions.** The 5.x
+  parser accepts `GEDC.VERS` 5.5 (the 1996 original), 5.5.1 and
+  5.5.5; every other version declared in a 5.x file — the pre-5.5
+  versions (3.0, 4.0, 5.0) and the superseded drafts (5.3, 5.4) — is
+  rejected up front with `document.wrong-version` ("not a supported
+  GEDCOM version") instead of failing mid-file with
+  `structure.unknown-tag` errors. GEDCOM 6.0 (the 2001–2002 XML beta
+  draft, never adopted) and GEDCOM X (FamilySearch's successor
+  standard family, with its own XML/JSON syntax and data model) are
+  different formats, not text GEDCOM: they are deliberately out of
+  scope, and no import of them is planned.
 
 All three versions share the container tokenizer: levels (no leading
 zeros, 5.5.x ≤ 99), single-space delimiters, cross-reference identifiers,
@@ -669,6 +680,14 @@ would be, or where the model takes a documented position:
   HEAD.SUBM pointer is not enforced on input either (5.5.5 deprecated
   it); the 5.5.1 serializer still synthesizes a SUBM. `GEDC.FORM.VERS`
   is tolerated but not stored.
+- The 5.x parser accepts only the 5.5 lineage as the declared version
+  — 5.5, 5.5.1 and 5.5.5. Pre-5.5 declarations (3.0, 4.0, 5.0) and
+  the superseded drafts (5.3, 5.4) are rejected up front with
+  `document.wrong-version` rather than parsed leniently: their
+  grammars differ, and a mid-file unknown-tag error would be
+  misleading. GEDCOM 6.0 (the XML beta draft) and GEDCOM X are
+  different formats, not text GEDCOM, and are out of scope (see
+  Parsing).
 - The 5.x parser accepts the horizontal tab in line values, although
   GEDCOM 5.5.1 §1 disallows every control character: GEDCOM 5.5.5
   legalized the tab in user text ("Tab is Legal" — most applications

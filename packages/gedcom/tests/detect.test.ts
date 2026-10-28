@@ -125,6 +125,27 @@ describe('parse (unified entry point)', () => {
     }
   });
 
+  test('reports a pre-5.5 stream with an explicit unsupported-version error', () => {
+    const ancient = [
+      '0 HEAD',
+      '1 SOUR PAF',
+      '1 SUBM @S1@',
+      '1 GEDC',
+      '2 VERS 3.0',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHAR ANSEL',
+      '0 @S1@ SUBM',
+      '1 NAME T',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(enc(ancient));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('document.wrong-version');
+      expect(result.error.message).toContain('not a supported GEDCOM version');
+    }
+  });
+
   test('rejects bytes that are neither zip nor GEDCOM', () => {
     const result = parse(enc('this is garbage'));
     expect(result.ok).toBe(false);
