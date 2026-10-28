@@ -57,7 +57,20 @@ interface FamilyAttributeBase<Tag extends string, TPayload> extends GedcomStruct
  * standard `NCHI 0` in both versions; the vendor tag itself is not
  * written back (the construct has a standard equivalent).
  */
-export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', Integer> {}
+export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', Integer> {
+  /**
+   * SURE {0:1} — the given child count is certain. Written by Der
+   * Stammbaum ≤ V6 (USM6) under the INDI or FAM NCHI with the value
+   * `1` (the documented example: "SURE 1 in INDI/FAM.NCHI - angeg.
+   * Anz Kinder gesichert", the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * article's "Tabelle 2":
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on 5.x input (`1` marks the flag set,
+   * `0` clears it) and written back as `SURE 1`/`SURE 0` under the
+   * NCHI line in 5.5.1; dropped on 7.0 output.
+   */
+  childCountCertain?: boolean;
+}
 
 /**
  * GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — g7:FAM-RESI: an address or place of

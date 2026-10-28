@@ -54,6 +54,16 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     ADDR: (child) => {
       rec.address = parseAddressStructure(child, ctx);
     },
+    '_EMAIL': (child) => {
+      // FH (up to V6.2): the submitter e-mail — the vendor spelling of
+      // the standard EMAIL slot (see SubmitterRecord.email).
+      (rec.email ??= []).push(reqText(child));
+    },
+    '_WEB': (child) => {
+      // FH (up to V6.2): the submitter web address — the vendor
+      // spelling of the standard WWW slot.
+      (rec.www ??= []).push(reqText(child));
+    },
     OBJE: (child) => {
       (rec.media ??= []).push(parseMultimediaLink(child, ctx));
     },

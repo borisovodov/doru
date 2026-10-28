@@ -80,7 +80,7 @@ import type {
 export function emitFamily(w: Writer, version: Version, rec: {
   tag: 'FAM';
   restriction?: Array<string | `_${string}`>;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail; extensions?: ExtensionStructure[] }>;
+  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail; childCountCertain?: boolean; extensions?: ExtensionStructure[] }>;
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: FamilyEventDetail; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
   husband?: { partner: string; phrase?: string; preferred?: boolean; extensions?: ExtensionStructure[] };
@@ -102,6 +102,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   marriageStatus?: string;
   marriageBeginningStatus?: string;
   marriageEndingStatus?: string;
+  unionKind?: string;
   sameSexUnion?: true;
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -125,6 +126,11 @@ export function emitFamily(w: Writer, version: Version, rec: {
     // FTW: the status at the end of the marriage.
     w.line(1, '_MEND', { value: rec.marriageEndingStatus });
   }
+  if (version === '5.5.1' && rec.unionKind !== undefined) {
+    // USM6: the kind of relationship the partners are in (see
+    // FamilyRecord.unionKind); 7.0 cannot spell the non-underscore tag.
+    w.line(1, 'UTYP', { value: rec.unionKind });
+  }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
   }
@@ -137,9 +143,12 @@ export function emitFamily(w: Writer, version: Version, rec: {
         // FamilyChildCountAttribute).
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
       } else {
-        // 5.5.1 NCHI is a bare count; vendor children (the USM6 `SURE`
-        // marker "the given child count is certain") survive as generic
-        // extensions.
+        if (attribute.childCountCertain !== undefined) {
+          // USM6: the child count certainty marker (see
+          // FamilyChildCountAttribute.childCountCertain); 7.0 cannot
+          // spell the non-underscore tag.
+          w.line(2, 'SURE', { value: attribute.childCountCertain ? '1' : '0' });
+        }
         emitExtensions(w, version, 2, attribute);
       }
       continue;
@@ -269,11 +278,11 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   restriction?: Array<string | `_${string}`>;
   names?: PersonalNameStructure[];
   sex?: string;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail; extensions?: ExtensionStructure[] }>;
+  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail; childCountCertain?: boolean; extensions?: ExtensionStructure[] }>;
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } }; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
   ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string; extensions?: ExtensionStructure[] }>;
-  childFamilies?: Array<{ family: string; phrase?: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
+  childFamilies?: Array<{ family: string; phrase?: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; fatherChildStatus?: string; motherChildStatus?: string; parentalRelationKind?: string; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
   spouseFamilies?: Array<{ family: string; phrase?: string; preferred?: boolean; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
   submitters?: string[];
   associations?: AssociationStructure[];
@@ -296,6 +305,10 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   familySearchId?: string;
   marks?: string[];
   todos?: TodoStructure[];
+  canSign?: boolean;
+  bookmarked?: boolean;
+  startPerson?: boolean;
+  recordFlags?: Array<{ tag: string; name: string }>;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -315,6 +328,26 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   if (rec.familySearchId !== undefined) {
     w.line(1, '_FSFTID', { value: rec.familySearchId });
+  }
+  if (version === '5.5.1' && rec.canSign !== undefined) {
+    // USM6: whether the person can sign (see IndividualRecord.canSign);
+    // 7.0 cannot spell the non-underscore tag.
+    w.line(1, 'SIGN', { value: rec.canSign ? '1' : '0' });
+  }
+  if (rec.bookmarked === true) {
+    // MFT7: the person is bookmarked (see IndividualRecord.bookmarked).
+    w.line(1, '_BKM', { value: 'Y' });
+  }
+  if (rec.startPerson === true) {
+    // MFT7: the start person (see IndividualRecord.startPerson).
+    w.line(1, '_STP', { value: 'Y' });
+  }
+  if (rec.recordFlags !== undefined) {
+    // FH: the record flags (see IndividualRecord.recordFlags).
+    w.line(1, '_FLGS');
+    for (const flag of rec.recordFlags) {
+      w.line(2, flag.tag, { value: flag.name });
+    }
   }
   for (const todo of rec.todos ?? []) {
     emitTodoStructure(w, version, 1, todo);
@@ -342,6 +375,12 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     const payload = attribute.payload;
     w.line(1, attribute.tag, payload === undefined ? {} : { value: String(payload) });
     emitIndividualDetail(w, version, 2, attribute.detail, attribute.type);
+    if (version === '5.5.1' && attribute.tag === 'NCHI' && attribute.childCountCertain !== undefined) {
+      // USM6: the child count certainty marker (see
+      // IndividualChildCountAttribute.childCountCertain); 7.0 cannot
+      // spell the non-underscore tag.
+      w.line(2, 'SURE', { value: attribute.childCountCertain ? '1' : '0' });
+    }
     emitExtensions(w, version, 2, attribute);
   }
   for (const event of rec.events ?? []) {
@@ -392,6 +431,22 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     }
     if (link.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
+    }
+    if (link.fatherChildStatus !== undefined) {
+      // AQ: the child's status on the father's side (see
+      // ChildFamilyLink.fatherChildStatus).
+      w.line(2, '_HUSB', { value: link.fatherChildStatus });
+    }
+    if (link.motherChildStatus !== undefined) {
+      // AQ: the child's status on the mother's side (see
+      // ChildFamilyLink.motherChildStatus).
+      w.line(2, '_WIFE', { value: link.motherChildStatus });
+    }
+    if (version === '5.5.1' && link.parentalRelationKind !== undefined) {
+      // USM6: the parent–child relation kind (see
+      // ChildFamilyLink.parentalRelationKind); 7.0 cannot spell the
+      // non-underscore tag.
+      w.line(2, 'MTYP', { value: link.parentalRelationKind });
     }
     if (link.pedigree !== undefined) {
       const value = pedigree(w, version, link.pedigree.payload);
@@ -784,6 +839,13 @@ export function emitSource(w: Writer, version: Version, rec: {
   titleItalic?: boolean;
   publicationParenthesized?: boolean;
   titleQuoted?: boolean;
+  sourceType?: string;
+  masterListing?: boolean;
+  citationDetailIncluded?: boolean;
+  citationIncluded?: boolean;
+  citationDetailTextIncluded?: boolean;
+  citationDetailNotesIncluded?: boolean;
+  quality?: { source?: string; information?: string; evidence?: string };
   relocatedCitations?: SourceCitation[];
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -878,6 +940,42 @@ export function emitSource(w: Writer, version: Version, rec: {
   }
   if (rec.titleQuoted === true) {
     w.line(1, '_QUOTED', { value: 'Y' });
+  }
+  if (rec.sourceType !== undefined) {
+    // FH: the source record type (see SourceRecord.sourceType).
+    w.line(1, '_TYPE', { value: rec.sourceType });
+  }
+  if (rec.masterListing === true) {
+    // AQ: the source appears in the Master listing (see
+    // SourceRecord.masterListing).
+    w.line(1, '_MASTER', { value: 'Y' });
+  }
+  if (rec.citationDetailIncluded !== undefined) {
+    // Legacy: include/exclude the citation detail on reports (see
+    // SourceRecord.citationDetailIncluded).
+    w.line(1, '_TAG', { value: rec.citationDetailIncluded ? 'YES' : 'NO' });
+  }
+  if (rec.citationIncluded !== undefined) {
+    w.line(1, '_TAG2', { value: rec.citationIncluded ? 'YES' : 'NO' });
+  }
+  if (rec.citationDetailTextIncluded !== undefined) {
+    w.line(1, '_TAG3', { value: rec.citationDetailTextIncluded ? 'YES' : 'NO' });
+  }
+  if (rec.citationDetailNotesIncluded !== undefined) {
+    w.line(1, '_TAG4', { value: rec.citationDetailNotesIncluded ? 'YES' : 'NO' });
+  }
+  if (rec.quality !== undefined) {
+    // MFT7: the source-quality block (see SourceRecord.quality).
+    w.line(1, '_QUAL');
+    if (rec.quality.source !== undefined) {
+      w.line(2, '_SOUR', { value: rec.quality.source });
+    }
+    if (rec.quality.information !== undefined) {
+      w.line(2, '_INFO', { value: rec.quality.information });
+    }
+    if (rec.quality.evidence !== undefined) {
+      w.line(2, '_EVID', { value: rec.quality.evidence });
+    }
   }
   if (rec.template !== undefined) {
     w.line(1, '_TMPLT');

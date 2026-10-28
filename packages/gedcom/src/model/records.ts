@@ -53,6 +53,71 @@ import type { EventDefinitionRecord } from './event-definition-record';
 // ---------------------------------------------------------------------------
 
 /**
+ * The USM6 (Der Stammbaum ≤ V6) birth-type code, `BTYP` under BIRT:
+ * 1 = single birth, 2 = twin, 3 = multiple birth, 4 = the child died at
+ * birth. The values are documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
+ * article's "Tabelle 2" ("Abweichungen vom Standard bei der Verwendung",
+ * itself based on gencom.org.nz/GEDCOM_tags.html):
+ * <https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>. The wire spelling
+ * is the digit; see BirthEvent.birthType.
+ */
+export type UsmBirthType = '1' | '2' | '3' | '4';
+
+/**
+ * The USM6 (Der Stammbaum ≤ V6) parent–child relationship code, `MTYP`
+ * under INDI.FAMC: 1 = marital child, 2 = non-marital child, 3 =
+ * adoption without incorporation, 4 = adoption with incorporation,
+ * 5 = unknown, 6 = uncertain. Same source as `UsmBirthType`; see
+ * ChildFamilyLink.parentalRelationKind.
+ */
+export type UsmParentalRelationKind = '1' | '2' | '3' | '4' | '5' | '6';
+
+/**
+ * The USM6 (Der Stammbaum ≤ V6) family relationship code, `UTYP` under
+ * FAM: 1 = married, 2 = married and separated, 3 = married and
+ * divorced, 4 = marriage annulled, 5 = non-marital union. Same source
+ * as `UsmBirthType`; see FamilyRecord.unionKind.
+ */
+export type UsmUnionKind = '1' | '2' | '3' | '4' | '5';
+
+/**
+ * One Family Historian record flag: the `_FLGS` block under an
+ * individual carries one child per flag, where the child tag is the
+ * flag's generated tag (two underscores plus up to 13 characters of
+ * the flag name) and the payload is the full flag name
+ * (`__1871_CENSUS 1871 Census`). Documented in the Family Historian
+ * User Group knowledge base, "GEDCOM Extension List":
+ * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>. See
+ * IndividualRecord.recordFlags.
+ */
+export interface RecordFlagStructure {
+  /** The generated flag tag (`__…`). */
+  tag: Text;
+  /** The full flag name (the payload of the flag line). */
+  name: Text;
+}
+
+/**
+ * The Mac Family Tree 7 source-quality block, `_QUAL` under a SOUR
+ * record: the vendor's assessment of a source, split into the quality
+ * of the source itself (`_SOUR`), the quality of the information in it
+ * (`_INFO`) and the strength of the evidence (`_EVID`). The three
+ * substructures are free text (the vendor documents no value scale).
+ * Documented in the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+ * <https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>. See
+ * SourceRecord.quality.
+ */
+export interface MftSourceQuality extends GedcomStructureBase {
+  tag: '_QUAL';
+  /** _SOUR {0:1} — the quality of the source itself. */
+  source?: Text;
+  /** _INFO {0:1} — the quality of the information in the source. */
+  information?: Text;
+  /** _EVID {0:1} — the strength of the evidence in the source. */
+  evidence?: Text;
+}
+
+/**
  * GEDCOM 7.0 §3.2.2 FAMILY_RECORD — g7:record-FAM: a family, representing nuclear
  * families, marriage, cohabitation, fostering, adoption, and cultural
  * parallels, regardless of the gender of the partners.
@@ -144,6 +209,17 @@ export interface FamilyRecord extends GedcomStructureBase {
    * `_TODO` in both versions.
    */
   todos?: TodoStructure[];
+  /**
+   * UTYP {0:1} — the kind of relationship the partners are in: 1 =
+   * married, 2 = married and separated, 3 = married and divorced, 4 =
+   * marriage annulled, 5 = non-marital union. Written by Der Stammbaum
+   * ≤ V6 (USM6) under FAM; the values are documented in the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2" (see UsmUnionKind).
+   * Not part of any GEDCOM version. Recognized on 5.x input and
+   * written back as `UTYP` in 5.5.1; dropped on 7.0 output (7.0 cannot
+   * spell a non-underscore extension tag).
+   */
+  unionKind?: UsmUnionKind;
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
   /** WIFE {0:1}, g7:FAM-WIFE — the other partner. */
@@ -350,6 +426,48 @@ export interface IndividualRecord extends GedcomStructureBase {
    * `_TODO` in both versions.
    */
   todos?: TodoStructure[];
+  /**
+   * SIGN {0:1} — the person can sign (write their name). Written by
+   * Der Stammbaum ≤ V6 (USM6) under INDI with a yes/no value; the
+   * meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * article's "Tabelle 2" ("Person kann unterschreiben [ja/nein]"):
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag. Not part of any
+   * GEDCOM version. Recognized on 5.x input (`Y`, `YES`, `J`/`JA`, or
+   * `1` marks the flag set; `N`, `NO`, `NEIN`, or `0` clears it — the
+   * wire value is undocumented, so the usual flag spellings are
+   * accepted) and written back as `SIGN 1`/`SIGN 0` in 5.5.1; dropped
+   * on 7.0 output.
+   */
+  canSign?: boolean;
+  /**
+   * _BKM {0:1} — the person is bookmarked. Written by Mac Family Tree
+   * 7 under INDI (see the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input in both versions (the
+   * presence-style flag convention: an absent value or `Y` marks the
+   * flag set, `N` clears it) and written back as `_BKM Y` in both
+   * versions.
+   */
+  bookmarked?: boolean;
+  /**
+   * _STP {0:1} — the start person: the individual shown first when the
+   * file is opened. Written by Mac Family Tree 7 under INDI (same
+   * source as `bookmarked`); not part of any GEDCOM version.
+   * Recognized on input in both versions with the same presence-style
+   * convention and written back as `_STP Y` in both versions.
+   */
+  startPerson?: boolean;
+  /**
+   * _FLGS {0:1} — the record flags: the Family Historian marks
+   * attached to an individual record, each flag a child line whose
+   * double-underscore tag is generated from the flag name and whose
+   * payload is the full name (see RecordFlagStructure). Documented in
+   * the Family Historian User Group knowledge base, "GEDCOM Extension
+   * List": <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>.
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as the `_FLGS` block in both versions.
+   */
+  recordFlags?: RecordFlagStructure[];
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
   /** FAMC {0:M}, g7:INDI-FAMC — the families in which this individual appears as a child. */
@@ -430,6 +548,36 @@ export interface ChildFamilyLink extends GedcomStructureBase {
    * `fatherRelation`.
    */
   motherRelation?: Text;
+  /**
+   * _HUSB {0:1} — the child's status within the family on the
+   * father's side. Written by Ancestral Quest under the INDI.FAMC link
+   * ("used to indicate a child status within a family", the Legacy
+   * "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm;
+   * the GenWiki "GEDCOM/_Nutzerdef-Tag" table gives the position
+   * INDI.FAMC: https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). The
+   * value is free text (the catalog does not document a value set).
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as `_HUSB` in both versions.
+   */
+  fatherChildStatus?: Text;
+  /**
+   * _WIFE {0:1} — the child's status within the family on the
+   * mother's side; the Ancestral Quest twin of `fatherChildStatus`
+   * (same sources and export rule).
+   */
+  motherChildStatus?: Text;
+  /**
+   * MTYP {0:1} — the kind of parent–child relationship: 1 = marital
+   * child, 2 = non-marital child, 3 = adoption without incorporation,
+   * 4 = adoption with incorporation, 5 = unknown, 6 = uncertain.
+   * Written by Der Stammbaum ≤ V6 (USM6) under the INDI.FAMC link; the
+   * values are documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * article's "Tabelle 2" (see UsmParentalRelationKind). Not part of
+   * any GEDCOM version. Recognized on 5.x input and written back as
+   * `MTYP` in 5.5.1; dropped on 7.0 output.
+   */
+  parentalRelationKind?: UsmParentalRelationKind;
   /**
    * _PRIMARY Y {0:1} — marks the primary family for an adopted child.
    * Written by Ancestral Quest and PAF under FAMC (see the Legacy
@@ -655,11 +803,23 @@ export interface RepositoryRecord extends GedcomStructureBase {
   address?: AddressStructure;
   /** PHON {0:M}, g7:PHON — in 7.0 the repository's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (the floating PHON {0:3} beside ADDR, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address it writes them at the record level. */
   phone?: Special[];
-  /** EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
+  /**
+   * EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the
+   * ADDRESS_STRUCTURE. Same serialization relocation as `phone`. The
+   * Family Historian spelling `_EMAIL` under the record (up to V6.2 —
+   * see the FHUG "GEDCOM Extension List":
+   * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
+   * normalizes into this slot.
+   */
   email?: Special[];
   /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   fax?: Special[];
-  /** WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
+  /**
+   * WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the
+   * ADDRESS_STRUCTURE. Same serialization relocation as `phone`. The
+   * Family Historian spelling `_WEB` under the record (up to V6.2; same
+   * source as `email`) normalizes into this slot.
+   */
   www?: Special[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
@@ -845,6 +1005,79 @@ export interface SourceRecord extends GedcomStructureBase {
    * `titleItalic` and written back as `_QUOTED Y` in both versions.
    */
   titleQuoted?: boolean;
+  /**
+   * `_TAG YES`/`_TAG NO` {0:1} — include or exclude the source
+   * citation detail on reports. Written by Legacy Family Tree under a
+   * SOUR record (its "Custom GEDCOM Tags" help documents the two
+   * value spellings: "_TAG NO - When used under a SOUR record,
+   * indicates to exclude the source citation detail on reports":
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm).
+   * Not part of any GEDCOM version (the same tag names under an INDI
+   * record are the tag marks of IndividualRecord.marks; under an
+   * address or place they mark a "tagged" item, a meaning the catalog
+   * does not document beyond the tag itself — a bare tag without a
+   * value is likewise not typed and stays a generic extension).
+   * Recognized on input with the value required (`Y`/`YES` includes,
+   * `N`/`NO` excludes) and written back as `_TAG YES`/`_TAG NO` in
+   * both versions.
+   */
+  citationDetailIncluded?: boolean;
+  /**
+   * `_TAG2 YES`/`_TAG2 NO` {0:1} — include or exclude the source
+   * citation itself on reports. Written by Legacy Family Tree under a
+   * SOUR record ("_TAG2 NO - … indicates to exclude the source
+   * citation on reports"; same source and export rule as
+   * `citationDetailIncluded`).
+   */
+  citationIncluded?: boolean;
+  /**
+   * `_TAG3 YES`/`_TAG3 NO` {0:1} — include or exclude the source
+   * citation detail text on reports. Written by Legacy Family Tree
+   * under a SOUR record ("_TAG3 YES - … indicates to include the
+   * source citation detail text on reports"; same source and export
+   * rule as `citationDetailIncluded`).
+   */
+  citationDetailTextIncluded?: boolean;
+  /**
+   * `_TAG4 YES`/`_TAG4 NO` {0:1} — include or exclude the source
+   * citation detail notes on reports. Written by Legacy Family Tree
+   * under a SOUR record ("_TAG4 YES - … indicates to include the
+   * source citation detail notes on reports"; same source and export
+   * rule as `citationDetailIncluded`).
+   */
+  citationDetailNotesIncluded?: boolean;
+  /**
+   * _TYPE {0:1} — the type of the source record (Census, Birth
+   * Certificate, …), the Family Historian classification of a source.
+   * Documented in the Family Historian User Group knowledge base,
+   * "GEDCOM Extension List":
+   * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>.
+   * Not part of any GEDCOM version (under an OBJE record the same tag
+   * is the media object kind, MultimediaRecord.objectType). Recognized
+   * on input and written back as `_TYPE` in both versions.
+   */
+  sourceType?: Text;
+  /**
+   * _MASTER {0:1} — the source is to appear in the Master listing of
+   * the program. Written by Ancestral Quest under a SOUR record
+   * ("indicates source is to appear in Master listing", the Legacy
+   * "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
+   * Not part of any GEDCOM version. Recognized on input (the
+   * presence-style flag convention: an absent value or `Y` marks the
+   * flag set, `N` clears it) and written back as `_MASTER Y` in both
+   * versions.
+   */
+  masterListing?: boolean;
+  /**
+   * _QUAL {0:1} — the Mac Family Tree 7 quality assessment of the
+   * source: the `_SOUR`/`_INFO`/`_EVID` children rate the source
+   * itself, the information in it, and the evidence (see
+   * MftSourceQuality). Not part of any GEDCOM version. Recognized on
+   * input in both versions and written back as the `_QUAL` block in
+   * both versions.
+   */
+  quality?: MftSourceQuality;
 }
 
 /**
@@ -968,11 +1201,23 @@ export interface SubmitterRecord extends GedcomStructureBase {
   address?: AddressStructure;
   /** PHON {0:M}, g7:PHON — in 7.0 the submitter's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (the floating PHON {0:3} beside ADDR, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address it writes them at the record level. */
   phone?: Special[];
-  /** EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
+  /**
+   * EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the
+   * ADDRESS_STRUCTURE. Same serialization relocation as `phone`. The
+   * Family Historian spelling `_EMAIL` under the record (up to V6.2 —
+   * see the FHUG "GEDCOM Extension List":
+   * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
+   * normalizes into this slot.
+   */
   email?: Special[];
   /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   fax?: Special[];
-  /** WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
+  /**
+   * WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the
+   * ADDRESS_STRUCTURE. Same serialization relocation as `phone`. The
+   * Family Historian spelling `_WEB` under the record (up to V6.2; same
+   * source as `email`) normalizes into this slot.
+   */
   www?: Special[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];

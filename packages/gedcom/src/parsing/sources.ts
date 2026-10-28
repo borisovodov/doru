@@ -19,6 +19,7 @@ import {
 import type {
   EvidenceTemplate,
   EvidenceTemplateField,
+  MftSourceQuality,
   NoteRecord,
   PlaceStructure,
   RepositoryRecord,
@@ -33,6 +34,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   atMostThree,
   dispatch,
   noPayload,
@@ -83,6 +85,16 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     '_DATE': (child) => {
       // The community _DATE extension under REPO (registry: _DATE.yaml).
       (rec.dates ??= []).push(parseDateStructure(child, ctx));
+    },
+    '_EMAIL': (child) => {
+      // FH (up to V6.2): the repository e-mail — the vendor spelling of
+      // the standard EMAIL slot (see RepositoryRecord.email).
+      (rec.email ??= []).push(reqText(child));
+    },
+    '_WEB': (child) => {
+      // FH (up to V6.2): the repository web address — the vendor
+      // spelling of the standard WWW slot.
+      (rec.www ??= []).push(reqText(child));
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -308,6 +320,55 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // with the same payload and substructures as SOURCE_CITATION.
       (rec.relocatedCitations ??= []).push(parseSourceCitation(child, ctx));
     },
+    _TAG: (child) => {
+      // Legacy: the report inclusion flag (see
+      // SourceRecord.citationDetailIncluded). The vendor documents the
+      // SOUR-position form only with a value (`_TAG NO`/`_TAG YES`); a
+      // bare `_TAG` under SOUR is the undocumented "tagged" marking of
+      // the same tag name and stays a generic extension.
+      if (child.value.kind === 'absent') {
+        addExtension(rec, child);
+        return;
+      }
+      rec.citationDetailIncluded = parseReportFlag(child, '_TAG');
+    },
+    _TAG2: (child) => {
+      // Legacy: include/exclude the citation itself on reports.
+      if (child.value.kind === 'absent') {
+        addExtension(rec, child);
+        return;
+      }
+      rec.citationIncluded = parseReportFlag(child, '_TAG2');
+    },
+    _TAG3: (child) => {
+      // Legacy: include/exclude the citation detail text on reports.
+      if (child.value.kind === 'absent') {
+        addExtension(rec, child);
+        return;
+      }
+      rec.citationDetailTextIncluded = parseReportFlag(child, '_TAG3');
+    },
+    _TAG4: (child) => {
+      // Legacy: include/exclude the citation detail notes on reports.
+      if (child.value.kind === 'absent') {
+        addExtension(rec, child);
+        return;
+      }
+      rec.citationDetailNotesIncluded = parseReportFlag(child, '_TAG4');
+    },
+    _TYPE: (child) => {
+      // FH: the source record type (see SourceRecord.sourceType).
+      rec.sourceType = reqText(child);
+    },
+    _MASTER: (child) => {
+      // AQ: the source appears in the Master listing (see
+      // SourceRecord.masterListing).
+      rec.masterListing = parseVendorFlag(child, '_MASTER');
+    },
+    _QUAL: (child) => {
+      // MFT7: the source-quality block (see SourceRecord.quality).
+      rec.quality = parseMftSourceQuality(child, ctx);
+    },
     REPO: (child) => {
       (rec.repositoryCitations ??= []).push(parseSourceRepositoryCitation(child, ctx));
     },
@@ -355,9 +416,52 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA'] : ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'RIN'],
+    ctx.version === '7.0'
+      ? ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL']
+      : ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'RIN', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL'],
   );
   return rec;
+}
+
+/**
+ * Parses a Legacy SOUR report flag (`_TAG` … `_TAG4`): the value is
+ * required and spells YES/NO (the vendor's "Custom GEDCOM Tags" help
+ * documents `_TAG NO`, `_TAG3 YES`, …); `Y`/`YES` marks the inclusion,
+ * `N`/`NO` the exclusion.
+ */
+function parseReportFlag(node: RawNode, tag: string): boolean {
+  const text = reqText(node).toUpperCase();
+  if (text === 'Y' || text === 'YES') {
+    return true;
+  }
+  if (text === 'N' || text === 'NO') {
+    return false;
+  }
+  fail('enum.invalid-value', `The ${tag} value must be YES or NO, not "${text}"`, node.position);
+}
+
+/** Parses the MFT7 `_QUAL` source-quality block (see MftSourceQuality). */
+function parseMftSourceQuality(node: RawNode, ctx: Ctx): MftSourceQuality {
+  noPayload(node);
+  const out: MftSourceQuality = { tag: '_QUAL' };
+  dispatch(
+    node,
+    out,
+    {
+      _SOUR: (child) => {
+        out.source = reqText(child);
+      },
+      _INFO: (child) => {
+        out.information = reqText(child);
+      },
+      _EVID: (child) => {
+        out.evidence = reqText(child);
+      },
+    },
+    ctx,
+    ['_SOUR', '_INFO', '_EVID'],
+  );
+  return out;
 }
 
 /** Parses the vendor `_TMPLT` source template (see SourceRecord.template). */

@@ -28,6 +28,7 @@ import type {
   ChildFamilyLink,
   DateExactStructure,
   EventDetail,
+  FactFlag,
   FamilyChildCountAttribute,
   FamilyChildLink,
   FamilyChildStatusStructure,
@@ -47,11 +48,13 @@ import type {
   PedigreeStructure,
   SpouseFamilyLink,
   SpouseSealingOrdinance,
+  UsmBirthType,
 } from '../structures';
 import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   dispatch,
   noPayload,
   one,
@@ -74,6 +77,9 @@ import {
   parseMultimediaLink,
   parsePrivacyFlag,
   parseSourceCitation,
+  parseSureFlag,
+  parseUsmCode,
+  parseUsmFlag,
   parseYNFlag,
 } from './sources-media';
 import {
@@ -92,9 +98,28 @@ import {
   parseEnum,
   parseListEnum,
 } from './types';
+import {
+  parseAge551,
+} from './types';
 
 // Family/individual links, events, attributes, ordinances
 // ---------------------------------------------------------------------------
+
+/** The documented USM6 birth-type digits (`BTYP` under BIRT; see
+ *  UsmBirthType). */
+export const USM_BIRTH_TYPES = ['1', '2', '3', '4'] as const;
+
+/** The documented USM6 parent–child relation digits (`MTYP` under
+ *  INDI.FAMC; see UsmParentalRelationKind). */
+export const USM_PARENTAL_RELATION_KINDS = ['1', '2', '3', '4', '5', '6'] as const;
+
+/** The documented USM6 family relationship digits (`UTYP` under FAM; see
+ *  UsmUnionKind). */
+export const USM_UNION_KINDS = ['1', '2', '3', '4', '5'] as const;
+
+/** The Family Historian fact-flag tags: the four `__` children of the
+ *  `_FLGS` block under an event or attribute (see FactFlag). */
+const FH_FACT_FLAGS: ReadonlySet<string> = new Set(['__PRIVATE', '__PREFERRED', '__TENTATIVE', '__REJECTED']);
 
 export function parseFamilyPartnerLink(node: RawNode, ctx: Ctx): FamilyPartnerLink {
   const out: FamilyPartnerLink = { partner: reqPtr(node, ctx) };
@@ -161,6 +186,16 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
     '_MREL': (child) => {
       out.motherRelation = reqText(child);
     },
+    '_HUSB': (child) => {
+      // AQ: the child's status within the family on the father's side
+      // (see ChildFamilyLink.fatherChildStatus).
+      out.fatherChildStatus = reqText(child);
+    },
+    '_WIFE': (child) => {
+      // AQ: the child's status within the family on the mother's side
+      // (see ChildFamilyLink.motherChildStatus).
+      out.motherChildStatus = reqText(child);
+    },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
@@ -174,8 +209,14 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
     handlers['SNOTE'] = (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
+  } else {
+    handlers['MTYP'] = (child) => {
+      // USM6: the kind of parent–child relationship (see
+      // ChildFamilyLink.parentalRelationKind).
+      out.parentalRelationKind = parseUsmCode(child, 'MTYP', USM_PARENTAL_RELATION_KINDS);
+    };
   }
-  dispatch(node, out, handlers, ctx, ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', 'PHRASE']);
+  dispatch(node, out, handlers, ctx, ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', 'PHRASE']);
   return out;
 }
 
@@ -394,6 +435,34 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     // (see EventDetail.ancestryPointers).
     (detail.ancestryPointers ??= []).push(reqText(child));
   };
+  handlers['_SHAN'] = (child) => {
+    // FH: a fact witness given by name only (see EventDetail.witnesses).
+    (detail.witnesses ??= []).push(reqText(child));
+  };
+  handlers['_EMAIL'] = (child) => {
+    // FH (up to V6.2): the fact e-mail — the vendor spelling of the
+    // standard EMAIL slot (see EventDetail.email).
+    (detail.email ??= []).push(reqText(child));
+  };
+  handlers['_WEB'] = (child) => {
+    // FH (up to V6.2): the fact web address — the vendor spelling of
+    // the standard WWW slot (see EventDetail.www).
+    (detail.www ??= []).push(reqText(child));
+  };
+  handlers['_FLGS'] = (child) => {
+    // FH: the fact flags of this event or attribute (see
+    // EventDetail.factFlags): each child is a `__` tag spelling one of
+    // the four documented flags; an unrecognized child stays a generic
+    // extension of the detail, preserved verbatim.
+    noPayload(child);
+    for (const flag of child.children) {
+      if (FH_FACT_FLAGS.has(flag.tag) && flag.children.length === 0) {
+        (detail.factFlags ??= []).push(flag.tag.slice(2) as FactFlag);
+      } else {
+        addExtension(detail, flag);
+      }
+    }
+  };
   if (ctx.version === '5.5.1') {
     // The Gramps witness convention; normalized like _SHAR.
     handlers['ASSO'] = (child) => {
@@ -407,6 +476,21 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     };
     handlers['PPFX'] = (child) => {
       detail.placePrefix = reqText(child);
+    };
+    handlers['POTM'] = (child) => {
+      // USM6: the event occurred post mortem (see
+      // EventDetail.posthumous).
+      detail.posthumous = parseUsmFlag(child, 'POTM');
+    };
+    handlers['SRCH'] = (child) => {
+      // USM6: where to research the event further (see
+      // EventDetail.furtherResearch).
+      detail.furtherResearch = reqText(child);
+    };
+    handlers['NOTRY'] = (child) => {
+      // USM6: the notary who recorded the event (see
+      // EventDetail.notary).
+      detail.notary = reqText(child);
     };
   }
   if (ctx.version === '7.0') {
@@ -528,9 +612,20 @@ export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCount
     }
     return out;
   }
-  // 5.5.1 NCHI is a bare count; vendor children (the USM6 `SURE` marker
-  // "the given child count is certain") stay generic extensions.
-  dispatch(node, out, {}, ctx);
+  // 5.5.1 NCHI is a bare count; the USM6 `SURE` child ("the given child
+  // count is certain") is typed (see FamilyChildCountAttribute.
+  // childCountCertain).
+  dispatch(
+    node,
+    out,
+    {
+      SURE: (child) => {
+        out.childCountCertain = parseSureFlag(child);
+      },
+    },
+    ctx,
+    ['SURE'],
+  );
   return out;
 }
 
@@ -630,6 +725,26 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       fail('structure.unknown-tag', 'A FAMC is only allowed under ADOP, BIRT or CHR', child.position);
     }
   };
+  if (ctx.version === '5.5.1' && tag === 'BIRT') {
+    handlers['BTYP'] = (child) => {
+      // USM6: the birth type (see BirthEvent.birthType).
+      (event as unknown as { birthType?: UsmBirthType }).birthType = parseUsmCode(child, 'BTYP', USM_BIRTH_TYPES);
+    };
+  } else if (ctx.version === '5.5.1' && tag === 'BURI') {
+    handlers['AGED'] = (child) => {
+      // USM6: the age at death, written under the burial. Normalized
+      // into the standard AGE of the burial detail (the same slot the
+      // standard grammar provides); the write-back uses `AGE`. The
+      // wire value is a plain number of years (`AGED 80`); the full
+      // AGE grammar is tolerated too.
+      if (detail.age !== undefined) {
+        fail('structure.cardinality', 'At most one AGE or AGED is allowed under BURI', child.position);
+      }
+      const raw = reqText(child);
+      const payload = /^\d+$/.test(raw) ? { years: Number(raw) } : parseAge551(raw, child.position);
+      detail.age = { payload };
+    };
+  }
 
   if (tag === 'EVEN') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
@@ -648,7 +763,7 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
     noPayload(node);
   }
 
-  dispatch(node, event, handlers, ctx);
+  dispatch(node, event, handlers, ctx, ['BTYP', 'AGED']);
   if (Object.keys(detail).length > 0) {
     event.detail = detail;
   }
@@ -706,7 +821,14 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
   handlers["AGE"] = (child) => {
     detail.age = parseAge(child, ctx);
   };
-  dispatch(node, event, handlers, ctx);
+  if (ctx.version === '5.5.1' && tag === 'NCHI') {
+    handlers['SURE'] = (child) => {
+      // USM6: the given child count is certain (see
+      // IndividualChildCountAttribute.childCountCertain).
+      (event as unknown as { childCountCertain?: boolean }).childCountCertain = parseSureFlag(child);
+    };
+  }
+  dispatch(node, event, handlers, ctx, ['SURE']);
   if ((tag === 'IDNO' || tag === 'FACT') && event.type === undefined) {
     fail('structure.missing-required', `The ${tag} attribute requires a TYPE substructure`, node.position);
   }

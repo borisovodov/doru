@@ -307,7 +307,10 @@ What strictness rejects (each with its own error code):
 | Payloads | `enum.invalid-value`, `date.*`, `time.invalid`, `age.invalid`, `list.invalid`, `name.invalid`, `latitude.invalid`, `longitude.invalid`, `tagdef.invalid`, `charset.invalid`, `uri.invalid` |
 
 Extension tags (`_…`) are accepted anywhere and kept as opaque
-`ExtensionStructure` nodes, per 7.0 §1.5 / 5.5.1 `NEW_TAG`.
+`ExtensionStructure` nodes, per 7.0 §1.5 / 5.5.1 `NEW_TAG`. A
+cross-reference identifier on such a structure is first-class at any
+depth (7.0 §1.5): it registers as a pointer target, survives in the
+model (`ExtensionStructure.xref`) and is written back at its level.
 
 ## Serialization
 
@@ -430,13 +433,21 @@ The agreed policy:
   Legacy/PAF5 `_EVENT_DEFN` record (event tag, definition flags, the
   `_SEN1`–`_SEN8` sentences and the PAF5 sentence set), the
   FTM201x facts (`_CIRC`, `_FUN`, `_DEG`, `_EMPLOY`, `_DNA`,
-  `_NAMS`, `_MILTID`), and the
-  place records `_PLAC`/`_LOC`/`_PLAC_DEFN` — is typed model fields,
+  `_NAMS`, `_MILTID`), the place records `_PLAC`/`_LOC`/`_PLAC_DEFN`,
+  the Family Historian tags from the FHUG "GEDCOM Extension List"
+  (`_FLGS` record and fact flags, `_TYPE` under SOUR, `_QUAY`/`_FIELD`
+  under citations, `_SHAN` witness names, `_USED` under NAME, the
+  `_EMAIL`/`_WEB` contact spellings under facts and records), the AQ
+  `_HUSB`/`_WIFE` child statuses and `_MASTER`, the MFT7 `_BKM`/`_STP`
+  flags and `_QUAL` quality block, and the Legacy `_TAG`/`_TAG2`–`_TAG4`
+  report flags under SOUR — is typed model fields,
   with the full rules and the source links in the field JSDoc. The
   non-underscore vendor tags of the Legacy catalog are typed too —
   names, events/facts with a TYPE, notes, negatives, person links,
-  identifiers, the LDS wrapper — see "The legacy non-underscore tags
-  are typed" below. Unknown `_` tags are preserved verbatim as generic
+  identifiers, the LDS wrapper, the USM6 set (`SIGN`, `BTYP`, `AGED`,
+  `MTYP`, `UTYP`, `SURE`, `POTM`, `SRCH`, `NOTRY`, `RINI`, `UGNM`,
+  `NAME_`, `SECG`) — see "The legacy non-underscore tags are typed"
+  below. Unknown `_` tags are preserved verbatim as generic
   extensions (`ExtensionStructure`/`ExtensionRecord`) and are never
   typed; only unknown non-underscore tags are strict errors
   (`structure.unknown-tag`).
@@ -508,14 +519,20 @@ The agreed policy:
   and `CLAW`/`SEPA`/`FEMA`/`MALE` at FAM level. Export is standard-first
   in both versions. The GenWiki "GEDCOM/_Nutzerdef-Tag" table of
   non-underscore deviations adds the tags of Der Stammbaum ≤ V6 (USM6)
-  and Mac Family Tree 7/8 (`AGED`, `BTYP`, `DEED`, `MISE`, `MRCI`,
-  `MRRE`, `PRIV`, `RECT`, `SECG`, `SURE`, …) plus the RootsMagic
-  `FSFTID` spelling, which types into `familySearchId` like `_FSFTID`.
-  The tags with no typed rule — the "???" tail (`DETS`, `NAMM`,
+  and Mac Family Tree 7/8 plus the RootsMagic `FSFTID` spelling, which
+  types into `familySearchId` like `_FSFTID`. The USM6 tags with a
+  documented position and value set are typed: `SIGN` under INDI,
+  `BTYP` under BIRT, `AGED` under BURI (into the standard `AGE`),
+  `MTYP` under INDI.FAMC, `UTYP` under FAM, `SURE` under NCHI,
+  `POTM`/`SRCH`/`NOTRY` under event details, `RINI` under citations,
+  and `UGNM`/`NAME_`/`SECG` under NAME (5.x input; the non-underscore
+  spellings are dropped on 7.0 export and strict on 7.0 input). The
+  tags with no typed rule — the "???" tail (`DETS`, `NAMM`,
   `PRTY`, …), the conflicting `MSTAT`, `LABL`/`SCHEMA` outside their
-  schema contexts, and the USM6/MFT settings tags — stay generic
-  extensions, preserved verbatim on 5.5.1 export and dropped on 7.0
-  (extTag only); each tag's reason is recorded in
+  schema contexts, and the remaining USM6/MFT tags (`DEED`, `MISE`,
+  `MRCI`, `MRRE`, `PRIV`, `RECT`, the `FPRF`/`MPRF` settings blocks,
+  …) — stay generic extensions, preserved verbatim on 5.5.1 export
+  and dropped on 7.0 (extTag only); each tag's reason is recorded in
   docs/vendor-extensions.md chapter 8. GEDCOM 7.0 input stays strict
   for the whole list, and unknown non-underscore tags remain
   `structure.unknown-tag` errors.

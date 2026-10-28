@@ -130,6 +130,11 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     '_RUFNAME': (child) => {
       out.callName = reqText(child);
     },
+    '_USED': (child) => {
+      // FH: the given name used (see
+      // PersonalNameStructure.givenNameUsed).
+      out.givenNameUsed = reqText(child);
+    },
     '_CENR': (child) => {
       // The MagiKey census link (registry: MagiKey_CENR.yaml,
       // superstructure INDI-NAME): a pointer to the shared census
@@ -182,8 +187,23 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       out.pieces ??= {};
       (out.pieces.citations ??= []).push(parseSourceCitation(child, ctx));
     };
+    handlers['UGNM'] = (child) => {
+      // USM6: the call name (Rufname) — the same slot `_RUFNAME`
+      // carries (see the callName note in PersonalNameStructure).
+      out.callName = reqText(child);
+    };
+    handlers['NAME_'] = (child) => {
+      // USM6: the surname variants (see
+      // PersonalNameStructure.surnameVariants).
+      out.surnameVariants = reqText(child);
+    };
+    handlers['SECG'] = (child) => {
+      // MFT7: the second and further given names (see
+      // PersonalNameStructure.furtherGivenNames).
+      out.furtherGivenNames = reqText(child);
+    };
   }
-  dispatch(node, out, handlers, ctx);
+  dispatch(node, out, handlers, ctx, ['UGNM', 'NAME_', 'SECG']);
   return out;
 }
 

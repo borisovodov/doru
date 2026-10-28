@@ -24,6 +24,16 @@ export interface ExtensionStructure {
   tag: Tag;
   /** GEDCOM 7.0 §1.5 — payload, if any; its data type is defined by the extension. */
   payload?: Text;
+  /**
+   * The structure's cross-reference identifier (@…@). GEDCOM 7.0 §1.5
+   * permits one on a tagged extension structure at any level, not only
+   * on records ("A tagged extension structure … may also have a
+   * cross-reference identifier"); GEDCOM 5.5.1 §2 Primitive Elements
+   * (p.64), `XREF`, likewise (max 22 characters). The identifier is
+   * registered as a pointer target during parsing and written back on
+   * serialization.
+   */
+  xref?: Xref;
   /** GEDCOM 7.0 §1.5 — extension-defined substructures; their meaning is defined by the tagged extension structure they occur within. */
   children: ExtensionStructure[];
 }
