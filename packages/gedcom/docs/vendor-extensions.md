@@ -278,9 +278,11 @@ The FamilySearch GEDCOM registry (the GEDCOM-registries repository) is
 the official registry of 7.0 extension tags: each entry is a YAML file
 under `structure/extension/` plus a row in the manifest
 (<https://github.com/FamilySearch/GEDCOM-registries/blob/main/manifest/extension/manifest-extensions-en-US.tsv>).
-Every registered construct below is treated as valid input; except for
-the prerelease `_SOUR` (kept generic, preserved verbatim), each is typed
-in the model, with the registry YAML cited in the field JSDoc.
+Every registered construct below is treated as valid input and typed in
+the model, with the registry YAML cited in the field JSDoc. The
+prerelease `_SOUR` is typed too — the relocated `SourceCitation` list:
+`PageStructure.citations` under `PAGE`, `SourceRecord.relocatedCitations`
+under a SOUR record.
 
 | Registry entry | Tag | Position | Model field | Export |
 | --- | --- | --- | --- | --- |
@@ -294,7 +296,7 @@ in the model, with the registry YAML cited in the field JSDoc.
 | [MagiKey_MSTAT.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_MSTAT.yaml) | `_MSTAT` | under the census `INDI` | `CensusIndividual.maritalStatus` | both |
 | [MagiKey_SCHD.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_SCHD.yaml) | `_SCHD` | under `_CENR` | `CensusRecord.schedule` | both |
 | [_DATE.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_DATE.yaml) | `_DATE` | under `REPO` {0:M}, DateValue + TIME/PHRASE (marked prerelease) | `RepositoryRecord.dates` | both |
-| [_SOUR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_SOUR.yaml) | `_SOUR` | under `PAGE` {0:M} and `record-SOUR` {0:M}, a relocated citation (marked prerelease) | generic extension, preserved verbatim | both |
+| [_SOUR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_SOUR.yaml) | `_SOUR` | under `PAGE` {0:M} and `record-SOUR` {0:M}, a relocated citation: the standard SOUR tag moved under PAGE or under the SOUR record, same payload (a pointer) and same substructures (NOTE, OBJE, PAGE, QUAY, SNOTE, SOUR-DATA, SOUR-EVEN; marked prerelease) | `PageStructure.citations` / `SourceRecord.relocatedCitations` | both, written back under the PAGE line / under the SOUR record |
 
 Note on the nonconformant uses of standard tags (PUBL.DATE/PLAC and
 the census INDI/FATH/MOTH/SEX): the core of GEDCOM 7.0 §1.5 permits
@@ -362,8 +364,11 @@ its JSDoc.
 | `_MILTID` | FTM201x | Military identification number | `REFN` identifier + TYPE "Military" |
 | `_DATE2` | PAF, AQ3, Ancestry, FTQ&E, Heritage, PhpGedView | The end date of an event ("bis-Datum"), value like DATE | `EventDetail.endDate` (written back as `_DATE2` in both versions) |
 | `_STAT` under FAM | Legacy | Marriage status (Married, Unmarried, …) | `FamilyRecord.marriageStatus` |
+| `_MSTAT` / `_MEND` under FAM | FTW | The status at the beginning / end of the marriage (Friends, Engaged, Married, … / Married, Divorced, Annulled, Widowed, …) | `FamilyRecord.marriageBeginningStatus` / `marriageEndingStatus` (written back in both versions) |
 | Gramps `ASSO` + `TYPE INDI` + `RELA` | Gramps | Event witnesses under family events | `EventDetail.associations` (like `_SHAR`) |
 | `_CREF` / `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | `SourceCitation.reference` / `SourceRecord.fullFootnote` |
+| `_SUBQ` under citations | RootsMagic | Subsequent source citation format (report wording) | `SourceCitation.subsequentCitationFormat` (written back in both versions) |
+| `_SENT` / `_PPFX` under event details | RootsMagic | Event sentence / place prefix (report wording); the Legacy catalog spells them without the underscore — `SENT`/`PPFX` are recognized on 5.x input too | `EventDetail.sentence` / `placePrefix` (written back as `_SENT`/`_PPFX` in both versions) |
 | `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | `MultimediaRecord.objectType` |
 | `_SCBK` / `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | `MultimediaLink.scrapbook` / `slideshow` |
 | `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | `ChildFamilyLink.primary` |
@@ -377,6 +382,7 @@ its JSDoc.
 | `_SOSA` | Ancestris | Sosa–Stradonitz (Ahnentafel) number of the individual | `IndividualRecord.sosaNumber` (written back in both versions) |
 | `_FSFTID` | Familienbuch, Legacy, AQ, Family Historian, webtrees | FamilySearch Family Tree person id (PID) under INDI | `IndividualRecord.familySearchId` (written back in both versions) |
 | `_TODO` under INDI/FAM | GenoPro, RootsMagic, Ahnenblatt, webtrees, GDO, FO7, Legacy, BKW | To-do structure with `DESC`/`PRTY`/`STAT`/`DATE`/`NOTE` (the Legacy level-0 `_TODO` record is the separate `TodoRecord`) | `IndividualRecord.todos` / `FamilyRecord.todos` (written back in both versions) |
+| `_EVENT_DEFN` record | Legacy, PAF5 | The Event Definition record: the defined event tag (payload, standard-tag child, or TYPE child), the `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, the `_SEN1`–`_SEN8` sentences and the PAF5 sentence set (`_SENM`/`_SENF`/`_SENU` + Date-Only/Place-Only/Date-and-Place variants) | `EventDefinitionRecord` (written back in both versions; the event tag is written as the record payload) |
 | `SCHEMA` / `_SCHEMA` | FTM | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA) | `Header.schema53` (written back in 5.5.1 as `SCHEMA`; dropped on 7.0) |
 
 **Brother's Keeper family** (BKW6, Legacy cat.): name variants
@@ -447,23 +453,24 @@ preserved verbatim, so nothing is lost on re-export. Revisit only if
 the corpus validation runs (README "Future work") show a concrete use.
 
 **Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): the
-`_EVENT_DEFN` record with `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU`
-sentence definitions, `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/
-`_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, `_ITALIC`/`_PAREN`/
-`_QUOTED` source print styles, `_LIST1`–`_LIST6` address groupings,
-`_SORT`/`_OVER`/`_PREP` — how reports are worded, printed and grouped.
-Decision on `_CONF_FLAG`: it marks the event *type* as confidential in
-the vendor's configuration (and the mechanism that links a definition
-to its event type is undocumented), so it is not projected onto
-individual events; it stays a generic extension, and a UI may interpret
-the definition itself.
+`_EVENT_DEFN` record is typed (see chapter 6, `EventDefinitionRecord`) —
+the `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU` sentence definitions, the
+`_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE`
+definition flags and the PAF5 sentence set. Still deferred: `_ITALIC`/
+`_PAREN`/`_QUOTED` source print styles, `_LIST1`–`_LIST6` address
+groupings, `_SORT`/`_OVER`/`_PREP` — how reports are worded, printed and
+grouped. Decision on `_CONF_FLAG`: it marks the event *type* as
+confidential in the vendor's configuration (and the mechanism that links
+a definition to its event type is undocumented — the parser accepts the
+event tag in every documented form: the record payload, a standard-tag
+child, or a TYPE child), so it is not projected onto individual events;
+a UI may interpret the definition itself.
 
 **Family Tree Maker extras** (deferred): `_FA1`–`_FA13` user fact
-definitions, `_DETS` and `_ELEC` (undocumented meaning) — and the FTW
-marriage statuses `_MSTAT`/`_MEND` (beginning/ending status under MARR;
-the meaning collides with `_STAT`, the writing product is
-discontinued). The GEDCOM 5.3 schema block is no longer deferred: it is
-typed as `Header.schema53` and written back in 5.5.1 (chapter 6).
+definitions, `_DETS` and `_ELEC` (undocumented meaning). The FTW
+marriage statuses `_MSTAT`/`_MEND` are typed (chapter 6). The GEDCOM
+5.3 schema block is no longer deferred: it is typed as
+`Header.schema53` and written back in 5.5.1 (chapter 6).
 
 **Family Tree Maker / Family Tree Builder media tags** (deferred):
 `_PHOTO` (FTM) and `_PHOTO_RIN` (FTB). None of our sources documents
@@ -477,54 +484,98 @@ model; they stay generic extensions (preserved verbatim in both
 versions) until the corpus validation runs (README "Future work")
 show their actual structure.
 
-**RootsMagic report fields**: `_SUBQ` (subsequent citation format),
-`_SENT` (event sentence), `_PPFX` (place prefix) — report wording.
-
 **Family Historian**: `_FLGS` fact flags and the FH7 source-template
 extensions — the wire format is not documented in our sources (the
 FHUG Knowledge Base blocks scrapers); typing them would invent a model.
 Needs the corpus.
 
-**PAF sentence definitions** (PAF5): `_EVENT_DEFN`, `_SENM`/`_SENF`/
-`_SENU` plus the `_SENDOM`/`_SENDPM`/`_SENPOM`/`_SENDOF`/`_SENPOF`/
-`_SENDPF`/`_SENDOU`/`_SENPOU`/`_SENDPU` variants, `_DATE_TYPE`,
-`_DESC_FLAG`, `_PLACE_TYPE`, `_MEDC`, `_CONF_FLAG` — sentence
-templates for reports; PAF is discontinued. (Shares the sentence
-family with Legacy above.)
+**RootsMagic report fields** (`_SUBQ` under source citations and
+`_SENT`/`_PPFX` under event details) are typed (chapter 6); the
+non-underscore `SENT`/`PPFX` spellings are recognized on 5.x input.
+The PAF5 sentence definitions (`_EVENT_DEFN` with the `_SENM`/`_SENF`/
+`_SENU` variants) are typed as part of `EventDefinitionRecord` (chapter
+6). Still deferred: `_MEDC` (medical condition, PAF5).
 
-## 8. Deferred: non-underscore vendor tags
+## 8. Non-underscore vendor tags
 
 Written by Generations, Reunion, Family Tree Maker 5 (DOS), The Master
-Genealogist and early Roots versions; mostly tags dropped from GEDCOM
-5.3/5.4 or invented outright (from the Legacy cat. "Tags Not Specified
-in GEDCOM 5.5" list): `AKA`, `ARVL`, `ATTR`, `BIC`, `BLESS`, `BLSL`,
-`CANC`, `CEME`, `CIRC`, `CITN`, `CLAW`, `CLER`, `CNTC`, `CODI`,
-`COLO`, `COMML`, `COYN`, `CPLR`, `CRIM`, `CSTA`, `DAU`, `DEGR`,
-`DESC`, `DESR`, `DETA`, `DETS`, `DPRT`, `DWEL`, `EDTN`, `EDTR`,
-`EMAL`, `ENMPL`, `EXCO`, `EYES`, `FATH`, `FAX`, `FEMA`, `FILN`,
-`FMT`, `FOST`, `FRND`, `HAIR`, `HEAL`, `HEIG`, `HIST`, `HISTID`,
-`HOBB`, `HONO`, `HOSP`, `IDNO`, `ILLE`, `ILLN`, `INFO`, `INTE`,
-`INTV`, `ISA`, `ISSU`, `LABL`, `LDS`, `LOCA`, `LVG`, `LVNG`, `MALE`,
-`MILA`, `MILD`, `MILF`, `MILI`, `MILT`, `MISC`, `MISN`, `MOTH`,
-`MOVE`, `MSTAT`, `NAMG`, `NAMM`, `NAMR`, `NAMS`, `NATI`, `NMAR`,
-`NOTP`, `NULL`, `NUMB`, `ORDI`, `ORDL`, `OWNR`, `PART`, `PASL`,
-`PERI`, `PPFX`, `PRES`, `PRTY`, `PUBL`, `PURC`, `RACE`, `REAS`,
-`REBA`, `RECO`, `REGI`, `REMA`, `RESE`, `RESIR`, `RESP`, `REST`,
-`RPLY`, `SCHEMA`, `SENT`, `SEPA`, `SIBL`, `SLGP`, `SON`, `STAL`,
-`STIL`, `STLB`, `SUBM`, `TOWN`, `UMAR`, `UNIT`, `URL`, `VOIL`, `VOL`,
-`WIFE`.
+Genealogist, Family Origins, WinFamily and early Roots versions; mostly
+tags dropped from GEDCOM 5.3/5.4 or invented outright. The sources are
+the Legacy Family Tree catalog, "Tags Not Specified in GEDCOM 5.5"
+(<https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm>),
+which names the program and the meaning per tag, and Tamura Jones,
+"GEDCOM Tags" (<https://www.tamurajones.net/GEDCOMTags.xhtml>), for the
+version history. The catalog is the closed list: 121 tags listed in the
+catalog as non-underscore and nonstandard, plus the 10 entries of the
+same catalog the earlier version of this chapter missed (`COMP`,
+`CUTOFFYR`, `DATV`, `EARL`, `HISTB`, `MIDSC`, `ORIG`, `RATI`, `STAKE`,
+`WEIG`) — 131 in total.
 
-These are **strict errors** in the parser today: not `_`-prefixed, they
-bypass the generic extension path, so a file containing one fails with
-`structure.unknown-tag` instead of silently round-tripping. (The
-exception is the GEDCOM 5.3 `SCHEMA` block under HEAD — typed, chapter
-6.) The policy
-decision is open; the options considered, in increasing order of
-strictness: accept the known list as generic extensions on input
-(documented, re-emitted verbatim); accept any unknown tag as an
-extension (maximum leniency — against the strict-by-default
-principle); or keep rejecting them (today's behavior) and record each
-real-world occurrence in the README's "Known strict decisions". The
-inventory says: keep rejecting for now; revisit after the corpus
-validation runs (README "Future work") show which of these actually
-appear in modern files.
+The policy, implemented in `src/parsing/vendor-tags.ts` (the tables
+`LEGACY_INDIVIDUAL_TAGS`, `LEGACY_FAMILY_TAGS`, `LEGACY_GENERIC_TAGS`,
+each entry annotated with the catalog's program and description — the
+tables are the inventory, so the list is not repeated here):
+
+- **Accepted on 5.x input only** (files declaring 5.5.1 or 5.5.5).
+  GEDCOM 7.0 input stays strict (`structure.unknown-tag`): these tags
+  are not valid 7.0 — §1.3 defines stdTags only via the specification
+  and §1.5 requires extension tags to be underscore-prefixed. Unknown
+  non-underscore tags remain strict errors; the list is closed.
+- **Typed where the catalogs document a meaning**, normalized into the
+  model slot that carries the same fact — the same standard-first
+  normalization the underscore vendor tags use:
+  - `AKA` → `names[]` with `TYPE AKA` (like `_AKA`); `NAMR` → `NAME` +
+    `TYPE OTHER` + `PHRASE "Religious name"`; `BLESS` → the standard
+    `BLES` event; `RESIR` → the standard `RESI` attribute; `NMAR` → the
+    standard `NMR` count (per the catalog, FTW5 wrote "Number of
+    Marriages" — unlike the BKW `_NMAR`, which means never married);
+  - the non-underscore twins of the already-typed `_` facts normalize
+    identically: `CIRC` (circumcision), `MILT`/`MILF`/`MILI` (military),
+    `MISN` (mission), `EXCO` (excommunicated), `ENMPL` (employment),
+    `DEGR` (degree), `NAMS` (namesake), `EYES`/`HAIR`/`HEIG`/`WEIG`
+    (physical descriptors), and the notes `HIST`/`INFO`/`DESC`/`DESR`/
+    `REMA`/`COMML` (FTW5 "comment" — not the BKW `_COML`);
+  - ~60 further facts (`ARVL`, `CEME`, `CITN`, `CODI`, `COLO`, `COYN`,
+    `CRIM`, `CSTA`, `DPRT`, `DWEL`, `EDTN`, `EDTR`, `EMAL`, `FAX`,
+    `FOST`, `HEAL`, `HOBB`, `HONO`, `HOSP`, `ILLE`, `ILLN`, `LVG`,
+    `LVNG`, `MILA`, `MILD`, `MOVE`, `NAMG`, `ORDL`, `PASL`, `PURC`,
+    `RACE`, `REBA`, `STIL`, `STLB`, `TOWN`, `UNIT`, `VOL`, and the LDS
+    status facts `BIC`, `BLSL`, `CANC`, `NULL`, `ORDI`, `PRES`, `RESE`,
+    `REST`, `SLGP`, `STAL`/`STAKE`, `VOIL`, …) → `EVEN`/`FACT` + `TYPE`,
+    the payload text kept;
+  - `UMAR` ("unmarried") → a bare `NO MARR` (5.5.1 writes `_NMAR`);
+  - the person links `FATH`, `MOTH`, `SON`, `DAU`, `SIBL`, `WIFE` (under
+    INDI), `PART`, `FRND`, `CLER`, `CNTC`, `CPLR`, `INTE`, `INTV`,
+    `OWNR`, `RECO` — a pointer payload → `ASSO` + `RELA` (7.0: `ROLE
+    OTHER` + `PHRASE`), a text payload → `FACT` + `TYPE`;
+  - `URL` → `IndividualRecord.url` (export `_URL`); `FILN`/`HISTID`/
+    `NUMB` → `REFN` identifiers;
+  - `LDS` — the FTM5 wrapper: its children parse as LDS individual
+    ordinances (`BAPL`/`CONL`/`ENDL`/`SLGC`), and the wrapper itself
+    disappears;
+  - FAM level: `CLAW` → `MARR` + `TYPE "Common law marriage"`, `SEPA` →
+    FAM `EVEN` + `TYPE "Separated"`, `FEMA`/`MALE` → FAM `EVEN` + `TYPE`
+    with the child-count payload.
+- **Standard-first export.** The typed constructs are written in the
+  standard spelling of the target version (the vendor tag itself is not
+  written back), and both versions can spell all of them — nothing is
+  lost in either direction.
+- **The undocumented tail stays generic** (11 tags): `COMP`, `DATV`,
+  `DETS`, `EARL`, `HISTB` (the catalog marks them "???"), `LABL` and
+  `SCHEMA` outside their schema contexts (typed under HEAD, chapter 6),
+  `MSTAT` (the catalog says death status, Tamura Jones documents the
+  5.3 MSTAT as marriage status — conflicting), `NAMM` ("Name ???"),
+  `NOTP` (a *private* note: the privacy flag has no NOTE slot, so a
+  plain NOTE would lose it), `PRTY`. These are preserved verbatim on
+  5.5.1 export and dropped on 7.0 export (7.0 §1.5: extTag only).
+
+Where a tag's position *is* standard, the standard structure always
+wins: `NATI` under INDI stays a standard attribute, `WIFE` under FAM
+stays the partner link, `DESC` under SUBN stays the generation count,
+`IDNO` under INDI stays the standard IDNO attribute (7.0; on 5.x input
+it parses as the standard attribute too).
+
+Covered by `tests/vendor-extensions-nonunderscore.test.ts` (per-tag
+typing assertions, pointer associations, the LDS wrapper, the FAM
+rules, standard-first export, and a lossless 5.5.1 round trip of the
+whole catalog).

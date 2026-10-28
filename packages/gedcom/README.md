@@ -422,15 +422,24 @@ The agreed policy:
 - **One model, typed where it matters.** The multi-vendor core — `_UID`,
   `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`, `_FREL`/`_MREL` (under both
   FAM.CHIL and INDI.FAMC), `_APID` (under citations, event/attribute
-  details and names), `_FSFTID`, the `_TODO` structures under INDI/FAM,
-  `_PREF` (all four positions), `_NONE`, `_DATE2` (the event end date),
-  the FTM201x facts (`_CIRC`, `_FUN`, `_DEG`, `_EMPLOY`, `_DNA`,
+  details and names), `_FSFTID`, the `_TODO` structures under INDI/FAM
+  (plus the Legacy `_TODO` record), `_PREF` (all four positions),
+  `_NONE`, `_DATE2` (the event end date), the FTW marriage statuses
+  `_MSTAT`/`_MEND` under FAM, the RootsMagic report fields `_SUBQ`
+  (under citations) and `_SENT`/`_PPFX` (under event details), the
+  Legacy/PAF5 `_EVENT_DEFN` record (event tag, definition flags, the
+  `_SEN1`–`_SEN8` sentences and the PAF5 sentence set), the
+  FTM201x facts (`_CIRC`, `_FUN`, `_DEG`, `_EMPLOY`, `_DNA`,
   `_NAMS`, `_MILTID`), and the
   place records `_PLAC`/`_LOC`/`_PLAC_DEFN` — is typed model fields,
-  with the full rules and the source links in the field JSDoc. Unknown
-  `_` tags are preserved verbatim as generic extensions
-  (`ExtensionStructure`/`ExtensionRecord`) and are never typed; only
-  unknown non-underscore tags are strict errors (`structure.unknown-tag`).
+  with the full rules and the source links in the field JSDoc. The
+  non-underscore vendor tags of the Legacy catalog are typed too —
+  names, events/facts with a TYPE, notes, negatives, person links,
+  identifiers, the LDS wrapper — see "The legacy non-underscore tags
+  are typed" below. Unknown `_` tags are preserved verbatim as generic
+  extensions (`ExtensionStructure`/`ExtensionRecord`) and are never
+  typed; only unknown non-underscore tags are strict errors
+  (`structure.unknown-tag`).
 - **Same behavior in both versions.** Known vendor tags are recognized
   on input in 5.5.1 and 7.0 alike. On output, a construct that has a
   standard equivalent is written in the standard spelling of the target
@@ -464,7 +473,10 @@ The agreed policy:
   the `_AGER` age range under `AGE`) and its `_CENR @xref@` links under
   event/attribute details and names (the pointer must resolve to a
   census record), the community `_DATE` under
-  `REPO` and `_SOUR` under `PAGE` (preserved generically). Each field
+  `REPO` and the relocated `_SOUR` citation (typed as
+  `PageStructure.citations` under `PAGE` and
+  `SourceRecord.relocatedCitations` under a SOUR record, written back
+  under the line it belongs to; the registry marks it prerelease). Each field
   cites its registry YAML; the export rules are documented per field
   (the full inventory is docs/vendor-extensions.md chapter 4).
 - **The Family Tree Maker 5.3 schema block is typed.** The GEDCOM 5.3
@@ -475,6 +487,31 @@ The agreed policy:
   Written back as `SCHEMA` in 5.5.1; dropped on 7.0 (its SCHMA needs
   URIs, which the block lacks). Source: the GEDCOM 5.3 draft
   (`USER_TAG_SCHEMA`) and Tamura Jones "GEDCOM Tags".
+- **The legacy non-underscore tags are typed.** The 131 non-underscore
+  vendor tags of the Legacy catalog ("Tags Not Specified in GEDCOM
+  5.5": Generations, Reunion, FTM 5 DOS, TMG, Family Origins, …) are
+  accepted on 5.x input and typed where the catalogs document a
+  meaning: `AKA`/`NAMR` → names, `BLESS` → the standard `BLES` event,
+  `RESIR`/`NMAR` → the standard `RESI`/`NMR` attributes, the
+  non-underscore twins of the typed `_` facts (`CIRC`, `MILT`/`MILF`,
+  `MISN`, `EXCO`, `DEGR`, `NAMS`, `EYES`, `HAIR`, `HEIG`, `WEIG`, the
+  notes `HIST`/`INFO`/`DESC`/`DESR`/`REMA`/`COMML`) → the same
+  normalization, ~60 further facts (`ARVL`, `CEME`, `CITN`, `CRIM`,
+  `DPRT`, `DWEL`, `EDTR`, `EMAL`, `FAX`, `FOST`, `HOBB`, `HONO`,
+  `HOSP`, `LVG`, `MILA`, `MILD`, `MOVE`, `PASL`, `PURC`, `RACE`,
+  `REBA`, `STIL`, `VOL`, the LDS status facts, …) → `EVEN`/`FACT` +
+  `TYPE` with the payload kept, `UMAR` → a bare `NO MARR`, the person
+  links (`FATH`, `MOTH`, `SON`, `DAU`, `SIBL`, `WIFE`, `PART`, `FRND`,
+  `CLER`, …) → `ASSO` + `RELA`, `URL` → `IndividualRecord.url`,
+  `FILN`/`HISTID`/`NUMB` → `REFN`, the FTM5 `LDS` wrapper → ordinances,
+  and `CLAW`/`SEPA`/`FEMA`/`MALE` at FAM level. Export is standard-first
+  in both versions. The 11 tags whose meaning the catalogs do not
+  document (`DETS`, `NAMM`, `PRTY`, `MSTAT`, `NOTP`, …) stay generic
+  extensions, preserved verbatim on 5.5.1 export and dropped on 7.0
+  (extTag only); GEDCOM 7.0 input stays strict for the whole list, and
+  unknown non-underscore tags remain `structure.unknown-tag` errors.
+  The full per-tag inventory with sources is
+  docs/vendor-extensions.md chapter 8 and `parsing/vendor-tags.ts`.
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
   is projected onto `INDI.FAMC.PEDI` (natural → BIRTH, adopted →
@@ -611,8 +648,9 @@ would be, or where the model takes a documented position:
   are catalogued with their sources in
   [docs/vendor-extensions.md](docs/vendor-extensions.md). The
   multi-vendor core (`_UID`, `_SDATE`, `_SHAR`/`_ROLE`, `_PRIM`,
-  `_FREL`/`_MREL`, `_APID`, the place records) is typed in the model
-  and handled by the unified policy in the "Vendor extensions" section
+  `_FREL`/`_MREL`, `_APID`, the place records) and the non-underscore
+  tags of the Legacy catalog (chapter 8) are typed in the model and
+  handled by the unified policy in the "Vendor extensions" section
   above; the catalog remains the checklist for the corpus-validation
   work.
 

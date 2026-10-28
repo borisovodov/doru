@@ -42,6 +42,9 @@ import type {
   RawNode,
 } from './lines';
 import {
+  NON_UNDERSCORE_VENDOR_TAGS,
+} from './vendor-tags';
+import {
   parseMultimediaRecord,
 } from './media';
 import {
@@ -52,6 +55,7 @@ import {
 } from './sources';
 import { linkPlacesByName, parsePlaceRecord } from './places';
 import { parseTodoRecord } from './todo';
+import { parseEventDefinitionRecord } from './event-definition';
 import {
   parseSubmissionRecord,
   parseSubmitterRecord,
@@ -150,8 +154,16 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseCensusRecord(node, ctx);
     case '_TODO':
       return parseTodoRecord(node, ctx);
+    case '_EVENT_DEFN':
+      return parseEventDefinitionRecord(node, ctx);
     default:
       if (node.tag.startsWith('_')) {
+        return parseExtension(node) as ExtensionRecord;
+      }
+      if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(node.tag)) {
+        // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
+        // accepted at record level as generic extension records where the
+        // standard grammar has no slot for them. 7.0 input stays strict.
         return parseExtension(node) as ExtensionRecord;
       }
       fail('structure.unknown-tag', `Unknown record tag ${node.tag}`, node.position);

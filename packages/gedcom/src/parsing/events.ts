@@ -308,6 +308,14 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     CAUS: (child) => {
       detail.cause = reqText(child);
     },
+    '_SENT': (child) => {
+      // RootsMagic: the event sentence (report wording).
+      detail.sentence = reqText(child);
+    },
+    '_PPFX': (child) => {
+      // RootsMagic: the place prefix (report wording).
+      detail.placePrefix = reqText(child);
+    },
     RESN: (child) => {
       detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, ctx.version, child.position);
     },
@@ -365,6 +373,15 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     // The Gramps witness convention; normalized like _SHAR.
     handlers['ASSO'] = (child) => {
       (detail.associations ??= []).push(parseGrampsAssociation(child, ctx));
+    };
+    // The non-underscore RootsMagic spellings of the sentence and place
+    // prefix (the Legacy catalog lists them without the underscore);
+    // 7.0 input stays strict for non-extension tags.
+    handlers['SENT'] = (child) => {
+      detail.sentence = reqText(child);
+    };
+    handlers['PPFX'] = (child) => {
+      detail.placePrefix = reqText(child);
     };
   }
   if (ctx.version === '7.0') {

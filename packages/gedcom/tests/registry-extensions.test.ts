@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
-import type { CensusRecord, GedcomDataset, RepositoryRecord, SourceRecord } from '../src/structures';
+import type { CensusRecord, GedcomDataset, IndividualRecord, RepositoryRecord, SourceRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -213,7 +213,7 @@ describe('the community _DATE under REPO', () => {
 });
 
 describe('the community _SOUR under PAGE', () => {
-  test('is preserved as a generic extension and round-trips (registry: _SOUR.yaml)', () => {
+  test('is typed as a relocated citation and stays under its PAGE (registry: _SOUR.yaml)', () => {
     const sample = [
       ...HEADER70,
       '0 @S1@ SOUR',
@@ -224,16 +224,119 @@ describe('the community _SOUR under PAGE', () => {
       '2 SOUR @S1@',
       '3 PAGE p. 12',
       '4 _SOUR @S2@',
+      '5 PAGE ledger p. 3',
+      '5 QUAY 2',
       '0 @S2@ SOUR',
       '1 TITL The underlying ledger',
       '0 TRLR',
     ].join('\n');
     const first = parse70(sample);
+    const citation = (first.records[1] as IndividualRecord).events?.[0]?.detail?.citations?.[0];
+    expect(citation?.page).toEqual({
+      tag: 'PAGE',
+      payload: 'p. 12',
+      citations: [
+        {
+          tag: 'SOUR',
+          source: '@S2@',
+          page: { tag: 'PAGE', payload: 'ledger p. 3' },
+          quality: '2',
+        },
+      ],
+    });
+    // The relocated citation is written back under the PAGE line,
+    // position preserved, and the round trip is lossless.
     const text = ser70(first);
-    // The generic extension survives, written back at the citation level
-    // (a documented extension tag may appear under any structure).
-    expect(text).toContain('_SOUR @S2@');
-    parse70(text); // re-parses without error
+    expect(text).toContain('3 PAGE p. 12\r\n4 _SOUR @S2@\r\n5 PAGE ledger p. 3\r\n5 QUAY 2');
+    expect(parse70(text)).toEqual(first);
+  });
+
+  test('keeps other underscore extensions under their PAGE too', () => {
+    const sample = [
+      ...HEADER70,
+      '0 @S1@ SOUR',
+      '1 TITL Book',
+      '0 @I1@ INDI',
+      '1 BIRT',
+      '2 SOUR @S1@',
+      '3 PAGE p. 12',
+      '4 _FOO note',
+      '0 TRLR',
+    ].join('\n');
+    const first = parse70(sample);
+    const citation = (first.records[1] as IndividualRecord).events?.[0]?.detail?.citations?.[0];
+    expect(citation?.page?.extensions).toEqual([{ tag: '_FOO', payload: 'note', children: [] }]);
+    const text = ser70(first);
+    expect(text).toContain('3 PAGE p. 12\r\n4 _FOO note');
+    expect(parse70(text)).toEqual(first);
+  });
+
+  test('round-trips through 5.5.1 with the position preserved', () => {
+    const sample = [
+      ...HEADER70,
+      '0 @S1@ SOUR',
+      '1 TITL Book',
+      '0 @I1@ INDI',
+      '1 BIRT',
+      '2 SOUR @S1@',
+      '3 PAGE p. 12',
+      '4 _SOUR @S2@',
+      '0 @S2@ SOUR',
+      '1 TITL The underlying ledger',
+      '0 TRLR',
+    ].join('\n');
+    const first = parse70(sample);
+    const text = ser551(first);
+    expect(text).toContain('3 PAGE p. 12\r\n4 _SOUR @S2@');
+    const reparsed = parse551(text);
+    const citation = (reparsed.records[1] as IndividualRecord).events?.[0]?.detail?.citations?.[0];
+    expect(citation?.page).toEqual({
+      tag: 'PAGE',
+      payload: 'p. 12',
+      citations: [{ tag: 'SOUR', source: '@S2@' }],
+    });
+  });
+});
+
+describe('the community _SOUR under a SOUR record', () => {
+  test('is typed as a relocated citation and stays under the record (registry: _SOUR.yaml)', () => {
+    const sample = [
+      ...HEADER70,
+      '0 @S1@ SOUR',
+      '1 TITL Book',
+      '1 _SOUR @S2@',
+      '2 PAGE ledger p. 3',
+      '2 QUAY 2',
+      '0 @S2@ SOUR',
+      '1 TITL The underlying ledger',
+      '0 TRLR',
+    ].join('\n');
+    const first = parse70(sample);
+    const source = first.records[0] as SourceRecord;
+    expect(source.relocatedCitations).toEqual([
+      { tag: 'SOUR', source: '@S2@', page: { tag: 'PAGE', payload: 'ledger p. 3' }, quality: '2' },
+    ]);
+    const text = ser70(first);
+    expect(text).toContain('1 _SOUR @S2@\r\n2 PAGE ledger p. 3\r\n2 QUAY 2');
+    expect(parse70(text)).toEqual(first);
+  });
+
+  test('round-trips through 5.5.1 with the position preserved', () => {
+    const sample = [
+      ...HEADER70,
+      '0 @S1@ SOUR',
+      '1 TITL Book',
+      '1 _SOUR @S2@',
+      '0 @S2@ SOUR',
+      '1 TITL The underlying ledger',
+      '0 TRLR',
+    ].join('\n');
+    const first = parse70(sample);
+    const text = ser551(first);
+    expect(text).toContain('1 _SOUR @S2@');
+    const reparsed = parse551(text);
+    const source = reparsed.records.find((record) => record.tag === 'SOUR' && record.xref === '@S1@') as SourceRecord;
+    expect(source.relocatedCitations).toEqual([{ tag: 'SOUR', source: '@S2@' }]);
   });
 });
 

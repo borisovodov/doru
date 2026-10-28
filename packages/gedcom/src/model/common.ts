@@ -280,6 +280,25 @@ export interface EventDetail extends GedcomStructureBase {
   /** CAUS {0:1}, g7:CAUS — the reasons which precipitated an event. */
   cause?: Text;
   /**
+   * _SENT {0:1} — the event sentence (report wording). Written by
+   * RootsMagic under events and facts (see the Legacy "User-Defined
+   * GEDCOM Tags" help, which catalogs the non-underscore `SENT`
+   * spelling:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input as `_SENT` in
+   * both versions and as `SENT` on 5.x input; written back as `_SENT`
+   * in both versions.
+   */
+  sentence?: Text;
+  /**
+   * _PPFX {0:1} — the place prefix (report wording). Written by
+   * RootsMagic under events and facts (the Legacy catalog spells it
+   * without the underscore); not part of any GEDCOM version. Recognized
+   * on input as `_PPFX` in both versions and as `PPFX` on 5.x input;
+   * written back as `_PPFX` in both versions.
+   */
+  placePrefix?: Text;
+  /**
    * `_GODP` {0:M} — the godparents, as free text (names and
    * descriptions, not pointers): the German GEDCOM-L convention
    * (agreement ASSO A4), usually under a baptism or christening. Not

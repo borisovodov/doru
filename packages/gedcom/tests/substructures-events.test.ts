@@ -272,7 +272,7 @@ describe('source citations and media links', () => {
       }> } }>;
     };
     const citation = rec.events?.[0]?.detail?.citations?.[0];
-    expect(citation?.page).toBe('p.12');
+    expect(citation?.page?.payload).toBe('p.12');
     expect(citation?.data?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1900 });
     expect(citation?.data?.texts?.[0]).toEqual({ payload: 'excerpt', mediaType: 'text/plain' });
     expect(citation?.event).toEqual({ payload: 'BIRT', role: { payload: 'WITN' } });
@@ -301,7 +301,7 @@ describe('source citations and media links', () => {
     );
     const rec = dataset.records[0] as { events?: Array<{ detail?: { citations?: Array<{ source: string; description?: string; page?: string; quality?: string; verified?: boolean; data?: { texts?: Array<{ payload: string }> } }> } }> };
     expect(rec.events?.[0]?.detail?.citations?.[0]?.source).toBe('@S2@');
-    expect(rec.events?.[0]?.detail?.citations?.[0]?.page).toBe('p.1');
+    expect(rec.events?.[0]?.detail?.citations?.[0]?.page?.payload).toBe('p.1');
     expect(rec.events?.[0]?.detail?.citations?.[0]?.quality).toBe('2');
     expect(rec.events?.[0]?.detail?.citations?.[0]?.verified).toBe(false);
     expect(rec.events?.[0]?.detail?.citations?.[1]?.source).toBe('@VOID@');

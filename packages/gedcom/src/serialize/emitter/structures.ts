@@ -303,6 +303,14 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   if (detail.cause !== undefined) {
     w.line(level, 'CAUS', { value: detail.cause });
   }
+  if (detail.sentence !== undefined) {
+    // RootsMagic: the event sentence (report wording).
+    w.line(level, '_SENT', { value: detail.sentence });
+  }
+  if (detail.placePrefix !== undefined) {
+    // RootsMagic: the place prefix (report wording).
+    w.line(level, '_PPFX', { value: detail.placePrefix });
+  }
   for (const godparent of detail.godparents ?? []) {
     w.line(level, '_GODP', { value: godparent });
   }
@@ -414,10 +422,20 @@ export function emitNoteStructure(w: Writer, version: Version, level: number, no
 }
 
 export function emitSourceCitation(w: Writer, version: Version, level: number, citation: SourceCitation): void {
+  emitCitation(w, version, level, citation, 'SOUR');
+}
+
+/** A relocated citation under PAGE or under a SOUR record (registry:
+ *  _SOUR.yaml): the same structure as SOUR, spelled `_SOUR`. */
+export function emitRelocatedCitation(w: Writer, version: Version, level: number, citation: SourceCitation): void {
+  emitCitation(w, version, level, citation, '_SOUR');
+}
+
+function emitCitation(w: Writer, version: Version, level: number, citation: SourceCitation, tag: 'SOUR' | '_SOUR'): void {
   if (version === '7.0') {
     // The 5.5.1 free-text description becomes the PAGE (see
     // emitCitationCommon); a void SOUR pointer is legal in 7.0.
-    ptr(w, version, level, 'SOUR', citation.source);
+    ptr(w, version, level, tag, citation.source);
     emitCitationCommon(w, version, level, citation);
     return;
   }
@@ -427,7 +445,7 @@ export function emitSourceCitation(w: Writer, version: Version, level: number, c
       // citation is dropped.
       return;
     }
-    w.line(level, 'SOUR', { value: citation.description });
+    w.line(level, tag, { value: citation.description });
     for (const text of citation.data?.texts ?? []) {
       w.line(level + 1, 'TEXT', { value: text.payload });
     }
@@ -442,14 +460,23 @@ export function emitSourceCitation(w: Writer, version: Version, level: number, c
     }
     return;
   }
-  ptr(w, version, level, 'SOUR', citation.source);
+  ptr(w, version, level, tag, citation.source);
   emitCitationCommon(w, version, level, citation);
 }
 
 export function emitCitationCommon(w: Writer, version: Version, level: number, citation: SourceCitation): void {
-  const page = citation.page ?? (version === '7.0' ? citation.description : undefined);
-  if (page !== undefined) {
-    w.line(level + 1, 'PAGE', { value: page });
+  const page = citation.page;
+  const pageValue = page !== undefined ? page.payload : version === '7.0' ? citation.description : undefined;
+  if (pageValue !== undefined) {
+    w.line(level + 1, 'PAGE', { value: pageValue });
+    if (page !== undefined) {
+      // The relocated _SOUR citations (registry: _SOUR.yaml) and the
+      // page's generic extensions stay under the PAGE they belong to.
+      for (const relocated of page.citations ?? []) {
+        emitRelocatedCitation(w, version, level + 2, relocated);
+      }
+      emitExtensions(w, version, level + 2, page);
+    }
   }
   for (const pointer of citation.ancestryPointers ?? []) {
     // Ancestry record reference.
@@ -457,6 +484,10 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (citation.reference !== undefined) {
     w.line(level + 1, '_CREF', { value: citation.reference });
+  }
+  if (citation.subsequentCitationFormat !== undefined) {
+    // RootsMagic: the subsequent-citation format (report wording).
+    w.line(level + 1, '_SUBQ', { value: citation.subsequentCitationFormat });
   }
   if (citation.verified === true) {
     w.line(level + 1, '_VERI', { value: 'Y' });
@@ -516,10 +547,9 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   if (citation.quality !== undefined) {
     w.line(level + 1, 'QUAY', { value: citation.quality });
   }
-  // Generic extensions of the citation (e.g. the community _SOUR
-  // attached under PAGE — registry: _SOUR.yaml) are written back at
-  // the citation level: a documented extension tag may appear under
-  // any structure (GEDCOM 7.0 §1.5).
+  // Generic extensions of the citation itself are written back at the
+  // citation level: a documented extension tag may appear under any
+  // structure (GEDCOM 7.0 §1.5).
   emitExtensions(w, version, level, citation);
 }
 
@@ -558,6 +588,13 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
 }
 
 export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, xref: string | undefined): void {
+  if (version === '7.0' && !ext.tag.startsWith('_')) {
+    // GEDCOM 7.0 §1.5 extension tags must be underscore-prefixed
+    // (extTag): a non-underscore vendor extension accepted from 5.x
+    // input (see parsing/vendor-tags.ts) has no 7.0 spelling and is
+    // dropped, like the other 5.5.1-only constructs.
+    return;
+  }
   const payload = ext.payload === undefined ? undefined : ext.payload;
   w.line(level, ext.tag, { xref, value: payload });
   for (const child of ext.children) {

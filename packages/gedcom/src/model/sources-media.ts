@@ -43,8 +43,12 @@ export interface SourceCitation extends GedcomStructureBase {
    * serializing to 7.0 the description becomes the PAGE.
    */
   description?: Text;
-  /** PAGE {0:1}, g7:PAGE — a specific location within the information referenced. */
-  page?: Text;
+  /**
+   * <<PAGE_STRUCTURE>> {0:1}, g7:PAGE — a specific location within the
+   * information referenced, with the relocated `_SOUR` citations
+   * attached beneath it.
+   */
+  page?: PageStructure;
   /** DATA {0:1}, g7:SOUR-DATA — the relevant data from the source. */
   data?: SourceCitationData;
   /** EVEN {0:1}, g7:SOUR-EVEN — Enum of g7:enumset-EVENATTR: what event the relevant material was recording. */
@@ -73,12 +77,45 @@ export interface SourceCitation extends GedcomStructureBase {
    */
   reference?: Text;
   /**
+   * _SUBQ {0:1} — the format used for subsequent citations of the same
+   * source (report wording). Written by RootsMagic (see the Legacy
+   * "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_SUBQ` in both versions.
+   */
+  subsequentCitationFormat?: Text;
+  /**
    * _VERI Y {0:1} — the "verified" checkmark on the citation. Written
    * by Legacy Family Tree (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
    * not part of any GEDCOM version. Recognized on input and written
    * back as `_VERI` in both versions.
    */
   verified?: boolean;
+}
+
+/**
+ * GEDCOM 7.0 §3.2.3 SOURCE_CITATION — g7:PAGE: a specific location within the
+ * information referenced by the superstructure.
+ *
+ * The community extension `_SOUR` (structure/extension/_SOUR.yaml in
+ * the FamilySearch GEDCOM registry, marked prerelease there) attaches a
+ * relocated citation — the standard `SOUR` tag moved under PAGE — to
+ * the page location. The registry gives it the same payload (a pointer
+ * to a SOUR record) and the same substructures as SOURCE_CITATION
+ * (NOTE, OBJE, PAGE, QUAY, SNOTE, SOUR-DATA, SOUR-EVEN). Typed as
+ * `citations` below and written back under PAGE in both versions.
+ */
+export interface PageStructure extends GedcomStructureBase {
+  tag: 'PAGE';
+  /** The PAGE payload, {1:1} Text — the location description. */
+  payload: Text;
+  /**
+   * `_SOUR {0:M}` — the relocated citations under this page (registry:
+   * _SOUR.yaml). Recognized on input in both versions and written back
+   * as `_SOUR` in both versions, under the PAGE line they belong to.
+   */
+  citations?: SourceCitation[];
 }
 
 /**

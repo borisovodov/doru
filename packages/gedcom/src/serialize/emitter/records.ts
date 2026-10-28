@@ -61,6 +61,7 @@ import {
   emitDateExact,
   emitExtensions,
   emitNoteStructure,
+  emitRelocatedCitation,
   emitSourceCitation,
   mergedAddress,
 } from './structures';
@@ -98,6 +99,8 @@ export function emitFamily(w: Writer, version: Version, rec: {
   automatedRecordId?: string;
   updatedAt?: string;
   marriageStatus?: string;
+  marriageBeginningStatus?: string;
+  marriageEndingStatus?: string;
   sameSexUnion?: true;
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -108,6 +111,14 @@ export function emitFamily(w: Writer, version: Version, rec: {
   }
   if (rec.marriageStatus !== undefined) {
     w.line(1, '_STAT', { value: rec.marriageStatus });
+  }
+  if (rec.marriageBeginningStatus !== undefined) {
+    // FTW: the status at the beginning of the marriage.
+    w.line(1, '_MSTAT', { value: rec.marriageBeginningStatus });
+  }
+  if (rec.marriageEndingStatus !== undefined) {
+    // FTW: the status at the end of the marriage.
+    w.line(1, '_MEND', { value: rec.marriageEndingStatus });
   }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
@@ -442,6 +453,80 @@ export function emitTodoRecord(w: Writer, _version: Version, rec: {
   emitExtensions(w, _version, 1, rec);
 }
 
+/** Emits the Legacy `_EVENT_DEFN` record (see EventDefinitionRecord). */
+export function emitEventDefinition(w: Writer, version: Version, rec: {
+  tag: '_EVENT_DEFN';
+  eventType?: string;
+  confidentialFlag?: boolean;
+  dateType?: string;
+  descriptionFlag?: string;
+  placeType?: string;
+  potentialProblemsExcluded?: string;
+  sentences?: string[];
+  pafSentences?: {
+    male?: string;
+    female?: string;
+    unknown?: string;
+    maleDateOnly?: string;
+    malePlaceOnly?: string;
+    maleDateAndPlace?: string;
+    femaleDateOnly?: string;
+    femalePlaceOnly?: string;
+    femaleDateAndPlace?: string;
+    unknownDateOnly?: string;
+    unknownPlaceOnly?: string;
+    unknownDateAndPlace?: string;
+  };
+  extensions?: ExtensionStructure[];
+  xref?: string;
+}): void {
+  w.line(0, '_EVENT_DEFN', { xref: rec.xref, value: rec.eventType });
+  if (rec.confidentialFlag !== undefined) {
+    w.line(1, '_CONF_FLAG', { value: rec.confidentialFlag ? 'Y' : 'N' });
+  }
+  if (rec.dateType !== undefined) {
+    w.line(1, '_DATE_TYPE', { value: rec.dateType });
+  }
+  if (rec.descriptionFlag !== undefined) {
+    w.line(1, '_DESC_FLAG', { value: rec.descriptionFlag });
+  }
+  if (rec.placeType !== undefined) {
+    w.line(1, '_PLACE_TYPE', { value: rec.placeType });
+  }
+  if (rec.potentialProblemsExcluded !== undefined) {
+    w.line(1, '_PP_EXCLUDE', { value: rec.potentialProblemsExcluded });
+  }
+  (rec.sentences ?? []).forEach((sentence, index) => {
+    if (sentence !== '') {
+      w.line(1, index === 0 ? '_SEN1' : `_SEN${index + 1}`, { value: sentence });
+    }
+  });
+  const paf = rec.pafSentences;
+  if (paf !== undefined) {
+    const order: Array<[keyof NonNullable<typeof paf>, string]> = [
+      ['male', '_SENM'],
+      ['female', '_SENF'],
+      ['unknown', '_SENU'],
+      ['maleDateOnly', '_SENDOM'],
+      ['malePlaceOnly', '_SENPOM'],
+      ['maleDateAndPlace', '_SENDPM'],
+      ['femaleDateOnly', '_SENDOF'],
+      ['femalePlaceOnly', '_SENPOF'],
+      ['femaleDateAndPlace', '_SENDPF'],
+      ['unknownDateOnly', '_SENDOU'],
+      ['unknownPlaceOnly', '_SENPOU'],
+      ['unknownDateAndPlace', '_SENDPU'],
+    ];
+    for (const [field, tag] of order) {
+      const value = paf[field];
+      if (value !== undefined) {
+        w.line(1, tag, { value });
+      }
+    }
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
 /** Emits the `_TODO` substructure under INDI/FAM (see TodoStructure). */
 export function emitTodoStructure(w: Writer, version: Version, level: number, rec: TodoStructure): void {
   w.line(level, '_TODO', rec.payload === undefined ? {} : { value: rec.payload });
@@ -640,6 +725,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   automatedRecordId?: string;
   template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
   fullFootnote?: string;
+  relocatedCitations?: SourceCitation[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -733,6 +819,11 @@ export function emitSource(w: Writer, version: Version, rec: {
         w.line(3, 'VALUE', { value: field.value });
       }
     }
+  }
+  for (const relocated of rec.relocatedCitations ?? []) {
+    // The relocated _SOUR citations under the SOUR record (registry:
+    // _SOUR.yaml): written back under the record in both versions.
+    emitRelocatedCitation(w, version, 1, relocated);
   }
   commonRecordFields(w, version, rec, 1);
 }

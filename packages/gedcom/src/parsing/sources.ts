@@ -253,6 +253,12 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _FULL: (child) => {
       rec.fullFootnote = reqText(child);
     },
+    _SOUR: (child) => {
+      // The relocated citation under the SOUR record (registry:
+      // _SOUR.yaml): the standard SOUR tag moved under the record,
+      // with the same payload and substructures as SOURCE_CITATION.
+      (rec.relocatedCitations ??= []).push(parseSourceCitation(child, ctx));
+    },
     REPO: (child) => {
       (rec.repositoryCitations ??= []).push(parseSourceRepositoryCitation(child, ctx));
     },
