@@ -63,6 +63,10 @@ export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord)
     for (const note of rec.changeDate.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }
+    if (rec.changeDate.user !== undefined) {
+      // webtrees: the user who made the change (see ChangeDate.user).
+      w.line(2, '_WT_USER', { value: rec.changeDate.user });
+    }
   }
   emitExtensions(w, version, 1, rec);
 }

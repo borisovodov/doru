@@ -82,6 +82,17 @@ export interface FamilyRecord extends GedcomStructureBase {
    */
   updatedAt?: Text;
   /**
+   * _CREAT {0:1} — the date the record was created (a free text value;
+   * the wire format of GenPlus, which writes it, is undocumented, so
+   * the value is kept verbatim rather than parsed into the 7.0 CREA
+   * structure). Catalogued by the GEDCOM-L working group in the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table
+   * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_CREAT` in both versions.
+   */
+  createdAt?: Text;
+  /**
    * _STAT {0:1} — the status of the marriage (Married, Unmarried, …).
    * Written by Legacy Family Tree under FAM (see its "Custom GEDCOM
    * Tags" help:
@@ -278,6 +289,17 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   updatedAt?: Text;
   /**
+   * _CREAT {0:1} — the date the record was created (a free text value;
+   * the wire format of GenPlus, which writes it, is undocumented, so
+   * the value is kept verbatim rather than parsed into the 7.0 CREA
+   * structure). Catalogued by the GEDCOM-L working group in the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table
+   * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_CREAT` in both versions.
+   */
+  createdAt?: Text;
+  /**
    * _URL {0:1} — an internet address of the individual. Written by
    * Legacy Family Tree under INDI (see its "Custom GEDCOM Tags" help:
    * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part of any GEDCOM version. Recognized on input and
@@ -288,8 +310,12 @@ export interface IndividualRecord extends GedcomStructureBase {
    * _SOSA {0:1} — the individual's Sosa–Stradonitz (Ahnentafel)
    * number. Written by Ancestris, the French GEDCOM editor (see its
    * user guide, "Tags": https://docs.ancestris.org/books/user-guide/page/tags);
-   * not part of any GEDCOM version. Recognized on input and written
-   * back as `_SOSA` in both versions.
+   * the same slot also accepts GES2000's `_AHNNR` (the ancestor-table
+   * number, catalogued by the GEDCOM-L working group in the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_SOSA` in
+   * both versions.
    */
   sosaNumber?: Text;
   /**
@@ -299,12 +325,11 @@ export interface IndividualRecord extends GedcomStructureBase {
    * Tree, Ancestral Quest, Family Historian and webtrees (catalogued
    * by the GEDCOM-L working group in the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" table:
-   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
-   * GEDCOM version. Recognized on input and written back as `_FSFTID`
-   * in both versions. (The non-underscore `FSFTID` spelling of
-   * RootsMagic stays a strict error: it is not in the accepted
-   * non-underscore catalog — see docs/vendor-extensions.md chapter 8
-   * and parsing/vendor-tags.ts.)
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); Mac Family Tree
+   * and Familienbuch write the same value as `_FID`, and RootsMagic
+   * writes the non-underscore `FSFTID` — both normalize into this
+   * field. Not part of any GEDCOM version. Recognized on input and
+   * written back as `_FSFTID` in both versions.
    */
   familySearchId?: Text;
   /**
@@ -384,6 +409,8 @@ export interface IndividualRecord extends GedcomStructureBase {
 export interface ChildFamilyLink extends GedcomStructureBase {
   /** The FAMC payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /** PHRASE {0:1}, g7:PHRASE — a word or phrase the source system uses to describe the family (7.0-only; 5.5.1 has no slot, dropped on 5.5.1 export). */
+  phrase?: Text;
   /**
    * _FREL {0:1} — the relationship of this child to the father in the
    * family (Natural, Adopted, Step, Foster, …). Under FAM.CHIL the tag
@@ -464,6 +491,8 @@ export interface FamilyChildStatusStructure extends GedcomStructureBase {
 export interface SpouseFamilyLink extends GedcomStructureBase {
   /** The FAMS payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /** PHRASE {0:1}, g7:PHRASE — a word or phrase the source system uses to describe the family (7.0-only; 5.5.1 has no slot, dropped on 5.5.1 export). */
+  phrase?: Text;
   /**
    * _PREF Y {0:1} — marks the preferred spouse. Written by Legacy
    * Family Tree (see its "Custom GEDCOM Tags" help:
@@ -564,6 +593,16 @@ export interface MediaFile extends GedcomStructureBase {
   form: MediaFormatStructure;
   /** TITL {0:1}, g7:TITL — a title of the file. */
   title?: Text;
+  /**
+   * _CTYP {0:1} — the content type of the picture (person, group,
+   * place, signature, tombstone, document, heirloom). Written by
+   * Ahnenblatt under OBJE.FILE (see the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as `_CTYP`
+   * under the FILE line in both versions.
+   */
+  contentType?: Text;
   /** TRAN {0:M}, g7:FILE-TRAN — the same content in a different digital format. */
   translations?: MediaFileTranslation[];
 }

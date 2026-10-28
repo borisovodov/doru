@@ -80,15 +80,15 @@ import type {
 export function emitFamily(w: Writer, version: Version, rec: {
   tag: 'FAM';
   restriction?: Array<string | `_${string}`>;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail }>;
-  events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: FamilyEventDetail }>;
+  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail; extensions?: ExtensionStructure[] }>;
+  events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: FamilyEventDetail; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
-  husband?: { partner: string; phrase?: string; preferred?: boolean };
-  wife?: { partner: string; phrase?: string; preferred?: boolean };
-  children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: string; fatherRelation?: string; motherRelation?: string }>;
+  husband?: { partner: string; phrase?: string; preferred?: boolean; extensions?: ExtensionStructure[] };
+  wife?: { partner: string; phrase?: string; preferred?: boolean; extensions?: ExtensionStructure[] };
+  children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: string; fatherRelation?: string; motherRelation?: string; extensions?: ExtensionStructure[] }>;
   associations?: AssociationStructure[];
   submitters?: string[];
-  spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail }>;
+  spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail; extensions?: ExtensionStructure[] }>;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
   citations?: SourceCitation[];
@@ -98,6 +98,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   creationDate?: CreationDate;
   automatedRecordId?: string;
   updatedAt?: string;
+  createdAt?: string;
   marriageStatus?: string;
   marriageBeginningStatus?: string;
   marriageEndingStatus?: string;
@@ -108,6 +109,10 @@ export function emitFamily(w: Writer, version: Version, rec: {
   w.line(0, 'FAM', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
+  }
+  if (rec.createdAt !== undefined) {
+    // GenPlus: the record creation date (see FamilyRecord.createdAt).
+    w.line(1, '_CREAT', { value: rec.createdAt });
   }
   if (rec.marriageStatus !== undefined) {
     w.line(1, '_STAT', { value: rec.marriageStatus });
@@ -131,6 +136,11 @@ export function emitFamily(w: Writer, version: Version, rec: {
         // FAMILY_EVENT_DETAIL are dropped there (see
         // FamilyChildCountAttribute).
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
+      } else {
+        // 5.5.1 NCHI is a bare count; vendor children (the USM6 `SURE`
+        // marker "the given child count is certain") survive as generic
+        // extensions.
+        emitExtensions(w, version, 2, attribute);
       }
       continue;
     }
@@ -142,6 +152,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
         w.line(1, 'RESI');
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
       }
+      emitExtensions(w, version, 2, attribute);
       continue;
     }
     // FAM.FACT is 7.0-only; dropped.
@@ -153,6 +164,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
       w.line(2, 'TYPE', { value: attribute.type });
     }
     emitFamilyDetail(w, version, 2, attribute.detail, undefined);
+    emitExtensions(w, version, 2, attribute);
   }
   for (const event of rec.events ?? []) {
     emitFamilyEvent(w, version, event);
@@ -199,6 +211,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
     if (rec.husband.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
+    emitExtensions(w, version, 2, rec.husband);
   }
   if (rec.wife !== undefined) {
     ptr(w, version, 1, 'WIFE', rec.wife.partner);
@@ -208,6 +221,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
     if (rec.wife.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
+    emitExtensions(w, version, 2, rec.wife);
   }
   for (const child of rec.children ?? []) {
     ptr(w, version, 1, 'CHIL', child.child);
@@ -229,6 +243,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
         w.line(2, '_MREL', { value: child.motherRelation });
       }
     }
+    emitExtensions(w, version, 2, child);
   }
   for (const association of rec.associations ?? []) {
     if (version === '7.0') {
@@ -244,6 +259,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   for (const sealing of rec.spouseSealings ?? []) {
     w.line(1, 'SLGS');
     emitLdsDetail(w, version, 2, sealing.detail, 'SLGS');
+    emitExtensions(w, version, 2, sealing);
   }
   commonRecordFields(w, version, rec, 1);
 }
@@ -253,15 +269,15 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   restriction?: Array<string | `_${string}`>;
   names?: PersonalNameStructure[];
   sex?: string;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail }>;
-  events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } } }>;
+  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail; extensions?: ExtensionStructure[] }>;
+  events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } }; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
-  ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string }>;
-  childFamilies?: Array<{ family: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; notes?: NoteStructure[] }>;
-  spouseFamilies?: Array<{ family: string; preferred?: boolean; notes?: NoteStructure[] }>;
+  ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string; extensions?: ExtensionStructure[] }>;
+  childFamilies?: Array<{ family: string; phrase?: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
+  spouseFamilies?: Array<{ family: string; phrase?: string; preferred?: boolean; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
   submitters?: string[];
   associations?: AssociationStructure[];
-  aliases?: Array<{ individual: string; phrase?: string }>;
+  aliases?: Array<{ individual: string; phrase?: string; extensions?: ExtensionStructure[] }>;
   ancestorInterests?: string[];
   descendantInterests?: string[];
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
@@ -274,6 +290,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   recordFileNumber?: string;
   ancestralFileNumber?: string;
   updatedAt?: string;
+  createdAt?: string;
   url?: string;
   sosaNumber?: string;
   familySearchId?: string;
@@ -285,6 +302,10 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   w.line(0, 'INDI', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
+  }
+  if (rec.createdAt !== undefined) {
+    // GenPlus: the record creation date (see IndividualRecord.createdAt).
+    w.line(1, '_CREAT', { value: rec.createdAt });
   }
   if (rec.url !== undefined) {
     w.line(1, '_URL', { value: rec.url });
@@ -321,6 +342,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     const payload = attribute.payload;
     w.line(1, attribute.tag, payload === undefined ? {} : { value: String(payload) });
     emitIndividualDetail(w, version, 2, attribute.detail, attribute.type);
+    emitExtensions(w, version, 2, attribute);
   }
   for (const event of rec.events ?? []) {
     emitIndividualEvent(w, version, event);
@@ -357,9 +379,14 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     if (ordinance.familyChild !== undefined) {
       ptr(w, version, 2, 'FAMC', ordinance.familyChild);
     }
+    emitExtensions(w, version, 2, ordinance);
   }
   for (const link of rec.childFamilies ?? []) {
     ptr(w, version, 1, 'FAMC', link.family);
+    if (version === '7.0' && link.phrase !== undefined) {
+      // The 7.0 FAMC PHRASE; 5.5.1 has no slot (dropped).
+      w.line(2, 'PHRASE', { value: link.phrase });
+    }
     if (link.primary === true) {
       w.line(2, '_PRIMARY', { value: 'Y' });
     }
@@ -394,15 +421,21 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     for (const note of link.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }
+    emitExtensions(w, version, 2, link);
   }
   for (const link of rec.spouseFamilies ?? []) {
     ptr(w, version, 1, 'FAMS', link.family);
+    if (version === '7.0' && link.phrase !== undefined) {
+      // The 7.0 FAMS PHRASE; 5.5.1 has no slot (dropped).
+      w.line(2, 'PHRASE', { value: link.phrase });
+    }
     if (link.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
     for (const note of link.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }
+    emitExtensions(w, version, 2, link);
   }
   for (const submitter of rec.submitters ?? []) {
     ptr(w, version, 1, 'SUBM', submitter);
@@ -415,6 +448,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     if (alias.phrase !== undefined) {
       w.line(2, 'PHRASE', { value: alias.phrase });
     }
+    emitExtensions(w, version, 2, alias);
   }
   for (const submitter of rec.ancestorInterests ?? []) {
     ptr(w, version, 1, 'ANCI', submitter);
@@ -727,9 +761,10 @@ export function emitNoteRecordAs70(w: Writer, version: Version, rec: {
 export function emitSource(w: Writer, version: Version, rec: {
   tag: 'SOUR';
   data?: {
-    events?: Array<{ payload: Array<string | `_${string}`>; userDefined?: string[]; date?: DatePeriodStructure; place?: PlaceStructure }>;
+    events?: Array<{ payload: Array<string | `_${string}`>; userDefined?: string[]; date?: DatePeriodStructure; place?: PlaceStructure; extensions?: ExtensionStructure[] }>;
     agency?: string;
     notes?: NoteStructure[];
+    extensions?: ExtensionStructure[];
   };
   author?: string;
   title?: string;
@@ -784,6 +819,7 @@ export function emitSource(w: Writer, version: Version, rec: {
       if (event.place !== undefined) {
         emitPlace(w, version, 3, event.place);
       }
+      emitExtensions(w, version, 3, event);
     }
     if (rec.data.agency !== undefined) {
       w.line(2, 'AGNC', { value: rec.data.agency });
@@ -791,6 +827,7 @@ export function emitSource(w: Writer, version: Version, rec: {
     for (const note of rec.data.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }
+    emitExtensions(w, version, 2, rec.data);
   }
   if (rec.author !== undefined) {
     w.line(1, 'AUTH', { value: rec.author });

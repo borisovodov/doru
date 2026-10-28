@@ -12,6 +12,9 @@ import type {
   LdsOrdinanceDetail,
 } from '../../structures';
 import type {
+  ExtensionStructure,
+} from '../../structures';
+import type {
   Version,
 } from '../writer';
 import {
@@ -25,6 +28,7 @@ import {
   emitDate,
   emitDateExact,
   emitEventDetail,
+  emitExtensions,
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
@@ -58,6 +62,7 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
   payload?: true | string;
   type?: string;
   detail?: FamilyEventDetail;
+  extensions?: ExtensionStructure[];
 }): void {
   if (event.tag === 'EVEN') {
     if (version === '7.0') {
@@ -66,6 +71,7 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
       w.line(1, 'EVEN', { value: (event.payload as string) || undefined });
     }
     emitFamilyDetail(w, version, 2, event.detail, event.type);
+    emitExtensions(w, version, 2, event);
     return;
   }
   if (version === '7.0') {
@@ -77,6 +83,7 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
     w.line(1, event.tag);
   }
   emitFamilyDetail(w, version, 2, event.detail, event.type);
+  emitExtensions(w, version, 2, event);
 }
 
 export function emitIndividualDetail(w: Writer, version: Version, level: number, detail: IndividualEventDetail | undefined, type: string | undefined): void {
@@ -99,10 +106,12 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   detail?: IndividualEventDetail;
   familyChild?: string;
   adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } };
+  extensions?: ExtensionStructure[];
 }): void {
   if (event.tag === 'EVEN') {
     w.line(1, 'EVEN', { value: (event.payload as string) || undefined });
     emitIndividualDetail(w, version, 2, event.detail, event.type);
+    emitExtensions(w, version, 2, event);
     return;
   }
   if (version === '7.0') {
@@ -126,6 +135,7 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
     ptr(w, version, 2, 'FAMC', event.familyChild);
   }
   emitIndividualDetail(w, version, 2, event.detail, event.type);
+  emitExtensions(w, version, 2, event);
 }
 
 export function emitLdsDetail(w: Writer, version: Version, level: number, detail: LdsOrdinanceDetail | undefined, _ordinance: string): void {

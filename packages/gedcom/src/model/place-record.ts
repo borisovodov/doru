@@ -20,23 +20,33 @@
  *   `_LOC @parent@` child, and events link to them explicitly with
  *   `_LOC @xref@` under PLAC.
  *
+ * A `_LOC` record *without* a `NAME` child is not the GEDCOM-L place
+ * record — that dialect requires the name. It is an extension record
+ * whose contents the extension defines (the FamilySearch GEDCOM 7.0
+ * test files exercise this form), and it parses as a generic
+ * `ExtensionRecord` instead, preserved verbatim.
+ *
  * The catalog source is John Cardinal's "Common GEDCOM Extensions":
  * https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html
  *
  * On input (both versions) every dialect is normalized to tag `_PLAC`
- * with the name as the payload, and events that name a place whose text
- * matches a record's payload get their `PlaceStructure.location` filled
- * (records without an xref receive a synthesized one, like the OBJE
- * synthesis). On output the records are read-side entities that
- * flatten onto the standard: their map and notes are merged into each
- * referencing place that lacks its own copy (citations and media have
- * no standard slot under PLAC and are dropped), the location links are
- * consumed, and the records are not written. The exception is the
- * GEDCOM-L dialect: a record carrying the German fields below (govId,
- * postalCodes, administrativeIds, demographicData, types, extra names,
- * parents, denomination, or events) is written back as a `_LOC`
- * record in both versions (GEDCOM 7.0 §1.5 allows extension records)
- * with the `_LOC` pointer kept on its referencing places.
+ * with the name as the payload (plus a one-entry `names` list, so the
+ * `_LOC` write-back round-trips stably), and events that name a place
+ * whose text matches a record's payload get their
+ * `PlaceStructure.location` filled (records without an xref receive a
+ * synthesized one, like the OBJE synthesis). On output the 7.0
+ * serializer writes every card back as a `_LOC` extension record with
+ * its full contents (GEDCOM 7.0 §1.5 allows extension records), keeping
+ * the `_LOC` pointer on its referencing places — nothing is flattened
+ * or dropped. The 5.5.1 serializer flattens instead: each card's map
+ * and notes are merged into every referencing place that lacks its own
+ * copy (citations and media have no standard slot under PLAC and are
+ * dropped), the location links are consumed, and the records are not
+ * written. The exception is the GEDCOM-L dialect: a record carrying
+ * the German fields below (govId, postalCodes, administrativeIds,
+ * demographicData, types, extra names, parents, denomination, or
+ * events) is written back as a `_LOC` record in 5.5.1 too, with the
+ * `_LOC` pointer kept on its referencing places.
  */
 import type { Language, Pointer, Text, Xref } from '../primitives';
 import type {
@@ -56,7 +66,7 @@ export interface PlaceRecord extends GedcomStructureBase {
   xref?: Xref;
   /** The place name, {1:1} Text — the key events match by. */
   payload: Text;
-  /** ABBR {0:1} — an abbreviation (Legacy `_PLAC_DEFN`). Dropped when serializing to 7.0. */
+  /** ABBR {0:1} — an abbreviation (Legacy `_PLAC_DEFN`). Written back under the `_LOC` record in 7.0; dropped on the 5.5.1 flattening. */
   abbreviation?: Text;
   /**
    * `_PREP` {0:1} — the location preposition: the word or phrase that

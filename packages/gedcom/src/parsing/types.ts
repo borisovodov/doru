@@ -74,15 +74,57 @@ function monthTable(calendar: Calendar): Readonly<Record<string, string>> | null
 }
 
 /**
+ * Resolves a SCHMA-declared extension tag to its URI (GEDCOM 7.0
+ * §2.14 / §1.5): the header's SCHMA block documents the meaning of the
+ * document's extension tags. A documented extension calendar whose URI
+ * is `g7:cal-<name>` abbreviates that standard calendar, and a
+ * documented extension month whose URI is `g7:month-<tag>` abbreviates
+ * that standard month — both keep their extension spelling in the
+ * model.
+ */
+export type TagResolver = (tag: string) => string | undefined;
+
+/** The GEDCOM 7.0 calendar-term URI prefix (`g7:cal-…`). */
+const CALENDAR_URI_PREFIX = 'https://gedcom.io/terms/v7/cal-';
+/** The GEDCOM 7.0 month-term URI prefix (`g7:month-…`). */
+const MONTH_URI_PREFIX = 'https://gedcom.io/terms/v7/month-';
+
+/** The standard calendar a documented extension calendar abbreviates,
+ *  or the extension calendar itself when its URI names none. */
+function resolvedCalendar(calendar: Calendar, resolve: TagResolver | undefined): Calendar {
+  if (resolve === undefined || !calendar.startsWith('_')) {
+    return calendar;
+  }
+  const uri = resolve(calendar);
+  if (uri === undefined || !uri.startsWith(CALENDAR_URI_PREFIX)) {
+    return calendar;
+  }
+  const name = uri.slice(CALENDAR_URI_PREFIX.length);
+  return name === 'GREGORIAN' || name === 'JULIAN' || name === 'FRENCH_R' || name === 'HEBREW'
+    ? name
+    : calendar;
+}
+
+/**
  * Validates a month token for the calendar (case-sensitive for 7.0,
  * case-insensitive for 5.5.1) and returns the canonical tag.
  */
-function monthOf(calendar: Calendar, token: string, version: GedcomVersion, position: SourcePosition): GedcomMonth {
+function monthOf(calendar: Calendar, token: string, version: GedcomVersion, position: SourcePosition, resolve?: TagResolver): GedcomMonth {
   if (calendar === 'GREGORIAN' || calendar === 'JULIAN' || calendar === 'FRENCH_R' || calendar === 'HEBREW') {
     const table = monthTable(calendar) as Readonly<Record<string, string>>;
     if (version === '7.0') {
       if (token in table) {
         return token as GedcomMonth;
+      }
+      // A documented extension month (SCHMA → g7:month-…) abbreviates
+      // a standard month of this calendar (GEDCOM 7.0 §1.5, the
+      // documented-extension clause of §7.0.4); it keeps its extension
+      // spelling.
+      if (token.startsWith('_') && resolve !== undefined) {
+        const uri = resolve(token);
+        if (uri !== undefined && uri.startsWith(MONTH_URI_PREFIX)) {
+          return token as GedcomMonth;
+        }
       }
     } else {
       const key = Object.keys(table).find((month) => month.toLowerCase() === token.toLowerCase());
@@ -196,7 +238,7 @@ function makeFields(
 }
 
 /** Parses the `[calendar] [[day] month] year [epoch]` production. */
-function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | '5.5.1', position: SourcePosition): DateFields {
+function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | '5.5.1', position: SourcePosition, resolve?: TagResolver): DateFields {
   let rest = tokens;
   if (rest.length === 0) {
     fail('date.invalid', 'A date must have a year', position);
@@ -226,20 +268,23 @@ function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | 
   }
 
   // One token: a year. Two tokens: month year. Three: day month year.
+  // A documented extension calendar (SCHMA → g7:cal-…) validates its
+  // months against the standard calendar it abbreviates.
+  const monthCalendar = resolvedCalendar(calendar, resolve);
   let year: number;
   let month: GedcomMonth | undefined;
   let day: number | undefined;
   if (rest.length === 1) {
     year = parseYear(rest[0] as string, position);
   } else if (rest.length === 2) {
-    month = monthOf(calendar, rest[0] as string, version, position);
+    month = monthOf(monthCalendar, rest[0] as string, version, position, resolve);
     year = parseYear(rest[1] as string, position);
   } else if (rest.length === 3) {
     if (!/^\d+$/.test(rest[0] as string)) {
       fail('date.bad-day', `Invalid day "${rest[0]}"`, position);
     }
     day = Number(rest[0]);
-    month = monthOf(calendar, rest[1] as string, version, position);
+    month = monthOf(monthCalendar, rest[1] as string, version, position, resolve);
     year = parseYear(rest[2] as string, position);
     checkDay(calendar, month, day, year, epoch, position);
   } else {
@@ -250,9 +295,10 @@ function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | 
 
 /**
  * Parses a GEDCOM 7.0 DateValue (the whole payload). The empty payload
- * yields the `unknown` variant.
+ * yields the `unknown` variant. The optional resolver maps SCHMA-declared
+ * extension tags to their URIs (see TagResolver).
  */
-export function parseDateValue70(text: string, position: SourcePosition): DateValue {
+export function parseDateValue70(text: string, position: SourcePosition, resolve?: TagResolver): DateValue {
   if (text.trim() === '') {
     return { kind: 'unknown' } satisfies EmptyDateValue;
   }
@@ -260,20 +306,20 @@ export function parseDateValue70(text: string, position: SourcePosition): DateVa
   const first = tokens[0] as string;
   const firstUpper = first.toUpperCase();
   if (firstUpper === 'FROM' || firstUpper === 'TO') {
-    return parsePeriod70(tokens, position);
+    return parsePeriod70(tokens, position, resolve);
   }
   if (firstUpper === 'BET') {
-    return parseRange70(tokens, position);
+    return parseRange70(tokens, position, resolve);
   }
   if (firstUpper === 'AFT' || firstUpper === 'BEF') {
-    const date = parseDate70(tokens.slice(1), position);
+    const date = parseDate70(tokens.slice(1), position, resolve);
     return { kind: 'bound', modifier: firstUpper as 'AFT' | 'BEF', date: plainFields(date) } satisfies DateBound;
   }
   if (firstUpper === 'ABT' || firstUpper === 'CAL' || firstUpper === 'EST') {
-    const date = parseDate70(tokens.slice(1), position);
+    const date = parseDate70(tokens.slice(1), position, resolve);
     return { kind: 'approx', modifier: firstUpper as 'ABT' | 'CAL' | 'EST', date: plainFields(date) } satisfies DateApprox;
   }
-  return parseDate70(tokens, position);
+  return parseDate70(tokens, position, resolve);
 }
 
 /**
@@ -304,7 +350,7 @@ function plainFields(date: PlainDate): DateFields {
 }
 
 /** Parses the plain `date` production of GEDCOM 7.0. */
-export function parseDate70(tokens: string[], position: SourcePosition): PlainDate {
+export function parseDate70(tokens: string[], position: SourcePosition, resolve?: TagResolver): PlainDate {
   if (tokens.length === 0) {
     fail('date.invalid', 'A date must have a year', position);
   }
@@ -318,33 +364,33 @@ export function parseDate70(tokens: string[], position: SourcePosition): PlainDa
     calendar = first as Calendar;
     rest = tokens.slice(1);
   }
-  const fields = parseDateFields(rest, calendar, '7.0', position);
+  const fields = parseDateFields(rest, calendar, '7.0', position, resolve);
   return { kind: 'date', ...fields };
 }
 
 /** Parses `FROM date [TO date]` / `TO date` of GEDCOM 7.0. */
-function parsePeriod70(tokens: string[], position: SourcePosition): DatePeriodValue {
+function parsePeriod70(tokens: string[], position: SourcePosition, resolve?: TagResolver): DatePeriodValue {
   const first = (tokens[0] as string).toUpperCase();
   if (first === 'TO') {
-    return { kind: 'period', to: plainFields(parseDate70(tokens.slice(1), position)) };
+    return { kind: 'period', to: plainFields(parseDate70(tokens.slice(1), position, resolve)) };
   }
   const toIndex = tokens.findIndex((token) => token.toUpperCase() === 'TO');
   if (toIndex === -1) {
-    return { kind: 'period', from: plainFields(parseDate70(tokens.slice(1), position)) };
+    return { kind: 'period', from: plainFields(parseDate70(tokens.slice(1), position, resolve)) };
   }
-  const from = plainFields(parseDate70(tokens.slice(1, toIndex), position));
-  const to = plainFields(parseDate70(tokens.slice(toIndex + 1), position));
+  const from = plainFields(parseDate70(tokens.slice(1, toIndex), position, resolve));
+  const to = plainFields(parseDate70(tokens.slice(toIndex + 1), position, resolve));
   return { kind: 'period', from, to };
 }
 
 /** Parses `BET date AND date` of GEDCOM 7.0. */
-function parseRange70(tokens: string[], position: SourcePosition): DateRange {
+function parseRange70(tokens: string[], position: SourcePosition, resolve?: TagResolver): DateRange {
   const andIndex = tokens.findIndex((token) => token.toUpperCase() === 'AND');
   if (andIndex === -1) {
     fail('date.invalid', 'A BET date must contain AND: "BET <date> AND <date>"', position);
   }
-  const start = plainFields(parseDate70(tokens.slice(1, andIndex), position));
-  const end = plainFields(parseDate70(tokens.slice(andIndex + 1), position));
+  const start = plainFields(parseDate70(tokens.slice(1, andIndex), position, resolve));
+  const end = plainFields(parseDate70(tokens.slice(andIndex + 1), position, resolve));
   return { kind: 'range', start, end };
 }
 
@@ -352,14 +398,14 @@ function parseRange70(tokens: string[], position: SourcePosition): DateRange {
  * Parses a GEDCOM 7.0 DatePeriod (used by NO.DATE and DATA.DATE); the
  * empty payload is permitted.
  */
-export function parseDatePeriod70(text: string, position: SourcePosition): DatePeriodValue {
+export function parseDatePeriod70(text: string, position: SourcePosition, resolve?: TagResolver): DatePeriodValue {
   if (text.trim() === '') {
     return { kind: 'period' };
   }
   const tokens = text.trim().split(/ +/);
   const first = (tokens[0] as string).toUpperCase();
   if (first === 'FROM' || first === 'TO') {
-    return parsePeriod70(tokens, position);
+    return parsePeriod70(tokens, position, resolve);
   }
   fail('date.invalid', `Invalid date period "${text}"; expected FROM/TO`, position);
 }

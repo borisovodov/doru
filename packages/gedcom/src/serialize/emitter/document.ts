@@ -324,6 +324,10 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
     for (const note of rec.changeDate.notes ?? []) {
       emitNoteStructure(w, version, level + 1, note);
     }
+    if (rec.changeDate.user !== undefined) {
+      // webtrees: the user who made the change (see ChangeDate.user).
+      w.line(level + 1, '_WT_USER', { value: rec.changeDate.user });
+    }
   }
   if (rec.creationDate !== undefined && version === '7.0') {
     w.line(level, 'CREA');
@@ -447,6 +451,10 @@ export function emitSubmission(w: Writer, version: Version, rec: {
     emitDateExact(w, version, 2, 'DATE', rec.changeDate.date, rec.changeDate.date.time);
     for (const note of rec.changeDate.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
+    }
+    if (rec.changeDate.user !== undefined) {
+      // webtrees: the user who made the change (see ChangeDate.user).
+      w.line(2, '_WT_USER', { value: rec.changeDate.user });
     }
   }
   if (rec.automatedRecordId !== undefined) {

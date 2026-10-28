@@ -191,14 +191,33 @@ describe('place records on export', () => {
     expect(text).toContain('3 NOTE Card note');
   });
 
-  test('7.0: same flattening, additional places stay _PLAC', () => {
+  test('7.0: the card survives as a _LOC extension record, links kept, nothing merged', () => {
     const text = ser70(sample());
-    expect(text).not.toContain('0 _PLAC');
-    expect(text).not.toContain('_LOC');
+    // The card is written back as a _LOC extension record (GEDCOM 7.0
+    // §1.5 allows extension records) with its name, map and note on the
+    // card; the referencing places keep the _LOC pointer instead of
+    // receiving merged copies.
+    expect(text).toContain('0 @P1@ _LOC');
+    expect(text).toContain('1 NAME Ames, Iowa');
+    expect(text).toContain('1 MAP');
+    expect(text).toContain('2 LATI N42.034722');
+    expect(text).toContain('1 NOTE Card note');
+    expect(text).toContain('3 _LOC @P1@');
+    expect(text).not.toContain('3 MAP');
+    expect(text).not.toContain('3 NOTE Card note');
     expect(text).toContain('2 _PLAC Parma, Ohio');
-    expect(text).toContain('3 MAP');
-    expect(text).toContain('4 LATI N42.034722');
-    expect(text).toContain('3 NOTE Card note');
+  });
+
+  test('7.0: the preserved cards round-trip through the 7.0 parser', () => {
+    const first = parseOk70(ser70(sample()));
+    const second = parseOk70(ser70(first));
+    expect(second).toEqual(first);
+    const card = second.records.find((record): record is PlaceRecord => record.tag === '_PLAC');
+    expect(card?.map).toEqual({
+      latitude: { direction: 'N', degrees: 42.034722 },
+      longitude: { direction: 'W', degrees: 93.62 },
+    });
+    expect(card?.notes?.[0]).toEqual({ tag: 'NOTE', payload: 'Card note' });
   });
 
   test('the event keeps its own map and note when present', () => {

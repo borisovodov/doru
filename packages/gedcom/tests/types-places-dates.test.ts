@@ -416,9 +416,20 @@ describe('names and places edge cases', () => {
 });
 
 describe('place records', () => {
-  test('_LOC rejects a payload and requires NAME', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC payload\n0 TRLR\n')).toBe('structure.unexpected-payload');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC\n0 TRLR\n')).toBe('structure.missing-required');
+  test('_LOC without a NAME child is an extension record, preserved verbatim', () => {
+    // The GEDCOM-L place record requires NAME; a _LOC without one is
+    // an extension record with extension-defined contents (the
+    // FamilySearch 7.0 test files exercise this form), not an error.
+    const withPayload = parseGedcom70(new TextEncoder().encode('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC payload\n0 TRLR\n'));
+    if (!withPayload.ok) {
+      throw new Error(JSON.stringify(withPayload.error));
+    }
+    expect(withPayload.value.records[0]).toEqual({ tag: '_LOC', xref: '@L1@', payload: 'payload', children: [] });
+    const bare = parseGedcom70(new TextEncoder().encode('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC\n0 TRLR\n'));
+    if (!bare.ok) {
+      throw new Error(JSON.stringify(bare.error));
+    }
+    expect(bare.value.records[0]).toEqual({ tag: '_LOC', xref: '@L1@', children: [] });
   });
 
   test('_LOC names, abbreviation types and hierarchy links', () => {

@@ -506,13 +506,19 @@ The agreed policy:
   `CLER`, …) → `ASSO` + `RELA`, `URL` → `IndividualRecord.url`,
   `FILN`/`HISTID`/`NUMB` → `REFN`, the FTM5 `LDS` wrapper → ordinances,
   and `CLAW`/`SEPA`/`FEMA`/`MALE` at FAM level. Export is standard-first
-  in both versions. The 10 tags with no typed rule — the "???" tail
-  (`DETS`, `NAMM`, `PRTY`, …), the conflicting `MSTAT`, and `LABL`/
-  `SCHEMA` outside their schema contexts — stay generic extensions,
-  preserved verbatim on 5.5.1 export and dropped on 7.0 (extTag only);
-  each tag's reason is recorded in docs/vendor-extensions.md chapter 8.
-  GEDCOM 7.0 input stays strict for the whole list, and unknown
-  non-underscore tags remain `structure.unknown-tag` errors.
+  in both versions. The GenWiki "GEDCOM/_Nutzerdef-Tag" table of
+  non-underscore deviations adds the tags of Der Stammbaum ≤ V6 (USM6)
+  and Mac Family Tree 7/8 (`AGED`, `BTYP`, `DEED`, `MISE`, `MRCI`,
+  `MRRE`, `PRIV`, `RECT`, `SECG`, `SURE`, …) plus the RootsMagic
+  `FSFTID` spelling, which types into `familySearchId` like `_FSFTID`.
+  The tags with no typed rule — the "???" tail (`DETS`, `NAMM`,
+  `PRTY`, …), the conflicting `MSTAT`, `LABL`/`SCHEMA` outside their
+  schema contexts, and the USM6/MFT settings tags — stay generic
+  extensions, preserved verbatim on 5.5.1 export and dropped on 7.0
+  (extTag only); each tag's reason is recorded in
+  docs/vendor-extensions.md chapter 8. GEDCOM 7.0 input stays strict
+  for the whole list, and unknown non-underscore tags remain
+  `structure.unknown-tag` errors.
   The full per-tag inventory with sources is
   docs/vendor-extensions.md chapter 8 and `parsing/vendor-tags.ts`.
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
@@ -524,16 +530,19 @@ The agreed policy:
   `_PLAC_DEFN` cards are parsed into `PlaceRecord` entities and linked
   to events (`PlaceStructure.location`) from explicit `_LOC` pointers
   or by name matching; cards without an xref get a synthesized one on
-  their first link. On export the cards are projected onto the
-  standard: their map and notes are merged into each referencing
-  `PLAC` that lacks its own copy (citations and media have no standard
-  slot under `PLAC` and are dropped), and the cards and links are not
-  written — the card structure flattens on a round trip (documented
-  in the `PlaceRecord` JSDoc); event-level place data is never lost.
-  The exception is the German GEDCOM-L dialect: a card carrying the
-  GEDCOM-L fields (GOV id, postal codes, administrative ids, place
-  types, hierarchy links, …) is written back as a `_LOC` record in
-  both versions (GEDCOM 7.0 §1.5 allows extension records) and its
+  their first link. On 7.0 export every card is written back as a
+  `_LOC` extension record with its full contents (GEDCOM 7.0 §1.5
+  allows extension records) and the referencing places keep their
+  `_LOC` pointer — nothing is flattened or dropped. The 5.5.1
+  serializer projects instead: each card's map and notes are merged
+  into every referencing `PLAC` that lacks its own copy (citations and
+  media have no standard slot under `PLAC` and are dropped), and the
+  cards and links are not written — the card structure flattens on a
+  5.5.1 round trip (documented in the `PlaceRecord` JSDoc);
+  event-level place data is never lost. The exception there is the
+  German GEDCOM-L dialect: a card carrying the GEDCOM-L fields (GOV
+  id, postal codes, administrative ids, place types, hierarchy links,
+  …) is written back as a `_LOC` record in 5.5.1 too and its
   referencing places keep the pointer.
 
 ## GEDZIP (7.0 chapter 4)
@@ -564,6 +573,12 @@ The test suite covers every error code, every structure family of both
 versions, the 5.5.1 normalizations, and the serialization spellings.
 Round-trip tests parse → serialize → parse representative documents of
 both versions and require deep model equality plus idempotent output.
+
+The official FamilySearch GEDCOM 7.0 test files `extensions.ged` and
+`extension-record.ged` (from https://gedcom.io/testfiles/gedcom70/) are
+committed under `tests/fixtures/` and run as regression tests: they
+must parse and round-trip model-stably and idempotently
+(`tests/familysearch-testfiles.test.ts`).
 
 Coverage is measured across the whole workspace by `npm run test:coverage`
 at the repo root and enforced in CI by the thresholds in
@@ -656,6 +671,29 @@ would be, or where the model takes a documented position:
   handled by the unified policy in the "Vendor extensions" section
   above; the catalog remains the checklist for the corpus-validation
   work.
+- Extension records are lenient where the standard grammar ends:
+  standard tags the typed grammar of a vendor extension record does not
+  know (`SUBM`/`DATE` under `_LOC`, per the FamilySearch test files)
+  are preserved as generic extensions instead of `structure.unknown-tag`,
+  a `_LOC` record without its `NAME` child parses as a generic extension
+  record, and the nested children of generic extension records keep
+  their standard tags (they are extension-defined substructures, GEDCOM
+  7.0 §1.5). The decision on why such records are preserved verbatim
+  rather than typed — the three anchors that do license typing, and the
+  rejected speculative alternative — is recorded in
+  docs/vendor-extensions.md, chapter 4. A SCHMA-declared extension tag
+  whose URI is a `g7:`
+  structure-type URI is a documented alias of that standard structure
+  and parses as it — standard-first (`_USER → g7:record-SUBM` becomes a
+  submitter record, `_CREATOR → g7:SUBM` types into the submitters
+  slot, `_PHRASE → g7:PHRASE` into the phrase slot; the write-back uses
+  the standard spelling, and the dangling SCHMA declaration is
+  harmless). Tags with non-`g7:` URIs, payload-type URIs (`g7:enum-…`,
+  `g7:cal-…`, `g7:month-…`), or no slot to land in stay generic — their
+  meaning is the extension's own, and typing them would fabricate
+  semantics. The same resolution validates a documented extension
+  calendar or month against the abbreviated standard calendar or month
+  while keeping its extension spelling.
 
 ## Future work
 

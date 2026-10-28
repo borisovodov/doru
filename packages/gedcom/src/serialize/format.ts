@@ -40,6 +40,11 @@ export function epochSuffix(epoch: Epoch | undefined, version: Version): string 
   if (epoch === undefined) {
     return '';
   }
+  if (epoch.startsWith('_')) {
+    // An extension epoch is spellable in 7.0 only; 5.5.1 has no
+    // extension-calendar grammar (the caller drops the whole date).
+    return version === '7.0' ? ` ${epoch}` : '';
+  }
   return version === '7.0' ? ' BCE' : ' B.C.';
 }
 
@@ -53,6 +58,15 @@ export function formatDateFields(
     return undefined;
   }
   const calendar = fields.calendar ?? 'GREGORIAN';
+  if (
+    version === '5.5.1'
+    && (calendar.startsWith('_') || fields.month?.startsWith('_') === true || fields.epoch?.startsWith('_') === true)
+  ) {
+    // 5.5.1 has no extension calendars, months or epochs; a date using
+    // one cannot be spelled and is dropped, like the other 5.5.1-only
+    // constructs.
+    return undefined;
+  }
   const escape = version === '5.5.1' ? calendarEscape551(calendar) : calendar === 'GREGORIAN' ? '' : `${calendar} `;
   const dayMonth = fields.day !== undefined && fields.month !== undefined ? `${fields.day} ${fields.month} ` : fields.month !== undefined ? `${fields.month} ` : '';
   return `${escape}${dayMonth}${fields.year}${epochSuffix(fields.epoch, version)}`;

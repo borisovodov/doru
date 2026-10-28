@@ -237,6 +237,11 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
     NOTE: (child) => {
       (base.notes ??= []).push(parseNoteStructure(child, ctx));
     },
+    '_WT_USER': (child) => {
+      // webtrees: the user name of the user who made the change (see
+      // ChangeDate.user).
+      base.user = reqText(child);
+    },
   };
   if (ctx.version === '7.0') {
     // The 7.0 CHANGE_DATE carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0
@@ -303,11 +308,17 @@ function applyDateValue551(
   }
 }
 
+/** The SCHMA tag resolver of the document (see Ctx.schemaTags and
+ *  `TagResolver` in types.ts): maps an extension tag to its URI. */
+function tagResolver(ctx: Ctx): ((tag: string) => string | undefined) {
+  return (tag) => ctx.schemaTags.get(tag);
+}
+
 export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   const out: DateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   if (ctx.version === '7.0') {
-    out.value = raw === undefined ? { kind: 'unknown' } : parseDateValue70(raw, node.position);
+    out.value = raw === undefined ? { kind: 'unknown' } : parseDateValue70(raw, node.position, tagResolver(ctx));
     dispatch(
       node,
       out,
@@ -383,7 +394,7 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx, allowTime: bool
 export function parseDatePeriodStructure(node: RawNode, ctx: Ctx): DatePeriodStructure {
   if (ctx.version === '7.0') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
-    const out: DatePeriodStructure = { value: raw === undefined ? { kind: 'period' } : parseDatePeriod70(raw, node.position) };
+    const out: DatePeriodStructure = { value: raw === undefined ? { kind: 'period' } : parseDatePeriod70(raw, node.position, tagResolver(ctx)) };
     dispatch(
       node,
       out,
@@ -407,7 +418,7 @@ export function parseSortDateStructure(node: RawNode, ctx: Ctx): SortDateStructu
   const out: SortDateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   if (raw !== undefined) {
-    out.value = parseDateValue70(raw, node.position);
+    out.value = parseDateValue70(raw, node.position, tagResolver(ctx));
   }
   dispatch(
     node,

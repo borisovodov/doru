@@ -17,6 +17,7 @@ import { parseMultimediaLink, parseSourceCitation } from './sources-media';
 import {
   datedSourceHandlers,
   parseChangeDate,
+  parseExternalIdentifier,
   parseNoteStructure,
   parseReferenceIdentifier,
   parseUniqueIdentifier,
@@ -183,17 +184,42 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       out.changeDate = parseChangeDate(child, ctx);
     },
   };
+  if (ctx.version === '7.0') {
+    // The 7.0 write-back of a card carries the standard identifier and
+    // note-pointer spellings (commonRecordFields); 5.5.1 stays strict
+    // and uses the _UID vendor spelling above.
+    handlers['UID'] = (child) => {
+      (out.identifiers ??= []).push(parseUniqueIdentifier(child));
+    };
+    handlers['EXID'] = (child) => {
+      (out.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+    };
+    handlers['SNOTE'] = (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
   if (node.tag === '_PLAC_DEFN') {
     // The required PLAC child was consumed above.
     handlers['PLAC'] = () => undefined;
   }
-  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'MAP', 'CHAN']);
+  // The place record is an extension record: its grammar is defined by
+  // the vendor dialect, so standard tags the typed grammar does not
+  // know (the FamilySearch test files put `SUBM` and `DATE` under a
+  // `_LOC`, GEDCOM 7.0 §1.5 extension-defined substructures) are
+  // preserved as generic extensions instead of failing the import.
+  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'MAP', 'CHAN'], 'extension');
   if (node.tag === '_LOC') {
     // NAME {1:M}; the first entry is the payload used for name matching.
     if (out.names === undefined || out.names.length === 0) {
       fail('structure.missing-required', 'The _LOC record requires a NAME child', node.position);
     }
     out.payload = (out.names[0] as PlaceNameStructure).name;
+  } else if (payload !== '' && out.names === undefined) {
+    // The payload dialects (_PLAC/_PLAC_DEFN) carry the name in the
+    // payload; normalized into the same NAME list the _LOC dialect
+    // uses, so the `_LOC` write-back (the emitter's canonical
+    // spelling) round-trips stably.
+    out.names = [{ name: payload }];
   }
   return out;
 }

@@ -213,6 +213,17 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     _MBON: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Marriage bond');
     },
+    _MARI: (child) => {
+      // BKW6+ / webtrees: the marriage intention — a FAM EVEN like the
+      // standard MARB/MARC/MARL family (see the GenWiki
+      // "GEDCOM/_Nutzerdef-Tag" table).
+      pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Marriage intention');
+    },
+    _CREAT: (child) => {
+      // GenPlus: the date the record was created (see
+      // FamilyRecord.createdAt).
+      rec.createdAt = reqText(child);
+    },
     _SEPR: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Separated');
     },
@@ -490,6 +501,11 @@ function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<strin
         case 'association':
           pushLegacyAssociation(rec, child, ctx, rule.relationship);
           return;
+        case 'fsftid':
+          // The RootsMagic non-underscore FSFTID: the same slot _FSFTID
+          // carries (see IndividualRecord.familySearchId).
+          rec.familySearchId = reqText(child);
+          return;
         case 'lds':
           parseLegacyLdsBlock(rec, child, ctx);
           return;
@@ -632,6 +648,23 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _FSFTID: (child) => {
       rec.familySearchId = reqText(child);
     },
+    _FID: (child) => {
+      // MFT7 / Familienbuch: the FamilySearch Family Tree person id
+      // (the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+      // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) — the same
+      // slot _FSFTID carries.
+      rec.familySearchId = reqText(child);
+    },
+    _AHNNR: (child) => {
+      // GES2000: the ancestor-table (Kekulé) number — the same slot
+      // Ancestris' _SOSA carries (see IndividualRecord.sosaNumber).
+      rec.sosaNumber = reqText(child);
+    },
+    _CREAT: (child) => {
+      // GenPlus: the date the record was created (see
+      // IndividualRecord.createdAt).
+      rec.createdAt = reqText(child);
+    },
     _TODO: (child) => {
       (rec.todos ??= []).push(parseTodoStructure(child, ctx));
     },
@@ -700,6 +733,25 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _SLDN: (child) => {
       pushVendorName(rec, child, ctx, 'OTHER', 'Soldier name');
+    },
+    _CALL: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Called name');
+    },
+    _FRKA: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Formerly known as');
+    },
+    _HNM: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Hebrew name');
+    },
+    _INDG: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Indigenous name');
+    },
+    _LNCH: (child) => {
+      pushVendorName(rec, child, ctx, 'OTHER', 'Legal name change');
+    },
+    _HEIRATNAME: (child) => {
+      // AF2000: the name after marriage — the same slot _MARNM carries.
+      pushVendorName(rec, child, ctx, 'MARRIED');
     },
     _EYEC: (child) => {
       pushVendorAttribute(rec, child, ctx, 'FACT', 'Eye color');
