@@ -17,8 +17,10 @@
  *   constant `DEFAULT_SYSTEM_ID_551` and a missing SUBM becomes a
  *   synthesized submitter record named "Unknown".
  *
- * The 7.0 projection needs no model-level cleanup: its serialization
- * drops 5.5.1-only constructs inline in the emitter.
+ * The 7.0 projection needs only one piece of model-level work: the
+ * vendor place cards are kept as extension records (see
+ * `preservePlaceRecords70`). Everything else it cannot express is
+ * dropped inline in the emitter.
  */
 
 import type {
@@ -239,17 +241,15 @@ function hasGermanPlaceFields(card: PlaceRecord): boolean {
 }
 
 /**
- * Projects the vendor place records onto the standard: each card's map
- * and notes are merged into every referencing place that lacks its own
- * copy (citations and media have no standard slot under PLAC and are
- * dropped), the location links are consumed, and the records are
- * removed. The exception: a GEDCOM-L card carrying the German fields
- * survives as a `_LOC` record (in both versions — GEDCOM 7.0 allows
- * extension records) and its referencing places keep the pointer. See
- * the PlaceRecord JSDoc.
+ * Projects the vendor place records onto the standard for 5.5.1: each
+ * card's map and notes are merged into every referencing place that
+ * lacks its own copy (citations and media have no standard slot under
+ * PLAC and are dropped), the location links are consumed, and the
+ * records are removed. The exception: a GEDCOM-L card carrying the
+ * German fields survives as a `_LOC` record and its referencing places
+ * keep the pointer. See the PlaceRecord JSDoc.
  */
-function flattenPlaceRecords(dataset: GedcomDataset, version: '7.0' | '5.5.1'): void {
-  void version;
+function flattenPlaceRecords(dataset: GedcomDataset): void {
   const places = collectPlaces(dataset.records);
   const survivors = new Set<string>();
   for (const record of dataset.records) {
@@ -308,9 +308,52 @@ function flattenPlaceRecords(dataset: GedcomDataset, version: '7.0' | '5.5.1'): 
   );
 }
 
+/**
+ * The 7.0 place projection: GEDCOM 7.0 §1.5 allows extension records,
+ * so nothing needs flattening. Every vendor place card is written back
+ * as a `_LOC` extension record with its full contents (citations,
+ * media, the hierarchy — all of which the 5.5.1 flattening drops), and
+ * the referencing places keep their `_LOC` pointers. Only the links
+ * that would dangle are removed (a dangling pointer would be invalid
+ * output): a place's `location` whose card is gone, a card's parent
+ * whose card is gone, and a card with no name to write.
+ */
+function preservePlaceRecords70(dataset: GedcomDataset): void {
+  const cards = new Set<string>();
+  for (const record of dataset.records) {
+    if (record.tag === '_PLAC' && record.xref !== undefined) {
+      cards.add(record.xref);
+    }
+  }
+  for (const record of dataset.records) {
+    if (record.tag === '_PLAC') {
+      const card = record as unknown as PlaceRecord;
+      if (card.parents !== undefined) {
+        const kept = card.parents.filter((parent) => parent.parent === '@VOID@' || cards.has(parent.parent));
+        if (kept.length === 0) {
+          delete card.parents;
+        } else {
+          card.parents = kept;
+        }
+      }
+    }
+  }
+  for (const place of collectPlaces(dataset.records)) {
+    if (place.location !== undefined && !cards.has(place.location)) {
+      delete (place as { location?: unknown }).location;
+    }
+  }
+  dataset.records = dataset.records.filter(
+    (record) =>
+      record.tag !== '_PLAC'
+      || (record as unknown as PlaceRecord).payload !== ''
+      || ((record as unknown as PlaceRecord).names?.length ?? 0) > 0,
+  );
+}
+
 export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
-  flattenPlaceRecords(out, '5.5.1');
+  flattenPlaceRecords(out);
 
   // 1. Drop the NO structures; remember which records carried one, so
   //    the empty-record rule below only applies to them. Exceptions: a
@@ -392,7 +435,7 @@ const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
  */
 export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
-  flattenPlaceRecords(out, '7.0');
+  preservePlaceRecords70(out);
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (record.tag === 'INDI' && record.xref !== undefined) {

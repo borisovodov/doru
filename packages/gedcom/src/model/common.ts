@@ -190,6 +190,15 @@ export interface ChangeDate extends GedcomStructureBase {
   date: DateExactStructure;
   /** <<NOTE_STRUCTURE>> {0:M} — may describe previous changes as well. */
   notes?: NoteStructure[];
+  /**
+   * _WT_USER {0:1} — the user name of the user who made the change.
+   * Written by webtrees (and kiwitrees) under CHAN (see the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as `_WT_USER`
+   * in both versions.
+   */
+  user?: Text;
 }
 
 /**
@@ -430,6 +439,26 @@ export interface EventDetail extends GedcomStructureBase {
    * written back as `_APID` in both versions.
    */
   ancestryPointers?: Text[];
+  /**
+   * _PRI {0:1} — marks the event or attribute as the primary one of its
+   * kind for the subject (the birth, the residence, …). Written by
+   * AGES! as the bare tag (see the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * table: https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part
+   * of any GEDCOM version. Recognized on input (an absent value or `Y`
+   * marks the flag set, `N` clears it) and written back as the bare
+   * `_PRI` in both versions.
+   */
+  primary?: boolean;
+  /**
+   * _EVN {0:1} — the event number, a free-text number the vendor
+   * assigns to each event and references from witness links ("Witness
+   * at event _EVN ##"). Written by Brother's Keeper 6+ (see the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as `_EVN` in
+   * both versions.
+   */
+  eventNumber?: Text;
 }
 
 /**

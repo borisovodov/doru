@@ -166,13 +166,16 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
     },
   };
   if (ctx.version === '7.0') {
-    // The 7.0 INDI.FAMC link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-    // 7.0 §3.2.2); 5.5.1 stays strict.
+    // The 7.0 INDI.FAMC link carries PHRASE {0:1} and
+    // <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+    handlers['PHRASE'] = (child) => {
+      out.phrase = reqText(child);
+    };
     handlers['SNOTE'] = (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
   }
-  dispatch(node, out, handlers, ctx, ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL']);
+  dispatch(node, out, handlers, ctx, ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', 'PHRASE']);
   return out;
 }
 
@@ -238,13 +241,16 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
     },
   };
   if (ctx.version === '7.0') {
-    // The 7.0 INDI.FAMS link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-    // 7.0 §3.2.2); 5.5.1 stays strict.
+    // The 7.0 INDI.FAMS link carries PHRASE {0:1} and
+    // <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+    handlers['PHRASE'] = (child) => {
+      out.phrase = reqText(child);
+    };
     handlers['SNOTE'] = (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
   }
-  dispatch(node, out, handlers, ctx);
+  dispatch(node, out, handlers, ctx, ['PHRASE']);
   return out;
 }
 
@@ -325,6 +331,15 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     '_PPFX': (child) => {
       // RootsMagic: the place prefix (report wording).
       detail.placePrefix = reqText(child);
+    },
+    '_PRI': (child) => {
+      // AGES!: the primary event flag (see EventDetail.primary).
+      detail.primary = parsePrivacyFlag(child, '_PRI');
+    },
+    '_EVN': (child) => {
+      // BKW6+: the event number, referenced by witness ASSO links (see
+      // EventDetail.eventNumber).
+      detail.eventNumber = reqText(child);
     },
     RESN: (child) => {
       detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, ctx.version, child.position);
@@ -513,9 +528,9 @@ export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCount
     }
     return out;
   }
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under NCHI`, (node.children[0] as RawNode).position);
-  }
+  // 5.5.1 NCHI is a bare count; vendor children (the USM6 `SURE` marker
+  // "the given child count is certain") stay generic extensions.
+  dispatch(node, out, {}, ctx);
   return out;
 }
 

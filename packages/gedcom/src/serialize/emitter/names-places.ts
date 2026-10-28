@@ -34,6 +34,7 @@ import { commonRecordFields } from './document';
 import {
   emitDate,
   emitEventDetail,
+  emitExtensions,
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
@@ -53,6 +54,12 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
   emitMediaFormat(w, version, level + 1, file.form);
   if (file.title !== undefined) {
     w.line(level + 1, 'TITL', { value: file.title });
+  }
+  if (file.contentType !== undefined) {
+    // Ahnenblatt: the content type of the picture (see
+    // MediaFile.contentType). Written back under the FILE line in both
+    // versions.
+    w.line(level + 1, '_CTYP', { value: file.contentType });
   }
   if (version === '7.0') {
     for (const translation of file.translations ?? []) {
@@ -158,6 +165,7 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
       emitNamePieces(w, version, level + 2, variation.pieces);
     }
   }
+  emitExtensions(w, version, level + 1, name);
 }
 
 export function emitNameType(w: Writer, version: Version, level: number, type: NameTypeStructure): void {
@@ -218,9 +226,19 @@ export function emitNamePieces(w: Writer, version: Version, level: number, piece
 }
 
 export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord): void {
-  // Reached only for the GEDCOM-L cards kept by the prepare projection
-  // (both versions; GEDCOM 7.0 allows extension records).
+  // Reached for the GEDCOM-L cards kept by the 5.5.1 projection and —
+  // since the 7.0 projection preserves every card — for every vendor
+  // place record on 7.0 output (GEDCOM 7.0 §1.5 allows extension
+  // records).
   w.line(0, '_LOC', { xref: record.xref });
+  if (record.names === undefined || record.names.length === 0) {
+    // A card parsed from the payload dialects (_PLAC/_PLAC_DEFN) has
+    // no NAME children; the _LOC spelling carries the name in a NAME
+    // child.
+    if (record.payload !== '') {
+      w.line(1, 'NAME', { value: record.payload });
+    }
+  }
   for (const name of record.names ?? []) {
     w.line(1, 'NAME', { value: name.name });
     if (name.date !== undefined) {
@@ -285,6 +303,11 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
   }
   if (record.maidenhead !== undefined) {
     w.line(1, '_MAIDENHEAD', { value: record.maidenhead });
+  }
+  if (record.abbreviation !== undefined) {
+    // Legacy _PLAC_DEFN: the card abbreviation (see
+    // PlaceRecord.abbreviation). Written back under the _LOC record.
+    w.line(1, 'ABBR', { value: record.abbreviation });
   }
   if (record.preposition !== undefined) {
     // Legacy: the location preposition of the place card (see

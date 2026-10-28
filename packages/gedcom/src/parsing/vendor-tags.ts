@@ -12,6 +12,17 @@
  * Version-history cross-check: Tamura Jones, "GEDCOM Tags":
  * https://www.tamurajones.net/GEDCOMTags.xhtml
  *
+ * The catalog of non-underscore tags has two sources. The Legacy
+ * "User-Defined GEDCOM Tags" catalog ("Tags Not Specified in GEDCOM
+ * 5.5") is the primary one; its 131 entries are the tables below. The
+ * GenWiki "GEDCOM/_Nutzerdef-Tag" article's second table ("Abweichungen
+ * vom Standard bei der Verwendung", itself based on
+ * gencom.org.nz/GEDCOM_tags.html) adds the non-underscore deviations of
+ * Der Stammbaum ≤ V6 (USM6), Mac Family Tree 7/8 (MFT7/MFT8), and the
+ * RootsMagic `FSFTID` spelling — accepted as generic extensions where
+ * no typed rule applies (`FSFTID` under INDI is typed: the same
+ * normalization as the underscore `_FSFTID`).
+ *
  * Policy (the decision formerly recorded as "keep rejecting" in
  * docs/vendor-extensions.md chapter 8):
  *
@@ -77,6 +88,9 @@ export type LegacyIndividualRule =
   /** A person link: ASSO with the RELA descriptor; a text payload
    *  instead of a pointer becomes FACT + TYPE. */
   | { kind: 'association'; relationship: string }
+  /** The FamilySearch Family Tree id (the RootsMagic non-underscore
+   *  twin of _FSFTID): IndividualRecord.familySearchId. */
+  | { kind: 'fsftid' }
   /** The FTM5 LDS wrapper: its children parse as LDS ordinances. */
   | { kind: 'lds' };
 
@@ -215,6 +229,9 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   SIBL: { kind: 'association', relationship: 'Sibling' }, // FTW5.
   SON: { kind: 'association', relationship: 'Son' }, // FTW5.
   WIFE: { kind: 'association', relationship: 'Wife' }, // FTW5 (under INDI; under FAM it is the standard partner link).
+  // The FamilySearch Family Tree id (RootsMagic writes the standard
+  // tag without the underscore; see familySearchId).
+  FSFTID: { kind: 'fsftid' }, // RootsMagic.
   // The FTM5 LDS ordinance wrapper.
   LDS: { kind: 'lds' }, // FTW5.
 };
@@ -232,6 +249,15 @@ export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
  * (the catalogs mark them "???") or their position is (SCHEMA, LABL,
  * outside their schema context). They stay generic extensions,
  * preserved verbatim (dropped on 7.0 export).
+ *
+ * The second group is the GenWiki "GEDCOM/_Nutzerdef-Tag" table of
+ * non-underscore deviations (based on gencom.org.nz/GEDCOM_tags.html):
+ * the tags of Der Stammbaum ≤ V6 (USM6), Mac Family Tree 7/8
+ * (MFT7/MFT8) and the RootsMagic `FSFTID` spelling that the Legacy
+ * catalog does not list. Their meanings are documented but no typed
+ * rule applies (vendor-specific record/UI data, or a position the
+ * standard grammar has no slot for); `FSFTID` under INDI is the typed
+ * exception (see LEGACY_INDIVIDUAL_TAGS).
  */
 export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'COMP', // Reunion: ???.
@@ -244,13 +270,38 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'NAMM', // Reunion: "Name ???".
   'PRTY', // FTW7: ???.
   'SCHEMA', // FTW5: schema block (typed under HEAD; generic elsewhere).
+  // The GenWiki non-underscore deviations (Tabelle 2).
+  'AGED', // USM6: the age at death under BURI ("Alter bei Ableben").
+  'BTYP', // USM6: birth type under BIRT (1=single, 2=twin, 3=multiple, 4=death).
+  'DEED', // MFT7: document info ("Dokument-Info").
+  'FPRF', // USM6: the USM FAM settings block under HEAD.
+  'MPRF', // USM6: the USM multimedia settings block under HEAD.
+  'MISE', // MFT7: military info ("Militär-Info").
+  'MRCI', // MFT8: civil marriage.
+  'MRRE', // MFT8: religious marriage.
+  'MTYP', // USM6: parent-child relation kind (1=marital, 2=non-marital, …).
+  'NAME_', // USM6: surname variants.
+  'NOTRY', // USM6: the name of the notary (marriage contract, will).
+  'POTM', // USM6: the event occurred "post mortem".
+  'PRIV', // MFT7: the person/family/event is marked private.
+  'RECT', // MFT7: the rectangle marking a person in a group picture.
+  'RINI', // USM6: the name of the person who found the source info.
+  'SECG', // MFT7: the second and further given names, under NAME.
+  'SIGN', // USM6: the person can sign [yes/no].
+  'SRCH', // USM6: where to research the event further.
+  'SURE', // USM6: under NCHI — the given child count is certain.
+  'UGNM', // USM6: the call name ("Rufname").
+  'UTYP', // USM6: the relationship kind (1=married, 2=separated, …).
+  'CREA', // MFT7: the record/event creation time (the non-underscore
+  // spelling; 7.0 parses CREA as the standard structure).
 ]);
 
 /**
  * GEDCOM 5.x non-underscore vendor tags, accepted on 5.x input: the
  * typed rules above where they apply, and as generic extensions
- * everywhere else (the closed list from the Legacy catalog, "Tags Not
- * Specified in GEDCOM 5.5").
+ * everywhere else (the closed lists from the Legacy catalog, "Tags
+ * Not Specified in GEDCOM 5.5", and the GenWiki "GEDCOM/_Nutzerdef-Tag"
+ * table of non-underscore deviations).
  */
 export const NON_UNDERSCORE_VENDOR_TAGS: ReadonlySet<string> = new Set([
   ...Object.keys(LEGACY_INDIVIDUAL_TAGS),

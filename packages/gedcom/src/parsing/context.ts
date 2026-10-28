@@ -24,6 +24,9 @@ import type {
 import {
   NON_UNDERSCORE_VENDOR_TAGS,
 } from './vendor-tags';
+import {
+  resolveStandardTagByUri,
+} from './schema-tags';
 
 /** The declared specification version of the document being parsed. */
 export interface Ctx {
@@ -31,6 +34,14 @@ export interface Ctx {
   xrefs: Set<string>;
   synthetic: MultimediaRecord[];
   syntheticIndex: number;
+  /**
+   * The HEAD.SCHMA tag definitions (GEDCOM 7.0 §2.14): the extension
+   * tag and the URI it abbreviates within this document, filled while
+   * the header parses. A tag declared more than once keeps its last
+   * URI (the specification permits one tag for several non-overlapping
+   * URIs; only the documented-URI resolution uses the map).
+   */
+  schemaTags: Map<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,31 +169,53 @@ export function dispatch(
   handlers: Record<string, (child: RawNode) => void>,
   ctx: Ctx,
   singles: readonly string[] = [],
+  fallback: 'error' | 'extension' = 'error',
 ): void {
   const seen = new Set<string>();
   for (const child of node.children) {
-    const handler = handlers[child.tag];
-    if (handler === undefined) {
-      if (child.tag.startsWith('_')) {
+    let tag = child.tag;
+    let resolved: RawNode = child;
+    if (handlers[tag] === undefined && tag.startsWith('_') && ctx.version === '7.0') {
+      // A SCHMA-documented extension tag whose URI names a standard
+      // structure type with a slot here parses as that structure —
+      // standard-first (see parsing/schema-tags.ts). A documented tag
+      // without a slot here keeps its extension meaning and stays
+      // generic.
+      const standard = resolveStandardTagByUri(ctx.schemaTags.get(tag));
+      if (standard !== undefined && handlers[standard] !== undefined) {
+        tag = standard;
+        resolved = { ...child, tag: standard };
+      }
+    }
+    if (handlers[tag] === undefined) {
+      if (tag.startsWith('_')) {
         addExtension(out, child);
         continue;
       }
-      if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(child.tag)) {
+      if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
         // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
         // accepted as generic extensions where the standard grammar has
         // no slot for them. 7.0 input stays strict.
         addExtension(out, child);
         continue;
       }
-      fail('structure.unknown-tag', `The tag ${child.tag} is not allowed in this context (${node.tag})`, child.position);
-    }
-    if (singles.includes(child.tag)) {
-      if (seen.has(child.tag)) {
-        fail('structure.cardinality', `At most one ${child.tag} is allowed here`, child.position);
+      if (fallback === 'extension') {
+        // An extension record's grammar is defined by the extension
+        // itself (GEDCOM 7.0 §1.5): a standard tag the typed grammar
+        // does not know is an extension-defined substructure and is
+        // preserved verbatim instead of failing the import.
+        addExtension(out, child);
+        continue;
       }
-      seen.add(child.tag);
+      fail('structure.unknown-tag', `The tag ${tag} is not allowed in this context (${node.tag})`, child.position);
     }
-    handler(child);
+    if (singles.includes(tag)) {
+      if (seen.has(tag)) {
+        fail('structure.cardinality', `At most one ${tag} is allowed here`, child.position);
+      }
+      seen.add(tag);
+    }
+    (handlers[tag] as (child: RawNode) => void)(resolved);
   }
 }
 

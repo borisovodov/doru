@@ -140,6 +140,12 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
       TITL: (child) => {
         file.title = reqText(child);
       },
+      _CTYP: (child) => {
+        // Ahnenblatt: the content type of the picture (person, group,
+        // place, signature, tombstone, document, heirloom; see
+        // MediaFile.contentType).
+        file.contentType = reqText(child);
+      },
       ...(ctx.version === '7.0'
         ? {
             TRAN: (child) => {

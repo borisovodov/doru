@@ -217,6 +217,12 @@ export function parseSchema(node: RawNode, ctx: Ctx): Schema {
     },
     ctx,
   );
+  // Fill the document's tag→URI map (see Ctx.schemaTags): the date
+  // parser resolves documented extension calendars and months through
+  // it (GEDCOM 7.0 §2.14).
+  for (const definition of schema.tagDefinitions) {
+    ctx.schemaTags.set(definition.payload.tag, definition.payload.uri);
+  }
   return schema;
 }
 

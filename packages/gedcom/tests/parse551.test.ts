@@ -413,11 +413,22 @@ describe('parseGedcom551 — strictness', () => {
   test('rejects 7.0-only constructs', () => {
     expect(err551([...HEADER, ...SUBM, '0 @N1@ SNOTE text', '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
     expect(err551([...HEADER, '0 @I1@ INDI', '1 NO MARR', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 CREA', '2 DATE 1 JAN 2000', ...SUBM, '0 TRLR'].join('\n'))).toBe(
-      'structure.unknown-tag',
-    );
     expect(err551([...HEADER, '0 @I1@ INDI', '1 UID abc', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
     expect(err551([...HEADER, '0 @I1@ INDI', '1 INIL', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+    expect(err551([...HEADER, '0 @I1@ INDI', '1 EXID abc', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+  });
+
+  test('accepts the MFT7 non-underscore CREA as a generic extension on 5.5.1 input', () => {
+    const result = parseGedcom551(
+      enc([...HEADER, '0 @I1@ INDI', '1 CREA', '2 DATE 1 JAN 2000', ...SUBM, '0 TRLR'].join('\n')),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const indi = result.value.records.find((record) => record.tag === 'INDI');
+      expect((indi as unknown as { extensions?: unknown[] }).extensions).toEqual([
+        { tag: 'CREA', children: [{ tag: 'DATE', payload: '1 JAN 2000', children: [] }] },
+      ]);
+    }
   });
 
   test('rejects a Y payload on 5.5.1 family events other than MARR', () => {

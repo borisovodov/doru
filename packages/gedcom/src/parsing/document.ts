@@ -45,6 +45,10 @@ import {
   NON_UNDERSCORE_VENDOR_TAGS,
 } from './vendor-tags';
 import {
+  RECORD_TAGS_70,
+  resolveStandardTagByUri,
+} from './schema-tags';
+import {
   parseMultimediaRecord,
 } from './media';
 import {
@@ -70,6 +74,7 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
     xrefs: new Set(raw.nodes.map((node) => node.xref).filter((xref): xref is string => xref !== undefined)),
     synthetic: [],
     syntheticIndex: 0,
+    schemaTags: new Map(),
   };
   const nodes = raw.nodes;
 
@@ -121,6 +126,16 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
 }
 
 export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
+  if (ctx.version === '7.0' && node.tag.startsWith('_')) {
+    // A SCHMA-documented record alias (`_USER → g7:record-SUBM`, …)
+    // parses as the standard record — standard-first (see
+    // parsing/schema-tags.ts). A documented tag whose URI names no
+    // standard record keeps its extension meaning and stays generic.
+    const standard = resolveStandardTagByUri(ctx.schemaTags.get(node.tag));
+    if (standard !== undefined && RECORD_TAGS_70.has(standard)) {
+      node = { ...node, tag: standard };
+    }
+  }
   switch (node.tag) {
     case 'FAM':
       return parseFamilyRecord(node, ctx);
@@ -149,6 +164,14 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case '_PLAC':
     case '_LOC':
     case '_PLAC_DEFN':
+      if (node.tag === '_LOC' && !node.children.some((child) => child.tag === 'NAME')) {
+        // A `_LOC` record without a NAME child is not the GEDCOM-L
+        // place record — that dialect requires the NAME. It is an
+        // extension record whose contents the extension defines
+        // (the FamilySearch 7.0 test files exercise this form), so it
+        // is preserved verbatim instead of failing the import.
+        return parseExtension(node) as ExtensionRecord;
+      }
       return parsePlaceRecord(node, ctx);
     case '_CENR':
       return parseCensusRecord(node, ctx);

@@ -69,7 +69,7 @@ function indi70(lines: string[]): string {
 
 /** Tags whose position under INDI is standard (a handler exists in
  *  every version), so they are not legacy-tag errors on 7.0 input. */
-const STANDARD_POSITION_TAGS = new Set(['IDNO', 'NATI', 'SUBM']);
+const STANDARD_POSITION_TAGS = new Set(['IDNO', 'NATI', 'SUBM', 'CREA']);
 
 /** The line value used for the tag in the uniform round-trip loop. */
 function sampleValue(rule: LegacyIndividualRule): string | undefined {
@@ -145,6 +145,9 @@ function expectTyped(dataset: GedcomDataset, tag: string, rule: LegacyIndividual
       // Text payload: FACT + TYPE (the pointer path is covered below).
       expect(record.attributes?.some((entry) => entry.tag === 'FACT' && entry.type === rule.relationship && entry.payload === value), tag).toBe(true);
       return;
+    case 'fsftid':
+      expect(record.familySearchId, tag).toBe(value);
+      return;
     case 'lds':
       return;
   }
@@ -154,9 +157,13 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
   test('the catalog covers every documented tag', () => {
     // 121 from docs/vendor-extensions.md chapter 8 plus the 10 entries
     // of the Legacy catalog the chapter missed (COMP, CUTOFFYR, DATV,
-    // EARL, HISTB, MIDSC, ORIG, RATI, STAKE, WEIG).
-    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(131);
-    expect(LEGACY_GENERIC_TAGS.size).toBe(10);
+    // EARL, HISTB, MIDSC, ORIG, RATI, STAKE, WEIG) — 131 in total —
+    // plus the 22 GenWiki "Tabelle 2" deviations of USM6 / MFT7/MFT8
+    // (AGED, BTYP, CREA, DEED, FPRF, MISE, MPRF, MRCI, MRRE, MTYP,
+    // NAME_, NOTRY, POTM, PRIV, RECT, RINI, SECG, SIGN, SRCH, SURE,
+    // UGNM, UTYP) and the RootsMagic `FSFTID`.
+    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(154);
+    expect(LEGACY_GENERIC_TAGS.size).toBe(32);
   });
 
   test('types every rule-bearing tag into the model on 5.5.1 input', () => {

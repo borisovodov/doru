@@ -45,7 +45,28 @@ results and secondary sources.
     <https://github.com/FamilySearch/GEDCOM-registries/blob/main/manifest/extension/manifest-extensions-en-US.tsv>
   - Official test files exercising every extension form:
     <https://gedcom.io/testfiles/gedcom70/extensions.ged> and
-    <https://gedcom.io/testfiles/gedcom70/extension-record.ged>
+    <https://gedcom.io/testfiles/gedcom70/extension-record.ged>.
+    Both are committed as fixtures under `tests/fixtures/` and run as
+    regression tests (`tests/familysearch-testfiles.test.ts`): they
+    must parse and round-trip through the 7.0 serializer
+    model-stably and idempotently.
+  - **Documented-extension resolution** (GEDCOM 7.0 §1.5 + the 7.0.4
+    clarification, implemented in `parsing/schema-tags.ts`): a
+    SCHMA-declared tag whose URI is a `g7:` structure-type URI is a
+    documented alias of the standard structure and parses as it,
+    standard-first — `_USER → g7:record-SUBM` becomes a
+    `SubmitterRecord`, `_CREATOR → g7:SUBM` types into the INDI
+    submitters slot, `_PHRASE → g7:PHRASE` into the FAMC phrase slot
+    (`_PERSON → g7:record-INDI` and the other six records likewise),
+    and the write-back uses the standard spelling. A tag declared with
+    a non-`g7:` URI, a payload-type URI (`g7:enum-…`, `g7:cal-…`,
+    `g7:month-…`), or a documented tag used where the standard
+    structure has no slot stays generic. The test files also fixed
+    real bugs along the way: extension-defined substructures under
+    typed extension records (`SUBM`/`DATE` under `_LOC`) and the nested
+    standard tags of generic extension records are preserved instead of
+    rejected or dropped, extension epochs no longer serialize as `BCE`,
+    and the model gained the 7.0 FAMC/FAMS `PHRASE` slots.
   - Registry tools page:
     <https://gedcom.io/tools/>
 
@@ -80,7 +101,15 @@ results and secondary sources.
   - <https://wiki.genealogy.net/GEDCOM/_LOC-Tag>
     (archived: <https://web.archive.org/web/2024/https://wiki.genealogy.net/GEDCOM/_LOC-Tag>)
   - <https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>
-    (archived: <https://web.archive.org/web/2025/https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>)
+    (archived: <https://web.archive.org/web/2025/https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag>).
+    Its second table ("Abweichungen vom Standard bei der Verwendung")
+    catalogs the non-underscore deviations of Der Stammbaum ≤ V6 (USM6),
+    Mac Family Tree 7/8 (MFT7/MFT8) and RootsMagic, based on
+    <http://www.gencom.org.nz/GEDCOM_tags.html>.
+- Mac Family Tree (Synium) — no official tag documentation; its 7/8
+  export tags (`DEED`, `MISE`, `MRCI`, `MRRE`, `PRIV`, `RECT`, `SECG`,
+  `_BKM`, `_CRE`, `_EVID`, `_FID`, `_INFO`, `_QUAL`, `_STP`, …) are
+  catalogued in the GenWiki table above.
 
 ## 3. Per-vendor extensions
 
@@ -308,6 +337,70 @@ and this package accepts them per the registry — the rule is recorded
 in the JSDoc of each affected field. Covered by
 `tests/registry-extensions.test.ts`.
 
+### Undocumented extension records stay generic (deliberate decision)
+
+GEDCOM 7.0 §1.5 defines an extension tag's grammar as whatever the
+writing extension defines — a tag name carries no meaning by itself,
+and two writers may use the same tag for unrelated things (a "shared
+tag"). The parser therefore types an extension record only when one of
+three anchors identifies its meaning:
+
+1. **A SCHMA declaration with a `g7:` structure-type URI** — the tag
+   is a documented alias of a standard structure and parses as it,
+   standard-first (the documented-extension resolution of
+   `parsing/schema-tags.ts`: `_USER → g7:record-SUBM` becomes a
+   `SubmitterRecord`).
+2. **A known vendor grammar** — a documented convention assigns the
+   tag a structure (`_LOC` with `NAME {1:M}` is the GEDCOM-L place
+   record → `PlaceRecord`; the MagiKey `_CENR` → `CensusRecord`).
+3. **An unambiguous standard tag in a standard position** — covered by
+   the normal standard grammar, not by extensions.
+
+The official FamilySearch test file `extensions.ged` exercises the
+deliberate *absence* of all three anchors:
+
+```
+0 @L1@ _LOC
+1 SUBM @U2@
+1 DATE TO 1880
+2 PHRASE Dissolved in the 1870s
+```
+
+The file's own comments label the record "undocumented record with
+shared tag", the `SUBM` child "extension-defined substructure", and
+the `DATE` child "ambiguous extension-defined substructure": a `_LOC`
+record that is *not* the GEDCOM-L place record (anchor 2 fails — the
+`NAME` child the agreement requires is missing), is *not* declared in
+SCHMA (anchor 1 fails), and whose children are standard tags only by
+spelling, not by meaning (anchor 3 fails — the specification itself
+declines to say the `DATE` is a date).
+
+Such a record parses as a generic `ExtensionRecord` — the tag, xref,
+payload and the whole child tree are kept verbatim (`model/extensions.ts`;
+`parseRecord` in `parsing/document.ts` returns `parseExtension` for it
+instead of failing `structure.missing-required`, which is what the
+strict GEDCOM-L parser would have done before). This is **not a loss**:
+the record is a first-class model node, and the 7.0 round trip is
+byte-stable — the regression over the official test files requires
+deep model equality and idempotent output
+(`tests/familysearch-testfiles.test.ts`). What stays untyped is only
+the semantics, and the semantics are deliberately absent from the
+file.
+
+The rejected alternative: typing the children speculatively — parsing
+a `DATE`+`PHRASE` that merely *looks* standard as a standard
+`DateStructure` inside an unknown extension record. Rejected because
+(a) it fabricates meaning the writer did not assert (the file itself
+marks the case "ambiguous"), violating the project's rule that a
+construct is typed only when a source documents it; (b) it would
+require widening `ExtensionStructure.children` from the uniform
+extension tree into a union with every typed structure, touching the
+whole model; and (c) the only known producer of the form is the
+synthetic test file — real programs that write `_LOC` write the
+GEDCOM-L form, which *is* typed. Revisit only if the corpus
+validation runs (README "Future work") show a real vendor writing
+such records with a documented meaning.
+
 ## 5. Modeled in Dóru
 
 Following the same approach as the 5.5.1-over-7.0 layering, the
@@ -329,7 +422,7 @@ section.
 | `_PRIM` | `MultimediaLink.primary` | `_PRIM Y` | `_PRIM Y` (no standard equivalent) |
 | `_FREL`/`_MREL` | `FamilyChildLink.fatherRelation`/`motherRelation`, `ChildFamilyLink.fatherRelation`/`motherRelation` | `_FREL`/`_MREL` | standard-first: agreeing pair → the matching `INDI.FAMC.PEDI`; otherwise dropped |
 | `_APID` | `SourceCitation.ancestryPointers`, `EventDetail.ancestryPointers`, `PersonalNameStructure.ancestryPointers` | `_APID` | `_APID` (no standard equivalent) |
-| `_PLAC` / `_LOC` / `_PLAC_DEFN` records | `PlaceRecord` (+ `PlaceStructure.location` links) | flattened: map/notes merged into referencing `PLAC` (citations/media dropped), records/links not written | same flattening |
+| `_PLAC` / `_LOC` / `_PLAC_DEFN` records | `PlaceRecord` (+ `PlaceStructure.location` links) | flattened: map/notes merged into referencing `PLAC` (citations/media dropped), records/links not written (the GEDCOM-L cards survive as `_LOC` records) | written back as `_LOC` extension records with the full contents, links kept (GEDCOM 7.0 §1.5) |
 | `_PLAC` under events | `EventDetail.additionalPlaces` | `_PLAC` | `_PLAC` |
 
 Covered by `tests/vendor-extensions.test.ts` and
@@ -389,7 +482,16 @@ its JSDoc.
 | `_UNKN` | FTW8 | Special individual ID for later file comparisons | the `UID` identifier (exports as `_UID`) |
 | `_NAME` under ADDR | PAF | Name of the addressee | `AddressStructure.name` |
 | `_SOSA` | Ancestris | Sosa–Stradonitz (Ahnentafel) number of the individual | `IndividualRecord.sosaNumber` (written back in both versions) |
-| `_FSFTID` | Familienbuch, Legacy, AQ, Family Historian, webtrees | FamilySearch Family Tree person id (PID) under INDI | `IndividualRecord.familySearchId` (written back in both versions) |
+| `_FSFTID` (also `_FID`, and the non-underscore `FSFTID`) | Familienbuch, Legacy, AQ, Family Historian, webtrees (`_FSFTID`); MFT7, Familienbuch (`_FID`); RootsMagic (`FSFTID`) | FamilySearch Family Tree person id (PID) under INDI | `IndividualRecord.familySearchId` (written back in both versions as `_FSFTID`) |
+| `_AHNNR` under INDI | GES2000 | The ancestor-table (Kekulé) number — the same slot Ancestris' `_SOSA` carries | `IndividualRecord.sosaNumber` (written back in both versions as `_SOSA`) |
+| `_HEIRATNAME` under INDI | AF2000 | The name after marriage — the same slot `_MARNM` carries | `names[]` with `TYPE MARRIED` |
+| `_CALL` / `_FRKA` / `_HNM` / `_INDG` / `_LNCH` under INDI | BKW6+ (`_CALL`, `_FRKA`, `_HNM`, `_INDG`, `_LNCH`), WebT (`_HNM`) | Further name variants: called name, formerly known as, Hebrew name, indigenous name, legal name change (GenWiki "GEDCOM/_Nutzerdef-Tag" table) | `names[]` with `TYPE OTHER` and a PHRASE label |
+| `_MARI` under FAM | BKW6+, webtrees | The marriage intention — the sibling of the standard MARB/MARC/MARL | FAM `EVEN` + TYPE "Marriage intention" |
+| `_PRI` under events | AGES! | The primary event flag (bare tag, "no value") | `EventDetail.primary` (written back as the bare `_PRI` in both versions) |
+| `_EVN` under events | BKW6+ | The event number, referenced from witness ASSO links ("Witness at event _EVN ##") | `EventDetail.eventNumber` (written back in both versions) |
+| `_CTYP` under OBJE.FILE | Ahnenblatt | The content type of the picture (person, group, place, signature, tombstone, document, heirloom) | `MediaFile.contentType` (written back in both versions) |
+| `_WT_USER` under CHAN | webtrees, kiwitrees | The user name of the user who made the change | `ChangeDate.user` (written back in both versions) |
+| `_CREAT` under INDI/FAM | GenPlus | The date the record was created (kept free text: the wire format is undocumented) | `IndividualRecord.createdAt` / `FamilyRecord.createdAt` (written back as `_CREAT` in both versions) |
 | `_TODO` under INDI/FAM | GenoPro, RootsMagic, Ahnenblatt, webtrees, GDO, FO7, Legacy, BKW | To-do structure with `DESC`/`PRTY`/`STAT`/`DATE`/`NOTE` (the Legacy level-0 `_TODO` record is the separate `TodoRecord`) | `IndividualRecord.todos` / `FamilyRecord.todos` (written back in both versions) |
 | `_EVENT_DEFN` record | Legacy, PAF5 | The Event Definition record: the defined event tag (payload, standard-tag child, or TYPE child), the `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, the `_SEN1`–`_SEN8` sentences and the PAF5 sentence set (`_SENM`/`_SENF`/`_SENU` + Date-Only/Place-Only/Date-and-Place variants) | `EventDefinitionRecord` (written back in both versions; the event tag is written as the record payload) |
 | `SCHEMA` / `_SCHEMA` | FTM | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA) | `Header.schema53` (written back in 5.5.1 as `SCHEMA`; dropped on 7.0) |
@@ -589,6 +691,18 @@ same catalog the earlier version of this chapter missed (`COMP`,
 `CUTOFFYR`, `DATV`, `EARL`, `HISTB`, `MIDSC`, `ORIG`, `RATI`, `STAKE`,
 `WEIG`) — 131 in total.
 
+The GenWiki "GEDCOM/_Nutzerdef-Tag" article's second table
+("Abweichungen vom Standard bei der Verwendung", itself based on
+<http://www.gencom.org.nz/GEDCOM_tags.html>) adds the non-underscore
+deviations the Legacy catalog does not list: the tags of Der Stammbaum
+≤ V6 (USM6), Mac Family Tree 7/8 (MFT7/MFT8) and the RootsMagic
+`FSFTID` spelling. 22 of them stay generic (`AGED`, `BTYP`, `DEED`,
+`FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`, `MTYP`, `NAME_`, `NOTRY`,
+`POTM`, `PRIV`, `RECT`, `RINI`, `SECG`, `SIGN`, `SRCH`, `SURE`,
+`UGNM`, `UTYP`, and the non-underscore `CREA` spelling of MFT7);
+`FSFTID` is typed — the same normalization as the underscore `_FSFTID`.
+The full set is 154 tags.
+
 The policy, implemented in `src/parsing/vendor-tags.ts` (the tables
 `LEGACY_INDIVIDUAL_TAGS`, `LEGACY_FAMILY_TAGS`, `LEGACY_GENERIC_TAGS`,
 each entry annotated with the catalog's program and description — the
@@ -630,6 +744,8 @@ tables are the inventory, so the list is not repeated here):
     OTHER` + `PHRASE`), a text payload → `FACT` + `TYPE`;
   - `URL` → `IndividualRecord.url` (export `_URL`); `FILN`/`HISTID`/
     `NUMB` → `REFN` identifiers;
+  - `FSFTID` (RootsMagic) → `IndividualRecord.familySearchId` (export
+    `_FSFTID`), the same normalization as the underscore `_FSFTID`;
   - `LDS` — the FTM5 wrapper: its children parse as LDS individual
     ordinances (`BAPL`/`CONL`/`ENDL`/`SLGC`), and the wrapper itself
     disappears;
@@ -640,7 +756,7 @@ tables are the inventory, so the list is not repeated here):
   standard spelling of the target version (the vendor tag itself is not
   written back), and both versions can spell all of them — nothing is
   lost in either direction.
-- **The deliberately generic tail** (10 tags, accepted on 5.x input
+- **The deliberately generic tail** (32 tags, accepted on 5.x input
   where the standard grammar has no slot for them, preserved verbatim
   on 5.5.1 export, dropped on 7.0 export — 7.0 §1.5 can only spell
   underscore-prefixed extension tags). Every tag below stays generic
@@ -673,6 +789,20 @@ tables are the inventory, so the list is not repeated here):
     labels, so those instances stay generic. Deliberate; see also
     chapter 7 (the same reasoning as for the deferred underscore
     tags).
+  - The GenWiki "Tabelle 2" deviations of USM6 and Mac Family Tree —
+    `AGED`, `BTYP`, `DEED`, `FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`,
+    `MTYP`, `NAME_`, `NOTRY`, `POTM`, `PRIV`, `RECT`, `RINI`, `SECG`,
+    `SIGN`, `SRCH`, `SURE`, `UGNM`, `UTYP`, and the non-underscore
+    `CREA`. The GenWiki table documents each meaning ("Age at death",
+    "birth type", "the person is marked private", …) but no wire
+    format beyond the tag itself — no position grammar, value set, or
+    substructure rules — so typing any of them would invent a model.
+    (The one exception, the RootsMagic `FSFTID`, is typed: it is the
+    documented twin of `_FSFTID`.) They stay generic extensions,
+    preserved verbatim on 5.5.1 export (this is what fixed the import
+    of real MacFamilyTree files, which previously failed with
+    `structure.unknown-tag`); on 7.0 export they are dropped — 7.0
+    cannot spell a non-underscore extension tag.
 
 Where a tag's position *is* standard, the standard structure always
 wins: `NATI` under INDI stays a standard attribute, `WIFE` under FAM
@@ -683,4 +813,6 @@ it parses as the standard attribute too).
 Covered by `tests/vendor-extensions-nonunderscore.test.ts` (per-tag
 typing assertions, pointer associations, the LDS wrapper, the FAM
 rules, standard-first export, and a lossless 5.5.1 round trip of the
-whole catalog).
+whole catalog) and `tests/vendor-extensions-mft-usm.test.ts` (the
+GenWiki Tabelle 2 tags, the FSFTID typing, and the GenWiki twins of
+the typed underscore tags).

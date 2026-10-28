@@ -164,6 +164,7 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
     for (const citation of association.citations ?? []) {
       emitSourceCitation(w, version, level + 1, citation);
     }
+    emitExtensions(w, version, level + 1, association);
     return;
   }
   let role = association.role;
@@ -190,6 +191,7 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
   for (const citation of association.citations ?? []) {
     emitSourceCitation(w, version, level + 1, citation);
   }
+  emitExtensions(w, version, level + 1, association);
 }
 
 export function emitDate(w: Writer, version: Version, level: number, tag: string, date: DateStructure): void {
@@ -405,6 +407,15 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   for (const apid of detail.ancestryPointers ?? []) {
     w.line(level, '_APID', { value: apid });
   }
+  if (detail.primary === true) {
+    // AGES!: the primary event flag (see EventDetail.primary).
+    w.line(level, '_PRI');
+  }
+  if (detail.eventNumber !== undefined) {
+    // BKW6+: the event number (see EventDetail.eventNumber).
+    w.line(level, '_EVN', { value: detail.eventNumber });
+  }
+  emitExtensions(w, version, level, detail);
 }
 
 export function emitNoteStructure(w: Writer, version: Version, level: number, note: NoteStructure): void {
@@ -622,18 +633,20 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
   // 5.5.1 has no CROP/TITL under OBJE; dropped.
 }
 
-export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, xref: string | undefined): void {
-  if (version === '7.0' && !ext.tag.startsWith('_')) {
+export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, xref: string | undefined, top = true): void {
+  if (top && version === '7.0' && !ext.tag.startsWith('_')) {
     // GEDCOM 7.0 §1.5 extension tags must be underscore-prefixed
     // (extTag): a non-underscore vendor extension accepted from 5.x
     // input (see parsing/vendor-tags.ts) has no 7.0 spelling and is
-    // dropped, like the other 5.5.1-only constructs.
+    // dropped, like the other 5.5.1-only constructs. Nested children
+    // are exempt: their meaning is defined by the containing extension,
+    // which may use standard tags (GEDCOM 7.0 §1.5).
     return;
   }
   const payload = ext.payload === undefined ? undefined : ext.payload;
   w.line(level, ext.tag, { xref, value: payload });
   for (const child of ext.children) {
-    emitExtension(w, version, level + 1, child, undefined);
+    emitExtension(w, version, level + 1, child, undefined, false);
   }
 }
 
