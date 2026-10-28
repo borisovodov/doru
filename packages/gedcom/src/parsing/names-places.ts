@@ -159,6 +159,11 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     handlers["NOTE"] = (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 PERSONAL_NAME_STRUCTURE carries <<NOTE_STRUCTURE>>
+      // {0:M} (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
     handlers["SOUR"] = (child) => {
       (out.citations ??= []).push(parseSourceCitation(child, ctx));
     };
@@ -297,6 +302,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     };
     handlers["EXID"] = (child) => {
       (out.externalIds ??= []).push(parseExternalIdentifier(child, ctx));
+    };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 PLACE_STRUCTURE carries <<NOTE_STRUCTURE>> {0:M}
+      // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
   } else {
     handlers["FONE"] = (child) => {

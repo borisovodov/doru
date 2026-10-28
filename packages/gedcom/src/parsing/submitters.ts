@@ -108,6 +108,38 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
     };
+    // The 5.5.1/5.5.5 ADDRESS_STRUCTURE position: the floating contact
+    // lines PHON/EMAIL/FAX/WWW {0:3} sit beside ADDR (GEDCOM 5.5.1 §2
+    // p.31; 5.5.5 adds the record-level positions, REPO and SUBM alike).
+    // The parser also accepts them under ADDR (the 5.5.5 spelling); the
+    // 5.5.1 serializer writes them back into the address block.
+    handlers["PHON"] = (_child) => {
+      if (rec.phone === undefined) {
+        rec.phone = atMostThree(node, 'PHON').map((item) => reqText(item));
+      }
+    };
+    handlers["EMAIL"] = (_child) => {
+      if (rec.email === undefined) {
+        rec.email = atMostThree(node, 'EMAIL').map((item) => reqText(item));
+      }
+    };
+    handlers["FAX"] = (_child) => {
+      if (rec.fax === undefined) {
+        rec.fax = atMostThree(node, 'FAX').map((item) => reqText(item));
+      }
+    };
+    handlers["WWW"] = (_child) => {
+      if (rec.www === undefined) {
+        rec.www = atMostThree(node, 'WWW').map((item) => reqText(item));
+      }
+    };
+  }
+  if (ctx.version === '7.0') {
+    // The 7.0 SUBMITTER_RECORD carries <<NOTE_STRUCTURE>> {0:M}
+    // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
   }
   dispatch(
     node,

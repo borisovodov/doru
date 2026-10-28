@@ -98,6 +98,11 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     handlers["EXID"] = (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
     };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 MULTIMEDIA_RECORD carries <<NOTE_STRUCTURE>> {0:M}
+      // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
   } else {
     handlers['_UID'] = (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));

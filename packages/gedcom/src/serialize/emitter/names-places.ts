@@ -286,6 +286,11 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
   if (record.maidenhead !== undefined) {
     w.line(1, '_MAIDENHEAD', { value: record.maidenhead });
   }
+  if (record.preposition !== undefined) {
+    // Legacy: the location preposition of the place card (see
+    // PlaceRecord.preposition).
+    w.line(1, '_PREP', { value: record.preposition });
+  }
   if (record.denomination !== undefined) {
     w.line(1, 'RELI', { value: record.denomination });
   }

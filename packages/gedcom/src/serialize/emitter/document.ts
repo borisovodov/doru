@@ -374,6 +374,22 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
     for (const value of rec.www ?? rec.address?.www ?? []) {
       w.line(1, 'WWW', { value });
     }
+  } else if (address === undefined) {
+    // 5.5.1 spells the contacts inside the ADDRESS_STRUCTURE; with no
+    // address block the floating PHON/EMAIL/FAX/WWW position beside
+    // ADDR carries them (GEDCOM 5.5.1 §2 p.31).
+    for (const value of rec.phone ?? []) {
+      w.line(1, 'PHON', { value });
+    }
+    for (const value of rec.email ?? []) {
+      w.line(1, 'EMAIL', { value });
+    }
+    for (const value of rec.fax ?? []) {
+      w.line(1, 'FAX', { value });
+    }
+    for (const value of rec.www ?? []) {
+      w.line(1, 'WWW', { value });
+    }
   }
   for (const media of rec.media ?? []) {
     emitMultimediaLink(w, version, 1, media);

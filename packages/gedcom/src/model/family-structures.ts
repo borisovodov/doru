@@ -34,7 +34,11 @@ interface FamilyAttributeBase<Tag extends string, TPayload> extends GedcomStruct
  *
  * GEDCOM 5.5.1 §2 Record Structures (p.24), `FAM_RECORD` — in 5.5.1 NCHI
  * sits directly under the FAM record ({0:1}) with the same
- * `COUNT_OF_CHILDREN` meaning.
+ * `COUNT_OF_CHILDREN` meaning and no substructures. In 7.0 it is one of
+ * the FAMILY_ATTRIBUTE_STRUCTUREs: the full TYPE {0:1} and
+ * FAMILY_EVENT_DETAIL {0:1} (the partners' ages plus an EVENT_DETAIL)
+ * apply (GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE). The TYPE and
+ * the detail are dropped when serializing to 5.5.1 (its NCHI is bare).
  *
  * The vendor childless marker `_NONE` under FAM — "the couple had no
  * children", an explicit assertion that distinguishes a childless

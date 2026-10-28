@@ -85,6 +85,55 @@ export interface AddressStructure extends GedcomStructureBase {
   fax?: Special[];
   /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
   www?: Special[];
+  /**
+   * _SORT {0:1} — the spelling of the addressee's name used when
+   * sorting addresses for a report. Written by Legacy Family Tree
+   * under its address blocks (see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_SORT` in both versions.
+   */
+  sortName?: Text;
+  /**
+   * _LIST1 {0:1} — marks the address as part of Legacy's "Newsletter"
+   * report grouping (the vendor's "Custom GEDCOM Tags" help documents
+   * the value `YES`:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input (an absent
+   * value, `Y`, or `YES` marks the flag set; `N`/`NO` clears it) and
+   * written back as `_LIST1 YES` in both versions.
+   */
+  newsletterList?: boolean;
+  /**
+   * _LIST2 {0:1} — marks the address as part of Legacy's "Family
+   * Association" report grouping. Same source, value convention and
+   * serialization as `newsletterList`; written back as `_LIST2 YES`.
+   */
+  familyAssociationList?: boolean;
+  /**
+   * _LIST3 {0:1} — marks the address as part of Legacy's "Birthday"
+   * report grouping. Same source, value convention and serialization
+   * as `newsletterList`; written back as `_LIST3 YES`.
+   */
+  birthdayList?: boolean;
+  /**
+   * _LIST4 {0:1} — marks the address as part of Legacy's "Research"
+   * report grouping. Same source, value convention and serialization
+   * as `newsletterList`; written back as `_LIST4 YES`.
+   */
+  researchList?: boolean;
+  /**
+   * _LIST5 {0:1} — marks the address as part of Legacy's "Christmas"
+   * report grouping. Same source, value convention and serialization
+   * as `newsletterList`; written back as `_LIST5 YES`.
+   */
+  christmasList?: boolean;
+  /**
+   * _LIST6 {0:1} — marks the address as part of Legacy's "Holiday"
+   * report grouping. Same source, value convention and serialization
+   * as `newsletterList`; written back as `_LIST6 YES`.
+   */
+  holidayList?: boolean;
 }
 
 /**
@@ -285,9 +334,14 @@ export interface EventDetail extends GedcomStructureBase {
    * GEDCOM Tags" help, which catalogs the non-underscore `SENT`
    * spelling:
    * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
-   * not part of any GEDCOM version. Recognized on input as `_SENT` in
-   * both versions and as `SENT` on 5.x input; written back as `_SENT`
-   * in both versions.
+   * not part of any GEDCOM version. Legacy Family Tree names the same
+   * slot `_OVER` ("An event sentence override", its "Custom GEDCOM
+   * Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm; the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table confirms the position under
+   * events). Both spellings are recognized on input — `_SENT` in both
+   * versions plus `SENT` on 5.x input, `_OVER` in both versions — and
+   * written back as `_SENT` in both versions.
    */
   sentence?: Text;
   /**
@@ -547,6 +601,23 @@ export interface Note extends GedcomStructureBase {
   translations?: NoteTranslation[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
+  /**
+   * _PRIV {0:1} — marks the note as private: text the author recorded
+   * as not for publication (living persons, sensitive material).
+   * Written by WinFamily as the non-underscore `NOTP` — "Private
+   * note", see the Legacy "User-Defined GEDCOM Tags" help
+   * (https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm)
+   * and the GenWiki "GEDCOM/_Nutzerdef-Tag" table
+   * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); `NOTP` is
+   * recognized on 5.x input and normalizes into an inline NOTE with
+   * this flag set. The flag's wire spelling under a note is `_PRIV`
+   * (the same presence-style flag Legacy writes under ADDR and
+   * events): an absent value or `Y` marks the flag set, `N` clears
+   * it. Written back as `_PRIV Y` in both versions; the `NOTP`
+   * spelling itself is not written back (its payload becomes the
+   * standard NOTE).
+   */
+  private?: boolean;
 }
 
 /**
@@ -563,11 +634,20 @@ export interface SharedNoteReference extends GedcomStructureBase {
  * GEDCOM 5.5.1 §2 Substructures (p.37), `NOTE_STRUCTURE` — a pointer to a
  * NOTE record, 5.5.1's shared-note mechanism. GEDCOM 7.0 replaced this
  * with the SNOTE pointer; both variants exist in this model.
+ *
+ * In 5.5.1 the pointer form may carry SOUR {0:M} lines beneath it — each
+ * a bare pointer to a source record ("SOURce tags subordinate to the
+ * note structure can only contain a pointer to an associated source
+ * record", GEDCOM 5.5.1 §2 p.37), modelled as minimal citations. The
+ * 7.0 SNOTE pointer has no substructure slot, so the citations are
+ * dropped when serializing to 7.0.
  */
 export interface NoteReference extends GedcomStructureBase {
   tag: 'NOTE';
   /** The NOTE payload, {1:1} pointer to a NOTE record. */
   note: Pointer<NoteRecord>;
+  /** SOUR {0:M} — GEDCOM 5.5.1-only: bare pointers to the source records documenting the note. Dropped when serializing to 7.0. */
+  citations?: SourceCitation[];
 }
 
 /**

@@ -225,13 +225,18 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
   };
   if (ctx.version === '7.0') {
     handlers["NCHI"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyChildCount(child));
+      (rec.attributes ??= []).push(parseFamilyChildCount(child, ctx));
     };
     handlers["RESI"] = (child) => {
       (rec.attributes ??= []).push(parseFamilyResidence(child, ctx));
     };
     handlers["FACT"] = (child) => {
       (rec.attributes ??= []).push(parseFamilyFact(child, ctx));
+    };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 FAMILY_RECORD carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+      // 7.0 §3.2.2); 5.5.1 stays strict.
+      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     };
     handlers["NO"] = (child) => {
       (rec.nonEvents ??= []).push(parseNonEvent(child, ctx));
@@ -261,7 +266,7 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     };
     handlers["NCHI"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyChildCount(child));
+      (rec.attributes ??= []).push(parseFamilyChildCount(child, ctx));
     };
     for (const tag of FAMILY_EVENT_TAGS) {
       handlers[tag] = (child) => {
@@ -416,6 +421,27 @@ function pushLegacyNote(rec: IndividualRecord, node: RawNode, ctx: Ctx): void {
   (rec.notes ??= []).push(note);
 }
 
+/** An INDI-level legacy private note tag (NOTP): an inline NOTE with the
+ *  privacy flag set (see Note.private). */
+function pushLegacyPrivateNote(rec: IndividualRecord, node: RawNode, ctx: Ctx): void {
+  const raw = node.value.kind === 'text' ? node.value.text : '';
+  if (raw === '') {
+    fail('structure.missing-payload', `The ${node.tag} line requires a text value`, node.position);
+  }
+  const note: Note = { tag: 'NOTE', payload: raw, private: true };
+  dispatch(
+    node,
+    note,
+    {
+      SOUR: (child) => {
+        (note.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+    },
+    ctx,
+  );
+  (rec.notes ??= []).push(note);
+}
+
 /** Applies the typed legacy INDI rules (see vendor-tags.ts) on 5.x input. */
 function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
   for (const [tag, rule] of Object.entries(LEGACY_INDIVIDUAL_TAGS)) {
@@ -444,6 +470,9 @@ function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<strin
           return;
         case 'note':
           pushLegacyNote(rec, child, ctx);
+          return;
+        case 'privateNote':
+          pushLegacyPrivateNote(rec, child, ctx);
           return;
         case 'negative':
           pushVendorNonEvent(rec, child, ctx, rule.event);
@@ -717,6 +746,18 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _MDCL: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Medical'));
     },
+    _MEDC: (child) => {
+      // PAF5 (also written by BKW6+ and webtrees): a medical condition,
+      // a FACT with the TYPE "Medical condition" — the same
+      // normalization as the FTM _MDCL twin, kept as FACT (a
+      // condition, not an event). The GenWiki "GEDCOM/_Nutzerdef-Tag"
+      // table of the GEDCOM-L working group documents the meaning
+      // ("Medical condition", https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag);
+      // the Legacy "User-Defined GEDCOM Tags" catalog lists the tag
+      // without a description
+      // (https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm).
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Medical condition');
+    },
     _FOOT: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Footnote'));
     },
@@ -828,6 +869,11 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     };
     handlers["EXID"] = (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+    };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 INDIVIDUAL_RECORD carries <<NOTE_STRUCTURE>> {0:M}
+      // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     };
     for (const tag of ['BAPL', 'CONL', 'ENDL', 'INIL', 'SLGC']) {
       handlers[tag] = (child) => {

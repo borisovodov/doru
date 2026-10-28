@@ -1,8 +1,25 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
+import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
+
+function ser551(dataset: GedcomDataset): string {
+  const result = serializeGedcom551(dataset);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  return result.value;
+}
+
+function ser70(dataset: GedcomDataset): string {
+  const result = serializeGedcom70(dataset);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  return result.value;
+}
 
 function parse70(text: string): GedcomDataset {
   const result = parseGedcom70(enc(text));
@@ -188,6 +205,50 @@ describe('note structures', () => {
     const rec = dataset.records[0] as { notes?: Array<{ tag: string; note: string }> };
     expect(rec.notes?.[0]).toEqual({ tag: 'NOTE', note: '@N1@' });
     expect(err551(indi551(['1 NOTE @N1@', '2 BOGUS x', '0 @N1@ NOTE text']))).toBe('structure.unknown-tag');
+  });
+
+  test('5.5.1 NOTE pointer accepts bare SOUR pointers beneath it', () => {
+    const dataset = parse551(
+      indi551([
+        '1 NOTE @N1@',
+        '2 SOUR @S2@',
+        '2 SOUR @S3@',
+        '0 @N1@ NOTE text',
+        '0 @S2@ SOUR', '1 TITL Two',
+        '0 @S3@ SOUR', '1 TITL Three',
+      ]),
+    );
+    const rec = dataset.records[0] as { notes?: Array<{ tag: string; note: string; citations?: Array<{ tag: string; source: string }> }> };
+    expect(rec.notes?.[0]).toEqual({
+      tag: 'NOTE',
+      note: '@N1@',
+      citations: [
+        { tag: 'SOUR', source: '@S2@' },
+        { tag: 'SOUR', source: '@S3@' },
+      ],
+    });
+    // The SOUR under a NOTE pointer is a bare pointer: substructures are
+    // rejected, and the pointer must resolve.
+    expect(err551(indi551(['1 NOTE @N1@', '2 SOUR @S2@', '3 BOGUS x', '0 @N1@ NOTE text', '0 @S2@ SOUR', '1 TITL S']))).toBe('structure.unknown-tag');
+    expect(err551(indi551(['1 NOTE @N1@', '2 SOUR @NOPE@', '0 @N1@ NOTE text']))).toBe('document.xref-not-found');
+  });
+
+  test('NOTE pointer citations: 5.5.1 writes them back, 7.0 drops them', () => {
+    const dataset = parse551(
+      indi551([
+        '1 NOTE @N1@',
+        '2 SOUR @S2@',
+        '0 @N1@ NOTE text',
+        '0 @S2@ SOUR', '1 TITL Two',
+      ]),
+    );
+    const out551 = ser551(dataset);
+    expect(out551).toContain('1 NOTE @N1@');
+    expect(out551).toContain('2 SOUR @S2@');
+    // 7.0 spells the pointer SNOTE and has no slot for the citation.
+    const out70 = ser70(dataset);
+    expect(out70).toContain('1 SNOTE @N1@');
+    expect(out70).not.toContain('2 SOUR @S2@');
   });
 
   test('7.0 inline NOTE carries MIME, LANG, TRAN and SOUR', () => {

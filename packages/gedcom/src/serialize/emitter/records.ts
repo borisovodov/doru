@@ -126,7 +126,12 @@ export function emitFamily(w: Writer, version: Version, rec: {
   for (const attribute of rec.attributes ?? []) {
     if (attribute.tag === 'NCHI') {
       w.line(1, 'NCHI', { value: String(attribute.payload) });
-      emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
+      if (version === '7.0') {
+        // 5.5.1 NCHI is a bare count under FAM_RECORD: the TYPE and the
+        // FAMILY_EVENT_DETAIL are dropped there (see
+        // FamilyChildCountAttribute).
+        emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
+      }
       continue;
     }
     if (attribute.tag === 'RESI') {
@@ -623,6 +628,22 @@ export function emitRepository(w: Writer, version: Version, rec: {
     for (const value of rec.www ?? rec.address?.www ?? []) {
       w.line(1, 'WWW', { value });
     }
+  } else if (address === undefined) {
+    // 5.5.1 spells the contacts inside the ADDRESS_STRUCTURE; with no
+    // address block the floating PHON/EMAIL/FAX/WWW position beside
+    // ADDR carries them (GEDCOM 5.5.1 §2 p.31).
+    for (const value of rec.phone ?? []) {
+      w.line(1, 'PHON', { value });
+    }
+    for (const value of rec.email ?? []) {
+      w.line(1, 'EMAIL', { value });
+    }
+    for (const value of rec.fax ?? []) {
+      w.line(1, 'FAX', { value });
+    }
+    for (const value of rec.www ?? []) {
+      w.line(1, 'WWW', { value });
+    }
   }
   commonRecordFields(w, version, rec, 1);
 }
@@ -725,6 +746,9 @@ export function emitSource(w: Writer, version: Version, rec: {
   automatedRecordId?: string;
   template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
   fullFootnote?: string;
+  titleItalic?: boolean;
+  publicationParenthesized?: boolean;
+  titleQuoted?: boolean;
   relocatedCitations?: SourceCitation[];
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -806,6 +830,17 @@ export function emitSource(w: Writer, version: Version, rec: {
   }
   if (rec.fullFootnote !== undefined) {
     w.line(1, '_FULL', { value: rec.fullFootnote });
+  }
+  if (rec.titleItalic === true) {
+    // Legacy / AQ: the source title prints in italics (see
+    // SourceRecord.titleItalic).
+    w.line(1, '_ITALIC', { value: 'Y' });
+  }
+  if (rec.publicationParenthesized === true) {
+    w.line(1, '_PAREN', { value: 'Y' });
+  }
+  if (rec.titleQuoted === true) {
+    w.line(1, '_QUOTED', { value: 'Y' });
   }
   if (rec.template !== undefined) {
     w.line(1, '_TMPLT');

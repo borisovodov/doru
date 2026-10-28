@@ -58,6 +58,18 @@ export interface PlaceRecord extends GedcomStructureBase {
   payload: Text;
   /** ABBR {0:1} — an abbreviation (Legacy `_PLAC_DEFN`). Dropped when serializing to 7.0. */
   abbreviation?: Text;
+  /**
+   * `_PREP` {0:1} — the location preposition: the word or phrase that
+   * prefixes the place name in a report sentence (Legacy's
+   * `_PLAC_DEFN` records; see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm, and
+   * the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_PREP` in
+   * both versions (the record survives as a `_LOC` record for it, like
+   * the other card fields without a standard equivalent).
+   */
+  preposition?: Text;
   /** MAP {0:1} — a representative point for the location. */
   map?: MapCoordinates;
   /** <<NOTE_STRUCTURE>> {0:M}. */

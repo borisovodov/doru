@@ -60,6 +60,15 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
   }
   const header: Omit<Header, 'gedcom'> = { tag: 'HEAD' };
   let gedcom: Gedcom | undefined;
+  // HEAD.NOTE {0:1} — GEDCOM 7.0 §3.2.1 gives the header one
+  // NOTE_STRUCTURE, so the inline NOTE and the SNOTE pointer forms are
+  // mutually exclusive; 5.5.1 only knows the inline form.
+  const setNote = (child: RawNode): void => {
+    if (header.note !== undefined) {
+      fail('structure.cardinality', 'At most one note structure is allowed in the header', child.position);
+    }
+    header.note = parseNoteStructure(child, ctx);
+  };
   dispatch(
     node,
     header,
@@ -74,6 +83,11 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         ? {
             SCHMA: (child) => {
               header.schema = parseSchema(child, ctx);
+            },
+            SNOTE: (child) => {
+              // The 7.0 HEAD carries <<NOTE_STRUCTURE>> {0:1}; 5.5.1
+              // stays strict.
+              setNote(child);
             },
           }
         : {}),
@@ -111,7 +125,7 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         header.place = parseHeaderPlace(child, ctx);
       },
       NOTE: (child) => {
-        header.note = parseNoteStructure(child, ctx);
+        setNote(child);
       },
       ...(ctx.version === '5.5.1'
         ? {
