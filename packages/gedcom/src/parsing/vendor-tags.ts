@@ -66,6 +66,8 @@ export type LegacyIndividualRule =
   | { kind: 'educ'; type: string }
   /** Free text: an inline NOTE. */
   | { kind: 'note' }
+  /** A private note: an inline NOTE with the privacy flag set (NOTP, WinFamily). */
+  | { kind: 'privateNote' }
   /** A negation (UMAR, "unmarried"): a bare NO structure. */
   | { kind: 'negative'; event: 'MARR' }
   /** The individual's web address: IndividualRecord.url (export `_URL`). */
@@ -187,6 +189,7 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   DESR: { kind: 'note' }, // TMG: description.
   HIST: { kind: 'note' }, // Reunion: research notes.
   INFO: { kind: 'note' }, // FTW5.
+  NOTP: { kind: 'privateNote' }, // WinFamily: private note (the NOTE privacy flag, see Note.private).
   REMA: { kind: 'note' }, // FTW5: remarks.
   // Negations.
   UMAR: { kind: 'negative', event: 'MARR' }, // Reunion: unmarried.
@@ -227,9 +230,8 @@ export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
 /**
  * The legacy tags with no typed rule: their meaning is undocumented
  * (the catalogs mark them "???") or their position is (SCHEMA, LABL,
- * outside their schema context) or their semantics would not survive
- * the normalization (NOTP: a *private* note). They stay generic
- * extensions, preserved verbatim (dropped on 7.0 export).
+ * outside their schema context). They stay generic extensions,
+ * preserved verbatim (dropped on 7.0 export).
  */
 export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'COMP', // Reunion: ???.
@@ -240,7 +242,6 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'LABL', // FTW3-5: schema label (typed under HEAD.SCHEMA; generic elsewhere).
   'MSTAT', // Mac Genealogy: death status; Tamura Jones documents the 5.3 MSTAT as marriage status — conflicting meanings.
   'NAMM', // Reunion: "Name ???".
-  'NOTP', // WinFamily: private note (the privacy flag has no NOTE slot).
   'PRTY', // FTW7: ???.
   'SCHEMA', // FTW5: schema block (typed under HEAD; generic elsewhere).
 ]);

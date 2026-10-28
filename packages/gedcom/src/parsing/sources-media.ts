@@ -110,6 +110,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         NOTE: (child) => {
           (out.notes ??= []).push(parseNoteStructure(child, ctx));
         },
+        SNOTE: (child) => {
+          // The 7.0 SOURCE_CITATION carries <<NOTE_STRUCTURE>> {0:M}
+          // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
+          (out.notes ??= []).push(parseNoteStructure(child, ctx));
+        },
         '_APID': (child) => {
           (out.ancestryPointers ??= []).push(reqText(child));
         },
@@ -254,19 +259,22 @@ export function parseSourceCitationEvent(node: RawNode, ctx: Ctx): SourceCitatio
 export function parseSourceRepositoryCitation(node: RawNode, ctx: Ctx): SourceRepositoryCitation {
   const pointer = optPtr(node, ctx);
   const out: SourceRepositoryCitation = { tag: 'REPO', repository: pointer ?? '@VOID@' };
-  dispatch(
-    node,
-    out,
-    {
-      NOTE: (child) => {
-        (out.notes ??= []).push(parseNoteStructure(child, ctx));
-      },
-      CALN: (child) => {
-        (out.callNumbers ??= []).push(parseCallNumber(child, ctx));
-      },
+  const handlers: Record<string, (child: RawNode) => void> = {
+    NOTE: (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
-    ctx,
-  );
+    CALN: (child) => {
+      (out.callNumbers ??= []).push(parseCallNumber(child, ctx));
+    },
+  };
+  if (ctx.version === '7.0') {
+    // The 7.0 SOURCE_REPOSITORY_CITATION carries <<NOTE_STRUCTURE>>
+    // {0:M} (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
+  dispatch(node, out, handlers, ctx);
   return out;
 }
 
@@ -425,6 +433,27 @@ export function parseYNFlag(node: RawNode, tag: string): boolean {
     return false;
   }
   fail('enum.invalid-value', `The ${tag} value must be Y or N, not "${text}"`, node.position);
+}
+
+/**
+ * Parses a presence-style vendor flag with the wider value spellings the
+ * catalogs document (`Y` and `YES` both occur, e.g. Legacy's `_ITALIC Y`
+ * versus `_LIST1 YES` in its "Custom GEDCOM Tags" help): an absent value,
+ * `Y` or `YES` marks the flag set, `N`/`NO` clears it. Used for the
+ * report-formatting flags without a standard slot.
+ */
+export function parseVendorFlag(node: RawNode, tag: string): boolean {
+  if (node.value.kind === 'absent') {
+    return true;
+  }
+  const text = reqText(node).toUpperCase();
+  if (text === 'Y' || text === 'YES') {
+    return true;
+  }
+  if (text === 'N' || text === 'NO') {
+    return false;
+  }
+  fail('enum.invalid-value', `The ${tag} value must be Y, YES, N or NO, not "${text}"`, node.position);
 }
 
 export function parseCrop(node: RawNode, ctx: Ctx): CropStructure {

@@ -614,13 +614,13 @@ export interface RepositoryRecord extends GedcomStructureBase {
   dates?: DateStructure[];
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
   address?: AddressStructure;
-  /** PHON {0:M}, g7:PHON — 7.0-only. */
+  /** PHON {0:M}, g7:PHON — in 7.0 the repository's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (the floating PHON {0:3} beside ADDR, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address it writes them at the record level. */
   phone?: Special[];
-  /** EMAIL {0:M}, g7:EMAIL — 7.0-only. */
+  /** EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   email?: Special[];
-  /** FAX {0:M}, g7:FAX — 7.0-only. */
+  /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   fax?: Special[];
-  /** WWW {0:M}, g7:WWW — 7.0-only. */
+  /** WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   www?: Special[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
@@ -777,6 +777,35 @@ export interface SourceRecord extends GedcomStructureBase {
    * as `_SOUR` under the record in both versions.
    */
   relocatedCitations?: SourceCitation[];
+  /**
+   * `_ITALIC Y` {0:1} — marks the source title for printing in italics
+   * on reports. Written by Legacy Family Tree and Ancestral Quest (see
+   * Legacy's "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm, and
+   * the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input (an absent value, `Y`, or
+   * `YES` marks the flag set; `N`/`NO` clears it) and written back as
+   * `_ITALIC Y` in both versions.
+   */
+  titleItalic?: boolean;
+  /**
+   * `_PAREN` {0:1} — marks the publication facts of the source for
+   * printing within parentheses on reports. Written by Legacy Family
+   * Tree and Ancestral Quest (same sources as `titleItalic`); not part
+   * of any GEDCOM version. Recognized on input with the same value
+   * convention as `titleItalic` (the Legacy catalog documents the bare
+   * tag) and written back as `_PAREN Y` in both versions.
+   */
+  publicationParenthesized?: boolean;
+  /**
+   * `_QUOTED Y` {0:1} — marks the source title for printing within
+   * quotes on reports. Written by Legacy Family Tree and Ancestral
+   * Quest (same sources as `titleItalic`); not part of any GEDCOM
+   * version. Recognized on input with the same value convention as
+   * `titleItalic` and written back as `_QUOTED Y` in both versions.
+   */
+  titleQuoted?: boolean;
 }
 
 /**
@@ -898,13 +927,13 @@ export interface SubmitterRecord extends GedcomStructureBase {
   name: Text;
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
   address?: AddressStructure;
-  /** PHON {0:M}, g7:PHON — 7.0-only. */
+  /** PHON {0:M}, g7:PHON — in 7.0 the submitter's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (the floating PHON {0:3} beside ADDR, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address it writes them at the record level. */
   phone?: Special[];
-  /** EMAIL {0:M}, g7:EMAIL — 7.0-only. */
+  /** EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   email?: Special[];
-  /** FAX {0:M}, g7:FAX — 7.0-only. */
+  /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   fax?: Special[];
-  /** WWW {0:M}, g7:WWW — 7.0-only. */
+  /** WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
   www?: Special[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];

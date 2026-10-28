@@ -315,6 +315,46 @@ describe('submitter and submission records', () => {
     expect(rec.automatedRecordId).toBe('42');
   });
 
+  test('5.5.1 SUBM accepts the floating ADDRESS_STRUCTURE contacts beside ADDR', () => {
+    const dataset = parse551(
+      [
+        ...H551,
+        '0 @S1@ SUBM',
+        '1 NAME Tester',
+        '1 PHON +49 1',
+        '1 PHON +49 2',
+        '1 EMAIL a@@example.com',
+        '1 FAX +49 3',
+        '1 WWW https://example.com',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const rec = dataset.records[0] as {
+      tag: 'SUBM'; phone?: string[]; email?: string[]; fax?: string[]; www?: string[];
+    };
+    expect(rec.phone).toEqual(['+49 1', '+49 2']);
+    expect(rec.email).toEqual(['a@example.com']);
+    expect(rec.fax).toEqual(['+49 3']);
+    expect(rec.www).toEqual(['https://example.com']);
+  });
+
+  test('at most three 5.5.1 SUBM record-level contacts', () => {
+    expect(
+      err551(
+        [
+          ...H551,
+          '0 @S1@ SUBM',
+          '1 NAME T',
+          '1 PHON 1',
+          '1 PHON 2',
+          '1 PHON 3',
+          '1 PHON 4',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    ).toBe('structure.cardinality');
+  });
+
   test('at most three 5.5.1 LANG/PHON substructures', () => {
     expect(
       err551(
@@ -461,6 +501,19 @@ describe('repository, note and source records', () => {
     expect(rec.changeDate).toBeDefined();
     expect(rec.address).toBeDefined();
     expect(err551([...H551, '0 @R1@ REPO', '1 NOTE n', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.missing-required');
+  });
+
+  test('5.5.1 REPO accepts the floating ADDRESS_STRUCTURE contacts beside ADDR', () => {
+    const dataset = parse551(
+      [...H551, '0 @R1@ REPO', '1 NAME A', '1 PHON +49 1', '1 EMAIL a@@example.com', '1 FAX +49 2', '1 WWW https://example.com', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const rec = dataset.records[0] as {
+      tag: 'REPO'; phone?: string[]; email?: string[]; fax?: string[]; www?: string[];
+    };
+    expect(rec.phone).toEqual(['+49 1']);
+    expect(rec.email).toEqual(['a@example.com']);
+    expect(rec.fax).toEqual(['+49 2']);
+    expect(rec.www).toEqual(['https://example.com']);
   });
 
   test('7.0 SNOTE record parses every field', () => {

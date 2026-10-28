@@ -78,6 +78,28 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
   if (address.name !== undefined) {
     w.line(level + 1, '_NAME', { value: address.name });
   }
+  if (address.sortName !== undefined) {
+    // Legacy: the report sort spelling (see AddressStructure.sortName).
+    w.line(level + 1, '_SORT', { value: address.sortName });
+  }
+  if (address.newsletterList === true) {
+    w.line(level + 1, '_LIST1', { value: 'YES' });
+  }
+  if (address.familyAssociationList === true) {
+    w.line(level + 1, '_LIST2', { value: 'YES' });
+  }
+  if (address.birthdayList === true) {
+    w.line(level + 1, '_LIST3', { value: 'YES' });
+  }
+  if (address.researchList === true) {
+    w.line(level + 1, '_LIST4', { value: 'YES' });
+  }
+  if (address.christmasList === true) {
+    w.line(level + 1, '_LIST5', { value: 'YES' });
+  }
+  if (address.holidayList === true) {
+    w.line(level + 1, '_LIST6', { value: 'YES' });
+  }
   if (version === '5.5.1') {
     for (const value of address.phone ?? []) {
       w.line(level + 1, 'PHON', { value });
@@ -394,10 +416,23 @@ export function emitNoteStructure(w: Writer, version: Version, level: number, no
   if (note.tag === 'NOTE' && 'note' in note) {
     // 7.0 spells the 5.5.1 note-record pointer SNOTE.
     ptr(w, version, level, version === '7.0' ? 'SNOTE' : 'NOTE', (note as NoteReference).note);
+    if (version === '5.5.1') {
+      // The 5.5.1 pointer form may carry bare SOUR pointers beneath it
+      // (GEDCOM 5.5.1 §2 p.37); the 7.0 SNOTE pointer has no
+      // substructure slot, so they are dropped there.
+      for (const citation of (note as NoteReference).citations ?? []) {
+        emitSourceCitation(w, version, level + 1, citation);
+      }
+    }
     return;
   }
   const inline = note as Note;
   w.line(level, 'NOTE', { value: inline.payload });
+  if (inline.private === true) {
+    // The note privacy flag (WinFamily's NOTP normalizes into this;
+    // see Note.private). Written back as _PRIV in both versions.
+    w.line(level + 1, '_PRIV', { value: 'Y' });
+  }
   if (version === '7.0') {
     if (inline.mediaType !== undefined) {
       w.line(level + 1, 'MIME', { value: inline.mediaType });

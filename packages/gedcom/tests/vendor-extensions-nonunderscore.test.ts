@@ -23,6 +23,22 @@ function parseOk551(text: string): GedcomDataset {
   return result.value;
 }
 
+function parseOk70(text: string): GedcomDataset {
+  const result = parseGedcom70(enc(text));
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  return result.value;
+}
+
+function err70(text: string): string {
+  const result = parseGedcom70(enc(text));
+  if (result.ok) {
+    throw new Error('expected an error');
+  }
+  return (result.error as { code: string }).code;
+}
+
 function ser551(dataset: GedcomDataset): string {
   const result = serializeGedcom551(dataset);
   if (!result.ok) {
@@ -113,6 +129,9 @@ function expectTyped(dataset: GedcomDataset, tag: string, rule: LegacyIndividual
     case 'note':
       expect(record.notes?.some((entry) => entry.tag === 'NOTE' && 'payload' in entry && entry.payload === value), tag).toBe(true);
       return;
+    case 'privateNote':
+      expect(record.notes?.some((entry) => entry.tag === 'NOTE' && 'payload' in entry && entry.payload === value && entry.private === true), tag).toBe(true);
+      return;
     case 'negative':
       expect(record.nonEvents?.map((entry) => entry.payload), tag).toContain(rule.event);
       return;
@@ -137,7 +156,7 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     // of the Legacy catalog the chapter missed (COMP, CUTOFFYR, DATV,
     // EARL, HISTB, MIDSC, ORIG, RATI, STAKE, WEIG).
     expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(131);
-    expect(LEGACY_GENERIC_TAGS.size).toBe(11);
+    expect(LEGACY_GENERIC_TAGS.size).toBe(10);
   });
 
   test('types every rule-bearing tag into the model on 5.5.1 input', () => {
@@ -158,6 +177,34 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
       const extension = (indi as IndividualRecord).extensions?.find((entry) => entry.tag === tag);
       expect(extension?.payload, tag).toBe('x');
     }
+  });
+
+  test('NOTP normalizes into a private NOTE and is written back as NOTE + _PRIV Y', () => {
+    const dataset = parseOk551(indi551(['1 NOTP secret text']));
+    const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi as IndividualRecord).notes?.[0]).toEqual({ tag: 'NOTE', payload: 'secret text', private: true });
+    const out551 = lines(ser551(dataset));
+    expect(out551).toContain('1 NOTE secret text');
+    expect(out551).toContain('2 _PRIV Y');
+    expect(out551.join('\n')).not.toContain('NOTP');
+    const out70 = lines(ser70(dataset));
+    expect(out70).toContain('1 NOTE secret text');
+    expect(out70).toContain('2 _PRIV Y');
+  });
+
+  test('_PRIV under NOTE sets and clears the privacy flag (both versions)', () => {
+    const marked = parseOk70(indi70(['1 NOTE text', '2 _PRIV Y']));
+    const indi = marked.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi as IndividualRecord).notes?.[0]).toEqual({ tag: 'NOTE', payload: 'text', private: true });
+    const cleared = parseOk551(indi551(['1 NOTE text', '2 _PRIV N']));
+    const indi55 = cleared.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi55 as IndividualRecord).notes?.[0]).toEqual({ tag: 'NOTE', payload: 'text', private: false });
+    // A cleared flag is not written back.
+    expect(lines(ser551(cleared)).join('\n')).not.toContain('_PRIV');
+  });
+
+  test('NOTP stays a strict error on 7.0 input (non-underscore)', () => {
+    expect(err70(indi70(['1 NOTP secret']))).toBe('structure.unknown-tag');
   });
 
   test('a standard position still parses as the standard structure', () => {

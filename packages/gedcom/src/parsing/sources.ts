@@ -33,6 +33,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  atMostThree,
   dispatch,
   noPayload,
   req,
@@ -48,6 +49,7 @@ import {
   parseMultimediaLink,
   parseSourceCitation,
   parseSourceRepositoryCitation,
+  parseVendorFlag,
 } from './sources-media';
 import {
   parseAddressStructure,
@@ -120,6 +122,38 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     };
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
+    };
+    // The 5.5.1/5.5.5 ADDRESS_STRUCTURE position: the floating contact
+    // lines PHON/EMAIL/FAX/WWW {0:3} sit beside ADDR (GEDCOM 5.5.1 §2
+    // p.31; 5.5.5 adds the record-level positions, REPO and SUBM alike).
+    // The parser also accepts them under ADDR (the 5.5.5 spelling); the
+    // 5.5.1 serializer writes them back into the address block.
+    handlers["PHON"] = (_child) => {
+      if (rec.phone === undefined) {
+        rec.phone = atMostThree(node, 'PHON').map((item) => reqText(item));
+      }
+    };
+    handlers["EMAIL"] = (_child) => {
+      if (rec.email === undefined) {
+        rec.email = atMostThree(node, 'EMAIL').map((item) => reqText(item));
+      }
+    };
+    handlers["FAX"] = (_child) => {
+      if (rec.fax === undefined) {
+        rec.fax = atMostThree(node, 'FAX').map((item) => reqText(item));
+      }
+    };
+    handlers["WWW"] = (_child) => {
+      if (rec.www === undefined) {
+        rec.www = atMostThree(node, 'WWW').map((item) => reqText(item));
+      }
+    };
+  }
+  if (ctx.version === '7.0') {
+    // The 7.0 REPOSITORY_RECORD carries <<NOTE_STRUCTURE>> {0:M}
+    // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     };
   }
   dispatch(
@@ -253,6 +287,21 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _FULL: (child) => {
       rec.fullFootnote = reqText(child);
     },
+    _ITALIC: (child) => {
+      // Legacy / AQ: the source title prints in italics (see
+      // SourceRecord.titleItalic).
+      rec.titleItalic = parseVendorFlag(child, '_ITALIC');
+    },
+    _PAREN: (child) => {
+      // Legacy / AQ: the publication facts print in parentheses (see
+      // SourceRecord.publicationParenthesized).
+      rec.publicationParenthesized = parseVendorFlag(child, '_PAREN');
+    },
+    _QUOTED: (child) => {
+      // Legacy / AQ: the source title prints in quotes (see
+      // SourceRecord.titleQuoted).
+      rec.titleQuoted = parseVendorFlag(child, '_QUOTED');
+    },
     _SOUR: (child) => {
       // The relocated citation under the SOUR record (registry:
       // _SOUR.yaml): the standard SOUR tag moved under the record,
@@ -287,6 +336,11 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     };
     handlers["EXID"] = (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+    };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 SOURCE_RECORD carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+      // 7.0 §3.2.2); 5.5.1 stays strict.
+      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     };
   } else {
     handlers['_UID'] = (child) => {
@@ -349,22 +403,25 @@ function parseEvidenceTemplateField(node: RawNode, ctx: Ctx): EvidenceTemplateFi
 export function parseSourceRecordData(node: RawNode, ctx: Ctx): SourceRecordData {
   noPayload(node);
   const data: SourceRecordData = {};
-  dispatch(
-    node,
-    data,
-    {
-      EVEN: (child) => {
-        (data.events ??= []).push(parseSourceDataEvent(child, ctx));
-      },
-      AGNC: (child) => {
-        data.agency = reqText(child);
-      },
-      NOTE: (child) => {
-        (data.notes ??= []).push(parseNoteStructure(child, ctx));
-      },
+  const handlers: Record<string, (child: RawNode) => void> = {
+    EVEN: (child) => {
+      (data.events ??= []).push(parseSourceDataEvent(child, ctx));
     },
-    ctx,
-  );
+    AGNC: (child) => {
+      data.agency = reqText(child);
+    },
+    NOTE: (child) => {
+      (data.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+  };
+  if (ctx.version === '7.0') {
+    // The 7.0 SOUR.DATA carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0
+    // §3.2.2); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (data.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
+  dispatch(node, data, handlers, ctx);
   return data;
 }
 

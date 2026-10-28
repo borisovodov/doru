@@ -156,6 +156,11 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
     ABBR: (child) => {
       out.abbreviation = reqText(child);
     },
+    '_PREP': (child) => {
+      // Legacy: the location preposition of the place card (see
+      // PlaceRecord.preposition).
+      out.preposition = reqText(child);
+    },
     MAP: (child) => {
       out.map = parseMapCoordinates(child, ctx);
     },
@@ -182,7 +187,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
     // The required PLAC child was consumed above.
     handlers['PLAC'] = () => undefined;
   }
-  dispatch(node, out, handlers, ctx, ['ABBR', 'MAP', 'CHAN']);
+  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'MAP', 'CHAN']);
   if (node.tag === '_LOC') {
     // NAME {1:M}; the first entry is the payload used for name matching.
     if (out.names === undefined || out.names.length === 0) {

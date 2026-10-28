@@ -140,37 +140,39 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
 
 export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
   const out: ChildFamilyLink = { family: reqPtr(node, ctx) };
-  dispatch(
-    node,
-    out,
-    {
-      PEDI: (child) => {
-        out.pedigree = parsePedigree(child, ctx);
-      },
-      STAT: (child) => {
-        out.status = parseFamilyChildStatus(child, ctx);
-      },
-      '_PRIMARY': (child) => {
-        out.primary = parseYNFlag(child, '_PRIMARY');
-      },
-      '_PREF': (child) => {
-        out.preferred = parseYNFlag(child, '_PREF');
-      },
-      '_FREL': (child) => {
-        // The AGES! position of the relation tags (under INDI.FAMC;
-        // under FAM.CHIL they are typed on FamilyChildLink).
-        out.fatherRelation = reqText(child);
-      },
-      '_MREL': (child) => {
-        out.motherRelation = reqText(child);
-      },
-      NOTE: (child) => {
-        (out.notes ??= []).push(parseNoteStructure(child, ctx));
-      },
+  const handlers: Record<string, (child: RawNode) => void> = {
+    PEDI: (child) => {
+      out.pedigree = parsePedigree(child, ctx);
     },
-    ctx,
-    ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL'],
-  );
+    STAT: (child) => {
+      out.status = parseFamilyChildStatus(child, ctx);
+    },
+    '_PRIMARY': (child) => {
+      out.primary = parseYNFlag(child, '_PRIMARY');
+    },
+    '_PREF': (child) => {
+      out.preferred = parseYNFlag(child, '_PREF');
+    },
+    '_FREL': (child) => {
+      // The AGES! position of the relation tags (under INDI.FAMC;
+      // under FAM.CHIL they are typed on FamilyChildLink).
+      out.fatherRelation = reqText(child);
+    },
+    '_MREL': (child) => {
+      out.motherRelation = reqText(child);
+    },
+    NOTE: (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+  };
+  if (ctx.version === '7.0') {
+    // The 7.0 INDI.FAMC link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.2); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
+  dispatch(node, out, handlers, ctx, ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL']);
   return out;
 }
 
@@ -227,19 +229,22 @@ export function parseFamilyChildStatus(node: RawNode, ctx: Ctx): FamilyChildStat
 
 export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink {
   const out: SpouseFamilyLink = { family: reqPtr(node, ctx) };
-  dispatch(
-    node,
-    out,
-    {
-      NOTE: (child) => {
-        (out.notes ??= []).push(parseNoteStructure(child, ctx));
-      },
-      '_PREF': (child) => {
-        out.preferred = parseYNFlag(child, '_PREF');
-      },
+  const handlers: Record<string, (child: RawNode) => void> = {
+    NOTE: (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
-    ctx,
-  );
+    '_PREF': (child) => {
+      out.preferred = parseYNFlag(child, '_PREF');
+    },
+  };
+  if (ctx.version === '7.0') {
+    // The 7.0 INDI.FAMS link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.2); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
+  dispatch(node, out, handlers, ctx);
   return out;
 }
 
@@ -310,6 +315,11 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     },
     '_SENT': (child) => {
       // RootsMagic: the event sentence (report wording).
+      detail.sentence = reqText(child);
+    },
+    '_OVER': (child) => {
+      // Legacy Family Tree: the event sentence override — the same slot
+      // RootsMagic spells _SENT (see EventDetail.sentence).
       detail.sentence = reqText(child);
     },
     '_PPFX': (child) => {
@@ -397,6 +407,11 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     handlers["WWW"] = (child) => {
       (detail.www ??= []).push(reqText(child));
     };
+    handlers["SNOTE"] = (child) => {
+      // The 7.0 EVENT_DETAIL carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+      // 7.0 §3.2.3); 5.5.1 stays strict.
+      (detail.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
     handlers["SDATE"] = (child) => {
       detail.sortDate = parseSortDateStructure(child, ctx);
     };
@@ -471,8 +486,33 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   return event as unknown as FamilyEventStructure;
 }
 
-export function parseFamilyChildCount(node: RawNode): FamilyChildCountAttribute {
+export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCountAttribute {
   const out: FamilyChildCountAttribute = { tag: 'NCHI', payload: reqDigits(node) };
+  if (ctx.version === '7.0') {
+    // 7.0 FAMILY_ATTRIBUTE_STRUCTURE: TYPE {0:1} plus the
+    // FAMILY_EVENT_DETAIL (the partners' ages and an EVENT_DETAIL).
+    // 5.5.1 NCHI is bare and stays strict below.
+    const detail: EventDetail = {};
+    const familyDetail: FamilyEventDetail = {};
+    const handlers = eventDetailHandlers(ctx, detail);
+    handlers['TYPE'] = (child) => {
+      out.type = reqText(child);
+    };
+    handlers['HUSB'] = (child) => {
+      familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
+    };
+    handlers['WIFE'] = (child) => {
+      familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
+    };
+    dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE']);
+    if (Object.keys(detail).length > 0) {
+      familyDetail.detail = detail;
+    }
+    if (familyDetail.husband !== undefined || familyDetail.wife !== undefined || familyDetail.detail !== undefined) {
+      out.detail = familyDetail;
+    }
+    return out;
+  }
   if (node.children.length > 0) {
     fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under NCHI`, (node.children[0] as RawNode).position);
   }
@@ -493,11 +533,18 @@ export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAt
   handlers["TYPE"] = (child) => {
     out.type = reqText(child);
   };
-  dispatch(node, out, handlers, ctx);
+  handlers["HUSB"] = (child) => {
+    // The 7.0 FAMILY_EVENT_DETAIL under FAM.RESI: the husband's age.
+    familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  handlers["WIFE"] = (child) => {
+    familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE']);
   if (Object.keys(detail).length > 0) {
     familyDetail.detail = detail;
   }
-  if (familyDetail.detail !== undefined) {
+  if (familyDetail.husband !== undefined || familyDetail.wife !== undefined || familyDetail.detail !== undefined) {
     out.detail = familyDetail;
   }
   return out;
@@ -528,11 +575,18 @@ export function parseFamilyFact(node: RawNode, ctx: Ctx): FamilyGenericAttribute
   const out: FamilyGenericAttribute = { tag: 'FACT', payload: reqText(node), type: reqText(req(node, 'TYPE')) };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = () => undefined;
-  dispatch(node, out, handlers, ctx);
+  handlers["HUSB"] = (child) => {
+    // The 7.0 FAMILY_EVENT_DETAIL under FAM.FACT: the husband's age.
+    familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  handlers["WIFE"] = (child) => {
+    familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  dispatch(node, out, handlers, ctx, ['HUSB', 'WIFE']);
   if (Object.keys(detail).length > 0) {
     familyDetail.detail = detail;
   }
-  if (familyDetail.detail !== undefined) {
+  if (familyDetail.husband !== undefined || familyDetail.wife !== undefined || familyDetail.detail !== undefined) {
     out.detail = familyDetail;
   }
   return out;
@@ -678,6 +732,13 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
       }
     },
   };
+  if (ctx.version === '7.0') {
+    // The 7.0 ordinance details carry <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.3); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (detail.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
   dispatch(node, event, handlers, ctx);
   if (Object.keys(detail).length > 0) {
     (event as unknown as { detail?: LdsOrdinanceDetail }).detail = detail;
@@ -757,6 +818,13 @@ export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdina
       (detail.citations ??= []).push(parseSourceCitation(child, ctx));
     },
   };
+  if (ctx.version === '7.0') {
+    // The 7.0 LDS_SPOUSE_SEALING carries <<NOTE_STRUCTURE>> {0:M}
+    // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
+    handlers['SNOTE'] = (child) => {
+      (detail.notes ??= []).push(parseNoteStructure(child, ctx));
+    };
+  }
   dispatch(node, out, handlers, ctx);
   if (Object.keys(detail).length > 0) {
     out.detail = detail;

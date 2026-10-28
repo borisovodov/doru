@@ -209,7 +209,9 @@ above): `_AKA`, `_DATE2`, `_HUSB`/`_WIFE`, `_MASTER`, `_PRIMARY`,
 `_VERB` (Ancestral Quest); `_CORR`+`_REAS`/`_RESP`/`_RPLY`, `_TODO`
 (Family Origins); and a long list of non-underscore tags used by
 Generations/Reunion (`CIRC`, `CLER`, `EYES`, `HEIG`, `MILF`, `SEPA`,
-`CITN`, `EXCO`, …).
+`CITN`, `EXCO`, …). `_DATE2`, `_PRIMARY` and `_TODO` are typed; the
+rest of the AQ/FO private tags (`_HUSB`/`_WIFE`, `_MASTER`, `_VERB`,
+the `_CORR` block) are deliberately generic — see chapter 7.
 
 ### GEDKeeper
 
@@ -374,6 +376,13 @@ its JSDoc.
 | `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | `ChildFamilyLink.primary` |
 | `_URL` under INDI | Legacy | Web address of a person | `IndividualRecord.url` |
 | `_PRIV` under events / ADDR | Legacy | Event or address marked private | `EventDetail.restriction` PRIVACY / `AddressStructure.private` |
+| `_ITALIC` / `_PAREN` / `_QUOTED` under SOUR | Legacy, AQ3 | Source title in italics / publication facts in parentheses / source title in quotes on reports (both `Y` and `YES` value spellings, plus the bare tag, are accepted) | `SourceRecord.titleItalic` / `publicationParenthesized` / `titleQuoted` (written back as `_ITALIC Y`/`_PAREN Y`/`_QUOTED Y` in both versions) |
+| `_LIST1`–`_LIST6` under ADDR | Legacy | Report address groupings: Newsletter, Family Association, Birthday, Research, Christmas, Holiday | `AddressStructure.newsletterList` … `holidayList` (written back as `_LIST1 YES` … `_LIST6 YES` in both versions) |
+| `_SORT` under ADDR | Legacy | The report sort spelling of the addressee's name | `AddressStructure.sortName` (written back in both versions) |
+| `_OVER` under events | Legacy | The event sentence override — the same slot RootsMagic spells `_SENT` | `EventDetail.sentence` (written back as `_SENT` in both versions) |
+| `_PREP` under `_PLAC_DEFN` | Legacy | The location preposition of the place card | `PlaceRecord.preposition` (written back in both versions; the record survives as a `_LOC` record for it) |
+| `_MEDC` under INDI | PAF5, BKW6+, webtrees | A medical condition (the Legacy catalog lists the tag without a description; the GenWiki table documents the meaning) | `FACT` + TYPE "Medical condition" |
+| `NOTP` under INDI | WinFamily | A private note — text the author marked as not for publication | inline `Note` with `private: true` (written back as `NOTE` + `_PRIV Y` in both versions; see `Note.private`) |
 | `_PREF` | Legacy | Preferred spouse / child / parents | `SpouseFamilyLink.preferred`, `FamilyPartnerLink.preferred`, `FamilyChildLink.preferred`, `ChildFamilyLink.preferred` |
 | `_VERI` | Legacy | Verified checkmark on citations and places | `SourceCitation.verified`, `PlaceStructure.verified` |
 | `_EXCM` / `_MISN` | FTM | Excommunicated / Mission facts | `EVEN` + TYPE |
@@ -407,7 +416,37 @@ GenoPro/RootsMagic/Ahnenblatt is typed separately as `TodoStructure`,
 see the table above); `_TAG`/`_TAG2`–`_TAG9` →
 `IndividualRecord.marks` (slots kept, gaps stay empty); `_SOUND` →
 `MultimediaRecord.soundFile`; `_NAME` under ADDR is in the table above.
-The Legacy report machinery is deferred in chapter 7.
+The report machinery follows.
+
+**Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): the
+print styles `_ITALIC`/`_PAREN`/`_QUOTED` under SOUR →
+`SourceRecord.titleItalic`/`publicationParenthesized`/`titleQuoted`
+(both the `Y` and `YES` value spellings are accepted, plus the bare
+tag; written back as `_ITALIC Y`/`_PAREN Y`/`_QUOTED Y` in both
+versions); the address groupings `_LIST1`–`_LIST6` (Newsletter, Family
+Association, Birthday, Research, Christmas, Holiday) →
+`AddressStructure.newsletterList` … `holidayList` (written back as
+`_LIST1 YES` … `_LIST6 YES`); `_SORT` under ADDR →
+`AddressStructure.sortName` (the report sort spelling of the
+addressee's name); `_OVER` under events → `EventDetail.sentence`
+(Legacy's spelling of the event-sentence slot RootsMagic calls
+`_SENT`; written back as `_SENT`). The `_EVENT_DEFN` record is typed
+(see chapter 6, `EventDefinitionRecord`) — the `_SEN1`–`_SEN8`/
+`_SENM`/`_SENF`/`_SENU` sentence definitions, the
+`_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE`
+definition flags and the PAF5 sentence set. Still deferred: the
+`_TAG`/`_TAG2`–`_TAG4` report flags under SOUR (`_TAG NO`, `_TAG2 NO`,
+`_TAG3 YES`, `_TAG4 YES` — exclude the citation detail / the citation
+itself / include the detail text / the detail notes) and the
+address/place "tagged" marking of the same tags — the same tag names
+mean different things per position, and only the SOUR-position
+meaning is documented.
+Decision on `_CONF_FLAG`: it marks the event *type* as
+confidential in the vendor's configuration (and the mechanism that links
+a definition to its event type is undocumented — the parser accepts the
+event tag in every documented form: the record payload, a standard-tag
+child, or a TYPE child), so it is not projected onto individual events;
+a UI may interpret the definition itself.
 
 **MyHeritage**: `_UPD` (in the table above); no other documented tags.
 
@@ -449,28 +488,66 @@ trips.
 Pure report/interface data; a viewer that ignores these loses nothing
 genealogical. They stay generic `ExtensionStructure`/`ExtensionRecord`
 (GEDCOM 7.0 §1.5, model file `src/model/extensions.ts`) and are
-preserved verbatim, so nothing is lost on re-export. Revisit only if
-the corpus validation runs (README "Future work") show a concrete use.
+preserved verbatim, so nothing is lost on re-export.
+
+Leaving them generic is a **deliberate decision**, not a gap in the
+checklist: the project refuses to invent a model — typing a construct
+no source documents would fabricate semantics (see the corpus
+validation decision flow in the README's "Future work"). Each group
+below (and the "???" tail of chapter 8) is one of two cases — the
+meaning itself is undocumented or conflicting across the catalogs (the
+"???" entries), or the meaning is known but no source documents the
+wire format (position, substructures, value set), so typing would
+require guessing. The decision per group is recorded next to the
+sources, like the FOKO note in chapter 3; revisit only if the corpus
+validation runs (README "Future work") show a concrete use.
 
 **Legacy report machinery** (Legacy cat. "Custom GEDCOM Tags"): the
-`_EVENT_DEFN` record is typed (see chapter 6, `EventDefinitionRecord`) —
-the `_SEN1`–`_SEN8`/`_SENM`/`_SENF`/`_SENU` sentence definitions, the
-`_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE`
-definition flags and the PAF5 sentence set. Still deferred: `_ITALIC`/
-`_PAREN`/`_QUOTED` source print styles, `_LIST1`–`_LIST6` address
-groupings, `_SORT`/`_OVER`/`_PREP` — how reports are worded, printed and
-grouped. Decision on `_CONF_FLAG`: it marks the event *type* as
-confidential in the vendor's configuration (and the mechanism that links
-a definition to its event type is undocumented — the parser accepts the
-event tag in every documented form: the record payload, a standard-tag
-child, or a TYPE child), so it is not projected onto individual events;
-a UI may interpret the definition itself.
+print styles, address groupings and sentence overrides are typed
+(chapter 6) — `_ITALIC`/`_PAREN`/`_QUOTED` → `SourceRecord`
+print-style flags, `_LIST1`–`_LIST6` → `AddressStructure` list
+memberships, `_SORT` → `AddressStructure.sortName`, `_OVER` →
+`EventDetail.sentence`. The `_EVENT_DEFN` record is typed (chapter 6,
+`EventDefinitionRecord`). Still deferred: the `_TAG`/`_TAG2`–`_TAG4`
+report flags under SOUR and the address/place "tagged" marking of the
+same tags (chapter 6). Decision on `_CONF_FLAG`: it marks the event
+*type* as confidential in the vendor's configuration (and the mechanism
+that links a definition to its event type is undocumented — the parser
+accepts the event tag in every documented form: the record payload, a
+standard-tag child, or a TYPE child), so it is not projected onto
+individual events; a UI may interpret the definition itself.
+
+**The Legacy place preposition** (`_PREP` under `_PLAC_DEFN`) is typed
+(chapter 6): `PlaceRecord.preposition`, written back in both versions
+(the record survives as a `_LOC` record for it).
 
 **Family Tree Maker extras** (deferred): `_FA1`–`_FA13` user fact
-definitions, `_DETS` and `_ELEC` (undocumented meaning). The FTW
-marriage statuses `_MSTAT`/`_MEND` are typed (chapter 6). The GEDCOM
-5.3 schema block is no longer deferred: it is typed as
-`Header.schema53` and written back in 5.5.1 (chapter 6).
+definitions — the catalogs name them ("definitions for facts") but no
+source documents their structure, so the values cannot be typed; `_DETS`
+and `_ELEC` (undocumented meaning — the Legacy catalog marks them
+"???"; the GenWiki table says `_ELEC` is "Elected" under INDI, but the
+sources disagree, so there is nothing to type). The FTW marriage
+statuses `_MSTAT`/`_MEND` are typed (chapter 6). The GEDCOM 5.3 schema
+block is no longer deferred: it is typed as `Header.schema53` and
+written back in 5.5.1 (chapter 6).
+
+**Family Origins correspondence block** (deferred): `_CORR` with the
+`_REAS`/`_RESP`/`_RPLY` children ("Correspondence entry", "Reason",
+"Response", "Reply Status"). The catalogs document the meanings but not
+the block's wire shape — its position and the substructure grammar are
+unknown, so typing it would invent a structure. Deliberately generic
+(preserved verbatim in both versions); note the bare non-underscore
+`REAS`/`RESP`/`RPLY` under INDI are already typed as `FACT` + TYPE
+(chapter 8), which covers the common spelling.
+
+**Ancestral Quest family-child status and source tags** (deferred):
+`_HUSB`/`_WIFE` under INDI.FAMC ("child status within a family", per
+the GenWiki table) — the meaning is known but no source documents the
+value set or the wire shape; `_MASTER` under SOUR ("the source is to
+appear in the Master listing", per the Legacy catalog) — the catalog
+gives no position beyond "source" and no value convention; `_VERB`
+(AQ11) — both catalogs list it with a blank description. Deliberately
+generic; typed only if a source or the corpus shows their actual form.
 
 **Family Tree Maker / Family Tree Builder media tags** (deferred):
 `_PHOTO` (FTM) and `_PHOTO_RIN` (FTB). None of our sources documents
@@ -494,7 +571,8 @@ Needs the corpus.
 non-underscore `SENT`/`PPFX` spellings are recognized on 5.x input.
 The PAF5 sentence definitions (`_EVENT_DEFN` with the `_SENM`/`_SENF`/
 `_SENU` variants) are typed as part of `EventDefinitionRecord` (chapter
-6). Still deferred: `_MEDC` (medical condition, PAF5).
+6). The PAF5 `_MEDC` (medical condition) is typed too (chapter 6):
+`FACT` + TYPE "Medical condition".
 
 ## 8. Non-underscore vendor tags
 
@@ -534,7 +612,9 @@ tables are the inventory, so the list is not repeated here):
     `MISN` (mission), `EXCO` (excommunicated), `ENMPL` (employment),
     `DEGR` (degree), `NAMS` (namesake), `EYES`/`HAIR`/`HEIG`/`WEIG`
     (physical descriptors), and the notes `HIST`/`INFO`/`DESC`/`DESR`/
-    `REMA`/`COMML` (FTW5 "comment" — not the BKW `_COML`);
+    `REMA`/`COMML` (FTW5 "comment" — not the BKW `_COML`) and `NOTP`
+    (WinFamily: a *private* note → an inline `NOTE` with the privacy
+    flag set, written back as `NOTE` + `_PRIV Y`; see `Note.private`);
   - ~60 further facts (`ARVL`, `CEME`, `CITN`, `CODI`, `COLO`, `COYN`,
     `CRIM`, `CSTA`, `DPRT`, `DWEL`, `EDTN`, `EDTR`, `EMAL`, `FAX`,
     `FOST`, `HEAL`, `HOBB`, `HONO`, `HOSP`, `ILLE`, `ILLN`, `LVG`,
@@ -560,14 +640,39 @@ tables are the inventory, so the list is not repeated here):
   standard spelling of the target version (the vendor tag itself is not
   written back), and both versions can spell all of them — nothing is
   lost in either direction.
-- **The undocumented tail stays generic** (11 tags): `COMP`, `DATV`,
-  `DETS`, `EARL`, `HISTB` (the catalog marks them "???"), `LABL` and
-  `SCHEMA` outside their schema contexts (typed under HEAD, chapter 6),
-  `MSTAT` (the catalog says death status, Tamura Jones documents the
-  5.3 MSTAT as marriage status — conflicting), `NAMM` ("Name ???"),
-  `NOTP` (a *private* note: the privacy flag has no NOTE slot, so a
-  plain NOTE would lose it), `PRTY`. These are preserved verbatim on
-  5.5.1 export and dropped on 7.0 export (7.0 §1.5: extTag only).
+- **The deliberately generic tail** (10 tags, accepted on 5.x input
+  where the standard grammar has no slot for them, preserved verbatim
+  on 5.5.1 export, dropped on 7.0 export — 7.0 §1.5 can only spell
+  underscore-prefixed extension tags). Every tag below stays generic
+  for a recorded reason; none of them is typed by accident:
+
+  - `COMP`, `DATV`, `DETS`, `EARL`, `HISTB`, `PRTY` — the catalog
+    marks the meanings "???"; there is nothing to type.
+  - `NAMM` — Reunion: "Name ???" — same.
+  - `MSTAT` — **conflicting documented meanings.** The Legacy catalog
+    records the Mac Genealogy spelling as *death status*
+    (the GenWiki "GEDCOM/_Nutzerdef-Tag" table agrees: "Death status,
+    Mac Gene"), while Tamura Jones' "GEDCOM Tags" table documents the
+    GEDCOM 5.3 draft's `MSTAT` as *marriage status* — the tag existed
+    only in 5.3 and was removed in 5.4 (the 5.4/5.5 removal lists even
+    misspell it `MSTA`). The parser cannot tell which meaning a file
+    intends, and neither catalog documents the tag's position. Typing
+    it either way would silently relabel data written under the other
+    meaning — corruption, not preservation. (The underscore `_MSTAT`
+    is a different tag — FTW's marriage *beginning* status — and is
+    typed as `FamilyRecord.marriageBeginningStatus`, chapter 6.)
+  - `LABL` and `SCHEMA` outside their schema contexts — the GEDCOM 5.3
+    schema mechanism (`SCHEMA` with the `LABL`/`DEFN`/`ISA` leaves,
+    kept alive by Family Tree Maker) is typed at its canonical
+    position (HEAD.SCHEMA → `Header.schema53`, chapter 6). The same
+    tags also occur elsewhere in FTM files — a bare `LABL` under a
+    fact as its display label, schema fragments outside the header
+    ("Defines label for given fact, under the _SCHEMA", per the
+    Legacy catalog). There the schema model does not apply, and the
+    model deliberately has no slot for presentation-only display
+    labels, so those instances stay generic. Deliberate; see also
+    chapter 7 (the same reasoning as for the deferred underscore
+    tags).
 
 Where a tag's position *is* standard, the standard structure always
 wins: `NATI` under INDI stays a standard attribute, `WIFE` under FAM
