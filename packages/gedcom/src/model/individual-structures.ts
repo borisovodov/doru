@@ -147,8 +147,9 @@ export type IndividualAttributeStructure =
 /** Base of the individual event structures of GEDCOM 7.0 §3.2.3.
  *
  * GEDCOM 5.5.1 §2 Substructures (p.34), `INDIVIDUAL_EVENT_STRUCTURE` —
- * the same event set; in 5.5.1 only BIRT, CHR and DEAT have the optional
- * `Y` payload.
+ * the same event set; in 5.5.1 ADOP, BIRT, CHR and DEAT have the
+ * optional `Y` payload (the model accepts the assertion on every event
+ * as a superset, like the 7.0 grammar).
  */
 interface IndividualEventBase<Tag extends string> extends GedcomStructureBase {
   tag: Tag;

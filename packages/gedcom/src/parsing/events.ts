@@ -757,7 +757,9 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
     }
   } else if (ctx.version === '7.0') {
     setY(event, node);
-  } else if (tag === 'BIRT' || tag === 'CHR' || tag === 'DEAT') {
+  } else if (tag === 'ADOP' || tag === 'BIRT' || tag === 'CHR' || tag === 'DEAT') {
+    // GEDCOM 5.5.1 §2 (p.34): these four events take the `[Y|<NULL>]`
+    // assertion payload; the others are bare.
     setY(event, node);
   } else {
     noPayload(node);
