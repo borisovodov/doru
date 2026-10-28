@@ -495,7 +495,8 @@ The agreed policy:
   `RESIR`/`NMAR` → the standard `RESI`/`NMR` attributes, the
   non-underscore twins of the typed `_` facts (`CIRC`, `MILT`/`MILF`,
   `MISN`, `EXCO`, `DEGR`, `NAMS`, `EYES`, `HAIR`, `HEIG`, `WEIG`, the
-  notes `HIST`/`INFO`/`DESC`/`DESR`/`REMA`/`COMML`) → the same
+  notes `HIST`/`INFO`/`DESC`/`DESR`/`REMA`/`COMML`, WinFamily's private
+  note `NOTP` → `NOTE` + `_PRIV Y`) → the same
   normalization, ~60 further facts (`ARVL`, `CEME`, `CITN`, `CRIM`,
   `DPRT`, `DWEL`, `EDTR`, `EMAL`, `FAX`, `FOST`, `HOBB`, `HONO`,
   `HOSP`, `LVG`, `MILA`, `MILD`, `MOVE`, `PASL`, `PURC`, `RACE`,
@@ -505,11 +506,13 @@ The agreed policy:
   `CLER`, …) → `ASSO` + `RELA`, `URL` → `IndividualRecord.url`,
   `FILN`/`HISTID`/`NUMB` → `REFN`, the FTM5 `LDS` wrapper → ordinances,
   and `CLAW`/`SEPA`/`FEMA`/`MALE` at FAM level. Export is standard-first
-  in both versions. The 11 tags whose meaning the catalogs do not
-  document (`DETS`, `NAMM`, `PRTY`, `MSTAT`, `NOTP`, …) stay generic
-  extensions, preserved verbatim on 5.5.1 export and dropped on 7.0
-  (extTag only); GEDCOM 7.0 input stays strict for the whole list, and
-  unknown non-underscore tags remain `structure.unknown-tag` errors.
+  in both versions. The 10 tags with no typed rule — the "???" tail
+  (`DETS`, `NAMM`, `PRTY`, …), the conflicting `MSTAT`, and `LABL`/
+  `SCHEMA` outside their schema contexts — stay generic extensions,
+  preserved verbatim on 5.5.1 export and dropped on 7.0 (extTag only);
+  each tag's reason is recorded in docs/vendor-extensions.md chapter 8.
+  GEDCOM 7.0 input stays strict for the whole list, and unknown
+  non-underscore tags remain `structure.unknown-tag` errors.
   The full per-tag inventory with sources is
   docs/vendor-extensions.md chapter 8 and `parsing/vendor-tags.ts`.
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
