@@ -16,7 +16,12 @@ decisions about what we deliberately do **not** build, see
     "document" file and invites file-sync corruption;
   - `application_id = 0x444F5255` ("DORU") — brands the file so it is
     recognizable even in a generic SQLite browser;
-  - `user_version` — the schema migration counter.
+  - `user_version` — the schema migration counter;
+  - concurrent opens — the GUI, MCP server helpers and ACP agents can hold
+    the file open at once. Open-time writes (`application_id`,
+    `journal_mode`) run only when they differ, and a SQLite busy timeout
+    makes a burst of concurrent openers queue briefly instead of failing
+    with `SQLITE_BUSY`.
 - Opening a project is **idempotent**: an existing file opens as-is, a new one
   is created with the latest schema. The only loud case is a corrupted
   database — that must not be silently "healed" away.
