@@ -30,7 +30,7 @@ Dóru now appears in your Applications. To update it later, run
 
 ## Linux
 
-Dóru on Linux runs on 64-bit x86-64 and arm64 machines. It requires
+Dóru on Linux runs on x86-64 and arm64 machines. It requires
 **Ubuntu 22.04 LTS** or later, or **Fedora 41** or later; it is tested on
 the latest releases of both. Other distributions will most likely work too,
 but are not verified. Pick either method below — both install the same app.
