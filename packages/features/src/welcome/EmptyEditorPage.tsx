@@ -1,4 +1,3 @@
-import '@fontsource/berkshire-swash';
 import { useMemo } from 'react';
 import { nls } from '../nls';
 import './EmptyEditorPage.css';
