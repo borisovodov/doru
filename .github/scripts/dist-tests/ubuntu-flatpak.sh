@@ -30,7 +30,8 @@ sudo apt-get update -qq
 # minutes instead of a ~20-minute download on the runner's apt mirror.
 sudo apt-get install -y -qq --no-install-recommends \
   flatpak flatpak-builder ostree \
-  libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 xvfb dbus-x11
+  libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 xvfb dbus-x11 \
+  xdg-utils
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 echo "::endgroup::"
 
