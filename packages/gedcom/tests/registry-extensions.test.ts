@@ -240,7 +240,7 @@ describe('the community _DATE under REPO', () => {
     expect(repo.dates?.[0]?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 2020 });
     expect(repo.dates?.[0]?.phrase).toBe('acquired');
     expect(parse70(ser70(dataset))).toEqual(dataset);
-    expect(ser551(dataset)).toContain('1 _DATE 2020');
+    expect(ser551(dataset)).toContain('1 _DATE INT 2020 (acquired)');
   });
 });
 

@@ -106,7 +106,8 @@ export interface IndividualResidenceAttribute extends GedcomStructureBase {
    * 5.5.1 grammar (GEDCOM 5.5.1 §2 p.33) gives INDI.RESI no payload —
    * the residence is carried by the ADDR/PLAC substructures of the
    * detail. 5.5.1 input may still carry a payload (real files do); it
-   * is kept.
+   * is kept. On 5.5.1 output a payload is dropped (the grammar has no
+   * slot for it).
    */
   payload?: Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */

@@ -131,6 +131,16 @@ function stripPointers(record: LinkRecord, valid: Set<string>): void {
     census.entries = (census.entries ?? []).filter((entry) => entry.individual === undefined || isLive(entry.individual, valid));
     return;
   }
+  // The GDO duplicate-candidate record points at an INDI record, which
+  // the NO rule can drop; a dangling _INDI pointer would be invalid
+  // output.
+  if (record.tag === '_ALIA') {
+    const alias = record as unknown as { individual?: string };
+    if (alias.individual !== undefined && !isLive(alias.individual, valid)) {
+      delete alias.individual;
+    }
+    return;
+  }
   // Only FAM and INDI records participate in the NO rule (see isEmpty),
   // so only their pointers can dangle. Extension records in particular
   // carry an opaque `children` array that must never be touched here.

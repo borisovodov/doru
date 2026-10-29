@@ -58,6 +58,7 @@ import {
   parsePrivacyFlag,
   parseSourceCitation,
   parseVendorFlag,
+  parseYNFlag,
 } from './sources-media';
 import {
   parseAge551,
@@ -557,6 +558,12 @@ export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStru
     {
       '_ROLE': setRole,
       ROLE: setRole,
+      '_PRIM': (child) => {
+        // TMG: the "Primary Indicator Tag" under a shared event — the
+        // event is primary for this co-participant (see
+        // AssociationStructure.primary).
+        out.primary = parseYNFlag(child, '_PRIM');
+      },
     },
     ctx,
   );

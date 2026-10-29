@@ -27,6 +27,7 @@ import type {
 } from './context';
 import {
   dispatch,
+  merge551RecordContacts,
   noPayload,
   one,
   req,
@@ -124,6 +125,29 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       PLAC: (child) => {
         header.place = parseHeaderPlace(child, ctx);
       },
+      _HOME: (child) => {
+        // Ages! / Ahnenblatt: the start person shown after opening the
+        // file, a person reference (see Header.startPerson); GEDitCOM
+        // spells the same fact `_HME`.
+        header.startPerson = reqPtr(child, ctx);
+      },
+      _HME: (child) => {
+        header.startPerson = reqPtr(child, ctx);
+      },
+      _NAVI: (child) => {
+        // Ahnenblatt: the Navigator-view start person (see
+        // Header.startPerson).
+        header.startPerson = reqPtr(child, ctx);
+      },
+      _NAVM: (child) => {
+        // Ahnenblatt: the mode choosing the Navigator start person,
+        // one of 0, 1, 2 (see Header.startPersonMode).
+        const value = reqText(child);
+        if (value !== '0' && value !== '1' && value !== '2') {
+          fail('enum.invalid-value', `The _NAVM value must be 0, 1 or 2, not "${value}"`, child.position);
+        }
+        header.startPersonMode = value;
+      },
       NOTE: (child) => {
         setNote(child);
       },
@@ -179,13 +203,15 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     }
   } else if (/^7\./.test(gedcom.version)) {
     fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 5.x version`, node.position);
-  } else if (!/^5\.5(\.\d+)?$/.test(gedcom.version)) {
+  } else if (!/^5\.5(\.(1|5))?$/.test(gedcom.version)) {
     // The 5.x parser reads the 5.5 lineage — 5.5 (1996), 5.5.1 and
     // 5.5.5 (whose vocabulary additions are accepted in any 5.x file).
     // Older versions (3.0, 4.0, 5.0) and the superseded drafts (5.3,
     // 5.4) have incompatible grammars and are rejected here with an
     // explicit error instead of failing mid-file with
-    // `structure.unknown-tag` errors.
+    // `structure.unknown-tag` errors. Unpublished patch levels
+    // (`5.5.2`, `5.5.9`, …) are rejected too: they name no official
+    // specification.
     fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (5.5, 5.5.1 or 5.5.5)`, node.position);
   }
   const formNode = one(node, 'FORM');
@@ -292,6 +318,9 @@ export function parseCorporation(node: RawNode, ctx: Ctx): Corporation {
     },
     ctx,
   );
+  if (ctx.version === '5.5.1') {
+    merge551RecordContacts(corp);
+  }
   return corp;
 }
 

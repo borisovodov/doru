@@ -95,7 +95,12 @@ describe('date value parsers (7.0)', () => {
     expect(codeOf(() => parseDateValue70('29 FEB 1900', pos))).toBe('date.bad-day');
     expect(parseDateValue70('29 FEB 2000', pos)).toMatchObject({ kind: 'date', day: 29, month: 'FEB', year: 2000 });
     expect(codeOf(() => parseDateValue70('31 APR 1900', pos))).toBe('date.bad-day');
-    expect(codeOf(() => parseDateValue70('FRENCH_R 7 COMP 8', pos))).toBe('date.bad-day');
+    // The 7.0 specification lists the French Republican months without
+    // stating their lengths, so no French day-of-month limit is
+    // enforced (the official FamilySearch test file date.ged exercises
+    // `23 COMP`); days validate against the uniform 30-day grid only.
+    expect(parseDateValue70('FRENCH_R 7 COMP 8', pos)).toMatchObject({ kind: 'date', day: 7, month: 'COMP', year: 8 });
+    expect(codeOf(() => parseDateValue70('FRENCH_R 31 COMP 8', pos))).toBe('date.bad-day');
     expect(codeOf(() => parseDateValue70('HEBREW 31 TSH 5750', pos))).toBe('date.bad-day');
     expect(codeOf(() => parseDateValue70('_CAL 37 _MON 1900', pos))).toBe('date.bad-day');
     expect(parseDateValue70('HEBREW 1 TSH 5750', pos)).toMatchObject({ kind: 'date', day: 1, month: 'TSH', year: 5750 });

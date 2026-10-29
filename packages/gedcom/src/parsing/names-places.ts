@@ -42,6 +42,7 @@ import type {
   RawNode,
 } from './lines';
 import {
+  parseMultimediaLink,
   parsePrivacyFlag,
   parseSourceCitation,
 } from './sources-media';
@@ -180,6 +181,15 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // The Ancestry record reference attached to names (see
       // PersonalNameStructure.ancestryPointers).
       (out.ancestryPointers ??= []).push(reqText(child));
+    },
+    OBJE: (child) => {
+      // TMG: exhibits attached to the name (see
+      // PersonalNameStructure.media); `_OBJE` is the vendor spelling
+      // T2G writes for validators.
+      (out.media ??= []).push(parseMultimediaLink(child, ctx));
+    },
+    '_OBJE': (child) => {
+      (out.media ??= []).push(parseMultimediaLink(child, ctx));
     },
   };
   for (const tag of PIECE_TAGS) {
@@ -328,6 +338,28 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       out.form = parseListText(reqText(child));
     },
     MAP: (child) => {
+      if (ctx.version === '5.5.1' && child.value.kind === 'text') {
+        // The historical GEDCOM 5.5EL Maidenhead locator: `MAP <code>`
+        // with an optional `TYPE MAIDENHEAD` child (superseded by the
+        // GEDCOM-L `_MAIDENHEAD` spelling, which normalizes into the
+        // same PlaceStructure.maidenhead slot). Source: the English
+        // GenWiki article "Gedcom 5.5EL":
+        // http://wiki-en.genealogy.net/Gedcom_5.5EL.
+        const typeNode = one(child, 'TYPE');
+        if (child.children.length > 0 && (typeNode === undefined || child.children.length !== 1)) {
+          fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under MAP`, (child.children[0] as RawNode).position);
+        }
+        if (typeNode !== undefined) {
+          if (typeNode.children.length > 0) {
+            fail('structure.unknown-tag', `The tag ${(typeNode.children[0] as RawNode).tag} is not allowed under TYPE`, (typeNode.children[0] as RawNode).position);
+          }
+          if (reqText(typeNode).toUpperCase() !== 'MAIDENHEAD') {
+            fail('enum.invalid-value', `The MAP TYPE must be MAIDENHEAD, got "${reqText(typeNode)}"`, typeNode.position);
+          }
+        }
+        out.maidenhead = child.value.text;
+        return;
+      }
       out.map = parseMapCoordinates(child, ctx);
     },
     NOTE: (child) => {
@@ -355,6 +387,16 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     '_MAIDENHEAD': (child) => {
       out.maidenhead = reqText(child);
     },
+    '_COR': (child) => {
+      // MFT7: the place coordinates, split into degrees/minutes/seconds
+      // plus the direction: _LAD/_LAM/_LAS/_LAN for the latitude,
+      // _LOD/_LOM/_LOS/_LON for the longitude (the GenWiki
+      // "GEDCOM/_Nutzerdef-Tag" table notes the standard equivalent:
+      // "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG"). Normalized
+      // into the standard map coordinates and written back as
+      // MAP/LATI/LONG.
+      out.map = parseMftCoordinates(child);
+    },
   };
   if (ctx.version === '7.0') {
     handlers["LANG"] = (child) => {
@@ -377,6 +419,16 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     };
     handlers["ROMN"] = (child) => {
       (out.romanized ??= []).push(parseRomanizedPlaceVariation(child));
+    };
+    handlers["POST"] = (child) => {
+      // The historical GEDCOM 5.5EL agreement wrote the postal code
+      // under a place with the standard (non-underscore) POST tag
+      // (superseded by the GEDCOM-L `_POST` spelling, which
+      // normalizes into the same PlaceStructure.postalCodes slot).
+      // Accepted on 5.x input only; written back as `_POST`.
+      const entry: PostalCodeStructure = { code: reqText(child) };
+      (out.postalCodes ??= []).push(entry);
+      dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
     };
   }
   dispatch(node, out, handlers, ctx, ['FORM', 'MAP']);
@@ -424,6 +476,67 @@ export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
   };
   dispatch(node, out, { LATI: () => undefined, LONG: () => undefined }, ctx);
   return out;
+}
+
+/**
+ * Parses the MFT7 `_COR` coordinates under a place (see
+ * PlaceStructure.map): the latitude degrees/minutes/seconds
+ * (`_LAD`/`_LAM`/`_LAS`) with the direction `_LAN` and the longitude
+ * (`_LOD`/`_LOM`/`_LOS`) with the direction `_LON`. Normalized into
+ * the standard decimal `MapCoordinates`; written back as the standard
+ * MAP/LATI/LONG (the GenWiki "GEDCOM/_Nutzerdef-Tag" table notes the
+ * equivalent: "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG").
+ */
+export function parseMftCoordinates(node: RawNode): MapCoordinates {
+  noPayload(node);
+  const read = (
+    degreesTag: string,
+    minutesTag: string,
+    secondsTag: string,
+    directionTag: string,
+    kind: 'latitude' | 'longitude',
+  ): { direction: 'N' | 'S' | 'E' | 'W'; degrees: number } => {
+    const degreesNode = req(node, degreesTag);
+    const degrees = Number(reqText(degreesNode));
+    if (!Number.isFinite(degrees) || degrees < 0) {
+      fail(`${kind}.invalid`, `Invalid ${degreesTag} value "${reqText(degreesNode)}"`, degreesNode.position);
+    }
+    const minutesNode = one(node, minutesTag);
+    const minutes = minutesNode === undefined ? 0 : Number(reqText(minutesNode));
+    const secondsNode = one(node, secondsTag);
+    const seconds = secondsNode === undefined ? 0 : Number(reqText(secondsNode));
+    if (!Number.isFinite(minutes) || minutes < 0 || !Number.isFinite(seconds) || seconds < 0) {
+      fail(`${kind}.invalid`, `Invalid ${degreesTag} minutes or seconds`, node.position);
+    }
+    const directionNode = one(node, directionTag);
+    // The direction is optional in the wild; latitude defaults to
+    // North, longitude to East.
+    const rawDirection = directionNode === undefined ? undefined : reqText(directionNode).toUpperCase();
+    const direction = rawDirection === undefined || rawDirection === ''
+      ? (kind === 'latitude' ? 'N' : 'E')
+      : rawDirection === 'O' ? 'E' : rawDirection;
+    if (direction !== 'N' && direction !== 'S' && direction !== 'E' && direction !== 'W') {
+      fail('enum.invalid-value', `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`, (directionNode as RawNode).position);
+    }
+    const total = degrees + minutes / 60 + seconds / 3600;
+    const limit = kind === 'latitude' ? 90 : 180;
+    if (total > limit) {
+      fail(`${kind}.invalid`, `The ${degreesTag} coordinate ${total} is beyond ${limit} degrees`, node.position);
+    }
+    return { direction: direction as 'N' | 'S' | 'E' | 'W', degrees: total };
+  };
+  const latitude = read('_LAD', '_LAM', '_LAS', '_LAN', 'latitude');
+  const longitude = read('_LOD', '_LOM', '_LOS', '_LON', 'longitude');
+  const allowed = new Set(['_LAD', '_LAM', '_LAS', '_LAN', '_LOD', '_LOM', '_LOS', '_LON']);
+  for (const child of node.children) {
+    if (!allowed.has(child.tag)) {
+      fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under _COR`, child.position);
+    }
+  }
+  return {
+    latitude: { direction: latitude.direction as 'N' | 'S', degrees: latitude.degrees },
+    longitude: { direction: longitude.direction as 'E' | 'W', degrees: longitude.degrees },
+  };
 }
 
 // ---------------------------------------------------------------------------

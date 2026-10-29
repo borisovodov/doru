@@ -9,16 +9,17 @@
 
 import {
   RESTRICTION_ENUM_VALUES,
-  SEX_ENUM_VALUES,
 } from '../enumerations';
 import type {
   EventDetail,
   FamilyEventDetail,
   FamilyEventStructure,
+  FamilyPartnerLink,
   FamilyRecord,
   IndividualEventDetail,
   IndividualEventStructure,
   IndividualRecord,
+  InternetSearchStructure,
   MarriageStatusStructure,
   NameTypeStructure,
   Note,
@@ -31,6 +32,7 @@ import {
   dispatch,
   addExtension,
   noPayload,
+  parseImportReference,
   req,
   reqPtr,
   reqText,
@@ -38,6 +40,7 @@ import {
 } from './context';
 import {
   SEX_551,
+  SEX_70,
   eventDetailHandlers,
   parseAliasLink,
   parseChildFamilyLink,
@@ -123,15 +126,18 @@ export const INDIVIDUAL_ATTRIBUTE_TAGS = [
 export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
   noPayload(node);
   const rec: FamilyRecord = { tag: 'FAM', ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  let lastPartner: FamilyPartnerLink | undefined;
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
       rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, ctx.version, child.position);
     },
     HUSB: (child) => {
       rec.husband = parseFamilyPartnerLink(child, ctx);
+      lastPartner = rec.husband;
     },
     WIFE: (child) => {
       rec.wife = parseFamilyPartnerLink(child, ctx);
+      lastPartner = rec.wife;
     },
     CHIL: (child) => {
       (rec.children ??= []).push(parseFamilyChildLink(child, ctx));
@@ -248,6 +254,33 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       // The German GEDCOM-L agreement ASSO A4: the witnesses of the
       // family as free text (see FamilyRecord.witnesses).
       (rec.witnesses ??= []).push(reqText(child));
+    },
+    _GODT: (child) => {
+      // GES2000: the godparents and witnesses of the family as free
+      // text ("Paten und Zeugen als Text", the GenWiki
+      // "GEDCOM/_Nutzerdef-Tag" table) — the same slot `_WITN`
+      // carries (see FamilyRecord.witnesses).
+      (rec.witnesses ??= []).push(reqText(child));
+    },
+    _MARRNAME: (child) => {
+      // Legacy Family Tree: the married name of one partner, written
+      // directly after the HUSB/WIFE line it refers to (see
+      // FamilyPartnerLink.name). Without a preceding partner line the
+      // reference is undefined and the tag stays a generic extension.
+      if (lastPartner === undefined) {
+        addExtension(rec, child);
+        return;
+      }
+      lastPartner.name = parsePersonalNameStructure(child, ctx);
+    },
+    _SUBM: (child) => {
+      // GDO: a pointer to the submitter record — the vendor spelling
+      // of the standard SUBM slot (see FamilyRecord.submitters).
+      (rec.submitters ??= []).push(reqPtr(child, ctx));
+    },
+    _IMPF: (child) => {
+      // GDO: the import-file reference (see FamilyRecord.importReference).
+      rec.importReference = parseImportReference(child, ctx);
     },
     _CREA: (child) => {
       // Heredis: the date the record was created (see
@@ -370,6 +403,39 @@ function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType
     payload: parsePersonalName(reqText(node), ctx.version, node.position),
     type,
   });
+}
+
+/** The Ahnenblatt `_INET` internet-search block (see
+ *  IndividualRecord.internetSearch / InternetSearchStructure): the
+ *  five substructures are kept verbatim as free text (their individual
+ *  meanings are not separately catalogued). */
+function parseInternetSearch(node: RawNode, ctx: Ctx): InternetSearchStructure {
+  noPayload(node);
+  const out: InternetSearchStructure = { tag: '_INET' };
+  dispatch(
+    node,
+    out,
+    {
+      _MHRM: (child) => {
+        out.mhrm = reqText(child);
+      },
+      _MHSM: (child) => {
+        out.mhsm = reqText(child);
+      },
+      _MHAV: (child) => {
+        out.mhav = reqText(child);
+      },
+      _RDATE: (child) => {
+        out.researchDate = reqText(child);
+      },
+      _SDATE: (child) => {
+        out.searchDate = reqText(child);
+      },
+    },
+    ctx,
+    ['_MHRM', '_MHSM', '_MHAV', '_RDATE', '_SDATE'],
+  );
+  return out;
 }
 
 /** A vendor physical descriptor (_EYEC, _HAIR, …): a FACT with a TYPE. */
@@ -1075,6 +1141,47 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
         ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
       });
     },
+    _LEBENSORT: (child) => {
+      // AF2000 / Stammbaumdrucker: the Lebensort — the location of
+      // residency ("Location of residency", the GenWiki
+      // "GEDCOM/_Nutzerdef-Tag" table), a FACT with the TYPE.
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Lebensort');
+    },
+    _REL: (child) => {
+      // GES2000: the Kindstand — the child status of the person
+      // (e.g. "a" = adopted); the same normalization as the Reunion
+      // `CSTA` fact.
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Child status');
+    },
+    _NCHI: (child) => {
+      // GES2000: the person's running number as a child in the family
+      // ("Laufende Nummer als Kind in der Familie"), a FACT.
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Birth order');
+    },
+    _NOTH: (child) => {
+      // GES2000: the Heimatort as a text field, a FACT with the TYPE.
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Heimatort');
+    },
+    _SURN: (child) => {
+      // GES2000: the Sippenname — the clan name, a NAME with TYPE
+      // OTHER and the PHRASE label.
+      pushVendorName(rec, child, ctx, 'OTHER', 'Clan name');
+    },
+    _INET: (child) => {
+      // Ahnenblatt: the internet-search details block (see
+      // IndividualRecord.internetSearch / InternetSearchStructure).
+      rec.internetSearch = parseInternetSearch(child, ctx);
+    },
+    _SUBM: (child) => {
+      // GDO: a pointer to the submitter record — the vendor spelling
+      // of the standard SUBM slot (see IndividualRecord.submitters).
+      (rec.submitters ??= []).push(reqPtr(child, ctx));
+    },
+    _IMPF: (child) => {
+      // GDO: the import-file reference (see
+      // IndividualRecord.importReference).
+      rec.importReference = parseImportReference(child, ctx);
+    },
     _EXCM: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Excommunicated'));
     },
@@ -1085,7 +1192,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     },
     SEX: (child) => {
-      const table = (ctx.version === '7.0' ? SEX_ENUM_VALUES : SEX_551) as Readonly<
+      const table = (ctx.version === '7.0' ? SEX_70 : SEX_551) as Readonly<
         Record<'M' | 'F' | 'U' | 'X' | 'N', string>
       >;
       rec.sex = parseEnum(reqText(child), table, ctx.version, child.position);

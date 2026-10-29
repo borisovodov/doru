@@ -11,6 +11,7 @@ import type { AddressStructure } from './common';
 import type { DateExactStructure } from './common';
 import type { GedcomRecord } from './records';
 import type { GedcomStructureBase } from './extensions';
+import type { IndividualRecord } from './records';
 import type { NoteStructure } from './common';
 import type { SubmissionRecord } from './records';
 import type { SubmitterRecord } from './records';
@@ -73,13 +74,18 @@ export interface Header extends GedcomStructureBase {
   /**
    * SCHEMA {0:1} — the user-tag declaration block of GEDCOM 5.3
    * (dropped in 5.4, still written by Family Tree Maker in 5.5.1
-   * files; the vendor spelling `_SCHEMA` normalizes to this). Kept as
-   * opaque metadata: the context chains and their LABL/DEFN/ISA
-   * leaves have no genealogical meaning. Recognized on 5.x input and
-   * written back as `SCHEMA` in 5.5.1; dropped when serializing to 7.0
-   * (7.0's own SCHMA carries URIs, which this block lacks). Sources:
-   * the GEDCOM 5.3 draft (`USER_TAG_SCHEMA`, p.25–26 of the Tamura
-   * Jones PDF) and Tamura Jones "GEDCOM Tags":
+   * files; the vendor spelling `_SCHEMA` normalizes to this). The
+   * GEDCOM-L working group's N5 header declarations — a `_SCHEMA`
+   * block whose leaves are `_DEFN <definition>` lines (the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" article documents the form:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) — parse into
+   * the same block (the `_DEFN` spelling normalizes to the DEFN
+   * leaf). Kept as opaque metadata: the context chains and their
+   * LABL/DEFN/ISA leaves have no genealogical meaning. Recognized on
+   * 5.x input and written back as `SCHEMA` in 5.5.1; dropped when
+   * serializing to 7.0 (7.0's own SCHMA carries URIs, which this
+   * block lacks). Sources: the GEDCOM 5.3 draft (`USER_TAG_SCHEMA`,
+   * p.25–26 of the Tamura Jones PDF) and Tamura Jones "GEDCOM Tags":
    * https://www.tamurajones.net/GEDCOMTags.xhtml
    */
   schema53?: FtmSchemaBlock;
@@ -111,6 +117,29 @@ export interface Header extends GedcomStructureBase {
   place?: HeaderPlace;
   /** <<NOTE_STRUCTURE>> {0:1} — should describe the contents of the document. GEDCOM 7.0 §3.2.1. */
   note?: NoteStructure;
+  /**
+   * `_HOME` {0:1} — the start person shown after opening the GEDCOM
+   * file, a value in the style of a person reference (`@I123@`).
+   * Written by Ages! and Ahnenblatt under HEAD; GEDitCOM writes the
+   * same fact as `_HME`. The Ahnenblatt pair `_NAVI`/`_NAVM` names the
+   * start person of the Navigator view and the mode choosing it
+   * (0 = program automatic, 1 = the person active when the file was
+   * closed, 2 = a fixed person; for 1 and 2 the `_NAVI` tag holds the
+   * person). Source: the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag. Not part of any
+   * GEDCOM version. All three spellings are recognized on input and
+   * normalize into this field (with `startPersonMode`); written back
+   * as `_HOME` (plus `_NAVM <mode>` when set) in both versions.
+   */
+  startPerson?: Pointer<IndividualRecord>;
+  /**
+   * `_NAVM` {0:1} — the mode choosing the Navigator start person: 0 =
+   * program automatic, 1 = the person active when the file was closed,
+   * 2 = a fixed person (see `startPerson` for the source). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_NAVM` in both versions.
+   */
+  startPersonMode?: '0' | '1' | '2';
 }
 /**
  * GEDCOM 7.0 §3.2.1 HEADER rule — g7:GEDC: a container for information about the

@@ -121,7 +121,12 @@ export function language(_w: Writer, version: Version, value: string): string | 
   if (own !== undefined) {
     return own;
   }
-  const mapped = LANGUAGE_TO_551.get(value.toLowerCase());
+  const lower = value.toLowerCase();
+  // A BCP 47 tag maps by its full form first, then by its primary
+  // subtag (`pt-BR` → Portuguese, `en-GB` → English); the 5.5.1
+  // LANGUAGE_ID table has no regional distinction. A value with no
+  // mapping at all has no 5.5.1 spelling and the LANG line is dropped.
+  const mapped = LANGUAGE_TO_551.get(lower) ?? LANGUAGE_TO_551.get(lower.split('-')[0] as string);
   if (mapped !== undefined) {
     return mapped;
   }

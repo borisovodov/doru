@@ -170,7 +170,10 @@ describe('P1 vendor tags on output', () => {
     // Standard equivalents.
     expect(text).toContain('2 TYPE married');
     expect(text).toContain('2 TYPE aka');
-    expect(text).toContain('3 EMAIL john@@example.com');
+    // The 5.5.1 contacts are written at the ADDRESS_STRUCTURE level
+    // (siblings of ADDR, GEDCOM 5.5.1 §2 p.31); the vendor `_EMAIL`
+    // under ADDR normalizes into the standard sibling spelling.
+    expect(text).toContain('2 EMAIL john@@example.com');
     // _WT_OBJE_SORT becomes the standard OBJE.
     expect(text).toContain('1 OBJE @M1@');
     expect(text).toContain('1 OBJE @M2@');

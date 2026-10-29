@@ -14,7 +14,7 @@ import type {
 import type { DateStructure, ExternalIdentifierStructure, NoteStructure } from './common';
 import type { CensusRecord } from './census-record';
 import type { GedcomStructureBase } from './extensions';
-import type { SourceCitation } from './sources-media';
+import type { MultimediaLink, SourceCitation } from './sources-media';
 import type { PlaceRecord } from './place-record';
 
 // ---------------------------------------------------------------------------
@@ -123,6 +123,19 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * written back as `_APID` in both versions.
    */
   ancestryPointers?: Text[];
+  /**
+   * OBJE {0:M} — exhibits (media) attached to the name. Written by
+   * The Master Genealogist; its "GEDCOM Tag Names" help documents the
+   * non-standard exhibit tag under NAME ("the GEDCOM spec has no OBJE
+   * slot under NAME, so T2G writes the standard tag there, or `_OBJE`
+   * for validators":
+   * https://tmgtogedcom.com/en/tag-names.htm). Not part of any GEDCOM
+   * version (neither standard has an OBJE slot under NAME). Recognized
+   * on input (as `OBJE` in both versions and `_OBJE` as the vendor
+   * spelling) and written back as the standard multimedia-link `OBJE`
+   * pointer under the NAME in both versions.
+   */
+  media?: MultimediaLink[];
   /** TRAN {0:M}, g7:NAME-TRAN — translations or transliterations. Each must have a LANG substructure. When serializing to 5.5.1 each translation becomes FONE or ROMN with the method mapped from the language (kana/hangul → FONE, pinyin/romaji/wadegiles → ROMN); unknown languages are dropped. */
   translations?: NameTranslation[];
   /** FONE {0:M} — phonetic variations by writing-sound method. GEDCOM 5.5.1 §2 (p.38); replaced by TRAN in 7.0. When serializing to 7.0 each variation becomes a TRAN with the language mapped from the method; unknown methods are dropped. */

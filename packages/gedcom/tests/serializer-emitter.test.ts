@@ -216,9 +216,7 @@ describe('record emitters', () => {
         '2 _PRIMARY Y',
         '2 _PREF Y',
         '2 PEDI birth',
-        '3 PHRASE pedigree phrase',
         '2 STAT proven',
-        '3 PHRASE status phrase',
         '2 NOTE n',
         '1 FAMS @F1@',
         '2 NOTE f',
@@ -228,11 +226,33 @@ describe('record emitters', () => {
     );
     const text = ser551(dataset);
     expect(text).toContain('2 PEDI birth');
-    expect(text).toContain('3 PHRASE pedigree phrase');
     expect(text).toContain('2 STAT proven');
-    expect(text).toContain('3 PHRASE status phrase');
     expect(text).toContain('2 NOTE n');
     expect(text).toContain('2 NOTE f');
+    // 5.5.1 has no PHRASE slot under PEDI/STAT; the 7.0 PHRASE
+    // substructures are dropped on 5.5.1 output.
+    expect(text).not.toContain('PHRASE');
+  });
+
+  test('7.0 PEDI and STAT phrases round-trip', () => {
+    const dataset = parse70(
+      [
+        ...H70,
+        '0 @F1@ FAM', '1 HUSB @I1@',
+        '0 @I1@ INDI',
+        '1 FAMC @F1@',
+        '2 PEDI BIRTH',
+        '3 PHRASE pedigree phrase',
+        '2 STAT PROVEN',
+        '3 PHRASE status phrase',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser70(dataset);
+    expect(text).toContain('2 PEDI BIRTH');
+    expect(text).toContain('3 PHRASE pedigree phrase');
+    expect(text).toContain('2 STAT PROVEN');
+    expect(text).toContain('3 PHRASE status phrase');
   });
 
   test('OBJE restriction is 7.0-only', () => {

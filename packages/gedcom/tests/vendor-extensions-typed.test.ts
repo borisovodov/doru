@@ -373,9 +373,11 @@ describe('the Family Historian tags', () => {
     expect(out).toContain('3 _FIELD TX-PAGE');
     expect(out).toContain('4 TEXT Page 321');
     expect(out).toContain('1 _TYPE Census');
-    // The record-level contacts keep the standard floating spellings.
-    expect(out).toContain('1 EMAIL repo@@example.com');
-    expect(out).toContain('1 WWW https://repo.example.com');
+    // Without an address block the 5.5.1 record has no standard contact
+    // slot (the contacts live inside the ADDRESS_STRUCTURE), so the FH
+    // spellings `_EMAIL`/`_WEB` carry them back.
+    expect(out).toContain('1 _EMAIL repo@@example.com');
+    expect(out).toContain('1 _WEB https://repo.example.com');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 

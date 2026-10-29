@@ -285,6 +285,8 @@ export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
  * exception (see LEGACY_INDIVIDUAL_TAGS).
  */
 export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
+  'ANCE', // Reunion: "??? Ancestor" (the catalogs document no meaning; accepted generically so old files parse).
+  'AUTH', // Reunion: "Author" (the meaning is documented, the wire format is not; accepted generically).
   'COMP', // Reunion: ???.
   'DATV', // Reunion: ???.
   'DETS', // Gen: ???.

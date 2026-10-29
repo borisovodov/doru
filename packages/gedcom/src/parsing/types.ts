@@ -179,7 +179,12 @@ function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: numbe
       max = leap ? 29 : 28;
     }
   } else if (calendar === 'FRENCH_R') {
-    max = month === 'COMP' ? 6 : 30;
+    // The 7.0 specification lists the French Republican months
+    // (GEDCOM 7.0 §6.1) without stating their lengths — no French
+    // month length is enforced, so the days validate against the
+    // uniform 30-day grid (the official FamilySearch test file
+    // date.ged exercises `23 COMP`, which must parse).
+    max = 30;
   } else if (calendar === 'HEBREW') {
     max = 30;
   } else {

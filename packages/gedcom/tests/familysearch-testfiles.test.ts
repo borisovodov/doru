@@ -7,8 +7,10 @@ import type { GedcomDataset } from '../src/structures';
 // form of the specification: SCHMA-declared tags, extension records,
 // relocated standard structures, documented extension enumerations,
 // calendars, months and epochs, and extension-defined substructures.
-import extensionsGed from './fixtures/extensions.ged?raw';
-import extensionRecordGed from './fixtures/extension-record.ged?raw';
+// The complete corpus runs in familysearch-corpus.test.ts; the two
+// files here carry the deep per-construct assertions.
+import extensionsGed from './fixtures/gedcom70/extensions.ged?raw';
+import extensionRecordGed from './fixtures/gedcom70/extension-record.ged?raw';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -68,11 +70,14 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
     // the standard pointer slot; the undocumented `_EXT1` stays generic.
     expect(indi.submitters).toEqual(['@U1@', '@U2@']);
     expect(indi.extensions?.map((entry) => entry.tag)).toEqual(['_EXT1']);
-    // The FAMC link: a documented extension enumeration plus a relocated
-    // `_PHRASE` (SCHMA `_PHRASE → g7:PHRASE`) typed into the phrase slot.
+    // The FAMC link: a documented extension enumeration, plus a
+    // `_PHRASE` documented as g7:PHRASE — but FAMC has no PHRASE
+    // substructure in the 7.0 grammar (only the PEDI/STAT children
+    // carry one), so the tag keeps its extension meaning and stays a
+    // generic extension of the link, preserved verbatim.
     const famc = indi.childFamilies?.[0];
     expect(famc?.pedigree?.payload).toBe('_ENUMVAL');
-    expect(famc?.phrase).toBe('A Family');
+    expect(famc?.extensions).toEqual([{ tag: '_PHRASE', payload: 'A Family', children: [] }]);
     expect(indi.childFamilies?.[1]?.pedigree?.payload).toBe('_ENUM2');
 
     const noxref = dataset.records.find((entry) => entry.tag === 'INDI' && entry.xref === undefined);

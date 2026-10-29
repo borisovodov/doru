@@ -281,7 +281,7 @@ describe('serializeGedcom551', () => {
     expect(text).toContain('2 DATE 44 B.C.');
   });
 
-  test('emits a phrase as a subordinate NOTE', () => {
+  test('emits a phrase as the INT parenthesized DATE_VALUE form', () => {
     const dataset = parseOk70(
       '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1 JAN 1900\n3 PHRASE calculated\n0 TRLR\n',
     );
@@ -292,8 +292,8 @@ describe('serializeGedcom551', () => {
     header.gedcom.version = '5.5.1';
     dataset.records.push({ tag: 'SUBM', name: 'T' });
     const text = ser551(dataset);
-    expect(text).toContain('2 DATE 1 JAN 1900');
-    expect(text).toContain('3 NOTE calculated');
+    // The `INT <date> (<phrase>)` DATE_VALUE choice (GEDCOM 5.5.1 §2 p.47).
+    expect(text).toContain('2 DATE INT 1 JAN 1900 (calculated)');
   });
 
   test('emits the PRE-1970 and DNS/CAN spellings', () => {

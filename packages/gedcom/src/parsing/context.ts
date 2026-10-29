@@ -13,6 +13,7 @@ import {
 import type {
   ExtensionStructure,
   GedcomStructureBase,
+  ImportFileReference,
   MultimediaRecord,
 } from '../structures';
 import type {
@@ -152,6 +153,44 @@ export function addExtension(out: GedcomStructureBase, node: RawNode): void {
   out.extensions = list;
 }
 
+/**
+ * Canonicalizes the 5.5.1 record-level contacts (REPO/SUBM/CORP): the
+ * contact substructures PHON/EMAIL/FAX/WWW belong to the
+ * ADDRESS_STRUCTURE (siblings of ADDR, GEDCOM 5.5.1 §2 p.31), so
+ * contacts parsed beside an ADDR are relocated into the address block.
+ * Contacts without an address block stay at the record level (the
+ * lenient floating form). Called after a record has finished parsing
+ * (5.5.1 input only).
+ */
+export function merge551RecordContacts(rec: {
+  address?: { phone?: string[]; email?: string[]; fax?: string[]; www?: string[] };
+  phone?: string[];
+  email?: string[];
+  fax?: string[];
+  www?: string[];
+}): void {
+  const address = rec.address;
+  if (address === undefined) {
+    return;
+  }
+  if (rec.phone !== undefined) {
+    address.phone = [...(address.phone ?? []), ...rec.phone];
+    delete rec.phone;
+  }
+  if (rec.email !== undefined) {
+    address.email = [...(address.email ?? []), ...rec.email];
+    delete rec.email;
+  }
+  if (rec.fax !== undefined) {
+    address.fax = [...(address.fax ?? []), ...rec.fax];
+    delete rec.fax;
+  }
+  if (rec.www !== undefined) {
+    address.www = [...(address.www ?? []), ...rec.www];
+    delete rec.www;
+  }
+}
+
 export function parseExtension(node: RawNode): ExtensionStructure {
   const payload =
     node.value.kind === 'text' ? node.value.text : node.value.kind === 'pointer' ? node.value.pointer : undefined;
@@ -161,6 +200,34 @@ export function parseExtension(node: RawNode): ExtensionStructure {
     ...(node.xref === undefined ? {} : { xref: node.xref }),
     children: node.children.map(parseExtension),
   };
+}
+
+/**
+ * Parses the GDO `_IMPF` import-file reference (see
+ * ImportFileReference): the record's cross-reference in the file it
+ * was imported from (a free text value — it names a record of another
+ * file and is not resolved against this document's xrefs) plus the
+ * PAGE child holding the imported file's id.
+ */
+export function parseImportReference(node: RawNode, ctx: Ctx): ImportFileReference {
+  const out: ImportFileReference = {
+    tag: '_IMPF',
+    ...(node.value.kind === 'text'
+      ? { record: node.value.text }
+      : node.value.kind === 'pointer' ? { record: node.value.pointer } : {}),
+  };
+  dispatch(
+    node,
+    out,
+    {
+      PAGE: (child) => {
+        out.page = reqText(child);
+      },
+    },
+    ctx,
+    ['PAGE'],
+  );
+  return out;
 }
 
 export function dispatch(

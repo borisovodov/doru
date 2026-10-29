@@ -165,8 +165,8 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     // per-vendor custom-tag registry additions: the typed Aldfaer
     // MARR_* tags (4), the phpGedView COMM, the RootsMagic WWW, and the
     // generic phpGedView SERV and MyHeritage PERSONALPHOTO.
-    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(162);
-    expect(LEGACY_GENERIC_TAGS.size).toBe(34);
+    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(164);
+    expect(LEGACY_GENERIC_TAGS.size).toBe(36);
   });
 
   test('types every rule-bearing tag into the model on 5.5.1 input', () => {
@@ -303,6 +303,15 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
       input.push(value === undefined ? `1 ${tag}` : `1 ${tag} ${value}`);
     }
     const dataset = parseOk551(indi551(input));
+    // The 5.5.1 INDI.RESI takes no payload (GEDCOM 5.5.1 §2 p.33):
+    // the RESIR payload is dropped on 5.5.1 output (see
+    // IndividualResidenceAttribute.payload).
+    const indiRecord = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    for (const attribute of indiRecord?.attributes ?? []) {
+      if (attribute.tag === 'RESI') {
+        delete (attribute as { payload?: unknown }).payload;
+      }
+    }
     const reparsed = parseOk551(ser551(dataset));
     expect(reparsed).toEqual(dataset);
   });

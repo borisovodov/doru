@@ -35,6 +35,7 @@ import {
   emitDate,
   emitEventDetail,
   emitExtensions,
+  emitMultimediaLink,
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
@@ -60,6 +61,11 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
     // MediaFile.contentType). Written back under the FILE line in both
     // versions.
     w.line(level + 1, '_CTYP', { value: file.contentType });
+  }
+  if (file.alternatePath !== undefined) {
+    // Ahnenblatt: an alternative or relative file path without the
+    // file name (see MediaFile.alternatePath).
+    w.line(level + 1, '_ALTPATH', { value: file.alternatePath });
   }
   if (version === '7.0') {
     for (const translation of file.translations ?? []) {
@@ -87,15 +93,28 @@ export function emitMediaFormat(w: Writer, version: Version, level: number, form
   }
 }
 
-export function emitMedia(w: Writer, _version: Version, level: number, medium: MediaStructure): void {
+export function emitMedia(w: Writer, version: Version, level: number, medium: MediaStructure): void {
+  if (version === '5.5.1') {
+    // 5.5.1 spells the SOURCE_MEDIA_TYPE lowercase (GEDCOM 5.5.1 §2
+    // p.61–62) and has no PHRASE under MEDI; OTHER has no 5.5.1
+    // spelling. The 7.0 forms (uppercase, OTHER, the PHRASE
+    // substructure) are dropped — the MEDI line itself disappears for
+    // OTHER (see medi551).
+    const value = medi551(w, version, medium.payload);
+    if (value === undefined) {
+      return;
+    }
+    w.line(level, 'MEDI', { value });
+    return;
+  }
   w.line(level, 'MEDI', { value: medium.payload });
   if (medium.phrase !== undefined) {
     w.line(level + 1, 'PHRASE', { value: medium.phrase });
   }
 }
 
-export function emitPersonalName(w: Writer, version: Version, level: number, name: PersonalNameStructure): void {
-  w.line(level, 'NAME', { value: version === '7.0' ? formatName70(name.payload) : formatName551(name.payload) });
+export function emitPersonalName(w: Writer, version: Version, level: number, name: PersonalNameStructure, tag: 'NAME' | '_NAM' = 'NAME'): void {
+  w.line(level, tag, { value: version === '7.0' ? formatName70(name.payload) : formatName551(name.payload) });
   if (name.type !== undefined) {
     emitNameType(w, version, level + 1, name.type);
   }
@@ -131,6 +150,12 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   }
   for (const apid of name.ancestryPointers ?? []) {
     w.line(level + 1, '_APID', { value: apid });
+  }
+  for (const link of name.media ?? []) {
+    // TMG: exhibits attached to the name (see
+    // PersonalNameStructure.media); written back as the standard
+    // multimedia-link OBJE pointer.
+    emitMultimediaLink(w, version, level + 1, link);
   }
   if (version === '7.0') {
     // The 5.5.1 phonetic/romanized variations become TRANs where the

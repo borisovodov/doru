@@ -40,6 +40,7 @@ import {
 } from '../writer';
 import {
   commonRecordFields,
+  emitGdoSubmitters,
 } from './document';
 import {
   emitFamilyDetail,
@@ -83,8 +84,8 @@ export function emitFamily(w: Writer, version: Version, rec: {
   attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail; childCountCertain?: boolean; extensions?: ExtensionStructure[] }>;
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: FamilyEventDetail; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
-  husband?: { partner: string; phrase?: string; preferred?: boolean; extensions?: ExtensionStructure[] };
-  wife?: { partner: string; phrase?: string; preferred?: boolean; extensions?: ExtensionStructure[] };
+  husband?: { partner: string; phrase?: string; preferred?: boolean; name?: PersonalNameStructure; civilStatus?: string; marriageNumber?: number; extensions?: ExtensionStructure[] };
+  wife?: { partner: string; phrase?: string; preferred?: boolean; name?: PersonalNameStructure; civilStatus?: string; marriageNumber?: number; extensions?: ExtensionStructure[] };
   children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: string; fatherRelation?: string; motherRelation?: string; extensions?: ExtensionStructure[] }>;
   associations?: AssociationStructure[];
   submitters?: string[];
@@ -240,32 +241,66 @@ export function emitFamily(w: Writer, version: Version, rec: {
   }
   for (const witness of rec.witnesses ?? []) {
     // The GEDCOM-L ASSO A4 witnesses of the family (see
-    // FamilyRecord.witnesses).
+    // FamilyRecord.witnesses); GES2000's combined godparents and
+    // witnesses (`_GODT`) type into the same slot and are written
+    // back as `_WITN`.
     w.line(1, '_WITN', { value: witness });
   }
   if (rec.husband !== undefined) {
     ptr(w, version, 1, 'HUSB', rec.husband.partner);
-    if (rec.husband.phrase !== undefined) {
+    if (version === '7.0' && rec.husband.phrase !== undefined) {
+      // The 7.0 HUSB.PHRASE; 5.5.1 has no PHRASE slot (dropped — see
+      // FamilyPartnerLink.phrase).
       w.line(2, 'PHRASE', { value: rec.husband.phrase });
     }
     if (rec.husband.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
+    if (rec.husband.name !== undefined) {
+      // GES2000: the partner's married name (see FamilyPartnerLink.name);
+      // written back as `_NAM` (neither standard has a NAME slot under
+      // HUSB/WIFE).
+      emitPersonalName(w, version, 2, rec.husband.name, '_NAM');
+    }
+    if (rec.husband.civilStatus !== undefined) {
+      // GES2000: the civil status at the time of the marriage (see
+      // FamilyPartnerLink.civilStatus).
+      w.line(2, '_ZVST', { value: rec.husband.civilStatus });
+    }
+    if (rec.husband.marriageNumber !== undefined) {
+      // GES2000: the ordinal number of the marriage (see
+      // FamilyPartnerLink.marriageNumber).
+      w.line(2, '_NR', { value: String(rec.husband.marriageNumber) });
+    }
     emitExtensions(w, version, 2, rec.husband);
   }
   if (rec.wife !== undefined) {
     ptr(w, version, 1, 'WIFE', rec.wife.partner);
-    if (rec.wife.phrase !== undefined) {
+    if (version === '7.0' && rec.wife.phrase !== undefined) {
+      // The 7.0 WIFE.PHRASE; 5.5.1 has no PHRASE slot (dropped).
       w.line(2, 'PHRASE', { value: rec.wife.phrase });
     }
     if (rec.wife.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
+    if (rec.wife.name !== undefined) {
+      // GES2000: the partner's married name (see FamilyPartnerLink.name);
+      // written back as `_NAM`.
+      emitPersonalName(w, version, 2, rec.wife.name, '_NAM');
+    }
+    if (rec.wife.civilStatus !== undefined) {
+      w.line(2, '_ZVST', { value: rec.wife.civilStatus });
+    }
+    if (rec.wife.marriageNumber !== undefined) {
+      w.line(2, '_NR', { value: String(rec.wife.marriageNumber) });
+    }
     emitExtensions(w, version, 2, rec.wife);
   }
   for (const child of rec.children ?? []) {
     ptr(w, version, 1, 'CHIL', child.child);
-    if (child.phrase !== undefined) {
+    if (version === '7.0' && child.phrase !== undefined) {
+      // The 7.0 CHIL.PHRASE; 5.5.1 has no PHRASE slot (dropped — see
+      // FamilyChildLink.phrase).
       w.line(2, 'PHRASE', { value: child.phrase });
     }
     if (child.preferred === true) {
@@ -313,8 +348,8 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } }; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
   ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string; extensions?: ExtensionStructure[] }>;
-  childFamilies?: Array<{ family: string; phrase?: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; fatherChildStatus?: string; motherChildStatus?: string; parentalRelationKind?: string; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
-  spouseFamilies?: Array<{ family: string; phrase?: string; preferred?: boolean; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
+  childFamilies?: Array<{ family: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; fatherChildStatus?: string; motherChildStatus?: string; parentalRelationKind?: string; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
+  spouseFamilies?: Array<{ family: string; preferred?: boolean; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
   submitters?: string[];
   associations?: AssociationStructure[];
   aliases?: Array<{ individual: string; phrase?: string; extensions?: ExtensionStructure[] }>;
@@ -345,6 +380,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   witnesses?: string[];
   webTags?: Array<{ name?: string; url: string; extensions?: ExtensionStructure[] }>;
   recordFlags?: Array<{ tag: string; name: string }>;
+  internetSearch?: { mhrm?: string; mhsm?: string; mhav?: string; researchDate?: string; searchDate?: string };
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -412,6 +448,26 @@ export function emitIndividual(w: Writer, version: Version, rec: {
       w.line(2, flag.tag, { value: flag.name });
     }
   }
+  if (rec.internetSearch !== undefined) {
+    // Ahnenblatt: the internet-search details block (see
+    // IndividualRecord.internetSearch / InternetSearchStructure).
+    w.line(1, '_INET');
+    if (rec.internetSearch.mhrm !== undefined) {
+      w.line(2, '_MHRM', { value: rec.internetSearch.mhrm });
+    }
+    if (rec.internetSearch.mhsm !== undefined) {
+      w.line(2, '_MHSM', { value: rec.internetSearch.mhsm });
+    }
+    if (rec.internetSearch.mhav !== undefined) {
+      w.line(2, '_MHAV', { value: rec.internetSearch.mhav });
+    }
+    if (rec.internetSearch.researchDate !== undefined) {
+      w.line(2, '_RDATE', { value: rec.internetSearch.researchDate });
+    }
+    if (rec.internetSearch.searchDate !== undefined) {
+      w.line(2, '_SDATE', { value: rec.internetSearch.searchDate });
+    }
+  }
   for (const todo of rec.todos ?? []) {
     emitTodoStructure(w, version, 1, todo);
   }
@@ -436,7 +492,15 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   for (const attribute of rec.attributes ?? []) {
     const payload = attribute.payload;
-    w.line(1, attribute.tag, payload === undefined ? {} : { value: String(payload) });
+    if (version === '5.5.1' && attribute.tag === 'RESI' && payload !== undefined) {
+      // The 5.5.1 INDI.RESI takes no payload (GEDCOM 5.5.1 §2 p.33
+      // "n RESI {1:1}"; the residence is carried by the detail's
+      // ADDR/PLAC): a 7.0 Text payload is dropped on 5.5.1 output (see
+      // IndividualResidenceAttribute.payload).
+      w.line(1, attribute.tag);
+    } else {
+      w.line(1, attribute.tag, payload === undefined ? {} : { value: String(payload) });
+    }
     emitIndividualDetail(w, version, 2, attribute.detail, attribute.type);
     if (attribute.tag === 'OCCU' && attribute.primary === true) {
       // Ahnenblatt: the primary occupation flag (see
@@ -490,10 +554,6 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   for (const link of rec.childFamilies ?? []) {
     ptr(w, version, 1, 'FAMC', link.family);
-    if (version === '7.0' && link.phrase !== undefined) {
-      // The 7.0 FAMC PHRASE; 5.5.1 has no slot (dropped).
-      w.line(2, 'PHRASE', { value: link.phrase });
-    }
     if (link.primary === true) {
       w.line(2, '_PRIMARY', { value: 'Y' });
     }
@@ -520,14 +580,18 @@ export function emitIndividual(w: Writer, version: Version, rec: {
       const value = pedigree(w, version, link.pedigree.payload);
       if (value !== undefined) {
         w.line(2, 'PEDI', { value });
-        if (link.pedigree.phrase !== undefined) {
+        if (version === '7.0' && link.pedigree.phrase !== undefined) {
+          // The 7.0 PEDI.PHRASE; 5.5.1 has no PHRASE slot anywhere
+          // (dropped — see PedigreeStructure.phrase).
           w.line(3, 'PHRASE', { value: link.pedigree.phrase });
         }
       }
     }
     if (link.status !== undefined) {
       w.line(2, 'STAT', { value: famcStat(w, version, link.status.payload) });
-      if (link.status.phrase !== undefined) {
+      if (version === '7.0' && link.status.phrase !== undefined) {
+        // The 7.0 STAT.PHRASE; 5.5.1 has no PHRASE slot (dropped — see
+        // FamilyChildStatusStructure.phrase).
         w.line(3, 'PHRASE', { value: link.status.phrase });
       }
     }
@@ -548,10 +612,6 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   for (const link of rec.spouseFamilies ?? []) {
     ptr(w, version, 1, 'FAMS', link.family);
-    if (version === '7.0' && link.phrase !== undefined) {
-      // The 7.0 FAMS PHRASE; 5.5.1 has no slot (dropped).
-      w.line(2, 'PHRASE', { value: link.phrase });
-    }
     if (link.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
     }
@@ -568,7 +628,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   for (const alias of rec.aliases ?? []) {
     ptr(w, version, 1, 'ALIA', alias.individual);
-    if (alias.phrase !== undefined) {
+    if (version === '7.0' && alias.phrase !== undefined) {
+      // The 7.0 ALIA.PHRASE; 5.5.1 has no PHRASE slot (dropped — see
+      // AliasLink.phrase).
       w.line(2, 'PHRASE', { value: alias.phrase });
     }
     emitExtensions(w, version, 2, alias);
@@ -689,6 +751,41 @@ export function emitEventDefinition(w: Writer, version: Version, rec: {
   emitExtensions(w, version, 1, rec);
 }
 
+/** Emits the GDO `_ALIA` duplicate-candidate record (see
+ *  DuplicateCandidateRecord). */
+export function emitDuplicateCandidateRecord(w: Writer, version: Version, rec: {
+  tag: '_ALIA';
+  xref?: string;
+  caption?: string;
+  individual?: string;
+  assessment?: string;
+  status?: string;
+  notes?: NoteStructure[];
+  citations?: SourceCitation[];
+  extensions?: ExtensionStructure[];
+}): void {
+  w.line(0, '_ALIA', { xref: rec.xref });
+  if (rec.caption !== undefined) {
+    w.line(1, '_CPT', { value: rec.caption });
+  }
+  if (rec.individual !== undefined) {
+    ptr(w, version, 1, '_INDI', rec.individual);
+  }
+  if (rec.assessment !== undefined) {
+    w.line(1, '_QUAY', { value: rec.assessment });
+  }
+  if (rec.status !== undefined) {
+    w.line(1, '_STAT', { value: rec.status });
+  }
+  for (const note of rec.notes ?? []) {
+    emitNoteStructure(w, version, 1, note);
+  }
+  for (const citation of rec.citations ?? []) {
+    emitSourceCitation(w, version, 1, citation);
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
 /** Emits the `_TODO` substructure under INDI/FAM (see TodoStructure). */
 export function emitTodoStructure(w: Writer, version: Version, level: number, rec: TodoStructure): void {
   w.line(level, '_TODO', rec.payload === undefined ? {} : { value: rec.payload });
@@ -751,6 +848,7 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -770,6 +868,7 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   if (rec.soundFile !== undefined) {
     w.line(1, '_SOUND', { value: rec.soundFile });
   }
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -787,6 +886,7 @@ export function emitRepository(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -815,22 +915,19 @@ export function emitRepository(w: Writer, version: Version, rec: {
       w.line(1, 'WWW', { value });
     }
   } else if (address === undefined) {
-    // 5.5.1 spells the contacts inside the ADDRESS_STRUCTURE; with no
-    // address block the floating PHON/EMAIL/FAX/WWW position beside
-    // ADDR carries them (GEDCOM 5.5.1 §2 p.31).
-    for (const value of rec.phone ?? []) {
-      w.line(1, 'PHON', { value });
-    }
+    // 5.5.1 REPO carries only the ADDRESS_STRUCTURE (GEDCOM 5.5.1 §2
+    // p.27): PHON and FAX have no 5.5.1 slot without an address block
+    // and are dropped, while the Family Historian spellings
+    // `_EMAIL`/`_WEB` carry the record-level e-mail and web address
+    // (see RepositoryRecord.email/www).
     for (const value of rec.email ?? []) {
-      w.line(1, 'EMAIL', { value });
-    }
-    for (const value of rec.fax ?? []) {
-      w.line(1, 'FAX', { value });
+      w.line(1, '_EMAIL', { value });
     }
     for (const value of rec.www ?? []) {
-      w.line(1, 'WWW', { value });
+      w.line(1, '_WEB', { value });
     }
   }
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -844,6 +941,7 @@ export function emitSharedNote(w: Writer, version: Version, rec: {
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -863,6 +961,7 @@ export function emitSharedNote(w: Writer, version: Version, rec: {
       w.line(2, 'LANG', { value: translation.language });
     }
   }
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -873,10 +972,12 @@ export function emitNoteRecord(w: Writer, version: Version, rec: {
   citations?: SourceCitation[];
   changeDate?: ChangeDate;
   automatedRecordId?: string;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -888,10 +989,12 @@ export function emitSharedNoteAs551(w: Writer, version: Version, rec: {
   citations?: SourceCitation[];
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   changeDate?: ChangeDate;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -903,10 +1006,12 @@ export function emitNoteRecordAs70(w: Writer, version: Version, rec: {
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   citations?: SourceCitation[];
   changeDate?: ChangeDate;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'SNOTE', { xref: rec.xref, value: rec.payload });
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -943,6 +1048,9 @@ export function emitSource(w: Writer, version: Version, rec: {
   citationDetailTextIncluded?: boolean;
   citationDetailNotesIncluded?: boolean;
   quality?: { source?: string; information?: string; evidence?: string };
+  evidenceAvailable?: boolean;
+  volumeYear?: string;
+  submitters?: string[];
   relocatedCitations?: SourceCitation[];
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -976,7 +1084,16 @@ export function emitSource(w: Writer, version: Version, rec: {
         }
       }
       if (event.place !== undefined) {
-        emitPlace(w, version, 3, event.place);
+        if (version === '7.0') {
+          emitPlace(w, version, 3, event.place);
+        } else {
+          // 5.5.1 spells this position as the bare
+          // SOURCE_JURISDICTION_PLACE (GEDCOM 5.5.1 §2 p.27: "PLAC
+          // <SOURCE_JURISDICTION_PLACE> {0:1}"): FORM/MAP/NOTE and the
+          // other 7.0 place substructures have no slot there and are
+          // dropped on 5.5.1 output (see SourceDataEvent.place).
+          w.line(3, 'PLAC', { value: event.place.payload.join(', ') });
+        }
       }
       emitExtensions(w, version, 3, event);
     }
@@ -1074,6 +1191,15 @@ export function emitSource(w: Writer, version: Version, rec: {
       w.line(2, '_EVID', { value: rec.quality.evidence });
     }
   }
+  if (rec.evidenceAvailable === true) {
+    // PC-AHNEN: evidence of the event is available (see
+    // SourceRecord.evidenceAvailable).
+    w.line(1, '_URKU', { value: 'Y' });
+  }
+  if (rec.volumeYear !== undefined) {
+    // GenPlus: the volume year of the source (see SourceRecord.volumeYear).
+    w.line(1, '_JAG', { value: rec.volumeYear });
+  }
   if (rec.template !== undefined) {
     w.line(1, '_TMPLT');
     if (rec.template.templateId !== undefined) {
@@ -1092,6 +1218,7 @@ export function emitSource(w: Writer, version: Version, rec: {
     // _SOUR.yaml): written back under the record in both versions.
     emitRelocatedCitation(w, version, 1, relocated);
   }
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
