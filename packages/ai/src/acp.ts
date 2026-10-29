@@ -49,6 +49,15 @@ type ActiveAcpSession = Awaited<ReturnType<SessionBuilder['start']>>;
 /** Default ACP handshake timeout: generous enough for slow agent boots. */
 const DEFAULT_START_TIMEOUT_MS = 60_000;
 
+/**
+ * After the handshake deadline the failure message is built only after a
+ * short drain: the child may flush its startup output (a version banner,
+ * a config error) right at the deadline, and the diagnostics must carry
+ * it. The grace is invisible next to the default 60 s deadline and makes
+ * the handshake-failure tests deterministic on slow CI boxes.
+ */
+const HANDSHAKE_DRAIN_GRACE_MS = 250;
+
 export class AcpAgentClient {
   private readonly app: ClientApp;
   private child: ChildProcess | null = null;
@@ -103,13 +112,19 @@ export class AcpAgentClient {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
-        void this.close();
-        reject(
-          new AcpError(
-            'acp-handshake-timeout',
-            this.rawFailure(`did not answer the ACP handshake within ${timeoutMs} ms`),
-          ),
-        );
+        void (async () => {
+          // Let pending startup output arrive before the message is
+          // built: the child may flush its diagnostics right at the
+          // deadline (see HANDSHAKE_DRAIN_GRACE_MS).
+          await new Promise((resolve) => setTimeout(resolve, HANDSHAKE_DRAIN_GRACE_MS));
+          void this.close();
+          reject(
+            new AcpError(
+              'acp-handshake-timeout',
+              this.rawFailure(`did not answer the ACP handshake within ${timeoutMs} ms`),
+            ),
+          );
+        })();
       }, timeoutMs);
     });
     const guardedAttach = attach.catch((error: unknown) => {
