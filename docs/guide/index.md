@@ -1,4 +1,4 @@
-# Documentation
+# Intro
 
 Dóru is a local-first genealogy app for the AI era. Your family tree lives in
 a plain folder on your disk, works fully offline, and can be driven by AI
