@@ -42,10 +42,6 @@ applications on most Linux distributions. If Flatpak is not installed yet,
 follow the setup steps for your distribution at
 [flatpak.org/setup](https://flatpak.org/setup/).
 
-Ubuntu 22.04 and 24.04 ship an older Flatpak in their main repositories —
-install the official Flatpak PPA first (the setup page at flatpak.org walks
-through it).
-
 To install Dóru, open a terminal and run these commands:
 
 ```sh
@@ -92,7 +88,7 @@ Dóru on Windows is distributed through **Scoop**, a command-line installer
 that keeps applications up to date. If you don't have Scoop yet, install it
 from [scoop.sh](https://scoop.sh) first.
 
-Dóru requires Windows 10 or later, on x64 or Arm64 processors.
+Dóru requires Windows 10 or later.
 
 To install Dóru, open PowerShell and run these commands:
 
