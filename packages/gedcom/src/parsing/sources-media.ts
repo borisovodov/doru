@@ -156,6 +156,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_FIELD': (child) => {
           (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
         },
+        '_SUBM': (child) => {
+          // GDO: a pointer to the submitter record of this citation
+          // (see SourceCitation.submitter).
+          out.submitter = reqPtr(child, ctx);
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -208,6 +213,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_FIELD': (child) => {
           (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
         },
+        '_SUBM': (child) => {
+          // GDO: a pointer to the submitter record of this citation
+          // (see SourceCitation.submitter).
+          out.submitter = reqPtr(child, ctx);
+        },
         'RINI': (child) => {
           // USM6: who found the source information (see
           // SourceCitation.foundBy).
@@ -247,6 +257,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       },
       '_FIELD': (child) => {
         (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
+      },
+      '_SUBM': (child) => {
+        // GDO: a pointer to the submitter record of this citation
+        // (see SourceCitation.submitter).
+        out.submitter = reqPtr(child, ctx);
       },
       'RINI': (child) => {
         // USM6: who found the source information (see
@@ -413,6 +428,13 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       },
       TITL: (child) => {
         title = reqText(child);
+      },
+      NOTE: (child) => {
+        // The 5.5.1 inline MULTIMEDIA_LINK grammar (GEDCOM 5.5.1 §2
+        // p.37) carries NOTE {0:M} at the link level; the note lands
+        // on the synthesized multimedia record, which is written back
+        // as a record on export.
+        (record.notes ??= []).push(parseNoteStructure(child, ctx));
       },
       '_PRIM': (child) => {
         primary = parseYNFlag(child, '_PRIM');

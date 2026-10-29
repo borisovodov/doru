@@ -32,6 +32,24 @@ import type { PlaceStructure } from './names-places';
 // ---------------------------------------------------------------------------
 
 /**
+ * The GDO import-file reference, `_IMPF` at level 1 of every record:
+ * the cross-reference of the record in the file it was imported from,
+ * with a PAGE child holding the id of the imported file. Written by
+ * GDO ("XREF for record of imported file with subtag PAGE: ID of
+ * record", the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+ * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+ * GEDCOM version. Recognized on input and written back as the `_IMPF`
+ * block in both versions.
+ */
+export interface ImportFileReference extends GedcomStructureBase {
+  tag: '_IMPF';
+  /** The _IMPF payload {0:1} — the record's XREF in the imported file. */
+  record?: Text;
+  /** PAGE {0:1} — the id of the imported file. */
+  page?: Text;
+}
+
+/**
  * The Family Historian fact flags (the `_FLGS` block under an event or
  * attribute; see EventDetail.factFlags): the four flag names the vendor
  * supports — PRIVATE (the fact is not to be shared), PREFERRED (the
@@ -97,13 +115,13 @@ export interface AddressStructure extends GedcomStructureBase {
    * back as `_NAME` in both versions.
    */
   name?: Text;
-  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
+  /** PHON {0:3} — GEDCOM 5.5.1-only; 7.0 keeps phone numbers on the records. The 5.5.1 limit of 3 is enforced on export (values beyond the third are dropped). Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address (as siblings of ADDR) for 5.5.1. Contacts with no address block have no 5.5.1 slot and are dropped there. */
   phone?: Special[];
-  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
+  /** EMAIL {0:3} — GEDCOM 5.5.1-only; 7.0 keeps email addresses on the records. Same limit, relocation and drop rules as `phone`. */
   email?: Special[];
-  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
+  /** FAX {0:3} — GEDCOM 5.5.1-only; 7.0 keeps fax numbers on the records. Same limit, relocation and drop rules as `phone`. */
   fax?: Special[];
-  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. The 5.5.1 limit of 3 is enforced at validation time. Cross-version serialization relocates the values: to the record/detail level for 7.0, and into this address for 5.5.1. */
+  /** WWW {0:3} — GEDCOM 5.5.1-only; 7.0 keeps web addresses on the records. Same limit, relocation and drop rules as `phone`. */
   www?: Special[];
   /**
    * _SORT {0:1} — the spelling of the addressee's name used when
@@ -170,12 +188,22 @@ export interface AssociationStructure extends GedcomStructureBase {
   tag: 'ASSO';
   /** The ASSO payload, {1:1} pointer to an INDI record; a voidPtr with a PHRASE describes an unreferenced person. */
   individual: Pointer<IndividualRecord>;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE (GEDCOM 7.0 §3.2.3 ASSOCIATION_STRUCTURE). 5.5.1 has no PHRASE under ASSO; dropped when serializing to 5.5.1. */
   phrase?: Text;
   /** ROLE {1:1}, g7:ROLE — Enum of g7:enumset-ROLE. Required in 7.0; 5.5.1 uses RELA instead. When serializing to 5.5.1 the role is spelled out as the free-text RELA descriptor (OTHER uses the phrase); an association with neither is dropped. */
   role?: RoleStructure;
   /** RELA {1:1} — a free-text relation descriptor. GEDCOM 5.5.1 §2 (p.60); 7.0 uses ROLE instead. When serializing to 7.0 the descriptor becomes ROLE OTHER with the descriptor kept in the PHRASE. */
   relationship?: Text;
+  /**
+   * _PRIM {0:1} — marks the primary association for this participant:
+   * TMG to GEDCOM's "Primary Indicator Tag" under a shared event (the
+   * event is primary for this co-participant; see
+   * https://tmgtogedcom.com/en/tag-names.htm). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_PRIM Y` in
+   * 5.5.1 (under the `_SHAR`/`_ASSO` line); 7.0 has no slot for it
+   * and drops it.
+   */
+  primary?: boolean;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}. */
@@ -343,7 +371,7 @@ export interface EventDetail extends GedcomStructureBase {
   additionalPlaces?: PlaceStructure[];
   /** <<ADDRESS_STRUCTURE>> {0:1}, g7:ADDR. */
   address?: AddressStructure;
-  /** PHON {0:M}, g7:PHON. */
+  /** PHON {0:M}, g7:PHON. 5.5.1 has no event-level phone slot (the contacts live inside the ADDRESS_STRUCTURE); without an address block a 5.5.1 export drops it. */
   phone?: Special[];
   /**
    * EMAIL {0:M}, g7:EMAIL. The Family Historian spelling `_EMAIL` (its
@@ -353,7 +381,7 @@ export interface EventDetail extends GedcomStructureBase {
    * address block to carry it, the value is written back as `_EMAIL`.
    */
   email?: Special[];
-  /** FAX {0:M}, g7:FAX. */
+  /** FAX {0:M}, g7:FAX. 5.5.1 has no event-level fax slot (the contacts live inside the ADDRESS_STRUCTURE); without an address block a 5.5.1 export drops it. */
   fax?: Special[];
   /**
    * WWW {0:M}, g7:WWW. The Family Historian spelling `_WEB` (its

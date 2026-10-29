@@ -119,17 +119,22 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
     w.line(level + 1, '_LIST6', { value: 'YES' });
   }
   if (version === '5.5.1') {
-    for (const value of address.phone ?? []) {
-      w.line(level + 1, 'PHON', { value });
+    // The 5.5.1 ADDRESS_STRUCTURE (GEDCOM 5.5.1 §2 p.31) puts the
+    // contact substructures PHON/EMAIL/FAX/WWW {0:3} each at the
+    // structure level — siblings of ADDR, not its children. The {0:3}
+    // limit is enforced here on output: values beyond the third are
+    // dropped (see the contact fields of AddressStructure).
+    for (const value of (address.phone ?? []).slice(0, 3)) {
+      w.line(level, 'PHON', { value });
     }
-    for (const value of address.email ?? []) {
-      w.line(level + 1, 'EMAIL', { value });
+    for (const value of (address.email ?? []).slice(0, 3)) {
+      w.line(level, 'EMAIL', { value });
     }
-    for (const value of address.fax ?? []) {
-      w.line(level + 1, 'FAX', { value });
+    for (const value of (address.fax ?? []).slice(0, 3)) {
+      w.line(level, 'FAX', { value });
     }
-    for (const value of address.www ?? []) {
-      w.line(level + 1, 'WWW', { value });
+    for (const value of (address.www ?? []).slice(0, 3)) {
+      w.line(level, 'WWW', { value });
     }
   }
   // For 7.0 the contacts live at the record/detail level; the parent
@@ -137,8 +142,11 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
 }
 
 /** The address as the target version wants it: 5.5.1 keeps the contact
- * fields inside ADDR, so record-level contacts are merged into it. */
-
+ * fields inside the ADDRESS_STRUCTURE (siblings of ADDR), so
+ * record-level contacts are merged into it — emitAddress writes them
+ * there. Contacts without an address block have no 5.5.1 slot at all
+ * (the contact substructures only exist inside the ADDRESS_STRUCTURE,
+ * GEDCOM 5.5.1 §2 p.31) and are dropped on 5.5.1 output. */
 export function mergedAddress(_w: Writer, version: Version, 
   address: AddressStructure | undefined,
   contacts: { phone?: string[]; email?: string[]; fax?: string[]; www?: string[] },
@@ -172,9 +180,6 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
       }
     }
     ptr(w, version, level, tag, association.individual);
-    if (association.phrase !== undefined) {
-      w.line(level + 1, 'PHRASE', { value: association.phrase });
-    }
     w.line(level + 1, 'RELA', { value: relationship });
     for (const note of association.notes ?? []) {
       emitNoteStructure(w, version, level + 1, note);
@@ -229,9 +234,15 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     }
     return;
   }
-  // 5.5.1: value + optional phrase. A phrase with a value becomes a NOTE
-  // subordinate to the DATE (GEDCOM 5.5.1 §2 p.48); a phrase without a
-  // value becomes the parenthesized form.
+  // 5.5.1: value + optional phrase. A phrase-only date becomes the
+  // parenthesized form `(phrase)`; a phrase alongside a plain date
+  // becomes the `INT <date> (<phrase>)` form — both are
+  // DATE_VALUE choices (GEDCOM 5.5.1 §2 p.47). For the other value
+  // forms (ranges, periods, bounds, approximations) the 5.5.1 grammar
+  // has no parenthesized form, so the phrase is written as a NOTE
+  // subordinate to the DATE line — the alternative GEDCOM 5.5.1 §2
+  // p.48 itself describes ("include the date phrase value as a NOTE
+  // value subordinate to the DATE line tag").
   if (date.value === undefined) {
     if (date.phrase !== undefined) {
       w.line(level, tag, { value: `(${date.phrase})` });
@@ -246,10 +257,16 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     // whole DATE (including its phrase NOTE) is dropped.
     return;
   }
-  w.line(level, tag, { value: raw === '' ? undefined : raw });
   if (date.phrase !== undefined) {
-    w.line(level + 1, 'NOTE', { value: date.phrase });
+    if (date.value.kind === 'date') {
+      w.line(level, tag, { value: `INT ${raw} (${date.phrase})` });
+    } else {
+      w.line(level, tag, { value: raw === '' ? undefined : raw });
+      w.line(level + 1, 'NOTE', { value: date.phrase });
+    }
+    return;
   }
+  w.line(level, tag, { value: raw === '' ? undefined : raw });
 }
 
 export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
@@ -336,10 +353,12 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
       w.line(level, 'WWW', { value });
     }
   } else if (address === undefined) {
-    // 5.5.1 spells the contacts inside the ADDRESS_STRUCTURE; with no
-    // address block the Family Historian spellings `_EMAIL`/`_WEB`
-    // carry the fact-level e-mail and web address (the vendor
-    // convention the parser reads into EventDetail.email/www).
+    // 5.5.1 carries the contacts only inside the ADDRESS_STRUCTURE
+    // (GEDCOM 5.5.1 §2 p.32): with no address block, PHON and FAX have
+    // no 5.5.1 slot and are dropped, while the Family Historian
+    // spellings `_EMAIL`/`_WEB` carry the fact-level e-mail and web
+    // address (the vendor convention the parser reads into
+    // EventDetail.email/www).
     for (const value of detail.email ?? []) {
       w.line(level, '_EMAIL', { value });
     }
@@ -402,6 +421,11 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // 5.5.1 events have no ASSO; the _SHAR/_ROLE pair carries them.
     for (const association of detail.associations ?? []) {
       w.line(level, '_SHAR', { value: association.individual });
+      if (association.primary === true) {
+        // TMG: the "Primary Indicator Tag" under a shared event (see
+        // AssociationStructure.primary); 7.0 has no slot for it.
+        w.line(level + 1, '_PRIM', { value: 'Y' });
+      }
       if (association.role !== undefined) {
         const descriptor = association.role.payload === 'OTHER'
           ? association.role.phrase
@@ -561,6 +585,11 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
     if (citation.quality !== undefined) {
       w.line(level + 1, 'QUAY', { value: citation.quality });
     }
+    if (citation.submitter !== undefined) {
+      // GDO: a pointer to the submitter record of this citation (see
+      // SourceCitation.submitter).
+      ptr(w, version, level + 1, '_SUBM', citation.submitter);
+    }
     return;
   }
   ptr(w, version, level, tag, citation.source);
@@ -665,6 +694,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (citation.quality !== undefined) {
     w.line(level + 1, 'QUAY', { value: citation.quality });
+  }
+  if (citation.submitter !== undefined) {
+    // GDO: a pointer to the submitter record of this citation (see
+    // SourceCitation.submitter).
+    ptr(w, version, level + 1, '_SUBM', citation.submitter);
   }
   // Generic extensions of the citation itself are written back at the
   // citation level: a documented extension tag may appear under any

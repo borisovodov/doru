@@ -129,7 +129,9 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
     ptr(w, version, 2, 'FAMC', event.adoptionFamily.family);
     if (event.adoptionFamily.adoption !== undefined) {
       w.line(3, 'ADOP', { value: event.adoptionFamily.adoption.payload });
-      if (event.adoptionFamily.adoption.phrase !== undefined) {
+      if (version === '7.0' && event.adoptionFamily.adoption.phrase !== undefined) {
+        // The 7.0 FAMC-ADOP.PHRASE; 5.5.1 has no PHRASE slot (dropped
+        // — see AdoptionStructure.phrase).
         w.line(4, 'PHRASE', { value: event.adoptionFamily.adoption.phrase });
       }
     }

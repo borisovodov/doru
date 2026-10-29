@@ -30,6 +30,8 @@ import type {
 import {
   dispatch,
   noPayload,
+  parseImportReference,
+  reqPtr,
   reqText,
 } from './context';
 import type {
@@ -68,6 +70,16 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     },
     '_SOUND': (child) => {
       rec.soundFile = reqText(child);
+    },
+    '_SUBM': (child) => {
+      // GDO: a pointer to the submitter record of this media object
+      // (see MultimediaRecord.submitters).
+      (rec.submitters ??= []).push(reqPtr(child, ctx));
+    },
+    '_IMPF': (child) => {
+      // GDO: the import-file reference (see
+      // MultimediaRecord.importReference).
+      rec.importReference = parseImportReference(child, ctx);
     },
     NOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -145,6 +157,11 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
         // place, signature, tombstone, document, heirloom; see
         // MediaFile.contentType).
         file.contentType = reqText(child);
+      },
+      _ALTPATH: (child) => {
+        // Ahnenblatt: an alternative or relative file path without the
+        // file name (see MediaFile.alternatePath).
+        file.alternatePath = reqText(child);
       },
       ...(ctx.version === '7.0'
         ? {

@@ -30,6 +30,7 @@ import type { FamilyAttributeStructure } from './family-structures';
 import type { FamilyEventStructure } from './family-structures';
 import type { GedcomStructureBase } from './extensions';
 import type { IdentifierStructure } from './common';
+import type { ImportFileReference } from './common';
 import type { IndividualAttributeStructure } from './individual-structures';
 import type { IndividualEventStructure } from './individual-structures';
 import type { LdsIndividualOrdinance } from './lds';
@@ -47,6 +48,7 @@ import type { PlaceRecord } from './place-record';
 import type { TodoRecord } from './todo-record';
 import type { TodoStructure } from './todo-record';
 import type { EventDefinitionRecord } from './event-definition-record';
+import type { DuplicateCandidateRecord } from './duplicate-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.2 Records
@@ -95,6 +97,32 @@ export interface RecordFlagStructure {
   tag: Text;
   /** The full flag name (the payload of the flag line). */
   name: Text;
+}
+
+/**
+ * The Ahnenblatt internet-search block, `_INET` under INDI: the
+ * structure for further details of an internet search
+ * ("Struktur für weitere Details einer Internetsuche"). Documented by
+ * the GenWiki "GEDCOM/_Nutzerdef-Tag" table, which lists the five
+ * substructures `_MHRM`, `_MHSM`, `_MHAV`, `_RDATE` and `_SDATE`
+ * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); the individual
+ * meanings of the five tags are not separately catalogued there, so
+ * their values are kept verbatim as free text. Not part of any GEDCOM
+ * version. Recognized on input and written back as the `_INET` block
+ * in both versions. See IndividualRecord.internetSearch.
+ */
+export interface InternetSearchStructure extends GedcomStructureBase {
+  tag: '_INET';
+  /** _MHRM {0:1} — kept verbatim (the value set is undocumented). */
+  mhrm?: Text;
+  /** _MHSM {0:1} — kept verbatim (the value set is undocumented). */
+  mhsm?: Text;
+  /** _MHAV {0:1} — kept verbatim (the value set is undocumented). */
+  mhav?: Text;
+  /** _RDATE {0:1} — kept verbatim ("usage like DATE"). */
+  researchDate?: Text;
+  /** _SDATE {0:1} — kept verbatim. */
+  searchDate?: Text;
 }
 
 /**
@@ -249,6 +277,22 @@ export interface FamilyRecord extends GedcomStructureBase {
    */
   sameSexUnion?: true;
   /**
+   * _WITN {0:M} — the witnesses of the family, as free text (names,
+   * not pointers): the German GEDCOM-L convention (agreement ASSO A4)
+   * places the text form under the family record or the event (see the
+   * GenWiki "GEDCOM/ASSO-Tag" article:
+   * https://wiki.genealogy.net/GEDCOM/ASSO-Tag). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_WITN` in both
+   * versions. (Under an event the same tag types into
+   * EventDetail.witnesses.) GES2000 writes the combined godparents
+   * and witnesses of the family here too, under the tag `_GODT`
+   * ("Paten und Zeugen als Text", the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); recognized on
+   * input and written back as `_GODT`.
+   */
+  witnesses?: Text[];
+  /**
    * _TODO {0:M} — research tasks attached to the family: the GenoPro /
    * RootsMagic / Ahnenblatt to-do structure with the sub-tags DESC,
    * PRTY, STAT, DATE and NOTE (see TodoStructure; the GenWiki
@@ -258,17 +302,6 @@ export interface FamilyRecord extends GedcomStructureBase {
    * `_TODO` in both versions.
    */
   todos?: TodoStructure[];
-  /**
-   * _WITN {0:M} — the witnesses of the family, as free text (names,
-   * not pointers): the German GEDCOM-L convention (agreement ASSO A4)
-   * places the text form under the family record or the event (see the
-   * GenWiki "GEDCOM/ASSO-Tag" article:
-   * https://wiki.genealogy.net/GEDCOM/ASSO-Tag). Not part of any GEDCOM
-   * version. Recognized on input and written back as `_WITN` in both
-   * versions. (Under an event the same tag types into
-   * EventDetail.witnesses.)
-   */
-  witnesses?: Text[];
   /**
    * UTYP {0:1} — the kind of relationship the partners are in: 1 =
    * married, 2 = married and separated, 3 = married and divorced, 4 =
@@ -315,6 +348,13 @@ export interface FamilyRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -327,7 +367,7 @@ export interface FamilyRecord extends GedcomStructureBase {
 export interface FamilyPartnerLink extends GedcomStructureBase {
   /** The HUSB/WIFE payload, {1:1} pointer to an INDI record. */
   partner: Pointer<IndividualRecord>;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE (GEDCOM 7.0 §3.2.2 FAMILY_RECORD). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
   /**
    * _PREF Y {0:1} — marks the preferred partner. Written by Legacy
@@ -341,6 +381,34 @@ export interface FamilyPartnerLink extends GedcomStructureBase {
    * both versions.
    */
   preferred?: boolean;
+  /**
+   * _NAM {0:1} — the married name of this partner ("Ehenamen des
+   * Mannes oder der Frau"), a name used like INDI.NAME. Written by
+   * GES2000 under FAM.HUSB/FAM.WIFE; Legacy Family Tree writes the
+   * same fact as the FAM-level `_MARRNAME` (see FamilyRecord, where
+   * it attaches to whichever partner line it follows). Source: the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag. Not part of any
+   * GEDCOM version. Recognized on input and written back as `_NAM` in
+   * both versions.
+   */
+  name?: PersonalNameStructure;
+  /**
+   * _ZVST {0:1} — the partner's civil status at the time of the
+   * marriage, free text (e.g. "verw." widowed, "ledig" unmarried).
+   * Written by GES2000 under FAM.HUSB/FAM.WIFE (same source as
+   * `name`). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_ZVST` in both versions.
+   */
+  civilStatus?: Text;
+  /**
+   * _NR {0:1} — the ordinal number of the marriage for this partner
+   * ("Laufende Nummer der Ehe"). Written by GES2000 under
+   * FAM.HUSB/FAM.WIFE (same source as `name`). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_NR` in both
+   * versions.
+   */
+  marriageNumber?: Integer;
 }
 
 /**
@@ -350,7 +418,7 @@ export interface FamilyPartnerLink extends GedcomStructureBase {
 export interface FamilyChildLink extends GedcomStructureBase {
   /** The CHIL payload, {1:1} pointer to an INDI record. */
   child: Pointer<IndividualRecord>;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE (GEDCOM 7.0 §3.2.2 FAMILY_RECORD). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
   /**
    * _PREF Y {0:1} — marks the preferred child. Written by Legacy
@@ -409,7 +477,14 @@ export interface IndividualRecord extends GedcomStructureBase {
   restriction?: ListEnum<RestrictionEnum>;
   /** <<PERSONAL_NAME_STRUCTURE>> {0:M}. */
   names?: PersonalNameStructure[];
-  /** SEX {0:1}, g7:SEX — Enum of g7:enumset-SEX. */
+  /**
+   * SEX {0:1}, g7:SEX — Enum of g7:enumset-SEX (M, F, X, U). The
+   * GEDCOM 5.5.5 values are also accepted on 5.x input: X (intersex;
+   * also a 7.0 value) and N (not recorded; 5.5.5 §2 p.104 only). On
+   * export the serializers project: 5.5.1 drops X and N (the SEX line
+   * disappears), 7.0 drops N (see the `sex` projection in
+   * serialize/emitter/values.ts); 7.0 input rejects N.
+   */
   sex?: SexEnum;
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */
   attributes?: IndividualAttributeStructure[];
@@ -572,6 +647,13 @@ export interface IndividualRecord extends GedcomStructureBase {
    * back as the `_FLGS` block in both versions.
    */
   recordFlags?: RecordFlagStructure[];
+  /**
+   * _INET {0:1} — the Ahnenblatt internet-search block (see
+   * InternetSearchStructure): the record's internet-search details,
+   * kept verbatim. Not part of any GEDCOM version. Recognized on
+   * input and written back as the `_INET` block in both versions.
+   */
+  internetSearch?: InternetSearchStructure;
   /** <<LDS_INDIVIDUAL_ORDINANCE>> {0:M}. */
   ordinances?: LdsIndividualOrdinance[];
   /** FAMC {0:M}, g7:INDI-FAMC — the families in which this individual appears as a child. */
@@ -619,6 +701,13 @@ export interface IndividualRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -631,8 +720,12 @@ export interface IndividualRecord extends GedcomStructureBase {
 export interface ChildFamilyLink extends GedcomStructureBase {
   /** The FAMC payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
-  /** PHRASE {0:1}, g7:PHRASE — a word or phrase the source system uses to describe the family (7.0-only; 5.5.1 has no slot, dropped on 5.5.1 export). */
-  phrase?: Text;
+  // Note: GEDCOM 7.0's INDI.FAMC has no direct PHRASE substructure
+  // (g7:INDI-FAMC := FAMC + PEDI{0:1} + STAT{0:1} +
+  // <<NOTE_STRUCTURE>>{0:M}, GEDCOM 7.0 §3.2.2); a phrase describing
+  // the family belongs to the PEDI or STAT children, which each carry
+  // their own PHRASE {0:1}. A PHRASE directly under FAMC is not legal
+  // in any version and is discarded on input.
   /**
    * _FREL {0:1} — the relationship of this child to the father in the
    * family (Natural, Adopted, Step, Foster, …). Under FAM.CHIL the tag
@@ -716,7 +809,7 @@ export interface ChildFamilyLink extends GedcomStructureBase {
 export interface PedigreeStructure extends GedcomStructureBase {
   /** The PEDI payload, {1:1} Enum of g7:enumset-PEDI. */
   payload: PedigreeEnum;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE (a substructure of g7:PEDI, GEDCOM 7.0 §3.2.2). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
 }
 
@@ -729,7 +822,7 @@ export interface PedigreeStructure extends GedcomStructureBase {
 export interface FamilyChildStatusStructure extends GedcomStructureBase {
   /** The STAT payload, {1:1} Enum of g7:enumset-FAMC-STAT. */
   payload: FamilyChildStatusEnum;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE (a substructure of g7:FAMC-STAT, GEDCOM 7.0 §3.2.2). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
 }
 
@@ -743,8 +836,10 @@ export interface FamilyChildStatusStructure extends GedcomStructureBase {
 export interface SpouseFamilyLink extends GedcomStructureBase {
   /** The FAMS payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
-  /** PHRASE {0:1}, g7:PHRASE — a word or phrase the source system uses to describe the family (7.0-only; 5.5.1 has no slot, dropped on 5.5.1 export). */
-  phrase?: Text;
+  // Note: GEDCOM 7.0's INDI.FAMS has no PHRASE substructure at all
+  // (g7:FAMS := FAMS + <<NOTE_STRUCTURE>>{0:M}, GEDCOM 7.0 §3.2.2); a
+  // PHRASE under FAMS is not legal in any version and is discarded on
+  // input.
   /**
    * _PREF Y {0:1} — marks the preferred spouse. Written by Legacy
    * Family Tree (see its "Custom GEDCOM Tags" help:
@@ -767,7 +862,7 @@ export interface SpouseFamilyLink extends GedcomStructureBase {
 export interface AliasLink extends GedcomStructureBase {
   /** The ALIA payload, {1:1} pointer to an INDI record. */
   individual: Pointer<IndividualRecord>;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE (GEDCOM 7.0 §3.2.2 INDIVIDUAL_RECORD). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
 }
 
@@ -828,6 +923,20 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _SUBM {0:M} — a pointer to the submitter record of this media
+   * object. Written by GDO under every record (see
+   * SourceRecord.submitters); not part of any GEDCOM version.
+   * Recognized on input and written back as `_SUBM` in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -855,6 +964,15 @@ export interface MediaFile extends GedcomStructureBase {
    * under the FILE line in both versions.
    */
   contentType?: Text;
+  /**
+   * _ALTPATH {0:1} — an alternative or relative file path, without
+   * the file name ("alternativer bzw. relativer Dateipfad ohne
+   * Dateinamen"). Written by Ahnenblatt under OBJE.FILE (same source
+   * as `contentType`); not part of any GEDCOM version. Recognized on
+   * input and written back as `_ALTPATH` under the FILE line in both
+   * versions.
+   */
+  alternatePath?: Text;
   /** TRAN {0:M}, g7:FILE-TRAN — the same content in a different digital format. */
   translations?: MediaFileTranslation[];
 }
@@ -864,7 +982,16 @@ export interface MediaFile extends GedcomStructureBase {
  * referenced by the superstructure, with an optional medium.
  */
 export interface MediaFormatStructure extends GedcomStructureBase {
-  /** The FORM payload, {1:1} MediaType. */
+  /**
+   * The FORM payload, {1:1} MediaType. 7.0 files carry an RFC 2045
+   * media type; a 5.x file carries one of the fixed
+   * `MULTIMEDIA_FORMATS_551` extensions, or one of the 17 GEDCOM
+   * 5.5.5 formats (5.5.5 §2 p.94–95). On 5.5.1 output only the seven
+   * 5.5.1 formats can be named (plus the RFC 2045 types that map onto
+   * them): a 5.5.5-only format (`PNG`, `PDF`, …) has no 5.5.1
+   * spelling, so the whole FILE is dropped on 5.5.1 export (see
+   * emitMediaFile). 7.0 output writes the payload verbatim.
+   */
   payload: MediaType;
   /** MEDI {0:1}, g7:MEDI — Enum of g7:enumset-MEDI; the medium from which the file was derived. */
   medium?: MediaStructure;
@@ -905,7 +1032,7 @@ export interface RepositoryRecord extends GedcomStructureBase {
   dates?: DateStructure[];
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
   address?: AddressStructure;
-  /** PHON {0:M}, g7:PHON — in 7.0 the repository's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (the floating PHON {0:3} beside ADDR, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address it writes them at the record level. */
+  /** PHON {0:M}, g7:PHON — in 7.0 the repository's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (PHON {0:3} inside the address block, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address block there is no 5.5.1 slot and they are dropped. */
   phone?: Special[];
   /**
    * EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the
@@ -913,16 +1040,18 @@ export interface RepositoryRecord extends GedcomStructureBase {
    * Family Historian spelling `_EMAIL` under the record (up to V6.2 —
    * see the FHUG "GEDCOM Extension List":
    * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
-   * normalizes into this slot.
+   * normalizes into this slot; with no address block the 5.5.1
+   * serializer writes it back as `_EMAIL`.
    */
   email?: Special[];
-  /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
+  /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`; with no address block there is no 5.5.1 slot and it is dropped. */
   fax?: Special[];
   /**
    * WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the
    * ADDRESS_STRUCTURE. Same serialization relocation as `phone`. The
    * Family Historian spelling `_WEB` under the record (up to V6.2; same
-   * source as `email`) normalizes into this slot.
+   * source as `email`) normalizes into this slot; with no address
+   * block the 5.5.1 serializer writes it back as `_WEB`.
    */
   www?: Special[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -939,6 +1068,20 @@ export interface RepositoryRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _SUBM {0:M} — a pointer to the submitter record of this
+   * repository. Written by GDO under every record (see
+   * SourceRecord.submitters); not part of any GEDCOM version.
+   * Recognized on input and written back as `_SUBM` in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -969,6 +1112,20 @@ export interface SharedNoteRecord extends GedcomStructureBase {
   changeDate?: ChangeDate;
   /** <<CREATION_DATE>> {0:1}. */
   creationDate?: CreationDate;
+  /**
+   * _SUBM {0:M} — a pointer to the submitter record of this shared
+   * note. Written by GDO under every record (see
+   * SourceRecord.submitters); not part of any GEDCOM version.
+   * Recognized on input and written back as `_SUBM` in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -995,6 +1152,20 @@ export interface NoteRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _SUBM {0:M} — a pointer to the submitter record of this note.
+   * Written by GDO under every record (see SourceRecord.submitters);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_SUBM` in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -1182,6 +1353,44 @@ export interface SourceRecord extends GedcomStructureBase {
    * both versions.
    */
   quality?: MftSourceQuality;
+  /**
+   * _URKU {0:1} — "evidence of the event is available"
+   * ("Ereignisnachweis liegt vor"), a presence flag. Written by
+   * PC-AHNEN under a SOUR record (see the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input (the presence-style flag
+   * convention: an absent value or `Y` marks the flag set, `N` clears
+   * it) and written back as `_URKU Y` in both versions.
+   */
+  evidenceAvailable?: boolean;
+  /**
+   * _JAG {0:1} — the volume year of the source ("Jahrgang einer
+   * Quelle"), free text. Written by GenPlus under a SOUR record (same
+   * source as `evidenceAvailable`); not part of any GEDCOM version.
+   * Recognized on input and written back as `_JAG` in both versions.
+   */
+  volumeYear?: Text;
+  /**
+   * _SUBM {0:M} — a pointer to the submitter record of this source.
+   * Written by GDO under every record ("Zeiger auf Einreicher-DS",
+   * the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version (FAM and INDI carry the same fact in the standard
+   * SUBM {0:M} slot). Recognized on input and written back as `_SUBM`
+   * in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the cross-reference of this record in the file it
+   * was imported from, with a PAGE child holding the id of the
+   * imported file. Written by GDO at level 1 of every record ("XREF
+   * for record of imported file with subtag PAGE: ID of record", same
+   * source as `submitters`); not part of any GEDCOM version.
+   * Recognized on input and written back as the `_IMPF` block in both
+   * versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -1239,7 +1448,7 @@ export interface SourceDataEvent extends GedcomStructureBase {
   payload: ListEnum<EventAttributeEnum>;
   /** DATE {0:1}, g7:DATA-EVEN-DATE — the DatePeriod covered by the entire source. */
   date?: DatePeriodStructure;
-  /** <<PLACE_STRUCTURE>> {0:1}. */
+  /** <<PLACE_STRUCTURE>> {0:1}. The 5.5.1 spelling is the bare `SOURCE_JURISDICTION_PLACE` (GEDCOM 5.5.1 §2 p.27), so on 5.5.1 output only the payload is written and the 7.0 place substructures (FORM/MAP/NOTE/…) are dropped. */
   place?: PlaceStructure;
   /**
    * The user-supplied values of the 5.5.1 `EVENTS_RECORDED` list,
@@ -1303,7 +1512,7 @@ export interface SubmitterRecord extends GedcomStructureBase {
   name: Text;
   /** <<ADDRESS_STRUCTURE>> {0:1}. */
   address?: AddressStructure;
-  /** PHON {0:M}, g7:PHON — in 7.0 the submitter's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (the floating PHON {0:3} beside ADDR, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address it writes them at the record level. */
+  /** PHON {0:M}, g7:PHON — in 7.0 the submitter's phone numbers; in 5.5.1/5.5.5 the ADDRESS_STRUCTURE position (PHON {0:3} inside the address block, GEDCOM 5.5.1 §2 p.31). The 5.5.1 serializer writes them into the address block; with no address block there is no 5.5.1 slot and they are dropped. */
   phone?: Special[];
   /**
    * EMAIL {0:M}, g7:EMAIL — 7.0 position; 5.5.1/5.5.5 keep it in the
@@ -1311,16 +1520,18 @@ export interface SubmitterRecord extends GedcomStructureBase {
    * Family Historian spelling `_EMAIL` under the record (up to V6.2 —
    * see the FHUG "GEDCOM Extension List":
    * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
-   * normalizes into this slot.
+   * normalizes into this slot; with no address block the 5.5.1
+   * serializer writes it back as `_EMAIL`.
    */
   email?: Special[];
-  /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`. */
+  /** FAX {0:M}, g7:FAX — 7.0 position; 5.5.1/5.5.5 keep it in the ADDRESS_STRUCTURE. Same serialization relocation as `phone`; with no address block there is no 5.5.1 slot and it is dropped. */
   fax?: Special[];
   /**
    * WWW {0:M}, g7:WWW — 7.0 position; 5.5.1/5.5.5 keep it in the
    * ADDRESS_STRUCTURE. Same serialization relocation as `phone`. The
    * Family Historian spelling `_WEB` under the record (up to V6.2; same
-   * source as `email`) normalizes into this slot.
+   * source as `email`) normalizes into this slot; with no address
+   * block the 5.5.1 serializer writes it back as `_WEB`.
    */
   www?: Special[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
@@ -1347,6 +1558,20 @@ export interface SubmitterRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _SUBM {0:M} — a pointer to another submitter record. Written by
+   * GDO under every record (see SourceRecord.submitters); not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_SUBM` in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -1381,6 +1606,20 @@ export interface SubmissionRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * _SUBM {0:M} — a pointer to the submitter record of this
+   * submission. Written by GDO under every record (see
+   * SourceRecord.submitters); not part of any GEDCOM version.
+   * Recognized on input and written back as `_SUBM` in both versions.
+   */
+  submitters?: Pointer<SubmitterRecord>[];
+  /**
+   * _IMPF {0:1} — the GDO import-file reference (see
+   * ImportFileReference): the record's cross-reference in the file it
+   * was imported from. Recognized on input and written back as the
+   * `_IMPF` block in both versions.
+   */
+  importReference?: ImportFileReference;
 }
 
 /**
@@ -1402,4 +1641,5 @@ export type GedcomRecord =
   | PlaceRecord
   | TodoRecord
   | EventDefinitionRecord
+  | DuplicateCandidateRecord
   | ExtensionRecord;

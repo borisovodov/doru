@@ -21,7 +21,9 @@ import {
   atMostThree,
   dispatch,
   kids,
+  merge551RecordContacts,
   noPayload,
+  parseImportReference,
   req,
   reqDigits,
   reqPtr,
@@ -63,6 +65,16 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
       // FH (up to V6.2): the submitter web address — the vendor
       // spelling of the standard WWW slot.
       (rec.www ??= []).push(reqText(child));
+    },
+    '_SUBM': (child) => {
+      // GDO: a pointer to another submitter record (see
+      // SubmitterRecord.submitters).
+      (rec.submitters ??= []).push(reqPtr(child, ctx));
+    },
+    '_IMPF': (child) => {
+      // GDO: the import-file reference (see
+      // SubmitterRecord.importReference).
+      rec.importReference = parseImportReference(child, ctx);
     },
     OBJE: (child) => {
       (rec.media ??= []).push(parseMultimediaLink(child, ctx));
@@ -158,6 +170,9 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     ctx,
     ctx.version === '7.0' ? ['ADDR', 'CHAN', 'CREA'] : ['ADDR', 'CHAN', 'RFN', 'RIN'],
   );
+  if (ctx.version === '5.5.1') {
+    merge551RecordContacts(rec);
+  }
   return rec;
 }
 
@@ -192,6 +207,16 @@ export function parseSubmissionRecord(node: RawNode, ctx: Ctx): SubmissionRecord
       },
       RIN: (child) => {
         rec.automatedRecordId = reqText(child);
+      },
+      _SUBM: (child) => {
+        // GDO: a pointer to the submitter record of this submission
+        // (see SubmissionRecord.submitters).
+        (rec.submitters ??= []).push(reqPtr(child, ctx));
+      },
+      _IMPF: (child) => {
+        // GDO: the import-file reference (see
+        // SubmissionRecord.importReference).
+        rec.importReference = parseImportReference(child, ctx);
       },
       NOTE: (child) => {
         (rec.notes ??= []).push(parseNoteStructure(child, ctx));

@@ -74,7 +74,7 @@ describe('address and submitter emission', () => {
     expect(text).toContain('2 _NAME Office');
   });
 
-  test('5.5.1 address keeps the contacts inside ADDR', () => {
+  test('5.5.1 address writes the contacts as siblings of ADDR', () => {
     const dataset = parse551(
       [
         ...H551,
@@ -89,10 +89,13 @@ describe('address and submitter emission', () => {
       ].join('\n'),
     );
     const text = ser551(dataset);
-    expect(text).toContain('2 PHON 1');
-    expect(text).toContain('2 EMAIL a@@b.example');
-    expect(text).toContain('2 FAX 2');
-    expect(text).toContain('2 WWW https://w.example');
+    // The 5.5.1 ADDRESS_STRUCTURE puts the contacts at the structure
+    // level — siblings of ADDR, not children (GEDCOM 5.5.1 §2 p.31).
+    expect(text).toContain('1 PHON 1');
+    expect(text).toContain('1 EMAIL a@@b.example');
+    expect(text).toContain('1 FAX 2');
+    expect(text).toContain('1 WWW https://w.example');
+    expect(text).not.toContain('2 PHON');
   });
 
   test('7.0 submitter relocates address contacts to the record level', () => {
@@ -139,7 +142,9 @@ describe('association emission', () => {
     const text = ser551(dataset);
     expect(text).toContain('1 ASSO @I2@');
     expect(text).toContain('2 RELA Godfather');
-    expect(text).toContain('2 PHRASE at the baptism');
+    // 5.5.1 has no PHRASE under ASSO (ASSOCIATION_STRUCTURE, GEDCOM
+    // 5.5.1 §2 p.31); the phrase is dropped on 5.5.1 output.
+    expect(text).not.toContain('PHRASE');
     expect(text).toContain('2 NOTE a note');
     expect(text).toContain('2 SOUR @S2@');
   });
@@ -798,7 +803,8 @@ describe('records and record details', () => {
     expect(text).toContain('1 FAMS @F1@');
     expect(text).toContain('1 SUBM @S1@');
     expect(text).toContain('1 ALIA @I2@');
-    expect(text).toContain('2 PHRASE the alias');
+    // 5.5.1 has no PHRASE under ALIA (GEDCOM 5.5.1 §2 p.25); dropped.
+    expect(text).not.toContain('2 PHRASE the alias');
     expect(text).toContain('1 ANCI @S1@');
     expect(text).toContain('1 DESI @S1@');
     expect(text).toContain('1 RFN 99');

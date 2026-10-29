@@ -37,8 +37,11 @@ import {
   addExtension,
   atMostThree,
   dispatch,
+  merge551RecordContacts,
   noPayload,
+  parseImportReference,
   req,
+  reqPtr,
   reqText,
 } from './context';
 import type {
@@ -49,6 +52,7 @@ import {
 } from './names-places';
 import {
   parseMultimediaLink,
+  parsePrivacyFlag,
   parseSourceCitation,
   parseSourceRepositoryCitation,
   parseVendorFlag,
@@ -95,6 +99,16 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
       // FH (up to V6.2): the repository web address — the vendor
       // spelling of the standard WWW slot.
       (rec.www ??= []).push(reqText(child));
+    },
+    '_SUBM': (child) => {
+      // GDO: a pointer to the submitter record of this repository (see
+      // RepositoryRecord.submitters).
+      (rec.submitters ??= []).push(reqPtr(child, ctx));
+    },
+    '_IMPF': (child) => {
+      // GDO: the import-file reference (see
+      // RepositoryRecord.importReference).
+      rec.importReference = parseImportReference(child, ctx);
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -175,6 +189,9 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     ctx,
     ctx.version === '7.0' ? ['ADDR', 'CHAN', 'CREA'] : ['ADDR', 'CHAN', 'RIN'],
   );
+  if (ctx.version === '5.5.1') {
+    merge551RecordContacts(rec);
+  }
   return rec;
 }
 
@@ -211,6 +228,16 @@ export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord
       EXID: (child) => {
         (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
       },
+      _SUBM: (child) => {
+        // GDO: a pointer to the submitter record of this shared note
+        // (see SharedNoteRecord.submitters).
+        (rec.submitters ??= []).push(reqPtr(child, ctx));
+      },
+      _IMPF: (child) => {
+        // GDO: the import-file reference (see
+        // SharedNoteRecord.importReference).
+        rec.importReference = parseImportReference(child, ctx);
+      },
     },
     ctx,
     ['MIME', 'LANG', 'CHAN', 'CREA'],
@@ -238,6 +265,15 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
       },
       _UID: (child) => {
         (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      },
+      _SUBM: (child) => {
+        // GDO: a pointer to the submitter record of this note (see
+        // NoteRecord.submitters).
+        (rec.submitters ??= []).push(reqPtr(child, ctx));
+      },
+      _IMPF: (child) => {
+        // GDO: the import-file reference (see NoteRecord.importReference).
+        rec.importReference = parseImportReference(child, ctx);
       },
     },
     ctx,
@@ -368,6 +404,31 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _QUAL: (child) => {
       // MFT7: the source-quality block (see SourceRecord.quality).
       rec.quality = parseMftSourceQuality(child, ctx);
+    },
+    _URKU: (child) => {
+      // PC-AHNEN: evidence of the event is available (see
+      // SourceRecord.evidenceAvailable).
+      rec.evidenceAvailable = parsePrivacyFlag(child, '_URKU');
+    },
+    _JAG: (child) => {
+      // GenPlus: the volume year of the source (see
+      // SourceRecord.volumeYear).
+      rec.volumeYear = reqText(child);
+    },
+    _KTIT: (child) => {
+      // GenPlus: the short title of the source — the vendor spelling
+      // of the standard ABBR slot (see SourceRecord.abbreviation);
+      // written back as the standard ABBR.
+      rec.abbreviation = reqText(child);
+    },
+    _SUBM: (child) => {
+      // GDO: a pointer to the submitter record of this source (see
+      // SourceRecord.submitters).
+      (rec.submitters ??= []).push(reqPtr(child, ctx));
+    },
+    _IMPF: (child) => {
+      // GDO: the import-file reference (see SourceRecord.importReference).
+      rec.importReference = parseImportReference(child, ctx);
     },
     REPO: (child) => {
       (rec.repositoryCitations ??= []).push(parseSourceRepositoryCitation(child, ctx));

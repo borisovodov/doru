@@ -18,6 +18,7 @@ import type { SourceRecord } from './records';
 import type { SourceText } from './records';
 import type { DateStructure } from './common';
 import type { RoleStructure } from './common';
+import type { SubmitterRecord } from './records';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.3 Substructures — sources and media
@@ -125,6 +126,15 @@ export interface SourceCitation extends GedcomStructureBase {
    * extension tag).
    */
   foundBy?: Text;
+  /**
+   * _SUBM {0:1} — a pointer to the submitter record of this citation.
+   * Written by GDO under citations ("Zeiger auf Einreicher-DS", the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as `_SUBM` in
+   * both versions.
+   */
+  submitter?: Pointer<SubmitterRecord>;
 }
 
 /**
@@ -252,13 +262,15 @@ export interface CallNumberStructure extends GedcomStructureBase {
  * enumerated value providing information about the medium in which
  * information is stored.
  *
- * GEDCOM 5.5.1 §2 (p.62), `SOURCE_MEDIA_TYPE` — identical value set
- * (lowercase); PHRASE is 7.0-only.
+ * GEDCOM 5.5.1 §2 (p.62), `SOURCE_MEDIA_TYPE` — identical value set,
+ * spelled lowercase on the wire. PHRASE is 7.0-only and dropped when
+ * serializing to 5.5.1; OTHER has no 5.5.1 spelling, so a 5.5.1 MEDI
+ * line disappears entirely for it.
  */
 export interface MediaStructure extends GedcomStructureBase {
   /** The MEDI payload, {1:1} Enum of g7:enumset-MEDI. */
   payload: MediaEnum;
-  /** PHRASE {0:1}, g7:PHRASE. */
+  /** PHRASE {0:1}, g7:PHRASE. Dropped when serializing to 5.5.1. */
   phrase?: Text;
 }
 

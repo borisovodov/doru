@@ -11,7 +11,7 @@ import { fail } from '../errors';
 import { dispatch, req, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import type { RawNode } from './lines';
-import { eventDetailHandlers } from './events';
+import { eventDetailHandlers, merge551DetailContacts } from './events';
 import { parseMapCoordinates } from './names-places';
 import { parseMultimediaLink, parseSourceCitation } from './sources-media';
 import {
@@ -38,10 +38,12 @@ import type {
 import type { EventDetail } from '../structures';
 import type { PlaceEventStructure } from '../structures';
 
-/** Parses a `_PLAC`, `_LOC` or `_PLAC_DEFN` record into a PlaceRecord. */
+/** Parses a `_PLAC`, `_PLAC` (FTB), `_LOC` or `_PLAC_DEFN` record into a PlaceRecord. */
 export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
   let payload: string;
-  if (node.tag === '_PLAC') {
+  if (node.tag === '_PLAC' || node.tag === '_PLACE') {
+    // The payload dialects (_PLAC; Family Tree Builder's `_PLACE`) carry
+    // the place name in the record payload.
     payload = reqText(node);
   } else if (node.tag === '_PLAC_DEFN') {
     payload = reqText(req(node, 'PLAC'));
@@ -136,6 +138,9 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       };
       (out.events ??= []).push(event);
       dispatch(child, detail, eventDetailHandlers(ctx, detail), ctx);
+      if (ctx.version === '5.5.1') {
+        merge551DetailContacts(detail);
+      }
       if (Object.keys(detail).length > 0) {
         event.detail = detail;
       }

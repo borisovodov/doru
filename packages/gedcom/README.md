@@ -58,7 +58,14 @@ The complete picture, at a glance:
   bounds for partial precision (see Dates).
 - **Serialization as a projection.** The writers translate the model
   into what the target version can express, with the rule for every
-  construct documented in its JSDoc (see Serialization).
+  construct documented in its JSDoc (see Serialization). The output is
+  always a file the target specification itself permits: a construct
+  the target version cannot spell is never written in a form its
+  grammar does not define — it is dropped (with the rule recorded in
+  the JSDoc of the affected field) or written in the vendor extension
+  spelling where one exists. Some data may therefore be lost when
+  serializing a model built from a richer version; that is by design
+  (the specifications, not the model, are the narrowest point).
 - **Vendor extensions with a policy.** Known vendor tags are typed on
   input and standardized on output; unknown `_`-tags are preserved
   verbatim, and the inventory of every recognized tag with its
@@ -294,7 +301,15 @@ Input is always bytes. Version handling:
   versions (3.0, 4.0, 5.0) and the superseded drafts (5.3, 5.4) — is
   rejected up front with `document.wrong-version` ("not a supported
   GEDCOM version") instead of failing mid-file with
-  `structure.unknown-tag` errors. GEDCOM 6.0 (the 2001–2002 XML beta
+  `structure.unknown-tag` errors. Of the 7.x line, **7.0 is the
+  supported version**: files declaring a later 7.x patch level
+  (`7.0.1` … `7.0.18`) parse under the 7.0 grammar, and the writer
+  emits `7.0`. **GEDCOM 7.1 is deliberately not supported before the
+  1.0 release**: 7.1 files parse under the 7.0 rules where they
+  happen to fit, but the constructs 7.1 added (e.g. the dataset title
+  `HEAD.TITL`, exercised by the official `gedcom71` test corpus) are
+  not modeled and fail as unknown tags; full 7.1 support is a
+  post-1.0 decision. GEDCOM 6.0 (the 2001–2002 XML beta
   draft, never adopted) and GEDCOM X (FamilySearch's successor
   standard family, with its own XML/JSON syntax and data model) are
   different formats, not text GEDCOM: they are deliberately out of
@@ -343,15 +358,19 @@ rather than silently replaced.
 The writers emit the canonical form of their version:
 
 - **7.0** — `GEDC.VERS 7.0`, uppercase enums, calendar keywords and the
-  `BCE` epoch inside dates, `PHRASE` substructures, `CONT` for multiline
-  payloads, leading `@` doubled, pointers verbatim.
+  `BCE` epoch inside dates, `PHRASE` substructures (only where the 7.0
+  grammar defines them), `CONT` for multiline payloads, leading `@`
+  doubled, pointers verbatim.
 - **5.5.1** — `CHAR`, `GEDC.FORM LINEAGE-LINKED`, `SOUR`/`SUBM`
   (defaulted when missing, see below),
   lowercase spelling where the spec uses it (`privacy`, `birth`, `maiden`,
-  …), `@#D…@` calendar escapes and `B.C.`, phrases as a subordinate `NOTE`
-  (per 5.5.1 §2 p.48) or the parenthesized form, all `@` doubled (except
-  pointers and escapes), `CONC` splitting at the 255-character line limit
-  (split points never start with a space).
+  …), `@#D…@` calendar escapes and `B.C.`, the date phrase as the
+  `INT <date> (<phrase>)` DATE_VALUE form (GEDCOM 5.5.1 §2 p.47; for
+  the non-date forms as the NOTE alternative the spec itself
+  describes on p.48), the ADDRESS_STRUCTURE contacts as siblings of
+  ADDR, all `@` doubled (except pointers and escapes), `CONC` splitting
+  at the 255-character line limit (split points never start with a
+  space).
 
 Serialization is a **projection, not a judge**: everything the target
 version can express but stores elsewhere is translated, and everything it
@@ -367,19 +386,27 @@ documented in the JSDoc of the affected model field. The summary:
   5.5.1 age keywords become numeric bounds (`CHILD`→`< 8y`,
   `INFANT`→`< 1y`, `STILLBORN`→`0y`) with the keyword kept in the
   PHRASE; contacts are relocated between the record/detail level (7.0)
-  and inside ADDR (5.5.1).
+  and the ADDRESS_STRUCTURE (5.5.1, as siblings of ADDR) — a BCP 47
+  language tag maps onto the 5.5.1 `LANGUAGE_ID` table by its full
+  form and then its primary subtag (`pt-BR` → Portuguese).
 - **Silently dropped** — 7.0-only: `SCHMA`, `UID`/`EXID`, `CREA`,
   `SDATE`, weeks in ages, `SEX X`, `MEDI`/`PEDI OTHER`, the `INFANT`
   status, `MIME`/`LANG`/`TRAN` on notes, `CROP`/`TITL` under `OBJE`,
   `FAM.FACT`, event-level `ASSO`, the `Y` payload on 5.5.1 events that
-  cannot carry it. 5.5.1-only: `SUBN`, `FILE`,
+  cannot carry it, and every `PHRASE` in a position the 5.5.1 grammar
+  does not define (HUSB/WIFE/CHIL/ALIA links, PEDI/STAT children, the
+  association phrase). 5.5.1-only: `SUBN`, `FILE`,
   `GEDC.FORM`, `RIN`/`RFN`/`AFN`, piece-level `NOTE`/`SOUR`.
   5.5.5-only: `SEX N` (both targets) and the year-less `day month`
   dates (both targets require a year; the whole DATE is dropped). A multimedia `FILE` whose format cannot be named in the
   fixed 5.5.1 set (including the 5.5.5-only formats such as
   `JPEG`/`TIFF`/`PDF`/`MP3`) is dropped
   entirely. A 5.5.5 structured `ADDR` (no line value) is written with a
-  payload synthesized from the ADR1–CTRY parts.
+  payload synthesized from the ADR1–CTRY parts. Event/detail contacts
+  with no address block have no 5.5.1 slot: PHON/FAX are dropped,
+  EMAIL/WWW are written as the Family Historian `_EMAIL`/`_WEB`
+  spellings. The 5.5.1 INDI.RESI payload is dropped (the grammar has
+  no payload slot).
 - **The NO rule (7.0 → 5.5.1)** — every `NO` structure is dropped;
   records left empty by that are dropped too, and pointers to dropped
   records are removed, so the file never asserts what the researcher
@@ -509,6 +536,22 @@ The agreed policy:
   `_SHAR`/`_ROLE` form, the FAM-level one as `_ASSO`). The vendor tags
   and the `_LOC` records are written back in both versions (see the
   place-records bullet above).
+- **The typed single-vendor tags cover the documented catalogs.** On
+  top of the sets above, the model types the documented tags of
+  GES2000 (`_REL` child status, `_NCHI` birth order,
+  `_NOTH`/`_LEBENSORT` home places, `_SURN` clan name, `_GODT`
+  godparents/witnesses, the FAM.HUSB/WIFE `_NAM`/`_ZVST`/`_NR`
+  marriage details and the Legacy `_MARRNAME` partner name),
+  Ahnenblatt (`_INET` search block, `_ALTPATH`, the HEAD
+  `_HOME`/`_NAVI`/`_NAVM` start person, GEDitCOM's `_HME`), GDO
+  (`_ALIA` duplicate records, `_IMPF` import-file references, `_SUBM`
+  submitter pointers on every record and citation), PC-AHNEN (`_URKU`
+  evidence flag), GenPlus (`_JAG` volume year, `_KTIT` short title),
+  MFT7 (`_COR` place coordinates), Family Tree Builder (`_PLACE` place
+  records) and TMG (exhibits under NAME, the `_PRIM`
+  primary-co-participant flag); the Reunion `AUTH` and `ANCE` tags
+  are accepted generically. Every field's JSDoc carries its source and
+  export rule.
 - **The registered GEDCOM 7.0 extensions are typed.** Everything in
   the official FamilySearch registry (the GEDCOM-registries repository)
   is valid input: the Ancestry publication details under `SOUR.PUBL`
@@ -625,11 +668,20 @@ versions, the 5.5.1 normalizations, and the serialization spellings.
 Round-trip tests parse → serialize → parse representative documents of
 both versions and require deep model equality plus idempotent output.
 
-The official FamilySearch GEDCOM 7.0 test files `extensions.ged` and
-`extension-record.ged` (from https://gedcom.io/testfiles/gedcom70/) are
-committed under `tests/fixtures/` and run as regression tests: they
-must parse and round-trip model-stably and idempotently
-(`tests/familysearch-testfiles.test.ts`).
+The official FamilySearch GEDCOM 7.0 test files — the complete
+`gedcom70` corpus (age, date, escapes, extension-record, extensions,
+filename-1, lang, long-url, the maximal70 set, minimal70, notes-1,
+obje-1, remarriage1/2, same-sex-marriage, voidptr, warnings70, xref,
+plus the maximal70/minimal70 GEDZIP archives) from
+https://gedcom.io/testfiles/gedcom70/ — are committed under
+`tests/fixtures/gedcom70/` (the Apache-2.0 terms and the FamilySearch
+NOTICE are reproduced in `tests/fixtures/gedcom70/NOTICE.md`) and run
+as regression tests: every `.ged` file must parse and round-trip
+through the 7.0 serializer model-stably and idempotently, and the
+`.gdz` archives must parse as GEDZIP
+(`tests/familysearch-corpus.test.ts`; the deep per-construct
+assertions over `extensions.ged` and `extension-record.ged` live in
+`tests/familysearch-testfiles.test.ts`).
 
 Coverage is measured across the whole workspace by `npm run test:coverage`
 at the repo root and enforced in CI by the thresholds in
@@ -695,20 +747,31 @@ would be, or where the model takes a documented position:
   serializers write `TYPE`.
 - GEDCOM 5.5.5 is not a separate dialect: files declaring it parse
   under the 5.5.1 rules, and its vocabulary (`SEX X`/`N`, `BCE`/`BC`,
-  the year-less dates, `JPEG`/`TIFF`) is accepted in **any** 5.x file
-  — a deliberate leniency over the 5.5.1 spec, so that no import
-  fails or loses data on these constructs (the writers still project
-  them away: see Serialization). The 5.5.5 container relaxations are
-  not enforced, and the constructs 5.5.5 removed still parse. The
-  HEAD.SUBM pointer is not enforced on input either (5.5.5 deprecated
-  it); the 5.5.1 serializer still synthesizes a SUBM. `GEDC.FORM.VERS`
-  is tolerated but not stored.
+  the year-less dates, the 17-format `MULTIMEDIA_FORMAT` set) is
+  accepted in **any** 5.x file — a deliberate leniency over the 5.5.1
+  spec, so that no import fails or loses data on these constructs (the
+  writers still project them away: see Serialization). The 5.5.5
+  container relaxations are not enforced, and the constructs 5.5.5
+  removed still parse. The HEAD.SUBM pointer is not enforced on input
+  either (5.5.5 deprecated it); the 5.5.1 serializer still synthesizes
+  a SUBM. `GEDC.FORM.VERS` is tolerated but not stored.
+- The French Republican calendar imposes no day-of-month limit at
+  parse time: the 7.0 specification lists the French months (§6.1)
+  without stating their lengths, and the official FamilySearch test
+  file `date.ged` exercises `23 COMP` — days validate against the
+  uniform 30-day grid (Gregorian/Julian/Hebrew days are validated
+  precisely, see the calendar-arithmetic note above).
 - The 5.x parser accepts only the 5.5 lineage as the declared version
   — 5.5, 5.5.1 and 5.5.5. Pre-5.5 declarations (3.0, 4.0, 5.0) and
   the superseded drafts (5.3, 5.4) are rejected up front with
   `document.wrong-version` rather than parsed leniently: their
   grammars differ, and a mid-file unknown-tag error would be
-  misleading. GEDCOM 6.0 (the XML beta draft) and GEDCOM X are
+  misleading. Of the 7.x line, 7.0 is the supported version: later
+  7.0.x patch levels parse under the 7.0 grammar, but **GEDCOM 7.1 is
+  not supported before the 1.0 release** — its files parse under the
+  7.0 rules only where they fit, its added constructs (e.g.
+  `HEAD.TITL`) fail as unknown tags, and the writer emits 7.0. GEDCOM
+  6.0 (the XML beta draft) and GEDCOM X are
   different formats, not text GEDCOM, and are out of scope (see
   Parsing).
 - The 5.x parser accepts the horizontal tab in line values, although

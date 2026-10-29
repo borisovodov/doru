@@ -36,6 +36,7 @@ import {
   emitSource,
   emitTodoRecord,
   emitEventDefinition,
+  emitDuplicateCandidateRecord,
 } from './records';
 import {
   emitCensusRecord,
@@ -155,6 +156,15 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   if (h.note !== undefined) {
     emitNoteStructure(w, version, 1, h.note);
   }
+  if (h.startPerson !== undefined) {
+    // Ages! / Ahnenblatt / GEDitCOM: the start person shown after
+    // opening the file (see Header.startPerson); written back as
+    // `_HOME` plus the Ahnenblatt `_NAVM` mode when set.
+    ptr(w, version, 1, '_HOME', h.startPerson);
+    if (h.startPersonMode !== undefined) {
+      w.line(1, '_NAVM', { value: h.startPersonMode });
+    }
+  }
   emitExtensions(w, version, 1, h);
 }
 
@@ -210,6 +220,9 @@ export function emitCorporation(w: Writer, version: Version, corp: {
   if (address !== undefined) {
     emitAddress(w, version, 3, address);
   }
+  // 5.5.1 CORP carries only the ADDRESS_STRUCTURE (GEDCOM 5.5.1 §2
+  // p.54): contacts with no address block have no 5.5.1 slot and are
+  // dropped (see mergedAddress).
   if (version === '7.0') {
     // The 5.5.1-position contacts inside ADDR are relocated here.
     for (const value of corp.phone ?? corp.address?.phone ?? []) {
@@ -275,12 +288,24 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
     case '_CENR':
       emitCensusRecord(w, version, record as Parameters<typeof emitCensusRecord>[2]);
       return;
+    case '_ALIA':
+      emitDuplicateCandidateRecord(w, version, record as Parameters<typeof emitDuplicateCandidateRecord>[2]);
+      return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);
       return;
     default:
       emitExtension(w, version, 0, record as ExtensionStructure);
       return;
+  }
+}
+
+/** The GDO `_SUBM` pointers of records whose standard grammar has no
+ *  SUBM slot: written as `_SUBM` (see SourceRecord.submitters). FAM and
+ *  INDI write theirs as the standard SUBM {0:M} instead. */
+export function emitGdoSubmitters(w: Writer, version: Version, level: number, submitters?: string[]): void {
+  for (const submitter of submitters ?? []) {
+    ptr(w, version, level, '_SUBM', submitter);
   }
 }
 
@@ -292,6 +317,8 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
+  submitters?: string[];
+  importReference?: { record?: string; page?: string };
   extensions?: ExtensionStructure[];
 }, level: number): void {
   for (const identifier of rec.identifiers ?? []) {
@@ -335,6 +362,19 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
   if (rec.automatedRecordId !== undefined && version === '5.5.1') {
     w.line(level, 'RIN', { value: rec.automatedRecordId });
   }
+  // Note: the GDO `_SUBM` pointers (rec.submitters) are NOT written
+  // here: FAM and INDI write their submitters as the standard SUBM
+  // {0:M} slot, and the record emitters of the other record kinds
+  // write the `_SUBM` spelling themselves before calling this
+  // function (the standard grammars of those records have no SUBM
+  // slot).
+  if (rec.importReference !== undefined) {
+    // GDO: the import-file reference (see ImportFileReference).
+    w.line(level, '_IMPF', { value: rec.importReference.record });
+    if (rec.importReference.page !== undefined) {
+      w.line(level + 1, 'PAGE', { value: rec.importReference.page });
+    }
+  }
   emitExtensions(w, version, level, rec);
 }
 
@@ -354,6 +394,7 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   creationDate?: CreationDate;
   registeredRfn?: string;
   automatedRecordId?: string;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -377,27 +418,25 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
     for (const value of rec.www ?? rec.address?.www ?? []) {
       w.line(1, 'WWW', { value });
     }
-  } else if (address === undefined) {
-    // 5.5.1 spells the contacts inside the ADDRESS_STRUCTURE; with no
-    // address block the floating PHON/EMAIL/FAX/WWW position beside
-    // ADDR carries them (GEDCOM 5.5.1 §2 p.31).
-    for (const value of rec.phone ?? []) {
-      w.line(1, 'PHON', { value });
-    }
+  }
+  // 5.5.1 SUBM carries only the ADDRESS_STRUCTURE (GEDCOM 5.5.1 §2
+  // p.28): PHON and FAX have no 5.5.1 slot without an address block and
+  // are dropped, while the Family Historian spellings `_EMAIL`/`_WEB`
+  // carry the record-level e-mail and web address (see
+  // SubmitterRecord.email/www).
+  if (version === '5.5.1' && address === undefined) {
     for (const value of rec.email ?? []) {
-      w.line(1, 'EMAIL', { value });
-    }
-    for (const value of rec.fax ?? []) {
-      w.line(1, 'FAX', { value });
+      w.line(1, '_EMAIL', { value });
     }
     for (const value of rec.www ?? []) {
-      w.line(1, 'WWW', { value });
+      w.line(1, '_WEB', { value });
     }
   }
-  for (const media of rec.media ?? []) {
-    emitMultimediaLink(w, version, 1, media);
-  }
-  for (const languageId of rec.languages ?? []) {
+  // Note: the media links are written by commonRecordFields below — the
+  // SUBM emitter must not write them twice.
+  for (const languageId of (version === '5.5.1' ? (rec.languages ?? []).slice(0, 3) : (rec.languages ?? []))) {
+    // The 5.5.1 SUBM LANG limit is {0:3} (GEDCOM 5.5.1 §2 p.28):
+    // values beyond the third are dropped.
     const value = language(w, version, languageId);
     if (value !== undefined) {
       w.line(1, 'LANG', { value });
@@ -406,6 +445,7 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   if (rec.registeredRfn !== undefined && version === '5.5.1') {
     w.line(1, 'RFN', { value: rec.registeredRfn });
   }
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
@@ -420,6 +460,7 @@ export function emitSubmission(w: Writer, version: Version, rec: {
   notes?: NoteStructure[];
   changeDate?: ChangeDate;
   automatedRecordId?: string;
+  submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -459,6 +500,7 @@ export function emitSubmission(w: Writer, version: Version, rec: {
   if (rec.automatedRecordId !== undefined) {
     w.line(1, 'RIN', { value: rec.automatedRecordId });
   }
+  emitGdoSubmitters(w, version, 1, rec.submitters);
   emitExtensions(w, version, 1, rec);
 }
 

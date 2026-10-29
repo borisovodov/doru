@@ -69,6 +69,7 @@ import type {
   RawNode,
 } from './lines';
 import {
+  parsePersonalNameStructure,
   parsePlaceStructure,
 } from './names-places';
 import {
@@ -135,9 +136,25 @@ export function parseFamilyPartnerLink(node: RawNode, ctx: Ctx): FamilyPartnerLi
       '_PREF': (child) => {
         out.preferred = parseYNFlag(child, '_PREF');
       },
+      '_NAM': (child) => {
+        // GES2000: the married name of this partner ("Ehenamen des
+        // Mannes oder der Frau"), used like INDI.NAME (see
+        // FamilyPartnerLink.name).
+        out.name = parsePersonalNameStructure(child, ctx);
+      },
+      '_ZVST': (child) => {
+        // GES2000: the partner's civil status at the time of the
+        // marriage (see FamilyPartnerLink.civilStatus).
+        out.civilStatus = reqText(child);
+      },
+      '_NR': (child) => {
+        // GES2000: the ordinal number of the marriage for this partner
+        // (see FamilyPartnerLink.marriageNumber).
+        out.marriageNumber = reqDigits(child);
+      },
     },
     ctx,
-    ['PHRASE', '_PREF'],
+    ['PHRASE', '_PREF', '_NAM', '_ZVST', '_NR'],
   );
   return out;
 }
@@ -210,11 +227,10 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
     },
   };
   if (ctx.version === '7.0') {
-    // The 7.0 INDI.FAMC link carries PHRASE {0:1} and
-    // <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
-    handlers['PHRASE'] = (child) => {
-      out.phrase = reqText(child);
-    };
+    // The 7.0 INDI.FAMC link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.2); 5.5.1 stays strict. A PHRASE directly under FAMC is
+    // not legal in any version (the PEDI/STAT children carry their own
+    // PHRASE {0:1}) and is discarded.
     handlers['SNOTE'] = (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
@@ -225,7 +241,7 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       out.parentalRelationKind = parseUsmCode(child, 'MTYP', USM_PARENTAL_RELATION_KINDS);
     };
   }
-  dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', 'PHRASE']);
+  dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP']);
   return out;
 }
 
@@ -238,6 +254,15 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
  */
 export const SEX_551: Record<'M' | 'F' | 'U' | 'X' | 'N', string> = {
   M: 'male', F: 'female', U: 'undetermined', X: 'intersex', N: 'not recorded',
+};
+
+/**
+ * The 7.0 enumset-SEX values M, F, X, U (GEDCOM 7.0 §3.4). `N` is a
+ * GEDCOM 5.5.5-only value (5.5.5 §2 p.104): 7.0 input rejects it, and
+ * the 7.0 serializer drops it — see IndividualRecord.sex.
+ */
+export const SEX_70: Record<'M' | 'F' | 'X' | 'U', string> = {
+  M: 'male', F: 'female', X: 'intersex', U: 'undetermined',
 };
 
 /** The 5.5.1 PEDIGREE_LINKAGE_TYPE set (no OTHER). */
@@ -291,16 +316,14 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
     },
   };
   if (ctx.version === '7.0') {
-    // The 7.0 INDI.FAMS link carries PHRASE {0:1} and
-    // <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
-    handlers['PHRASE'] = (child) => {
-      out.phrase = reqText(child);
-    };
+    // The 7.0 INDI.FAMS link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.2); 5.5.1 stays strict. A PHRASE under FAMS is not
+    // legal in any version and is discarded.
     handlers['SNOTE'] = (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     };
   }
-  dispatch(node, out, handlers, ctx, ['PHRASE']);
+  dispatch(node, out, handlers, ctx);
   return out;
 }
 
@@ -516,6 +539,21 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     handlers['PPFX'] = (child) => {
       detail.placePrefix = reqText(child);
     };
+    // The 5.5.1 ADDRESS_STRUCTURE position of the contacts: siblings of
+    // ADDR (GEDCOM 5.5.1 §2 p.31). merge551DetailContacts relocates
+    // them into the address block afterwards.
+    handlers['PHON'] = (child) => {
+      (detail.phone ??= []).push(reqText(child));
+    };
+    handlers['EMAIL'] = (child) => {
+      (detail.email ??= []).push(reqText(child));
+    };
+    handlers['FAX'] = (child) => {
+      (detail.fax ??= []).push(reqText(child));
+    };
+    handlers['WWW'] = (child) => {
+      (detail.www ??= []).push(reqText(child));
+    };
     handlers['POTM'] = (child) => {
       // USM6: the event occurred post mortem (see
       // EventDetail.posthumous).
@@ -561,6 +599,38 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     };
   }
   return handlers;
+}
+
+/**
+ * Canonicalizes the 5.5.1 detail-level contacts: the contact
+ * substructures PHON/EMAIL/FAX/WWW belong to the ADDRESS_STRUCTURE
+ * (siblings of ADDR, GEDCOM 5.5.1 §2 p.31), so contacts parsed beside
+ * an ADDR are relocated into the address block. Called after the
+ * detail of an event, attribute or census-relocated structure has
+ * finished parsing (5.5.1 input only; on 7.0 input the contacts are
+ * detail-level by the standard grammar).
+ */
+export function merge551DetailContacts(detail: EventDetail): void {
+  const address = detail.address;
+  if (address === undefined) {
+    return;
+  }
+  if (detail.phone !== undefined) {
+    address.phone = [...(address.phone ?? []), ...detail.phone];
+    delete detail.phone;
+  }
+  if (detail.email !== undefined) {
+    address.email = [...(address.email ?? []), ...detail.email];
+    delete detail.email;
+  }
+  if (detail.fax !== undefined) {
+    address.fax = [...(address.fax ?? []), ...detail.fax];
+    delete detail.fax;
+  }
+  if (detail.www !== undefined) {
+    address.www = [...(address.www ?? []), ...detail.www];
+    delete detail.www;
+  }
 }
 
 export interface EventShape extends GedcomStructureBase {
@@ -615,6 +685,9 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   }
 
   dispatch(node, event, handlers, ctx);
+  if (ctx.version === '5.5.1') {
+    merge551DetailContacts(detail);
+  }
   if (Object.keys(detail).length > 0) {
     familyDetail.detail = detail;
   }
@@ -708,11 +781,20 @@ export function parseFamilyResidence551(node: RawNode, ctx: Ctx): FamilyResidenc
   handlers["TYPE"] = (child) => {
     out.type = reqText(child);
   };
-  dispatch(node, out, handlers, ctx);
+  handlers["HUSB"] = (child) => {
+    // The 5.5.1 RESI under FAM takes the full FAMILY_EVENT_DETAIL
+    // (GEDCOM 5.5.1 §2 p.32): the partners' ages at the residence.
+    familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  handlers["WIFE"] = (child) => {
+    familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE']);
+  merge551DetailContacts(detail);
   if (Object.keys(detail).length > 0) {
     familyDetail.detail = detail;
   }
-  if (familyDetail.detail !== undefined) {
+  if (familyDetail.husband !== undefined || familyDetail.wife !== undefined || familyDetail.detail !== undefined) {
     out.detail = familyDetail;
   }
   return out;
@@ -805,6 +887,9 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   }
 
   dispatch(node, event, handlers, ctx, ['BTYP', 'AGED']);
+  if (ctx.version === '5.5.1') {
+    merge551DetailContacts(detail);
+  }
   if (Object.keys(detail).length > 0) {
     event.detail = detail;
   }
@@ -877,7 +962,18 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
     };
   }
   dispatch(node, event, handlers, ctx, ['SURE', '_PRIM']);
-  if ((tag === 'IDNO' || tag === 'FACT') && event.type === undefined) {
+  if (ctx.version === '5.5.1') {
+    merge551DetailContacts(detail);
+  }
+  if (ctx.version === '7.0' && (tag === 'IDNO' || tag === 'FACT') && event.type === undefined) {
+    // The 7.0 specification makes TYPE mandatory for the generic
+    // IDNO and FACT attributes ("It must have a TYPE substructure to
+    // define what kind of identification number is being provided",
+    // GEDCOM 7.0 §3.3.2.1). The 5.5.1 grammar letter omits TYPE from
+    // the syntax (a known spec inconsistency: the 5.5.1 text says the
+    // same thing about the TYPE while the syntax does not contain it;
+    // GEDCOM 5.5.5 restores the TYPE to the syntax), so 5.x input
+    // accepts a TYPE-less IDNO/FACT like the TYPE-less EVEN.
     fail('structure.missing-required', `The ${tag} attribute requires a TYPE substructure`, node.position);
   }
   if (Object.keys(detail).length > 0) {

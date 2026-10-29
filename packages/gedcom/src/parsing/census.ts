@@ -41,6 +41,7 @@ import {
 } from './names-places';
 import {
   eventDetailHandlers,
+  merge551DetailContacts,
 } from './events';
 import {
   parseAge,
@@ -214,6 +215,9 @@ function parseCensusRelocatedEvent(node: RawNode, ctx: Ctx, tag: 'BIRT' | 'MARR'
   const detail: EventDetail = {};
   const out: CensusRelocatedEvent = { tag, ...(payload === undefined ? {} : { payload }), detail };
   dispatch(node, out, eventDetailHandlers(ctx, detail), ctx);
+  if (ctx.version === '5.5.1') {
+    merge551DetailContacts(detail);
+  }
   if (Object.keys(detail).length === 0) {
     delete out.detail;
   }
@@ -225,6 +229,9 @@ function parseCensusRelocatedAttribute(node: RawNode, ctx: Ctx, tag: 'FACT' | 'O
   const detail: EventDetail = {};
   const out: CensusRelocatedAttribute = { tag, ...(raw === undefined ? {} : { payload: raw }), detail };
   dispatch(node, out, eventDetailHandlers(ctx, detail), ctx);
+  if (ctx.version === '5.5.1') {
+    merge551DetailContacts(detail);
+  }
   if (Object.keys(detail).length === 0) {
     delete out.detail;
   }

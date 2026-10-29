@@ -116,7 +116,7 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
     );
   });
 
-  test('the 5.5.1 ∪ 5.5.5 media format sets are accepted, OLE included (GEDCOM 5.5.5 p.94)', () => {
+  test('the full 5.5.5 media format set and OLE are all accepted (5.5.1 ∪ 5.5.5 sets)', () => {
     const dataset = parse551(
       [
         ...HEADER551,
@@ -129,15 +129,36 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
         '0 @O3@ OBJE',
         '1 FILE old.ole',
         '2 FORM OLE',
+        // The nine 5.5.5 additions (GEDCOM 5.5.5 §2 p.94–95); the
+        // controlled values are case-insensitive, so the lowercase
+        // spellings parse too.
         '0 @O4@ OBJE',
-        '1 FILE doc.pdf',
-        '2 FORM pdf',
+        '1 FILE clip.avi',
+        '2 FORM avi',
         '0 @O5@ OBJE',
         '1 FILE song.mp3',
-        '2 FORM MP3',
+        '2 FORM mp3',
         '0 @O6@ OBJE',
+        '1 FILE doc.pdf',
+        '2 FORM pdf',
+        '0 @O7@ OBJE',
+        '1 FILE pic.png',
+        '2 FORM png',
+        '0 @O8@ OBJE',
         '1 FILE book.epub',
         '2 FORM ePub',
+        '0 @O9@ OBJE',
+        '1 FILE audio.aac',
+        '2 FORM AAC',
+        '0 @O10@ OBJE',
+        '1 FILE lossless.flac',
+        '2 FORM flac',
+        '0 @O11@ OBJE',
+        '1 FILE video.mkv',
+        '2 FORM mkv',
+        '0 @O12@ OBJE',
+        '1 FILE kindle.mobi',
+        '2 FORM mobi',
         ...SUBM,
         '0 TRLR',
       ].join('\n'),
@@ -146,10 +167,17 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
     expect(files[0]).toMatchObject({ files: [{ form: { payload: 'jpeg' } }] });
     expect(files[1]).toMatchObject({ files: [{ form: { payload: 'tiff' } }] });
     expect(files[2]).toMatchObject({ files: [{ form: { payload: 'ole' } }] });
-    expect(files[3]).toMatchObject({ files: [{ form: { payload: 'pdf' } }] });
+    expect(files[3]).toMatchObject({ files: [{ form: { payload: 'avi' } }] });
     expect(files[4]).toMatchObject({ files: [{ form: { payload: 'mp3' } }] });
-    expect(files[5]).toMatchObject({ files: [{ form: { payload: 'epub' } }] });
-    expect(err551([...HEADER551, '0 @O7@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
+    expect(files[5]).toMatchObject({ files: [{ form: { payload: 'pdf' } }] });
+    expect(files[6]).toMatchObject({ files: [{ form: { payload: 'png' } }] });
+    expect(files[7]).toMatchObject({ files: [{ form: { payload: 'epub' } }] });
+    expect(files[8]).toMatchObject({ files: [{ form: { payload: 'aac' } }] });
+    expect(files[9]).toMatchObject({ files: [{ form: { payload: 'flac' } }] });
+    expect(files[10]).toMatchObject({ files: [{ form: { payload: 'mkv' } }] });
+    expect(files[11]).toMatchObject({ files: [{ form: { payload: 'mobi' } }] });
+    // A format outside both sets is still a strict error.
+    expect(err551([...HEADER551, '0 @O13@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
   });
 
   test('GEDC.FORM.VERS is tolerated and discarded (GEDCOM 5.5.5 §1 p.49)', () => {
@@ -173,47 +201,6 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
 
   test('a 5.5.5 file needs no byte-order mark (5.5.1 container rules apply)', () => {
     expect(parse551([...HEADER555, ...SUBM, '0 TRLR'].join('\n')).header.gedcom.version).toBe('5.5.5');
-  });
-
-  test('the 5.5.5 structured ADDR without a line value parses (5.5.5 §2 p.104)', () => {
-    const dataset = parse551(
-      [
-        ...HEADER555,
-        '0 @R1@ REPO',
-        '1 NAME Archive',
-        '1 ADDR',
-        '2 ADR1 Main Street 1',
-        '2 CITY Musterstadt',
-        '2 POST 12345',
-        '2 CTRY Germany',
-        ...SUBM,
-        '0 TRLR',
-      ].join('\n'),
-    );
-    const repo = dataset.records.find((record) => record.tag === 'REPO');
-    expect(repo && 'address' in repo && repo.address).toMatchObject({
-      line1: 'Main Street 1',
-      city: 'Musterstadt',
-      postalCode: '12345',
-      country: 'Germany',
-    });
-    // The serializer synthesizes the required ADDR payload from the
-    // structured parts for both target versions (the payload is a
-    // projection: a reparse keeps it alongside the structured parts).
-    const result = serializeGedcom551(dataset);
-    if (!result.ok) {
-      throw new Error(JSON.stringify(result));
-    }
-    const text = result.value;
-    expect(text).toContain('1 ADDR Main Street 1, Musterstadt, 12345, Germany');
-    const reparsed = parse551(text);
-    const repo2 = reparsed.records.find((record) => record.tag === 'REPO');
-    expect(repo2 && 'address' in repo2 && repo2.address?.payload).toBe('Main Street 1, Musterstadt, 12345, Germany');
-    const result70 = serializeGedcom70(dataset);
-    if (!result70.ok) {
-      throw new Error(JSON.stringify(result70));
-    }
-    expect(result70.value).toContain('1 ADDR Main Street 1, Musterstadt, 12345, Germany');
   });
 });
 

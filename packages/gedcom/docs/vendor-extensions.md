@@ -315,11 +315,23 @@ Stammbaumdrucker, webtrees, …). Two parts:
   "GEDCOM/_LOC-Tag" article (chapter 2).
 - **Person-side tags** (agreements N7, ASSO A4, NAME Ruf.B2):
   `_RUFNAME` (call name) under INDI.NAME; `_GODP` (godparents) and
-  `_WITN` (witnesses) under events — both **free text**, not pointers;
-  `_ASSO @xref@` + `RELA` for event participants. The `_TYPE same-sex`
-  FAM convention (Ahnenblatt) is not part of the N7 list. Source: the
-  GenWiki "GEDCOM/_Nutzerdef-Tag" article with the full known-tag
-  table (chapter 2).
+  `_WITN` (witnesses) under events **and under INDI** — both **free
+  text**, not pointers; `_ASSO @xref@` + `RELA` for event participants.
+  The `_TYPE same-sex` FAM convention (Ahnenblatt) is not part of the
+  N7 list. Source: the GenWiki "GEDCOM/_Nutzerdef-Tag" article with
+  the full known-tag table (chapter 2).
+- **The N5 header declarations** (`1 _SCHEMA` + a context chain +
+  `_DEFN <definition>` leaves) parse into the same `Header.schema53`
+  block the FTM 5.3 declarations use (the `_DEFN` spelling normalizes
+  to the 5.3 DEFN leaf); written back as `SCHEMA` in 5.5.1, dropped
+  on 7.0. The historical 5.5EL spellings are recognized too: the
+  non-underscore `ASSO` under FAM, `POST` under PLAC, the
+  `MAP <locator>` + `TYPE MAIDENHEAD` Maidenhead form under PLAC
+  (→ `PlaceStructure.maidenhead`), and the `GIVN` + `TYPE RUF` call
+  name with repeated GIVN lines (→ `PersonalNameStructure.callName` /
+  appended given names). Sources: the English GenWiki article "Gedcom
+  5.5EL" (marked historical) and the N5 section of
+  "GEDCOM/_Nutzerdef-Tag".
 
 ## 4. Registered GEDCOM 7.0 extensions (official registry)
 
@@ -344,8 +356,17 @@ under a SOUR record.
 | [MagiKey_AGER.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_AGER.yaml) | `_AGER` | under `AGE` {0:1}, payload `Integer-Integer` | `AgeStructure.ageRange` | both |
 | [MagiKey_MSTAT.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_MSTAT.yaml) | `_MSTAT` | under the census `INDI` | `CensusIndividual.maritalStatus` | both |
 | [MagiKey_SCHD.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_SCHD.yaml) | `_SCHD` | under `_CENR` | `CensusRecord.schedule` | both |
+| [MagiKey_CENR_SEX.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR_SEX.yaml) | `SEX` | under `_CENR` {0:M}: the sex of a set of individuals in a head-of-household census, with `AGE` {1:1} and `TYPE` {0:1} | `CensusRecord.sexes` | both |
+| [MagiKey_CENR_SEX_AGE.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/MagiKey_CENR_SEX_AGE.yaml) | `AGE` | under the census `SEX` {1:1}, payload `AGE_AT_EVENT`, with `_AGER` {0:1} and the **FAM-NCHI {1:1} child count** ("An NCHI substructure is used to hold the count of relevant individuals in the indicated age range") | `CensusSexStructure.age` / `CensusSexStructure.childCount` (required, like the registry declares) | both, written back as `NCHI <count>` under the AGE line |
 | [_DATE.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_DATE.yaml) | `_DATE` | under `REPO` {0:M}, DateValue + TIME/PHRASE (marked prerelease) | `RepositoryRecord.dates` | both |
 | [_SOUR.yaml](https://github.com/FamilySearch/GEDCOM-registries/blob/main/structure/extension/_SOUR.yaml) | `_SOUR` | under `PAGE` {0:M} and `record-SOUR` {0:M}, a relocated citation: the standard SOUR tag moved under PAGE or under the SOUR record, same payload (a pointer) and same substructures (NOTE, OBJE, PAGE, QUAY, SNOTE, SOUR-DATA, SOUR-EVEN; marked prerelease) | `PageStructure.citations` / `SourceRecord.relocatedCitations` | both, written back under the PAGE line / under the SOUR record |
+
+The registry keeps a second manifest — `manifest-MagiKey-CENR-en-US.tsv`
+— which carries the `SEX`/`AGE` entries above; the `SEX.AGE.NCHI`
+child count is the one registry construct the earlier inventory (this
+chapter before 2026-10) missed, and it is typed now. The registry's
+`data-type/extension/MagiKey-AgeRange.yaml` (the `Integer-Integer`
+payload of `_AGER`) is enforced as the `_AGER` payload regex.
 
 Note on the nonconformant uses of standard tags (PUBL.DATE/PLAC and
 the census INDI/FATH/MOTH/SEX): the core of GEDCOM 7.0 §1.5 permits
@@ -646,6 +667,42 @@ slot) as `_ASSO` (7.0 uses the standard ASSO).
 
 Covered by `tests/vendor-extensions*.test.ts` with same-version round
 trips.
+
+### The 2026-10 corpus sweep (typed additions)
+
+The catalog cross-check of 2026-10 added the remaining documented tags
+to the typed inventory; every field cites its GenWiki/T2G source in
+its JSDoc:
+
+| Tag | Vendors | Meaning | Model field |
+| --- | --- | --- | --- |
+| `_LEBENSORT` | AF2000, Stammbaumdrucker | Lebensort — location of residency | `FACT` + TYPE |
+| `_REL` | GES2000 | Kindstand — child status (e.g. `a` = adopted) | `FACT` + TYPE "Child status" |
+| `_NCHI` | GES2000 | Running number as child in the family | `FACT` + TYPE "Birth order" |
+| `_NOTH` | GES2000 | Heimatort as text | `FACT` + TYPE "Heimatort" |
+| `_SURN` | GES2000 | Sippenname — clan name | `names[]` `TYPE OTHER` + PHRASE |
+| `_GODT` | GES2000 | Godparents and witnesses as text | `FamilyRecord.witnesses` (written back as the `_WITN` spelling of the same slot) |
+| `_NAM` | GES2000 | Married name of the partner under FAM.HUSB/WIFE | `FamilyPartnerLink.name` (written back as `_NAM`) |
+| `_ZVST` | GES2000 | Civil status at the time of the marriage | `FamilyPartnerLink.civilStatus` |
+| `_NR` | GES2000 | Ordinal number of the marriage | `FamilyPartnerLink.marriageNumber` |
+| `_MARRNAME` | Legacy | Married name of the partner following the HUSB/WIFE line | `FamilyPartnerLink.name` |
+| `_PRIM` | TMG | Primary-co-participant flag under `_SHAR` | `AssociationStructure.primary` (5.5.1 writes `_PRIM Y`; 7.0 drops) |
+| `_INET` + `_MHRM`/`_MHSM`/`_MHAV`/`_RDATE`/`_SDATE` | Ahnenblatt | Internet-search details block (values kept verbatim) | `IndividualRecord.internetSearch` |
+| `_ALTPATH` | Ahnenblatt | Alternative/relative path without the file name | `MediaFile.alternatePath` |
+| `_HOME` / `_HME` / `_NAVI` + `_NAVM` | Ages!, Ahnenblatt, GEDitCOM | Start person after opening the file; the Navigator mode | `Header.startPerson` / `Header.startPersonMode` |
+| `_ALIA` record | GDO | Duplicate-candidate record (`_CPT`, `_INDI`, `_QUAY`, `_STAT`, NOTE, SOUR) | `DuplicateCandidateRecord` |
+| `_IMPF` + `PAGE` | GDO | The record's XREF in the imported file + the file id, level 1 of every record | `…Record.importReference` |
+| `_SUBM` | GDO | Submitter pointer under every record and citation | the standard `submitters` slot on FAM/INDI, `…Record.submitters` elsewhere, `SourceCitation.submitter` |
+| `_URKU` | PC-AHNEN | Evidence of the event is available | `SourceRecord.evidenceAvailable` |
+| `_JAG` | GenPlus | Volume year of the source | `SourceRecord.volumeYear` |
+| `_KTIT` | GenPlus | Short title of the source | `SourceRecord.abbreviation` (standard ABBR, standard-first) |
+| `_COR` + `_LAD`/`_LAM`/`_LAS`/`_LAN`/`_LOD`/`_LOM`/`_LOS`/`_LON` | MFT7 | Place coordinates, DMS per axis | `PlaceStructure.map` (standard MAP/LATI/LONG, standard-first) |
+| `_PLACE` record | Family Tree Builder | Master place record, payload = the place name | `PlaceRecord` (payload dialect, like `_PLAC`) |
+| `OBJE`/`_OBJE` under NAME | TMG/T2G | Exhibits attached to the name | `PersonalNameStructure.media` (written back as `OBJE`) |
+| `AUTH`, `ANCE` under INDI | Reunion | Author / ??? Ancestor (meaning undocumented or format unknown) | generic extensions on 5.x input, preserved verbatim |
+
+Covered by `tests/vendor-extensions-p5.test.ts` (import, export, and
+round trips in both versions where a spelling exists).
 
 ## 7. Deferred: presentation and UI state
 

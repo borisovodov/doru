@@ -64,6 +64,18 @@ import {
   parseSubmissionRecord,
   parseSubmitterRecord,
 } from './submitters';
+import type { DuplicateCandidateRecord } from '../structures';
+import {
+  dispatch,
+  reqPtr,
+  reqText,
+} from './context';
+import {
+  parseNoteStructure,
+} from './substructures';
+import {
+  parseSourceCitation,
+} from './sources-media';
 
 // Document
 // ---------------------------------------------------------------------------
@@ -182,6 +194,7 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case 'SUBN':
       fail('structure.unknown-tag', 'The SUBN record must immediately follow the header', node.position);
     case '_PLAC':
+    case '_PLACE':
     case '_LOC':
     case '_PLAC_DEFN':
       if (node.tag === '_LOC' && !node.children.some((child) => child.tag === 'NAME')) {
@@ -199,6 +212,8 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseTodoRecord(node, ctx);
     case '_EVENT_DEFN':
       return parseEventDefinitionRecord(node, ctx);
+    case '_ALIA':
+      return parseDuplicateCandidateRecord(node, ctx);
     default:
       if (node.tag.startsWith('_')) {
         return parseExtension(node) as ExtensionRecord;
@@ -211,6 +226,51 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       }
       fail('structure.unknown-tag', `Unknown record tag ${node.tag}`, node.position);
   }
+}
+
+/**
+ * Parses the GDO `_ALIA` duplicate-candidate record (see
+ * DuplicateCandidateRecord): a record for a possible duplicate of an
+ * individual, with the `_CPT` caption, the `_INDI` pointer, the
+ * `_QUAY` assessment, the `_STAT` status, and the NOTE/SOUR
+ * substructures (the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+ * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag).
+ */
+function parseDuplicateCandidateRecord(node: RawNode, ctx: Ctx): DuplicateCandidateRecord {
+  noPayload(node);
+  const rec: DuplicateCandidateRecord = {
+    tag: '_ALIA',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
+  dispatch(
+    node,
+    rec,
+    {
+      _CPT: (child) => {
+        rec.caption = reqText(child);
+      },
+      _INDI: (child) => {
+        rec.individual = reqPtr(child, ctx);
+      },
+      _QUAY: (child) => {
+        // The assessment value set is undocumented; kept verbatim.
+        rec.assessment = reqText(child);
+      },
+      _STAT: (child) => {
+        // The status value set is undocumented; kept verbatim.
+        rec.status = reqText(child);
+      },
+      NOTE: (child) => {
+        (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+      },
+      SOUR: (child) => {
+        (rec.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+    },
+    ctx,
+    ['_CPT', '_INDI', '_QUAY', '_STAT'],
+  );
+  return rec;
 }
 
 // ---------------------------------------------------------------------------
