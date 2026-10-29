@@ -4,8 +4,9 @@
 
 The chat panel sits at the bottom of the window. Type a question and the agent
 can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
-`tree_stats`, `tree_edit`, `sources_add`, `notes_write`, `charts_render` (the
-last one renders a person's ancestor chart as an SVG image).
+`tree_stats`, `tree_edit`, `tree_add_relative`, `sources_add`, `notes_write`,
+`charts_render` (the last one renders a person's ancestor chart as an SVG
+image).
 
 Conversations are saved as **chat sessions**: the header of the chat panel
 lists your sessions, and you can switch between them, start a new chat or
@@ -62,6 +63,14 @@ Claude Desktop configuration example
 Linux AppImage: the path to the AppImage file. Windows:
 `"command": "C:\\Program Files\\Doru\\doru.exe"`. Tool names stay in English
 regardless of the UI language.
+
+The server is **headless and stateless**: no window, no dock icon, no chat
+sessions — it reads and edits the tree file directly and exits when the client
+disconnects. Any number of clients can point at the same file at once
+(Claude Desktop, Cursor, several coding agents); concurrent writes queue
+safely. If a client cannot start the server, run the command in a terminal —
+the helper logs problems to stderr and its temporary profile is discarded on
+exit.
 
 ## Example prompts
 
