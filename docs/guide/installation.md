@@ -8,6 +8,9 @@ Dóru on macOS is distributed through **Homebrew**, a package manager that
 installs and updates applications for you. If you don't have Homebrew yet,
 install it from [brew.sh](https://brew.sh) first.
 
+Dóru requires macOS 13 (Ventura) or later and an Apple silicon Mac (M1 or
+later); Intel Macs are not supported.
+
 To install Dóru, open Terminal and run these commands:
 
 ```sh
@@ -27,9 +30,10 @@ Dóru now appears in your Applications. To update it later, run
 
 ## Linux
 
-Dóru on Linux is tested on the latest versions of **Ubuntu** and **Fedora**;
-other distributions will most likely work too, but are not verified. Pick
-either method below — both install the same app.
+Dóru on Linux runs on 64-bit x86-64 and arm64 machines. It requires
+**Ubuntu 22.04 LTS** or later, or **Fedora 41** or later; it is tested on
+the latest releases of both. Other distributions will most likely work too,
+but are not verified. Pick either method below — both install the same app.
 
 ### Flatpak
 
@@ -37,6 +41,10 @@ Dóru is distributed through **Flatpak**, the standard way to install
 applications on most Linux distributions. If Flatpak is not installed yet,
 follow the setup steps for your distribution at
 [flatpak.org/setup](https://flatpak.org/setup/).
+
+Ubuntu 22.04 and 24.04 ship an older Flatpak in their main repositories —
+install the official Flatpak PPA first (the setup page at flatpak.org walks
+through it).
 
 To install Dóru, open a terminal and run these commands:
 
@@ -83,6 +91,8 @@ Dóru now appears in your applications menu. To update it later, run
 Dóru on Windows is distributed through **Scoop**, a command-line installer
 that keeps applications up to date. If you don't have Scoop yet, install it
 from [scoop.sh](https://scoop.sh) first.
+
+Dóru requires Windows 10 or later, on x64 or Arm64 processors.
 
 To install Dóru, open PowerShell and run these commands:
 
