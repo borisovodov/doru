@@ -80,7 +80,16 @@ export interface IndividualChildCountAttribute extends IndividualAttributeBase<'
 export interface MarriageCountAttribute extends IndividualAttributeBase<'NMR', Integer> {}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:OCCU: occupation. GEDCOM 7.0 §3.3.2.1. */
-export interface OccupationAttribute extends IndividualAttributeBase<'OCCU', Text> {}
+export interface OccupationAttribute extends IndividualAttributeBase<'OCCU', Text> {
+  /**
+   * _PRIM Y {0:1} — marks the occupation as the primary one. Written by
+   * Ahnenblatt under OCCU (see the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * catalog: https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not
+   * part of any GEDCOM version. Recognized on input and written back as
+   * `_PRIM Y` under the OCCU line in both versions.
+   */
+  primary?: boolean;
+}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:PROP: property. GEDCOM 7.0 §3.3.2.1. */
 export interface PropertyAttribute extends IndividualAttributeBase<'PROP', Text> {}

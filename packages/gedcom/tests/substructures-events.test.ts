@@ -625,13 +625,13 @@ describe('family and individual records', () => {
     );
     const fam = dataset.records[0] as {
       attributes?: Array<{ tag: string; payload: number }>;
-      marriageStatus?: string; sameSexUnion?: boolean;
+      marriageStatuses?: Array<{ payload: string }>; sameSexUnion?: boolean;
       nonEvents?: Array<{ payload: string }>;
       events?: Array<{ tag: string; type?: string; detail?: { date?: unknown } }>;
       associations?: unknown[]; automatedRecordId?: string;
     };
     expect(fam.attributes?.[0]).toMatchObject({ tag: 'NCHI', payload: 0 });
-    expect(fam.marriageStatus).toBe('married');
+    expect(fam.marriageStatuses).toEqual([{ payload: 'married' }]);
     expect(fam.sameSexUnion).toBe(true);
     expect(fam.nonEvents).toEqual([{ tag: 'NO', payload: 'MARR' }, { tag: 'NO', payload: 'MARR' }]);
     expect(fam.events?.[0]).toMatchObject({ tag: 'EVEN', type: 'Cohabitation' });

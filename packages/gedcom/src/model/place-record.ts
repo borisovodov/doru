@@ -60,6 +60,18 @@ import type { MapCoordinates, PostalCodeStructure } from './names-places';
 import type { MultimediaLink, SourceCitation } from './sources-media';
 import type { GedcomStructureBase } from './extensions';
 
+/**
+ * GEDCOM 5.5EL "Extended Locations" — one MAP entry in the EL coordinate
+ * form: the coordinates as the payload plus the TYPE naming the
+ * coordinate system. See PlaceRecord.elMaps.
+ */
+export interface ElMapStructure extends GedcomStructureBase {
+  /** The MAP payload, {1:1} — the coordinates in the TYPE system. */
+  payload: Text;
+  /** TYPE {1:1} — the coordinate system: DEGREE (degrees) or MAIDENHEAD (a Maidenhead locator). */
+  type: 'DEGREE' | 'MAIDENHEAD';
+}
+
 export interface PlaceRecord extends GedcomStructureBase {
   tag: '_PLAC';
   /** The record's cross-reference identifier (@…@); optional when nothing points to it. */
@@ -82,6 +94,21 @@ export interface PlaceRecord extends GedcomStructureBase {
   preposition?: Text;
   /** MAP {0:1} — a representative point for the location. */
   map?: MapCoordinates;
+  /**
+   * MAP {0:M} — the GEDCOM 5.5EL coordinate form: the MAP line carries
+   * the coordinates as its payload (degrees `50.1234N 128.9876E` or a
+   * Maidenhead locator `JO99HZ`) with a TYPE substructure naming the
+   * coordinate system (DEGREE or MAIDENHEAD). The GEDCOM 5.5EL
+   * specification ("Extended Locations", GenWiki:
+   * https://wiki.genealogy.net/GEDCOM_5.5EL) defines several such MAP
+   * entries per `_LOC` record, alongside the standard GEDCOM 5.5.1 MAP
+   * with LATI/LONG children (modelled as `map`). The GEDCOM-L working
+   * group deprecated the EL form in favour of the standard MAP plus
+   * `_MAIDENHEAD`, but it is still written by GEDCOM 5.5EL exporters.
+   * Recognized on input in both versions and written back as the
+   * payload MAP + TYPE form under the `_LOC` record in both versions.
+   */
+  elMaps?: ElMapStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}. */

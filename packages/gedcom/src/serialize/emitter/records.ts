@@ -94,12 +94,20 @@ export function emitFamily(w: Writer, version: Version, rec: {
   citations?: SourceCitation[];
   media?: MultimediaLink[];
   todos?: TodoStructure[];
+  witnesses?: string[];
+  marriageStatuses?: Array<{
+    payload: string;
+    date?: DateStructure;
+    place?: PlaceStructure;
+    notes?: NoteStructure[];
+    citations?: SourceCitation[];
+    extensions?: ExtensionStructure[];
+  }>;
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
   updatedAt?: string;
   createdAt?: string;
-  marriageStatus?: string;
   marriageBeginningStatus?: string;
   marriageEndingStatus?: string;
   unionKind?: string;
@@ -115,8 +123,26 @@ export function emitFamily(w: Writer, version: Version, rec: {
     // GenPlus: the record creation date (see FamilyRecord.createdAt).
     w.line(1, '_CREAT', { value: rec.createdAt });
   }
-  if (rec.marriageStatus !== undefined) {
-    w.line(1, '_STAT', { value: rec.marriageStatus });
+  if (rec.marriageStatuses !== undefined) {
+    // The marriage statuses (see MarriageStatusStructure): the bare
+    // status line of Legacy/AQ/Ages!/GDO/webtrees, or the full
+    // GEDCOM-L FAM F7 STATUS_STRUCTURE with DATE/PLAC/NOTE/SOUR.
+    for (const status of rec.marriageStatuses) {
+      w.line(1, '_STAT', { value: status.payload });
+      if (status.date !== undefined) {
+        emitDate(w, version, 2, 'DATE', status.date);
+      }
+      if (status.place !== undefined) {
+        emitPlace(w, version, 2, status.place);
+      }
+      for (const note of status.notes ?? []) {
+        emitNoteStructure(w, version, 2, note);
+      }
+      for (const citation of status.citations ?? []) {
+        emitSourceCitation(w, version, 2, citation);
+      }
+      emitExtensions(w, version, 2, status);
+    }
   }
   if (rec.marriageBeginningStatus !== undefined) {
     // FTW: the status at the beginning of the marriage.
@@ -212,6 +238,11 @@ export function emitFamily(w: Writer, version: Version, rec: {
   for (const todo of rec.todos ?? []) {
     emitTodoStructure(w, version, 1, todo);
   }
+  for (const witness of rec.witnesses ?? []) {
+    // The GEDCOM-L ASSO A4 witnesses of the family (see
+    // FamilyRecord.witnesses).
+    w.line(1, '_WITN', { value: witness });
+  }
   if (rec.husband !== undefined) {
     ptr(w, version, 1, 'HUSB', rec.husband.partner);
     if (rec.husband.phrase !== undefined) {
@@ -278,7 +309,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   restriction?: Array<string | `_${string}`>;
   names?: PersonalNameStructure[];
   sex?: string;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail; childCountCertain?: boolean; extensions?: ExtensionStructure[] }>;
+  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail; childCountCertain?: boolean; primary?: boolean; extensions?: ExtensionStructure[] }>;
   events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } }; extensions?: ExtensionStructure[] }>;
   nonEvents?: NonEventStructure[];
   ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string; extensions?: ExtensionStructure[] }>;
@@ -308,6 +339,11 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   canSign?: boolean;
   bookmarked?: boolean;
   startPerson?: boolean;
+  adoptedByFather?: boolean;
+  adoptedByMother?: boolean;
+  godparents?: string[];
+  witnesses?: string[];
+  webTags?: Array<{ name?: string; url: string; extensions?: ExtensionStructure[] }>;
   recordFlags?: Array<{ tag: string; name: string }>;
   extensions?: ExtensionStructure[];
   xref?: string;
@@ -342,6 +378,33 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     // MFT7: the start person (see IndividualRecord.startPerson).
     w.line(1, '_STP', { value: 'Y' });
   }
+  if (rec.adoptedByFather === true) {
+    // BKW6+: adopted by the father (see IndividualRecord.adoptedByFather).
+    w.line(1, '_ADPF', { value: 'Y' });
+  }
+  if (rec.adoptedByMother === true) {
+    // BKW6+: adopted by the mother (see IndividualRecord.adoptedByMother).
+    w.line(1, '_ADPM', { value: 'Y' });
+  }
+  for (const godparent of rec.godparents ?? []) {
+    // The GEDCOM-L ASSO A4 godparents of the individual (see
+    // IndividualRecord.godparents).
+    w.line(1, '_GODP', { value: godparent });
+  }
+  for (const witness of rec.witnesses ?? []) {
+    // The GEDCOM-L ASSO A4 witnesses of the individual (see
+    // IndividualRecord.witnesses).
+    w.line(1, '_WITN', { value: witness });
+  }
+  for (const webTag of rec.webTags ?? []) {
+    // RootsMagic: an external web link (see IndividualRecord.webTags).
+    w.line(1, '_WEBTAG');
+    if (webTag.name !== undefined) {
+      w.line(2, 'NAME', { value: webTag.name });
+    }
+    w.line(2, 'URL', { value: webTag.url });
+    emitExtensions(w, version, 2, webTag);
+  }
   if (rec.recordFlags !== undefined) {
     // FH: the record flags (see IndividualRecord.recordFlags).
     w.line(1, '_FLGS');
@@ -375,6 +438,11 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     const payload = attribute.payload;
     w.line(1, attribute.tag, payload === undefined ? {} : { value: String(payload) });
     emitIndividualDetail(w, version, 2, attribute.detail, attribute.type);
+    if (attribute.tag === 'OCCU' && attribute.primary === true) {
+      // Ahnenblatt: the primary occupation flag (see
+      // OccupationAttribute.primary).
+      w.line(2, '_PRIM', { value: 'Y' });
+    }
     if (version === '5.5.1' && attribute.tag === 'NCHI' && attribute.childCountCertain !== undefined) {
       // USM6: the child count certainty marker (see
       // IndividualChildCountAttribute.childCountCertain); 7.0 cannot
@@ -627,17 +695,46 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
   if (rec.description !== undefined) {
     w.line(level + 1, 'DESC', { value: rec.description });
   }
+  if (rec.category !== undefined) {
+    // GEDCOM-L E1: the category of the task (see TodoStructure.category).
+    w.line(level + 1, '_CAT', { value: rec.category });
+  }
   if (rec.priority !== undefined) {
     w.line(level + 1, 'PRTY', { value: rec.priority });
   }
-  if (rec.status !== undefined) {
-    w.line(level + 1, 'STAT', { value: rec.status });
+  if (rec.type !== undefined) {
+    // GEDCOM-L E1: the type of the task (see TodoStructure.type).
+    w.line(level + 1, 'TYPE', { value: rec.type });
   }
   if (rec.date !== undefined) {
     emitDate(w, version, level + 1, 'DATE', rec.date);
   }
   for (const note of rec.notes ?? []) {
     emitNoteStructure(w, version, level + 1, note);
+  }
+  if (rec.data !== undefined) {
+    // GEDCOM-L E1: the details of the solution (see TodoStructure.data).
+    w.line(level + 1, 'DATA', { value: rec.data });
+  }
+  if (rec.status !== undefined) {
+    w.line(level + 1, 'STAT', { value: rec.status });
+  }
+  if (rec.closedDate !== undefined) {
+    // GEDCOM-L E1: the completion date (see TodoStructure.closedDate).
+    emitDate(w, version, level + 1, '_CDATE', rec.closedDate);
+  }
+  if (rec.reminderDate !== undefined) {
+    // GEDCOM-L E1: the reminder date (see TodoStructure.reminderDate).
+    emitDate(w, version, level + 1, '_RDATE', rec.reminderDate);
+  }
+  if (rec.repository !== undefined) {
+    // GEDCOM-L E1: a pointer to a repository record (see
+    // TodoStructure.repository).
+    ptr(w, version, level + 1, 'REPO', rec.repository);
+  }
+  for (const uid of rec.uids ?? []) {
+    // GEDCOM-L E1: unique identifiers of the task (see TodoStructure.uids).
+    w.line(level + 1, '_UID', { value: uid });
   }
 }
 

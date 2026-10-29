@@ -27,6 +27,7 @@ import type {
 import {
   dispatch,
   noPayload,
+  reqDigits,
   reqPtr,
   reqText,
   resolvePtr,
@@ -107,7 +108,21 @@ function parseCensusSex(node: RawNode, ctx: Ctx): CensusSexStructure {
     out,
     {
       AGE: (child) => {
-        out.age = parseAge(child, ctx);
+        // The census AGE is the standard AGE tag with
+        // extension-defined substructures (registry:
+        // MagiKey_CENR_SEX_AGE.yaml): `_AGER` (kept in the age's
+        // ageRange) and NCHI — the count of individuals in the age
+        // range, typed as `count`. Real MagiKey files sometimes omit
+        // the NCHI, so it stays optional here.
+        let count: number | undefined;
+        out.age = parseAge(child, ctx, {
+          NCHI: (grandchild) => {
+            count = reqDigits(grandchild);
+          },
+        });
+        if (count !== undefined) {
+          out.count = count;
+        }
       },
       TYPE: (child) => {
         out.type = reqText(child);

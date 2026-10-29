@@ -30,6 +30,7 @@ import type {
 import {
   dispatch,
   noPayload,
+  one,
   req,
   reqPtr,
   reqText,
@@ -46,6 +47,7 @@ import {
 } from './sources-media';
 import {
   datedSourceHandlers,
+  parseDateStructure,
   parseExternalIdentifier,
   parseNoteStructure,
 } from './substructures';
@@ -88,32 +90,55 @@ export function pieces70(out: PersonalNamePieces, tag: string, child: RawNode): 
   }
 }
 
-/** 5.5.1 name pieces: single occurrence ({0:1}), comma-separated values. */
-export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode): void {
-  if (child.children.length > 0) {
+/**
+ * 5.5.1 name pieces: single occurrence ({0:1}), comma-separated values.
+ * The GEDCOM 5.5EL specification ("Extended Locations", GenWiki:
+ * https://wiki.genealogy.net/GEDCOM_5.5EL) deviates: it writes one GIVN
+ * per given name in order ({0:M}) and marks the Rufname (call name) with
+ * a `TYPE RUF` child under the GIVN line. Both forms are accepted as a
+ * superset: repeated pieces append (the order of the GIVN sequence is
+ * kept), and a RUF-marked GIVN returns its name as the call name (the
+ * same slot the GEDCOM-L `_RUFNAME` agreement Ruf.B2 fills).
+ */
+export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode): string | undefined {
+  let ruf: string | undefined;
+  if (tag === 'GIVN') {
+    const type = one(child, 'TYPE');
+    if (child.children.length > (type === undefined ? 0 : 1)) {
+      fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under ${tag}`, (child.children[0] as RawNode).position);
+    }
+    if (type !== undefined) {
+      const value = reqText(type).toUpperCase();
+      if (value !== 'RUF') {
+        fail('enum.invalid-value', `The NAME TYPE "${value}" under GIVN must be RUF`, type.position);
+      }
+      ruf = reqText(child);
+    }
+  } else if (child.children.length > 0) {
     fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under ${tag}`, (child.children[0] as RawNode).position);
   }
   const parts = reqText(child).split(',').map((part) => part.trim());
   switch (tag) {
     case 'NPFX':
-      out.namePrefixes = parts;
+      out.namePrefixes = [...(out.namePrefixes ?? []), ...parts];
       break;
     case 'GIVN':
-      out.givenNames = parts;
+      out.givenNames = [...(out.givenNames ?? []), ...parts];
       break;
     case 'NICK':
-      out.nicknames = parts;
+      out.nicknames = [...(out.nicknames ?? []), ...parts];
       break;
     case 'SPFX':
-      out.surnamePrefixes = parts;
+      out.surnamePrefixes = [...(out.surnamePrefixes ?? []), ...parts];
       break;
     case 'SURN':
-      out.surnames = parts;
+      out.surnames = [...(out.surnames ?? []), ...parts];
       break;
     case 'NSFX':
-      out.nameSuffixes = parts;
+      out.nameSuffixes = [...(out.nameSuffixes ?? []), ...parts];
       break;
   }
+  return ruf;
 }
 
 export const PIECE_TAGS = ['NPFX', 'GIVN', 'NICK', 'SPFX', 'SURN', 'NSFX'];
@@ -141,6 +166,16 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // record the name was recorded in. The pointer must resolve.
       (out.censusLinks ??= []).push(reqPtr(child, ctx));
     },
+    '_DATE': (child) => {
+      // TMG: a date associated with the name (see
+      // PersonalNameStructure.date).
+      out.date = parseDateStructure(child, ctx);
+    },
+    '_ALIA': (child) => {
+      // PRO-GEN: an alias of the name, as pure text (see
+      // PersonalNameStructure.aliases).
+      (out.aliases ??= []).push(reqText(child));
+    },
     '_APID': (child) => {
       // The Ancestry record reference attached to names (see
       // PersonalNameStructure.ancestryPointers).
@@ -153,7 +188,10 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       if (ctx.version === '7.0') {
         pieces70(out.pieces, tag, child);
       } else {
-        pieces551(out.pieces, tag, child);
+        const ruf = pieces551(out.pieces, tag, child);
+        if (ruf !== undefined) {
+          out.callName = ruf;
+        }
       }
     };
   }
@@ -303,6 +341,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     },
     '_GOV': (child) => {
       out.govId = reqText(child);
+    },
+    '_AON': (child) => {
+      // GenPlus: an alternative place name (see
+      // PlaceStructure.alternativeNames).
+      (out.alternativeNames ??= []).push(reqText(child));
     },
     '_POST': (child) => {
       const entry: PostalCodeStructure = { code: reqText(child) };

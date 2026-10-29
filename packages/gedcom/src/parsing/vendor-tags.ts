@@ -12,7 +12,7 @@
  * Version-history cross-check: Tamura Jones, "GEDCOM Tags":
  * https://www.tamurajones.net/GEDCOMTags.xhtml
  *
- * The catalog of non-underscore tags has two sources. The Legacy
+ * The catalog of non-underscore tags has three sources. The Legacy
  * "User-Defined GEDCOM Tags" catalog ("Tags Not Specified in GEDCOM
  * 5.5") is the primary one; its 131 entries are the tables below. The
  * GenWiki "GEDCOM/_Nutzerdef-Tag" article's second table ("Abweichungen
@@ -21,7 +21,10 @@
  * Der Stammbaum ≤ V6 (USM6), Mac Family Tree 7/8 (MFT7/MFT8), and the
  * RootsMagic `FSFTID` spelling — accepted as generic extensions where
  * no typed rule applies (`FSFTID` under INDI is typed: the same
- * normalization as the underscore `_FSFTID`).
+ * normalization as the underscore `_FSFTID`). The webtrees per-vendor
+ * custom-tag registry (https://github.com/fisharebest/webtrees,
+ * app/CustomTags/) adds the remaining deviations of Aldfaer, phpGedView
+ * and MyHeritage.
  *
  * Policy (the decision formerly recorded as "keep rejecting" in
  * docs/vendor-extensions.md chapter 8):
@@ -98,7 +101,8 @@ export type LegacyIndividualRule =
  * The typed normalization of one legacy tag under FAM.
  */
 export interface LegacyFamilyRule {
-  kind: 'marriage' | 'even';
+  /** A marriage fact (MARR with the TYPE), a family fact (EVEN with the TYPE), or an inline family note. */
+  kind: 'marriage' | 'even' | 'note';
   /** The TYPE the fact normalizes into. */
   type: string;
 }
@@ -232,6 +236,14 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   // The FamilySearch Family Tree id (RootsMagic writes the standard
   // tag without the underscore; see familySearchId).
   FSFTID: { kind: 'fsftid' }, // RootsMagic.
+  // The internet address (RootsMagic writes the standard WWW tag under
+  // INDI; the same slot the underscore `_URL` carries).
+  WWW: { kind: 'url' }, // RootsMagic (the Legacy "User-Defined GEDCOM Tags" help).
+  // The comment (phpGedView writes the standard COMM tag under INDI;
+  // an inline NOTE — the webtrees per-vendor custom-tag registry,
+  // PhpGedView.php:
+  // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php).
+  COMM: { kind: 'note' }, // phpGedView.
   // The FTM5 LDS ordinance wrapper.
   LDS: { kind: 'lds' }, // FTW5.
 };
@@ -242,6 +254,19 @@ export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
   SEPA: { kind: 'even', type: 'Separated' }, // Reunion, Gen (twin of _SEPR).
   FEMA: { kind: 'even', type: 'Female children' }, // FTW5: the count of female children.
   MALE: { kind: 'even', type: 'Male children' }, // FTW5: the count of male children.
+  // The Aldfaer marriage-kind tags: the vendor spells the marriage with
+  // four tag variants instead of the MARR.TYPE vocabulary (the webtrees
+  // per-vendor custom-tag registry, Aldfaer.php:
+  // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Aldfaer.php).
+  // Each normalizes into MARR with the TYPE of the GEDCOM 5.5.5 MARR.TYPE
+  // vocabulary (5.5.5 §2 p.38).
+  MARR_CIVIL: { kind: 'marriage', type: 'civil' }, // Aldfaer: a civil marriage.
+  MARR_RELIGIOUS: { kind: 'marriage', type: 'religious' }, // Aldfaer: a religious marriage.
+  MARR_PARTNERS: { kind: 'marriage', type: 'registered partnership' }, // Aldfaer: a registered partnership.
+  MARR_UNKNOWN: { kind: 'marriage', type: 'unknown' }, // Aldfaer: a marriage whose kind is not recorded.
+  // The comment (phpGedView writes the standard COMM tag under FAM;
+  // same source as the INDI rule).
+  COMM: { kind: 'note', type: '' }, // phpGedView.
 };
 
 /**
@@ -294,6 +319,14 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'UTYP', // USM6: the relationship kind (1=married, 2=separated, …).
   'CREA', // MFT7: the record/event creation time (the non-underscore
   // spelling; 7.0 parses CREA as the standard structure).
+  // The further non-underscore deviations of the webtrees per-vendor
+  // custom-tag registry (https://github.com/fisharebest/webtrees,
+  // app/CustomTags/): tags whose meaning is documented but has no typed
+  // rule or no standard slot, accepted generically where the standard
+  // grammar has no position for them.
+  'SERV', // phpGedView: the remote server of a SOUR record.
+  'PERSONALPHOTO', // MyHeritage: the personal photo reference of an INDI
+  // (the payload form is undocumented, so it stays a generic extension).
 ]);
 
 /**

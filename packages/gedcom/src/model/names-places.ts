@@ -73,6 +73,24 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   surnameVariants?: Text;
   /**
+   * _DATE {0:1} — a date associated with the name: the name's period of
+   * use or the date it was recorded. Written by The Master Genealogist
+   * (TMG-to-GEDCOM, see its "GEDCOM Tag Names" help:
+   * https://tmgtogedcom.com/en/tag-names.htm); not part of any GEDCOM
+   * version. Recognized on input and written back as `_DATE` under the
+   * NAME line in both versions.
+   */
+  date?: DateStructure;
+  /**
+   * _ALIA {0:M} — an alias of the name, as pure text. Written by
+   * PRO-GEN under the NAME tag (see the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" catalog:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as `_ALIA`
+   * under the NAME line in both versions.
+   */
+  aliases?: Text[];
+  /**
    * SECG {0:1} — the second and further given names: with several
    * given names, all of them from the second onward, kept apart from
    * the first (the vendor's "SECond Given name"). Written by Mac
@@ -267,6 +285,15 @@ export interface PlaceStructure extends GedcomStructureBase {
    * Recognized on input and written back as `_GOV` in both versions.
    */
   govId?: Text;
+  /**
+   * `_AON` {0:M} — alternative place names (GenPlus, "Alternativer
+   * Ortsname"): other names the place is known by, written directly
+   * under the PLAC (see the GenWiki "GEDCOM/_Nutzerdef-Tag" catalog:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_AON` in
+   * both versions.
+   */
+  alternativeNames?: Text[];
   /**
    * `_POST` {0:M} — postal codes with their validity periods (GEDCOM-L,
    * written directly under the PLAC). Recognized on input and written

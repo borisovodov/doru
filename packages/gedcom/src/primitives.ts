@@ -649,15 +649,20 @@ export type MultimediaFormat551 = (typeof MULTIMEDIA_FORMATS_551)[number];
 
 /**
  * GEDCOM 5.5.5 §2 Primitive Elements (p.94), `MULTIMEDIA_FORMAT` — the
- * 5.5.5 set: the 5.5.1 set expanded with the four-letter `JPEG` and
- * `TIFF` (the spellings GEDCOM 5.5 already used; 5.5.5 makes them the
- * required spellings, keeping `JPG`/`TIF` supported but deprecated) and
- * with `OLE` removed (OLE is a technology, not a multimedia format —
- * GEDCOM 5.5.5 §2 p.94). The 5.x parser accepts the union of this set
- * and `MULTIMEDIA_FORMATS_551` (including `OLE`); the 5.5.1 serializer
- * still writes only the 5.5.1 set.
+ * 5.5.5 set: the 5.5.1 set expanded with the modern audio, video,
+ * e-book and document formats `AAC`, `AVI`, `ePub`, `FLAC`, `MKV`,
+ * `mobi`, `MP3`, `PDF` and `PNG`; the 5.5 values `JPEG` and `TIFF`
+ * restored (5.5.1 had wrongly switched to `JPG`/`TIF`, which 5.5.5
+ * keeps supported but deprecated); and `OLE` removed (OLE is a
+ * technology, not a multimedia format — GEDCOM 5.5.5 §2 p.94). The 5.x
+ * parser accepts the union of this set and `MULTIMEDIA_FORMATS_551`
+ * (including `OLE`); the 5.5.1 serializer still writes only the 5.5.1
+ * set.
  */
-export const MULTIMEDIA_FORMATS_555 = ['bmp', 'gif', 'jpg', 'jpeg', 'pcx', 'tif', 'tiff', 'wav'] as const;
+export const MULTIMEDIA_FORMATS_555 = [
+  'aac', 'avi', 'bmp', 'epub', 'flac', 'gif', 'jpeg', 'jpg', 'mkv',
+  'mobi', 'mp3', 'pcx', 'pdf', 'png', 'tif', 'tiff', 'wav',
+] as const;
 
 /** A GEDCOM 5.5.5 `MULTIMEDIA_FORMAT` value. */
 export type MultimediaFormat555 = (typeof MULTIMEDIA_FORMATS_555)[number];

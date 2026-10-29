@@ -126,10 +126,10 @@ describe('P2 vendor tags on 5.5.1 input', () => {
     expect(john.childFamilies?.[0]?.primary).toBe(true);
     expect(john.media?.[0]).toMatchObject({ scrapbook: true, slideshow: true });
 
-    // _NONE → NCHI 0; _STAT → marriageStatus; the Gramps ASSO → associations.
+    // _NONE → NCHI 0; _STAT → marriageStatuses; the Gramps ASSO → associations.
     const family = fam(dataset, '@F1@');
     expect(family.attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
-    expect(family.marriageStatus).toBe('Married');
+    expect(family.marriageStatuses).toEqual([{ payload: 'Married' }]);
     const marr = family.events?.find((e) => e.tag === 'MARR');
     expect(marr?.detail?.detail?.associations?.[0]).toEqual({
       tag: 'ASSO',

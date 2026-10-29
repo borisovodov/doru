@@ -88,6 +88,8 @@ function isEmpty(record: GedcomRecord): boolean {
         (fam.identifiers ?? []).length === 0 &&
         (fam.associations ?? []).length === 0 &&
         (fam.todos ?? []).length === 0 &&
+        (fam.marriageStatuses ?? []).length === 0 &&
+        (fam.witnesses ?? []).length === 0 &&
         (fam.restriction ?? []).length === 0 &&
         (fam.extensions ?? []).length === 0
       );
@@ -222,11 +224,13 @@ function fill551Header(dataset: GedcomDataset): void {
  * Applies the NO rule and the required-field defaults, returning a new
  * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
  */
-/** Whether the card carries fields without a standard spelling — the GEDCOM-L set plus the Legacy `_PREP` preposition — that force the write-back as a `_LOC` record. */
+/** Whether the card carries fields without a standard spelling — the GEDCOM-L set plus the Legacy `_PREP` preposition and the GEDCOM 5.5EL
+ *  coordinate MAP entries — that force the write-back as a `_LOC` record. */
 function hasGermanPlaceFields(card: PlaceRecord): boolean {
   return card.govId !== undefined
     || card.maidenhead !== undefined
     || card.preposition !== undefined
+    || card.elMaps !== undefined
     || card.types !== undefined
     || card.postalCodes !== undefined
     || card.administrativeIds !== undefined

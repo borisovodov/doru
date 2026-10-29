@@ -16,7 +16,7 @@
  * versions.
  */
 
-import type { Pointer, Text, Xref } from '../primitives';
+import type { Integer, Pointer, Text, Xref } from '../primitives';
 import type {
   AgeStructure,
   ChangeDate,
@@ -62,6 +62,17 @@ export interface CensusSexStructure extends GedcomStructureBase {
   age: AgeStructure;
   /** TYPE {0:1} — a classification of the entry. */
   type?: Text;
+  /**
+   * The NCHI substructure of the census AGE {1:1} — the number of
+   * individuals in the indicated age range. The registry
+   * (structure/extension/MagiKey_CENR_SEX_AGE.yaml in the FamilySearch
+   * GEDCOM registry) declares the standard AGE tag with
+   * extension-defined substructures: `_AGER` {0:1} (the range, kept in
+   * `age.ageRange`) and `NCHI` {1:1} (this field). Real MagiKey files
+   * sometimes omit the NCHI, so it is optional here. Written back under
+   * the AGE line in both versions.
+   */
+  count?: Integer;
 }
 
 /**

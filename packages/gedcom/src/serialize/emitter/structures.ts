@@ -50,7 +50,25 @@ import {
 } from './values';
 
 export function emitAddress(w: Writer, version: Version, level: number, address: AddressStructure): void {
-  w.line(level, 'ADDR', { value: address.payload });
+  const payload = address.payload ?? '';
+  if (payload === '') {
+    // The GEDCOM 5.5.5 structured form has no ADDR line value (5.5.5
+    // §2 p.104); the target grammars give ADDR a {1:1} payload, so it
+    // is synthesized from the structured parts (the ADDR A2 fold of the
+    // GEDCOM-L agreement ADDR A2).
+    const parts = [
+      address.line1,
+      address.line2,
+      address.line3,
+      address.city,
+      address.state,
+      address.postalCode,
+      address.country,
+    ].filter((part): part is string => part !== undefined && part !== '');
+    w.line(level, 'ADDR', parts.length === 0 ? {} : { value: parts.join(', ') });
+  } else {
+    w.line(level, 'ADDR', { value: payload });
+  }
   if (address.line1 !== undefined) {
     w.line(level + 1, 'ADR1', { value: address.line1 });
   }

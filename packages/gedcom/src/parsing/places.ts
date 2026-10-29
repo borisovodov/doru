@@ -25,6 +25,7 @@ import {
 import type {
   AdministrativeIdStructure,
   DemographicDataStructure,
+  ElMapStructure,
   GedcomRecord,
   PlaceAbbreviation,
   PlaceHierarchyLink,
@@ -163,6 +164,20 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       out.preposition = reqText(child);
     },
     MAP: (child) => {
+      if (child.value.kind === 'text') {
+        // The GEDCOM 5.5EL coordinate form: the payload carries the
+        // coordinates and the required TYPE names the system (DEGREE or
+        // MAIDENHEAD; see PlaceRecord.elMaps). The standard MAP (no
+        // payload, LATI/LONG children) is the `map` field below.
+        const type = reqText(req(child, 'TYPE')).toUpperCase();
+        if (type !== 'DEGREE' && type !== 'MAIDENHEAD') {
+          fail('enum.invalid-value', `The 5.5EL MAP TYPE "${type}" must be DEGREE or MAIDENHEAD`, child.position);
+        }
+        const entry: ElMapStructure = { payload: child.value.text, type };
+        (out.elMaps ??= []).push(entry);
+        dispatch(child, entry, { TYPE: () => undefined }, ctx, ['TYPE']);
+        return;
+      }
       out.map = parseMapCoordinates(child, ctx);
     },
     NOTE: (child) => {
@@ -207,7 +222,9 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
   // know (the FamilySearch test files put `SUBM` and `DATE` under a
   // `_LOC`, GEDCOM 7.0 §1.5 extension-defined substructures) are
   // preserved as generic extensions instead of failing the import.
-  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'MAP', 'CHAN'], 'extension');
+  // MAP is not in the singles list: the GEDCOM 5.5EL form allows
+  // several MAP entries ({0:M}; see PlaceRecord.elMaps).
+  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'CHAN'], 'extension');
   if (node.tag === '_LOC') {
     // NAME {1:M}; the first entry is the payload used for name matching.
     if (out.names === undefined || out.names.length === 0) {

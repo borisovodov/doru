@@ -235,7 +235,11 @@ export interface HeaderPlace extends GedcomStructureBase {
  * tags (e.g. `INDI` → `BIRT`) ending in the declared user-defined tag
  * (e.g. `_HOSP`), with the declaration leaves LABL/DEFN/ISA beneath.
  * Dropped in GEDCOM 5.4 but still written by Family Tree Maker in
- * 5.5.1 files; see Header.schema53.
+ * 5.5.1 files; see Header.schema53. The GEDCOM-L convention (agreement
+ * Nutzerdef.N5; see the GenWiki "GEDCOM/_Nutzerdef-Tag" article:
+ * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) spells the same
+ * block `_SCHEMA` with `_DEFN` definition leaves — both normalizations
+ * parse into this structure.
  */
 export interface FtmSchemaBlock extends GedcomStructureBase {
   tag: 'SCHEMA';

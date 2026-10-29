@@ -28,8 +28,10 @@ results and secondary sources.
   <https://www.gedcom.org/gedcom.html>) is not a separate dialect in
   this package: files declaring it parse under the 5.5.1 rules, and
   its vocabulary additions — `SEX X`/`N`, the `BCE`/`BC` epoch
-  spellings, the year-less `day month` dates, the `JPEG`/`TIFF` media
-  formats — are accepted in any 5.x file (`GEDC.FORM.VERS` is
+  spellings, the year-less `day month` dates, the expanded
+  `MULTIMEDIA_FORMAT` set (AAC/AVI/ePub/FLAC/MKV/mobi/MP3/PDF/PNG plus
+  the restored JPEG/TIFF, OLE dropped) and the structured `ADDR` without
+  a line value — are accepted in any 5.x file (`GEDC.FORM.VERS` is
   tolerated but not stored). See the README's Parsing and "Known
   strict decisions" sections.
 - **GEDCOM 5.3** had a schema mechanism (`SCHEMA`, `DEFN`, `LABL`,
@@ -474,7 +476,7 @@ its JSDoc.
 | `_DNA` / `_NAMS` | FTM201x, webtrees | DNA markers / namesake (kept free text; the catalog does not say whether _NAMS is a name or a pointer) | `FACT` + TYPE |
 | `_MILTID` | FTM201x | Military identification number | `REFN` identifier + TYPE "Military" |
 | `_DATE2` | PAF, AQ3, Ancestry, FTQ&E, Heritage, PhpGedView | The end date of an event ("bis-Datum"), value like DATE | `EventDetail.endDate` (written back as `_DATE2` in both versions) |
-| `_STAT` under FAM | Legacy | Marriage status (Married, Unmarried, …) | `FamilyRecord.marriageStatus` |
+| `_STAT` under FAM | Legacy, AQ, Ages!, GDO, webtrees; the GEDCOM-L agreement FAM F7 | Marriage status — the bare status line of the vendors, or the full F7 STATUS_STRUCTURE: `{0:M}` per family (F7.4) with the optional `DATE`/`PLAC`/`NOTE`/`SOUR` substructures (the GenWiki "GEDCOM/FAM-Tag" article) | `FamilyRecord.marriageStatuses` (written back as the `_STAT` lines with their substructures in both versions) |
 | `_MSTAT` / `_MEND` under FAM | FTW | The status at the beginning / end of the marriage (Friends, Engaged, Married, … / Married, Divorced, Annulled, Widowed, …) | `FamilyRecord.marriageBeginningStatus` / `marriageEndingStatus` (written back in both versions) |
 | Gramps `ASSO` + `TYPE INDI` + `RELA` | Gramps | Event witnesses under family events | `EventDetail.associations` (like `_SHAR`) |
 | `_CREF` / `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | `SourceCitation.reference` / `SourceRecord.fullFootnote` |
@@ -507,10 +509,10 @@ its JSDoc.
 | `_EVN` under events | BKW6+ | The event number, referenced from witness ASSO links ("Witness at event _EVN ##") | `EventDetail.eventNumber` (written back in both versions) |
 | `_CTYP` under OBJE.FILE | Ahnenblatt | The content type of the picture (person, group, place, signature, tombstone, document, heirloom) | `MediaFile.contentType` (written back in both versions) |
 | `_WT_USER` under CHAN | webtrees, kiwitrees | The user name of the user who made the change | `ChangeDate.user` (written back in both versions) |
-| `_CREAT` under INDI/FAM | GenPlus | The date the record was created (kept free text: the wire format is undocumented) | `IndividualRecord.createdAt` / `FamilyRecord.createdAt` (written back as `_CREAT` in both versions) |
-| `_TODO` under INDI/FAM | GenoPro, RootsMagic, Ahnenblatt, webtrees, GDO, FO7, Legacy, BKW | To-do structure with `DESC`/`PRTY`/`STAT`/`DATE`/`NOTE` (the Legacy level-0 `_TODO` record is the separate `TodoRecord`) | `IndividualRecord.todos` / `FamilyRecord.todos` (written back in both versions) |
+| `_CREAT` (also `_CREA`/`_CRE`) under INDI/FAM | GenPlus (`_CREAT`); Heredis (`_CREA`); MFT7 (`_CRE`) | The date the record was created (kept free text: the wire format is undocumented) | `IndividualRecord.createdAt` / `FamilyRecord.createdAt` (written back as `_CREAT` in both versions) |
+| `_TODO` under INDI/FAM | GenoPro, RootsMagic, Ahnenblatt, webtrees, GDO, FO7, Legacy, BKW | To-do structure with `DESC`/`PRTY`/`STAT`/`DATE`/`NOTE`; the GEDCOM-L agreement TODO E1 (GenWiki "GEDCOM/TODO-Tag") adds `_CAT`, `_PRTY` (→ `priority`), `TYPE`, `DATA`, `_CDATE`, `_RDATE`, `REPO` and `_UID` — all typed (the Legacy level-0 `_TODO` record is the separate `TodoRecord`) | `IndividualRecord.todos` / `FamilyRecord.todos` (written back in both versions) |
 | `_EVENT_DEFN` record | Legacy, PAF5 | The Event Definition record: the defined event tag (payload, standard-tag child, or TYPE child), the `_CONF_FLAG`/`_DATE_TYPE`/`_DESC_FLAG`/`_PLACE_TYPE`/`_PP_EXCLUDE` definition flags, the `_SEN1`–`_SEN8` sentences and the PAF5 sentence set (`_SENM`/`_SENF`/`_SENU` + Date-Only/Place-Only/Date-and-Place variants) | `EventDefinitionRecord` (written back in both versions; the event tag is written as the record payload) |
-| `SCHEMA` / `_SCHEMA` | FTM | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA) | `Header.schema53` (written back in 5.5.1 as `SCHEMA`; dropped on 7.0) |
+| `SCHEMA` / `_SCHEMA` | FTM; the GEDCOM-L agreement Nutzerdef.N5 | The GEDCOM 5.3 user-tag declaration block (context chains + LABL/DEFN/ISA; the GEDCOM-L spelling uses the `_SCHEMA` block with `_DEFN` leaves — both parse into the same entries) | `Header.schema53` (written back in 5.5.1 as `SCHEMA` + `DEFN`; dropped on 7.0) |
 | `_TAG` / `_TAG2`–`_TAG4` under SOUR | Legacy | The report inclusion flags of a source citation — the citation detail, the citation itself, the detail text, the detail notes (the vendor's help documents the value spellings `_TAG NO`, `_TAG2 NO`, `_TAG3 YES`, `_TAG4 YES`) | `SourceRecord.citationDetailIncluded` / `citationIncluded` / `citationDetailTextIncluded` / `citationDetailNotesIncluded` (written back as `_TAG YES`/`_TAG NO` … in both versions; the value is required — an absent value under SOUR is ambiguous, see chapter 7) |
 | `_TYPE` under SOUR | Family Historian | The source record type (Census, Birth Certificate, …) | `SourceRecord.sourceType` (written back in both versions; under OBJE the same tag is the media kind) |
 | `_MASTER` under SOUR | Ancestral Quest | The source is to appear in the Master listing | `SourceRecord.masterListing` (written back as `_MASTER Y` in both versions) |
@@ -603,10 +605,27 @@ documented.
 `_POST` → `postalCodes`, `_AIDN` → `administrativeIds`, `_DMGD` →
 `demographicData`, `NAME {1:M}` → `names` (each with its `ABBR {0:M}`
 abbreviations + optional `TYPE`, e.g. ISO 3166), `RELI` → `denomination`,
-`EVEN` → `events`, `_LOC`+`TYPE POLI|RELI|GEOG|CULT` → `parents`);
-`_GOV`/`_POST`/`_MAIDENHEAD` under event PLACs → `PlaceStructure`
-fields; `_RUFNAME` → `PersonalNameStructure.callName`; `_GODP`/`_WITN`
-→ `EventDetail.godparents`/`witnesses` (free text). On output the
+`EVEN` → `events`, `_LOC`+`TYPE POLI|RELI|GEOG|CULT` → `parents`, and
+the GEDCOM 5.5EL coordinate MAP (`MAP <coords>` + `TYPE DEGREE|
+MAIDENHEAD`, `{0:M}`) → `PlaceRecord.elMaps`);
+`_GOV`/`_POST`/`_MAIDENHEAD` and the GenPlus `_AON` (alternative place
+name) under event PLACs → `PlaceStructure` fields; `_RUFNAME` (agreement
+Ruf.B2) and the 5.5EL `GIVN` + `TYPE RUF` marker → `PersonalNameStructure.
+callName` (the EL name splitting — one ordered `GIVN` per given name —
+appends into `pieces.givenNames`); `_GODP`/`_WITN` under events and at
+the INDI/FAM record level → `EventDetail.godparents`/`witnesses`,
+`IndividualRecord.godparents`/`witnesses`, `FamilyRecord.witnesses`
+(free text, agreement ASSO A4); the AGES! `_WTN` birth-witness pointer
+→ an `ASSO` association with `ROLE WITN` (5.5.1 writes the `_SHAR`/
+`_ROLE Witness` pair); the Swiss Bürgerort tags `_BUERGERORT`/`_HEIM`
+→ `FACT` + TYPE "Bürgerort" (the import form the agreement PLAC P8
+prescribes); the BKW `_ADPF`/`_ADPM` adopted-by flags →
+`IndividualRecord.adoptedByFather`/`adoptedByMother`; `_MILI` (military,
+the `_MILT` twin) and `_HOL` (Holocaust) → `EVEN`/`FACT` + TYPE; the
+FAM `_STAT` statuses with their F7 substructures →
+`FamilyRecord.marriageStatuses`; the TODO E1 structure →
+`TodoStructure`; the N5 `_SCHEMA` block with `_DEFN` leaves →
+`Header.schema53`. On output the
 vendor tags are written back in both versions, and a GEDCOM-L card
 survives into both outputs as a `_LOC` record with its pointers
 (GEDCOM 7.0 §1.5 allows extension records; the hierarchy closes over
@@ -673,9 +692,10 @@ interpret the definition itself.
 **Family Tree Maker extras** (deferred): `_FA1`–`_FA13` user fact
 definitions — the catalogs name them ("definitions for facts") but no
 source documents their structure, so the values cannot be typed; `_DETS`
-and `_ELEC` (undocumented meaning — the Legacy catalog marks them
-"???"; the GenWiki table says `_ELEC` is "Elected" under INDI, but the
-sources disagree, so there is nothing to type). The FTW marriage
+(undocumented meaning — the Legacy catalog marks it
+"???"). The GenWiki table gives `_ELEC` the meaning "Elected" under
+INDI (the Legacy catalog marks it "???") — the typed rule follows the
+documented meaning: `FACT` + TYPE "Elected" (chapter 6). The FTW marriage
 statuses `_MSTAT`/`_MEND` are typed (chapter 6). The GEDCOM 5.3 schema
 block is no longer deferred: it is typed as `Header.schema53` and
 written back in 5.5.1 (chapter 6).
@@ -718,14 +738,17 @@ the FHUG Knowledge Base "GEDCOM Extension List"
 which blocks scrapers but is readable via the Wayback Machine):
 `_FLGS` record flags and fact flags, `_TYPE` under SOUR, `_QUAY` and
 `_FIELD` under citations, `_SHAN` witness names, `_USED` under NAME,
-and the `_EMAIL`/`_WEB` contact spellings (chapter 6). What stays
+the `_EMAIL`/`_WEB` contact spellings (chapter 6), and the custom
+attribute `_ATTR` + `TYPE` → `FACT` + TYPE (the same shape the FTM
+`ATTR` rule carries). The `_PEDI` additional-relationship pedigree
+(under INDI.FAMC) is typed too (chapter 6) — its wire form is the
+standard PEDI payload. What stays
 generic is the presentation/UI state the page itself says other
 programs "typically ignore": the header state (`_ROOT`, `_VAR`,
 `_UID`, `_PCIT`, `_USED`, the `_LIST` named lists), the media display
 attributes (`_ASID`/`_SEQ`/`_AREA`/`_EXCL`/`_CAPT`/`_NOTA`/`_KEYS`/
 `_FILE`), the FH7 rich-text block (`_TEXT`/`_FMT`/`_LINK_*`/`_LKID`),
-`_PEDI` (an additional-relationship sibling of the standard PEDI whose
-subsidiary field data is not documented), and the `_RNOT`/`_SRCT`
+and the `_RNOT`/`_SRCT`
 record types (their internal structure is not documented; a `_SRCT`
 record's `_FIELD` metafields round-trip verbatim as extensions).
 
@@ -766,7 +789,19 @@ details, `RINI` under citations, and `UGNM`/`NAME_`/`SECG` under NAME
 generic everywhere (`DEED`, `FPRF`, `MPRF`, `MISE`, `MRCI`, `MRRE`,
 `PRIV`, `RECT`, and the non-underscore `CREA` spelling of MFT7);
 `FSFTID` is typed — the same normalization as the underscore `_FSFTID`.
-The full set is 154 tags.
+
+The webtrees per-vendor custom-tag registry
+(<https://github.com/fisharebest/webtrees>, `app/CustomTags/`) adds
+the remaining documented deviations of other programs. Typed: the four
+Aldfaer marriage-kind tags (`MARR_CIVIL`/`MARR_RELIGIOUS`/
+`MARR_PARTNERS`/`MARR_UNKNOWN` → `MARR` + the TYPE of the 5.5.5
+MARR.TYPE vocabulary — civil / religious / registered partnership /
+unknown), the phpGedView `COMM` comment under INDI and FAM (→ an
+inline `NOTE`), and the RootsMagic `WWW` under INDI (→
+`IndividualRecord.url`, the same slot `_URL` carries). Generic: the
+phpGedView `SERV` (the remote server of a SOUR record) and the
+MyHeritage `PERSONALPHOTO` (the personal photo reference under INDI —
+no source documents the payload form). The full set is 162 tags.
 
 The policy, implemented in `src/parsing/vendor-tags.ts` (the tables
 `LEGACY_INDIVIDUAL_TAGS`, `LEGACY_FAMILY_TAGS`, `LEGACY_GENERIC_TAGS`,
@@ -807,8 +842,9 @@ tables are the inventory, so the list is not repeated here):
     INDI), `PART`, `FRND`, `CLER`, `CNTC`, `CPLR`, `INTE`, `INTV`,
     `OWNR`, `RECO` — a pointer payload → `ASSO` + `RELA` (7.0: `ROLE
     OTHER` + `PHRASE`), a text payload → `FACT` + `TYPE`;
-  - `URL` → `IndividualRecord.url` (export `_URL`); `FILN`/`HISTID`/
-    `NUMB` → `REFN` identifiers;
+  - `URL` → `IndividualRecord.url` (export `_URL`); `WWW` → the same
+    slot (RootsMagic writes the standard tag under INDI); `FILN`/
+    `HISTID`/`NUMB` → `REFN` identifiers;
   - `FSFTID` (RootsMagic) → `IndividualRecord.familySearchId` (export
     `_FSFTID`), the same normalization as the underscore `_FSFTID`;
   - `LDS` — the FTM5 wrapper: its children parse as LDS individual
@@ -816,12 +852,16 @@ tables are the inventory, so the list is not repeated here):
     disappears;
   - FAM level: `CLAW` → `MARR` + `TYPE "Common law marriage"`, `SEPA` →
     FAM `EVEN` + `TYPE "Separated"`, `FEMA`/`MALE` → FAM `EVEN` + `TYPE`
-    with the child-count payload.
+    with the child-count payload; `COMM` (phpGedView) → an inline FAM
+    `NOTE`; the Aldfaer `MARR_CIVIL`/`MARR_RELIGIOUS`/`MARR_PARTNERS`/
+    `MARR_UNKNOWN` → `MARR` + TYPE civil / religious / registered
+    partnership / unknown (the 5.5.5 MARR.TYPE vocabulary, 5.5.5 §2
+    p.38).
 - **Standard-first export.** The typed constructs are written in the
   standard spelling of the target version (the vendor tag itself is not
   written back), and both versions can spell all of them — nothing is
   lost in either direction.
-- **The deliberately generic tail** (32 tags in
+- **The deliberately generic tail** (34 tags in
   `LEGACY_GENERIC_TAGS`, accepted on 5.x input wherever no typed rule
   applies, preserved verbatim on 5.5.1 export, dropped on 7.0 export —
   7.0 §1.5 can only spell underscore-prefixed extension tags). Several

@@ -41,6 +41,11 @@ export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord)
   for (const sex of rec.sexes ?? []) {
     w.line(1, 'SEX', { value: sex.payload });
     emitAge(w, version, 2, sex.age);
+    if (sex.count !== undefined) {
+      // The count of individuals in the age range (registry:
+      // MagiKey_CENR_SEX_AGE.yaml; see CensusSexStructure.count).
+      w.line(3, 'NCHI', { value: String(sex.count) });
+    }
     if (sex.type !== undefined) {
       w.line(2, 'TYPE', { value: sex.type });
     }
