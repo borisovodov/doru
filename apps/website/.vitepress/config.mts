@@ -1,30 +1,30 @@
 import { defineConfig, type DefaultTheme } from 'vitepress';
 
 const LOCALIZED = {
-  en: { label: 'English', nav: 'Docs', relnotes: 'Release notes', footer: 'The name comes from Proto-Indo-European <em>*dóru</em> — “tree”.' },
-  ru: { label: 'Русский', nav: 'Документация', relnotes: 'Примечания к выпускам', footer: 'Название происходит от праиндоевропейского <em>*dóru</em> — «дерево».' },
-  fr: { label: 'Français', nav: 'Documentation', relnotes: 'Notes de version', footer: 'Le nom vient du proto-indo-européen <em>*dóru</em> — « arbre ».' },
-  de: { label: 'Deutsch', nav: 'Dokumentation', relnotes: 'Versionshinweise', footer: 'Der Name kommt vom urindogermanischen <em>*dóru</em> — „Baum“.' },
-  it: { label: 'Italiano', nav: 'Documentazione', relnotes: 'Note di rilascio', footer: 'Il nome deriva dal proto-indoeuropeo <em>*dóru</em> — «albero».' },
-  es: { label: 'Español', nav: 'Documentación', relnotes: 'Notas de la versión', footer: 'El nombre viene del protoindoeuropeo <em>*dóru</em> — «árbol».' },
-  'pt-br': { label: 'Português (Brasil)', nav: 'Documentação', relnotes: 'Notas de versão', footer: 'O nome vem do protoindo-europeu <em>*dóru</em> — «árvore».' },
-  cs: { label: 'Čeština', nav: 'Dokumentace', relnotes: 'Poznámky k vydání', footer: 'Název pochází z praindoevropského <em>*dóru</em> — „strom“.' },
-  pl: { label: 'Polski', nav: 'Dokumentacja', relnotes: 'Informacje o wydaniu', footer: 'Nazwa pochodzi od praindoeuropejskiego <em>*dóru</em> — „drzewo“.' },
-  hu: { label: 'Magyar', nav: 'Dokumentáció', relnotes: 'Kiadási megjegyzések', footer: 'A név a protoindoeurópai <em>*dóru</em> szóból ered — „fa“.' },
-  bg: { label: 'Български', nav: 'Документация', relnotes: 'Бележки към изданието', footer: 'Името идва от праиндоевропейското <em>*dóru</em> — „дърво“.' },
-  el: { label: 'Ελληνικά', nav: 'Τεκμηρίωση', relnotes: 'Σημειώσεις έκδοσης', footer: 'Το όνομα προέρχεται από το πρωτοϊνδοευρωπαϊκό <em>*dóru</em> — «δέντρο».' },
-  tr: { label: 'Türkçe', nav: 'Belgeler', relnotes: 'Sürüm notları', footer: 'Adı, Proto-Hint-Avrupa dilindeki <em>*dóru</em> — „ağaç“ sözcüğünden gelir.' },
-  ja: { label: '日本語', nav: 'ドキュメント', relnotes: 'リリースノート', footer: '名前は印欧祖語の <em>*dóru</em>「木」に由来します。' },
-  ko: { label: '한국어', nav: '문서', relnotes: '릴리스 노트', footer: '이름은 인도유럽조어 <em>*dóru</em> — “나무”에서 유래했습니다.' },
-  'zh-cn': { label: '简体中文', nav: '文档', relnotes: '发布说明', footer: '名字源自原始印欧语的 <em>*dóru</em>——“树”。' },
-  'zh-tw': { label: '繁體中文', nav: '文件', relnotes: '發行說明', footer: '名字源自原始印歐語的 <em>*dóru</em>——「樹」。' },
+  en: { label: 'English', nav: 'Intro', relnotes: 'Release notes', footer: 'The name comes from Proto-Indo-European <em>*dóru</em> — “tree”.' },
+  ru: { label: 'Русский', nav: 'Intro', relnotes: 'Примечания к выпускам', footer: 'Название происходит от праиндоевропейского <em>*dóru</em> — «дерево».' },
+  fr: { label: 'Français', nav: 'Intro', relnotes: 'Notes de version', footer: 'Le nom vient du proto-indo-européen <em>*dóru</em> — « arbre ».' },
+  de: { label: 'Deutsch', nav: 'Intro', relnotes: 'Versionshinweise', footer: 'Der Name kommt vom urindogermanischen <em>*dóru</em> — „Baum“.' },
+  it: { label: 'Italiano', nav: 'Intro', relnotes: 'Note di rilascio', footer: 'Il nome deriva dal proto-indoeuropeo <em>*dóru</em> — «albero».' },
+  es: { label: 'Español', nav: 'Intro', relnotes: 'Notas de la versión', footer: 'El nombre viene del protoindoeuropeo <em>*dóru</em> — «árbol».' },
+  'pt-br': { label: 'Português (Brasil)', nav: 'Intro', relnotes: 'Notas de versão', footer: 'O nome vem do protoindo-europeu <em>*dóru</em> — «árvore».' },
+  cs: { label: 'Čeština', nav: 'Intro', relnotes: 'Poznámky k vydání', footer: 'Název pochází z praindoevropského <em>*dóru</em> — „strom“.' },
+  pl: { label: 'Polski', nav: 'Intro', relnotes: 'Informacje o wydaniu', footer: 'Nazwa pochodzi od praindoeuropejskiego <em>*dóru</em> — „drzewo“.' },
+  hu: { label: 'Magyar', nav: 'Intro', relnotes: 'Kiadási megjegyzések', footer: 'A név a protoindoeurópai <em>*dóru</em> szóból ered — „fa“.' },
+  bg: { label: 'Български', nav: 'Intro', relnotes: 'Бележки към изданието', footer: 'Името идва от праиндоевропейското <em>*dóru</em> — „дърво“.' },
+  el: { label: 'Ελληνικά', nav: 'Intro', relnotes: 'Σημειώσεις έκδοσης', footer: 'Το όνομα προέρχεται από το πρωτοϊνδοευρωπαϊκό <em>*dóru</em> — «δέντρο».' },
+  tr: { label: 'Türkçe', nav: 'Intro', relnotes: 'Sürüm notları', footer: 'Adı, Proto-Hint-Avrupa dilindeki <em>*dóru</em> — „ağaç“ sözcüğünden gelir.' },
+  ja: { label: '日本語', nav: 'Intro', relnotes: 'リリースノート', footer: '名前は印欧祖語の <em>*dóru</em>「木」に由来します。' },
+  ko: { label: '한국어', nav: 'Intro', relnotes: '릴리스 노트', footer: '이름은 인도유럽조어 <em>*dóru</em> — “나무”에서 유래했습니다.' },
+  'zh-cn': { label: '简体中文', nav: 'Intro', relnotes: '发布说明', footer: '名字源自原始印欧语的 <em>*dóru</em>——“树”。' },
+  'zh-tw': { label: '繁體中文', nav: 'Intro', relnotes: '發行說明', footer: '名字源自原始印歐語的 <em>*dóru</em>——「樹」。' },
 } as const;
 
 function themeConfig(nav: string, relnotes: string, footer: string): DefaultTheme.Config {
   return {
     logo: '/icon.png',
     nav: [
-      { text: nav, link: '/docs/' },
+      { text: 'Docs', link: '/docs/' },
       { text: relnotes, link: 'https://github.com/borisovodov/doru/releases' },
       { text: 'GitHub', link: 'https://github.com/borisovodov/doru' },
     ],
@@ -127,7 +127,7 @@ export default defineConfig({
     ],
   ],
   locales: {
-    root: { label: 'English', lang: 'en-US', themeConfig: themeConfig('Docs', LOCALIZED.en.relnotes, LOCALIZED.en.footer) },
+    root: { label: 'English', lang: 'en-US', themeConfig: themeConfig('Intro', LOCALIZED.en.relnotes, LOCALIZED.en.footer) },
     ...localeConfig,
   },
 });
