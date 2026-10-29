@@ -5,7 +5,8 @@
 # it — then verifies the exported desktop entry, MIME registration, icons,
 # file associations, the doru:// URL scheme (exported MimeType, host-side
 # handler resolution, plus a warm and a cold-start link open), a real launch,
-# and the first-run files.
+# and the first-run files. The bundle is built for the runner's own
+# architecture (x86_64 or aarch64) and run natively there.
 #
 # Discrepancies with a real user install, decided case by case:
 # - XDG_DATA_DIRS is set explicitly (on a real machine the flatpak profile
@@ -42,6 +43,9 @@ echo "::endgroup::"
 echo "::group::Build the flatpak bundle (external workflow commands)"
 cd "$WORKSPACE/apps/desktop"
 npx electron-vite build
+# The flatpak target has no per-arch list: it builds the runner's own
+# architecture (x86_64 on x64 runners, aarch64 on arm64 runners), and the
+# bundle below is installed as-is into the local OSTree repo.
 CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --linux flatpak --publish never
 ls -la release/*.flatpak
 echo "::endgroup::"

@@ -55,6 +55,10 @@ files. It runs only from the Release workflow (which waits for it) or
 manually via `workflow_dispatch` (with a `channels` input) — it is
 deliberately not part of the per-push CI.
 
+The Linux and Windows channels run on both x64 and arm64 runners, each
+installing and launching the artifact built for its own architecture; the
+macOS channel is arm64-only (the cask requires Apple silicon).
+
 The channel manifests are taken live from the distributor repositories
 (`borisovodov/homebrew-taps`, `borisovodov/flatpak`,
 `borisovodov/bucket`) at their current `main` — a breakage there means users
@@ -77,9 +81,9 @@ one by one (each is documented at the point of use in
   machine the flatpak profile snippet adds the exports dir); first-run
   files are checked in `~/.var/app/org.doru.doru/config/Doru`, where
   flatpak redirects `XDG_CONFIG_HOME`.
-- **Windows (Scoop)**: only the x64 manifest variant is exercised (no
-  arm64 runners); the bucket is cloned from the local checkout instead of
-  GitHub.
+- **Windows (Scoop)**: each run exercises the manifest variant matching the
+  runner's own architecture (x64 or arm64); the bucket is cloned from the
+  local checkout instead of GitHub.
 - **Common**: manifests get a synthetic version (`0.0.0-test`); file
   association checks poll with retries because Launch Services and the
   gio MIME caches are asynchronous.

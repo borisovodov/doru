@@ -8,7 +8,8 @@
 # first-run files.
 #
 # Discrepancies with a real user install, decided case by case:
-# - only the x64 manifest variant is exercised (no arm64 Windows runners);
+# - the manifest variant under test is the runner's own architecture (x64 or
+#   arm64); the other variant is not exercised in the same run;
 # - the artifact is served from a local HTTP server (it is not published);
 # - the bucket is cloned from the local checkout instead of GitHub.
 $ErrorActionPreference = 'Stop'
@@ -16,9 +17,12 @@ $ErrorActionPreference = 'Stop'
 $workspace = $env:GITHUB_WORKSPACE
 $bucketDir = Join-Path $workspace 'external/bucket'
 $manifest = Join-Path $bucketDir 'bucket/doru.json'
-# Only the x64 variant is exercised (no arm64 Windows runners); pick its zip
-# explicitly — the alphabetical first match would be the arm64 artifact.
-$zip = Get-ChildItem (Join-Path $workspace 'apps/desktop/release') -Filter 'doru-windows-x64.zip' | Select-Object -First 1
+# Pick the zip for the runner's own architecture: the manifest is rewritten
+# with this artifact's hash and Scoop selects the matching variant on
+# install. (The alphabetical first match would be the arm64 artifact.)
+$winArch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
+$variant = if ($winArch -eq 'arm64') { 'arm64' } else { '64bit' }
+$zip = Get-ChildItem (Join-Path $workspace 'apps/desktop/release') -Filter "doru-windows-$winArch.zip" | Select-Object -First 1
 $port = 8475
 $scoopRoot = Join-Path $env:USERPROFILE 'scoop'
 $appDir = Join-Path $scoopRoot 'apps/doru/current'
@@ -32,12 +36,13 @@ Write-Host '::group::Prepare the manifest with the test artifact'
 $hash = (Get-FileHash -Algorithm SHA256 $zip.FullName).Hash.ToLowerInvariant()
 $m = Get-Content $manifest -Raw | ConvertFrom-Json
 $m.version = $env:TEST_VERSION
-$m.architecture.'64bit'.url = "http://127.0.0.1:$port/$($zip.Name)"
-$m.architecture.'64bit'.hash = $hash
+$archBlock = $m.architecture.$variant
+$archBlock.url = "http://127.0.0.1:$port/$($zip.Name)"
+$archBlock.hash = $hash
 $m | ConvertTo-Json -Depth 10 | Set-Content $manifest -Encoding utf8
 Write-Host "version: $($m.version)"
-Write-Host "url: $($m.architecture.'64bit'.url)"
-Write-Host "hash: $($m.architecture.'64bit'.hash)"
+Write-Host "url: $($archBlock.url)"
+Write-Host "hash: $($archBlock.hash)"
 Write-Host '::endgroup::'
 
 Write-Host '::group::Serve the artifact'
