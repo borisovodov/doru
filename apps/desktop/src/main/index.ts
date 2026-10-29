@@ -1,6 +1,7 @@
 import { BrowserWindow, app, nativeTheme, net, protocol } from 'electron';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { spawn } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -23,9 +24,78 @@ import { pendingExternalPaths, projectWindows, recents } from './state';
 import { ensureUserThemesDir, themeState, updateTitleBarOverlays, updateWindowBackgrounds, watchUserThemes } from './themes';
 import { createWindow, iconPath, installMenu } from './windows';
 
+function parseMcpServerArg(argv: string[]): string | null {
+  const index = argv.indexOf('--mcp-server');
+  if (index === -1) {
+    return null;
+  }
+  return argv[index + 1] ?? null;
+}
+
+// MCP server mode (`--mcp-server`) is a headless helper process that ACP
+// agents and external MCP clients spawn next to the GUI. It must not fight
+// the GUI over the single-instance lock, and it must stay completely
+// headless: no protocol registration, no file/open events, no menu, no dock
+// icon, no windows — otherwise file opens and dock activations land in the
+// helper and it turns into a surprise second app instance.
+const mcpProject = parseMcpServerArg(process.argv);
+
+// The helper serves the tree over stdio only, so the GUI's userData holds
+// nothing it needs — and sharing it has a real cost: Chromium profile files
+// (the Local Storage leveldb lock, Network Persistent State, Trust Tokens)
+// are exclusive per profile, so concurrent helpers serializing on one
+// userData stall new instances for tens of seconds and blow MCP startup
+// timeouts. Give every helper a private throwaway profile instead; the
+// scratch dir is removed on clean exit and survives a crash (with doru.log)
+// for post-mortem debugging. DORU_USER_DATA — the dev-run convention — wins.
+let mcpScratchUserData: string | null = null;
 if (process.env['DORU_USER_DATA']) {
   app.setPath('userData', process.env['DORU_USER_DATA']);
+} else if (mcpProject) {
+  mcpScratchUserData = mkdtempSync(join(tmpdir(), 'doru-mcp-'));
+  app.setPath('userData', mcpScratchUserData);
 }
+
+/**
+ * Removes the helper's throwaway userData profile. Runs on `will-quit` and
+ * again on `exit`, but Chromium utility processes can recreate a few profile
+ * files even after the main process is gone, so the detached reaper spawned
+ * by the `exit` handler is what normally reclaims the directory.
+ */
+function removeMcpScratchUserData(): void {
+  if (!mcpScratchUserData) {
+    return;
+  }
+  try {
+    rmSync(mcpScratchUserData, { recursive: true, force: true });
+  } catch {
+    // Best effort: stale scratch dirs are reclaimed by the OS temp cleanup
+    // on its own schedule.
+  }
+}
+
+process.on('exit', () => {
+  removeMcpScratchUserData();
+  // Chromium utility processes can recreate profile files after the main
+  // process is gone, so the final pass is a detached node script that sweeps
+  // the directory once the helpers have been killed (ELECTRON_RUN_AS_NODE
+  // turns our own binary into a plain node runtime — no extra dependencies).
+  if (mcpScratchUserData) {
+    try {
+      const script =
+        `setTimeout(() => { try { require('fs').rmSync(${JSON.stringify(mcpScratchUserData)}, ` +
+        `{ recursive: true, force: true }); } catch {} }, 3000);`;
+      spawn(process.execPath, ['-e', script], {
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+        detached: true,
+        stdio: 'ignore',
+      }).unref();
+    } catch {
+      // Best effort: stale scratch dirs are reclaimed by the OS temp cleanup
+      // on its own schedule.
+    }
+  }
+});
 
 registerProjectIpc();
 registerTreeIpc();
@@ -117,23 +187,6 @@ function extractPathArgs(argv: string[]): string[] {
   return argv.slice(1).filter((arg) => !arg.startsWith('-') && arg !== '.');
 }
 
-function parseMcpServerArg(argv: string[]): string | null {
-  const index = argv.indexOf('--mcp-server');
-  if (index === -1) {
-    return null;
-  }
-  return argv[index + 1] ?? null;
-}
-
-// MCP server mode (`--mcp-server`) is a headless helper process that ACP
-// agents and external MCP clients spawn next to the GUI. It shares the
-// userData with the GUI, so it must not fight it over the single-instance
-// lock, and it must stay completely headless: no protocol registration, no
-// file/open events, no menu, no dock icon, no windows — otherwise file opens
-// and dock activations land in the helper and it turns into a surprise
-// second app instance.
-const mcpProject = parseMcpServerArg(process.argv);
-
 const gotLock = mcpProject !== null || app.requestSingleInstanceLock();
 if (!gotLock) {
   // A running instance received the second-instance event with our argv and
@@ -190,10 +243,17 @@ if (!gotLock) {
 }
 
 if (gotLock) {
-  void app.whenReady().then(startApp);
+  // A failed startup must not leave a zombie process: an MCP helper that
+  // rejects here would otherwise hang forever (never serving stdio) and the
+  // client would wait out its whole startup timeout.
+  void app.whenReady().then(startApp).catch((error: unknown) => {
+    log.error('startup failed', error);
+    app.exit(1);
+  });
 
   app.on('will-quit', () => {
     closeAllRuntimes();
+    removeMcpScratchUserData();
   });
 
   app.on('window-all-closed', () => {
@@ -211,6 +271,12 @@ async function startApp(): Promise<void> {
     const { runtime } = await ensureRuntime(mcpProject);
     const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
     const server = new DoruMcpServer(backend, app.getVersion());
+    // The MCP SDK's stdio transport does not listen for stdin `end`, so a
+    // client hangup would otherwise leave the helper running forever. A clean
+    // quit removes the scratch userData profile in the will-quit handler.
+    process.stdin.on('end', () => {
+      app.quit();
+    });
     await server.connect(new StdioServerTransport());
     log.info(`Dóru MCP server started for ${mcpProject}`);
     return;

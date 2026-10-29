@@ -82,7 +82,11 @@ decisions about what we deliberately do **not** build, see
 ## AI and agents
 
 - **MCP server mode** runs the same Electron binary over stdio
-  (`doru --mcp-server <project>`); no separate build artifact.
+  (`doru --mcp-server <project>`); no separate build artifact. The helper is
+  headless and gets a private throwaway `userData` profile (temp dir, removed
+  on exit) — it never touches the GUI's profile, so any number of concurrent
+  helpers (MCP clients, ACP agents) can serve the same tree without
+  serializing on Chromium profile locks.
 - **ACP** (Agent Client Protocol): Dóru passes its own MCP server — a
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
@@ -162,7 +166,10 @@ decisions about what we deliberately do **not** build, see
 
 - Logs go to the console (stderr — stdout carries the MCP protocol in server
   mode) and to `<userData>/doru.log` via `electron-log` (appended across
-  runs, rotated at 5 MB). The default verbosity is `warn` — quiet on user
+  runs, rotated at 5 MB). In MCP server mode `<userData>` is the helper's
+  private throwaway profile, so its `doru.log` lives there: available after a
+  crash, removed with the profile on clean exit — use the stderr transport
+  for live MCP diagnostics. The default verbosity is `warn` — quiet on user
   machines; `npm run dev` raises it to `debug` (`import.meta.env.DEV`).
   `DORU_LOG_LEVEL` (trace|debug|info|warn|error) always wins; the main
   process wires it up in `apps/desktop/src/main/log.ts`. Runtime diagnostics
