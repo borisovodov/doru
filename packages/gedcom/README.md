@@ -278,8 +278,11 @@ Input is always bytes. Version handling:
   any 5.x file: `SEX X` (intersex) and `SEX N` (not recorded; 5.5.5
   §2 p.104), the `BCE`/`BC` epoch spellings on year-only dates (5.5.5
   §2 p.77), the year-less `day month` birthday form (Gregorian only;
-  5.5.5 §2 p.83), and the `JPEG`/`TIFF` media formats (5.5.5 §2
-  p.94; the union with the 5.5.1 set is accepted, `OLE` included).
+  5.5.5 §2 p.83), the expanded 5.5.5 `MULTIMEDIA_FORMAT` set (5.5.5 §2
+  p.94: `AAC`/`AVI`/`ePub`/`FLAC`/`MKV`/`mobi`/`MP3`/`PDF`/`PNG` plus
+  the restored `JPEG`/`TIFF`, `OLE` removed — the union with the 5.5.1
+  set is accepted, `OLE` included), and the structured `ADDR` without
+  a line value (5.5.5 §2 p.104).
   `GEDC.FORM.VERS` is accepted and discarded — the writers emit 5.5.1
   and 7.0, neither of which has the slot. The 5.5.5 container
   relaxations are not enforced, the constructs 5.5.5 removed still
@@ -373,8 +376,10 @@ documented in the JSDoc of the affected model field. The summary:
   `GEDC.FORM`, `RIN`/`RFN`/`AFN`, piece-level `NOTE`/`SOUR`.
   5.5.5-only: `SEX N` (both targets) and the year-less `day month`
   dates (both targets require a year; the whole DATE is dropped). A multimedia `FILE` whose format cannot be named in the
-  fixed 5.5.1 set (including a 5.5.5-parsed `JPEG`/`TIFF`) is dropped
-  entirely.
+  fixed 5.5.1 set (including the 5.5.5-only formats such as
+  `JPEG`/`TIFF`/`PDF`/`MP3`) is dropped
+  entirely. A 5.5.5 structured `ADDR` (no line value) is written with a
+  payload synthesized from the ADR1–CTRY parts.
 - **The NO rule (7.0 → 5.5.1)** — every `NO` structure is dropped;
   records left empty by that are dropped too, and pointers to dropped
   records are removed, so the file never asserts what the researcher
@@ -447,17 +452,26 @@ The agreed policy:
   `_NAMS`, `_MILTID`), the place records `_PLAC`/`_LOC`/`_PLAC_DEFN`,
   the Family Historian tags from the FHUG "GEDCOM Extension List"
   (`_FLGS` record and fact flags, `_TYPE` under SOUR, `_QUAY`/`_FIELD`
-  under citations, `_SHAN` witness names, `_USED` under NAME, the
-  `_EMAIL`/`_WEB` contact spellings under facts and records), the AQ
+  under citations, `_SHAN` witness names, `_USED` under NAME, `_ATTR`
+  custom attributes, `_PEDI` under FAMC, the `_EMAIL`/`_WEB` contact
+  spellings under facts and records), the AQ
   `_HUSB`/`_WIFE` child statuses and `_MASTER`, the MFT7 `_BKM`/`_STP`
-  flags and `_QUAL` quality block, and the Legacy `_TAG`/`_TAG2`–`_TAG4`
-  report flags under SOUR — is typed model fields,
+  flags and `_QUAL` quality block, the Legacy `_TAG`/`_TAG2`–`_TAG4`
+  report flags under SOUR, the further catalog facts (`_MILI`, `_HOL`,
+  `_ELEC`, `_EYES`, `_LIVING`, `_PRIVATE` → RESN PRIVACY), the TMG
+  `_DATE` under NAME and the PRO-GEN
+  `_ALIA`, the RootsMagic `_WEBTAG`, the BKW `_ADPF`/`_ADPM`, the
+  record-creation twins `_CREAT`/`_CREA`/`_CRE`, and the GenPlus `_AON`
+  under PLAC — is typed model fields,
   with the full rules and the source links in the field JSDoc. The
   non-underscore vendor tags of the Legacy catalog are typed too —
   names, events/facts with a TYPE, notes, negatives, person links,
   identifiers, the LDS wrapper, the USM6 set (`SIGN`, `BTYP`, `AGED`,
   `MTYP`, `UTYP`, `SURE`, `POTM`, `SRCH`, `NOTRY`, `RINI`, `UGNM`,
-  `NAME_`, `SECG`) — see "The legacy non-underscore tags are typed"
+  `NAME_`, `SECG`), the Aldfaer marriage kinds (`MARR_CIVIL`/`MARR_
+  RELIGIOUS`/`MARR_PARTNERS`/`MARR_UNKNOWN` → `MARR` + TYPE), the
+  phpGedView `COMM` (→ a NOTE) and the RootsMagic `WWW` (→ the `_URL`
+  slot) — see "The legacy non-underscore tags are typed"
   below. Unknown `_` tags are preserved verbatim as generic
   extensions (`ExtensionStructure`/`ExtensionRecord`) and are never
   typed; only unknown non-underscore tags are strict errors
@@ -475,9 +489,17 @@ The agreed policy:
   `_POST` with validity dates, `_AIDN`, `_DMGD`, place `TYPE` with
   `_GOVTYPE`, `_MAIDENHEAD`, name variants with their `ABBR {0:M}`
   abbreviations + `TYPE`, hierarchy links with
-  `POLI|RELI|GEOG|CULT`), `_GOV`/`_POST`/`_MAIDENHEAD` under event
-  places, `_RUFNAME` (call name) under NAME, and `_GODP`/`_WITN`
-  (godparents/witnesses, free text) under events, plus the `_TYPE
+  `POLI|RELI|GEOG|CULT`, and the 5.5EL payload MAP entries with
+  `TYPE DEGREE|MAIDENHEAD`), `_GOV`/`_POST`/`_MAIDENHEAD`/`_AON` under
+  event
+  places, `_RUFNAME` (call name, agreement Ruf.B2) and the 5.5EL
+  repeated-`GIVN` + `TYPE RUF` splitting under NAME, and `_GODP`/`_WITN`
+  (godparents/witnesses, free text) under events and at the INDI/FAM
+  record level, the AGES! `_WTN` birth-witness pointer (→ `ASSO` +
+  `ROLE WITN`), the Swiss Bürgerort tags `_BUERGERORT`/`_HEIM` (→
+  `FACT` + TYPE "Bürgerort", the PLAC P8 import form), the FAM `_STAT`
+  statuses with the F7 substructures, the TODO E1 `_TODO` structure,
+  the N5 `_SCHEMA` block with `_DEFN` leaves, plus the `_TYPE
   same-sex` union marker on FAM (the HUSB/WIFE tags then carry the
   two partners without gender semantics), the negatives `_MARR N`/
   `_NMR Y` (a bare FAM `NO MARR`; 5.5.1 writes it back as `_MARR N`),
@@ -491,8 +513,9 @@ The agreed policy:
   the official FamilySearch registry (the GEDCOM-registries repository)
   is valid input: the Ancestry publication details under `SOUR.PUBL`
   (`DATE`/`PLAC`), the MagiKey `_CENR` census record (the shared census
-  with its `INDI` entries, `FATH`/`MOTH` details, `_SCHD`, `_MSTAT` and
-  the `_AGER` age range under `AGE`) and its `_CENR @xref@` links under
+  with its `INDI` entries, `FATH`/`MOTH` details, `_SCHD`, `_MSTAT`, the
+  `_AGER` age range and the `NCHI` count under the census `SEX.AGE`)
+  and its `_CENR @xref@` links under
   event/attribute details and names (the pointer must resolve to a
   census record), the community `_DATE` under
   `REPO` and the relocated `_SOUR` citation (typed as

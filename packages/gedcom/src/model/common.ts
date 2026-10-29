@@ -54,8 +54,17 @@ export type FactFlag = 'PRIVATE' | 'PREFERRED' | 'TENTATIVE' | 'REJECTED';
  * in 7.0 they moved to the record level and are absent here.
  */
 export interface AddressStructure extends GedcomStructureBase {
-  /** The ADDR payload, {1:1} Special — the full formatted address. In 5.5.1 the payload is split across ADDR plus up to 3 CONT continuation lines. */
-  payload: Special;
+  /**
+   * The ADDR payload, {1:1} Special in GEDCOM 5.5.1 — the full
+   * formatted address. In 5.5.1 the payload is split across ADDR plus
+   * up to 3 CONT continuation lines. GEDCOM 5.5.5 (gedcom.org, 2019,
+   * §2 p.104) removed the unstructured form: its `n ADDR` must not have
+   * a line value and the address is carried by the ADR1–CTRY
+   * substructures alone, so the payload is absent there. Both forms
+   * parse; the serializer synthesizes a payload from the structured
+   * parts when the model has none.
+   */
+  payload?: Special;
   /** ADR1 {0:1}, g7:ADR1 — first line of the address; should not be added to new files. */
   line1?: Special;
   /** ADR2 {0:1}, g7:ADR2 — second line of the address; should not be added to new files. */

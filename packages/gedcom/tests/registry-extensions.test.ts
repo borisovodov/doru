@@ -170,6 +170,38 @@ describe('the MagiKey _CENR census record', () => {
     expect(text).toContain('1 DATE 2 APR 1911');
     expect(parse551(text)).toEqual(dataset);
   });
+
+  test('parses the NCHI count under the census SEX AGE (registry: MagiKey_CENR_SEX_AGE.yaml)', () => {
+    const dataset = parse70(
+      [
+        ...HEADER70,
+        '0 @C1@ _CENR',
+        '1 DATE 2 APR 1911',
+        '1 PLAC Musterort',
+        '1 SEX M',
+        '2 AGE 16y',
+        '3 _AGER 16-26',
+        '3 NCHI 3',
+        '1 INDI @I1@',
+        '2 NAME John /Doe/',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const census = dataset.records.find((record): record is CensusRecord => record.tag === '_CENR');
+    expect(census?.sexes?.[0]?.age?.payload).toEqual({ years: 16 });
+    expect(census?.sexes?.[0]?.age?.ageRange).toBe('16-26');
+    expect(census?.sexes?.[0]?.count).toBe(3);
+    const text = ser70(dataset);
+    expect(text).toContain('3 NCHI 3');
+    expect(parse70(text)).toEqual(dataset);
+    const text551 = ser551(dataset);
+    expect(text551).toContain('3 NCHI 3');
+    const reparsed551 = parse551(text551);
+    const census551 = reparsed551.records.find((record): record is CensusRecord => record.tag === '_CENR');
+    expect(census551).toEqual(census);
+  });
 });
 
 describe('the MagiKey _AGER age range', () => {

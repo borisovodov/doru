@@ -354,7 +354,7 @@ export function parseSchema53(node: RawNode, ctx: Ctx): FtmSchemaBlock {
 
 /** Walks one branch of the SCHEMA tree, collecting the declaration leaves. */
 function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchemaEntry[], ctx: Ctx): void {
-  if (node.tag === 'LABL' || node.tag === 'DEFN' || node.tag === 'ISA') {
+  if (node.tag === 'LABL' || node.tag === 'DEFN' || node.tag === 'ISA' || node.tag === '_DEFN') {
     if (node.children.length > 0) {
       fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
     }
@@ -369,7 +369,13 @@ function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchema
         fail('structure.cardinality', 'At most one LABL is allowed under a declared tag', node.position);
       }
       entry.label = reqText(node);
-    } else if (node.tag === 'DEFN') {
+    } else if (node.tag === 'DEFN' || node.tag === '_DEFN') {
+      // The underscore spelling is the GEDCOM-L convention (agreement
+      // Nutzerdef.N5; see the GenWiki "GEDCOM/_Nutzerdef-Tag" article:
+      // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag): the
+      // `_SCHEMA` block of the German programs spells the definition
+      // leaf `_DEFN`, where Family Tree Maker writes `DEFN`. Both name
+      // the same declaration member.
       if (entry.definition !== undefined) {
         fail('structure.cardinality', 'At most one DEFN is allowed under a declared tag', node.position);
       }

@@ -488,7 +488,7 @@ describe('parseGedcom551 — strictness', () => {
 
   test('rejects unknown 5.5.1 media formats and languages', () => {
     expect(
-      err551([...HEADER, '0 @O1@ OBJE', '1 FILE x.png', '2 FORM png', ...SUBM, '0 TRLR'].join('\n')),
+      err551([...HEADER, '0 @O1@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n')),
     ).toBe('enum.invalid-value');
     expect(err551([...HEADER, '1 LANG Klingon', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
   });

@@ -118,6 +118,49 @@ export interface MftSourceQuality extends GedcomStructureBase {
 }
 
 /**
+ * One GEDCOM-L FAM F7 `_STAT` entry: the status of a marriage (NOT
+ * MARRIED, NEVER MARRIED, UNKNOWN, or a user plain text) with the
+ * optional DATE, PLAC, NOTE and SOUR substructures (the STATUS_STRUCTURE
+ * of the GEDCOM-L agreement FAM F7 / F7.1–F7.4; see the GenWiki
+ * "GEDCOM/FAM-Tag" article: https://wiki.genealogy.net/GEDCOM/FAM-Tag).
+ * The agreement gives the FAM record any number of `_STAT` entries
+ * (F7.4); programs writing the bare status line (Legacy Family Tree,
+ * Ancestral Quest, Ages!, GEN_DO!, webtrees — see Legacy's "Custom
+ * GEDCOM Tags" help:
+ * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm) are the
+ * single-entry, no-substructure case. Not part of any GEDCOM version.
+ * Recognized on input and written back as the `_STAT` lines in both
+ * versions.
+ */
+export interface MarriageStatusStructure extends GedcomStructureBase {
+  /** The _STAT payload, {1:1} — the status text ({1:120} in F7.1). */
+  payload: Text;
+  /** DATE {0:1} — the period the status applies to. */
+  date?: DateStructure;
+  /** <<PLACE_STRUCTURE>> {0:1}. */
+  place?: PlaceStructure;
+  /** <<NOTE_STRUCTURE>> {0:M}. */
+  notes?: NoteStructure[];
+  /** <<SOURCE_CITATION>> {0:M}. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * The RootsMagic `_WEBTAG` external web link under an individual: the
+ * link text (NAME) and the address (URL), written by RootsMagic (see
+ * the webtrees per-vendor custom-tag registry, RootsMagic.php:
+ * <https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/RootsMagic.php>).
+ * Not part of any GEDCOM version. Recognized on input and written back
+ * as the `_WEBTAG` block in both versions.
+ */
+export interface WebTagStructure extends GedcomStructureBase {
+  /** NAME {0:1} — the link text. */
+  name?: Text;
+  /** URL {1:1} — the address of the link. */
+  url: Text;
+}
+
+/**
  * GEDCOM 7.0 §3.2.2 FAMILY_RECORD — g7:record-FAM: a family, representing nuclear
  * families, marriage, cohabitation, fostering, adoption, and cultural
  * parallels, regardless of the gender of the partners.
@@ -158,15 +201,21 @@ export interface FamilyRecord extends GedcomStructureBase {
    */
   createdAt?: Text;
   /**
-   * _STAT {0:1} — the status of the marriage (Married, Unmarried, …).
-   * Written by Legacy Family Tree under FAM (see its "Custom GEDCOM
-   * Tags" help:
-   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not
-   * part of any GEDCOM version. Recognized on input and written back as
-   * `_STAT` in both versions. (The FTW `_MSTAT`/`_MEND` beginning and
-   * ending statuses are the separate fields below.)
+   * _STAT {0:M} — the statuses of the marriage (Married, Unmarried,
+   * …). Written by Legacy Family Tree, Ancestral Quest, Ages!, GEN_DO!
+   * and webtrees under FAM as a bare status line (see Legacy's "Custom
+   * GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); the
+   * GEDCOM-L agreement FAM F7 additionally defines the full
+   * STATUS_STRUCTURE — the status text with the optional DATE, PLAC,
+   * NOTE and SOUR substructures, any number of times per family (F7.4;
+   * see the GenWiki "GEDCOM/FAM-Tag" article:
+   * https://wiki.genealogy.net/GEDCOM/FAM-Tag). Not part of any GEDCOM
+   * version. Recognized on input and written back as the `_STAT` lines
+   * in both versions. (The FTW `_MSTAT`/`_MEND` beginning and ending
+   * statuses are the separate fields below.)
    */
-  marriageStatus?: Text;
+  marriageStatuses?: MarriageStatusStructure[];
   /**
    * _MSTAT {0:1} — the status at the beginning of the marriage
    * (Friends, Engaged, Married, …). Written by Family Tree Maker
@@ -209,6 +258,17 @@ export interface FamilyRecord extends GedcomStructureBase {
    * `_TODO` in both versions.
    */
   todos?: TodoStructure[];
+  /**
+   * _WITN {0:M} — the witnesses of the family, as free text (names,
+   * not pointers): the German GEDCOM-L convention (agreement ASSO A4)
+   * places the text form under the family record or the event (see the
+   * GenWiki "GEDCOM/ASSO-Tag" article:
+   * https://wiki.genealogy.net/GEDCOM/ASSO-Tag). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_WITN` in both
+   * versions. (Under an event the same tag types into
+   * EventDetail.witnesses.)
+   */
+  witnesses?: Text[];
   /**
    * UTYP {0:1} — the kind of relationship the partners are in: 1 =
    * married, 2 = married and separated, 3 = married and divorced, 4 =
@@ -457,6 +517,50 @@ export interface IndividualRecord extends GedcomStructureBase {
    * convention and written back as `_STP Y` in both versions.
    */
   startPerson?: boolean;
+  /**
+   * _ADPF {0:1} — the person was adopted by their father. Written by
+   * Brother's Keeper 6+ under INDI (see the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" catalog:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input in both versions (the
+   * presence-style flag convention: an absent value or `Y` marks the
+   * flag set, `N` clears it) and written back as `_ADPF Y` in both
+   * versions.
+   */
+  adoptedByFather?: boolean;
+  /**
+   * _ADPM {0:1} — the person was adopted by their mother. Written by
+   * Brother's Keeper 6+ under INDI (same source and export rule as
+   * `adoptedByFather`); written back as `_ADPM Y`.
+   */
+  adoptedByMother?: boolean;
+  /**
+   * _GODP {0:M} — the godparents of the individual, as free text
+   * (names, not pointers): the German GEDCOM-L convention (agreement
+   * ASSO A4) places the text form under the individual record or under
+   * the baptism/christening event (see the GenWiki "GEDCOM/ASSO-Tag"
+   * article: https://wiki.genealogy.net/GEDCOM/ASSO-Tag). Not part of
+   * any GEDCOM version. Recognized on input and written back as `_GODP`
+   * in both versions. (Under an event the same tag types into
+   * EventDetail.godparents.)
+   */
+  godparents?: Text[];
+  /**
+   * _WITN {0:M} — the witnesses of the individual, as free text
+   * (names, not pointers): the German GEDCOM-L convention (agreement
+   * ASSO A4); same source and export rule as `godparents`. (Under an
+   * event the same tag types into EventDetail.witnesses.)
+   */
+  witnesses?: Text[];
+  /**
+   * _WEBTAG {0:M} — external web links: the RootsMagic `_WEBTAG` block
+   * with the NAME text and the URL address (see WebTagStructure and the
+   * webtrees per-vendor custom-tag registry, RootsMagic.php:
+   * <https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/RootsMagic.php>).
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as the `_WEBTAG` blocks in both versions.
+   */
+  webTags?: WebTagStructure[];
   /**
    * _FLGS {0:1} — the record flags: the Family Historian marks
    * attached to an individual record, each flag a child line whose

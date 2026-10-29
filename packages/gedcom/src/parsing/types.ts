@@ -858,9 +858,11 @@ export function parseTagDefinition(text: string, position: SourcePosition): TagD
 
 /**
  * Parses a 5.x MULTIMEDIA_FORMAT payload: the union of the 5.5.1 set
- * (GEDCOM 5.5.1 §2 p.54) and the GEDCOM 5.5.5 additions `JPEG` and
- * `TIFF` (5.5.5 §2 p.94) — 5.5.5 dropped OLE, but 5.x import accepts
- * the union. The 5.5.1 serializer still writes only the 5.5.1 set.
+ * (GEDCOM 5.5.1 §2 p.54) and the GEDCOM 5.5.5 set (5.5.5 §2 p.94:
+ * the modern formats AAC, AVI, ePub, FLAC, MKV, mobi, MP3, PDF and
+ * PNG, the restored JPEG/TIFF, with OLE dropped) — 5.x import accepts
+ * the union of both sets plus OLE. The 5.5.1 serializer still writes
+ * only the 5.5.1 set.
  */
 export function parseMediaFormat551(
   text: string,

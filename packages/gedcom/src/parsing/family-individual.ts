@@ -19,8 +19,10 @@ import type {
   IndividualEventDetail,
   IndividualEventStructure,
   IndividualRecord,
+  MarriageStatusStructure,
   NameTypeStructure,
   Note,
+  WebTagStructure,
 } from '../structures';
 import type {
   Ctx,
@@ -29,6 +31,7 @@ import {
   dispatch,
   addExtension,
   noPayload,
+  req,
   reqPtr,
   reqText,
   resolvePtr,
@@ -59,9 +62,11 @@ import type {
 } from './lines';
 import {
   parsePersonalNameStructure,
+  parsePlaceStructure,
 } from './names-places';
 import {
   parseMultimediaLink,
+  parsePrivacyFlag,
   parseSourceCitation,
   parseUsmCode,
   parseUsmFlag,
@@ -72,6 +77,7 @@ import {
   parseGrampsAssociation,
   parseChangeDate,
   parseCreationDate,
+  parseDateStructure,
   parseExternalIdentifier,
   parseNonEvent,
   parseNoteStructure,
@@ -170,7 +176,32 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       (rec.attributes ??= []).push({ tag: 'NCHI', payload: 0 });
     },
     _STAT: (child) => {
-      rec.marriageStatus = reqText(child);
+      // The marriage status (see MarriageStatusStructure): the bare
+      // status line of Legacy/AQ/Ages!/GDO/webtrees, or the full
+      // GEDCOM-L FAM F7 STATUS_STRUCTURE with the DATE, PLAC, NOTE and
+      // SOUR substructures.
+      const entry: MarriageStatusStructure = { payload: reqText(child) };
+      dispatch(
+        child,
+        entry,
+        {
+          DATE: (grandchild) => {
+            entry.date = parseDateStructure(grandchild, ctx);
+          },
+          PLAC: (grandchild) => {
+            entry.place = parsePlaceStructure(grandchild, ctx);
+          },
+          NOTE: (grandchild) => {
+            (entry.notes ??= []).push(parseNoteStructure(grandchild, ctx));
+          },
+          SOUR: (grandchild) => {
+            (entry.citations ??= []).push(parseSourceCitation(grandchild, ctx));
+          },
+        },
+        ctx,
+        ['DATE', 'PLAC'],
+      );
+      (rec.marriageStatuses ??= []).push(entry);
     },
     _MSTAT: (child) => {
       // FTW: the status at the beginning of the marriage.
@@ -212,6 +243,16 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       // family as a pointer; 5.5.1 FAM has no standard ASSO slot. The
       // RELA descriptor normalizes like the Gramps ASSO convention.
       (rec.associations ??= []).push(parseGrampsAssociation(child, ctx));
+    },
+    _WITN: (child) => {
+      // The German GEDCOM-L agreement ASSO A4: the witnesses of the
+      // family as free text (see FamilyRecord.witnesses).
+      (rec.witnesses ??= []).push(reqText(child));
+    },
+    _CREA: (child) => {
+      // Heredis: the date the record was created (see
+      // FamilyRecord.createdAt).
+      rec.createdAt = reqText(child);
     },
     _COML: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'MARR', 'Common law marriage');
@@ -531,6 +572,27 @@ function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<strin
 function applyLegacyFamilyTags(rec: FamilyRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
   for (const [tag, rule] of Object.entries(LEGACY_FAMILY_TAGS)) {
     handlers[tag] = (child) => {
+      if (rule.kind === 'note') {
+        // The phpGedView COMM comment: an inline FAM note (see the
+        // vendor-tags module JSDoc for the source).
+        const raw = child.value.kind === 'text' ? child.value.text : '';
+        if (raw === '') {
+          fail('structure.missing-payload', `The ${child.tag} line requires a text value`, child.position);
+        }
+        const note: Note = { tag: 'NOTE', payload: raw };
+        dispatch(
+          child,
+          note,
+          {
+            SOUR: (grandchild) => {
+              (note.citations ??= []).push(parseSourceCitation(grandchild, ctx));
+            },
+          },
+          ctx,
+        );
+        (rec.notes ??= []).push(note);
+        return;
+      }
       const detail: EventDetail = {};
       const eventHandlers = eventDetailHandlers(ctx, detail);
       eventHandlers['TYPE'] = () => undefined;
@@ -691,6 +753,18 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // IndividualRecord.createdAt).
       rec.createdAt = reqText(child);
     },
+    _CREA: (child) => {
+      // MFT7 (as `_CRE`) and Heredis: the date the record or event was
+      // created — the same slot `_CREAT` carries (see the GenWiki
+      // "GEDCOM/_Nutzerdef-Tag" catalog:
+      // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag).
+      rec.createdAt = reqText(child);
+    },
+    _CRE: (child) => {
+      // MFT7: the date the record or event was created (same slot and
+      // source as `_CREA`).
+      rec.createdAt = reqText(child);
+    },
     _BKM: (child) => {
       // MFT7: the person is bookmarked (see IndividualRecord.bookmarked).
       rec.bookmarked = parseVendorFlag(child, '_BKM');
@@ -698,6 +772,59 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _STP: (child) => {
       // MFT7: the start person (see IndividualRecord.startPerson).
       rec.startPerson = parseVendorFlag(child, '_STP');
+    },
+    _ADPF: (child) => {
+      // BKW6+: the person was adopted by their father (see
+      // IndividualRecord.adoptedByFather).
+      rec.adoptedByFather = parseVendorFlag(child, '_ADPF');
+    },
+    _ADPM: (child) => {
+      // BKW6+: the person was adopted by their mother (see
+      // IndividualRecord.adoptedByMother).
+      rec.adoptedByMother = parseVendorFlag(child, '_ADPM');
+    },
+    _PRIVATE: (child) => {
+      // TNG: the person is marked private (see the webtrees
+      // per-vendor custom-tag registry, TheNextGeneration.php:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/TheNextGeneration.php);
+      // the flag projects onto the standard RESN PRIVACY restriction,
+      // like the event `_PRIV` does.
+      if (parsePrivacyFlag(child, '_PRIVATE')) {
+        const restriction = (rec.restriction ??= []);
+        if (!restriction.includes('PRIVACY')) {
+          restriction.push('PRIVACY');
+        }
+      }
+    },
+    _GODP: (child) => {
+      // The German GEDCOM-L agreement ASSO A4: the godparents of the
+      // individual as free text at the record level (see
+      // IndividualRecord.godparents).
+      (rec.godparents ??= []).push(reqText(child));
+    },
+    _WITN: (child) => {
+      // The German GEDCOM-L agreement ASSO A4: the witnesses of the
+      // individual as free text at the record level (see
+      // IndividualRecord.witnesses).
+      (rec.witnesses ??= []).push(reqText(child));
+    },
+    _WEBTAG: (child) => {
+      // RootsMagic: an external web link, the NAME text plus the URL
+      // address (see IndividualRecord.webTags).
+      const tag: WebTagStructure = { url: reqText(req(child, 'URL')) };
+      dispatch(
+        child,
+        tag,
+        {
+          NAME: (grandchild) => {
+            tag.name = reqText(grandchild);
+          },
+          URL: () => undefined,
+        },
+        ctx,
+        ['NAME', 'URL'],
+      );
+      (rec.webTags ??= []).push(tag);
     },
     _FLGS: (child) => {
       // FH: the record flags (see IndividualRecord.recordFlags).
@@ -886,6 +1013,67 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _MILTID: (child) => {
       (rec.identifiers ??= []).push({ tag: 'REFN', payload: reqText(child), type: 'Military' });
+    },
+    // The further vendor fact tags of the closed catalogs (the Legacy
+    // "User-Defined GEDCOM Tags" help:
+    // https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm
+    // and the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+    // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag), typed like the
+    // FTM set above:
+    // - _ATTR (Family Historian: a custom attribute with a TYPE child,
+    //   the FHUG "GEDCOM Extension List":
+    //   https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/)
+    //   becomes FACT with the TYPE;
+    // - _MILI (Brother's Keeper, webtrees: military) becomes the same
+    //   EVEN + TYPE "Military" the _MILT twin carries;
+    // - _HOL (webtrees, phpGedView: the person was a Holocaust victim)
+    //   and _ELEC (FTW8: elected to an office) become FACT + TYPE;
+    // - _EYES (Generations: the eye color) becomes the same
+    //   FACT + TYPE "Eye color" the _EYEC twin carries;
+    // - _BUERGERORT and _HEIM (Swiss "Bürgerort", the place of
+    //   citizenship: Ahnenforscher 2000, Stammbaumdrucker, Familienbuch,
+    //   Ahnenblatt and GenPlus) become FACT + TYPE "Bürgerort", the
+    //   import form the GEDCOM-L agreement PLAC P8 prescribes;
+    // - _LIVING (TNG: the person is living) becomes FACT + TYPE
+    //   "Living", like the FTW5 LVG twin.
+    _ATTR: (child) => {
+      // FH: a custom attribute with a TYPE child — the same FACT + TYPE
+      // shape the FTM ATTR rule carries; the TYPE child names the fact.
+      pushLegacyIndividualAttribute(rec, child, ctx, 'FACT', 'Attribute');
+    },
+    _MILI: (child) => {
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military'));
+    },
+    _HOL: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Holocaust');
+    },
+    _ELEC: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Elected');
+    },
+    _EYES: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Eye color');
+    },
+    _BUERGERORT: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Bürgerort');
+    },
+    _HEIM: (child) => {
+      pushVendorAttribute(rec, child, ctx, 'FACT', 'Bürgerort');
+    },
+    _LIVING: (child) => {
+      // The TNG living flag: a presence-style marker, so a bare tag
+      // gets the `Y` payload the other flag conventions use (the
+      // FACT grammar requires a value).
+      const raw = child.value.kind === 'text' ? child.value.text : 'Y';
+      const detail: EventDetail = {};
+      const handlers = eventDetailHandlers(ctx, detail);
+      handlers['TYPE'] = () => undefined;
+      dispatch(child, detail, handlers, ctx);
+      (rec.attributes ??= []).push({
+        tag: 'FACT',
+        payload: raw,
+        type: 'Living',
+        ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+      });
     },
     _EXCM: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Excommunicated'));

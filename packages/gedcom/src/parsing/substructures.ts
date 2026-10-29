@@ -75,7 +75,12 @@ import {
 // ---------------------------------------------------------------------------
 
 export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure {
-  const out: AddressStructure = { payload: reqText(node) };
+  // The ADDR payload is required in 5.5.1 ({1:1}, split across CONT
+  // lines) and forbidden in 5.5.5 ("must not have a line value", the
+  // structured ADR1–CTRY form) — both parse; the payload is absent in
+  // the 5.5.5 form.
+  const out: AddressStructure =
+    node.value.kind === 'text' ? { payload: node.value.text } : {};
   const handlers: Record<string, (child: RawNode) => void> = {
     _EMAIL: (child) => {
       (out.email ??= []).push(reqText(child));
@@ -436,7 +441,11 @@ export function parseSortDateStructure(node: RawNode, ctx: Ctx): SortDateStructu
   return out;
 }
 
-export function parseAge(node: RawNode, ctx: Ctx): AgeStructure {
+export function parseAge(
+  node: RawNode,
+  ctx: Ctx,
+  extra?: Record<string, (child: RawNode) => void>,
+): AgeStructure {
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   const out: AgeStructure =
     raw === undefined || raw.trim() === ''
@@ -460,6 +469,10 @@ export function parseAge(node: RawNode, ctx: Ctx): AgeStructure {
         }
         out.ageRange = text;
       },
+      // An extension-defined substructure of a standard AGE (e.g. the
+      // MagiKey census AGE's NCHI, MagiKey_CENR_SEX_AGE.yaml): the
+      // caller supplies the handler.
+      ...(extra ?? {}),
     },
     ctx,
     ['PHRASE', '_AGER'],

@@ -25,6 +25,7 @@ import type {
   AdoptionStructure,
   AgeStructure,
   AliasLink,
+  AssociationStructure,
   ChildFamilyLink,
   DateExactStructure,
   EventDetail,
@@ -80,6 +81,7 @@ import {
   parseSureFlag,
   parseUsmCode,
   parseUsmFlag,
+  parseVendorFlag,
   parseYNFlag,
 } from './sources-media';
 import {
@@ -196,6 +198,13 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       // (see ChildFamilyLink.motherChildStatus).
       out.motherChildStatus = reqText(child);
     },
+    '_PEDI': (child) => {
+      // Family Historian: the pedigree on an additional parent-family
+      // link, the vendor spelling of the standard PEDI (the FHUG
+      // "GEDCOM Extension List":
+      // https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/).
+      out.pedigree = parsePedigree(child, ctx);
+    },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
@@ -216,7 +225,7 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       out.parentalRelationKind = parseUsmCode(child, 'MTYP', USM_PARENTAL_RELATION_KINDS);
     };
   }
-  dispatch(node, out, handlers, ctx, ['PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', 'PHRASE']);
+  dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', 'PHRASE']);
   return out;
 }
 
@@ -329,6 +338,29 @@ export function parseFamilyPartnerEventDetail(node: RawNode, ctx: Ctx): FamilyPa
   return { age };
 }
 
+/**
+ * Parses the AGES! `_WTN` witness pointer under a birth event: an
+ * ASSO link whose ROLE is WITN, with the optional TYPE descriptor kept
+ * in the ROLE PHRASE (see EventDetail.associations).
+ */
+function parseBirthWitness(node: RawNode, ctx: Ctx): AssociationStructure {
+  const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
+  let phrase: string | undefined;
+  dispatch(
+    node,
+    out,
+    {
+      TYPE: (child) => {
+        phrase = reqText(child);
+      },
+    },
+    ctx,
+    ['TYPE'],
+  );
+  out.role = phrase === undefined ? { payload: 'WITN' } : { payload: 'WITN', phrase };
+  return out;
+}
+
 /** The event-detail handlers (DATE/PLAC/…), mutating the given detail. */
 export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<string, (child: RawNode) => void> {
   const handlers: Record<string, (child: RawNode) => void> = {
@@ -438,6 +470,13 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   handlers['_SHAN'] = (child) => {
     // FH: a fact witness given by name only (see EventDetail.witnesses).
     (detail.witnesses ??= []).push(reqText(child));
+  };
+  handlers['_WTN'] = (child) => {
+    // AGES!: the person present at birth — a pointer, optionally with
+    // a TYPE descriptor (the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+    // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Typed as a
+    // witness association: the descriptor becomes the ROLE PHRASE.
+    (detail.associations ??= []).push(parseBirthWitness(child, ctx));
   };
   handlers['_EMAIL'] = (child) => {
     // FH (up to V6.2): the fact e-mail — the vendor spelling of the
@@ -830,7 +869,14 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
       (event as unknown as { childCountCertain?: boolean }).childCountCertain = parseSureFlag(child);
     };
   }
-  dispatch(node, event, handlers, ctx, ['SURE']);
+  if (tag === 'OCCU') {
+    handlers['_PRIM'] = (child) => {
+      // Ahnenblatt: the primary occupation flag (see
+      // OccupationAttribute.primary).
+      (event as unknown as { primary?: boolean }).primary = parseVendorFlag(child, '_PRIM');
+    };
+  }
+  dispatch(node, event, handlers, ctx, ['SURE', '_PRIM']);
   if ((tag === 'IDNO' || tag === 'FACT') && event.type === undefined) {
     fail('structure.missing-required', `The ${tag} attribute requires a TYPE substructure`, node.position);
   }

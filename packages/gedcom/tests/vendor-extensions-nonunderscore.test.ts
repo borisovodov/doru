@@ -161,9 +161,12 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     // plus the 22 GenWiki "Tabelle 2" deviations of USM6 / MFT7/MFT8
     // (AGED, BTYP, CREA, DEED, FPRF, MISE, MPRF, MRCI, MRRE, MTYP,
     // NAME_, NOTRY, POTM, PRIV, RECT, RINI, SECG, SIGN, SRCH, SURE,
-    // UGNM, UTYP) and the RootsMagic `FSFTID`.
-    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(154);
-    expect(LEGACY_GENERIC_TAGS.size).toBe(32);
+    // UGNM, UTYP), the RootsMagic `FSFTID`, and the webtrees
+    // per-vendor custom-tag registry additions: the typed Aldfaer
+    // MARR_* tags (4), the phpGedView COMM, the RootsMagic WWW, and the
+    // generic phpGedView SERV and MyHeritage PERSONALPHOTO.
+    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(162);
+    expect(LEGACY_GENERIC_TAGS.size).toBe(34);
   });
 
   test('types every rule-bearing tag into the model on 5.5.1 input', () => {

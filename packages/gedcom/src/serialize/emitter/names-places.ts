@@ -103,6 +103,16 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   if (name.callName !== undefined) {
     w.line(level + 1, '_RUFNAME', { value: name.callName });
   }
+  if (name.date !== undefined) {
+    // TMG: a date associated with the name (see
+    // PersonalNameStructure.date).
+    emitDate(w, version, level + 1, '_DATE', name.date);
+  }
+  for (const alias of name.aliases ?? []) {
+    // PRO-GEN: an alias of the name, as pure text (see
+    // PersonalNameStructure.aliases).
+    w.line(level + 1, '_ALIA', { value: alias });
+  }
   if (name.givenNameUsed !== undefined) {
     // FH: the given name used (see PersonalNameStructure.givenNameUsed).
     w.line(level + 1, '_USED', { value: name.givenNameUsed });
@@ -353,6 +363,12 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     w.line(2, 'LATI', { value: `${record.map.latitude.direction}${record.map.latitude.degrees}` });
     w.line(2, 'LONG', { value: `${record.map.longitude.direction}${record.map.longitude.degrees}` });
   }
+  for (const elMap of record.elMaps ?? []) {
+    // The GEDCOM 5.5EL coordinate form (see PlaceRecord.elMaps): the
+    // payload carries the coordinates, the TYPE names the system.
+    w.line(1, 'MAP', { value: elMap.payload });
+    w.line(2, 'TYPE', { value: elMap.type });
+  }
   commonRecordFields(w, version, record, 1);
 }
 
@@ -366,6 +382,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
   }
   if (place.govId !== undefined) {
     w.line(level + 1, '_GOV', { value: place.govId });
+  }
+  for (const alternative of place.alternativeNames ?? []) {
+    // GenPlus: an alternative place name (see
+    // PlaceStructure.alternativeNames).
+    w.line(level + 1, '_AON', { value: alternative });
   }
   for (const postal of place.postalCodes ?? []) {
     w.line(level + 1, '_POST', { value: postal.code });
