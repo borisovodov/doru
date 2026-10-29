@@ -36,10 +36,10 @@ echo "::group::Install system dependencies"
 sudo apt-get update -qq
 sudo apt-get install -y -qq \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2t64 libgbm1 \
-  xvfb dbus-x11 libfuse2t64 desktop-file-utils \
+  xvfb dbus-x11 libfuse2t64 desktop-file-utils xdg-utils \
   || sudo apt-get install -y -qq \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libgbm1 \
-  xvfb dbus-x11 libfuse2 desktop-file-utils
+  xvfb dbus-x11 libfuse2 desktop-file-utils xdg-utils
 echo "::endgroup::"
 
 echo "::group::Install Homebrew on Linux"
