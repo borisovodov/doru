@@ -1,4 +1,3 @@
-import '@fontsource/berkshire-swash';
 import { X } from 'lucide-react';
 import type { RecentProject } from '@doru/core';
 import { nls } from '../nls';
