@@ -92,7 +92,14 @@ declare global {
           themes: Array<{ id: string; name: string }>;
         }) => void,
       ): () => void;
-      onMenuToggleAgentChat(callback: () => void): () => void;
+      /**
+       * Executes a main-process window action from a menu entry (reload,
+       * zoom, quit…). The in-window menu on Windows/Linux is the counterpart
+       * of the native roles the macOS menu renders.
+       */
+      menuAction(action: string): Promise<void>;
+      /** A native menu item was chosen; `commandId` runs through the CommandService. */
+      onMenuCommand(callback: (commandId: string) => void): () => void;
       onAiSettingsChanged(callback: (state: AiSettingsState) => void): () => void;
       /** Opens a link from a chat reply in the system browser (http/https only). */
       openExternal(url: string): Promise<boolean>;

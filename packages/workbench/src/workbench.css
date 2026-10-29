@@ -116,6 +116,17 @@ body {
   color: var(--doru-fg-muted);
 }
 
+/* Leading title bar slot: the in-window menu lives here on Windows/Linux.
+   Rendered on the right-hand platforms only, so the macOS traffic-light
+   padding never applies to it. */
+.title-bar-leading {
+  position: absolute;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+
 .title-bar-actions {
   position: absolute;
   right: 10px;

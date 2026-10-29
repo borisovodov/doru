@@ -171,11 +171,18 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await page.locator('.title-bar-action').click();
   await expect(page.locator('.agent-chat-panel')).toBeVisible();
 
-  // The same toggle lives in the application menu (View section).
-  const toggleFromMenu = () =>
-    app.evaluate(({ Menu }) => {
-      Menu.getApplicationMenu()?.getMenuItemById('toggle-agent-chat')?.click();
-    });
+  // The same toggle lives in the application menu — the native menu bar on
+  // macOS, the in-window menu on Windows/Linux.
+  const toggleFromMenu = async () => {
+    if ((await page.evaluate(() => window.doru.platform)) === 'darwin') {
+      await app.evaluate(({ Menu }) => {
+        Menu.getApplicationMenu()?.getMenuItemById('toggle-agent-chat')?.click();
+      });
+    } else {
+      await page.locator('.app-menu-trigger').click();
+      await page.locator('[data-menu-item="toggle-agent-chat"]').click();
+    }
+  };
   await toggleFromMenu();
   await expect(page.locator('.agent-chat-panel')).toBeHidden();
   await toggleFromMenu();

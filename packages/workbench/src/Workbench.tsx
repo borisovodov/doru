@@ -17,6 +17,8 @@ export interface WorkbenchProps {
   platform?: string;
   /** Extra actions rendered in the title bar, before the built-in toggle. */
   titleActions?: ReactNode;
+  /** Leading title bar content (e.g. the in-window menu on Windows/Linux). */
+  titleMenu?: ReactNode;
   sidebar?: ReactNode;
   /** The right-hand panel content: the chat with the AI agent. */
   agentChat?: ReactNode;
@@ -45,6 +47,7 @@ export function Workbench({
   keybindings: externalKeybindings = [],
   title,
   titleActions,
+  titleMenu,
   platform,
   sidebar,
   agentChat,
@@ -147,6 +150,7 @@ export function Workbench({
   return (
     <div className={layoutClasses.join(' ')} style={layoutStyle}>
       <div className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
+        <div className="title-bar-leading">{titleMenu}</div>
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions">
           {titleActions}
