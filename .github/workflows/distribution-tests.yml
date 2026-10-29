@@ -11,6 +11,10 @@ name: Distribution tests
 # These jobs are intentionally NOT part of the per-push CI: they are slow and
 # exercise the release pipeline, so they run only when a release is cut (the
 # Release workflow calls this one) or manually via workflow_dispatch.
+#
+# The Linux and Windows channels run on both x64 and arm64 runners (each
+# runner installs the artifact built for its own architecture); the macOS
+# channel is arm64-only — the cask requires Apple silicon.
 
 on:
   workflow_call:
@@ -73,9 +77,13 @@ jobs:
           path: dist-logs/**
 
   ubuntu-brew:
-    name: Ubuntu · Homebrew cask
+    name: Ubuntu · Homebrew cask (${{ matrix.os }})
     if: contains(inputs.channels, 'ubuntu-brew')
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
@@ -88,7 +96,9 @@ jobs:
         working-directory: apps/desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run package:linux
+        run: |
+          if [ "$(uname -m)" = aarch64 ]; then arch_flag=--arm64; else arch_flag=--x64; fi
+          npm run package:linux -- "$arch_flag"
       - uses: actions/checkout@v5
         with:
           repository: borisovodov/homebrew-taps
@@ -111,10 +121,14 @@ jobs:
           path: dist-logs/**
 
   ubuntu-flatpak:
-    name: Ubuntu · Flatpak
+    name: Ubuntu · Flatpak (${{ matrix.os }})
     if: contains(inputs.channels, 'ubuntu-flatpak')
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -144,10 +158,14 @@ jobs:
           path: dist-logs/**
 
   windows-scoop:
-    name: Windows · Scoop
+    name: Windows · Scoop (${{ matrix.os }})
     if: contains(inputs.channels, 'windows-scoop')
-    runs-on: windows-latest
-    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -157,9 +175,12 @@ jobs:
       - run: npm ci
       - name: Build the zip
         working-directory: apps/desktop
+        shell: pwsh
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run package:win -- --config.productName=Dóru
+        run: |
+          $archFlag = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { '--arm64' } else { '--x64' }
+          npm run package:win -- --config.productName=Dóru $archFlag
       - uses: actions/checkout@v5
         with:
           repository: borisovodov/bucket

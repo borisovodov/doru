@@ -6,6 +6,10 @@
 # after first launch plus a warm and a cold-start link open through the
 # desktop entry), a real launch under xvfb, and the first-run files.
 #
+# The architecture under test is the runner's own: on an arm64 runner the
+# arm64 AppImage is served and the cask's arm64_linux hash is rewritten (the
+# cask picks the arch itself via on_arch_conditional).
+#
 # Discrepancies with a real user install, decided case by case:
 # - the app is launched headless with `--no-sandbox --disable-gpu` (no
 #   display server on CI; the Chromium sandbox is unreliable on runners);
@@ -15,7 +19,15 @@ set -euo pipefail
 
 WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
 TAP="$WORKSPACE/external/homebrew-taps"
-APPIMAGE=$(ls "$WORKSPACE"/apps/desktop/release/doru-linux-x86_64.AppImage 2>/dev/null | head -1)
+if [ "$(uname -m)" = aarch64 ]; then
+  APPIMAGE_ARCH=arm64
+  HASH_KEY=arm64_linux
+else
+  APPIMAGE_ARCH=x86_64
+  HASH_KEY=x86_64_linux
+fi
+SERVED_APPIMAGE="doru-linux-${APPIMAGE_ARCH}.AppImage"
+APPIMAGE=$(ls "$WORKSPACE"/apps/desktop/release/"$SERVED_APPIMAGE" 2>/dev/null | head -1)
 PORT=8474
 
 fail() { echo "::error::$1"; exit 1; }
@@ -41,10 +53,6 @@ echo "::endgroup::"
 
 echo "::group::Serve the artifact"
 cd "$(dirname "$APPIMAGE")"
-# The build produces an arm64 AppImage next to the x86_64 one; pick the
-# runner's arch explicitly — the alphabetical first match would be the arm64
-# build, and its name already matches the cask's app_image stanza.
-SERVED_APPIMAGE="doru-linux-x86_64.AppImage"
 python3 -m http.server "$PORT" >/tmp/doru-http.log 2>&1 &
 HTTP_PID=$!
 trap 'kill "$HTTP_PID" 2>/dev/null || true' EXIT
@@ -65,19 +73,19 @@ brew trust borisovodov/taps
 CASK="$(brew --repo borisovodov/taps)/Casks/doru.rb"
 HASH=$(sha256sum "$APPIMAGE" | awk '{print $1}')
 ARTIFACT_URL="http://127.0.0.1:$PORT/$SERVED_APPIMAGE"
-python3 - "$CASK" "$HASH" "$ARTIFACT_URL" <<'PY'
+python3 - "$CASK" "$HASH" "$ARTIFACT_URL" "$HASH_KEY" <<'PY'
 import re, sys
-path, new_hash, new_url = sys.argv[1], sys.argv[2], sys.argv[3]
+path, new_hash, new_url, hash_key = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 text = open(path).read()
 text = re.sub(r'^  version .*$', '  version "0.0.0-test"', text, flags=re.M)
 text = re.sub(r'^  url .*$', f'  url "{new_url}"', text, flags=re.M)
-text, n = re.subn(r'(x86_64_linux:\s*")[0-9a-f]{64}', r'\g<1>' + new_hash, text)
-assert n == 1, f"the x86_64_linux hash line was not found (rewrote {n})"
+text, n = re.subn(rf'({hash_key}:\s*")[0-9a-f]{{64}}', r'\g<1>' + new_hash, text)
+assert n == 1, f"the {hash_key} hash line was not found (rewrote {n})"
 open(path, 'w').write(text)
 PY
 grep -E '^(  url|  version)' "$CASK"
-grep -q "x86_64_linux:.*$HASH" "$CASK" \
-  || { grep -n 'sha256\|x86_64' "$CASK"; fail "the cask hash rewrite did not stick"; }
+grep -q "${HASH_KEY}:.*$HASH" "$CASK" \
+  || { grep -n 'sha256' "$CASK"; fail "the cask hash rewrite did not stick"; }
 brew install --cask borisovodov/taps/doru
 echo "::endgroup::"
 
