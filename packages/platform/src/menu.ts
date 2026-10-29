@@ -7,9 +7,10 @@ import type { MessageKey } from './nls';
  * renderer command, a main-process action, or both a role (macOS) and an
  * action (Windows/Linux), so one entry covers every platform.
  *
- * App commands deliberately carry no Electron accelerator: keybindings live
- * in the renderer on every platform, and a menu accelerator would run the
- * command a second time.
+ * Shortcuts have one source: the renderer keybindings run on every platform,
+ * and the macOS menu items display the same combinations as native
+ * `accelerator`s. On macOS the menu key equivalent consumes the key press in
+ * AppKit before it ever reaches the DOM, so the two never double-fire.
  */
 
 /** Host platforms an entry can be limited to. Linux shares the windows variant. */
@@ -62,6 +63,12 @@ export interface MenuItemEntry {
   readonly action?: MenuAction;
   /** Electron role; the native macOS menu renders it with native behavior. */
   readonly role?: MenuRole;
+  /**
+   * Shortcut shown and registered by the native macOS menu (Electron
+   * accelerator format). The same combination stays bound in the renderer
+   * keybindings; AppKit consumes the key press before the DOM sees it.
+   */
+  readonly accelerator?: string;
   /** Shortcut hint shown on platforms without a native menu (Ctrl+N and friends). */
   readonly hint?: string;
   readonly platforms?: readonly MenuPlatform[];
@@ -100,6 +107,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         id: 'file.new',
         labelKey: 'workbench.createProject',
         command: 'workbench.createProject',
+        accelerator: 'CmdOrCtrl+N',
         hint: 'Ctrl+N',
       },
       {
@@ -107,6 +115,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         id: 'file.open',
         labelKey: 'workbench.openProject',
         command: 'workbench.openProject',
+        accelerator: 'CmdOrCtrl+O',
         hint: 'Ctrl+O',
       },
       {
@@ -114,6 +123,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         id: 'file.save',
         labelKey: 'workbench.saveProject',
         command: 'workbench.saveProject',
+        accelerator: 'CmdOrCtrl+S',
         hint: 'Ctrl+S',
       },
       {
@@ -121,6 +131,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         id: 'file.export',
         labelKey: 'workbench.exportGedcom',
         command: 'workbench.exportGedcom',
+        accelerator: 'CmdOrCtrl+Shift+E',
         hint: 'Ctrl+Shift+E',
       },
       {
@@ -128,6 +139,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         id: 'file.settings',
         labelKey: 'workbench.settings',
         command: 'workbench.openSettings',
+        accelerator: 'CmdOrCtrl+,',
         hint: 'Ctrl+,',
       },
       { type: 'separator', platforms: ['windows', 'linux'] },
@@ -201,6 +213,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         id: 'toggle-agent-chat',
         labelKey: 'workbench.toggleAgentChat',
         command: 'workbench.toggleAgentChat',
+        accelerator: 'CmdOrCtrl+Alt+B',
         hint: 'Ctrl+Alt+B',
       },
       { type: 'separator' },
