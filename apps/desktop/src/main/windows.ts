@@ -81,8 +81,11 @@ export function installMenu(): void {
             return {
               id: entry.id,
               ...(entry.labelKey ? { label: nls.t(entry.labelKey) } : {}),
-              // No accelerator: keybindings live in the renderer on every
-              // platform, and a menu accelerator would run the command twice.
+              // The accelerator is registered as a native key equivalent and
+              // shown in the menu item. AppKit consumes a matching key press
+              // before it reaches the DOM, so the renderer keybinding for the
+              // same combination never double-fires.
+              ...(entry.accelerator ? { accelerator: entry.accelerator } : {}),
               // The click routes through the window the menu click reports;
               // when none is focused (automation, no window focus), fall back
               // to any live window rather than dropping the command.

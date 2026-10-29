@@ -71,4 +71,19 @@ describe('APP_MENU', () => {
       true,
     );
   });
+
+  test('command items visible in the macOS menu always show an accelerator', () => {
+    // Role groups (app, edit, window) render natively on macOS; only the
+    // plain groups' items appear as command items.
+    for (const group of APP_MENU.filter(
+      (candidate) => menuVisible(candidate, 'macos') && !candidate.role,
+    )) {
+      for (const entry of group.items) {
+        if (entry.type !== 'item' || !entry.command || !menuVisible(entry, 'macos')) {
+          continue;
+        }
+        expect(entry.accelerator, entry.id).toBeDefined();
+      }
+    }
+  });
 });
