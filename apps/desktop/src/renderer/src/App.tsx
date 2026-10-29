@@ -5,6 +5,7 @@ import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, SettingsView, TreeCan
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
+import { AppMenu } from './components/AppMenu';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
@@ -160,9 +161,11 @@ export function App() {
   ]);
 
   useEffect(() => {
-    return window.doru.onMenuToggleAgentChat(() => {
-      // The command is registered by the Workbench on the same CommandService.
-      void commands.execute('workbench.toggleAgentChat');
+    return window.doru.onMenuCommand((commandId) => {
+      // Native macOS menu items execute the same renderer commands as the
+      // in-window menu and the keybindings; they are registered by App and
+      // the Workbench on the shared CommandService.
+      void commands.execute(commandId).catch(() => undefined);
     });
   }, [commands]);
 
@@ -186,6 +189,8 @@ export function App() {
       { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
       { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
       { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
+      { key: 'meta+alt+b', command: 'workbench.toggleAgentChat' },
+      { key: 'ctrl+alt+b', command: 'workbench.toggleAgentChat' },
       ...Array.from({ length: 9 }, (_, index) => [
         { key: `meta+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
         { key: `ctrl+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
@@ -328,6 +333,11 @@ export function App() {
             : nls.t('app.name')
         }
         platform={window.doru.platform}
+        titleMenu={
+          window.doru.platform === 'darwin' ? undefined : (
+            <AppMenu commands={commands} platform={window.doru.platform} />
+          )
+        }
         titleActions={
           projectUntitled ? (
             <button

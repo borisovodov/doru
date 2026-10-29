@@ -8,6 +8,7 @@ import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
 import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
+import { registerMenuIpc } from './ipc-menu';
 import { registerProjectIpc } from './ipc-project';
 import { broadcastAiSettingsChanged, registerSettingsIpc } from './ipc-settings';
 import { registerThemeIpc } from './ipc-theme';
@@ -31,6 +32,7 @@ registerTreeIpc();
 registerChatIpc();
 registerSettingsIpc();
 registerThemeIpc();
+registerMenuIpc();
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'doru-media', privileges: { secure: true, stream: true } },

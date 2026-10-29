@@ -86,10 +86,11 @@ const api = {
     ipcRenderer.on('settings:ai:changed', listener);
     return () => ipcRenderer.removeListener('settings:ai:changed', listener);
   },
-  onMenuToggleAgentChat: (callback: () => void): (() => void) => {
-    const listener = () => callback();
-    ipcRenderer.on('menu:toggle-agent-chat', listener);
-    return () => ipcRenderer.removeListener('menu:toggle-agent-chat', listener);
+  menuAction: (action: string): Promise<void> => ipcRenderer.invoke('menu:action', action),
+  onMenuCommand: (callback: (commandId: string) => void): (() => void) => {
+    const listener = (_event: unknown, commandId: string) => callback(commandId);
+    ipcRenderer.on('menu:command', listener);
+    return () => ipcRenderer.removeListener('menu:command', listener);
   },
   openExternal: (url: string): Promise<unknown> => ipcRenderer.invoke('shell:openExternal', url),
   listNotes: (projectPath: string, personId?: string): Promise<unknown> =>

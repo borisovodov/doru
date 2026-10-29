@@ -1,8 +1,8 @@
-import { BrowserWindow, Menu, app, type MenuItemConstructorOptions } from 'electron';
+import { BrowserWindow, Menu, app, type BaseWindow, type MenuItemConstructorOptions } from 'electron';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ProjectBinding } from '@doru/core';
-import { LocalizationService, resolveLocale } from '@doru/platform';
+import { APP_MENU, LocalizationService, menuPlatformOf, menuVisible, resolveLocale } from '@doru/platform';
 import { closeProjectRuntime } from './runtime';
 import { updateSession } from './session';
 import { projectWindows, untitledProjects, windowProject } from './state';
@@ -47,41 +47,71 @@ export function bindingOf(projectKey: string): ProjectBinding {
 
 export function installMenu(): void {
   const nls = new LocalizationService(resolveLocale(app.getLocale()));
-  const sendToFocused = (channel: string): void => {
-    BrowserWindow.getFocusedWindow()?.webContents.send(channel);
-  };
-  const template: MenuItemConstructorOptions[] = [];
-  if (process.platform === 'darwin') {
-    template.push({ role: 'appMenu' });
-  } else {
-    template.push({ label: 'File', submenu: [{ role: 'quit' }] });
+  const platform = menuPlatformOf(process.platform);
+  if (platform !== 'macos') {
+    // Windows/Linux windows are frameless: a native menu bar would never be
+    // drawn and its accelerators never fire. The renderer draws the same
+    // APP_MENU as an in-window menu (see AppMenu), so dropping the native
+    // menu leaves exactly one click surface per platform — the same split
+    // VS Code and OpenCode Desktop use.
+    Menu.setApplicationMenu(null);
+    return;
   }
-  template.push({ role: 'editMenu' });
-  // Built from roles so extra app commands can live next to the standard
-  // items; the renderer executes them through its CommandService.
-  template.push({
-    label: nls.t('menu.view'),
-    submenu: [
-      { role: 'reload' },
-      { role: 'forceReload' },
-      { role: 'toggleDevTools' },
-      { type: 'separator' },
-      { role: 'resetZoom' },
-      { role: 'zoomIn' },
-      { role: 'zoomOut' },
-      { type: 'separator' },
-      { role: 'togglefullscreen' },
-      { type: 'separator' },
-      {
-        id: 'toggle-agent-chat',
-        label: nls.t('workbench.toggleAgentChat'),
-        accelerator: 'CmdOrCtrl+Alt+B',
-        click: () => sendToFocused('menu:toggle-agent-chat'),
-      },
-    ],
-  });
-  template.push({ role: 'windowMenu' });
+  const template = APP_MENU.filter((group) => menuVisible(group, platform)).map(
+    (group): MenuItemConstructorOptions => {
+      if (group.role) {
+        // Pure native groups (app, edit, window) — macOS fills them in.
+        return { role: group.role };
+      }
+      return {
+        ...(group.labelKey ? { label: nls.t(group.labelKey) } : {}),
+        submenu: group.items
+          .filter((entry) => menuVisible(entry, platform))
+          .map((entry) => {
+            if (entry.type === 'separator') {
+              return { type: 'separator' as const };
+            }
+            if (entry.role && !entry.command) {
+              return {
+                id: entry.id,
+                role: entry.role,
+                ...(entry.labelKey ? { label: nls.t(entry.labelKey) } : {}),
+              };
+            }
+            return {
+              id: entry.id,
+              ...(entry.labelKey ? { label: nls.t(entry.labelKey) } : {}),
+              // No accelerator: keybindings live in the renderer on every
+              // platform, and a menu accelerator would run the command twice.
+              // The click routes through the window the menu click reports;
+              // when none is focused (automation, no window focus), fall back
+              // to any live window rather than dropping the command.
+              click: (_item, window) => {
+                const target =
+                  window ??
+                  BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed());
+                sendMenuCommand(target, entry.command);
+              },
+            };
+          }),
+      };
+    },
+  );
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+/** Routes a menu item's command to its window; the renderer executes it. */
+function sendMenuCommand(window: BaseWindow | undefined, command: string | undefined): void {
+  if (!command || !window || window.isDestroyed()) {
+    return;
+  }
+  // Menu clicks pass the window as a BaseWindow; resolve it back to the
+  // BrowserWindow that owns the webContents.
+  const browserWindow = BrowserWindow.fromId(window.id);
+  if (!browserWindow) {
+    return;
+  }
+  browserWindow.webContents.send('menu:command', command);
 }
 
 export function bindWindowToProject(window: BrowserWindow, projectKey: string): void {
