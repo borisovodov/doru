@@ -126,7 +126,6 @@
   "settings.ai.baseUrlNotSet": "L'URL de base n'est pas définie.",
   "settings.ai.doruModel.cancel": "Annuler le téléchargement",
   "settings.ai.doruModel.delete": "Supprimer Dóru AI",
-  "settings.ai.doruModel.downloading": "Téléchargement… {0}",
   "settings.ai.doruModel.error.diskSpace": "Espace disque insuffisant. Libérez de l’espace et réessayez.",
   "settings.ai.doruModel.error.download": "Le téléchargement a échoué. Vérifiez la connexion et réessayez.",
   "settings.ai.doruModel.error.incomplete": "Le téléchargement était incomplet. Réessayez — il reprend là où il s’était arrêté.",

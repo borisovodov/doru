@@ -126,7 +126,6 @@
   "settings.ai.baseUrlNotSet": "Az alap URL nincs megadva.",
   "settings.ai.doruModel.cancel": "Letöltés megszakítása",
   "settings.ai.doruModel.delete": "A Dóru AI eltávolítása",
-  "settings.ai.doruModel.downloading": "Letöltés… {0}",
   "settings.ai.doruModel.error.diskSpace": "Nincs elég szabad lemezterület. Szabadítson fel helyet, és próbálja újra.",
   "settings.ai.doruModel.error.download": "A letöltés nem sikerült. Ellenőrizze a kapcsolatot, és próbálja újra.",
   "settings.ai.doruModel.error.incomplete": "A letöltés hiányos volt. Próbálja újra — ott folytatódik, ahol abbamaradt.",

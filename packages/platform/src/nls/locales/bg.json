@@ -126,7 +126,6 @@
   "settings.ai.baseUrlNotSet": "Базовият URL не е зададен.",
   "settings.ai.doruModel.cancel": "Отказ от изтегляне",
   "settings.ai.doruModel.delete": "Премахване на Dóru AI",
-  "settings.ai.doruModel.downloading": "Изтегляне… {0}",
   "settings.ai.doruModel.error.diskSpace": "Няма достатъчно място на диска. Освободете място и опитайте отново.",
   "settings.ai.doruModel.error.download": "Изтеглянето не успя. Проверете връзката и опитайте отново.",
   "settings.ai.doruModel.error.incomplete": "Изтеглянето беше непълно. Опитайте отново — ще продължи оттам, докъдето е стигнало.",

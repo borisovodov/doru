@@ -126,7 +126,6 @@
   "settings.ai.baseUrlNotSet": "尚未設定基礎 URL。",
   "settings.ai.doruModel.cancel": "取消下載",
   "settings.ai.doruModel.delete": "移除 Dóru AI",
-  "settings.ai.doruModel.downloading": "正在下載… {0}",
   "settings.ai.doruModel.error.diskSpace": "磁碟空間不足。請釋放空間後重試。",
   "settings.ai.doruModel.error.download": "下載失敗。請檢查網路連線後重試。",
   "settings.ai.doruModel.error.incomplete": "下載未完成。請重試——它會從中斷處繼續。",

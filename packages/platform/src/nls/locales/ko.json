@@ -126,7 +126,6 @@
   "settings.ai.baseUrlNotSet": "기본 URL이 설정되지 않았습니다.",
   "settings.ai.doruModel.cancel": "다운로드 취소",
   "settings.ai.doruModel.delete": "Dóru AI 제거",
-  "settings.ai.doruModel.downloading": "다운로드 중… {0}",
   "settings.ai.doruModel.error.diskSpace": "디스크 공간이 부족합니다. 공간을 확보한 후 다시 시도하세요.",
   "settings.ai.doruModel.error.download": "다운로드에 실패했습니다. 연결을 확인하고 다시 시도하세요.",
   "settings.ai.doruModel.error.incomplete": "다운로드가 완료되지 않았습니다. 다시 시도하세요. 중단된 지점부터 이어집니다.",

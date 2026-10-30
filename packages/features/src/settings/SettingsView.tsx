@@ -426,23 +426,19 @@ function DoruModelSection(props: {
     return <p className="settings-note">{nls.t('settings.ai.modelFetching')}</p>;
   }
   if (model.downloading) {
-    const percent = model.totalBytes > 0 ? Math.round(((model.bytes ?? 0) / model.totalBytes) * 100) : 0;
     return (
-      <>
-        <div className="settings-doru-progress">
-          <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
-          <button
-            className="settings-doru-progress-cancel"
-            onClick={props.onCancel}
-            aria-label={nls.t('settings.ai.doruModel.cancel')}
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-              <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-        <p className="settings-note">{nls.t('settings.ai.doruModel.downloading', `${percent}%`)}</p>
-      </>
+      <div className="settings-doru-progress">
+        <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
+        <button
+          className="settings-doru-progress-cancel"
+          onClick={props.onCancel}
+          aria-label={nls.t('settings.ai.doruModel.cancel')}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
     );
   }
   if (model.installed) {

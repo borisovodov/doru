@@ -126,7 +126,6 @@
   "settings.ai.baseUrlNotSet": "L'URL di base non è impostato.",
   "settings.ai.doruModel.cancel": "Annulla download",
   "settings.ai.doruModel.delete": "Rimuovi Dóru AI",
-  "settings.ai.doruModel.downloading": "Download in corso… {0}",
   "settings.ai.doruModel.error.diskSpace": "Spazio su disco insufficiente. Libera spazio e riprova.",
   "settings.ai.doruModel.error.download": "Il download non è riuscito. Controlla la connessione e riprova.",
   "settings.ai.doruModel.error.incomplete": "Il download era incompleto. Riprova — riprende da dove si era interrotto.",
