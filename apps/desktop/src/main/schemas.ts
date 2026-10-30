@@ -19,7 +19,7 @@ export const ProviderSettingsSchema = z
       .string()
       .optional()
       .describe(
-        'Reasoning level for models that support it, translated to each provider\'s native mechanism. Any string is accepted: levels the running version does not know fall back to the provider default. Absent means the provider default.',
+        'Reasoning level for models that support it, translated to each provider\'s native mechanism (reasoning_effort on OpenAI-style APIs, Anthropic thinking controls). Any string is accepted: levels the running version does not know, or the selected model does not offer, fall back to the provider default. Absent means the provider default. Ignored for provider "acp".',
       ),
     command: z
       .string()

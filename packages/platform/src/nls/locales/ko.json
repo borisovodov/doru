@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "에이전트가 아직 구성되지 않았습니다. 제공자와 모델을 선택하세요.",
   "settings.ai.provider": "제공자",
   "settings.ai.reasoning": "추론",
-  "settings.ai.reasoning.default": "제공자 기본값",
+  "settings.ai.reasoning.default": "기본값",
   "settings.ai.reasoning.high": "높음",
   "settings.ai.reasoning.low": "낮음",
   "settings.ai.reasoning.max": "최대",

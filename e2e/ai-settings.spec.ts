@@ -45,7 +45,6 @@ test('the AI settings section configures and tests a provider', async () => {
     // succeeds (a real Ollama running) or fails, the next steps converge.
     await page.getByLabel('Provider').selectOption('ollama');
     await expect(page.getByRole('button', { name: 'Fetch models from the provider' })).toBeVisible();
-    await expect(page.getByLabel('Reasoning')).toHaveCount(0);
     await expect(page.getByText('API key')).toHaveCount(0);
 
     // Point at the mock endpoint and fetch the list: the model dropdown
@@ -55,6 +54,20 @@ test('the AI settings section configures and tests a provider', async () => {
     await page.getByRole('button', { name: 'Fetch models from the provider' }).click();
     await expect(page.getByLabel('Model')).toHaveValue('mock-model');
 
+    // With a model chosen, catalog-less providers offer the pass-through
+    // reasoning control: provider default plus the OpenAI-shaped levels.
+    const reasoning = page.getByLabel('Reasoning');
+    await expect(reasoning).toBeVisible();
+    await expect(reasoning.locator('option')).toHaveText([
+      'Default',
+      'None',
+      'Minimal',
+      'Low',
+      'Medium',
+      'High',
+    ]);
+    await reasoning.selectOption('high');
+
     // The connection test runs against the configured endpoint.
     await page.getByRole('button', { name: 'Test connection' }).click();
     await expect(page.getByText('Connected')).toBeVisible();
@@ -63,6 +76,7 @@ test('the AI settings section configures and tests a provider', async () => {
     const state = await page.evaluate(() => window.doru.getAiSettings());
     expect(state.provider).toBe('ollama');
     expect(state.model).toBe('mock-model');
+    expect(state.reasoning).toBe('high');
     expect(state.configured).toBe(true);
 
     // Per-provider profiles: switching away and back restores the values.
@@ -71,6 +85,7 @@ test('the AI settings section configures and tests a provider', async () => {
     await page.getByLabel('Provider').selectOption('ollama');
     await expect(page.getByLabel('Base URL')).toHaveValue(mock.url());
     await expect(page.getByLabel('Model')).toHaveValue('mock-model');
+    await expect(page.getByLabel('Reasoning')).toHaveValue('high');
   } finally {
     await app.close();
     await new Promise<void>((resolve) => mock.server.close(() => resolve()));

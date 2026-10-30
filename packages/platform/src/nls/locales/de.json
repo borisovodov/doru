@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "Der Agent ist noch nicht konfiguriert. Wählen Sie einen Anbieter und ein Modell.",
   "settings.ai.provider": "Anbieter",
   "settings.ai.reasoning": "Reasoning",
-  "settings.ai.reasoning.default": "Anbieterstandard",
+  "settings.ai.reasoning.default": "Standard",
   "settings.ai.reasoning.high": "Hoch",
   "settings.ai.reasoning.low": "Niedrig",
   "settings.ai.reasoning.max": "Maximum",

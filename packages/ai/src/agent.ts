@@ -3,17 +3,8 @@
 // collected into AgentStep[] so the transcript can show what the agent did.
 import { stepCountIs, streamText, type LanguageModel, type ModelMessage, type ToolSet } from 'ai';
 import { classifyError, type AiErrorCode } from './errors';
+import type { ReasoningLevel } from './reasoning';
 import type { ChatMessage } from './types';
-/** AI SDK reasoning levels; absent means the provider default. */
-export type ReasoningLevel =
-  | 'provider-default'
-  | 'none'
-  | 'minimal'
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'xhigh'
-  | 'max';
 
 export type AgentStep =
   | { type: 'toolCall'; name: string; arguments: Record<string, unknown> }

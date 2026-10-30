@@ -10,8 +10,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@doru/ai": "*",
     "@doru/core": "*",
     "@doru/platform": "*",
+    "@opencode-ai/models": "0.0.111",
     "@xyflow/react": "12.12.0",
     "lucide-react": "1.57.0",
     "react": "19.3.0",

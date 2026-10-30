@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "Ajan henüz yapılandırılmadı. Bir sağlayıcı ve model seçin.",
   "settings.ai.provider": "Sağlayıcı",
   "settings.ai.reasoning": "Akıl yürütme",
-  "settings.ai.reasoning.default": "Sağlayıcı varsayılanı",
+  "settings.ai.reasoning.default": "Varsayılan",
   "settings.ai.reasoning.high": "Yüksek",
   "settings.ai.reasoning.low": "Düşük",
   "settings.ai.reasoning.max": "En yüksek",

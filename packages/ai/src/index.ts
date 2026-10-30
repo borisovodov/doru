@@ -23,9 +23,15 @@ export {
   type AgentStep,
   type ChatSendResult,
   type ChatTranscriptMessage,
-  type ReasoningLevel,
   type RunAgentOptions,
 } from './agent';
+export {
+  normalizeReasoning,
+  offeredReasoningLevels,
+  OPENAI_WIRE_LEVELS,
+  REASONING_LEVELS,
+  type ReasoningLevel,
+} from './reasoning';
 export { TreeMcpBackend, type TreeEditOp } from './backend';
 export { DoruMcpServer } from './server';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry, type AcpPromptBlock } from './acp';

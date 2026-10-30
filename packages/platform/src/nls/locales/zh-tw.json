@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "代理程式尚未設定。請選擇提供者和模型。",
   "settings.ai.provider": "提供者",
   "settings.ai.reasoning": "推理",
-  "settings.ai.reasoning.default": "提供者預設",
+  "settings.ai.reasoning.default": "預設",
   "settings.ai.reasoning.high": "高",
   "settings.ai.reasoning.low": "低",
   "settings.ai.reasoning.max": "最高",

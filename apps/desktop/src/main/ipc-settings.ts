@@ -60,6 +60,10 @@ export function registerSettingsIpc(): void {
       label: provider.label,
       kind: provider.kind,
       doc: provider.doc,
+      // The npm package decides the wire dialect (Anthropic's native API vs
+      // the OpenAI format) — the renderer needs it for the reasoning-level
+      // fallback sets.
+      npm: provider.catalog?.npm,
       defaultBaseUrl: provider.defaultBaseUrl,
       requiresKey: provider.requiresKey,
       allowKey: provider.allowKey ?? false,

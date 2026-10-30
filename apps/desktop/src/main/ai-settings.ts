@@ -1,15 +1,14 @@
-import { findProvider, type AiProvider } from '@doru/ai';
+import {
+  findProvider,
+  normalizeReasoning,
+  offeredReasoningLevels,
+  OPENAI_WIRE_LEVELS,
+  REASONING_LEVELS,
+  type AiProvider,
+  type ReasoningLevel,
+} from '@doru/ai';
 import { readSettings } from './settings';
 import { loadAiApiKey } from './secrets';
-
-/** AI SDK reasoning levels Dóru exposes (provider default is the absence of a level). */
-const REASONING_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
-export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
-
-/** Unknown reasoning levels degrade to the provider default instead of breaking the agent. */
-function normalizeReasoning(value: string): ReasoningLevel | '' {
-  return (REASONING_LEVELS as readonly string[]).includes(value) ? (value as ReasoningLevel) : '';
-}
 
 export interface ResolvedAiSettings {
   provider: AiProvider;
@@ -49,7 +48,19 @@ function resolveSettings(providerId: string): ResolvedAiSettings {
 
   const baseUrl = stored.baseUrl ?? provider.defaultBaseUrl ?? '';
   const model = stored.model ?? provider.defaultModels[0] ?? '';
-  const reasoning = normalizeReasoning(stored.reasoning ?? '');
+  // A stored level survives only when the selected model actually offers it
+  // (its catalog effort values, or the fallback of its wire dialect). ACP
+  // has no reasoning control, so no level ever travels for it.
+  const reasoning =
+    provider.kind === 'acp'
+      ? ''
+      : normalizeReasoning(
+          stored.reasoning ?? '',
+          offeredReasoningLevels(
+            provider.catalog?.models.find((entry) => entry.id === model)?.reasoning_options,
+            provider.catalog?.npm === '@ai-sdk/anthropic' ? REASONING_LEVELS : OPENAI_WIRE_LEVELS,
+          ),
+        );
   const acpCommand = stored.command ?? '';
   const acpArgs = stored.args ?? [];
   const apiKey = loadAiApiKey(providerId);

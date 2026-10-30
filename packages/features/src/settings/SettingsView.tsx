@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import type { MessageKey } from '@doru/platform';
+import { useEffect, useMemo, useState } from 'react';
 import { nls } from '../nls';
+import { offeredReasoningLevels, REASONING_LABELS } from './reasoning';
 import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';
 import './SettingsView.css';
 
@@ -96,17 +96,27 @@ export function SettingsView({
   );
 }
 
-const REASONING_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+const REASONING_DEFAULT_LABEL = 'settings.ai.reasoning.default';
 
-const REASONING_LABELS: Record<(typeof REASONING_LEVELS)[number], MessageKey> = {
-  none: 'settings.ai.reasoning.none',
-  minimal: 'settings.ai.reasoning.minimal',
-  low: 'settings.ai.reasoning.low',
-  medium: 'settings.ai.reasoning.medium',
-  high: 'settings.ai.reasoning.high',
-  xhigh: 'settings.ai.reasoning.xhigh',
-  max: 'settings.ai.reasoning.max',
-};
+function ReasoningSelect(props: { value: string; levels: string[]; onChange: (level: string) => void }) {
+  return (
+    <label className="settings-field">
+      <span>{nls.t('settings.ai.reasoning')}</span>
+      <select
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
+        aria-label={nls.t('settings.ai.reasoning')}
+      >
+        <option value="">{nls.t(REASONING_DEFAULT_LABEL)}</option>
+        {props.levels.map((level) => (
+          <option key={level} value={level}>
+            {nls.t(REASONING_LABELS[level] ?? REASONING_DEFAULT_LABEL)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 function AiSettingsSection(props: AiSettingsSectionProps) {
   const { settings, providers, test, fetchedModels, modelFetch } = props;
@@ -125,6 +135,31 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
 
   const model = provider?.models.find((entry) => entry.id === settings.model);
   const hasCatalog = (provider?.models.length ?? 0) > 0;
+  // The levels the selected model accepts: its catalog effort values, or the
+  // fallback of the provider's wire dialect.
+  const reasoningLevels = useMemo(() => offeredReasoningLevels(model, provider), [model, provider]);
+  // Catalog models gate the control on their declared reasoning capability;
+  // catalog-less providers (Ollama, LM Studio, custom) can't tell us, so the
+  // control is offered once a model is chosen — the level passes through as
+  // `reasoning_effort` and non-reasoning servers ignore it. ACP has no
+  // reasoning control at all.
+  const reasoningAvailable =
+    provider?.kind !== 'acp' &&
+    (hasCatalog
+      ? model?.reasoning === true || (model?.reasoningOptions?.length ?? 0) > 0
+      : settings.model !== '');
+  // A stored level the selected model does not offer (a model switch, or a
+  // hand-edited settings.json) is reset to the provider default instead of
+  // being sent to the wire. When the control is hidden the value stays: the
+  // previous choice survives a switch back to a reasoning model.
+  useEffect(() => {
+    if (!reasoningAvailable || settings.reasoning === '') {
+      return;
+    }
+    if (!reasoningLevels.includes(settings.reasoning)) {
+      props.onSetReasoning('');
+    }
+  }, [reasoningAvailable, reasoningLevels, settings.reasoning, props.onSetReasoning]);
   const modelOptions = [
     ...(provider?.models ?? []).map((entry) => entry.id),
     ...(!provider?.models.some((entry) => entry.id === settings.model) && settings.model !== ''
@@ -268,22 +303,12 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                   })}
                 </select>
               </label>
-              {settings.hasKey && (model?.reasoning || model?.reasoningOptions) ? (
-                <label className="settings-field">
-                  <span>{nls.t('settings.ai.reasoning')}</span>
-                  <select
-                    value={settings.reasoning}
-                    onChange={(event) => props.onSetReasoning(event.target.value)}
-                    aria-label={nls.t('settings.ai.reasoning')}
-                  >
-                    <option value="">{nls.t('settings.ai.reasoning.default')}</option>
-                    {REASONING_LEVELS.map((level) => (
-                      <option key={level} value={level}>
-                        {nls.t(REASONING_LABELS[level])}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              {reasoningAvailable ? (
+                <ReasoningSelect
+                  value={settings.reasoning}
+                  levels={reasoningLevels}
+                  onChange={props.onSetReasoning}
+                />
               ) : null}
               {settings.hasKey ? testRow : null}
             </>
@@ -336,6 +361,13 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
               )}
               {modelFetch.status === 'empty' ? (
                 <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p>
+              ) : null}
+              {reasoningAvailable ? (
+                <ReasoningSelect
+                  value={settings.reasoning}
+                  levels={reasoningLevels}
+                  onChange={props.onSetReasoning}
+                />
               ) : null}
               {settings.model !== '' ? testRow : null}
             </>
