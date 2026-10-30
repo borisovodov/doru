@@ -101,7 +101,7 @@ export function settingsJsonSchema(): Record<string, unknown> {
     | undefined;
   const provider = aiProperties?.['provider'];
   if (provider) {
-    provider['default'] = 'ollama';
+    provider['default'] = 'doru';
   }
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',

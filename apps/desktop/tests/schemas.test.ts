@@ -72,7 +72,7 @@ describe('settings schema', () => {
     expect(schema['additionalProperties']).toBe(false);
     const ai = (schema['properties'] as Record<string, Record<string, unknown>>)['ai'];
     const provider = ai?.['properties'] as Record<string, Record<string, unknown>> | undefined;
-    expect(provider?.['provider']?.['default']).toBe('ollama');
+    expect(provider?.['provider']?.['default']).toBe('doru');
   });
 });
 

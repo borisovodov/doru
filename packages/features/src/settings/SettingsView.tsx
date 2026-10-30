@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { DoruModelError, DoruModelState } from '@doru/ai';
+import type { MessageKey } from '@doru/platform';
 import { nls } from '../nls';
 import { offeredReasoningLevels, REASONING_LABELS } from './reasoning';
 import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';
@@ -21,6 +23,8 @@ export interface AiSettingsSectionProps {
   test: AiTestState;
   fetchedModels: string[];
   modelFetch: ModelFetchState;
+  /** The Dóru AI offline model state; null while it is still loading. */
+  doruModel: DoruModelState | null;
   onSetProvider: (id: string) => void;
   onSetModel: (model: string) => void;
   onSetBaseUrl: (url: string) => void;
@@ -31,6 +35,9 @@ export interface AiSettingsSectionProps {
   onSetAcpArgs: (args: string[]) => void;
   onTest: () => void;
   onFetchModels: (baseUrl?: string | undefined) => void;
+  onDownloadDoruModel: () => void;
+  onCancelDoruModelDownload: () => void;
+  onDeleteDoruModel: () => void;
 }
 
 export interface SettingsViewProps {
@@ -189,7 +196,9 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   return (
     <div className="settings-section">
       <h3>{nls.t('settings.ai.title')}</h3>
-      {!settings.configured ? <p className="settings-note">{nls.t('settings.ai.notConfigured')}</p> : null}
+      {!settings.configured && provider?.id !== 'doru' ? (
+        <p className="settings-note">{nls.t('settings.ai.notConfigured')}</p>
+      ) : null}
 
       <label className="settings-field">
         <span>{nls.t('settings.ai.provider')}</span>
@@ -206,7 +215,14 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         </select>
       </label>
 
-      {provider?.kind === 'acp' ? (
+      {provider?.id === 'doru' ? (
+        <DoruModelSection
+          model={props.doruModel}
+          onDownload={props.onDownloadDoruModel}
+          onCancel={props.onCancelDoruModelDownload}
+          onDelete={props.onDeleteDoruModel}
+        />
+      ) : provider?.kind === 'acp' ? (
         <>
           <label className="settings-field">
             <span>{nls.t('settings.ai.acp.command')}</span>
@@ -375,6 +391,87 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         </>
       )}
     </div>
+  );
+}
+
+/** Localized message key for a download error; null when nothing to show. */
+function doruModelErrorKey(error: DoruModelError | undefined): MessageKey | null {
+  switch (error) {
+    case 'http':
+    case 'network':
+      return 'settings.ai.doruModel.error.download';
+    case 'size-mismatch':
+      return 'settings.ai.doruModel.error.incomplete';
+    case 'sha256-mismatch':
+      return 'settings.ai.doruModel.error.integrity';
+    case 'disk-space':
+      return 'settings.ai.doruModel.error.diskSpace';
+    default:
+      return null;
+  }
+}
+
+/**
+ * The "Dóru AI" wizard step: one download button, no model choice. The
+ * machine's RAM decides whether the model is offered at all.
+ */
+function DoruModelSection(props: {
+  model: DoruModelState | null;
+  onDownload: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  const model = props.model;
+  if (model === null) {
+    return <p className="settings-note">{nls.t('settings.ai.modelFetching')}</p>;
+  }
+  if (model.downloading) {
+    return (
+      <div className="settings-doru-progress">
+        <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
+        <button
+          className="settings-doru-progress-cancel"
+          onClick={props.onCancel}
+          aria-label={nls.t('settings.ai.doruModel.cancel')}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+  if (model.installed) {
+    return (
+      <button className="settings-link" onClick={props.onDelete}>
+        {nls.t('settings.ai.doruModel.delete')}
+      </button>
+    );
+  }
+  if (model.outdated) {
+    // A previous release's model: it keeps working offline, and the user is
+    // nudged toward the current one without any forced re-download.
+    return (
+      <>
+        <p className="settings-note">{nls.t('settings.ai.doruModel.updateAvailable')}</p>
+        <button className="settings-action" onClick={props.onDownload}>
+          {nls.t('settings.ai.doruModel.update')}
+        </button>
+      </>
+    );
+  }
+  const tooWeak = model.ramGb < model.minRamGb;
+  const errorKey = doruModelErrorKey(model.error);
+  return (
+    <>
+      {errorKey !== null ? <p className="settings-error">{nls.t(errorKey)}</p> : null}
+      <button className="settings-action" disabled={tooWeak} onClick={props.onDownload}>
+        {nls.t('settings.ai.doruModel.install')}
+      </button>
+      {tooWeak ? (
+        <p className="settings-note">{nls.t('settings.ai.doruModel.tooWeak', String(model.minRamGb))}</p>
+      ) : null}
+    </>
   );
 }
 

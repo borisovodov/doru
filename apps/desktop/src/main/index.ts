@@ -12,6 +12,8 @@ import { registerChatIpc } from './ipc-chat';
 import { registerMenuIpc } from './ipc-menu';
 import { registerProjectIpc } from './ipc-project';
 import { broadcastAiSettingsChanged, registerSettingsIpc } from './ipc-settings';
+import { registerLocalModelIpc } from './ipc-local-model';
+import { stopDoruServer } from './doru-server';
 import { registerThemeIpc } from './ipc-theme';
 import { registerTreeIpc } from './ipc-tree';
 import { log } from './log';
@@ -101,6 +103,7 @@ registerProjectIpc();
 registerTreeIpc();
 registerChatIpc();
 registerSettingsIpc();
+registerLocalModelIpc();
 registerThemeIpc();
 registerMenuIpc();
 
@@ -253,6 +256,7 @@ if (gotLock) {
 
   app.on('will-quit', () => {
     closeAllRuntimes();
+    void stopDoruServer();
     removeMcpScratchUserData();
   });
 

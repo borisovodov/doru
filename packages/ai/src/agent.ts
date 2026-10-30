@@ -6,6 +6,13 @@ import { classifyError, type AiErrorCode } from './errors';
 import type { ReasoningLevel } from './reasoning';
 import type { ChatMessage } from './types';
 
+/**
+ * Extra request fields per provider, keyed by provider id. The shape is
+ * derived from the AI SDK's own streamText options (`ProviderOptions` is not
+ * re-exported from 'ai').
+ */
+export type RunProviderOptions = NonNullable<Parameters<typeof streamText>[0]['providerOptions']>;
+
 export type AgentStep =
   | { type: 'toolCall'; name: string; arguments: Record<string, unknown> }
   | { type: 'toolResult'; name: string; result: unknown }
@@ -58,6 +65,11 @@ export interface RunAgentOptions {
   maxSteps?: number;
   /** Reasoning level; absent means the provider default. */
   reasoning?: ReasoningLevel;
+  /**
+   * Provider-specific request extras, keyed by provider id (e.g. the Dóru AI
+   * preset pins non-thinking via `chat_template_kwargs`).
+   */
+  providerOptions?: RunProviderOptions;
   /** Aborts the run (streaming stops, awaiting rejects with an AbortError). */
   signal?: AbortSignal;
   events?: AgentEvents;
@@ -146,6 +158,7 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
     ...(options.system !== undefined ? { system: options.system } : {}),
     ...(options.signal !== undefined ? { abortSignal: options.signal } : {}),
     ...(options.reasoning !== undefined ? { reasoning: options.reasoning } : {}),
+    ...(options.providerOptions !== undefined ? { providerOptions: options.providerOptions } : {}),
     // Small local models emit tool calls with broken argument JSON (trailing
     // garbage after the object) or sloppy arguments (a free-text query that
     // is really a sex filter). Repair and refine locally instead of failing

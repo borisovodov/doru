@@ -54,9 +54,19 @@ locations are intentional — do not move the macOS settings to `~/.config`.
 
 Our own APIs — including MCP tool names — may break freely until 1.0.0 is
 released; no compatibility shims. MCP tool names follow `^[a-zA-Z0-9_-]+$`
-with underscore separators (`tree_query`, `sources_add`, `charts_render`),
+with underscore separators (`tree_query`, `sources_add`, `tree_add_relative`),
 because strict OpenAI-compatible providers (DeepSeek, and others) reject dots
 and colons in function names.
+
+## Dóru AI (local assistant)
+
+The offline assistant ("Dóru AI") ships a single curated model for now:
+Qwen3.5-4B, Q4_K_M GGUF, Apache-2.0, thinking mode off. The choice is gated
+by the eval suite in `scripts/` (`npx vitest run --config
+scripts/eval-ai.vitest.config.ts`): on the agent toolset both 4B and 9B pass
+at parity, and thinking mode wins no scenario while costing ~2.5x latency.
+A larger model tier re-enters through the same gate later — it is a manifest
+entry, not architecture. Minimum machine: 8 GB of RAM.
 
 ## Rejected alternatives
 

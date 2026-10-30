@@ -14,7 +14,7 @@
         "provider": {
           "description": "Active provider preset id, e.g. \"ollama\" or \"acp\". Any string is accepted: ids the running version does not know fall back to the default provider instead of invalidating the file. \"acp\" spawns an Agent Client Protocol agent (see \"providers\") instead of calling an HTTP API.",
           "type": "string",
-          "default": "ollama"
+          "default": "doru"
         },
         "providers": {
           "description": "Settings per provider, keyed by provider id. The app reads the entry of the active provider (\"provider\" above); the other entries keep their values and are restored when switching back.",

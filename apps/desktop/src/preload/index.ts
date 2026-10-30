@@ -141,6 +141,15 @@ const api = {
     ipcRenderer.invoke('settings:ai:test', options ?? {}),
   fetchAiModels: (options?: unknown): Promise<unknown> =>
     ipcRenderer.invoke('settings:ai:models', options ?? {}),
+  getDoruModelState: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:doruModel:get'),
+  downloadDoruModel: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:doruModel:download'),
+  cancelDoruModelDownload: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:doruModel:cancel'),
+  deleteDoruModel: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:doruModel:delete'),
+  onDoruModelState: (callback: (state: unknown) => void): (() => void) => {
+    const listener = (_event: unknown, state: unknown) => callback(state);
+    ipcRenderer.on('settings:ai:doruModel:changed', listener);
+    return () => ipcRenderer.removeListener('settings:ai:doruModel:changed', listener);
+  },
 };
 
 contextBridge.exposeInMainWorld('doru', api);

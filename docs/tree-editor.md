@@ -9,8 +9,7 @@ issues (see the "Tree editor" issue track).
 
 - **Layout is pure math in `packages/core/src/layout/`.** `layoutPedigree`
   turns the domain model (persons + families) into card positions and edge
-  geometry with no DOM, React or d3-selection involved. The same code can
-  back a future static chart export (e.g. the MCP `charts_render` tool).
+  geometry with no DOM, React or d3-selection involved.
   - `types.ts` — the public shapes and layout defaults;
   - `graph.ts` — DAG → tree conversion (role duplication, cycle guards);
   - `directional.ts` — ancestor/descendant tidy trees (d3-hierarchy);

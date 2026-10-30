@@ -29,9 +29,10 @@ test('the AI settings section configures and tests a provider', async () => {
     await page.locator('.activity-bar .activity-bar-bottom').click();
     await expect(page.getByLabel('Provider')).toBeVisible();
 
-    // Cloud presets are unlisted for now, so only the local and ACP
-    // providers show up in the dropdown.
+    // Cloud presets are unlisted for now; Dóru AI leads the local set and is
+    // the default provider on a fresh install.
     await expect(page.getByLabel('Provider').locator('option')).toHaveText([
+      'Dóru AI',
       'Ollama (local)',
       'LM Studio (local)',
       'Custom (OpenAI-compatible)',

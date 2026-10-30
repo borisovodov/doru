@@ -34,7 +34,7 @@ export const doruTools: ToolDefinition[] = [
     name: 'tree_get',
     description: 'Read a person with the families they belong to.',
     inputSchema: {
-      personId: z.string().describe('Person id (e.g. @I1@)'),
+      personId: z.string().describe('Person id from a search result'),
     },
   },
   {
@@ -52,7 +52,9 @@ export const doruTools: ToolDefinition[] = [
           z.object({
             kind: z.literal('person.add'),
             person: z.object({
-              id: z.string(),
+              id: z
+                .string()
+                .describe('Id of the NEW person — must not exist in the tree yet; invent one (e.g. @N1@)'),
               names: z.array(
                 z.object({
                   given: z.string().optional(),
@@ -75,14 +77,16 @@ export const doruTools: ToolDefinition[] = [
   {
     name: 'tree_add_relative',
     description:
-      'Add a new relative to an existing person: a child, a spouse or a parent. Creates the person and the family link in one step.',
+      'Add a new relative to an existing person. anchorId is the person already in the tree; person is the new person. relation: "child" — the new person is the anchor\'s child; "spouse" — the new person is married to the anchor; "parent" — the new person is the anchor\'s parent. Creates the person and the family link in one step — do not search for the new person first.',
     inputSchema: {
       relation: z
         .enum(['child', 'spouse', 'parent'])
         .describe('How the new person relates to the anchor person'),
-      anchorId: z.string().describe('Id of the existing person (e.g. @I1@)'),
+      anchorId: z.string().describe('Id of the existing person, from a search result'),
       person: z.object({
-        id: z.string(),
+        id: z
+          .string()
+          .describe('Id of the NEW person — must not exist in the tree yet; invent one (e.g. @N1@)'),
         names: z.array(
           z.object({
             given: z.string().optional(),
@@ -111,14 +115,6 @@ export const doruTools: ToolDefinition[] = [
       text: z.string().describe('Note text'),
       targetType: z.string().optional(),
       targetId: z.string().optional(),
-    },
-  },
-  {
-    name: 'charts_render',
-    description: 'Render an ancestor chart for the given person as a standalone SVG image.',
-    inputSchema: {
-      personId: z.string().describe('Root person id'),
-      kind: z.enum(['pedigree']).describe('Chart kind'),
     },
   },
 ];

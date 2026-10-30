@@ -7,6 +7,7 @@ import {
   type AiProvider,
   type ReasoningLevel,
 } from '@doru/ai';
+import { doruModelInstalled } from './local-model';
 import { readSettings } from './settings';
 import { loadAiApiKey } from './secrets';
 
@@ -68,7 +69,10 @@ function resolveSettings(providerId: string): ResolvedAiSettings {
   const configured =
     provider.kind === 'acp'
       ? acpCommand !== ''
-      : model !== '' && baseUrl !== '' && (!provider.requiresKey || apiKey !== '');
+      : provider.id === 'doru'
+        ? // The offline assistant needs no endpoint or key: installed = ready.
+          doruModelInstalled()
+        : model !== '' && baseUrl !== '' && (!provider.requiresKey || apiKey !== '');
 
   return { provider, baseUrl, apiKey, model, reasoning, acpCommand, acpArgs, configured };
 }
@@ -76,7 +80,9 @@ function resolveSettings(providerId: string): ResolvedAiSettings {
 export function loadAiSettings(): ResolvedAiSettings {
   const parsed = readSettings();
   const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
-  return resolveSettings(ai.provider ?? 'ollama');
+  // The offline assistant is the default: it needs no key, endpoint or
+  // account, so a fresh install works with a single download.
+  return resolveSettings(ai.provider ?? 'doru');
 }
 
 export function aiSettingsPayload(settings: ResolvedAiSettings): {

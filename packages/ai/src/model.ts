@@ -15,6 +15,17 @@ export interface ModelConfig {
   model: string;
 }
 
+/**
+ * Request-body extras for the Dóru AI preset. Qwen3.5 thinks by default; the
+ * eval gate (scripts/eval-ai) showed thinking wins no scenario on the agent
+ * toolset while costing ~2.5x latency, so the shipped preset pins
+ * non-thinking mode. The key "doru" is the openai-compatible provider name
+ * from `createOpenAICompatible` — unknown fields merge into the request body.
+ */
+export const DORU_CHAT_PROVIDER_OPTIONS = {
+  doru: { chat_template_kwargs: { enable_thinking: false } },
+};
+
 export function buildLanguageModel(config: ModelConfig): LanguageModel {
   const provider = findProvider(config.providerId);
   const dialect = wireDialect(provider);

@@ -50,7 +50,7 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - MCP tool names and other machine identifiers stay in English; only their
   human-readable descriptions are localized.
 - MCP tool names must match `^[a-zA-Z0-9_-]+$` — use underscore separators
-  (`tree_query`, `sources_add`, `charts_render`). Strict providers (e.g.
+  (`tree_query`, `sources_add`, `tree_add_relative`). Strict providers (e.g.
   DeepSeek) reject dots and colons.
 - Breaking our own APIs — including MCP tool names and website URLs — is
   fine before 1.0.0; do not add compatibility shims.

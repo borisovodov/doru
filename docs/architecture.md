@@ -126,13 +126,32 @@ decisions about what we deliberately do **not** build, see
   changes. The fetched list is the truth — a saved model missing from it is
   replaced by the first entry and persisted; a failed or empty fetch never
   touches the saved settings.
-- **Providers**: Ollama, LM Studio, a custom OpenAI-compatible endpoint, and
-  ACP. Cloud presets (OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek) are
-  temporarily unlisted while they are rebuilt one by one.
+- **Providers**: Dóru AI (the bundled offline assistant), Ollama, LM Studio, a
+  custom OpenAI-compatible endpoint, and ACP. Cloud presets (OpenAI,
+  Anthropic, Gemini, OpenRouter, DeepSeek) are temporarily unlisted while they
+  are rebuilt one by one.
   `settings.json` records the active provider id plus per-provider entries
   (model, base URL, reasoning level, ACP command/args) keyed by provider id —
   only the active provider's entry is used, so switching restores each
-  provider's own setup. Defaults resolve in `ai-settings.ts`.
+  provider's own setup. Defaults resolve in `ai-settings.ts`; the default
+  provider is `doru`.
+- **Dóru AI (local assistant)**: the default provider runs a bundled
+  llama.cpp engine entirely on the machine. The model is a single curated
+  GGUF (Qwen3.5-4B Q4_K_M, pinned by SHA-256, license and size in
+  `packages/ai/src/local-models.ts` — the choice is gated by the eval suite
+  in `scripts/eval-ai`, see decisions.md). The renderer drives the download
+  (resumable, verified, in `<userData>/models/`) through
+  `local-model.ts` + IPC; `configured` for `doru` simply means "model
+  installed", and machines below the 8 GB manifest floor get a disabled
+  button. The `LlamaServer` controller (`packages/ai/src/llama-server.ts`,
+  Electron-free, injectable spawner) lazily starts the engine on a free
+  127.0.0.1 port, waits for `/health`, and stops on quit; the chat resolves
+  the endpoint at run time. The engine binary ships in the installers via
+  `extraResources` (pinned release, sha256-verified by
+  `scripts/fetch-llama.ts`, which the package scripts run first). Thinking
+  mode is pinned off for the preset — Qwen3.5 thinks by default and the eval
+  gate showed no scenario win at ~2.5x latency — via a `providerOptions`
+  body extra (`DORU_CHAT_PROVIDER_OPTIONS`).
 - **API keys** are entered only in the Settings UI and stored in
   `secrets.json` (mode 0600) in the data directory, keyed by provider id and
   separate from `settings.json` so sharing settings never leaks keys. No OS

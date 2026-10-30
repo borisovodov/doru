@@ -27,7 +27,11 @@ GitHub APIs):
    `npm install --package-lock-only`, commit as `Bump version to X.Y.Z`,
    push to `main`, then push the signed tag `vX.Y.Z`.
 2. The release workflow builds exactly the artifacts the channels consume:
-   the macOS dmg, two Windows zips, two Linux AppImages.
+   the macOS dmg, two Windows zips, two Linux AppImages. Every installer
+   carries the pinned llama-server engine (the "Dóru AI" offline assistant)
+   under `Resources/llama/`: `scripts/fetch-llama.ts` downloads the
+   sha256-verified binaries per platform/arch, and the package scripts run
+   it before electron-builder — CI and the flatpak bot need no extra steps.
 3. The channel bots pick the release up on their own within their next cycle:
    - the tap bot bumps the cask using the release assets' sha256 digests;
    - the Scoop excavator bumps the manifest (hashes via the releases API
