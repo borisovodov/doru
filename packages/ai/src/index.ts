@@ -43,5 +43,7 @@ export {
   DORU_AI_MODEL,
   doruAiDownloadUrl,
   type DoruAiModelEntry,
+  type DoruModelError,
+  type DoruModelState,
 } from './local-models';
 export { ModelDownloadError, downloadModel, type ModelDownloadErrorCode, type ModelDownloadOptions } from './model-download';

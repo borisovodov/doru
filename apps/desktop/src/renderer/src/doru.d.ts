@@ -16,6 +16,7 @@ import type {
   ChatSendResult,
   ChatSessionMeta,
   ChatTranscriptMessage,
+  DoruModelState,
 } from '@doru/ai';
 import type {
   AiProviderInfo,
@@ -169,6 +170,11 @@ declare global {
         apiKey?: string;
         model?: string;
       }): Promise<{ models: string[]; error?: string }>;
+      getDoruModelState(): Promise<DoruModelState>;
+      downloadDoruModel(): Promise<DoruModelState>;
+      cancelDoruModelDownload(): Promise<DoruModelState>;
+      deleteDoruModel(): Promise<DoruModelState>;
+      onDoruModelState(callback: (state: DoruModelState) => void): () => void;
     };
   }
 }

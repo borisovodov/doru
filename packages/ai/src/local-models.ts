@@ -4,6 +4,27 @@
 // product is "Dóru AI"; the details below are developer-facing and surface
 // in docs and notices. The choice is gated by the eval suite in scripts/
 // (Qwen3.5-4B Q4_K_M, non-thinking mode, see docs/decisions.md).
+import type { ModelDownloadErrorCode } from './model-download';
+
+/** Download failure codes; the UI localizes them ('network' = anything else). */
+export type DoruModelError = ModelDownloadErrorCode | 'network';
+
+/** The UI-facing state of the offline model (installed / downloading / error). */
+export interface DoruModelState {
+  installed: boolean;
+  downloading: boolean;
+  /** Bytes downloaded so far (present while downloading). */
+  bytes?: number;
+  totalBytes: number;
+  /** Machine-readable error code; the UI picks the localized message. */
+  error?: DoruModelError;
+  /** Machine RAM in GB (rounded); the UI compares it with minRamGb. */
+  ramGb: number;
+  minRamGb: number;
+  /** Weights license, shown before the download starts. */
+  license: string;
+  licenseUrl: string;
+}
 
 export interface DoruAiModelEntry {
   /** Machine id of the product (stable; settings and IPC key on it). */
