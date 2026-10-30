@@ -33,8 +33,8 @@ test('the AI settings section configures and tests a provider', async () => {
     // the default provider on a fresh install.
     await expect(page.getByLabel('Provider').locator('option')).toHaveText([
       'Dóru AI',
-      'Ollama (local)',
-      'LM Studio (local)',
+      'Ollama',
+      'LM Studio',
       'Custom (OpenAI-compatible)',
       'ACP agent',
     ]);

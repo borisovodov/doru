@@ -53,7 +53,7 @@ const LOCAL_PRESETS: Array<Omit<AiProvider, 'catalog'>> = [
   },
   {
     id: 'ollama',
-    label: 'Ollama (local)',
+    label: 'Ollama',
     kind: 'local',
     defaultBaseUrl: 'http://localhost:11434/v1',
     // No default model: the local inventory is unknown until the user
@@ -63,7 +63,7 @@ const LOCAL_PRESETS: Array<Omit<AiProvider, 'catalog'>> = [
   },
   {
     id: 'lmstudio',
-    label: 'LM Studio (local)',
+    label: 'LM Studio',
     kind: 'local',
     defaultBaseUrl: 'http://localhost:1234/v1',
     defaultModels: [],

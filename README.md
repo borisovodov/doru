@@ -92,7 +92,7 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 - **In-app chat** — the agent reads and edits the tree with built-in tools:
   `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `tree_add_relative`,
   `sources_add`, `notes_write`.
-- **Any provider** — presets for Ollama (local), LM Studio (local), custom
+- **Any provider** — presets for Ollama, LM Studio, custom
   OpenAI-compatible endpoints, and ACP agents; a step-by-step wizard walks
   through the setup and fetches the model list for local providers; API keys
   are stored encrypted in the OS keychain.
