@@ -41,6 +41,8 @@ export interface SettingsViewProps {
   onThemeChange: (id: string) => void;
   onOpenLogs: () => void;
   onOpenThemesFolder: () => void;
+  /** Opens the third-party notices tab. */
+  onOpenNotices: () => void;
   /** The app version shown in the About section. */
   version: string;
   /** AI settings section; null while the settings are still loading. */
@@ -53,6 +55,7 @@ export function SettingsView({
   onThemeChange,
   onOpenLogs,
   onOpenThemesFolder,
+  onOpenNotices,
   version,
   ai,
 }: SettingsViewProps) {
@@ -85,6 +88,9 @@ export function SettingsView({
       <div className="settings-section">
         <h3>{nls.t('settings.about.title')}</h3>
         <p className="settings-note">{nls.t('settings.about.version', version)}</p>
+        <button className="settings-link" onClick={onOpenNotices}>
+          {nls.t('settings.about.notices')}
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
-import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
+import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, NoticesView, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
@@ -11,6 +11,7 @@ import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
 import {
+  NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   SETTINGS_TAB_ID,
   TREE_TAB_ID,
@@ -248,6 +249,7 @@ export function App() {
           onThemeChange={theme.selectTheme}
           onOpenLogs={() => void window.doru.openLogs()}
           onOpenThemesFolder={() => void window.doru.openThemesFolder()}
+          onOpenNotices={tabs.openNoticesTab}
           version={version}
           ai={
             ai.settings
@@ -273,6 +275,9 @@ export function App() {
           }
         />
       );
+    }
+    if (tab.id === NOTICES_TAB_ID) {
+      return <NoticesView onOpenLink={(url) => void window.doru.openExternal(url)} />;
     }
     if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
       return (

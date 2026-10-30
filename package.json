@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "check:nls": "node .github/scripts/check-nls.ts",
     "check:schemas": "node .github/scripts/check-schemas.ts",
+    "check:notices": "node .github/scripts/check-notices.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
