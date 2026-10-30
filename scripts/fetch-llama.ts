@@ -106,17 +106,15 @@ async function fetchEntry(entry: BinaryEntry): Promise<void> {
   writeFileSync(archivePath, bytes);
   execFileSync('tar', ['-xf', archivePath, '-C', dir], { stdio: 'inherit' });
   rmSync(archivePath);
-  // Flatten the archive's top-level folder: llama-server is a small universal
-  // launcher that loads its implementation from the shared libraries next to
-  // it, so every file of the archive ships.
+  // Flatten a wrapping top-level folder when the archive has one (the
+  // tar.gz layouts do; the Windows zips put the files at the archive root).
   const topLevel = readdirSync(dir, { withFileTypes: true }).find((child) => child.isDirectory());
-  if (topLevel === undefined) {
-    throw new Error(`no top-level directory in ${entry.archive}`);
+  if (topLevel !== undefined) {
+    for (const child of readdirSync(join(dir, topLevel.name), { withFileTypes: true })) {
+      renameSync(join(dir, topLevel.name, child.name), join(dir, child.name));
+    }
+    rmSync(join(dir, topLevel.name), { recursive: true, force: true });
   }
-  for (const child of readdirSync(join(dir, topLevel.name), { withFileTypes: true })) {
-    renameSync(join(dir, topLevel.name, child.name), join(dir, child.name));
-  }
-  rmSync(join(dir, topLevel.name), { recursive: true, force: true });
   if (!existsSync(binaryPath)) {
     throw new Error(`llama-server binary not found in ${entry.archive}`);
   }
