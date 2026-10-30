@@ -85,6 +85,13 @@ $exe = Get-Item (Join-Path $appDir 'doru.exe')
 if ($exe.VersionInfo.ProductName -ne 'Dóru') { Fail "exe ProductName is '$($exe.VersionInfo.ProductName)', expected 'Dóru'" }
 Write-Host '::endgroup::'
 
+Write-Host '::group::Local inference engine shipped in resources'
+# The Dóru AI sidecar must be inside the zip: a release built without
+# scripts/fetch-llama.ts is otherwise undetectable until the first chat.
+$llama = Join-Path $appDir 'resources/llama/llama-server.exe'
+if (-not (Test-Path $llama)) { Fail 'resources/llama/llama-server.exe missing from the install dir (fetch-llama.ts did not run before packaging)' }
+Write-Host '::endgroup::'
+
 Write-Host '::group::Materialized association templates (post_install effect)'
 $installReg = Join-Path $appDir 'install-associations.reg'
 $uninstallReg = Join-Path $appDir 'uninstall-associations.reg'
