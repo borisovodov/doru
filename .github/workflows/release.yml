@@ -79,7 +79,7 @@ jobs:
       # startup on macOS, and the packaged package.json — which decides
       # app.getName() and the userData path — is a plain copy that this
       # override does not touch.
-      - name: Build Windows installers (Dóru in the exe metadata)
+      - name: Build Windows installers
         if: runner.os == 'Windows'
         run: npm run package --workspace @doru/desktop -- --config.productName=Dóru
         env:
