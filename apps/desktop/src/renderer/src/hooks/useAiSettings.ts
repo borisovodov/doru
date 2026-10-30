@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { DoruModelState } from '@doru/ai';
 import type { AiProviderInfo, AiSettingsState, AiTestState, ModelFetchState } from '@doru/features';
 
 export function useAiSettings() {
@@ -7,10 +8,18 @@ export function useAiSettings() {
   const [test, setTest] = useState<AiTestState>({ status: 'idle' });
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [modelFetch, setModelFetch] = useState<ModelFetchState>({ status: 'idle' });
+  const [doruModel, setDoruModel] = useState<DoruModelState | null>(null);
 
   useEffect(() => {
     void window.doru.getAiSettings().then(setSettings);
     void window.doru.getAiProviders().then(setProviders);
+    void window.doru.getDoruModelState().then(setDoruModel);
+  }, []);
+
+  // The model download runs in the main process; its state arrives both as
+  // pushed events (progress) and as invoke replies (authoritative).
+  useEffect(() => {
+    return window.doru.onDoruModelState(setDoruModel);
   }, []);
 
   // Settings writes can come from outside the Settings tab (direct IPC calls,
@@ -164,12 +173,25 @@ export function useAiSettings() {
     setTest(result.ok ? { status: 'ok' } : { status: 'fail', message: result.error ?? 'unknown error' });
   }, [settings]);
 
+  const downloadDoruModel = useCallback(async () => {
+    setDoruModel(await window.doru.downloadDoruModel());
+  }, []);
+
+  const cancelDoruModelDownload = useCallback(async () => {
+    setDoruModel(await window.doru.cancelDoruModelDownload());
+  }, []);
+
+  const deleteDoruModel = useCallback(async () => {
+    setDoruModel(await window.doru.deleteDoruModel());
+  }, []);
+
   return {
     settings,
     providers,
     test,
     fetchedModels,
     modelFetch,
+    doruModel,
     setProvider,
     setModel,
     setReasoning,
@@ -181,5 +203,8 @@ export function useAiSettings() {
     runTest,
     fetchModels,
     refreshModelsOnSettingsOpen,
+    downloadDoruModel,
+    cancelDoruModelDownload,
+    deleteDoruModel,
   };
 }

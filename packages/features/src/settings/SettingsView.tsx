@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { DoruModelError, DoruModelState } from '@doru/ai';
+import type { MessageKey } from '@doru/platform';
 import { nls } from '../nls';
 import { offeredReasoningLevels, REASONING_LABELS } from './reasoning';
 import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';
@@ -21,6 +23,8 @@ export interface AiSettingsSectionProps {
   test: AiTestState;
   fetchedModels: string[];
   modelFetch: ModelFetchState;
+  /** The Dóru AI offline model state; null while it is still loading. */
+  doruModel: DoruModelState | null;
   onSetProvider: (id: string) => void;
   onSetModel: (model: string) => void;
   onSetBaseUrl: (url: string) => void;
@@ -31,6 +35,9 @@ export interface AiSettingsSectionProps {
   onSetAcpArgs: (args: string[]) => void;
   onTest: () => void;
   onFetchModels: (baseUrl?: string | undefined) => void;
+  onDownloadDoruModel: () => void;
+  onCancelDoruModelDownload: () => void;
+  onDeleteDoruModel: () => void;
 }
 
 export interface SettingsViewProps {
@@ -206,7 +213,14 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         </select>
       </label>
 
-      {provider?.kind === 'acp' ? (
+      {provider?.id === 'doru' ? (
+        <DoruModelSection
+          model={props.doruModel}
+          onDownload={props.onDownloadDoruModel}
+          onCancel={props.onCancelDoruModelDownload}
+          onDelete={props.onDeleteDoruModel}
+        />
+      ) : provider?.kind === 'acp' ? (
         <>
           <label className="settings-field">
             <span>{nls.t('settings.ai.acp.command')}</span>
@@ -375,6 +389,79 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         </>
       )}
     </div>
+  );
+}
+
+/** Localized message key for a download error; null when nothing to show. */
+function doruModelErrorKey(error: DoruModelError | undefined): MessageKey | null {
+  switch (error) {
+    case 'http':
+    case 'network':
+      return 'settings.ai.doruModel.error.download';
+    case 'size-mismatch':
+      return 'settings.ai.doruModel.error.incomplete';
+    case 'sha256-mismatch':
+      return 'settings.ai.doruModel.error.integrity';
+    case 'disk-space':
+      return 'settings.ai.doruModel.error.diskSpace';
+    default:
+      return null;
+  }
+}
+
+function formatGigabytes(bytes: number): string {
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+/**
+ * The "Dóru AI" wizard step: one download button, no model choice. The
+ * machine's RAM decides whether the model is offered at all.
+ */
+function DoruModelSection(props: {
+  model: DoruModelState | null;
+  onDownload: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  const model = props.model;
+  if (model === null) {
+    return <p className="settings-note">{nls.t('settings.ai.modelFetching')}</p>;
+  }
+  if (model.downloading) {
+    const percent = model.totalBytes > 0 ? Math.round(((model.bytes ?? 0) / model.totalBytes) * 100) : 0;
+    return (
+      <>
+        <p className="settings-note">{nls.t('settings.ai.doruModel.downloading', `${percent}%`)}</p>
+        <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
+        <button onClick={props.onCancel}>{nls.t('settings.ai.doruModel.cancel')}</button>
+      </>
+    );
+  }
+  if (model.installed) {
+    return (
+      <>
+        <p className="settings-note">{nls.t('settings.ai.doruModel.installed')}</p>
+        <button className="settings-link" onClick={props.onDelete}>
+          {nls.t('settings.ai.doruModel.delete')}
+        </button>
+      </>
+    );
+  }
+  const tooWeak = model.ramGb < model.minRamGb;
+  const errorKey = doruModelErrorKey(model.error);
+  return (
+    <>
+      <p className="settings-note">{nls.t('settings.ai.doruModel.description')}</p>
+      <p className="settings-note">{nls.t('settings.ai.doruModel.size', formatGigabytes(model.totalBytes))}</p>
+      <p className="settings-note">{nls.t('settings.ai.doruModel.license', model.license)}</p>
+      {errorKey !== null ? <p className="settings-error">{nls.t(errorKey)}</p> : null}
+      <button className="settings-action" disabled={tooWeak} onClick={props.onDownload}>
+        {nls.t('settings.ai.doruModel.install')}
+      </button>
+      {tooWeak ? (
+        <p className="settings-note">{nls.t('settings.ai.doruModel.tooWeak', String(model.minRamGb))}</p>
+      ) : null}
+    </>
   );
 }
 

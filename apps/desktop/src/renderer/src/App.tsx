@@ -259,6 +259,7 @@ export function App() {
                   test: ai.test,
                   fetchedModels: ai.fetchedModels,
                   modelFetch: ai.modelFetch,
+                  doruModel: ai.doruModel,
                   onSetProvider: (id) => void ai.setProvider(id),
                   onSetModel: ai.setModel,
                   onSetBaseUrl: ai.setBaseUrl,
@@ -270,6 +271,9 @@ export function App() {
                   onTest: () => void ai.runTest(),
                   onFetchModels: (baseUrl) =>
                     void ai.fetchModels(baseUrl !== undefined ? { baseUrl } : undefined),
+                  onDownloadDoruModel: () => void ai.downloadDoruModel(),
+                  onCancelDoruModelDownload: () => void ai.cancelDoruModelDownload(),
+                  onDeleteDoruModel: () => void ai.deleteDoruModel(),
                 }
               : null
           }
