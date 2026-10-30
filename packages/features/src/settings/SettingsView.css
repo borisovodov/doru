@@ -179,11 +179,17 @@
   color: var(--doru-danger, #e5484d);
 }
 
+/* An error directly after a form field (the Dóru AI download errors) gets
+   the same breathing room as the fields themselves. */
+.settings-field + .settings-error {
+  margin-top: 8px;
+}
+
 .settings-doru-progress {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 6px 0 8px;
+  margin: 8px 0;
 }
 
 .settings-progress {
