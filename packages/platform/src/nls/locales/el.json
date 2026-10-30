@@ -125,7 +125,7 @@
   "settings.ai.baseUrl": "Βασικό URL",
   "settings.ai.baseUrlNotSet": "Το βασικό URL δεν έχει οριστεί.",
   "settings.ai.doruModel.cancel": "Ακύρωση λήψης",
-  "settings.ai.doruModel.delete": "Κατάργηση",
+  "settings.ai.doruModel.delete": "Κατάργηση μοντέλου",
   "settings.ai.doruModel.error.diskSpace": "Δεν υπάρχει αρκετός χώρος στον δίσκο. Ελευθερώστε χώρο και δοκιμάστε ξανά.",
   "settings.ai.doruModel.error.download": "Η λήψη απέτυχε. Ελέγξτε τη σύνδεση και δοκιμάστε ξανά.",
   "settings.ai.doruModel.error.incomplete": "Η λήψη ήταν ελλιπής. Δοκιμάστε ξανά — θα συνεχίσει από εκεί που σταμάτησε.",

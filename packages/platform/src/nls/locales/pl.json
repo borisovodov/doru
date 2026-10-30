@@ -125,7 +125,7 @@
   "settings.ai.baseUrl": "Podstawowy URL",
   "settings.ai.baseUrlNotSet": "Bazowy adres URL nie jest ustawiony.",
   "settings.ai.doruModel.cancel": "Anuluj pobieranie",
-  "settings.ai.doruModel.delete": "Usuń",
+  "settings.ai.doruModel.delete": "Usuń model",
   "settings.ai.doruModel.error.diskSpace": "Za mało miejsca na dysku. Zwolnij miejsce i spróbuj ponownie.",
   "settings.ai.doruModel.error.download": "Pobieranie nie powiodło się. Sprawdź połączenie i spróbuj ponownie.",
   "settings.ai.doruModel.error.incomplete": "Pobieranie było niekompletne. Spróbuj ponownie — zostanie wznowione.",

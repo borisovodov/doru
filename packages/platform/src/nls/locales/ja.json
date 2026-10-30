@@ -125,7 +125,7 @@
   "settings.ai.baseUrl": "ベース URL",
   "settings.ai.baseUrlNotSet": "ベースURLが設定されていません。",
   "settings.ai.doruModel.cancel": "ダウンロードをキャンセル",
-  "settings.ai.doruModel.delete": "削除",
+  "settings.ai.doruModel.delete": "モデルを削除",
   "settings.ai.doruModel.error.diskSpace": "ディスクの空き容量が不足しています。空きを作ってからもう一度お試しください。",
   "settings.ai.doruModel.error.download": "ダウンロードに失敗しました。接続を確認してもう一度お試しください。",
   "settings.ai.doruModel.error.incomplete": "ダウンロードが不完全でした。もう一度お試しください。中断したところから再開します。",

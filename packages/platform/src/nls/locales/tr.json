@@ -125,7 +125,7 @@
   "settings.ai.baseUrl": "Temel URL",
   "settings.ai.baseUrlNotSet": "Temel URL belirtilmemiş.",
   "settings.ai.doruModel.cancel": "İndirmeyi iptal et",
-  "settings.ai.doruModel.delete": "Kaldır",
+  "settings.ai.doruModel.delete": "Modeli kaldır",
   "settings.ai.doruModel.error.diskSpace": "Yeterli disk alanı yok. Yer açın ve yeniden deneyin.",
   "settings.ai.doruModel.error.download": "İndirme başarısız oldu. Bağlantıyı kontrol edip yeniden deneyin.",
   "settings.ai.doruModel.error.incomplete": "İndirme eksik kaldı. Yeniden deneyin — kaldığı yerden devam eder.",

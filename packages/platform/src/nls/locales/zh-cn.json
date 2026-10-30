@@ -125,7 +125,7 @@
   "settings.ai.baseUrl": "基础 URL",
   "settings.ai.baseUrlNotSet": "尚未设置基础 URL。",
   "settings.ai.doruModel.cancel": "取消下载",
-  "settings.ai.doruModel.delete": "移除",
+  "settings.ai.doruModel.delete": "移除模型",
   "settings.ai.doruModel.error.diskSpace": "磁盘空间不足。请释放空间后重试。",
   "settings.ai.doruModel.error.download": "下载失败。请检查网络连接后重试。",
   "settings.ai.doruModel.error.incomplete": "下载未完成。请重试——它会从断点继续。",

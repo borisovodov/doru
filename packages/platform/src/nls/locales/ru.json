@@ -125,7 +125,7 @@
   "settings.ai.baseUrl": "Базовый URL",
   "settings.ai.baseUrlNotSet": "Базовый URL не задан.",
   "settings.ai.doruModel.cancel": "Отменить загрузку",
-  "settings.ai.doruModel.delete": "Удалить",
+  "settings.ai.doruModel.delete": "Удалить модель",
   "settings.ai.doruModel.error.diskSpace": "Недостаточно места на диске. Освободите место и попробуйте ещё раз.",
   "settings.ai.doruModel.error.download": "Загрузка не удалась. Проверьте подключение и попробуйте ещё раз.",
   "settings.ai.doruModel.error.incomplete": "Загрузка была неполной. Попробуйте ещё раз — она продолжится с места остановки.",
