@@ -43,8 +43,9 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
   repo — no source-available bait, no proprietary parts.
 - **AI-native.** Dóru is both an MCP server — run `doru --mcp-server <project>`
   and any MCP client (Claude Desktop, Cursor) can query and edit your tree
-  through `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `sources_add`,
-  `notes_write`, `charts_render` — and an agent chat built into the UI: a
+  through `tree_query`, `tree_get`, `tree_stats`, `tree_edit`,
+  `tree_add_relative`, `sources_add`, `notes_write` — and an agent chat built
+  into the UI: a
   step-by-step wizard sets up the provider (Ollama and LM Studio locally,
   custom OpenAI-compatible endpoints, or ACP agents; cloud presets return one
   by one), and keys are stored in the OS keychain.
@@ -89,8 +90,8 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 ### AI and agents
 
 - **In-app chat** — the agent reads and edits the tree with built-in tools:
-  `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `sources_add`,
-  `notes_write`, `charts_render`.
+  `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `tree_add_relative`,
+  `sources_add`, `notes_write`.
 - **Any provider** — presets for Ollama (local), LM Studio (local), custom
   OpenAI-compatible endpoints, and ACP agents; a step-by-step wizard walks
   through the setup and fetches the model list for local providers; API keys

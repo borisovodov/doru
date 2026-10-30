@@ -53,7 +53,6 @@ export {
   type PedigreeLayoutOptions,
   type PedigreeLine,
 } from './layout/pedigree';
-export { renderPedigreeSvg, type SvgRenderOptions } from './layout/svg';
 export interface GedcomImportResult {
   importedPersons: number;
   importedFamilies: number;

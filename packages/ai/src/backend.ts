@@ -4,8 +4,6 @@ import {
   addPersonOp,
   addRelativeOp,
   addSourceOp,
-  layoutPedigree,
-  renderPedigreeSvg,
   updatePersonOp,
   type FamilyRecord,
   type PersonRecord,
@@ -47,8 +45,6 @@ export class TreeMcpBackend {
         return this.addSource(args);
       case 'notes_write':
         return this.writeNote(args);
-      case 'charts_render':
-        return this.renderChart(args['personId'] as string, args['kind'] as string);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -80,6 +76,11 @@ export class TreeMcpBackend {
       throw new Error('tree_edit requires an "op" object');
     }
     if (op.kind === 'person.add') {
+      if (this.repo.getPerson(op.person.id)) {
+        throw new Error(
+          `A person with id "${op.person.id}" already exists in the tree; the new person needs an unused id.`,
+        );
+      }
       this.queue.apply(addPersonOp(op.person), { repo: this.repo });
       return { ok: true, canUndo: this.queue.canUndo() };
     }
@@ -100,6 +101,11 @@ export class TreeMcpBackend {
     anchorId: string,
     person: PersonRecord,
   ): unknown {
+    if (this.repo.getPerson(person.id)) {
+      throw new Error(
+        `A person with id "${person.id}" already exists in the tree; the new person needs an unused id.`,
+      );
+    }
     const anchor = this.repo.getPerson(anchorId);
     if (!anchor) {
       return { ok: false, error: `Unknown anchor person: ${anchorId}` };
@@ -164,26 +170,6 @@ export class TreeMcpBackend {
     };
     this.queue.apply(addNoteOp(note), { repo: this.repo });
     return { ok: true, id: note.id };
-  }
-
-  private renderChart(personId: string, kind: string): unknown {
-    if (!personId) {
-      throw new Error('charts_render requires "personId"');
-    }
-    if (kind === 'pedigree') {
-      const persons = this.repo.listAllPersons();
-      const families = this.repo.listFamilies();
-      const layout = layoutPedigree(personId, persons, families, {
-        kind: 'ancestors',
-        maxGenerations: 4,
-      });
-      if (!layout) {
-        throw new Error(`Unknown person: ${personId}`);
-      }
-      const svg = renderPedigreeSvg(layout, persons);
-      return { kind, svg, persons: layout.cards.length, edges: layout.edges.length };
-    }
-    throw new Error(`Unsupported chart kind: ${kind}`);
   }
 }
 

@@ -4,9 +4,7 @@
 
 The chat panel sits at the bottom of the window. Type a question and the agent
 can read and edit the tree using built-in tools: `tree_query`, `tree_get`,
-`tree_stats`, `tree_edit`, `tree_add_relative`, `sources_add`, `notes_write`,
-`charts_render` (the last one renders a person's ancestor chart as an SVG
-image).
+`tree_stats`, `tree_edit`, `tree_add_relative`, `sources_add`, `notes_write`.
 
 Conversations are saved as **chat sessions**: the header of the chat panel
 lists your sessions, and you can switch between them, start a new chat or
