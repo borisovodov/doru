@@ -4,7 +4,7 @@ import { offeredReasoningLevels, REASONING_LABELS } from '../src/settings/reason
 
 const provider = (overrides: Partial<AiProviderInfo> = {}): AiProviderInfo => ({
   id: 'ollama',
-  label: 'Ollama (local)',
+  label: 'Ollama',
   kind: 'local',
   defaultBaseUrl: 'http://localhost:11434/v1',
   requiresKey: false,

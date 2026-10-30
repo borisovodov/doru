@@ -16,7 +16,7 @@ its raw markdown on the system clipboard.
 The provider is configured in the `ai` section of `settings.json` (see
 [Settings](settings.md)):
 
-- **Provider presets**: Ollama (local), LM Studio (local), a custom
+- **Provider presets**: Ollama, LM Studio, a custom
   OpenAI-compatible endpoint, or an ACP agent. Cloud presets return one by
   one as their integrations are rebuilt. Set the id in `"provider"`; each
   preset provides a default base URL, while the model is picked in the
