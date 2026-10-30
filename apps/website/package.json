@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "sync": "node scripts/sync-docs.ts",
+    "og-images": "node scripts/og-images.ts",
     "dev": "npm run sync && vitepress dev",
     "build": "npm run sync && vitepress build",
     "preview": "vitepress preview",
