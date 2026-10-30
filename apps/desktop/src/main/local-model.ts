@@ -17,11 +17,29 @@ import {
 } from '@doru/ai';
 import { log } from './log';
 
+/**
+ * Test/mirror hooks: the e2e suite points the download at a local server
+ * with a small payload (DORU_AI_DOWNLOAD_URL / DORU_AI_MODEL_SHA256 /
+ * DORU_AI_MODEL_SIZE_BYTES). Production uses the manifest unchanged — the
+ * download is always verified against the pinned size and SHA-256.
+ */
+const modelEntry = {
+  url:
+    process.env['DORU_AI_DOWNLOAD_URL'] !== undefined && process.env['DORU_AI_DOWNLOAD_URL'] !== ''
+      ? process.env['DORU_AI_DOWNLOAD_URL']
+      : doruAiDownloadUrl(DORU_AI_MODEL),
+  sizeBytes: (() => {
+    const override = Number(process.env['DORU_AI_MODEL_SIZE_BYTES'] ?? '');
+    return Number.isFinite(override) && override > 0 ? override : DORU_AI_MODEL.sizeBytes;
+  })(),
+  sha256: process.env['DORU_AI_MODEL_SHA256'] ?? DORU_AI_MODEL.sha256,
+};
+
 let abort: AbortController | undefined;
 let state: DoruModelState = {
   installed: false,
   downloading: false,
-  totalBytes: DORU_AI_MODEL.sizeBytes,
+  totalBytes: modelEntry.sizeBytes,
   ramGb: Math.round(totalmem() / 1024 ** 3),
   minRamGb: DORU_AI_MODEL.minRamGb,
   license: DORU_AI_MODEL.license,
@@ -45,7 +63,7 @@ function broadcast(): void {
 async function refreshInstalled(): Promise<void> {
   try {
     const info = await stat(doruModelFilePath());
-    state = { ...state, installed: info.size === DORU_AI_MODEL.sizeBytes };
+    state = { ...state, installed: info.size === modelEntry.sizeBytes };
   } catch {
     state = { ...state, installed: false };
   }
@@ -64,7 +82,7 @@ export async function doruModelState(): Promise<DoruModelState> {
  */
 export function doruModelInstalled(): boolean {
   try {
-    return statSync(doruModelFilePath()).size === DORU_AI_MODEL.sizeBytes;
+    return statSync(doruModelFilePath()).size === modelEntry.sizeBytes;
   } catch {
     return false;
   }
@@ -99,10 +117,10 @@ export async function downloadDoruModel(): Promise<DoruModelState> {
   try {
     await mkdir(modelDir(), { recursive: true });
     await downloadModel({
-      url: doruAiDownloadUrl(DORU_AI_MODEL),
+      url: modelEntry.url,
       destination: doruModelFilePath(),
-      expectedSize: DORU_AI_MODEL.sizeBytes,
-      expectedSha256: DORU_AI_MODEL.sha256,
+      expectedSize: modelEntry.sizeBytes,
+      expectedSha256: modelEntry.sha256,
       signal: abort.signal,
       onProgress,
     });
