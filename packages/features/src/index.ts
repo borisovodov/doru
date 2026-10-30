@@ -13,6 +13,8 @@ export { PersonList, type PersonListProps } from './person/PersonList';
 export { displayName } from './person/format';
 export { SettingsView, type SettingsViewProps, type ThemeEntry, type AiTestState } from './settings/SettingsView';
 export type { AiCatalogModelInfo, AiProviderInfo, AiSettingsState, ModelFetchState } from './settings/types';
+export { NoticesView, type NoticesViewProps } from './notices/NoticesView';
+export type { ThirdPartyNotice } from './notices/types';
 export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
 export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEditorPage';
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';

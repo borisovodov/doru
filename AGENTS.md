@@ -159,6 +159,11 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   theme zod schema in `apps/desktop/src/main/schemas.ts` requires regenerating
   the published schemas first: `node scripts/generate-schemas.ts` — the
   generated files in `apps/website/public/` are committed.
+- Notices guard: `npm run check:notices` (runs in CI). The third-party
+  notices list ships as the generated file
+  `packages/features/src/notices/generated.ts`; after changing dependencies
+  regenerate it with `node scripts/generate-notices.ts` and commit the
+  result. License texts are reproduced verbatim and are not translated.
 - Typecheck all workspaces: `npm run typecheck` (this also covers the root
   `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
   dev helper scripts).

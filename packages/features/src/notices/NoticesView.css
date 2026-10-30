@@ -1,0 +1,61 @@
+/* ── Third-party notices ───────────────────────────────────────────── */
+
+.notices-view {
+  max-width: 720px;
+  padding: 8px 16px 24px;
+  user-select: none;
+}
+
+.notices-intro {
+  margin: 4px 0 16px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  user-select: text;
+}
+
+.notices-entry {
+  margin-top: 24px;
+}
+
+.notices-name {
+  display: inline-block;
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-accent);
+  text-decoration: none;
+}
+
+a.notices-name:hover {
+  color: var(--doru-accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notices-text {
+  margin-top: 8px;
+}
+
+.notices-text summary {
+  width: fit-content;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  cursor: pointer;
+}
+
+.notices-text pre {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  max-height: 320px;
+  overflow: auto;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--doru-fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

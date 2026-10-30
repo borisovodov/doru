@@ -5,6 +5,7 @@ import { moveTab, nls, type TabInfo } from '@doru/workbench';
 
 const TREE_TAB_ID = 'tree';
 const SETTINGS_TAB_ID = 'settings';
+const NOTICES_TAB_ID = 'notices';
 const PERSON_TAB_PREFIX = 'person:';
 
 interface OpenTab {
@@ -134,6 +135,10 @@ export function useTabs(persons: PersonRecord[]) {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
 
+  const openNoticesTab = useCallback(() => {
+    openTab({ id: NOTICES_TAB_ID, label: nls.t('notices.title') });
+  }, [openTab]);
+
   const reorderTabs = useCallback((sourceId: string, dropIndex: number) => {
     setOpenTabs((current) => moveTab(current, sourceId, dropIndex));
   }, []);
@@ -159,8 +164,9 @@ export function useTabs(persons: PersonRecord[]) {
     openPersonTab,
     openNewPersonTab,
     openSettingsTab,
+    openNoticesTab,
     reorderTabs,
   };
 }
 
-export { SETTINGS_TAB_ID, TREE_TAB_ID, PERSON_TAB_PREFIX };
+export { SETTINGS_TAB_ID, TREE_TAB_ID, NOTICES_TAB_ID, PERSON_TAB_PREFIX };
