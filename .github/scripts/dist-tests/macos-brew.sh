@@ -63,6 +63,13 @@ test "$(plutil -extract CFBundleIdentifier raw "$PLIST")" = "org.doru.doru" \
   || fail "CFBundleIdentifier is not org.doru.doru"
 echo "::endgroup::"
 
+echo "::group::Local inference engine shipped in the bundle"
+# The Dóru AI sidecar must be inside the dmg: a release built without
+# scripts/fetch-llama.ts is otherwise undetectable until the first chat.
+test -x "$APP/Contents/Resources/llama/llama-server" \
+  || fail "Resources/llama/llama-server missing from the bundle (fetch-llama.ts did not run before packaging)"
+echo "::endgroup::"
+
 echo "::group::Display names (the two macOS lookups)"
 test "$(plutil -extract CFBundleDisplayName raw "$PLIST")" = "Dóru" \
   || fail "CFBundleDisplayName is not Dóru"

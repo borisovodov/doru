@@ -94,6 +94,16 @@ INSTALLED="$HOME/Applications/Doru.AppImage"
 test -x "$INSTALLED" || fail "$INSTALLED is missing or not executable"
 echo "::endgroup::"
 
+echo "::group::Local inference engine shipped inside the AppImage"
+# The Dóru AI sidecar must be inside the AppImage: a release built without
+# scripts/fetch-llama.ts is otherwise undetectable until the first chat.
+EXTRACT_DIR=$(mktemp -d)
+(cd "$EXTRACT_DIR" && "$INSTALLED" --appimage-extract resources/llama/llama-server >/dev/null 2>&1)
+test -x "$EXTRACT_DIR/squashfs-root/resources/llama/llama-server" \
+  || fail "the AppImage does not ship resources/llama/llama-server (fetch-llama.ts did not run before packaging)"
+rm -rf "$EXTRACT_DIR"
+echo "::endgroup::"
+
 echo "::group::Desktop entry"
 DESKTOP="$HOME/.local/share/applications/org.doru.doru.desktop"
 test -f "$DESKTOP" || fail "desktop entry not written"
