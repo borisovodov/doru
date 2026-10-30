@@ -179,8 +179,50 @@
   color: var(--doru-danger, #e5484d);
 }
 
+.settings-doru-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 8px;
+}
+
 .settings-progress {
-  display: block;
-  width: 100%;
-  margin: 4px 0 8px;
+  flex: 1;
+  height: 6px;
+  appearance: none;
+  border: none;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--doru-bg-input, #1b201c);
+}
+
+.settings-progress::-webkit-progress-bar {
+  border-radius: 3px;
+  background: var(--doru-bg-input, #1b201c);
+}
+
+.settings-progress::-webkit-progress-value {
+  border-radius: 3px;
+  background: var(--doru-accent, #63a37f);
+  transition: width 0.25s ease;
+}
+
+.settings-doru-progress-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--doru-fg-muted, #8d958f);
+  cursor: pointer;
+}
+
+.settings-doru-progress-cancel:hover {
+  color: var(--doru-fg, #c7cdc8);
+  background: var(--doru-bg-input, #1b201c);
 }

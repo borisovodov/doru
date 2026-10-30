@@ -28,6 +28,18 @@ The provider is configured in the `ai` section of `settings.json` (see
   directory, keyed by provider id. The key never appears in the settings
   file.
 
+## Dóru AI (offline assistant)
+
+The default provider is **Dóru AI**: a local assistant that runs entirely on
+your computer. Download it once in the AI settings (a single file, about
+3 GB); after that the chat works with no account and no internet connection.
+It is selected by default on a fresh install and needs at least 8 GB of RAM.
+
+The downloaded model is Qwen3.5-4B (Q4_K_M quantized GGUF, Apache-2.0
+license — see the [model card](https://huggingface.co/Qwen/Qwen3.5-4B)).
+The weights are pinned by SHA-256 in the app manifest and verified after
+every download.
+
 ## ACP agents
 
 Set `"ai": { "provider": "acp", "providers": { "acp": { "command": "…",

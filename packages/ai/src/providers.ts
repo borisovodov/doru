@@ -41,7 +41,7 @@ const CLOUD_PRESETS: CloudPreset[] = [];
 const LOCAL_PRESETS: Array<Omit<AiProvider, 'catalog'>> = [
   {
     id: 'doru',
-    label: 'Dóru AI (offline)',
+    label: 'Dóru AI',
     kind: 'local',
     // No base URL in settings: the app manages the llama-server sidecar
     // itself and resolves the endpoint when the chat runs.

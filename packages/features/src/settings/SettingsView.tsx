@@ -196,7 +196,9 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   return (
     <div className="settings-section">
       <h3>{nls.t('settings.ai.title')}</h3>
-      {!settings.configured ? <p className="settings-note">{nls.t('settings.ai.notConfigured')}</p> : null}
+      {!settings.configured && provider?.id !== 'doru' ? (
+        <p className="settings-note">{nls.t('settings.ai.notConfigured')}</p>
+      ) : null}
 
       <label className="settings-field">
         <span>{nls.t('settings.ai.provider')}</span>
@@ -409,10 +411,6 @@ function doruModelErrorKey(error: DoruModelError | undefined): MessageKey | null
   }
 }
 
-function formatGigabytes(bytes: number): string {
-  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
-}
-
 /**
  * The "Dóru AI" wizard step: one download button, no model choice. The
  * machine's RAM decides whether the model is offered at all.
@@ -431,9 +429,19 @@ function DoruModelSection(props: {
     const percent = model.totalBytes > 0 ? Math.round(((model.bytes ?? 0) / model.totalBytes) * 100) : 0;
     return (
       <>
+        <div className="settings-doru-progress">
+          <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
+          <button
+            className="settings-doru-progress-cancel"
+            onClick={props.onCancel}
+            aria-label={nls.t('settings.ai.doruModel.cancel')}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
         <p className="settings-note">{nls.t('settings.ai.doruModel.downloading', `${percent}%`)}</p>
-        <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
-        <button onClick={props.onCancel}>{nls.t('settings.ai.doruModel.cancel')}</button>
       </>
     );
   }
@@ -451,9 +459,6 @@ function DoruModelSection(props: {
   const errorKey = doruModelErrorKey(model.error);
   return (
     <>
-      <p className="settings-note">{nls.t('settings.ai.doruModel.description')}</p>
-      <p className="settings-note">{nls.t('settings.ai.doruModel.size', formatGigabytes(model.totalBytes))}</p>
-      <p className="settings-note">{nls.t('settings.ai.doruModel.license', model.license)}</p>
       {errorKey !== null ? <p className="settings-error">{nls.t(errorKey)}</p> : null}
       <button className="settings-action" disabled={tooWeak} onClick={props.onDownload}>
         {nls.t('settings.ai.doruModel.install')}
