@@ -91,7 +91,10 @@ decisions about what we deliberately do **not** build, see
   headless and gets a private throwaway `userData` profile (temp dir, removed
   on exit) — it never touches the GUI's profile, so any number of concurrent
   helpers (MCP clients, ACP agents) can serve the same tree without
-  serializing on Chromium profile locks.
+  serializing on Chromium profile locks. LaunchServices routes an app-icon
+  click or file open to any running instance of the bundle, so the helper
+  forwards activations, file opens and `doru://` links to a fresh GUI
+  instance (which owns the single-instance lock) instead of swallowing them.
 - **ACP** (Agent Client Protocol): Dóru passes its own MCP server — a
   `doru --mcp-server` subprocess — to the agent in `session/new`, so agents
   get the full tool set without a separate protocol for tree access; the
