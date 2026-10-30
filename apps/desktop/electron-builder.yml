@@ -20,6 +20,12 @@ files:
 extraResources:
   - from: ../../themes
     to: themes
+  # The local-inference engine ("Dóru AI"): one llama-server binary per
+  # platform/arch, fetched by scripts/fetch-llama.ts (pinned release,
+  # sha256-verified, cached) and resolved at runtime from
+  # process.resourcesPath/llama (see src/main/doru-server.ts).
+  - from: build/llama/${platform}-${arch}
+    to: llama
   # The Dóru display name is localized. macOS has two display-name lookups,
   # and both need an entry in InfoPlist.strings: the full name
   # (CFBundleDisplayName — Force Quit, Mission Control) and the short name
