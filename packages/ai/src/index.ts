@@ -38,3 +38,4 @@ export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry, type 
 export { AcpError, classifyError, type AcpErrorCode, type AiErrorCode } from './errors';
 export { doruTools, doruToolSet, type ToolDefinition } from './tools';
 export { SYSTEM_PROMPT } from './prompt';
+export { LlamaServer, type LlamaServerOptions, type ProcessSpawner, type SpawnedProcess } from './llama-server';
