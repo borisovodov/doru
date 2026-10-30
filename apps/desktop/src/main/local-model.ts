@@ -3,6 +3,7 @@
 // itself lives in @doru/ai (Electron-free); this module owns the paths,
 // the lifecycle and the IPC-facing state.
 import { app, BrowserWindow } from 'electron';
+import { statSync } from 'node:fs';
 import { mkdir, rm, stat } from 'node:fs/promises';
 import { totalmem } from 'node:os';
 import { join } from 'node:path';
@@ -54,6 +55,19 @@ async function refreshInstalled(): Promise<void> {
 export async function doruModelState(): Promise<DoruModelState> {
   await refreshInstalled();
   return state;
+}
+
+/**
+ * Synchronous installed check for settings resolution and the chat guard —
+ * a local stat against a file we wrote ourselves is cheap enough to call on
+ * the settings hot path.
+ */
+export function doruModelInstalled(): boolean {
+  try {
+    return statSync(doruModelFilePath()).size === DORU_AI_MODEL.sizeBytes;
+  } catch {
+    return false;
+  }
 }
 
 /** Progress broadcast throttled to at most one event per 250 ms. */

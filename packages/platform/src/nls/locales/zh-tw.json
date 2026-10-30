@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "與 AI 助理的連線已中斷。請檢查 AI 設定中的指令和參數。",
   "chat.errors.acp.handshakeTimeout": "AI 助理沒有回應。請檢查 AI 設定中的指令和參數。",
   "chat.errors.acp.spawnFailed": "無法啟動 AI 助理。請檢查 AI 設定中的指令。",
+  "chat.errors.doruNotInstalled": "Dóru AI 尚未下載。請在 AI 設定中下載。",
   "chat.errors.generic": "出了點問題。請重試。",
   "chat.errors.notConfigured": "尚未設定 AI 供應商。請開啟設定進行配置。",
   "chat.errors.provider.auth": "AI 供應商拒絕了 API 金鑰。請檢查 AI 設定中的金鑰。",

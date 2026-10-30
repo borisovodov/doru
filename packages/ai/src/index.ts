@@ -1,5 +1,5 @@
 export type { ChatMessage, ChatRole, ChatSessionMeta, ToolCall } from './types';
-export { buildLanguageModel, type ModelConfig } from './model';
+export { buildLanguageModel, DORU_CHAT_PROVIDER_OPTIONS, type ModelConfig } from './model';
 export {
   AI_PROVIDERS,
   findProvider,
@@ -24,6 +24,7 @@ export {
   type ChatSendResult,
   type ChatTranscriptMessage,
   type RunAgentOptions,
+  type RunProviderOptions,
 } from './agent';
 export {
   normalizeReasoning,

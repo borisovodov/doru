@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "Spojení s asistentem AI bylo přerušeno. Zkontrolujte příkaz a argumenty v nastavení AI.",
   "chat.errors.acp.handshakeTimeout": "Asistent AI neodpověděl. Zkontrolujte příkaz a argumenty v nastavení AI.",
   "chat.errors.acp.spawnFailed": "Asistenta AI se nepodařilo spustit. Zkontrolujte příkaz v nastavení AI.",
+  "chat.errors.doruNotInstalled": "Dóru AI zatím není stažen. Stáhněte si ho v nastavení AI.",
   "chat.errors.generic": "Něco se pokazilo. Zkuste to znovu.",
   "chat.errors.notConfigured": "Poskytovatel AI není nastaven. Otevřete nastavení a nakonfigurujte ho.",
   "chat.errors.provider.auth": "Poskytovatel AI odmítl klíč API. Zkontrolujte klíč v nastavení AI.",

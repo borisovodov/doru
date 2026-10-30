@@ -17,9 +17,23 @@ export function useAiSettings() {
   }, []);
 
   // The model download runs in the main process; its state arrives both as
-  // pushed events (progress) and as invoke replies (authoritative).
+  // pushed events (progress) and as invoke replies (authoritative). When the
+  // installed/error state flips, `configured` for the doru provider changes
+  // with it — refresh the settings so the chat placeholder follows.
   useEffect(() => {
-    return window.doru.onDoruModelState(setDoruModel);
+    let previous: DoruModelState | null = null;
+    return window.doru.onDoruModelState((state) => {
+      const transitioned =
+        previous === null ||
+        previous.installed !== state.installed ||
+        previous.downloading !== state.downloading ||
+        previous.error !== state.error;
+      previous = state;
+      setDoruModel(state);
+      if (transitioned) {
+        void window.doru.getAiSettings().then(setSettings);
+      }
+    });
   }, []);
 
   // Settings writes can come from outside the Settings tab (direct IPC calls,

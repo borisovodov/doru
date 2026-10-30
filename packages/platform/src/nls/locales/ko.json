@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "AI 도우미와의 연결이 끊겼습니다. AI 설정에서 명령과 인수를 확인하세요.",
   "chat.errors.acp.handshakeTimeout": "AI 도우미가 응답하지 않았습니다. AI 설정에서 명령과 인수를 확인하세요.",
   "chat.errors.acp.spawnFailed": "AI 도우미를 시작할 수 없었습니다. AI 설정에서 명령을 확인하세요.",
+  "chat.errors.doruNotInstalled": "Dóru AI가 아직 다운로드되지 않았습니다. AI 설정에서 다운로드하세요.",
   "chat.errors.generic": "문제가 발생했습니다. 다시 시도하세요.",
   "chat.errors.notConfigured": "AI 공급자가 구성되지 않았습니다. 설정을 열어 구성하세요.",
   "chat.errors.provider.auth": "AI 공급자가 API 키를 거부했습니다. AI 설정에서 키를 확인하세요.",

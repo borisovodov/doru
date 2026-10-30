@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "A conexão com o assistente de IA foi interrompida. Verifique o comando e os argumentos nas configurações de IA.",
   "chat.errors.acp.handshakeTimeout": "O assistente de IA não respondeu. Verifique o comando e os argumentos nas configurações de IA.",
   "chat.errors.acp.spawnFailed": "Não foi possível iniciar o assistente de IA. Verifique o comando nas configurações de IA.",
+  "chat.errors.doruNotInstalled": "O Dóru AI ainda não foi baixado. Baixe-o nas configurações de IA.",
   "chat.errors.generic": "Algo deu errado. Tente novamente.",
   "chat.errors.notConfigured": "O provedor de IA não está configurado. Abra as configurações para configurá-lo.",
   "chat.errors.provider.auth": "O provedor de IA rejeitou a chave de API. Verifique a chave nas configurações de IA.",

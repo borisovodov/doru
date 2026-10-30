@@ -3,6 +3,8 @@ import { dirname, resolve } from 'node:path';
 import type { ToolSet } from 'ai';
 import {
   AcpAgentClient,
+  DORU_AI_MODEL,
+  DORU_CHAT_PROVIDER_OPTIONS,
   SYSTEM_PROMPT,
   TreeMcpBackend,
   buildLanguageModel,
@@ -19,6 +21,8 @@ import {
 import { loadAiSettings, type ResolvedAiSettings } from './ai-settings';
 import { userErrorMessage, userMessageFor } from './ai-errors';
 import { chatSessions } from './chat-sessions';
+import { ensureDoruServer } from './doru-server';
+import { doruModelInstalled } from './local-model';
 import { log } from './log';
 import { nls } from './nls';
 import { ensureRuntime } from './runtime';
@@ -208,42 +212,57 @@ export async function sendChat(options: {
       }
     } else {
       const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
-      const model = buildLanguageModel({
-        providerId: settings.provider.id,
-        baseUrl: settings.baseUrl,
-        apiKey: settings.apiKey,
-        model: settings.model,
-      });
-
-      const tools: ToolSet = doruToolSet(backend);
-
-      try {
-        const agentResult = await runAgent({
-          model,
-          messages: modelConversation(transcript, options.text),
-          system: SYSTEM_PROMPT,
-          tools,
-          events,
-          signal: abort.signal,
-          ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
-        });
-        if (agentResult.error !== undefined) {
-          // Raw stream error for the log; a localized message for the UI.
-          log.warn('chat: run error', { ...runContext, error: agentResult.error });
+      const isDoru = settings.provider.id === 'doru';
+      if (isDoru && !doruModelInstalled()) {
+        log.warn('chat: Dóru AI model is not downloaded', runContext);
+        result = { steps: [], finalText: '', error: nls.t('chat.errors.doruNotInstalled') };
+      } else {
+        let baseUrl = settings.baseUrl;
+        let modelId = settings.model;
+        if (isDoru) {
+          // The endpoint is the managed sidecar; the model is the curated one.
+          const server = await ensureDoruServer();
+          baseUrl = server.baseUrl ?? '';
+          modelId = DORU_AI_MODEL.id;
         }
-        result = {
-          steps: agentResult.steps,
-          finalText: agentResult.finalText,
-          ...(agentResult.error !== undefined
-            ? { error: userMessageFor(agentResult.errorCode ?? 'unknown') }
-            : {}),
-        };
-      } catch (error) {
-        if (abort.signal.aborted) {
-          log.debug('chat: run cancelled', runContext);
-          result = cancelled([]);
-        } else {
-          result = fail(error);
+        const model = buildLanguageModel({
+          providerId: settings.provider.id,
+          baseUrl,
+          apiKey: settings.apiKey,
+          model: modelId,
+        });
+
+        const tools: ToolSet = doruToolSet(backend);
+
+        try {
+          const agentResult = await runAgent({
+            model,
+            messages: modelConversation(transcript, options.text),
+            system: SYSTEM_PROMPT,
+            tools,
+            events,
+            signal: abort.signal,
+            ...(settings.reasoning !== '' ? { reasoning: settings.reasoning } : {}),
+            ...(isDoru ? { providerOptions: DORU_CHAT_PROVIDER_OPTIONS } : {}),
+          });
+          if (agentResult.error !== undefined) {
+            // Raw stream error for the log; a localized message for the UI.
+            log.warn('chat: run error', { ...runContext, error: agentResult.error });
+          }
+          result = {
+            steps: agentResult.steps,
+            finalText: agentResult.finalText,
+            ...(agentResult.error !== undefined
+              ? { error: userMessageFor(agentResult.errorCode ?? 'unknown') }
+              : {}),
+          };
+        } catch (error) {
+          if (abort.signal.aborted) {
+            log.debug('chat: run cancelled', runContext);
+            result = cancelled([]);
+          } else {
+            result = fail(error);
+          }
         }
       }
     }

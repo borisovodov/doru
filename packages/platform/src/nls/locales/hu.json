@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "Megszakadt a kapcsolat az AI-asszisztenssel. Ellenőrizze a parancsot és az argumentumokat az AI-beállításokban.",
   "chat.errors.acp.handshakeTimeout": "Az AI-asszisztens nem válaszolt. Ellenőrizze a parancsot és az argumentumokat az AI-beállításokban.",
   "chat.errors.acp.spawnFailed": "Nem sikerült elindítani az AI-asszisztenst. Ellenőrizze a parancsot az AI-beállításokban.",
+  "chat.errors.doruNotInstalled": "A Dóru AI még nincs letöltve. Töltse le az AI-beállításokban.",
   "chat.errors.generic": "Valami hiba történt. Próbálja újra.",
   "chat.errors.notConfigured": "Az AI-szolgáltató nincs beállítva. Nyissa meg a beállításokat.",
   "chat.errors.provider.auth": "Az AI-szolgáltató elutasította az API-kulcsot. Ellenőrizze a kulcsot az AI-beállításokban.",

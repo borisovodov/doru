@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "Połączenie z asystentem AI zostało przerwane. Sprawdź polecenie i argumenty w ustawieniach AI.",
   "chat.errors.acp.handshakeTimeout": "Asystent AI nie odpowiedział. Sprawdź polecenie i argumenty w ustawieniach AI.",
   "chat.errors.acp.spawnFailed": "Nie udało się uruchomić asystenta AI. Sprawdź polecenie w ustawieniach AI.",
+  "chat.errors.doruNotInstalled": "Dóru AI nie został jeszcze pobrany. Pobierz go w ustawieniach AI.",
   "chat.errors.generic": "Coś poszło nie tak. Spróbuj ponownie.",
   "chat.errors.notConfigured": "Dostawca AI nie jest skonfigurowany. Otwórz ustawienia, aby go skonfigurować.",
   "chat.errors.provider.auth": "Dostawca AI odrzucił klucz API. Sprawdź klucz w ustawieniach AI.",

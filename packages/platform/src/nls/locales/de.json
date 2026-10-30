@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "Die Verbindung zum KI-Assistenten wurde unterbrochen. Prüfen Sie Befehl und Argumente in den KI-Einstellungen.",
   "chat.errors.acp.handshakeTimeout": "Der KI-Assistent hat nicht geantwortet. Prüfen Sie Befehl und Argumente in den KI-Einstellungen.",
   "chat.errors.acp.spawnFailed": "Der KI-Assistent konnte nicht gestartet werden. Prüfen Sie den Befehl in den KI-Einstellungen.",
+  "chat.errors.doruNotInstalled": "Dóru AI ist noch nicht heruntergeladen. Laden Sie es in den KI-Einstellungen herunter.",
   "chat.errors.generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   "chat.errors.notConfigured": "Der KI-Anbieter ist nicht eingerichtet. Öffnen Sie die Einstellungen, um ihn einzurichten.",
   "chat.errors.provider.auth": "Der KI-Anbieter hat den API-Schlüssel abgelehnt. Prüfen Sie den Schlüssel in den KI-Einstellungen.",

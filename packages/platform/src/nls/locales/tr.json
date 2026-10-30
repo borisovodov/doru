@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "Yapay zekâ asistanıyla bağlantı kesildi. YZ ayarlarındaki komutu ve bağımsız değişkenleri kontrol edin.",
   "chat.errors.acp.handshakeTimeout": "Yapay zekâ asistanı yanıt vermedi. YZ ayarlarındaki komutu ve bağımsız değişkenleri kontrol edin.",
   "chat.errors.acp.spawnFailed": "Yapay zekâ asistanı başlatılamadı. YZ ayarlarındaki komutu kontrol edin.",
+  "chat.errors.doruNotInstalled": "Dóru AI henüz indirilmedi. AI ayarlarından indirin.",
   "chat.errors.generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
   "chat.errors.notConfigured": "YZ sağlayıcısı yapılandırılmamış. Ayarları açıp yapılandırın.",
   "chat.errors.provider.auth": "YZ sağlayıcısı API anahtarını reddetti. YZ ayarlarındaki anahtarı kontrol edin.",

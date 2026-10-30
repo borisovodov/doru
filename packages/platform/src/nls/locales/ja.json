@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "AIアシスタントとの接続が切れました。AI設定のコマンドと引数を確認してください。",
   "chat.errors.acp.handshakeTimeout": "AIアシスタントが応答しませんでした。AI設定のコマンドと引数を確認してください。",
   "chat.errors.acp.spawnFailed": "AIアシスタントを起動できませんでした。AI設定のコマンドを確認してください。",
+  "chat.errors.doruNotInstalled": "Dóru AI はまだダウンロードされていません。AI 設定からダウンロードしてください。",
   "chat.errors.generic": "問題が発生しました。もう一度お試しください。",
   "chat.errors.notConfigured": "AIプロバイダーが設定されていません。設定を開いて構成してください。",
   "chat.errors.provider.auth": "AIプロバイダーがAPIキーを拒否しました。AI設定のキーを確認してください。",

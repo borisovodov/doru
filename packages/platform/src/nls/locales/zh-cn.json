@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "与 AI 助手的连接已中断。请检查 AI 设置中的命令和参数。",
   "chat.errors.acp.handshakeTimeout": "AI 助手没有响应。请检查 AI 设置中的命令和参数。",
   "chat.errors.acp.spawnFailed": "无法启动 AI 助手。请检查 AI 设置中的命令。",
+  "chat.errors.doruNotInstalled": "Dóru AI 尚未下载。请在 AI 设置中下载。",
   "chat.errors.generic": "出了点问题。请重试。",
   "chat.errors.notConfigured": "尚未配置 AI 提供商。请打开设置进行配置。",
   "chat.errors.provider.auth": "AI 提供商拒绝了 API 密钥。请检查 AI 设置中的密钥。",

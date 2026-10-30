@@ -7,6 +7,7 @@
   "chat.errors.acp.connectionClosed": "The connection to the AI assistant was interrupted. Check the command and arguments in the AI settings.",
   "chat.errors.acp.handshakeTimeout": "The AI assistant did not respond. Check the command and arguments in the AI settings.",
   "chat.errors.acp.spawnFailed": "The AI assistant could not be started. Check the command in the AI settings.",
+  "chat.errors.doruNotInstalled": "Dóru AI is not downloaded yet. Download it in the AI settings.",
   "chat.errors.generic": "Something went wrong. Please try again.",
   "chat.errors.notConfigured": "The AI provider is not configured. Open Settings to set it up.",
   "chat.errors.provider.auth": "The AI provider rejected the API key. Check the key in the AI settings.",

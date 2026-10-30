@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['scripts/eval-ai.test.ts'],
+    include: ['scripts/eval-ai.test.ts', 'scripts/eval-ai-sdk.test.ts'],
     testTimeout: 900_000,
     hookTimeout: 360_000,
   },
