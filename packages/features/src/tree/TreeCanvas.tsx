@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
-  MiniMap,
   Panel,
   ReactFlow,
   ReactFlowProvider,
@@ -15,7 +14,7 @@ import {
 } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PersonRecord } from '@doru/core';
-import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Minus, Plus, Scan } from 'lucide-react';
 import { nls } from '../nls';
 import { displayName } from '../person/format';
 import { GenerationBand } from './GenerationBand';
@@ -388,26 +387,32 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
           onNodeDrag={handleNodeDrag}
           onNodeDragStop={handleNodeDragStop}
           zoomOnDoubleClick={false}
+          // Trackpad gesture model, same on every platform: two-finger scroll
+          // pans the canvas, pinch zooms (browsers surface pinch as
+          // ctrl+wheel, which @xyflow/react handles natively). Mouse users
+          // zoom with Ctrl/Cmd+scroll or the zoom buttons.
+          zoomOnScroll={false}
+          panOnScroll={true}
+          zoomOnPinch={true}
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
-          <MiniMap pannable zoomable ariaLabel={nls.t('tree.canvas.minimap')} />
           <Panel position="bottom-left" className="tree-zoom">
-            <button
-              type="button"
-              title={nls.t('tree.canvas.zoomIn')}
-              aria-label={nls.t('tree.canvas.zoomIn')}
-              onClick={() => void zoomIn({ duration: 150 })}
-            >
-              <ZoomIn size={16} aria-hidden="true" />
-            </button>
             <button
               type="button"
               title={nls.t('tree.canvas.zoomOut')}
               aria-label={nls.t('tree.canvas.zoomOut')}
               onClick={() => void zoomOut({ duration: 150 })}
             >
-              <ZoomOut size={16} aria-hidden="true" />
+              <Minus size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title={nls.t('tree.canvas.zoomIn')}
+              aria-label={nls.t('tree.canvas.zoomIn')}
+              onClick={() => void zoomIn({ duration: 150 })}
+            >
+              <Plus size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -415,7 +420,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
               aria-label={nls.t('tree.canvas.fit')}
               onClick={fitChart}
             >
-              <Maximize2 size={16} aria-hidden="true" />
+              <Scan size={16} aria-hidden="true" />
             </button>
           </Panel>
           {form && (

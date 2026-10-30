@@ -7,7 +7,7 @@ activity bar.
 ## Navigation
 
 - **Pan** by dragging the background, **zoom** with the scroll wheel or
-  trackpad; the zoom buttons and the minimap sit in the canvas corners.
+  trackpad; the zoom buttons sit in the canvas corner.
 - **Refocus** on a person by double-clicking their card. The toolbar keeps a
   history: back/forward arrows and a breadcrumb trail.
 - **Charts**: switch between *Ancestors*, *Descendants*, *Hourglass* and
