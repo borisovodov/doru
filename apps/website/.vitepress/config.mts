@@ -1,4 +1,4 @@
-import { defineConfig, type DefaultTheme } from 'vitepress';
+import { defineConfig, type DefaultTheme, type HeadConfig, type TransformContext } from 'vitepress';
 
 const LOCALIZED = {
   en: { label: 'English', nav: 'Intro', relnotes: 'Release notes', footer: 'The name comes from Proto-Indo-European <em>*dóru</em> — “tree”.' },
@@ -74,15 +74,84 @@ const localeConfig = Object.fromEntries(
     }),
 );
 
+// The site is hosted at https://doru.family (see public/CNAME); social
+// scrapers only accept absolute URLs, so og:image/og:url are built from here.
+const SITE_URL = 'https://doru.family';
+
+// og:locale wants a language + region tag; the page's locale is encoded in
+// the first segment of its path (ru/index.md, docs/…, index.md).
+const OG_LOCALE: Record<string, string> = {
+  en: 'en_US',
+  ru: 'ru_RU',
+  fr: 'fr_FR',
+  de: 'de_DE',
+  it: 'it_IT',
+  es: 'es_ES',
+  'pt-br': 'pt_BR',
+  cs: 'cs_CZ',
+  pl: 'pl_PL',
+  hu: 'hu_HU',
+  bg: 'bg_BG',
+  el: 'el_GR',
+  tr: 'tr_TR',
+  ja: 'ja_JP',
+  ko: 'ko_KR',
+  'zh-cn': 'zh_CN',
+  'zh-tw': 'zh_TW',
+};
+
+// Maps a VitePress page path to its clean URL: index.md -> /,
+// ru/index.md -> /ru/, docs/installation.md -> /docs/installation.
+function pagePath(relativePath: string): string {
+  const path = relativePath.replace(/\.md$/, '');
+  if (path === 'index') return '/';
+  if (path.endsWith('/index')) return `/${path.slice(0, -'/index'.length)}/`;
+  return `/${path}`;
+}
+
+function ogLocale(relativePath: string): string {
+  const segment = relativePath.split('/')[0];
+  if (segment === undefined) return 'en_US';
+  return OG_LOCALE[segment] ?? 'en_US';
+}
+
+// OpenGraph + Twitter Card tags. VitePress passes the fully composed page
+// title ("Intro | Dóru") and resolved description (frontmatter description
+// or the site-wide fallback) in the transformHead context, so the tags stay
+// in sync with the <title>/<meta name="description"> tags automatically.
+function openGraphHead({ pageData, title, description }: TransformContext): HeadConfig[] {
+  const image = `${SITE_URL}/og-icon.png`;
+  const tags: HeadConfig[] = [
+    ['meta', { property: 'og:site_name', content: 'Dóru' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:title', content: title }],
+    ['meta', { property: 'og:description', content: description }],
+    ['meta', { property: 'og:image', content: image }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { property: 'og:image:alt', content: 'Dóru — local-first genealogy for the AI era' }],
+    ['meta', { property: 'og:locale', content: ogLocale(pageData.relativePath) }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: title }],
+    ['meta', { name: 'twitter:description', content: description }],
+    ['meta', { name: 'twitter:image', content: image }],
+  ];
+  if (!pageData.isNotFound) {
+    tags.push(['meta', { property: 'og:url', content: `${SITE_URL}${pagePath(pageData.relativePath)}` }]);
+  }
+  return tags;
+}
+
 export default defineConfig({
   lang: 'en-US',
   title: 'Dóru',
-  description: 'Local-first genealogy for the AI era. Open source (MIT) — your data stays with you.',
+  description: 'Local-first genealogy for the AI era',
   cleanUrls: true,
   // Strict by default in VitePress; keep it explicit so a dead link always
   // fails the build instead of silently regressing.
   ignoreDeadLinks: false,
   appearance: 'force-auto',
+  transformHead: openGraphHead,
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/icon.png' }],
     // Preload the wordmark face so the hero name never paints in a
