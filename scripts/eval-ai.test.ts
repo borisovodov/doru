@@ -1,8 +1,9 @@
-// The local-model eval gate for "Dóru AI": drives a llama.cpp `llama-server`
-// sidecar (the architecture the app will ship) with the candidate GGUF models
-// through the real agent toolset (`doruTools` / `TreeMcpBackend`) and scores
-// each scenario on tool-call correctness and final tree state, in two modes:
-// Qwen3.5 thinking (default) and non-thinking (`enable_thinking: false`).
+// The local-model eval gate for "Dóru AI": drives the shared `LlamaServer`
+// controller from @doru/ai (the same sidecar architecture the app will ship)
+// with candidate GGUF models through the real agent toolset (`doruTools` /
+// `TreeMcpBackend`) and scores each scenario on tool-call correctness and
+// final tree state, in two modes: Qwen3.5 thinking (default) and non-thinking
+// (`enable_thinking: false`).
 //
 // This file is intentionally outside the vitest `include` patterns, so `npm
 // test` and CI never run it (it needs multi-GB models and a downloaded
@@ -18,15 +19,13 @@
 // DORU_EVAL_MODEL_9B, DORU_EVAL_MODELS ("4B,9B"), DORU_EVAL_MODES
 // ("thinking,plain"), DORU_EVAL_SCENARIOS ("stats_en,query_men_en"),
 // DORU_EVAL_REPEATS (runs per scenario, default 1; use >= 3 for small models).
-import { spawn, spawnSync, type ChildProcessByStdio } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, it } from 'vitest';
 import { z } from 'zod';
-import { SYSTEM_PROMPT, TreeMcpBackend, doruTools } from '@doru/ai';
+import { LlamaServer, SYSTEM_PROMPT, TreeMcpBackend, doruTools } from '@doru/ai';
 import { cleanupAiFixture, makeAiFixture } from '../packages/ai/tests/helpers';
 import { EVAL_SCENARIOS, seedFixture, type EvalScenario } from './eval-ai-scenarios';
 
@@ -77,106 +76,6 @@ function loadConfig(): EvalConfig {
     maxTokens: 4096,
     maxSteps: 8,
   };
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      server.close();
-      if (address !== null && typeof address === 'object') {
-        resolve(address.port);
-      } else {
-        reject(new Error('could not allocate a free port'));
-      }
-    });
-  });
-}
-
-/** A llama-server sidecar, the same process model the app will use. */
-class LlamaServer {
-  private proc: ChildProcessByStdio<null, Readable, Readable> | undefined;
-  private logLines: string[] = [];
-  readonly baseUrl: string;
-
-  constructor(
-    private readonly binary: string,
-    private readonly modelPath: string,
-    private readonly port: number,
-    private readonly ctxSize: number,
-    private readonly gpuLayers: number,
-  ) {
-    this.baseUrl = `http://127.0.0.1:${port}`;
-  }
-
-  async start(timeoutMs: number): Promise<void> {
-    this.proc = spawn(
-      this.binary,
-      [
-        '-m',
-        this.modelPath,
-        '--host',
-        '127.0.0.1',
-        '--port',
-        String(this.port),
-        '--ctx-size',
-        String(this.ctxSize),
-        '--n-gpu-layers',
-        String(this.gpuLayers),
-        '--parallel',
-        '1',
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-    this.proc.stdout.on('data', (chunk: Buffer) => this.logLines.push(chunk.toString()));
-    this.proc.stderr.on('data', (chunk: Buffer) => this.logLines.push(chunk.toString()));
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      const proc = this.proc;
-      if (proc === undefined || proc.exitCode !== null) {
-        throw new Error(`llama-server exited early (code ${proc?.exitCode ?? 'unknown'})\n${this.tail()}`);
-      }
-      try {
-        const response = await fetch(`${this.baseUrl}/health`, { signal: AbortSignal.timeout(2000) });
-        if (response.ok) {
-          return;
-        }
-      } catch {
-        // still booting
-      }
-      await sleep(500);
-    }
-    throw new Error(`llama-server did not become healthy within ${timeoutMs}ms\n${this.tail()}`);
-  }
-
-  async stop(): Promise<void> {
-    const proc = this.proc;
-    this.proc = undefined;
-    if (proc === undefined) {
-      return;
-    }
-    if (proc.exitCode === null) {
-      proc.kill('SIGTERM');
-      await Promise.race([
-        new Promise<void>((resolve) => proc.once('exit', () => resolve())),
-        sleep(10_000).then(() => {
-          if (proc.exitCode === null) {
-            proc.kill('SIGKILL');
-          }
-        }),
-      ]);
-    }
-  }
-
-  tail(limit = 60): string {
-    return this.logLines.slice(-limit).join('');
-  }
 }
 
 interface WireToolCall {
@@ -236,7 +135,7 @@ interface ChatOptions {
  * card: temperature 1.0/top_p 0.95 in thinking mode, 0.7/0.8 in
  * non-thinking mode; both share top_k 20 and presence_penalty 1.5.
  */
-async function chatTurn(server: LlamaServer, options: ChatOptions): Promise<ChatTurnResult> {
+async function chatTurn(baseUrl: string, options: ChatOptions): Promise<ChatTurnResult> {
   const body: Record<string, unknown> = {
     model: 'doru-eval',
     messages: options.messages,
@@ -252,7 +151,7 @@ async function chatTurn(server: LlamaServer, options: ChatOptions): Promise<Chat
     body['chat_template_kwargs'] = { enable_thinking: false };
   }
   const started = Date.now();
-  const response = await fetch(`${server.baseUrl}/v1/chat/completions`, {
+  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -434,6 +333,10 @@ async function runScenario(
 ): Promise<ScenarioResult> {
   const fixture = makeAiFixture();
   try {
+    const baseUrl = server.baseUrl;
+    if (baseUrl === undefined) {
+      throw new Error('llama-server is not running');
+    }
     seedFixture(fixture.queue, fixture.repo, scenario.seed);
     const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
     const messages: WireMessage[] = [
@@ -451,7 +354,7 @@ async function runScenario(
     let steps = 0;
     for (let step = 0; step < config.maxSteps; step += 1) {
       steps = step + 1;
-      const turn = await chatTurn(server, { mode, maxTokens: config.maxTokens, messages, tools });
+      const turn = await chatTurn(baseUrl, { mode, maxTokens: config.maxTokens, messages, tools });
       ttftMs = turn.ttftMs;
       firstTextMs = turn.firstTextMs;
       durationMs += turn.durationMs;
@@ -600,9 +503,14 @@ describe('Dóru AI local model eval', () => {
             llamaVersion = version.status === 0 ? (version.stdout || version.stderr || '').trim() : 'unknown';
           }
           report.llamaVersion = llamaVersion;
-          const port = await freePort();
-          server = new LlamaServer(config.binary, modelPath, port, config.ctxSize, config.gpuLayers);
-          await server.start(300_000);
+          server = new LlamaServer({
+            binary: config.binary,
+            modelPath,
+            ctxSize: config.ctxSize,
+            gpuLayers: config.gpuLayers,
+            healthTimeoutMs: 300_000,
+          });
+          await server.start();
         }, 360_000);
         afterAll(async () => {
           try {
@@ -627,7 +535,7 @@ describe('Dóru AI local model eval', () => {
               if (!result.ok) {
                 const details = [...result.failures, ...result.toolErrors.map((error) => `tool error: ${error}`)];
                 repeatFailures.push(
-                  `repeat ${repeat}:\n  - ${details.join('\n  - ')}\nfinal text: ${result.finalText.slice(0, 300)}`,
+                  `repeat ${repeat}:\n  - ${details.join('\n  - ')}\nfinal text: ${result.finalText.slice(0, 300)}\nserver log tail:\n${server.tail().slice(-2000)}`,
                 );
               }
             }
