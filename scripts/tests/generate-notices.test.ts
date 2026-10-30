@@ -1,6 +1,6 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   collectNotices,
@@ -54,6 +54,25 @@ describe('licenseFileHint / findLicenseFile', () => {
       expect(findLicenseFile(dir, 'SEE LICENSE IN MISSING.txt')).toBe(join(dir, 'COPYING'));
       rmSync(join(dir, 'COPYING'));
       expect(findLicenseFile(dir, undefined)).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('matches license file names case-insensitively (Linux-safe)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'doru-notices-case-'));
+    try {
+      // Some packages ship the file in lowercase; on case-sensitive
+      // filesystems a plain existsSync('LICENSE') would miss it.
+      writeFileSync(join(dir, 'license'), 'lowercase text');
+      const found = findLicenseFile(dir, undefined);
+      expect(found ? basename(found).toLowerCase() : '').toBe('license');
+      expect(readFileSync(found ?? '', 'utf8')).toBe('lowercase text');
+      rmSync(join(dir, 'license'));
+      writeFileSync(join(dir, 'licence.md'), 'hinted variant');
+      const hinted = findLicenseFile(dir, 'SEE LICENSE IN LICENCE.md');
+      expect(hinted ? basename(hinted).toLowerCase() : '').toBe('licence.md');
+      expect(readFileSync(hinted ?? '', 'utf8')).toBe('hinted variant');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -118,7 +137,9 @@ describe('collectNotices with a fixture checkout', () => {
         repository: { type: 'git', url: 'git+https://github.com/x/dep-a.git' },
       }),
     );
-    writeFileSync(join(root, 'node_modules', 'dep-a', 'LICENSE'), 'dep-a MIT text');
+    // lowercase like the remark packages do — the discovery must not depend
+    // on the filesystem's case sensitivity.
+    writeFileSync(join(root, 'node_modules', 'dep-a', 'license'), 'dep-a MIT text');
     mkdirSync(join(root, 'node_modules', '@scope', 'dep-b'), { recursive: true });
     writeFileSync(
       join(root, 'node_modules', '@scope', 'dep-b', 'package.json'),

@@ -100,7 +100,12 @@ export function licenseFileHint(license: string | undefined): string | undefined
   return match?.[1]?.trim();
 }
 
-/** Finds the license text file of a package, preferring the hinted name. */
+/** Finds the license text file of a package, preferring the hinted name.
+ *
+ * Matching is case-insensitive on purpose: some packages ship the file as
+ * lowercase `license`, and on case-sensitive filesystems (Linux) a plain
+ * `existsSync` miss would make the generated data drift between platforms.
+ */
 export function findLicenseFile(dir: string, license: string | undefined): string | undefined {
   const hinted = licenseFileHint(license);
   if (hinted !== undefined) {
@@ -109,10 +114,23 @@ export function findLicenseFile(dir: string, license: string | undefined): strin
       return path;
     }
   }
+  let listing: string[] = [];
+  try {
+    listing = readdirSync(dir);
+  } catch {
+    return undefined;
+  }
+  // Plain-name hints also match case-insensitively, like the candidates.
+  if (hinted !== undefined && !hinted.includes('/') && !hinted.includes('\\')) {
+    const match = listing.find((entry) => entry.toLowerCase() === hinted.toLowerCase());
+    if (match !== undefined) {
+      return join(dir, match);
+    }
+  }
   for (const name of LICENSE_CANDIDATES) {
-    const path = join(dir, name);
-    if (existsSync(path)) {
-      return path;
+    const match = listing.find((entry) => entry.toLowerCase() === name.toLowerCase());
+    if (match !== undefined) {
+      return join(dir, match);
     }
   }
   return undefined;
