@@ -13,10 +13,13 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const RELEASE = 'b11960';
 const BASE_URL = `https://github.com/ggml-org/llama.cpp/releases/download/${RELEASE}`;
-const TARGET_ROOT = new URL('../apps/desktop/build/llama/', import.meta.url).pathname;
+// fileURLToPath, not url.pathname: on Windows pathname starts with /D: and
+// path.join would assemble a broken D:\D:\... prefix.
+const TARGET_ROOT = fileURLToPath(new URL('../apps/desktop/build/llama/', import.meta.url));
 
 interface BinaryEntry {
   platform: NodeJS.Platform;
