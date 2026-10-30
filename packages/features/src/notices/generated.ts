@@ -24,6 +24,12 @@ export const thirdPartyNotices: ThirdPartyNotice[] =
     "text": "Copyright 2023 Vercel, Inc.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License."
   },
   {
+    "name": "@ai-sdk/provider",
+    "url": "https://github.com/vercel/ai",
+    "license": "Apache-2.0",
+    "text": "Copyright 2023 Vercel, Inc.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License."
+  },
+  {
     "name": "@anthropic-ai/sdk",
     "url": "https://github.com/anthropics/anthropic-sdk-typescript",
     "license": "Apache-2.0",
