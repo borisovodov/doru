@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Le fichier téléchargé a échoué à la vérification d’intégrité. Réessayez.",
   "settings.ai.doruModel.install": "Télécharger",
   "settings.ai.doruModel.tooWeak": "Dóru AI nécessite au moins {0} Go de RAM — cet ordinateur ne suffit pas.",
+  "settings.ai.doruModel.update": "Mettre à jour",
+  "settings.ai.doruModel.updateAvailable": "Un modèle mis à jour est disponible.",
   "settings.ai.model": "Modèle",
   "settings.ai.model.context": "Contexte : {0}",
   "settings.ai.model.cost": "{0} $ en entrée / {1} $ en sortie par million de jetons",

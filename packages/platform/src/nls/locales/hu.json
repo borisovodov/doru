@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "A letöltött fájl nem ment át az integritás-ellenőrzésen. Próbálja újra.",
   "settings.ai.doruModel.install": "Letöltés",
   "settings.ai.doruModel.tooWeak": "A Dóru AI-hoz legalább {0} GB RAM szükséges — ez a számítógép nem felel meg ennek.",
+  "settings.ai.doruModel.update": "Frissítés",
+  "settings.ai.doruModel.updateAvailable": "Frissített modell érhető el.",
   "settings.ai.model": "Modell",
   "settings.ai.model.context": "Kontextus: {0}",
   "settings.ai.model.cost": "${0} bemenet / ${1} kimenet 1M tokenenként",

@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "ダウンロードしたファイルが整合性チェックに合格しませんでした。もう一度お試しください。",
   "settings.ai.doruModel.install": "ダウンロード",
   "settings.ai.doruModel.tooWeak": "Dóru AI には少なくとも {0} GB の RAM が必要です。このコンピューターでは要件を満たしません。",
+  "settings.ai.doruModel.update": "更新",
+  "settings.ai.doruModel.updateAvailable": "更新されたモデルが利用できます。",
   "settings.ai.model": "モデル",
   "settings.ai.model.context": "コンテキスト: {0}",
   "settings.ai.model.cost": "100 万トークンあたり入力 ${0} / 出力 ${1}",

@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "İndirilen dosya bütünlük denetiminden geçemedi. Yeniden deneyin.",
   "settings.ai.doruModel.install": "İndir",
   "settings.ai.doruModel.tooWeak": "Dóru AI en az {0} GB RAM gerektirir — bu bilgisayar bu gereksinimi karşılamıyor.",
+  "settings.ai.doruModel.update": "Güncelle",
+  "settings.ai.doruModel.updateAvailable": "Güncellenmiş bir model mevcut.",
   "settings.ai.model": "Model",
   "settings.ai.model.context": "Bağlam: {0}",
   "settings.ai.model.cost": "1M token başına ${0} giriş / ${1} çıkış",

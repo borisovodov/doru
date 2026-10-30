@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Die heruntergeladene Datei hat die Integritätsprüfung nicht bestanden. Versuchen Sie es erneut.",
   "settings.ai.doruModel.install": "Herunterladen",
   "settings.ai.doruModel.tooWeak": "Dóru AI benötigt mindestens {0} GB RAM — dieser Computer erfüllt das nicht.",
+  "settings.ai.doruModel.update": "Aktualisieren",
+  "settings.ai.doruModel.updateAvailable": "Ein aktualisiertes Modell ist verfügbar.",
   "settings.ai.model": "Modell",
   "settings.ai.model.context": "Kontext: {0}",
   "settings.ai.model.cost": "${0} Eingabe / ${1} Ausgabe pro 1 Mio. Tokens",

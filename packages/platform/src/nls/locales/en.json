@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "The downloaded file failed the integrity check. Try again.",
   "settings.ai.doruModel.install": "Download",
   "settings.ai.doruModel.tooWeak": "Dóru AI needs at least {0} GB of RAM — this computer does not meet that.",
+  "settings.ai.doruModel.update": "Update",
+  "settings.ai.doruModel.updateAvailable": "An updated model is available.",
   "settings.ai.model": "Model",
   "settings.ai.model.context": "Context: {0}",
   "settings.ai.model.cost": "${0} in / ${1} out per 1M tokens",

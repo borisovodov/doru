@@ -448,6 +448,18 @@ function DoruModelSection(props: {
       </button>
     );
   }
+  if (model.outdated) {
+    // A previous release's model: it keeps working offline, and the user is
+    // nudged toward the current one without any forced re-download.
+    return (
+      <>
+        <p className="settings-note">{nls.t('settings.ai.doruModel.updateAvailable')}</p>
+        <button className="settings-action" onClick={props.onDownload}>
+          {nls.t('settings.ai.doruModel.update')}
+        </button>
+      </>
+    );
+  }
   const tooWeak = model.ramGb < model.minRamGb;
   const errorKey = doruModelErrorKey(model.error);
   return (

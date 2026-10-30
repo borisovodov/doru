@@ -13,6 +13,11 @@ export type DoruModelError = ModelDownloadErrorCode | 'network';
 export interface DoruModelState {
   installed: boolean;
   downloading: boolean;
+  /**
+   * A model file exists but does not match the current manifest — an older
+   * release's model that keeps working offline until the user updates it.
+   */
+  outdated: boolean;
   /** Bytes downloaded so far (present while downloading). */
   bytes?: number;
   totalBytes: number;

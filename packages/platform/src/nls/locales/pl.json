@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Pobrany plik nie przeszedł kontroli integralności. Spróbuj ponownie.",
   "settings.ai.doruModel.install": "Pobierz",
   "settings.ai.doruModel.tooWeak": "Dóru AI wymaga co najmniej {0} GB RAM — ten komputer nie spełnia wymogu.",
+  "settings.ai.doruModel.update": "Zaktualizuj",
+  "settings.ai.doruModel.updateAvailable": "Dostępny jest zaktualizowany model.",
   "settings.ai.model": "Model",
   "settings.ai.model.context": "Kontekst: {0}",
   "settings.ai.model.cost": "${0} wejście / ${1} wyjście za 1M tokenów",

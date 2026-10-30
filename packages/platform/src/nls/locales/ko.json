@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "다운로드한 파일이 무결성 검사를 통과하지 못했습니다. 다시 시도하세요.",
   "settings.ai.doruModel.install": "다운로드",
   "settings.ai.doruModel.tooWeak": "Dóru AI에는 최소 {0} GB RAM이 필요합니다. 이 컴퓨터는 요구 사항을 충족하지 못합니다.",
+  "settings.ai.doruModel.update": "업데이트",
+  "settings.ai.doruModel.updateAvailable": "업데이트된 모델이 제공됩니다.",
   "settings.ai.model": "모델",
   "settings.ai.model.context": "컨텍스트: {0}",
   "settings.ai.model.cost": "100만 토큰당 입력 ${0} / 출력 ${1}",

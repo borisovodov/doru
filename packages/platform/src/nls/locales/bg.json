@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Изтегленият файл не премина проверката за цялост. Опитайте отново.",
   "settings.ai.doruModel.install": "Изтегляне",
   "settings.ai.doruModel.tooWeak": "Dóru AI се нуждае от поне {0} GB RAM — този компютър не отговаря на изискването.",
+  "settings.ai.doruModel.update": "Обновяване",
+  "settings.ai.doruModel.updateAvailable": "Налична е обновена версия на модела.",
   "settings.ai.model": "Модел",
   "settings.ai.model.context": "Контекст: {0}",
   "settings.ai.model.cost": "${0} вход / ${1} изход за 1M токена",

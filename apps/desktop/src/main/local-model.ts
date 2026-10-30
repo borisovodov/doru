@@ -39,6 +39,7 @@ let abort: AbortController | undefined;
 let state: DoruModelState = {
   installed: false,
   downloading: false,
+  outdated: false,
   totalBytes: modelEntry.sizeBytes,
   ramGb: Math.round(totalmem() / 1024 ** 3),
   minRamGb: DORU_AI_MODEL.minRamGb,
@@ -63,9 +64,10 @@ function broadcast(): void {
 async function refreshInstalled(): Promise<void> {
   try {
     const info = await stat(doruModelFilePath());
-    state = { ...state, installed: info.size === modelEntry.sizeBytes };
+    const matches = info.size === modelEntry.sizeBytes;
+    state = { ...state, installed: matches, outdated: !matches };
   } catch {
-    state = { ...state, installed: false };
+    state = { ...state, installed: false, outdated: false };
   }
 }
 
@@ -124,7 +126,7 @@ export async function downloadDoruModel(): Promise<DoruModelState> {
       signal: abort.signal,
       onProgress,
     });
-    const done: DoruModelState = { ...state, downloading: false, installed: true };
+    const done: DoruModelState = { ...state, downloading: false, installed: true, outdated: false };
     delete done.bytes;
     delete done.error;
     state = done;

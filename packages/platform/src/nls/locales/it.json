@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Il file scaricato non ha superato il controllo di integrità. Riprova.",
   "settings.ai.doruModel.install": "Scarica",
   "settings.ai.doruModel.tooWeak": "Dóru AI richiede almeno {0} GB di RAM — questo computer non basta.",
+  "settings.ai.doruModel.update": "Aggiorna",
+  "settings.ai.doruModel.updateAvailable": "È disponibile un modello aggiornato.",
   "settings.ai.model": "Modello",
   "settings.ai.model.context": "Contesto: {0}",
   "settings.ai.model.cost": "${0} in / ${1} out per 1M di token",

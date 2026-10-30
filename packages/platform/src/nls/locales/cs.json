@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Stažený soubor neprošel kontrolou integrity. Zkuste to znovu.",
   "settings.ai.doruModel.install": "Stáhnout",
   "settings.ai.doruModel.tooWeak": "Dóru AI vyžaduje alespoň {0} GB RAM — tento počítač to nesplňuje.",
+  "settings.ai.doruModel.update": "Aktualizovat",
+  "settings.ai.doruModel.updateAvailable": "K dispozici je aktualizovaný model.",
   "settings.ai.model": "Model",
   "settings.ai.model.context": "Kontext: {0}",
   "settings.ai.model.cost": "${0} vstup / ${1} výstup za 1M tokenů",

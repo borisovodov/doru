@@ -175,6 +175,37 @@ test('an installed model flips the configured gate and survives a restart', asyn
   }
 });
 
+test('an older manifest model shows the update nudge and updates in place', async () => {
+  const model = await startModelServer();
+  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-outdated-'));
+  // A stale model from a previous release: right file name, wrong size.
+  const modelPath = join(userData, 'models', DORU_AI_MODEL.file);
+  mkdirSync(join(userData, 'models'), { recursive: true });
+  execFileSync('truncate', ['-s', String(DORU_AI_MODEL.sizeBytes - 1), modelPath]);
+
+  const { app, page } = await launchApp(userData, {
+    DORU_AI_DOWNLOAD_URL: `http://127.0.0.1:${model.port}/model.gguf`,
+    DORU_AI_MODEL_SHA256: model.sha256,
+    DORU_AI_MODEL_SIZE_BYTES: String(model.size),
+  });
+
+  try {
+    // The stale file is not the current model: quiet nudge plus Update.
+    await expect(page.getByText('An updated model is available.')).toBeVisible();
+    const update = page.getByRole('button', { name: 'Update' });
+    await expect(update).toBeVisible();
+
+    // Updating downloads the current manifest entry and replaces the file;
+    // the state then flips to the plain installed view.
+    await update.click();
+    await expect(page.getByRole('button', { name: 'Remove model' })).toBeVisible({ timeout: 30_000 });
+    expect(statSync(modelPath).size).toBe(model.size);
+  } finally {
+    await model.close();
+    await app.close();
+  }
+});
+
 test('the chat stays gated until the model exists', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-chat-gate-'));
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-chat-')), 'family.doru');

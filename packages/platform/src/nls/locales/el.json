@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Το αρχείο που λήφθηκε δεν πέρασε τον έλεγχο ακεραιότητας. Δοκιμάστε ξανά.",
   "settings.ai.doruModel.install": "Λήψη",
   "settings.ai.doruModel.tooWeak": "Το Dóru AI χρειάζεται τουλάχιστον {0} GB μνήμης RAM — αυτός ο υπολογιστής δεν επαρκεί.",
+  "settings.ai.doruModel.update": "Ενημέρωση",
+  "settings.ai.doruModel.updateAvailable": "Διαθέσιμο ενημερωμένο μοντέλο.",
   "settings.ai.model": "Μοντέλο",
   "settings.ai.model.context": "Πλαίσιο: {0}",
   "settings.ai.model.cost": "${0} είσοδος / ${1} έξοδος ανά 1 εκατ. tokens",

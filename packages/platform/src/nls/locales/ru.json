@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "Загруженный файл не прошёл проверку целостности. Попробуйте ещё раз.",
   "settings.ai.doruModel.install": "Скачать",
   "settings.ai.doruModel.tooWeak": "Dóru AI нужно не менее {0} ГБ оперативной памяти — этот компьютер не подходит.",
+  "settings.ai.doruModel.update": "Обновить",
+  "settings.ai.doruModel.updateAvailable": "Доступна обновлённая модель.",
   "settings.ai.model": "Модель",
   "settings.ai.model.context": "Контекст: {0}",
   "settings.ai.model.cost": "${0} вход / ${1} выход за 1 млн токенов",

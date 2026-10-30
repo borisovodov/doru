@@ -132,6 +132,8 @@
   "settings.ai.doruModel.error.integrity": "下载的文件未通过完整性校验。请重试。",
   "settings.ai.doruModel.install": "下载",
   "settings.ai.doruModel.tooWeak": "Dóru AI 至少需要 {0} GB 内存——这台电脑不满足要求。",
+  "settings.ai.doruModel.update": "更新",
+  "settings.ai.doruModel.updateAvailable": "有更新的模型可用。",
   "settings.ai.model": "模型",
   "settings.ai.model.context": "上下文：{0}",
   "settings.ai.model.cost": "每 100 万 token 输入 ${0} / 输出 ${1}",
