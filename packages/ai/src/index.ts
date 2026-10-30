@@ -39,3 +39,9 @@ export { AcpError, classifyError, type AcpErrorCode, type AiErrorCode } from './
 export { doruTools, doruToolSet, type ToolDefinition } from './tools';
 export { SYSTEM_PROMPT } from './prompt';
 export { LlamaServer, type LlamaServerOptions, type ProcessSpawner, type SpawnedProcess } from './llama-server';
+export {
+  DORU_AI_MODEL,
+  doruAiDownloadUrl,
+  type DoruAiModelEntry,
+} from './local-models';
+export { ModelDownloadError, downloadModel, type ModelDownloadErrorCode, type ModelDownloadOptions } from './model-download';
