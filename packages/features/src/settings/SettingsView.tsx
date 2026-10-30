@@ -443,12 +443,9 @@ function DoruModelSection(props: {
   }
   if (model.installed) {
     return (
-      <>
-        <p className="settings-note">{nls.t('settings.ai.doruModel.installed')}</p>
-        <button className="settings-link" onClick={props.onDelete}>
-          {nls.t('settings.ai.doruModel.delete')}
-        </button>
-      </>
+      <button className="settings-link" onClick={props.onDelete}>
+        {nls.t('settings.ai.doruModel.delete')}
+      </button>
     );
   }
   const tooWeak = model.ramGb < model.minRamGb;
