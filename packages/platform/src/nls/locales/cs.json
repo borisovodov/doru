@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "Agent zatím není nakonfigurován. Vyberte poskytovatele a model.",
   "settings.ai.provider": "Poskytovatel",
   "settings.ai.reasoning": "Uvažování",
-  "settings.ai.reasoning.default": "Výchozí poskytovatele",
+  "settings.ai.reasoning.default": "Výchozí",
   "settings.ai.reasoning.high": "Vysoké",
   "settings.ai.reasoning.low": "Nízké",
   "settings.ai.reasoning.max": "Maximální",

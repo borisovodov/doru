@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "智能体尚未配置。请选择提供商和模型。",
   "settings.ai.provider": "提供商",
   "settings.ai.reasoning": "推理",
-  "settings.ai.reasoning.default": "提供商默认",
+  "settings.ai.reasoning.default": "默认",
   "settings.ai.reasoning.high": "高",
   "settings.ai.reasoning.low": "低",
   "settings.ai.reasoning.max": "最高",

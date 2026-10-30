@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "Агентът още не е конфигуриран. Изберете доставчик и модел.",
   "settings.ai.provider": "Доставчик",
   "settings.ai.reasoning": "Разсъждение",
-  "settings.ai.reasoning.default": "По подразбиране на доставчика",
+  "settings.ai.reasoning.default": "По подразбиране",
   "settings.ai.reasoning.high": "Високо",
   "settings.ai.reasoning.low": "Ниско",
   "settings.ai.reasoning.max": "Максимално",

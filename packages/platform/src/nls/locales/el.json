@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "Ο πράκτορας δεν έχει ρυθμιστεί ακόμη. Επιλέξτε πάροχο και μοντέλο.",
   "settings.ai.provider": "Πάροχος",
   "settings.ai.reasoning": "Συλλογισμός",
-  "settings.ai.reasoning.default": "Προεπιλογή παρόχου",
+  "settings.ai.reasoning.default": "Προεπιλογή",
   "settings.ai.reasoning.high": "Υψηλό",
   "settings.ai.reasoning.low": "Χαμηλό",
   "settings.ai.reasoning.max": "Μέγιστο",

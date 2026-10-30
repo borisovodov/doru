@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "Agent nie jest jeszcze skonfigurowany. Wybierz dostawcę i model.",
   "settings.ai.provider": "Dostawca",
   "settings.ai.reasoning": "Rozumowanie",
-  "settings.ai.reasoning.default": "Domyślne dostawcy",
+  "settings.ai.reasoning.default": "Domyślne",
   "settings.ai.reasoning.high": "Wysokie",
   "settings.ai.reasoning.low": "Niskie",
   "settings.ai.reasoning.max": "Maksymalne",

@@ -135,7 +135,7 @@
   "settings.ai.notConfigured": "エージェントはまだ設定されていません。プロバイダーとモデルを選択してください。",
   "settings.ai.provider": "プロバイダー",
   "settings.ai.reasoning": "推論",
-  "settings.ai.reasoning.default": "プロバイダーのデフォルト",
+  "settings.ai.reasoning.default": "デフォルト",
   "settings.ai.reasoning.high": "高",
   "settings.ai.reasoning.low": "低",
   "settings.ai.reasoning.max": "最大",

@@ -1,9 +1,13 @@
+import type { ReasoningOption } from '@opencode-ai/models';
+
 /** Static description of an AI provider and its catalog models for the settings UI. */
 export interface AiProviderInfo {
   id: string;
   label: string;
   kind: 'cloud' | 'local' | 'acp';
   doc?: string;
+  /** The npm package serving the provider (models.dev "npm" field); decides the wire dialect. */
+  npm?: string;
   defaultBaseUrl: string;
   /** The key is mandatory before the provider can be used. */
   requiresKey: boolean;
@@ -20,11 +24,7 @@ export interface AiCatalogModelInfo {
   /** Supports reasoning / chain-of-thought. */
   reasoning?: boolean;
   /** How the provider exposes reasoning control (toggle, effort levels or token budget). */
-  reasoningOptions?: Array<
-    | { type: 'toggle' }
-    | { type: 'effort'; values: string[] }
-    | { type: 'budget_tokens'; min?: number; max?: number }
-  >;
+  reasoningOptions?: ReasoningOption[];
   toolCall?: boolean;
   status?: string;
   context?: number;
