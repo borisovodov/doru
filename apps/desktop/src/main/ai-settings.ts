@@ -80,7 +80,9 @@ function resolveSettings(providerId: string): ResolvedAiSettings {
 export function loadAiSettings(): ResolvedAiSettings {
   const parsed = readSettings();
   const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
-  return resolveSettings(ai.provider ?? 'ollama');
+  // The offline assistant is the default: it needs no key, endpoint or
+  // account, so a fresh install works with a single download.
+  return resolveSettings(ai.provider ?? 'doru');
 }
 
 export function aiSettingsPayload(settings: ResolvedAiSettings): {
