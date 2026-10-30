@@ -36,10 +36,11 @@ function parseMcpServerArg(argv: string[]): string | null {
 
 // MCP server mode (`--mcp-server`) is a headless helper process that ACP
 // agents and external MCP clients spawn next to the GUI. It must not fight
-// the GUI over the single-instance lock, and it must stay completely
-// headless: no protocol registration, no file/open events, no menu, no dock
-// icon, no windows — otherwise file opens and dock activations land in the
-// helper and it turns into a surprise second app instance.
+// the GUI over the single-instance lock, and it stays headless: no protocol
+// registration, no menu, no dock icon, no windows. Because LaunchServices
+// routes a user's app launch to any running instance of the bundle, the
+// helper forwards activations, file opens and doru:// links to a fresh GUI
+// instance instead of letting them die in the helper.
 const mcpProject = parseMcpServerArg(process.argv);
 
 // The helper serves the tree over stdio only, so the GUI's userData holds
@@ -98,6 +99,30 @@ process.on('exit', () => {
     }
   }
 });
+
+/**
+ * Spawns a GUI instance of the app, used by the MCP helper to forward a
+ * user's launch. LaunchServices routes an app-icon click or a file open to
+ * an already-running instance of the bundle — which can be a headless MCP
+ * helper, and a helper that swallowed the event would leave the user with
+ * no window. The helper holds no single-instance lock, so the spawned
+ * instance either becomes the GUI or, when a GUI already runs, quits and
+ * forwards its argv through the running instance's second-instance handler.
+ */
+function spawnGuiInstance(args: string[]): void {
+  // In dev the executable is the Electron binary and needs the app
+  // directory as an argument (the same convention as the Linux desktop
+  // entry above).
+  const devArgs = process.defaultApp && process.argv[1] ? [process.argv[1]] : [];
+  try {
+    spawn(process.execPath, [...devArgs, ...args], {
+      detached: true,
+      stdio: 'ignore',
+    }).unref();
+  } catch {
+    log.warn('could not spawn a GUI instance for a forwarded launch');
+  }
+}
 
 registerProjectIpc();
 registerTreeIpc();
@@ -272,6 +297,23 @@ async function startApp(): Promise<void> {
     // Headless helper: open the tree, serve the shared toolset over stdio,
     // and stay out of everything GUI (no menu, no dock icon, no windows).
     app.dock?.hide();
+    // LaunchServices (Dock icon, Launchpad, `open`, Finder file opens)
+    // routes a user's launch to an already-running instance of the bundle —
+    // which can be this headless helper. Forward activations, file opens
+    // and doru:// links to a fresh GUI instance instead of swallowing them;
+    // the GUI owns the single-instance lock, so repeated forwards collapse
+    // into one focused window.
+    app.on('activate', () => {
+      spawnGuiInstance([]);
+    });
+    app.on('open-file', (event, path) => {
+      event.preventDefault();
+      spawnGuiInstance([path]);
+    });
+    app.on('open-url', (event, url) => {
+      event.preventDefault();
+      spawnGuiInstance([url]);
+    });
     const { runtime } = await ensureRuntime(mcpProject);
     const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
     const server = new DoruMcpServer(backend, app.getVersion());
