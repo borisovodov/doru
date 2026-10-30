@@ -58,6 +58,16 @@ with underscore separators (`tree_query`, `sources_add`, `tree_add_relative`),
 because strict OpenAI-compatible providers (DeepSeek, and others) reject dots
 and colons in function names.
 
+## Dóru AI (local assistant)
+
+The offline assistant ("Dóru AI") ships a single curated model for now:
+Qwen3.5-4B, Q4_K_M GGUF, Apache-2.0, thinking mode off. The choice is gated
+by the eval suite in `scripts/` (`npx vitest run --config
+scripts/eval-ai.vitest.config.ts`): on the agent toolset both 4B and 9B pass
+at parity, and thinking mode wins no scenario while costing ~2.5x latency.
+A larger model tier re-enters through the same gate later — it is a manifest
+entry, not architecture. Minimum machine: 8 GB of RAM.
+
 ## Rejected alternatives
 
 - **Tauri instead of Electron** — a Rust shell would break the TypeScript-only
