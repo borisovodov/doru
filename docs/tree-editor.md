@@ -22,8 +22,8 @@ issues (see the "Tree editor" issue track).
 - **Couples** are tidy-tree slots expanded into two adjacent cards with a
   marriage edge between them and a pedigree "bracket" (Z-shaped edge)
   dropping to the children.
-- **React Flow is the canvas runtime only** (viewport, gestures, selection,
-  minimap). It never owns the data: nodes/edges are projected from the pure
+- **React Flow is the canvas runtime only** (viewport, gestures, selection).
+  It never owns the data: nodes/edges are projected from the pure
   layout (`features/src/tree/project.ts`) in controlled mode.
 - **Deterministic auto-layout.** Positions are computed, never stored — the
   `.doru` file holds no coordinates. The fit is computed from the exact
