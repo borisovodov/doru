@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import type { ToolSet } from 'ai';
 import {
   AcpAgentClient,
+  SYSTEM_PROMPT,
   TreeMcpBackend,
   buildLanguageModel,
   doruToolSet,
@@ -34,13 +35,6 @@ export type ChatEvent = { sessionId: string } & (
   | { type: 'textDelta'; text: string }
   | { type: 'step'; step: AgentStep }
 );
-
-const SYSTEM_PROMPT =
-  'You are a genealogy assistant working with the user\'s family tree. ' +
-  'Use tree_stats to see how large the tree is, and tree_query without a query to list persons. ' +
-  'Wildcards are not needed: an empty query already lists the tree. ' +
-  'tree_query accepts an optional sex filter ("M", "F" or "U") — e.g. use sex "M" to list men. ' +
-  'For edits, use tree_edit.';
 
 function doruMcpServerEntry(projectPath: string): AcpMcpServerEntry {
   const args = app.isPackaged

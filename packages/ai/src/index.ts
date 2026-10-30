@@ -37,3 +37,4 @@ export { DoruMcpServer } from './server';
 export { AcpAgentClient, type AcpConnectorOptions, type AcpMcpServerEntry, type AcpPromptBlock } from './acp';
 export { AcpError, classifyError, type AcpErrorCode, type AiErrorCode } from './errors';
 export { doruTools, doruToolSet, type ToolDefinition } from './tools';
+export { SYSTEM_PROMPT } from './prompt';
