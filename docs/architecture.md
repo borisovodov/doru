@@ -25,6 +25,10 @@ decisions about what we deliberately do **not** build, see
 - Opening a project is **idempotent**: an existing file opens as-is, a new one
   is created with the latest schema. The only loud case is a corrupted
   database — that must not be silently "healed" away.
+- **Creating** a project is the one deliberate exception to idempotency: the
+  Save dialog asks about replacing an existing file (every OS does this), and
+  the confirmed choice replaces the file with a new, empty project — like any
+  document app. The media directory next to the file is left alone.
 
 ## Privacy
 
