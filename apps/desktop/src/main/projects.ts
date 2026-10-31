@@ -188,6 +188,23 @@ export async function createProject(senderId?: number): Promise<ProjectSummary |
   const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
     ? result.filePath
     : `${result.filePath}${TREE_FILE_EXTENSION}`;
+  // The system save dialog already asked the user about replacing an
+  // existing file, so honor that confirmation the way a document app would:
+  // the project is replaced by a new, empty one. A window still showing the
+  // old project is closed first so the store and the file watcher release
+  // the path (Windows cannot delete a file that is open).
+  const existingWindow = projectWindows.get(filePath);
+  if (existingWindow && !existingWindow.isDestroyed()) {
+    await new Promise<void>((resolve) => {
+      existingWindow.once('closed', resolve);
+      existingWindow.close();
+    });
+  } else {
+    closeProjectRuntime(filePath);
+  }
+  if (await fs.exists(filePath)) {
+    await fs.remove(filePath);
+  }
   return openProject({ path: filePath }, senderId);
 }
 
