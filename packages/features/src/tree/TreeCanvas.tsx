@@ -8,19 +8,18 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   useReactFlow,
+  Position,
   type Edge,
   type EdgeChange,
   type NodeChange,
 } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
-import type { ChartKind, PersonRecord } from '@doru/core';
+import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
 import { nls } from '../nls';
-import { displayName } from '../person/format';
 import { GenerationBand } from './GenerationBand';
 import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
 import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
-import { PersonForm } from './PersonForm';
 import { TreeToolbar } from './TreeToolbar';
 import { computeFit } from './fit';
 import { projectLayout, type CanvasNode } from './project';
@@ -38,6 +37,45 @@ export type {
 
 const nodeTypes = { personCard: PersonCard, generationBand: GenerationBand };
 const edgeTypes = { pedigree: PedigreeEdge, marriage: MarriageEdge, seeAlso: SeeAlsoEdge };
+
+/** The never-saved placeholder card shown on an empty (new) tree. */
+const DRAFT_CARD_ID = 'draft:new';
+
+/**
+ * A never-persisted card in which a new person is typed right on the canvas
+ * (first person of an empty tree, or a child/spouse/parent quick-add). The
+ * card renders name inputs with save/cancel controls; saving creates the
+ * real person and the draft disappears with the next projection.
+ */
+interface DraftCard {
+  id: string;
+  relation: RelativeRelation | 'new';
+  anchorId: string;
+  editing: boolean;
+}
+
+/** One-card layout so the fit math centers the draft like a real chart. */
+const DRAFT_LAYOUT: PedigreeLayout = {
+  cards: [
+    {
+      key: DRAFT_CARD_ID,
+      personId: DRAFT_CARD_ID,
+      role: 'focus',
+      familyId: null,
+      generation: 0,
+      line: null,
+      hasSubtree: false,
+      x: 0,
+      y: 0,
+    },
+  ],
+  edges: [],
+  focusKey: DRAFT_CARD_ID,
+  width: CARD_WIDTH,
+  height: CARD_HEIGHT,
+  minX: -CARD_WIDTH / 2,
+  minY: -CARD_HEIGHT / 2,
+};
 
 /**
  * The tree tab: one full-size canvas. The graph is derived from the domain
@@ -57,10 +95,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
-  const [form, setForm] = useState<{
-    relation: RelativeRelation | 'rename';
-    anchorId: string;
-  } | null>(null);
+  const [drafts, setDrafts] = useState<DraftCard[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -116,7 +151,16 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
       } else if (action === 'delete') {
         void api.deletePerson(person);
       } else {
-        setForm({ relation: action, anchorId: personId });
+        // child | spouse | parent: a draft card to type the name into.
+        setDrafts((current) => [
+          ...current,
+          {
+            id: `draft:${action}:${personId}:${crypto.randomUUID()}`,
+            relation: action,
+            anchorId: personId,
+            editing: true,
+          },
+        ]);
       }
     },
     [persons, api],
@@ -134,15 +178,115 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     });
   }, []);
 
-  const projected = useMemo(() => {
-    if (!layout) {
-      return { nodes: [] as CanvasNode[], edges: [] as Edge[] };
-    }
-    return projectLayout(layout, persons, collapsed, counts, null, {
-      onToggleCollapse: toggleCollapse,
-      onAction: handleAction,
+  /** Saving a draft card creates the real person it stands for. */
+  const handleDraftSave = useCallback(
+    (draft: DraftCard, person: PersonRecord) => {
+      if (draft.relation === 'new') {
+        void api.addPerson(person);
+      } else {
+        void api.addRelative(draft.relation, draft.anchorId, person);
+      }
+      setDrafts((current) => current.filter((entry) => entry.id !== draft.id));
+    },
+    [api],
+  );
+
+  /** Cancelling a relative draft removes the card; the first-person draft
+   *  just stops editing and stays as the placeholder card. */
+  const handleDraftCancel = useCallback((draft: DraftCard) => {
+    setDrafts((current) =>
+      draft.relation === 'new'
+        ? current.map((entry) => (entry.id === draft.id ? { ...entry, editing: false } : entry))
+        : current.filter((entry) => entry.id !== draft.id),
+    );
+  }, []);
+
+  const isEmpty = persons.length === 0;
+
+  // Keep the first-person draft in sync with the tree: an empty tree always
+  // has one (idle) placeholder card, and as soon as a person exists the
+  // draft goes away. It reappears if the tree becomes empty again.
+  useEffect(() => {
+    setDrafts((current) => {
+      if (isEmpty) {
+        return current.some((draft) => draft.relation === 'new')
+          ? current
+          : [...current, { id: DRAFT_CARD_ID, relation: 'new', anchorId: '', editing: false }];
+      }
+      return current.filter((draft) => draft.relation !== 'new');
     });
-  }, [layout, persons, collapsed, counts, toggleCollapse, handleAction]);
+  }, [isEmpty]);
+
+  const projected = useMemo(() => {
+    const base = !layout
+      ? { nodes: [] as CanvasNode[], edges: [] as Edge[] }
+      : projectLayout(layout, persons, collapsed, counts, null, {
+          onToggleCollapse: toggleCollapse,
+          onAction: handleAction,
+        });
+    // Draft cards sit next to their anchor (or centered for the first
+    // person). Their ids are stable while typing, so React Flow keeps the
+    // node mounted and the input state intact across re-projections.
+    const draftNodes: CanvasNode[] = drafts.map((draft, index) => {
+      const anchor = draft.relation === 'new'
+        ? undefined
+        : base.nodes.find(
+            (node) =>
+              node.type === 'personCard' &&
+              (node.data as PersonCardData).person.id === draft.anchorId,
+          );
+      const cascade = index * 16;
+      let position: { x: number; y: number };
+      if (!anchor) {
+        position = { x: -CARD_WIDTH / 2, y: -CARD_HEIGHT / 2 };
+      } else if (draft.relation === 'child') {
+        position = { x: anchor.position.x, y: anchor.position.y + CARD_HEIGHT + 24 + cascade };
+      } else if (draft.relation === 'spouse') {
+        position = { x: anchor.position.x - CARD_WIDTH - 24, y: anchor.position.y + cascade };
+      } else {
+        // parent
+        position = { x: anchor.position.x, y: anchor.position.y - CARD_HEIGHT - 24 + cascade };
+      }
+      return {
+        id: draft.id,
+        type: 'personCard',
+        position,
+        measured: { width: CARD_WIDTH, height: CARD_HEIGHT },
+        handles: [
+          { type: 'source', position: Position.Bottom, id: 'bottom', x: CARD_WIDTH / 2, y: CARD_HEIGHT },
+          { type: 'target', position: Position.Top, id: 'top', x: CARD_WIDTH / 2, y: 0 },
+        ],
+        draggable: false,
+        data: {
+          person: { id: draft.id, names: [], sex: 'U' },
+          line: null,
+          isFocus: false,
+          hasSubtree: false,
+          collapsed: false,
+          counts: { notes: 0, sources: 0, media: 0 },
+          isDropTarget: false,
+          isDraft: true,
+          isEditing: draft.editing,
+          onDraftSave: (person) => handleDraftSave(draft, person),
+          onDraftCancel: () => handleDraftCancel(draft),
+        } satisfies PersonCardData,
+      };
+    });
+    // Drafts come last so they paint above the real cards (React Flow stacks
+    // nodes in DOM order); a draft must never end up hidden under a card.
+    return { nodes: [...base.nodes, ...draftNodes], edges: base.edges };
+  }, [
+    isEmpty,
+    layout,
+    persons,
+    collapsed,
+    counts,
+    toggleCollapse,
+    handleAction,
+    drafts,
+    handleDraftSave,
+    handleDraftCancel,
+  ]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
@@ -183,21 +327,24 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   // layout bounds, no node measurement involved. Runs as a macrotask so it
   // lands after React StrictMode's double-mount of the React Flow subtree
   // (whose second pan/zoom instance would otherwise reset the viewport).
+  // The draft card of an empty tree gets the same fit treatment via its
+  // one-card layout.
+  const fitTarget = layout ?? (isEmpty ? DRAFT_LAYOUT : null);
   const fitChart = useCallback(() => {
     const el = canvasRef.current;
-    if (!el || !layout || el.clientWidth === 0 || el.clientHeight === 0) {
+    if (!el || !fitTarget || el.clientWidth === 0 || el.clientHeight === 0) {
       return;
     }
-    void setViewport(computeFit(layout, el.clientWidth, el.clientHeight));
-  }, [layout, setViewport]);
+    void setViewport(computeFit(fitTarget, el.clientWidth, el.clientHeight));
+  }, [fitTarget, setViewport]);
 
   useEffect(() => {
-    if (!layout) {
+    if (!fitTarget) {
       return;
     }
     const timer = setTimeout(fitChart, 0);
     return () => clearTimeout(timer);
-  }, [layout, fitChart]);
+  }, [fitTarget, fitChart]);
 
   // Re-fit when the canvas itself is resized (window resize, sidebars).
   useEffect(() => {
@@ -244,41 +391,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const expandAll = useCallback(() => {
     setCollapsed(new Set());
   }, []);
-
-  const handleFormSubmit = useCallback(
-    (person: PersonRecord) => {
-      if (!form) {
-        return;
-      }
-      if (form.relation === 'rename') {
-        const before = persons.find((entry) => entry.id === form.anchorId);
-        if (before) {
-          void api.updatePerson(before, person);
-        }
-      } else {
-        void api.addRelative(form.relation, form.anchorId, person);
-      }
-      setForm(null);
-    },
-    [form, persons, api],
-  );
-
-  const formTitle = useMemo(() => {
-    if (!form) {
-      return '';
-    }
-    const name = displayName(persons.find((person) => person.id === form.anchorId));
-    switch (form.relation) {
-      case 'child':
-        return nls.t('tree.canvas.form.childTitle', name);
-      case 'spouse':
-        return nls.t('tree.canvas.form.spouseTitle', name);
-      case 'parent':
-        return nls.t('tree.canvas.form.parentTitle', name);
-      case 'rename':
-        return nls.t('tree.canvas.form.renameTitle', name);
-    }
-  }, [form, persons]);
 
   // Drag-to-reparent: dropping a card onto another person's card moves the
   // dragged person (as a child) into that family. Anything else snaps back.
@@ -352,22 +464,16 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     [refocus],
   );
 
-  if (persons.length === 0) {
-    return (
-      <div className="tree-view">
-        <div className="tree-canvas">
-          <p className="tree-canvas-empty">{nls.t('features.tree.emptyTree')}</p>
-          <button
-            type="button"
-            className="tree-canvas-first"
-            onClick={() => api.openNewPerson()}
-          >
-            {nls.t('tree.canvas.addFirstPerson')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // A single click on the idle first-person draft card switches it into
+  // editing mode; the detail check keeps a double-click from firing twice.
+  const handleNodeClick = useCallback((event: React.MouseEvent, node: CanvasNode) => {
+    const data = node.data as PersonCardData;
+    if (data.isDraft && !data.isEditing && event.detail === 1) {
+      setDrafts((current) =>
+        current.map((draft) => (draft.id === node.id ? { ...draft, editing: true } : draft)),
+      );
+    }
+  }, []);
 
   const breadcrumbs = history ? history.stack.slice(0, history.index + 1) : [];
 
@@ -383,6 +489,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
           maxZoom={2}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
           onNodeDoubleClick={handleNodeDoubleClick}
           onNodeDrag={handleNodeDrag}
           onNodeDragStop={handleNodeDragStop}
@@ -423,20 +530,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
               <Scan size={16} aria-hidden="true" />
             </button>
           </Panel>
-          {form && (
-            <Panel position="top-right" className="person-form-panel">
-              <PersonForm
-                title={formTitle}
-                initial={
-                  form.relation === 'rename'
-                    ? persons.find((person) => person.id === form.anchorId)
-                    : undefined
-                }
-                onSubmit={handleFormSubmit}
-                onCancel={() => setForm(null)}
-              />
-            </Panel>
-          )}
           <Panel position="top-left" className="tree-toolbar-panel">
             <TreeToolbar
               kind={kind}

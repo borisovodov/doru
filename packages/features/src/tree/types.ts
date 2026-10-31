@@ -9,6 +9,8 @@ export interface PersonCounts {
 }
 
 export interface TreeCanvasApi {
+  /** Creates a person (used to add the first person of an empty tree). */
+  addPerson(person: PersonRecord): Promise<void>;
   /** Creates a person and links them to the anchor (child/spouse/parent). */
   addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): Promise<void>;
   /** Detaches the person from all families and deletes the record. */
@@ -21,8 +23,6 @@ export interface TreeCanvasApi {
   getPersonCounts(personIds: string[]): Promise<Record<string, PersonCounts>>;
   /** Opens the full person editor (a PersonTab). */
   openEditor(personId: string): void;
-  /** Opens the new-person editor tab (used to add the first person). */
-  openNewPerson(): void;
 }
 
 export interface TreeCanvasProps {

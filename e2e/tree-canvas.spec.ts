@@ -56,13 +56,15 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await page.waitForTimeout(600);
   await expect(page.locator('.person-card', { hasText: 'Kid2' }).first()).toBeVisible();
 
-  // Add a child to Ivan via the card toolbar and the form.
+  // Add a child to Ivan via the card toolbar: the new card edits in place.
   const ivan = page.locator('.person-card', { hasText: 'Ivan Ivanov' }).first();
   const ibox = await ivan.boundingBox();
   await page.mouse.click(ibox!.x + ibox!.width / 2, ibox!.y + ibox!.height / 2);
   await page.locator('.card-toolbar button').nth(0).click();
-  await page.locator('.person-form input').nth(0).fill('TestKid');
-  await page.locator('.person-form-actions button.primary').click();
+  const draftCard = page.locator('.person-card.editing');
+  await expect(draftCard).toBeVisible();
+  await draftCard.locator('.person-card-edit-fields input').first().fill('TestKid');
+  await draftCard.locator('.person-card-edit-actions button').first().click();
   await expect(page.locator('.person-card', { hasText: 'TestKid' }).first()).toBeVisible();
 
   // Drag TestKid onto Kid2 → reparents into family F4.
@@ -167,12 +169,14 @@ test('rename, search and delete with undo on the canvas', async () => {
     await page.waitForTimeout(250);
   };
 
-  // Rename Petr via the card toolbar (prefilled form).
+  // Rename Petr via the card toolbar: editing now happens in the person tab.
   await clickCard('Petr');
   await page.locator('.card-toolbar button').nth(3).click();
-  await expect(page.locator('.person-form input').nth(0)).toHaveValue('Petr');
-  await page.locator('.person-form input').nth(0).fill('Petya');
-  await page.locator('.person-form-actions button.primary').click();
+  await expect(page.locator('.person-editor')).toBeVisible();
+  await page.locator('.person-editor input').first().fill('Petya');
+  await page.locator('.person-editor-actions button').first().click();
+  // Back to the tree tab to see the renamed card.
+  await page.locator('.tab-bar .tab').first().click();
   await expect(page.locator('.person-card', { hasText: 'Petya Ivanov' }).first()).toBeVisible();
 
   // Undo the rename.
@@ -191,7 +195,7 @@ test('rename, search and delete with undo on the canvas', async () => {
 
   // Delete the focused person (Maria) and undo the whole compound op.
   await clickCard('Maria Ivanova');
-  await page.locator('.card-toolbar button').nth(5).click();
+  await page.locator('.card-toolbar button').nth(4).click();
   await expect(page.locator('.person-card', { hasText: 'Maria Ivanova' })).toHaveCount(0);
   await page.keyboard.press('Meta+z');
   await expect(page.locator('.person-card', { hasText: 'Maria Ivanova' }).first()).toBeVisible();
@@ -199,7 +203,7 @@ test('rename, search and delete with undo on the canvas', async () => {
   await app.close();
 });
 
-test('an empty tree offers to add the first person', async () => {
+test('an empty tree shows an unfilled card that edits in place', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-empty-e2e-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-empty-e2e-data-'));
   const args = ['.', project];
@@ -214,10 +218,14 @@ test('an empty tree offers to add the first person', async () => {
   const window = await app.firstWindow();
   await window.waitForSelector('.workbench', { timeout: 20_000 });
   await window.reload();
-  await expect(window.locator('.tree-canvas-empty')).toBeVisible();
-  await expect(window.locator('.tree-canvas-first')).toBeVisible();
-  await window.locator('.tree-canvas-first').click();
-  // The new-person editor tab opens.
-  await expect(window.locator('.person-editor')).toBeVisible();
+  // The canvas shows the unfilled card; a click turns it into the editor.
+  await expect(window.locator('.person-card.draft')).toBeVisible();
+  await window.locator('.person-card.draft').click();
+  await expect(window.locator('.person-card.editing')).toBeVisible();
+  await window.locator('.person-card-edit-fields input').first().fill('Ivan Ivanov');
+  await window.locator('.person-card-edit-actions button').first().click();
+  // The person lands on the canvas; the draft card is gone.
+  await expect(window.locator('.person-card', { hasText: 'Ivan Ivanov' })).toBeVisible();
+  await expect(window.locator('.person-card.draft')).toHaveCount(0);
   await app.close();
 });

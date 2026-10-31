@@ -29,8 +29,9 @@ charts; the accent frame marks the focus person.
 
 Select a card to reveal the action toolbar:
 
-- **Add child / spouse / parent** — opens a small form (name, sex, years).
-- **Rename** — edits the name and dates right on the canvas.
+- **Add child / spouse / parent** — a new empty card appears next to the
+  person; type the name right in the card and confirm it with the checkmark
+  (the cross discards it).
 - **Edit** — opens the full person editor as a tab: names, sex, birth/death
   dates with a quality marker (*Exact / About / Before / After*) and a
   free-text form (e.g. a calendar date “23 Nivôse” that does not map to
@@ -40,8 +41,9 @@ Select a card to reveal the action toolbar:
   person as a child into that family (the valid target lights up while
   dragging).
 
-An empty tree shows an **Add the first person** button; after that, grow the
-tree from the cards themselves.
+A new (empty) tree shows one empty card: click it, type the name, confirm
+with the checkmark, and the first person appears on the canvas. After that,
+grow the tree from the cards themselves.
 
 ## Families
 

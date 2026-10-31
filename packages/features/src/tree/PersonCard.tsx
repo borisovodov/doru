@@ -1,16 +1,17 @@
-import { memo, type MouseEvent } from 'react';
+import { memo, useState, type FormEvent, type MouseEvent } from 'react';
 import {
   Baby,
   BookOpenText,
+  Check,
   ChevronDown,
   ChevronRight,
   Image as ImageIcon,
   Pencil,
-  PencilLine,
   StickyNote,
   Trash2,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react';
 import {
   Handle,
@@ -24,7 +25,7 @@ import { nls } from '../nls';
 import { displayName, years } from '../person/format';
 import type { PersonCounts } from './types';
 
-export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'rename' | 'delete';
+export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'delete';
 
 export type PersonCardData = {
   person: PersonRecord;
@@ -40,6 +41,15 @@ export type PersonCardData = {
   counts: PersonCounts;
   /** Highlighted as the drop target of an ongoing card drag. */
   isDropTarget: boolean;
+  /** A never-persisted draft card (new person typed on the canvas). */
+  isDraft?: boolean;
+  /** The draft card is showing its name inputs (as opposed to the idle
+   *  "Add the first person" placeholder). */
+  isEditing?: boolean;
+  /** Creates the person with the typed name. */
+  onDraftSave?: (person: PersonRecord) => void;
+  /** Abandons the draft card. */
+  onDraftCancel?: () => void;
   onToggleCollapse?: (personId: string) => void;
   /** Quick actions on the selected card (add/edit/delete relatives). */
   onAction?: (action: CardAction, personId: string) => void;
@@ -72,9 +82,24 @@ export const PersonCard = memo(function PersonCard({
   selected,
   dragging,
 }: NodeProps<Node<PersonCardData>>) {
-  const { person, line, isFocus, hasSubtree, collapsed, counts, isDropTarget, onAction } = data;
+  const {
+    person,
+    line,
+    isFocus,
+    hasSubtree,
+    collapsed,
+    counts,
+    isDropTarget,
+    isDraft,
+    isEditing,
+    onDraftSave,
+    onDraftCancel,
+    onAction,
+  } = data;
   const deceased = person.death?.year !== undefined;
   const dates = years(person);
+  const [given, setGiven] = useState('');
+  const [surname, setSurname] = useState('');
   const classes = [
     'person-card',
     person.sex === 'M' ? 'sex-m' : person.sex === 'F' ? 'sex-f' : 'sex-u',
@@ -84,6 +109,8 @@ export const PersonCard = memo(function PersonCard({
     deceased ? 'deceased' : '',
     dragging ? 'dragging' : '',
     isDropTarget ? 'drop-target' : '',
+    isDraft ? 'draft' : '',
+    isEditing ? 'editing' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -98,11 +125,29 @@ export const PersonCard = memo(function PersonCard({
     onAction?.(kind, person.id);
   };
 
+  const saveDraft = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedGiven = given.trim();
+    const trimmedSurname = surname.trim();
+    if (!trimmedGiven && !trimmedSurname) {
+      return;
+    }
+    onDraftSave?.({
+      id: crypto.randomUUID(),
+      names: [
+        {
+          ...(trimmedGiven !== '' ? { given: trimmedGiven } : {}),
+          ...(trimmedSurname !== '' ? { surname: trimmedSurname } : {}),
+        },
+      ],
+      sex: 'U',
+    });
+  };
+
   const ACTIONS = [
     { kind: 'child', icon: Baby, key: 'tree.canvas.addChild' },
     { kind: 'spouse', icon: UserPlus, key: 'tree.canvas.addSpouse' },
     { kind: 'parent', icon: Users, key: 'tree.canvas.addParent' },
-    { kind: 'rename', icon: PencilLine, key: 'tree.canvas.rename' },
     { kind: 'edit', icon: Pencil, key: 'tree.canvas.edit' },
     { kind: 'delete', icon: Trash2, key: 'tree.canvas.deletePerson' },
   ] as const satisfies ReadonlyArray<{ kind: CardAction; icon: typeof Baby; key: string }>;
@@ -113,6 +158,52 @@ export const PersonCard = memo(function PersonCard({
     { icon: ImageIcon, count: counts.media, title: nls.t('features.tree.media.title') },
   ] as const;
 
+  if (isEditing) {
+    // The draft card turned editor: only the name is typed here; everything
+    // else lives in the person tab after the person exists.
+    return (
+      <div className={classes}>
+        <Handle type="target" position={Position.Top} className="person-card-handle" />
+        <Handle type="source" position={Position.Bottom} className="person-card-handle" />
+        <form className="person-card-edit" onSubmit={saveDraft}>
+          <div className="person-card-edit-fields">
+            <input
+              value={given}
+              placeholder={nls.t('features.tree.field.given')}
+              aria-label={nls.t('features.tree.field.given')}
+              onChange={(event) => setGiven(event.target.value)}
+              autoFocus
+            />
+            <input
+              value={surname}
+              placeholder={nls.t('features.tree.field.surname')}
+              aria-label={nls.t('features.tree.field.surname')}
+              onChange={(event) => setSurname(event.target.value)}
+            />
+          </div>
+          <div className="person-card-edit-actions">
+            <button
+              type="submit"
+              title={nls.t('features.tree.save')}
+              aria-label={nls.t('features.tree.save')}
+              disabled={!given.trim() && !surname.trim()}
+            >
+              <Check size={14} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title={nls.t('tree.canvas.cancel')}
+              aria-label={nls.t('tree.canvas.cancel')}
+              onClick={() => onDraftCancel?.()}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className={classes}>
       <Handle type="target" position={Position.Top} className="person-card-handle" />
@@ -121,8 +212,10 @@ export const PersonCard = memo(function PersonCard({
         {initials(person)}
       </span>
       <div className="person-card-body">
-        <span className="person-card-name">{displayName(person)}</span>
-        {dates !== '' && (
+        <span className="person-card-name">
+          {isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}
+        </span>
+        {!isDraft && dates !== '' && (
           <span className="person-card-years">
             {deceased ? '† ' : ''}
             {dates}
