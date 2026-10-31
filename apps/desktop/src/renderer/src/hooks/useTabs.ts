@@ -6,6 +6,7 @@ import { moveTab, nls, type TabInfo } from '@doru/workbench';
 const TREE_TAB_ID = 'tree';
 const SETTINGS_TAB_ID = 'settings';
 const NOTICES_TAB_ID = 'notices';
+const EXPORT_TAB_ID = 'export';
 const PERSON_TAB_PREFIX = 'person:';
 
 interface OpenTab {
@@ -130,13 +131,16 @@ export function useTabs(persons: PersonRecord[]) {
       label: nls.t('features.tree.addPerson'),
     });
   }, [openTab]);
-
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
 
   const openNoticesTab = useCallback(() => {
     openTab({ id: NOTICES_TAB_ID, label: nls.t('notices.title') });
+  }, [openTab]);
+
+  const openExportTab = useCallback(() => {
+    openTab({ id: EXPORT_TAB_ID, label: nls.t('workbench.exportGedcom') });
   }, [openTab]);
 
   const reorderTabs = useCallback((sourceId: string, dropIndex: number) => {
@@ -165,8 +169,9 @@ export function useTabs(persons: PersonRecord[]) {
     openNewPersonTab,
     openSettingsTab,
     openNoticesTab,
+    openExportTab,
     reorderTabs,
   };
 }
 
-export { SETTINGS_TAB_ID, TREE_TAB_ID, NOTICES_TAB_ID, PERSON_TAB_PREFIX };
+export { SETTINGS_TAB_ID, TREE_TAB_ID, NOTICES_TAB_ID, EXPORT_TAB_ID, PERSON_TAB_PREFIX };
