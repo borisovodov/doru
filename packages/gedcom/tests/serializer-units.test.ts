@@ -179,7 +179,10 @@ describe('value formatting', () => {
 
   test('formatDateExact', () => {
     expect(formatDateExact({ day: 1, month: 'JAN', year: 1900 }, '7.0')).toBe('1 JAN 1900');
-    expect(formatDateExact({ day: 1, month: 'JAN', year: 44, epoch: 'BCE' }, '7.0')).toBe('1 JAN 44 BCE');
+    // GEDCOM 7.0 §2.4 DateExact = day month year has no epoch production:
+    // an epoch on the model value is not emitted (the output always
+    // matches the grammar).
+    expect(formatDateExact({ day: 1, month: 'JAN', year: 44, epoch: 'BCE' }, '7.0')).toBe('1 JAN 44');
     expect(formatDateExact({ day: 1, month: 'JAN', year: 44, epoch: 'BCE' }, '5.5.1')).toBe('1 JAN 44 B.C.');
   });
 
@@ -191,7 +194,9 @@ describe('value formatting', () => {
   });
 
   test('formatAge70 and formatAge551', () => {
-    expect(formatAge70({ years: 5, months: 3, weeks: 2, days: 1, bound: '<' })).toBe('<5y 3m 2w 1d');
+    // GEDCOM 7.0 §2.6 `Age = [[ageBound D] ageDuration]`: the bound is
+    // separated from the duration by a space.
+    expect(formatAge70({ years: 5, months: 3, weeks: 2, days: 1, bound: '<' })).toBe('< 5y 3m 2w 1d');
     expect(formatAge70({ bound: '>' })).toBe('>');
     expect(formatAge551({ description: 'CHILD' })).toBe('CHILD');
     expect(formatAge551({ years: 5, months: 3, days: 1, bound: '>' })).toBe('>5y 3m 1d');

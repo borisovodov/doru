@@ -78,11 +78,15 @@ export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', I
  *
  * GEDCOM 5.5.1 §2 Substructures (p.32), `FAMILY_EVENT_STRUCTURE` — in
  * 5.5.1 FAM.RESI is a family *event* with no payload, so the payload is
- * optional here (required in 7.0, forbidden in 5.5.1).
+ * optional here (required in 7.0, forbidden in 5.5.1). The GEDCOM-L
+ * addendum gives the 5.5.1 FAM.RESI an optional residence descriptor
+ * payload instead ("GEDCOM 5.5.1 Specification GEDCOM-L Addendum",
+ * §5.9, 2nd release 2020-12-01, eds. A. Emmerich & D. Hesmer), which
+ * is accepted on 5.x input and written back on 5.5.1 output.
  */
 export interface FamilyResidenceAttribute extends GedcomStructureBase {
   tag: 'RESI';
-  /** The RESI payload, {1:1} Text in 7.0 (may be empty; a missing payload is equivalent to the empty string, GEDCOM 7.0 §1.2); 5.5.1 forbids a payload. */
+  /** The RESI payload, {1:1} Text in 7.0 (may be empty; a missing payload is equivalent to the empty string, GEDCOM 7.0 §1.2); optional on 5.x input via the GEDCOM-L addendum §5.9. */
   payload?: Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
   type?: Text;

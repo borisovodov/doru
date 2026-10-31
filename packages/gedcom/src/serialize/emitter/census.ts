@@ -49,6 +49,7 @@ export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord)
     if (sex.type !== undefined) {
       w.line(2, 'TYPE', { value: sex.type });
     }
+    emitExtensions(w, version, 2, sex);
   }
   emitDate(w, version, 1, 'DATE', rec.date);
   w.line(1, 'PLAC', { value: rec.place });
@@ -58,6 +59,7 @@ export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord)
     } else if (rec.source.description !== undefined) {
       w.line(1, 'SOUR', { value: rec.source.description });
     }
+    emitExtensions(w, version, 2, rec.source);
   }
   for (const entry of rec.entries) {
     emitCensusIndividual(w, version, entry);
@@ -72,6 +74,7 @@ export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord)
       // webtrees: the user who made the change (see ChangeDate.user).
       w.line(2, '_WT_USER', { value: rec.changeDate.user });
     }
+    emitExtensions(w, version, 2, rec.changeDate);
   }
   emitExtensions(w, version, 1, rec);
 }

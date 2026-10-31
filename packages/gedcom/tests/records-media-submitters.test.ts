@@ -718,10 +718,13 @@ describe('repository, note and source records', () => {
     expect(rec.automatedRecordId).toBe('2');
   });
 
-  test('5.5.1 DATA.EVEN.PLAC must not have substructures', () => {
-    expect(
-      err551([...H551, '0 @S2@ SOUR', '1 DATA', '2 EVEN BIRT', '3 PLAC Paris', '4 FORM x', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('structure.unknown-tag');
+  test('5.5.1 DATA.EVEN.PLAC accepts the GEDCOM-L place children', () => {
+    // The GEDCOM-L place tags under the SOUR.DATA.EVEN.PLAC jurisdiction
+    // place (webtrees per-vendor custom-tag registry, GedcomL.php) parse
+    // into the typed PlaceStructure slots instead of failing.
+    const dataset = parse551([...H551, '0 @S2@ SOUR', '1 DATA', '2 EVEN BIRT', '3 PLAC Paris', '4 _GOV WEIHEN_W6051', ...SUBM, '0 TRLR'].join('\n'));
+    const data = dataset.records.find((r): r is { tag: 'SOUR'; data?: { events?: Array<{ place?: { govId?: string } }> } } => r.tag === 'SOUR');
+    expect(data?.data?.events?.[0]?.place?.govId).toBe('WEIHEN_W6051');
   });
 
   test('_TMPLT FIELD requires NAME and TEXT rejects unknown tags', () => {

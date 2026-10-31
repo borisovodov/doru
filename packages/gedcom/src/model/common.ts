@@ -358,6 +358,19 @@ export interface EventDetail extends GedcomStructureBase {
    * `_DATE2` in both versions.
    */
   endDate?: DateStructure;
+  /**
+   * TYPE {0:1} — the event descriptor of the GEDCOM 5.5.1 EVENT_DETAIL
+   * (5.5.1 §2 Substructures p.32: `n TYPE <EVENT_DESCRIPTOR> {0:1}`).
+   * GEDCOM 7.0 moved TYPE out of the detail, to the event/attribute
+   * level (where the wrappers carry it — see
+   * FamilyEventStructure.type); the 5.5.1 INDI/FAM event wrappers read
+   * TYPE into their own `type` slot, so this slot is filled where the
+   * detail is parsed on its own: the `_LOC` record's EVEN events, which
+   * GEDCOM 5.5EL gives the full 5.5.1 EVENT_DETAIL (see PlaceRecord)
+   * and the GEDCOM-L addendum confirms (§5.8). Recognized on 5.x input
+   * and written back as TYPE under the place event.
+   */
+  type?: Text;
   /** <<PLACE_STRUCTURE>> {0:1}, g7:PLAC. */
   place?: PlaceStructure;
   /**

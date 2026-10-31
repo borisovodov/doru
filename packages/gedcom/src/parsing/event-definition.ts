@@ -73,7 +73,7 @@ function setSentence(rec: EventDefinitionRecord, index: number, node: RawNode): 
  * or a TYPE/_TYPE child — and the known members are typed; everything
  * else stays a generic extension.
  */
-export function parseEventDefinitionRecord(node: RawNode, _ctx: Ctx): EventDefinitionRecord {
+export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefinitionRecord {
   const rec: EventDefinitionRecord = {
     tag: '_EVENT_DEFN',
     ...(node.xref === undefined ? {} : { xref: node.xref }),
@@ -129,7 +129,7 @@ export function parseEventDefinitionRecord(node: RawNode, _ctx: Ctx): EventDefin
       continue;
     }
     if (child.tag.startsWith('_') || NON_UNDERSCORE_VENDOR_TAGS.has(child.tag)) {
-      addExtension(rec, child);
+      addExtension(rec, child, ctx);
       continue;
     }
     fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under _EVENT_DEFN`, child.position);

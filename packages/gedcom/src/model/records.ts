@@ -26,6 +26,7 @@ import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
 import type { DatePeriodStructure } from './common';
 import type { ExtensionRecord } from './extensions';
+import type { ExtensionStructure } from './extensions';
 import type { FamilyAttributeStructure } from './family-structures';
 import type { FamilyEventStructure } from './family-structures';
 import type { GedcomStructureBase } from './extensions';
@@ -263,6 +264,16 @@ export interface FamilyRecord extends GedcomStructureBase {
    * back as `_MEND` in both versions.
    */
   marriageEndingStatus?: Text;
+  /**
+   * _TAG2–_TAG9 {0:1 each} — the family's named tag marks (Tag 2
+   * through Tag 9), kept in order. Written by Legacy Family Tree under
+   * FAM (see its "Custom GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm; the
+   * INDI twin is IndividualRecord.marks); not part of any GEDCOM
+   * version. Recognized on input and written back as `_TAG2`… in both
+   * versions.
+   */
+  marks?: Text[];
   /**
    * `_TYPE same-sex` {0:1} — the family is a same-sex union (marriage
    * or partnership): the German GEDCOM-L convention written by
@@ -551,6 +562,18 @@ export interface IndividualRecord extends GedcomStructureBase {
    * back as `_TAG`/`_TAG2`… in both versions.
    */
   marks?: Text[];
+  /**
+   * `_EMAIL` {0:M} — the individual's e-mail addresses. Written by
+   * Brother's Keeper, Family Origins and PAF under INDI (catalogued by
+   * the GEDCOM-L working group in the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * table: https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag, and the
+   * Legacy "User-Defined GEDCOM Tags" help:
+   * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
+   * not part of any GEDCOM version (the contact fields of the ADDRESS
+   * and event structures are the standard positions). Recognized on
+   * input and written back as `_EMAIL` in both versions.
+   */
+  email?: Text[];
   /**
    * _TODO {0:M} — research tasks attached to the individual: the
    * GenoPro / RootsMagic / Ahnenblatt to-do structure with the
@@ -892,6 +915,36 @@ export interface MultimediaRecord extends GedcomStructureBase {
    */
   date?: DateStructure;
   /**
+   * PLAC {0:1} — the place associated with the media object, usually
+   * where a picture was taken. Written by Ancestry.com Family Trees
+   * under the OBJE record with the standard PLAC tag (the webtrees
+   * per-vendor custom-tag registry, Ancestry.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Ancestry.php);
+   * not part of any GEDCOM version. Recognized on input (like the
+   * standard DATE above) and written back as `_PLAC` in both versions.
+   */
+  place?: Text;
+  /**
+   * _PRIM Y {0:1} — marks the preferred media object, the record-level
+   * twin of MultimediaLink.primary (same sources). Recognized on input
+   * and written back as `_PRIM` in both versions.
+   */
+  primary?: boolean;
+  /**
+   * _SCBK Y {0:1} — marks the media object for inclusion in a
+   * scrapbook, the record-level twin of MultimediaLink.scrapbook (same
+   * sources). Recognized on input and written back as `_SCBK` in both
+   * versions.
+   */
+  scrapbook?: boolean;
+  /**
+   * _SSHOW Y {0:1} — marks the media object for inclusion in a slide
+   * show, the record-level twin of MultimediaLink.slideshow (same
+   * sources). Recognized on input and written back as `_SSHOW` in both
+   * versions.
+   */
+  slideshow?: boolean;
+  /**
    * _TYPE {0:1} — the kind of the media object (Photo, Sound, Video,
    * …). Written by Ancestral Quest, Family Origins, PAF and Legacy
    * under OBJE (see the Legacy "User-Defined GEDCOM Tags" help:
@@ -1189,6 +1242,35 @@ export interface SourceRecord extends GedcomStructureBase {
   title?: Text;
   /** ABBR {0:1}, g7:ABBR — a short name used for sorting, filing, and retrieving records. */
   abbreviation?: Text;
+  /**
+   * Underscore extensions of the AUTH line, kept beside the field so
+   * the original nesting survives the round trip (the leaf payload
+   * fields have no standard substructures; see parsing/sources.ts).
+   * Written back under AUTH in both versions.
+   */
+  authorExtensions?: ExtensionStructure[];
+  /** Underscore extensions of the TITL line; same convention as `authorExtensions`. */
+  titleExtensions?: ExtensionStructure[];
+  /** Underscore extensions of the ABBR line; same convention as `authorExtensions`. */
+  abbreviationExtensions?: ExtensionStructure[];
+  /**
+   * _SUBQ {0:1} — the format used for subsequent citations of the
+   * source, written by RootsMagic under the SOUR record (the
+   * record-level twin of SourceCitation.subsequentCitationFormat; the
+   * webtrees per-vendor custom-tag registry, RootsMagic.php, labels it
+   * "Abbreviation":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/RootsMagic.php).
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as `_SUBQ` in both versions.
+   */
+  subsequentCitationFormat?: Text;
+  /**
+   * _BIBL {0:1} — the source's bibliography entry, written by
+   * RootsMagic under the SOUR record (same source as
+   * `subsequentCitationFormat`). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_BIBL` in both versions.
+   */
+  bibliography?: Text;
   /** PUBL {0:1}, g7:PUBL — when and where the record was created. */
   publication?: Text;
   /**
@@ -1199,7 +1281,8 @@ export interface SourceRecord extends GedcomStructureBase {
    * Ancestry_PUBL_PLAC.yaml). Nonconformant uses of the standard tags
    * (GEDCOM 7.0 §1.5 permits them only under extension tags), accepted
    * per the registry. Written back in 7.0; dropped when serializing to
-   * 5.5.1.
+   * 5.5.1 (the 5.5.1 PUBL is a bare text payload with no
+   * substructures, so the details have no 5.5.1 slot).
    */
   publicationDetails?: SourcePublicationDetails;
   /** TEXT {0:1}, g7:TEXT — a verbatim copy of any description contained within the source. */

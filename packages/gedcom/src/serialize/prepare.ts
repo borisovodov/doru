@@ -231,6 +231,40 @@ function fill551Header(dataset: GedcomDataset): void {
 }
 
 /**
+ * Collects every cross-reference identifier used by an extension
+ * pointer payload (see ExtensionStructure.payloadKind) anywhere in the
+ * model — the model is a plain object graph, so the walk is structural
+ * (the same pattern as collectPlaces in parsing/places.ts). A record a
+ * marked payload points at is kept alive by the projections below:
+ * the 5.5.1 NO rule and the place-card projections must not drop a
+ * record an extension payload references (a dangling pointer would be
+ * invalid output, and 5.5.1 has no void pointer to replace it with).
+ */
+function collectExtensionPointerTargets(root: unknown): Set<string> {
+  const out = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        walk(item);
+      }
+      return;
+    }
+    if (value === null || typeof value !== 'object') {
+      return;
+    }
+    const obj = value as Record<string, unknown>;
+    if (obj['payloadKind'] === 'pointer' && typeof obj['payload'] === 'string') {
+      out.add(obj['payload'] as string);
+    }
+    for (const key of Object.keys(obj)) {
+      walk(obj[key]);
+    }
+  };
+  walk(root);
+  return out;
+}
+
+/**
  * Applies the NO rule and the required-field defaults, returning a new
  * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
  */
@@ -249,7 +283,12 @@ function hasGermanPlaceFields(card: PlaceRecord): boolean {
     || card.events !== undefined
     || card.parents !== undefined
     || (card.names ?? []).some(
-      (name) => name.date !== undefined || (name.abbreviations ?? []).length > 0 || name.language !== undefined || name.citations !== undefined,
+      (name) =>
+        name.date !== undefined
+        || (name.abbreviations ?? []).length > 0
+        || name.language !== undefined
+        || name.citations !== undefined
+        || name.addition !== undefined
     )
     || (card.names ?? []).length > 1;
 }
@@ -261,9 +300,11 @@ function hasGermanPlaceFields(card: PlaceRecord): boolean {
  * PLAC and are dropped), the location links are consumed, and the
  * records are removed. The exception: a GEDCOM-L card carrying the
  * German fields survives as a `_LOC` record and its referencing places
- * keep the pointer. See the PlaceRecord JSDoc.
+ * keep the pointer — as does a card an extension pointer payload
+ * references (a dangling payload would be invalid output; see
+ * collectExtensionPointerTargets). See the PlaceRecord JSDoc.
  */
-function flattenPlaceRecords(dataset: GedcomDataset): void {
+function flattenPlaceRecords(dataset: GedcomDataset, pinned: ReadonlySet<string>): void {
   const places = collectPlaces(dataset.records);
   const survivors = new Set<string>();
   for (const record of dataset.records) {
@@ -274,7 +315,7 @@ function flattenPlaceRecords(dataset: GedcomDataset): void {
     if (card.xref === undefined) {
       continue;
     }
-    if (hasGermanPlaceFields(card)) {
+    if (hasGermanPlaceFields(card) || pinned.has(card.xref)) {
       survivors.add(card.xref);
       continue;
     }
@@ -332,7 +373,7 @@ function flattenPlaceRecords(dataset: GedcomDataset): void {
  * output): a place's `location` whose card is gone, a card's parent
  * whose card is gone, and a card with no name to write.
  */
-function preservePlaceRecords70(dataset: GedcomDataset): void {
+function preservePlaceRecords70(dataset: GedcomDataset, pinned: ReadonlySet<string>): void {
   const cards = new Set<string>();
   for (const record of dataset.records) {
     if (record.tag === '_PLAC' && record.xref !== undefined) {
@@ -361,13 +402,17 @@ function preservePlaceRecords70(dataset: GedcomDataset): void {
     (record) =>
       record.tag !== '_PLAC'
       || (record as unknown as PlaceRecord).payload !== ''
-      || ((record as unknown as PlaceRecord).names?.length ?? 0) > 0,
+      || ((record as unknown as PlaceRecord).names?.length ?? 0) > 0
+      || pinned.has((record as unknown as PlaceRecord).xref as string),
   );
 }
 
 export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
-  flattenPlaceRecords(out);
+  // Records referenced by extension pointer payloads must survive every
+  // projection (see collectExtensionPointerTargets).
+  const pinned = collectExtensionPointerTargets(out);
+  flattenPlaceRecords(out, pinned);
 
   // 1. Drop the NO structures; remember which records carried one, so
   //    the empty-record rule below only applies to them. Exceptions: a
@@ -401,7 +446,9 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
 
   // 2. Iterate to a fixpoint: strip dangling pointers, drop records that
   //    carried a NO and were left empty by its removal, repeat (dropping
-  //    records may orphan more pointers and empty more records).
+  //    records may orphan more pointers and empty more records). Records
+  //    referenced by an extension pointer payload are never dropped —
+  //    their target must stay valid output.
   for (let round = 0; round < 100; round++) {
     const valid = new Set(
       out.records.map((record) => record.xref).filter((x): x is string => x !== undefined),
@@ -410,7 +457,7 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
       stripPointers(record as LinkRecord, valid);
     }
     const kept = out.records.filter(
-      (record) => record.xref === undefined || !emptied.has(record.xref) || !isEmpty(record),
+      (record) => record.xref === undefined || pinned.has(record.xref) || !emptied.has(record.xref) || !isEmpty(record),
     );
     if (kept.length === out.records.length) {
       break;
@@ -449,7 +496,10 @@ const PEDI_BY_RELATION: ReadonlyMap<string, PedigreeEnum> = new Map([
  */
 export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
-  preservePlaceRecords70(out);
+  // Records referenced by extension pointer payloads must survive the
+  // place-card projection (see collectExtensionPointerTargets).
+  const pinned = collectExtensionPointerTargets(out);
+  preservePlaceRecords70(out, pinned);
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (record.tag === 'INDI' && record.xref !== undefined) {

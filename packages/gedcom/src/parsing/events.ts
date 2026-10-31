@@ -344,10 +344,11 @@ export function parseAliasLink(node: RawNode, ctx: Ctx): AliasLink {
 
 export function parseFamilyPartnerEventDetail(node: RawNode, ctx: Ctx): FamilyPartnerEventDetail {
   noPayload(node);
+  const out: Omit<FamilyPartnerEventDetail, 'age'> = {};
   let age: AgeStructure | undefined;
   dispatch(
     node,
-    {},
+    out,
     {
       AGE: (child) => {
         age = parseAge(child, ctx);
@@ -358,7 +359,7 @@ export function parseFamilyPartnerEventDetail(node: RawNode, ctx: Ctx): FamilyPa
   if (age === undefined) {
     fail('structure.missing-required', `The ${node.tag} structure requires an AGE substructure`, node.position);
   }
-  return { age };
+  return { ...out, age };
 }
 
 /**
@@ -521,7 +522,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       if (FH_FACT_FLAGS.has(flag.tag) && flag.children.length === 0) {
         (detail.factFlags ??= []).push(flag.tag.slice(2) as FactFlag);
       } else {
-        addExtension(detail, flag);
+        addExtension(detail, flag, ctx);
       }
     }
   };
@@ -773,10 +774,17 @@ export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAt
 }
 
 export function parseFamilyResidence551(node: RawNode, ctx: Ctx): FamilyResidenceAttribute {
-  noPayload(node);
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
-  const out: FamilyResidenceAttribute = { tag: 'RESI' };
+  const out: FamilyResidenceAttribute = {
+    tag: 'RESI',
+    // The 5.5.1 FAM.RESI grammar has no payload; the GEDCOM-L addendum
+    // gives it an optional <RESIDENCE_DESCRIPTOR> line value ("GEDCOM
+    // 5.5.1 Specification GEDCOM-L Addendum", §5.9, 2nd release
+    // 2020-12-01, eds. A. Emmerich & D. Hesmer). The payload is kept in
+    // the same slot as the 7.0 form and written back on 5.5.1 export.
+    ...(node.value.kind === 'absent' ? {} : { payload: reqText(node) }),
+  };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
     out.type = reqText(child);
@@ -1042,9 +1050,10 @@ export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string)
   let date: DateExactStructure | undefined;
   if (ctx.version === '7.0') {
     payload = parseEnum(raw, ORDINANCE_STATUS_ENUM_VALUES, '7.0', node.position);
+    const out: Omit<OrdinanceStatusStructure, 'date'> = { payload };
     dispatch(
       node,
-      {},
+      out,
       {
         DATE: (child) => {
           date = parseDateExactStructure(child, ctx, true);
@@ -1052,6 +1061,10 @@ export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string)
       },
       ctx,
     );
+    if (date === undefined) {
+      fail('structure.missing-required', 'The STAT structure requires a DATE substructure', node.position);
+    }
+    return { ...out, date };
   } else {
     const table = LDS_STATUS_551[ordinance];
     if (table === undefined) {

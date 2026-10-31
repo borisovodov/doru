@@ -25,6 +25,20 @@ export interface ExtensionStructure {
   /** GEDCOM 7.0 §1.5 — payload, if any; its data type is defined by the extension. */
   payload?: Text;
   /**
+   * `'pointer'` — the payload is pointer-shaped: the line value matched
+   * the Xref production (GEDCOM 7.0 §1.3 Lines; GEDCOM 5.5.1 §2
+   * Primitive Elements — a text value must double its leading `@`, so
+   * the wire syntax is unambiguous). The raw `@…@` spelling is kept.
+   * The mark is deliberately NOT resolved into a record pointer: the
+   * official FamilySearch 7.0 test corpus ships pointer-shaped *text*
+   * in extension payloads (extensions.ged: `1 _IN @B1@` with no @B1@
+   * record — the extension defines the payload as an identifier), so
+   * an unresolved target cannot be an error. The serializers instead
+   * use the mark to keep such payloads' targets alive through the
+   * projections that drop records (see serialize/prepare.ts).
+   */
+  payloadKind?: 'pointer';
+  /**
    * The structure's cross-reference identifier (@…@). GEDCOM 7.0 §1.5
    * permits one on a tagged extension structure at any level, not only
    * on records ("A tagged extension structure … may also have a

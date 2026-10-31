@@ -139,6 +139,7 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
   }
   // For 7.0 the contacts live at the record/detail level; the parent
   // emitter relocates the 5.5.1-position values there.
+  emitExtensions(w, version, level + 1, address);
 }
 
 /** The address as the target version wants it: 5.5.1 keeps the contact
@@ -208,6 +209,7 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
   if (role.phrase !== undefined) {
     w.line(level + 2, 'PHRASE', { value: role.phrase });
   }
+  emitExtensions(w, version, level + 2, role);
   for (const note of association.notes ?? []) {
     emitNoteStructure(w, version, level + 1, note);
   }
@@ -232,6 +234,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     if (date.phrase !== undefined) {
       w.line(level + 1, 'PHRASE', { value: date.phrase });
     }
+    emitExtensions(w, version, level + 1, date);
     return;
   }
   // 5.5.1: value + optional phrase. A phrase-only date becomes the
@@ -249,6 +252,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     } else {
       w.line(level, tag);
     }
+    emitExtensions(w, version, level + 1, date);
     return;
   }
   const raw = formatDateValue551(date.value);
@@ -264,9 +268,11 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
       w.line(level, tag, { value: raw === '' ? undefined : raw });
       w.line(level + 1, 'NOTE', { value: date.phrase });
     }
+    emitExtensions(w, version, level + 1, date);
     return;
   }
   w.line(level, tag, { value: raw === '' ? undefined : raw });
+  emitExtensions(w, version, level + 1, date);
 }
 
 export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
@@ -274,6 +280,7 @@ export function emitDateExact(w: Writer, version: Version, level: number, tag: s
   if (time !== undefined) {
     w.line(level + 1, 'TIME', { value: formatTime(time, version) });
   }
+  emitExtensions(w, version, level + 1, date);
 }
 
 export function emitAge(w: Writer, version: Version, level: number, age: AgeStructure): void {
@@ -288,6 +295,7 @@ export function emitAge(w: Writer, version: Version, level: number, age: AgeStru
     if (age.ageRange !== undefined) {
       w.line(level + 1, '_AGER', { value: age.ageRange });
     }
+    emitExtensions(w, version, level + 1, age);
     return;
   }
   let value: string;
@@ -319,6 +327,7 @@ export function emitAge(w: Writer, version: Version, level: number, age: AgeStru
     // The MagiKey age range (MagiKey_AGER.yaml), written back in both versions.
     w.line(level + 1, '_AGER', { value: age.ageRange });
   }
+  emitExtensions(w, version, level + 1, age);
 }
 
 export function emitEventDetail(w: Writer, version: Version, level: number, detail: EventDetail): void {
@@ -412,6 +421,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
         w.line(level + 1, 'PHRASE', { value: detail.sortDate.phrase });
       }
     }
+    emitExtensions(w, version, level + 1, detail.sortDate);
   }
   if (version === '7.0') {
     for (const association of detail.associations ?? []) {
@@ -540,12 +550,14 @@ export function emitNoteStructure(w: Writer, version: Version, level: number, no
       if (translation.language !== undefined) {
         w.line(level + 2, 'LANG', { value: translation.language });
       }
+      emitExtensions(w, version, level + 2, translation);
     }
   }
   // 5.5.1 notes have no MIME/LANG/TRAN; dropped.
   for (const citation of inline.citations ?? []) {
     emitSourceCitation(w, version, level + 1, citation);
   }
+  emitExtensions(w, version, level + 1, inline);
 }
 
 export function emitSourceCitation(w: Writer, version: Version, level: number, citation: SourceCitation): void {
@@ -700,10 +712,26 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
     // SourceCitation.submitter).
     ptr(w, version, level + 1, '_SUBM', citation.submitter);
   }
-  // Generic extensions of the citation itself are written back at the
-  // citation level: a documented extension tag may appear under any
+  if (citation.template !== undefined) {
+    // RootsMagic: the Evidence Explained source template under the
+    // citation (see SourceCitation.template).
+    w.line(level + 1, '_TMPLT');
+    if (citation.template.templateId !== undefined) {
+      w.line(level + 2, 'TID', { value: citation.template.templateId });
+    }
+    for (const field of citation.template.fields) {
+      w.line(level + 2, 'FIELD');
+      w.line(level + 3, 'NAME', { value: field.name });
+      if (field.value !== undefined) {
+        w.line(level + 3, 'VALUE', { value: field.value });
+      }
+    }
+    emitExtensions(w, version, level + 2, citation.template);
+  }
+  // Generic extensions of the citation itself are written back beneath
+  // the SOUR line: a documented extension tag may appear under any
   // structure (GEDCOM 7.0 §1.5).
-  emitExtensions(w, version, level, citation);
+  emitExtensions(w, version, level + 1, citation);
 }
 
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {
@@ -736,8 +764,12 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
     if (link.title !== undefined) {
       w.line(level + 1, 'TITL', { value: link.title });
     }
+    if (link.crop !== undefined) {
+      emitExtensions(w, version, level + 2, link.crop);
+    }
   }
   // 5.5.1 has no CROP/TITL under OBJE; dropped.
+  emitExtensions(w, version, level + 1, link);
 }
 
 export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, top = true): void {

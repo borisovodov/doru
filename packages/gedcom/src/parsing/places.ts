@@ -87,6 +87,15 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         LANG: (grandchild) => {
           entry.language = reqText(grandchild);
         },
+        NAMC: (grandchild) => {
+          // GEDCOM 5.5EL gives the `_LOC` name an optional NAMC child,
+          // an addition to the place name (the GEDCOM 5.5EL spec, e.g.
+          // the English GenWiki page "Gedcom 5.5EL":
+          // http://wiki-en.genealogy.net/Gedcom_5.5EL). GEDCOM-L's
+          // successor slot is ABBR (L1/L3); NAMC survives for 5.5EL
+          // files and is written back as NAMC.
+          entry.addition = reqText(grandchild);
+        },
       }, ctx);
     },
     TYPE: (child) => {
@@ -137,7 +146,14 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         ...(raw === '' ? {} : { payload: raw }),
       };
       (out.events ??= []).push(event);
-      dispatch(child, detail, eventDetailHandlers(ctx, detail), ctx);
+      const handlers = eventDetailHandlers(ctx, detail);
+      handlers['TYPE'] = (grandchild) => {
+        // GEDCOM 5.5.1 §2 p.32 EVENT_DETAIL `n TYPE <EVENT_DESCRIPTOR>`
+        // {0:1}: 5.5EL gives the `_LOC` event the full 5.5.1 event
+        // detail (see EventDetail.type).
+        detail.type = reqText(grandchild);
+      };
+      dispatch(child, detail, handlers, ctx);
       if (ctx.version === '5.5.1') {
         merge551DetailContacts(detail);
       }

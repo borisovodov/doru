@@ -50,6 +50,7 @@ import {
   parseMediaStructure,
 } from './media';
 import {
+  parseEvidenceTemplate,
   parseSourceText,
 } from './sources';
 import {
@@ -161,6 +162,12 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // (see SourceCitation.submitter).
           out.submitter = reqPtr(child, ctx);
         },
+        '_TMPLT': (child) => {
+          // RootsMagic: the Evidence Explained source template of the
+          // citation — its actual write position (the record-level
+          // `_TMPLT` is the other; see SourceCitation.template).
+          out.template = parseEvidenceTemplate(child, ctx);
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -218,10 +225,25 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // (see SourceCitation.submitter).
           out.submitter = reqPtr(child, ctx);
         },
+        '_TMPLT': (child) => {
+          // RootsMagic: the Evidence Explained source template of the
+          // citation — its actual write position (the record-level
+          // `_TMPLT` is the other; see SourceCitation.template).
+          out.template = parseEvidenceTemplate(child, ctx);
+        },
         'RINI': (child) => {
           // USM6: who found the source information (see
           // SourceCitation.foundBy).
           out.foundBy = reqText(child);
+        },
+        'TEXT': (child) => {
+          // Généatique writes the citation text with the standard TEXT
+          // tag directly under the SOUR pointer (the webtrees per-vendor
+          // custom-tag registry, Geneatique.php); the 5.5.1 grammar
+          // places it under DATA. It normalizes into the same
+          // data.texts slot the free-text SOUR form uses.
+          out.data ??= {};
+          (out.data.texts ??= []).push(parseSourceText(child, ctx));
         },
       },
       ctx,

@@ -246,9 +246,17 @@ describe('the GEDCOM 5.3 SCHEMA block (Family Tree Maker)', () => {
     expect(parseOk551(text)).toEqual(first);
   });
 
-  test('7.0 drops the block (its SCHMA needs URIs, which the block lacks)', () => {
+  test('7.0 writes the block as the _SCHEMA extension record', () => {
+    // 7.0 has no SCHEMA structure; the block travels as the extension
+    // record `_SCHEMA` (its GEDCOM-L N5 spelling), which the 7.0
+    // extension mechanism preserves verbatim on re-import.
     const text = ser70(parseOk551(SAMPLE));
-    expect(text).not.toContain('SCHEMA');
+    expect(text).toContain('1 _SCHEMA');
+    expect(text).toContain('5 LABL HOSPITAL');
+    expect(text).toContain('5 DEFN The name of a hospital');
+    expect(text).toContain('5 ISA SITE');
+    // The 7.0 reader keeps it as a generic extension subtree.
+    expect(parseOk70(text)).toBeDefined();
   });
 
   test('a 7.0 file with SCHEMA is still a strict error', () => {

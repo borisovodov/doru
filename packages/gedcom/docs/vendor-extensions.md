@@ -46,6 +46,18 @@ results and secondary sources.
   standard family with its own XML/JSON syntax) are different
   formats, not text GEDCOM — deliberately out of scope, with no
   import planned.
+  - **The GEDCOM 5.5 embedded-multimedia shape is a tolerated
+    exception.** 5.5.1 removed the embedded `BLOB` form of the
+    multimedia record (5.5 records carry `FORM`/`TITL`/`BLOB` directly
+    under `OBJE`; 5.5.1 keeps only the external `FILE` form), but old
+    files and Généatique (webtrees per-vendor custom-tag registry,
+    `Geneatique.php`) still write record-level `FORM`/`TITL` in
+    5.5.1-declared documents. Those tags — and a `BLOB` left over from
+    a 5.5 file — are accepted on 5.x input and kept verbatim as
+    generic extensions of the multimedia record (the base64 payload
+    is preserved as text, continuations merged); there is no typed
+    model slot for the embedded binary. They are written back on
+    5.5.1 output and dropped on 7.0 (which has no embedding either).
 - **GEDCOM 7.0** has an official mechanism: extension tags declared in
   `HEAD.SCHMA` with URIs, plus an official registry of extensions:
   - FamilySearch GEDCOM 7 specification (extension rules):
@@ -79,12 +91,32 @@ results and secondary sources.
     and the write-back uses the standard spelling. A tag declared with
     a non-`g7:` URI, a payload-type URI (`g7:enum-…`, `g7:cal-…`,
     `g7:month-…`), or a documented tag used where the standard
-    structure has no slot stays generic. The test files also fixed
+    structure has no slot stays generic. **A tag declared with several
+    URIs** (GEDCOM 7.0 §1.5.1: permitted when the named concepts
+    cannot appear in the same place, e.g. `_LOC` as a record and as a
+    pointer) resolves by context: at record level the one declaration
+    naming a standard record type wins, inside a structure the one
+    declaration naming a standard structure with a slot there wins —
+    several matching declarations keep the extension meaning rather
+    than guessing (calendar and month payloads resolve the same way).
+    The test files also fixed
     real bugs along the way: extension-defined substructures under
     typed extension records (`SUBM`/`DATE` under `_LOC`) and the nested
     standard tags of generic extension records are preserved instead of
     rejected or dropped, extension epochs no longer serialize as `BCE`,
     and the model gained the 7.0 FAMC/FAMS `PHRASE` slots.
+  - **Pointer-shaped extension payloads are first-class.** A line value
+    matching the Xref production is syntactically a pointer in both
+    versions (a text value must double its leading `@` — GEDCOM 7.0
+    §1.3), so `ExtensionStructure` marks such payloads
+    (`payloadKind: 'pointer'`, the raw `@…@` spelling kept). The mark
+    is deliberately not resolved into a typed pointer: the official
+    FamilySearch corpus ships pointer-shaped *text* in extension
+    payloads (`extensions.ged`: `_IN @B1@` with no `@B1@` record), so
+    an unresolved target cannot be an error. Instead the 5.5.1 and 7.0
+    projections keep the marked targets alive — the NO rule and the
+    place-card flattening never drop a record a marked payload
+    references, so a round trip cannot emit a dangling pointer.
   - Registry tools page:
     <https://gedcom.io/tools/>
 

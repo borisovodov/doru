@@ -264,6 +264,11 @@ export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
   MARR_RELIGIOUS: { kind: 'marriage', type: 'religious' }, // Aldfaer: a religious marriage.
   MARR_PARTNERS: { kind: 'marriage', type: 'registered partnership' }, // Aldfaer: a registered partnership.
   MARR_UNKNOWN: { kind: 'marriage', type: 'unknown' }, // Aldfaer: a marriage whose kind is not recorded.
+  // The Mac Family Tree 8 marriage-kind tags (the non-underscore twins
+  // of the Aldfaer MARR_* pair; the GenWiki "GEDCOM/_Nutzerdef-Tag"
+  // table's "Tabelle 2" documents both).
+  MRCI: { kind: 'marriage', type: 'civil' }, // MFT8: a civil marriage.
+  MRRE: { kind: 'marriage', type: 'religious' }, // MFT8: a religious marriage.
   // The comment (phpGedView writes the standard COMM tag under FAM;
   // same source as the INDI rule).
   COMM: { kind: 'note', type: '' }, // phpGedView.
@@ -289,7 +294,7 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'AUTH', // Reunion: "Author" (the meaning is documented, the wire format is not; accepted generically).
   'COMP', // Reunion: ???.
   'DATV', // Reunion: ???.
-  'DETS', // Gen: ???.
+  'DETS', // Gen: ??? (the webtrees FamilyTreeMaker.php registry documents a FAM-level `_DETS` "Death of one spouse"; the sources conflict, so both stay generic).
   'EARL', // Reunion: ???.
   'HISTB', // Reunion: ???.
   'LABL', // FTW3-5: schema label (typed under HEAD.SCHEMA; generic elsewhere).
@@ -304,8 +309,8 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'FPRF', // USM6: the USM FAM settings block under HEAD.
   'MPRF', // USM6: the USM multimedia settings block under HEAD.
   'MISE', // MFT7: military info ("Militär-Info").
-  'MRCI', // MFT8: civil marriage.
-  'MRRE', // MFT8: religious marriage.
+  'MRCI', // MFT8: civil marriage (typed under FAM; generic elsewhere).
+  'MRRE', // MFT8: religious marriage (typed under FAM; generic elsewhere).
   'MTYP', // USM6: parent-child relation kind (1=marital, 2=non-marital, …).
   'NAME_', // USM6: surname variants.
   'NOTRY', // USM6: the name of the notary (marriage contract, will).

@@ -71,8 +71,10 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
     for (const translation of file.translations ?? []) {
       w.line(level + 1, 'TRAN', { value: translation.payload });
       emitMediaFormat(w, version, level + 2, translation.form);
+      emitExtensions(w, version, level + 2, translation);
     }
   }
+  emitExtensions(w, version, level + 1, file);
 }
 
 export function emitMediaFormat(w: Writer, version: Version, level: number, format: MediaFormatStructure): void {
@@ -91,6 +93,7 @@ export function emitMediaFormat(w: Writer, version: Version, level: number, form
       }
     }
   }
+  emitExtensions(w, version, level + 1, format);
 }
 
 export function emitMedia(w: Writer, version: Version, level: number, medium: MediaStructure): void {
@@ -105,12 +108,14 @@ export function emitMedia(w: Writer, version: Version, level: number, medium: Me
       return;
     }
     w.line(level, 'MEDI', { value });
+    emitExtensions(w, version, level + 1, medium);
     return;
   }
   w.line(level, 'MEDI', { value: medium.payload });
   if (medium.phrase !== undefined) {
     w.line(level + 1, 'PHRASE', { value: medium.phrase });
   }
+  emitExtensions(w, version, level + 1, medium);
 }
 
 export function emitPersonalName(w: Writer, version: Version, level: number, name: PersonalNameStructure, tag: 'NAME' | '_NAM' = 'NAME'): void {
@@ -222,6 +227,7 @@ export function emitNameType(w: Writer, version: Version, level: number, type: N
     if (type.phrase !== undefined) {
       w.line(level + 1, 'PHRASE', { value: type.phrase });
     }
+    emitExtensions(w, version, level + 1, type);
     return;
   }
   // 5.5.1: the known set in lowercase, or the phrase as the user-defined
@@ -230,6 +236,7 @@ export function emitNameType(w: Writer, version: Version, level: number, type: N
   const spelled = known[type.payload];
   if (spelled !== undefined) {
     w.line(level, 'TYPE', { value: spelled });
+    emitExtensions(w, version, level + 1, type);
     return;
   }
   if (type.phrase !== undefined) {
@@ -238,6 +245,7 @@ export function emitNameType(w: Writer, version: Version, level: number, type: N
     w.line(level, 'TYPE', { value: type.phrase });
   }
   // Without a phrase the value cannot be spelled; dropped.
+  emitExtensions(w, version, level + 1, type);
 }
 
 export function emitNamePieces(w: Writer, version: Version, level: number, pieces: PersonalNamePieces | undefined): void {
@@ -297,6 +305,11 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
       if (abbr.type !== undefined) {
         w.line(3, 'TYPE', { value: abbr.type });
       }
+      emitExtensions(w, version, 3, abbr);
+    }
+    if (name.addition !== undefined) {
+      // GEDCOM 5.5EL NAME.NAMC (see PlaceNameStructure.addition).
+      w.line(2, 'NAMC', { value: name.addition });
     }
     if (name.language !== undefined) {
       w.line(2, 'LANG', { value: name.language });
@@ -304,6 +317,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     for (const citation of name.citations ?? []) {
       emitSourceCitation(w, version, 2, citation);
     }
+    emitExtensions(w, version, 2, name);
   }
   for (const type of record.types ?? []) {
     w.line(1, 'TYPE', { value: type.type });
@@ -316,6 +330,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     for (const citation of type.citations ?? []) {
       emitSourceCitation(w, version, 2, citation);
     }
+    emitExtensions(w, version, 2, type);
   }
   if (record.govId !== undefined) {
     w.line(1, '_GOV', { value: record.govId });
@@ -328,6 +343,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     for (const citation of postal.citations ?? []) {
       emitSourceCitation(w, version, 2, citation);
     }
+    emitExtensions(w, version, 2, postal);
   }
   for (const aidn of record.administrativeIds ?? []) {
     w.line(1, '_AIDN', { value: aidn.identifier });
@@ -338,6 +354,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     for (const citation of aidn.citations ?? []) {
       emitSourceCitation(w, version, 2, citation);
     }
+    emitExtensions(w, version, 2, aidn);
   }
   for (const dmgd of record.demographicData ?? []) {
     w.line(1, '_DMGD', { value: dmgd.data });
@@ -348,6 +365,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     for (const citation of dmgd.citations ?? []) {
       emitSourceCitation(w, version, 2, citation);
     }
+    emitExtensions(w, version, 2, dmgd);
   }
   if (record.maidenhead !== undefined) {
     w.line(1, '_MAIDENHEAD', { value: record.maidenhead });
@@ -368,8 +386,14 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
   for (const event of record.events ?? []) {
     w.line(1, 'EVEN', { value: event.payload });
     if (event.detail !== undefined) {
+      if (event.detail.type !== undefined) {
+        // GEDCOM 5.5.1 §2 p.32 EVENT_DETAIL TYPE (see EventDetail.type):
+        // the event descriptor of the place event.
+        w.line(2, 'TYPE', { value: event.detail.type });
+      }
       emitEventDetail(w, version, 2, event.detail);
     }
+    emitExtensions(w, version, 2, event);
   }
   for (const parent of record.parents ?? []) {
     ptr(w, version, 1, '_LOC', parent.parent);
@@ -382,6 +406,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     for (const citation of parent.citations ?? []) {
       emitSourceCitation(w, version, 2, citation);
     }
+    emitExtensions(w, version, 2, parent);
   }
   if (record.map !== undefined) {
     w.line(1, 'MAP');
@@ -393,6 +418,7 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     // payload carries the coordinates, the TYPE names the system.
     w.line(1, 'MAP', { value: elMap.payload });
     w.line(2, 'TYPE', { value: elMap.type });
+    emitExtensions(w, version, 2, elMap);
   }
   commonRecordFields(w, version, record, 1);
 }
@@ -421,6 +447,7 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     for (const citation of postal.citations ?? []) {
       emitSourceCitation(w, version, level + 2, citation);
     }
+    emitExtensions(w, version, level + 2, postal);
   }
   if (place.maidenhead !== undefined) {
     w.line(level + 1, '_MAIDENHEAD', { value: place.maidenhead });
@@ -492,5 +519,6 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     w.line(level + 2, 'LATI', { value: `${place.map.latitude.direction}${place.map.latitude.degrees}` });
     w.line(level + 2, 'LONG', { value: `${place.map.longitude.direction}${place.map.longitude.degrees}` });
   }
+  emitExtensions(w, version, level + 1, place);
 }
 

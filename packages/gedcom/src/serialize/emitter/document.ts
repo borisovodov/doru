@@ -84,6 +84,7 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
       for (const def of h.schema.tagDefinitions) {
         w.line(2, 'TAG', { value: `${def.payload.tag} ${def.payload.uri}` });
       }
+      emitExtensions(w, version, 2, h.schema);
     }
   }
   if (h.source !== undefined) {
@@ -112,11 +113,13 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   if (h.copyright !== undefined) {
     w.line(1, 'COPR', { value: h.copyright });
   }
-  if (version === '5.5.1' && h.schema53 !== undefined) {
-    // The GEDCOM 5.3 user-tag declaration block (Family Tree Maker
-    // dialect); 7.0 cannot spell it, so it is dropped there (see
-    // Header.schema53).
-    w.line(1, 'SCHEMA');
+  if (h.schema53 !== undefined) {
+    // The GEDCOM 5.3 user-tag declaration block (the Family Tree Maker
+    // dialect; see Header.schema53). 5.5.1 writes the 5.3 spelling
+    // SCHEMA; 7.0 has no SCHEMA structure, so the block is written as
+    // the extension record `_SCHEMA` (its GEDCOM-L N5 spelling), which
+    // the 7.0 extension mechanism preserves verbatim.
+    w.line(1, version === '7.0' ? '_SCHEMA' : 'SCHEMA');
     for (const entry of h.schema53.entries) {
       let level = 2;
       for (const tag of entry.context) {
@@ -132,13 +135,34 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
       if (entry.parent !== undefined) {
         w.line(level, 'ISA', { value: entry.parent });
       }
+      emitExtensions(w, version, level, entry);
     }
+    emitExtensions(w, version, 2, h.schema53);
   }
   w.line(1, 'GEDC');
+  // GEDCOM 7.0 §3.2.1 g7:GEDC-VERS: "must include the major and minor
+  // version... it may include the patch as well, but doing so is not
+  // required". The serializer emits the base grammar it implements, so
+  // a patch level of an imported file (e.g. "7.0.14") is not carried
+  // over — the output always conforms to the 7.0 core specification.
   w.line(2, 'VERS', { value: version === '7.0' ? '7.0' : '5.5.1' });
+  if (h.gedcom.addendum !== undefined) {
+    // The GEDCOM-L addendum declaration under GEDC.VERS (see
+    // Gedcom.addendum): written back in both versions; in 7.0 it
+    // travels as an extension under the standard GEDC structure.
+    w.line(3, '_ADDENDUM');
+    if (h.gedcom.addendum.version !== undefined) {
+      w.line(4, 'VERS', { value: h.gedcom.addendum.version });
+    }
+    if (h.gedcom.addendum.www !== undefined) {
+      w.line(4, 'WWW', { value: h.gedcom.addendum.www });
+    }
+    emitExtensions(w, version, 4, h.gedcom.addendum);
+  }
   if (version === '5.5.1') {
     w.line(2, 'FORM', { value: 'LINEAGE-LINKED' });
   }
+  emitExtensions(w, version, 2, h.gedcom);
   if (version === '5.5.1') {
     // Export is always UTF-8 (the model is post-decode).
     w.line(1, 'CHAR', { value: 'UTF-8' });
@@ -152,6 +176,7 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   if (h.place !== undefined) {
     w.line(1, 'PLAC');
     w.line(2, 'FORM', { value: h.place.form.join(', ') });
+    emitExtensions(w, version, 2, h.place);
   }
   if (h.note !== undefined) {
     emitNoteStructure(w, version, 1, h.note);
@@ -179,12 +204,15 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
     email?: string[];
     fax?: string[];
     www?: string[];
+    extensions?: ExtensionStructure[];
   };
   data?: {
     payload: string;
     date?: DateExactStructure;
     copyright?: string;
+    extensions?: ExtensionStructure[];
   };
+  extensions?: ExtensionStructure[];
 }): void {
   w.line(1, 'SOUR', { value: source.payload });
   if (source.version !== undefined) {
@@ -204,7 +232,9 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
     if (source.data.copyright !== undefined) {
       w.line(3, 'COPR', { value: source.data.copyright });
     }
+    emitExtensions(w, version, 3, source.data);
   }
+  emitExtensions(w, version, 2, source);
 }
 
 export function emitCorporation(w: Writer, version: Version, corp: {
@@ -214,6 +244,7 @@ export function emitCorporation(w: Writer, version: Version, corp: {
   email?: string[];
   fax?: string[];
   www?: string[];
+  extensions?: ExtensionStructure[];
 }): void {
   w.line(2, 'CORP', { value: corp.payload });
   const address = mergedAddress(w, version, corp.address, corp);
@@ -238,6 +269,7 @@ export function emitCorporation(w: Writer, version: Version, corp: {
       w.line(3, 'WWW', { value });
     }
   }
+  emitExtensions(w, version, 3, corp);
 }
 
 // -- Records ----------------------------------------------------------------
@@ -354,10 +386,12 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
       // webtrees: the user who made the change (see ChangeDate.user).
       w.line(level + 1, '_WT_USER', { value: rec.changeDate.user });
     }
+    emitExtensions(w, version, level + 1, rec.changeDate);
   }
   if (rec.creationDate !== undefined && version === '7.0') {
     w.line(level, 'CREA');
     emitDateExact(w, version, level + 1, 'DATE', rec.creationDate.date, rec.creationDate.date.time);
+    emitExtensions(w, version, level + 1, rec.creationDate);
   }
   if (rec.automatedRecordId !== undefined && version === '5.5.1') {
     w.line(level, 'RIN', { value: rec.automatedRecordId });
