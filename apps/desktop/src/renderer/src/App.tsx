@@ -6,11 +6,13 @@ import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
 import { AppMenu } from './components/AppMenu';
+import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
 import {
+  EXPORT_TAB_ID,
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   SETTINGS_TAB_ID,
@@ -103,7 +105,7 @@ export function App() {
     const removeExport = commands.register({
       id: 'workbench.exportGedcom',
       title: nls.t('workbench.exportGedcom'),
-      handler: () => project.exportGedcom(),
+      handler: () => tabs.openExportTab(),
     });
     const removeOpenSettings = commands.register({
       id: 'workbench.openSettings',
@@ -152,7 +154,7 @@ export function App() {
     project.openProject,
     project.saveProject,
     project.createProject,
-    project.exportGedcom,
+    tabs.openExportTab,
     tabs.openSettingsTab,
     tabs.nextTab,
     tabs.prevTab,
@@ -283,6 +285,9 @@ export function App() {
     if (tab.id === NOTICES_TAB_ID) {
       return <NoticesView onOpenLink={(url) => void window.doru.openExternal(url)} />;
     }
+    if (tab.id === EXPORT_TAB_ID) {
+      return <ExportView onExportGedcom={() => void project.exportGedcom()} />;
+    }
     if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
       return (
         <PersonTab
@@ -363,9 +368,7 @@ export function App() {
           <SidebarView
             activeView={activeView}
             persons={tree.persons}
-            projectPath={projectPath}
             onOpenPerson={openPersonAndFocus}
-            onExportGedcom={() => void project.exportGedcom()}
           />
         }
         activeView={activeView}

@@ -90,7 +90,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(page.locator('.editor-pane.active .tree-canvas')).toBeVisible();
 
   // The person list now lives in the People sidebar, not in the tree tab.
-  await page.locator('.activity-bar .activity-bar-item').nth(1).click();
+  await page.locator('.activity-bar .activity-bar-item').nth(2).click();
   await expect(page.locator('.person-list li').first()).toBeVisible();
 
   await page.locator('.person-list li').first().click();
@@ -139,7 +139,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(labelsAfterReorder).toHaveText([orderBefore[0]!, orderBefore[2]!]);
 
   // Primary sidebar resizing: switch to the people view and drag its sash.
-  await page.locator('.activity-bar .activity-bar-item').nth(1).click();
+  await page.locator('.activity-bar .activity-bar-item').nth(2).click();
   await expect(page.locator('.side-bar')).toBeVisible();
   const sideSash = page.locator('.side-sash');
   const sideSashBox = await sideSash.boundingBox();

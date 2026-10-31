@@ -133,7 +133,7 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
   await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
 
   // Open the People view and click Ivan in the sidebar list.
-  await page.locator('.activity-bar .activity-bar-item').nth(1).click();
+  await page.getByLabel('People').click();
   await expect(page.locator('.person-list li').first()).toBeVisible();
   await page.locator('.person-list li', { hasText: 'Ivan Ivanov' }).first().click();
 

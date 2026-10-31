@@ -8,15 +8,11 @@ const PEOPLE_LIST_LIMIT = 500;
 export function SidebarView({
   activeView,
   persons,
-  projectPath,
   onOpenPerson,
-  onExportGedcom,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
-  projectPath: string | null | undefined;
   onOpenPerson: (personId: string) => void;
-  onExportGedcom: () => void;
 }) {
   switch (activeView) {
     case 'people':
@@ -38,11 +34,32 @@ export function SidebarView({
           )}
         </>
       );
+    case 'families':
+      return (
+        <PlaceholderView
+          title={nls.t('workbench.activityBar.families')}
+          description={nls.t('features.families.placeholder')}
+        />
+      );
+    case 'events':
+      return (
+        <PlaceholderView
+          title={nls.t('workbench.activityBar.events')}
+          description={nls.t('features.events.placeholder')}
+        />
+      );
     case 'places':
       return (
         <PlaceholderView
           title={nls.t('workbench.activityBar.places')}
           description={nls.t('features.places.placeholder')}
+        />
+      );
+    case 'media':
+      return (
+        <PlaceholderView
+          title={nls.t('workbench.activityBar.media')}
+          description={nls.t('features.media.placeholder')}
         />
       );
     case 'sources':
@@ -65,17 +82,6 @@ export function SidebarView({
           title={nls.t('workbench.activityBar.search')}
           description={nls.t('features.search.placeholder')}
         />
-      );
-    case 'export':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.export')}
-          description={projectPath ? undefined : nls.t('workbench.tree.empty')}
-        >
-          <button disabled={!projectPath} onClick={onExportGedcom}>
-            {nls.t('features.tree.exportGedcom')}
-          </button>
-        </PlaceholderView>
       );
     default:
       return null;

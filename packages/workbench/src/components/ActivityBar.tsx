@@ -1,24 +1,28 @@
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
 import {
+  Blend,
   BookOpenText,
-  Globe,
+  CalendarDays,
+  Image,
   ListTodo,
+  Map,
   Search,
   Settings,
-  Share,
   TreeDeciduous,
-  UserRoundGroup,
+  User,
 } from 'lucide-react';
 import { nls } from '../nls';
 
 export type ActivityViewId =
   | 'tree'
-  | 'people'
-  | 'places'
-  | 'sources'
-  | 'tasks'
   | 'search'
-  | 'export';
+  | 'people'
+  | 'families'
+  | 'events'
+  | 'places'
+  | 'media'
+  | 'sources'
+  | 'tasks';
 
 export interface ActivityBarProps {
   activeView: ActivityViewId;
@@ -77,14 +81,34 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       icon: <TreeDeciduous size={ICON_SIZE} aria-hidden="true" />,
     },
     {
+      id: 'search',
+      title: nls.t('workbench.activityBar.search'),
+      icon: <Search size={ICON_SIZE} aria-hidden="true" />,
+    },
+    {
       id: 'people',
       title: nls.t('workbench.activityBar.people'),
-      icon: <UserRoundGroup size={ICON_SIZE} aria-hidden="true" />,
+      icon: <User size={ICON_SIZE} aria-hidden="true" />,
+    },
+    {
+      id: 'families',
+      title: nls.t('workbench.activityBar.families'),
+      icon: <Blend size={ICON_SIZE} aria-hidden="true" />,
+    },
+    {
+      id: 'events',
+      title: nls.t('workbench.activityBar.events'),
+      icon: <CalendarDays size={ICON_SIZE} aria-hidden="true" />,
     },
     {
       id: 'places',
       title: nls.t('workbench.activityBar.places'),
-      icon: <Globe size={ICON_SIZE} aria-hidden="true" />,
+      icon: <Map size={ICON_SIZE} aria-hidden="true" />,
+    },
+    {
+      id: 'media',
+      title: nls.t('workbench.activityBar.media'),
+      icon: <Image size={ICON_SIZE} aria-hidden="true" />,
     },
     {
       id: 'sources',
@@ -95,16 +119,6 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       id: 'tasks',
       title: nls.t('workbench.activityBar.tasks'),
       icon: <ListTodo size={ICON_SIZE} aria-hidden="true" />,
-    },
-    {
-      id: 'search',
-      title: nls.t('workbench.activityBar.search'),
-      icon: <Search size={ICON_SIZE} aria-hidden="true" />,
-    },
-    {
-      id: 'export',
-      title: nls.t('workbench.activityBar.export'),
-      icon: <Share size={ICON_SIZE} aria-hidden="true" />,
     },
   ];
 
