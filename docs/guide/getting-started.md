@@ -14,10 +14,12 @@ My Family.doru      the tree itself (SQLite, branded with an app id)
 media/              photos and scans, created on demand (optional)
 ```
 
-3. Get data in: an empty tree offers **Add the first person**, and every
-   card can add children, spouses and parents. GEDCOM files come in through
-   **Open or Import GEDCOM** (step 2); **Export GEDCOM…** is not wired up
-   yet — GEDCOM support is being rebuilt in the `@doru/gedcom` package.
+3. Get data in: a new tree shows one empty card — click it, type the name,
+   confirm with the checkmark, and the first person appears on the canvas;
+   every card can add children, spouses and parents the same way. GEDCOM
+   files come in through **Open or Import GEDCOM** (step 2); **Export
+   GEDCOM…** is not wired up yet — GEDCOM support is being rebuilt in the
+   `@doru/gedcom` package.
 
 Each project opens in its **own window**; persons, the tree editor and the
 settings open as tabs inside it. Recently used projects are listed on the

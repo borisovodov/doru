@@ -230,13 +230,13 @@ export function App() {
           families={tree.families}
           focusRequest={canvasFocus}
           api={{
+            addPerson: tree.api.addPerson,
             addRelative: tree.addRelative,
             deletePerson: tree.deletePerson,
             reparent: tree.reparent,
             updatePerson: tree.api.updatePerson,
             getPersonCounts: tree.personCounts,
             openEditor: tabs.openPersonTab,
-            openNewPerson: tabs.openNewPersonTab,
           }}
         />
       );

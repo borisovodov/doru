@@ -124,13 +124,6 @@ export function useTabs(persons: PersonRecord[]) {
     [persons, openTab],
   );
 
-  const openNewPersonTab = useCallback(() => {
-    openTab({
-      id: `${PERSON_TAB_PREFIX}new:${crypto.randomUUID()}`,
-      label: nls.t('features.tree.addPerson'),
-    });
-  }, [openTab]);
-
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -162,7 +155,6 @@ export function useTabs(persons: PersonRecord[]) {
     prevTab,
     openTabAt,
     openPersonTab,
-    openNewPersonTab,
     openSettingsTab,
     openNoticesTab,
     reorderTabs,

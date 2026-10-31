@@ -18,39 +18,6 @@
   touch-action: none;
 }
 
-.tree-canvas-empty {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 24px;
-  color: var(--doru-fg-muted);
-  pointer-events: none;
-}
-
-/* "Add the first person" button on the empty canvas. */
-.tree-canvas-first {
-  position: absolute;
-  left: 50%;
-  top: calc(50% + 40px);
-  transform: translateX(-50%);
-  height: var(--doru-control-height);
-  padding: 0 14px;
-  background: var(--doru-accent);
-  color: var(--doru-on-accent);
-  border: none;
-  border-radius: var(--doru-radius-md);
-  cursor: pointer;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.tree-canvas-first:hover {
-  background: var(--doru-accent-hover);
-}
-
 /* ── React Flow theme: map the doru tokens onto the xyflow tokens ──── */
 
 .tree-canvas .react-flow {
@@ -312,122 +279,76 @@
   color: var(--doru-danger);
 }
 
-/* ── Person form panel ────────────────────────────────────────────── */
+/* ── In-card person creation ───────────────────────────────────────── */
 
-.person-form-panel {
-  margin: 10px;
+.person-card.editing {
+  padding: 6px 8px;
+  gap: 6px;
 }
 
-.person-form {
-  width: 280px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  background: var(--doru-bg-raised);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-lg);
-  box-shadow: var(--doru-ring);
-}
-
-.person-form-title {
-  margin: 0;
-  font-size: var(--doru-font-size);
-  font-weight: 600;
-  color: var(--doru-fg);
-}
-
-.person-form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.person-card-edit {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.person-form-field > span {
-  font-size: 12px;
-  color: var(--doru-fg-muted);
+.person-card-edit-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.person-form input {
-  height: var(--doru-control-height);
+.person-card-edit-fields input {
+  height: 22px;
+  width: 100%;
   box-sizing: border-box;
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
+  border-radius: var(--doru-radius-sm);
   color: var(--doru-fg);
-  padding: 0 8px;
-  font-size: var(--doru-font-size);
+  padding: 0 6px;
+  font-size: 12px;
   font-family: inherit;
 }
 
-.person-form input:focus {
+.person-card-edit-fields input:focus {
   border-color: var(--doru-focus);
   outline: none;
 }
 
-.person-form-sex {
+.person-card-edit-actions {
+  flex: none;
   display: flex;
-  gap: 2px;
-  padding: 2px;
-  background: var(--doru-bg-input);
-  border-radius: var(--doru-radius-sm);
+  flex-direction: column;
+  gap: 3px;
 }
 
-.person-form-sex button {
-  flex: 1;
-  height: 24px;
-  background: transparent;
-  color: var(--doru-fg-muted);
-  border: none;
-  border-radius: var(--doru-radius-sm);
-  cursor: pointer;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.person-form-sex button.active {
-  background: var(--doru-accent);
-  color: var(--doru-on-accent);
-}
-
-.person-form-row {
-  display: flex;
-  gap: 8px;
-}
-
-.person-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.person-form-actions button {
-  height: var(--doru-control-height);
-  padding: 0 12px;
+.person-card-edit-actions button {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   background: var(--doru-bg-input);
   color: var(--doru-fg);
   border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
+  border-radius: var(--doru-radius-sm);
   cursor: pointer;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
 }
 
-.person-form-actions button:hover:not(:disabled) {
+.person-card-edit-actions button:hover:not(:disabled) {
   border-color: var(--doru-accent);
+  color: var(--doru-accent);
 }
 
-.person-form-actions button:disabled {
-  opacity: 0.5;
+.person-card-edit-actions button:disabled {
+  opacity: 0.4;
   cursor: default;
-}
-
-.person-form-actions button.primary {
-  background: var(--doru-accent);
-  border-color: var(--doru-accent);
-  color: var(--doru-on-accent);
 }
 
 /* ── Canvas search ────────────────────────────────────────────────── */
