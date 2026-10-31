@@ -14,6 +14,12 @@ export const MEDIA_TYPE_TO_551: ReadonlyMap<string, string> = new Map([
   ['audio/wav', 'wav'],
   ['audio/x-wav', 'wav'],
   ['audio/vnd.wave', 'wav'],
+  // The GEDCOM 5.5.5 format spellings JPEG and TIFF name the same
+  // formats as the 5.5.1 JPG and TIF (5.5.5 p.94–95 keeps both
+  // spellings precisely so old readers can map them); they project onto
+  // the 5.5.1 equivalents instead of being dropped.
+  ['jpeg', 'jpg'],
+  ['tiff', 'tif'],
 ]);
 
 /** BCP 47 primary subtag to the 5.5.1 LANGUAGE_ID name. */

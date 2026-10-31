@@ -47,10 +47,12 @@ export function emitFamilyDetail(w: Writer, version: Version, level: number, det
   if (detail.husband !== undefined) {
     w.line(level, 'HUSB');
     emitAge(w, version, level + 1, detail.husband.age);
+    emitExtensions(w, version, level + 1, detail.husband);
   }
   if (detail.wife !== undefined) {
     w.line(level, 'WIFE');
     emitAge(w, version, level + 1, detail.wife.age);
+    emitExtensions(w, version, level + 1, detail.wife);
   }
   if (detail.detail !== undefined) {
     emitEventDetail(w, version, level, detail.detail);
@@ -166,6 +168,7 @@ export function emitLdsDetail(w: Writer, version: Version, level: number, detail
     if (value !== undefined) {
       w.line(level, 'STAT', { value });
       emitDateExact(w, version, level + 1, 'DATE', detail.status.date, detail.status.date.time);
+      emitExtensions(w, version, level + 1, detail.status);
     }
   }
   for (const note of detail.notes ?? []) {
@@ -174,5 +177,6 @@ export function emitLdsDetail(w: Writer, version: Version, level: number, detail
   for (const citation of detail.citations ?? []) {
     emitSourceCitation(w, version, level, citation);
   }
+  emitExtensions(w, version, level, detail);
 }
 

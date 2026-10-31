@@ -36,13 +36,14 @@ export interface Ctx {
   synthetic: MultimediaRecord[];
   syntheticIndex: number;
   /**
-   * The HEAD.SCHMA tag definitions (GEDCOM 7.0 §2.14): the extension
-   * tag and the URI it abbreviates within this document, filled while
-   * the header parses. A tag declared more than once keeps its last
-   * URI (the specification permits one tag for several non-overlapping
-   * URIs; only the documented-URI resolution uses the map).
+   * The HEAD.SCHMA tag definitions (GEDCOM 7.0 §2.14): each extension
+   * tag and the URIs it abbreviates within this document, filled while
+   * the header parses. GEDCOM 7.0 §1.5.1 permits one tag for several
+   * URIs when the named concepts cannot appear in the same place; the
+   * declaration order is kept and the context picks the meaning (see
+   * resolveDocumentedTag and parsing/document.ts).
    */
-  schemaTags: Map<string, string>;
+  schemaTags: Map<string, string[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -147,9 +148,9 @@ export function atMostThree(node: RawNode, tag: string): RawNode[] {
   return list;
 }
 
-export function addExtension(out: GedcomStructureBase, node: RawNode): void {
+export function addExtension(out: GedcomStructureBase, node: RawNode, ctx: Ctx): void {
   const list = out.extensions ?? [];
-  list.push(parseExtension(node));
+  list.push(parseExtension(node, ctx));
   out.extensions = list;
 }
 
@@ -191,15 +192,28 @@ export function merge551RecordContacts(rec: {
   }
 }
 
-export function parseExtension(node: RawNode): ExtensionStructure {
-  const payload =
-    node.value.kind === 'text' ? node.value.text : node.value.kind === 'pointer' ? node.value.pointer : undefined;
-  return {
+export function parseExtension(node: RawNode, ctx: Ctx): ExtensionStructure {
+  const out: ExtensionStructure = {
     tag: node.tag,
-    ...(payload === undefined ? {} : { payload }),
     ...(node.xref === undefined ? {} : { xref: node.xref }),
-    children: node.children.map(parseExtension),
+    children: node.children.map((child) => parseExtension(child, ctx)),
   };
+  if (node.value.kind === 'text') {
+    out.payload = node.value.text;
+  } else if (node.value.kind === 'pointer') {
+    // A pointer-shaped payload (see ExtensionStructure.payloadKind).
+    // It is marked but deliberately NOT resolved: the official
+    // FamilySearch 7.0 corpus itself ships pointer-shaped text in
+    // extension payloads (extensions.ged: `1 _IN @B1@` with no @B1@
+    // record — the extension defines the payload as an identifier, not
+    // a record pointer), so failing on an unresolved target would
+    // reject valid-in-practice files. The mark lets the serializers
+    // protect the payload against the projections that drop records
+    // (see serialize/prepare.ts).
+    out.payload = node.value.pointer;
+    out.payloadKind = 'pointer';
+  }
+  return out;
 }
 
 /**
@@ -230,6 +244,41 @@ export function parseImportReference(node: RawNode, ctx: Ctx): ImportFileReferen
   return out;
 }
 
+/**
+ * Resolves a SCHMA-documented extension tag against the handlers of the
+ * current context (GEDCOM 7.0 §1.5.1): a tag may be declared with
+ * several URIs when the named concepts cannot appear in the same place,
+ * so the context picks the meaning. The standard tag named by the one
+ * URI that has a slot here wins ("standard-first", see
+ * parsing/schema-tags.ts); several matching URIs or none keep the
+ * extension meaning (guessing would invent data).
+ */
+function resolveDocumentedTag(
+  tag: string,
+  ctx: Ctx,
+  handlers: Record<string, (child: RawNode) => void>,
+): string | undefined {
+  const uris = ctx.schemaTags.get(tag);
+  if (uris === undefined) {
+    return undefined;
+  }
+  let found: string | undefined;
+  for (const uri of uris) {
+    const standard = resolveStandardTagByUri(uri);
+    if (standard === undefined || handlers[standard] === undefined) {
+      continue;
+    }
+    if (found !== undefined && found !== standard) {
+      // Two declarations both name a standard structure with a slot
+      // here; the spec forbids such reuse in one place, so the tag
+      // keeps its extension meaning rather than guessing.
+      return undefined;
+    }
+    found = standard;
+  }
+  return found;
+}
+
 export function dispatch(
   node: RawNode,
   out: GedcomStructureBase,
@@ -248,22 +297,22 @@ export function dispatch(
       // standard-first (see parsing/schema-tags.ts). A documented tag
       // without a slot here keeps its extension meaning and stays
       // generic.
-      const standard = resolveStandardTagByUri(ctx.schemaTags.get(tag));
-      if (standard !== undefined && handlers[standard] !== undefined) {
+      const standard = resolveDocumentedTag(tag, ctx, handlers);
+      if (standard !== undefined) {
         tag = standard;
         resolved = { ...child, tag: standard };
       }
     }
     if (handlers[tag] === undefined) {
       if (tag.startsWith('_')) {
-        addExtension(out, child);
+        addExtension(out, child, ctx);
         continue;
       }
       if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
         // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
         // accepted as generic extensions where the standard grammar has
         // no slot for them. 7.0 input stays strict.
-        addExtension(out, child);
+        addExtension(out, child, ctx);
         continue;
       }
       if (fallback === 'extension') {
@@ -271,7 +320,7 @@ export function dispatch(
         // itself (GEDCOM 7.0 §1.5): a standard tag the typed grammar
         // does not know is an extension-defined substructure and is
         // preserved verbatim instead of failing the import.
-        addExtension(out, child);
+        addExtension(out, child, ctx);
         continue;
       }
       fail('structure.unknown-tag', `The tag ${tag} is not allowed in this context (${node.tag})`, child.position);

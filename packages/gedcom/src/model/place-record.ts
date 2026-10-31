@@ -213,6 +213,14 @@ export interface PlaceNameStructure extends GedcomStructureBase {
   /** `DATE` {0:1} — the period the name was in force. */
   date?: DateStructure;
   /**
+   * `NAMC` {0:1} — an addition to the place name, a child of NAME in
+   * GEDCOM 5.5EL (the English GenWiki page "Gedcom 5.5EL":
+   * http://wiki-en.genealogy.net/Gedcom_5.5EL; GEDCOM-L's successor
+   * slot is `abbreviations`, agreement L1/L3). Recognized on input and
+   * written back as NAMC under the place record in both versions.
+   */
+  addition?: Text;
+  /**
    * `ABBR` {0:M} — the abbreviations of the name. The GEDCOM-L
    * agreement L1 gives each NAME several abbreviations, each
    * optionally qualified by a TYPE naming its kind (GenWiki

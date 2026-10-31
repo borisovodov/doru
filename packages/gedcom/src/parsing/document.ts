@@ -161,11 +161,24 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
   if (ctx.version === '7.0' && node.tag.startsWith('_')) {
     // A SCHMA-documented record alias (`_USER → g7:record-SUBM`, …)
     // parses as the standard record — standard-first (see
-    // parsing/schema-tags.ts). A documented tag whose URI names no
-    // standard record keeps its extension meaning and stays generic.
-    const standard = resolveStandardTagByUri(ctx.schemaTags.get(node.tag));
-    if (standard !== undefined && RECORD_TAGS_70.has(standard)) {
-      node = { ...node, tag: standard };
+    // parsing/schema-tags.ts). A tag declared with several URIs
+    // (GEDCOM 7.0 §1.5.1) resolves to the standard record named by the
+    // one URI that names a standard record type; several or none keep
+    // the extension meaning.
+    let recordTag: string | undefined;
+    for (const uri of ctx.schemaTags.get(node.tag) ?? []) {
+      const standard = resolveStandardTagByUri(uri);
+      if (standard === undefined || !RECORD_TAGS_70.has(standard)) {
+        continue;
+      }
+      if (recordTag !== undefined && recordTag !== standard) {
+        recordTag = undefined;
+        break;
+      }
+      recordTag = standard;
+    }
+    if (recordTag !== undefined) {
+      node = { ...node, tag: recordTag };
     }
   }
   switch (node.tag) {
@@ -203,7 +216,7 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
         // extension record whose contents the extension defines
         // (the FamilySearch 7.0 test files exercise this form), so it
         // is preserved verbatim instead of failing the import.
-        return parseExtension(node) as ExtensionRecord;
+        return parseExtension(node, ctx) as ExtensionRecord;
       }
       return parsePlaceRecord(node, ctx);
     case '_CENR':
@@ -216,13 +229,13 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseDuplicateCandidateRecord(node, ctx);
     default:
       if (node.tag.startsWith('_')) {
-        return parseExtension(node) as ExtensionRecord;
+        return parseExtension(node, ctx) as ExtensionRecord;
       }
       if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(node.tag)) {
         // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
         // accepted at record level as generic extension records where the
         // standard grammar has no slot for them. 7.0 input stays strict.
-        return parseExtension(node) as ExtensionRecord;
+        return parseExtension(node, ctx) as ExtensionRecord;
       }
       fail('structure.unknown-tag', `Unknown record tag ${node.tag}`, node.position);
   }

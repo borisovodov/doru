@@ -19,6 +19,7 @@ import {
 import type {
   EvidenceTemplate,
   EvidenceTemplateField,
+  GedcomStructureBase,
   MftSourceQuality,
   NoteRecord,
   PlaceStructure,
@@ -72,7 +73,6 @@ import {
 } from './substructures';
 import {
   parseListEnum,
-  parseListText,
 } from './types';
 
 export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord {
@@ -292,16 +292,30 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     AUTH: (child) => {
       rec.author = reqText(child);
       // The leaf payload fields have no substructures of their own;
-      // dispatch keeps underscore extensions and rejects the rest.
-      dispatch(child, rec, {}, ctx);
+      // underscore extensions below them are kept beside the field so
+      // their nesting survives the round trip (see
+      // SourceRecord.authorExtensions).
+      const base: GedcomStructureBase = {};
+      dispatch(child, base, {}, ctx);
+      if (base.extensions !== undefined) {
+        rec.authorExtensions = base.extensions;
+      }
     },
     TITL: (child) => {
       rec.title = reqText(child);
-      dispatch(child, rec, {}, ctx);
+      const base: GedcomStructureBase = {};
+      dispatch(child, base, {}, ctx);
+      if (base.extensions !== undefined) {
+        rec.titleExtensions = base.extensions;
+      }
     },
     ABBR: (child) => {
       rec.abbreviation = reqText(child);
-      dispatch(child, rec, {}, ctx);
+      const base: GedcomStructureBase = {};
+      dispatch(child, base, {}, ctx);
+      if (base.extensions !== undefined) {
+        rec.abbreviationExtensions = base.extensions;
+      }
     },
     PUBL: (child) => {
       rec.publication = reqText(child);
@@ -363,7 +377,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // bare `_TAG` under SOUR is the undocumented "tagged" marking of
       // the same tag name and stays a generic extension.
       if (child.value.kind === 'absent') {
-        addExtension(rec, child);
+        addExtension(rec, child, ctx);
         return;
       }
       rec.citationDetailIncluded = parseReportFlag(child, '_TAG');
@@ -371,7 +385,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _TAG2: (child) => {
       // Legacy: include/exclude the citation itself on reports.
       if (child.value.kind === 'absent') {
-        addExtension(rec, child);
+        addExtension(rec, child, ctx);
         return;
       }
       rec.citationIncluded = parseReportFlag(child, '_TAG2');
@@ -379,7 +393,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _TAG3: (child) => {
       // Legacy: include/exclude the citation detail text on reports.
       if (child.value.kind === 'absent') {
-        addExtension(rec, child);
+        addExtension(rec, child, ctx);
         return;
       }
       rec.citationDetailTextIncluded = parseReportFlag(child, '_TAG3');
@@ -387,7 +401,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     _TAG4: (child) => {
       // Legacy: include/exclude the citation detail notes on reports.
       if (child.value.kind === 'absent') {
-        addExtension(rec, child);
+        addExtension(rec, child, ctx);
         return;
       }
       rec.citationDetailNotesIncluded = parseReportFlag(child, '_TAG4');
@@ -420,6 +434,21 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // of the standard ABBR slot (see SourceRecord.abbreviation);
       // written back as the standard ABBR.
       rec.abbreviation = reqText(child);
+    },
+    _SUBQ: (child) => {
+      // RootsMagic: the format used for subsequent citations of the
+      // source, written under the SOUR record — the record-level twin
+      // of the citation-level `_SUBQ` (see
+      // SourceCitation.subsequentCitationFormat); the webtrees
+      // per-vendor custom-tag registry labels it "Abbreviation"
+      // (RootsMagic.php:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/RootsMagic.php).
+      rec.subsequentCitationFormat = reqText(child);
+    },
+    _BIBL: (child) => {
+      // RootsMagic: the source's bibliography entry (same source as
+      // `_SUBQ`). Not part of any GEDCOM version.
+      rec.bibliography = reqText(child);
     },
     _SUBM: (child) => {
       // GDO: a pointer to the submitter record of this source (see
@@ -470,6 +499,24 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     };
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
+    };
+    handlers["TYPE"] = (child) => {
+      // Heredis and Généatique write the source kind with the standard
+      // TYPE tag (the webtrees per-vendor custom-tag registries,
+      // Heredis.php and Geneatique.php:
+      // https://github.com/fisharebest/webtrees/tree/main/app/CustomTags);
+      // the Family Historian spelling is `_TYPE` — both normalize into
+      // sourceType and are written back as `_TYPE`.
+      rec.sourceType = reqText(child);
+    };
+    handlers["QUAY"] = (child) => {
+      // Heredis: the quality assessment of the whole source, written
+      // with the standard QUAY tag at record level (the webtrees
+      // per-vendor custom-tag registry, Heredis.php). No typed slot —
+      // the record-level assessment stays a generic extension,
+      // preserved verbatim on 5.5.1 output and dropped on 7.0 (QUAY is
+      // a citation-only tag there).
+      addExtension(rec, child, ctx);
     };
   }
   dispatch(
@@ -631,13 +678,12 @@ export function parseSourceDataEvent(node: RawNode, ctx: Ctx): SourceDataEvent {
 }
 
 export function parseSourceJurisdictionPlace(node: RawNode, ctx: Ctx): PlaceStructure {
-  // 5.5.1: a plain place name; 7.0: a full PLACE_STRUCTURE.
-  if (ctx.version === '5.5.1') {
-    if (node.children.length > 0) {
-      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under PLAC here`, (node.children[0] as RawNode).position);
-    }
-    return { tag: 'PLAC', payload: parseListText(reqText(node)) };
-  }
+  // 5.5.1: a plain place name; 7.0: a full PLACE_STRUCTURE. The
+  // GEDCOM-L place tags (_GOV/_POST/_MAIDENHEAD) are accepted under the
+  // 5.5.1 jurisdiction place too (the webtrees per-vendor custom-tag
+  // registry, GedcomL.php:
+  // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/GedcomL.php);
+  // parsePlaceStructure handles both grammars.
   return parsePlaceStructure(node, ctx);
 }
 

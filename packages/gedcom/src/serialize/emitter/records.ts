@@ -113,6 +113,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   marriageEndingStatus?: string;
   unionKind?: string;
   sameSexUnion?: true;
+  marks?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -158,6 +159,15 @@ export function emitFamily(w: Writer, version: Version, rec: {
     // FamilyRecord.unionKind); 7.0 cannot spell the non-underscore tag.
     w.line(1, 'UTYP', { value: rec.unionKind });
   }
+  if (rec.marks !== undefined) {
+    rec.marks.forEach((mark, index) => {
+      if (mark !== '') {
+        // Legacy: the family's tag marks, Tag 2 through Tag 9 (see
+        // FamilyRecord.marks).
+        w.line(1, `_TAG${index + 2}`, { value: mark });
+      }
+    });
+  }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
   }
@@ -185,7 +195,11 @@ export function emitFamily(w: Writer, version: Version, rec: {
         w.line(1, 'RESI', { value: (attribute.payload as string) ?? '' });
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
       } else {
-        w.line(1, 'RESI');
+        // 5.5.1 FAM.RESI has no payload in the standard grammar; the
+        // GEDCOM-L addendum gives it an optional residence descriptor
+        // (see FamilyResidenceAttribute.payload), which is written back
+        // when present.
+        w.line(1, 'RESI', attribute.payload === undefined ? {} : { value: String(attribute.payload) });
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
       }
       emitExtensions(w, version, 2, attribute);
@@ -216,6 +230,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
         if (nonEvent.date.phrase !== undefined) {
           w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
         }
+        emitExtensions(w, version, 3, nonEvent.date);
       }
       for (const note of nonEvent.notes ?? []) {
         emitNoteStructure(w, version, 2, note);
@@ -367,6 +382,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   updatedAt?: string;
   createdAt?: string;
   url?: string;
+  email?: string[];
   sosaNumber?: string;
   familySearchId?: string;
   marks?: string[];
@@ -380,7 +396,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   witnesses?: string[];
   webTags?: Array<{ name?: string; url: string; extensions?: ExtensionStructure[] }>;
   recordFlags?: Array<{ tag: string; name: string }>;
-  internetSearch?: { mhrm?: string; mhsm?: string; mhav?: string; researchDate?: string; searchDate?: string };
+  internetSearch?: { mhrm?: string; mhsm?: string; mhav?: string; researchDate?: string; searchDate?: string; extensions?: ExtensionStructure[] };
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -467,6 +483,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     if (rec.internetSearch.searchDate !== undefined) {
       w.line(2, '_SDATE', { value: rec.internetSearch.searchDate });
     }
+    emitExtensions(w, version, 2, rec.internetSearch);
   }
   for (const todo of rec.todos ?? []) {
     emitTodoStructure(w, version, 1, todo);
@@ -477,6 +494,11 @@ export function emitIndividual(w: Writer, version: Version, rec: {
         w.line(1, index === 0 ? '_TAG' : `_TAG${index + 1}`, { value: mark });
       }
     });
+  }
+  for (const address of rec.email ?? []) {
+    // BKW/FO/PAF: the individual's e-mail address under INDI (see
+    // IndividualRecord.email).
+    w.line(1, '_EMAIL', { value: address });
   }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
@@ -529,6 +551,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
         if (nonEvent.date.phrase !== undefined) {
           w.line(3, 'PHRASE', { value: nonEvent.date.phrase });
         }
+        emitExtensions(w, version, 3, nonEvent.date);
       }
       for (const note of nonEvent.notes ?? []) {
         emitNoteStructure(w, version, 2, note);
@@ -545,7 +568,14 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     }
   }
   for (const ordinance of rec.ordinances ?? []) {
-    w.line(1, ordinance.tag);
+    if (version === '5.5.1' && ordinance.tag === 'INIL') {
+      // Ancestry.com Family Trees spells the initiatory ordinance
+      // `_INIT` (see the INDI `_INIT` handler in
+      // parsing/family-individual.ts); 5.5.1 has no INIL tag.
+      w.line(1, '_INIT');
+    } else {
+      w.line(1, ordinance.tag);
+    }
     emitLdsDetail(w, version, 2, ordinance.detail, ordinance.tag);
     if (ordinance.familyChild !== undefined) {
       ptr(w, version, 2, 'FAMC', ordinance.familyChild);
@@ -833,6 +863,7 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     // GEDCOM-L E1: unique identifiers of the task (see TodoStructure.uids).
     w.line(level + 1, '_UID', { value: uid });
   }
+  emitExtensions(w, version, level + 1, rec);
 }
 
 export function emitMultimedia(w: Writer, version: Version, rec: {
@@ -840,6 +871,10 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   restriction?: Array<string | `_${string}`>;
   files: MediaFile[];
   date?: DateStructure;
+  place?: string;
+  primary?: boolean;
+  scrapbook?: boolean;
+  slideshow?: boolean;
   objectType?: string;
   soundFile?: string;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
@@ -861,6 +896,23 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   }
   if (rec.date !== undefined) {
     emitDate(w, version, 1, '_DATE', rec.date);
+  }
+  if (rec.place !== undefined) {
+    // Ancestry.com Family Trees: the place of the media object, written
+    // with the standard PLAC tag (see MultimediaRecord.place); written
+    // back as `_PLAC`.
+    w.line(1, '_PLAC', { value: rec.place });
+  }
+  if (rec.primary === true) {
+    // Legacy/AQ/FO/PAF: the record-level preferred-media mark (see
+    // MultimediaRecord.primary).
+    w.line(1, '_PRIM', { value: 'Y' });
+  }
+  if (rec.scrapbook === true) {
+    w.line(1, '_SCBK', { value: 'Y' });
+  }
+  if (rec.slideshow === true) {
+    w.line(1, '_SSHOW', { value: 'Y' });
   }
   if (rec.objectType !== undefined) {
     w.line(1, '_TYPE', { value: rec.objectType });
@@ -960,6 +1012,7 @@ export function emitSharedNote(w: Writer, version: Version, rec: {
     if (translation.language !== undefined) {
       w.line(2, 'LANG', { value: translation.language });
     }
+    emitExtensions(w, version, 2, translation);
   }
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
@@ -1024,8 +1077,11 @@ export function emitSource(w: Writer, version: Version, rec: {
     extensions?: ExtensionStructure[];
   };
   author?: string;
+  authorExtensions?: ExtensionStructure[];
   title?: string;
+  titleExtensions?: ExtensionStructure[];
   abbreviation?: string;
+  abbreviationExtensions?: ExtensionStructure[];
   publication?: string;
   publicationDetails?: SourcePublicationDetails;
   text?: SourceText;
@@ -1036,8 +1092,10 @@ export function emitSource(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
-  template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
+  template?: { templateId?: string; fields: Array<{ name: string; value?: string }>; extensions?: ExtensionStructure[] };
   fullFootnote?: string;
+  subsequentCitationFormat?: string;
+  bibliography?: string;
   titleItalic?: boolean;
   publicationParenthesized?: boolean;
   titleQuoted?: boolean;
@@ -1047,7 +1105,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   citationIncluded?: boolean;
   citationDetailTextIncluded?: boolean;
   citationDetailNotesIncluded?: boolean;
-  quality?: { source?: string; information?: string; evidence?: string };
+  quality?: { source?: string; information?: string; evidence?: string; extensions?: ExtensionStructure[] };
   evidenceAvailable?: boolean;
   volumeYear?: string;
   submitters?: string[];
@@ -1082,6 +1140,7 @@ export function emitSource(w: Writer, version: Version, rec: {
         if (event.date.phrase !== undefined) {
           w.line(4, 'PHRASE', { value: event.date.phrase });
         }
+        emitExtensions(w, version, 4, event.date);
       }
       if (event.place !== undefined) {
         if (version === '7.0') {
@@ -1107,12 +1166,21 @@ export function emitSource(w: Writer, version: Version, rec: {
   }
   if (rec.author !== undefined) {
     w.line(1, 'AUTH', { value: rec.author });
+    if (rec.authorExtensions !== undefined) {
+      emitExtensions(w, version, 2, { extensions: rec.authorExtensions });
+    }
   }
   if (rec.title !== undefined) {
     w.line(1, 'TITL', { value: rec.title });
+    if (rec.titleExtensions !== undefined) {
+      emitExtensions(w, version, 2, { extensions: rec.titleExtensions });
+    }
   }
   if (rec.abbreviation !== undefined) {
     w.line(1, 'ABBR', { value: rec.abbreviation });
+    if (rec.abbreviationExtensions !== undefined) {
+      emitExtensions(w, version, 2, { extensions: rec.abbreviationExtensions });
+    }
   }
   if (rec.publication !== undefined) {
     w.line(1, 'PUBL', { value: rec.publication });
@@ -1125,6 +1193,7 @@ export function emitSource(w: Writer, version: Version, rec: {
       if (rec.publicationDetails.place !== undefined) {
         w.line(2, 'PLAC', { value: rec.publicationDetails.place });
       }
+      emitExtensions(w, version, 2, rec.publicationDetails);
     }
   }
   if (rec.text !== undefined) {
@@ -1137,12 +1206,23 @@ export function emitSource(w: Writer, version: Version, rec: {
         w.line(2, 'LANG', { value: rec.text.language });
       }
     }
+    emitExtensions(w, version, 2, rec.text);
   }
   for (const citation of rec.repositoryCitations ?? []) {
     emitRepositoryCitation(w, version, 1, citation);
   }
   if (rec.fullFootnote !== undefined) {
     w.line(1, '_FULL', { value: rec.fullFootnote });
+  }
+  if (rec.subsequentCitationFormat !== undefined) {
+    // RootsMagic: the subsequent-citation format under the SOUR record
+    // (see SourceRecord.subsequentCitationFormat).
+    w.line(1, '_SUBQ', { value: rec.subsequentCitationFormat });
+  }
+  if (rec.bibliography !== undefined) {
+    // RootsMagic: the bibliography entry under the SOUR record (see
+    // SourceRecord.bibliography).
+    w.line(1, '_BIBL', { value: rec.bibliography });
   }
   if (rec.titleItalic === true) {
     // Legacy / AQ: the source title prints in italics (see
@@ -1190,6 +1270,7 @@ export function emitSource(w: Writer, version: Version, rec: {
     if (rec.quality.evidence !== undefined) {
       w.line(2, '_EVID', { value: rec.quality.evidence });
     }
+    emitExtensions(w, version, 2, rec.quality);
   }
   if (rec.evidenceAvailable === true) {
     // PC-AHNEN: evidence of the event is available (see
@@ -1212,6 +1293,7 @@ export function emitSource(w: Writer, version: Version, rec: {
         w.line(3, 'VALUE', { value: field.value });
       }
     }
+    emitExtensions(w, version, 2, rec.template);
   }
   for (const relocated of rec.relocatedCitations ?? []) {
     // The relocated _SOUR citations under the SOUR record (registry:
@@ -1226,6 +1308,7 @@ export function emitRepositoryCitation(w: Writer, version: Version, level: numbe
   repository: string;
   notes?: NoteStructure[];
   callNumbers?: CallNumberStructure[];
+  extensions?: ExtensionStructure[];
 }): void {
   if (version === '7.0') {
     ptr(w, version, level, 'REPO', citation.repository);
@@ -1242,6 +1325,8 @@ export function emitRepositoryCitation(w: Writer, version: Version, level: numbe
     if (callNumber.medium !== undefined) {
       emitMedia(w, version, level + 2, callNumber.medium);
     }
+    emitExtensions(w, version, level + 2, callNumber);
   }
+  emitExtensions(w, version, level + 1, citation);
 }
 

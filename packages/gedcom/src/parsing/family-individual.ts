@@ -144,6 +144,12 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     SUBM: (child) => {
       (rec.submitters ??= []).push(reqPtr(child, ctx));
+      // A pointer line has no standard children; keep any vendor
+      // children verbatim as record extensions instead of discarding
+      // them (see the HEAD.SUBM handling in parsing/header.ts).
+      for (const grandchild of child.children) {
+        addExtension(rec, grandchild, ctx);
+      }
     },
     SLGS: (child) => {
       (rec.spouseSealings ??= []).push(parseSpouseSealing(child, ctx));
@@ -268,7 +274,26 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       // FamilyPartnerLink.name). Without a preceding partner line the
       // reference is undefined and the tag stays a generic extension.
       if (lastPartner === undefined) {
-        addExtension(rec, child);
+        addExtension(rec, child, ctx);
+        return;
+      }
+      lastPartner.name = parsePersonalNameStructure(child, ctx);
+    },
+    _MARRNAMEHUSB: (child) => {
+      // Familienbuch: the married name of the husband, written like the
+      // Legacy `_MARRNAME` (the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+      // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag).
+      if (lastPartner === undefined) {
+        addExtension(rec, child, ctx);
+        return;
+      }
+      lastPartner.name = parsePersonalNameStructure(child, ctx);
+    },
+    _MARRNAMEWIFE: (child) => {
+      // Familienbuch: the married name of the wife; same convention as
+      // `_MARRNAMEHUSB`.
+      if (lastPartner === undefined) {
+        addExtension(rec, child, ctx);
         return;
       }
       lastPartner.name = parsePersonalNameStructure(child, ctx);
@@ -306,6 +331,30 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     _SEPR: (child) => {
       pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Separated');
+    },
+    _TAG2: (child) => {
+      setMark(rec, 0, child);
+    },
+    _TAG3: (child) => {
+      setMark(rec, 1, child);
+    },
+    _TAG4: (child) => {
+      setMark(rec, 2, child);
+    },
+    _TAG5: (child) => {
+      setMark(rec, 3, child);
+    },
+    _TAG6: (child) => {
+      setMark(rec, 4, child);
+    },
+    _TAG7: (child) => {
+      setMark(rec, 5, child);
+    },
+    _TAG8: (child) => {
+      setMark(rec, 6, child);
+    },
+    _TAG9: (child) => {
+      setMark(rec, 7, child);
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -358,6 +407,17 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     };
     handlers["NCHI"] = (child) => {
       (rec.attributes ??= []).push(parseFamilyChildCount(child, ctx));
+    };
+    handlers["ASSO"] = (child) => {
+      // GEDCOM 5.5EL adds an ASSO slot to the FAM_RECORD — the people
+      // associated with the family ("witnesses of a marriage, priests,
+      // registrars"; the GEDCOM 5.5EL spec, e.g. the English GenWiki
+      // page "Gedcom 5.5EL":
+      // http://wiki-en.genealogy.net/Gedcom_5.5EL). The 5.5.1 FAM
+      // grammar has no ASSO, so the file is 5.5EL-flavoured; the
+      // association normalizes exactly like the GEDCOM-L `_ASSO`
+      // spelling (agreement A3) and is written back as `_ASSO`.
+      (rec.associations ??= []).push(parseGrampsAssociation(child, ctx));
     };
     for (const tag of FAMILY_EVENT_TAGS) {
       handlers[tag] = (child) => {
@@ -453,6 +513,15 @@ function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag
   });
 }
 
+/** A vendor person link (_LEGA): an ASSO pointer with the given RELA
+ *  descriptor when the vendor writes none (the Gramps ASSO convention,
+ *  like the association rules of vendor-tags.ts). */
+function pushVendorAssociation(rec: IndividualRecord, node: RawNode, ctx: Ctx, relationship: string): void {
+  const link = parseGrampsAssociation(node, ctx);
+  link.role = link.role ?? { payload: 'OTHER', phrase: relationship };
+  (rec.associations ??= []).push(link);
+}
+
 // ---------------------------------------------------------------------------
 // The non-underscore legacy vendor tags of GEDCOM 5.x (see vendor-tags.ts)
 // ---------------------------------------------------------------------------
@@ -525,7 +594,7 @@ function parseLegacyLdsBlock(rec: IndividualRecord, node: RawNode, ctx: Ctx): vo
       continue;
     }
     if (tag.startsWith('_') || NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
-      addExtension(rec, child);
+      addExtension(rec, child, ctx);
       continue;
     }
     fail('structure.unknown-tag', `The tag ${tag} is not allowed under LDS`, child.position);
@@ -746,8 +815,9 @@ function upsertDeathCause(rec: IndividualRecord, node: RawNode, ctx: Ctx): void 
   dispatch(node, event.detail, eventDetailHandlers(ctx, event.detail), ctx);
 }
 
-/** Sets the n-th tag mark, padding the gaps (see IndividualRecord.marks). */
-function setMark(rec: IndividualRecord, index: number, node: RawNode): void {
+/** Sets the n-th tag mark, padding the gaps (see IndividualRecord.marks /
+ *  FamilyRecord.marks). */
+function setMark(rec: { marks?: Text[] }, index: number, node: RawNode): void {
   const marks = (rec.marks ??= []);
   while (marks.length <= index) {
     marks.push('');
@@ -1191,6 +1261,56 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _UNKN: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
     },
+    _EMAIL: (child) => {
+      // Brother's Keeper, Family Origins, PAF: the individual's e-mail
+      // address under INDI (see IndividualRecord.email).
+      (rec.email ??= []).push(reqText(child));
+    },
+    _INIT: (child) => {
+      // Ancestry.com Family Trees: the LDS initiatory ordinance, the
+      // vendor spelling of the 7.0 INIL (the webtrees per-vendor
+      // custom-tag registry, Ancestry.php:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Ancestry.php).
+      // Parsed like the INIL ordinance; 5.5.1 has no INIL, so the
+      // exporter writes the `_INIT` spelling back there.
+      (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, 'INIL'));
+    },
+    _ORDI: (child) => {
+      // Ancestry.com Family Trees: the ordination event, spelled with
+      // the underscore (same source as `_INIT`); normalizes into the
+      // standard ORDN event of GEDCOM 5.5.1 §2 (p.28) / 7.0 §3.3.1. The
+      // vendor asserts the event with a `Y` payload, which the 5.5.1
+      // ORDN grammar has no slot for (only ADOP/BIRT/CHR/DEAT take the
+      // Y assertion, GEDCOM 5.5.1 §2 p.34); the assertion is dropped
+      // like the standard event payloads.
+      const asserted = child.value.kind === 'text' && child.value.text === 'Y';
+      (rec.events ??= []).push(parseIndividualEvent(asserted ? { ...child, value: { kind: 'absent' } } : child, ctx, 'ORDN'));
+    },
+    _ORIG: (child) => {
+      // Ancestry.com Family Trees: the person's origin, a FACT (same
+      // source as `_INIT`).
+      pushLegacyIndividualAttribute(rec, child, ctx, 'FACT', 'Origin');
+    },
+    _DEST: (child) => {
+      // Ancestry.com Family Trees: the person's destination, a FACT
+      // (same source as `_INIT`).
+      pushLegacyIndividualAttribute(rec, child, ctx, 'FACT', 'Destination');
+    },
+    _LEGA: (child) => {
+      // Reunion: the legatee of the person's will — an association like
+      // the Gramps ASSO convention (the webtrees per-vendor custom-tag
+      // registry, Reunion.php:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Reunion.php).
+      pushVendorAssociation(rec, child, ctx, 'Legatee');
+    },
+    _PURC: (child) => {
+      // Reunion: the purchase of land, an event (same source as _LEGA).
+      pushLegacyIndividualEvent(rec, child, ctx, 'Land purchase');
+    },
+    _SALE: (child) => {
+      // Reunion: the sale of land, an event (same source as _LEGA).
+      pushLegacyIndividualEvent(rec, child, ctx, 'Land sale');
+    },
     SEX: (child) => {
       const table = (ctx.version === '7.0' ? SEX_70 : SEX_551) as Readonly<
         Record<'M' | 'F' | 'U' | 'X' | 'N', string>
@@ -1205,6 +1325,12 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     SUBM: (child) => {
       (rec.submitters ??= []).push(reqPtr(child, ctx));
+      // A pointer line has no standard children; keep any vendor
+      // children verbatim as record extensions instead of discarding
+      // them (see the HEAD.SUBM handling in parsing/header.ts).
+      for (const grandchild of child.children) {
+        addExtension(rec, grandchild, ctx);
+      }
     },
     ASSO: (child) => {
       (rec.associations ??= []).push(parseAssociation(child, ctx));
@@ -1281,6 +1407,33 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     handlers['SIGN'] = (child) => {
       // USM6: the person can sign (see IndividualRecord.canSign).
       rec.canSign = parseUsmFlag(child, 'SIGN');
+    };
+    handlers["EMAIL"] = (child) => {
+      // PAF writes the individual's e-mail address under INDI with the
+      // standard EMAIL tag (the webtrees per-vendor custom-tag registry,
+      // PersonalAncestralFile.php:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PersonalAncestralFile.php);
+      // the Brother's Keeper spelling is `_EMAIL` — both normalize into
+      // IndividualRecord.email.
+      (rec.email ??= []).push(reqText(child));
+    };
+    handlers["ADDR"] = (child) => {
+      // PAF writes the person's contact address directly under INDI
+      // (same source as EMAIL above). No typed slot — the address and
+      // its ADR1/CITY/... children are kept verbatim as record
+      // extensions (written back on 5.5.1 output, dropped on 7.0 where
+      // INDI has no address position either).
+      addExtension(rec, child, ctx);
+    };
+    handlers["PHON"] = (child) => {
+      // PAF: the person's phone number under INDI (same source); kept
+      // verbatim as a record extension.
+      addExtension(rec, child, ctx);
+    };
+    handlers["FAX"] = (child) => {
+      // PAF: the person's fax number under INDI (same source); kept
+      // verbatim as a record extension.
+      addExtension(rec, child, ctx);
     };
     for (const tag of ['BAPL', 'CONL', 'ENDL', 'SLGC']) {
       handlers[tag] = (child) => {

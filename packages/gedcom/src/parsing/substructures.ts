@@ -70,6 +70,7 @@ import {
   parseEnum,
   parseTime551,
   parseTime70,
+  type TagResolver,
 } from './types';
 
 // Substructures
@@ -265,10 +266,11 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
 
 export function parseCreationDate(node: RawNode, ctx: Ctx): CreationDate {
   noPayload(node);
+  const out: Omit<CreationDate, 'date'> = { tag: 'CREA' };
   let date: DateExactStructure | undefined;
   dispatch(
     node,
-    {},
+    out,
     {
       DATE: (child) => {
         date = parseDateExactStructure(child, ctx, true);
@@ -279,7 +281,7 @@ export function parseCreationDate(node: RawNode, ctx: Ctx): CreationDate {
   if (date === undefined) {
     fail('structure.missing-required', 'The CREA structure requires a DATE substructure', node.position);
   }
-  return { tag: 'CREA', date };
+  return { ...out, date };
 }
 
 /** Handlers for a `DATE {0:1}` + `<<SOURCE_CITATION>> {0:M}` pair (the GEDCOM-L place records). */
@@ -315,8 +317,8 @@ function applyDateValue551(
 }
 
 /** The SCHMA tag resolver of the document (see Ctx.schemaTags and
- *  `TagResolver` in types.ts): maps an extension tag to its URI. */
-function tagResolver(ctx: Ctx): ((tag: string) => string | undefined) {
+ *  `TagResolver` in types.ts): maps an extension tag to its URIs. */
+function tagResolver(ctx: Ctx): TagResolver {
   return (tag) => ctx.schemaTags.get(tag);
 }
 
@@ -344,8 +346,23 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   if (raw === undefined) {
     fail('structure.missing-payload', 'The 5.5.1 DATE line requires a value', node.position);
   }
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under DATE`, (node.children[0] as RawNode).position);
+  const timeNode = one(node, 'TIME');
+  if (timeNode !== undefined) {
+    // The 5.5.1 DATE_VALUE has no TIME substructure (TIME exists only
+    // under the DATE_EXACT positions of HEAD.DATE, CHAN.DATE and
+    // SOUR.DATA.DATE); Généatique, Pro-Gen and Aldfaer record event
+    // times under the event DATE anyway (the webtrees per-vendor
+    // custom-tag registries, Geneatique.php, ProGen.php and
+    // Aldfaer.php:
+    // https://github.com/fisharebest/webtrees/tree/main/app/CustomTags).
+    // The value is kept in the same `time` slot the 7.0 form uses;
+    // 5.5.1 export cannot spell it under DATE and drops it, 7.0 export
+    // writes it back.
+    out.time = parseTime551(reqText(timeNode), timeNode.position);
+  }
+  const other = node.children.find((child) => child !== timeNode);
+  if (other !== undefined) {
+    fail('structure.unknown-tag', `The tag ${other.tag} is not allowed under DATE`, other.position);
   }
   applyDateValue551(out, parseDateValue551(raw, node.position), raw);
   return out;
@@ -655,7 +672,20 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
     );
     return out;
   }
-  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  const raw =
+    node.value.kind === 'text'
+      ? node.value.text
+      : node.value.kind === 'pointer'
+        ? // A pointer-shaped value on a NOTE line (`1 NOTE @I1@`): the
+          // NOTE payload type is Text (GEDCOM 7.0 §3.2.3), so a literal
+          // `@I1@` must be written `@@I1@` on the wire (GEDCOM 7.0 §1.3
+          // Lines, `lineStr = (nonAt / atsign atsign) *nonEOL`).
+          // Malformed files exist, so instead of failing — or silently
+          // emptying the payload — the raw value is kept as the note
+          // text; the writer re-emits it verbatim (it re-parses into
+          // this same payload).
+          node.value.pointer
+        : undefined;
   const out: Note = { tag: 'NOTE', payload: raw ?? '' };
   dispatch(
     node,

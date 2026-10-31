@@ -57,7 +57,9 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
       tag: '_LOC',
       xref: '@L1@',
       children: [
-        { tag: 'SUBM', payload: '@U2@', children: [] },
+        // Pointer-shaped payloads inside extensions are marked (see
+        // ExtensionStructure.payloadKind) but not resolved.
+        { tag: 'SUBM', payload: '@U2@', payloadKind: 'pointer', children: [] },
         { tag: 'DATE', payload: 'TO 1880', children: [{ tag: 'PHRASE', payload: 'Dissolved in the 1870s', children: [] }] },
       ],
     });
@@ -113,8 +115,9 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
       epoch: '_EP2',
     });
     // The undocumented pointer with a shared tag stays an extension on
-    // the event itself.
-    expect(graduation?.extensions).toEqual([{ tag: '_LOC', payload: '@L1@', children: [] }]);
+    // the event itself (pointer-shaped payloads are marked, see
+    // ExtensionStructure.payloadKind).
+    expect(graduation?.extensions).toEqual([{ tag: '_LOC', payload: '@L1@', payloadKind: 'pointer', children: [] }]);
     // A documented extension enumeration under a standard ROLE.
     expect(noxref.associations?.[0]?.role?.payload).toBe('_CHILD');
     // A documented extension record with a shared tag.
@@ -124,7 +127,7 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
     const source = dataset.records.find((entry) => entry.tag === 'SOUR');
     expect(source?.tag === 'SOUR' ? source.data?.events?.[0]?.payload : undefined).toEqual(['DEAT', '_CHILD']);
     expect(source?.tag === 'SOUR' ? source.data?.events?.[0]?.extensions : undefined).toEqual([
-      { tag: '_CREATOR', payload: '@U2@', children: [] },
+      { tag: '_CREATOR', payload: '@U2@', payloadKind: 'pointer', children: [] },
     ]);
   });
 

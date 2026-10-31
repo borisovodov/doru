@@ -28,6 +28,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   dispatch,
   noPayload,
   parseImportReference,
@@ -39,6 +40,7 @@ import type {
 } from './lines';
 import {
   parseSourceCitation,
+  parseVendorFlag,
 } from './sources-media';
 import {
   parseChangeDate,
@@ -64,6 +66,27 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     },
     '_DATE': (child) => {
       rec.date = parseDateStructure(child, ctx);
+    },
+    '_PLAC': (child) => {
+      // Ancestry.com Family Trees writes the place of the media object
+      // with the standard PLAC tag (see MultimediaRecord.place); the
+      // underscore spelling is accepted into the same slot.
+      rec.place = reqText(child);
+    },
+    '_PRIM': (child) => {
+      // Legacy/AQ/FO/PAF: the record-level "preferred media" mark (see
+      // MultimediaRecord.primary).
+      rec.primary = parseVendorFlag(child, '_PRIM');
+    },
+    '_SCBK': (child) => {
+      // Legacy/AQ: the record-level scrapbook mark (see
+      // MultimediaRecord.scrapbook).
+      rec.scrapbook = parseVendorFlag(child, '_SCBK');
+    },
+    '_SSHOW': (child) => {
+      // AQ/PAF: the record-level slide-show mark (see
+      // MultimediaRecord.slideshow).
+      rec.slideshow = parseVendorFlag(child, '_SSHOW');
     },
     '_TYPE': (child) => {
       rec.objectType = reqText(child);
@@ -122,6 +145,42 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     handlers["RIN"] = (child) => {
       rec.automatedRecordId = reqText(child);
     };
+    handlers["DATE"] = (child) => {
+      // Ancestry.com Family Trees: the date of the media object,
+      // written with the standard DATE tag under the OBJE record (the
+      // webtrees per-vendor custom-tag registry, Ancestry.php:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Ancestry.php).
+      // Same slot as `_DATE` (see MultimediaRecord.date); written back
+      // as `_DATE`.
+      rec.date = parseDateStructure(child, ctx);
+    };
+    handlers["PLAC"] = (child) => {
+      // Ancestry.com Family Trees: the place of the media object, the
+      // standard tag under the OBJE record (same source as DATE; see
+      // MultimediaRecord.place). Written back as `_PLAC`.
+      rec.place = reqText(child);
+    };
+    handlers["FORM"] = (child) => {
+      // Généatique writes the format and title at OBJE-record level
+      // (the webtrees per-vendor custom-tag registry, Geneatique.php) —
+      // the GEDCOM 5.5 embedded-multimedia record shape, whose BLOB was
+      // removed in 5.5.1. Kept verbatim as a record extension.
+      addExtension(rec, child, ctx);
+    };
+    handlers["TITL"] = (child) => {
+      // Généatique; same convention as FORM (see above).
+      addExtension(rec, child, ctx);
+    };
+    handlers["BLOB"] = (child) => {
+      // The GEDCOM 5.5 embedded object (5.5.1 removed the BLOB form);
+      // kept verbatim as a record extension so 5.5 files still import.
+      addExtension(rec, child, ctx);
+    };
+    handlers["WWW"] = (child) => {
+      // Généatique writes a web address under the OBJE record (the
+      // webtrees per-vendor custom-tag registry, Geneatique.php).
+      addExtension(rec, child, ctx);
+    };
   }
   dispatch(
     node,
@@ -130,7 +189,9 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     ctx,
     ctx.version === '7.0' ? ['RESN', 'CHAN', 'CREA'] : ['CHAN', 'RIN'],
   );
-  if (rec.files.length === 0) {
+  if (rec.files.length === 0 && !(rec.extensions ?? []).some((ext) => ext.tag === 'FORM' || ext.tag === 'BLOB')) {
+    // A 5.5-style embedded record (FORM/TITL/BLOB kept as extensions)
+    // has no FILE substructure.
     fail('structure.missing-required', 'A multimedia record requires at least one FILE substructure', node.position);
   }
   return rec;

@@ -74,15 +74,17 @@ function monthTable(calendar: Calendar): Readonly<Record<string, string>> | null
 }
 
 /**
- * Resolves a SCHMA-declared extension tag to its URI (GEDCOM 7.0
+ * Resolves a SCHMA-declared extension tag to its URIs (GEDCOM 7.0
  * §2.14 / §1.5): the header's SCHMA block documents the meaning of the
- * document's extension tags. A documented extension calendar whose URI
- * is `g7:cal-<name>` abbreviates that standard calendar, and a
- * documented extension month whose URI is `g7:month-<tag>` abbreviates
+ * document's extension tags, and one tag may be declared with several
+ * URIs when the named concepts cannot appear in the same place (e.g.
+ * `_LOC` as a record and as a pointer). A documented extension calendar
+ * whose URI is `g7:cal-<name>` abbreviates that standard calendar, and
+ * a documented extension month whose URI is `g7:month-<tag>` abbreviates
  * that standard month — both keep their extension spelling in the
  * model.
  */
-export type TagResolver = (tag: string) => string | undefined;
+export type TagResolver = (tag: string) => string[] | undefined;
 
 /** The GEDCOM 7.0 calendar-term URI prefix (`g7:cal-…`). */
 const CALENDAR_URI_PREFIX = 'https://gedcom.io/terms/v7/cal-';
@@ -95,11 +97,18 @@ function resolvedCalendar(calendar: Calendar, resolve: TagResolver | undefined):
   if (resolve === undefined || !calendar.startsWith('_')) {
     return calendar;
   }
-  const uri = resolve(calendar);
-  if (uri === undefined || !uri.startsWith(CALENDAR_URI_PREFIX)) {
+  const uris = resolve(calendar);
+  if (uris === undefined) {
     return calendar;
   }
-  const name = uri.slice(CALENDAR_URI_PREFIX.length);
+  // The one URI naming a standard calendar wins (GEDCOM 7.0 §1.5.1
+  // permits one tag for several URIs whose concepts cannot appear in
+  // the same place); several or none keep the extension calendar.
+  const candidates = uris.filter((uri) => uri.startsWith(CALENDAR_URI_PREFIX));
+  if (candidates.length !== 1) {
+    return calendar;
+  }
+  const name = (candidates[0] as string).slice(CALENDAR_URI_PREFIX.length);
   return name === 'GREGORIAN' || name === 'JULIAN' || name === 'FRENCH_R' || name === 'HEBREW'
     ? name
     : calendar;
@@ -119,10 +128,13 @@ function monthOf(calendar: Calendar, token: string, version: GedcomVersion, posi
       // A documented extension month (SCHMA → g7:month-…) abbreviates
       // a standard month of this calendar (GEDCOM 7.0 §1.5, the
       // documented-extension clause of §7.0.4); it keeps its extension
-      // spelling.
+      // spelling. With several declarations (GEDCOM 7.0 §1.5.1) the one
+      // URI naming a standard month of this calendar counts; several
+      // matching URIs are ambiguous and rejected like an undeclared
+      // tag.
       if (token.startsWith('_') && resolve !== undefined) {
-        const uri = resolve(token);
-        if (uri !== undefined && uri.startsWith(MONTH_URI_PREFIX)) {
+        const uris = resolve(token);
+        if (uris !== undefined && uris.filter((uri) => uri.startsWith(MONTH_URI_PREFIX)).length === 1) {
           return token as GedcomMonth;
         }
       }

@@ -15,6 +15,7 @@ import type {
   FtmSchemaBlock,
   FtmSchemaEntry,
   Gedcom,
+  GedcomAddendum,
   Header,
   HeaderPlace,
   HeaderSource,
@@ -26,6 +27,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   dispatch,
   merge551RecordContacts,
   noPayload,
@@ -105,6 +107,17 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       },
       SUBM: (child) => {
         header.submitter = reqPtr(child, ctx);
+        // A pointer line has no standard children in either version;
+        // Aldfaer writes the submitter's contact lines (PHON, _EMAI,
+        // _FAX, _WWW, ADDR) beneath HEAD.SUBM anyway (the webtrees
+        // per-vendor custom-tag registry, Aldfaer.php:
+        // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Aldfaer.php).
+        // They are kept verbatim as header extensions instead of being
+        // discarded (the nesting is normalized to the header level on
+        // export).
+        for (const grandchild of child.children) {
+          addExtension(header, grandchild, ctx);
+        }
       },
       ...(ctx.version === '5.5.1'
         ? {
@@ -193,7 +206,8 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
 
 export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   noPayload(node);
-  const gedcom: Gedcom = { version: reqText(req(node, 'VERS')) };
+  const versNode = req(node, 'VERS');
+  const gedcom: Gedcom = { version: reqText(versNode) };
   // The version gate comes first: a 5.x GEDC parsed as 7.0 must fail
   // with `document.wrong-version` (not with a FORM-related error), so
   // that the unified `parse` can fall back to the 5.x parser.
@@ -203,17 +217,37 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     }
   } else if (/^7\./.test(gedcom.version)) {
     fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 5.x version`, node.position);
-  } else if (!/^5\.5(\.(1|5))?$/.test(gedcom.version)) {
+  } else if (!/^5\.5(\.(1|5))?( ?EL)?$/i.test(gedcom.version)) {
     // The 5.x parser reads the 5.5 lineage — 5.5 (1996), 5.5.1 and
     // 5.5.5 (whose vocabulary additions are accepted in any 5.x file).
+    // The ` EL` suffix is the de-facto marker of GEDCOM 5.5EL files
+    // written by PC-AHNEN (`VERS 5.5.1 EL`): it is not part of any
+    // specification, and Tamura Jones ("Detecting GEDCOM 5.5EL",
+    // https://www.tamurajones.net/DetectingGEDCOM5.5EL.xhtml)
+    // recommends that readers treat it as a non-fatal deviation and
+    // continue with the 5.5.1 grammar — which is what this gate does
+    // (the marker survives verbatim in Gedcom.version).
     // Older versions (3.0, 4.0, 5.0) and the superseded drafts (5.3,
     // 5.4) have incompatible grammars and are rejected here with an
     // explicit error instead of failing mid-file with
     // `structure.unknown-tag` errors. Unpublished patch levels
     // (`5.5.2`, `5.5.9`, …) are rejected too: they name no official
     // specification.
-    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (5.5, 5.5.1 or 5.5.5)`, node.position);
+    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (5.5, 5.5.1, 5.5.5 or 5.5EL)`, node.position);
   }
+  // The GEDCOM-L addendum declaration under GEDC.VERS (see
+  // Gedcom.addendum) — the only documented child of the VERS line.
+  dispatch(
+    versNode,
+    gedcom,
+    {
+      _ADDENDUM: (child) => {
+        gedcom.addendum = parseGedcomAddendum(child, ctx);
+      },
+    },
+    ctx,
+    ['_ADDENDUM'],
+  );
   const formNode = one(node, 'FORM');
   if (ctx.version === '5.5.1') {
     if (formNode === undefined) {
@@ -238,6 +272,32 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   return gedcom;
 }
 
+/**
+ * Parses the GEDCOM-L addendum declaration `_ADDENDUM` under GEDC.VERS
+ * (see Gedcom.addendum): the addendum's own version and web address
+ * ("GEDCOM 5.5.1 Specification GEDCOM-L Addendum", §7.3, 2nd release,
+ * 2020-12-01, eds. A. Emmerich & D. Hesmer).
+ */
+export function parseGedcomAddendum(node: RawNode, ctx: Ctx): GedcomAddendum {
+  noPayload(node);
+  const out: GedcomAddendum = { tag: '_ADDENDUM' };
+  dispatch(
+    node,
+    out,
+    {
+      VERS: (child) => {
+        out.version = reqText(child);
+      },
+      WWW: (child) => {
+        out.www = reqText(child);
+      },
+    },
+    ctx,
+    ['VERS', 'WWW'],
+  );
+  return out;
+}
+
 export function parseSchema(node: RawNode, ctx: Ctx): Schema {
   noPayload(node);
   const schema: Schema = { tagDefinitions: [] };
@@ -251,11 +311,19 @@ export function parseSchema(node: RawNode, ctx: Ctx): Schema {
     },
     ctx,
   );
-  // Fill the document's tag→URI map (see Ctx.schemaTags): the date
+  // Fill the document's tag→URIs map (see Ctx.schemaTags): the date
   // parser resolves documented extension calendars and months through
-  // it (GEDCOM 7.0 §2.14).
+  // it, and the SCHMA resolution of extension tags uses it (GEDCOM 7.0
+  // §2.14 / §1.5.1 — one tag may carry several URIs; see
+  // resolveDocumentedTag).
   for (const definition of schema.tagDefinitions) {
-    ctx.schemaTags.set(definition.payload.tag, definition.payload.uri);
+    const tag = definition.payload.tag;
+    const uris = ctx.schemaTags.get(tag);
+    if (uris === undefined) {
+      ctx.schemaTags.set(tag, [definition.payload.uri]);
+    } else {
+      uris.push(definition.payload.uri);
+    }
   }
   return schema;
 }

@@ -11,6 +11,7 @@ import type {
 } from '../primitives';
 
 import type { GedcomStructureBase } from './extensions';
+import type { EvidenceTemplate } from './records';
 import type { MultimediaRecord } from './records';
 import type { NoteStructure } from './common';
 import type { RepositoryRecord } from './records';
@@ -135,6 +136,15 @@ export interface SourceCitation extends GedcomStructureBase {
    * both versions.
    */
   submitter?: Pointer<SubmitterRecord>;
+  /**
+   * _TMPLT {0:1} — the Evidence Explained source template used to enter
+   * the citation: named FIELD/VALUE pairs plus an optional TID template
+   * identifier. Written by RootsMagic under citations — its actual
+   * write position (the record-level twin is SourceRecord.template;
+   * see the source there: https://ged-view.com/guides/custom-gedcom-tags).
+   * Recognized on input and written back as `_TMPLT` in both versions.
+   */
+  template?: EvidenceTemplate;
 }
 
 /**

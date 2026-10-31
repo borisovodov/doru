@@ -156,7 +156,11 @@ export function formatDateValue551(value: DateValue): string | undefined {
 
 export function formatDateExact(value: DateExact, version: Version): string {
   if (version === '7.0') {
-    return `${value.day} ${value.month} ${value.year}${epochSuffix(value.epoch, '7.0')}`;
+    // GEDCOM 7.0 §2.4 DateExact = `day D month D year` has no epoch
+    // production: an epoch on the model value (only reachable
+    // programmatically — the 7.0 parser rejects a fourth token) is not
+    // emitted, so the output always matches the grammar.
+    return `${value.day} ${value.month} ${value.year}`;
   }
   const fields: { calendar: Calendar; day: number; month: GedcomMonth; year: number; epoch?: Epoch } = {
     calendar: 'GREGORIAN',
@@ -199,7 +203,12 @@ export function formatAge70(value: AgeValue): string {
   if (value.days !== undefined) {
     parts.push(`${value.days}d`);
   }
-  return `${value.bound ?? ''}${parts.join(' ')}`.trim();
+  const duration = parts.join(' ');
+  // GEDCOM 7.0 §2.6 `Age = [[ageBound D] ageDuration]` — the bound is
+  // separated from the duration by a space (`> 20y`). The parser accepts
+  // both spellings (see parseAge70); 5.5.1's AGE_AT_EVENT has no space,
+  // which formatAge551 mirrors.
+  return value.bound === undefined ? duration : `${value.bound} ${duration}`.trim();
 }
 
 export function formatAge551(value: AgeValue): string {

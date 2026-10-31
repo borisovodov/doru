@@ -82,10 +82,11 @@ export interface Header extends GedcomStructureBase {
    * the same block (the `_DEFN` spelling normalizes to the DEFN
    * leaf). Kept as opaque metadata: the context chains and their
    * LABL/DEFN/ISA leaves have no genealogical meaning. Recognized on
-   * 5.x input and written back as `SCHEMA` in 5.5.1; dropped when
-   * serializing to 7.0 (7.0's own SCHMA carries URIs, which this
-   * block lacks). Sources: the GEDCOM 5.3 draft (`USER_TAG_SCHEMA`,
-   * p.25–26 of the Tamura Jones PDF) and Tamura Jones "GEDCOM Tags":
+   * 5.x input and written back as `SCHEMA` in 5.5.1 and as `_SCHEMA`
+   * in 7.0 (7.0's own SCHMA carries URIs, which this block lacks, so
+   * it travels as an extension record there). Sources: the GEDCOM 5.3
+   * draft (`USER_TAG_SCHEMA`, p.25–26 of the Tamura Jones PDF) and
+   * Tamura Jones "GEDCOM Tags":
    * https://www.tamurajones.net/GEDCOMTags.xhtml
    */
   schema53?: FtmSchemaBlock;
@@ -158,6 +159,31 @@ export interface Gedcom extends GedcomStructureBase {
    * dropped when serializing to 7.0 (5.5.1 emits it unconditionally).
    */
   form?: Text;
+  /**
+   * `_ADDENDUM` {0:1} — a declaration under GEDC.VERS that the document
+   * follows the GEDCOM-L addendum ("GEDCOM 5.5.1 Specification GEDCOM-L
+   * Addendum", §7.3, 2nd release 2020-12-01, eds. A. Emmerich &
+   * D. Hesmer, of the German GEDCOM-L working group), naming the
+   * addendum version this file follows and where it is published.
+   * Recognized on input in both versions and written back as
+   * `_ADDENDUM` under GEDC.VERS in both versions.
+   */
+  addendum?: GedcomAddendum;
+}
+
+/**
+ * GEDCOM-L Addendum §7.3 — `_ADDENDUM`: the declaration under
+ * GEDC.VERS that the document follows the addendum ("GEDCOM 5.5.1
+ * Specification GEDCOM-L Addendum", 2nd release 2020-12-01, eds.
+ * A. Emmerich & D. Hesmer). Carries the addendum's own version and web
+ * address. Not part of any GEDCOM version.
+ */
+export interface GedcomAddendum extends GedcomStructureBase {
+  tag: '_ADDENDUM';
+  /** VERS {0:1} — the addendum version the document follows. */
+  version?: Text;
+  /** WWW {0:1} — where the addendum is published. */
+  www?: Text;
 }
 
 /**
