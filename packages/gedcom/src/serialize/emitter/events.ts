@@ -38,8 +38,14 @@ import {
 } from './values';
 
 export function emitFamilyDetail(w: Writer, version: Version, level: number, detail: FamilyEventDetail | undefined, type: string | undefined): void {
-  if (type !== undefined) {
-    w.line(level, 'TYPE', { value: type });
+  // In 7.0 TYPE is required on EVEN/FACT: an empty type (a 5.5.1 EVEN
+  // written without a TYPE line) is emitted as the bare TYPE line,
+  // whose empty payload is the empty-string ListText (GEDCOM 7.0 §1.3
+  // notes the empty payload form for Text payloads). In 5.5.1 the
+  // TYPE line is optional, and a bare TYPE line has no grammar
+  // production, so an empty type is simply not written there.
+  if (type !== undefined && (version === '7.0' || type !== '')) {
+    w.line(level, 'TYPE', { value: type === '' ? undefined : type });
   }
   if (detail === undefined) {
     return;
@@ -89,8 +95,9 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
 }
 
 export function emitIndividualDetail(w: Writer, version: Version, level: number, detail: IndividualEventDetail | undefined, type: string | undefined): void {
-  if (type !== undefined) {
-    w.line(level, 'TYPE', { value: type });
+  // The 5.5.1/7.0 TYPE emission rule is documented on emitFamilyDetail.
+  if (type !== undefined && (version === '7.0' || type !== '')) {
+    w.line(level, 'TYPE', { value: type === '' ? undefined : type });
   }
   if (detail === undefined) {
     return;
@@ -143,8 +150,10 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   }
   if (version === '5.5.1' && event.tag === 'BIRT' && event.birthType !== undefined) {
     // USM6: the birth type (see BirthEvent.birthType); 7.0 cannot spell
-    // the non-underscore tag.
-    w.line(2, 'BTYP', { value: event.birthType });
+    // the tag. Written as the underscore spelling `_BTYP` (the USM6
+    // wire spelling `BTYP` is non-underscore; both spellings are
+    // recognized on input).
+    w.line(2, '_BTYP', { value: event.birthType });
   }
   emitIndividualDetail(w, version, 2, event.detail, event.type);
   emitExtensions(w, version, 2, event);

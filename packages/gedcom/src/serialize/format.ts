@@ -67,6 +67,16 @@ export function formatDateFields(
     // constructs.
     return undefined;
   }
+  if (version === '5.5.1' && fields.epoch !== undefined && fields.month !== undefined) {
+    // The 5.5.1 DATE grammar allows the `B.C.` epoch only on the
+    // year-only form (`DATE_GREG := [<YEAR_GREG>[B.C.] | <MONTH>
+    // <YEAR_GREG> | <DAY> <MONTH> <YEAR_GREG>]`, GEDCOM 5.5.1 §2
+    // p.47; 5.5.5 keeps the restriction, its `BEFORE_COMMON_ERA` is
+    // likewise year-only, 5.5.5 §2 p.83). `1 JAN 1700 B.C.` would be
+    // invalid in both — the caller falls back to the parenthesized
+    // date phrase, which preserves the date verbatim.
+    return undefined;
+  }
   const escape = version === '5.5.1' ? calendarEscape551(calendar) : calendar === 'GREGORIAN' ? '' : `${calendar} `;
   const dayMonth = fields.day !== undefined && fields.month !== undefined ? `${fields.day} ${fields.month} ` : fields.month !== undefined ? `${fields.month} ` : '';
   return `${escape}${dayMonth}${fields.year}${epochSuffix(fields.epoch, version)}`;
@@ -154,7 +164,7 @@ export function formatDateValue551(value: DateValue): string | undefined {
   }
 }
 
-export function formatDateExact(value: DateExact, version: Version): string {
+export function formatDateExact(value: DateExact, version: Version): string | undefined {
   if (version === '7.0') {
     // GEDCOM 7.0 §2.4 DateExact = `day D month D year` has no epoch
     // production: an epoch on the model value (only reachable
@@ -171,8 +181,10 @@ export function formatDateExact(value: DateExact, version: Version): string {
   if (value.epoch !== undefined) {
     fields.epoch = value.epoch;
   }
-  // DateExact always carries a year, so the formatter cannot fail here.
-  return formatDateFields(fields, '5.5.1') as string;
+  // The 5.5.1 DATE_EXACT grammar (GEDCOM 5.5.1 §2 p.45) has no epoch
+  // slot for a day-month-year date; undefined tells the caller to use
+  // the phrase fallback (see emitDateExact).
+  return formatDateFields(fields, '5.5.1');
 }
 
 export function formatTime(value: TimeValue, version: Version): string {

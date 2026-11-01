@@ -141,13 +141,26 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // FH: the given name used (see PersonalNameStructure.givenNameUsed).
     w.line(level + 1, '_USED', { value: name.givenNameUsed });
   }
+  if (name.hebrewName !== undefined) {
+    // phpGedView: the name in Hebrew script (see
+    // PersonalNameStructure.hebrewName).
+    w.line(level + 1, '_HEB', { value: name.hebrewName });
+  }
   if (version === '5.5.1') {
-    // The USM6/MFT7 name extras; 7.0 cannot spell the non-underscore tags.
+    // The USM6/MFT7 name extras; 7.0 cannot spell the non-underscore
+    // tags, and the underscore forms are likewise dropped there (see
+    // PersonalNameStructure.surnameVariants / furtherGivenNames).
     if (name.surnameVariants !== undefined) {
-      w.line(level + 1, 'NAME_', { value: name.surnameVariants });
+      // USM6: the surname variants. Written as the underscore spelling
+      // `_NAME_` (the USM6 wire spelling `NAME_` is non-underscore;
+      // both spellings are recognized on input).
+      w.line(level + 1, '_NAME_', { value: name.surnameVariants });
     }
     if (name.furtherGivenNames !== undefined) {
-      w.line(level + 1, 'SECG', { value: name.furtherGivenNames });
+      // MFT7: the second and further given names; written as the
+      // underscore spelling `_SECG` (both spellings are recognized on
+      // input).
+      w.line(level + 1, '_SECG', { value: name.furtherGivenNames });
     }
   }
   for (const link of name.censusLinks ?? []) {
@@ -451,6 +464,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
   }
   if (place.maidenhead !== undefined) {
     w.line(level + 1, '_MAIDENHEAD', { value: place.maidenhead });
+  }
+  if (place.hebrewName !== undefined) {
+    // phpGedView: the place name in Hebrew script (see
+    // PlaceStructure.hebrewName).
+    w.line(level + 1, '_HEB', { value: place.hebrewName });
   }
   if (place.location !== undefined) {
     // The GEDCOM-L card survived the prepare projection; the pointer

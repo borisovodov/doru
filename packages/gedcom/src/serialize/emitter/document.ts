@@ -146,18 +146,18 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   // a patch level of an imported file (e.g. "7.0.14") is not carried
   // over — the output always conforms to the 7.0 core specification.
   w.line(2, 'VERS', { value: version === '7.0' ? '7.0' : '5.5.1' });
-  if (h.gedcom.addendum !== undefined) {
-    // The GEDCOM-L addendum declaration under GEDC.VERS (see
-    // Gedcom.addendum): written back in both versions; in 7.0 it
-    // travels as an extension under the standard GEDC structure.
-    w.line(3, '_ADDENDUM');
-    if (h.gedcom.addendum.version !== undefined) {
-      w.line(4, 'VERS', { value: h.gedcom.addendum.version });
+  for (const addendum of h.gedcom.addenda ?? []) {
+    // The GEDCOM-L addendum declarations under GEDC.VERS (see
+    // Gedcom.addenda): written back in both versions; in 7.0 they
+    // travel as extensions under the standard GEDC structure.
+    w.line(3, '_ADDENDUM', addendum.payload === undefined ? {} : { value: addendum.payload });
+    if (addendum.version !== undefined) {
+      w.line(4, 'VERS', { value: addendum.version });
     }
-    if (h.gedcom.addendum.www !== undefined) {
-      w.line(4, 'WWW', { value: h.gedcom.addendum.www });
+    if (addendum.www !== undefined) {
+      w.line(4, 'WWW', { value: addendum.www });
     }
-    emitExtensions(w, version, 4, h.gedcom.addendum);
+    emitExtensions(w, version, 4, addendum);
   }
   if (version === '5.5.1') {
     w.line(2, 'FORM', { value: 'LINEAGE-LINKED' });
@@ -180,6 +180,19 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   }
   if (h.note !== undefined) {
     emitNoteStructure(w, version, 1, h.note);
+  }
+  if (h.originalSource !== undefined) {
+    // The product that originally wrote the data (see
+    // Header.originalSource): written back as the `_ORGSOUR` block
+    // with its NAME/VERS children in both versions.
+    w.line(1, '_ORGSOUR');
+    if (h.originalSource.name !== undefined) {
+      w.line(2, 'NAME', { value: h.originalSource.name });
+    }
+    if (h.originalSource.version !== undefined) {
+      w.line(2, 'VERS', { value: h.originalSource.version });
+    }
+    emitExtensions(w, version, 2, h.originalSource);
   }
   if (h.startPerson !== undefined) {
     // Ages! / Ahnenblatt / GEDitCOM: the start person shown after
@@ -495,6 +508,7 @@ export function emitSubmission(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   automatedRecordId?: string;
   submitters?: string[];
+  importReference?: { record?: string; page?: string };
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -535,6 +549,15 @@ export function emitSubmission(w: Writer, version: Version, rec: {
     w.line(1, 'RIN', { value: rec.automatedRecordId });
   }
   emitGdoSubmitters(w, version, 1, rec.submitters);
+  if (rec.importReference !== undefined) {
+    // GDO: the import-file reference (see ImportFileReference), level 1
+    // of every record — the SUBN emitter writes its own copy because it
+    // does not go through commonRecordFields.
+    w.line(1, '_IMPF', rec.importReference.record === undefined ? {} : { value: rec.importReference.record });
+    if (rec.importReference.page !== undefined) {
+      w.line(2, 'PAGE', { value: rec.importReference.page });
+    }
+  }
   emitExtensions(w, version, 1, rec);
 }
 

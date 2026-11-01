@@ -156,8 +156,12 @@ export function emitFamily(w: Writer, version: Version, rec: {
   }
   if (version === '5.5.1' && rec.unionKind !== undefined) {
     // USM6: the kind of relationship the partners are in (see
-    // FamilyRecord.unionKind); 7.0 cannot spell the non-underscore tag.
-    w.line(1, 'UTYP', { value: rec.unionKind });
+    // FamilyRecord.unionKind); 7.0 cannot spell the tag. The 5.5.1
+    // output uses the underscore spelling `_UTYP` — the USM6 wire
+    // spelling `UTYP` is a non-underscore vendor tag, and 5.5.1
+    // requires user-defined tags to begin with an underscore. Both
+    // spellings are recognized on input.
+    w.line(1, '_UTYP', { value: rec.unionKind });
   }
   if (rec.marks !== undefined) {
     rec.marks.forEach((mark, index) => {
@@ -183,8 +187,10 @@ export function emitFamily(w: Writer, version: Version, rec: {
         if (attribute.childCountCertain !== undefined) {
           // USM6: the child count certainty marker (see
           // FamilyChildCountAttribute.childCountCertain); 7.0 cannot
-          // spell the non-underscore tag.
-          w.line(2, 'SURE', { value: attribute.childCountCertain ? '1' : '0' });
+          // spell the tag. Written as the underscore spelling `_SURE`
+          // (the USM6 wire spelling `SURE` is non-underscore; both are
+          // recognized on input).
+          w.line(2, '_SURE', { value: attribute.childCountCertain ? '1' : '0' });
         }
         emitExtensions(w, version, 2, attribute);
       }
@@ -387,6 +393,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   familySearchId?: string;
   marks?: string[];
   todos?: TodoStructure[];
+  correspondence?: { reason?: string; response?: string; replyStatus?: string; extensions?: ExtensionStructure[] };
   canSign?: boolean;
   bookmarked?: boolean;
   startPerson?: boolean;
@@ -419,8 +426,11 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   }
   if (version === '5.5.1' && rec.canSign !== undefined) {
     // USM6: whether the person can sign (see IndividualRecord.canSign);
-    // 7.0 cannot spell the non-underscore tag.
-    w.line(1, 'SIGN', { value: rec.canSign ? '1' : '0' });
+    // 7.0 cannot spell the tag. Written as the underscore spelling
+    // `_SIGN` (the USM6 wire spelling `SIGN` is non-underscore, and
+    // Heredis writes a signature under the same tag; both spellings
+    // are recognized on input — see the parser's lenient rule).
+    w.line(1, '_SIGN', { value: rec.canSign ? '1' : '0' });
   }
   if (rec.bookmarked === true) {
     // MFT7: the person is bookmarked (see IndividualRecord.bookmarked).
@@ -488,6 +498,21 @@ export function emitIndividual(w: Writer, version: Version, rec: {
   for (const todo of rec.todos ?? []) {
     emitTodoStructure(w, version, 1, todo);
   }
+  if (rec.correspondence !== undefined) {
+    // FO7: the correspondence entry block (see
+    // IndividualRecord.correspondence / CorrespondenceStructure).
+    w.line(1, '_CORR');
+    if (rec.correspondence.reason !== undefined) {
+      w.line(2, 'REAS', { value: rec.correspondence.reason });
+    }
+    if (rec.correspondence.response !== undefined) {
+      w.line(2, 'RESP', { value: rec.correspondence.response });
+    }
+    if (rec.correspondence.replyStatus !== undefined) {
+      w.line(2, 'RPLY', { value: rec.correspondence.replyStatus });
+    }
+    emitExtensions(w, version, 2, rec.correspondence);
+  }
   if (rec.marks !== undefined) {
     rec.marks.forEach((mark, index) => {
       if (mark !== '') {
@@ -532,8 +557,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     if (version === '5.5.1' && attribute.tag === 'NCHI' && attribute.childCountCertain !== undefined) {
       // USM6: the child count certainty marker (see
       // IndividualChildCountAttribute.childCountCertain); 7.0 cannot
-      // spell the non-underscore tag.
-      w.line(2, 'SURE', { value: attribute.childCountCertain ? '1' : '0' });
+      // spell the tag. Written as the underscore spelling `_SURE`
+      // (both spellings are recognized on input).
+      w.line(2, '_SURE', { value: attribute.childCountCertain ? '1' : '0' });
     }
     emitExtensions(w, version, 2, attribute);
   }
@@ -603,8 +629,9 @@ export function emitIndividual(w: Writer, version: Version, rec: {
     if (version === '5.5.1' && link.parentalRelationKind !== undefined) {
       // USM6: the parent–child relation kind (see
       // ChildFamilyLink.parentalRelationKind); 7.0 cannot spell the
-      // non-underscore tag.
-      w.line(2, 'MTYP', { value: link.parentalRelationKind });
+      // tag. Written as the underscore spelling `_MTYP` (both
+      // spellings are recognized on input).
+      w.line(2, '_MTYP', { value: link.parentalRelationKind });
     }
     if (link.pedigree !== undefined) {
       const value = pedigree(w, version, link.pedigree.payload);
@@ -877,6 +904,10 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   slideshow?: boolean;
   objectType?: string;
   soundFile?: string;
+  createdAt?: string;
+  keywords?: string;
+  filePath?: string;
+  mediaNote?: string;
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
   citations?: SourceCitation[];
@@ -919,6 +950,23 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   }
   if (rec.soundFile !== undefined) {
     w.line(1, '_SOUND', { value: rec.soundFile });
+  }
+  if (rec.createdAt !== undefined) {
+    // Ancestry.com Family Trees: the creation date of the media object
+    // (see MultimediaRecord.createdAt).
+    w.line(1, '_CREA', { value: rec.createdAt });
+  }
+  if (rec.keywords !== undefined) {
+    // FH: the media object's keywords (see MultimediaRecord.keywords).
+    w.line(1, '_KEYS', { value: rec.keywords });
+  }
+  if (rec.filePath !== undefined) {
+    // FH: the path of the media file (see MultimediaRecord.filePath).
+    w.line(1, '_FILE', { value: rec.filePath });
+  }
+  if (rec.mediaNote !== undefined) {
+    // FH: a media note (see MultimediaRecord.mediaNote).
+    w.line(1, '_NOTE', { value: rec.mediaNote });
   }
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
@@ -1096,6 +1144,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   fullFootnote?: string;
   subsequentCitationFormat?: string;
   bibliography?: string;
+  medium?: string;
   titleItalic?: boolean;
   publicationParenthesized?: boolean;
   titleQuoted?: boolean;
@@ -1223,6 +1272,13 @@ export function emitSource(w: Writer, version: Version, rec: {
     // RootsMagic: the bibliography entry under the SOUR record (see
     // SourceRecord.bibliography).
     w.line(1, '_BIBL', { value: rec.bibliography });
+  }
+  if (rec.medium !== undefined) {
+    // Legacy: the media type of the source (see SourceRecord.medium);
+    // written back as the underscore spelling `_MEDI` — neither
+    // standard has a MEDI slot under the SOUR record, and 7.0 §1.5
+    // requires extension tags to be underscore-prefixed.
+    w.line(1, '_MEDI', { value: rec.medium });
   }
   if (rec.titleItalic === true) {
     // Legacy / AQ: the source title prints in italics (see

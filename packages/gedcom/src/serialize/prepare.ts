@@ -28,6 +28,7 @@ import type {
   GedcomRecord,
   FamilyRecord,
   IndividualRecord,
+  MultimediaRecord,
   SubmitterRecord,
 } from '../structures';
 import { collectPlaces } from '../parsing/places';
@@ -72,9 +73,21 @@ function isLive(pointer: string, valid: Set<string>): boolean {
   return valid.has(pointer);
 }
 
+/**
+ * True when the record is a GEDCOM 5.5 embedded-multimedia record: an
+ * OBJE record whose content is the record-level FORM/TITL/BLOB shape
+ * with no FILE substructure (accepted on 5.x input by
+ * parsing/media.ts). Neither target version can spell it — both
+ * require FILE {1:M}, and the FORM/TITL/BLOB extensions themselves are
+ * dropped by the emitter's extension rule — so the projections drop
+ * the whole record and strip the links to it.
+ */
+function isEmbeddedMediaRecord(record: GedcomRecord): boolean {
+  return record.tag === 'OBJE' && (record as unknown as MultimediaRecord).files.length === 0;
+}
+
 /** True when the record still carries content after the NO removal. */
-function isEmpty(record: GedcomRecord): boolean {
-  switch (record.tag) {
+function isEmpty(record: GedcomRecord): boolean {  switch (record.tag) {
     case 'FAM': {
       const fam = record as unknown as FamilyRecord;
       return (
@@ -124,6 +137,9 @@ function isEmpty(record: GedcomRecord): boolean {
 
 /** Strips dangling and void pointers from one record. */
 function stripPointers(record: LinkRecord, valid: Set<string>): void {
+  // Media links live on almost every record kind; a dropped multimedia
+  // record would leave them dangling.
+  record.media = (record.media ?? []).filter((link) => isLive(link.object, valid));
   // The census entries point at INDI records, which the NO rule can
   // drop; a dangling census pointer would be invalid output.
   if (record.tag === '_CENR') {
@@ -190,7 +206,6 @@ function stripPointers(record: LinkRecord, valid: Set<string>): void {
     }
     return isLive(citation.source, valid);
   });
-  record.media = (record.media ?? []).filter((link) => isLive(link.object, valid));
   const cleanup: Array<keyof LinkFields> = [
     'submitters', 'associations', 'aliases', 'ancestorInterests', 'descendantInterests',
     'spouseFamilies', 'childFamilies', 'children', 'notes', 'citations', 'media',
@@ -456,9 +471,17 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
     for (const record of out.records) {
       stripPointers(record as LinkRecord, valid);
     }
-    const kept = out.records.filter(
-      (record) => record.xref === undefined || pinned.has(record.xref) || !emptied.has(record.xref) || !isEmpty(record),
-    );
+    const kept = out.records.filter((record) => {
+      if (isEmbeddedMediaRecord(record)) {
+        // No 5.5.1 spelling exists for the 5.5 embedded shape: the
+        // FORM/TITL/BLOB extensions are dropped by the emitter and the
+        // record is left without its required FILE {1:M}. Dropped even
+        // when pinned — an extension pointer payload to such a record
+        // cannot be kept valid anyway.
+        return false;
+      }
+      return record.xref === undefined || pinned.has(record.xref) || !emptied.has(record.xref) || !isEmpty(record);
+    });
     if (kept.length === out.records.length) {
       break;
     }
@@ -500,6 +523,34 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   // place-card projection (see collectExtensionPointerTargets).
   const pinned = collectExtensionPointerTargets(out);
   preservePlaceRecords70(out, pinned);
+  // The GEDCOM 5.5 embedded-multimedia record shape (no FILE
+  // substructure) has no 7.0 spelling either — 7.0 requires FILE {1:M}
+  // and the FORM/TITL/BLOB extensions are dropped by the emitter — so
+  // such records are dropped here and the links to them stripped,
+  // like the 5.5.1 projection does. Only media links can point at an
+  // OBJE record, so one pass over the media links suffices (7.0 keeps
+  // void pointers, unlike the 5.5.1 stripPointers rule).
+  const embedded = out.records.filter(isEmbeddedMediaRecord);
+  if (embedded.length > 0) {
+    const valid = new Set(
+      out.records
+        .filter((record) => !isEmbeddedMediaRecord(record))
+        .map((record) => record.xref)
+        .filter((x): x is string => x !== undefined),
+    );
+    out.records = out.records.filter((record) => !isEmbeddedMediaRecord(record));
+    for (const record of out.records) {
+      const media = (record as LinkRecord).media;
+      if (media !== undefined) {
+        const kept = media.filter((link) => isLive(link.object, valid));
+        if (kept.length === 0) {
+          delete (record as LinkRecord).media;
+        } else {
+          (record as LinkRecord).media = kept;
+        }
+      }
+    }
+  }
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (record.tag === 'INDI' && record.xref !== undefined) {

@@ -43,13 +43,21 @@ export class Writer {
     return pieces;
   }
 
-  line(level: number, tag: string, options: { xref?: string | undefined; value?: string | undefined } = {}): void {
+  line(
+    level: number,
+    tag: string,
+    options: { xref?: string | undefined; value?: string | undefined; pointer?: boolean | undefined } = {},
+  ): void {
     const prefix = `${level} ${options.xref === undefined ? '' : `${options.xref} `}${tag}`;
     let value = options.value ?? '';
-    const looksLikePointer = (v: string): boolean =>
-      v === '@VOID@' || /^@[A-Za-z0-9_][^@]*@$/.test(v);
     if (this.version === '7.0') {
-      value = value.startsWith('@') && !looksLikePointer(value) ? `@${value}` : value;
+      if (!options.pointer && value.startsWith('@')) {
+        // GEDCOM 7.0 §1.3: a line value starting with @ must double the
+        // @ — the wire form is unambiguous, so this applies even when
+        // the value is xref-shaped (a Text "@I1@" is written "@@I1@").
+        // Pointer values pass the explicit pointer flag instead.
+        value = `@${value}`;
+      }
       const parts = value.split('\n');
       this.lines.push(parts.length === 0 || parts[0] === '' ? prefix : `${prefix} ${parts[0]}`);
       for (let i = 1; i < parts.length; i++) {
@@ -60,10 +68,11 @@ export class Writer {
       return;
     }
     // 5.5.1: double every @ (except in pointer values and inside @#…@
-    // escape sequences) and enforce the 255-character line limit.
-    if (looksLikePointer(value)) {
-      // Pointer values are emitted verbatim.
-    } else {
+    // escape sequences) and enforce the 255-character line limit. A
+    // pointer value is identified by the explicit pointer flag, not by
+    // its shape: a Text value that merely looks like an xref must be
+    // escaped like any other text.
+    if (!options.pointer) {
       let escaped = '';
       let i = 0;
       while (i < value.length) {
