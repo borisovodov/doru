@@ -46,6 +46,7 @@ import type { SourceCitation } from './sources-media';
 import type { SourceRepositoryCitation } from './sources-media';
 import type { SpouseSealingOrdinance } from './lds';
 import type { PlaceRecord } from './place-record';
+import type { PublishedSiteRecord } from './published-site-record';
 import type { TodoRecord } from './todo-record';
 import type { TodoStructure } from './todo-record';
 import type { EventDefinitionRecord } from './event-definition-record';
@@ -1813,4 +1814,5 @@ export type GedcomRecord =
   | TodoRecord
   | EventDefinitionRecord
   | DuplicateCandidateRecord
+  | PublishedSiteRecord
   | ExtensionRecord;

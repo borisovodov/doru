@@ -142,6 +142,47 @@ export interface Header extends GedcomStructureBase {
    */
   startPersonMode?: '0' | '1' | '2';
   /**
+   * `_PROJECT_GUID` {0:1} — the MyHeritage project identifier of the
+   * tree. Written under HEAD by MyHeritage exports (observed in real
+   * files: `1 _PROJECT_GUID ICAP1527-…`); not part of any GEDCOM
+   * version. Recognized on input and written back as `_PROJECT_GUID`
+   * in both versions.
+   */
+  projectGuid?: Text;
+  /**
+   * `_EXPORTED_FROM_SITE_ID` {0:1} — the MyHeritage site the tree was
+   * exported from (a numeric id). Written under HEAD by MyHeritage
+   * exports (`1 _EXPORTED_FROM_SITE_ID 246677391`); not part of any
+   * GEDCOM version. Recognized on input and written back as
+   * `_EXPORTED_FROM_SITE_ID` in both versions.
+   */
+  exportedFromSiteId?: Text;
+  /**
+   * `_RINS` {0:1} — the record counts of the exported tree, a
+   * comma-separated list keyed by record letter (MyHeritage exports:
+   * `I224,F94,N0,M0,R0,S0,U2,L0,P0,Q0,IF480,FF69`). Kept verbatim —
+   * the vendor documents no key semantics. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_RINS` in both
+   * versions.
+   */
+  recordCounts?: Text;
+  /**
+   * `_TIMEZONE` {0:1} — the timezone of the export date, written by
+   * MyHeritage under HEAD.DATE (`2 _TIMEZONE GMT+-0`). Kept verbatim
+   * (the observed value is free text). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_TIMEZONE` under the
+   * header DATE in both versions.
+   */
+  timezone?: Text;
+  /**
+   * `_DESCRIPTION_AWARE Y` {0:1} — the exported data includes the
+   * description field (a presence flag). Written by MyHeritage under
+   * HEAD; not part of any GEDCOM version. Recognized on input (an
+   * absent value or `Y` marks the flag set, `N` clears it) and written
+   * back as `_DESCRIPTION_AWARE Y` in both versions.
+   */
+  descriptionAware?: boolean;
+  /**
    * `_ORGSOUR` {0:1} — the product that originally wrote the data, as
    * opposed to the product writing this file: when a program re-saves
    * a GEDCOM file written by another program, the foreign file's SOUR,
@@ -265,6 +306,13 @@ export interface HeaderSource extends GedcomStructureBase {
   corporation?: Corporation;
   /** DATA {0:1}, g7:HEAD-SOUR-DATA — the larger database this data is extracted from (deprecated; use NAME instead). GEDCOM 7.0 §3.2.1. */
   data?: HeaderSourceData;
+  /**
+   * `_RTLSAVE` {0:1} — the right-to-left save mode of the exporting
+   * program (MyHeritage exports: `2 _RTLSAVE RTL` under HEAD.SOUR).
+   * Kept verbatim. Not part of any GEDCOM version. Recognized on input
+   * and written back as `_RTLSAVE` in both versions.
+   */
+  rtlSave?: Text;
 }
 
 /**

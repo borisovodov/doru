@@ -784,6 +784,18 @@ spellings and the underscore forms are both recognized on input, and
 | `_ALDFAER_TIME` under BIRT/DEAT | Aldfaer | The time of birth/death (webtrees Aldfaer.php, `TimeValue`); attached to the DATE.TIME slot when a DATE exists, a generic extension otherwise | `DateStructure.time` / the detail's extensions |
 | `CEME` under BURI | phpGedView | The cemetery of the burial (webtrees PhpGedView.php, `INDI:BURI:CEME`) | `EventDetail.cemetery` (written back as `_CEME`) |
 | `_CREA` / `_CRE` / `_CREAT` under events | Heredis, MFT7, GenPlus | The event creation date (kept free text; GenWiki "Datensatz, Ereignis") | `EventDetail.createdAt` (written back as `_CREAT`) |
+| `_PROJECT_GUID` / `_EXPORTED_FROM_SITE_ID` / `_RINS` under HEAD | MyHeritage | The project identifier, the exported-from site id and the per-record-type counts of the export (real MyHeritage exports) | `Header.projectGuid` / `exportedFromSiteId` / `recordCounts` (kept verbatim) |
+| `_TIMEZONE` under HEAD.DATE | MyHeritage | The timezone of the export date (real MyHeritage exports) | `Header.timezone` (kept verbatim) |
+| `_DESCRIPTION_AWARE Y` under HEAD | MyHeritage | The export includes the description field (real MyHeritage exports) | `Header.descriptionAware` |
+| `_RTLSAVE` under HEAD.SOUR | MyHeritage | The right-to-left save mode (real MyHeritage exports, `_RTLSAVE RTL`) | `HeaderSource.rtlSave` (kept verbatim) |
+| `_PUBLISH` record | MyHeritage | The site the tree was published to: `_SITEADDRESS`/`_SITENAME`/`_SITEID`/`_USERNAME` + the `_DISABLED` flag (real MyHeritage exports) | `PublishedSiteRecord` |
+| `_THUM Y` under the OBJE link | Généatique | The thumbnail flag of the media link (real Généatique exports, `2 _THUM Y` beside `_PRIM`) | `MultimediaLink.thumbnail` |
+
+The tags the code search found no real files for (`_GRUPPE`, `_LFD`,
+`_NOPARTNER`, `_ALDFAER_NOREL`, `_SURNAS`, `_DBID`, `_INQU`) and the
+ones whose fetched samples did not confirm (`_SCHA`, `_ACT`) stay
+generic — the catalogs document meanings, but with no real file to
+show the wire form there is nothing to type.
 
 The `_EVENT_DEFN` record was also verified against the real Legacy
 exports (the gedcom4j "legacycustomtags.ged" sample, now a regression

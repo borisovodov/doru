@@ -461,3 +461,69 @@ describe('the 2026-11 tail: Legacy marriage report fields, Aldfaer birth data, p
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 });
+
+describe('the MyHeritage export metadata and the Généatique _THUM flag', () => {
+  test('the HEAD metadata types and round-trips', () => {
+    const dataset = parseOk551([
+      '0 HEAD',
+      '1 SOUR MyHeritage.com',
+      '2 _RTLSAVE RTL',
+      '1 DEST MYHERITAGE',
+      '1 DATE 8 APR 2022',
+      '2 TIME 14:08:36',
+      '2 _TIMEZONE GMT+-0',
+      '1 _PROJECT_GUID 35179D7C-Q194-2E5R-5D56-5D5662C417V9',
+      '1 _EXPORTED_FROM_SITE_ID 265024761',
+      '1 _RINS I224,F94,N0,M0,R0,S0,U2,L0,P0,Q0,IF480,FF69',
+      '1 _DESCRIPTION_AWARE Y',
+      '1 SUBM @S1@',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHAR UTF-8',
+      ...SUBM,
+      '0 TRLR',
+    ].join('\n'));
+    expect(dataset.header.projectGuid).toBe('35179D7C-Q194-2E5R-5D56-5D5662C417V9');
+    expect(dataset.header.exportedFromSiteId).toBe('265024761');
+    expect(dataset.header.recordCounts).toBe('I224,F94,N0,M0,R0,S0,U2,L0,P0,Q0,IF480,FF69');
+    expect(dataset.header.descriptionAware).toBe(true);
+    expect(dataset.header.timezone).toBe('GMT+-0');
+    expect(dataset.header.source?.rtlSave).toBe('RTL');
+    const out = lines(ser551(dataset));
+    expect(out).toContain('1 _PROJECT_GUID 35179D7C-Q194-2E5R-5D56-5D5662C417V9');
+    expect(out).toContain('1 _EXPORTED_FROM_SITE_ID 265024761');
+    expect(out).toContain('1 _RINS I224,F94,N0,M0,R0,S0,U2,L0,P0,Q0,IF480,FF69');
+    expect(out).toContain('1 _DESCRIPTION_AWARE Y');
+    expect(out).toContain('2 _TIMEZONE GMT+-0');
+    expect(out).toContain('2 _RTLSAVE RTL');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+
+  test('the _PUBLISH record types and round-trips', () => {
+    const dataset = parseOk551([...H551, '0 _PUBLISH', '1 _SITEADDRESS ferreiramouraborges', '1 _SITENAME Ferreira Moura Borges', '1 _SITEID 255552541', '1 _USERNAME jlborges@@fe.up.pt', '1 _DISABLED Y', ...SUBM, '0 TRLR'].join('\n'));
+    const record = dataset.records.find((r) => r.tag === '_PUBLISH');
+    expect(record).toMatchObject({
+      tag: '_PUBLISH',
+      siteAddress: 'ferreiramouraborges',
+      siteName: 'Ferreira Moura Borges',
+      siteId: '255552541',
+      username: 'jlborges@fe.up.pt',
+      disabled: true,
+    });
+    const out = lines(ser551(dataset));
+    expect(out).toContain('0 _PUBLISH');
+    expect(out).toContain('1 _SITEID 255552541');
+    expect(out).toContain('1 _DISABLED Y');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+    expect(lines(ser70(dataset))).toContain('0 _PUBLISH');
+  });
+
+  test('the Généatique _THUM flag types on the media link', () => {
+    const dataset = parseOk551([...H551, '0 @O1@ OBJE', '1 FILE media/pic.jpg', '2 FORM jpg', '0 @I1@ INDI', '1 NAME A /B/', '1 OBJE @O1@', '2 _THUM Y', ...SUBM, '0 TRLR'].join('\n'));
+    const link = indi(dataset).media?.[0];
+    expect(link?.thumbnail).toBe(true);
+    expect(lines(ser551(dataset))).toContain('2 _THUM Y');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+});

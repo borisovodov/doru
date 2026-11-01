@@ -830,6 +830,10 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
   if (link.slideshow === true) {
     w.line(level + 1, '_SSHOW', { value: 'Y' });
   }
+  if (link.thumbnail === true) {
+    // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+    w.line(level + 1, '_THUM', { value: 'Y' });
+  }
   if (link.sequence !== undefined) {
     // FH: the sequence number of the media item (see
     // MultimediaLink.sequence).

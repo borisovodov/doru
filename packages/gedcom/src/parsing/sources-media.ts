@@ -470,6 +470,10 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         '_SSHOW': (child) => {
           out.slideshow = parseYNFlag(child, '_SSHOW');
         },
+        '_THUM': (child) => {
+          // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+          out.thumbnail = parseYNFlag(child, '_THUM');
+        },
         ...fhMediaLinkHandlers(out),
       },
       ctx,
@@ -492,6 +496,10 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         '_SSHOW': (child) => {
           out.slideshow = parseYNFlag(child, '_SSHOW');
         },
+        '_THUM': (child) => {
+          // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+          out.thumbnail = parseYNFlag(child, '_THUM');
+        },
         ...fhMediaLinkHandlers(out),
       },
       ctx,
@@ -507,6 +515,7 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   let primary: boolean | undefined;
   let scrapbook: boolean | undefined;
   let slideshow: boolean | undefined;
+  let thumbnail: boolean | undefined;
   // Legacy Family Tree writes the format directly under the inline
   // OBJE (`2 FORM jpg` beside `2 FILE …`); the 5.5.1 inline grammar
   // places it under FILE. It is injected into each FILE that lacks its
@@ -542,6 +551,10 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       },
       '_SSHOW': (child) => {
         slideshow = parseYNFlag(child, '_SSHOW');
+      },
+      '_THUM': (child) => {
+        // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+        thumbnail = parseYNFlag(child, '_THUM');
       },
       '_TYPE': (child) => {
         record.objectType = reqText(child);
@@ -592,6 +605,7 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     ...(primary === undefined ? {} : { primary }),
     ...(scrapbook === undefined ? {} : { scrapbook }),
     ...(slideshow === undefined ? {} : { slideshow }),
+    ...(thumbnail === undefined ? {} : { thumbnail }),
   };
 }
 

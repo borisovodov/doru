@@ -329,6 +329,16 @@ export interface MultimediaLink extends GedcomStructureBase {
    */
   slideshow?: boolean;
   /**
+   * `_THUM Y` {0:1} — the media item is the thumbnail of its parent
+   * record. Written by Généatique under the OBJE link (observed in
+   * real files: `2 _THUM Y` beside `_PRIM`; the webtrees per-vendor
+   * custom-tag registry, PhpGedView.php, lists `_THUM` as
+   * "thumbnail"). Not part of any GEDCOM version. Recognized on input
+   * (an absent value or `Y` marks the flag set, `N` clears it) and
+   * written back as `_THUM Y` in both versions.
+   */
+  thumbnail?: boolean;
+  /**
    * _SEQ {0:1} — the sequence number of the media item within its
    * parent record. Written by Family Historian under the OBJE link
    * (the Family Historian User Group knowledge base, "GEDCOM Extension

@@ -46,6 +46,9 @@ import {
   parseNoteStructure,
 } from './substructures';
 import {
+  parseVendorFlag,
+} from './sources-media';
+import {
   normalizeCharset551,
 } from './decode';
 import {
@@ -103,8 +106,17 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       },
       DATE: (child) => {
         // GEDCOM 5.5.1 §2 Record Structures (p.23) allows a TIME under
-        // HEAD.DATE (TRANSMISSION_DATE), like 7.0's HEAD-DATE.
-        header.date = parseDateExactStructure(child, ctx, true);
+        // HEAD.DATE (TRANSMISSION_DATE), like 7.0's HEAD-DATE. The
+        // MyHeritage `_TIMEZONE` child (see Header.timezone) is typed
+        // separately, so it is stripped before the date parse.
+        const timezone = child.children.find((grandchild) => grandchild.tag === '_TIMEZONE');
+        const dateNode = timezone === undefined
+          ? child
+          : { ...child, children: child.children.filter((grandchild) => grandchild.tag !== '_TIMEZONE') };
+        header.date = parseDateExactStructure(dateNode, ctx, true);
+        if (timezone !== undefined) {
+          header.timezone = reqText(timezone);
+        }
       },
       SUBM: (child) => {
         header.submitter = reqPtr(child, ctx);
@@ -161,6 +173,26 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
           fail('enum.invalid-value', `The _NAVM value must be 0, 1 or 2, not "${value}"`, child.position);
         }
         header.startPersonMode = value;
+      },
+      _PROJECT_GUID: (child) => {
+        // MyHeritage: the project identifier of the tree (see
+        // Header.projectGuid).
+        header.projectGuid = reqText(child);
+      },
+      _EXPORTED_FROM_SITE_ID: (child) => {
+        // MyHeritage: the site the tree was exported from (see
+        // Header.exportedFromSiteId).
+        header.exportedFromSiteId = reqText(child);
+      },
+      _RINS: (child) => {
+        // MyHeritage: the record counts of the exported tree (see
+        // Header.recordCounts).
+        header.recordCounts = reqText(child);
+      },
+      _DESCRIPTION_AWARE: (child) => {
+        // MyHeritage: the export includes descriptions (see
+        // Header.descriptionAware).
+        header.descriptionAware = parseVendorFlag(child, '_DESCRIPTION_AWARE');
       },
       NOTE: (child) => {
         setNote(child);
@@ -384,6 +416,11 @@ export function parseHeaderSource(node: RawNode, ctx: Ctx): HeaderSource {
       },
       DATA: (child) => {
         source.data = parseHeaderSourceData(child, ctx);
+      },
+      _RTLSAVE: (child) => {
+        // MyHeritage: the right-to-left save mode (see
+        // HeaderSource.rtlSave).
+        source.rtlSave = reqText(child);
       },
     },
     ctx,

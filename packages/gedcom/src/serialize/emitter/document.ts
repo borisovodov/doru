@@ -37,6 +37,7 @@ import {
   emitTodoRecord,
   emitEventDefinition,
   emitDuplicateCandidateRecord,
+  emitPublishedSiteRecord,
 } from './records';
 import {
   emitCensusRecord,
@@ -95,6 +96,11 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   }
   if (h.date !== undefined) {
     emitDateExact(w, version, 1, 'DATE', h.date, h.date.time);
+    if (h.timezone !== undefined) {
+      // MyHeritage: the timezone of the export date (see
+      // Header.timezone), written back under the header DATE.
+      w.line(2, '_TIMEZONE', { value: h.timezone });
+    }
   }
   if (h.submitter !== undefined) {
     // Written in both versions: 7.0 HEAD.SUBM is {0:1} (the pointer is
@@ -203,6 +209,24 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
       w.line(1, '_NAVM', { value: h.startPersonMode });
     }
   }
+  if (h.projectGuid !== undefined) {
+    // MyHeritage: the project identifier (see Header.projectGuid).
+    w.line(1, '_PROJECT_GUID', { value: h.projectGuid });
+  }
+  if (h.exportedFromSiteId !== undefined) {
+    // MyHeritage: the exported-from site id (see
+    // Header.exportedFromSiteId).
+    w.line(1, '_EXPORTED_FROM_SITE_ID', { value: h.exportedFromSiteId });
+  }
+  if (h.recordCounts !== undefined) {
+    // MyHeritage: the record counts (see Header.recordCounts).
+    w.line(1, '_RINS', { value: h.recordCounts });
+  }
+  if (h.descriptionAware === true) {
+    // MyHeritage: the export includes descriptions (see
+    // Header.descriptionAware).
+    w.line(1, '_DESCRIPTION_AWARE', { value: 'Y' });
+  }
   emitExtensions(w, version, 1, h);
 }
 
@@ -225,6 +249,7 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
     copyright?: string;
     extensions?: ExtensionStructure[];
   };
+  rtlSave?: string;
   extensions?: ExtensionStructure[];
 }): void {
   w.line(1, 'SOUR', { value: source.payload });
@@ -233,6 +258,10 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
   }
   if (source.name !== undefined) {
     w.line(2, 'NAME', { value: source.name });
+  }
+  if (source.rtlSave !== undefined) {
+    // MyHeritage: the right-to-left save mode (see HeaderSource.rtlSave).
+    w.line(2, '_RTLSAVE', { value: source.rtlSave });
   }
   if (source.corporation !== undefined) {
     emitCorporation(w, version, source.corporation);
@@ -335,6 +364,9 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       return;
     case '_ALIA':
       emitDuplicateCandidateRecord(w, version, record as Parameters<typeof emitDuplicateCandidateRecord>[2]);
+      return;
+    case '_PUBLISH':
+      emitPublishedSiteRecord(w, version, record as Parameters<typeof emitPublishedSiteRecord>[2]);
       return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);

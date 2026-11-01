@@ -55,6 +55,9 @@ import {
   emitPersonalName,
   emitPlace,
 } from './names-places';
+import type {
+  PublishedSiteRecord,
+} from '../../structures';
 import {
   emitAddress,
   emitAssociation,
@@ -837,10 +840,30 @@ export function emitEventDefinition(w: Writer, version: Version, rec: {
   emitExtensions(w, version, 1, rec);
 }
 
+/** Emits the MyHeritage `_PUBLISH` record (see PublishedSiteRecord). */
+export function emitPublishedSiteRecord(w: Writer, version: Version, rec: PublishedSiteRecord): void {
+  w.line(0, '_PUBLISH', { xref: rec.xref });
+  if (rec.siteAddress !== undefined) {
+    w.line(1, '_SITEADDRESS', { value: rec.siteAddress });
+  }
+  if (rec.siteName !== undefined) {
+    w.line(1, '_SITENAME', { value: rec.siteName });
+  }
+  if (rec.siteId !== undefined) {
+    w.line(1, '_SITEID', { value: rec.siteId });
+  }
+  if (rec.username !== undefined) {
+    w.line(1, '_USERNAME', { value: rec.username });
+  }
+  if (rec.disabled === true) {
+    w.line(1, '_DISABLED', { value: 'Y' });
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
 /** Emits the GDO `_ALIA` duplicate-candidate record (see
  *  DuplicateCandidateRecord). */
-export function emitDuplicateCandidateRecord(w: Writer, version: Version, rec: {
-  tag: '_ALIA';
+export function emitDuplicateCandidateRecord(w: Writer, version: Version, rec: {  tag: '_ALIA';
   xref?: string;
   caption?: string;
   individual?: string;
