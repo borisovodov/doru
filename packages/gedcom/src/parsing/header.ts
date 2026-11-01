@@ -20,6 +20,7 @@ import type {
   HeaderPlace,
   HeaderSource,
   HeaderSourceData,
+  OriginalSourceStructure,
   Schema,
   TagDefinitionStructure,
 } from '../structures';
@@ -174,6 +175,7 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
                 fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
               }
               header.schema53 = parseSchema53(child, ctx);
+              fillSchema53Labels(header.schema53, ctx);
             },
             _SCHEMA: (child) => {
               // The Family Tree Maker spelling of the same block.
@@ -181,12 +183,34 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
                 fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
               }
               header.schema53 = parseSchema53(child, ctx);
+              fillSchema53Labels(header.schema53, ctx);
             },
           }
         : {}),
+      _ORGSOUR: (child) => {
+        // The product that originally wrote the data (see
+        // Header.originalSource): NAME and VERS children carry the
+        // foreign SOUR.NAME/SOUR.VERS.
+        const entry: OriginalSourceStructure = { tag: '_ORGSOUR' };
+        dispatch(
+          child,
+          entry,
+          {
+            NAME: (grandchild) => {
+              entry.name = reqText(grandchild);
+            },
+            VERS: (grandchild) => {
+              entry.version = reqText(grandchild);
+            },
+          },
+          ctx,
+          ['NAME', 'VERS'],
+        );
+        header.originalSource = entry;
+      },
     },
     ctx,
-    ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR', 'SCHEMA'],
+    ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR', 'SCHEMA', '_ORGSOUR'],
   );
   if (gedcom === undefined) {
     fail('structure.missing-required', 'The header requires a GEDC substructure', node.position);
@@ -235,18 +259,18 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     // specification.
     fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (5.5, 5.5.1, 5.5.5 or 5.5EL)`, node.position);
   }
-  // The GEDCOM-L addendum declaration under GEDC.VERS (see
-  // Gedcom.addendum) — the only documented child of the VERS line.
+  // The GEDCOM-L addendum declarations under GEDC.VERS (see
+  // Gedcom.addenda) — the only documented children of the VERS line;
+  // several addenda may be declared ({0:M}).
   dispatch(
     versNode,
     gedcom,
     {
       _ADDENDUM: (child) => {
-        gedcom.addendum = parseGedcomAddendum(child, ctx);
+        (gedcom.addenda ??= []).push(parseGedcomAddendum(child, ctx));
       },
     },
     ctx,
-    ['_ADDENDUM'],
   );
   const formNode = one(node, 'FORM');
   if (ctx.version === '5.5.1') {
@@ -274,13 +298,18 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
 
 /**
  * Parses the GEDCOM-L addendum declaration `_ADDENDUM` under GEDC.VERS
- * (see Gedcom.addendum): the addendum's own version and web address
- * ("GEDCOM 5.5.1 Specification GEDCOM-L Addendum", §7.3, 2nd release,
- * 2020-12-01, eds. A. Emmerich & D. Hesmer).
+ * (see Gedcom.addenda): the addendum's name as the payload
+ * (`3 _ADDENDUM GEDCOM-L Addendum`, `n _ADDENDUM <ADDENDUM_NAME>
+ * {1:80}` in the spec — some files omit it, so it stays optional),
+ * plus the addendum's own version and web address ("GEDCOM 5.5.1
+ * Specification GEDCOM-L Addendum", §7.3, 2nd release, 2020-12-01,
+ * eds. A. Emmerich & D. Hesmer).
  */
 export function parseGedcomAddendum(node: RawNode, ctx: Ctx): GedcomAddendum {
-  noPayload(node);
-  const out: GedcomAddendum = { tag: '_ADDENDUM' };
+  const out: GedcomAddendum = {
+    tag: '_ADDENDUM',
+    ...(node.value.kind === 'text' ? { payload: node.value.text } : {}),
+  };
   dispatch(
     node,
     out,
@@ -447,6 +476,18 @@ export function parseSchema53(node: RawNode, ctx: Ctx): FtmSchemaBlock {
     collectSchemaEntry(child, [], out.entries, ctx);
   }
   return out;
+}
+
+/** Fills the Ctx.schema53Labels map: each declared tag's context chain
+ *  (e.g. `INDI/_FA1`) mapped to its LABL text — the `_FA1`–`_FA13`
+ *  fact handlers resolve their TYPE from it. Entries without a LABL
+ *  are skipped (the handlers fall back to `Fact n`). */
+function fillSchema53Labels(block: FtmSchemaBlock, ctx: Ctx): void {
+  for (const entry of block.entries) {
+    if (entry.label !== undefined) {
+      ctx.schema53Labels.set(entry.context.join('/'), entry.label);
+    }
+  }
 }
 
 /** Walks one branch of the SCHEMA tree, collecting the declaration leaves. */

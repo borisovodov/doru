@@ -70,7 +70,7 @@ export interface IndividualChildCountAttribute extends IndividualAttributeBase<'
    * article's "Tabelle 2":
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
    * GEDCOM version. Recognized on 5.x input (`1` marks the flag set,
-   * `0` clears it) and written back as `SURE 1`/`SURE 0` under the
+   * `0` clears it) and written back as `_SURE 1`/`_SURE 0` under the
    * NCHI line in 5.5.1; dropped on 7.0 output.
    */
   childCountCertain?: boolean;
@@ -230,7 +230,7 @@ export interface BirthEvent extends IndividualEventBase<'BIRT'> {
    * Stammbaum ≤ V6 (USM6) under BIRT; the values are documented in the
    * GenWiki "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2" (see
    * UsmBirthType). Not part of any GEDCOM version. Recognized on 5.x
-   * input and written back as `BTYP` in 5.5.1; dropped on 7.0 output
+   * input and written back as `_BTYP` in 5.5.1; dropped on 7.0 output
    * (7.0 cannot spell a non-underscore extension tag).
    */
   birthType?: UsmBirthType;

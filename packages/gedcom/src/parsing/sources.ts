@@ -455,6 +455,12 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // SourceRecord.submitters).
       (rec.submitters ??= []).push(reqPtr(child, ctx));
     },
+    '_MEDI': (child) => {
+      // Legacy writes the media type of the source with the standard
+      // MEDI tag (see SourceRecord.medium); the underscore spelling is
+      // recognized in both versions and is the write-back spelling.
+      rec.medium = reqText(child);
+    },
     _IMPF: (child) => {
       // GDO: the import-file reference (see SourceRecord.importReference).
       rec.importReference = parseImportReference(child, ctx);
@@ -517,6 +523,13 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // preserved verbatim on 5.5.1 output and dropped on 7.0 (QUAY is
       // a citation-only tag there).
       addExtension(rec, child, ctx);
+    };
+    handlers["MEDI"] = (child) => {
+      // Legacy: the media type of the source, the standard MEDI tag in
+      // the non-standard SOUR-record position (the webtrees
+      // per-vendor custom-tag registry, Legacy.php, "Media type";
+      // see SourceRecord.medium for the export rule).
+      rec.medium = reqText(child);
     };
   }
   dispatch(

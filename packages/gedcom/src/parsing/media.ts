@@ -94,6 +94,23 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     '_SOUND': (child) => {
       rec.soundFile = reqText(child);
     },
+    '_KEYS': (child) => {
+      // FH: the media object's keywords (see MultimediaRecord.keywords).
+      rec.keywords = reqText(child);
+    },
+    '_FILE': (child) => {
+      // FH: the path of the media file (see MultimediaRecord.filePath).
+      rec.filePath = reqText(child);
+    },
+    '_NOTE': (child) => {
+      // FH: a media note (see MultimediaRecord.mediaNote).
+      rec.mediaNote = reqText(child);
+    },
+    '_CREA': (child) => {
+      // Ancestry.com Family Trees: the date the media object was
+      // created (see MultimediaRecord.createdAt).
+      rec.createdAt = reqText(child);
+    },
     '_SUBM': (child) => {
       // GDO: a pointer to the submitter record of this media object
       // (see MultimediaRecord.submitters).
@@ -164,7 +181,10 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // Généatique writes the format and title at OBJE-record level
       // (the webtrees per-vendor custom-tag registry, Geneatique.php) —
       // the GEDCOM 5.5 embedded-multimedia record shape, whose BLOB was
-      // removed in 5.5.1. Kept verbatim as a record extension.
+      // removed in 5.5.1. Kept as a record extension on input so 5.5
+      // files still import; dropped on export (neither target grammar
+      // has the embedded shape), and a record with no FILE at all is
+      // dropped entirely by the projections (see serialize/prepare.ts).
       addExtension(rec, child, ctx);
     };
     handlers["TITL"] = (child) => {
@@ -173,7 +193,8 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     };
     handlers["BLOB"] = (child) => {
       // The GEDCOM 5.5 embedded object (5.5.1 removed the BLOB form);
-      // kept verbatim as a record extension so 5.5 files still import.
+      // same convention as FORM (see above): kept on input, dropped on
+      // export.
       addExtension(rec, child, ctx);
     };
     handlers["WWW"] = (child) => {

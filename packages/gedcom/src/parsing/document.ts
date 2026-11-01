@@ -107,6 +107,7 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
     synthetic: [],
     syntheticIndex: 0,
     schemaTags: new Map(),
+    schema53Labels: new Map(),
   };
   const nodes = raw.nodes;
 

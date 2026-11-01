@@ -20,6 +20,7 @@ import type {
   IndividualEventStructure,
   IndividualRecord,
   InternetSearchStructure,
+  CorrespondenceStructure,
   MarriageStatusStructure,
   NameTypeStructure,
   Note,
@@ -72,7 +73,7 @@ import {
   parsePrivacyFlag,
   parseSourceCitation,
   parseUsmCode,
-  parseUsmFlag,
+  parseUsmFlagLenient,
   parseVendorFlag,
 } from './sources-media';
 import {
@@ -228,12 +229,16 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     _TYPE: (child) => {
       // The GEDCOM-L convention: _TYPE same-sex marks a same-sex
-      // union; no other FAM _TYPE value is defined.
+      // union; no other FAM _TYPE value is defined there. Other
+      // programs write relationship-kind values under FAM _TYPE
+      // anyway — a value other than same-sex is kept as a generic
+      // extension of the record instead of failing the whole import
+      // (the MSTAT conflict policy).
       const value = reqText(child).toUpperCase();
       if (value === 'SAME-SEX') {
         rec.sameSexUnion = true;
       } else {
-        fail('enum.invalid-value', `The FAM _TYPE "${value}" must be "same-sex"`, child.position);
+        addExtension(rec, child, ctx);
       }
     },
     _MARR: (child) => {
@@ -362,6 +367,54 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     REFN: (child) => {
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
+    _PRMN: (child) => {
+      // BKW6+: the family's permanent number, the FAM twin of the
+      // typed INDI `_PRMN` (the webtrees per-vendor custom-tag
+      // registry, BrothersKeeper.php: `FAM:_PRMN`:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/BrothersKeeper.php).
+      // Normalized into the REFN identifier slot; written back as the
+      // standard REFN.
+      (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
+    },
+    _FA1: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 1);
+    },
+    _FA2: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 2);
+    },
+    _FA3: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 3);
+    },
+    _FA4: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 4);
+    },
+    _FA5: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 5);
+    },
+    _FA6: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 6);
+    },
+    _FA7: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 7);
+    },
+    _FA8: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 8);
+    },
+    _FA9: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 9);
+    },
+    _FA10: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 10);
+    },
+    _FA11: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 11);
+    },
+    _FA12: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 12);
+    },
+    _FA13: (child) => {
+      pushFtmFamilyFact(rec, child, ctx, 13);
+    },
   };
   if (ctx.version === '7.0') {
     handlers["NCHI"] = (child) => {
@@ -434,6 +487,20 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       // USM6: the kind of relationship the partners are in (see
       // FamilyRecord.unionKind).
       rec.unionKind = parseUsmCode(child, 'UTYP', USM_UNION_KINDS);
+    };
+    handlers['_UTYP'] = (child) => {
+      // The underscore write-back spelling of the USM6 UTYP (the
+      // USM6 wire spelling is non-underscore; see FamilyRecord.unionKind
+      // for the export rule). Both spellings are recognized.
+      rec.unionKind = parseUsmCode(child, '_UTYP', USM_UNION_KINDS);
+    };
+    handlers["RFN"] = (child) => {
+      // Pro-Gen writes the reference number with the standard RFN tag
+      // under FAM (the webtrees per-vendor custom-tag registry,
+      // ProGen.php: `FAM:RFN`); the 5.5.1 and 7.0 FAM grammars have
+      // only REFN there, so the value normalizes into the REFN
+      // identifier slot and is written back as the standard REFN.
+      (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     };
     applyLegacyFamilyTags(rec, handlers, ctx);
   }
@@ -567,8 +634,7 @@ function pushLegacyIndividualAttribute(rec: IndividualRecord, node: RawNode, ctx
 
 /** An INDI-level legacy person link: a pointer payload becomes an ASSO
  *  with the RELA descriptor; a text payload becomes FACT + TYPE. */
-function pushLegacyAssociation(rec: IndividualRecord, node: RawNode, ctx: Ctx, relationship: string): void {
-  if (node.value.kind === 'pointer') {
+function pushLegacyAssociation(rec: IndividualRecord, node: RawNode, ctx: Ctx, relationship: string): void {  if (node.value.kind === 'pointer') {
     if (node.children.length > 0) {
       fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
     }
@@ -640,6 +706,41 @@ function pushLegacyPrivateNote(rec: IndividualRecord, node: RawNode, ctx: Ctx): 
     ctx,
   );
   (rec.notes ??= []).push(note);
+}
+
+/**
+ * The FTM/FTW `_FA1`–`_FA13` user fact under INDI ("definitions for
+ * facts", the Legacy "User-Defined GEDCOM Tags" help; the GenWiki
+ * "GEDCOM/_Nutzerdef-Tag" table reads "Fakten — FACT in 5.5.1"; the
+ * webtrees per-vendor custom-tag registry, FamilyTreeMaker.php, lists
+ * `INDI:_FA1` … `INDI:_FA13`). A fact entry whose label is declared
+ * in the HEAD.SCHEMA block (see Header.schema53): the TYPE resolves
+ * from the schema label of the context chain `INDI/_FAn`, falling
+ * back to `Fact n`. The payload text is kept.
+ */
+function pushFtmFact(rec: IndividualRecord, node: RawNode, ctx: Ctx, n: number): void {
+  const type = ctx.schema53Labels.get(`INDI/${node.tag}`) ?? `Fact ${n}`;
+  pushLegacyIndividualAttribute(rec, node, ctx, 'FACT', type);
+}
+
+/**
+ * The FTM/FTW `_FA1`–`_FA13` user fact under FAM (same sources as the
+ * INDI form): a FAM EVEN with the TYPE resolved from the schema label
+ * of the context chain `FAM/_FAn` (fallback `Fact n`). FAM EVEN
+ * carries the fact in both versions, unlike FAM FACT which is
+ * 7.0-only.
+ */
+function pushFtmFamilyFact(rec: FamilyRecord, node: RawNode, ctx: Ctx, n: number): void {
+  const type = ctx.schema53Labels.get(`FAM/${node.tag}`) ?? `Fact ${n}`;
+  const detail: EventDetail = {};
+  const handlers = eventDetailHandlers(ctx, detail);
+  handlers['TYPE'] = () => undefined;
+  dispatch(node, detail, handlers, ctx);
+  const raw = node.value.kind === 'text' ? node.value.text : '';
+  const familyDetail: FamilyEventDetail = {
+    ...(Object.keys(detail).length === 0 ? {} : { detail }),
+  };
+  (rec.events ??= []).push({ tag: 'EVEN', payload: raw, type, ...familyDetail } as FamilyEventStructure);
 }
 
 /** Applies the typed legacy INDI rules (see vendor-tags.ts) on 5.x input. */
@@ -1317,6 +1418,57 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       >;
       rec.sex = parseEnum(reqText(child), table, ctx.version, child.position);
     },
+    _CORR: (child) => {
+      // FO7: the correspondence entry block (see
+      // IndividualRecord.correspondence / CorrespondenceStructure):
+      // the REAS (reason), RESP (response) and RPLY (reply status)
+      // children; anything else stays a generic extension of the block.
+      const entry: CorrespondenceStructure = { tag: '_CORR' };
+      dispatch(
+        child,
+        entry,
+        {
+          REAS: (grandchild) => {
+            entry.reason = reqText(grandchild);
+          },
+          RESP: (grandchild) => {
+            entry.response = reqText(grandchild);
+          },
+          RPLY: (grandchild) => {
+            entry.replyStatus = reqText(grandchild);
+          },
+        },
+        ctx,
+        ['REAS', 'RESP', 'RPLY'],
+      );
+      rec.correspondence = entry;
+    },
+    _DIVERSES: (child) => {
+      // AF2000: a container for assorted data ("Container für diverse
+      // Daten mit Sub-Tags TITL als Benennung NOTE als Text", the
+      // GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+      // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Normalized
+      // into a FACT whose TYPE is the TITL text and whose payload is
+      // the NOTE text; the GenWiki table itself recommends "EVEN, FACT
+      // besser" for new files.
+      let type = 'Diverses';
+      let payload = '';
+      const detail: EventDetail = {};
+      const handlers = eventDetailHandlers(ctx, detail);
+      handlers['TITL'] = (grandchild) => {
+        type = reqText(grandchild);
+      };
+      handlers['NOTE'] = (grandchild) => {
+        payload = reqText(grandchild);
+      };
+      dispatch(child, detail, handlers, ctx);
+      (rec.attributes ??= []).push({
+        tag: 'FACT',
+        payload,
+        type,
+        ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+      });
+    },
     FAMC: (child) => {
       (rec.childFamilies ??= []).push(parseChildFamilyLink(child, ctx));
     },
@@ -1331,6 +1483,45 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       for (const grandchild of child.children) {
         addExtension(rec, grandchild, ctx);
       }
+    },
+    _FA1: (child) => {
+      pushFtmFact(rec, child, ctx, 1);
+    },
+    _FA2: (child) => {
+      pushFtmFact(rec, child, ctx, 2);
+    },
+    _FA3: (child) => {
+      pushFtmFact(rec, child, ctx, 3);
+    },
+    _FA4: (child) => {
+      pushFtmFact(rec, child, ctx, 4);
+    },
+    _FA5: (child) => {
+      pushFtmFact(rec, child, ctx, 5);
+    },
+    _FA6: (child) => {
+      pushFtmFact(rec, child, ctx, 6);
+    },
+    _FA7: (child) => {
+      pushFtmFact(rec, child, ctx, 7);
+    },
+    _FA8: (child) => {
+      pushFtmFact(rec, child, ctx, 8);
+    },
+    _FA9: (child) => {
+      pushFtmFact(rec, child, ctx, 9);
+    },
+    _FA10: (child) => {
+      pushFtmFact(rec, child, ctx, 10);
+    },
+    _FA11: (child) => {
+      pushFtmFact(rec, child, ctx, 11);
+    },
+    _FA12: (child) => {
+      pushFtmFact(rec, child, ctx, 12);
+    },
+    _FA13: (child) => {
+      pushFtmFact(rec, child, ctx, 13);
     },
     ASSO: (child) => {
       (rec.associations ??= []).push(parseAssociation(child, ctx));
@@ -1406,7 +1597,27 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     };
     handlers['SIGN'] = (child) => {
       // USM6: the person can sign (see IndividualRecord.canSign).
-      rec.canSign = parseUsmFlag(child, 'SIGN');
+      // Heredis writes the person's signature (free text) under the
+      // same tag — a payload that is not one of the flag spellings
+      // stays a generic extension instead of failing the import.
+      const flag = parseUsmFlagLenient(child, 'SIGN');
+      if (flag === undefined) {
+        addExtension(rec, child, ctx);
+      } else {
+        rec.canSign = flag;
+      }
+    };
+    handlers['_SIGN'] = (child) => {
+      // The underscore write-back spelling of the USM6 SIGN (the USM6
+      // wire spelling is non-underscore; see IndividualRecord.canSign
+      // for the export rule). Both spellings follow the same lenient
+      // rule.
+      const flag = parseUsmFlagLenient(child, '_SIGN');
+      if (flag === undefined) {
+        addExtension(rec, child, ctx);
+      } else {
+        rec.canSign = flag;
+      }
     };
     handlers["EMAIL"] = (child) => {
       // PAF writes the individual's e-mail address under INDI with the

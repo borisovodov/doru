@@ -545,7 +545,7 @@ export interface EventDetail extends GedcomStructureBase {
    * GEDCOM version. Recognized on 5.x input (an absent value, `Y`,
    * `YES`, `J`/`JA`, or `1` marks the flag set; `N`, `NO`, `NEIN`, or
    * `0` clears it — the wire value is undocumented, so the usual flag
-   * spellings are accepted) and written back as `POTM 1`/`POTM 0` in
+   * spellings are accepted) and written back as `_POTM 1`/`_POTM 0` in
    * 5.5.1; dropped on 7.0 output (7.0 cannot spell a non-underscore
    * extension tag).
    */
@@ -557,7 +557,7 @@ export interface EventDetail extends GedcomStructureBase {
    * documented in the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
    * "Tabelle 2" ("Ort für weitere Recherchen zum Ereignis"; see
    * `posthumous` for the URL). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `SRCH` in 5.5.1;
+   * Recognized on 5.x input and written back as `_SRCH` in 5.5.1;
    * dropped on 7.0 output.
    */
   furtherResearch?: Text;
@@ -567,7 +567,7 @@ export interface EventDetail extends GedcomStructureBase {
    * the meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2" ("Name des Notars - Ehevertrag, Testament";
    * see `posthumous` for the URL). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `NOTRY` in 5.5.1;
+   * Recognized on 5.x input and written back as `_NOTRY` in 5.5.1;
    * dropped on 7.0 output.
    */
   notary?: Text;
