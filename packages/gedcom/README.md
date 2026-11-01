@@ -337,9 +337,12 @@ What strictness rejects (each with its own error code):
 
 Extension tags (`_…`) are accepted anywhere and kept as opaque
 `ExtensionStructure` nodes, per 7.0 §1.5 / 5.5.1 `NEW_TAG`. A
-cross-reference identifier on such a structure is first-class at any
-depth (7.0 §1.5): it registers as a pointer target, survives in the
-model (`ExtensionStructure.xref`) and is written back at its level.
+cross-reference identifier on such a structure is first-class: it
+registers as a pointer target, survives in the model
+(`ExtensionStructure.xref`) and is written back — at any level by the
+5.5.1 writer (5.5.1 files in the wild carry substructure xrefs), and
+only at record level by the 7.0 writer (GEDCOM 7.0 §1.3: "A substructure
+or pseudo-structure must not have a cross-reference identifier").
 
 ## Serialization
 
@@ -602,14 +605,19 @@ The agreed policy:
   `BTYP` under BIRT, `AGED` under BURI (into the standard `AGE`),
   `MTYP` under INDI.FAMC, `UTYP` under FAM, `SURE` under NCHI,
   `POTM`/`SRCH`/`NOTRY` under event details, `RINI` under citations,
-  and `UGNM`/`NAME_`/`SECG` under NAME (5.x input; the non-underscore
-  spellings are dropped on 7.0 export and strict on 7.0 input). The
+  and `UGNM`/`NAME_`/`SECG` under NAME (5.x input; on 5.5.1 export the
+  underscore write-back spellings `_SIGN`/`_BTYP`/`_MTYP`/`_UTYP`/
+  `_SURE`/`_POTM`/`_SRCH`/`_NOTRY`/`_RINI`/`_NAME_`/`_SECG` are
+  written — 5.5.1 requires user-defined tags to begin with an
+  underscore — and both spellings are recognized on input; the tags
+  are dropped on 7.0 export and strict on 7.0 input). The
   tags with no typed rule — the "???" tail (`DETS`, `NAMM`,
   `PRTY`, …), the conflicting `MSTAT`, `LABL`/`SCHEMA` outside their
   schema contexts, and the remaining USM6/MFT tags (`DEED`, `MISE`,
   `MRCI`, `MRRE`, `PRIV`, `RECT`, the `FPRF`/`MPRF` settings blocks,
-  …) — stay generic extensions, preserved verbatim on 5.5.1 export
-  and dropped on 7.0 (extTag only); each tag's reason is recorded in
+  …) — stay generic extensions, dropped on export in both versions
+  (5.5.1 reserves the underscore prefix for user-defined tags and 7.0
+  accepts only extTags); each tag's reason is recorded in
   docs/vendor-extensions.md chapter 8. GEDCOM 7.0 input stays strict
   for the whole list, and unknown non-underscore tags remain
   `structure.unknown-tag` errors.
