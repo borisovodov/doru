@@ -247,10 +247,18 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
   // has no parenthesized form, so the phrase is written as a NOTE
   // subordinate to the DATE line — the alternative GEDCOM 5.5.1 §2
   // p.48 itself describes ("include the date phrase value as a NOTE
-  // value subordinate to the DATE line tag").
+  // value subordinate to the DATE line tag"). The 5.5.1 date structure
+  // also carries the optional TIME child (`n DATE <DATE_VALUE>` +
+  // `+1 TIME <TIME_VALUE>`), written right after the DATE line.
+  const writeDateLine = (value: string | undefined): void => {
+    w.line(level, tag, value === undefined ? {} : { value });
+    if (date.time !== undefined) {
+      w.line(level + 1, 'TIME', { value: formatTime(date.time, '5.5.1') });
+    }
+  };
   if (date.value === undefined) {
     if (date.phrase !== undefined) {
-      w.line(level, tag, { value: `(${date.phrase})` });
+      writeDateLine(`(${date.phrase})`);
       emitExtensions(w, version, level + 1, date);
     }
     // An empty date with no phrase has no 5.5.1 spelling (the 5.5.1
@@ -267,7 +275,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     // spelling either and is dropped.
     const phraseSpelling = formatDateValue70(date.value);
     if (phraseSpelling !== undefined && phraseSpelling !== '') {
-      w.line(level, tag, { value: `(${phraseSpelling})` });
+      writeDateLine(`(${phraseSpelling})`);
       if (date.phrase !== undefined) {
         w.line(level + 1, 'NOTE', { value: date.phrase });
       }
@@ -279,22 +287,22 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     // The empty payload form (GEDCOM 7.0 §2.4): nothing to write on a
     // 5.5.1 DATE line; a phrase still gives the DATE a body.
     if (date.phrase !== undefined) {
-      w.line(level, tag, { value: `(${date.phrase})` });
+      writeDateLine(`(${date.phrase})`);
     }
     emitExtensions(w, version, level + 1, date);
     return;
   }
   if (date.phrase !== undefined) {
     if (date.value.kind === 'date') {
-      w.line(level, tag, { value: `INT ${raw} (${date.phrase})` });
+      writeDateLine(`INT ${raw} (${date.phrase})`);
     } else {
-      w.line(level, tag, { value: raw });
+      writeDateLine(raw);
       w.line(level + 1, 'NOTE', { value: date.phrase });
     }
     emitExtensions(w, version, level + 1, date);
     return;
   }
-  w.line(level, tag, { value: raw });
+  writeDateLine(raw);
   emitExtensions(w, version, level + 1, date);
 }
 
@@ -511,6 +519,24 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   if (detail.eventNumber !== undefined) {
     // BKW6+: the event number (see EventDetail.eventNumber).
     w.line(level, '_EVN', { value: detail.eventNumber });
+  }
+  if (detail.birthLength !== undefined) {
+    // Aldfaer: the length at birth (see EventDetail.birthLength).
+    w.line(level, '_LENGTH', { value: detail.birthLength });
+  }
+  if (detail.birthWeight !== undefined) {
+    // Aldfaer: the weight at birth (see EventDetail.birthWeight).
+    w.line(level, '_WEIGHT', { value: detail.birthWeight });
+  }
+  if (detail.cemetery !== undefined) {
+    // phpGedView: the cemetery of the burial (see EventDetail.cemetery);
+    // written back as the underscore spelling `_CEME`.
+    w.line(level, '_CEME', { value: detail.cemetery });
+  }
+  if (detail.createdAt !== undefined) {
+    // Heredis/MFT7/GenPlus: the event creation date (see
+    // EventDetail.createdAt).
+    w.line(level, '_CREAT', { value: detail.createdAt });
   }
   if (version === '5.5.1') {
     // The USM6 event marks; 7.0 cannot spell the tags. The 5.5.1

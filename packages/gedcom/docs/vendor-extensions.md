@@ -779,13 +779,23 @@ spellings and the underscore forms are both recognized on input, and
 | `URL` under ADDR | PAF (5.5.5 recommends) | The web address, a synonym of WWW (5.5.5 §2 p.65) | the address `www` slot |
 | `POST` / `NAME._LANG` under `_LOC` | GEDCOM 5.5EL (historical) | The postal code / name language under a place record | `PlaceRecord.postalCodes` / `PlaceNameStructure.language` |
 | `_ADDENDUM <name>` | GEDCOM-L §7.3 | The addendum declaration's name payload, {0:M} per file | `Gedcom.addenda` |
+| `_HTITL` / `_WTITL` / `_RPT_PHRS` / `_RPT_PHRS2` under FAM.MARR | Legacy | The husband's / wife's report labels and the two report phrases (webtrees Legacy.php, "Label for husband", "Label for wife", "Report phrase") | `MarriageEvent.husbandLabel` / `wifeLabel` / `reportPhrases` |
+| `_LENGTH` / `_WEIGHT` under BIRT | Aldfaer | The length / weight at birth (webtrees Aldfaer.php) | `EventDetail.birthLength` / `birthWeight` |
+| `_ALDFAER_TIME` under BIRT/DEAT | Aldfaer | The time of birth/death (webtrees Aldfaer.php, `TimeValue`); attached to the DATE.TIME slot when a DATE exists, a generic extension otherwise | `DateStructure.time` / the detail's extensions |
+| `CEME` under BURI | phpGedView | The cemetery of the burial (webtrees PhpGedView.php, `INDI:BURI:CEME`) | `EventDetail.cemetery` (written back as `_CEME`) |
+| `_CREA` / `_CRE` / `_CREAT` under events | Heredis, MFT7, GenPlus | The event creation date (kept free text; GenWiki "Datensatz, Ereignis") | `EventDetail.createdAt` (written back as `_CREAT`) |
 
 Also fixed in this sweep: the FAM `_TYPE` handler no longer rejects
 values other than `same-sex` (they stay generic extensions — other
 programs write relationship kinds there), the payload-less `1 FACT` +
-`TYPE Bürgerort` P8 import form parses, and the USM6 `SIGN` handler
+`TYPE Bürgerort` P8 import form parses, the USM6 `SIGN` handler
 tolerates the Heredis signature payloads (non-flag values stay generic
-extensions instead of failing with `enum.invalid-value`).
+extensions instead of failing with `enum.invalid-value`), the 5.5.1
+writer emits the DATE.TIME child it previously dropped, and the census
+INDI SEX/ROLE parse through the registry's standard structures (SEX via
+the version enum, ROLE via the v5.5.1 ROLE_IN_EVENT grammar with the
+bare MagiKey descriptors normalized to OTHER + phrase); the MagiKey
+`_AGER` range rejects an inverted bound order.
 
 Covered by `tests/audit-fixes.test.ts`.
 

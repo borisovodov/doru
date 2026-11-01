@@ -70,6 +70,9 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
   payload?: true | string;
   type?: string;
   detail?: FamilyEventDetail;
+  husbandLabel?: string;
+  wifeLabel?: string;
+  reportPhrases?: string[];
   extensions?: ExtensionStructure[];
 }): void {
   if (event.tag === 'EVEN') {
@@ -91,6 +94,21 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
     w.line(1, event.tag);
   }
   emitFamilyDetail(w, version, 2, event.detail, event.type);
+  if (event.tag === 'MARR') {
+    // The Legacy marriage report labels and phrases (see
+    // MarriageEvent.husbandLabel / wifeLabel / reportPhrases).
+    if (event.husbandLabel !== undefined) {
+      w.line(2, '_HTITL', { value: event.husbandLabel });
+    }
+    if (event.wifeLabel !== undefined) {
+      w.line(2, '_WTITL', { value: event.wifeLabel });
+    }
+    (event.reportPhrases ?? []).forEach((phrase, index) => {
+      if (phrase !== '') {
+        w.line(2, index === 0 ? '_RPT_PHRS' : '_RPT_PHRS2', { value: phrase });
+      }
+    });
+  }
   emitExtensions(w, version, 2, event);
 }
 

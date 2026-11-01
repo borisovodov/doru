@@ -103,7 +103,11 @@ import {
 } from './types';
 import {
   parseAge551,
+  parseTime551,
 } from './types';
+import type {
+  TimeValue,
+} from '../primitives';
 
 // Family/individual links, events, attributes, ordinances
 // ---------------------------------------------------------------------------
@@ -546,6 +550,33 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       }
     }
   };
+  handlers['_CREA'] = (child) => {
+    // Heredis: the date the event was created (see
+    // EventDetail.createdAt).
+    detail.createdAt = reqText(child);
+  };
+  handlers['_CRE'] = (child) => {
+    // MFT7: the date the event was created ("Datensatz, Ereignis";
+    // same slot and source as `_CREA`).
+    detail.createdAt = reqText(child);
+  };
+  handlers['_CREAT'] = (child) => {
+    // GenPlus: the date the event was created (same slot as `_CREA`).
+    detail.createdAt = reqText(child);
+  };
+  if (ctx.version === '5.5.1') {
+    handlers['CEME'] = (child) => {
+      // phpGedView: the cemetery of the burial (see
+      // EventDetail.cemetery); 7.0 input stays strict for the
+      // non-underscore spelling.
+      detail.cemetery = reqText(child);
+    };
+  }
+  handlers['_CEME'] = (child) => {
+    // The underscore write-back spelling of the phpGedView CEME (the
+    // wire spelling is non-underscore; both are recognized).
+    detail.cemetery = reqText(child);
+  };
   if (ctx.version === '5.5.1') {
     // The Gramps witness convention; normalized like _SHAR.
     handlers['ASSO'] = (child) => {
@@ -684,6 +715,16 @@ export function setY(event: EventShape, node: RawNode): void {
   }
 }
 
+/** Sets the n-th Legacy marriage report phrase slot, padding the gaps
+ *  (see MarriageEvent.reportPhrases). */
+function setReportPhrase(event: { reportPhrases?: string[] }, index: number, text: string): void {
+  const phrases = (event.reportPhrases ??= []);
+  while (phrases.length <= index) {
+    phrases.push('');
+  }
+  phrases[index] = text;
+}
+
 export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEventStructure {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
@@ -699,6 +740,23 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   handlers["WIFE"] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
   };
+  if (tag === 'MARR') {
+    // The Legacy report labels and phrases of the marriage (see the
+    // fields of MarriageEvent).
+    const marr = event as unknown as { husbandLabel?: string; wifeLabel?: string; reportPhrases?: string[] };
+    handlers['_HTITL'] = (child) => {
+      marr.husbandLabel = reqText(child);
+    };
+    handlers['_WTITL'] = (child) => {
+      marr.wifeLabel = reqText(child);
+    };
+    handlers['_RPT_PHRS'] = (child) => {
+      setReportPhrase(marr, 0, reqText(child));
+    };
+    handlers['_RPT_PHRS2'] = (child) => {
+      setReportPhrase(marr, 1, reqText(child));
+    };
+  }
 
   if (tag === 'EVEN') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
@@ -872,6 +930,8 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   const detail: IndividualEventDetail = {};
   const event = {} as EventShape;
   event.tag = tag;
+  let aldfaerNode: RawNode | undefined;
+  let aldfaerTime: TimeValue | undefined;
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
     event.type = parseEventType(child, ctx);
@@ -916,6 +976,27 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       detail.age = { payload };
     };
   }
+  if (tag === 'BIRT') {
+    handlers['_LENGTH'] = (child) => {
+      // Aldfaer: the length at birth (see EventDetail.birthLength).
+      detail.birthLength = reqText(child);
+    };
+    handlers['_WEIGHT'] = (child) => {
+      // Aldfaer: the weight at birth (see EventDetail.birthWeight).
+      detail.birthWeight = reqText(child);
+    };
+  }
+  if (tag === 'BIRT' || tag === 'DEAT') {
+    handlers['_ALDFAER_TIME'] = (child) => {
+      // Aldfaer: the time of birth/death, written directly under the
+      // event (beside DATE). Attached to the date's TIME slot after
+      // the dispatch when a DATE exists; without a DATE the line stays
+      // a generic extension of the detail (preserved verbatim — there
+      // is no time-only slot).
+      aldfaerNode = child;
+      aldfaerTime = parseTime551(reqText(child), child.position);
+    };
+  }
 
   if (tag === 'EVEN') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
@@ -939,6 +1020,16 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   dispatch(node, event, handlers, ctx, ['BTYP', '_BTYP', 'AGED']);
   if (ctx.version === '5.5.1') {
     merge551DetailContacts(detail);
+  }
+  if (aldfaerNode !== undefined && aldfaerTime !== undefined) {
+    // The Aldfaer time under BIRT/DEAT (see the handler above): attach
+    // it to the date's TIME slot when a DATE exists; otherwise the
+    // line stays a generic extension of the detail.
+    if (detail.date !== undefined && detail.date.time === undefined) {
+      detail.date.time = aldfaerTime;
+    } else {
+      addExtension(detail, aldfaerNode, ctx);
+    }
   }
   if (Object.keys(detail).length > 0) {
     event.detail = detail;

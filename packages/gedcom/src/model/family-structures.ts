@@ -159,7 +159,36 @@ export interface MarriageContractEvent extends FamilyEventBase<'MARC'> {}
 export interface MarriageLicenseEvent extends FamilyEventBase<'MARL'> {}
 
 /** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARR: marriage. GEDCOM 7.0 §3.3.1.2. */
-export interface MarriageEvent extends FamilyEventBase<'MARR'> {}
+export interface MarriageEvent extends FamilyEventBase<'MARR'> {
+  /**
+   * _HTITL {0:1} — the husband's label for marriage reports, written
+   * by Legacy Family Tree under FAM.MARR (the webtrees per-vendor
+   * custom-tag registry, Legacy.php, "Label for husband":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Legacy.php).
+   * Not part of any GEDCOM version. Recognized on input in both
+   * versions (under MARR only) and written back as `_HTITL` in both
+   * versions.
+   */
+  husbandLabel?: Text;
+  /**
+   * _WTITL {0:1} — the wife's label for marriage reports, written by
+   * Legacy Family Tree under FAM.MARR (same source as `husbandLabel`,
+   * "Label for wife"). Not part of any GEDCOM version. Recognized on
+   * input in both versions (under MARR only) and written back as
+   * `_WTITL` in both versions.
+   */
+  wifeLabel?: Text;
+  /**
+   * _RPT_PHRS {0:1} and _RPT_PHRS2 {0:1} — the report phrases of the
+   * marriage, written by Legacy Family Tree under FAM.MARR (same
+   * source as `husbandLabel`, "Report phrase"). Kept by slot (index 0
+   * is _RPT_PHRS, index 1 is _RPT_PHRS2; gaps stay empty). Not part of
+   * any GEDCOM version. Recognized on input in both versions (under
+   * MARR only) and written back as `_RPT_PHRS`/`_RPT_PHRS2` in both
+   * versions.
+   */
+  reportPhrases?: Text[];
+}
 
 /** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:MARS: marriage settlement. GEDCOM 7.0 §3.3.1.2. */
 export interface MarriageSettlementEvent extends FamilyEventBase<'MARS'> {}

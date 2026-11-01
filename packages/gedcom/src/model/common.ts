@@ -586,6 +586,46 @@ export interface EventDetail extends GedcomStructureBase {
    * canonical flag names in both versions.
    */
   factFlags?: FactFlag[];
+  /**
+   * `_LENGTH` {0:1} — the length at birth, written by Aldfaer under
+   * the BIRT event (the webtrees per-vendor custom-tag registry,
+   * Aldfaer.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Aldfaer.php).
+   * Not part of any GEDCOM version. Recognized on input in both
+   * versions (under BIRT only) and written back as `_LENGTH` in both
+   * versions.
+   */
+  birthLength?: Text;
+  /**
+   * `_WEIGHT` {0:1} — the weight at birth, written by Aldfaer under
+   * the BIRT event (same source as `birthLength`). Not part of any
+   * GEDCOM version. Recognized on input in both versions (under BIRT
+   * only) and written back as `_WEIGHT` in both versions.
+   */
+  birthWeight?: Text;
+  /**
+   * CEME {0:1} — the cemetery of a burial, written by phpGedView
+   * under the BURI event (the webtrees per-vendor custom-tag registry,
+   * PhpGedView.php: `INDI:BURI:CEME`:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php;
+   * the INDI-level FTW5 CEME normalizes into a FACT instead — see
+   * parsing/vendor-tags.ts). Not part of any GEDCOM version.
+   * Recognized on 5.x input and written back as `_CEME` in both
+   * versions (the phpGedView wire spelling is non-underscore).
+   */
+  cemetery?: Text;
+  /**
+   * `_CREA`/`_CRE`/`_CREAT` {0:1} — the date the event was created (a
+   * free text value; the wire format of the writers is undocumented,
+   * so it is kept verbatim — the event-level twin of the record-level
+   * `IndividualRecord.createdAt`/`FamilyRecord.createdAt`). Written by
+   * Heredis (`_CREA`), Mac Family Tree 7 (`_CRE`, "Datensatz,
+   * Ereignis" in the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) and GenPlus
+   * (`_CREAT`). Not part of any GEDCOM version. Recognized on input in
+   * both versions and written back as `_CREAT` in both versions.
+   */
+  createdAt?: Text;
 }
 
 /**

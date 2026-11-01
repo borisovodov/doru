@@ -338,8 +338,7 @@ describe('the SUBN _IMPF write-back', () => {
   });
 });
 
-describe('the GEDCOM 5.5 embedded-multimedia record shape', () => {
-  const EMBEDDED = [...H551, '0 @O1@ OBJE', '1 FORM gif', '1 TITL The picture', '0 @I1@ INDI', '1 NAME A /B/', '1 OBJE @O1@', ...SUBM, '0 TRLR'].join('\n');
+describe('the GEDCOM 5.5 embedded-multimedia record shape', () => {  const EMBEDDED = [...H551, '0 @O1@ OBJE', '1 FORM gif', '1 TITL The picture', '0 @I1@ INDI', '1 NAME A /B/', '1 OBJE @O1@', ...SUBM, '0 TRLR'].join('\n');
 
   test('parses on 5.x input (no FILE required for the 5.5 shape)', () => {
     const dataset = parseOk551(EMBEDDED);
@@ -385,6 +384,80 @@ describe('the free-text SOUR citation vendor children', () => {
     expect(out).toContain('3 _FIELD TX-PAGE');
     expect(out).toContain('4 TEXT Page 321');
     expect(out).toContain('3 _RINI J. Finder');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+});
+
+describe('the 2026-11 tail: Legacy marriage report fields, Aldfaer birth data, phpGedView CEME, event creation dates', () => {
+  test('the Legacy FAM.MARR report labels and phrases round-trip in both versions', () => {
+    const dataset = parseOk551([...H551, '0 @F1@ FAM', '1 MARR', '2 _HTITL The groom', '2 _WTITL The bride', '2 _RPT_PHRS First phrase', '2 _RPT_PHRS2 Second phrase', ...SUBM, '0 TRLR'].join('\n'));
+    const fam = dataset.records.find((r) => r.tag === 'FAM');
+    const marr = fam?.tag === 'FAM' ? fam.events?.[0] : undefined;
+    expect(marr?.tag === 'MARR' ? marr.husbandLabel : undefined).toBe('The groom');
+    expect(marr?.tag === 'MARR' ? marr.wifeLabel : undefined).toBe('The bride');
+    expect(marr?.tag === 'MARR' ? marr.reportPhrases : undefined).toEqual(['First phrase', 'Second phrase']);
+    const out = lines(ser551(dataset));
+    expect(out).toContain('2 _HTITL The groom');
+    expect(out).toContain('2 _WTITL The bride');
+    expect(out).toContain('2 _RPT_PHRS First phrase');
+    expect(out).toContain('2 _RPT_PHRS2 Second phrase');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+    // The 7.0 export spells the same underscore tags (extension tags
+    // are valid in both versions); the fields survive the round trip.
+    const reparsed70 = parseOk70(ser70(dataset));
+    const fam70 = reparsed70.records.find((r) => r.tag === 'FAM');
+    const marr70 = fam70?.tag === 'FAM' ? fam70.events?.[0] : undefined;
+    expect(marr70?.tag === 'MARR' ? marr70.husbandLabel : undefined).toBe('The groom');
+    expect(marr70?.tag === 'MARR' ? marr70.reportPhrases : undefined).toEqual(['First phrase', 'Second phrase']);
+  });
+
+  test('the Aldfaer birth length and weight type under BIRT', () => {
+    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 _LENGTH 52 cm', '2 _WEIGHT 3900 g', ...SUBM, '0 TRLR'].join('\n'));
+    const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
+    expect(birth?.detail?.birthLength).toBe('52 cm');
+    expect(birth?.detail?.birthWeight).toBe('3900 g');
+    const out = lines(ser551(dataset));
+    expect(out).toContain('2 _LENGTH 52 cm');
+    expect(out).toContain('2 _WEIGHT 3900 g');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+
+  test('the Aldfaer time under BIRT attaches to the date TIME slot', () => {
+    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 DATE 1 JAN 1900', '2 _ALDFAER_TIME 10:30', ...SUBM, '0 TRLR'].join('\n'));
+    const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
+    expect(birth?.detail?.date?.time).toEqual({ hour: 10, minute: 30 });
+    // The write-back uses the standard DATE.TIME spelling.
+    const out = lines(ser551(dataset));
+    expect(out).toContain('2 DATE 1 JAN 1900');
+    expect(out).toContain('3 TIME 10:30');
+    expect(out).not.toContain('_ALDFAER_TIME');
+  });
+
+  test('the Aldfaer time without a DATE stays a generic extension', () => {
+    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 DEAT', '2 _ALDFAER_TIME 22:00', ...SUBM, '0 TRLR'].join('\n'));
+    const death = indi(dataset).events?.find((entry) => entry.tag === 'DEAT');
+    expect(death?.detail?.extensions).toContainEqual(expect.objectContaining({ tag: '_ALDFAER_TIME', payload: '22:00' }));
+    expect(lines(ser551(dataset))).toContain('2 _ALDFAER_TIME 22:00');
+  });
+
+  test('the phpGedView CEME under BURI types into the cemetery slot', () => {
+    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 BURI', '2 CEME Old Cemetery', ...SUBM, '0 TRLR'].join('\n'));
+    const burial = indi(dataset).events?.find((entry) => entry.tag === 'BURI');
+    expect(burial?.detail?.cemetery).toBe('Old Cemetery');
+    // The write-back uses the underscore spelling.
+    const out = lines(ser551(dataset));
+    expect(out).toContain('2 _CEME Old Cemetery');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+    // 7.0 input stays strict for the non-underscore spelling.
+    expect(parseGedcom70(enc([...H70, '0 @I1@ INDI', '1 BURI', '2 CEME x', '0 TRLR'].join('\n'))).ok).toBe(false);
+  });
+
+  test('the event creation dates type into EventDetail.createdAt', () => {
+    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 _CRE 12 JUN 2020', ...SUBM, '0 TRLR'].join('\n'));
+    const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
+    expect(birth?.detail?.createdAt).toBe('12 JUN 2020');
+    // The canonical write-back spelling is _CREAT.
+    expect(lines(ser551(dataset))).toContain('2 _CREAT 12 JUN 2020');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 });
