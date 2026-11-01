@@ -88,7 +88,7 @@ Dóru on Windows is distributed through **Scoop**, a command-line installer
 that keeps applications up to date. If you don't have Scoop yet, install it
 from [scoop.sh](https://scoop.sh) first.
 
-Dóru requires Windows 10 or later.
+Dóru requires Windows 11 or later.
 
 To install Dóru, open PowerShell and run these commands:
 
