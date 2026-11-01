@@ -156,7 +156,9 @@ describe('the GDO duplicate record, import references and submitter pointers', (
     expect(text).toContain('1 _CPT possible duplicate');
     expect(text).toContain('1 _INDI @I1@');
     expect(text).toContain('1 _SUBM @S1@');
-    expect(text).toContain('1 _IMPF @S2@');
+    // The _IMPF payload is free text that happens to be xref-shaped;
+    // the 5.5.1 writer doubles the @ so it re-parses as text.
+    expect(text).toContain('1 _IMPF @@S2@@');
     expect(parseOk551(text)).toEqual(dataset);
   });
 });
@@ -243,14 +245,16 @@ describe('the PC-AHNEN, GenPlus, MFT7, FTB and TMG tags', () => {
     expect(parseOk551(text)).toEqual(dataset);
   });
 
-  test('the Reunion AUTH and ANCE tags are accepted generically and preserved', () => {
+  test('the Reunion AUTH and ANCE tags are accepted generically and dropped on export', () => {
     const dataset = parseOk551(indi551(['1 AUTH someone', '1 ANCE x']));
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     expect(indi?.tag === 'INDI' ? indi.extensions?.map((e) => e.tag) : undefined).toEqual(['AUTH', 'ANCE']);
+    // Non-underscore vendor extensions have no conformant 5.5.1
+    // spelling (user-defined tags must be underscore-prefixed) and are
+    // dropped on export in both versions.
     const text = ser551(dataset);
-    expect(text).toContain('1 AUTH someone');
-    expect(text).toContain('1 ANCE x');
-    expect(parseOk551(text)).toEqual(dataset);
+    expect(text).not.toContain('1 AUTH someone');
+    expect(text).not.toContain('1 ANCE x');
   });
 });
 

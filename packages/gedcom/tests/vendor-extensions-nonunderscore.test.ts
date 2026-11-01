@@ -163,9 +163,12 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     // NAME_, NOTRY, POTM, PRIV, RECT, RINI, SECG, SIGN, SRCH, SURE,
     // UGNM, UTYP), the RootsMagic `FSFTID`, and the webtrees
     // per-vendor custom-tag registry additions: the typed Aldfaer
-    // MARR_* tags (4), the phpGedView COMM, the RootsMagic WWW, and the
-    // generic phpGedView SERV and MyHeritage PERSONALPHOTO.
-    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(164);
+    // MARR_* tags (4), the phpGedView COMM, the RootsMagic WWW, the
+    // generic phpGedView SERV and MyHeritage PERSONALPHOTO, plus the
+    // Pro-Gen RFN and TIME and the Legacy MEDI (generic where the
+    // standard grammar has no slot for them; typed at their documented
+    // positions).
+    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(167);
     expect(LEGACY_GENERIC_TAGS.size).toBe(36);
   });
 
@@ -337,29 +340,37 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     expect(result.error.code).toBe('structure.unknown-tag');
   });
 
-  test('record-level tags become ExtensionRecords with their xref, dropped on 7.0', () => {
+  test('record-level tags become ExtensionRecords with their xref, dropped on export', () => {
     const text = [...H551, '0 @X1@ LDS', '1 CHIL @I1@', '0 @I1@ INDI', ...SUBM, '0 TRLR'].join('\n');
     const dataset = parseOk551(text);
     const record = dataset.records.find((entry) => entry.tag === 'LDS');
     expect(record).toBeDefined();
     expect((record as ExtensionRecord).xref).toBe('@X1@');
-    const output = ser551(dataset);
-    expect(lines(output)).toContain('0 @X1@ LDS');
-    expect(lines(output)).toContain('1 CHIL @I1@');
-    expect(parseOk551(output)).toEqual(dataset);
+    // A non-underscore extension record has no conformant spelling in
+    // either target version and is dropped on export in both.
+    expect(ser551(dataset)).not.toContain('@X1@ LDS');
     expect(ser70(dataset)).not.toContain('@X1@ LDS');
   });
 
-  test('nested generic children round-trip verbatim, order preserved', () => {
-    const text = indi551(['1 DETS something', '2 _TAG alpha', '2 HISTB field notes']);
+  test('nested children of an underscore extension round-trip verbatim, order preserved', () => {
+    const text = indi551(['1 _WRAP outer', '2 _TAG alpha', '2 HISTB field notes']);
     const dataset = parseOk551(text);
     const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
-    const extension = (indi as IndividualRecord).extensions?.find((entry) => entry.tag === 'DETS');
+    const extension = (indi as IndividualRecord).extensions?.find((entry) => entry.tag === '_WRAP');
     expect(extension?.children.map((child) => child.tag)).toEqual(['_TAG', 'HISTB']);
     const output = ser551(dataset);
+    expect(lines(output)).toContain('1 _WRAP outer');
     expect(lines(output)).toContain('2 _TAG alpha');
     expect(lines(output)).toContain('2 HISTB field notes');
     expect(parseOk551(output)).toEqual(dataset);
+  });
+
+  test('a non-underscore generic extension and its children are dropped on 5.5.1 export', () => {
+    const text = indi551(['1 DETS something', '2 _TAG alpha', '2 HISTB field notes']);
+    const dataset = parseOk551(text);
+    const output = ser551(dataset);
+    expect(output).not.toContain('DETS');
+    expect(output).not.toContain('HISTB');
   });
 
   test('a TYPE child overrides the default fact type (ATTR)', () => {

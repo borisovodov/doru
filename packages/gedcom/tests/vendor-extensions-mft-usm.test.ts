@@ -102,16 +102,21 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     const name = person.names?.[0];
     expect(name?.furtherGivenNames).toBe('Johann');
     expect(name?.surnameVariants).toBe('Variant');
-    // …and the undocumented tail stays generic, preserved verbatim.
+    // …and the undocumented tail stays generic in the model.
     const extensionTags = (person.extensions ?? []).map((entry) => entry.tag);
     expect(extensionTags).toEqual(
       expect.arrayContaining(['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT']),
     );
-    // The children under a generic extension survive verbatim too.
+    // The children under a generic extension survive in the model too.
     const mrci = person.extensions?.find((entry) => entry.tag === 'MRCI');
     expect(mrci?.children).toEqual([{ tag: 'DATE', payload: '12 JUN 1910', children: [] }]);
-    // The 5.5.1 round trip preserves everything.
-    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+    // The 5.5.1 round trip preserves the typed slots; the non-underscore
+    // generic tail has no conformant 5.5.1 spelling and is dropped.
+    const reparsed = parseOk551(ser551(dataset));
+    const reparsedPerson = indi(reparsed);
+    expect(reparsedPerson.extensions).toBeUndefined();
+    expect(reparsedPerson.events?.find((entry) => entry.tag === 'BIRT')?.birthType).toBe('2');
+    expect(reparsedPerson.names?.[0]?.furtherGivenNames).toBe('Johann');
   });
 
   test('the FAM-level USM6 SURE under NCHI is typed too', () => {
