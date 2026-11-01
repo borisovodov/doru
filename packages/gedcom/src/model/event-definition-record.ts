@@ -13,11 +13,14 @@
  *
  * The vendor's help enumerates the members but not the wire shape, so
  * the parser accepts every documented form: the defined event/fact tag
- * may be the record payload (`0 _EVENT_DEFN BIRT`), a standard-tag
- * child (`1 BIRT`, which the GEDCOM-L agreement N4 permits under a
- * user-defined tag), or a `TYPE`/`_TYPE` child; the definition members
- * (`_CONF_FLAG`, `_DATE_TYPE`, `_DESC_FLAG`, `_PLACE_TYPE`,
- * `_PP_EXCLUDE`, the `_SEN1`–`_SEN8` sentences and the PAF5 sentence
+ * may be the record payload (`0 _EVENT_DEFN BIRT` — real Legacy files
+ * write the definition's name there), a bare standard-tag child
+ * (`1 BIRT`, which the GEDCOM-L agreement N4 permits under a
+ * user-defined tag), or the legacy `_TYPE` child; the `TYPE` child
+ * carries the event kind code (`I`/`F`), `TITL` the display title, and
+ * the definition members (`_CONF_FLAG`, `_DATE_TYPE`, `_DESC_FLAG`,
+ * `_PLACE_TYPE`, `_PP_EXCLUDE`, `_INC_NOTES`, the `_SEN1`–`_SEN8`
+ * sentences, the per-role `ROLE` sentence sets and the PAF5 sentence
  * set) are typed; everything else stays a generic extension, preserved
  * verbatim.
  */
@@ -29,11 +32,45 @@ export interface EventDefinitionRecord extends GedcomStructureBase {
   /** The record's cross-reference identifier (@…@); optional when nothing points to it. */
   xref?: Xref;
   /**
-   * The event or fact tag this record defines (e.g. `BIRT`), in the
-   * vendor's spelling: the record payload, a standard-tag child, or a
-   * `TYPE`/`_TYPE` child. Written back as the record payload.
+   * The event or fact tag this record defines (e.g. `BIRT` or the
+   * custom event name), in the vendor's spelling: the record payload
+   * (real Legacy files write the definition's name there), a bare
+   * standard-tag child (`1 BIRT`, which the GEDCOM-L agreement N4
+   * permits under a user-defined tag), or the legacy `_TYPE` child.
+   * Written back as the record payload.
    */
   eventType?: Text;
+  /**
+   * TYPE {0:1} — the event kind code: `I` for an individual event, `F`
+   * for a family event (the values of the real Legacy exports, e.g.
+   * the gedcom4j "legacycustomtags.ged" sample). Free text — the
+   * vendor documents no value set. Recognized on input and written
+   * back as `TYPE` in both versions.
+   */
+  kind?: Text;
+  /**
+   * TITL {0:1} — the display title of the definition. Written by
+   * Legacy under the record (same real-file source as `kind`); a bare
+   * `TITL` child without a payload still names the standard TITL
+   * attribute as the defined tag (see `eventType`). Recognized on
+   * input and written back as `TITL` in both versions.
+   */
+  title?: Text;
+  /**
+   * ROLE {0:M} — the per-role sentence sets: for each witness role of
+   * the event, a block with the role name as the payload, the eight
+   * role sentences (`_SEN1`…`_SEN8`) and the `_DEF` default-role mark
+   * (real Legacy exports, same source as `kind`). Recognized on input
+   * and written back as the ROLE blocks in both versions.
+   */
+  witnessRoles?: WitnessRoleSentenceSet[];
+  /**
+   * _INC_NOTES {0:1} — the event's notes are included in reports (a
+   * presence flag; real Legacy exports, same source as `kind`).
+   * Recognized on input (an absent value or `Y` marks the flag set,
+   * `N` clears it) and written back as `_INC_NOTES` in both versions.
+   */
+  includeNotes?: boolean;
   /**
    * _CONF_FLAG Y {0:1} — the event type is confidential or private
    * (a definition-level flag; the vendor's link from a definition to
@@ -54,6 +91,24 @@ export interface EventDefinitionRecord extends GedcomStructureBase {
   sentences?: Text[];
   /** The PAF5 sentence set: _SENM/_SENF/_SENU and the Date-Only / Place-Only / Date-and-Place variants. */
   pafSentences?: PafSentenceDefinitions;
+}
+
+/**
+ * One witness-role block under an `_EVENT_DEFN` record: `1 ROLE <role
+ * name>` with the eight role sentence definitions (`_SEN1`…`_SEN8`,
+ * kept in order, gaps stay empty) and the `_DEF` mark that the role is
+ * the default one. Real Legacy exports (e.g. the gedcom4j
+ * "legacycustomtags.ged" sample); not part of any GEDCOM version.
+ * Written back as the ROLE block in both versions.
+ */
+export interface WitnessRoleSentenceSet extends GedcomStructureBase {
+  tag: 'ROLE';
+  /** The ROLE payload, {1:1} — the role name (e.g. `Witness`). */
+  role: Text;
+  /** _SEN1 {0:1} … _SEN8 {0:1} — the eight role sentences, kept in order (gaps stay empty). */
+  sentences?: Text[];
+  /** _DEF {0:1} — the role is the default one (a presence flag). */
+  defaultRole?: boolean;
 }
 
 /**

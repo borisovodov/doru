@@ -251,6 +251,18 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           out.data ??= {};
           (out.data.texts ??= []).push(parseSourceText(child, ctx));
         },
+        'DATE': (child) => {
+          // Legacy Family Tree writes the citation date directly under
+          // the SOUR pointer (the canonical Legacy custom-tags sample,
+          // `3 DATE 29 Sep 2016`); the 5.5.1 grammar places it under
+          // DATA. It normalizes into the same data.date slot, with the
+          // at-most-one rule of the standard position.
+          out.data ??= {};
+          if (out.data.date !== undefined) {
+            fail('structure.cardinality', 'At most one DATE is allowed in a source citation', child.position);
+          }
+          out.data.date = parseDateStructure(child, ctx);
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -495,12 +507,22 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   let primary: boolean | undefined;
   let scrapbook: boolean | undefined;
   let slideshow: boolean | undefined;
+  // Legacy Family Tree writes the format directly under the inline
+  // OBJE (`2 FORM jpg` beside `2 FILE …`); the 5.5.1 inline grammar
+  // places it under FILE. It is injected into each FILE that lacks its
+  // own FORM before parsing (the canonical Legacy custom-tags sample).
+  const linkForm = node.children.find((child) => child.tag === 'FORM');
   dispatch(
     node,
     record,
     {
+      FORM: () => undefined,
       FILE: (child) => {
-        record.files.push(parseMediaFile(child, ctx));
+        const hasOwnForm = child.children.some((grandchild) => grandchild.tag === 'FORM');
+        const fileNode = linkForm !== undefined && !hasOwnForm
+          ? { ...child, children: [linkForm, ...child.children] }
+          : child;
+        record.files.push(parseMediaFile(fileNode, ctx));
       },
       TITL: (child) => {
         title = reqText(child);

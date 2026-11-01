@@ -519,9 +519,16 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // Heredis: the quality assessment of the whole source, written
       // with the standard QUAY tag at record level (the webtrees
       // per-vendor custom-tag registry, Heredis.php). No typed slot —
-      // the record-level assessment stays a generic extension,
-      // preserved verbatim on 5.5.1 output and dropped on 7.0 (QUAY is
-      // a citation-only tag there).
+      // the record-level assessment stays a generic extension, dropped
+      // on export in both versions (QUAY is a citation-only tag, and
+      // neither target spells a non-underscore extension).
+      addExtension(rec, child, ctx);
+    };
+    handlers["DATE"] = (child) => {
+      // Legacy Family Tree writes the source's date at record level
+      // (the canonical Legacy custom-tags sample, `1 DATE 29 Sep
+      // 2016`). Neither standard has a DATE slot under the SOUR
+      // record, so it stays a generic extension.
       addExtension(rec, child, ctx);
     };
     handlers["MEDI"] = (child) => {

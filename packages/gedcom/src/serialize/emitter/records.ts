@@ -738,6 +738,10 @@ export function emitTodoRecord(w: Writer, _version: Version, rec: {
 export function emitEventDefinition(w: Writer, version: Version, rec: {
   tag: '_EVENT_DEFN';
   eventType?: string;
+  kind?: string;
+  title?: string;
+  witnessRoles?: Array<{ role: string; sentences?: string[]; defaultRole?: boolean; extensions?: ExtensionStructure[] }>;
+  includeNotes?: boolean;
   confidentialFlag?: boolean;
   dateType?: string;
   descriptionFlag?: string;
@@ -762,6 +766,31 @@ export function emitEventDefinition(w: Writer, version: Version, rec: {
   xref?: string;
 }): void {
   w.line(0, '_EVENT_DEFN', { xref: rec.xref, value: rec.eventType });
+  if (rec.kind !== undefined) {
+    // The event kind code (see EventDefinitionRecord.kind).
+    w.line(1, 'TYPE', { value: rec.kind });
+  }
+  if (rec.title !== undefined) {
+    // The display title (see EventDefinitionRecord.title).
+    w.line(1, 'TITL', { value: rec.title });
+  }
+  for (const role of rec.witnessRoles ?? []) {
+    // The per-role sentence sets (see WitnessRoleSentenceSet).
+    w.line(1, 'ROLE', { value: role.role });
+    (role.sentences ?? []).forEach((sentence, index) => {
+      if (sentence !== '') {
+        w.line(2, index === 0 ? '_SEN1' : `_SEN${index + 1}`, { value: sentence });
+      }
+    });
+    if (role.defaultRole === true) {
+      w.line(2, '_DEF', { value: 'Y' });
+    }
+    emitExtensions(w, version, 2, role);
+  }
+  if (rec.includeNotes === true) {
+    // The include-notes flag (see EventDefinitionRecord.includeNotes).
+    w.line(1, '_INC_NOTES');
+  }
   if (rec.confidentialFlag !== undefined) {
     w.line(1, '_CONF_FLAG', { value: rec.confidentialFlag ? 'Y' : 'N' });
   }

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { EventDefinitionRecord, FamilyRecord, GedcomDataset, IndividualRecord, SourceCitation } from '../src/structures';
+import legacyCustomTags from './fixtures/legacy/legacycustomtags.ged?raw';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -240,5 +241,78 @@ describe('the Legacy _EVENT_DEFN record', () => {
     const record = dataset.records.find((entry): entry is EventDefinitionRecord => entry.tag === '_EVENT_DEFN');
     expect(record?.xref).toBe('@E1@');
     expect(lines(ser551(dataset))).toContain('0 @E1@ _EVENT_DEFN BIRT');
+  });
+
+  test('the real Legacy export shape (name payload, TYPE kind, TITL, ROLE blocks, _INC_NOTES) parses', () => {
+    const REAL = [
+      ...H551,
+      '0 _EVENT_DEFN Military Service',
+      '1 TYPE I',
+      '1 TITL Military Service',
+      '1 _SEN1 [HeShe] served in the military [Desc] [onDate] [inPlace].',
+      '1 _SEN8 [HeShe] served in the military.',
+      '1 ROLE Witness',
+      '2 _SEN1 [FirstHeShe] witnessed the military service of [MainPerson].',
+      '2 _SEN8 [FirstHeShe] witnessed the military service of [MainPerson] [onDate] [inPlace].',
+      '2 _DEF Y',
+      '1 _DATE_TYPE 1',
+      '1 _PLACE_TYPE 1',
+      '1 _DESC_FLAG 1',
+      '1 _INC_NOTES',
+      ...SUBM,
+      '0 TRLR',
+    ].join('\n');
+    const dataset = parseOk551(REAL);
+    const record = dataset.records.find((entry): entry is EventDefinitionRecord => entry.tag === '_EVENT_DEFN');
+    expect(record?.eventType).toBe('Military Service');
+    expect(record?.kind).toBe('I');
+    expect(record?.title).toBe('Military Service');
+    expect(record?.includeNotes).toBe(true);
+    expect(record?.sentences?.[0]).toBe('[HeShe] served in the military [Desc] [onDate] [inPlace].');
+    expect(record?.sentences?.[7]).toBe('[HeShe] served in the military.');
+    expect(record?.witnessRoles).toEqual([{
+      tag: 'ROLE',
+      role: 'Witness',
+      sentences: [
+        '[FirstHeShe] witnessed the military service of [MainPerson].',
+        '', '', '', '', '', '',
+        '[FirstHeShe] witnessed the military service of [MainPerson] [onDate] [inPlace].',
+      ],
+      defaultRole: true,
+    }]);
+    // The record round-trips in both versions.
+    const out551 = lines(ser551(dataset));
+    expect(out551).toContain('0 _EVENT_DEFN Military Service');
+    expect(out551).toContain('1 TYPE I');
+    expect(out551).toContain('1 TITL Military Service');
+    expect(out551).toContain('1 ROLE Witness');
+    expect(out551).toContain('2 _DEF Y');
+    expect(out551).toContain('1 _INC_NOTES');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+    expect(lines(ser70(dataset))).toContain('1 TYPE I');
+    expect(lines(ser70(dataset))).toContain('1 ROLE Witness');
+  });
+});
+
+describe('the real Legacy custom-tags export (gedcom4j sample)', () => {
+  test('legacycustomtags.ged parses end-to-end', () => {
+    const result = parseGedcom551(enc(legacyCustomTags));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    const record = result.value.records.find((entry): entry is EventDefinitionRecord => entry.tag === '_EVENT_DEFN');
+    expect(record?.eventType).toBe('Military Service');
+    expect(record?.kind).toBe('I');
+    expect(record?.witnessRoles?.[0]?.role).toBe('Witness');
+    // The file re-exports without losing the definition record.
+    const out = (() => {
+      const serialized = serializeGedcom551(result.value);
+      if (!serialized.ok) {
+        throw new Error(JSON.stringify(serialized));
+      }
+      return serialized.value;
+    })();
+    expect(out).toContain('0 _EVENT_DEFN Military Service');
+    expect(out).toContain('1 ROLE Witness');
   });
 });

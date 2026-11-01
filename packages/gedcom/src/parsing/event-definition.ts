@@ -11,6 +11,7 @@ import {
 import type {
   EventDefinitionRecord,
   PafSentenceDefinitions,
+  WitnessRoleSentenceSet,
 } from '../structures';
 import type {
   Ctx,
@@ -31,13 +32,16 @@ import {
 
 /** The standard event and attribute tags a definition may name (5.x
  *  event/attribute sets: the individual and family events, EVEN/FACT,
- *  and the individual attributes). */
+ *  and the individual attributes). TITL is deliberately absent: a bare
+ *  `TITL` child still names the attribute (handled separately), while
+ *  a payloaded `TITL` is the definition's display title — real Legacy
+ *  files use the payloaded form. */
 const EVENT_DEFINITION_TYPE_TAGS: ReadonlySet<string> = new Set([
   'ADOP', 'BAPM', 'BARM', 'BASM', 'BIRT', 'BLES', 'BURI', 'CENS', 'CHR', 'CHRA', 'CONF', 'CREM',
   'DEAT', 'EMIG', 'FCOM', 'GRAD', 'IMMI', 'NATU', 'ORDN', 'PROB', 'RETI', 'WILL',
   'ANUL', 'DIV', 'DIVF', 'ENGA', 'MARB', 'MARC', 'MARL', 'MARR', 'MARS',
   'EVEN', 'FACT',
-  'CAST', 'DSCR', 'EDUC', 'IDNO', 'NATI', 'NCHI', 'NMR', 'OCCU', 'PROP', 'RELI', 'RESI', 'SSN', 'TITL',
+  'CAST', 'DSCR', 'EDUC', 'IDNO', 'NATI', 'NCHI', 'NMR', 'OCCU', 'PROP', 'RELI', 'RESI', 'SSN',
 ]);
 
 /** The PAF5 sentence tags and their fields (see PafSentenceDefinitions). */
@@ -68,10 +72,13 @@ function setSentence(rec: EventDefinitionRecord, index: number, node: RawNode): 
 
 /**
  * Parses a `_EVENT_DEFN` record. The vendor's help enumerates the
- * members but not the wire shape, so the defined event tag is accepted
- * in every documented form — the record payload, a standard-tag child,
- * or a TYPE/_TYPE child — and the known members are typed; everything
- * else stays a generic extension.
+ * members but not the wire shape, so the parser accepts every form the
+ * real Legacy exports use: the defined event/fact tag comes from the
+ * record payload (the definition's name), a bare standard-tag child,
+ * or the legacy `_TYPE` child; the `TYPE` child carries the event kind
+ * code, `TITL` the display title, and the known members (the ROLE
+ * sentence blocks, the flags and the sentence sets) are typed;
+ * everything else stays a generic extension.
  */
 export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefinitionRecord {
   const rec: EventDefinitionRecord = {
@@ -85,6 +92,12 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
     }
     rec.eventType = tag;
   };
+  const setKind = (code: string): void => {
+    if (rec.kind !== undefined) {
+      fail('structure.cardinality', 'At most one TYPE is allowed under _EVENT_DEFN', node.position);
+    }
+    rec.kind = code;
+  };
   for (const child of node.children) {
     if (EVENT_DEFINITION_TYPE_TAGS.has(child.tag)) {
       if (child.value.kind !== 'absent') {
@@ -93,8 +106,39 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
       setType(child.tag);
       continue;
     }
-    if (child.tag === 'TYPE' || child.tag === '_TYPE') {
+    if (child.tag === 'TITL') {
+      // A payloaded TITL is the definition's display title (the real
+      // Legacy form); a bare TITL names the standard TITL attribute as
+      // the defined tag.
+      if (child.value.kind === 'absent') {
+        setType('TITL');
+      } else {
+        if (rec.title !== undefined) {
+          fail('structure.cardinality', 'At most one TITL is allowed under _EVENT_DEFN', child.position);
+        }
+        rec.title = reqText(child);
+      }
+      continue;
+    }
+    if (child.tag === 'TYPE') {
+      // The event kind code (I = individual, F = family in the real
+      // Legacy exports; see EventDefinitionRecord.kind).
+      setKind(reqText(child));
+      continue;
+    }
+    if (child.tag === '_TYPE') {
+      // The legacy underscore spelling: the defined event tag, kept as
+      // an eventType source for backward compatibility (no real file
+      // with this form was found).
       setType(reqText(child));
+      continue;
+    }
+    if (child.tag === 'ROLE') {
+      (rec.witnessRoles ??= []).push(parseWitnessRole(child, ctx));
+      continue;
+    }
+    if (child.tag === '_INC_NOTES') {
+      rec.includeNotes = parsePrivacyFlag(child, '_INC_NOTES');
       continue;
     }
     if (child.tag === '_CONF_FLAG') {
@@ -135,4 +179,35 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
     fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under _EVENT_DEFN`, child.position);
   }
   return rec;
+}
+
+/** Parses one witness-role block under an `_EVENT_DEFN` record (see
+ *  WitnessRoleSentenceSet): `ROLE <name>` with the eight `_SEN1`–`_SEN8`
+ *  sentences and the `_DEF` default-role mark. */
+function parseWitnessRole(node: RawNode, ctx: Ctx): WitnessRoleSentenceSet {
+  const out: WitnessRoleSentenceSet = { tag: 'ROLE', role: reqText(node) };
+  const setSentence = (index: number, child: RawNode): void => {
+    const sentences = (out.sentences ??= []);
+    while (sentences.length <= index) {
+      sentences.push('');
+    }
+    sentences[index] = reqText(child);
+  };
+  for (const child of node.children) {
+    const sentenceMatch = /^_SEN([1-8])$/.exec(child.tag);
+    if (sentenceMatch !== null) {
+      setSentence(Number(sentenceMatch[1]) - 1, child);
+      continue;
+    }
+    if (child.tag === '_DEF') {
+      out.defaultRole = parsePrivacyFlag(child, '_DEF');
+      continue;
+    }
+    if (child.tag.startsWith('_') || NON_UNDERSCORE_VENDOR_TAGS.has(child.tag)) {
+      addExtension(out, child, ctx);
+      continue;
+    }
+    fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under ROLE`, child.position);
+  }
+  return out;
 }

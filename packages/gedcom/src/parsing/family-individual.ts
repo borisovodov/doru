@@ -12,6 +12,7 @@ import {
 } from '../enumerations';
 import type {
   EventDetail,
+  ExtensionStructure,
   FamilyEventDetail,
   FamilyEventStructure,
   FamilyPartnerLink,
@@ -338,28 +339,28 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       pushVendorFamilyEvent(rec, child, ctx, 'EVEN', 'Separated');
     },
     _TAG2: (child) => {
-      setMark(rec, 0, child);
+      setMark(rec, 0, child, ctx);
     },
     _TAG3: (child) => {
-      setMark(rec, 1, child);
+      setMark(rec, 1, child, ctx);
     },
     _TAG4: (child) => {
-      setMark(rec, 2, child);
+      setMark(rec, 2, child, ctx);
     },
     _TAG5: (child) => {
-      setMark(rec, 3, child);
+      setMark(rec, 3, child, ctx);
     },
     _TAG6: (child) => {
-      setMark(rec, 4, child);
+      setMark(rec, 4, child, ctx);
     },
     _TAG7: (child) => {
-      setMark(rec, 5, child);
+      setMark(rec, 5, child, ctx);
     },
     _TAG8: (child) => {
-      setMark(rec, 6, child);
+      setMark(rec, 6, child, ctx);
     },
     _TAG9: (child) => {
-      setMark(rec, 7, child);
+      setMark(rec, 7, child, ctx);
     },
     CHAN: (child) => {
       rec.changeDate = parseChangeDate(child, ctx);
@@ -918,7 +919,15 @@ function upsertDeathCause(rec: IndividualRecord, node: RawNode, ctx: Ctx): void 
 
 /** Sets the n-th tag mark, padding the gaps (see IndividualRecord.marks /
  *  FamilyRecord.marks). */
-function setMark(rec: { marks?: Text[] }, index: number, node: RawNode): void {
+function setMark(rec: { marks?: Text[]; extensions?: ExtensionStructure[] }, index: number, node: RawNode, ctx: Ctx): void {
+  if (node.value.kind === 'absent') {
+    // A bare _TAG carries no value: the vendor's "tagged" marking of
+    // the record, which stays a generic extension (like the
+    // SOUR-position bare _TAG; see parsing/sources.ts). Real Legacy
+    // exports write the bare form.
+    addExtension(rec, node, ctx);
+    return;
+  }
   const marks = (rec.marks ??= []);
   while (marks.length <= index) {
     marks.push('');
@@ -1071,31 +1080,31 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.todos ??= []).push(parseTodoStructure(child, ctx));
     },
     _TAG: (child) => {
-      setMark(rec, 0, child);
+      setMark(rec, 0, child, ctx);
     },
     _TAG2: (child) => {
-      setMark(rec, 1, child);
+      setMark(rec, 1, child, ctx);
     },
     _TAG3: (child) => {
-      setMark(rec, 2, child);
+      setMark(rec, 2, child, ctx);
     },
     _TAG4: (child) => {
-      setMark(rec, 3, child);
+      setMark(rec, 3, child, ctx);
     },
     _TAG5: (child) => {
-      setMark(rec, 4, child);
+      setMark(rec, 4, child, ctx);
     },
     _TAG6: (child) => {
-      setMark(rec, 5, child);
+      setMark(rec, 5, child, ctx);
     },
     _TAG7: (child) => {
-      setMark(rec, 6, child);
+      setMark(rec, 6, child, ctx);
     },
     _TAG8: (child) => {
-      setMark(rec, 7, child);
+      setMark(rec, 7, child, ctx);
     },
     _TAG9: (child) => {
-      setMark(rec, 8, child);
+      setMark(rec, 8, child, ctx);
     },
     _BIRN: (child) => {
       pushVendorName(rec, child, ctx, 'BIRTH');

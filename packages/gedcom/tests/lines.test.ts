@@ -153,8 +153,13 @@ describe('line tokenization (5.5.1)', () => {
     expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a@b' });
   });
 
-  test('rejects a lone at-sign in a value', () => {
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a@b\n0 TRLR\n'))).toBe('line.unescaped-at');
+  test('tolerates a lone interior at-sign in a value', () => {
+    const doc = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a@b\n0 TRLR\n');
+    const head = doc.nodes[0];
+    expect(head?.children[1]?.value).toEqual({ kind: 'text', text: 'a@b' });
+    // The leading single @ stays strict: it must be a pointer or
+    // doubled.
+    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @lone\n0 TRLR\n'))).toBe('line.unescaped-at');
   });
 
   test('keeps escape sequences in values', () => {

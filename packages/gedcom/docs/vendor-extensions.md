@@ -785,6 +785,23 @@ spellings and the underscore forms are both recognized on input, and
 | `CEME` under BURI | phpGedView | The cemetery of the burial (webtrees PhpGedView.php, `INDI:BURI:CEME`) | `EventDetail.cemetery` (written back as `_CEME`) |
 | `_CREA` / `_CRE` / `_CREAT` under events | Heredis, MFT7, GenPlus | The event creation date (kept free text; GenWiki "Datensatz, Ereignis") | `EventDetail.createdAt` (written back as `_CREAT`) |
 
+The `_EVENT_DEFN` record was also verified against the real Legacy
+exports (the gedcom4j "legacycustomtags.ged" sample, now a regression
+fixture): the record is always written at level 0 — the webtrees
+`HEAD:_EVENT_DEFN` registry key does not correspond to a real-world
+position, so the HEAD form stays a generic header extension. The real
+record shape is richer than the vendor help describes and is typed now:
+the `TYPE` child carries the event kind code (`I`/`F`), `TITL` the
+display title, `ROLE` blocks the per-role sentence sets (`_SEN1`–`_SEN8`
++ the `_DEF` default mark), and `_INC_NOTES` the include-notes flag.
+Parsing the sample also uncovered real-file deviations the parser now
+tolerates: a lone interior `@` in text values (the doubling rule is
+enforced only at the start, where the ambiguity lives), a CONC
+continuing an empty payload, a bare `_TAG` mark, a citation `DATE`
+directly under the SOUR pointer (normalized into `DATA.DATE`), a
+record-level SOUR `DATE` (generic), and an inline `OBJE.FORM` beside
+`FILE` (injected into the file's FORM).
+
 Also fixed in this sweep: the FAM `_TYPE` handler no longer rejects
 values other than `same-sex` (they stay generic extensions — other
 programs write relationship kinds there), the payload-less `1 FACT` +
