@@ -31,6 +31,7 @@ import {
 } from './structures';
 import {
   ptr,
+  sex,
 } from './values';
 
 export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord): void {
@@ -106,10 +107,18 @@ function emitCensusIndividual(w: Writer, version: Version, entry: CensusIndividu
     emitCensusRelocatedAttribute(w, version, entry.occupation, 2);
   }
   if (entry.role !== undefined) {
-    w.line(2, 'ROLE', { value: entry.role });
+    // The census ROLE (see CensusIndividual.role): the six tags are
+    // written verbatim; the OTHER role is spelled as the parenthesized
+    // descriptor of the v5.5.1 ROLE_IN_EVENT grammar.
+    w.line(2, 'ROLE', { value: entry.role.payload === 'OTHER' ? `(${entry.role.phrase ?? ''})` : entry.role.payload });
   }
   if (entry.sex !== undefined) {
-    w.line(2, 'SEX', { value: entry.sex });
+    // The census SEX (see CensusIndividual.sex): the SEX projection of
+    // the target version (5.5.1 drops X/N, 7.0 drops N).
+    const value = sex(w, version, entry.sex);
+    if (value !== undefined) {
+      w.line(2, 'SEX', { value });
+    }
   }
   emitExtensions(w, version, 2, entry);
 }

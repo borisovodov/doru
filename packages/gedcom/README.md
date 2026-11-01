@@ -289,12 +289,28 @@ Input is always bytes. Version handling:
   p.94: `AAC`/`AVI`/`ePub`/`FLAC`/`MKV`/`mobi`/`MP3`/`PDF`/`PNG` plus
   the restored `JPEG`/`TIFF`, `OLE` removed — the union with the 5.5.1
   set is accepted, `OLE` included), and the structured `ADDR` without
-  a line value (5.5.5 §2 p.104).
+  a line value (5.5.5 §2 p.104), and the Hebrew `AM` year prefix
+  (5.5.5 §2 p.84 recommends that readers "should accept AM, as users
+  may have entered this directly"; the prefix is dropped — it carries
+  no information beyond the calendar escape).
   `GEDC.FORM.VERS` is accepted and discarded — the writers emit 5.5.1
   and 7.0, neither of which has the slot. The 5.5.5 container
   relaxations are not enforced, the constructs 5.5.5 removed still
   parse, and the HEAD.SUBM pointer is not required (5.5.5 deprecated
   it; see Known strict decisions).
+- **The GEDCOM-L §8.2 AGE corrections.** The addendum's "Corrections
+  to GEDCOM Files" list for the AGE tag is implemented on 5.x import:
+  a plain number is an age in years (`65` → `65y`), spaces between
+  numbers and units are deleted, three bare or hyphen-separated number
+  groups get the units by position (`65 10 25` → `65y 10m 25d`), the
+  German J/M/T letters, the spelled-out English/German unit words and
+  the yr/mo/da abbreviations convert to ymd, weeks convert to days,
+  the ABT/ABOUT/~ prefixes are deleted, negative months/days borrow
+  from the preceding unit (30 days per month), and an AGE at level 1
+  of an INDI record is interpreted as the age at death (subordinated
+  to DEAT). The suggestions are corrections for faulty files, not new
+  grammar: the corrected value is canonicalized and the strict order
+  rule still applies.
 - **Only the 5.5 lineage and 7.x are supported versions.** The 5.x
   parser accepts `GEDC.VERS` 5.5 (the 1996 original), 5.5.1 and
   5.5.5; every other version declared in a 5.x file — the pre-5.5

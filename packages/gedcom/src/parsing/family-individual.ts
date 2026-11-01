@@ -1619,6 +1619,21 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
         rec.canSign = flag;
       }
     };
+    handlers['AGE'] = (child) => {
+      // GEDCOM-L Addendum §8.2: an AGE at level 1 in the INDI record
+      // is interpreted as the age at death and subordinated to DEAT
+      // (`1 AGE 65y` becomes `1 DEAT` + `2 AGE 65y`). The addendum
+      // names the interpretation a suggestion for importing faulty
+      // files; this package follows it.
+      const age = parseAge(child, ctx);
+      let event = rec.events?.find((entry) => entry.tag === 'DEAT');
+      if (event === undefined) {
+        event = { tag: 'DEAT' };
+        (rec.events ??= []).push(event);
+      }
+      event.detail ??= {};
+      event.detail.age = age;
+    };
     handlers["EMAIL"] = (child) => {
       // PAF writes the individual's e-mail address under INDI with the
       // standard EMAIL tag (the webtrees per-vendor custom-tag registry,

@@ -368,6 +368,17 @@ Stammbaumdrucker, webtrees, …). Two parts:
   appended given names). Sources: the English GenWiki article "Gedcom
   5.5EL" (marked historical) and the N5 section of
   "GEDCOM/_Nutzerdef-Tag".
+- **The §8.2 AGE corrections** ("Corrections to GEDCOM Files") are
+  implemented on 5.x import: the faulty AGE spellings real files carry
+  (a plain number, spaces between numbers and units, three bare or
+  hyphen-separated groups, the German J/M/T letters, the spelled-out
+  English/German unit words and yr/mo/da, weeks, the ABT/ABOUT/~
+  prefixes, negative months/days) are corrected per the addendum's
+  examples, and an AGE at level 1 of an INDI record is interpreted as
+  the age at death (subordinated to DEAT). The suggestions are
+  corrections for faulty files, not new grammar: the strict order rule
+  still applies to the corrected value (see the README's Parsing
+  section).
 
 ## 4. Registered GEDCOM 7.0 extensions (official registry)
 

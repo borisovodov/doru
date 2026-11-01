@@ -493,6 +493,10 @@ export function parseAge(
         if (!/^\d+-\d+$/.test(text)) {
           fail('age.invalid', `Invalid age range "${text}"; expected "<integer>-<integer>"`, child.position);
         }
+        const [low, high] = text.split('-').map((part) => Number(part)) as [number, number];
+        if (low >= high) {
+          fail('age.invalid', `Invalid age range "${text}"; the range is at least the first bound and less than the second, so the first bound must be lower`, child.position);
+        }
         out.ageRange = text;
       },
       // An extension-defined substructure of a standard AGE (e.g. the

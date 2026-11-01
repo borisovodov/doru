@@ -132,7 +132,10 @@ describe('the MagiKey _CENR census record', () => {
     expect(entry?.individual).toBe('@I1@');
     expect(entry?.name?.payload).toEqual({ given: 'John', surname: 'Doe' });
     expect(entry?.maritalStatus).toBe('M');
-    expect(entry?.role).toBe('Head');
+    // The registry wires the census ROLE to the v5.5.1 ROLE structure;
+    // the bare MagiKey descriptor normalizes to OTHER + phrase.
+    expect(entry?.role).toEqual({ payload: 'OTHER', phrase: 'Head' });
+    expect(entry?.sex).toBe('M');
     expect(entry?.birth?.payload).toBe(true);
     expect(entry?.birth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1867 });
     expect(entry?.occupation?.payload).toBe('Clerk');
