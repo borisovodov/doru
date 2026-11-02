@@ -271,11 +271,12 @@ describe('the 5.5.1 export validity fixes', () => {
     expect(ser551(dataset)).toContain('2 DATE INT 1 JAN 1900 (calculated)');
   });
 
-  test('7.0 input rejects SEX N', () => {
+  test('7.0 input accepts SEX N', () => {
     const result = parseGedcom70(enc([...H70, '0 @I1@ INDI', '1 NAME John /Doe/', '1 SEX N', '0 TRLR'].join('\n')));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe('enum.invalid-value');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const indi = result.value.records[0];
+      expect((indi as unknown as { sex?: string }).sex).toBe('N');
     }
   });
 

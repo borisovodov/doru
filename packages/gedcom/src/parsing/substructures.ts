@@ -43,7 +43,6 @@ import type {
   Ctx,
 } from './context';
 import {
-  atMostThree,
   dispatch,
   noPayload,
   one,
@@ -61,14 +60,10 @@ import {
   parseYNFlag,
 } from './sources-media';
 import {
-  parseAge551,
-  parseAge70,
-  parseDateExact70,
+  parseAge,
   parseDatePeriod70,
-  parseDateValue551,
-  parseDateValue70,
+  parseDateValue,
   parseEnum,
-  parseTime551,
   parseTime70,
   type TagResolver,
 } from './types';
@@ -139,43 +134,40 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
     CTRY: (child) => {
       out.country = reqText(child);
     },
-  };
-  if (ctx.version === '5.5.1') {
-    handlers["PHON"] = (_child) => {
-      if (out.phone === undefined) {
-        out.phone = atMostThree(node, 'PHON').map((item) => reqText(item));
-      }
-    };
-    handlers["EMAIL"] = (_child) => {
-      if (out.email === undefined) {
-        out.email = atMostThree(node, 'EMAIL').map((item) => reqText(item));
-      }
-    };
-    handlers["FAX"] = (_child) => {
-      if (out.fax === undefined) {
-        out.fax = atMostThree(node, 'FAX').map((item) => reqText(item));
-      }
-    };
-    handlers["WWW"] = (_child) => {
-      if (out.www === undefined) {
-        out.www = atMostThree(node, 'WWW').map((item) => reqText(item));
-      }
-    };
-    handlers["URL"] = (_child) => {
+    PHON: (child) => {
+      // The 5.5.1/5.5.5 ADDRESS_STRUCTURE position of the contacts:
+      // siblings of ADR1–CTRY (GEDCOM 5.5.1 §2 p.31); the 7.0 grammar
+      // places them beside ADDR, and the two positions are accepted
+      // positions in any file.
+      (out.phone ??= []).push(reqText(child));
+    },
+    EMAIL: (child) => {
+      (out.email ??= []).push(reqText(child));
+    },
+    FAX: (child) => {
+      (out.fax ??= []).push(reqText(child));
+    },
+    WWW: (child) => {
+      (out.www ??= []).push(reqText(child));
+    },
+    URL: (child) => {
       // PAF writes the web address with the URL tag; GEDCOM 5.5.5
       // recommends readers "Accept URL as a synonym for WWW" (5.5.5
       // §2 p.65). Normalized into the standard www slot.
-      if (out.www === undefined) {
-        out.www = atMostThree(node, 'URL').map((item) => reqText(item));
-      }
-    };
-  }
+      (out.www ??= []).push(reqText(child));
+    },
+  };
   dispatch(node, out, handlers, ctx, ['ADR1', 'ADR2', 'ADR3', 'CITY', 'STAE', 'POST', 'CTRY']);
   return out;
 }
 
 export function parseAssociation(node: RawNode, ctx: Ctx): AssociationStructure {
   const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
+  const setRole = (child: RawNode): void => {
+    // The Gramps `_ROLE` spelling: a free-text descriptor, kept as an
+    // OTHER role with the phrase.
+    out.role = { payload: 'OTHER', phrase: reqText(child) };
+  };
   const handlers: Record<string, (child: RawNode) => void> = {
     PHRASE: (child) => {
       out.phrase = reqText(child);
@@ -184,36 +176,36 @@ export function parseAssociation(node: RawNode, ctx: Ctx): AssociationStructure 
       out.role = parseRole(child, ctx);
     },
     RELA: (child) => {
-      out.relationship = reqText(child);
+      out.role = { payload: 'OTHER', phrase: reqText(child) };
     },
+    '_ROLE': setRole,
+    // The Gramps `TYPE INDI` marker carries no model data.
+    TYPE: () => undefined,
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
     SOUR: (child) => {
       (out.citations ??= []).push(parseSourceCitation(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 ASSOCIATION_STRUCTURE carries <<NOTE_STRUCTURE>> {0:M}
-    // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // (GEDCOM 7.0 §3.2.3); accepted in any file.
+    SNOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, out, handlers, ctx, ['PHRASE', 'ROLE', 'RELA']);
-  if (ctx.version === '7.0' && out.role === undefined) {
-    fail('structure.missing-required', 'The ASSO structure requires a ROLE substructure', node.position);
-  }
-  if (ctx.version === '5.5.1' && out.relationship === undefined) {
-    fail('structure.missing-required', 'The 5.5.1 ASSO structure requires a RELA substructure', node.position);
-  }
   return out;
 }
 
 export function parseRole(node: RawNode, ctx: Ctx): RoleStructure {
   const raw = reqText(node);
-  if (ctx.version === '7.0') {
-    const out: RoleStructure = { payload: parseEnum(raw, ROLE_ENUM_VALUES, '7.0', node.position) };
+  // Both value forms parse: the 7.0 ROLE enum (with the PHRASE child and
+  // the `_` extension values), the 5.5.1 ROLE_IN_EVENT values (the six
+  // tags, case-insensitive), a parenthesized descriptor, and a bare
+  // free-text descriptor — the last two normalize to OTHER + phrase.
+  const upper = raw.toUpperCase();
+  if (raw in ROLE_ENUM_VALUES || raw.startsWith('_')) {
+    const out: RoleStructure = { payload: raw as RoleStructure['payload'] };
     dispatch(
       node,
       out,
@@ -226,19 +218,29 @@ export function parseRole(node: RawNode, ctx: Ctx): RoleStructure {
     );
     return out;
   }
-  // 5.5.1 ROLE_IN_EVENT: one of six tags (case-insensitive) or a
-  // parenthesized descriptor (normalized to OTHER + phrase).
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ROLE`, (node.children[0] as RawNode).position);
-  }
-  const upper = raw.toUpperCase();
   if (upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU') {
+    if (node.children.length > 0) {
+      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ROLE`, (node.children[0] as RawNode).position);
+    }
     return { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
   }
-  if (raw.startsWith('(') && raw.endsWith(')')) {
-    return { payload: 'OTHER', phrase: raw.slice(1, -1) };
-  }
-  fail('enum.invalid-value', `"${raw}" is not a permitted ROLE_IN_EVENT value`, node.position);
+  // A parenthesized descriptor or the Gramps-style bare descriptor:
+  // OTHER + phrase; a PHRASE child overrides the descriptor.
+  const out: RoleStructure = {
+    payload: 'OTHER',
+    phrase: raw.startsWith('(') && raw.endsWith(')') ? raw.slice(1, -1) : raw,
+  };
+  dispatch(
+    node,
+    out,
+    {
+      PHRASE: (child) => {
+        out.phrase = reqText(child);
+      },
+    },
+    ctx,
+  );
+  return out;
 }
 
 export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
@@ -247,7 +249,7 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
   let date: DateExactStructure | undefined;
   const handlers: Record<string, (child: RawNode) => void> = {
     DATE: (child) => {
-      date = parseDateExactStructure(child, ctx, true);
+      date = parseDateExactStructure(child, ctx);
     },
     NOTE: (child) => {
       (base.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -257,14 +259,12 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
       // ChangeDate.user).
       base.user = reqText(child);
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 CHANGE_DATE carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0
-    // §3.2.3); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // §3.2.3); accepted in any file.
+    SNOTE: (child) => {
       (base.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, base, handlers, ctx);
   if (date === undefined) {
     fail('structure.missing-required', 'The CHAN structure requires a DATE substructure', node.position);
@@ -281,7 +281,7 @@ export function parseCreationDate(node: RawNode, ctx: Ctx): CreationDate {
     out,
     {
       DATE: (child) => {
-        date = parseDateExactStructure(child, ctx, true);
+        date = parseDateExactStructure(child, ctx);
       },
     },
     ctx,
@@ -290,6 +290,19 @@ export function parseCreationDate(node: RawNode, ctx: Ctx): CreationDate {
     fail('structure.missing-required', 'The CREA structure requires a DATE substructure', node.position);
   }
   return { ...out, date };
+}
+
+/**
+ * The lenient CREA: the standard payload-less form parses as the
+ * creation date; the MFT7 payload form (`1 CREA <date text>` — the
+ * non-underscore spelling in LEGACY_GENERIC_TAGS) stays a generic
+ * extension of the record instead of failing the import.
+ */
+export function parseCreationDateLenient(node: RawNode, ctx: Ctx): CreationDate | undefined {
+  if (node.value.kind !== 'absent') {
+    return undefined;
+  }
+  return parseCreationDate(node, ctx);
 }
 
 /** Handlers for a `DATE {0:1}` + `<<SOURCE_CITATION>> {0:M}` pair (the GEDCOM-L place records). */
@@ -333,75 +346,40 @@ function tagResolver(ctx: Ctx): TagResolver {
 export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   const out: DateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
-  if (ctx.version === '7.0') {
-    out.value = raw === undefined ? { kind: 'unknown' } : parseDateValue70(raw, node.position, tagResolver(ctx));
-    dispatch(
-      node,
-      out,
-      {
-        TIME: (child) => {
-          out.time = parseTime70(reqText(child), child.position);
-        },
-        PHRASE: (child) => {
-          out.phrase = reqText(child);
-        },
-      },
-      ctx,
-      ['TIME', 'PHRASE'],
-    );
-    return out;
-  }
+  // Both forms parse (see parseDateValue): a bare DATE line is
+  // the empty date form (7.0), and the 5.5.1 forms (INT, dual years,
+  // calendar escapes) parse alongside the 7.0 forms.
   if (raw === undefined) {
-    fail('structure.missing-payload', 'The 5.5.1 DATE line requires a value', node.position);
+    out.value = { kind: 'unknown' };
+  } else {
+    applyDateValue551(out, parseDateValue(raw, node.position, tagResolver(ctx)), raw);
   }
-  const timeNode = one(node, 'TIME');
-  if (timeNode !== undefined) {
-    // The 5.5.1 DATE_VALUE has no TIME substructure (TIME exists only
-    // under the DATE_EXACT positions of HEAD.DATE, CHAN.DATE and
-    // SOUR.DATA.DATE); Généatique, Pro-Gen and Aldfaer record event
-    // times under the event DATE anyway (the webtrees per-vendor
-    // custom-tag registries, Geneatique.php, ProGen.php and
-    // Aldfaer.php:
-    // https://github.com/fisharebest/webtrees/tree/main/app/CustomTags).
-    // The value is kept in the same `time` slot the 7.0 form uses;
-    // 5.5.1 export cannot spell it under DATE and drops it, 7.0 export
-    // writes it back.
-    out.time = parseTime551(reqText(timeNode), timeNode.position);
-  }
-  const other = node.children.find((child) => child !== timeNode);
-  if (other !== undefined) {
-    fail('structure.unknown-tag', `The tag ${other.tag} is not allowed under DATE`, other.position);
-  }
-  applyDateValue551(out, parseDateValue551(raw, node.position), raw);
+  dispatch(
+    node,
+    out,
+    {
+      TIME: (child) => {
+        out.time = parseTime70(reqText(child), child.position);
+      },
+      PHRASE: (child) => {
+        out.phrase = reqText(child);
+      },
+    },
+    ctx,
+    ['TIME', 'PHRASE'],
+  );
   return out;
 }
 
-export function parseDateExactStructure(node: RawNode, ctx: Ctx, allowTime: boolean): DateExactStructure {
+export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStructure {
   const raw = reqText(node);
-  if (ctx.version === '7.0') {
-    const out: DateExactStructure = { value: parseDateExact70(raw, node.position) };
-    dispatch(
-      node,
-      out,
-      {
-        TIME: (child) => {
-          if (!allowTime) {
-            fail('structure.unknown-tag', 'A TIME is not allowed under this DATE', child.position);
-          }
-          out.time = parseTime70(reqText(child), child.position);
-        },
-      },
-      ctx,
-    );
-    return out;
-  }
-  const parsed = parseDateValue551(raw, node.position);
+  const parsed = parseDateValue(raw, node.position, tagResolver(ctx));
   const value = parsed.value;
   if (value.kind !== 'date' || value.day === undefined || value.month === undefined || value.year === undefined) {
-    fail('date.invalid', `Invalid ${ctx.version} DATE_EXACT "${raw}"; expected "<day> <month> <year>"`, node.position);
+    fail('date.invalid', `Invalid DATE_EXACT "${raw}"; expected "<day> <month> <year>"`, node.position);
   }
   if (parsed.dualYear || parsed.phrase !== undefined) {
-    fail('date.invalid', `Invalid ${ctx.version} DATE_EXACT "${raw}"`, node.position);
+    fail('date.invalid', `Invalid DATE_EXACT "${raw}"`, node.position);
   }
   const out: DateExactStructure = {
     value: {
@@ -411,37 +389,26 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx, allowTime: bool
       ...(value.epoch === undefined ? {} : { epoch: value.epoch }),
     },
   };
-  if (allowTime) {
-    const timeNode = one(node, 'TIME');
-    if (timeNode !== undefined) {
-      out.time = parseTime551(reqText(timeNode), timeNode.position);
-    }
-  } else if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under DATE`, (node.children[0] as RawNode).position);
+  const timeNode = one(node, 'TIME');
+  if (timeNode !== undefined) {
+    out.time = parseTime70(reqText(timeNode), timeNode.position);
   }
   return out;
 }
 
 export function parseDatePeriodStructure(node: RawNode, ctx: Ctx): DatePeriodStructure {
-  if (ctx.version === '7.0') {
-    const raw = node.value.kind === 'text' ? node.value.text : undefined;
-    const out: DatePeriodStructure = { value: raw === undefined ? { kind: 'period' } : parseDatePeriod70(raw, node.position, tagResolver(ctx)) };
-    dispatch(
-      node,
-      out,
-      {
-        PHRASE: (child) => {
-          out.phrase = reqText(child);
-        },
+  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  const out: DatePeriodStructure = { value: raw === undefined ? { kind: 'period' } : parseDatePeriod70(raw, node.position, tagResolver(ctx)) };
+  dispatch(
+    node,
+    out,
+    {
+      PHRASE: (child) => {
+        out.phrase = reqText(child);
       },
-      ctx,
-    );
-    return out;
-  }
-  const out: DatePeriodStructure = { value: parseDatePeriod70(reqText(node), node.position) };
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under DATE`, (node.children[0] as RawNode).position);
-  }
+    },
+    ctx,
+  );
   return out;
 }
 
@@ -449,7 +416,7 @@ export function parseSortDateStructure(node: RawNode, ctx: Ctx): SortDateStructu
   const out: SortDateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   if (raw !== undefined) {
-    out.value = parseDateValue70(raw, node.position, tagResolver(ctx));
+    applyDateValue551(out, parseDateValue(raw, node.position, tagResolver(ctx)), raw);
   }
   dispatch(
     node,
@@ -467,7 +434,7 @@ export function parseSortDateStructure(node: RawNode, ctx: Ctx): SortDateStructu
   return out;
 }
 
-export function parseAge(
+export function parseAgeStructure(
   node: RawNode,
   ctx: Ctx,
   extra?: Record<string, (child: RawNode) => void>,
@@ -478,7 +445,7 @@ export function parseAge(
       ? // The empty age form (GEDCOM 7.0 §2.6 / 5.5.1 AGE_AT_EVENT):
         // no payload, optionally a PHRASE.
         {}
-      : { payload: ctx.version === '7.0' ? parseAge70(raw, node.position) : parseAge551(raw, node.position) };
+      : { payload: parseAge(raw, node.position) };
   dispatch(
     node,
     out,
@@ -525,12 +492,13 @@ export function parseReferenceIdentifier(node: RawNode, ctx: Ctx): ReferenceIden
   return out;
 }
 
-/** Parses a 5.5.1 `_SDATE` line into a SortDateStructure (same value format as DATE). */
+/** Parses a 5.5.1 `_SDATE` line into a SortDateStructure (the same
+ *  date value grammar as DATE). */
 export function parseSortDate551(node: RawNode): SortDateStructure {
   const out: SortDateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   if (raw !== undefined) {
-    applyDateValue551(out, parseDateValue551(raw, node.position), raw);
+    applyDateValue551(out, parseDateValue(raw, node.position), raw);
   }
   if (node.children.length > 0) {
     fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under _SDATE`, (node.children[0] as RawNode).position);
@@ -539,38 +507,6 @@ export function parseSortDate551(node: RawNode): SortDateStructure {
 }
 
 /** Parses a 5.5.1 `_SHAR @xref@` line with an optional `_ROLE` (or `ROLE`) descriptor into an AssociationStructure. */
-/**
- * The Gramps witness convention: a standard `ASSO @xref@` under a 5.5.1
- * family event with a `TYPE INDI` marker and a free-text `RELA` (or
- * `ROLE`) role. Normalized into the ASSOCIATION_STRUCTURE like `_SHAR`.
- */
-export function parseGrampsAssociation(node: RawNode, ctx: Ctx): AssociationStructure {
-  const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
-  let roleSeen = false;
-  const setRole = (child: RawNode): void => {
-    if (roleSeen) {
-      fail('structure.cardinality', 'At most one role is allowed under ASSO', child.position);
-    }
-    roleSeen = true;
-    out.role = { payload: 'OTHER', phrase: reqText(child) };
-  };
-  dispatch(
-    node,
-    out,
-    {
-      TYPE: () => undefined,
-      RELA: setRole,
-      ROLE: setRole,
-      '_ROLE': setRole,
-      PHRASE: (child) => {
-        out.phrase = reqText(child);
-      },
-    },
-    ctx,
-  );
-  return out;
-}
-
 export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStructure {
   const out: AssociationStructure = { tag: 'ASSO', individual: reqPtr(node, ctx) };
   let roleSeen = false;
@@ -629,7 +565,7 @@ export function parseExternalIdentifier(node: RawNode, ctx: Ctx): ExternalIdenti
 export function parseNonEvent(node: RawNode, ctx: Ctx): NonEventStructure {
   const out: NonEventStructure = {
     tag: 'NO',
-    payload: parseEnum(reqText(node), EVENT_ENUM_VALUES, '7.0', node.position),
+    payload: parseEnum(reqText(node), EVENT_ENUM_VALUES, node.position),
   };
   const handlers: Record<string, (child: RawNode) => void> = {
     DATE: (child) => {
@@ -662,43 +598,39 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
   if (node.tag !== 'NOTE') {
     fail('structure.unknown-tag', `Unknown note structure tag ${node.tag}`, node.position);
   }
-  if (ctx.version === '5.5.1' && node.value.kind === 'pointer') {
-    // GEDCOM 5.5.1 §2 (p.37): the pointer form may carry SOUR {0:M}
+  if (node.value.kind === 'pointer') {
+    // The pointer form (GEDCOM 5.5.1 §2 p.37): may carry SOUR {0:M}
     // lines — each a bare pointer to a source record ("SOURce tags
     // subordinate to the note structure can only contain a pointer to
     // an associated source record"), no substructures of their own.
-    const out: NoteReference = { tag: 'NOTE', note: resolvePtr(node.value.pointer, ctx, node) };
-    dispatch(
-      node,
-      out,
-      {
-        SOUR: (child) => {
-          const source = reqPtr(child, ctx);
-          if (child.children.length > 0) {
-            fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under the NOTE SOUR pointer`, (child.children[0] as RawNode).position);
-          }
-          (out.citations ??= []).push({ tag: 'SOUR', source });
+    if (ctx.xrefs.has(node.value.pointer)) {
+      const out: NoteReference = { tag: 'NOTE', note: resolvePtr(node.value.pointer, ctx, node) };
+      dispatch(
+        node,
+        out,
+        {
+          SOUR: (child) => {
+            const source = reqPtr(child, ctx);
+            if (child.children.length > 0) {
+              fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under the NOTE SOUR pointer`, (child.children[0] as RawNode).position);
+            }
+            (out.citations ??= []).push({ tag: 'SOUR', source });
+          },
         },
-      },
-      ctx,
-    );
-    return out;
+        ctx,
+      );
+      return out;
+    }
+    // A pointer-shaped value with no matching record: the raw text is
+    // kept as the note payload instead of failing the import (a 7.0
+    // file writing a literal `@…@` should double the at sign; real
+    // files break the rule, and the raw text round-trips verbatim).
   }
-  const raw =
-    node.value.kind === 'text'
-      ? node.value.text
-      : node.value.kind === 'pointer'
-        ? // A pointer-shaped value on a NOTE line (`1 NOTE @I1@`): the
-          // NOTE payload type is Text (GEDCOM 7.0 §3.2.3), so a literal
-          // `@I1@` must be written `@@I1@` on the wire (GEDCOM 7.0 §1.3
-          // Lines, `lineStr = (nonAt / atsign atsign) *nonEOL`).
-          // Malformed files exist, so instead of failing — or silently
-          // emptying the payload — the raw value is kept as the note
-          // text; the writer re-emits it verbatim (it re-parses into
-          // this same payload).
-          node.value.pointer
-        : undefined;
-  const out: Note = { tag: 'NOTE', payload: raw ?? '' };
+  // The inline note (the pointer form is handled above): the payload is
+  // the note text, the raw pointer text of a dangling pointer, or the
+  // empty string for a payload-less line.
+  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  const out: Note = { tag: 'NOTE', payload: raw ?? (node.value.kind === 'pointer' ? node.value.pointer : '') };
   dispatch(
     node,
     out,

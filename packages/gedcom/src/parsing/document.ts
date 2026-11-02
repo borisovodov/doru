@@ -12,9 +12,6 @@ import {
   fail,
 } from '../errors';
 import type {
-  GedcomVersion,
-} from '../primitives';
-import type {
   ExtensionRecord,
   GedcomDataset,
   GedcomRecord,
@@ -104,9 +101,8 @@ function collectXrefs(nodes: RawNode[]): Set<string> {
   return xrefs;
 }
 
-export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion): GedcomDataset {
+export function parseDocument(raw: { nodes: RawNode[] }): GedcomDataset {
   const ctx: Ctx = {
-    version,
     xrefs: collectXrefs(raw.nodes),
     synthetic: [],
     syntheticIndex: 0,
@@ -122,7 +118,9 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
 
   let index = 1;
   let submission: SubmissionRecord | undefined;
-  if (version === '5.5.1' && nodes[index]?.tag === 'SUBN') {
+  // The SUBN record must immediately follow the header (GEDCOM 5.5.1
+  // §2 p.23); accepted in any file.
+  if (nodes[index]?.tag === 'SUBN') {
     submission = parseSubmissionRecord(nodes[index] as RawNode, ctx);
     index++;
   }
@@ -163,13 +161,14 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
 }
 
 export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
-  if (ctx.version === '7.0' && node.tag.startsWith('_')) {
+  if (node.tag.startsWith('_')) {
     // A SCHMA-documented record alias (`_USER → g7:record-SUBM`, …)
     // parses as the standard record — standard-first (see
     // parsing/schema-tags.ts). A tag declared with several URIs
     // (GEDCOM 7.0 §1.5.1) resolves to the standard record named by the
     // one URI that names a standard record type; several or none keep
-    // the extension meaning.
+    // the extension meaning. The resolution applies
+    // in every file.
     let recordTag: string | undefined;
     for (const uri of ctx.schemaTags.get(node.tag) ?? []) {
       const standard = resolveStandardTagByUri(uri);
@@ -196,14 +195,8 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case 'REPO':
       return parseRepositoryRecord(node, ctx);
     case 'SNOTE':
-      if (ctx.version !== '7.0') {
-        fail('structure.unknown-tag', 'The SNOTE record does not exist in GEDCOM 5.5.1', node.position);
-      }
       return parseSharedNoteRecord(node, ctx);
     case 'NOTE':
-      if (ctx.version === '7.0') {
-        fail('structure.unknown-tag', 'The NOTE record does not exist in GEDCOM 7.0 (use SNOTE)', node.position);
-      }
       return parseNoteRecord(node, ctx);
     case 'SOUR':
       return parseSourceRecord(node, ctx);
@@ -238,10 +231,11 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       if (node.tag.startsWith('_')) {
         return parseExtension(node, ctx) as ExtensionRecord;
       }
-      if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(node.tag)) {
+      if (NON_UNDERSCORE_VENDOR_TAGS.has(node.tag)) {
         // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
-        // accepted at record level as generic extension records where the
-        // standard grammar has no slot for them. 7.0 input stays strict.
+        // accepted at record level as generic extension records where
+        // the standard grammar has no slot for them, in any file (see
+        // the README's import-grammar decision).
         return parseExtension(node, ctx) as ExtensionRecord;
       }
       fail('structure.unknown-tag', `Unknown record tag ${node.tag}`, node.position);

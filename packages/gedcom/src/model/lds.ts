@@ -81,8 +81,11 @@ export interface InitiatoryOrdinance extends LdsOrdinanceBase<'INIL'> {}
  * parents. GEDCOM 7.0 §3.3.3.
  */
 export interface ChildSealingOrdinance extends LdsOrdinanceBase<'SLGC'> {
-  /** FAMC {1:1}, g7:FAMC — the family the child was sealed to. */
-  family: Pointer<FamilyRecord>;
+  /** FAMC {0:1}, g7:FAMC — the family the child was sealed to. The
+   *  spec grammar makes the pointer required; the parser tolerates a
+   *  missing one (5.5.1 files in the wild omit it), so the field is
+   *  optional like the birth/christening FAMC links. */
+  familyChild?: Pointer<FamilyRecord>;
 }
 
 /** GEDCOM 7.0 §3.2.3 LDS_INDIVIDUAL_ORDINANCE — the union of individual ordinances. */

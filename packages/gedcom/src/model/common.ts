@@ -367,7 +367,7 @@ export interface EventDetail extends GedcomStructureBase {
    * TYPE into their own `type` slot, so this slot is filled where the
    * detail is parsed on its own: the `_LOC` record's EVEN events, which
    * GEDCOM 5.5EL gives the full 5.5.1 EVENT_DETAIL (see PlaceRecord)
-   * and the GEDCOM-L addendum confirms (§5.8). Recognized on 5.x input
+   * and the GEDCOM-L addendum confirms (§5.8). Recognized in any file
    * and written back as TYPE under the place event.
    */
   type?: Text;
@@ -421,7 +421,7 @@ export interface EventDetail extends GedcomStructureBase {
    * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm; the
    * GenWiki "GEDCOM/_Nutzerdef-Tag" table confirms the position under
    * events). Both spellings are recognized on input — `_SENT` in both
-   * versions plus `SENT` on 5.x input, `_OVER` in both versions — and
+   * versions plus `SENT` in any file, `_OVER` in both versions — and
    * written back as `_SENT` in both versions.
    */
   sentence?: Text;
@@ -429,7 +429,7 @@ export interface EventDetail extends GedcomStructureBase {
    * _PPFX {0:1} — the place prefix (report wording). Written by
    * RootsMagic under events and facts (the Legacy catalog spells it
    * without the underscore); not part of any GEDCOM version. Recognized
-   * on input as `_PPFX` in both versions and as `PPFX` on 5.x input;
+   * on input as `_PPFX` in both versions and as `PPFX` in any file;
    * written back as `_PPFX` in both versions.
    */
   placePrefix?: Text;
@@ -542,7 +542,7 @@ export interface EventDetail extends GedcomStructureBase {
    * article's "Tabelle 2" ("Abweichungen vom Standard bei der
    * Verwendung", itself based on gencom.org.nz/GEDCOM_tags.html):
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag. Not part of any
-   * GEDCOM version. Recognized on 5.x input (an absent value, `Y`,
+   * GEDCOM version. Recognized in any file (an absent value, `Y`,
    * `YES`, `J`/`JA`, or `1` marks the flag set; `N`, `NO`, `NEIN`, or
    * `0` clears it — the wire value is undocumented, so the usual flag
    * spellings are accepted) and written back as `_POTM 1`/`_POTM 0` in
@@ -557,7 +557,7 @@ export interface EventDetail extends GedcomStructureBase {
    * documented in the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
    * "Tabelle 2" ("Ort für weitere Recherchen zum Ereignis"; see
    * `posthumous` for the URL). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `_SRCH` in 5.5.1;
+   * Recognized in any file and written back as `_SRCH` in 5.5.1;
    * dropped on 7.0 output.
    */
   furtherResearch?: Text;
@@ -567,7 +567,7 @@ export interface EventDetail extends GedcomStructureBase {
    * the meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2" ("Name des Notars - Ehevertrag, Testament";
    * see `posthumous` for the URL). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `_NOTRY` in 5.5.1;
+   * Recognized in any file and written back as `_NOTRY` in 5.5.1;
    * dropped on 7.0 output.
    */
   notary?: Text;
@@ -610,7 +610,7 @@ export interface EventDetail extends GedcomStructureBase {
    * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php;
    * the INDI-level FTW5 CEME normalizes into a FACT instead — see
    * parsing/vendor-tags.ts). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `_CEME` in both
+   * Recognized in any file and written back as `_CEME` in both
    * versions (the phpGedView wire spelling is non-underscore).
    */
   cemetery?: Text;
@@ -805,7 +805,7 @@ export interface Note extends GedcomStructureBase {
    * (https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm)
    * and the GenWiki "GEDCOM/_Nutzerdef-Tag" table
    * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); `NOTP` is
-   * recognized on 5.x input and normalizes into an inline NOTE with
+   * recognized on input and normalizes into an inline NOTE with
    * this flag set. The flag's wire spelling under a note is `_PRIV`
    * (the same presence-style flag Legacy writes under ADDR and
    * events): an absent value or `Y` marks the flag set, `N` clears

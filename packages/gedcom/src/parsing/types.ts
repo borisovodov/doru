@@ -25,7 +25,6 @@ import type {
   Epoch,
   ExtensionTag,
   GedcomMonth,
-  GedcomVersion,
   GregorianMonth,
   Latitude,
   ListText,
@@ -115,33 +114,29 @@ function resolvedCalendar(calendar: Calendar, resolve: TagResolver | undefined):
 }
 
 /**
- * Validates a month token for the calendar (case-sensitive for 7.0,
- * case-insensitive for 5.5.1) and returns the canonical tag.
+ * Validates a month token for the calendar (case-insensitive; the
+ * canonical tag is returned) and returns the canonical tag. A
+ * documented extension month (SCHMA → g7:month-…) abbreviates a
+ * standard month of this calendar (GEDCOM 7.0 §1.5, the
+ * documented-extension clause of §7.0.4); it keeps its extension
+ * spelling. With several declarations (GEDCOM 7.0 §1.5.1) the one URI
+ * naming a standard month of this calendar counts; several matching
+ * URIs are ambiguous and rejected like an undeclared tag.
  */
-function monthOf(calendar: Calendar, token: string, version: GedcomVersion, position: SourcePosition, resolve?: TagResolver): GedcomMonth {
+function monthOf(calendar: Calendar, token: string, position: SourcePosition, resolve?: TagResolver): GedcomMonth {
   if (calendar === 'GREGORIAN' || calendar === 'JULIAN' || calendar === 'FRENCH_R' || calendar === 'HEBREW') {
     const table = monthTable(calendar) as Readonly<Record<string, string>>;
-    if (version === '7.0') {
-      if (token in table) {
+    if (token in table) {
+      return token as GedcomMonth;
+    }
+    const key = Object.keys(table).find((month) => month.toLowerCase() === token.toLowerCase());
+    if (key !== undefined) {
+      return key as GedcomMonth;
+    }
+    if (token.startsWith('_') && resolve !== undefined) {
+      const uris = resolve(token);
+      if (uris !== undefined && uris.filter((uri) => uri.startsWith(MONTH_URI_PREFIX)).length === 1) {
         return token as GedcomMonth;
-      }
-      // A documented extension month (SCHMA → g7:month-…) abbreviates
-      // a standard month of this calendar (GEDCOM 7.0 §1.5, the
-      // documented-extension clause of §7.0.4); it keeps its extension
-      // spelling. With several declarations (GEDCOM 7.0 §1.5.1) the one
-      // URI naming a standard month of this calendar counts; several
-      // matching URIs are ambiguous and rejected like an undeclared
-      // tag.
-      if (token.startsWith('_') && resolve !== undefined) {
-        const uris = resolve(token);
-        if (uris !== undefined && uris.filter((uri) => uri.startsWith(MONTH_URI_PREFIX)).length === 1) {
-          return token as GedcomMonth;
-        }
-      }
-    } else {
-      const key = Object.keys(table).find((month) => month.toLowerCase() === token.toLowerCase());
-      if (key !== undefined) {
-        return key as GedcomMonth;
       }
     }
   } else if (token.startsWith('_')) {
@@ -294,14 +289,14 @@ function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | 
   if (rest.length === 1) {
     year = parseYear(rest[0] as string, position);
   } else if (rest.length === 2) {
-    month = monthOf(monthCalendar, rest[0] as string, version, position, resolve);
+    month = monthOf(monthCalendar, rest[0] as string, position, resolve);
     year = parseYear(rest[1] as string, position);
   } else if (rest.length === 3) {
     if (!/^\d+$/.test(rest[0] as string)) {
       fail('date.bad-day', `Invalid day "${rest[0]}"`, position);
     }
     day = Number(rest[0]);
-    month = monthOf(monthCalendar, rest[1] as string, version, position, resolve);
+    month = monthOf(monthCalendar, rest[1] as string, position, resolve);
     year = parseYear(rest[2] as string, position);
     checkDay(calendar, month, day, year, epoch, position);
   } else {
@@ -437,7 +432,7 @@ export function parseDateExact70(text: string, position: SourcePosition): DateEx
     fail('date.bad-day', `Invalid day "${tokens[0]}"`, position);
   }
   const day = Number(tokens[0]);
-  const month = monthOf('GREGORIAN', tokens[1] as string, '7.0', position);
+  const month = monthOf('GREGORIAN', tokens[1] as string, position);
   const year = parseYear(tokens[2] as string, position);
   checkDay('GREGORIAN', month, day, year, undefined, position);
   return { day, month: month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC', year };
@@ -475,6 +470,37 @@ export function parseDateValue551(
 }
 
 /**
+ * Parses a DateValue: every 5.5.1 form (calendar escapes, INT,
+ * parenthesized phrases, dual years, the B.C./BCE/BC suffix, the AM
+ * prefix, the year-less day+month form) plus the 7.0 forms (calendar
+ * keywords, extension calendars and epochs, SCHMA-resolved months, the
+ * epoch on every date form). The version declared in the file selects
+ * none of it — both pipelines parse the same grammar (see the README's
+ * Known strict decisions).
+ */
+export function parseDateValue(
+  text: string,
+  position: SourcePosition,
+  resolve?: TagResolver,
+): { value: DateValue; dualYear: boolean; phrase?: string } {
+  const trimmed = text.trim();
+  if (trimmed === '') {
+    return { value: { kind: 'unknown' }, dualYear: false };
+  }
+  // Phrase-only form: "(<DATE_PHRASE>)".
+  if (trimmed.startsWith('(') && trimmed.endsWith(')') && !trimmed.slice(1, -1).includes('(')) {
+    return { value: { kind: 'unknown' }, dualYear: false, phrase: trimmed.slice(1, -1) };
+  }
+  // INT form: "INT <date> (<phrase>)".
+  const intMatch = /^INT (.*)\(([^()]*)\)$/.exec(trimmed);
+  if (intMatch) {
+    const inner = parseDateBody(intMatch[1] as string, position, resolve, true);
+    return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
+  }
+  return parseDateBody(trimmed, position, resolve, true);
+}
+
+/**
  * Splits a 5.5.1 date payload into tokens, keeping calendar escape
  * sequences (`@#…@`) whole: the French Republican escape
  * `@#DFRENCH R@` (GEDCOM 5.5.1 §2 Primitive Elements p.45) contains a
@@ -493,20 +519,36 @@ function dateTokens551(text: string): string[] {
 
 /* Parses a 5.5.1 date body: DATE, DATE_PERIOD, DATE_RANGE, DATE_APPROXIMATED. */
 function parseDate551Body(text: string, position: SourcePosition): { value: DateValue; dualYear: boolean } {
+  return parseDateBody(text, position, undefined, false);
+}
+
+/**
+ * Parses a date body — DATE, DATE_PERIOD, DATE_RANGE,
+ * DATE_APPROXIMATED. The `full` grammar additionally accepts the 7.0
+ * calendar keywords and extension calendars (see parseDateCore).
+ */
+function parseDateBody(
+  text: string,
+  position: SourcePosition,
+  resolve: TagResolver | undefined,
+  full: boolean,
+): { value: DateValue; dualYear: boolean } {
   const tokens = dateTokens551(text);
+  const parseDate = (parts: string[]): { fields: DateFields; dualYear: boolean } =>
+    full ? parseDateCore(parts, position, resolve, true) : parseDate551(parts, position);
   const first = (tokens[0] as string).toUpperCase();
   if (first === 'FROM' || first === 'TO') {
     const from = first === 'FROM';
     const toIndex = from ? tokens.findIndex((token, index) => index > 0 && token.toUpperCase() === 'TO') : -1;
     if (from && toIndex !== -1) {
-      const fromPart = parseDate551(tokens.slice(1, toIndex), position);
-      const toPart = parseDate551(tokens.slice(toIndex + 1), position);
+      const fromPart = parseDate(tokens.slice(1, toIndex));
+      const toPart = parseDate(tokens.slice(toIndex + 1));
       return {
         value: { kind: 'period', from: fromPart.fields, to: toPart.fields },
         dualYear: fromPart.dualYear || toPart.dualYear,
       };
     }
-    const part = parseDate551(tokens.slice(1), position);
+    const part = parseDate(tokens.slice(1));
     return {
       value: from ? { kind: 'period', from: part.fields } : { kind: 'period', to: part.fields },
       dualYear: part.dualYear,
@@ -517,25 +559,25 @@ function parseDate551Body(text: string, position: SourcePosition): { value: Date
     if (andIndex === -1) {
       fail('date.invalid', 'A BET date must contain AND: "BET <date> AND <date>"', position);
     }
-    const start = parseDate551(tokens.slice(1, andIndex), position);
-    const end = parseDate551(tokens.slice(andIndex + 1), position);
+    const start = parseDate(tokens.slice(1, andIndex));
+    const end = parseDate(tokens.slice(andIndex + 1));
     return { value: { kind: 'range', start: start.fields, end: end.fields }, dualYear: start.dualYear || end.dualYear };
   }
   if (first === 'AFT' || first === 'BEF') {
-    const part = parseDate551(tokens.slice(1), position);
+    const part = parseDate(tokens.slice(1));
     return {
       value: { kind: 'bound', modifier: first as 'AFT' | 'BEF', date: part.fields },
       dualYear: part.dualYear,
     };
   }
   if (first === 'ABT' || first === 'CAL' || first === 'EST') {
-    const part = parseDate551(tokens.slice(1), position);
+    const part = parseDate(tokens.slice(1));
     return {
       value: { kind: 'approx', modifier: first as 'ABT' | 'CAL' | 'EST', date: part.fields },
       dualYear: part.dualYear,
     };
   }
-  const part = parseDate551(tokens, position);
+  const part = parseDate(tokens);
   return { value: { kind: 'date', ...part.fields }, dualYear: part.dualYear };
 }
 
@@ -543,6 +585,22 @@ function parseDate551Body(text: string, position: SourcePosition): { value: Date
 function parseDate551(
   tokens: string[],
   position: SourcePosition,
+): { fields: DateFields; dualYear: boolean } {
+  return parseDateCore(tokens, position, undefined, false);
+}
+
+/**
+ * Parses one date of the full grammar: the 5.5.1 forms (calendar
+ * escapes, dual years, B.C./BCE/BC, the AM prefix, the year-less
+ * day+month form) plus the 7.0 forms (calendar names, extension
+ * calendars with SCHMA resolution, the epoch on any form, extension
+ * epochs).
+ */
+function parseDateCore(
+  tokens: string[],
+  position: SourcePosition,
+  resolve: TagResolver | undefined,
+  full: boolean,
 ): { fields: DateFields; dualYear: boolean } {
   let calendar: Calendar = 'GREGORIAN';
   let rest = tokens;
@@ -559,6 +617,15 @@ function parseDate551(
     rest = tokens.slice(1);
   } else if (first.startsWith('@#')) {
     fail('line.bad-escape', `Unknown escape ${first}`, position);
+  } else if (full && CALENDAR_NAMES.has(first)) {
+    // The 7.0 calendar keywords.
+    calendar = CALENDAR_NAMES.get(first) as Calendar;
+    rest = tokens.slice(1);
+  } else if (full && first.startsWith('_')) {
+    // The 7.0 extension calendar (optionally SCHMA-resolved for month
+    // validation; see resolvedCalendar).
+    calendar = first as Calendar;
+    rest = tokens.slice(1);
   }
   if (rest.length === 0) {
     fail('date.invalid', 'A date must have a year', position);
@@ -575,17 +642,26 @@ function parseDate551(
     fail('date.invalid', 'A date must have a year', position);
   }
 
-  // The BCE suffix (year-only form). 5.5.1 spells it B.C.; GEDCOM 5.5.5
+  // The BCE suffix. 5.5.1 spells it B.C. (year-only form); GEDCOM 5.5.5
   // (p.77) additionally makes the spellings BCE and BC official, with
   // BCE preferred — all three mean the same thing, are accepted in any
-  // 5.x file, and normalize to the BCE epoch.
+  // 5.x file, and normalize to the BCE epoch. The full grammar also
+  // accepts the suffix on every date form (the 7.0 rule: the epoch may
+  // follow any date) and the 7.0 extension epochs.
   let epoch: Epoch | undefined;
-  const lastUpper = (rest[rest.length - 1] as string).toUpperCase();
+  const last = rest[rest.length - 1] as string;
+  const lastUpper = last.toUpperCase();
   if (lastUpper === 'B.C.' || lastUpper === 'BCE' || lastUpper === 'BC') {
-    if (rest.length !== 2) {
+    if (calendar !== 'GREGORIAN' && calendar !== 'JULIAN') {
+      fail('date.bad-epoch', `The BCE epoch is not permitted in the ${calendar} calendar`, position);
+    }
+    if (!full && rest.length !== 2) {
       fail('date.bad-epoch', `The ${lastUpper} suffix is only permitted on a year-only date`, position);
     }
     epoch = 'BCE';
+    rest = rest.slice(0, -1);
+  } else if (full && last.startsWith('_')) {
+    epoch = epochOf(calendar, last, position);
     rest = rest.slice(0, -1);
   }
   if (rest.length === 0) {
@@ -615,6 +691,9 @@ function parseDate551(
     rest = [...rest.slice(0, -1), String(year)];
   }
 
+  // A documented extension calendar (SCHMA → g7:cal-…) validates its
+  // months against the standard calendar it abbreviates.
+  const monthCalendar = resolvedCalendar(calendar, resolve);
   let year: number | undefined;
   let month: GedcomMonth | undefined;
   let day: number | undefined;
@@ -628,20 +707,20 @@ function parseDate551(
       fail('date.invalid', 'A year-less day+month date is only valid in the GREGORIAN calendar', position);
     }
     day = Number(rest[0]);
-    month = monthOf(calendar, rest[1] as string, '5.5.1', position);
+    month = monthOf(calendar, rest[1] as string, position, resolve);
     const max = month === 'FEB' ? 29 : GREGORIAN_DAY_MAX[month as GregorianMonth];
     if (max === undefined || day < 1 || day > max) {
       fail('date.bad-day', `Day ${day} is invalid for the month ${month as string}`, position);
     }
   } else if (rest.length === 2) {
-    month = monthOf(calendar, rest[0] as string, '5.5.1', position);
+    month = monthOf(monthCalendar, rest[0] as string, position, resolve);
     year = parseYear(rest[1] as string, position);
   } else if (rest.length === 3) {
     if (!/^\d+$/.test(rest[0] as string)) {
       fail('date.bad-day', `Invalid day "${rest[0]}"`, position);
     }
     day = Number(rest[0]);
-    month = monthOf(calendar, rest[1] as string, '5.5.1', position);
+    month = monthOf(monthCalendar, rest[1] as string, position, resolve);
     year = parseYear(rest[2] as string, position);
     checkDay(calendar, month, day, year, epoch, position);
   } else {
@@ -964,34 +1043,48 @@ export function parseAge551(text: string, position: SourcePosition): AgeValue {
   return parseAgeParts(correctAge551(text, position), ['y', 'm', 'd'], '<number>y|m|d', position);
 }
 
+/**
+ * Parses an Age value: the 5.5.1 keywords and corrected spellings plus
+ * the 7.0 `<number>y|m|w|d` components. A payload matching the 7.0
+ * component shape parses with the 7.0 grammar (which keeps weeks);
+ * everything else goes through the 5.5.1 corrections (which convert
+ * weeks to days).
+ */
+export function parseAge(text: string, position: SourcePosition): AgeValue {
+  const upper = text.trim().toUpperCase();
+  if (upper === 'CHILD' || upper === 'INFANT' || upper === 'STILLBORN') {
+    return parseAge551(upper, position);
+  }
+  if (/^[<>]? *\d+[ymwd]( +\d+[ymwd])* *$/.test(text)) {
+    return parseAge70(text, position);
+  }
+  return parseAge551(text, position);
+}
+
 /** Parses a List:Text payload (comma-separated, spaces around items trimmed). */
 export function parseListText(text: string): ListText {
   return text.split(',').map((item) => item.trim());
 }
 
 /**
- * Parses an enumeration value: exact table membership for 7.0,
- * case-insensitive membership for 5.5.1 and 5.5.5 (the canonical value
- * is returned). Extension values (`_…`) are accepted only for 7.0.
+ * Parses an enumeration value: case-insensitive table membership (the
+ * canonical value is returned), plus the 7.0 extension values (`_…`).
+ * Both pipelines accept the same value set.
  */
 export function parseEnum<K extends string>(
   text: string,
   table: Readonly<Record<K, string>>,
-  version: GedcomVersion,
   position: SourcePosition,
 ): K | ExtensionTag {
-  if (version === '7.0') {
-    if (text in table) {
-      return text as K;
-    }
-    if (text.startsWith('_')) {
-      return text as ExtensionTag;
-    }
-  } else {
-    const key = (Object.keys(table) as K[]).find((value) => value.toLowerCase() === text.toLowerCase());
-    if (key !== undefined) {
-      return key;
-    }
+  if (text in table) {
+    return text as K;
+  }
+  const key = (Object.keys(table) as K[]).find((value) => value.toLowerCase() === text.toLowerCase());
+  if (key !== undefined) {
+    return key;
+  }
+  if (text.startsWith('_')) {
+    return text as ExtensionTag;
   }
   fail(
     'enum.invalid-value',
@@ -1004,17 +1097,13 @@ export function parseEnum<K extends string>(
 export function parseListEnum<K extends string>(
   text: string,
   table: Readonly<Record<K, string>>,
-  version: GedcomVersion,
   position: SourcePosition,
 ): Array<K | ExtensionTag> {
-  return text.split(',').map((item) => parseEnum(item.trim(), table, version, position));
+  return text.split(',').map((item) => parseEnum(item.trim(), table, position));
 }
 
 /** Parses a Personal Name payload (slash-delimited). */
-export function parsePersonalName(text: string, version: GedcomVersion, position: SourcePosition): PersonalName {
-  if (version !== '7.0' && text.includes(',')) {
-    fail('name.invalid', `A ${version} personal name must not contain commas`, position);
-  }
+export function parsePersonalName(text: string, position: SourcePosition): PersonalName {
   const parts = text.split('/');
   if (parts.length === 1) {
     const name: PersonalName = {};
@@ -1103,6 +1192,19 @@ export function parseMediaFormat551(
     `"${text}" is not a permitted 5.5.1 multimedia format (expected one of: ${known.join(', ')})`,
     position,
   );
+}
+
+/**
+ * Parses the FORM payload: the fixed MULTIMEDIA_FORMAT set (both the
+ * 5.5.1 and the 5.5.5 spellings, canonical 5.5.1 spelling returned) or
+ * any free text (the 7.0 MIME form) — a 7.0 file writing the fixed
+ * spellings and a 5.x file writing a MIME both import.
+ */
+export function parseMediaFormat(raw: string): string {
+  const known: readonly string[] = [...MULTIMEDIA_FORMATS_551, ...MULTIMEDIA_FORMATS_555];
+  const lower = raw.toLowerCase();
+  const match = known.find((format) => format.toLowerCase() === lower);
+  return match ?? raw;
 }
 
 /** Parses a 5.5.1 LANGUAGE_ID payload (fixed table, case-insensitive). */

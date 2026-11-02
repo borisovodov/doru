@@ -527,16 +527,43 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
  * header CHAR tag) into lines with byte offsets.
  */
 export function decodeDocument(bytes: Uint8Array, version: GedcomVersion): ParseResult<DecodedDocument> {
-  let charset: Charset551;
   if (version === '7.0') {
-    charset = 'UTF-8';
-  } else {
-    const detected = detectCharset551(bytes);
-    if (!detected.ok) {
-      return detected;
-    }
-    charset = detected.value;
+    return decodeWithCharset(bytes, 'UTF-8');
   }
+  const detected = detectCharset551(bytes);
+  if (!detected.ok) {
+    return detected;
+  }
+  return decodeWithCharset(bytes, detected.value);
+}
+
+/**
+ * Decodes a document by sniffing its encoding: a full UTF-8 decode is
+ * tried first (the GEDCOM 7.0 charset), and a failure falls back to the
+ * header CHAR tag (the 5.5.1 charsets; a UTF-16 stream announces itself
+ * with a BOM and fails the UTF-8 decode). When the header declares no
+ * 5.5.1 charset, the UTF-8 failure is the honest report (a 7.0 file
+ * with invalid UTF-8). This is the decode of the `parse` entry point:
+ * the file's own declarations select the encoding.
+ */
+export function decodeSniffed(bytes: Uint8Array): ParseResult<DecodedDocument> {
+  const utf8 = decodeWithCharset(bytes, 'UTF-8');
+  if (utf8.ok) {
+    return utf8;
+  }
+  const detected = detectCharset551(bytes);
+  if (!detected.ok) {
+    // A BOM-flagged UTF-16 stream skips the UTF-8 attempt in
+    // detectCharset551; otherwise a missing/unknown CHAR is the 5.5.1
+    // report — unless the UTF-8 failure itself is the honest error
+    // (a 7.0 file with invalid UTF-8 or a misplaced BOM).
+    return utf8.error.code === 'decoding.invalid-utf8' || utf8.error.code === 'decoding.bom' ? utf8 : detected;
+  }
+  return decodeWithCharset(bytes, detected.value);
+}
+
+/** Decodes the document in one charset into lines with byte offsets. */
+function decodeWithCharset(bytes: Uint8Array, charset: Charset551): ParseResult<DecodedDocument> {
   if (charset === 'UNICODE') {
     return decodeUtf16Document(bytes);
   }

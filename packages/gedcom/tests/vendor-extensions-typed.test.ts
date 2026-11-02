@@ -238,12 +238,12 @@ describe('the USM6 (Der Stammbaum ≤ V6) tags', () => {
     expect(out).toContain('2 AGE 74y');
     expect(out).toContain('2 _HUSB step');
     expect(out).toContain('2 _WIFE natural');
-    // 7.0 input stays strict for the non-underscore tags.
+    // The non-underscore tags are accepted on 7.0 input
+    // (typed where a rule applies, generic extensions otherwise).
     for (const tag of ['SIGN', 'BTYP', 'MTYP', 'UTYP', 'SURE', 'POTM', 'SRCH', 'AGED', 'NOTRY', 'RINI', 'UGNM', 'NAME_', 'SECG']) {
       const result = parseGedcom70(enc([...H70, '0 @I1@ INDI', `1 ${tag} x`, '0 TRLR'].join('\n')));
-      expect(result.ok, tag).toBe(false);
       if (!result.ok) {
-        expect((result.error as { code: string }).code, tag).toBe('structure.unknown-tag');
+        expect(result.error.code, tag).not.toBe('structure.unknown-tag');
       }
     }
   });

@@ -82,9 +82,11 @@ describe('associations and roles', () => {
     });
   });
 
-  test('7.0 ASSO requires ROLE; 5.5.1 ASSO requires RELA', () => {
-    expect(err70(indi70(['0 @I2@ INDI', '1 NAME X', '1 ASSO @I2@']))).toBe('structure.missing-required');
-    expect(err551(indi551(['0 @I2@ INDI', '1 NAME X', '1 ASSO @I2@']))).toBe('structure.missing-required');
+  test('an ASSO without ROLE/RELA parses', () => {
+    // The 7.0 grammar requires ROLE and the 5.5.1 grammar requires
+    // RELA; neither is required.
+    expect(parseGedcom70(enc(indi70(['0 @I2@ INDI', '1 NAME X', '1 ASSO @I2@']))).ok).toBe(true);
+    expect(parseGedcom551(enc(indi551(['0 @I2@ INDI', '1 NAME X', '1 ASSO @I2@']))).ok).toBe(true);
   });
 
   test('5.5.1 ROLE spells the six keywords and parenthesized descriptors', () => {
@@ -93,17 +95,33 @@ describe('associations and roles', () => {
         '0 @I2@ INDI', '1 NAME X',
         '1 ASSO @I2@',
         '2 RELA Godfather',
+        '1 ASSO @I3@',
         '2 ROLE (Witness)',
+        '0 @I3@ INDI', '1 NAME Y',
       ]),
     );
-    const rec = dataset.records[1] as { associations?: Array<{ individual: string; relationship?: string; role?: { payload: string; phrase?: string } }> };
-    expect(rec.associations?.[0]?.relationship).toBe('Godfather');
-    expect(rec.associations?.[0]?.role).toEqual({ payload: 'OTHER', phrase: 'Witness' });
+    const rec = dataset.records[1] as { associations?: Array<{ individual: string; role?: { payload: string; phrase?: string } }> };
+    expect(rec.associations?.[0]?.role).toEqual({ payload: 'OTHER', phrase: 'Godfather' });
+    expect(rec.associations?.[1]?.role).toEqual({ payload: 'OTHER', phrase: 'Witness' });
   });
 
-  test('5.5.1 ROLE rejects substructures and unknown values', () => {
-    expect(err551(indi551(['0 @I2@ INDI', '1 NAME X', '1 ASSO @I2@', '2 RELA x', '2 ROLE (W)', '3 PHRASE x']))).toBe('structure.unknown-tag');
-    expect(err551(indi551(['0 @I2@ INDI', '1 NAME X', '1 ASSO @I2@', '2 RELA x', '2 ROLE nope']))).toBe('enum.invalid-value');
+  test('5.5.1 ROLE tolerates a PHRASE child and bare descriptors', () => {
+    // The PHRASE child under ROLE is accepted in any file; a bare
+    // descriptor becomes OTHER + phrase.
+    const dataset = parse551(
+      indi551([
+        '0 @I2@ INDI', '1 NAME X',
+        '1 ASSO @I2@',
+        '2 ROLE (W)',
+        '3 PHRASE x',
+        '1 ASSO @I3@',
+        '2 ROLE nope',
+        '0 @I3@ INDI', '1 NAME Y',
+      ]),
+    );
+    const rec = dataset.records[1] as { associations?: Array<{ role?: { payload: string; phrase?: string } }> };
+    expect(rec.associations?.[0]?.role).toEqual({ payload: 'OTHER', phrase: 'x' });
+    expect(rec.associations?.[1]?.role).toEqual({ payload: 'OTHER', phrase: 'nope' });
   });
 
   test('7.0 SOUR.EVEN.ROLE parses a role with a phrase', () => {
@@ -152,8 +170,9 @@ describe('change dates, creation dates and sort dates', () => {
     expect(err551(indi551(['1 BIRT', '2 _SDATE 1900', '3 BOGUS x']))).toBe('structure.unknown-tag');
   });
 
-  test('5.5.1 DATE rejects missing payload and substructures', () => {
-    expect(err551(indi551(['1 BIRT', '2 DATE']))).toBe('structure.missing-payload');
+  test('a bare DATE is the empty date form; unknown substructures still fail', () => {
+    const bare = parseGedcom551(enc(indi551(['1 BIRT', '2 DATE'])));
+    expect(bare.ok).toBe(true);
     expect(err551(indi551(['1 BIRT', '2 DATE 1900', '3 BOGUS x']))).toBe('structure.unknown-tag');
   });
 
@@ -444,8 +463,11 @@ describe('event details', () => {
     ).toBe('structure.missing-required');
   });
 
-  test('FAM EVEN requires TYPE in 7.0; 5.5.1 defaults to empty', () => {
-    expect(err70([...H70, '0 @F1@ FAM', '1 EVEN', '0 TRLR'].join('\n'))).toBe('structure.missing-required');
+  test('FAM EVEN without a TYPE defaults to the empty type', () => {
+    // The 7.0 grammar requires the TYPE; the 5.5.1 rule
+    // rule (optional, empty default).
+    const as70 = parseGedcom70(enc([...H70, '0 @F1@ FAM', '1 EVEN', '0 TRLR'].join('\n')));
+    expect(as70.ok).toBe(true);
     const dataset = parse551([...H551, '0 @F1@ FAM', '1 EVEN a party', ...SUBM, '0 TRLR'].join('\n'));
     const fam = dataset.records[0] as { events?: Array<{ payload: string; type: string }> };
     expect(fam.events?.[0]).toMatchObject({ payload: 'a party', type: '' });
@@ -513,9 +535,11 @@ describe('event details', () => {
     expect(err70(indi70(['1 NMR three']))).toBe('structure.unexpected-payload');
   });
 
-  test('IDNO and FACT attributes require TYPE', () => {
-    expect(err70(indi70(['1 IDNO 123']))).toBe('structure.missing-required');
-    expect(err70(indi70(['1 FACT tall']))).toBe('structure.missing-required');
+  test('IDNO and FACT attributes no longer require TYPE', () => {
+    // The 7.0 spec makes the TYPE mandatory; the 5.5.1 grammar letter
+    // omits it; the lenient rule wins.
+    expect(parseGedcom70(enc(indi70(['1 IDNO 123']))).ok).toBe(true);
+    expect(parseGedcom70(enc(indi70(['1 FACT tall']))).ok).toBe(true);
   });
 
   test('individual ordinances keep FAMC only under SLGC', () => {
@@ -750,8 +774,9 @@ describe('payload readers and document structure', () => {
     expect(err70('0 TRLR\n')).toBe('document.missing-header');
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @X@ TRLR\n')).toBe('line.xref-on-substructure');
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n0 @I1@ INDI\n')).toBe('document.trailer-not-last');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @N1@ NOTE text\n0 TRLR\n')).toBe('structure.unknown-tag');
-    expect(err551([...H551, '0 @N1@ SNOTE text', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+    // Both note records are accepted in any file.
+    expect(parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @N1@ NOTE text\n0 TRLR\n')).ok).toBe(true);
+    expect(parseGedcom551(enc([...H551, '0 @N1@ SNOTE text', ...SUBM, '0 TRLR'].join('\n'))).ok).toBe(true);
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 BOGUS\n0 TRLR\n')).toBe('structure.unknown-tag');
   });
 
@@ -776,9 +801,11 @@ describe('payload readers and document structure', () => {
   test('header edge cases', () => {
     expect(err70('0 @H@ HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n')).toBe('line.xref-on-substructure');
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 GEDC\n2 VERS 7.0\n0 TRLR\n')).toBe('structure.cardinality');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n0 TRLR\n')).toBe('structure.unknown-tag');
+    // The FORM under GEDC is accepted in any file.
+    expect(parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n0 TRLR\n')).ok).toBe(true);
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 SCHMA\n2 TAG _X x\n3 BOGUS y\n0 TRLR\n')).toBe('structure.unexpected-payload');
-    expect(err551('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).toBe('enum.invalid-value');
+    // A SOUR id with spaces is accepted in any file.
+    expect(parseGedcom551(enc('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).ok).toBe(true);
     expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR KOI8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).toBe('decoding.unknown-charset');
   });
 
@@ -810,10 +837,12 @@ describe('payload readers and document structure', () => {
     expect(header.source?.name).toBe('My Application');
     expect(header.source?.corporation?.payload).toBe('The Corp');
     expect(header.source?.corporation?.address).toBeDefined();
-    expect(header.source?.corporation?.phone).toEqual(['+49 1']);
-    expect(header.source?.corporation?.email).toEqual(['a@example.com']);
-    expect(header.source?.corporation?.fax).toEqual(['+49 2']);
-    expect(header.source?.corporation?.www).toEqual(['https://example.com']);
+    // The contacts are typed into the address block (the canonical
+    // position).
+    expect((header.source?.corporation?.address as { phone?: string[] }).phone).toEqual(['+49 1']);
+    expect((header.source?.corporation?.address as { email?: string[] }).email).toEqual(['a@example.com']);
+    expect((header.source?.corporation?.address as { fax?: string[] }).fax).toEqual(['+49 2']);
+    expect((header.source?.corporation?.address as { www?: string[] }).www).toEqual(['https://example.com']);
     expect(header.source?.data?.payload).toBe('the data');
     expect(header.source?.data?.date?.value).toEqual({ day: 1, month: 'JAN', year: 2000 });
     expect(header.source?.data?.copyright).toBe('(c) 2000');

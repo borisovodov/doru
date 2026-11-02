@@ -42,7 +42,6 @@ import {
 } from './context';
 import {
   SEX_551,
-  SEX_70,
   eventDetailHandlers,
   parseAliasLink,
   parseChildFamilyLink,
@@ -52,7 +51,6 @@ import {
   parseFamilyFact,
   parseFamilyPartnerLink,
   parseFamilyResidence,
-  parseFamilyResidence551,
   parseIndividualAttribute,
   parseIndividualEvent,
   parseIndividualOrdinance,
@@ -79,16 +77,15 @@ import {
 } from './sources-media';
 import {
   parseAssociation,
-  parseGrampsAssociation,
   parseChangeDate,
-  parseCreationDate,
+  parseCreationDateLenient,
   parseDateStructure,
   parseExternalIdentifier,
   parseNonEvent,
   parseNoteStructure,
   parseReferenceIdentifier,
   parseUniqueIdentifier,
-  parseAge,
+  parseAgeStructure,
 } from './substructures';
 import {
   USM_UNION_KINDS,
@@ -131,7 +128,7 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
   let lastPartner: FamilyPartnerLink | undefined;
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, ctx.version, child.position);
+      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position);
     },
     HUSB: (child) => {
       rec.husband = parseFamilyPartnerLink(child, ctx);
@@ -258,9 +255,8 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     },
     _ASSO: (child) => {
       // The German GEDCOM-L agreement A3: a person's relation to the
-      // family as a pointer; 5.5.1 FAM has no standard ASSO slot. The
-      // RELA descriptor normalizes like the Gramps ASSO convention.
-      (rec.associations ??= []).push(parseGrampsAssociation(child, ctx));
+      // family as a pointer; 5.5.1 FAM has no standard ASSO slot.
+      (rec.associations ??= []).push(parseAssociation(child, ctx));
     },
     _WITN: (child) => {
       // The German GEDCOM-L agreement ASSO A4: the witnesses of the
@@ -417,102 +413,83 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       pushFtmFamilyFact(rec, child, ctx, 13);
     },
   };
-  if (ctx.version === '7.0') {
-    handlers["NCHI"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyChildCount(child, ctx));
-    };
-    handlers["RESI"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyResidence(child, ctx));
-    };
-    handlers["FACT"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyFact(child, ctx));
-    };
-    handlers["SNOTE"] = (child) => {
-      // The 7.0 FAMILY_RECORD carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-      // 7.0 §3.2.2); 5.5.1 stays strict.
-      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-    handlers["NO"] = (child) => {
-      (rec.nonEvents ??= []).push(parseNonEvent(child, ctx));
-    };
-    handlers["ASSO"] = (child) => {
-      (rec.associations ??= []).push(parseAssociation(child, ctx));
-    };
-    handlers["CREA"] = (child) => {
-      rec.creationDate = parseCreationDate(child, ctx);
-    };
-    handlers["UID"] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["_UID"] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["EXID"] = (child) => {
-      (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-    for (const tag of FAMILY_EVENT_TAGS) {
-      handlers[tag] = (child) => {
-        (rec.events ??= []).push(parseFamilyEvent(child, ctx, tag));
-      };
+  handlers['NCHI'] = (child) => {
+    (rec.attributes ??= []).push(parseFamilyChildCount(child, ctx));
+  };
+  handlers['RESI'] = (child) => {
+    (rec.attributes ??= []).push(parseFamilyResidence(child, ctx));
+  };
+  handlers['FACT'] = (child) => {
+    (rec.attributes ??= []).push(parseFamilyFact(child, ctx));
+  };
+  handlers['SNOTE'] = (child) => {
+    // The 7.0 FAMILY_RECORD carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.2); accepted in any file.
+    (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  handlers['NO'] = (child) => {
+    (rec.nonEvents ??= []).push(parseNonEvent(child, ctx));
+  };
+  handlers['CREA'] = (child) => {
+    const created = parseCreationDateLenient(child, ctx);
+    if (created === undefined) {
+      addExtension(rec, child, ctx);
+    } else {
+      rec.creationDate = created;
     }
-  } else {
-    handlers['_UID'] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['UID'] = (child) => {
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['_UID'] = (child) => {
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['EXID'] = (child) => {
+    (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+  };
+  handlers['RIN'] = (child) => {
+    rec.automatedRecordId = reqText(child);
+  };
+  handlers['UTYP'] = (child) => {
+    // USM6: the kind of relationship the partners are in (see
+    // FamilyRecord.unionKind); the USM6 spelling is accepted in any file
+    // spelling in any file.
+    rec.unionKind = parseUsmCode(child, 'UTYP', USM_UNION_KINDS);
+  };
+  handlers['_UTYP'] = (child) => {
+    // The underscore write-back spelling of the USM6 UTYP (the USM6
+    // wire spelling is non-underscore; see FamilyRecord.unionKind
+    // for the export rule). Both spellings are recognized.
+    rec.unionKind = parseUsmCode(child, '_UTYP', USM_UNION_KINDS);
+  };
+  handlers['RFN'] = (child) => {
+    // Pro-Gen writes the reference number with the standard RFN tag
+    // under FAM (the webtrees per-vendor custom-tag registry,
+    // ProGen.php: `FAM:RFN`); the 5.5.1 and 7.0 FAM grammars have
+    // only REFN there, so the value normalizes into the REFN
+    // identifier slot and is written back as the standard REFN.
+    (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
+  };
+  handlers['ASSO'] = (child) => {
+    // The 7.0 FAM ASSO and the GEDCOM 5.5EL ASSO slot ("witnesses of a
+    // marriage, priests, registrars"; the GEDCOM 5.5EL spec, e.g. the
+    // English GenWiki page "Gedcom 5.5EL":
+    // http://wiki-en.genealogy.net/Gedcom_5.5EL) parse with the same
+    // handlers (see parseAssociation).
+    (rec.associations ??= []).push(parseAssociation(child, ctx));
+  };
+  for (const tag of FAMILY_EVENT_TAGS) {
+    handlers[tag] = (child) => {
+      (rec.events ??= []).push(parseFamilyEvent(child, ctx, tag));
     };
-    handlers["NCHI"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyChildCount(child, ctx));
-    };
-    handlers["ASSO"] = (child) => {
-      // GEDCOM 5.5EL adds an ASSO slot to the FAM_RECORD — the people
-      // associated with the family ("witnesses of a marriage, priests,
-      // registrars"; the GEDCOM 5.5EL spec, e.g. the English GenWiki
-      // page "Gedcom 5.5EL":
-      // http://wiki-en.genealogy.net/Gedcom_5.5EL). The 5.5.1 FAM
-      // grammar has no ASSO, so the file is 5.5EL-flavoured; the
-      // association normalizes exactly like the GEDCOM-L `_ASSO`
-      // spelling (agreement A3) and is written back as `_ASSO`.
-      (rec.associations ??= []).push(parseGrampsAssociation(child, ctx));
-    };
-    for (const tag of FAMILY_EVENT_TAGS) {
-      handlers[tag] = (child) => {
-        (rec.events ??= []).push(parseFamilyEvent(child, ctx, tag));
-      };
-    }
-    handlers["RESI"] = (child) => {
-      (rec.attributes ??= []).push(parseFamilyResidence551(child, ctx));
-    };
-    handlers["RIN"] = (child) => {
-      rec.automatedRecordId = reqText(child);
-    };
-    handlers['UTYP'] = (child) => {
-      // USM6: the kind of relationship the partners are in (see
-      // FamilyRecord.unionKind).
-      rec.unionKind = parseUsmCode(child, 'UTYP', USM_UNION_KINDS);
-    };
-    handlers['_UTYP'] = (child) => {
-      // The underscore write-back spelling of the USM6 UTYP (the
-      // USM6 wire spelling is non-underscore; see FamilyRecord.unionKind
-      // for the export rule). Both spellings are recognized.
-      rec.unionKind = parseUsmCode(child, '_UTYP', USM_UNION_KINDS);
-    };
-    handlers["RFN"] = (child) => {
-      // Pro-Gen writes the reference number with the standard RFN tag
-      // under FAM (the webtrees per-vendor custom-tag registry,
-      // ProGen.php: `FAM:RFN`); the 5.5.1 and 7.0 FAM grammars have
-      // only REFN there, so the value normalizes into the REFN
-      // identifier slot and is written back as the standard REFN.
-      (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
-    };
-    applyLegacyFamilyTags(rec, handlers, ctx);
   }
+  applyLegacyFamilyTags(rec, handlers, ctx);
   dispatch(
     node,
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0'
-      ? ['RESN', 'HUSB', 'WIFE', 'CHAN', 'CREA', '_MSTAT', '_MEND']
-      : ['RESN', 'NCHI', 'HUSB', 'WIFE', 'CHAN', 'RIN', '_MSTAT', '_MEND', 'UTYP'],
+    ['RESN', 'HUSB', 'WIFE', 'CHAN', '_MSTAT', '_MEND'],
   );
   return rec;
 }
@@ -521,14 +498,14 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
  * A vendor name tag (`_MARNM`, `_AKA`, …): normalized into a NAME with
  * the given type; see the JSDoc of PersonalNameStructure.
  */
-function pushVendorName(rec: IndividualRecord, node: RawNode, ctx: Ctx, nameType: NameTypeEnum, phrase?: string): void {
+function pushVendorName(rec: IndividualRecord, node: RawNode, _ctx: Ctx, nameType: NameTypeEnum, phrase?: string): void {
   const type: NameTypeStructure = { payload: nameType };
   if (phrase !== undefined) {
     type.phrase = phrase as Text;
   }
   (rec.names ??= []).push({
     tag: 'NAME',
-    payload: parsePersonalName(reqText(node), ctx.version, node.position),
+    payload: parsePersonalName(reqText(node), node.position),
     type,
   });
 }
@@ -585,7 +562,7 @@ function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag
  *  descriptor when the vendor writes none (the Gramps ASSO convention,
  *  like the association rules of vendor-tags.ts). */
 function pushVendorAssociation(rec: IndividualRecord, node: RawNode, ctx: Ctx, relationship: string): void {
-  const link = parseGrampsAssociation(node, ctx);
+  const link = parseAssociation(node, ctx);
   link.role = link.role ?? { payload: 'OTHER', phrase: relationship };
   (rec.associations ??= []).push(link);
 }
@@ -602,7 +579,7 @@ function pushLegacyIndividualEvent(rec: IndividualRecord, node: RawNode, ctx: Ct
   const handlers = eventDetailHandlers(ctx, detail);
   handlers['TYPE'] = () => undefined;
   handlers['AGE'] = (child) => {
-    detail.age = parseAge(child, ctx);
+    detail.age = parseAgeStructure(child, ctx);
   };
   dispatch(node, detail, handlers, ctx);
   const raw = node.value.kind === 'text' ? node.value.text : '';
@@ -744,7 +721,7 @@ function pushFtmFamilyFact(rec: FamilyRecord, node: RawNode, ctx: Ctx, n: number
   (rec.events ??= []).push({ tag: 'EVEN', payload: raw, type, ...familyDetail } as FamilyEventStructure);
 }
 
-/** Applies the typed legacy INDI rules (see vendor-tags.ts) on 5.x input. */
+/** Applies the typed legacy INDI rules (see vendor-tags.ts) in any file. */
 function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
   for (const [tag, rule] of Object.entries(LEGACY_INDIVIDUAL_TAGS)) {
     handlers[tag] = (child) => {
@@ -805,7 +782,7 @@ function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<strin
   }
 }
 
-/** Applies the typed legacy FAM rules (see vendor-tags.ts) on 5.x input. */
+/** Applies the typed legacy FAM rules (see vendor-tags.ts) in any file. */
 function applyLegacyFamilyTags(rec: FamilyRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
   for (const [tag, rule] of Object.entries(LEGACY_FAMILY_TAGS)) {
     handlers[tag] = (child) => {
@@ -953,7 +930,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, ctx.version, child.position);
+      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position);
     },
     NAME: (child) => {
       (rec.names ??= []).push(parsePersonalNameStructure(child, ctx));
@@ -1422,10 +1399,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       pushLegacyIndividualEvent(rec, child, ctx, 'Land sale');
     },
     SEX: (child) => {
-      const table = (ctx.version === '7.0' ? SEX_70 : SEX_551) as Readonly<
-        Record<'M' | 'F' | 'U' | 'X' | 'N', string>
-      >;
-      rec.sex = parseEnum(reqText(child), table, ctx.version, child.position);
+      rec.sex = parseEnum(reqText(child), SEX_551, child.position);
     },
     _CORR: (child) => {
       // FO7: the correspondence entry block (see
@@ -1565,118 +1539,113 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
   };
   const eventTags = INDIVIDUAL_EVENT_TAGS;
   const attributeTags = INDIVIDUAL_ATTRIBUTE_TAGS;
-  if (ctx.version === '7.0') {
-    handlers["NO"] = (child) => {
-      (rec.nonEvents ??= []).push(parseNonEvent(child, ctx));
-    };
-    handlers["CREA"] = (child) => {
-      rec.creationDate = parseCreationDate(child, ctx);
-    };
-    handlers["UID"] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["_UID"] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["EXID"] = (child) => {
-      (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-    handlers["SNOTE"] = (child) => {
-      // The 7.0 INDIVIDUAL_RECORD carries <<NOTE_STRUCTURE>> {0:M}
-      // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
-      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-    for (const tag of ['BAPL', 'CONL', 'ENDL', 'INIL', 'SLGC']) {
-      handlers[tag] = (child) => {
-        (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, tag));
-      };
+  handlers['NO'] = (child) => {
+    (rec.nonEvents ??= []).push(parseNonEvent(child, ctx));
+  };
+  handlers['CREA'] = (child) => {
+    const created = parseCreationDateLenient(child, ctx);
+    if (created === undefined) {
+      addExtension(rec, child, ctx);
+    } else {
+      rec.creationDate = created;
     }
-  } else {
-    handlers['_UID'] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["RIN"] = (child) => {
-      rec.automatedRecordId = reqText(child);
-    };
-    handlers["RFN"] = (child) => {
-      rec.recordFileNumber = reqText(child);
-    };
-    handlers["AFN"] = (child) => {
-      rec.ancestralFileNumber = reqText(child);
-    };
-    handlers['SIGN'] = (child) => {
-      // USM6: the person can sign (see IndividualRecord.canSign).
-      // Heredis writes the person's signature (free text) under the
-      // same tag — a payload that is not one of the flag spellings
-      // stays a generic extension instead of failing the import.
-      const flag = parseUsmFlagLenient(child, 'SIGN');
-      if (flag === undefined) {
-        addExtension(rec, child, ctx);
-      } else {
-        rec.canSign = flag;
-      }
-    };
-    handlers['_SIGN'] = (child) => {
-      // The underscore write-back spelling of the USM6 SIGN (the USM6
-      // wire spelling is non-underscore; see IndividualRecord.canSign
-      // for the export rule). Both spellings follow the same lenient
-      // rule.
-      const flag = parseUsmFlagLenient(child, '_SIGN');
-      if (flag === undefined) {
-        addExtension(rec, child, ctx);
-      } else {
-        rec.canSign = flag;
-      }
-    };
-    handlers['AGE'] = (child) => {
-      // GEDCOM-L Addendum §8.2: an AGE at level 1 in the INDI record
-      // is interpreted as the age at death and subordinated to DEAT
-      // (`1 AGE 65y` becomes `1 DEAT` + `2 AGE 65y`). The addendum
-      // names the interpretation a suggestion for importing faulty
-      // files; this package follows it.
-      const age = parseAge(child, ctx);
-      let event = rec.events?.find((entry) => entry.tag === 'DEAT');
-      if (event === undefined) {
-        event = { tag: 'DEAT' };
-        (rec.events ??= []).push(event);
-      }
-      event.detail ??= {};
-      event.detail.age = age;
-    };
-    handlers["EMAIL"] = (child) => {
-      // PAF writes the individual's e-mail address under INDI with the
-      // standard EMAIL tag (the webtrees per-vendor custom-tag registry,
-      // PersonalAncestralFile.php:
-      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PersonalAncestralFile.php);
-      // the Brother's Keeper spelling is `_EMAIL` — both normalize into
-      // IndividualRecord.email.
-      (rec.email ??= []).push(reqText(child));
-    };
-    handlers["ADDR"] = (child) => {
-      // PAF writes the person's contact address directly under INDI
-      // (same source as EMAIL above). No typed slot — the address and
-      // its ADR1/CITY/... children are kept verbatim as record
-      // extensions (written back on 5.5.1 output, dropped on 7.0 where
-      // INDI has no address position either).
+  };
+  handlers['UID'] = (child) => {
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['_UID'] = (child) => {
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['EXID'] = (child) => {
+    (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+  };
+  handlers['SNOTE'] = (child) => {
+    // The 7.0 INDIVIDUAL_RECORD carries <<NOTE_STRUCTURE>> {0:M}
+    // (GEDCOM 7.0 §3.2.2); accepted in any file.
+    (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  handlers['RIN'] = (child) => {
+    rec.automatedRecordId = reqText(child);
+  };
+  handlers['RFN'] = (child) => {
+    rec.recordFileNumber = reqText(child);
+  };
+  handlers['AFN'] = (child) => {
+    rec.ancestralFileNumber = reqText(child);
+  };
+  handlers['SIGN'] = (child) => {
+    // USM6: the person can sign (see IndividualRecord.canSign).
+    // Heredis writes the person's signature (free text) under the
+    // same tag — a payload that is not one of the flag spellings
+    // stays a generic extension instead of failing the import.
+    const flag = parseUsmFlagLenient(child, 'SIGN');
+    if (flag === undefined) {
       addExtension(rec, child, ctx);
-    };
-    handlers["PHON"] = (child) => {
-      // PAF: the person's phone number under INDI (same source); kept
-      // verbatim as a record extension.
-      addExtension(rec, child, ctx);
-    };
-    handlers["FAX"] = (child) => {
-      // PAF: the person's fax number under INDI (same source); kept
-      // verbatim as a record extension.
-      addExtension(rec, child, ctx);
-    };
-    for (const tag of ['BAPL', 'CONL', 'ENDL', 'SLGC']) {
-      handlers[tag] = (child) => {
-        (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, tag));
-      };
+    } else {
+      rec.canSign = flag;
     }
-    applyLegacyIndividualTags(rec, handlers, ctx);
+  };
+  handlers['_SIGN'] = (child) => {
+    // The underscore write-back spelling of the USM6 SIGN (the USM6
+    // wire spelling is non-underscore; see IndividualRecord.canSign
+    // for the export rule). Both spellings follow the same lenient
+    // rule.
+    const flag = parseUsmFlagLenient(child, '_SIGN');
+    if (flag === undefined) {
+      addExtension(rec, child, ctx);
+    } else {
+      rec.canSign = flag;
+    }
+  };
+  handlers['AGE'] = (child) => {
+    // GEDCOM-L Addendum §8.2: an AGE at level 1 in the INDI record
+    // is interpreted as the age at death and subordinated to DEAT
+    // (`1 AGE 65y` becomes `1 DEAT` + `2 AGE 65y`). The addendum
+    // names the interpretation a suggestion for importing faulty
+    // files; this package follows it. The
+    // level-1 AGE is accepted in any file.
+    const age = parseAgeStructure(child, ctx);
+    let event = rec.events?.find((entry) => entry.tag === 'DEAT');
+    if (event === undefined) {
+      event = { tag: 'DEAT' };
+      (rec.events ??= []).push(event);
+    }
+    event.detail ??= {};
+    event.detail.age = age;
+  };
+  handlers['EMAIL'] = (child) => {
+    // PAF writes the individual's e-mail address under INDI with the
+    // standard EMAIL tag (the webtrees per-vendor custom-tag registry,
+    // PersonalAncestralFile.php:
+    // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PersonalAncestralFile.php);
+    // the Brother's Keeper spelling is `_EMAIL` — both normalize into
+    // IndividualRecord.email.
+    (rec.email ??= []).push(reqText(child));
+  };
+  handlers['ADDR'] = (child) => {
+    // PAF writes the person's contact address directly under INDI
+    // (same source as EMAIL above). No typed slot — the address and
+    // its ADR1/CITY/... children are kept verbatim as record
+    // extensions (written back on 5.5.1 output, dropped on 7.0 where
+    // INDI has no address position either).
+    addExtension(rec, child, ctx);
+  };
+  handlers['PHON'] = (child) => {
+    // PAF: the person's phone number under INDI (same source); kept
+    // verbatim as a record extension.
+    addExtension(rec, child, ctx);
+  };
+  handlers['FAX'] = (child) => {
+    // PAF: the person's fax number under INDI (same source); kept
+    // verbatim as a record extension.
+    addExtension(rec, child, ctx);
+  };
+  for (const tag of ['BAPL', 'CONL', 'ENDL', 'INIL', 'SLGC']) {
+    handlers[tag] = (child) => {
+      (rec.ordinances ??= []).push(parseIndividualOrdinance(child, ctx, tag));
+    };
   }
+  applyLegacyIndividualTags(rec, handlers, ctx);
   for (const tag of eventTags) {
     handlers[tag] = (child) => {
       (rec.events ??= []).push(parseIndividualEvent(child, ctx, tag));
@@ -1692,9 +1661,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0'
-      ? ['RESN', 'SEX', 'CHAN', 'CREA', '_BKM', '_STP', '_FLGS']
-      : ['RESN', 'SEX', 'CHAN', 'RIN', 'RFN', 'AFN', '_BKM', '_STP', '_FLGS', 'SIGN'],
+    ['RESN', 'SEX', 'CHAN', '_BKM', '_STP', '_FLGS'],
   );
   return rec;
 }

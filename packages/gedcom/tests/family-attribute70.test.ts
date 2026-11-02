@@ -142,7 +142,14 @@ describe('GEDCOM 7.0 FAMILY_ATTRIBUTE_STRUCTURE details', () => {
     expect(out).not.toContain('3 AGE 38y');
   });
 
-  test('5.5.1 input stays strict: NCHI has no substructures there', () => {
-    expect(err551([...H551, '0 @F1@ FAM', '1 NCHI 1', '2 TYPE A', '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+  test('NCHI with substructures parses in any file', () => {
+    const result = parseGedcom551(
+      enc([...H551, '0 @F1@ FAM', '1 NCHI 1', '2 TYPE A', '0 TRLR'].join('\n')),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const fam = result.value.records.find((record) => record.tag === 'FAM');
+      expect((fam as unknown as { attributes?: Array<{ type?: string }> }).attributes?.[0]?.type).toBe('A');
+    }
   });
 });

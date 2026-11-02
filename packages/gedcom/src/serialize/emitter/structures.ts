@@ -33,6 +33,7 @@ import {
   formatTime,
 } from '../format';
 import {
+  AGE_KEYWORD_TO_70,
   ROLE_TO_RELA_551,
 } from '../tables';
 import type {
@@ -346,8 +347,7 @@ export function emitAge(w: Writer, version: Version, level: number, age: AgeStru
     if (payload.description !== undefined) {
       // The 5.5.1 keyword is projected onto the closest numeric bound;
       // the keyword itself is preserved in the PHRASE.
-      const KEYWORD_TO_70: Record<string, string> = { CHILD: '< 8y', INFANT: '< 1y', STILLBORN: '0y' };
-      value = KEYWORD_TO_70[payload.description] ?? '< 1y';
+      value = AGE_KEYWORD_TO_70[payload.description] ?? '< 1y';
       phrase = phrase ?? payload.description;
     } else {
       value = formatAge70(payload);
@@ -892,7 +892,7 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
 
 export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, top = true): void {
   if (top && !ext.tag.startsWith('_')) {
-    // A non-underscore vendor extension accepted from 5.x input (see
+    // A non-underscore vendor extension accepted on input (see
     // parsing/vendor-tags.ts) is not spelled by either target grammar:
     // 7.0 §1.5 extension tags must be underscore-prefixed (extTag),
     // and 5.5.1 reserves the underscore prefix for user-defined tags

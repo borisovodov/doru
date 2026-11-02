@@ -222,30 +222,31 @@ describe('age parsers', () => {
 describe('enumeration parsers', () => {
   test('7.0 enums accept exact values and extensions', () => {
     const table = { A: 'a', B: 'b' } as const;
-    expect(parseEnum('A', table, '7.0', pos)).toBe('A');
-    expect(parseEnum('_EXT', table, '7.0', pos)).toBe('_EXT');
-    expect(codeOf(() => parseEnum('C', table, '7.0', pos))).toBe('enum.invalid-value');
+    expect(parseEnum('A', table, pos)).toBe('A');
+    expect(parseEnum('_EXT', table, pos)).toBe('_EXT');
+    expect(codeOf(() => parseEnum('C', table, pos))).toBe('enum.invalid-value');
   });
 
   test('5.5.1 enums are case-insensitive', () => {
     const table = { MALE: 'male' } as const;
-    expect(parseEnum('male', table, '5.5.1', pos)).toBe('MALE');
-    expect(codeOf(() => parseEnum('other', table, '5.5.1', pos))).toBe('enum.invalid-value');
+    expect(parseEnum('male', table, pos)).toBe('MALE');
+    expect(codeOf(() => parseEnum('other', table, pos))).toBe('enum.invalid-value');
   });
 
   test('list enums trim items', () => {
-    expect(parseListEnum('A, B', { A: 'a', B: 'b' }, '7.0', pos)).toEqual(['A', 'B']);
+    expect(parseListEnum('A, B', { A: 'a', B: 'b' }, pos)).toEqual(['A', 'B']);
   });
 });
 
 describe('names, coordinates and tag definitions', () => {
   test('personal names', () => {
-    expect(parsePersonalName('John /Doe/', '7.0', pos)).toEqual({ given: 'John', surname: 'Doe' });
-    expect(parsePersonalName('/Doe/ Jr', '7.0', pos)).toEqual({ surname: 'Doe', suffix: 'Jr' });
-    expect(parsePersonalName('John', '7.0', pos)).toEqual({ given: 'John' });
-    expect(parsePersonalName('John /Doe/', '5.5.1', pos)).toEqual({ given: 'John', surname: 'Doe' });
-    expect(codeOf(() => parsePersonalName('Doe, John', '5.5.1', pos))).toBe('name.invalid');
-    expect(codeOf(() => parsePersonalName('John /Doe/ Extra /Part/', '7.0', pos))).toBe('name.invalid');
+    expect(parsePersonalName('John /Doe/', pos)).toEqual({ given: 'John', surname: 'Doe' });
+    expect(parsePersonalName('/Doe/ Jr', pos)).toEqual({ surname: 'Doe', suffix: 'Jr' });
+    expect(parsePersonalName('John', pos)).toEqual({ given: 'John' });
+    // Commas are accepted in any file (the 5.5.1 rule
+    // rejected them; the 7.0 rule accepts them).
+    expect(parsePersonalName('Doe, John', pos)).toEqual({ given: 'Doe, John' });
+    expect(codeOf(() => parsePersonalName('John /Doe/ Extra /Part/', pos))).toBe('name.invalid');
   });
 
   test('latitude and longitude', () => {

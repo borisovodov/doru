@@ -41,19 +41,26 @@ describe('parseGedcom551 — header', () => {
     expect(dataset.header.characterSet?.version).toBeUndefined();
   });
 
-  test('requires SOUR and CHAR', () => {
-    expect(err551('0 HEAD\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n')).toBe(
-      'structure.missing-required',
+  test('requires CHAR; SOUR is optional', () => {
+    // The 5.5.1 SOUR is not required; the charset
+    // declaration still selects the decoder.
+    const withoutSour = parseGedcom551(
+      enc('0 HEAD\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
     );
+    expect(withoutSour.ok).toBe(true);
     expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n')).toBe(
       'decoding.missing-charset',
     );
   });
 
-  test('rejects a 7.x version', () => {
-    expect(
-      err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
-    ).toBe('document.wrong-version');
+  test('accepts a 7.x version declaration', () => {
+    const result = parseGedcom551(
+      enc('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.header.gedcom.version).toBe('7.0');
+    }
   });
 
   test('rejects pre-5.5 versions with an explicit error', () => {
@@ -82,10 +89,14 @@ describe('parseGedcom551 — header', () => {
     }
   });
 
-  test('rejects a SOUR id with spaces', () => {
-    expect(
-      err551('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
-    ).toBe('enum.invalid-value');
+  test('accepts a SOUR id with spaces', () => {
+    const result = parseGedcom551(
+      enc('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.header.source?.payload).toBe('My App');
+    }
   });
 
   test('validates the GEDCOM form', () => {
@@ -236,8 +247,11 @@ describe('parseGedcom551 — records and 5.5.1-only fields', () => {
       throw new Error('expected INDI');
     }
     expect(indi.associations?.[0]?.individual).toBe('@I2@');
-    expect(indi.associations?.[0]?.relationship).toBe('Godfather');
-    expect(indi.associations?.[0]?.role).toBeUndefined();
+    // The free-text RELA descriptor types into the OTHER role + phrase
+    // (the canonical form; the relationship slot stays for the 5.5.1
+    // spelling on export).
+    expect(indi.associations?.[0]?.relationship).toBeUndefined();
+    expect(indi.associations?.[0]?.role).toEqual({ payload: 'OTHER', phrase: 'Godfather' });
   });
 
   test('parses the free-text SOUR citation form', () => {
@@ -436,31 +450,38 @@ describe('parseGedcom551 — records and 5.5.1-only fields', () => {
 });
 
 describe('parseGedcom551 — strictness', () => {
-  test('rejects 7.0-only constructs', () => {
-    expect(err551([...HEADER, ...SUBM, '0 @N1@ SNOTE text', '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 NO MARR', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 UID abc', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 INIL', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 EXID abc', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+  test('accepts 7.0-only constructs', () => {
+    for (const lines of [
+      [...HEADER, ...SUBM, '0 @N1@ SNOTE text', '0 TRLR'],
+      [...HEADER, '0 @I1@ INDI', '1 NO MARR', ...SUBM, '0 TRLR'],
+      [...HEADER, '0 @I1@ INDI', '1 UID abc', ...SUBM, '0 TRLR'],
+      [...HEADER, '0 @I1@ INDI', '1 INIL', ...SUBM, '0 TRLR'],
+      [...HEADER, '0 @I1@ INDI', '1 EXID abc', ...SUBM, '0 TRLR'],
+    ]) {
+      expect(parseGedcom551(enc(lines.join('\n'))).ok).toBe(true);
+    }
   });
 
-  test('accepts the MFT7 non-underscore CREA as a generic extension on 5.5.1 input', () => {
+  test('the MFT7 non-underscore CREA types into the creation date', () => {
     const result = parseGedcom551(
       enc([...HEADER, '0 @I1@ INDI', '1 CREA', '2 DATE 1 JAN 2000', ...SUBM, '0 TRLR'].join('\n')),
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
       const indi = result.value.records.find((record) => record.tag === 'INDI');
-      expect((indi as unknown as { extensions?: unknown[] }).extensions).toEqual([
-        { tag: 'CREA', children: [{ tag: 'DATE', payload: '1 JAN 2000', children: [] }] },
-      ]);
+      expect((indi as unknown as { creationDate?: unknown }).creationDate).toBeDefined();
     }
   });
 
-  test('rejects a Y payload on 5.5.1 family events other than MARR', () => {
-    expect(err551([...HEADER, '0 @F1@ FAM', '1 ANUL Y', ...SUBM, '0 TRLR'].join('\n'))).toBe(
-      'structure.unexpected-payload',
+  test('accepts a Y payload on every 5.5.1 family event', () => {
+    const result = parseGedcom551(
+      enc([...HEADER, '0 @F1@ FAM', '1 ANUL Y', ...SUBM, '0 TRLR'].join('\n')),
     );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const fam = result.value.records.find((record) => record.tag === 'FAM');
+      expect((fam as unknown as { events?: Array<{ payload?: unknown }> }).events?.[0]?.payload).toBe(true);
+    }
   });
 
   test('accepts the Y payload on the 5.5.1 individual events ADOP, BIRT, CHR and DEAT', () => {
@@ -473,30 +494,45 @@ describe('parseGedcom551 — strictness', () => {
         expect(event?.payload, tag).toBe(true);
       }
     }
-    // The other individual events stay bare in 5.5.1 (GEDCOM 5.5.1 §2
-    // p.34).
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 BAPM Y', ...SUBM, '0 TRLR'].join('\n'))).toBe(
-      'structure.unexpected-payload',
+    // The Y assertion is also accepted on the remaining
+    // individual events (the 7.0 rule).
+    const bapm = parseGedcom551(enc([...HEADER, '0 @I1@ INDI', '1 BAPM Y', ...SUBM, '0 TRLR'].join('\n')));
+    expect(bapm.ok).toBe(true);
+  });
+
+  test('accepts a 7.0 enumset status on any ordinance', () => {
+    const result = parseGedcom551(
+      enc([...HEADER, '0 @I1@ INDI', '1 BAPL', '2 STAT BIC', '3 DATE 1 JAN 2000', ...SUBM, '0 TRLR'].join('\n')),
     );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const indi = result.value.records.find((record) => record.tag === 'INDI');
+      expect(
+        (indi as unknown as { ordinances?: Array<{ detail?: { status?: { payload?: string } } }> }).ordinances?.[0]
+          ?.detail?.status?.payload,
+      ).toBe('BIC');
+    }
   });
 
-  test('rejects a per-ordinance status mismatch', () => {
-    expect(
-      err551([...HEADER, '0 @I1@ INDI', '1 BAPL', '2 STAT BIC', '3 DATE 1 JAN 2000', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('enum.invalid-value');
-  });
-
-  test('rejects unknown 5.5.1 media formats and languages', () => {
-    expect(
-      err551([...HEADER, '0 @O1@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('enum.invalid-value');
-    expect(err551([...HEADER, '1 LANG Klingon', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
-  });
-
-  test('rejects commas in 5.5.1 names', () => {
-    expect(err551([...HEADER, '0 @I1@ INDI', '1 NAME John, /Doe/', ...SUBM, '0 TRLR'].join('\n'))).toBe(
-      'name.invalid',
+  test('accepts any FORM text and any LANG text', () => {
+    const media = parseGedcom551(
+      enc([...HEADER, '0 @O1@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n')),
     );
+    expect(media.ok).toBe(true);
+    // The language is free text (the 5.5.1 LANGUAGE_ID table is no
+    // longer validated on import; the serializer maps onto it).
+    const lang = parseGedcom551(enc([...HEADER, '1 LANG Klingon', ...SUBM, '0 TRLR'].join('\n')));
+    expect(lang.ok).toBe(true);
+    if (lang.ok) {
+      expect(lang.value.header.language).toBe('Klingon');
+    }
+  });
+
+  test('accepts commas in names', () => {
+    const result = parseGedcom551(
+      enc([...HEADER, '0 @I1@ INDI', '1 NAME John, /Doe/', ...SUBM, '0 TRLR'].join('\n')),
+    );
+    expect(result.ok).toBe(true);
   });
 
   test('rejects reserved calendar escapes', () => {
@@ -505,10 +541,17 @@ describe('parseGedcom551 — strictness', () => {
     ).toBe('date.reserved-calendar');
   });
 
-  test('rejects the void pointer in 5.5.1 pointers', () => {
-    expect(
-      err551([...HEADER, '0 @I1@ INDI', '1 FAMS @VOID@', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('document.xref-not-found');
+  test('accepts the void pointer in pointers', () => {
+    const result = parseGedcom551(
+      enc([...HEADER, '0 @I1@ INDI', '1 FAMS @VOID@', ...SUBM, '0 TRLR'].join('\n')),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const indi = result.value.records.find((record) => record.tag === 'INDI');
+      expect(
+        (indi as unknown as { spouseFamilies?: Array<{ family?: string }> }).spouseFamilies?.[0]?.family,
+      ).toBe('@VOID@');
+    }
   });
 
   test('parses an empty REPO as the void pointer', () => {

@@ -52,7 +52,6 @@ import {
   normalizeCharset551,
 } from './decode';
 import {
-  parseLanguage551,
   parseListText,
   parseTagDefinition,
 } from './types';
@@ -86,18 +85,14 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         }
         gedcom = parseGedc(child, ctx);
       },
-      ...(ctx.version === '7.0'
-        ? {
-            SCHMA: (child) => {
-              header.schema = parseSchema(child, ctx);
-            },
-            SNOTE: (child) => {
-              // The 7.0 HEAD carries <<NOTE_STRUCTURE>> {0:1}; 5.5.1
-              // stays strict.
-              setNote(child);
-            },
-          }
-        : {}),
+      SCHMA: (child) => {
+        header.schema = parseSchema(child, ctx);
+      },
+      SNOTE: (child) => {
+        // The 7.0 HEAD carries <<NOTE_STRUCTURE>> {0:1}; the
+        // shared-note pointer form is accepted in any file.
+        setNote(child);
+      },
       SOUR: (child) => {
         header.source = parseHeaderSource(child, ctx);
       },
@@ -113,7 +108,7 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         const dateNode = timezone === undefined
           ? child
           : { ...child, children: child.children.filter((grandchild) => grandchild.tag !== '_TIMEZONE') };
-        header.date = parseDateExactStructure(dateNode, ctx, true);
+        header.date = parseDateExactStructure(dateNode, ctx);
         if (timezone !== undefined) {
           header.timezone = reqText(timezone);
         }
@@ -132,16 +127,12 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
           addExtension(header, grandchild, ctx);
         }
       },
-      ...(ctx.version === '5.5.1'
-        ? {
-            SUBN: (child) => {
-              header.submission = reqPtr(child, ctx);
-            },
-            FILE: (child) => {
-              header.fileName = reqText(child);
-            },
-          }
-        : {}),
+      SUBN: (child) => {
+        header.submission = reqPtr(child, ctx);
+      },
+      FILE: (child) => {
+        header.fileName = reqText(child);
+      },
       COPR: (child) => {
         header.copyright = reqText(child);
       },
@@ -197,28 +188,24 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       NOTE: (child) => {
         setNote(child);
       },
-      ...(ctx.version === '5.5.1'
-        ? {
-            CHAR: (child) => {
-              parseCharacterSetStructure(child, ctx);
-            },
-            SCHEMA: (child) => {
-              if (header.schema53 !== undefined) {
-                fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
-              }
-              header.schema53 = parseSchema53(child, ctx);
-              fillSchema53Labels(header.schema53, ctx);
-            },
-            _SCHEMA: (child) => {
-              // The Family Tree Maker spelling of the same block.
-              if (header.schema53 !== undefined) {
-                fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
-              }
-              header.schema53 = parseSchema53(child, ctx);
-              fillSchema53Labels(header.schema53, ctx);
-            },
-          }
-        : {}),
+      CHAR: (child) => {
+        parseCharacterSetStructure(child, ctx);
+      },
+      SCHEMA: (child) => {
+        if (header.schema53 !== undefined) {
+          fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
+        }
+        header.schema53 = parseSchema53(child, ctx);
+        fillSchema53Labels(header.schema53, ctx);
+      },
+      _SCHEMA: (child) => {
+        // The Family Tree Maker spelling of the same block.
+        if (header.schema53 !== undefined) {
+          fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
+        }
+        header.schema53 = parseSchema53(child, ctx);
+        fillSchema53Labels(header.schema53, ctx);
+      },
       _ORGSOUR: (child) => {
         // The product that originally wrote the data (see
         // Header.originalSource): NAME and VERS children carry the
@@ -247,16 +234,9 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
   if (gedcom === undefined) {
     fail('structure.missing-required', 'The header requires a GEDC substructure', node.position);
   }
-  if (ctx.version === '5.5.1') {
-    if (header.source === undefined) {
-      fail('structure.missing-required', 'The 5.5.1 header requires a SOUR substructure', node.position);
-    }
-    // The 5.5.1 spec also requires the HEAD.SUBM pointer, but it is not
-    // enforced: GEDCOM 5.5.5 deprecated it in favour of the submitter
-    // record after the header, and real 5.5.5 files omit it — they
-    // parse under these rules. The 5.5.1 serializer still synthesizes
-    // a SUBM when writing.
-  }
+  // The 5.5.1 spec requires the HEAD.SOUR substructure; 7.0 does not.
+  // A missing SOUR is accepted (it must not
+  // depend on the declared version).
   return { ...header, gedcom };
 }
 
@@ -264,18 +244,12 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   noPayload(node);
   const versNode = req(node, 'VERS');
   const gedcom: Gedcom = { version: reqText(versNode) };
-  // The version gate comes first: a 5.x GEDC parsed as 7.0 must fail
-  // with `document.wrong-version` (not with a FORM-related error), so
-  // that the unified `parse` can fall back to the 5.x parser.
-  if (ctx.version === '7.0') {
-    if (!/^7\./.test(gedcom.version)) {
-      fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 7.x version`, node.position);
-    }
-  } else if (/^7\./.test(gedcom.version)) {
-    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a GEDCOM 5.x version`, node.position);
-  } else if (!/^5\.5(\.(1|5))?( ?EL)?$/i.test(gedcom.version)) {
-    // The 5.x parser reads the 5.5 lineage — 5.5 (1996), 5.5.1 and
-    // 5.5.5 (whose vocabulary additions are accepted in any 5.x file).
+  // The version gate reads only the format lineage: the parser
+  // accepts every file declaring a GEDCOM 7.x version or a 5.5 lineage
+  // version (5.5, 5.5.1, 5.5.5), and nothing else. The declared value
+  // does not select a grammar — both pipelines parse the same import
+  // grammar (see the README's Known strict decisions).
+  if (!/^7\./.test(gedcom.version) && !/^5\.5(\.(1|5))?( ?EL)?$/i.test(gedcom.version)) {
     // The ` EL` suffix is the de-facto marker of GEDCOM 5.5EL files
     // written by PC-AHNEN (`VERS 5.5.1 EL`): it is not part of any
     // specification, and Tamura Jones ("Detecting GEDCOM 5.5EL",
@@ -289,7 +263,7 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     // `structure.unknown-tag` errors. Unpublished patch levels
     // (`5.5.2`, `5.5.9`, …) are rejected too: they name no official
     // specification.
-    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (5.5, 5.5.1, 5.5.5 or 5.5EL)`, node.position);
+    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (a 7.x version, or 5.5, 5.5.1, 5.5.5 or 5.5EL)`, node.position);
   }
   // The GEDCOM-L addendum declarations under GEDC.VERS (see
   // Gedcom.addenda) — the only documented children of the VERS line;
@@ -304,11 +278,10 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     },
     ctx,
   );
+  // FORM is optional (5.5.1 requires it, 7.0
+  // rejects it); when present, its value must be LINEAGE-LINKED.
   const formNode = one(node, 'FORM');
-  if (ctx.version === '5.5.1') {
-    if (formNode === undefined) {
-      fail('structure.missing-required', 'The 5.5.1 GEDC structure requires a FORM substructure', node.position);
-    }
+  if (formNode !== undefined) {
     const form = reqText(formNode);
     if (form.toUpperCase() !== 'LINEAGE-LINKED') {
       fail('enum.invalid-value', `Unknown GEDCOM form "${form}"; expected LINEAGE-LINKED`, formNode.position);
@@ -321,8 +294,6 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     // discarded (its cardinality is still checked).
     one(formNode, 'VERS');
     dispatch(formNode, { }, { VERS: () => undefined }, ctx);
-  } else if (formNode !== undefined) {
-    fail('structure.unknown-tag', 'The FORM tag is not allowed under GEDC in GEDCOM 7.0', formNode.position);
   }
   dispatch(node, gedcom, { VERS: () => undefined, FORM: () => undefined }, ctx);
   return gedcom;
@@ -398,9 +369,6 @@ export function parseTagDefinitionStructure(node: RawNode): TagDefinitionStructu
 
 export function parseHeaderSource(node: RawNode, ctx: Ctx): HeaderSource {
   const source: HeaderSource = { payload: reqText(node) };
-  if (ctx.version === '5.5.1' && /\s/.test(source.payload)) {
-    fail('enum.invalid-value', `The ${ctx.version} APPROVED_SYSTEM_ID must not contain spaces (use underscores)`, node.position);
-  }
   dispatch(
     node,
     source,
@@ -452,9 +420,7 @@ export function parseCorporation(node: RawNode, ctx: Ctx): Corporation {
     },
     ctx,
   );
-  if (ctx.version === '5.5.1') {
-    merge551RecordContacts(corp);
-  }
+  merge551RecordContacts(corp);
   return corp;
 }
 
@@ -465,7 +431,7 @@ export function parseHeaderSourceData(node: RawNode, ctx: Ctx): HeaderSourceData
     data,
     {
       DATE: (child) => {
-        data.date = parseDateExactStructure(child, ctx, ctx.version === '7.0');
+        data.date = parseDateExactStructure(child, ctx);
       },
       COPR: (child) => {
         data.copyright = reqText(child);
@@ -571,12 +537,11 @@ function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchema
   }
 }
 
-export function parseLanguage(node: RawNode, ctx: Ctx): string {
-  const text = reqText(node);
-  if (ctx.version === '5.5.1') {
-    return parseLanguage551(text, node.position);
-  }
-  return text;
+export function parseLanguage(node: RawNode, _ctx: Ctx): string {
+  // The language is kept as free text (the 7.0 rule; the 5.5.1
+  // LANGUAGE_ID table is a closed list the import no longer
+  // validates — the serializer maps onto it on export).
+  return reqText(node);
 }
 
 // ---------------------------------------------------------------------------

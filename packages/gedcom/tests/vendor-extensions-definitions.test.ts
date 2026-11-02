@@ -125,13 +125,16 @@ describe('the RootsMagic _SENT/_PPFX under event details', () => {
     expect(lines(text70)).toContain('2 _PPFX in');
   });
 
-  test('7.0 input stays strict for the non-underscore spellings', () => {
+  test('7.0 input accepts the non-underscore spellings', () => {
     for (const tag of ['SENT', 'PPFX']) {
       const result = parseGedcom70(enc(indi70(['1 BIRT', `2 ${tag} x`])));
+      expect(result.ok, tag).toBe(true);
       if (result.ok) {
-        throw new Error(`expected ${tag} to fail on 7.0 input`);
+        const indi = result.value.records.find((record) => record.tag === 'INDI');
+        const detail = (indi as { events?: Array<{ detail?: { sentence?: string; placePrefix?: string } }> }).events?.[0]
+          ?.detail;
+        expect(tag === 'SENT' ? detail?.sentence : detail?.placePrefix).toBe('x');
       }
-      expect(result.error.code, tag).toBe('structure.unknown-tag');
     }
   });
 });

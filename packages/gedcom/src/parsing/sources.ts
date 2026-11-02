@@ -22,7 +22,6 @@ import type {
   GedcomStructureBase,
   MftSourceQuality,
   NoteRecord,
-  PlaceStructure,
   RepositoryRecord,
   SharedNoteRecord,
   SourceDataEvent,
@@ -36,7 +35,6 @@ import type {
 } from './context';
 import {
   addExtension,
-  atMostThree,
   dispatch,
   merge551RecordContacts,
   noPayload,
@@ -61,7 +59,7 @@ import {
 import {
   parseAddressStructure,
   parseChangeDate,
-  parseCreationDate,
+  parseCreationDateLenient,
   parseDateExactStructure,
   parseDatePeriodStructure,
   parseDateStructure,
@@ -71,9 +69,6 @@ import {
   parseReferenceIdentifier,
   parseUniqueIdentifier,
 } from './substructures';
-import {
-  parseListEnum,
-} from './types';
 
 export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord {
   noPayload(node);
@@ -116,82 +111,52 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     REFN: (child) => {
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
-    handlers["PHON"] = (child) => {
+    PHON: (child) => {
       (rec.phone ??= []).push(reqText(child));
-    };
-    handlers["EMAIL"] = (child) => {
+    },
+    EMAIL: (child) => {
       (rec.email ??= []).push(reqText(child));
-    };
-    handlers["FAX"] = (child) => {
+    },
+    FAX: (child) => {
       (rec.fax ??= []).push(reqText(child));
-    };
-    handlers["WWW"] = (child) => {
+    },
+    WWW: (child) => {
       (rec.www ??= []).push(reqText(child));
-    };
-    handlers["CREA"] = (child) => {
-      rec.creationDate = parseCreationDate(child, ctx);
-    };
-    handlers["UID"] = (child) => {
+    },
+    CREA: (child) => {
+      const created = parseCreationDateLenient(child, ctx);
+      if (created === undefined) {
+        addExtension(rec, child, ctx);
+      } else {
+        rec.creationDate = created;
+      }
+    },
+    UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["_UID"] = (child) => {
+    },
+    '_UID': (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["EXID"] = (child) => {
+    },
+    EXID: (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-  } else {
-    handlers['_UID'] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["RIN"] = (child) => {
+    },
+    RIN: (child) => {
       rec.automatedRecordId = reqText(child);
-    };
-    // The 5.5.1/5.5.5 ADDRESS_STRUCTURE position: the floating contact
-    // lines PHON/EMAIL/FAX/WWW {0:3} sit beside ADDR (GEDCOM 5.5.1 §2
-    // p.31; 5.5.5 adds the record-level positions, REPO and SUBM alike).
-    // The parser also accepts them under ADDR (the 5.5.5 spelling); the
-    // 5.5.1 serializer writes them back into the address block.
-    handlers["PHON"] = (_child) => {
-      if (rec.phone === undefined) {
-        rec.phone = atMostThree(node, 'PHON').map((item) => reqText(item));
-      }
-    };
-    handlers["EMAIL"] = (_child) => {
-      if (rec.email === undefined) {
-        rec.email = atMostThree(node, 'EMAIL').map((item) => reqText(item));
-      }
-    };
-    handlers["FAX"] = (_child) => {
-      if (rec.fax === undefined) {
-        rec.fax = atMostThree(node, 'FAX').map((item) => reqText(item));
-      }
-    };
-    handlers["WWW"] = (_child) => {
-      if (rec.www === undefined) {
-        rec.www = atMostThree(node, 'WWW').map((item) => reqText(item));
-      }
-    };
-  }
-  if (ctx.version === '7.0') {
+    },
     // The 7.0 REPOSITORY_RECORD carries <<NOTE_STRUCTURE>> {0:M}
-    // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // (GEDCOM 7.0 §3.2.2); accepted in any file.
+    SNOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(
     node,
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['ADDR', 'CHAN', 'CREA'] : ['ADDR', 'CHAN', 'RIN'],
+    ['ADDR', 'CHAN', 'CREA', 'RIN'],
   );
-  if (ctx.version === '5.5.1') {
-    merge551RecordContacts(rec);
-  }
+  merge551RecordContacts(rec);
   return rec;
 }
 
@@ -217,7 +182,12 @@ export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord
         rec.changeDate = parseChangeDate(child, ctx);
       },
       CREA: (child) => {
-        rec.creationDate = parseCreationDate(child, ctx);
+        const created = parseCreationDateLenient(child, ctx);
+        if (created === undefined) {
+          addExtension(rec, child, ctx);
+        } else {
+          rec.creationDate = created;
+        }
       },
       REFN: (child) => {
         (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
@@ -327,7 +297,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
         details,
         {
           DATE: (dateChild) => {
-            details.date = parseDateExactStructure(dateChild, ctx, true);
+            details.date = parseDateExactStructure(dateChild, ctx);
           },
           PLAC: (placeChild) => {
             details.place = reqText(placeChild);
@@ -481,72 +451,69 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
   };
-  if (ctx.version === '7.0') {
-    handlers["CREA"] = (child) => {
-      rec.creationDate = parseCreationDate(child, ctx);
-    };
-    handlers["UID"] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["_UID"] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["EXID"] = (child) => {
-      (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-    handlers["SNOTE"] = (child) => {
-      // The 7.0 SOURCE_RECORD carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-      // 7.0 §3.2.2); 5.5.1 stays strict.
-      (rec.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  } else {
-    handlers['_UID'] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["RIN"] = (child) => {
-      rec.automatedRecordId = reqText(child);
-    };
-    handlers["TYPE"] = (child) => {
-      // Heredis and Généatique write the source kind with the standard
-      // TYPE tag (the webtrees per-vendor custom-tag registries,
-      // Heredis.php and Geneatique.php:
-      // https://github.com/fisharebest/webtrees/tree/main/app/CustomTags);
-      // the Family Historian spelling is `_TYPE` — both normalize into
-      // sourceType and are written back as `_TYPE`.
-      rec.sourceType = reqText(child);
-    };
-    handlers["QUAY"] = (child) => {
-      // Heredis: the quality assessment of the whole source, written
-      // with the standard QUAY tag at record level (the webtrees
-      // per-vendor custom-tag registry, Heredis.php). No typed slot —
-      // the record-level assessment stays a generic extension, dropped
-      // on export in both versions (QUAY is a citation-only tag, and
-      // neither target spells a non-underscore extension).
+  handlers['CREA'] = (child) => {
+    const created = parseCreationDateLenient(child, ctx);
+    if (created === undefined) {
       addExtension(rec, child, ctx);
-    };
-    handlers["DATE"] = (child) => {
-      // Legacy Family Tree writes the source's date at record level
-      // (the canonical Legacy custom-tags sample, `1 DATE 29 Sep
-      // 2016`). Neither standard has a DATE slot under the SOUR
-      // record, so it stays a generic extension.
-      addExtension(rec, child, ctx);
-    };
-    handlers["MEDI"] = (child) => {
-      // Legacy: the media type of the source, the standard MEDI tag in
-      // the non-standard SOUR-record position (the webtrees
-      // per-vendor custom-tag registry, Legacy.php, "Media type";
-      // see SourceRecord.medium for the export rule).
-      rec.medium = reqText(child);
-    };
-  }
+    } else {
+      rec.creationDate = created;
+    }
+  };
+  handlers['UID'] = (child) => {
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['_UID'] = (child) => {
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['EXID'] = (child) => {
+    (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+  };
+  handlers['SNOTE'] = (child) => {
+    // The 7.0 SOURCE_RECORD carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.2); accepted in any file.
+    (rec.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  handlers['RIN'] = (child) => {
+    rec.automatedRecordId = reqText(child);
+  };
+  handlers['TYPE'] = (child) => {
+    // Heredis and Généatique write the source kind with the standard
+    // TYPE tag (the webtrees per-vendor custom-tag registries,
+    // Heredis.php and Geneatique.php:
+    // https://github.com/fisharebest/webtrees/tree/main/app/CustomTags);
+    // the Family Historian spelling is `_TYPE` — both normalize into
+    // sourceType and are written back as `_TYPE`.
+    rec.sourceType = reqText(child);
+  };
+  handlers['QUAY'] = (child) => {
+    // Heredis: the quality assessment of the whole source, written
+    // with the standard QUAY tag at record level (the webtrees
+    // per-vendor custom-tag registry, Heredis.php). No typed slot —
+    // the record-level assessment stays a generic extension, dropped
+    // on export in both versions (QUAY is a citation-only tag, and
+    // neither target spells a non-underscore extension).
+    addExtension(rec, child, ctx);
+  };
+  handlers['DATE'] = (child) => {
+    // Legacy Family Tree writes the source's date at record level
+    // (the canonical Legacy custom-tags sample, `1 DATE 29 Sep
+    // 2016`). Neither standard has a DATE slot under the SOUR
+    // record, so it stays a generic extension.
+    addExtension(rec, child, ctx);
+  };
+  handlers['MEDI'] = (child) => {
+    // Legacy: the media type of the source, the standard MEDI tag in
+    // the non-standard SOUR-record position (the webtrees
+    // per-vendor custom-tag registry, Legacy.php, "Media type";
+    // see SourceRecord.medium for the export rule).
+    rec.medium = reqText(child);
+  };
   dispatch(
     node,
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0'
-      ? ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL']
-      : ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'RIN', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL'],
+    ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA', 'RIN', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL'],
   );
   return rec;
 }
@@ -645,40 +612,37 @@ export function parseSourceRecordData(node: RawNode, ctx: Ctx): SourceRecordData
     NOTE: (child) => {
       (data.notes ??= []).push(parseNoteStructure(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 SOUR.DATA carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0
-    // §3.2.2); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // §3.2.2); accepted in any file.
+    SNOTE: (child) => {
       (data.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, data, handlers, ctx);
   return data;
 }
 
 export function parseSourceDataEvent(node: RawNode, ctx: Ctx): SourceDataEvent {
   const raw = reqText(node);
-  let out: SourceDataEvent;
-  if (ctx.version === '7.0') {
-    out = {
-      payload: parseListEnum(raw, EVENT_ATTRIBUTE_ENUM_VALUES, '7.0', node.position),
-    };
-  } else {
-    // 5.5.1 `EVENTS_RECORDED` (p.50): event-type tags plus any
-    // user-supplied value, comma-separated. The known tags go to
-    // `payload`, the rest to `userDefined` verbatim (the list has no
-    // ordering semantics in 5.5.1, so the grouping is lossless).
-    out = { payload: [] };
-    for (const item of raw.split(',').map((part) => part.trim())) {
-      const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find(
-        (value) => value.toLowerCase() === item.toLowerCase(),
-      );
-      if (key !== undefined) {
-        (out.payload as EventAttributeEnum[]).push(key as EventAttributeEnum);
-      } else {
-        (out.userDefined ??= []).push(item);
-      }
+  // Both value forms parse: the `EVENTS_RECORDED` list (5.5.1 p.50) —
+  // event-type tags plus any user-supplied value, comma-separated. The
+  // known tags go to `payload`, the rest to `userDefined` verbatim (the
+  // list has no ordering semantics in 5.5.1, so the grouping is
+  // lossless); a 7.0 file writing an unlisted value imports the same
+  // way.
+  const out: SourceDataEvent = { payload: [] };
+  for (const item of raw.split(',').map((part) => part.trim())) {
+    const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find(
+      (value) => value.toLowerCase() === item.toLowerCase(),
+    );
+    if (key !== undefined) {
+      (out.payload as EventAttributeEnum[]).push(key as EventAttributeEnum);
+    } else if (item.startsWith('_')) {
+      // The 7.0 extension values go to the payload (like the citation
+      // EVEN form).
+      (out.payload as EventAttributeEnum[]).push(item as EventAttributeEnum);
+    } else {
+      (out.userDefined ??= []).push(item);
     }
   }
   dispatch(
@@ -689,22 +653,12 @@ export function parseSourceDataEvent(node: RawNode, ctx: Ctx): SourceDataEvent {
         out.date = parseDatePeriodStructure(child, ctx);
       },
       PLAC: (child) => {
-        out.place = parseSourceJurisdictionPlace(child, ctx);
+        out.place = parsePlaceStructure(child, ctx);
       },
     },
     ctx,
   );
   return out;
-}
-
-export function parseSourceJurisdictionPlace(node: RawNode, ctx: Ctx): PlaceStructure {
-  // 5.5.1: a plain place name; 7.0: a full PLACE_STRUCTURE. The
-  // GEDCOM-L place tags (_GOV/_POST/_MAIDENHEAD) are accepted under the
-  // 5.5.1 jurisdiction place too (the webtrees per-vendor custom-tag
-  // registry, GedcomL.php:
-  // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/GedcomL.php);
-  // parsePlaceStructure handles both grammars.
-  return parsePlaceStructure(node, ctx);
 }
 
 export function parseSourceText(node: RawNode, ctx: Ctx): SourceText {

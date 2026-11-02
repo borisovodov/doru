@@ -158,8 +158,10 @@ describe('serializeGedcom70', () => {
     // The FONE variation becomes a TRAN with a language.
     expect(text).toContain('2 TRAN Jo-han/Do-e/');
     expect(text).toContain('3 LANG ja-Kana');
-    // The piece-level NOTE is dropped.
-    expect(text).not.toContain('piece note');
+    // The name-level NOTE survives in both versions (the parser types
+    // it into the name's notes; both emitters write it at the name
+    // level).
+    expect(text).toContain('2 NOTE piece note');
     // The contacts inside ADDR are relocated to the event detail level.
     expect(text).toContain('2 PHON +39 06 123');
     // The free-text SOUR becomes a void pointer with the text as PAGE.
@@ -537,13 +539,14 @@ describe('the 5.5.1 user-defined EVENT values on 7.0 export', () => {
     expect(parseOk551(text)).toEqual(first);
   });
 
-  test('7.0 input still rejects non-extension values', () => {
+  test('7.0 input accepts non-extension values', () => {
     const result = parseGedcom70(
       enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 DATA\n2 EVEN BIRT, X\n0 TRLR\n'),
     );
+    expect(result.ok).toBe(true);
     if (result.ok) {
-      throw new Error('expected an error');
+      const sour = result.value.records[0];
+      expect((sour as { data?: { events?: Array<{ userDefined?: string[] }> } }).data?.events?.[0]?.userDefined).toEqual(['X']);
     }
-    expect((result.error as { code: string }).code).toBe('enum.invalid-value');
   });
 });

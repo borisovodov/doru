@@ -107,79 +107,9 @@ function parseSourceMetafield(node: RawNode, ctx: Ctx): SourceMetafieldStructure
 }
 
 export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
-  if (ctx.version === '7.0') {
-    const out: SourceCitation = { tag: 'SOUR', source: reqPtr(node, ctx) };
-    dispatch(
-      node,
-      out,
-      {
-        PAGE: (child) => {
-          out.page = parsePageStructure(child, ctx);
-        },
-        DATA: (child) => {
-          out.data = parseSourceCitationData(child, ctx);
-        },
-        EVEN: (child) => {
-          out.event = parseSourceCitationEvent(child, ctx);
-        },
-        QUAY: (child) => {
-          out.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, '7.0', child.position);
-        },
-        OBJE: (child) => {
-          (out.media ??= []).push(parseMultimediaLink(child, ctx));
-        },
-        NOTE: (child) => {
-          (out.notes ??= []).push(parseNoteStructure(child, ctx));
-        },
-        SNOTE: (child) => {
-          // The 7.0 SOURCE_CITATION carries <<NOTE_STRUCTURE>> {0:M}
-          // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
-          (out.notes ??= []).push(parseNoteStructure(child, ctx));
-        },
-        '_APID': (child) => {
-          (out.ancestryPointers ??= []).push(reqText(child));
-        },
-        '_CREF': (child) => {
-          out.reference = reqText(child);
-        },
-        '_SUBQ': (child) => {
-          // RootsMagic: the subsequent-citation format (report wording).
-          out.subsequentCitationFormat = reqText(child);
-        },
-        '_VERI': (child) => {
-          out.verified = parsePrivacyFlag(child, '_VERI');
-        },
-        '_QUAY': (child) => {
-          // FH7: the citation assessment options (see
-          // SourceCitation.assessment).
-          out.assessment = reqText(child);
-        },
-        '_FIELD': (child) => {
-          (out.metafields ??= []).push(parseSourceMetafield(child, ctx));
-        },
-        '_SUBM': (child) => {
-          // GDO: a pointer to the submitter record of this citation
-          // (see SourceCitation.submitter).
-          out.submitter = reqPtr(child, ctx);
-        },
-        '_TMPLT': (child) => {
-          // RootsMagic: the Evidence Explained source template of the
-          // citation — its actual write position (the record-level
-          // `_TMPLT` is the other; see SourceCitation.template).
-          out.template = parseEvidenceTemplate(child, ctx);
-        },
-        '_LINK': (child) => {
-          // FTM: an internet link associated with the source (see
-          // SourceCitation.links).
-          (out.links ??= []).push(reqText(child));
-        },
-      },
-      ctx,
-      ['PAGE', 'DATA', 'EVEN', 'QUAY'],
-    );
-    return out;
-  }
-  // 5.5.1: pointer form or free-text description form.
+  // Both payload forms parse: the 7.0 pointer form and the 5.5.1 free-text
+  // description form are both accepted in any file (the payload shape
+  // selects the form, not the declared version).
   if (node.value.kind === 'pointer') {
     const out: SourceCitation = { tag: 'SOUR', source: resolvePtr(node.value.pointer, ctx, node) };
     dispatch(
@@ -196,12 +126,17 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           out.event = parseSourceCitationEvent(child, ctx);
         },
         QUAY: (child) => {
-          out.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, '5.5.1', child.position);
+          out.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
         },
         OBJE: (child) => {
           (out.media ??= []).push(parseMultimediaLink(child, ctx));
         },
         NOTE: (child) => {
+          (out.notes ??= []).push(parseNoteStructure(child, ctx));
+        },
+        SNOTE: (child) => {
+          // The 7.0 SOURCE_CITATION carries <<NOTE_STRUCTURE>> {0:M}
+          // (GEDCOM 7.0 §3.2.3); accepted in any file.
           (out.notes ??= []).push(parseNoteStructure(child, ctx));
         },
         '_APID': (child) => {
@@ -280,7 +215,7 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
     return out;
   }
   if (node.value.kind === 'absent') {
-    fail('structure.missing-payload', 'The 5.5.1 SOUR line requires a pointer or a source description', node.position);
+    fail('structure.missing-payload', 'The SOUR line requires a pointer or a source description', node.position);
   }
   const out: SourceCitation = { tag: 'SOUR', source: '@VOID@', description: node.value.text };
   dispatch(
@@ -292,7 +227,7 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         (out.data.texts ??= []).push(parseSourceText(child, ctx));
       },
       QUAY: (child) => {
-        out.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, '5.5.1', child.position);
+        out.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
       },
       OBJE: (child) => {
         (out.media ??= []).push(parseMultimediaLink(child, ctx));
@@ -356,11 +291,14 @@ export function parseSourceCitationData(node: RawNode, ctx: Ctx): SourceCitation
 export function parseSourceCitationEvent(node: RawNode, ctx: Ctx): SourceCitationEvent {
   const raw = reqText(node);
   const out: SourceCitationEvent = {};
-  if (ctx.version === '7.0') {
-    out.payload = parseEnum(raw, EVENT_ATTRIBUTE_ENUM_VALUES, '7.0', node.position);
+  // Both value forms parse: a known tag, a 7.0 extension value (`_…`), or a
+  // user-supplied descriptor, "classified in the category of other"
+  // (5.5.1 `EVENT_TYPE_CITED_FROM` p.49). The known tags and the
+  // extension values go to `payload`, anything else to `userDefined`
+  // verbatim.
+  if (raw.startsWith('_')) {
+    out.payload = raw as EventAttributeEnum;
   } else {
-    // 5.5.1 `EVENT_TYPE_CITED_FROM` (p.49): a known tag or a
-    // user-supplied descriptor, "classified in the category of other".
     const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find(
       (value) => value.toLowerCase() === raw.toLowerCase(),
     );
@@ -374,12 +312,12 @@ export function parseSourceCitationEvent(node: RawNode, ctx: Ctx): SourceCitatio
     ROLE: (child) => {
       out.role = parseRole(child, ctx);
     },
-  };
-  if (ctx.version === '7.0') {
-    handlers["PHRASE"] = (child) => {
+    // The 7.0 PHRASE child under the event; accepted
+    // it in any file.
+    PHRASE: (child) => {
       out.phrase = reqText(child);
-    };
-  }
+    },
+  };
   dispatch(node, out, handlers, ctx);
   return out;
 }
@@ -394,14 +332,12 @@ export function parseSourceRepositoryCitation(node: RawNode, ctx: Ctx): SourceRe
     CALN: (child) => {
       (out.callNumbers ??= []).push(parseCallNumber(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 SOURCE_REPOSITORY_CITATION carries <<NOTE_STRUCTURE>>
-    // {0:M} (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // {0:M} (GEDCOM 7.0 §3.2.3); accepted in any file.
+    SNOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, out, handlers, ctx);
   return out;
 }
@@ -464,8 +400,12 @@ export function parseFhPresenceFlag(node: RawNode, tag: string): boolean {
 }
 
 export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
-  if (ctx.version === '7.0') {
-    const out: MultimediaLink = { tag: 'OBJE', object: reqPtr(node, ctx) };
+  // Both forms parse: the pointer form (with the 7.0 CROP/TITL
+  // children) and the 5.5.1 inline form (synthesized into a record)
+  // are both accepted in any file — the payload shape selects the
+  // form, not the declared version.
+  if (node.value.kind === 'pointer') {
+    const out: MultimediaLink = { tag: 'OBJE', object: resolvePtr(node.value.pointer, ctx, node) };
     dispatch(
       node,
       out,
@@ -495,35 +435,8 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     );
     return out;
   }
-  // 5.5.1: pointer form, or inline form (synthesized into a record).
-  if (node.value.kind === 'pointer') {
-    const out: MultimediaLink = { tag: 'OBJE', object: resolvePtr(node.value.pointer, ctx, node) };
-    dispatch(
-      node,
-      out,
-      {
-        '_PRIM': (child) => {
-          out.primary = parseYNFlag(child, '_PRIM');
-        },
-        '_SCBK': (child) => {
-          out.scrapbook = parseYNFlag(child, '_SCBK');
-        },
-        '_SSHOW': (child) => {
-          out.slideshow = parseYNFlag(child, '_SSHOW');
-        },
-        '_THUM': (child) => {
-          // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
-          out.thumbnail = parseYNFlag(child, '_THUM');
-        },
-        ...fhMediaLinkHandlers(out),
-      },
-      ctx,
-      ['_PRIM', '_SCBK', '_SSHOW'],
-    );
-    return out;
-  }
   if (node.value.kind !== 'absent') {
-    fail('structure.unexpected-payload', 'The 5.5.1 OBJE line takes a pointer or nothing', node.position);
+    fail('structure.unexpected-payload', 'The OBJE line takes a pointer or nothing', node.position);
   }
   const record: MultimediaRecord = { tag: 'OBJE', files: [] };
   let title: string | undefined;

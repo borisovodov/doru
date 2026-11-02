@@ -65,7 +65,7 @@ export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', I
    * Anz Kinder gesichert", the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2":
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
-   * GEDCOM version. Recognized on 5.x input (`1` marks the flag set,
+   * GEDCOM version. Recognized in any file (`1` marks the flag set,
    * `0` clears it) and written back as `_SURE 1`/`_SURE 0` under the
    * NCHI line in 5.5.1; dropped on 7.0 output.
    */
@@ -82,11 +82,11 @@ export interface FamilyChildCountAttribute extends FamilyAttributeBase<'NCHI', I
  * addendum gives the 5.5.1 FAM.RESI an optional residence descriptor
  * payload instead ("GEDCOM 5.5.1 Specification GEDCOM-L Addendum",
  * §5.9, 2nd release 2020-12-01, eds. A. Emmerich & D. Hesmer), which
- * is accepted on 5.x input and written back on 5.5.1 output.
+ * is accepted in any file and written back on 5.5.1 output.
  */
 export interface FamilyResidenceAttribute extends GedcomStructureBase {
   tag: 'RESI';
-  /** The RESI payload, {1:1} Text in 7.0 (may be empty; a missing payload is equivalent to the empty string, GEDCOM 7.0 §1.2); optional on 5.x input via the GEDCOM-L addendum §5.9. */
+  /** The RESI payload, {1:1} Text in 7.0 (may be empty; a missing payload is equivalent to the empty string, GEDCOM 7.0 §1.2); optional on input via the GEDCOM-L addendum §5.9. */
   payload?: Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the attribute. */
   type?: Text;

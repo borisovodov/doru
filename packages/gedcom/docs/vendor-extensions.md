@@ -38,9 +38,9 @@ results and secondary sources.
   `ISA`) that was dropped in 5.4 but survives in Family Tree Maker
   files. Same Tamura Jones source as above.
 - **Versions outside the supported set are rejected explicitly.** The
-  5.x parser accepts `GEDC.VERS` 5.5 (1996), 5.5.1 and 5.5.5; the
-  pre-5.5 versions (3.0, 4.0, 5.0) and the superseded drafts (5.3,
-  5.4) fail up front with `document.wrong-version` instead of
+  lineage gate accepts `GEDC.VERS` 5.5 (1996), 5.5.1, 5.5.5 and any
+  7.x; the pre-5.5 versions (3.0, 4.0, 5.0) and the superseded drafts
+  (5.3, 5.4) fail up front with `document.wrong-version` instead of
   mid-file unknown-tag errors. GEDCOM 6.0 (the 2001–2002 XML beta
   draft, never adopted) and GEDCOM X (FamilySearch's successor
   standard family with its own XML/JSON syntax) are different
@@ -53,7 +53,7 @@ results and secondary sources.
     files and Généatique (webtrees per-vendor custom-tag registry,
     `Geneatique.php`) still write record-level `FORM`/`TITL` in
     5.5.1-declared documents. Those tags — and a `BLOB` left over from
-    a 5.5 file — are accepted on 5.x input and kept verbatim as
+    a 5.5 file — are accepted in any file and kept verbatim as
     generic extensions of the multimedia record (the base64 payload
     is preserved as text, continuations merged); there is no typed
     model slot for the embedded binary. On export the extensions are
@@ -369,7 +369,7 @@ Stammbaumdrucker, webtrees, …). Two parts:
   5.5EL" (marked historical) and the N5 section of
   "GEDCOM/_Nutzerdef-Tag".
 - **The §8.2 AGE corrections** ("Corrections to GEDCOM Files") are
-  implemented on 5.x import: the faulty AGE spellings real files carry
+  implemented on import: the faulty AGE spellings real files carry
   (a plain number, spaces between numbers and units, three bare or
   hyphen-separated groups, the German J/M/T letters, the spelled-out
   English/German unit words and yr/mo/da, weeks, the ABT/ABOUT/~
@@ -551,7 +551,7 @@ its JSDoc.
 | Gramps `ASSO` + `TYPE INDI` + `RELA` | Gramps | Event witnesses under family events | `EventDetail.associations` (like `_SHAR`) |
 | `_CREF` / `_FULL` | TMG (via T2G) | Citation reference / formatted footnote text | `SourceCitation.reference` / `SourceRecord.fullFootnote` |
 | `_SUBQ` under citations | RootsMagic | Subsequent source citation format (report wording) | `SourceCitation.subsequentCitationFormat` (written back in both versions) |
-| `_SENT` / `_PPFX` under event details | RootsMagic | Event sentence / place prefix (report wording); the Legacy catalog spells them without the underscore — `SENT`/`PPFX` are recognized on 5.x input too | `EventDetail.sentence` / `placePrefix` (written back as `_SENT`/`_PPFX` in both versions) |
+| `_SENT` / `_PPFX` under event details | RootsMagic | Event sentence / place prefix (report wording); the Legacy catalog spells them without the underscore — `SENT`/`PPFX` are recognized in any file too | `EventDetail.sentence` / `placePrefix` (written back as `_SENT`/`_PPFX` in both versions) |
 | `_TYPE` under OBJE | AQ, FO7, PAF5, Legacy | Media object kind (Photo/Sound/Video) | `MultimediaRecord.objectType` |
 | `_SCBK` / `_SSHOW` | AQ, FO7, PAF5 | Scrapbook / slideshow media flags | `MultimediaLink.scrapbook` / `slideshow` |
 | `_PRIMARY` | AQ, PAF5 | Primary family for an adopted child | `ChildFamilyLink.primary` |
@@ -748,7 +748,7 @@ its JSDoc:
 | `_COR` + `_LAD`/`_LAM`/`_LAS`/`_LAN`/`_LOD`/`_LOM`/`_LOS`/`_LON` | MFT7 | Place coordinates, DMS per axis | `PlaceStructure.map` (standard MAP/LATI/LONG, standard-first) |
 | `_PLACE` record | Family Tree Builder | Master place record, payload = the place name | `PlaceRecord` (payload dialect, like `_PLAC`) |
 | `OBJE`/`_OBJE` under NAME | TMG/T2G | Exhibits attached to the name | `PersonalNameStructure.media` (written back as `OBJE`) |
-| `AUTH`, `ANCE` under INDI | Reunion | Author / ??? Ancestor (meaning undocumented or format unknown) | generic extensions on 5.x input, dropped on export (no conformant spelling in either target version) |
+| `AUTH`, `ANCE` under INDI | Reunion | Author / ??? Ancestor (meaning undocumented or format unknown) | generic extensions in any file, dropped on export (no conformant spelling in either target version) |
 
 Covered by `tests/vendor-extensions-p5.test.ts` (import, export, and
 round trips in both versions where a spelling exists).
@@ -945,7 +945,7 @@ record's `_FIELD` metafields round-trip verbatim as extensions).
 
 **RootsMagic report fields** (`_SUBQ` under source citations and
 `_SENT`/`_PPFX` under event details) are typed (chapter 6); the
-non-underscore `SENT`/`PPFX` spellings are recognized on 5.x input.
+non-underscore `SENT`/`PPFX` spellings are recognized in any file.
 The PAF5 sentence definitions (`_EVENT_DEFN` with the `_SENM`/`_SENF`/
 `_SENU` variants) are typed as part of `EventDefinitionRecord` (chapter
 6). The PAF5 `_MEDC` (medical condition) is typed too (chapter 6):
@@ -999,11 +999,10 @@ The policy, implemented in `src/parsing/vendor-tags.ts` (the tables
 each entry annotated with the catalog's program and description — the
 tables are the inventory, so the list is not repeated here):
 
-- **Accepted on 5.x input only** (files declaring 5.5.1 or 5.5.5).
-  GEDCOM 7.0 input stays strict (`structure.unknown-tag`): these tags
-  are not valid 7.0 — §1.3 defines stdTags only via the specification
-  and §1.5 requires extension tags to be underscore-prefixed. Unknown
-  non-underscore tags remain strict errors; the list is closed.
+- **Accepted in any file** (the import grammar accepts the tags of
+  both versions wherever the file declares them; see the README's
+  Known strict decisions). Unknown non-underscore tags remain strict
+  errors; the list is closed.
 - **Typed where the catalogs document a meaning**, normalized into the
   model slot that carries the same fact — the same standard-first
   normalization the underscore vendor tags use:
@@ -1053,7 +1052,7 @@ tables are the inventory, so the list is not repeated here):
   written back), and both versions can spell all of them — nothing is
   lost in either direction.
 - **The deliberately generic tail** (34 tags in
-  `LEGACY_GENERIC_TAGS`, accepted on 5.x input wherever no typed rule
+  `LEGACY_GENERIC_TAGS`, accepted in any file wherever no typed rule
   applies; no conformant spelling in either target version — 5.5.1
   reserves the underscore prefix for user-defined tags and 7.0 §1.5
   can only spell underscore-prefixed extension tags — so they are
@@ -1103,7 +1102,7 @@ tables are the inventory, so the list is not repeated here):
     (The other Tabelle 2 tags with a documented position and value set
     are typed: chapter 6. `FPRF`/`MPRF` are the USM settings blocks
     under HEAD, kept in the model as header extensions.) They
-    stay generic extensions, accepted on 5.x input (this
+    stay generic extensions, accepted in any file (this
     is what fixed the import of real MacFamilyTree files, which
     previously failed with `structure.unknown-tag`); on export they
     are dropped in both versions — neither target grammar can spell a
@@ -1112,8 +1111,7 @@ tables are the inventory, so the list is not repeated here):
 Where a tag's position *is* standard, the standard structure always
 wins: `NATI` under INDI stays a standard attribute, `WIFE` under FAM
 stays the partner link, `DESC` under SUBN stays the generation count,
-`IDNO` under INDI stays the standard IDNO attribute (7.0; on 5.x input
-it parses as the standard attribute too).
+`IDNO` under INDI stays the standard IDNO attribute in any file.
 
 Covered by `tests/vendor-extensions-nonunderscore.test.ts` (per-tag
 typing assertions, pointer associations, the LDS wrapper, the FAM

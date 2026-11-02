@@ -8,6 +8,8 @@
  */
 
 import { fail } from '../errors';
+import { collectPlaces } from '../places';
+import { isPlaceRecord } from '../structures';
 import { dispatch, req, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import type { RawNode } from './lines';
@@ -31,7 +33,6 @@ import type {
   PlaceHierarchyLink,
   PlaceNameStructure,
   PlaceRecord,
-  PlaceStructure,
   PlaceTypeStructure,
   PostalCodeStructure,
 } from '../structures';
@@ -132,7 +133,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       // The historical GEDCOM 5.5EL spelling of the postal code under
       // the _LOC record (superseded by the GEDCOM-L `_POST` spelling,
       // which normalizes into the same PlaceRecord.postalCodes slot).
-      // Accepted on 5.x input only; written back as `_POST`.
+      // Accepted in any file; written back as `_POST`.
       const entry: PostalCodeStructure = { code: reqText(child) };
       (out.postalCodes ??= []).push(entry);
       dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
@@ -172,9 +173,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         detail.type = reqText(grandchild);
       };
       dispatch(child, detail, handlers, ctx);
-      if (ctx.version === '5.5.1') {
-        merge551DetailContacts(detail);
-      }
+      merge551DetailContacts(detail);
       if (Object.keys(detail).length > 0) {
         event.detail = detail;
       }
@@ -238,20 +237,18 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       out.changeDate = parseChangeDate(child, ctx);
     },
   };
-  if (ctx.version === '7.0') {
-    // The 7.0 write-back of a card carries the standard identifier and
-    // note-pointer spellings (commonRecordFields); 5.5.1 stays strict
-    // and uses the _UID vendor spelling above.
-    handlers['UID'] = (child) => {
-      (out.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers['EXID'] = (child) => {
-      (out.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-    handlers['SNOTE'] = (child) => {
-      (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+  // The the 7.0 identifier and note-pointer spellings
+  // are accepted in any file (the 5.5.1 _UID spelling above stays
+  // strict by position; the canonical choice is step 2).
+  handlers['UID'] = (child) => {
+    (out.identifiers ??= []).push(parseUniqueIdentifier(child));
+  };
+  handlers['EXID'] = (child) => {
+    (out.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
+  };
+  handlers['SNOTE'] = (child) => {
+    (out.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
   if (node.tag === '_PLAC_DEFN') {
     // The required PLAC child was consumed above.
     handlers['PLAC'] = () => undefined;
@@ -281,34 +278,6 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
 }
 
 /**
- * Collects every PlaceStructure reachable from the given root (the
- * model is a plain object graph, so the walk is structural).
- */
-export function collectPlaces(root: unknown): PlaceStructure[] {
-  const out: PlaceStructure[] = [];
-  const walk = (value: unknown): void => {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        walk(item);
-      }
-      return;
-    }
-    if (value === null || typeof value !== 'object') {
-      return;
-    }
-    const obj = value as Record<string, unknown>;
-    if (obj['tag'] === 'PLAC' && Array.isArray(obj['payload'])) {
-      out.push(value as PlaceStructure);
-    }
-    for (const key of Object.keys(obj)) {
-      walk(obj[key]);
-    }
-  };
-  walk(root);
-  return out;
-}
-
-/**
  * Materializes the name-based links between events and place records:
  * a place whose text equals a card's payload gets its `location` set to
  * the card (cards without an xref receive a synthesized one). Explicit
@@ -318,10 +287,9 @@ export function collectPlaces(root: unknown): PlaceStructure[] {
 export function linkPlacesByName(records: GedcomRecord[], ctx: Ctx): void {
   const cards = new Map<string, PlaceRecord>();
   for (const record of records) {
-    if (record.tag === '_PLAC') {
-      const card = record as PlaceRecord;
-      if (!cards.has(card.payload)) {
-        cards.set(card.payload, card);
+    if (isPlaceRecord(record)) {
+      if (!cards.has(record.payload)) {
+        cards.set(record.payload, record);
       }
     }
   }

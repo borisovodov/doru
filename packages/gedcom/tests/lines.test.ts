@@ -54,8 +54,9 @@ describe('line tokenization (7.0)', () => {
     });
   });
 
-  test('errors on leading whitespace', () => {
-    expect(expectErr(() => raw70(' 0 HEAD\n0 TRLR\n'))).toBe('line.leading-whitespace');
+  test('ignores leading whitespace', () => {
+    const { nodes } = raw70(' 0 HEAD\n0 TRLR\n');
+    expect(nodes[0]?.tag).toBe('HEAD');
   });
 
   test('errors on blank lines', () => {
@@ -70,25 +71,31 @@ describe('line tokenization (7.0)', () => {
     expect(expectErr(() => raw70('0 HEAD\n1GEDC\n0 TRLR\n'))).toBe('line.missing-delimiter');
   });
 
-  test('errors on a bad tag character', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 geDC\n0 TRLR\n'))).toBe('line.bad-tag');
+  test('accepts lowercase tags', () => {
+    const { nodes } = raw70('0 HEAD\n1 geDC\n0 TRLR\n');
+    expect(nodes[0]?.children[0]?.tag).toBe('geDC');
   });
 
-  test('errors on a bad xref', () => {
-    expect(expectErr(() => raw70('0 @i1@ INDI\n0 TRLR\n'))).toBe('line.bad-xref');
+  test('accepts lowercase xrefs', () => {
+    const { nodes } = raw70('0 @i1@ INDI\n0 TRLR\n');
+    expect(nodes[0]?.xref).toBe('@i1@');
   });
 
-  test('rejects @VOID@ as an xref', () => {
-    expect(expectErr(() => raw70('0 @VOID@ INDI\n0 TRLR\n'))).toBe('line.bad-xref');
+  test('accepts @VOID@ as an xref', () => {
+    const { nodes } = raw70('0 @VOID@ INDI\n0 TRLR\n');
+    expect(nodes[0]?.xref).toBe('@VOID@');
   });
 
   test('errors on a single leading at-sign in a value', () => {
     expect(expectErr(() => raw70('0 HEAD\n1 NOTE @foo\n0 TRLR\n'))).toBe('line.unescaped-at');
   });
 
-  test('errors on banned characters', () => {
+  test('banned characters: DEL and C0 stay banned, C1 is tolerated', () => {
     expect(expectErr(() => raw70(`0 HEAD\n1 NOTE bad${'\u007f'}char\n0 TRLR\n`))).toBe('line.banned-char');
-    expect(expectErr(() => raw70(`0 HEAD\n1 NOTE ${'\u0085'}\n0 TRLR\n`))).toBe('line.banned-char');
+    // The 5.x rule does not check the C1 controls (the 7.0 rule does);
+    // the lenient rule wins.
+    const { nodes } = raw70(`0 HEAD\n1 NOTE ${'\u0085'}\n0 TRLR\n`);
+    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '\u0085' });
   });
 
   test('allows tabs inside values', () => {
@@ -115,8 +122,9 @@ describe('line tokenization (7.0)', () => {
     expect(note.children).toHaveLength(0);
   });
 
-  test('rejects CONC in 7.0 as reserved', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 NOTE a\n2 CONC b\n0 TRLR\n'))).toBe('line.reserved-tag');
+  test('merges CONC (the 7.0 reservation is lifted)', () => {
+    const { nodes } = raw70('0 HEAD\n1 NOTE a\n2 CONC b\n0 TRLR\n');
+    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
   test('rejects a continuation after other substructures', () => {
@@ -144,8 +152,10 @@ describe('line tokenization (5.5.1)', () => {
     expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n\n0 TRLR\n'))).toBe('line.blank');
   });
 
-  test('enforces the 99 level limit', () => {
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n100 NOTE x\n0 TRLR\n'))).toBe('line.level-limit');
+  test('the 99 level limit is lifted (only the hierarchy check remains)', () => {
+    // A deep but consistent hierarchy parses; an inconsistent one is
+    // still a level-skip error.
+    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n100 NOTE x\n0 TRLR\n'))).toBe('line.level-skip');
   });
 
   test('doubles at-signs in values', () => {

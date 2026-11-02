@@ -81,9 +81,9 @@ describe('GEDZIP', () => {
     expect(errCode(enc('this is not a zip'))).toBe('gedzip.invalid-archive');
   });
 
-  test('rejects an inner stream that is not GEDCOM 7.0', () => {
+  test('accepts an inner 5.5.1-declared stream', () => {
     const bytes = zipSync({ 'gedcom.ged': enc('0 HEAD\n1 GEDC\n2 VERS 5.5.1\n0 TRLR\n') });
-    expect(errCode(bytes)).toBe('document.wrong-version');
+    expect(parseGedzip(bytes).ok).toBe(true);
   });
 
   test('keeps external file:// URLs out of the archive', () => {

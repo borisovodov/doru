@@ -8,21 +8,17 @@
 
 import type {
   AddressStructure,
-  AssociationStructure,
   CallNumberStructure,
   ChangeDate,
   CreationDate,
   DatePeriodStructure,
   ExtensionStructure,
-  FamilyEventDetail,
-  IndividualEventDetail,
-  LdsOrdinanceDetail,
+  FamilyRecord,
+  IndividualRecord,
   MediaFile,
   MultimediaLink,
-  NonEventStructure,
   NoteStructure,
   NoteTranslation,
-  PersonalNameStructure,
   PlaceStructure,
   SourceCitation,
   SourceText,
@@ -81,45 +77,7 @@ import type {
   SourcePublicationDetails,
 } from '../../structures';
 
-export function emitFamily(w: Writer, version: Version, rec: {
-  tag: 'FAM';
-  restriction?: Array<string | `_${string}`>;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: FamilyEventDetail; childCountCertain?: boolean; extensions?: ExtensionStructure[] }>;
-  events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: FamilyEventDetail; extensions?: ExtensionStructure[] }>;
-  nonEvents?: NonEventStructure[];
-  husband?: { partner: string; phrase?: string; preferred?: boolean; name?: PersonalNameStructure; civilStatus?: string; marriageNumber?: number; extensions?: ExtensionStructure[] };
-  wife?: { partner: string; phrase?: string; preferred?: boolean; name?: PersonalNameStructure; civilStatus?: string; marriageNumber?: number; extensions?: ExtensionStructure[] };
-  children?: Array<{ child: string; phrase?: string; preferred?: boolean; multiplicity?: string; fatherRelation?: string; motherRelation?: string; extensions?: ExtensionStructure[] }>;
-  associations?: AssociationStructure[];
-  submitters?: string[];
-  spouseSealings?: Array<{ tag: 'SLGS'; detail?: LdsOrdinanceDetail; extensions?: ExtensionStructure[] }>;
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  notes?: NoteStructure[];
-  citations?: SourceCitation[];
-  media?: MultimediaLink[];
-  todos?: TodoStructure[];
-  witnesses?: string[];
-  marriageStatuses?: Array<{
-    payload: string;
-    date?: DateStructure;
-    place?: PlaceStructure;
-    notes?: NoteStructure[];
-    citations?: SourceCitation[];
-    extensions?: ExtensionStructure[];
-  }>;
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  automatedRecordId?: string;
-  updatedAt?: string;
-  createdAt?: string;
-  marriageBeginningStatus?: string;
-  marriageEndingStatus?: string;
-  unionKind?: string;
-  sameSexUnion?: true;
-  marks?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void {
   w.line(0, 'FAM', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
@@ -201,7 +159,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
     }
     if (attribute.tag === 'RESI') {
       if (version === '7.0') {
-        w.line(1, 'RESI', { value: (attribute.payload as string) ?? '' });
+        w.line(1, 'RESI', { value: attribute.payload ?? '' });
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
       } else {
         // 5.5.1 FAM.RESI has no payload in the standard grammar; the
@@ -218,7 +176,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
     if (version !== '7.0') {
       continue;
     }
-    w.line(1, 'FACT', { value: (attribute.payload as string) ?? '' });
+    w.line(1, 'FACT', { value: attribute.payload ?? '' });
     if (attribute.type !== undefined) {
       w.line(2, 'TYPE', { value: attribute.type });
     }
@@ -363,53 +321,7 @@ export function emitFamily(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitIndividual(w: Writer, version: Version, rec: {
-  tag: 'INDI';
-  restriction?: Array<string | `_${string}`>;
-  names?: PersonalNameStructure[];
-  sex?: string;
-  attributes?: Array<{ tag: string; payload?: string | number; type?: string; detail?: IndividualEventDetail; childCountCertain?: boolean; primary?: boolean; extensions?: ExtensionStructure[] }>;
-  events?: Array<{ tag: string; payload?: true | string; type?: string; detail?: IndividualEventDetail; familyChild?: string; adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } }; extensions?: ExtensionStructure[] }>;
-  nonEvents?: NonEventStructure[];
-  ordinances?: Array<{ tag: string; detail?: LdsOrdinanceDetail; familyChild?: string; extensions?: ExtensionStructure[] }>;
-  childFamilies?: Array<{ family: string; primary?: boolean; preferred?: boolean; pedigree?: { payload: string; phrase?: string }; status?: { payload: string; phrase?: string }; fatherRelation?: string; motherRelation?: string; fatherChildStatus?: string; motherChildStatus?: string; parentalRelationKind?: string; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
-  spouseFamilies?: Array<{ family: string; preferred?: boolean; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
-  submitters?: string[];
-  associations?: AssociationStructure[];
-  aliases?: Array<{ individual: string; phrase?: string; extensions?: ExtensionStructure[] }>;
-  ancestorInterests?: string[];
-  descendantInterests?: string[];
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  notes?: NoteStructure[];
-  citations?: SourceCitation[];
-  media?: MultimediaLink[];
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  automatedRecordId?: string;
-  recordFileNumber?: string;
-  ancestralFileNumber?: string;
-  updatedAt?: string;
-  createdAt?: string;
-  url?: string;
-  email?: string[];
-  sosaNumber?: string;
-  familySearchId?: string;
-  marks?: string[];
-  todos?: TodoStructure[];
-  correspondence?: { reason?: string; response?: string; replyStatus?: string; extensions?: ExtensionStructure[] };
-  canSign?: boolean;
-  bookmarked?: boolean;
-  startPerson?: boolean;
-  adoptedByFather?: boolean;
-  adoptedByMother?: boolean;
-  godparents?: string[];
-  witnesses?: string[];
-  webTags?: Array<{ name?: string; url: string; extensions?: ExtensionStructure[] }>;
-  recordFlags?: Array<{ tag: string; name: string }>;
-  internetSearch?: { mhrm?: string; mhsm?: string; mhav?: string; researchDate?: string; searchDate?: string; extensions?: ExtensionStructure[] };
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitIndividual(w: Writer, version: Version, rec: IndividualRecord): void {
   w.line(0, 'INDI', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
@@ -606,7 +518,7 @@ export function emitIndividual(w: Writer, version: Version, rec: {
       w.line(1, ordinance.tag);
     }
     emitLdsDetail(w, version, 2, ordinance.detail, ordinance.tag);
-    if (ordinance.familyChild !== undefined) {
+    if (ordinance.tag === 'SLGC' && ordinance.familyChild !== undefined) {
       ptr(w, version, 2, 'FAMC', ordinance.familyChild);
     }
     emitExtensions(w, version, 2, ordinance);

@@ -26,13 +26,20 @@
 import type {
   GedcomDataset,
   GedcomRecord,
-  FamilyRecord,
   IndividualRecord,
-  MultimediaRecord,
+  PlaceRecord,
   SubmitterRecord,
 } from '../structures';
-import { collectPlaces } from '../parsing/places';
-import type { PlaceRecord } from '../structures';
+import {
+  isDuplicateCandidateRecord,
+  isCensusRecord,
+  isFamilyOrIndividual,
+  isFamilyRecord,
+  isIndividualRecord,
+  isMultimediaRecord,
+  isPlaceRecord,
+} from '../structures';
+import { collectPlaces } from '../places';
 import type { PedigreeEnum } from '../enumerations';
 
 /** The SOUR identifier written when exporting to 5.5.1 without one. */
@@ -46,151 +53,105 @@ function clone(dataset: GedcomDataset): GedcomDataset {
   return structuredClone(dataset);
 }
 
-/** The record kinds whose pointers must be checked after drops. */
-interface LinkFields {
-  submitters?: string[];
-  associations?: Array<{ individual: string }>;
-  aliases?: Array<{ individual: string }>;
-  ancestorInterests?: string[];
-  descendantInterests?: string[];
-  spouseFamilies?: Array<{ family: string }>;
-  childFamilies?: Array<{ family: string }>;
-  husband?: { partner: string } | undefined;
-  wife?: { partner: string } | undefined;
-  children?: Array<{ child: string }>;
-  notes?: Array<{ tag: string; note?: string; citations?: unknown }>;
-  citations?: Array<{ source: string; repositoryCitations?: unknown }>;
-  media?: Array<{ object: string }>;
-  events?: Array<{ familyChild?: string; adoptionFamily?: { family: string } }>;
-  ordinances?: Array<{ familyChild?: string }>;
-}
-
-/** A record with its pointers, as a mutable structural view. */
-type LinkRecord = GedcomRecord & LinkFields;
-
-/** True when the pointer is a live cross-reference identifier. */
-function isLive(pointer: string, valid: Set<string>): boolean {
-  return valid.has(pointer);
-}
-
 /**
  * True when the record is a GEDCOM 5.5 embedded-multimedia record: an
  * OBJE record whose content is the record-level FORM/TITL/BLOB shape
- * with no FILE substructure (accepted on 5.x input by
+ * with no FILE substructure (accepted in any file by
  * parsing/media.ts). Neither target version can spell it — both
  * require FILE {1:M}, and the FORM/TITL/BLOB extensions themselves are
  * dropped by the emitter's extension rule — so the projections drop
  * the whole record and strip the links to it.
  */
 function isEmbeddedMediaRecord(record: GedcomRecord): boolean {
-  return record.tag === 'OBJE' && (record as unknown as MultimediaRecord).files.length === 0;
+  return isMultimediaRecord(record) && record.files.length === 0;
 }
 
 /** True when the record still carries content after the NO removal. */
-function isEmpty(record: GedcomRecord): boolean {  switch (record.tag) {
-    case 'FAM': {
-      const fam = record as unknown as FamilyRecord;
-      return (
-        (fam.events ?? []).length === 0 &&
-        (fam.attributes ?? []).length === 0 &&
-        (fam.nonEvents ?? []).length === 0 &&
-        (fam.spouseSealings ?? []).length === 0 &&
-        (fam.notes ?? []).length === 0 &&
-        (fam.citations ?? []).length === 0 &&
-        (fam.media ?? []).length === 0 &&
-        (fam.identifiers ?? []).length === 0 &&
-        (fam.associations ?? []).length === 0 &&
-        (fam.todos ?? []).length === 0 &&
-        (fam.marriageStatuses ?? []).length === 0 &&
-        (fam.witnesses ?? []).length === 0 &&
-        (fam.restriction ?? []).length === 0 &&
-        (fam.extensions ?? []).length === 0
-      );
-    }
-    case 'INDI': {
-      const indi = record as unknown as IndividualRecord;
-      return (
-        (indi.names ?? []).length === 0 &&
-        indi.sex === undefined &&
-        (indi.attributes ?? []).length === 0 &&
-        (indi.events ?? []).length === 0 &&
-        (indi.nonEvents ?? []).length === 0 &&
-        (indi.ordinances ?? []).length === 0 &&
-        (indi.notes ?? []).length === 0 &&
-        (indi.citations ?? []).length === 0 &&
-        (indi.media ?? []).length === 0 &&
-        (indi.identifiers ?? []).length === 0 &&
-        (indi.associations ?? []).length === 0 &&
-        (indi.aliases ?? []).length === 0 &&
-        (indi.ancestorInterests ?? []).length === 0 &&
-        (indi.descendantInterests ?? []).length === 0 &&
-        (indi.todos ?? []).length === 0 &&
-        (indi.restriction ?? []).length === 0 &&
-        (indi.extensions ?? []).length === 0
-      );
-    }
-    default:
-      // Only FAM and INDI records participate in the NO rule.
-      return false;
+function isEmpty(record: GedcomRecord): boolean {
+  if (isFamilyRecord(record)) {
+    return (
+      (record.events ?? []).length === 0 &&
+      (record.attributes ?? []).length === 0 &&
+      (record.nonEvents ?? []).length === 0 &&
+      (record.spouseSealings ?? []).length === 0 &&
+      (record.notes ?? []).length === 0 &&
+      (record.citations ?? []).length === 0 &&
+      (record.media ?? []).length === 0 &&
+      (record.identifiers ?? []).length === 0 &&
+      (record.associations ?? []).length === 0 &&
+      (record.todos ?? []).length === 0 &&
+      (record.marriageStatuses ?? []).length === 0 &&
+      (record.witnesses ?? []).length === 0 &&
+      (record.restriction ?? []).length === 0 &&
+      (record.extensions ?? []).length === 0
+    );
   }
+  if (isIndividualRecord(record)) {
+    return (
+      (record.names ?? []).length === 0 &&
+      record.sex === undefined &&
+      (record.attributes ?? []).length === 0 &&
+      (record.events ?? []).length === 0 &&
+      (record.nonEvents ?? []).length === 0 &&
+      (record.ordinances ?? []).length === 0 &&
+      (record.notes ?? []).length === 0 &&
+      (record.citations ?? []).length === 0 &&
+      (record.media ?? []).length === 0 &&
+      (record.identifiers ?? []).length === 0 &&
+      (record.associations ?? []).length === 0 &&
+      (record.aliases ?? []).length === 0 &&
+      (record.ancestorInterests ?? []).length === 0 &&
+      (record.descendantInterests ?? []).length === 0 &&
+      (record.todos ?? []).length === 0 &&
+      (record.restriction ?? []).length === 0 &&
+      (record.extensions ?? []).length === 0
+    );
+  }
+  // Only FAM and INDI records participate in the NO rule.
+  return false;
 }
 
 /** Strips dangling and void pointers from one record. */
-function stripPointers(record: LinkRecord, valid: Set<string>): void {
+function stripPointers(record: GedcomRecord, valid: Set<string>): void {
   // Media links live on almost every record kind; a dropped multimedia
-  // record would leave them dangling.
-  record.media = (record.media ?? []).filter((link) => isLive(link.object, valid));
-  // The census entries point at INDI records, which the NO rule can
-  // drop; a dangling census pointer would be invalid output.
-  if (record.tag === '_CENR') {
-    const census = record as unknown as { entries?: Array<{ individual?: string }> };
-    census.entries = (census.entries ?? []).filter((entry) => entry.individual === undefined || isLive(entry.individual, valid));
+  // record would leave them dangling. The `in` narrowing keeps exactly
+  // the union members that carry the slot.
+  if ('media' in record) {
+    const kept = (record.media ?? []).filter((link) => valid.has(link.object));
+    if (kept.length === 0) {
+      delete record.media;
+    } else {
+      record.media = kept;
+    }
+  }
+  if (isCensusRecord(record)) {
+    // The census entries point at INDI records, which the NO rule can
+    // drop; a dangling census pointer would be invalid output.
+    record.entries = (record.entries ?? []).filter(
+      (entry) => entry.individual === undefined || valid.has(entry.individual),
+    );
     return;
   }
-  // The GDO duplicate-candidate record points at an INDI record, which
-  // the NO rule can drop; a dangling _INDI pointer would be invalid
-  // output.
-  if (record.tag === '_ALIA') {
-    const alias = record as unknown as { individual?: string };
-    if (alias.individual !== undefined && !isLive(alias.individual, valid)) {
-      delete alias.individual;
+  if (isDuplicateCandidateRecord(record)) {
+    // The GDO duplicate-candidate record points at an INDI record,
+    // which the NO rule can drop; a dangling _INDI pointer would be
+    // invalid output.
+    if (record.individual !== undefined && !valid.has(record.individual)) {
+      delete record.individual;
     }
     return;
   }
-  // Only FAM and INDI records participate in the NO rule (see isEmpty),
-  // so only their pointers can dangle. Extension records in particular
-  // carry an opaque `children` array that must never be touched here.
-  if (record.tag !== 'FAM' && record.tag !== 'INDI') {
+  // Only FAM and INDI records participate in the NO rule (see
+  // isEmpty), so only their pointers can dangle. Extension records in
+  // particular carry an opaque `children` array that must never be
+  // touched here.
+  if (!isFamilyOrIndividual(record)) {
     return;
   }
-  record.submitters = (record.submitters ?? []).filter((pointer) => isLive(pointer, valid));
-  record.associations = (record.associations ?? []).filter((link) => isLive(link.individual, valid));
-  record.aliases = (record.aliases ?? []).filter((link) => isLive(link.individual, valid));
-  record.ancestorInterests = (record.ancestorInterests ?? []).filter((pointer) => isLive(pointer, valid));
-  record.descendantInterests = (record.descendantInterests ?? []).filter((pointer) => isLive(pointer, valid));
-  record.spouseFamilies = (record.spouseFamilies ?? []).filter((link) => isLive(link.family, valid));
-  record.childFamilies = (record.childFamilies ?? []).filter((link) => isLive(link.family, valid));
-  if (record.husband !== undefined && !isLive(record.husband.partner, valid)) {
-    record.husband = undefined;
-  }
-  if (record.wife !== undefined && !isLive(record.wife.partner, valid)) {
-    record.wife = undefined;
-  }
-  record.children = (record.children ?? []).filter((link) => isLive(link.child, valid));
-  for (const event of record.events ?? []) {
-    if (event.familyChild !== undefined && !isLive(event.familyChild, valid)) {
-      delete event.familyChild;
-    }
-    if (event.adoptionFamily !== undefined && !isLive(event.adoptionFamily.family, valid)) {
-      delete event.adoptionFamily;
-    }
-  }
-  for (const ordinance of record.ordinances ?? []) {
-    if (ordinance.familyChild !== undefined && !isLive(ordinance.familyChild, valid)) {
-      delete ordinance.familyChild;
-    }
-  }
-  record.notes = (record.notes ?? []).filter((note) => {
+  const rec = record;
+  rec.submitters = (rec.submitters ?? []).filter((pointer) => valid.has(pointer));
+  rec.associations = (rec.associations ?? []).filter((link) => valid.has(link.individual));
+  rec.notes = (rec.notes ?? []).filter((note) => {
     if (note.tag !== 'NOTE' && note.tag !== 'SNOTE') {
       return true;
     }
@@ -198,22 +159,69 @@ function stripPointers(record: LinkRecord, valid: Set<string>): void {
       // An inline note carries its text directly; nothing dangles.
       return true;
     }
-    return note.note !== undefined && isLive(note.note, valid);
+    return note.note !== undefined && valid.has(note.note);
   });
-  record.citations = (record.citations ?? []).filter((citation) => {
+  rec.citations = (rec.citations ?? []).filter((citation) => {
     if (citation.source === '@VOID@') {
       return true;
     }
-    return isLive(citation.source, valid);
+    return valid.has(citation.source);
   });
-  const cleanup: Array<keyof LinkFields> = [
-    'submitters', 'associations', 'aliases', 'ancestorInterests', 'descendantInterests',
-    'spouseFamilies', 'childFamilies', 'children', 'notes', 'citations', 'media',
-  ];
+  if (isIndividualRecord(rec)) {
+    rec.aliases = (rec.aliases ?? []).filter((link) => valid.has(link.individual));
+    rec.ancestorInterests = (rec.ancestorInterests ?? []).filter((pointer) => valid.has(pointer));
+    rec.descendantInterests = (rec.descendantInterests ?? []).filter((pointer) => valid.has(pointer));
+    rec.spouseFamilies = (rec.spouseFamilies ?? []).filter((link) => valid.has(link.family));
+    rec.childFamilies = (rec.childFamilies ?? []).filter((link) => valid.has(link.family));
+  }
+  if (isFamilyRecord(rec)) {
+    if (rec.husband !== undefined && !valid.has(rec.husband.partner)) {
+      delete rec.husband;
+    }
+    if (rec.wife !== undefined && !valid.has(rec.wife.partner)) {
+      delete rec.wife;
+    }
+    rec.children = (rec.children ?? []).filter((link) => valid.has(link.child));
+  }
+  // The events' family links: FamilyEventStructure and
+  // IndividualEventStructure spell them as optional fields on their
+  // members; the structural view keeps the loop over the shared shape.
+  const events: Array<{ tag: string; familyChild?: string; adoptionFamily?: { family: string } }> = rec.events ?? [];
+  for (const event of events) {
+    if (event.familyChild !== undefined && !valid.has(event.familyChild)) {
+      delete event.familyChild;
+    }
+    if (event.adoptionFamily !== undefined && !valid.has(event.adoptionFamily.family)) {
+      delete event.adoptionFamily;
+    }
+  }
+  if (isIndividualRecord(rec)) {
+    for (const ordinance of rec.ordinances ?? []) {
+      if (ordinance.tag === 'SLGC' && ordinance.familyChild !== undefined && !valid.has(ordinance.familyChild)) {
+        delete ordinance.familyChild;
+      }
+    }
+  }
+  const cleanup = ['submitters', 'associations', 'notes', 'citations', 'media'] as const;
   for (const key of cleanup) {
-    const value = record[key];
+    const value = rec[key];
     if (Array.isArray(value) && value.length === 0) {
-      delete record[key];
+      delete rec[key];
+    }
+  }
+  if (isIndividualRecord(rec)) {
+    const indiKeys = ['aliases', 'ancestorInterests', 'descendantInterests', 'spouseFamilies', 'childFamilies'] as const;
+    for (const key of indiKeys) {
+      const value = rec[key];
+      if (Array.isArray(value) && value.length === 0) {
+        delete rec[key];
+      }
+    }
+  }
+  if (isFamilyRecord(rec)) {
+    const children = rec.children;
+    if (Array.isArray(children) && children.length === 0) {
+      delete rec.children;
     }
   }
 }
@@ -249,7 +257,7 @@ function fill551Header(dataset: GedcomDataset): void {
  * Collects every cross-reference identifier used by an extension
  * pointer payload (see ExtensionStructure.payloadKind) anywhere in the
  * model — the model is a plain object graph, so the walk is structural
- * (the same pattern as collectPlaces in parsing/places.ts). A record a
+ * (the same pattern as collectPlaces, see places.ts). A record a
  * marked payload points at is kept alive by the projections below:
  * the 5.5.1 NO rule and the place-card projections must not drop a
  * record an extension payload references (a dangling pointer would be
@@ -280,11 +288,11 @@ function collectExtensionPointerTargets(root: unknown): Set<string> {
 }
 
 /**
- * Applies the NO rule and the required-field defaults, returning a new
- * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
+ * Whether the card carries fields without a standard spelling — the
+ * GEDCOM-L set plus the Legacy `_PREP` preposition and the GEDCOM 5.5EL
+ * coordinate MAP entries — that force the write-back as a `_LOC`
+ * record.
  */
-/** Whether the card carries fields without a standard spelling — the GEDCOM-L set plus the Legacy `_PREP` preposition and the GEDCOM 5.5EL
- *  coordinate MAP entries — that force the write-back as a `_LOC` record. */
 function hasGermanPlaceFields(card: PlaceRecord): boolean {
   return card.govId !== undefined
     || card.maidenhead !== undefined
@@ -323,26 +331,22 @@ function flattenPlaceRecords(dataset: GedcomDataset, pinned: ReadonlySet<string>
   const places = collectPlaces(dataset.records);
   const survivors = new Set<string>();
   for (const record of dataset.records) {
-    if (record.tag !== '_PLAC') {
+    if (!isPlaceRecord(record) || record.xref === undefined) {
       continue;
     }
-    const card = record as unknown as PlaceRecord;
-    if (card.xref === undefined) {
-      continue;
-    }
-    if (hasGermanPlaceFields(card) || pinned.has(card.xref)) {
-      survivors.add(card.xref);
+    if (hasGermanPlaceFields(record) || pinned.has(record.xref)) {
+      survivors.add(record.xref);
       continue;
     }
     for (const place of places) {
-      if (place.location !== card.xref) {
+      if (place.location !== record.xref) {
         continue;
       }
-      if (place.map === undefined && card.map !== undefined) {
-        place.map = card.map;
+      if (place.map === undefined && record.map !== undefined) {
+        place.map = record.map;
       }
-      if (place.notes === undefined && card.notes !== undefined) {
-        place.notes = card.notes;
+      if (place.notes === undefined && record.notes !== undefined) {
+        place.notes = record.notes;
       }
     }
   }
@@ -353,14 +357,13 @@ function flattenPlaceRecords(dataset: GedcomDataset, pinned: ReadonlySet<string>
   while (changed) {
     changed = false;
     for (const record of dataset.records) {
-      if (record.tag !== '_PLAC') {
+      if (!isPlaceRecord(record)) {
         continue;
       }
-      const card = record as unknown as PlaceRecord;
-      if (card.xref === undefined || !survivors.has(card.xref)) {
+      if (record.xref === undefined || !survivors.has(record.xref)) {
         continue;
       }
-      for (const parent of card.parents ?? []) {
+      for (const parent of record.parents ?? []) {
         if (parent.parent !== '@VOID@' && !survivors.has(parent.parent)) {
           survivors.add(parent.parent);
           changed = true;
@@ -370,11 +373,11 @@ function flattenPlaceRecords(dataset: GedcomDataset, pinned: ReadonlySet<string>
   }
   for (const place of places) {
     if (place.location !== undefined && !survivors.has(place.location)) {
-      delete (place as { location?: unknown }).location;
+      delete place.location;
     }
   }
   dataset.records = dataset.records.filter(
-    (record) => record.tag !== '_PLAC' || survivors.has((record as unknown as PlaceRecord).xref as string),
+    (record) => !isPlaceRecord(record) || (record.xref !== undefined && survivors.has(record.xref)),
   );
 }
 
@@ -391,37 +394,44 @@ function flattenPlaceRecords(dataset: GedcomDataset, pinned: ReadonlySet<string>
 function preservePlaceRecords70(dataset: GedcomDataset, pinned: ReadonlySet<string>): void {
   const cards = new Set<string>();
   for (const record of dataset.records) {
-    if (record.tag === '_PLAC' && record.xref !== undefined) {
+    if (isPlaceRecord(record) && record.xref !== undefined) {
       cards.add(record.xref);
     }
   }
   for (const record of dataset.records) {
-    if (record.tag === '_PLAC') {
-      const card = record as unknown as PlaceRecord;
-      if (card.parents !== undefined) {
-        const kept = card.parents.filter((parent) => parent.parent === '@VOID@' || cards.has(parent.parent));
-        if (kept.length === 0) {
-          delete card.parents;
-        } else {
-          card.parents = kept;
-        }
+    if (!isPlaceRecord(record)) {
+      continue;
+    }
+    if (record.parents !== undefined) {
+      const kept = record.parents.filter((parent) => parent.parent === '@VOID@' || cards.has(parent.parent));
+      if (kept.length === 0) {
+        delete record.parents;
+      } else {
+        record.parents = kept;
       }
     }
   }
   for (const place of collectPlaces(dataset.records)) {
     if (place.location !== undefined && !cards.has(place.location)) {
-      delete (place as { location?: unknown }).location;
+      delete place.location;
     }
   }
-  dataset.records = dataset.records.filter(
-    (record) =>
-      record.tag !== '_PLAC'
-      || (record as unknown as PlaceRecord).payload !== ''
-      || ((record as unknown as PlaceRecord).names?.length ?? 0) > 0
-      || pinned.has((record as unknown as PlaceRecord).xref as string),
-  );
+  dataset.records = dataset.records.filter((record) => {
+    if (!isPlaceRecord(record)) {
+      return true;
+    }
+    return (
+      record.payload !== ''
+      || (record.names?.length ?? 0) > 0
+      || (record.xref !== undefined && pinned.has(record.xref))
+    );
+  });
 }
 
+/**
+ * Applies the NO rule and the required-field defaults, returning a new
+ * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
+ */
 export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   const out = clone(dataset);
   // Records referenced by extension pointer payloads must survive every
@@ -436,25 +446,23 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   //    bare NO MARR on a FAM survives as the Ahnenblatt `_MARR N`.
   const emptied = new Set<string>();
   for (const record of out.records) {
-    if (record.tag === 'FAM' || record.tag === 'INDI') {
-      const rec = record as unknown as {
-        nonEvents?: Array<{ payload?: string; date?: unknown; notes?: unknown; citations?: unknown }>;
-        xref?: string;
-      };
-      if (rec.nonEvents !== undefined) {
-        const kept = rec.nonEvents.filter(
-          (nonEvent) => nonEvent.date === undefined && nonEvent.notes === undefined && nonEvent.citations === undefined
-            && (nonEvent.payload === 'MARR' || (record.tag === 'INDI' && nonEvent.payload === 'DEAT')),
-        );
-        const droppedAny = kept.length < rec.nonEvents.length;
-        if (droppedAny && record.xref !== undefined) {
-          emptied.add(record.xref);
-        }
-        if (kept.length === 0) {
-          delete rec.nonEvents;
-        } else {
-          rec.nonEvents = kept;
-        }
+    if (!isFamilyOrIndividual(record)) {
+      continue;
+    }
+    const rec = record;
+    if (rec.nonEvents !== undefined) {
+      const kept = rec.nonEvents.filter(
+        (nonEvent) => nonEvent.date === undefined && nonEvent.notes === undefined && nonEvent.citations === undefined
+          && (nonEvent.payload === 'MARR' || (isIndividualRecord(rec) && nonEvent.payload === 'DEAT')),
+      );
+      const droppedAny = kept.length < rec.nonEvents.length;
+      if (droppedAny && rec.xref !== undefined) {
+        emptied.add(rec.xref);
+      }
+      if (kept.length === 0) {
+        delete rec.nonEvents;
+      } else {
+        rec.nonEvents = kept;
       }
     }
   }
@@ -469,7 +477,7 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
       out.records.map((record) => record.xref).filter((x): x is string => x !== undefined),
     );
     for (const record of out.records) {
-      stripPointers(record as LinkRecord, valid);
+      stripPointers(record, valid);
     }
     const kept = out.records.filter((record) => {
       if (isEmbeddedMediaRecord(record)) {
@@ -540,28 +548,27 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
     );
     out.records = out.records.filter((record) => !isEmbeddedMediaRecord(record));
     for (const record of out.records) {
-      const media = (record as LinkRecord).media;
-      if (media !== undefined) {
-        const kept = media.filter((link) => isLive(link.object, valid));
+      if ('media' in record) {
+        const kept = (record.media ?? []).filter((link) => valid.has(link.object));
         if (kept.length === 0) {
-          delete (record as LinkRecord).media;
+          delete record.media;
         } else {
-          (record as LinkRecord).media = kept;
+          record.media = kept;
         }
       }
     }
   }
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
-    if (record.tag === 'INDI' && record.xref !== undefined) {
+    if (isIndividualRecord(record) && record.xref !== undefined) {
       individuals.set(record.xref, record);
     }
   }
   for (const record of out.records) {
-    if (record.tag !== 'FAM') {
+    if (!isFamilyRecord(record)) {
       continue;
     }
-    const fam = record as unknown as FamilyRecord;
+    const fam = record;
     for (const link of fam.children ?? []) {
       if (link.fatherRelation === undefined && link.motherRelation === undefined) {
         continue;
@@ -586,10 +593,10 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   // agreeing pair is projected onto the same link's PEDI; the 7.0
   // emitter never writes the tags themselves (5.5.1 keeps them).
   for (const record of out.records) {
-    if (record.tag !== 'INDI') {
+    if (!isIndividualRecord(record)) {
       continue;
     }
-    const indi = record as unknown as IndividualRecord;
+    const indi = record;
     for (const link of indi.childFamilies ?? []) {
       if (link.fatherRelation === undefined && link.motherRelation === undefined) {
         continue;

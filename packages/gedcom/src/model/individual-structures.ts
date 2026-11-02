@@ -69,7 +69,7 @@ export interface IndividualChildCountAttribute extends IndividualAttributeBase<'
    * Anz Kinder gesichert", the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2":
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
-   * GEDCOM version. Recognized on 5.x input (`1` marks the flag set,
+   * GEDCOM version. Recognized in any file (`1` marks the flag set,
    * `0` clears it) and written back as `_SURE 1`/`_SURE 0` under the
    * NCHI line in 5.5.1; dropped on 7.0 output.
    */

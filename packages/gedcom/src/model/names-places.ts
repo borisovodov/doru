@@ -47,7 +47,7 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * agreement "NAME Ruf.B2"). The USM6 spelling `UGNM` (Der Stammbaum
    * ≤ V6, "Tabelle 2" of the GenWiki "GEDCOM/_Nutzerdef-Tag" article:
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) normalizes into
-   * this slot on 5.x input. Not part of any GEDCOM version.
+   * this slot in any file. Not part of any GEDCOM version.
    * Recognized on input and written back as `_RUFNAME` in both
    * versions.
    */
@@ -68,7 +68,7 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * Written by Der Stammbaum ≤ V6 (USM6) under the NAME tag (see the
    * GenWiki "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2",
    * "Varianten des Familiennamens"). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `_NAME_` in 5.5.1
+   * Recognized in any file and written back as `_NAME_` in 5.5.1
    * (the underscore spelling — the USM6 wire spelling `NAME_` is
    * non-underscore, and 5.5.1 requires user-defined tags to begin
    * with an underscore; both spellings are recognized on input);
@@ -109,7 +109,7 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * Family Tree 7 as a subtag of NAME (see the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2": "bei mehreren
    * Vornamen alle ab dem 2. als UnterTag von NAME"). Not part of any
-   * GEDCOM version. Recognized on 5.x input and written back as `_SECG`
+   * GEDCOM version. Recognized in any file and written back as `_SECG`
    * in 5.5.1 (the underscore spelling — the MFT7 wire spelling `SECG`
    * is non-underscore; both spellings are recognized on input);
    * dropped on 7.0 output.
