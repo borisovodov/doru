@@ -15,6 +15,7 @@ import {
   fail,
 } from '../errors';
 import type {
+  AgeStructure,
   CensusIndividual,
   CensusRecord,
   CensusRelative,
@@ -22,9 +23,13 @@ import type {
   CensusRelocatedEvent,
   CensusSexStructure,
   CensusSourceReference,
+  DateStructure,
   EventDetail,
   RoleStructure,
 } from '../structures';
+import type {
+  Text,
+} from '../primitives';
 import type {
   Ctx,
 } from './context';
@@ -47,10 +52,9 @@ import {
   eventDetailHandlers,
   merge551DetailContacts,
   SEX_551,
-  SEX_70,
 } from './events';
 import {
-  parseAge,
+  parseAgeStructure,
   parseChangeDate,
   parseDateStructure,
 } from './substructures';
@@ -63,56 +67,57 @@ import {
 
 export function parseCensusRecord(node: RawNode, ctx: Ctx): CensusRecord {
   noPayload(node);
-  const rec: CensusRecord = {
+  const out: Omit<CensusRecord, 'date' | 'place' | 'entries'> = {
     tag: '_CENR',
-    date: null as unknown as CensusRecord['date'],
-    place: null as unknown as CensusRecord['place'],
-    entries: null as unknown as CensusRecord['entries'],
     ...(node.xref === undefined ? {} : { xref: node.xref }),
   };
+  let date: DateStructure | undefined;
+  let place: Text | undefined;
+  let entries: CensusIndividual[] | undefined;
   dispatch(
     node,
-    rec,
+    out,
     {
       '_SCHD': (child) => {
-        rec.schedule = reqText(child);
+        out.schedule = reqText(child);
       },
       'SEX': (child) => {
-        (rec.sexes ??= []).push(parseCensusSex(child, ctx));
+        (out.sexes ??= []).push(parseCensusSex(child, ctx));
       },
       'INDI': (child) => {
-        (rec.entries ??= []).push(parseCensusIndividual(child, ctx));
+        (entries ??= []).push(parseCensusIndividual(child, ctx));
       },
       'DATE': (child) => {
-        rec.date = parseDateStructure(child, ctx);
+        date = parseDateStructure(child, ctx);
       },
       'PLAC': (child) => {
-        rec.place = reqText(child);
+        place = reqText(child);
       },
       'SOUR': (child) => {
-        rec.source = parseCensusSource(child, ctx);
+        out.source = parseCensusSource(child, ctx);
       },
       'CHAN': (child) => {
-        rec.changeDate = parseChangeDate(child, ctx);
+        out.changeDate = parseChangeDate(child, ctx);
       },
     },
     ctx,
     ['_SCHD', 'DATE', 'PLAC', 'SOUR', 'CHAN'],
   );
-  if (rec.date === null) {
+  if (date === undefined) {
     fail('structure.missing-required', 'The _CENR record requires a DATE substructure', node.position);
   }
-  if (rec.place === null) {
+  if (place === undefined) {
     fail('structure.missing-required', 'The _CENR record requires a PLAC substructure', node.position);
   }
-  if (rec.entries === null || rec.entries.length === 0) {
+  if (entries === undefined || entries.length === 0) {
     fail('structure.missing-required', 'The _CENR record requires at least one INDI substructure', node.position);
   }
-  return rec as CensusRecord;
+  return { ...out, date, place, entries };
 }
 
 function parseCensusSex(node: RawNode, ctx: Ctx): CensusSexStructure {
-  const out: CensusSexStructure = { tag: 'SEX', payload: reqText(node), age: null as unknown as CensusSexStructure['age'] };
+  const out: Omit<CensusSexStructure, 'age'> = { tag: 'SEX', payload: reqText(node) };
+  let age: AgeStructure | undefined;
   dispatch(
     node,
     out,
@@ -125,7 +130,7 @@ function parseCensusSex(node: RawNode, ctx: Ctx): CensusSexStructure {
         // range, typed as `count`. Real MagiKey files sometimes omit
         // the NCHI, so it stays optional here.
         let count: number | undefined;
-        out.age = parseAge(child, ctx, {
+        age = parseAgeStructure(child, ctx, {
           NCHI: (grandchild) => {
             count = reqDigits(grandchild);
           },
@@ -141,10 +146,10 @@ function parseCensusSex(node: RawNode, ctx: Ctx): CensusSexStructure {
     ctx,
     ['AGE', 'TYPE'],
   );
-  if (out.age === null) {
+  if (age === undefined) {
     fail('structure.missing-required', 'The SEX structure under _CENR requires an AGE substructure', node.position);
   }
-  return out as CensusSexStructure;
+  return { ...out, age };
 }
 
 function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
@@ -163,7 +168,7 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
         out.maritalStatus = reqText(child);
       },
       AGE: (child) => {
-        out.age = parseAge(child, ctx);
+        out.age = parseAgeStructure(child, ctx);
       },
       BIRT: (child) => {
         out.birth = parseCensusRelocatedEvent(child, ctx, 'BIRT');
@@ -193,14 +198,14 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
 /**
  * The census INDI's SEX: the registry (MagiKey_CENR_INDI.yaml) wires it
  * to the standard SEX structure, so it is typed like the INDI SEX —
- * the version's enum table, case-insensitive on 5.x input and
- * canonicalized (`m` → `male`).
+ * the full value set, case-insensitive on input and canonicalized
+ * (`m` → `male`).
  */
-function parseCensusSexValue(node: RawNode, ctx: Ctx): SexEnum {
-  const table = (ctx.version === '7.0' ? SEX_70 : SEX_551) as Readonly<
+function parseCensusSexValue(node: RawNode, _ctx: Ctx): SexEnum {
+  const table = SEX_551 as Readonly<
     Record<'M' | 'F' | 'U' | 'X' | 'N', string>
   >;
-  return parseEnum(reqText(node), table, ctx.version, node.position) as SexEnum;
+  return parseEnum(reqText(node), table, node.position) as SexEnum;
 }
 
 /**
@@ -236,7 +241,7 @@ function parseCensusRelative(node: RawNode, ctx: Ctx, tag: 'FATH' | 'MOTH'): Cen
     out,
     {
       AGE: (child) => {
-        out.age = parseAge(child, ctx);
+        out.age = parseAgeStructure(child, ctx);
       },
       BIRT: (child) => {
         out.birth = parseCensusRelocatedEvent(child, ctx, 'BIRT');
@@ -262,9 +267,7 @@ function parseCensusRelocatedEvent(node: RawNode, ctx: Ctx, tag: 'BIRT' | 'MARR'
   const detail: EventDetail = {};
   const out: CensusRelocatedEvent = { tag, ...(payload === undefined ? {} : { payload }), detail };
   dispatch(node, out, eventDetailHandlers(ctx, detail), ctx);
-  if (ctx.version === '5.5.1') {
-    merge551DetailContacts(detail);
-  }
+  merge551DetailContacts(detail);
   if (Object.keys(detail).length === 0) {
     delete out.detail;
   }
@@ -276,9 +279,7 @@ function parseCensusRelocatedAttribute(node: RawNode, ctx: Ctx, tag: 'FACT' | 'O
   const detail: EventDetail = {};
   const out: CensusRelocatedAttribute = { tag, ...(raw === undefined ? {} : { payload: raw }), detail };
   dispatch(node, out, eventDetailHandlers(ctx, detail), ctx);
-  if (ctx.version === '5.5.1') {
-    merge551DetailContacts(detail);
-  }
+  merge551DetailContacts(detail);
   if (Object.keys(detail).length === 0) {
     delete out.detail;
   }

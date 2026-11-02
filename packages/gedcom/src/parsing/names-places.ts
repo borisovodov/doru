@@ -8,9 +8,6 @@
  */
 
 import {
-  NAME_TYPE_ENUM_VALUES,
-} from '../enumerations';
-import {
   fail,
 } from '../errors';
 import type {
@@ -53,7 +50,6 @@ import {
   parseNoteStructure,
 } from './substructures';
 import {
-  parseEnum,
   parseLatitude,
   parseListText,
   parseLongitude,
@@ -147,7 +143,7 @@ export const PIECE_TAGS = ['NPFX', 'GIVN', 'NICK', 'SPFX', 'SURN', 'NSFX'];
 export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNameStructure {
   const out: PersonalNameStructure = {
     tag: 'NAME',
-    payload: parsePersonalName(reqText(node), ctx.version, node.position),
+    payload: parsePersonalName(reqText(node), node.position),
   };
   const handlers: Record<string, (child: RawNode) => void> = {
     TYPE: (child) => {
@@ -194,112 +190,109 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
   };
   for (const tag of PIECE_TAGS) {
     handlers[tag] = (child) => {
+      // The 5.5.1 pieces grammar: comma-separated values, repeated
+      // pieces appended, a RUF-marked GIVN typed as the call name.
       out.pieces ??= {};
-      if (ctx.version === '7.0') {
-        pieces70(out.pieces, tag, child);
-      } else {
-        const ruf = pieces551(out.pieces, tag, child);
-        if (ruf !== undefined) {
-          out.callName = ruf;
-        }
+      const ruf = pieces551(out.pieces, tag, child);
+      if (ruf !== undefined) {
+        out.callName = ruf;
       }
     };
   }
-  if (ctx.version === '7.0') {
-    handlers["TRAN"] = (child) => {
-      (out.translations ??= []).push(parseNameTranslation(child, ctx));
-    };
-    handlers["NOTE"] = (child) => {
-      (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-    handlers["SNOTE"] = (child) => {
-      // The 7.0 PERSONAL_NAME_STRUCTURE carries <<NOTE_STRUCTURE>>
-      // {0:M} (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
-      (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-    handlers["SOUR"] = (child) => {
-      (out.citations ??= []).push(parseSourceCitation(child, ctx));
-    };
-  } else {
-    handlers["FONE"] = (child) => {
-      (out.phonetic ??= []).push(parsePhoneticNameVariation(child, ctx));
-    };
-    handlers["ROMN"] = (child) => {
-      (out.romanized ??= []).push(parseRomanizedNameVariation(child, ctx));
-    };
-    handlers["NOTE"] = (child) => {
-      out.pieces ??= {};
-      (out.pieces.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-    handlers["SOUR"] = (child) => {
-      out.pieces ??= {};
-      (out.pieces.citations ??= []).push(parseSourceCitation(child, ctx));
-    };
-    handlers['UGNM'] = (child) => {
-      // USM6: the call name (Rufname) — the same slot `_RUFNAME`
-      // carries (see the callName note in PersonalNameStructure).
-      out.callName = reqText(child);
-    };
-    handlers['NAME_'] = (child) => {
-      // USM6: the surname variants (see
-      // PersonalNameStructure.surnameVariants).
-      out.surnameVariants = reqText(child);
-    };
-    handlers['_NAME_'] = (child) => {
-      // The underscore write-back spelling of the USM6 NAME_ (the USM6
-      // wire spelling is non-underscore; both are recognized).
-      out.surnameVariants = reqText(child);
-    };
-    handlers['SECG'] = (child) => {
-      // MFT7: the second and further given names (see
-      // PersonalNameStructure.furtherGivenNames).
-      out.furtherGivenNames = reqText(child);
-    };
-    handlers['_SECG'] = (child) => {
-      // The underscore write-back spelling of the MFT7 SECG.
-      out.furtherGivenNames = reqText(child);
-    };
-    handlers['_HEB'] = (child) => {
-      // phpGedView: the name in Hebrew script (see
-      // PersonalNameStructure.hebrewName).
-      out.hebrewName = reqText(child);
-    };
-  }
+  handlers["TRAN"] = (child) => {
+    (out.translations ??= []).push(parseNameTranslation(child, ctx));
+  };
+  handlers["NOTE"] = (child) => {
+    (out.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  handlers["SOUR"] = (child) => {
+    (out.citations ??= []).push(parseSourceCitation(child, ctx));
+  };
+  // The 7.0 SNOTE spelling and the 5.5.1 FONE/ROMN and the
+  // non-underscore vendor spellings (UGNM, NAME_, SECG) are all
+  // accepted in any file.
+  handlers["SNOTE"] = (child) => {
+    // The 7.0 PERSONAL_NAME_STRUCTURE carries <<NOTE_STRUCTURE>>
+    // {0:M} (GEDCOM 7.0 §3.2.3); accepted in any file.
+    (out.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  handlers["TRAN"] = (child) => {
+    (out.translations ??= []).push(parseNameTranslation(child, ctx));
+  };
+  handlers["FONE"] = (child) => {
+    (out.phonetic ??= []).push(parsePhoneticNameVariation(child, ctx));
+  };
+  handlers["ROMN"] = (child) => {
+    (out.romanized ??= []).push(parseRomanizedNameVariation(child, ctx));
+  };
+  handlers['UGNM'] = (child) => {
+    // USM6: the call name (Rufname) — the same slot `_RUFNAME`
+    // carries (see the callName note in PersonalNameStructure).
+    out.callName = reqText(child);
+  };
+  handlers['NAME_'] = (child) => {
+    // USM6: the surname variants (see
+    // PersonalNameStructure.surnameVariants).
+    out.surnameVariants = reqText(child);
+  };
+  handlers['_NAME_'] = (child) => {
+    // The underscore write-back spelling of the USM6 NAME_ (the USM6
+    // wire spelling is non-underscore; both are recognized).
+    out.surnameVariants = reqText(child);
+  };
+  handlers['SECG'] = (child) => {
+    // MFT7: the second and further given names (see
+    // PersonalNameStructure.furtherGivenNames).
+    out.furtherGivenNames = reqText(child);
+  };
+  handlers['_SECG'] = (child) => {
+    // The underscore write-back spelling of the MFT7 SECG.
+    out.furtherGivenNames = reqText(child);
+  };
+  handlers['_HEB'] = (child) => {
+    // phpGedView: the name in Hebrew script (see
+    // PersonalNameStructure.hebrewName).
+    out.hebrewName = reqText(child);
+  };
   dispatch(node, out, handlers, ctx, ['UGNM', 'NAME_', '_NAME_', 'SECG', '_SECG']);
   return out;
 }
 
 export function parseNameType(node: RawNode, ctx: Ctx): NameTypeStructure {
   const raw = reqText(node);
-  if (ctx.version === '7.0') {
-    const out: NameTypeStructure = { payload: parseEnum(raw, NAME_TYPE_ENUM_VALUES, '7.0', node.position) };
-    dispatch(
-      node,
-      out,
-      {
-        PHRASE: (child) => {
-          out.phrase = reqText(child);
-        },
-      },
-      ctx,
-    );
-    return out;
-  }
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under TYPE`, (node.children[0] as RawNode).position);
-  }
-  const known = ['AKA', 'BIRTH', 'IMMIGRANT', 'MAIDEN', 'MARRIED'];
+  // Both value forms parse: the 7.0 enum values (with the PHRASE child),
+  // the lowercase 5.5.1 spellings of the five shared values, and the
+  // 5.5.1 arbitrary user-defined value (normalized to OTHER + phrase).
   const upper = raw.toUpperCase();
-  if (known.includes(upper)) {
-    return { payload: upper as 'AKA' | 'BIRTH' | 'IMMIGRANT' | 'MAIDEN' | 'MARRIED' };
+  let payload: NameTypeStructure['payload'];
+  if (upper === 'AKA' || upper === 'BIRTH' || upper === 'IMMIGRANT' || upper === 'MAIDEN' || upper === 'MARRIED') {
+    payload = upper;
+  } else if (raw === 'OTHER' || raw === 'PROFESSIONAL' || raw.startsWith('_')) {
+    payload = raw as NameTypeStructure['payload'];
+  } else {
+    // The arbitrary user-defined value (or a lowercase OTHER spelling).
+    payload = 'OTHER';
   }
-  // 5.5.1 arbitrary user-defined value: normalized to OTHER + phrase.
-  return { payload: 'OTHER', phrase: raw };
+  const out: NameTypeStructure = { payload };
+  if (payload === 'OTHER' && raw !== 'OTHER') {
+    out.phrase = raw;
+  }
+  dispatch(
+    node,
+    out,
+    {
+      PHRASE: (child) => {
+        out.phrase = reqText(child);
+      },
+    },
+    ctx,
+  );
+  return out;
 }
 
 export function parseNameTranslation(node: RawNode, ctx: Ctx): NameTranslation {
   const out: NameTranslation = {
-    payload: parsePersonalName(reqText(node), '7.0', node.position),
+    payload: parsePersonalName(reqText(node), node.position),
     language: reqText(req(node, 'LANG')),
   };
   const handlers: Record<string, (child: RawNode) => void> = { LANG: () => undefined };
@@ -315,7 +308,7 @@ export function parseNameTranslation(node: RawNode, ctx: Ctx): NameTranslation {
 
 export function parsePhoneticNameVariation(node: RawNode, ctx: Ctx): PhoneticNameVariation {
   const out: PhoneticNameVariation = {
-    payload: parsePersonalName(reqText(node), '5.5.1', node.position),
+    payload: parsePersonalName(reqText(node), node.position),
     type: reqText(req(node, 'TYPE')),
   };
   const handlers: Record<string, (child: RawNode) => void> = { TYPE: () => undefined };
@@ -331,7 +324,7 @@ export function parsePhoneticNameVariation(node: RawNode, ctx: Ctx): PhoneticNam
 
 export function parseRomanizedNameVariation(node: RawNode, ctx: Ctx): RomanizedNameVariation {
   const out: RomanizedNameVariation = {
-    payload: parsePersonalName(reqText(node), '5.5.1', node.position),
+    payload: parsePersonalName(reqText(node), node.position),
     type: reqText(req(node, 'TYPE')),
   };
   const handlers: Record<string, (child: RawNode) => void> = { TYPE: () => undefined };
@@ -352,11 +345,12 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       out.form = parseListText(reqText(child));
     },
     MAP: (child) => {
-      if (ctx.version === '5.5.1' && child.value.kind === 'text') {
+      if (child.value.kind === 'text') {
         // The historical GEDCOM 5.5EL Maidenhead locator: `MAP <code>`
         // with an optional `TYPE MAIDENHEAD` child (superseded by the
         // GEDCOM-L `_MAIDENHEAD` spelling, which normalizes into the
-        // same PlaceStructure.maidenhead slot). Source: the English
+        // same PlaceStructure.maidenhead slot). The
+        // text form is accepted in any file. Source: the English
         // GenWiki article "Gedcom 5.5EL":
         // http://wiki-en.genealogy.net/Gedcom_5.5EL.
         const typeNode = one(child, 'TYPE');
@@ -416,40 +410,41 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // MAP/LATI/LONG.
       out.map = parseMftCoordinates(child);
     },
-  };
-  if (ctx.version === '7.0') {
-    handlers["LANG"] = (child) => {
+    // The the 7.0 LANG/TRAN/EXID/SNOTE spellings are
+    // accepted in any file, as are the 5.5.1 FONE/ROMN and the
+    // historical GEDCOM 5.5EL POST spelling.
+    LANG: (child) => {
       out.language = reqText(child);
-    };
-    handlers["TRAN"] = (child) => {
+    },
+    TRAN: (child) => {
       (out.translations ??= []).push(parsePlaceTranslation(child, ctx));
-    };
-    handlers["EXID"] = (child) => {
+    },
+    EXID: (child) => {
       (out.externalIds ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-    handlers["SNOTE"] = (child) => {
+    },
+    SNOTE: (child) => {
       // The 7.0 PLACE_STRUCTURE carries <<NOTE_STRUCTURE>> {0:M}
-      // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
+      // (GEDCOM 7.0 §3.2.3); accepted in any file.
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  } else {
-    handlers["FONE"] = (child) => {
+    },
+    FONE: (child) => {
       (out.phonetic ??= []).push(parsePhoneticPlaceVariation(child));
-    };
-    handlers["ROMN"] = (child) => {
+    },
+    ROMN: (child) => {
       (out.romanized ??= []).push(parseRomanizedPlaceVariation(child));
-    };
-    handlers["POST"] = (child) => {
+    },
+    POST: (child) => {
       // The historical GEDCOM 5.5EL agreement wrote the postal code
       // under a place with the standard (non-underscore) POST tag
       // (superseded by the GEDCOM-L `_POST` spelling, which
       // normalizes into the same PlaceStructure.postalCodes slot).
-      // Accepted on 5.x input only; written back as `_POST`.
+      // Accepted in any file; written back as
+      // `_POST`.
       const entry: PostalCodeStructure = { code: reqText(child) };
       (out.postalCodes ??= []).push(entry);
       dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
-    };
-  }
+    },
+  };
   dispatch(node, out, handlers, ctx, ['FORM', 'MAP']);
   return out;
 }

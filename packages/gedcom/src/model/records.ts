@@ -341,7 +341,7 @@ export interface FamilyRecord extends GedcomStructureBase {
    * marriage annulled, 5 = non-marital union. Written by Der Stammbaum
    * ≤ V6 (USM6) under FAM; the values are documented in the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2" (see UsmUnionKind).
-   * Not part of any GEDCOM version. Recognized on 5.x input and
+   * Not part of any GEDCOM version. Recognized in any file and
    * written back as `_UTYP` in 5.5.1; dropped on 7.0 output (7.0 cannot
    * spell a non-underscore extension tag).
    */
@@ -512,11 +512,11 @@ export interface IndividualRecord extends GedcomStructureBase {
   names?: PersonalNameStructure[];
   /**
    * SEX {0:1}, g7:SEX — Enum of g7:enumset-SEX (M, F, X, U). The
-   * GEDCOM 5.5.5 values are also accepted on 5.x input: X (intersex;
+   * GEDCOM 5.5.5 values are also accepted in any file: X (intersex;
    * also a 7.0 value) and N (not recorded; 5.5.5 §2 p.104 only). On
    * export the serializers project: 5.5.1 drops X and N (the SEX line
    * disappears), 7.0 drops N (see the `sex` projection in
-   * serialize/emitter/values.ts); 7.0 input rejects N.
+   * serialize/emitter/values.ts).
    */
   sex?: SexEnum;
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */
@@ -835,7 +835,7 @@ export interface ChildFamilyLink extends GedcomStructureBase {
    * Written by Der Stammbaum ≤ V6 (USM6) under the INDI.FAMC link; the
    * values are documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2" (see UsmParentalRelationKind). Not part of
-   * any GEDCOM version. Recognized on 5.x input and written back as
+   * any GEDCOM version. Recognized in any file and written back as
    * `MTYP` in 5.5.1; dropped on 7.0 output.
    */
   parentalRelationKind?: UsmParentalRelationKind;
@@ -1383,7 +1383,7 @@ export interface SourceRecord extends GedcomStructureBase {
    * the 7.0 SOURCE_RECORD has a MEDI slot, and 7.0 §1.5 requires
    * extension tags to be underscore-prefixed). The value is free text
    * (in practice the 7.0 enumset-MEDI vocabulary). Not part of any
-   * GEDCOM version. Recognized on 5.x input as `MEDI` and in both
+   * GEDCOM version. Recognized in any file as `MEDI` and in both
    * versions as `_MEDI`; written back as `_MEDI` in both versions.
    */
   medium?: Text;

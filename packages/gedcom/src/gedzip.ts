@@ -12,7 +12,7 @@
 
 import { unzipSync, zipSync } from 'fflate';
 import { fail, run, type ParseResult } from './errors';
-import { parseGedcom70 } from './parsing/assemble';
+import { parseAny } from './parsing/assemble';
 import type { FilePath } from './primitives';
 import { serializeGedcom70Bytes } from './serialize/serialize';
 import type { GedcomDataset } from './structures';
@@ -51,9 +51,10 @@ export interface GedzipMediaEntry {
 }
 
 /**
- * Parses a GEDZIP archive: unzips it, parses the `gedcom.ged` entry as a
- * GEDCOM 7.0 data stream, and surfaces every other entry as a media
- * file. Zip directory markers (names ending in `/`) are skipped.
+ * Parses a GEDZIP archive: unzips it, parses the `gedcom.ged` entry
+ * with the sniffing entry point (the import grammar accepts whatever
+ * the entry declares), and surfaces every other entry as a media file.
+ * Zip directory markers (names ending in `/`) are skipped.
  */
 export function parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive> {
   return run(() => {
@@ -82,7 +83,7 @@ export function parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive> {
     if (datasetBytes === undefined) {
       fail('gedzip.missing-dataset', `The archive has no ${GEDZIP_DATASET_ENTRY} entry`);
     }
-    const dataset = parseGedcom70(datasetBytes);
+    const dataset = parseAny(datasetBytes);
     if (!dataset.ok) {
       throw dataset.error;
     }

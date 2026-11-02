@@ -22,12 +22,15 @@ import type {
 } from '../structures';
 import {
   decodeDocument,
+  decodeSniffed,
+  type DecodedDocument,
 } from './decode';
 import {
   parseDocument,
 } from './document';
 import {
   parseRawDocument,
+  type EscapeRule,
 } from './lines';
 
 // ---------------------------------------------------------------------------
@@ -47,11 +50,49 @@ export function parseGedcom551(input: Uint8Array): ParseResult<GedcomDataset> {
   return run(() => parseGedcom(input, '5.5.1'));
 }
 
+/**
+ * Reads the declared GEDC.VERS from the decoded header lines to pick
+ * the document's at-sign escape rule (see EscapeRule): the declaration
+ * is the only signal that disambiguates the two conventions, and the
+ * header always precedes the body (the VERS value itself is ASCII, so
+ * the scan needs no decoding). A missing declaration defaults to the
+ * 5.x rule; the header validation reports the real error afterwards.
+ */
+function declaredEscapeRule(document: DecodedDocument): EscapeRule {
+  for (let i = 0; i < document.lines.length - 1; i++) {
+    const line = document.lines[i] as DecodedDocument['lines'][number];
+    if (/^\s*\d+ GEDC\s*$/.test(line.text)) {
+      const match = /^\s*\d+ VERS\s+(\S.*)$/.exec((document.lines[i + 1] as DecodedDocument['lines'][number]).text);
+      if (match !== null) {
+        return /^7\./.test(match[1] as string) ? '7.0' : '5.5.1';
+      }
+    }
+  }
+  return '5.5.1';
+}
+
 function parseGedcom(input: Uint8Array, version: '7.0' | '5.5.1'): GedcomDataset {
   const decoded = decodeDocument(input, version);
   if (!decoded.ok) {
     throw decoded.error;
   }
-  const raw = parseRawDocument(decoded.value, version);
-  return parseDocument(raw, version);
+  const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value));
+  return parseDocument(raw);
+}
+
+/**
+ * Parses GEDCOM bytes of any supported charset: UTF-8, or the 5.5.1
+ * charset declared in the header (the `parse` entry's decode — see
+ * decodeSniffed). The grammar behind it is the same import grammar as
+ * everywhere else.
+ */
+export function parseAny(input: Uint8Array): ParseResult<GedcomDataset> {
+  return run(() => {
+    const decoded = decodeSniffed(input);
+    if (!decoded.ok) {
+      throw decoded.error;
+    }
+    const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value));
+    return parseDocument(raw);
+  });
 }

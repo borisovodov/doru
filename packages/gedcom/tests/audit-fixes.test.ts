@@ -448,8 +448,13 @@ describe('the 2026-11 tail: Legacy marriage report fields, Aldfaer birth data, p
     const out = lines(ser551(dataset));
     expect(out).toContain('2 _CEME Old Cemetery');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
-    // 7.0 input stays strict for the non-underscore spelling.
-    expect(parseGedcom70(enc([...H70, '0 @I1@ INDI', '1 BURI', '2 CEME x', '0 TRLR'].join('\n'))).ok).toBe(false);
+    // The non-underscore spelling is accepted in any file.
+    const as70 = parseGedcom70(enc([...H70, '0 @I1@ INDI', '1 BURI', '2 CEME x', '0 TRLR'].join('\n')));
+    expect(as70.ok).toBe(true);
+    if (as70.ok) {
+      const burial70 = (as70.value.records[0] as { events?: Array<{ detail?: { cemetery?: string } }> }).events?.[0];
+      expect(burial70?.detail?.cemetery).toBe('x');
+    }
   });
 
   test('the event creation dates type into EventDetail.createdAt', () => {

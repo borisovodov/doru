@@ -81,8 +81,8 @@ export interface Header extends GedcomStructureBase {
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) — parse into
    * the same block (the `_DEFN` spelling normalizes to the DEFN
    * leaf). Kept as opaque metadata: the context chains and their
-   * LABL/DEFN/ISA leaves have no genealogical meaning. Recognized on
-   * 5.x input and written back as `SCHEMA` in 5.5.1 and as `_SCHEMA`
+   * LABL/DEFN/ISA leaves have no genealogical meaning. Recognized in
+   * any file and written back as `SCHEMA` in 5.5.1 and as `_SCHEMA`
    * in 7.0 (7.0's own SCHMA carries URIs, which this block lacks, so
    * it travels as an extension record there). Sources: the GEDCOM 5.3
    * draft (`USER_TAG_SCHEMA`, p.25–26 of the Tamura Jones PDF) and

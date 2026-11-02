@@ -105,9 +105,10 @@ describe('parse (unified entry point)', () => {
     }
   });
 
-  test('reports the 5.5.1 error when a 5.x stream is malformed', () => {
-    // Declares 5.5.1 but lacks the required FORM.
-    const broken551 = [
+  test('parses a 5.x stream that the 5.5.1 letter would reject', () => {
+    // Declares 5.5.1 but lacks the required FORM: the parser
+    // makes the FORM optional (the 7.0 rule).
+    const withoutForm = [
       '0 HEAD',
       '1 SOUR PAF',
       '1 SUBM @S1@',
@@ -118,10 +119,10 @@ describe('parse (unified entry point)', () => {
       '1 NAME T',
       '0 TRLR',
     ].join('\n');
-    const result = parse(enc(broken551));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe('structure.missing-required');
+    const result = parse(enc(withoutForm));
+    expect(result.ok).toBe(true);
+    if (result.ok && result.kind === 'dataset') {
+      expect(result.version).toBe('5.5.1');
     }
   });
 

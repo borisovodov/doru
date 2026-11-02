@@ -173,13 +173,18 @@ describe('multimedia records', () => {
     ).toBe('structure.missing-required');
   });
 
-  test('5.5.1 TYPE must not have substructures and the format must be known', () => {
+  test('the TYPE accepts the PHRASE child and any FORM text', () => {
+    const withPhrase = parse551(
+      [...H551, '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM jpg', '3 TYPE PHOTO', '4 PHRASE x', ...SUBM, '0 TRLR'].join('\n'),
+    );
+    const obj = withPhrase.records.find((record) => record.tag === 'OBJE');
     expect(
-      err551([...H551, '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM jpg', '3 TYPE PHOTO', '4 PHRASE x', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('structure.unknown-tag');
-    expect(
-      err551([...H551, '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('enum.invalid-value');
+      (obj as unknown as { files?: Array<{ form?: { medium?: { payload?: string; phrase?: string } } }> }).files?.[0]
+        ?.form?.medium,
+    ).toMatchObject({ payload: 'PHOTO', phrase: 'x' });
+    const exe = parse551([...H551, '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n'));
+    const exeObj = exe.records.find((record) => record.tag === 'OBJE');
+    expect((exeObj as unknown as { files?: Array<{ form?: { payload?: string } }> }).files?.[0]?.form?.payload).toBe('exe');
   });
 
   test('unknown tag under OBJE fails', () => {
@@ -242,13 +247,16 @@ describe('submitter and submission records', () => {
     expect(rec.address?.state).toBe('BE');
     expect(rec.address?.postalCode).toBe('10115');
     expect(rec.address?.country).toBe('DE');
-    expect(rec.address?.email).toEqual(['mail@example.com']);
+    // The record-level contacts are relocated into the address block
+    // (the canonical position).
+    expect(rec.address?.email).toEqual(['mail@example.com', 'a@example.com']);
     expect(rec.address?.private).toBe(true);
     expect(rec.address?.name).toBe('The Office');
-    expect(rec.phone).toEqual(['+49 1']);
-    expect(rec.email).toEqual(['a@example.com']);
-    expect(rec.fax).toEqual(['+49 2']);
-    expect(rec.www).toEqual(['https://example.com']);
+    expect(rec.phone).toBeUndefined();
+    expect((rec.address as { phone?: string[] }).phone).toEqual(['+49 1']);
+    expect(rec.email).toBeUndefined();
+    expect((rec.address as { fax?: string[] }).fax).toEqual(['+49 2']);
+    expect((rec.address as { www?: string[] }).www).toEqual(['https://example.com']);
     expect(rec.languages).toEqual(['de', 'en']);
     expect(rec.media).toHaveLength(1);
     expect(rec.notes).toHaveLength(1);
@@ -338,9 +346,9 @@ describe('submitter and submission records', () => {
     expect(rec.www).toEqual(['https://example.com']);
   });
 
-  test('at most three 5.5.1 SUBM record-level contacts', () => {
-    expect(
-      err551(
+  test('any number of SUBM record-level contacts', () => {
+    const result = parseGedcom551(
+      enc(
         [
           ...H551,
           '0 @S1@ SUBM',
@@ -352,12 +360,17 @@ describe('submitter and submission records', () => {
           '0 TRLR',
         ].join('\n'),
       ),
-    ).toBe('structure.cardinality');
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const sub = result.value.records.find((record) => record.tag === 'SUBM');
+      expect((sub as unknown as { phone?: string[] }).phone).toEqual(['1', '2', '3', '4']);
+    }
   });
 
-  test('at most three 5.5.1 LANG/PHON substructures', () => {
-    expect(
-      err551(
+  test('any number of LANG/PHON substructures', () => {
+    const result = parseGedcom551(
+      enc(
         [
           ...H551,
           '0 @S1@ SUBM',
@@ -369,9 +382,14 @@ describe('submitter and submission records', () => {
           '0 TRLR',
         ].join('\n'),
       ),
-    ).toBe('structure.cardinality');
-    expect(
-      err551(
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const sub = result.value.records.find((record) => record.tag === 'SUBM');
+      expect((sub as unknown as { languages?: string[] }).languages).toEqual(['English', 'Russian', 'German', 'French']);
+    }
+    const contacts = parseGedcom551(
+      enc(
         [
           ...H551,
           '0 @S1@ SUBM',
@@ -384,7 +402,12 @@ describe('submitter and submission records', () => {
           '0 TRLR',
         ].join('\n'),
       ),
-    ).toBe('structure.cardinality');
+    );
+    expect(contacts.ok).toBe(true);
+    if (contacts.ok) {
+      const sub = contacts.value.records.find((record) => record.tag === 'SUBM');
+      expect((sub as unknown as { address?: { phone?: string[] } }).address?.phone).toEqual(['1', '2', '3', '4']);
+    }
   });
 
   test('duplicate ADDR under SUBM is a cardinality error', () => {
@@ -477,10 +500,10 @@ describe('repository, note and source records', () => {
     };
     expect(rec.name).toBe('The Archive');
     expect(rec.address?.payload).toBe('Main St');
-    expect(rec.phone).toEqual(['+49 1']);
-    expect(rec.email).toEqual(['a@example.com']);
-    expect(rec.fax).toEqual(['+49 2']);
-    expect(rec.www).toEqual(['https://example.com']);
+    // The record-level contacts are relocated into the address block
+    // (the canonical position).
+    expect(rec.phone).toBeUndefined();
+    expect((rec.address as { phone?: string[] }).phone).toEqual(['+49 1']);
     expect(rec.notes).toHaveLength(1);
     expect(rec.changeDate).toBeDefined();
     expect(rec.creationDate).toBeDefined();

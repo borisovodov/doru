@@ -8,8 +8,12 @@
  */
 
 import type {
-  MediaEnum,
-} from '../enumerations';
+  MediaFile,
+  MediaFileTranslation,
+  MediaFormatStructure,
+  MediaStructure,
+  MultimediaRecord,
+} from '../structures';
 import {
   MEDIA_ENUM_VALUES,
   RESTRICTION_ENUM_VALUES,
@@ -17,13 +21,6 @@ import {
 import {
   fail,
 } from '../errors';
-import type {
-  MediaFile,
-  MediaFileTranslation,
-  MediaFormatStructure,
-  MediaStructure,
-  MultimediaRecord,
-} from '../structures';
 import type {
   Ctx,
 } from './context';
@@ -45,7 +42,7 @@ import {
 } from './sources-media';
 import {
   parseChangeDate,
-  parseCreationDate,
+  parseCreationDateLenient,
   parseDateStructure,
   parseExternalIdentifier,
   parseNoteStructure,
@@ -55,7 +52,7 @@ import {
 import {
   parseEnum,
   parseListEnum,
-  parseMediaFormat551,
+  parseMediaFormat,
 } from './types';
 
 export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord {
@@ -153,36 +150,35 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     REFN: (child) => {
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
-    handlers["RESN"] = (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, '7.0', child.position);
-    };
-    handlers["CREA"] = (child) => {
-      rec.creationDate = parseCreationDate(child, ctx);
-    };
-    handlers["UID"] = (child) => {
+    RESN: (child) => {
+      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position);
+    },
+    CREA: (child) => {
+      const created = parseCreationDateLenient(child, ctx);
+      if (created === undefined) {
+        addExtension(rec, child, ctx);
+      } else {
+        rec.creationDate = created;
+      }
+    },
+    UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["_UID"] = (child) => {
+    },
+    '_UID': (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["EXID"] = (child) => {
+    },
+    EXID: (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-    handlers["SNOTE"] = (child) => {
-      // The 7.0 MULTIMEDIA_RECORD carries <<NOTE_STRUCTURE>> {0:M}
-      // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
+    },
+    // The 7.0 MULTIMEDIA_RECORD carries <<NOTE_STRUCTURE>> {0:M}
+    // (GEDCOM 7.0 §3.2.2); accepted in any file.
+    SNOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  } else {
-    handlers['_UID'] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["RIN"] = (child) => {
+    },
+    RIN: (child) => {
       rec.automatedRecordId = reqText(child);
-    };
-    handlers["DATE"] = (child) => {
+    },
+    DATE: (child) => {
       // Ancestry.com Family Trees: the date of the media object,
       // written with the standard DATE tag under the OBJE record (the
       // webtrees per-vendor custom-tag registry, Ancestry.php:
@@ -190,14 +186,14 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // Same slot as `_DATE` (see MultimediaRecord.date); written back
       // as `_DATE`.
       rec.date = parseDateStructure(child, ctx);
-    };
-    handlers["PLAC"] = (child) => {
+    },
+    PLAC: (child) => {
       // Ancestry.com Family Trees: the place of the media object, the
       // standard tag under the OBJE record (same source as DATE; see
       // MultimediaRecord.place). Written back as `_PLAC`.
       rec.place = reqText(child);
-    };
-    handlers["FORM"] = (child) => {
+    },
+    FORM: (child) => {
       // Généatique writes the format and title at OBJE-record level
       // (the webtrees per-vendor custom-tag registry, Geneatique.php) —
       // the GEDCOM 5.5 embedded-multimedia record shape, whose BLOB was
@@ -206,29 +202,29 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // has the embedded shape), and a record with no FILE at all is
       // dropped entirely by the projections (see serialize/prepare.ts).
       addExtension(rec, child, ctx);
-    };
-    handlers["TITL"] = (child) => {
+    },
+    TITL: (child) => {
       // Généatique; same convention as FORM (see above).
       addExtension(rec, child, ctx);
-    };
-    handlers["BLOB"] = (child) => {
+    },
+    BLOB: (child) => {
       // The GEDCOM 5.5 embedded object (5.5.1 removed the BLOB form);
       // same convention as FORM (see above): kept on input, dropped on
       // export.
       addExtension(rec, child, ctx);
-    };
-    handlers["WWW"] = (child) => {
+    },
+    WWW: (child) => {
       // Généatique writes a web address under the OBJE record (the
       // webtrees per-vendor custom-tag registry, Geneatique.php).
       addExtension(rec, child, ctx);
-    };
-  }
+    },
+  };
   dispatch(
     node,
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['RESN', 'CHAN', 'CREA'] : ['CHAN', 'RIN'],
+    ['RESN', 'CHAN', 'CREA', 'RIN'],
   );
   if (rec.files.length === 0 && !(rec.extensions ?? []).some((ext) => ext.tag === 'FORM' || ext.tag === 'BLOB')) {
     // A 5.5-style embedded record (FORM/TITL/BLOB kept as extensions)
@@ -274,13 +270,9 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
         // file name (see MediaFile.alternatePath).
         file.alternatePath = reqText(child);
       },
-      ...(ctx.version === '7.0'
-        ? {
-            TRAN: (child) => {
-              (file.translations ??= []).push(parseMediaFileTranslation(child, ctx));
-            },
-          }
-        : {}),
+      TRAN: (child) => {
+        (file.translations ??= []).push(parseMediaFileTranslation(child, ctx));
+      },
     },
     ctx,
   );
@@ -292,34 +284,25 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
 
 export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatStructure {
   const format: MediaFormatStructure = {
-    payload: ctx.version === '7.0' ? reqText(node) : parseMediaFormat551(reqText(node), node.position),
+    payload: parseMediaFormat(reqText(node)),
   };
   let medium: MediaStructure | undefined;
   const setMedium = (child: RawNode): void => {
     if (medium !== undefined) {
       fail('structure.cardinality', 'At most one of TYPE and MEDI is allowed under FORM', child.position);
     }
-    medium = parseMediaType551(child);
+    // The medium grammar: the 7.0 MEDI enum (with OTHER and the
+    // PHRASE child) plus the 5.5.1 TYPE/MEDI spellings of the
+    // SOURCE_MEDIA_TYPE set (a subset of the 7.0 set) — both spellings
+    // and both value sets are accepted in any file.
+    medium = parseMediaStructure(child, ctx);
   };
   dispatch(
     node,
     format,
     {
-      ...(ctx.version === '7.0'
-        ? {
-            MEDI: (child) => {
-              format.medium = parseMediaStructure(child, ctx);
-            },
-          }
-        : {
-            // The 5.5.1 specification disagrees with itself: the
-            // MULTIMEDIA_RECORD grammar (p.26) spells the medium TYPE,
-            // the inline MULTIMEDIA_LINK grammar (p.37) spells it MEDI.
-            // Both name the same SOURCE_MEDIA_TYPE and both are
-            // accepted (see Known strict decisions in the README).
-            TYPE: setMedium,
-            MEDI: setMedium,
-          }),
+      TYPE: setMedium,
+      MEDI: setMedium,
     },
     ctx,
   );
@@ -330,7 +313,7 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
 }
 
 export function parseMediaStructure(node: RawNode, ctx: Ctx): MediaStructure {
-  const out: MediaStructure = { payload: parseEnum(reqText(node), MEDIA_ENUM_VALUES, ctx.version, node.position) };
+  const out: MediaStructure = { payload: parseEnum(reqText(node), MEDIA_ENUM_VALUES, node.position) };
   dispatch(
     node,
     out,
@@ -341,23 +324,6 @@ export function parseMediaStructure(node: RawNode, ctx: Ctx): MediaStructure {
     },
     ctx,
   );
-  return out;
-}
-
-/** The 5.5.1 SOURCE_MEDIA_TYPE set (the 7.0 MEDI set without OTHER). */
-export const MEDIA_551: Record<string, string> = {
-  AUDIO: 'audio', BOOK: 'book', CARD: 'card', ELECTRONIC: 'electronic', FICHE: 'fiche',
-  FILM: 'film', MAGAZINE: 'magazine', MANUSCRIPT: 'manuscript', MAP: 'map', NEWSPAPER: 'newspaper',
-  PHOTO: 'photo', TOMBSTONE: 'tombstone', VIDEO: 'video',
-};
-
-export function parseMediaType551(node: RawNode): MediaStructure {
-  const out: MediaStructure = {
-    payload: parseEnum(reqText(node), MEDIA_551, '5.5.1', node.position) as MediaEnum,
-  };
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under TYPE`, (node.children[0] as RawNode).position);
-  }
   return out;
 }
 

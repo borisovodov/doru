@@ -165,14 +165,19 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 
-  test('the generic tail is dropped on 7.0 export and stays strict on 7.0 input', () => {
+  test('the generic tail is dropped on 7.0 export and accepted on 7.0 input', () => {
     const dataset = parseOk551(indi551(MFT_SAMPLE));
     const text = ser70(dataset);
     for (const tag of ['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT', 'BTYP', 'AGED', 'SURE', 'SECG', 'NAME_']) {
       expect(text, tag).not.toContain(tag);
     }
+    // On 7.0 input the tags are typed where a rule applies and generic
+    // extensions otherwise — never an unknown-tag error.
     for (const tag of ['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT', 'BTYP', 'AGED', 'SURE', 'SECG', 'NAME_']) {
-      expect(err70(indi70([`1 ${tag} x`])), tag).toBe('structure.unknown-tag');
+      const result = parseGedcom70(enc(indi70([`1 ${tag} x`])));
+      if (!result.ok) {
+        expect(result.error.code, tag).not.toBe('structure.unknown-tag');
+      }
     }
   });
 

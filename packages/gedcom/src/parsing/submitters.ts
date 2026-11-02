@@ -18,7 +18,7 @@ import type {
   Ctx,
 } from './context';
 import {
-  atMostThree,
+  addExtension,
   dispatch,
   kids,
   merge551RecordContacts,
@@ -41,7 +41,7 @@ import {
 import {
   parseAddressStructure,
   parseChangeDate,
-  parseCreationDate,
+  parseCreationDateLenient,
   parseExternalIdentifier,
   parseNoteStructure,
   parseReferenceIdentifier,
@@ -80,7 +80,7 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
       (rec.media ??= []).push(parseMultimediaLink(child, ctx));
     },
     LANG: (_child) => {
-      const languages = ctx.version === '5.5.1' ? atMostThree(node, 'LANG') : kids(node, 'LANG');
+      const languages = kids(node, 'LANG');
       if (languages.length > 0 && rec.languages === undefined) {
         rec.languages = languages.map((lang) => parseLanguage(lang, ctx));
       }
@@ -94,85 +94,55 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     REFN: (child) => {
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
-    handlers["PHON"] = (child) => {
+    PHON: (child) => {
       (rec.phone ??= []).push(reqText(child));
-    };
-    handlers["EMAIL"] = (child) => {
+    },
+    EMAIL: (child) => {
       (rec.email ??= []).push(reqText(child));
-    };
-    handlers["FAX"] = (child) => {
+    },
+    FAX: (child) => {
       (rec.fax ??= []).push(reqText(child));
-    };
-    handlers["WWW"] = (child) => {
+    },
+    WWW: (child) => {
       (rec.www ??= []).push(reqText(child));
-    };
-    handlers["CREA"] = (child) => {
-      rec.creationDate = parseCreationDate(child, ctx);
-    };
-    handlers["UID"] = (child) => {
+    },
+    CREA: (child) => {
+      const created = parseCreationDateLenient(child, ctx);
+      if (created === undefined) {
+        addExtension(rec, child, ctx);
+      } else {
+        rec.creationDate = created;
+      }
+    },
+    UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["_UID"] = (child) => {
+    },
+    '_UID': (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["EXID"] = (child) => {
+    },
+    EXID: (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
-    };
-  } else {
-    handlers['_UID'] = (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
-    };
-    handlers["RFN"] = (child) => {
+    },
+    RFN: (child) => {
       rec.registeredRfn = reqText(child);
-    };
-    handlers["RIN"] = (child) => {
+    },
+    RIN: (child) => {
       rec.automatedRecordId = reqText(child);
-    };
-    // The 5.5.1/5.5.5 ADDRESS_STRUCTURE position: the floating contact
-    // lines PHON/EMAIL/FAX/WWW {0:3} sit beside ADDR (GEDCOM 5.5.1 §2
-    // p.31; 5.5.5 adds the record-level positions, REPO and SUBM alike).
-    // The parser also accepts them under ADDR (the 5.5.5 spelling); the
-    // 5.5.1 serializer writes them back into the address block.
-    handlers["PHON"] = (_child) => {
-      if (rec.phone === undefined) {
-        rec.phone = atMostThree(node, 'PHON').map((item) => reqText(item));
-      }
-    };
-    handlers["EMAIL"] = (_child) => {
-      if (rec.email === undefined) {
-        rec.email = atMostThree(node, 'EMAIL').map((item) => reqText(item));
-      }
-    };
-    handlers["FAX"] = (_child) => {
-      if (rec.fax === undefined) {
-        rec.fax = atMostThree(node, 'FAX').map((item) => reqText(item));
-      }
-    };
-    handlers["WWW"] = (_child) => {
-      if (rec.www === undefined) {
-        rec.www = atMostThree(node, 'WWW').map((item) => reqText(item));
-      }
-    };
-  }
-  if (ctx.version === '7.0') {
+    },
     // The 7.0 SUBMITTER_RECORD carries <<NOTE_STRUCTURE>> {0:M}
-    // (GEDCOM 7.0 §3.2.2); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // (GEDCOM 7.0 §3.2.2); accepted in any file.
+    SNOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(
     node,
     rec,
     handlers,
     ctx,
-    ctx.version === '7.0' ? ['ADDR', 'CHAN', 'CREA'] : ['ADDR', 'CHAN', 'RFN', 'RIN'],
+    ['ADDR', 'CHAN', 'CREA', 'RFN', 'RIN'],
   );
-  if (ctx.version === '5.5.1') {
-    merge551RecordContacts(rec);
-  }
+  merge551RecordContacts(rec);
   return rec;
 }
 

@@ -73,9 +73,6 @@ import {
   parsePlaceStructure,
 } from './names-places';
 import {
-  parseSourceJurisdictionPlace,
-} from './sources';
-import {
   parseMultimediaLink,
   parsePrivacyFlag,
   parseSourceCitation,
@@ -87,11 +84,10 @@ import {
 } from './sources-media';
 import {
   parseAddressStructure,
-  parseAge,
+  parseAgeStructure,
   parseAssociation,
   parseDateExactStructure,
   parseDateStructure,
-  parseGrampsAssociation,
   parseNoteStructure,
   parseSharedParticipant,
   parseSortDate551,
@@ -121,11 +117,10 @@ export const USM_BIRTH_TYPES = ['1', '2', '3', '4'] as const;
  * empty string payload (GEDCOM 7.0 §1.2 makes missing and empty
  * payloads equivalent, and §1.3 notes the empty-payload encoding for
  * Text payloads), so the bare `2 TYPE` round-trips a 5.5.1 TYPE-less
- * EVEN. 5.5.1 stays strict: its TYPE grammar takes the
- * EVENT_DESCRIPTOR text.
+ * EVEN. A bare TYPE line is the empty type in any file.
  */
-function parseEventType(node: RawNode, ctx: Ctx): string {
-  if (ctx.version === '7.0' && node.value.kind === 'absent') {
+function parseEventType(node: RawNode, _ctx: Ctx): string {
+  if (node.value.kind === 'absent') {
     return '';
   }
   return reqText(node);
@@ -245,32 +240,30 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
   };
-  if (ctx.version === '7.0') {
-    // The 7.0 INDI.FAMC link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-    // 7.0 §3.2.2); 5.5.1 stays strict. A PHRASE directly under FAMC is
-    // not legal in any version (the PEDI/STAT children carry their own
-    // PHRASE {0:1}) and is discarded.
-    handlers['SNOTE'] = (child) => {
-      (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  } else {
-    handlers['MTYP'] = (child) => {
-      // USM6: the kind of parent–child relationship (see
-      // ChildFamilyLink.parentalRelationKind).
-      out.parentalRelationKind = parseUsmCode(child, 'MTYP', USM_PARENTAL_RELATION_KINDS);
-    };
-    handlers['_MTYP'] = (child) => {
-      // The underscore write-back spelling of the USM6 MTYP (both
-      // spellings are recognized).
-      out.parentalRelationKind = parseUsmCode(child, '_MTYP', USM_PARENTAL_RELATION_KINDS);
-    };
-  }
+  // The 7.0 INDI.FAMC link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+  // 7.0 §3.2.2); accepted in any file. A PHRASE
+  // directly under FAMC is not legal in any version (the PEDI/STAT
+  // children carry their own PHRASE {0:1}) and is discarded.
+  handlers['SNOTE'] = (child) => {
+    (out.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  // The the USM6 MTYP spelling is accepted in any file.
+  handlers['MTYP'] = (child) => {
+    // USM6: the kind of parent–child relationship (see
+    // ChildFamilyLink.parentalRelationKind).
+    out.parentalRelationKind = parseUsmCode(child, 'MTYP', USM_PARENTAL_RELATION_KINDS);
+  };
+  handlers['_MTYP'] = (child) => {
+    // The underscore write-back spelling of the USM6 MTYP (both
+    // spellings are recognized).
+    out.parentalRelationKind = parseUsmCode(child, '_MTYP', USM_PARENTAL_RELATION_KINDS);
+  };
   dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', '_MTYP']);
   return out;
 }
 
 /**
- * The SEX_VALUE set accepted in any 5.x file: the 5.5.1 values M, F, U
+ * The SEX_VALUE set accepted on input: the 5.5.1 values M, F, U
  * (GEDCOM 5.5.1 §2 p.61) plus the GEDCOM 5.5.5 additions X (intersex)
  * and N (not recorded; the record did not record a sex, unlike U which
  * merely says it is not known yet — 5.5.5 §2 p.104). The 5.5.1
@@ -280,25 +273,8 @@ export const SEX_551: Record<'M' | 'F' | 'U' | 'X' | 'N', string> = {
   M: 'male', F: 'female', U: 'undetermined', X: 'intersex', N: 'not recorded',
 };
 
-/**
- * The 7.0 enumset-SEX values M, F, X, U (GEDCOM 7.0 §3.4). `N` is a
- * GEDCOM 5.5.5-only value (5.5.5 §2 p.104): 7.0 input rejects it, and
- * the 7.0 serializer drops it — see IndividualRecord.sex.
- */
-export const SEX_70: Record<'M' | 'F' | 'X' | 'U', string> = {
-  M: 'male', F: 'female', X: 'intersex', U: 'undetermined',
-};
-
-/** The 5.5.1 PEDIGREE_LINKAGE_TYPE set (no OTHER). */
-export const PEDI_551: Record<'ADOPTED' | 'BIRTH' | 'FOSTER' | 'SEALING', string> = {
-  ADOPTED: 'adopted', BIRTH: 'birth', FOSTER: 'foster', SEALING: 'sealing',
-};
-
 export function parsePedigree(node: RawNode, ctx: Ctx): PedigreeStructure {
-  const table = (ctx.version === '7.0' ? PEDIGREE_ENUM_VALUES : PEDI_551) as Readonly<
-    Record<'ADOPTED' | 'BIRTH' | 'FOSTER' | 'OTHER' | 'SEALING', string>
-  >;
-  const out: PedigreeStructure = { payload: parseEnum(reqText(node), table, ctx.version, node.position) };
+  const out: PedigreeStructure = { payload: parseEnum(reqText(node), PEDIGREE_ENUM_VALUES, node.position) };
   dispatch(
     node,
     out,
@@ -314,7 +290,7 @@ export function parsePedigree(node: RawNode, ctx: Ctx): PedigreeStructure {
 
 export function parseFamilyChildStatus(node: RawNode, ctx: Ctx): FamilyChildStatusStructure {
   const out: FamilyChildStatusStructure = {
-    payload: parseEnum(reqText(node), FAMILY_CHILD_STATUS_ENUM_VALUES, ctx.version, node.position),
+    payload: parseEnum(reqText(node), FAMILY_CHILD_STATUS_ENUM_VALUES, node.position),
   };
   dispatch(
     node,
@@ -338,15 +314,13 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
     '_PREF': (child) => {
       out.preferred = parseYNFlag(child, '_PREF');
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 INDI.FAMS link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-    // 7.0 §3.2.2); 5.5.1 stays strict. A PHRASE under FAMS is not
-    // legal in any version and is discarded.
-    handlers['SNOTE'] = (child) => {
+    // 7.0 §3.2.2); accepted in any file. A PHRASE
+    // under FAMS is not legal in any version and is discarded.
+    SNOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, out, handlers, ctx);
   return out;
 }
@@ -375,7 +349,7 @@ export function parseFamilyPartnerEventDetail(node: RawNode, ctx: Ctx): FamilyPa
     out,
     {
       AGE: (child) => {
-        age = parseAge(child, ctx);
+        age = parseAgeStructure(child, ctx);
       },
     },
     ctx,
@@ -463,7 +437,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       detail.eventNumber = reqText(child);
     },
     RESN: (child) => {
-      detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, ctx.version, child.position);
+      detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position);
     },
     NOTE: (child) => {
       (detail.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -486,9 +460,8 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   };
   handlers['_ASSO'] = (child) => {
     // The German GEDCOM-L agreement A3: an event participant as a
-    // pointer, like _SHAR (Taufpate, Arbeitgeber, Trauzeuge, ...). The
-    // RELA descriptor normalizes like the Gramps ASSO convention.
-    (detail.associations ??= []).push(parseGrampsAssociation(child, ctx));
+    // pointer, like _SHAR (Taufpate, Arbeitgeber, Trauzeuge, ...).
+    (detail.associations ??= []).push(parseAssociation(child, ctx));
   };
   handlers['_UID'] = (child) => {
     (detail.uniqueIds ??= []).push(reqText(child));
@@ -564,116 +537,93 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     // GenPlus: the date the event was created (same slot as `_CREA`).
     detail.createdAt = reqText(child);
   };
-  if (ctx.version === '5.5.1') {
-    handlers['CEME'] = (child) => {
-      // phpGedView: the cemetery of the burial (see
-      // EventDetail.cemetery); 7.0 input stays strict for the
-      // non-underscore spelling.
-      detail.cemetery = reqText(child);
-    };
-  }
+  // The the phpGedView CEME spelling and the
+  // non-underscore RootsMagic SENT/PPFX spellings are accepted in any
+  // file, as are the USM6 POTM/SRCH/NOTRY spellings.
+  handlers['CEME'] = (child) => {
+    // phpGedView: the cemetery of the burial (see
+    // EventDetail.cemetery).
+    detail.cemetery = reqText(child);
+  };
   handlers['_CEME'] = (child) => {
     // The underscore write-back spelling of the phpGedView CEME (the
     // wire spelling is non-underscore; both are recognized).
     detail.cemetery = reqText(child);
   };
-  if (ctx.version === '5.5.1') {
-    // The Gramps witness convention; normalized like _SHAR.
-    handlers['ASSO'] = (child) => {
-      (detail.associations ??= []).push(parseGrampsAssociation(child, ctx));
-    };
-    // The non-underscore RootsMagic spellings of the sentence and place
-    // prefix (the Legacy catalog lists them without the underscore);
-    // 7.0 input stays strict for non-extension tags.
-    handlers['SENT'] = (child) => {
-      detail.sentence = reqText(child);
-    };
-    handlers['PPFX'] = (child) => {
-      detail.placePrefix = reqText(child);
-    };
-    // The 5.5.1 ADDRESS_STRUCTURE position of the contacts: siblings of
-    // ADDR (GEDCOM 5.5.1 §2 p.31). merge551DetailContacts relocates
-    // them into the address block afterwards.
-    handlers['PHON'] = (child) => {
-      (detail.phone ??= []).push(reqText(child));
-    };
-    handlers['EMAIL'] = (child) => {
-      (detail.email ??= []).push(reqText(child));
-    };
-    handlers['FAX'] = (child) => {
-      (detail.fax ??= []).push(reqText(child));
-    };
-    handlers['WWW'] = (child) => {
-      (detail.www ??= []).push(reqText(child));
-    };
-    handlers['POTM'] = (child) => {
-      // USM6: the event occurred post mortem (see
-      // EventDetail.posthumous).
-      detail.posthumous = parseUsmFlag(child, 'POTM');
-    };
-    handlers['_POTM'] = (child) => {
-      // The underscore write-back spelling of the USM6 POTM (both
-      // spellings are recognized).
-      detail.posthumous = parseUsmFlag(child, '_POTM');
-    };
-    handlers['SRCH'] = (child) => {
-      // USM6: where to research the event further (see
-      // EventDetail.furtherResearch).
-      detail.furtherResearch = reqText(child);
-    };
-    handlers['_SRCH'] = (child) => {
-      // The underscore write-back spelling of the USM6 SRCH.
-      detail.furtherResearch = reqText(child);
-    };
-    handlers['NOTRY'] = (child) => {
-      // USM6: the notary who recorded the event (see
-      // EventDetail.notary).
-      detail.notary = reqText(child);
-    };
-    handlers['_NOTRY'] = (child) => {
-      // The underscore write-back spelling of the USM6 NOTRY.
-      detail.notary = reqText(child);
-    };
-  }
-  if (ctx.version === '7.0') {
-    handlers["PHON"] = (child) => {
-      (detail.phone ??= []).push(reqText(child));
-    };
-    handlers["EMAIL"] = (child) => {
-      (detail.email ??= []).push(reqText(child));
-    };
-    handlers["FAX"] = (child) => {
-      (detail.fax ??= []).push(reqText(child));
-    };
-    handlers["WWW"] = (child) => {
-      (detail.www ??= []).push(reqText(child));
-    };
-    handlers["SNOTE"] = (child) => {
-      // The 7.0 EVENT_DETAIL carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-      // 7.0 §3.2.3); 5.5.1 stays strict.
-      (detail.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-    handlers["SDATE"] = (child) => {
-      detail.sortDate = parseSortDateStructure(child, ctx);
-    };
-    handlers["ASSO"] = (child) => {
-      (detail.associations ??= []).push(parseAssociation(child, ctx));
-    };
-    handlers["UID"] = (child) => {
-      (detail.uniqueIds ??= []).push(reqText(child));
-    };
-  }
+  handlers['SENT'] = (child) => {
+    // The non-underscore RootsMagic spelling of the sentence.
+    detail.sentence = reqText(child);
+  };
+  handlers['PPFX'] = (child) => {
+    // The non-underscore RootsMagic spelling of the place prefix.
+    detail.placePrefix = reqText(child);
+  };
+  handlers['PHON'] = (child) => {
+    (detail.phone ??= []).push(reqText(child));
+  };
+  handlers['EMAIL'] = (child) => {
+    (detail.email ??= []).push(reqText(child));
+  };
+  handlers['FAX'] = (child) => {
+    (detail.fax ??= []).push(reqText(child));
+  };
+  handlers['WWW'] = (child) => {
+    (detail.www ??= []).push(reqText(child));
+  };
+  handlers['POTM'] = (child) => {
+    // USM6: the event occurred post mortem (see
+    // EventDetail.posthumous).
+    detail.posthumous = parseUsmFlag(child, 'POTM');
+  };
+  handlers['_POTM'] = (child) => {
+    // The underscore write-back spelling of the USM6 POTM (both
+    // spellings are recognized).
+    detail.posthumous = parseUsmFlag(child, '_POTM');
+  };
+  handlers['SRCH'] = (child) => {
+    // USM6: where to research the event further (see
+    // EventDetail.furtherResearch).
+    detail.furtherResearch = reqText(child);
+  };
+  handlers['_SRCH'] = (child) => {
+    // The underscore write-back spelling of the USM6 SRCH.
+    detail.furtherResearch = reqText(child);
+  };
+  handlers['NOTRY'] = (child) => {
+    // USM6: the notary who recorded the event (see
+    // EventDetail.notary).
+    detail.notary = reqText(child);
+  };
+  handlers['_NOTRY'] = (child) => {
+    // The underscore write-back spelling of the USM6 NOTRY.
+    detail.notary = reqText(child);
+  };
+  handlers['SNOTE'] = (child) => {
+    // The 7.0 EVENT_DETAIL carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
+    // 7.0 §3.2.3); accepted in any file.
+    (detail.notes ??= []).push(parseNoteStructure(child, ctx));
+  };
+  handlers['SDATE'] = (child) => {
+    detail.sortDate = parseSortDateStructure(child, ctx);
+  };
+  handlers['UID'] = (child) => {
+    (detail.uniqueIds ??= []).push(reqText(child));
+  };
+  handlers['ASSO'] = (child) => {
+    // The 7.0 ASSO and the Gramps witness convention parse with the
+    // same handlers (see parseAssociation).
+    (detail.associations ??= []).push(parseAssociation(child, ctx));
+  };
   return handlers;
 }
 
 /**
- * Canonicalizes the 5.5.1 detail-level contacts: the contact
- * substructures PHON/EMAIL/FAX/WWW belong to the ADDRESS_STRUCTURE
- * (siblings of ADDR, GEDCOM 5.5.1 §2 p.31), so contacts parsed beside
- * an ADDR are relocated into the address block. Called after the
+ * Canonicalizes the detail-level contacts: the contact substructures
+ * PHON/EMAIL/FAX/WWW belong to the ADDRESS_STRUCTURE (siblings of
+ * ADDR, GEDCOM 5.5.1 §2 p.31), so contacts parsed beside an ADDR are
+ * relocated into the address block in every file. Called after the
  * detail of an event, attribute or census-relocated structure has
- * finished parsing (5.5.1 input only; on 7.0 input the contacts are
- * detail-level by the standard grammar).
+ * finished parsing.
  */
 export function merge551DetailContacts(detail: EventDetail): void {
   const address = detail.address;
@@ -705,6 +655,25 @@ export interface EventShape extends GedcomStructureBase {
   detail?: FamilyEventDetail | IndividualEventDetail | LdsOrdinanceDetail;
   familyChild?: string;
   adoptionFamily?: AdoptionFamilyLink;
+  /**
+   * The vendor fields below belong to one concrete event/attribute
+   * structure of the target union (see their JSDoc); the builders fill
+   * them while the record parses, and the return casts assert that the
+   * tag maps onto the matching union member.
+   */
+  /** Legacy: the marriage report labels (see MarriageEvent.husbandLabel). */
+  husbandLabel?: string;
+  /** Legacy: the marriage report labels (see MarriageEvent.wifeLabel). */
+  wifeLabel?: string;
+  /** Legacy: the marriage report phrases (see MarriageEvent.reportPhrases). */
+  reportPhrases?: string[];
+  /** USM6: the birth type (see BirthEvent.birthType). */
+  birthType?: UsmBirthType;
+  /** USM6: the child-count certainty (see
+   *  IndividualChildCountAttribute.childCountCertain). */
+  childCountCertain?: boolean;
+  /** Ahnenblatt: the primary occupation flag (see OccupationAttribute.primary). */
+  primary?: boolean;
 }
 
 /** Assigns the optional `Y` flag, leaving the field unset when absent. */
@@ -728,8 +697,7 @@ function setReportPhrase(event: { reportPhrases?: string[] }, index: number, tex
 export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEventStructure {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
-  const event = {} as EventShape;
-  event.tag = tag;
+  const event: EventShape = { tag };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
     event.type = parseEventType(child, ctx);
@@ -743,122 +711,73 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   if (tag === 'MARR') {
     // The Legacy report labels and phrases of the marriage (see the
     // fields of MarriageEvent).
-    const marr = event as unknown as { husbandLabel?: string; wifeLabel?: string; reportPhrases?: string[] };
     handlers['_HTITL'] = (child) => {
-      marr.husbandLabel = reqText(child);
+      event.husbandLabel = reqText(child);
     };
     handlers['_WTITL'] = (child) => {
-      marr.wifeLabel = reqText(child);
+      event.wifeLabel = reqText(child);
     };
     handlers['_RPT_PHRS'] = (child) => {
-      setReportPhrase(marr, 0, reqText(child));
+      setReportPhrase(event, 0, reqText(child));
     };
     handlers['_RPT_PHRS2'] = (child) => {
-      setReportPhrase(marr, 1, reqText(child));
+      setReportPhrase(event, 1, reqText(child));
     };
   }
 
   if (tag === 'EVEN') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
-    (event as { payload?: string }).payload = raw ?? '';
-    if (ctx.version === '7.0') {
-      const typeNode = req(node, 'TYPE');
-      event.type = parseEventType(typeNode, ctx);
-    } else {
-      const typeNode = one(node, 'TYPE');
-      event.type = typeNode === undefined ? '' : reqText(typeNode);
-    }
-  } else if (ctx.version === '7.0') {
-    setY(event, node);
-  } else if (tag === 'MARR') {
-    setY(event, node);
+    event.payload = raw ?? '';
+    // The TYPE is optional (the 5.5.1 rule; 7.0
+    // requires it) and the bare TYPE line the empty type.
+    const typeNode = one(node, 'TYPE');
+    event.type = typeNode === undefined ? '' : parseEventType(typeNode, ctx);
   } else {
-    noPayload(node);
+    // The Y assertion is accepted on every family event
+    // (the 7.0 rule; 5.5.1 restricts it to MARR) and the bare form
+    // everywhere.
+    setY(event, node);
   }
 
   dispatch(node, event, handlers, ctx);
-  if (ctx.version === '5.5.1') {
-    merge551DetailContacts(detail);
-  }
+  merge551DetailContacts(detail);
   if (Object.keys(detail).length > 0) {
     familyDetail.detail = detail;
   }
   if (familyDetail.husband !== undefined || familyDetail.wife !== undefined || familyDetail.detail !== undefined) {
     event.detail = familyDetail;
   }
+  // The tag selects the union member (see EventShape).
   return event as unknown as FamilyEventStructure;
 }
 
 export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCountAttribute {
   const out: FamilyChildCountAttribute = { tag: 'NCHI', payload: reqDigits(node) };
-  if (ctx.version === '7.0') {
-    // 7.0 FAMILY_ATTRIBUTE_STRUCTURE: TYPE {0:1} plus the
-    // FAMILY_EVENT_DETAIL (the partners' ages and an EVENT_DETAIL).
-    // 5.5.1 NCHI is bare and stays strict below.
-    const detail: EventDetail = {};
-    const familyDetail: FamilyEventDetail = {};
-    const handlers = eventDetailHandlers(ctx, detail);
-    handlers['TYPE'] = (child) => {
-      out.type = parseEventType(child, ctx);
-    };
-    handlers['HUSB'] = (child) => {
-      familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
-    };
-    handlers['WIFE'] = (child) => {
-      familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
-    };
-    dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE']);
-    if (Object.keys(detail).length > 0) {
-      familyDetail.detail = detail;
-    }
-    if (familyDetail.husband !== undefined || familyDetail.wife !== undefined || familyDetail.detail !== undefined) {
-      out.detail = familyDetail;
-    }
-    return out;
-  }
-  // 5.5.1 NCHI is a bare count; the USM6 `SURE` child ("the given child
-  // count is certain") is typed (see FamilyChildCountAttribute.
-  // childCountCertain), in both the USM6 wire spelling and the
-  // underscore write-back spelling.
-  dispatch(
-    node,
-    out,
-    {
-      SURE: (child) => {
-        out.childCountCertain = parseSureFlag(child);
-      },
-      _SURE: (child) => {
-        out.childCountCertain = parseSureFlag(child);
-      },
-    },
-    ctx,
-    ['SURE', '_SURE'],
-  );
-  return out;
-}
-
-export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAttribute {
+  // Both grammars parse: the 7.0 TYPE + FAMILY_EVENT_DETAIL and the
+  // 5.5.1 bare count with the USM6 SURE child.
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
-  const out: FamilyResidenceAttribute = {
-    tag: 'RESI',
-    // The 7.0 Text payload may be empty: a missing payload is
-    // equivalent to the empty string (GEDCOM 7.0 §1.2), and the
-    // residence is carried by the detail's ADDR/PLAC.
-    ...(node.value.kind === 'absent' ? {} : { payload: reqText(node) }),
-  };
   const handlers = eventDetailHandlers(ctx, detail);
-  handlers["TYPE"] = (child) => {
+  handlers['TYPE'] = (child) => {
     out.type = parseEventType(child, ctx);
   };
-  handlers["HUSB"] = (child) => {
-    // The 7.0 FAMILY_EVENT_DETAIL under FAM.RESI: the husband's age.
+  handlers['HUSB'] = (child) => {
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
   };
-  handlers["WIFE"] = (child) => {
+  handlers['WIFE'] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
   };
-  dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE']);
+  handlers['SURE'] = (child) => {
+    // USM6: the given child count is certain (see
+    // FamilyChildCountAttribute.childCountCertain), in both the USM6
+    // wire spelling and the underscore write-back spelling.
+    out.childCountCertain = parseSureFlag(child);
+  };
+  handlers['_SURE'] = (child) => {
+    out.childCountCertain = parseSureFlag(child);
+  };
+  dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE', 'SURE', '_SURE']);
+  merge551DetailContacts(detail);
   if (Object.keys(detail).length > 0) {
     familyDetail.detail = detail;
   }
@@ -868,25 +787,25 @@ export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAt
   return out;
 }
 
-export function parseFamilyResidence551(node: RawNode, ctx: Ctx): FamilyResidenceAttribute {
+export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAttribute {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
   const out: FamilyResidenceAttribute = {
     tag: 'RESI',
-    // The 5.5.1 FAM.RESI grammar has no payload; the GEDCOM-L addendum
-    // gives it an optional <RESIDENCE_DESCRIPTOR> line value ("GEDCOM
-    // 5.5.1 Specification GEDCOM-L Addendum", §5.9, 2nd release
-    // 2020-12-01, eds. A. Emmerich & D. Hesmer). The payload is kept in
-    // the same slot as the 7.0 form and written back on 5.5.1 export.
+    // The payload is optional: the 7.0 Text payload may be empty (a
+    // missing payload is equivalent to the empty string, GEDCOM 7.0
+    // §1.2), and the GEDCOM-L addendum gives the 5.5.1 form an
+    // optional <RESIDENCE_DESCRIPTOR> line value ("GEDCOM 5.5.1
+    // Specification GEDCOM-L Addendum", §5.9) — both keep the text in
+    // the same slot.
     ...(node.value.kind === 'absent' ? {} : { payload: reqText(node) }),
   };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
-    out.type = reqText(child);
+    out.type = parseEventType(child, ctx);
   };
   handlers["HUSB"] = (child) => {
-    // The 5.5.1 RESI under FAM takes the full FAMILY_EVENT_DETAIL
-    // (GEDCOM 5.5.1 §2 p.32): the partners' ages at the residence.
+    // The FAMILY_EVENT_DETAIL under FAM.RESI: the husband's age.
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
   };
   handlers["WIFE"] = (child) => {
@@ -928,8 +847,7 @@ export function parseFamilyFact(node: RawNode, ctx: Ctx): FamilyGenericAttribute
 
 export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): IndividualEventStructure {
   const detail: IndividualEventDetail = {};
-  const event = {} as EventShape;
-  event.tag = tag;
+  const event: EventShape = { tag };
   let aldfaerNode: RawNode | undefined;
   let aldfaerTime: TimeValue | undefined;
   const handlers = eventDetailHandlers(ctx, detail);
@@ -937,7 +855,7 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
     event.type = parseEventType(child, ctx);
   };
   handlers["AGE"] = (child) => {
-    detail.age = parseAge(child, ctx);
+    detail.age = parseAgeStructure(child, ctx);
   };
   handlers["FAMC"] = (child) => {
     if (tag === 'ADOP') {
@@ -951,17 +869,18 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       fail('structure.unknown-tag', 'A FAMC is only allowed under ADOP, BIRT or CHR', child.position);
     }
   };
-  if (ctx.version === '5.5.1' && tag === 'BIRT') {
+  if (tag === 'BIRT') {
     handlers['BTYP'] = (child) => {
-      // USM6: the birth type (see BirthEvent.birthType).
-      (event as unknown as { birthType?: UsmBirthType }).birthType = parseUsmCode(child, 'BTYP', USM_BIRTH_TYPES);
+      // USM6: the birth type (see BirthEvent.birthType); the USM6
+      // spelling is accepted in any file.
+      event.birthType = parseUsmCode(child, 'BTYP', USM_BIRTH_TYPES);
     };
     handlers['_BTYP'] = (child) => {
       // The underscore write-back spelling of the USM6 BTYP (the USM6
       // wire spelling is non-underscore; both are recognized).
-      (event as unknown as { birthType?: UsmBirthType }).birthType = parseUsmCode(child, '_BTYP', USM_BIRTH_TYPES);
+      event.birthType = parseUsmCode(child, '_BTYP', USM_BIRTH_TYPES);
     };
-  } else if (ctx.version === '5.5.1' && tag === 'BURI') {
+  } else if (tag === 'BURI') {
     handlers['AGED'] = (child) => {
       // USM6: the age at death, written under the burial. Normalized
       // into the standard AGE of the burial detail (the same slot the
@@ -1000,27 +919,20 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
 
   if (tag === 'EVEN') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
-    (event as { payload?: string }).payload = raw ?? '';
-    if (ctx.version === '7.0') {
-      event.type = reqText(req(node, 'TYPE'));
-    } else {
-      const typeNode = one(node, 'TYPE');
-      event.type = typeNode === undefined ? '' : reqText(typeNode);
-    }
-  } else if (ctx.version === '7.0') {
-    setY(event, node);
-  } else if (tag === 'ADOP' || tag === 'BIRT' || tag === 'CHR' || tag === 'DEAT') {
-    // GEDCOM 5.5.1 §2 (p.34): these four events take the `[Y|<NULL>]`
-    // assertion payload; the others are bare.
-    setY(event, node);
+    event.payload = raw ?? '';
+    // The TYPE is optional (the 5.5.1 rule; 7.0
+    // requires it) and the bare TYPE line the empty type.
+    const typeNode = one(node, 'TYPE');
+    event.type = typeNode === undefined ? '' : parseEventType(typeNode, ctx);
   } else {
-    noPayload(node);
+    // The Y assertion is accepted on every individual
+    // event (the 7.0 rule; 5.5.1 restricts it to ADOP/BIRT/CHR/DEAT)
+    // and the bare form everywhere.
+    setY(event, node);
   }
 
   dispatch(node, event, handlers, ctx, ['BTYP', '_BTYP', 'AGED']);
-  if (ctx.version === '5.5.1') {
-    merge551DetailContacts(detail);
-  }
+  merge551DetailContacts(detail);
   if (aldfaerNode !== undefined && aldfaerTime !== undefined) {
     // The Aldfaer time under BIRT/DEAT (see the handler above): attach
     // it to the date's TIME slot when a DATE exists; otherwise the
@@ -1034,6 +946,7 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   if (Object.keys(detail).length > 0) {
     event.detail = detail;
   }
+  // The tag selects the union member (see EventShape).
   return event as unknown as IndividualEventStructure;
 }
 
@@ -1053,7 +966,7 @@ export function parseAdoptionFamilyLink(node: RawNode, ctx: Ctx): AdoptionFamily
 }
 
 export function parseAdoptionStructure(node: RawNode, ctx: Ctx): AdoptionStructure {
-  const out: AdoptionStructure = { payload: parseEnum(reqText(node), ADOPTION_ENUM_VALUES, ctx.version, node.position) };
+  const out: AdoptionStructure = { payload: parseEnum(reqText(node), ADOPTION_ENUM_VALUES, node.position) };
   dispatch(
     node,
     out,
@@ -1069,8 +982,7 @@ export function parseAdoptionStructure(node: RawNode, ctx: Ctx): AdoptionStructu
 
 export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): IndividualAttributeStructure {
   const detail: IndividualEventDetail = {};
-  const event = {} as EventShape;
-  event.tag = tag;
+  const event: EventShape = { tag };
   if (tag === 'NCHI' || tag === 'NMR') {
     event.payload = reqDigits(node);
   } else if (tag === 'RESI' && node.value.kind === 'absent') {
@@ -1094,51 +1006,44 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
     event.type = parseEventType(child, ctx);
   };
   handlers["AGE"] = (child) => {
-    detail.age = parseAge(child, ctx);
+    detail.age = parseAgeStructure(child, ctx);
   };
-  if (ctx.version === '5.5.1' && tag === 'NCHI') {
+  if (tag === 'NCHI') {
     handlers['SURE'] = (child) => {
       // USM6: the given child count is certain (see
-      // IndividualChildCountAttribute.childCountCertain).
-      (event as unknown as { childCountCertain?: boolean }).childCountCertain = parseSureFlag(child);
+      // IndividualChildCountAttribute.childCountCertain);
+      // the USM6 spelling is accepted in any file.
+      event.childCountCertain = parseSureFlag(child);
     };
     handlers['_SURE'] = (child) => {
       // The underscore write-back spelling of the USM6 SURE.
-      (event as unknown as { childCountCertain?: boolean }).childCountCertain = parseSureFlag(child);
+      event.childCountCertain = parseSureFlag(child);
     };
   }
   if (tag === 'OCCU') {
     handlers['_PRIM'] = (child) => {
       // Ahnenblatt: the primary occupation flag (see
       // OccupationAttribute.primary).
-      (event as unknown as { primary?: boolean }).primary = parseVendorFlag(child, '_PRIM');
+      event.primary = parseVendorFlag(child, '_PRIM');
     };
   }
+  // The TYPE is optional on the generic IDNO and
+  // FACT attributes (the 5.5.1 grammar letter omits TYPE from the
+  // syntax, a known spec inconsistency: the 5.5.1 text says the same
+  // thing about the TYPE as 7.0 §3.3.2.1 while the syntax does not
+  // contain it; GEDCOM 5.5.5 restores the TYPE to the syntax).
   dispatch(node, event, handlers, ctx, ['SURE', '_SURE', '_PRIM']);
-  if (ctx.version === '5.5.1') {
-    merge551DetailContacts(detail);
-  }
-  if (ctx.version === '7.0' && (tag === 'IDNO' || tag === 'FACT') && event.type === undefined) {
-    // The 7.0 specification makes TYPE mandatory for the generic
-    // IDNO and FACT attributes ("It must have a TYPE substructure to
-    // define what kind of identification number is being provided",
-    // GEDCOM 7.0 §3.3.2.1). The 5.5.1 grammar letter omits TYPE from
-    // the syntax (a known spec inconsistency: the 5.5.1 text says the
-    // same thing about the TYPE while the syntax does not contain it;
-    // GEDCOM 5.5.5 restores the TYPE to the syntax), so 5.x input
-    // accepts a TYPE-less IDNO/FACT like the TYPE-less EVEN.
-    fail('structure.missing-required', `The ${tag} attribute requires a TYPE substructure`, node.position);
-  }
+  merge551DetailContacts(detail);
   if (Object.keys(detail).length > 0) {
     event.detail = detail;
   }
+  // The tag selects the union member (see EventShape).
   return event as unknown as IndividualAttributeStructure;
 }
 
 export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): LdsIndividualOrdinance {
   const detail: LdsOrdinanceDetail = {};
-  const event = {} as EventShape;
-  event.tag = tag;
+  const event: EventShape = { tag };
   const handlers: Record<string, (child: RawNode) => void> = {
     DATE: (child) => {
       detail.date = parseDateStructure(child, ctx);
@@ -1147,7 +1052,7 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
       detail.temple = reqText(child);
     },
     PLAC: (child) => {
-      detail.place = ctx.version === '7.0' ? parsePlaceStructure(child, ctx) : parseSourceJurisdictionPlace(child, ctx);
+      detail.place = parsePlaceStructure(child, ctx);
     },
     STAT: (child) => {
       detail.status = parseOrdinanceStatus(child, ctx, tag);
@@ -1165,18 +1070,17 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
         fail('structure.unknown-tag', `A FAMC is not allowed under ${tag}`, child.position);
       }
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 ordinance details carry <<NOTE_STRUCTURE>> {0:M} (GEDCOM
-    // 7.0 §3.2.3); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // 7.0 §3.2.3); accepted in any file.
+    SNOTE: (child) => {
       (detail.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, event, handlers, ctx);
   if (Object.keys(detail).length > 0) {
-    (event as unknown as { detail?: LdsOrdinanceDetail }).detail = detail;
+    event.detail = detail;
   }
+  // The tag selects the union member (see EventShape).
   return event as unknown as LdsIndividualOrdinance;
 }
 
@@ -1191,25 +1095,16 @@ export const LDS_STATUS_551: Record<string, Record<string, string>> = {
 
 export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string): OrdinanceStatusStructure {
   const raw = reqText(node);
+  // The value grammar: the 7.0 enumset first (case-insensitive,
+  // extension values accepted), then the 5.5.1 per-ordinance spellings
+  // (canonical 7.0 spellings returned; a 5.5.1-only value like
+  // CANCELED is kept verbatim). Both are accepted in any file.
   let payload: OrdinanceStatusEnum;
-  let date: DateExactStructure | undefined;
-  if (ctx.version === '7.0') {
-    payload = parseEnum(raw, ORDINANCE_STATUS_ENUM_VALUES, '7.0', node.position);
-    const out: Omit<OrdinanceStatusStructure, 'date'> = { payload };
-    dispatch(
-      node,
-      out,
-      {
-        DATE: (child) => {
-          date = parseDateExactStructure(child, ctx, true);
-        },
-      },
-      ctx,
-    );
-    if (date === undefined) {
-      fail('structure.missing-required', 'The STAT structure requires a DATE substructure', node.position);
-    }
-    return { ...out, date };
+  const known = Object.keys(ORDINANCE_STATUS_ENUM_VALUES).find(
+    (value) => value.toLowerCase() === raw.toLowerCase(),
+  );
+  if (known !== undefined || raw.startsWith('_')) {
+    payload = parseEnum(raw, ORDINANCE_STATUS_ENUM_VALUES, node.position);
   } else {
     const table = LDS_STATUS_551[ordinance];
     if (table === undefined) {
@@ -1218,19 +1113,26 @@ export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string)
     const upper = raw.toUpperCase();
     const canonical = table[upper];
     if (canonical === undefined) {
-      fail('enum.invalid-value', `"${raw}" is not a permitted status for ${ordinance} in 5.5.1`, node.position);
+      fail('enum.invalid-value', `"${raw}" is not a permitted status for ${ordinance}`, node.position);
     }
     payload = (canonical === '' ? upper : canonical) as OrdinanceStatusEnum;
-    const dateNode = req(node, 'DATE');
-    date = parseDateExactStructure(dateNode, ctx, false);
-    if (node.children.some((child) => child.tag !== 'DATE')) {
-      fail('structure.unknown-tag', 'Only a DATE substructure is allowed under STAT', node.position);
-    }
   }
+  let date: DateExactStructure | undefined;
+  const out: Omit<OrdinanceStatusStructure, 'date'> = { payload };
+  dispatch(
+    node,
+    out,
+    {
+      DATE: (child) => {
+        date = parseDateExactStructure(child, ctx);
+      },
+    },
+    ctx,
+  );
   if (date === undefined) {
     fail('structure.missing-required', 'The STAT structure requires a DATE substructure', node.position);
   }
-  return { payload, date };
+  return { ...out, date };
 }
 
 export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdinance {
@@ -1245,7 +1147,7 @@ export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdina
       detail.temple = reqText(child);
     },
     PLAC: (child) => {
-      detail.place = ctx.version === '7.0' ? parsePlaceStructure(child, ctx) : parseSourceJurisdictionPlace(child, ctx);
+      detail.place = parsePlaceStructure(child, ctx);
     },
     STAT: (child) => {
       detail.status = parseOrdinanceStatus(child, ctx, 'SLGS');
@@ -1256,14 +1158,12 @@ export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdina
     SOUR: (child) => {
       (detail.citations ??= []).push(parseSourceCitation(child, ctx));
     },
-  };
-  if (ctx.version === '7.0') {
     // The 7.0 LDS_SPOUSE_SEALING carries <<NOTE_STRUCTURE>> {0:M}
-    // (GEDCOM 7.0 §3.2.3); 5.5.1 stays strict.
-    handlers['SNOTE'] = (child) => {
+    // (GEDCOM 7.0 §3.2.3); accepted in any file.
+    SNOTE: (child) => {
       (detail.notes ??= []).push(parseNoteStructure(child, ctx));
-    };
-  }
+    },
+  };
   dispatch(node, out, handlers, ctx);
   if (Object.keys(detail).length > 0) {
     out.detail = detail;

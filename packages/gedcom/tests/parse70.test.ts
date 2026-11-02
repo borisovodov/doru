@@ -33,8 +33,12 @@ describe('parseGedcom70 — document level', () => {
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n0 @I1@ INDI\n').code).toBe('document.trailer-not-last');
   });
 
-  test('rejects a wrong version', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 5.5.1\n0 TRLR\n').code).toBe('document.wrong-version');
+  test('accepts a 5.x version declaration; a missing VERS still errors', () => {
+    const result = parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 5.5.1\n0 TRLR\n'));
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.header.gedcom.version).toBe('5.5.1');
+    }
     expect(err70('0 HEAD\n1 GEDC\n0 TRLR\n').code).toBe('structure.missing-required');
   });
 
@@ -102,7 +106,10 @@ describe('parseGedcom70 — header', () => {
     const header = dataset.header;
     expect(header.source?.payload).toBe('MyApp');
     expect(header.source?.corporation?.address?.payload).toBe('1 Main St');
-    expect(header.source?.corporation?.phone).toEqual(['+1 555 0100']);
+    // The contact is typed into the address block (the canonical
+    // position; the 5.5.1 ADDRESS_STRUCTURE relocation applies to
+    // every file).
+    expect(header.source?.corporation?.address?.phone).toEqual(['+1 555 0100']);
     expect(header.source?.data?.date?.value).toEqual({ day: 12, month: 'MAR', year: 2024 });
     expect(header.destination).toBe('Target');
     expect(header.date?.value).toEqual({ day: 1, month: 'JAN', year: 2024 });
@@ -383,9 +390,15 @@ describe('parseGedcom70 — strictness', () => {
     expect(indi.associations?.[0]?.role?.payload).toBe('OTHER');
   });
 
-  test('rejects missing required substructures', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 EVEN\n0 TRLR\n').code).toBe('structure.missing-required');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 ASSO @I2@\n0 @I2@ INDI\n0 TRLR\n').code).toBe('structure.missing-required');
+  test('accepts a TYPE-less EVEN and a role-less ASSO', () => {
+    // The 7.0 grammar makes the EVEN TYPE and the ASSO ROLE required;
+    // the 5.5.1 grammar does not; the lenient rule wins.
+    const even = parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 EVEN\n0 TRLR\n'));
+    expect(even.ok).toBe(true);
+    const asso = parseGedcom70(
+      enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 ASSO @I2@\n0 @I2@ INDI\n0 TRLR\n'),
+    );
+    expect(asso.ok).toBe(true);
   });
 
   test('parses NO and all individual events with their FAMC rules', () => {

@@ -17,9 +17,6 @@ import type {
   MultimediaRecord,
 } from '../structures';
 import type {
-  GedcomVersion,
-} from '../primitives';
-import type {
   RawNode,
 } from './lines';
 import {
@@ -29,9 +26,10 @@ import {
   resolveStandardTagByUri,
 } from './schema-tags';
 
-/** The declared specification version of the document being parsed. */
+/** The shared state of one parse: the known xrefs, the synthetic
+ *  multimedia records synthesized from inline 5.5.1 OBJE links, and
+ *  the header's extension declarations. */
 export interface Ctx {
-  version: GedcomVersion;
   xrefs: Set<string>;
   synthetic: MultimediaRecord[];
   syntheticIndex: number;
@@ -66,7 +64,7 @@ export function reqText(node: RawNode): string {
 }
 
 export function resolvePtr(pointer: string, ctx: Ctx, node: RawNode): string {
-  if (ctx.version === '7.0' && pointer === '@VOID@') {
+  if (pointer === '@VOID@') {
     return pointer;
   }
   if (!ctx.xrefs.has(pointer)) {
@@ -163,13 +161,13 @@ export function addExtension(out: GedcomStructureBase, node: RawNode, ctx: Ctx):
 }
 
 /**
- * Canonicalizes the 5.5.1 record-level contacts (REPO/SUBM/CORP): the
+ * Canonicalizes the record-level contacts (REPO/SUBM/CORP): the
  * contact substructures PHON/EMAIL/FAX/WWW belong to the
  * ADDRESS_STRUCTURE (siblings of ADDR, GEDCOM 5.5.1 §2 p.31), so
- * contacts parsed beside an ADDR are relocated into the address block.
- * Contacts without an address block stay at the record level (the
- * lenient floating form). Called after a record has finished parsing
- * (5.5.1 input only).
+ * contacts parsed beside an ADDR are relocated into the address block
+ * in every file. Contacts without an address block stay at the record
+ * level (the lenient floating form). Called after a record has
+ * finished parsing.
  */
 export function merge551RecordContacts(rec: {
   address?: { phone?: string[]; email?: string[]; fax?: string[]; www?: string[] };
@@ -299,7 +297,7 @@ export function dispatch(
   for (const child of node.children) {
     let tag = child.tag;
     let resolved: RawNode = child;
-    if (handlers[tag] === undefined && tag.startsWith('_') && ctx.version === '7.0') {
+    if (handlers[tag] === undefined && tag.startsWith('_')) {
       // A SCHMA-documented extension tag whose URI names a standard
       // structure type with a slot here parses as that structure —
       // standard-first (see parsing/schema-tags.ts). A documented tag
@@ -316,10 +314,11 @@ export function dispatch(
         addExtension(out, child, ctx);
         continue;
       }
-      if (ctx.version === '5.5.1' && NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
+      if (NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
         // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
         // accepted as generic extensions where the standard grammar has
-        // no slot for them. 7.0 input stays strict.
+        // no slot for them, in any file (see the README's Known strict
+        // decisions).
         addExtension(out, child, ctx);
         continue;
       }

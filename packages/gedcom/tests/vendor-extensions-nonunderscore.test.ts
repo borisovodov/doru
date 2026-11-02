@@ -222,8 +222,10 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     expect(lines(ser551(cleared)).join('\n')).not.toContain('_PRIV');
   });
 
-  test('NOTP stays a strict error on 7.0 input (non-underscore)', () => {
-    expect(err70(indi70(['1 NOTP secret']))).toBe('structure.unknown-tag');
+  test('NOTP types into a private note on 7.0 input too', () => {
+    const dataset = parseOk70(indi70(['1 NOTP secret']));
+    const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi as IndividualRecord).notes?.[0]).toEqual({ tag: 'NOTE', payload: 'secret', private: true });
   });
 
   test('a standard position still parses as the standard structure', () => {
@@ -319,16 +321,18 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     expect(reparsed).toEqual(dataset);
   });
 
-  test('keeps 7.0 input strict for every legacy tag', () => {
+  test('every legacy tag parses on 7.0 input', () => {
     for (const tag of NON_UNDERSCORE_VENDOR_TAGS) {
       if (STANDARD_POSITION_TAGS.has(tag)) {
         continue; // These are standard 7.0 INDI tags; the loop covers the legacy set.
       }
+      // Typed where a rule applies, generic otherwise — the tag is
+      // never an unknown-tag error on 7.0 input anymore (a payload the
+      // typed rule does not accept may still fail, e.g. BLESS x).
       const result = parseGedcom70(enc(indi70([`1 ${tag} x`])));
-      if (result.ok) {
-        throw new Error(`expected ${tag} to fail on 7.0 input`);
+      if (!result.ok) {
+        expect(result.error.code, tag).not.toBe('structure.unknown-tag');
       }
-      expect(result.error.code, tag).toBe('structure.unknown-tag');
     }
   });
 

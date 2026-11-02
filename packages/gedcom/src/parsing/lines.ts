@@ -1,17 +1,16 @@
 /**
- * The strict line tokenizer and raw tree builder shared by the GEDCOM 7.0
- * and 5.5.1 parsers.
+ * The line tokenizer and raw tree builder shared by the GEDCOM parsers.
  *
  * This layer validates the container format (GEDCOM 7.0 chapter 1 /
  * GEDCOM 5.5.1 chapter 1): levels, delimiters, tags, cross-reference
- * identifiers, pointers, escaped at-signs, 5.5.1 escape sequences,
- * continuation lines and banned characters. It does not interpret the
- * lineage-linked semantics — the per-version assemblers do that.
+ * identifiers, pointers, escaped at-signs, escape sequences,
+ * continuation lines and banned characters. The container rules are
+ * the most lenient of the supported versions per dimension, so the
+ * same bytes tokenize identically whatever version the file declares
+ * (see the README's Known strict decisions). It does not
+ * interpret the lineage-linked semantics — the assemblers do that.
  */
 
-import type {
-  GedcomVersion,
-} from '../primitives';
 import type {
   SourcePosition,
 } from '../errors';
@@ -49,43 +48,21 @@ export interface RawDocument {
 }
 
 const DIGIT = /[0-9]/;
-const UPPER = /[A-Z]/;
-const TAG_CHAR = /[A-Z0-9_]/;
 const TAG_CHAR_551 = /[A-Za-z0-9_]/;
-const XREF_CHAR = /[A-Z0-9_]/;
 const ALPHANUM_551 = /[A-Za-z0-9_]/;
 
-/** Checks GEDCOM 7.0 §1.1 banned characters in a value. */
-function checkBanned70(text: string, position: SourcePosition): void {
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    const banned =
-      (c <= 0x1f && c !== 0x09) ||
-      c === 0x7f ||
-      (c >= 0x80 && c <= 0x9f) ||
-      (c >= 0xd800 && c <= 0xdfff) ||
-      c === 0xfffe ||
-      c === 0xffff;
-    if (banned) {
-      fail('line.banned-char', `Banned character U+${c.toString(16).toUpperCase()} in a line value`, {
-        ...position,
-        column: position.column + i,
-      });
-    }
-  }
-}
-
 /**
- * Checks GEDCOM 5.x banned characters in a line value: the C0 control
- * characters other than the horizontal tab, plus DEL. GEDCOM 5.5.1 §1
- * disallows every control character; GEDCOM 5.5.5 (gedcom.org, 2019)
- * legalized the tab in user text ("Tab is Legal": most applications
- * already wrote tabs despite 5.5.1). The 5.x parser accepts both
- * versions under one grammar, so the tab is accepted in any 5.x value —
- * a deliberate leniency over the 5.5.1 letter, mirroring the 7.0 rule
- * (see the README's "Known strict decisions").
+ * Checks the banned-character rule in a line value: the C0
+ * control characters other than the horizontal tab, plus DEL. GEDCOM
+ * 5.5.1 §1 disallows every control character; GEDCOM 5.5.5 (gedcom.org,
+ * 2019) legalized the tab in user text ("Tab is Legal": most
+ * applications already wrote tabs despite 5.5.1); GEDCOM 7.0 §1.1 bans
+ * the C1 controls too, but those cannot survive the decoders. The
+ * the parser accepts the tab in any file and bans the other C0
+ * controls and DEL — the most lenient of the supported rules (see the
+ * README's "Known strict decisions").
  */
-function checkBanned551(text: string, position: SourcePosition): void {
+function checkBanned(text: string, position: SourcePosition): void {
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
     if ((c <= 0x1f && c !== 0x09) || c === 0x7f) {
@@ -97,120 +74,84 @@ function checkBanned551(text: string, position: SourcePosition): void {
   }
 }
 
-/** Validates a cross-reference identifier per version. */
-function checkXref(raw: string, version: GedcomVersion, position: SourcePosition): void {
+/** Validates a cross-reference identifier (the 5.x rule: alphanumeric
+ *  body, no number-sign start, no control characters). */
+function checkXref(raw: string, position: SourcePosition): void {
   const body = raw.slice(1, -1);
   if (body.length === 0) {
     fail('line.bad-xref', 'A cross-reference identifier must not be empty', position);
   }
-  if (version === '7.0') {
-    for (let i = 0; i < body.length; i++) {
-      if (!XREF_CHAR.test(body[i] as string)) {
-        fail(
-          'line.bad-xref',
-          `Invalid character "${body[i]}" in a cross-reference identifier; only uppercase letters, digits and underscores are allowed`,
-          { ...position, column: position.column + 1 + i },
-        );
-      }
-    }
-  } else {
-    if (body[0] === '#') {
-      fail('line.bad-xref', 'A cross-reference identifier must not begin with a number sign', {
+  if (body[0] === '#') {
+    fail('line.bad-xref', 'A cross-reference identifier must not begin with a number sign', {
+      ...position,
+      column: position.column + 1,
+    });
+  }
+  if (!ALPHANUM_551.test(body[0] as string)) {
+    fail('line.bad-xref', `Invalid first character "${body[0]}" in a cross-reference identifier`, {
+      ...position,
+      column: position.column + 1,
+    });
+  }
+  for (let i = 1; i < body.length; i++) {
+    const c = body.charCodeAt(i);
+    if (c <= 0x1f || c === 0x7f) {
+      fail('line.banned-char', 'Control characters are not allowed in a cross-reference identifier', {
         ...position,
-        column: position.column + 1,
+        column: position.column + 1 + i,
       });
-    }
-    if (!ALPHANUM_551.test(body[0] as string)) {
-      fail('line.bad-xref', `Invalid first character "${body[0]}" in a cross-reference identifier`, {
-        ...position,
-        column: position.column + 1,
-      });
-    }
-    for (let i = 1; i < body.length; i++) {
-      const c = body.charCodeAt(i);
-      if (c <= 0x1f || c === 0x7f) {
-        fail('line.banned-char', 'Control characters are not allowed in a cross-reference identifier', {
-          ...position,
-          column: position.column + 1 + i,
-        });
-      }
     }
   }
 }
 
-/** Validates a tag per version. */
-function checkTag(tag: string, version: GedcomVersion, position: SourcePosition): void {
+/** Validates a tag (the 5.x rule: alphanumeric characters and the
+ *  underscore). */
+function checkTag(tag: string, position: SourcePosition): void {
   if (tag.length === 0) {
     fail('line.bad-tag', 'A line must have a tag', position);
   }
-  if (version === '7.0') {
-    const isStd = UPPER.test(tag[0] as string);
-    const isExt = tag[0] === '_' && tag.length > 1;
-    if (!isStd && !isExt) {
-      fail(
-        'line.bad-tag',
-        `Invalid tag "${tag}": standard tags start with an uppercase letter, extension tags with an underscore`,
-        position,
-      );
-    }
-    const bodyStart = isExt ? 1 : 0;
-    for (let i = bodyStart; i < tag.length; i++) {
-      if (!TAG_CHAR.test(tag[i] as string)) {
-        fail('line.bad-tag', `Invalid character "${tag[i]}" in tag "${tag}"`, {
-          ...position,
-          column: position.column + i,
-        });
-      }
-    }
-  } else {
-    for (let i = 0; i < tag.length; i++) {
-      if (!TAG_CHAR_551.test(tag[i] as string)) {
-        fail('line.bad-tag', `Invalid character "${tag[i]}" in tag "${tag}"`, {
-          ...position,
-          column: position.column + i,
-        });
-      }
+  for (let i = 0; i < tag.length; i++) {
+    if (!TAG_CHAR_551.test(tag[i] as string)) {
+      fail('line.bad-tag', `Invalid character "${tag[i]}" in tag "${tag}"`, {
+        ...position,
+        column: position.column + i,
+      });
     }
   }
 }
 
 /**
- * Parses a line value: a pointer, void pointer (7.0), or text with the
- * version's at-sign and escape rules.
+ * The at-sign escaping convention of a document: GEDCOM 7.0 §1.3
+ * doubles only the *first* at sign of a line value (interior `@@` is
+ * two literal at signs — the official FamilySearch escapes.ged test
+ * file exercises this), while GEDCOM 5.5.1 doubles every at sign. The
+ * bytes are ambiguous without the declaration, so the convention is
+ * read from the declared GEDC.VERS (like the charset declaration, it
+ * is a self-description of the document, not a grammar selection).
  */
-function parseValue(raw: string, version: GedcomVersion, position: SourcePosition): RawValue {
-  if (version === '7.0') {
-    checkBanned70(raw, position);
-    if (raw[0] === '@') {
-      if (raw === '@VOID@') {
-        return { kind: 'pointer', pointer: raw };
-      }
-      const xrefMatch = /^@[A-Z0-9_]+@$/.exec(raw);
-      if (xrefMatch) {
-        return { kind: 'pointer', pointer: raw };
-      }
-      if (raw.startsWith('@@')) {
-        return { kind: 'text', text: raw.slice(1) };
-      }
-      fail('line.unescaped-at', 'A line value beginning with a single @ must be a pointer or must double the @', position);
-    }
-    return { kind: 'text', text: raw };
-  }
+export type EscapeRule = '7.0' | '5.5.1';
 
-  checkBanned551(raw, position);
+/**
+ * Parses a line value: a pointer or text with the document's at-sign
+ * escape rule (a `@#…@` escape sequence is kept verbatim in either
+ * rule; the calendar escapes it carries are the date parser's).
+ */
+function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
+  checkBanned(raw, position);
   if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#')) {
     if (!/^@[A-Za-z0-9_][^@]*@$/.test(raw)) {
       fail('line.unescaped-at', 'A single @ in a line value must start a pointer or an escape, or be doubled', position);
     }
     return { kind: 'pointer', pointer: raw };
   }
-  // Text with @@ doubling and @#…@ escapes (a single space after an
-  // escape is discarded).
+  // Text with @@ unescaping and @#…@ escapes (a single space after an
+  // escape is discarded). The 7.0 rule unescapes only the leading pair;
+  // the 5.5.1 rule unescapes every pair.
   let out = '';
   let i = 0;
   while (i < raw.length) {
     const c = raw[i] as string;
-    if (c === '@' && raw[i + 1] === '@') {
+    if (c === '@' && raw[i + 1] === '@' && (rule === '5.5.1' || i === 0)) {
       out += '@';
       i += 2;
       continue;
@@ -231,8 +172,8 @@ function parseValue(raw: string, version: GedcomVersion, position: SourcePositio
       // time) carry unescaped @ inside text values, and every major
       // reader accepts them. The ambiguity the doubling rule guards
       // against exists only at the start of the value, which the
-      // pointer/escape check above already resolves; the writer still
-      // doubles every @ on export.
+      // pointer/escape check above already resolves; the writers still
+      // double the at sign on export.
       out += c;
       i++;
       continue;
@@ -246,20 +187,20 @@ function parseValue(raw: string, version: GedcomVersion, position: SourcePositio
 /**
  * Tokenizes one decoded line. Returns null for blank lines (the caller
  * decides whether that is an error). The value is returned with `@@`
- * unescaped and, for 5.5.1, the space after an escape discarded.
+ * unescaped per the document's escape rule and the space after an
+ * escape discarded.
  */
-function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null {
+function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   const linePosition: SourcePosition = { line: line.line, column: 1, offset: line.offset };
   let text = line.text;
   let trimCount = 0;
 
-  if (version === '5.5.1') {
-    // GEDCOM 5.5.1: leading white space is ignored by reading systems.
-    const match = /^[ \t]+/.exec(text);
-    if (match) {
-      trimCount = match[0].length;
-      text = text.slice(trimCount);
-    }
+  // Leading white space is ignored by reading systems (the 5.x rule;
+  // leading whitespace is trimmed in every file).
+  const match = /^[ \t]+/.exec(text);
+  if (match) {
+    trimCount = match[0].length;
+    text = text.slice(trimCount);
   }
   if (text.length === 0) {
     return null;
@@ -283,9 +224,6 @@ function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null
   if (i > 1 && text[0] === '0') {
     fail('line.bad-level', 'Level numbers must not have leading zeroes', linePosition);
   }
-  if (version === '5.5.1' && level > 99) {
-    fail('line.level-limit', `Level ${level} exceeds the 5.5.1 maximum of 99`, linePosition);
-  }
   if (text[i] !== ' ') {
     fail('line.missing-delimiter', 'A level number must be followed by a single space', at(i));
   }
@@ -299,10 +237,7 @@ function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null
       fail('line.bad-xref', 'Unterminated cross-reference identifier', at(i));
     }
     const raw = text.slice(i, close + 1);
-    checkXref(raw, version, at(i));
-    if (version === '7.0' && raw === '@VOID@') {
-      fail('line.bad-xref', '@VOID@ is a pointer value, not a cross-reference identifier', at(i));
-    }
+    checkXref(raw, at(i));
     xref = raw;
     i = close + 1;
     if (text[i] !== ' ') {
@@ -317,7 +252,7 @@ function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null
     i++;
   }
   const tag = text.slice(tagStart, i);
-  checkTag(tag, version, at(tagStart));
+  checkTag(tag, at(tagStart));
   const valueColumn = i < text.length ? trimCount + i + 2 : 0;
   if (i < text.length) {
     i++; // Skip the single delimiter; the rest is the value.
@@ -326,7 +261,7 @@ function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null
   // Value.
   let value: RawValue = { kind: 'absent' };
   if (i < text.length) {
-    value = parseValue(text.slice(i), version, at(i));
+    value = parseValue(text.slice(i), rule, at(i));
   }
 
   return {
@@ -342,9 +277,10 @@ function tokenizeLine(line: DecodedLine, version: GedcomVersion): RawNode | null
 
 /**
  * Builds the raw tree from decoded lines: level hierarchy, xref
- * collection and CONT/CONC continuation merging.
+ * collection and CONT/CONC continuation merging. The values are
+ * unescaped per the document's declared at-sign rule (see EscapeRule).
  */
-export function parseRawDocument(document: DecodedDocument, version: GedcomVersion): RawDocument {
+export function parseRawDocument(document: DecodedDocument, rule: EscapeRule): RawDocument {
   const roots: RawNode[] = [];
   const stack: RawNode[] = [];
   let sawContent = false;
@@ -406,11 +342,12 @@ export function parseRawDocument(document: DecodedDocument, version: GedcomVersi
   };
 
   for (const line of document.lines) {
-    const node = tokenizeLine(line, version);
+    const node = tokenizeLine(line, rule);
     if (node === null) {
-      // Blank line. 5.5.1 reading systems ignore extra line terminators
-      // before the first line.
-      if (!sawContent && version === '5.5.1') {
+      // Blank line. Reading systems ignore extra line terminators
+      // before the first line (the 5.x rule; they are accepted
+      // them in every file).
+      if (!sawContent) {
         continue;
       }
       fail('line.blank', 'Blank lines are not allowed in a GEDCOM transmission', {
@@ -425,9 +362,6 @@ export function parseRawDocument(document: DecodedDocument, version: GedcomVersi
     // enclosing line at level - 1) and must come before any other
     // substructure of that parent.
     if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
-      if (node.tag === 'CONC' && version === '7.0') {
-        fail('line.reserved-tag', 'CONC is reserved in GEDCOM 7.0 and must not appear', node.position);
-      }
       const parent = stack[node.level - 1];
       if (parent === undefined) {
         fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);

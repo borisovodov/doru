@@ -31,22 +31,20 @@
  * Policy (the decision formerly recorded as "keep rejecting" in
  * docs/vendor-extensions.md chapter 8):
  *
- * - **Accepted on 5.x input** (files declaring 5.5.1 or 5.5.5). Where
- *   the meaning is documented, the tag is typed: it normalizes into the
- *   model slot that carries the same fact (a name, an event/attribute
- *   with a TYPE, a note, a non-event, an association, an identifier, an
- *   ordinance, the URL), with the exact rule per tag below — the same
- *   standard-first normalization the underscore vendor tags use. A tag
- *   whose position *is* standard always parses as the standard structure
- *   (handlers win — e.g. `NATI` under INDI stays a standard attribute,
- *   `WIFE` under FAM stays a partner link, `DESC` under SUBN stays the
- *   generation count). Where no typed rule applies (a different context,
- *   or a tag whose meaning the catalogs do not document), the tag
- *   becomes a generic `ExtensionStructure`/`ExtensionRecord`, preserved
- *   verbatim. GEDCOM 7.0 input stays strict: these tags are not valid
- *   7.0 (`structure.unknown-tag`), because 7.0 §1.3 defines stdTags only
- *   via the specification and §1.5 requires extension tags to be
- *   underscore-prefixed.
+ * - **Accepted in any file** (see the
+ *   README's Known strict decisions). Where the meaning is documented,
+ *   the tag is typed: it normalizes into the model slot that carries
+ *   the same fact (a name, an event/attribute with a TYPE, a note, a
+ *   non-event, an association, an identifier, an ordinance, the URL),
+ *   with the exact rule per tag below — the same standard-first
+ *   normalization the underscore vendor tags use. A tag whose position
+ *   *is* standard always parses as the standard structure (handlers
+ *   win — e.g. `NATI` under INDI stays a standard attribute, `WIFE`
+ *   under FAM stays a partner link, `DESC` under SUBN stays the
+ *   generation count). Where no typed rule applies (a different
+ *   context, or a tag whose meaning the catalogs do not document), the
+ *   tag becomes a generic `ExtensionStructure`/`ExtensionRecord`,
+ *   preserved verbatim.
  * - **Standard-first export.** The typed constructs are written in the
  *   standard spelling of the target version (`CIRC` → `EVEN` + `TYPE
  *   Circumcision`, `URL` → `_URL`, `UMAR` → `_NMAR`, `FATH` → `ASSO` +
@@ -111,7 +109,7 @@ export interface LegacyFamilyRule {
   type: string;
 }
 
-/** The INDI-level typed rules, by tag (5.x input only). */
+/** The INDI-level typed rules, by tag (in any file). */
 export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRule>> = {
   // Names.
   AKA: { kind: 'name', nameType: 'AKA' }, // FO, FTM, Leg, PAF: also known as.
@@ -252,7 +250,7 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   LDS: { kind: 'lds' }, // FTW5.
 };
 
-/** The FAM-level typed rules, by tag (5.x input only). */
+/** The FAM-level typed rules, by tag (in any file). */
 export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
   CLAW: { kind: 'marriage', type: 'Common law marriage' }, // Reunion (twin of _COML).
   SEPA: { kind: 'even', type: 'Separated' }, // Reunion, Gen (twin of _SEPR).
@@ -342,7 +340,7 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * GEDCOM 5.x non-underscore vendor tags, accepted on 5.x input: the
+ * GEDCOM 5.x non-underscore vendor tags, accepted in any file: the
  * typed rules above where they apply, and as generic extensions
  * everywhere else (the closed lists from the Legacy catalog, "Tags
  * Not Specified in GEDCOM 5.5", and the GenWiki "GEDCOM/_Nutzerdef-Tag"
@@ -359,7 +357,7 @@ export const NON_UNDERSCORE_VENDOR_TAGS: ReadonlySet<string> = new Set([
   'SUBM', // FamHer: "association to a parent" (standard SUBM pointer elsewhere).
   // The webtrees per-vendor custom-tag registry additions: tags with a
   // documented position that has no typed handler — accepted as
-  // generic extensions on 5.x input so the files import.
+  // generic extensions in any file so the files import.
   'RFN', // Pro-Gen: reference number under FAM (typed there; generic elsewhere).
   'TIME', // Pro-Gen: the time of birth directly under BIRT (the standard
   // DATE.TIME slot is typed; this position stays generic).

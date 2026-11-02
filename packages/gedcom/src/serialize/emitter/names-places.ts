@@ -23,6 +23,7 @@ import {
 import {
   LANGUAGE_TO_METHOD_551,
   METHOD_TO_LANGUAGE_70,
+  NAME_TYPE_TO_551,
 } from '../tables';
 import type {
   Version,
@@ -220,12 +221,6 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
       w.line(level + 2, 'LANG', { value: translation.language });
       emitNamePieces(w, version, level + 2, translation.pieces);
     }
-    for (const note of name.notes ?? []) {
-      emitNoteStructure(w, version, level + 1, note);
-    }
-    for (const citation of name.citations ?? []) {
-      emitSourceCitation(w, version, level + 1, citation);
-    }
   } else {
     // The 7.0 TRANs become FONE/ROMN where the language names a known
     // method; unknown languages are dropped.
@@ -250,6 +245,16 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
       emitNamePieces(w, version, level + 2, variation.pieces);
     }
   }
+  // The name's notes and citations live at the name level in both
+  // versions (the parser types them into the same slots; the 5.5.1
+  // writer additionally emits the pieces-level notes kept by older
+  // model data, see emitNamePieces).
+  for (const note of name.notes ?? []) {
+    emitNoteStructure(w, version, level + 1, note);
+  }
+  for (const citation of name.citations ?? []) {
+    emitSourceCitation(w, version, level + 1, citation);
+  }
   emitExtensions(w, version, level + 1, name);
 }
 
@@ -264,8 +269,7 @@ export function emitNameType(w: Writer, version: Version, level: number, type: N
   }
   // 5.5.1: the known set in lowercase, or the phrase as the user-defined
   // value. OTHER and PROFESSIONAL have no 5.5.1 spelling.
-  const known: Record<string, string> = { AKA: 'aka', BIRTH: 'birth', IMMIGRANT: 'immigrant', MAIDEN: 'maiden', MARRIED: 'married' };
-  const spelled = known[type.payload];
+  const spelled = NAME_TYPE_TO_551[type.payload];
   if (spelled !== undefined) {
     w.line(level, 'TYPE', { value: spelled });
     emitExtensions(w, version, level + 1, type);

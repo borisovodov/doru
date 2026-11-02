@@ -259,7 +259,7 @@ describe('the GEDCOM 5.3 SCHEMA block (Family Tree Maker)', () => {
     expect(parseOk70(text)).toBeDefined();
   });
 
-  test('a 7.0 file with SCHEMA is still a strict error', () => {
+  test('a 7.0 file with SCHEMA parses it as the 5.3 block', () => {
     const as70 = parseGedcom70(
       enc(
         [
@@ -274,9 +274,9 @@ describe('the GEDCOM 5.3 SCHEMA block (Family Tree Maker)', () => {
         ].join('\n'),
       ),
     );
-    expect(as70.ok).toBe(false);
-    if (!as70.ok) {
-      expect(as70.error.code).toBe('structure.unknown-tag');
+    expect(as70.ok).toBe(true);
+    if (as70.ok) {
+      expect(as70.value.header.schema53).toBeDefined();
     }
   });
 

@@ -144,9 +144,16 @@ describe('the Hebrew AM year prefix (GEDCOM 5.5.5 p.84)', () => {
     const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM TSH 5670', ...SUBM, '0 TRLR'].join('\n'));
     const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
     expect(birth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'HEBREW', month: 'TSH', year: 5670 });
-    const epoch = parseOk551([...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM 5670 B.C.', ...SUBM, '0 TRLR'].join('\n'));
-    const epochBirth = indi(epoch).events?.find((entry) => entry.tag === 'BIRT');
-    expect(epochBirth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'HEBREW', year: 5670, epoch: 'BCE' });
+    // The BCE epoch is rejected outside the Gregorian and
+    // Julian calendars (the 7.0 rule; the 5.5.1 parser silently
+    // accepted it; the semantically sound check wins).
+    const epoch = parseGedcom551(
+      enc([...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM 5670 B.C.', ...SUBM, '0 TRLR'].join('\n')),
+    );
+    expect(epoch.ok).toBe(false);
+    if (!epoch.ok) {
+      expect(epoch.error.code).toBe('date.bad-epoch');
+    }
   });
 });
 

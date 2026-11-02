@@ -91,10 +91,13 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
     });
   });
 
-  test('the BCE suffix stays restricted to the year-only form (GEDCOM 5.5.5 p.83)', () => {
-    expect(err551([...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE 1 JAN 100 BCE', ...SUBM, '0 TRLR'].join('\n'))).toBe(
-      'date.bad-epoch',
-    );
+  test('the BCE suffix is accepted on every date form', () => {
+    const result = parse551([...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE 1 JAN 100 BCE', ...SUBM, '0 TRLR'].join('\n'));
+    const indi = result.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.events?.[0]?.detail?.date?.value).toMatchObject({ day: 1, month: 'JAN', year: 100, epoch: 'BCE' });
   });
 
   test('a year-less day+month date is accepted (GEDCOM 5.5.5 p.83)', () => {
@@ -176,8 +179,11 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
     expect(files[9]).toMatchObject({ files: [{ form: { payload: 'flac' } }] });
     expect(files[10]).toMatchObject({ files: [{ form: { payload: 'mkv' } }] });
     expect(files[11]).toMatchObject({ files: [{ form: { payload: 'mobi' } }] });
-    // A format outside both sets is still a strict error.
-    expect(err551([...HEADER551, '0 @O13@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
+    // A format outside both sets is accepted as free text (the 7.0
+    // FORM payload: the 7.0 MIME form).
+    const exe = parse551([...HEADER551, '0 @O13@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n'));
+    const obj = exe.records.find((record) => record.tag === 'OBJE');
+    expect((obj as unknown as { files?: Array<{ form?: { payload?: string } }> }).files?.[0]?.form?.payload).toBe('exe');
   });
 
   test('GEDC.FORM.VERS is tolerated and discarded (GEDCOM 5.5.5 §1 p.49)', () => {

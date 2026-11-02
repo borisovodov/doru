@@ -122,7 +122,7 @@ export interface SourceCitation extends GedcomStructureBase {
    * citation (see the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
    * "Tabelle 2", "Name der Person, die Info in Quelle gefunden hat":
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
-   * GEDCOM version. Recognized on 5.x input and written back as `_RINI`
+   * GEDCOM version. Recognized in any file and written back as `_RINI`
    * in 5.5.1; dropped on 7.0 output (7.0 cannot spell a non-underscore
    * extension tag).
    */

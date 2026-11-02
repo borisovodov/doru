@@ -3,6 +3,7 @@
  * See the Serialization section of the README for the rules.
  */
 
+import type { NameTypeEnum } from '../enumerations';
 
 /** GEDCOM 5.5.1 media-type to MULTIMEDIA_FORMAT mapping (reverse table). */
 export const MEDIA_TYPE_TO_551: ReadonlyMap<string, string> = new Map([
@@ -121,6 +122,29 @@ export const LANGUAGE_TO_METHOD_551 = new Map<string, string>([
   ['ja-latn', 'romaji'],
   ['zh-latn-wadegile', 'wadegiles'],
 ]);
+
+/** The 5.5.1 age keyword → 7.0 numeric bound projection (see the
+ *  AgeStructure payload in primitives.ts); the keyword itself is kept in
+ *  the PHRASE (see emitAge). */
+export const AGE_KEYWORD_TO_70: Readonly<Record<'CHILD' | 'INFANT' | 'STILLBORN', string>> = {
+  CHILD: '< 8y',
+  INFANT: '< 1y',
+  STILLBORN: '0y',
+};
+
+/**
+ * The 7.0 NAME-TYPE spelling → 5.5.1 NAME_TYPE spelling: the five
+ * values the 5.5.1 set shares with 7.0, in the lowercase 5.5.1
+ * spelling (GEDCOM 5.5.1 §2 p.56). OTHER and PROFESSIONAL have no
+ * 5.5.1 spelling and are projected onto the PHRASE (see emitNameType).
+ */
+export const NAME_TYPE_TO_551: Readonly<Partial<Record<NameTypeEnum, string>>> = {
+  AKA: 'aka',
+  BIRTH: 'birth',
+  IMMIGRANT: 'immigrant',
+  MAIDEN: 'maiden',
+  MARRIED: 'married',
+};
 
 export const ROLE_TO_RELA_551 = new Map<string, string>([
   ['CHIL', 'Child'],
