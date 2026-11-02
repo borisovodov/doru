@@ -103,7 +103,11 @@ import {
 } from './types';
 import {
   parseAge551,
+  parseTime551,
 } from './types';
+import type {
+  TimeValue,
+} from '../primitives';
 
 // Family/individual links, events, attributes, ordinances
 // ---------------------------------------------------------------------------
@@ -111,6 +115,21 @@ import {
 /** The documented USM6 birth-type digits (`BTYP` under BIRT; see
  *  UsmBirthType). */
 export const USM_BIRTH_TYPES = ['1', '2', '3', '4'] as const;
+
+/**
+ * The event/attribute TYPE payload: in 7.0 a missing line value is the
+ * empty string payload (GEDCOM 7.0 §1.2 makes missing and empty
+ * payloads equivalent, and §1.3 notes the empty-payload encoding for
+ * Text payloads), so the bare `2 TYPE` round-trips a 5.5.1 TYPE-less
+ * EVEN. 5.5.1 stays strict: its TYPE grammar takes the
+ * EVENT_DESCRIPTOR text.
+ */
+function parseEventType(node: RawNode, ctx: Ctx): string {
+  if (ctx.version === '7.0' && node.value.kind === 'absent') {
+    return '';
+  }
+  return reqText(node);
+}
 
 /** The documented USM6 parent–child relation digits (`MTYP` under
  *  INDI.FAMC; see UsmParentalRelationKind). */
@@ -240,8 +259,13 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       // ChildFamilyLink.parentalRelationKind).
       out.parentalRelationKind = parseUsmCode(child, 'MTYP', USM_PARENTAL_RELATION_KINDS);
     };
+    handlers['_MTYP'] = (child) => {
+      // The underscore write-back spelling of the USM6 MTYP (both
+      // spellings are recognized).
+      out.parentalRelationKind = parseUsmCode(child, '_MTYP', USM_PARENTAL_RELATION_KINDS);
+    };
   }
-  dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP']);
+  dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', '_MTYP']);
   return out;
 }
 
@@ -526,6 +550,33 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       }
     }
   };
+  handlers['_CREA'] = (child) => {
+    // Heredis: the date the event was created (see
+    // EventDetail.createdAt).
+    detail.createdAt = reqText(child);
+  };
+  handlers['_CRE'] = (child) => {
+    // MFT7: the date the event was created ("Datensatz, Ereignis";
+    // same slot and source as `_CREA`).
+    detail.createdAt = reqText(child);
+  };
+  handlers['_CREAT'] = (child) => {
+    // GenPlus: the date the event was created (same slot as `_CREA`).
+    detail.createdAt = reqText(child);
+  };
+  if (ctx.version === '5.5.1') {
+    handlers['CEME'] = (child) => {
+      // phpGedView: the cemetery of the burial (see
+      // EventDetail.cemetery); 7.0 input stays strict for the
+      // non-underscore spelling.
+      detail.cemetery = reqText(child);
+    };
+  }
+  handlers['_CEME'] = (child) => {
+    // The underscore write-back spelling of the phpGedView CEME (the
+    // wire spelling is non-underscore; both are recognized).
+    detail.cemetery = reqText(child);
+  };
   if (ctx.version === '5.5.1') {
     // The Gramps witness convention; normalized like _SHAR.
     handlers['ASSO'] = (child) => {
@@ -560,14 +611,27 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       // EventDetail.posthumous).
       detail.posthumous = parseUsmFlag(child, 'POTM');
     };
+    handlers['_POTM'] = (child) => {
+      // The underscore write-back spelling of the USM6 POTM (both
+      // spellings are recognized).
+      detail.posthumous = parseUsmFlag(child, '_POTM');
+    };
     handlers['SRCH'] = (child) => {
       // USM6: where to research the event further (see
       // EventDetail.furtherResearch).
       detail.furtherResearch = reqText(child);
     };
+    handlers['_SRCH'] = (child) => {
+      // The underscore write-back spelling of the USM6 SRCH.
+      detail.furtherResearch = reqText(child);
+    };
     handlers['NOTRY'] = (child) => {
       // USM6: the notary who recorded the event (see
       // EventDetail.notary).
+      detail.notary = reqText(child);
+    };
+    handlers['_NOTRY'] = (child) => {
+      // The underscore write-back spelling of the USM6 NOTRY.
       detail.notary = reqText(child);
     };
   }
@@ -651,6 +715,16 @@ export function setY(event: EventShape, node: RawNode): void {
   }
 }
 
+/** Sets the n-th Legacy marriage report phrase slot, padding the gaps
+ *  (see MarriageEvent.reportPhrases). */
+function setReportPhrase(event: { reportPhrases?: string[] }, index: number, text: string): void {
+  const phrases = (event.reportPhrases ??= []);
+  while (phrases.length <= index) {
+    phrases.push('');
+  }
+  phrases[index] = text;
+}
+
 export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEventStructure {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
@@ -658,7 +732,7 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   event.tag = tag;
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
-    event.type = reqText(child);
+    event.type = parseEventType(child, ctx);
   };
   handlers["HUSB"] = (child) => {
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
@@ -666,13 +740,30 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   handlers["WIFE"] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
   };
+  if (tag === 'MARR') {
+    // The Legacy report labels and phrases of the marriage (see the
+    // fields of MarriageEvent).
+    const marr = event as unknown as { husbandLabel?: string; wifeLabel?: string; reportPhrases?: string[] };
+    handlers['_HTITL'] = (child) => {
+      marr.husbandLabel = reqText(child);
+    };
+    handlers['_WTITL'] = (child) => {
+      marr.wifeLabel = reqText(child);
+    };
+    handlers['_RPT_PHRS'] = (child) => {
+      setReportPhrase(marr, 0, reqText(child));
+    };
+    handlers['_RPT_PHRS2'] = (child) => {
+      setReportPhrase(marr, 1, reqText(child));
+    };
+  }
 
   if (tag === 'EVEN') {
     const raw = node.value.kind === 'text' ? node.value.text : undefined;
     (event as { payload?: string }).payload = raw ?? '';
     if (ctx.version === '7.0') {
       const typeNode = req(node, 'TYPE');
-      event.type = reqText(typeNode);
+      event.type = parseEventType(typeNode, ctx);
     } else {
       const typeNode = one(node, 'TYPE');
       event.type = typeNode === undefined ? '' : reqText(typeNode);
@@ -708,7 +799,7 @@ export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCount
     const familyDetail: FamilyEventDetail = {};
     const handlers = eventDetailHandlers(ctx, detail);
     handlers['TYPE'] = (child) => {
-      out.type = reqText(child);
+      out.type = parseEventType(child, ctx);
     };
     handlers['HUSB'] = (child) => {
       familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
@@ -727,7 +818,8 @@ export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCount
   }
   // 5.5.1 NCHI is a bare count; the USM6 `SURE` child ("the given child
   // count is certain") is typed (see FamilyChildCountAttribute.
-  // childCountCertain).
+  // childCountCertain), in both the USM6 wire spelling and the
+  // underscore write-back spelling.
   dispatch(
     node,
     out,
@@ -735,9 +827,12 @@ export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCount
       SURE: (child) => {
         out.childCountCertain = parseSureFlag(child);
       },
+      _SURE: (child) => {
+        out.childCountCertain = parseSureFlag(child);
+      },
     },
     ctx,
-    ['SURE'],
+    ['SURE', '_SURE'],
   );
   return out;
 }
@@ -754,7 +849,7 @@ export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAt
   };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
-    out.type = reqText(child);
+    out.type = parseEventType(child, ctx);
   };
   handlers["HUSB"] = (child) => {
     // The 7.0 FAMILY_EVENT_DETAIL under FAM.RESI: the husband's age.
@@ -811,7 +906,7 @@ export function parseFamilyResidence551(node: RawNode, ctx: Ctx): FamilyResidenc
 export function parseFamilyFact(node: RawNode, ctx: Ctx): FamilyGenericAttribute {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
-  const out: FamilyGenericAttribute = { tag: 'FACT', payload: reqText(node), type: reqText(req(node, 'TYPE')) };
+  const out: FamilyGenericAttribute = { tag: 'FACT', payload: reqText(node), type: parseEventType(req(node, 'TYPE'), ctx) };
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = () => undefined;
   handlers["HUSB"] = (child) => {
@@ -835,9 +930,11 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   const detail: IndividualEventDetail = {};
   const event = {} as EventShape;
   event.tag = tag;
+  let aldfaerNode: RawNode | undefined;
+  let aldfaerTime: TimeValue | undefined;
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
-    event.type = reqText(child);
+    event.type = parseEventType(child, ctx);
   };
   handlers["AGE"] = (child) => {
     detail.age = parseAge(child, ctx);
@@ -859,6 +956,11 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       // USM6: the birth type (see BirthEvent.birthType).
       (event as unknown as { birthType?: UsmBirthType }).birthType = parseUsmCode(child, 'BTYP', USM_BIRTH_TYPES);
     };
+    handlers['_BTYP'] = (child) => {
+      // The underscore write-back spelling of the USM6 BTYP (the USM6
+      // wire spelling is non-underscore; both are recognized).
+      (event as unknown as { birthType?: UsmBirthType }).birthType = parseUsmCode(child, '_BTYP', USM_BIRTH_TYPES);
+    };
   } else if (ctx.version === '5.5.1' && tag === 'BURI') {
     handlers['AGED'] = (child) => {
       // USM6: the age at death, written under the burial. Normalized
@@ -872,6 +974,27 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       const raw = reqText(child);
       const payload = /^\d+$/.test(raw) ? { years: Number(raw) } : parseAge551(raw, child.position);
       detail.age = { payload };
+    };
+  }
+  if (tag === 'BIRT') {
+    handlers['_LENGTH'] = (child) => {
+      // Aldfaer: the length at birth (see EventDetail.birthLength).
+      detail.birthLength = reqText(child);
+    };
+    handlers['_WEIGHT'] = (child) => {
+      // Aldfaer: the weight at birth (see EventDetail.birthWeight).
+      detail.birthWeight = reqText(child);
+    };
+  }
+  if (tag === 'BIRT' || tag === 'DEAT') {
+    handlers['_ALDFAER_TIME'] = (child) => {
+      // Aldfaer: the time of birth/death, written directly under the
+      // event (beside DATE). Attached to the date's TIME slot after
+      // the dispatch when a DATE exists; without a DATE the line stays
+      // a generic extension of the detail (preserved verbatim — there
+      // is no time-only slot).
+      aldfaerNode = child;
+      aldfaerTime = parseTime551(reqText(child), child.position);
     };
   }
 
@@ -894,9 +1017,19 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
     noPayload(node);
   }
 
-  dispatch(node, event, handlers, ctx, ['BTYP', 'AGED']);
+  dispatch(node, event, handlers, ctx, ['BTYP', '_BTYP', 'AGED']);
   if (ctx.version === '5.5.1') {
     merge551DetailContacts(detail);
+  }
+  if (aldfaerNode !== undefined && aldfaerTime !== undefined) {
+    // The Aldfaer time under BIRT/DEAT (see the handler above): attach
+    // it to the date's TIME slot when a DATE exists; otherwise the
+    // line stays a generic extension of the detail.
+    if (detail.date !== undefined && detail.date.time === undefined) {
+      detail.date.time = aldfaerTime;
+    } else {
+      addExtension(detail, aldfaerNode, ctx);
+    }
   }
   if (Object.keys(detail).length > 0) {
     event.detail = detail;
@@ -945,12 +1078,20 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
     // payload: the residence is carried by the detail's ADDR/PLAC. In
     // 7.0 the Text payload may be empty and a missing payload is
     // equivalent to the empty string (GEDCOM 7.0 §1.2).
+  } else if (tag === 'FACT' && node.value.kind === 'absent' && node.children.some((child) => child.tag === 'TYPE')) {
+    // A payload-less FACT with a TYPE child: the import form the
+    // GEDCOM-L agreement PLAC P8 prescribes for the Swiss Bürgerort
+    // (a bare `1 FACT` + `2 TYPE Bürgerort` + `2 PLAC …`; see the
+    // GenWiki "GEDCOM/PLAC-Tag" article:
+    // https://wiki.genealogy.net/GEDCOM/PLAC-Tag). The missing
+    // payload is the empty string (GEDCOM 7.0 §1.2).
+    event.payload = '';
   } else {
     event.payload = reqText(node);
   }
   const handlers = eventDetailHandlers(ctx, detail);
   handlers["TYPE"] = (child) => {
-    event.type = reqText(child);
+    event.type = parseEventType(child, ctx);
   };
   handlers["AGE"] = (child) => {
     detail.age = parseAge(child, ctx);
@@ -961,6 +1102,10 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
       // IndividualChildCountAttribute.childCountCertain).
       (event as unknown as { childCountCertain?: boolean }).childCountCertain = parseSureFlag(child);
     };
+    handlers['_SURE'] = (child) => {
+      // The underscore write-back spelling of the USM6 SURE.
+      (event as unknown as { childCountCertain?: boolean }).childCountCertain = parseSureFlag(child);
+    };
   }
   if (tag === 'OCCU') {
     handlers['_PRIM'] = (child) => {
@@ -969,7 +1114,7 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
       (event as unknown as { primary?: boolean }).primary = parseVendorFlag(child, '_PRIM');
     };
   }
-  dispatch(node, event, handlers, ctx, ['SURE', '_PRIM']);
+  dispatch(node, event, handlers, ctx, ['SURE', '_SURE', '_PRIM']);
   if (ctx.version === '5.5.1') {
     merge551DetailContacts(detail);
   }

@@ -39,13 +39,17 @@ export interface ExtensionStructure {
    */
   payloadKind?: 'pointer';
   /**
-   * The structure's cross-reference identifier (@…@). GEDCOM 7.0 §1.5
-   * permits one on a tagged extension structure at any level, not only
-   * on records ("A tagged extension structure … may also have a
-   * cross-reference identifier"); GEDCOM 5.5.1 §2 Primitive Elements
-   * (p.64), `XREF`, likewise (max 22 characters). The identifier is
-   * registered as a pointer target during parsing and written back on
-   * serialization.
+   * The structure's cross-reference identifier (@…@). The wire form
+   * is accepted at any depth: GEDCOM 5.5.1 files in the wild carry
+   * cross-reference identifiers on vendor substructures (the 5.5.1
+   * `XREF` primitive, GEDCOM 5.5.1 §2 p.64, max 22 characters),
+   * although both standards restrict identifiers to records — GEDCOM
+   * 7.0 §1.3: "A substructure or pseudo-structure must not have a
+   * cross-reference identifier." The identifier is registered as a
+   * pointer target during parsing and written back on serialization:
+   * the 5.5.1 writer keeps it at any level (matching the lenient
+   * input), while the 7.0 writer emits it only at record level
+   * (level 0), so 7.0 output stays conformant.
    */
   xref?: Xref;
   /** GEDCOM 7.0 §1.5 — extension-defined substructures; their meaning is defined by the tagged extension structure they occur within. */

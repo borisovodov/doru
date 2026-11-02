@@ -236,6 +236,12 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // SourceCitation.foundBy).
           out.foundBy = reqText(child);
         },
+        '_RINI': (child) => {
+          // The underscore write-back spelling of the USM6 RINI (the
+          // USM6 wire spelling is non-underscore; see
+          // SourceCitation.foundBy for the export rule).
+          out.foundBy = reqText(child);
+        },
         'TEXT': (child) => {
           // Généatique writes the citation text with the standard TEXT
           // tag directly under the SOUR pointer (the webtrees per-vendor
@@ -244,6 +250,18 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // data.texts slot the free-text SOUR form uses.
           out.data ??= {};
           (out.data.texts ??= []).push(parseSourceText(child, ctx));
+        },
+        'DATE': (child) => {
+          // Legacy Family Tree writes the citation date directly under
+          // the SOUR pointer (the canonical Legacy custom-tags sample,
+          // `3 DATE 29 Sep 2016`); the 5.5.1 grammar places it under
+          // DATA. It normalizes into the same data.date slot, with the
+          // at-most-one rule of the standard position.
+          out.data ??= {};
+          if (out.data.date !== undefined) {
+            fail('structure.cardinality', 'At most one DATE is allowed in a source citation', child.position);
+          }
+          out.data.date = parseDateStructure(child, ctx);
         },
       },
       ctx,
@@ -288,6 +306,10 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
       'RINI': (child) => {
         // USM6: who found the source information (see
         // SourceCitation.foundBy).
+        out.foundBy = reqText(child);
+      },
+      '_RINI': (child) => {
+        // The underscore write-back spelling of the USM6 RINI.
         out.foundBy = reqText(child);
       },
     },
@@ -384,6 +406,48 @@ export function parseCallNumber(node: RawNode, ctx: Ctx): CallNumberStructure {
   return out;
 }
 
+/** The Family Historian media-link display attributes (see
+ *  MultimediaLink.sequence / area / excludeFromDiagrams / caption):
+ *  `_SEQ` {0:1} a sequence number, `_AREA` {0:1} the display area
+ *  (kept verbatim), `_EXCL` {0:1} and `_CAPT` {0:1} presence flags.
+ *  Registered into the OBJE-pointer handlers of both versions. */
+function fhMediaLinkHandlers(
+  out: MultimediaLink,
+): Record<string, (child: RawNode) => void> {
+  return {
+    '_SEQ': (child) => {
+      out.sequence = reqDigits(child);
+    },
+    '_AREA': (child) => {
+      out.area = reqText(child);
+    },
+    '_EXCL': (child) => {
+      out.excludeFromDiagrams = parseFhPresenceFlag(child, '_EXCL');
+    },
+    '_CAPT': (child) => {
+      out.caption = parseFhPresenceFlag(child, '_CAPT');
+    },
+  };
+}
+
+/** The Family Historian presence flags whose documented value is a
+ *  bare tag or an explicit marker (`_EXCL ALL`, `_CAPT Y`; see the
+ *  FHUG "GEDCOM Extension List"): an absent value, `Y`, `YES` or the
+ *  `ALL` spelling marks the flag set; `N`/`NO` clears it. */
+export function parseFhPresenceFlag(node: RawNode, tag: string): boolean {
+  if (node.value.kind === 'absent') {
+    return true;
+  }
+  const text = reqText(node).toUpperCase();
+  if (text === 'Y' || text === 'YES' || text === 'ALL') {
+    return true;
+  }
+  if (text === 'N' || text === 'NO') {
+    return false;
+  }
+  fail('enum.invalid-value', `The ${tag} value must be a yes/no flag, not "${text}"`, node.position);
+}
+
 export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   if (ctx.version === '7.0') {
     const out: MultimediaLink = { tag: 'OBJE', object: reqPtr(node, ctx) };
@@ -406,6 +470,11 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         '_SSHOW': (child) => {
           out.slideshow = parseYNFlag(child, '_SSHOW');
         },
+        '_THUM': (child) => {
+          // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+          out.thumbnail = parseYNFlag(child, '_THUM');
+        },
+        ...fhMediaLinkHandlers(out),
       },
       ctx,
     );
@@ -427,6 +496,11 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         '_SSHOW': (child) => {
           out.slideshow = parseYNFlag(child, '_SSHOW');
         },
+        '_THUM': (child) => {
+          // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+          out.thumbnail = parseYNFlag(child, '_THUM');
+        },
+        ...fhMediaLinkHandlers(out),
       },
       ctx,
       ['_PRIM', '_SCBK', '_SSHOW'],
@@ -441,12 +515,23 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   let primary: boolean | undefined;
   let scrapbook: boolean | undefined;
   let slideshow: boolean | undefined;
+  let thumbnail: boolean | undefined;
+  // Legacy Family Tree writes the format directly under the inline
+  // OBJE (`2 FORM jpg` beside `2 FILE …`); the 5.5.1 inline grammar
+  // places it under FILE. It is injected into each FILE that lacks its
+  // own FORM before parsing (the canonical Legacy custom-tags sample).
+  const linkForm = node.children.find((child) => child.tag === 'FORM');
   dispatch(
     node,
     record,
     {
+      FORM: () => undefined,
       FILE: (child) => {
-        record.files.push(parseMediaFile(child, ctx));
+        const hasOwnForm = child.children.some((grandchild) => grandchild.tag === 'FORM');
+        const fileNode = linkForm !== undefined && !hasOwnForm
+          ? { ...child, children: [linkForm, ...child.children] }
+          : child;
+        record.files.push(parseMediaFile(fileNode, ctx));
       },
       TITL: (child) => {
         title = reqText(child);
@@ -467,11 +552,32 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       '_SSHOW': (child) => {
         slideshow = parseYNFlag(child, '_SSHOW');
       },
+      '_THUM': (child) => {
+        // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+        thumbnail = parseYNFlag(child, '_THUM');
+      },
       '_TYPE': (child) => {
         record.objectType = reqText(child);
       },
       '_SOUND': (child) => {
         record.soundFile = reqText(child);
+      },
+      '_KEYS': (child) => {
+        // FH: the media object's keywords (see MultimediaRecord.keywords).
+        record.keywords = reqText(child);
+      },
+      '_FILE': (child) => {
+        // FH: the path of the media file (see MultimediaRecord.filePath).
+        record.filePath = reqText(child);
+      },
+      '_NOTE': (child) => {
+        // FH: a media note (see MultimediaRecord.mediaNote).
+        record.mediaNote = reqText(child);
+      },
+      '_CREA': (child) => {
+        // Ancestry.com Family Trees: the date the media object was
+        // created (see MultimediaRecord.createdAt).
+        record.createdAt = reqText(child);
       },
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
@@ -499,6 +605,7 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     ...(primary === undefined ? {} : { primary }),
     ...(scrapbook === undefined ? {} : { scrapbook }),
     ...(slideshow === undefined ? {} : { slideshow }),
+    ...(thumbnail === undefined ? {} : { thumbnail }),
   };
 }
 
@@ -563,17 +670,36 @@ export function parseVendorFlag(node: RawNode, tag: string): boolean {
  * `NEIN`, `0`) clear it.
  */
 export function parseUsmFlag(node: RawNode, tag: string): boolean {
+  const flag = parseUsmFlagLenient(node, tag);
+  if (flag === undefined) {
+    fail('enum.invalid-value', `The ${tag} value must be a yes/no flag, not "${reqText(node)}"`, node.position);
+  }
+  return flag;
+}
+
+/**
+ * The lenient twin of parseUsmFlag: returns undefined when the payload
+ * is not one of the flag spellings, so the caller can keep the line as
+ * a generic extension instead of failing the import. Used where two
+ * vendors give the same tag different meanings (USM6's `SIGN` can-sign
+ * flag versus Heredis' `SIGN` signature — see IndividualRecord.canSign).
+ */
+export function parseUsmFlagLenient(node: RawNode, tag: string): boolean | undefined {
+  void tag;
   if (node.value.kind === 'absent') {
     return true;
   }
-  const text = reqText(node).toUpperCase();
+  if (node.value.kind !== 'text') {
+    return undefined;
+  }
+  const text = node.value.text.toUpperCase();
   if (text === 'Y' || text === 'YES' || text === 'J' || text === 'JA' || text === '1') {
     return true;
   }
   if (text === 'N' || text === 'NO' || text === 'NEIN' || text === '0') {
     return false;
   }
-  fail('enum.invalid-value', `The ${tag} value must be a yes/no flag, not "${text}"`, node.position);
+  return undefined;
 }
 
 /**

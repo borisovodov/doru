@@ -564,6 +564,17 @@ function parseDate551(
     fail('date.invalid', 'A date must have a year', position);
   }
 
+  // The Hebrew calendar year may be typed with the AM (Anno Mundi)
+  // prefix: GEDCOM 5.5.5 (p.84) recommends that readers "should accept
+  // AM, as users may have entered this directly". The prefix carries no
+  // information beyond the calendar escape itself and is dropped.
+  if (calendar === 'HEBREW' && (rest[0] as string).toUpperCase() === 'AM') {
+    rest = rest.slice(1);
+  }
+  if (rest.length === 0) {
+    fail('date.invalid', 'A date must have a year', position);
+  }
+
   // The BCE suffix (year-only form). 5.5.1 spells it B.C.; GEDCOM 5.5.5
   // (p.77) additionally makes the spellings BCE and BC official, with
   // BCE preferred — all three mean the same thing, are accepted in any
@@ -742,6 +753,199 @@ export function parseAge70(text: string, position: SourcePosition): AgeValue {
   return parseAgeParts(text, ['y', 'm', 'w', 'd'], '<number>y|m|w|d', position);
 }
 
+/**
+ * The unit letters of the age grammars, plus the German J/M/T letters
+ * of the GEDCOM-L Addendum §8.2 correction examples (J = Jahr, M =
+ * Monat, T = Tag). The compact `w` letter is deliberately absent: the
+ * addendum converts only the word forms week/weeks/Wochen to days, and
+ * `5w` (the 7.0 spelling) stays an error in a 5.x file.
+ */
+const AGE_UNIT_LETTERS: ReadonlyMap<string, 'y' | 'm' | 'd'> = new Map([
+  ['Y', 'y'], ['J', 'y'], ['M', 'm'], ['D', 'd'], ['T', 'd'],
+]);
+
+/**
+ * The spelled-out age unit words the GEDCOM-L Addendum §8.2 asks
+ * readers to convert to the ymd letters: the English year(s)/month(s)/
+ * day(s)/week(s) forms, the German Jahr(e)/Monat(e)/Tag(e)/Woche(n)
+ * forms, and the abbreviations yr/mo/da.
+ */
+const AGE_UNIT_WORDS: ReadonlyMap<string, 'y' | 'm' | 'd' | 'w'> = new Map([
+  ['Y', 'y'], ['J', 'y'], ['YR', 'y'], ['YEAR', 'y'], ['YEARS', 'y'], ['JAHR', 'y'], ['JAHRE', 'y'],
+  ['M', 'm'], ['MO', 'm'], ['MON', 'm'], ['MONTH', 'm'], ['MONTHS', 'm'], ['MONAT', 'm'], ['MONATE', 'm'],
+  ['D', 'd'], ['T', 'd'], ['DA', 'd'], ['DAY', 'd'], ['DAYS', 'd'], ['TAG', 'd'], ['TAGE', 'd'],
+  ['W', 'w'], ['WK', 'w'], ['WEEK', 'w'], ['WEEKS', 'w'], ['WOCHE', 'w'], ['WOCHEN', 'w'],
+]);
+
+/**
+ * The GEDCOM-L Addendum §8.2 "Corrections to GEDCOM Files" for the AGE
+ * tag: faulty spellings real files carry, corrected per the addendum's
+ * examples ("These suggestions are for guidance, there is no obligation
+ * to follow these suggestions when importing a faulty file" — the
+ * addendum names them suggestions; this package follows them):
+ *
+ * - a plain number is an age in years: `65` → `65y` (also `0` → `0y`);
+ * - a space between the number and the unit is deleted: `65 y` → `65y`;
+ * - three number groups separated by spaces get the units by position:
+ *   `65 10 25` → `65y 10m 25d`;
+ * - three groups separated by hyphens likewise: `65-10-25` → `65y 10m
+ *   25d`;
+ * - the German letters J/M/T are converted: `65J 10M 25T` → `65y 10m
+ *   25d`;
+ * - the spelled-out words (English and German, plus yr/mo/da) are
+ *   converted: `65 years 10 months 25 days` → `65y 10m 25d`;
+ * - weeks are converted to days and added to the days: `5 weeks 2
+ *   days` → `37d`;
+ * - the inaccuracy prefixes ABT/ABOUT/~ are deleted: `ABOUT 65y` →
+ *   `65y`;
+ * - negative months/days are made positive, borrowing from the
+ *   preceding unit (a month counts 30 days): `65y -5d` → `64y 11m
+ *   25d`.
+ *
+ * The `<`/`>` bound and the CHILD/INFANT/STILLBORN keywords are
+ * untouched (handled before and after this function). Returns the
+ * corrected canonical `<number><unit>` form; fails with `age.invalid`
+ * when the text matches none of the faulty forms.
+ */
+function correctAge551(text: string, position: SourcePosition): string {
+  let rest = text.trim();
+  let bound = '';
+  if (rest.startsWith('<') || rest.startsWith('>')) {
+    bound = rest[0] as string;
+    rest = rest.slice(1).trim();
+  }
+  const approx = /^(?:ABT|ABOUT)\b\s*/i.exec(rest) ?? (rest.startsWith('~') ? ['~'] : null);
+  if (approx !== null) {
+    rest = rest.slice((approx[0] as string).length).trim();
+  }
+  if (/^\d+$/.test(rest)) {
+    return `${bound}${rest}y`;
+  }
+  const hyphenTriple = /^(\d+)-(\d+)-(\d+)$/.exec(rest);
+  if (hyphenTriple !== null) {
+    return `${bound}${hyphenTriple[1]}y ${hyphenTriple[2]}m ${hyphenTriple[3]}d`;
+  }
+  const parts: Array<{ value: number; unit?: 'y' | 'm' | 'd' | 'w' }> = [];
+  for (const token of rest.split(/\s+/)) {
+    const numbered = /^(-?\d+)([ymd]|[JMT])$/i.exec(token);
+    if (numbered !== null) {
+      parts.push({
+        value: Number(numbered[1]),
+        unit: AGE_UNIT_LETTERS.get((numbered[2] as string).toUpperCase()) as 'y' | 'm' | 'd',
+      });
+      continue;
+    }
+    if (/^-?\d+$/.test(token)) {
+      parts.push({ value: Number(token) });
+      continue;
+    }
+    const word = AGE_UNIT_WORDS.get(token.toUpperCase());
+    if (word !== undefined) {
+      const last = parts[parts.length - 1];
+      if (last === undefined || last.unit !== undefined) {
+        fail('age.invalid', `Invalid age component "${token}"; a unit must follow its number`, position);
+      }
+      last.unit = word;
+      continue;
+    }
+    fail('age.invalid', `Invalid age component "${token}"; expected "<number>y|m|d"`, position);
+  }
+  if (parts.length === 0) {
+    fail('age.invalid', 'An age must have at least one duration component', position);
+  }
+  // A bare number list: the addendum assigns the units by position when
+  // exactly three groups are offered.
+  if (parts.every((part) => part.unit === undefined)) {
+    if (parts.length !== 3) {
+      fail('age.invalid', `A bare-number age must have exactly three groups (years months days), got "${rest}"`, position);
+    }
+    (parts[0] as { unit?: 'y' | 'm' | 'd' | 'w' }).unit = 'y';
+    (parts[1] as { unit?: 'y' | 'm' | 'd' | 'w' }).unit = 'm';
+    (parts[2] as { unit?: 'y' | 'm' | 'd' | 'w' }).unit = 'd';
+  }
+  let years: number | undefined;
+  let months: number | undefined;
+  let days: number | undefined;
+  let weeks = 0;
+  // The first-appearance order of the units: the corrected string keeps
+  // it, so the strict grammar still rejects out-of-order inputs like
+  // `5d 5y` (the addendum corrections do not reorder components).
+  const order: Array<'y' | 'm' | 'd'> = [];
+  const seen = new Set<'y' | 'm' | 'd'>();
+  for (const part of parts) {
+    if (part.unit === undefined) {
+      fail('age.invalid', `Invalid age component "${part.value}"; a bare number needs a unit or two more groups`, position);
+    }
+    if (part.unit === 'y') {
+      years = part.value;
+    } else if (part.unit === 'm') {
+      months = part.value;
+    } else if (part.unit === 'd') {
+      days = part.value;
+    } else {
+      weeks += part.value;
+    }
+    const orderUnit: 'y' | 'm' | 'd' = part.unit === 'w' ? 'd' : part.unit;
+    if (!seen.has(orderUnit)) {
+      seen.add(orderUnit);
+      order.push(orderUnit);
+    }
+  }
+  // Weeks become days (the addendum: convert to days and add to the
+  // existing days); 5.5.1 has no weeks component.
+  if (weeks > 0) {
+    days = (days ?? 0) + weeks * 7;
+  }
+  // Negative months/days are made positive, borrowing from the
+  // preceding unit (a month counts 30 days).
+  if (days !== undefined && days < 0) {
+    while (days < 0) {
+      if ((months ?? 0) > 0) {
+        months = (months as number) - 1;
+        days += 30;
+      } else {
+        years = (years ?? 0) - 1;
+        months = (months ?? 0) + 11;
+        days += 30;
+      }
+    }
+  }
+  if ((months ?? 0) < 0) {
+    while ((months as number) < 0) {
+      years = (years ?? 0) - 1;
+      months = (months as number) + 12;
+    }
+  }
+  if ((years ?? 0) < 0) {
+    fail('age.invalid', `A negative year component cannot be corrected in "${text}"`, position);
+  }
+  const outUnits: Array<'y' | 'm' | 'd'> = [];
+  const outValues: number[] = [];
+  for (const unit of order) {
+    const value = unit === 'y' ? years : unit === 'm' ? months : days;
+    if (value !== undefined) {
+      outUnits.push(unit);
+      outValues.push(value);
+    }
+  }
+  // Months introduced by the negative-day borrowing: insert them in
+  // their natural position (between years and days).
+  if (months !== undefined && !outUnits.includes('m')) {
+    const dayIndex = outUnits.indexOf('d');
+    if (dayIndex === -1) {
+      outUnits.push('m');
+      outValues.push(months);
+    } else {
+      outUnits.splice(dayIndex, 0, 'm');
+      outValues.splice(dayIndex, 0, months);
+    }
+  }
+  if (outUnits.length === 0) {
+    return `${bound}0y`;
+  }
+  return `${bound}${outUnits.map((unit, index) => `${outValues[index]}${unit}`).join(' ')}`;
+}
+
 /** Parses a GEDCOM 5.5.1 Age value (no weeks; CHILD/INFANT/STILLBORN keywords). */
 export function parseAge551(text: string, position: SourcePosition): AgeValue {
   const upper = text.trim().toUpperCase();
@@ -754,7 +958,10 @@ export function parseAge551(text: string, position: SourcePosition): AgeValue {
   if (upper === 'STILLBORN') {
     return { description: 'STILLBORN' };
   }
-  return parseAgeParts(text, ['y', 'm', 'd'], '<number>y|m|d', position);
+  // The GEDCOM-L Addendum §8.2 corrections: the faulty AGE spellings
+  // are corrected first (see correctAge551), then the strict grammar
+  // parses the canonical form.
+  return parseAgeParts(correctAge551(text, position), ['y', 'm', 'd'], '<number>y|m|d', position);
 }
 
 /** Parses a List:Text payload (comma-separated, spaces around items trimmed). */

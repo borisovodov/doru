@@ -8,6 +8,9 @@
  * pages under https://armidalesoftware.com/issue/tags/).
  */
 
+import type {
+  SexEnum,
+} from '../enumerations';
 import {
   fail,
 } from '../errors';
@@ -20,6 +23,7 @@ import type {
   CensusSexStructure,
   CensusSourceReference,
   EventDetail,
+  RoleStructure,
 } from '../structures';
 import type {
   Ctx,
@@ -42,12 +46,17 @@ import {
 import {
   eventDetailHandlers,
   merge551DetailContacts,
+  SEX_551,
+  SEX_70,
 } from './events';
 import {
   parseAge,
   parseChangeDate,
   parseDateStructure,
 } from './substructures';
+import {
+  parseEnum,
+} from './types';
 
 // MagiKey census record
 // ---------------------------------------------------------------------------
@@ -169,16 +178,54 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
         out.occupation = parseCensusRelocatedAttribute(child, ctx, 'OCCU');
       },
       ROLE: (child) => {
-        out.role = reqText(child);
+        out.role = parseCensusRole(child);
       },
       SEX: (child) => {
-        out.sex = reqText(child);
+        out.sex = parseCensusSexValue(child, ctx);
       },
     },
     ctx,
     ['FATH', 'MOTH', '_MSTAT', 'AGE', 'BIRT', 'NAME', 'OCCU', 'ROLE', 'SEX'],
   );
   return out;
+}
+
+/**
+ * The census INDI's SEX: the registry (MagiKey_CENR_INDI.yaml) wires it
+ * to the standard SEX structure, so it is typed like the INDI SEX —
+ * the version's enum table, case-insensitive on 5.x input and
+ * canonicalized (`m` → `male`).
+ */
+function parseCensusSexValue(node: RawNode, ctx: Ctx): SexEnum {
+  const table = (ctx.version === '7.0' ? SEX_70 : SEX_551) as Readonly<
+    Record<'M' | 'F' | 'U' | 'X' | 'N', string>
+  >;
+  return parseEnum(reqText(node), table, ctx.version, node.position) as SexEnum;
+}
+
+/**
+ * The census INDI's ROLE: the registry (MagiKey_CENR_INDI.yaml) wires
+ * it to the v5.5.1 ROLE structure, whose ROLE_IN_EVENT grammar is one
+ * of the six tags or a parenthesized descriptor — in both document
+ * versions. Real MagiKey files also write bare descriptors (`Head`),
+ * which are normalized to OTHER with the text kept in the phrase (the
+ * write-back spells them parenthesized). Documented leniency, like the
+ * standard 5.5.1 ROLE.
+ */
+function parseCensusRole(node: RawNode): RoleStructure {
+  if (node.children.length > 0) {
+    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ROLE`, (node.children[0] as RawNode).position);
+  }
+  const raw = reqText(node);
+  const upper = raw.toUpperCase();
+  if (upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU') {
+    return { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
+  }
+  if (raw.startsWith('(') && raw.endsWith(')')) {
+    return { payload: 'OTHER', phrase: raw.slice(1, -1) };
+  }
+  // The lenient bare-descriptor form of real MagiKey files (`Head`).
+  return { payload: 'OTHER', phrase: raw };
 }
 
 function parseCensusRelative(node: RawNode, ctx: Ctx, tag: 'FATH' | 'MOTH'): CensusRelative {

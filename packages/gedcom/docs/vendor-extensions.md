@@ -46,8 +46,8 @@ results and secondary sources.
   standard family with its own XML/JSON syntax) are different
   formats, not text GEDCOM — deliberately out of scope, with no
   import planned.
-  - **The GEDCOM 5.5 embedded-multimedia shape is a tolerated
-    exception.** 5.5.1 removed the embedded `BLOB` form of the
+  - **The GEDCOM 5.5 embedded-multimedia shape is accepted but not
+    written.** 5.5.1 removed the embedded `BLOB` form of the
     multimedia record (5.5 records carry `FORM`/`TITL`/`BLOB` directly
     under `OBJE`; 5.5.1 keeps only the external `FILE` form), but old
     files and Généatique (webtrees per-vendor custom-tag registry,
@@ -56,8 +56,12 @@ results and secondary sources.
     a 5.5 file — are accepted on 5.x input and kept verbatim as
     generic extensions of the multimedia record (the base64 payload
     is preserved as text, continuations merged); there is no typed
-    model slot for the embedded binary. They are written back on
-    5.5.1 output and dropped on 7.0 (which has no embedding either).
+    model slot for the embedded binary. On export the extensions are
+    dropped in both versions — neither target grammar has the
+    embedded shape, and both require extension tags to be
+    underscore-prefixed — and a record that carried no `FILE` at all
+    (a pure 5.5-embedded record) is dropped entirely, its links
+    stripped (`serialize/prepare.ts`).
 - **GEDCOM 7.0** has an official mechanism: extension tags declared in
   `HEAD.SCHMA` with URIs, plus an official registry of extensions:
   - FamilySearch GEDCOM 7 specification (extension rules):
@@ -288,9 +292,9 @@ above): `_AKA`, `_DATE2`, `_HUSB`/`_WIFE`, `_MASTER`, `_PRIMARY`,
 `_VERB` (Ancestral Quest); `_CORR`+`_REAS`/`_RESP`/`_RPLY`, `_TODO`
 (Family Origins); and a long list of non-underscore tags used by
 Generations/Reunion (`CIRC`, `CLER`, `EYES`, `HEIG`, `MILF`, `SEPA`,
-`CITN`, `EXCO`, …). `_DATE2`, `_PRIMARY` and `_TODO` are typed; the
-rest of the AQ/FO private tags (`_HUSB`/`_WIFE`, `_MASTER`, `_VERB`,
-the `_CORR` block) are deliberately generic — see chapter 7.
+`CITN`, `EXCO`, …). `_DATE2`, `_PRIMARY`, `_TODO`, the `_CORR` block
+and the `_HUSB`/`_WIFE`/`_MASTER` tags are typed; `_VERB` (AQ11, the
+catalogs give it no description) stays generic — see chapters 6 and 7.
 
 ### GEDKeeper
 
@@ -364,6 +368,17 @@ Stammbaumdrucker, webtrees, …). Two parts:
   appended given names). Sources: the English GenWiki article "Gedcom
   5.5EL" (marked historical) and the N5 section of
   "GEDCOM/_Nutzerdef-Tag".
+- **The §8.2 AGE corrections** ("Corrections to GEDCOM Files") are
+  implemented on 5.x import: the faulty AGE spellings real files carry
+  (a plain number, spaces between numbers and units, three bare or
+  hyphen-separated groups, the German J/M/T letters, the spelled-out
+  English/German unit words and yr/mo/da, weeks, the ABT/ABOUT/~
+  prefixes, negative months/days) are corrected per the addendum's
+  examples, and an AGE at level 1 of an INDI record is interpreted as
+  the age at death (subordinated to DEAT). The suggestions are
+  corrections for faulty files, not new grammar: the strict order rule
+  still applies to the corrected value (see the README's Parsing
+  section).
 
 ## 4. Registered GEDCOM 7.0 extensions (official registry)
 
@@ -477,11 +492,13 @@ such records with a documented meaning.
 Following the same approach as the 5.5.1-over-7.0 layering, the
 multi-vendor core extensions are typed fields of the unified model;
 the long tail of single-vendor tags stays generic
-`ExtensionStructure`/`ExtensionRecord` (preserved verbatim, never
+`ExtensionStructure`/`ExtensionRecord` (kept in the model, never
 typed). The unified policy: known tags are recognized on input in both
 versions; on output a construct with a standard equivalent uses the
 target version's standard spelling, and a construct without one is
-written as the vendor tag in both versions. The full rules live in the
+written as the vendor tag in both versions when the tag is
+underscore-prefixed (both targets can spell it) and dropped otherwise.
+The full rules live in the
 JSDoc of each model field and in the README's "Vendor extensions"
 section.
 
@@ -579,19 +596,19 @@ its JSDoc.
 | `_USED` under NAME | Family Historian | The given name used (`2 _USED Tony` under `NAME Anthony Edward /Munro/`) | `PersonalNameStructure.givenNameUsed` (written back in both versions) |
 | `_HUSB` / `_WIFE` under INDI.FAMC | Ancestral Quest | The child's status within the family on the father's / mother's side | `ChildFamilyLink.fatherChildStatus` / `motherChildStatus` (written back in both versions) |
 | `_BKM` / `_STP` under INDI | MFT7 | The person is bookmarked / is the start person | `IndividualRecord.bookmarked` / `startPerson` (written back as `_BKM Y`/`_STP Y` in both versions) |
-| `SIGN` under INDI | USM6 | The person can sign [yes/no] | `IndividualRecord.canSign` (the wire value is undocumented; 5.5.1 writes `SIGN 1`/`SIGN 0`, 7.0 drops the tag) |
-| `BTYP` under BIRT | USM6 | Birth type: 1=single, 2=twin, 3=multiple, 4=died at birth | `BirthEvent.birthType` (5.5.1 writes `BTYP`; dropped on 7.0) |
+| `SIGN` under INDI | USM6 | The person can sign [yes/no] — Heredis writes the person's *signature* (free text) under the same tag, so a payload that is not one of the flag spellings stays a generic extension | `IndividualRecord.canSign` (the wire value is undocumented; 5.5.1 writes the underscore spelling `_SIGN 1`/`_SIGN 0`, 7.0 drops the tag) |
+| `BTYP` under BIRT | USM6 | Birth type: 1=single, 2=twin, 3=multiple, 4=died at birth | `BirthEvent.birthType` (5.5.1 writes `_BTYP`; dropped on 7.0) |
 | `AGED` under BURI | USM6 | The age at death, a plain number of years (`AGED 80`) | the burial detail's standard `AGE` (standard-first: written back as `AGE`) |
-| `MTYP` under INDI.FAMC | USM6 | Parent–child relation kind: 1=marital, 2=non-marital, 3/4=adoption without/with incorporation, 5=unknown, 6=uncertain | `ChildFamilyLink.parentalRelationKind` (5.5.1 writes `MTYP`; dropped on 7.0) |
-| `UTYP` under FAM | USM6 | Family relationship kind: 1=married, 2=married+separated, 3=married+divorced, 4=annulled, 5=non-marital | `FamilyRecord.unionKind` (5.5.1 writes `UTYP`; dropped on 7.0) |
-| `SURE` under NCHI | USM6 | The given child count is certain (`SURE 1`) | `FamilyChildCountAttribute.childCountCertain` / `IndividualChildCountAttribute.childCountCertain` (5.5.1 writes `SURE 1`/`SURE 0`; dropped on 7.0) |
-| `POTM` under events | USM6 | The event occurred post mortem | `EventDetail.posthumous` (5.5.1 writes `POTM 1`/`POTM 0`; dropped on 7.0) |
-| `SRCH` under events | USM6 | Where to research the event further | `EventDetail.furtherResearch` (5.5.1 writes `SRCH`; dropped on 7.0) |
-| `NOTRY` under events | USM6 | The notary of the event (marriage contract, will) | `EventDetail.notary` (5.5.1 writes `NOTRY`; dropped on 7.0) |
-| `RINI` under citations | USM6 | Who found the source information | `SourceCitation.foundBy` (5.5.1 writes `RINI`; dropped on 7.0) |
+| `MTYP` under INDI.FAMC | USM6 | Parent–child relation kind: 1=marital, 2=non-marital, 3/4=adoption without/with incorporation, 5=unknown, 6=uncertain | `ChildFamilyLink.parentalRelationKind` (5.5.1 writes `_MTYP`; dropped on 7.0) |
+| `UTYP` under FAM | USM6 | Family relationship kind: 1=married, 2=married+separated, 3=married+divorced, 4=annulled, 5=non-marital | `FamilyRecord.unionKind` (5.5.1 writes `_UTYP`; dropped on 7.0) |
+| `SURE` under NCHI | USM6 | The given child count is certain (`SURE 1`) | `FamilyChildCountAttribute.childCountCertain` / `IndividualChildCountAttribute.childCountCertain` (5.5.1 writes `_SURE 1`/`_SURE 0`; dropped on 7.0) |
+| `POTM` under events | USM6 | The event occurred post mortem | `EventDetail.posthumous` (5.5.1 writes `_POTM 1`/`_POTM 0`; dropped on 7.0) |
+| `SRCH` under events | USM6 | Where to research the event further | `EventDetail.furtherResearch` (5.5.1 writes `_SRCH`; dropped on 7.0) |
+| `NOTRY` under events | USM6 | The notary of the event (marriage contract, will) | `EventDetail.notary` (5.5.1 writes `_NOTRY`; dropped on 7.0) |
+| `RINI` under citations | USM6 | Who found the source information | `SourceCitation.foundBy` (5.5.1 writes `_RINI`; dropped on 7.0) |
 | `UGNM` under NAME | USM6 | The call name (Rufname) | `PersonalNameStructure.callName` (the same slot `_RUFNAME` carries; written back as `_RUFNAME`) |
-| `NAME_` under NAME | USM6 | Surname variants | `PersonalNameStructure.surnameVariants` (5.5.1 writes `NAME_`; dropped on 7.0) |
-| `SECG` under NAME | MFT7 | The second and further given names | `PersonalNameStructure.furtherGivenNames` (5.5.1 writes `SECG`; dropped on 7.0) |
+| `NAME_` under NAME | USM6 | Surname variants | `PersonalNameStructure.surnameVariants` (5.5.1 writes `_NAME_`; dropped on 7.0) |
+| `SECG` under NAME | MFT7 | The second and further given names | `PersonalNameStructure.furtherGivenNames` (5.5.1 writes `_SECG`; dropped on 7.0) |
 
 **Brother's Keeper family** (BKW6, Legacy cat.): name variants
 (`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
@@ -731,17 +748,95 @@ its JSDoc:
 | `_COR` + `_LAD`/`_LAM`/`_LAS`/`_LAN`/`_LOD`/`_LOM`/`_LOS`/`_LON` | MFT7 | Place coordinates, DMS per axis | `PlaceStructure.map` (standard MAP/LATI/LONG, standard-first) |
 | `_PLACE` record | Family Tree Builder | Master place record, payload = the place name | `PlaceRecord` (payload dialect, like `_PLAC`) |
 | `OBJE`/`_OBJE` under NAME | TMG/T2G | Exhibits attached to the name | `PersonalNameStructure.media` (written back as `OBJE`) |
-| `AUTH`, `ANCE` under INDI | Reunion | Author / ??? Ancestor (meaning undocumented or format unknown) | generic extensions on 5.x input, preserved verbatim |
+| `AUTH`, `ANCE` under INDI | Reunion | Author / ??? Ancestor (meaning undocumented or format unknown) | generic extensions on 5.x input, dropped on export (no conformant spelling in either target version) |
 
 Covered by `tests/vendor-extensions-p5.test.ts` (import, export, and
 round trips in both versions where a spelling exists).
+
+### The 2026-11 coverage sweep (typed additions)
+
+The webtrees-registry audit of 2026-11 closed the remaining documented
+gaps and added the underscore write-back spellings for the USM6 tags
+(5.5.1 requires user-defined tags to begin with an underscore, so the
+5.5.1 output writes `_SIGN`/`_BTYP`/`_MTYP`/`_UTYP`/`_SURE`/`_POTM`/
+`_SRCH`/`_NOTRY`/`_RINI`/`_NAME_`/`_SECG` — the non-underscore wire
+spellings and the underscore forms are both recognized on input, and
+7.0 drops them):
+
+| Tag | Vendors | Meaning | Model field |
+| --- | --- | --- | --- |
+| `MEDI` under SOUR | Legacy | The media type of the source (webtrees Legacy.php, "Media type") | `SourceRecord.medium` (written back as `_MEDI` in both versions — neither standard has a MEDI slot under the SOUR record) |
+| `RFN` under FAM | Pro-Gen | The reference number under the FAM record (webtrees ProGen.php) | the standard `REFN` identifier on `FamilyRecord` |
+| `TIME` under BIRT | Pro-Gen | The time of birth, written beside DATE (webtrees ProGen.php, `TimeValue`) | generic extension of the event (the standard slot is DATE.TIME; no typed position exists beside DATE) |
+| `_CORR` | FO7 | The correspondence entry with REAS/RESP/RPLY (chapter 7) | `IndividualRecord.correspondence` |
+| `_DIVERSES` | AF2000 | A container for assorted data: TITL names the entry, NOTE carries the text | `FACT` with the TITL TYPE and the NOTE payload |
+| `_ORGSOUR` under HEAD | (GenWiki table) | The product that originally wrote the data: the foreign SOUR.NAME/SOUR.VERS kept as NAME/VERS | `Header.originalSource` |
+| `_PRMN` under FAM | BKW6 | The family's permanent number | the standard `REFN` identifier on `FamilyRecord` |
+| `_KEYS` / `_FILE` / `_NOTE` under OBJE | FH | The media keywords / file path / media note (FHUG "GEDCOM Extension List", "Multimedia: _NOTE, _FILE, _DATE, _KEYS") | `MultimediaRecord.keywords` / `filePath` / `mediaNote` |
+| `_SEQ` / `_AREA` / `_EXCL` / `_CAPT` under the OBJE link | FH | The media sequence number / display area (kept verbatim) / excluded-from-diagrams flag / caption flag (FHUG, "Multimedia: _ASID, _SEQ, _AREA, _EXCL, _CAPT, _NOTA") | `MultimediaLink.sequence` / `area` / `excludeFromDiagrams` / `caption` |
+| `_CREA` under OBJE | Ancestry | The creation date of the media object (webtrees Ancestry.php, "Creation") | `MultimediaRecord.createdAt` |
+| `_HEB` under NAME and PLAC | phpGedView | The name/place in Hebrew script (webtrees PhpGedView.php) | `PersonalNameStructure.hebrewName` / `PlaceStructure.hebrewName` |
+| `URL` under ADDR | PAF (5.5.5 recommends) | The web address, a synonym of WWW (5.5.5 §2 p.65) | the address `www` slot |
+| `POST` / `NAME._LANG` under `_LOC` | GEDCOM 5.5EL (historical) | The postal code / name language under a place record | `PlaceRecord.postalCodes` / `PlaceNameStructure.language` |
+| `_ADDENDUM <name>` | GEDCOM-L §7.3 | The addendum declaration's name payload, {0:M} per file | `Gedcom.addenda` |
+| `_HTITL` / `_WTITL` / `_RPT_PHRS` / `_RPT_PHRS2` under FAM.MARR | Legacy | The husband's / wife's report labels and the two report phrases (webtrees Legacy.php, "Label for husband", "Label for wife", "Report phrase") | `MarriageEvent.husbandLabel` / `wifeLabel` / `reportPhrases` |
+| `_LENGTH` / `_WEIGHT` under BIRT | Aldfaer | The length / weight at birth (webtrees Aldfaer.php) | `EventDetail.birthLength` / `birthWeight` |
+| `_ALDFAER_TIME` under BIRT/DEAT | Aldfaer | The time of birth/death (webtrees Aldfaer.php, `TimeValue`); attached to the DATE.TIME slot when a DATE exists, a generic extension otherwise | `DateStructure.time` / the detail's extensions |
+| `CEME` under BURI | phpGedView | The cemetery of the burial (webtrees PhpGedView.php, `INDI:BURI:CEME`) | `EventDetail.cemetery` (written back as `_CEME`) |
+| `_CREA` / `_CRE` / `_CREAT` under events | Heredis, MFT7, GenPlus | The event creation date (kept free text; GenWiki "Datensatz, Ereignis") | `EventDetail.createdAt` (written back as `_CREAT`) |
+| `_PROJECT_GUID` / `_EXPORTED_FROM_SITE_ID` / `_RINS` under HEAD | MyHeritage | The project identifier, the exported-from site id and the per-record-type counts of the export (real MyHeritage exports) | `Header.projectGuid` / `exportedFromSiteId` / `recordCounts` (kept verbatim) |
+| `_TIMEZONE` under HEAD.DATE | MyHeritage | The timezone of the export date (real MyHeritage exports) | `Header.timezone` (kept verbatim) |
+| `_DESCRIPTION_AWARE Y` under HEAD | MyHeritage | The export includes the description field (real MyHeritage exports) | `Header.descriptionAware` |
+| `_RTLSAVE` under HEAD.SOUR | MyHeritage | The right-to-left save mode (real MyHeritage exports, `_RTLSAVE RTL`) | `HeaderSource.rtlSave` (kept verbatim) |
+| `_PUBLISH` record | MyHeritage | The site the tree was published to: `_SITEADDRESS`/`_SITENAME`/`_SITEID`/`_USERNAME` + the `_DISABLED` flag (real MyHeritage exports) | `PublishedSiteRecord` |
+| `_THUM Y` under the OBJE link | Généatique | The thumbnail flag of the media link (real Généatique exports, `2 _THUM Y` beside `_PRIM`) | `MultimediaLink.thumbnail` |
+
+The tags the code search found no real files for (`_GRUPPE`, `_LFD`,
+`_NOPARTNER`, `_ALDFAER_NOREL`, `_SURNAS`, `_DBID`, `_INQU`) and the
+ones whose fetched samples did not confirm (`_SCHA`, `_ACT`) stay
+generic — the catalogs document meanings, but with no real file to
+show the wire form there is nothing to type.
+
+The `_EVENT_DEFN` record was also verified against the real Legacy
+exports (the gedcom4j "legacycustomtags.ged" sample, now a regression
+fixture): the record is always written at level 0 — the webtrees
+`HEAD:_EVENT_DEFN` registry key does not correspond to a real-world
+position, so the HEAD form stays a generic header extension. The real
+record shape is richer than the vendor help describes and is typed now:
+the `TYPE` child carries the event kind code (`I`/`F`), `TITL` the
+display title, `ROLE` blocks the per-role sentence sets (`_SEN1`–`_SEN8`
++ the `_DEF` default mark), and `_INC_NOTES` the include-notes flag.
+Parsing the sample also uncovered real-file deviations the parser now
+tolerates: a lone interior `@` in text values (the doubling rule is
+enforced only at the start, where the ambiguity lives), a CONC
+continuing an empty payload, a bare `_TAG` mark, a citation `DATE`
+directly under the SOUR pointer (normalized into `DATA.DATE`), a
+record-level SOUR `DATE` (generic), and an inline `OBJE.FORM` beside
+`FILE` (injected into the file's FORM).
+
+Also fixed in this sweep: the FAM `_TYPE` handler no longer rejects
+values other than `same-sex` (they stay generic extensions — other
+programs write relationship kinds there), the payload-less `1 FACT` +
+`TYPE Bürgerort` P8 import form parses, the USM6 `SIGN` handler
+tolerates the Heredis signature payloads (non-flag values stay generic
+extensions instead of failing with `enum.invalid-value`), the 5.5.1
+writer emits the DATE.TIME child it previously dropped, and the census
+INDI SEX/ROLE parse through the registry's standard structures (SEX via
+the version enum, ROLE via the v5.5.1 ROLE_IN_EVENT grammar with the
+bare MagiKey descriptors normalized to OTHER + phrase); the MagiKey
+`_AGER` range rejects an inverted bound order.
+
+Covered by `tests/audit-fixes.test.ts`.
 
 ## 7. Deferred: presentation and UI state
 
 Pure report/interface data; a viewer that ignores these loses nothing
 genealogical. They stay generic `ExtensionStructure`/`ExtensionRecord`
-(GEDCOM 7.0 §1.5, model file `src/model/extensions.ts`) and are
-preserved verbatim, so nothing is lost on re-export.
+(GEDCOM 7.0 §1.5, model file `src/model/extensions.ts`); on export
+they follow the extension rule of the target version — underscore
+tags are written back in both versions, non-underscore tags are
+dropped (neither 5.5.1 nor 7.0 can spell a non-underscore extension
+tag).
 
 Leaving them generic is a **deliberate decision**, not a gap in the
 checklist: the project refuses to invent a model — typing a construct
@@ -778,25 +873,27 @@ interpret the definition itself.
 (chapter 6): `PlaceRecord.preposition`, written back in both versions
 (the record survives as a `_LOC` record for it).
 
-**Family Tree Maker extras** (deferred): `_FA1`–`_FA13` user fact
-definitions — the catalogs name them ("definitions for facts") but no
-source documents their structure, so the values cannot be typed; `_DETS`
-(undocumented meaning — the Legacy catalog marks it
-"???"). The GenWiki table gives `_ELEC` the meaning "Elected" under
+**Family Tree Maker extras** (typed 2026-11): `_FA1`–`_FA13` user fact
+definitions — the GenWiki table reads "Fakten — FACT in 5.5.1" and the
+webtrees registry lists them under INDI and FAM — type into a `FACT`
+(INDI) or FAM `EVEN` (FAM) whose TYPE resolves from the HEAD.SCHEMA
+label of the declared context chain (fallback `Fact n`); `_DETS`
+(undocumented meaning — the Legacy catalog marks it "???") stays
+generic. The GenWiki table gives `_ELEC` the meaning "Elected" under
 INDI (the Legacy catalog marks it "???") — the typed rule follows the
 documented meaning: `FACT` + TYPE "Elected" (chapter 6). The FTW marriage
 statuses `_MSTAT`/`_MEND` are typed (chapter 6). The GEDCOM 5.3 schema
 block is no longer deferred: it is typed as `Header.schema53` and
 written back in 5.5.1 (chapter 6).
 
-**Family Origins correspondence block** (deferred): `_CORR` with the
+**Family Origins correspondence block** (typed 2026-11): `_CORR` with the
 `_REAS`/`_RESP`/`_RPLY` children ("Correspondence entry", "Reason",
-"Response", "Reply Status"). The catalogs document the meanings but not
-the block's wire shape — its position and the substructure grammar are
-unknown, so typing it would invent a structure. Deliberately generic
-(preserved verbatim in both versions); note the bare non-underscore
-`REAS`/`RESP`/`RPLY` under INDI are already typed as `FACT` + TYPE
-(chapter 8), which covers the common spelling.
+"Response", "Reply Status" — the Legacy "User-Defined GEDCOM Tags"
+catalog documents the meanings and the children) types into the
+`CorrespondenceStructure` on `IndividualRecord.correspondence`
+(written back as the `_CORR` block in both versions). Note the bare
+non-underscore `REAS`/`RESP`/`RPLY` under INDI are typed separately as
+`FACT` + TYPE (chapter 8).
 
 **Ancestral Quest family-child status and source tags**: `_HUSB`/`_WIFE`
 under INDI.FAMC and `_MASTER` under SOUR are typed (chapter 6:
@@ -817,9 +914,9 @@ without a description or a superstructure
 "User-Defined GEDCOM Tags" catalog does not list them, and Tamura Jones
 only documents the *standard* `PHOTO` tag of GEDCOM 5.3 (removed in
 5.4), which is not the vendor tag. Typing them now would invent a
-model; they stay generic extensions (preserved verbatim in both
-versions) until the corpus validation runs (README "Future work")
-show their actual structure.
+model; they stay generic extensions (underscore tags, preserved verbatim
+in both versions — they have conformant spellings) until the corpus
+validation runs (README "Future work") show their actual structure.
 
 **Family Historian**: the genealogically relevant tags are typed from
 the FHUG Knowledge Base "GEDCOM Extension List"
@@ -952,8 +1049,11 @@ tables are the inventory, so the list is not repeated here):
   lost in either direction.
 - **The deliberately generic tail** (34 tags in
   `LEGACY_GENERIC_TAGS`, accepted on 5.x input wherever no typed rule
-  applies, preserved verbatim on 5.5.1 export, dropped on 7.0 export —
-  7.0 §1.5 can only spell underscore-prefixed extension tags). Several
+  applies; no conformant spelling in either target version — 5.5.1
+  reserves the underscore prefix for user-defined tags and 7.0 §1.5
+  can only spell underscore-prefixed extension tags — so they are
+  dropped on export in both versions, the documented projection for
+  unspellable constructs). Several
   of them are typed at their documented positions (SIGN under INDI,
   BTYP under BIRT, MTYP under INDI.FAMC, UTYP under FAM, SURE under
   NCHI, POTM/SRCH/NOTRY under event details, RINI under citations,
@@ -997,12 +1097,12 @@ tables are the inventory, so the list is not repeated here):
     substructure rules — so typing any of them would invent a model.
     (The other Tabelle 2 tags with a documented position and value set
     are typed: chapter 6. `FPRF`/`MPRF` are the USM settings blocks
-    under HEAD, which round-trip verbatim as header extensions.) They
-    stay generic extensions, preserved verbatim on 5.5.1 export (this
+    under HEAD, kept in the model as header extensions.) They
+    stay generic extensions, accepted on 5.x input (this
     is what fixed the import of real MacFamilyTree files, which
-    previously failed with `structure.unknown-tag`); on 7.0 export
-    they are dropped — 7.0 cannot spell a non-underscore extension
-    tag.
+    previously failed with `structure.unknown-tag`); on export they
+    are dropped in both versions — neither target grammar can spell a
+    non-underscore extension tag.
 
 Where a tag's position *is* standard, the standard structure always
 wins: `NATI` under INDI stays a standard attribute, `WIFE` under FAM
@@ -1012,7 +1112,7 @@ it parses as the standard attribute too).
 
 Covered by `tests/vendor-extensions-nonunderscore.test.ts` (per-tag
 typing assertions, pointer associations, the LDS wrapper, the FAM
-rules, standard-first export, and a lossless 5.5.1 round trip of the
-whole catalog) and `tests/vendor-extensions-mft-usm.test.ts` (the
+rules, standard-first export, and a 5.5.1 round trip of the whole
+catalog's typed constructs) and `tests/vendor-extensions-mft-usm.test.ts` (the
 GenWiki Tabelle 2 tags, the FSFTID typing, and the GenWiki twins of
 the typed underscore tags).

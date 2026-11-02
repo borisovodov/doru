@@ -37,6 +37,7 @@ import {
   emitTodoRecord,
   emitEventDefinition,
   emitDuplicateCandidateRecord,
+  emitPublishedSiteRecord,
 } from './records';
 import {
   emitCensusRecord,
@@ -95,6 +96,11 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   }
   if (h.date !== undefined) {
     emitDateExact(w, version, 1, 'DATE', h.date, h.date.time);
+    if (h.timezone !== undefined) {
+      // MyHeritage: the timezone of the export date (see
+      // Header.timezone), written back under the header DATE.
+      w.line(2, '_TIMEZONE', { value: h.timezone });
+    }
   }
   if (h.submitter !== undefined) {
     // Written in both versions: 7.0 HEAD.SUBM is {0:1} (the pointer is
@@ -146,18 +152,18 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   // a patch level of an imported file (e.g. "7.0.14") is not carried
   // over — the output always conforms to the 7.0 core specification.
   w.line(2, 'VERS', { value: version === '7.0' ? '7.0' : '5.5.1' });
-  if (h.gedcom.addendum !== undefined) {
-    // The GEDCOM-L addendum declaration under GEDC.VERS (see
-    // Gedcom.addendum): written back in both versions; in 7.0 it
-    // travels as an extension under the standard GEDC structure.
-    w.line(3, '_ADDENDUM');
-    if (h.gedcom.addendum.version !== undefined) {
-      w.line(4, 'VERS', { value: h.gedcom.addendum.version });
+  for (const addendum of h.gedcom.addenda ?? []) {
+    // The GEDCOM-L addendum declarations under GEDC.VERS (see
+    // Gedcom.addenda): written back in both versions; in 7.0 they
+    // travel as extensions under the standard GEDC structure.
+    w.line(3, '_ADDENDUM', addendum.payload === undefined ? {} : { value: addendum.payload });
+    if (addendum.version !== undefined) {
+      w.line(4, 'VERS', { value: addendum.version });
     }
-    if (h.gedcom.addendum.www !== undefined) {
-      w.line(4, 'WWW', { value: h.gedcom.addendum.www });
+    if (addendum.www !== undefined) {
+      w.line(4, 'WWW', { value: addendum.www });
     }
-    emitExtensions(w, version, 4, h.gedcom.addendum);
+    emitExtensions(w, version, 4, addendum);
   }
   if (version === '5.5.1') {
     w.line(2, 'FORM', { value: 'LINEAGE-LINKED' });
@@ -181,6 +187,19 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   if (h.note !== undefined) {
     emitNoteStructure(w, version, 1, h.note);
   }
+  if (h.originalSource !== undefined) {
+    // The product that originally wrote the data (see
+    // Header.originalSource): written back as the `_ORGSOUR` block
+    // with its NAME/VERS children in both versions.
+    w.line(1, '_ORGSOUR');
+    if (h.originalSource.name !== undefined) {
+      w.line(2, 'NAME', { value: h.originalSource.name });
+    }
+    if (h.originalSource.version !== undefined) {
+      w.line(2, 'VERS', { value: h.originalSource.version });
+    }
+    emitExtensions(w, version, 2, h.originalSource);
+  }
   if (h.startPerson !== undefined) {
     // Ages! / Ahnenblatt / GEDitCOM: the start person shown after
     // opening the file (see Header.startPerson); written back as
@@ -189,6 +208,24 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
     if (h.startPersonMode !== undefined) {
       w.line(1, '_NAVM', { value: h.startPersonMode });
     }
+  }
+  if (h.projectGuid !== undefined) {
+    // MyHeritage: the project identifier (see Header.projectGuid).
+    w.line(1, '_PROJECT_GUID', { value: h.projectGuid });
+  }
+  if (h.exportedFromSiteId !== undefined) {
+    // MyHeritage: the exported-from site id (see
+    // Header.exportedFromSiteId).
+    w.line(1, '_EXPORTED_FROM_SITE_ID', { value: h.exportedFromSiteId });
+  }
+  if (h.recordCounts !== undefined) {
+    // MyHeritage: the record counts (see Header.recordCounts).
+    w.line(1, '_RINS', { value: h.recordCounts });
+  }
+  if (h.descriptionAware === true) {
+    // MyHeritage: the export includes descriptions (see
+    // Header.descriptionAware).
+    w.line(1, '_DESCRIPTION_AWARE', { value: 'Y' });
   }
   emitExtensions(w, version, 1, h);
 }
@@ -212,6 +249,7 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
     copyright?: string;
     extensions?: ExtensionStructure[];
   };
+  rtlSave?: string;
   extensions?: ExtensionStructure[];
 }): void {
   w.line(1, 'SOUR', { value: source.payload });
@@ -220,6 +258,10 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
   }
   if (source.name !== undefined) {
     w.line(2, 'NAME', { value: source.name });
+  }
+  if (source.rtlSave !== undefined) {
+    // MyHeritage: the right-to-left save mode (see HeaderSource.rtlSave).
+    w.line(2, '_RTLSAVE', { value: source.rtlSave });
   }
   if (source.corporation !== undefined) {
     emitCorporation(w, version, source.corporation);
@@ -322,6 +364,9 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
       return;
     case '_ALIA':
       emitDuplicateCandidateRecord(w, version, record as Parameters<typeof emitDuplicateCandidateRecord>[2]);
+      return;
+    case '_PUBLISH':
+      emitPublishedSiteRecord(w, version, record as Parameters<typeof emitPublishedSiteRecord>[2]);
       return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);
@@ -495,6 +540,7 @@ export function emitSubmission(w: Writer, version: Version, rec: {
   changeDate?: ChangeDate;
   automatedRecordId?: string;
   submitters?: string[];
+  importReference?: { record?: string; page?: string };
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -535,6 +581,15 @@ export function emitSubmission(w: Writer, version: Version, rec: {
     w.line(1, 'RIN', { value: rec.automatedRecordId });
   }
   emitGdoSubmitters(w, version, 1, rec.submitters);
+  if (rec.importReference !== undefined) {
+    // GDO: the import-file reference (see ImportFileReference), level 1
+    // of every record — the SUBN emitter writes its own copy because it
+    // does not go through commonRecordFields.
+    w.line(1, '_IMPF', rec.importReference.record === undefined ? {} : { value: rec.importReference.record });
+    if (rec.importReference.page !== undefined) {
+      w.line(2, 'PAGE', { value: rec.importReference.page });
+    }
+  }
   emitExtensions(w, version, 1, rec);
 }
 

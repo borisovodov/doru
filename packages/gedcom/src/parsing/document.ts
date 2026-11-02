@@ -65,6 +65,10 @@ import {
   parseSubmitterRecord,
 } from './submitters';
 import type { DuplicateCandidateRecord } from '../structures';
+import type { PublishedSiteRecord } from '../structures';
+import {
+  parsePrivacyFlag,
+} from './sources-media';
 import {
   dispatch,
   reqPtr,
@@ -107,6 +111,7 @@ export function parseDocument(raw: { nodes: RawNode[] }, version: GedcomVersion)
     synthetic: [],
     syntheticIndex: 0,
     schemaTags: new Map(),
+    schema53Labels: new Map(),
   };
   const nodes = raw.nodes;
 
@@ -227,6 +232,8 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseEventDefinitionRecord(node, ctx);
     case '_ALIA':
       return parseDuplicateCandidateRecord(node, ctx);
+    case '_PUBLISH':
+      return parsePublishedSiteRecord(node, ctx);
     default:
       if (node.tag.startsWith('_')) {
         return parseExtension(node, ctx) as ExtensionRecord;
@@ -282,6 +289,45 @@ function parseDuplicateCandidateRecord(node: RawNode, ctx: Ctx): DuplicateCandid
     },
     ctx,
     ['_CPT', '_INDI', '_QUAY', '_STAT'],
+  );
+  return rec;
+}
+
+/**
+ * Parses the MyHeritage `_PUBLISH` record (see PublishedSiteRecord):
+ * the site a tree was published to, with the `_SITEADDRESS`,
+ * `_SITENAME`, `_SITEID`, `_USERNAME` members and the `_DISABLED`
+ * flag. The wire shape comes from real MyHeritage exports; not part of
+ * any GEDCOM version.
+ */
+function parsePublishedSiteRecord(node: RawNode, ctx: Ctx): PublishedSiteRecord {
+  noPayload(node);
+  const rec: PublishedSiteRecord = {
+    tag: '_PUBLISH',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
+  dispatch(
+    node,
+    rec,
+    {
+      _SITEADDRESS: (child) => {
+        rec.siteAddress = reqText(child);
+      },
+      _SITENAME: (child) => {
+        rec.siteName = reqText(child);
+      },
+      _SITEID: (child) => {
+        rec.siteId = reqText(child);
+      },
+      _USERNAME: (child) => {
+        rec.username = reqText(child);
+      },
+      _DISABLED: (child) => {
+        rec.disabled = parsePrivacyFlag(child, '_DISABLED');
+      },
+    },
+    ctx,
+    ['_SITEADDRESS', '_SITENAME', '_SITEID', '_USERNAME', '_DISABLED'],
   );
   return rec;
 }

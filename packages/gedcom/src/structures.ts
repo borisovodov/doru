@@ -38,3 +38,4 @@ export * from './model/place-record';
 export * from './model/todo-record';
 export * from './model/event-definition-record';
 export * from './model/duplicate-record';
+export * from './model/published-site-record';

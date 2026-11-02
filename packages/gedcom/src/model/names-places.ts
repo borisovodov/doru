@@ -68,10 +68,22 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * Written by Der Stammbaum ≤ V6 (USM6) under the NAME tag (see the
    * GenWiki "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2",
    * "Varianten des Familiennamens"). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `NAME_` in 5.5.1;
+   * Recognized on 5.x input and written back as `_NAME_` in 5.5.1
+   * (the underscore spelling — the USM6 wire spelling `NAME_` is
+   * non-underscore, and 5.5.1 requires user-defined tags to begin
+   * with an underscore; both spellings are recognized on input);
    * dropped on 7.0 output.
    */
   surnameVariants?: Text;
+  /**
+   * _HEB {0:1} — the name in Hebrew script. Written by phpGedView
+   * under the NAME tag (the webtrees per-vendor custom-tag registry,
+   * PhpGedView.php: `INDI:NAME:_HEB`:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_HEB` under the NAME line in both versions.
+   */
+  hebrewName?: Text;
   /**
    * _DATE {0:1} — a date associated with the name: the name's period of
    * use or the date it was recorded. Written by The Master Genealogist
@@ -97,8 +109,10 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * Family Tree 7 as a subtag of NAME (see the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2": "bei mehreren
    * Vornamen alle ab dem 2. als UnterTag von NAME"). Not part of any
-   * GEDCOM version. Recognized on 5.x input and written back as `SECG`
-   * in 5.5.1; dropped on 7.0 output.
+   * GEDCOM version. Recognized on 5.x input and written back as `_SECG`
+   * in 5.5.1 (the underscore spelling — the MFT7 wire spelling `SECG`
+   * is non-underscore; both spellings are recognized on input);
+   * dropped on 7.0 output.
    */
   furtherGivenNames?: Text;
   /**
@@ -319,6 +333,15 @@ export interface PlaceStructure extends GedcomStructureBase {
    * back as `_MAIDENHEAD` in both versions.
    */
   maidenhead?: Text;
+  /**
+   * _HEB {0:1} — the place name in Hebrew script. Written by phpGedView
+   * under the PLAC tag (the webtrees per-vendor custom-tag registry,
+   * PhpGedView.php: `INDI:*:PLAC:_HEB`:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_HEB` under the PLAC line in both versions.
+   */
+  hebrewName?: Text;
   /**
    * The vendor master-place link: a `_LOC @xref@` child pointing at a
    * PlaceRecord (GEDCOM 5.5EL form), filled on input in both versions —

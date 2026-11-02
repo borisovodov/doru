@@ -46,6 +46,7 @@ import type { SourceCitation } from './sources-media';
 import type { SourceRepositoryCitation } from './sources-media';
 import type { SpouseSealingOrdinance } from './lds';
 import type { PlaceRecord } from './place-record';
+import type { PublishedSiteRecord } from './published-site-record';
 import type { TodoRecord } from './todo-record';
 import type { TodoStructure } from './todo-record';
 import type { EventDefinitionRecord } from './event-definition-record';
@@ -144,6 +145,27 @@ export interface MftSourceQuality extends GedcomStructureBase {
   information?: Text;
   /** _EVID {0:1} — the strength of the evidence in the source. */
   evidence?: Text;
+}
+
+/**
+ * The Family Origins (FO7) `_CORR` correspondence block under an
+ * individual: a correspondence entry with the REAS (reason), RESP
+ * (response) and RPLY (reply status) children. Catalogued in the
+ * Legacy "User-Defined GEDCOM Tags" help (see
+ * IndividualRecord.correspondence); not part of any GEDCOM version.
+ * The three children are free text (the catalogs document no value
+ * sets); any other children stay generic extensions of the block.
+ * Recognized on input and written back as the `_CORR` block in both
+ * versions.
+ */
+export interface CorrespondenceStructure extends GedcomStructureBase {
+  tag: '_CORR';
+  /** REAS {0:1} — the reason for the correspondence. */
+  reason?: Text;
+  /** RESP {0:1} — the response received. */
+  response?: Text;
+  /** RPLY {0:1} — the reply status (the catalog documents `Y`|`N`). */
+  replyStatus?: Text;
 }
 
 /**
@@ -300,7 +322,7 @@ export interface FamilyRecord extends GedcomStructureBase {
    * ("Paten und Zeugen als Text", the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" table:
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); recognized on
-   * input and written back as `_GODT`.
+   * input and written back as `_WITN`.
    */
   witnesses?: Text[];
   /**
@@ -320,7 +342,7 @@ export interface FamilyRecord extends GedcomStructureBase {
    * ≤ V6 (USM6) under FAM; the values are documented in the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" article's "Tabelle 2" (see UsmUnionKind).
    * Not part of any GEDCOM version. Recognized on 5.x input and
-   * written back as `UTYP` in 5.5.1; dropped on 7.0 output (7.0 cannot
+   * written back as `_UTYP` in 5.5.1; dropped on 7.0 output (7.0 cannot
    * spell a non-underscore extension tag).
    */
   unionKind?: UsmUnionKind;
@@ -590,13 +612,32 @@ export interface IndividualRecord extends GedcomStructureBase {
    * meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2" ("Person kann unterschreiben [ja/nein]"):
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag. Not part of any
-   * GEDCOM version. Recognized on 5.x input (`Y`, `YES`, `J`/`JA`, or
-   * `1` marks the flag set; `N`, `NO`, `NEIN`, or `0` clears it — the
-   * wire value is undocumented, so the usual flag spellings are
-   * accepted) and written back as `SIGN 1`/`SIGN 0` in 5.5.1; dropped
-   * on 7.0 output.
+   * GEDCOM version. Heredis writes the person's *signature* (free
+   * text) under the same tag (the webtrees per-vendor custom-tag
+   * registry, Heredis.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Heredis.php)
+   * — a payload that is not one of the flag spellings (`Y`, `YES`,
+   * `J`/`JA`, `1` set the flag; `N`, `NO`, `NEIN`, `0` clear it) is
+   * therefore kept as a generic extension of the record instead of
+   * failing the import. The 5.5.1 write-back uses the underscore
+   * spelling `_SIGN 1`/`_SIGN 0` (the USM6 wire spelling is a
+   * non-underscore vendor tag, and 5.5.1 requires user-defined tags
+   * to begin with an underscore; both spellings are recognized on
+   * input); 7.0 output drops the tag.
    */
   canSign?: boolean;
+  /**
+   * _CORR {0:1} — the correspondence entry of Family Origins (FO7): a
+   * block with the children REAS (the reason), RESP (the response) and
+   * RPLY (the reply status). Catalogued in the Legacy "User-Defined
+   * GEDCOM Tags" help ("Correspondence entry", with the REAS/RESP/RPLY
+   * sub-tags: https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as the `_CORR` block in both versions. (The bare
+   * non-underscore REAS/RESP/RPLY under INDI are typed separately as
+   * FACTs — see the legacy rules of parsing/vendor-tags.ts.)
+   */
+  correspondence?: CorrespondenceStructure;
   /**
    * _BKM {0:1} — the person is bookmarked. Written by Mac Family Tree
    * 7 under INDI (see the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
@@ -960,6 +1001,41 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * on input and written back as `_SOUND` in both versions.
    */
   soundFile?: Text;
+  /**
+   * _CREA {0:1} — the date the media object was created (a free text
+   * value; the wire format is undocumented, so it is kept verbatim).
+   * Written by Ancestry.com Family Trees under the OBJE record (the
+   * webtrees per-vendor custom-tag registry, Ancestry.php, "Creation":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Ancestry.php);
+   * not part of any GEDCOM version. Recognized on input and written
+   * back as `_CREA` in both versions.
+   */
+  createdAt?: Text;
+  /**
+   * _KEYS {0:1} — keywords of the media object. Written by Family
+   * Historian under the OBJE record (the Family Historian User Group
+   * knowledge base, "GEDCOM Extension List", "Multimedia: _NOTE,
+   * _FILE, _DATE, _KEYS":
+   * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/); not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `_KEYS` in both versions.
+   */
+  keywords?: Text;
+  /**
+   * _FILE {0:1} — the path of the media file. Written by Family
+   * Historian under the OBJE record (same source as `keywords`; the
+   * FHUG list documents the tag and its "path" meaning). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_FILE` in both versions.
+   */
+  filePath?: Text;
+  /**
+   * _NOTE {0:1} — a media note. Written by Family Historian under the
+   * OBJE record (same source as `keywords`). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_NOTE` in both
+   * versions.
+   */
+  mediaNote?: Text;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -1271,6 +1347,19 @@ export interface SourceRecord extends GedcomStructureBase {
    * Recognized on input and written back as `_BIBL` in both versions.
    */
   bibliography?: Text;
+  /**
+   * MEDI {0:1} — the media type of the source (the webtrees
+   * per-vendor custom-tag registry, Legacy.php, "Media type":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Legacy.php;
+   * written by Legacy Family Tree under the SOUR record with the
+   * standard tag in a non-standard position — neither the 5.5.1 nor
+   * the 7.0 SOURCE_RECORD has a MEDI slot, and 7.0 §1.5 requires
+   * extension tags to be underscore-prefixed). The value is free text
+   * (in practice the 7.0 enumset-MEDI vocabulary). Not part of any
+   * GEDCOM version. Recognized on 5.x input as `MEDI` and in both
+   * versions as `_MEDI`; written back as `_MEDI` in both versions.
+   */
+  medium?: Text;
   /** PUBL {0:1}, g7:PUBL — when and where the record was created. */
   publication?: Text;
   /**
@@ -1725,4 +1814,5 @@ export type GedcomRecord =
   | TodoRecord
   | EventDefinitionRecord
   | DuplicateCandidateRecord
+  | PublishedSiteRecord
   | ExtensionRecord;

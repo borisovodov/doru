@@ -161,6 +161,14 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
         out.www = atMostThree(node, 'WWW').map((item) => reqText(item));
       }
     };
+    handlers["URL"] = (_child) => {
+      // PAF writes the web address with the URL tag; GEDCOM 5.5.5
+      // recommends readers "Accept URL as a synonym for WWW" (5.5.5
+      // §2 p.65). Normalized into the standard www slot.
+      if (out.www === undefined) {
+        out.www = atMostThree(node, 'URL').map((item) => reqText(item));
+      }
+    };
   }
   dispatch(node, out, handlers, ctx, ['ADR1', 'ADR2', 'ADR3', 'CITY', 'STAE', 'POST', 'CTRY']);
   return out;
@@ -484,6 +492,10 @@ export function parseAge(
         const text = reqText(child);
         if (!/^\d+-\d+$/.test(text)) {
           fail('age.invalid', `Invalid age range "${text}"; expected "<integer>-<integer>"`, child.position);
+        }
+        const [low, high] = text.split('-').map((part) => Number(part)) as [number, number];
+        if (low >= high) {
+          fail('age.invalid', `Invalid age range "${text}"; the range is at least the first bound and less than the second, so the first bound must be lower`, child.position);
         }
         out.ageRange = text;
       },

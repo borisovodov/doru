@@ -67,14 +67,30 @@ describe('GEDCOM 5.5EL header marker', () => {
 
 describe('GEDCOM-L addendum declaration under GEDC.VERS', () => {
   const SAMPLE = ['0 HEAD', '1 SOUR PAF', '1 GEDC', '2 VERS 5.5.1', '3 _ADDENDUM', '4 VERS R2', '4 WWW https://example.com/addendum', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', ...SUBM, '0 TRLR'];
+  const NAMED = ['0 HEAD', '1 SOUR PAF', '1 GEDC', '2 VERS 5.5.1', '3 _ADDENDUM GEDCOM-L Addendum', '4 VERS R2', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', ...SUBM, '0 TRLR'];
 
-  test('parses into Gedcom.addendum', () => {
+  test('parses into Gedcom.addenda', () => {
     const dataset = parseOk551(SAMPLE.join('\n'));
-    expect(dataset.header.gedcom.addendum).toEqual({
+    expect(dataset.header.gedcom.addenda).toEqual([{
       tag: '_ADDENDUM',
       version: 'R2',
       www: 'https://example.com/addendum',
-    });
+    }]);
+  });
+
+  test('parses the addendum name payload (the spec §7.3 form)', () => {
+    const dataset = parseOk551(NAMED.join('\n'));
+    expect(dataset.header.gedcom.addenda).toEqual([{
+      tag: '_ADDENDUM',
+      payload: 'GEDCOM-L Addendum',
+      version: 'R2',
+    }]);
+  });
+
+  test('accepts several addenda ({0:M})', () => {
+    const text = ['0 HEAD', '1 SOUR PAF', '1 GEDC', '2 VERS 5.5.1', '3 _ADDENDUM GEDCOM-L Addendum', '3 _ADDENDUM GEDCOM-L EL Addendum', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', ...SUBM, '0 TRLR'].join('\n');
+    const dataset = parseOk551(text);
+    expect(dataset.header.gedcom.addenda?.map((entry) => entry.payload)).toEqual(['GEDCOM-L Addendum', 'GEDCOM-L EL Addendum']);
   });
 
   test('round-trips through the 5.5.1 serializer', () => {
@@ -82,7 +98,13 @@ describe('GEDCOM-L addendum declaration under GEDC.VERS', () => {
     expect(text).toContain('3 _ADDENDUM');
     expect(text).toContain('4 VERS R2');
     expect(text).toContain('4 WWW https://example.com/addendum');
-    expect(parseOk551(text).header.gedcom.addendum?.version).toBe('R2');
+    expect(parseOk551(text).header.gedcom.addenda?.[0]?.version).toBe('R2');
+  });
+
+  test('writes the name payload back', () => {
+    const text = ser551(parseOk551(NAMED.join('\n')));
+    expect(text).toContain('3 _ADDENDUM GEDCOM-L Addendum');
+    expect(parseOk551(text).header.gedcom.addenda?.[0]?.payload).toBe('GEDCOM-L Addendum');
   });
 });
 
@@ -100,9 +122,10 @@ describe('NOTE payload that looks like a pointer', () => {
     const dataset = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NOTE @FOO@\n0 TRLR\n');
     const indi = dataset.records.find((r): r is IndividualRecord => r.tag === 'INDI');
     expect(indi?.notes?.[0]?.payload).toBe('@FOO@');
-    // The writer re-emits the value verbatim; it re-parses into the
-    // same payload.
-    expect(ser70(dataset)).toContain('1 NOTE @FOO@');
+    // The writer doubles the leading @ (GEDCOM 7.0 §1.3: a line string
+    // starting with @ must escape it) so the value re-parses as text
+    // instead of a pointer.
+    expect(ser70(dataset)).toContain('1 NOTE @@FOO@');
     expect(parseOk70(ser70(dataset))).toEqual(dataset);
   });
 });
@@ -175,14 +198,16 @@ describe('vendor contact and identifier additions', () => {
     expect(ser551(dataset)).toContain('1 _EMAIL a@@b.c');
   });
 
-  test('PAF INDI contacts parse (EMAIL typed, ADDR/PHON/FAX verbatim)', () => {
+  test('PAF INDI contacts parse (EMAIL typed, ADDR/PHON/FAX kept for 7.0)', () => {
     const dataset = parseOk551([...HEADER551, '0 @I1@ INDI', '1 ADDR Main St', '2 CITY Town', '1 PHON 123', '1 EMAIL a@@b.c', ...SUBM, '0 TRLR'].join('\n'));
     const indi = dataset.records.find((r): r is IndividualRecord => r.tag === 'INDI');
     expect(indi?.email).toEqual(['a@b.c']);
+    // The INDI-level ADDR/PHON/FAX are non-underscore vendor positions:
+    // they have no conformant 5.5.1 spelling (user-defined tags must
+    // be underscore-prefixed), so the 5.5.1 writer drops them.
     const text = ser551(dataset);
-    expect(text).toContain('1 ADDR Main St');
-    expect(text).toContain('2 CITY Town');
-    expect(text).toContain('1 PHON 123');
+    expect(text).not.toContain('1 ADDR Main St');
+    expect(text).not.toContain('1 PHON 123');
     // The typed e-mail writes back as the _EMAIL spelling.
     expect(text).toContain('1 _EMAIL a@@b.c');
   });
@@ -285,11 +310,16 @@ describe('multimedia record additions', () => {
     expect(ser551(dataset)).toContain('1 _PRIM Y');
   });
 
-  test('Généatique OBJE.FORM/TITL are kept verbatim', () => {
+  test('Généatique OBJE.FORM/TITL are kept on input and dropped on export', () => {
     const dataset = parseOk551([...HEADER551, '0 @O1@ OBJE', '1 FILE p.jpg', '2 FORM jpg', '1 FORM gif', '1 TITL The picture', ...SUBM, '0 TRLR'].join('\n'));
+    // The record-level FORM/TITL are the GEDCOM 5.5 embedded shape: the
+    // 5.5.1 writer has no spelling for them and drops them; the FILE
+    // record itself survives.
     const text = ser551(dataset);
-    expect(text).toContain('1 FORM gif');
-    expect(text).toContain('1 TITL The picture');
+    expect(text).not.toContain('1 FORM gif');
+    expect(text).not.toContain('1 TITL The picture');
+    expect(text).toContain('0 @O1@ OBJE');
+    expect(text).toContain('1 FILE p.jpg');
   });
 });
 

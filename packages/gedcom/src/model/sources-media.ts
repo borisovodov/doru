@@ -122,7 +122,7 @@ export interface SourceCitation extends GedcomStructureBase {
    * citation (see the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
    * "Tabelle 2", "Name der Person, die Info in Quelle gefunden hat":
    * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag). Not part of any
-   * GEDCOM version. Recognized on 5.x input and written back as `RINI`
+   * GEDCOM version. Recognized on 5.x input and written back as `_RINI`
    * in 5.5.1; dropped on 7.0 output (7.0 cannot spell a non-underscore
    * extension tag).
    */
@@ -328,6 +328,50 @@ export interface MultimediaLink extends GedcomStructureBase {
    * both versions.
    */
   slideshow?: boolean;
+  /**
+   * `_THUM Y` {0:1} — the media item is the thumbnail of its parent
+   * record. Written by Généatique under the OBJE link (observed in
+   * real files: `2 _THUM Y` beside `_PRIM`; the webtrees per-vendor
+   * custom-tag registry, PhpGedView.php, lists `_THUM` as
+   * "thumbnail"). Not part of any GEDCOM version. Recognized on input
+   * (an absent value or `Y` marks the flag set, `N` clears it) and
+   * written back as `_THUM Y` in both versions.
+   */
+  thumbnail?: boolean;
+  /**
+   * _SEQ {0:1} — the sequence number of the media item within its
+   * parent record. Written by Family Historian under the OBJE link
+   * (the Family Historian User Group knowledge base, "GEDCOM Extension
+   * List", "Multimedia: _ASID, _SEQ, _AREA, _EXCL, _CAPT, _NOTA":
+   * https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/); not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `_SEQ` in both versions.
+   */
+  sequence?: Integer;
+  /**
+   * _AREA {0:1} — the area of the image to display, the Family
+   * Historian twin of the 7.0 CROP (the FHUG "GEDCOM Extension List"
+   * documents the display area as `{top,left,bottom,right}`; the wire
+   * payload is kept verbatim rather than parsed into the CROP fields,
+   * which use top/left/height/width). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_AREA` in both versions.
+   */
+  area?: Text;
+  /**
+   * _EXCL {0:1} — the media item is excluded from diagrams (the FHUG
+   * "GEDCOM Extension List" documents the value `ALL`; a bare tag or
+   * `Y`/`ALL` marks the flag set, `N` clears it). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_EXCL`
+   * in both versions.
+   */
+  excludeFromDiagrams?: boolean;
+  /**
+   * _CAPT {0:1} — the media item carries a caption (the FHUG "GEDCOM
+   * Extension List" documents the value `Y`; a bare tag or `Y` marks
+   * the flag set, `N` clears it). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_CAPT` in both versions.
+   */
+  caption?: boolean;
 }
 
 /**

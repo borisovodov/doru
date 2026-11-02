@@ -224,8 +224,10 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     const raw = date.value === undefined ? undefined : formatDateValue70(date.value);
     // A value the target cannot spell (the year-less 5.5.5 date form)
     // is dropped; TIME and PHRASE substructures still make the DATE
-    // meaningful.
-    if (raw !== undefined || date.time !== undefined || date.phrase !== undefined) {
+    // meaningful. An empty payload with no substructures at all has
+    // nothing to carry and is dropped too (GEDCOM 7.0 §1.2: a
+    // structure must have a non-empty payload or a substructure).
+    if ((raw !== undefined && raw !== '') || date.time !== undefined || date.phrase !== undefined) {
       w.line(level, tag, { value: raw === '' ? undefined : raw });
     }
     if (date.time !== undefined) {
@@ -245,38 +247,78 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
   // has no parenthesized form, so the phrase is written as a NOTE
   // subordinate to the DATE line — the alternative GEDCOM 5.5.1 §2
   // p.48 itself describes ("include the date phrase value as a NOTE
-  // value subordinate to the DATE line tag").
+  // value subordinate to the DATE line tag"). The 5.5.1 date structure
+  // also carries the optional TIME child (`n DATE <DATE_VALUE>` +
+  // `+1 TIME <TIME_VALUE>`), written right after the DATE line.
+  const writeDateLine = (value: string | undefined): void => {
+    w.line(level, tag, value === undefined ? {} : { value });
+    if (date.time !== undefined) {
+      w.line(level + 1, 'TIME', { value: formatTime(date.time, '5.5.1') });
+    }
+  };
   if (date.value === undefined) {
     if (date.phrase !== undefined) {
-      w.line(level, tag, { value: `(${date.phrase})` });
-    } else {
-      w.line(level, tag);
+      writeDateLine(`(${date.phrase})`);
+      emitExtensions(w, version, level + 1, date);
     }
-    emitExtensions(w, version, level + 1, date);
+    // An empty date with no phrase has no 5.5.1 spelling (the 5.5.1
+    // DATE_VALUE grammar has no empty production); the whole DATE —
+    // including its TIME — is dropped.
     return;
   }
   const raw = formatDateValue551(date.value);
   if (raw === undefined) {
-    // The year-less 5.5.5 date form; 5.5.1 cannot spell it, so the
-    // whole DATE (including its phrase NOTE) is dropped.
+    // A value the 5.5.1 grammar cannot spell directly (a BCE epoch on
+    // a month-bearing date; the year-less 5.5.5 form). When the 7.0
+    // spelling exists it is kept as the parenthesized 5.5.1 date
+    // phrase, which is lossless as text; the year-less form has no 7.0
+    // spelling either and is dropped.
+    const phraseSpelling = formatDateValue70(date.value);
+    if (phraseSpelling !== undefined && phraseSpelling !== '') {
+      writeDateLine(`(${phraseSpelling})`);
+      if (date.phrase !== undefined) {
+        w.line(level + 1, 'NOTE', { value: date.phrase });
+      }
+      emitExtensions(w, version, level + 1, date);
+    }
+    return;
+  }
+  if (raw === '') {
+    // The empty payload form (GEDCOM 7.0 §2.4): nothing to write on a
+    // 5.5.1 DATE line; a phrase still gives the DATE a body.
+    if (date.phrase !== undefined) {
+      writeDateLine(`(${date.phrase})`);
+    }
+    emitExtensions(w, version, level + 1, date);
     return;
   }
   if (date.phrase !== undefined) {
     if (date.value.kind === 'date') {
-      w.line(level, tag, { value: `INT ${raw} (${date.phrase})` });
+      writeDateLine(`INT ${raw} (${date.phrase})`);
     } else {
-      w.line(level, tag, { value: raw === '' ? undefined : raw });
+      writeDateLine(raw);
       w.line(level + 1, 'NOTE', { value: date.phrase });
     }
     emitExtensions(w, version, level + 1, date);
     return;
   }
-  w.line(level, tag, { value: raw === '' ? undefined : raw });
+  writeDateLine(raw);
   emitExtensions(w, version, level + 1, date);
 }
 
 export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
-  w.line(level, tag, { value: formatDateExact(date.value, version) });
+  const raw = formatDateExact(date.value, version);
+  if (raw === undefined) {
+    // A BCE epoch on a DateExact (programmatic only: the parsers
+    // reject it) — the 5.5.1 DATE_EXACT grammar allows `B.C.` only on
+    // the year-only form, so the value is kept as the parenthesized
+    // 5.5.1 date phrase (lossless as text).
+    const epoch = date.value.epoch === undefined ? '' : date.value.epoch === 'BCE' ? ' B.C.' : ` ${date.value.epoch}`;
+    w.line(level, tag, { value: `(${date.value.day} ${date.value.month} ${date.value.year}${epoch})` });
+    emitExtensions(w, version, level + 1, date);
+    return;
+  }
+  w.line(level, tag, { value: raw });
   if (time !== undefined) {
     w.line(level + 1, 'TIME', { value: formatTime(time, version) });
   }
@@ -430,7 +472,7 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   } else {
     // 5.5.1 events have no ASSO; the _SHAR/_ROLE pair carries them.
     for (const association of detail.associations ?? []) {
-      w.line(level, '_SHAR', { value: association.individual });
+      w.line(level, '_SHAR', { value: association.individual, pointer: true });
       if (association.primary === true) {
         // TMG: the "Primary Indicator Tag" under a shared event (see
         // AssociationStructure.primary); 7.0 has no slot for it.
@@ -478,16 +520,38 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // BKW6+: the event number (see EventDetail.eventNumber).
     w.line(level, '_EVN', { value: detail.eventNumber });
   }
+  if (detail.birthLength !== undefined) {
+    // Aldfaer: the length at birth (see EventDetail.birthLength).
+    w.line(level, '_LENGTH', { value: detail.birthLength });
+  }
+  if (detail.birthWeight !== undefined) {
+    // Aldfaer: the weight at birth (see EventDetail.birthWeight).
+    w.line(level, '_WEIGHT', { value: detail.birthWeight });
+  }
+  if (detail.cemetery !== undefined) {
+    // phpGedView: the cemetery of the burial (see EventDetail.cemetery);
+    // written back as the underscore spelling `_CEME`.
+    w.line(level, '_CEME', { value: detail.cemetery });
+  }
+  if (detail.createdAt !== undefined) {
+    // Heredis/MFT7/GenPlus: the event creation date (see
+    // EventDetail.createdAt).
+    w.line(level, '_CREAT', { value: detail.createdAt });
+  }
   if (version === '5.5.1') {
-    // The USM6 event marks; 7.0 cannot spell the non-underscore tags.
+    // The USM6 event marks; 7.0 cannot spell the tags. The 5.5.1
+    // output uses the underscore spellings `_POTM`/`_SRCH`/`_NOTRY` —
+    // the USM6 wire spellings are non-underscore vendor tags, and
+    // 5.5.1 requires user-defined tags to begin with an underscore.
+    // Both spellings are recognized on input.
     if (detail.posthumous !== undefined) {
-      w.line(level, 'POTM', { value: detail.posthumous ? '1' : '0' });
+      w.line(level, '_POTM', { value: detail.posthumous ? '1' : '0' });
     }
     if (detail.furtherResearch !== undefined) {
-      w.line(level, 'SRCH', { value: detail.furtherResearch });
+      w.line(level, '_SRCH', { value: detail.furtherResearch });
     }
     if (detail.notary !== undefined) {
-      w.line(level, 'NOTRY', { value: detail.notary });
+      w.line(level, '_NOTRY', { value: detail.notary });
     }
   }
   if (detail.factFlags !== undefined && detail.factFlags.length > 0) {
@@ -597,6 +661,25 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
     if (citation.quality !== undefined) {
       w.line(level + 1, 'QUAY', { value: citation.quality });
     }
+    if (citation.assessment !== undefined) {
+      // FH7: the citation assessment options (see
+      // SourceCitation.assessment) — written back in the free-text
+      // branch too, where the parser accepts it.
+      w.line(level + 1, '_QUAY', { value: citation.assessment });
+    }
+    for (const metafield of citation.metafields ?? []) {
+      // FH7: the source-template metafield (see
+      // SourceCitation.metafields).
+      w.line(level + 1, '_FIELD', { value: metafield.name });
+      if (metafield.text !== undefined) {
+        w.line(level + 2, 'TEXT', { value: metafield.text });
+      }
+    }
+    if (version === '5.5.1' && citation.foundBy !== undefined) {
+      // USM6: who found the source information (see
+      // SourceCitation.foundBy).
+      w.line(level + 1, '_RINI', { value: citation.foundBy });
+    }
     if (citation.submitter !== undefined) {
       // GDO: a pointer to the submitter record of this citation (see
       // SourceCitation.submitter).
@@ -649,8 +732,10 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (version === '5.5.1' && citation.foundBy !== undefined) {
     // USM6: who found the source information (see
-    // SourceCitation.foundBy); 7.0 cannot spell the non-underscore tag.
-    w.line(level + 1, 'RINI', { value: citation.foundBy });
+    // SourceCitation.foundBy); 7.0 cannot spell the tag. Written as
+    // the underscore spelling `_RINI` (both spellings are recognized
+    // on input).
+    w.line(level + 1, '_RINI', { value: citation.foundBy });
   }
   if (citation.data !== undefined) {
     w.line(level + 1, 'DATA');
@@ -745,6 +830,29 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
   if (link.slideshow === true) {
     w.line(level + 1, '_SSHOW', { value: 'Y' });
   }
+  if (link.thumbnail === true) {
+    // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
+    w.line(level + 1, '_THUM', { value: 'Y' });
+  }
+  if (link.sequence !== undefined) {
+    // FH: the sequence number of the media item (see
+    // MultimediaLink.sequence).
+    w.line(level + 1, '_SEQ', { value: String(link.sequence) });
+  }
+  if (link.area !== undefined) {
+    // FH: the display area (see MultimediaLink.area); the payload is
+    // kept verbatim.
+    w.line(level + 1, '_AREA', { value: link.area });
+  }
+  if (link.excludeFromDiagrams === true) {
+    // FH: the media item is excluded from diagrams (see
+    // MultimediaLink.excludeFromDiagrams).
+    w.line(level + 1, '_EXCL', { value: 'ALL' });
+  }
+  if (link.caption === true) {
+    // FH: the media item carries a caption (see MultimediaLink.caption).
+    w.line(level + 1, '_CAPT', { value: 'Y' });
+  }
   if (version === '7.0') {
     if (link.crop !== undefined) {
       w.line(level + 1, 'CROP');
@@ -773,20 +881,25 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
 }
 
 export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, top = true): void {
-  if (top && version === '7.0' && !ext.tag.startsWith('_')) {
-    // GEDCOM 7.0 §1.5 extension tags must be underscore-prefixed
-    // (extTag): a non-underscore vendor extension accepted from 5.x
-    // input (see parsing/vendor-tags.ts) has no 7.0 spelling and is
-    // dropped, like the other 5.5.1-only constructs. Nested children
-    // are exempt: their meaning is defined by the containing extension,
-    // which may use standard tags (GEDCOM 7.0 §1.5).
+  if (top && !ext.tag.startsWith('_')) {
+    // A non-underscore vendor extension accepted from 5.x input (see
+    // parsing/vendor-tags.ts) is not spelled by either target grammar:
+    // 7.0 §1.5 extension tags must be underscore-prefixed (extTag),
+    // and 5.5.1 reserves the underscore prefix for user-defined tags
+    // the same way. It is dropped on export in both versions. Nested
+    // children are exempt: their meaning is defined by the containing
+    // extension, which may use standard tags (GEDCOM 7.0 §1.5).
     return;
   }
   const payload = ext.payload === undefined ? undefined : ext.payload;
-  // The cross-reference identifier is written at every level: GEDCOM
-  // 7.0 §1.5 permits an xref on a tagged extension structure wherever
-  // it occurs (see ExtensionStructure.xref).
-  w.line(level, ext.tag, { xref: ext.xref, value: payload });
+  // The cross-reference identifier: GEDCOM 7.0 §1.3 forbids one on a
+  // substructure ("A substructure or pseudo-structure must not have a
+  // cross-reference identifier"), so 7.0 output carries it only at
+  // record level (level 0); 5.5.1 files in the wild carry xrefs on
+  // vendor substructures, and the lenient 5.5.1 writer keeps them
+  // verbatim (see ExtensionStructure.xref).
+  const xref = version === '7.0' && level > 0 ? undefined : ext.xref;
+  w.line(level, ext.tag, { xref, value: payload, ...(ext.payloadKind === 'pointer' ? { pointer: true } : {}) });
   for (const child of ext.children) {
     emitExtension(w, version, level + 1, child, false);
   }

@@ -245,13 +245,27 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PersonalNameStructure.surnameVariants).
       out.surnameVariants = reqText(child);
     };
+    handlers['_NAME_'] = (child) => {
+      // The underscore write-back spelling of the USM6 NAME_ (the USM6
+      // wire spelling is non-underscore; both are recognized).
+      out.surnameVariants = reqText(child);
+    };
     handlers['SECG'] = (child) => {
       // MFT7: the second and further given names (see
       // PersonalNameStructure.furtherGivenNames).
       out.furtherGivenNames = reqText(child);
     };
+    handlers['_SECG'] = (child) => {
+      // The underscore write-back spelling of the MFT7 SECG.
+      out.furtherGivenNames = reqText(child);
+    };
+    handlers['_HEB'] = (child) => {
+      // phpGedView: the name in Hebrew script (see
+      // PersonalNameStructure.hebrewName).
+      out.hebrewName = reqText(child);
+    };
   }
-  dispatch(node, out, handlers, ctx, ['UGNM', 'NAME_', 'SECG']);
+  dispatch(node, out, handlers, ctx, ['UGNM', 'NAME_', '_NAME_', 'SECG', '_SECG']);
   return out;
 }
 
@@ -386,6 +400,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     },
     '_MAIDENHEAD': (child) => {
       out.maidenhead = reqText(child);
+    },
+    '_HEB': (child) => {
+      // phpGedView: the place name in Hebrew script (see
+      // PlaceStructure.hebrewName).
+      out.hebrewName = reqText(child);
     },
     '_COR': (child) => {
       // MFT7: the place coordinates, split into degrees/minutes/seconds

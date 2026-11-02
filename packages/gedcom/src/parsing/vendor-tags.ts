@@ -14,7 +14,9 @@
  *
  * The catalog of non-underscore tags has three sources. The Legacy
  * "User-Defined GEDCOM Tags" catalog ("Tags Not Specified in GEDCOM
- * 5.5") is the primary one; its 131 entries are the tables below. The
+ * 5.5") is the primary one: the tables below were compiled from its
+ * original 131 entries (the page has since grown to 139; the additions
+ * carry no new programs). The
  * GenWiki "GEDCOM/_Nutzerdef-Tag" article's second table ("Abweichungen
  * vom Standard bei der Verwendung", itself based on
  * gencom.org.nz/GEDCOM_tags.html) adds the non-underscore deviations of
@@ -49,9 +51,11 @@
  *   standard spelling of the target version (`CIRC` → `EVEN` + `TYPE
  *   Circumcision`, `URL` → `_URL`, `UMAR` → `_NMAR`, `FATH` → `ASSO` +
  *   `RELA Father` / `ASSO` + `ROLE OTHER` + `PHRASE Father`, …); the
- *   vendor tag itself is not written back. The generic remainder is
- *   re-emitted verbatim on 5.5.1 export and dropped on 7.0 export
- *   (7.0 cannot spell a non-underscore extension tag).
+ *   vendor tag itself is not written back. The generic remainder has
+ *   no conformant spelling in either target version (5.5.1 reserves
+ *   the underscore prefix for user-defined tags, and 7.0 §1.5
+ *   requires extension tags to be underscore-prefixed) and is
+ *   dropped on export in both versions.
  * - Unknown non-underscore tags remain strict errors
  *   (`structure.unknown-tag`) — the list below is closed.
  */
@@ -278,7 +282,8 @@ export const LEGACY_FAMILY_TAGS: Readonly<Record<string, LegacyFamilyRule>> = {
  * The legacy tags with no typed rule: their meaning is undocumented
  * (the catalogs mark them "???") or their position is (SCHEMA, LABL,
  * outside their schema context). They stay generic extensions,
- * preserved verbatim (dropped on 7.0 export).
+ * dropped on export in both versions (neither target grammar can
+ * spell a non-underscore extension tag).
  *
  * The second group is the GenWiki "GEDCOM/_Nutzerdef-Tag" table of
  * non-underscore deviations (based on gencom.org.nz/GEDCOM_tags.html):
@@ -352,4 +357,11 @@ export const NON_UNDERSCORE_VENDOR_TAGS: ReadonlySet<string> = new Set([
   'IDNO', // Ancestral Quest: reference number (standard 7.0 IDNO attribute).
   'NATI', // Reunion: nationality (standard 5.5.1/7.0 NATI attribute).
   'SUBM', // FamHer: "association to a parent" (standard SUBM pointer elsewhere).
+  // The webtrees per-vendor custom-tag registry additions: tags with a
+  // documented position that has no typed handler — accepted as
+  // generic extensions on 5.x input so the files import.
+  'RFN', // Pro-Gen: reference number under FAM (typed there; generic elsewhere).
+  'TIME', // Pro-Gen: the time of birth directly under BIRT (the standard
+  // DATE.TIME slot is typed; this position stays generic).
+  'MEDI', // Legacy: the media type under the SOUR record (typed there; generic elsewhere).
 ]);

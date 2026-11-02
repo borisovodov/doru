@@ -22,8 +22,10 @@ import type {
   ChangeDate,
   DateStructure,
   EventDetail,
+  RoleStructure,
 } from './common';
 import type { GedcomStructureBase } from './extensions';
+import type { SexEnum } from '../enumerations';
 import type { PersonalNameStructure } from './names-places';
 import type { IndividualRecord, SourceRecord } from './records';
 
@@ -99,10 +101,23 @@ export interface CensusIndividual extends GedcomStructureBase {
   name?: PersonalNameStructure;
   /** OCCU {0:1} — the occupation (a relocated attribute). */
   occupation?: CensusRelocatedAttribute;
-  /** ROLE {0:1} — the role of the individual in the census, free text. */
-  role?: Text;
-  /** SEX {0:1} — the sex as recorded, free text. */
-  sex?: Text;
+  /**
+   * ROLE {0:1} — the role of the individual in the census. The
+   * registry (structure/extension/MagiKey_CENR_INDI.yaml) wires the
+   * tag to the v5.5.1 ROLE structure: one of CHIL/HUSB/WIFE/MOTH/FATH/
+   * SPOU or a parenthesized descriptor (normalized to OTHER + PHRASE).
+   * Real MagiKey files also write bare descriptors (`Head`), which
+   * parse as OTHER with the text kept in the phrase — a documented
+   * leniency; the write-back spells them parenthesized.
+   */
+  role?: RoleStructure;
+  /**
+   * SEX {0:1} — the sex as recorded. The registry wires the tag to the
+   * standard SEX structure; it is typed like the INDI SEX (the
+   * version's enum values, case-insensitive and canonicalized on 5.x
+   * input). The export uses the SEX projection of the target version.
+   */
+  sex?: SexEnum;
 }
 
 /**

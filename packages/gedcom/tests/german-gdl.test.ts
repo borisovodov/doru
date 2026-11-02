@@ -348,11 +348,16 @@ describe('the GEDCOM-L _ASSO associations', () => {
 });
 
 describe('the FAM _TYPE strictness', () => {
-  test('only the value same-sex is defined', () => {
+  test('a value other than same-sex stays a generic extension', () => {
+    // Other programs write relationship-kind values under FAM _TYPE
+    // (only same-sex is defined by the GEDCOM-L convention); such
+    // values must not fail the import — they are preserved verbatim.
     const withOther = parseGedcom551(enc(SAMPLE.replace('1 _TYPE same-sex', '1 _TYPE sonstiges')));
-    expect(withOther.ok).toBe(false);
-    if (!withOther.ok) {
-      expect(withOther.error.code).toBe('enum.invalid-value');
+    expect(withOther.ok).toBe(true);
+    if (withOther.ok) {
+      const fam = withOther.value.records.find((r) => r.tag === 'FAM');
+      expect((fam as { sameSexUnion?: true } | undefined)?.sameSexUnion).toBeUndefined();
+      expect((fam as { extensions?: { tag: string; payload?: string }[] }).extensions?.[0]).toMatchObject({ tag: '_TYPE', payload: 'sonstiges' });
     }
   });
 });

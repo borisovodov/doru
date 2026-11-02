@@ -31,7 +31,17 @@ describe('Writer (7.0)', () => {
     w.line(1, 'NOTE', { value: '@me and @I' });
     w.line(1, 'NOTE', { value: '@I1@' });
     w.line(1, 'NOTE', { value: '@VOID@' });
-    expect(w.lines).toEqual(['1 NOTE @@me and @I', '1 NOTE @I1@', '1 NOTE @VOID@']);
+    // A line value starting with @ must double the @ (GEDCOM 7.0 §1.3)
+    // — even an xref-shaped Text. Only explicit pointer values are
+    // emitted verbatim.
+    expect(w.lines).toEqual(['1 NOTE @@me and @I', '1 NOTE @@I1@', '1 NOTE @@VOID@']);
+  });
+
+  test('keeps explicit pointer values verbatim', () => {
+    const w = new Writer('7.0');
+    w.line(1, 'SOUR', { value: '@S1@', pointer: true });
+    w.line(1, 'SUBM', { value: '@VOID@', pointer: true });
+    expect(w.lines).toEqual(['1 SOUR @S1@', '1 SUBM @VOID@']);
   });
 
   test('splits multiline payloads with CONT and escapes a leading at-sign per part', () => {
@@ -56,9 +66,15 @@ describe('Writer (7.0)', () => {
 describe('Writer (5.5.1)', () => {
   test('keeps pointer values verbatim', () => {
     const w = new Writer('5.5.1');
-    w.line(1, 'SOUR', { value: '@S1@' });
-    w.line(1, 'SUBM', { value: '@VOID@' });
+    w.line(1, 'SOUR', { value: '@S1@', pointer: true });
+    w.line(1, 'SUBM', { value: '@VOID@', pointer: true });
     expect(w.lines).toEqual(['1 SOUR @S1@', '1 SUBM @VOID@']);
+  });
+
+  test('doubles an xref-shaped Text like any other text', () => {
+    const w = new Writer('5.5.1');
+    w.line(1, 'NOTE', { value: '@S1@' });
+    expect(w.lines).toEqual(['1 NOTE @@S1@@']);
   });
 
   test('doubles at-signs but preserves escape sequences', () => {
@@ -142,7 +158,14 @@ describe('value formatting', () => {
     expect(formatDateFields({ year: 1900 }, '7.0')).toBe('1900');
     expect(formatDateFields({ calendar: 'HEBREW', month: 'TSH', year: 5750 }, '7.0')).toBe('HEBREW TSH 5750');
     expect(formatDateFields({ calendar: 'JULIAN', day: 5, month: 'OCT', year: 1582 }, '5.5.1')).toBe('@#DJULIAN@ 5 OCT 1582');
-    expect(formatDateFields({ calendar: 'FRENCH_R', day: 5, month: 'VEND', year: 8, epoch: 'BCE' }, '5.5.1')).toBe('@#DFRENCH R@ 5 VEND 8 B.C.');
+    expect(formatDateFields({ calendar: 'JULIAN', year: 44, epoch: 'BCE' }, '5.5.1')).toBe('@#DJULIAN@ 44 B.C.');
+    // The 5.5.1 DATE grammars allow `B.C.` only on the year-only form:
+    // a month-bearing date with an epoch has no 5.5.1 spelling (the
+    // caller falls back to the parenthesized date phrase).
+    expect(formatDateFields({ calendar: 'FRENCH_R', day: 5, month: 'VEND', year: 8, epoch: 'BCE' }, '5.5.1')).toBeUndefined();
+    expect(formatDateFields({ day: 1, month: 'JAN', year: 1700, epoch: 'BCE' }, '5.5.1')).toBeUndefined();
+    // 7.0 allows the epoch on any form (GEDCOM 7.0 §2.4 `[D epoch]`).
+    expect(formatDateFields({ day: 1, month: 'JAN', year: 1700, epoch: 'BCE' }, '7.0')).toBe('1 JAN 1700 BCE');
   });
 
   test('formatDateValue70 covers every variant', () => {
@@ -183,7 +206,11 @@ describe('value formatting', () => {
     // an epoch on the model value is not emitted (the output always
     // matches the grammar).
     expect(formatDateExact({ day: 1, month: 'JAN', year: 44, epoch: 'BCE' }, '7.0')).toBe('1 JAN 44');
-    expect(formatDateExact({ day: 1, month: 'JAN', year: 44, epoch: 'BCE' }, '5.5.1')).toBe('1 JAN 44 B.C.');
+    // The 5.5.1 DATE_EXACT grammar likewise has no epoch slot for a
+    // day-month-year date: the formatter reports the unspellable value
+    // (undefined) and the caller keeps it as the parenthesized date
+    // phrase.
+    expect(formatDateExact({ day: 1, month: 'JAN', year: 44, epoch: 'BCE' }, '5.5.1')).toBeUndefined();
   });
 
   test('formatTime', () => {

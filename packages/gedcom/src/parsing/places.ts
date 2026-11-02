@@ -87,6 +87,15 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         LANG: (grandchild) => {
           entry.language = reqText(grandchild);
         },
+        _LANG: (grandchild) => {
+          // The historical GEDCOM 5.5EL spelling of the name language
+          // (superseded by the GEDCOM-L LANG child; see the English
+          // GenWiki article "Gedcom 5.5EL":
+          // http://wiki-en.genealogy.net/Gedcom_5.5EL). Both spellings
+          // normalize into PlaceNameStructure.language; the write-back
+          // uses LANG.
+          entry.language = reqText(grandchild);
+        },
         NAMC: (grandchild) => {
           // GEDCOM 5.5EL gives the `_LOC` name an optional NAMC child,
           // an addition to the place name (the GEDCOM 5.5EL spec, e.g.
@@ -115,6 +124,15 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       out.maidenhead = reqText(child);
     },
     '_POST': (child) => {
+      const entry: PostalCodeStructure = { code: reqText(child) };
+      (out.postalCodes ??= []).push(entry);
+      dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
+    },
+    'POST': (child) => {
+      // The historical GEDCOM 5.5EL spelling of the postal code under
+      // the _LOC record (superseded by the GEDCOM-L `_POST` spelling,
+      // which normalizes into the same PlaceRecord.postalCodes slot).
+      // Accepted on 5.x input only; written back as `_POST`.
       const entry: PostalCodeStructure = { code: reqText(child) };
       (out.postalCodes ??= []).push(entry);
       dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);

@@ -141,6 +141,62 @@ export interface Header extends GedcomStructureBase {
    * `_NAVM` in both versions.
    */
   startPersonMode?: '0' | '1' | '2';
+  /**
+   * `_PROJECT_GUID` {0:1} — the MyHeritage project identifier of the
+   * tree. Written under HEAD by MyHeritage exports (observed in real
+   * files: `1 _PROJECT_GUID ICAP1527-…`); not part of any GEDCOM
+   * version. Recognized on input and written back as `_PROJECT_GUID`
+   * in both versions.
+   */
+  projectGuid?: Text;
+  /**
+   * `_EXPORTED_FROM_SITE_ID` {0:1} — the MyHeritage site the tree was
+   * exported from (a numeric id). Written under HEAD by MyHeritage
+   * exports (`1 _EXPORTED_FROM_SITE_ID 246677391`); not part of any
+   * GEDCOM version. Recognized on input and written back as
+   * `_EXPORTED_FROM_SITE_ID` in both versions.
+   */
+  exportedFromSiteId?: Text;
+  /**
+   * `_RINS` {0:1} — the record counts of the exported tree, a
+   * comma-separated list keyed by record letter (MyHeritage exports:
+   * `I224,F94,N0,M0,R0,S0,U2,L0,P0,Q0,IF480,FF69`). Kept verbatim —
+   * the vendor documents no key semantics. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_RINS` in both
+   * versions.
+   */
+  recordCounts?: Text;
+  /**
+   * `_TIMEZONE` {0:1} — the timezone of the export date, written by
+   * MyHeritage under HEAD.DATE (`2 _TIMEZONE GMT+-0`). Kept verbatim
+   * (the observed value is free text). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_TIMEZONE` under the
+   * header DATE in both versions.
+   */
+  timezone?: Text;
+  /**
+   * `_DESCRIPTION_AWARE Y` {0:1} — the exported data includes the
+   * description field (a presence flag). Written by MyHeritage under
+   * HEAD; not part of any GEDCOM version. Recognized on input (an
+   * absent value or `Y` marks the flag set, `N` clears it) and written
+   * back as `_DESCRIPTION_AWARE Y` in both versions.
+   */
+  descriptionAware?: boolean;
+  /**
+   * `_ORGSOUR` {0:1} — the product that originally wrote the data, as
+   * opposed to the product writing this file: when a program re-saves
+   * a GEDCOM file written by another program, the foreign file's SOUR,
+   * SOUR.NAME and SOUR.VERS are preserved under `_ORGSOUR`, with NAME
+   * and VERS children. Documented in the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table ("Ursprungsprogramm, wenn vormals
+   * schon als GEDCOM gespeichert war": the SOUR, SOUR.NAME and
+   * SOUR.VERS of a foreign GEDCOM file remain as `_ORGSOUR`,
+   * `_ORGSOUR.NAME` and `_ORGSOUR.VERS`,
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
+   * GEDCOM version. Recognized on input and written back as the
+   * `_ORGSOUR` block in both versions.
+   */
+  originalSource?: OriginalSourceStructure;
 }
 /**
  * GEDCOM 7.0 §3.2.1 HEADER rule — g7:GEDC: a container for information about the
@@ -160,30 +216,50 @@ export interface Gedcom extends GedcomStructureBase {
    */
   form?: Text;
   /**
-   * `_ADDENDUM` {0:1} — a declaration under GEDC.VERS that the document
-   * follows the GEDCOM-L addendum ("GEDCOM 5.5.1 Specification GEDCOM-L
-   * Addendum", §7.3, 2nd release 2020-12-01, eds. A. Emmerich &
-   * D. Hesmer, of the German GEDCOM-L working group), naming the
-   * addendum version this file follows and where it is published.
-   * Recognized on input in both versions and written back as
-   * `_ADDENDUM` under GEDC.VERS in both versions.
+   * `_ADDENDUM` {0:M} — declarations that the document follows the
+   * GEDCOM-L addendum ("GEDCOM 5.5.1 Specification GEDCOM-L Addendum",
+   * §7.3, 2nd release 2020-12-01, eds. A. Emmerich & D. Hesmer, of the
+   * German GEDCOM-L working group). Each declaration names the
+   * addendum in its payload (`3 _ADDENDUM GEDCOM-L Addendum`), the
+   * spec's form is `n _ADDENDUM <ADDENDUM_NAME> {1:80}` with the
+   * optional VERS and WWW children; a file may carry several
+   * declarations ({0:M}, e.g. one per extension agreement it
+   * follows). Recognized on input in both versions and written back
+   * as `_ADDENDUM` under GEDC.VERS in both versions.
    */
-  addendum?: GedcomAddendum;
+  addenda?: GedcomAddendum[];
 }
 
 /**
  * GEDCOM-L Addendum §7.3 — `_ADDENDUM`: the declaration under
  * GEDC.VERS that the document follows the addendum ("GEDCOM 5.5.1
  * Specification GEDCOM-L Addendum", 2nd release 2020-12-01, eds.
- * A. Emmerich & D. Hesmer). Carries the addendum's own version and web
- * address. Not part of any GEDCOM version.
+ * A. Emmerich & D. Hesmer). The payload names the addendum; VERS and
+ * WWW carry its version and web address. Not part of any GEDCOM
+ * version.
  */
 export interface GedcomAddendum extends GedcomStructureBase {
   tag: '_ADDENDUM';
+  /** The _ADDENDUM payload, {0:1} — the addendum's name (<ADDENDUM_NAME> {1:80} in the spec). */
+  payload?: Text;
   /** VERS {0:1} — the addendum version the document follows. */
   version?: Text;
   /** WWW {0:1} — where the addendum is published. */
   www?: Text;
+}
+
+/**
+ * `_ORGSOUR` under HEAD — the product that originally wrote the data
+ * (see Header.originalSource): the foreign file's SOUR.NAME and
+ * SOUR.VERS kept as NAME/VERS children. Documented in the GenWiki
+ * "GEDCOM/_Nutzerdef-Tag" table; not part of any GEDCOM version.
+ */
+export interface OriginalSourceStructure extends GedcomStructureBase {
+  tag: '_ORGSOUR';
+  /** NAME {0:1} — the original product's name (the foreign SOUR.NAME). */
+  name?: Text;
+  /** VERS {0:1} — the original product's version (the foreign SOUR.VERS). */
+  version?: Text;
 }
 
 /**
@@ -230,6 +306,13 @@ export interface HeaderSource extends GedcomStructureBase {
   corporation?: Corporation;
   /** DATA {0:1}, g7:HEAD-SOUR-DATA — the larger database this data is extracted from (deprecated; use NAME instead). GEDCOM 7.0 §3.2.1. */
   data?: HeaderSourceData;
+  /**
+   * `_RTLSAVE` {0:1} — the right-to-left save mode of the exporting
+   * program (MyHeritage exports: `2 _RTLSAVE RTL` under HEAD.SOUR).
+   * Kept verbatim. Not part of any GEDCOM version. Recognized on input
+   * and written back as `_RTLSAVE` in both versions.
+   */
+  rtlSave?: Text;
 }
 
 /**

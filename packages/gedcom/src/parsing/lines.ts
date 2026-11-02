@@ -225,10 +225,17 @@ function parseValue(raw: string, version: GedcomVersion, position: SourcePositio
       continue;
     }
     if (c === '@') {
-      fail('line.unescaped-at', 'A single @ in a line value must start a pointer or an escape, or be doubled', {
-        ...position,
-        column: position.column + i,
-      });
+      // A lone interior @ is tolerated as a literal character: real
+      // files (the canonical Legacy custom-tags sample ships
+      // `matt@gecom4j.org`, and emails break the doubling rule all the
+      // time) carry unescaped @ inside text values, and every major
+      // reader accepts them. The ambiguity the doubling rule guards
+      // against exists only at the start of the value, which the
+      // pointer/escape check above already resolves; the writer still
+      // doubles every @ on export.
+      out += c;
+      i++;
+      continue;
     }
     out += c;
     i++;
@@ -377,11 +384,19 @@ export function parseRawDocument(document: DecodedDocument, version: GedcomVersi
       );
     }
     if (target.value.kind !== 'text') {
-      fail(
-        'line.continuation-no-payload',
-        `A ${continuation.tag} line has no text payload to continue`,
-        continuation.position,
-      );
+      if (target.value.kind === 'absent') {
+        // Real files continue an empty payload: the canonical Legacy
+        // sample writes `0 @N1@ NOTE` + `1 CONC text`. Tolerated — the
+        // empty payload becomes the empty string and the continuation
+        // merges into it.
+        target.value = { kind: 'text', text: '' };
+      } else {
+        fail(
+          'line.continuation-no-payload',
+          `A ${continuation.tag} line has no text payload to continue`,
+          continuation.position,
+        );
+      }
     }
     if (continuation.value.kind === 'pointer') {
       fail('line.continuation-no-payload', 'A continuation line must not carry a pointer', continuation.position);

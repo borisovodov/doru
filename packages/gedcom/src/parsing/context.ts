@@ -44,6 +44,14 @@ export interface Ctx {
    * resolveDocumentedTag and parsing/document.ts).
    */
   schemaTags: Map<string, string[]>;
+  /**
+   * The HEAD.SCHEMA user-tag labels (the GEDCOM 5.3/FTM schema block,
+   * see Header.schema53): each declared tag's context chain (joined
+   * with `/`, e.g. `INDI/_FA1`) mapped to its LABL text, filled while
+   * the header parses. The FTM `_FA1`–`_FA13` fact handlers resolve
+   * their TYPE from it.
+   */
+  schema53Labels: Map<string, string>;
 }
 
 // ---------------------------------------------------------------------------

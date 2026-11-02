@@ -646,7 +646,9 @@ describe('family and individual records', () => {
     expect(err551([...H551, '0 @F1@ FAM', '1 _MARR Y', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
     expect(err551([...H551, '0 @F1@ FAM', '1 _NMR N', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
     expect(err551([...H551, '0 @F1@ FAM', '1 _MARR N', '2 BOGUS x', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
-    expect(err551([...H551, '0 @F1@ FAM', '1 _TYPE other', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
+    // A FAM _TYPE value other than same-sex no longer fails the import:
+    // it is preserved as a generic extension (see the FAM _TYPE handler).
+    expect(parse551([...H551, '0 @F1@ FAM', '1 _TYPE other', ...SUBM, '0 TRLR'].join('\n'))).toBeTruthy();
   });
 
   test('vendor INDI names, attributes, facts, negatives and identifiers', () => {

@@ -545,7 +545,7 @@ export interface EventDetail extends GedcomStructureBase {
    * GEDCOM version. Recognized on 5.x input (an absent value, `Y`,
    * `YES`, `J`/`JA`, or `1` marks the flag set; `N`, `NO`, `NEIN`, or
    * `0` clears it — the wire value is undocumented, so the usual flag
-   * spellings are accepted) and written back as `POTM 1`/`POTM 0` in
+   * spellings are accepted) and written back as `_POTM 1`/`_POTM 0` in
    * 5.5.1; dropped on 7.0 output (7.0 cannot spell a non-underscore
    * extension tag).
    */
@@ -557,7 +557,7 @@ export interface EventDetail extends GedcomStructureBase {
    * documented in the GenWiki "GEDCOM/_Nutzerdef-Tag" article's
    * "Tabelle 2" ("Ort für weitere Recherchen zum Ereignis"; see
    * `posthumous` for the URL). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `SRCH` in 5.5.1;
+   * Recognized on 5.x input and written back as `_SRCH` in 5.5.1;
    * dropped on 7.0 output.
    */
   furtherResearch?: Text;
@@ -567,7 +567,7 @@ export interface EventDetail extends GedcomStructureBase {
    * the meaning is documented in the GenWiki "GEDCOM/_Nutzerdef-Tag"
    * article's "Tabelle 2" ("Name des Notars - Ehevertrag, Testament";
    * see `posthumous` for the URL). Not part of any GEDCOM version.
-   * Recognized on 5.x input and written back as `NOTRY` in 5.5.1;
+   * Recognized on 5.x input and written back as `_NOTRY` in 5.5.1;
    * dropped on 7.0 output.
    */
   notary?: Text;
@@ -586,6 +586,46 @@ export interface EventDetail extends GedcomStructureBase {
    * canonical flag names in both versions.
    */
   factFlags?: FactFlag[];
+  /**
+   * `_LENGTH` {0:1} — the length at birth, written by Aldfaer under
+   * the BIRT event (the webtrees per-vendor custom-tag registry,
+   * Aldfaer.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Aldfaer.php).
+   * Not part of any GEDCOM version. Recognized on input in both
+   * versions (under BIRT only) and written back as `_LENGTH` in both
+   * versions.
+   */
+  birthLength?: Text;
+  /**
+   * `_WEIGHT` {0:1} — the weight at birth, written by Aldfaer under
+   * the BIRT event (same source as `birthLength`). Not part of any
+   * GEDCOM version. Recognized on input in both versions (under BIRT
+   * only) and written back as `_WEIGHT` in both versions.
+   */
+  birthWeight?: Text;
+  /**
+   * CEME {0:1} — the cemetery of a burial, written by phpGedView
+   * under the BURI event (the webtrees per-vendor custom-tag registry,
+   * PhpGedView.php: `INDI:BURI:CEME`:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php;
+   * the INDI-level FTW5 CEME normalizes into a FACT instead — see
+   * parsing/vendor-tags.ts). Not part of any GEDCOM version.
+   * Recognized on 5.x input and written back as `_CEME` in both
+   * versions (the phpGedView wire spelling is non-underscore).
+   */
+  cemetery?: Text;
+  /**
+   * `_CREA`/`_CRE`/`_CREAT` {0:1} — the date the event was created (a
+   * free text value; the wire format of the writers is undocumented,
+   * so it is kept verbatim — the event-level twin of the record-level
+   * `IndividualRecord.createdAt`/`FamilyRecord.createdAt`). Written by
+   * Heredis (`_CREA`), Mac Family Tree 7 (`_CRE`, "Datensatz,
+   * Ereignis" in the GenWiki "GEDCOM/_Nutzerdef-Tag" table:
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag) and GenPlus
+   * (`_CREAT`). Not part of any GEDCOM version. Recognized on input in
+   * both versions and written back as `_CREAT` in both versions.
+   */
+  createdAt?: Text;
 }
 
 /**

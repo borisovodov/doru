@@ -31,7 +31,7 @@ export function ptr(w: Writer, version: Version, level: number, tag: string, poi
     // citations handle theirs inline.)
     return;
   }
-  w.line(level, tag, { value: pointer });
+  w.line(level, tag, { value: pointer, pointer: true });
 }
 
 export function restrictionList(_w: Writer, version: Version, values: Array<string | `_${string}`>): string {

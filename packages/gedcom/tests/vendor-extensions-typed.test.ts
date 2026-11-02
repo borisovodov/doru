@@ -76,7 +76,7 @@ describe('cross-reference identifiers on tagged extension structures', () => {
     expect(parseOk551(out)).toEqual(dataset);
   });
 
-  test('an xref on a nested extension structure is kept and written back (7.0)', () => {
+  test('an xref on a nested extension structure is kept on input but not written in 7.0', () => {
     const text = [
       ...H70,
       '1 SCHMA',
@@ -90,8 +90,14 @@ describe('cross-reference identifiers on tagged extension structures', () => {
     const person = indi(dataset);
     expect(person.extensions?.[0]?.children?.[0]?.xref).toBe('@E1@');
     const out = ser70(dataset);
-    expect(lines(out)).toContain('2 @E1@ _INNER data');
-    expect(parseOk70(out)).toEqual(dataset);
+    // GEDCOM 7.0 §1.3: "A substructure or pseudo-structure must not
+    // have a cross-reference identifier" — the lenient parser keeps
+    // the xref, but the 7.0 writer emits it only at record level.
+    expect(lines(out)).toContain('2 _INNER data');
+    expect(lines(out)).not.toContain('2 @E1@ _INNER data');
+    // The re-import differs only in the dropped xref.
+    const reparsed = parseOk70(out);
+    expect(indi(reparsed).extensions?.[0]?.children?.[0]?.xref).toBeUndefined();
   });
 });
 
@@ -202,20 +208,23 @@ describe('the USM6 (Der Stammbaum ≤ V6) tags', () => {
   test('writes the USM6 spellings back on 5.5.1 and round-trips', () => {
     const dataset = parseOk551(SAMPLE);
     const out = lines(ser551(dataset));
-    expect(out).toContain('1 SIGN 1');
+    // The 5.5.1 output uses the underscore spellings: the USM6 wire
+    // spellings are non-underscore vendor tags, and 5.5.1 requires
+    // user-defined tags to begin with an underscore.
+    expect(out).toContain('1 _SIGN 1');
     expect(out).toContain('2 _RUFNAME Anna'); // UGNM normalizes into the callName slot
-    expect(out).toContain('2 NAME_ Müller, Mueller');
-    expect(out).toContain('2 BTYP 2');
-    expect(out).toContain('2 POTM 0');
-    expect(out).toContain('2 SRCH City Archive');
-    expect(out).toContain('2 NOTRY N. Notary');
+    expect(out).toContain('2 _NAME_ Müller, Mueller');
+    expect(out).toContain('2 _BTYP 2');
+    expect(out).toContain('2 _POTM 0');
+    expect(out).toContain('2 _SRCH City Archive');
+    expect(out).toContain('2 _NOTRY N. Notary');
     expect(out).toContain('2 AGE 74y'); // AGED normalizes into the standard AGE
-    expect(out).toContain('2 SURE 1');
-    expect(out).toContain('2 MTYP 2');
+    expect(out).toContain('2 _SURE 1');
+    expect(out).toContain('2 _MTYP 2');
     expect(out).toContain('2 _HUSB step');
     expect(out).toContain('2 _WIFE natural');
-    expect(out).toContain('1 UTYP 2');
-    expect(out).toContain('3 RINI J. Finder');
+    expect(out).toContain('1 _UTYP 2');
+    expect(out).toContain('3 _RINI J. Finder');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 
