@@ -675,6 +675,11 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
         w.line(level + 2, 'TEXT', { value: metafield.text });
       }
     }
+    for (const link of citation.links ?? []) {
+      // FTM: an internet link associated with the source (see
+      // SourceCitation.links).
+      w.line(level + 1, '_LINK', { value: link });
+    }
     if (version === '5.5.1' && citation.foundBy !== undefined) {
       // USM6: who found the source information (see
       // SourceCitation.foundBy).
@@ -711,6 +716,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (citation.reference !== undefined) {
     w.line(level + 1, '_CREF', { value: citation.reference });
+  }
+  for (const link of citation.links ?? []) {
+    // FTM: an internet link associated with the source (see
+    // SourceCitation.links).
+    w.line(level + 1, '_LINK', { value: link });
   }
   if (citation.subsequentCitationFormat !== undefined) {
     // RootsMagic: the subsequent-citation format (report wording).

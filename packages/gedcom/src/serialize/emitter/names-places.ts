@@ -67,6 +67,25 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
     // file name (see MediaFile.alternatePath).
     w.line(level + 1, '_ALTPATH', { value: file.alternatePath });
   }
+  if (file.fileSize !== undefined) {
+    // Family Tree Builder / MyHeritage: the media file size (see
+    // MediaFile.fileSize). The vendor writes it beside the FILE line,
+    // not under it, so it is emitted at the FILE's own level.
+    w.line(level, '_FILESIZE', { value: String(file.fileSize) });
+  }
+  if (file.album !== undefined) {
+    // Family Tree Builder / MyHeritage: the album XREF (see
+    // MediaFile.album); written beside the FILE line (the vendor
+    // position). The xref-shaped wire form is emitted verbatim (a
+    // pointer) so it round-trips unchanged.
+    w.line(level, '_ALBUM', { value: file.album, pointer: /^@[^@]+@$/.test(file.album) });
+  }
+  if (file.recordId !== undefined) {
+    // Family Tree Builder / MyHeritage: the photo's record id (see
+    // MediaFile.recordId); written beside the FILE line (the vendor
+    // position).
+    w.line(level, '_PHOTO_RIN', { value: file.recordId });
+  }
   if (version === '7.0') {
     for (const translation of file.translations ?? []) {
       w.line(level + 1, 'TRAN', { value: translation.payload });

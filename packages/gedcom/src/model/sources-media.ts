@@ -145,6 +145,16 @@ export interface SourceCitation extends GedcomStructureBase {
    * Recognized on input and written back as `_TMPLT` in both versions.
    */
   template?: EvidenceTemplate;
+  /**
+   * `_LINK {0:M}` — an internet link associated with the source, a URL
+   * the citation points at. Written by Family Tree Maker under the
+   * citation (`3 _LINK http://…`, the gedcom4j FTM custom-tags
+   * sample); the GenWiki "GEDCOM/_Nutzerdef-Tag" table documents the
+   * meaning — "Internetlink in Verbindung mit einer Quelle" (FTW,
+   * AB3). Not part of any GEDCOM version. Recognized on input in both
+   * versions and written back as `_LINK` in both versions.
+   */
+  links?: Text[];
 }
 
 /**

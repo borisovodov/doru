@@ -32,6 +32,7 @@ import {
   dispatch,
   noPayload,
   parseImportReference,
+  reqDigits,
   reqPtr,
   reqText,
 } from './context';
@@ -60,9 +61,28 @@ import {
 export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord {
   noPayload(node);
   const rec: MultimediaRecord = { tag: 'OBJE', files: [], ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  let fileSize: number | undefined;
+  let album: string | undefined;
+  let photoRecordId: string | undefined;
   const handlers: Record<string, (child: RawNode) => void> = {
     FILE: (child) => {
       rec.files.push(parseMediaFile(child, ctx));
+    },
+    '_FILESIZE': (child) => {
+      // Family Tree Builder / MyHeritage: the media file size (see
+      // MediaFile.fileSize).
+      fileSize = reqDigits(child);
+    },
+    '_ALBUM': (child) => {
+      // Family Tree Builder / MyHeritage: the album XREF (see
+      // MediaFile.album; the wire form is xref-shaped, kept verbatim
+      // and unresolved — real exports dangle).
+      album = child.value.kind === 'pointer' ? child.value.pointer : reqText(child);
+    },
+    '_PHOTO_RIN': (child) => {
+      // Family Tree Builder / MyHeritage: the photo's record id (see
+      // MediaFile.recordId).
+      photoRecordId = reqText(child);
     },
     '_DATE': (child) => {
       rec.date = parseDateStructure(child, ctx);
@@ -214,6 +234,15 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     // A 5.5-style embedded record (FORM/TITL/BLOB kept as extensions)
     // has no FILE substructure.
     fail('structure.missing-required', 'A multimedia record requires at least one FILE substructure', node.position);
+  }
+  if (fileSize !== undefined) {
+    (rec.files[0] as MediaFile).fileSize = fileSize;
+  }
+  if (album !== undefined) {
+    (rec.files[0] as MediaFile).album = album;
+  }
+  if (photoRecordId !== undefined) {
+    (rec.files[0] as MediaFile).recordId = photoRecordId;
   }
   return rec;
 }

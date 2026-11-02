@@ -790,12 +790,17 @@ spellings and the underscore forms are both recognized on input, and
 | `_RTLSAVE` under HEAD.SOUR | MyHeritage | The right-to-left save mode (real MyHeritage exports, `_RTLSAVE RTL`) | `HeaderSource.rtlSave` (kept verbatim) |
 | `_PUBLISH` record | MyHeritage | The site the tree was published to: `_SITEADDRESS`/`_SITENAME`/`_SITEID`/`_USERNAME` + the `_DISABLED` flag (real MyHeritage exports) | `PublishedSiteRecord` |
 | `_THUM Y` under the OBJE link | Généatique | The thumbnail flag of the media link (real Généatique exports, `2 _THUM Y` beside `_PRIM`) | `MultimediaLink.thumbnail` |
+| `_LINK` under citations | FTM | An internet link associated with the source (the gedcom4j FTM custom-tags sample; GenWiki "Internetlink in Verbindung mit einer Quelle") | `SourceCitation.links` |
+| `_FILESIZE` / `_ALBUM` / `_PHOTO_RIN` beside the media FILE | Family Tree Builder, MyHeritage | The file size in bytes, the album XREF (kept verbatim — real exports dangle) and the photo's record id (webtrees FamilyTreeBuilder.php; real MyHeritage exports) | `MediaFile.fileSize` / `album` / `recordId` (written beside the FILE line, the vendor position) |
 
 The tags the code search found no real files for (`_GRUPPE`, `_LFD`,
 `_NOPARTNER`, `_ALDFAER_NOREL`, `_SURNAS`, `_DBID`, `_INQU`) and the
 ones whose fetched samples did not confirm (`_SCHA`, `_ACT`) stay
 generic — the catalogs document meanings, but with no real file to
-show the wire form there is nothing to type.
+show the wire form there is nothing to type. Also fixed along the way:
+the synthesized inline-OBJE multimedia record now carries its
+generated xref, so the 5.5.1 projection no longer strips the pointer
+link to it.
 
 The `_EVENT_DEFN` record was also verified against the real Legacy
 exports (the gedcom4j "legacycustomtags.ged" sample, now a regression

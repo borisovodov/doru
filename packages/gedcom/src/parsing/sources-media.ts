@@ -168,6 +168,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // `_TMPLT` is the other; see SourceCitation.template).
           out.template = parseEvidenceTemplate(child, ctx);
         },
+        '_LINK': (child) => {
+          // FTM: an internet link associated with the source (see
+          // SourceCitation.links).
+          (out.links ??= []).push(reqText(child));
+        },
       },
       ctx,
       ['PAGE', 'DATA', 'EVEN', 'QUAY'],
@@ -230,6 +235,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // citation — its actual write position (the record-level
           // `_TMPLT` is the other; see SourceCitation.template).
           out.template = parseEvidenceTemplate(child, ctx);
+        },
+        '_LINK': (child) => {
+          // FTM: an internet link associated with the source (see
+          // SourceCitation.links).
+          (out.links ??= []).push(reqText(child));
         },
         'RINI': (child) => {
           // USM6: who found the source information (see
@@ -302,6 +312,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         // GDO: a pointer to the submitter record of this citation
         // (see SourceCitation.submitter).
         out.submitter = reqPtr(child, ctx);
+      },
+      '_LINK': (child) => {
+        // FTM: an internet link associated with the source (see
+        // SourceCitation.links).
+        (out.links ??= []).push(reqText(child));
       },
       'RINI': (child) => {
         // USM6: who found the source information (see
@@ -516,6 +531,9 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   let scrapbook: boolean | undefined;
   let slideshow: boolean | undefined;
   let thumbnail: boolean | undefined;
+  let fileSize: number | undefined;
+  let album: string | undefined;
+  let photoRecordId: string | undefined;
   // Legacy Family Tree writes the format directly under the inline
   // OBJE (`2 FORM jpg` beside `2 FILE …`); the 5.5.1 inline grammar
   // places it under FILE. It is injected into each FILE that lacks its
@@ -582,6 +600,22 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
       },
+      '_FILESIZE': (child) => {
+        // Family Tree Builder / MyHeritage: the media file size (see
+        // MediaFile.fileSize).
+        fileSize = reqDigits(child);
+      },
+      '_ALBUM': (child) => {
+        // Family Tree Builder / MyHeritage: the album XREF (see
+        // MediaFile.album; the wire form is xref-shaped, kept verbatim
+        // and unresolved — real exports dangle).
+        album = child.value.kind === 'pointer' ? child.value.pointer : reqText(child);
+      },
+      '_PHOTO_RIN': (child) => {
+        // Family Tree Builder / MyHeritage: the photo's record id (see
+        // MediaFile.recordId).
+        photoRecordId = reqText(child);
+      },
     },
     ctx,
   );
@@ -591,6 +625,15 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   if (title !== undefined) {
     (record.files[0] as MediaFile).title = title;
   }
+  if (fileSize !== undefined) {
+    (record.files[0] as MediaFile).fileSize = fileSize;
+  }
+  if (album !== undefined) {
+    (record.files[0] as MediaFile).album = album;
+  }
+  if (photoRecordId !== undefined) {
+    (record.files[0] as MediaFile).recordId = photoRecordId;
+  }
   // Synthesize a multimedia record (the GEDCOM 7.0 normalization).
   let xref: string;
   do {
@@ -598,6 +641,10 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     ctx.syntheticIndex++;
   } while (ctx.xrefs.has(xref));
   ctx.xrefs.add(xref);
+  // The synthesized record must carry its identifier: the serializers
+  // write the record and the pointer link verbatim, and the 5.5.1
+  // projection strips links whose target is missing.
+  record.xref = xref;
   ctx.synthetic.push(record);
   return {
     tag: 'OBJE',

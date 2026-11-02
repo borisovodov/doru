@@ -1102,6 +1102,33 @@ export interface MediaFile extends GedcomStructureBase {
    * versions.
    */
   alternatePath?: Text;
+  /**
+   * `_FILESIZE {0:1}` — the size of the media file in bytes. Written
+   * by Family Tree Builder under the OBJE record and by MyHeritage
+   * under the inline OBJE (`2 _FILESIZE 406254`; the webtrees
+   * per-vendor custom-tag registry, FamilyTreeBuilder.php, "File
+   * size"). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_FILESIZE` in both versions.
+   */
+  fileSize?: Integer;
+  /**
+   * `_ALBUM {0:1}` — the XREF of the album the media file belongs to
+   * (a `@A…@` identifier; real exports carry dangling references, so
+   * the value is kept verbatim, unresolved). Written by Family Tree
+   * Builder and MyHeritage under the OBJE (the webtrees per-vendor
+   * custom-tag registry, FamilyTreeBuilder.php, "Album — XREF to an
+   * album"). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_ALBUM` in both versions.
+   */
+  album?: Text;
+  /**
+   * `_PHOTO_RIN {0:1}` — the record id of the photo in the exporting
+   * system (MyHeritage exports: `2 _PHOTO_RIN MH:P500064`; the
+   * webtrees per-vendor custom-tag registry, FamilyTreeBuilder.php,
+   * "Record ID number"). Not part of any GEDCOM version. Recognized
+   * on input and written back as `_PHOTO_RIN` in both versions.
+   */
+  recordId?: Text;
   /** TRAN {0:M}, g7:FILE-TRAN — the same content in a different digital format. */
   translations?: MediaFileTranslation[];
 }

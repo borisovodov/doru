@@ -527,3 +527,55 @@ describe('the MyHeritage export metadata and the Généatique _THUM flag', () =>
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 });
+
+describe('the FTM citation _LINK and the FTB/MyHeritage media attributes', () => {
+  test('_LINK under a citation types and round-trips in both versions', () => {
+    const dataset = parseOk551([...H551, '0 @S2@ SOUR', '1 TITL Book', '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 SOUR @S2@', '3 _LINK http://gedcom4j.org', ...SUBM, '0 TRLR'].join('\n'));
+    const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
+    expect(birth?.detail?.citations?.[0]?.links).toEqual(['http://gedcom4j.org']);
+    const out = lines(ser551(dataset));
+    expect(out).toContain('3 _LINK http://gedcom4j.org');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+    expect(lines(ser70(dataset))).toContain('3 _LINK http://gedcom4j.org');
+  });
+
+  test('the FTB/MyHeritage media attributes type on the inline OBJE file', () => {
+    const dataset = parseOk551([
+      ...H551,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 OBJE',
+      '2 FORM jpg',
+      '2 FILE https://example.com/doc.jpg',
+      '2 _FILESIZE 406254',
+      '2 TITL A document',
+      '2 _ALBUM @A999988@',
+      '2 _PHOTO_RIN MH:P500064',
+      ...SUBM,
+      '0 TRLR',
+    ].join('\n'));
+    const media = dataset.records.find((r) => r.tag === 'OBJE');
+    const file = media?.tag === 'OBJE' ? media.files[0] : undefined;
+    expect(file?.fileSize).toBe(406254);
+    expect(file?.album).toBe('@A999988@');
+    expect(file?.recordId).toBe('MH:P500064');
+    const out = lines(ser551(dataset));
+    expect(out).toContain('1 _FILESIZE 406254');
+    expect(out).toContain('1 _ALBUM @A999988@');
+    expect(out).toContain('1 _PHOTO_RIN MH:P500064');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+
+  test('the FTB media attributes type on the OBJE record too', () => {
+    const dataset = parseOk551([...H551, '0 @O1@ OBJE', '1 FILE doc.jpg', '2 FORM jpg', '1 _FILESIZE 1024', '1 _ALBUM @A1@', '1 _PHOTO_RIN MH:P1', ...SUBM, '0 TRLR'].join('\n'));
+    const media = dataset.records.find((r) => r.tag === 'OBJE');
+    const file = media?.tag === 'OBJE' ? media.files[0] : undefined;
+    expect(file?.fileSize).toBe(1024);
+    expect(file?.album).toBe('@A1@');
+    expect(file?.recordId).toBe('MH:P1');
+    const out = lines(ser551(dataset));
+    expect(out).toContain('1 _FILESIZE 1024');
+    expect(out).toContain('1 _ALBUM @A1@');
+    expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+});
