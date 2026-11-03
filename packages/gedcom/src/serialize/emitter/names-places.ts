@@ -55,6 +55,14 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
     if (file.title !== undefined) {
       w.line(level + 1, 'TITL', { value: file.title });
     }
+    if (file.text !== undefined) {
+      // FTM: the file's transcription text (see MediaFile.text).
+      w.line(level + 1, '_TEXT', { value: file.text });
+    }
+    if (file.date !== undefined) {
+      // FTM: the file's modification timestamp (see MediaFile.date).
+      w.line(level + 1, '_DATE', { value: file.date });
+    }
     emitExtensions(w, version, level + 1, file);
     return;
   }
@@ -71,6 +79,10 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
   if (file.text !== undefined) {
     // FTM: the file's transcription text (see MediaFile.text).
     w.line(level + 1, '_TEXT', { value: file.text });
+  }
+  if (file.date !== undefined) {
+    // FTM: the file's modification timestamp (see MediaFile.date).
+    w.line(level + 1, '_DATE', { value: file.date });
   }
   if (file.contentType !== undefined) {
     // Ahnenblatt: the content type of the picture (see

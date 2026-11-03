@@ -423,6 +423,14 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
         // The standard spelling of the file's transcription text.
         file.text = reqText(child);
       },
+      '_DATE': (child) => {
+        // FTM: the file's modification timestamp (see MediaFile.date).
+        file.date = reqText(child);
+      },
+      DATE: (child) => {
+        // The standard spelling of the file's date.
+        file.date = reqText(child);
+      },
       _CTYP: (child) => {
         // Ahnenblatt: the content type of the picture (person, group,
         // place, signature, tombstone, document, heirloom; see

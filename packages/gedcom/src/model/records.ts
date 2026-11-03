@@ -371,6 +371,13 @@ export interface FamilyRecord extends GedcomStructureBase {
    */
   geditcomId?: Text;
   /**
+   * NUMB {0:1} — a running number the exporter assigns to the record
+   * (`1 NUMB 1`, the French gedcom-to-xml files). Kept verbatim. Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `NUMB` in both versions.
+   */
+  sequenceNumber?: Text;
+  /**
    * `_PREF Y` {0:1} — marks the preferred family (the family of the
    * preferred parents, from the child's perspective). Written by
    * Legacy Family Tree at the FAM level — the same "_PREF = Indicates
@@ -710,6 +717,13 @@ export interface IndividualRecord extends GedcomStructureBase {
    * versions.
    */
   geditcomId?: Text;
+  /**
+   * NUMB {0:1} — a running number the exporter assigns to the record
+   * (`1 NUMB 1`, the French gedcom-to-xml files). Kept verbatim. Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `NUMB` in both versions.
+   */
+  sequenceNumber?: Text;
   /**
    * `_MTTAG {0:M}` — pointers to the MyHeritage tree tags applied to
    * the person (`1 _MTTAG @T10@`; see TreeTagRecord). Not part of any
@@ -1139,6 +1153,14 @@ export interface FamilyChildStatusStructure extends GedcomStructureBase {
 export interface SpouseFamilyLink extends GedcomStructureBase {
   /** The FAMS payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /**
+   * DATE {0:1} — the date of the family link itself (when the link
+   * was established; files in the wild write `2 DATE` under FAMS —
+   * observed in the cousin-marriage exercise files). Neither standard
+   * has the slot. Recognized on input and written back as `DATE`
+   * under the FAMS line in both versions.
+   */
+  date?: DateStructure;
   // Note: GEDCOM 7.0's INDI.FAMS has no PHRASE substructure at all
   // (g7:FAMS := FAMS + <<NOTE_STRUCTURE>>{0:M}, GEDCOM 7.0 §3.2.2); a
   // PHRASE under FAMS is not legal in any version and is discarded on
@@ -1502,6 +1524,14 @@ export interface MediaFile extends GedcomStructureBase {  /** The FILE payload, 
    * `_TEXT` under the FILE line in both versions.
    */
   text?: Text;
+  /**
+   * `_DATE`/DATE {0:1} — the file's date (FTM writes the file
+   * modification timestamp under the FILE line: `2 _DATE 5/20/2017
+   * 1:51:01 PM`, kept verbatim). Neither standard has the slot.
+   * Recognized on input and written back as `_DATE` under the FILE
+   * line in both versions.
+   */
+  date?: Text;
   /**
    * _CTYP {0:1} — the content type of the picture (person, group,
    * place, signature, tombstone, document, heirloom). Written by

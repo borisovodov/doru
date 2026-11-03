@@ -724,6 +724,11 @@ its JSDoc.
 | `_COR` under the place card | MFT7 | The place card's coordinates at the record level | `PlaceRecord.map` |
 | `_TEXT` under the FILE line | FTM | The file's transcription text (the embedded-media shape) | `MediaFile.text` (written back as `_TEXT` under the FILE line) |
 | `FAX` under INDI | PAF | The individual's fax number directly under the record | `IndividualRecord.fax` |
+| `_DATE`/`DATE` under the FILE line | FTM | The file's modification timestamp (`2 _DATE 5/20/2017 1:51:01 PM`, kept verbatim) | `MediaFile.date` |
+| `_APID`/`_ABBR`/`_QUAL`/`_CONF`/`NAME`/`_CREF`/`_SUBQ`/`_VERI` under the free-text SOUR | the citation slots of the description form | The bare-SOUR leniency fills the description form; the citation slots now type there too (same fields as the pointer form) | the pointer-form `SourceCitation` slots |
+| `BLOODPURITY` under INDI | the Harry Potter fan trees | The wizard's blood status (Pure-blood / Half-blood / Muggle-born) | FACT + TYPE "Blood purity" |
+| `NUMB` under INDI and FAM | the French gedcom-to-xml files | A running number the exporter assigns to the record | `IndividualRecord.sequenceNumber` / `FamilyRecord.sequenceNumber` |
+| `DATE` under FAMS | files in the wild | The date of the family link itself | `SpouseFamilyLink.date` |
 
 ### Leniencies of the error sweep
 
@@ -805,6 +810,8 @@ which is expected:
 | `_POSITION <x> <y> <w> <h>` under OBJE, `ZOOM`/`PLEV` under `_PLAC.MAP` | various exporters | the media-object layout coordinates and the map zoom/level — display state |
 | `_PPEXCLUDE` under INDI | report-oriented exporters | the "exclude from printed reports" flag — presentation state |
 | `_PATRIARCH` under INDI | GEDKeeper | the tree's patriarch (root ancestor) mark — display state |
+| the GenoPro entity records (`Occupation`/`Education`/`Contact`/`Label`/`Picture`/`SocialEntity`/… with their `TITL`/`NOTE`/`TEXT`/`PLAC`/`SOUR` children and the `Picture` cache fields `CACHE`/`DIMENSION`/`DPI`/`FILESIZE`/`PATH`/`REPORT`/…) | GenoPro exports (the linguatree and Harry Potter trees) | the program's entity dialect — data (names, dates, places) mixed with display geometry in one private record format; the records stay generic (their inner standard tags count as nested-in-generic) |
+| the long event spellings (`BATM`/`ILL`/`EDUS`/`NEWS`/`EMPL`/`OBIT`/`REMV` and the one-off event names of the gedcom5-conversion tests) | single test corpora | one-off event spellings of test fixtures |
 | `NAME` under HEAD.SUBM | Family Echo exports | the submitter's contact written under the SUBM pointer (an e-mail as the NAME); kept as a header extension like the Aldfaer contacts (same deliberate decision) |
 | `_FS_ID` | a single merge-test fixture | synthetic test data |
 | `_GROUP` | a single geotour-genoroots fixture | synthetic test data |

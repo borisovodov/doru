@@ -126,6 +126,14 @@ export interface SourceCitation extends GedcomStructureBase {
    */
   automatedRecordId?: Text;
   /**
+   * `_ABBR {0:1}` — the short title of the cited source, written
+   * under the citation (FTM writes the source's abbreviation there:
+   * `3 _ABBR John O'Hart, Irish Pedigrees…`). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_ABBR` under
+   * the citation in both versions.
+   */
+  abbreviation?: Text;
+  /**
    * `_WPID` / `_HPID` {0:1} — the wife's / husband's person id under
    * a marriage citation (`3 _WPID 1,61370::900465131` — the
    * Ancestry-style `dbid::record` id with the MyHeritage `1,`

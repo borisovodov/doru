@@ -158,6 +158,10 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
     // GEDitCOM II: the record's id (see FamilyRecord.geditcomId).
     w.line(1, '_GCID', { value: rec.geditcomId });
   }
+  if (rec.sequenceNumber !== undefined) {
+    // The exporter's running number (see FamilyRecord.sequenceNumber).
+    w.line(1, 'NUMB', { value: rec.sequenceNumber });
+  }
   if (rec.preferred === true) {
     // Legacy: the preferred family (see FamilyRecord.preferred).
     w.line(1, '_PREF', { value: 'Y' });
@@ -428,6 +432,11 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   if (rec.geditcomId !== undefined) {
     // GEDitCOM II: the record's id (see IndividualRecord.geditcomId).
     w.line(1, '_GCID', { value: rec.geditcomId });
+  }
+  if (rec.sequenceNumber !== undefined) {
+    // The exporter's running number (see
+    // IndividualRecord.sequenceNumber).
+    w.line(1, 'NUMB', { value: rec.sequenceNumber });
   }
   if (rec.sosaDAboville !== undefined) {
     // Ancestris: the Sosa–d'Aboville number (see
@@ -738,6 +747,10 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     ptr(w, version, 1, 'FAMS', link.family);
     if (link.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
+    }
+    if (link.date !== undefined) {
+      // The date of the family link itself (see SpouseFamilyLink.date).
+      emitDate(w, version, 2, 'DATE', link.date);
     }
     for (const note of link.notes ?? []) {
       emitNoteStructure(w, version, 2, note);

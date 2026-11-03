@@ -701,6 +701,11 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
       // SourceCitation.referenceNumber).
       w.line(level + 1, 'REFN', { value: citation.referenceNumber });
     }
+    if (citation.abbreviation !== undefined) {
+      // FTM: the cited source's short title (see
+      // SourceCitation.abbreviation).
+      w.line(level + 1, '_ABBR', { value: citation.abbreviation });
+    }
     if (citation.automatedRecordId !== undefined) {
       // The citation's record id in the source system (see
       // SourceCitation.automatedRecordId); 5.5.1-only branch.
@@ -791,6 +796,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
     // A reference number of the citation itself (see
     // SourceCitation.referenceNumber).
     w.line(level + 1, 'REFN', { value: citation.referenceNumber });
+  }
+  if (citation.abbreviation !== undefined) {
+    // FTM: the cited source's short title (see
+    // SourceCitation.abbreviation).
+    w.line(level + 1, '_ABBR', { value: citation.abbreviation });
   }
   if (version === '5.5.1' && citation.automatedRecordId !== undefined) {
     // The citation's record id in the source system (see

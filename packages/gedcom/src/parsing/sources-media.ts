@@ -156,6 +156,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // SourceCitation.automatedRecordId).
           out.automatedRecordId = reqText(child);
         },
+        '_ABBR': (child) => {
+          // FTM: the cited source's short title (see
+          // SourceCitation.abbreviation).
+          out.abbreviation = reqText(child);
+        },
         WWW: (child) => {
           // The web address of the cited material, directly under the
           // citation (see SourceCitation.www).
@@ -309,6 +314,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         // SourceCitation.automatedRecordId).
         out.automatedRecordId = reqText(child);
       },
+      '_ABBR': (child) => {
+        // FTM: the cited source's short title (see
+        // SourceCitation.abbreviation).
+        out.abbreviation = reqText(child);
+      },
       WWW: (child) => {
         // The web address of the cited material (see
         // SourceCitation.www).
@@ -333,6 +343,48 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         // The footnote text of the citation (see
         // SourceCitation.footnote).
         out.footnote = reqText(child);
+      },
+      '_APID': (child) => {
+        // Ancestry: the record reference under the citation (see
+        // SourceCitation.ancestryPointers).
+        (out.ancestryPointers ??= []).push(reqText(child));
+      },
+      '_CREF': (child) => {
+        // TMG-to-GEDCOM: the citation reference value (see
+        // SourceCitation.reference).
+        out.reference = reqText(child);
+      },
+      '_SUBQ': (child) => {
+        // RootsMagic: the subsequent-citation format (see
+        // SourceCitation.subsequentCitationFormat).
+        out.subsequentCitationFormat = reqText(child);
+      },
+      '_VERI': (child) => {
+        // Legacy: the verified checkmark (see SourceCitation.verified).
+        out.verified = parsePrivacyFlag(child, '_VERI');
+      },
+      '_CONF': (child) => {
+        // The confidence level of the citation (see
+        // SourceCitation.confidence); a value-less line stays generic.
+        if (child.value.kind === 'text') {
+          out.confidence = child.value.text;
+        } else {
+          addExtension(out, child, ctx);
+        }
+      },
+      'NAME': (child) => {
+        // The name of the cited source, under the citation (see
+        // SourceCitation.name); a value-less line stays generic.
+        if (child.value.kind === 'text') {
+          out.name = child.value.text;
+        } else {
+          addExtension(out, child, ctx);
+        }
+      },
+      '_QUAL': (child) => {
+        // The MFT7 source-quality block under the citation (see
+        // SourceCitation.qualityAssessment).
+        out.qualityAssessment = parseMftSourceQuality(child, ctx);
       },
       OBJE: (child) => {
         (out.media ??= []).push(parseMultimediaLink(child, ctx));

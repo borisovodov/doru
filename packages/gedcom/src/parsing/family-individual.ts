@@ -532,6 +532,11 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     // GEDitCOM II: the record's id (see FamilyRecord.geditcomId).
     rec.geditcomId = reqText(child);
   };
+  handlers['NUMB'] = (child) => {
+    // The exporter's running number for the family (see
+    // FamilyRecord.sequenceNumber).
+    rec.sequenceNumber = reqText(child);
+  };
   handlers['QUOT'] = (child) => {
     // A quotation of the family (novel/game character trees write the
     // family's quote under QUOT): kept as an inline NOTE — the FAM
@@ -1805,6 +1810,11 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
   handlers['_GCID'] = (child) => {
     // GEDitCOM II: the record's id (see IndividualRecord.geditcomId).
     rec.geditcomId = reqText(child);
+  };
+  handlers['NUMB'] = (child) => {
+    // The exporter's running number for the person (see
+    // IndividualRecord.sequenceNumber).
+    rec.sequenceNumber = reqText(child);
   };
   handlers['RFN'] = (child) => {
     rec.recordFileNumber = reqText(child);

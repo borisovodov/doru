@@ -371,6 +371,11 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
+    DATE: (child) => {
+      // The date of the family link itself (files in the wild write
+      // `2 DATE` under FAMS — see SpouseFamilyLink.date).
+      out.date = parseDateStructure(child, ctx);
+    },
     '_PREF': (child) => {
       out.preferred = parseYNFlag(child, '_PREF');
     },
