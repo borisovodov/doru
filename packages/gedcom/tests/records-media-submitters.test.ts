@@ -143,31 +143,43 @@ describe('multimedia records', () => {
     expect(rec.automatedRecordId).toBe('42');
   });
 
-  test('OBJE requires a FILE', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n0 TRLR\n')).toBe('structure.missing-required');
+  test('OBJE without a FILE parses with no files', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n0 TRLR\n');
+    const obj = dataset.records.find((record) => record.tag === 'OBJE') as { files: unknown[] };
+    expect(obj?.files).toEqual([]);
   });
 
   test('OBJE must not carry a payload', () => {
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE text\n0 TRLR\n')).toBe('structure.unexpected-payload');
   });
 
-  test('FILE requires a FORM', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n0 TRLR\n')).toBe('structure.missing-required');
-    expect(err551([...H551, '0 @O1@ OBJE', '1 FILE a.jpg', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.missing-required');
+  test('FILE without a FORM parses with form undefined', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n0 TRLR\n');
+    const obj = dataset.records.find((record) => record.tag === 'OBJE') as { files: Array<{ payload: string; form?: unknown }> };
+    expect(obj?.files).toEqual([{ payload: 'a.jpg' }]);
+    const dataset551 = parse551([...H551, '0 @O1@ OBJE', '1 FILE a.jpg', ...SUBM, '0 TRLR'].join('\n'));
+    const obj551 = dataset551.records.find((record) => record.tag === 'OBJE') as { files: Array<{ payload: string; form?: unknown }> };
+    expect(obj551?.files).toEqual([{ payload: 'a.jpg' }]);
   });
 
-  test('at most one FORM under FILE', () => {
-    expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n2 FORM image/jpeg\n2 FORM image/png\n0 TRLR\n'),
-    ).toBe('structure.cardinality');
+  test('a second FORM under FILE keeps the first occurrence', () => {
+    const dataset = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n2 FORM image/jpeg\n2 FORM image/png\n0 TRLR\n',
+    );
+    const obj = dataset.records.find((record) => record.tag === 'OBJE') as {
+      files: Array<{ payload: string; form: { payload: string } }>;
+    };
+    expect(obj?.files).toEqual([{ payload: 'a.jpg', form: { payload: 'image/jpeg' } }]);
   });
 
-  test('at most one FORM under TRAN and TRAN requires a FORM', () => {
-    expect(
-      err70(
-        '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n2 FORM image/jpeg\n2 TRAN en\n3 FORM image/jpeg\n3 FORM image/png\n0 TRLR\n',
-      ),
-    ).toBe('structure.cardinality');
+  test('a second FORM under TRAN keeps the first occurrence; TRAN requires a FORM', () => {
+    const dataset = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n2 FORM image/jpeg\n2 TRAN en\n3 FORM image/jpeg\n3 FORM image/png\n0 TRLR\n',
+    );
+    const obj = dataset.records.find((record) => record.tag === 'OBJE') as {
+      files: Array<{ payload: string; form: { payload: string }; translations?: Array<{ payload: string; form: { payload: string } }> }>;
+    };
+    expect(obj?.files?.[0]?.translations?.[0]).toEqual({ payload: 'en', form: { payload: 'image/jpeg' } });
     expect(
       err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n2 FORM image/jpeg\n2 TRAN en\n0 TRLR\n'),
     ).toBe('structure.missing-required');
@@ -187,8 +199,12 @@ describe('multimedia records', () => {
     expect((exeObj as unknown as { files?: Array<{ form?: { payload?: string } }> }).files?.[0]?.form?.payload).toBe('exe');
   });
 
-  test('unknown tag under OBJE fails', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 BOGUS x\n0 TRLR\n')).toBe('structure.unknown-tag');
+  test('keeps unknown tags under OBJE as generic extensions', () => {
+    const dataset = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE a.jpg\n2 FORM jpg\n1 BOGUS x\n0 TRLR\n',
+    );
+    const obj = dataset.records.find((record) => record.tag === 'OBJE');
+    expect(obj?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 });
 
@@ -410,10 +426,10 @@ describe('submitter and submission records', () => {
     }
   });
 
-  test('duplicate ADDR under SUBM is a cardinality error', () => {
-    expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SUBM\n1 NAME T\n1 ADDR a\n1 ADDR b\n0 TRLR\n'),
-    ).toBe('structure.cardinality');
+  test('a duplicate ADDR under SUBM keeps the first occurrence', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SUBM\n1 NAME T\n1 ADDR a\n1 ADDR b\n0 TRLR\n');
+    const sub = dataset.records.find((record) => record.tag === 'SUBM') as { address?: { payload?: string } };
+    expect(sub?.address?.payload).toBe('a');
   });
 
   test('SUBN parses all fields and validates ORDI', () => {
@@ -464,9 +480,11 @@ describe('submitter and submission records', () => {
   });
 
   test('ANCE requires digits', () => {
+    // The stray text is stripped by the dispatch retry; the payload-less
+    // ANCE line then fails its required value.
     expect(
       err551(['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 SUBN @N1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @N1@ SUBN', '1 ANCE ten', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n')),
-    ).toBe('structure.unexpected-payload');
+    ).toBe('structure.missing-payload');
   });
 });
 
@@ -510,7 +528,7 @@ describe('repository, note and source records', () => {
     expect(rec.identifiers?.map((id) => id.tag)).toEqual(['UID', 'UID', 'EXID', 'REFN']);
   });
 
-  test('5.5.1 REPO parses RIN and _UID; NAME is required', () => {
+  test('5.5.1 REPO parses RIN and _UID; a missing NAME becomes the empty name', () => {
     const dataset = parse551(
       [...H551, '0 @R1@ REPO', '1 NAME A', '1 ADDR x', '1 NOTE n', '1 CHAN', '2 DATE 4 JAN 2001', '1 REFN r1', '1 RIN 3', '1 _UID u', ...SUBM, '0 TRLR'].join('\n'),
     );
@@ -523,7 +541,9 @@ describe('repository, note and source records', () => {
     expect(rec.notes).toHaveLength(1);
     expect(rec.changeDate).toBeDefined();
     expect(rec.address).toBeDefined();
-    expect(err551([...H551, '0 @R1@ REPO', '1 NOTE n', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.missing-required');
+    const nameless = parse551([...H551, '0 @R1@ REPO', '1 NOTE n', ...SUBM, '0 TRLR'].join('\n'));
+    const namelessRec = nameless.records.find((record) => record.tag === 'REPO') as { name: string };
+    expect(namelessRec?.name).toBe('');
   });
 
   test('5.5.1 REPO accepts the floating ADDRESS_STRUCTURE contacts beside ADDR', () => {
@@ -750,16 +770,21 @@ describe('repository, note and source records', () => {
     expect(data?.data?.events?.[0]?.place?.govId).toBe('WEIHEN_W6051');
   });
 
-  test('_TMPLT FIELD requires NAME and TEXT rejects unknown tags', () => {
-    expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 _TMPLT\n2 FIELD\n3 VALUE v\n0 TRLR\n'),
-    ).toBe('structure.missing-required');
-    expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 TEXT t\n2 BOGUS x\n0 TRLR\n'),
-    ).toBe('structure.unknown-tag');
+  test('_TMPLT FIELD without a NAME gets the empty name; unknown tags under TEXT become extensions', () => {
+    const templ = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 _TMPLT\n2 FIELD\n3 VALUE v\n0 TRLR\n');
+    const sour = templ.records.find((record) => record.tag === 'SOUR') as { template?: { fields?: Array<{ name: string }> } };
+    expect(sour?.template?.fields?.[0]?.name).toBe('');
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 TEXT t\n2 BOGUS x\n0 TRLR\n');
+    const sour2 = dataset.records.find((record) => record.tag === 'SOUR') as { text?: { extensions?: Array<{ tag: string }> } };
+    expect(sour2?.text?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
-  test('SOUR record must not carry a payload', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR payload\n0 TRLR\n')).toBe('structure.unexpected-payload');
+  test('a SOUR record payload becomes the title; a TITL child overrides it', () => {
+    const payload = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR payload\n0 TRLR\n');
+    const sour = payload.records.find((record) => record.tag === 'SOUR') as { title?: string };
+    expect(sour?.title).toBe('payload');
+    const overridden = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR payload\n1 TITL Real\n0 TRLR\n');
+    const sour2 = overridden.records.find((record) => record.tag === 'SOUR') as { title?: string };
+    expect(sour2?.title).toBe('Real');
   });
 });

@@ -26,9 +26,6 @@ import type {
 import {
   parsePrivacyFlag,
 } from './sources-media';
-import {
-  NON_UNDERSCORE_VENDOR_TAGS,
-} from './vendor-tags';
 
 /** The standard event and attribute tags a definition may name (5.x
  *  event/attribute sets: the individual and family events, EVEN/FACT,
@@ -88,13 +85,15 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
   };
   const setType = (tag: string): void => {
     if (rec.eventType !== undefined) {
-      fail('structure.cardinality', `At most one event type is allowed in an _EVENT_DEFN record`, node.position);
+      // First occurrence wins (the full-leniency container rule).
+      return;
     }
     rec.eventType = tag;
   };
   const setKind = (code: string): void => {
     if (rec.kind !== undefined) {
-      fail('structure.cardinality', 'At most one TYPE is allowed under _EVENT_DEFN', node.position);
+      // First occurrence wins.
+      return;
     }
     rec.kind = code;
   };
@@ -114,7 +113,8 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
         setType('TITL');
       } else {
         if (rec.title !== undefined) {
-          fail('structure.cardinality', 'At most one TITL is allowed under _EVENT_DEFN', child.position);
+          // First occurrence wins.
+          continue;
         }
         rec.title = reqText(child);
       }
@@ -122,7 +122,8 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
     }
     if (child.tag === 'TYPE') {
       // The event kind code (I = individual, F = family in the real
-      // Legacy exports; see EventDefinitionRecord.kind).
+      // Legacy exports; the GEDCOM 5.5.5 draft / RootsMagic `_EVDEF`
+      // writes P for a person event — see EventDefinitionRecord.kind).
       setKind(reqText(child));
       continue;
     }
@@ -161,6 +162,39 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
       rec.potentialProblemsExcluded = reqText(child);
       continue;
     }
+    if (child.tag === 'ABBR') {
+      // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` abbreviation of
+      // the defined event (see EventDefinitionRecord.abbreviation).
+      rec.abbreviation = reqText(child);
+      continue;
+    }
+    if (child.tag === 'SENT') {
+      // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` sentence
+      // template (see EventDefinitionRecord.sentence).
+      rec.sentence = reqText(child);
+      continue;
+    }
+    if (child.tag === 'PLAC') {
+      // The RootsMagic `_EVDEF` spelling of the place-field flag
+      // (`PLAC Y`/`N`) — the same slot `_PLACE_TYPE` carries (see
+      // EventDefinitionRecord.placeType).
+      rec.placeType = reqText(child);
+      continue;
+    }
+    if (child.tag === 'DATE') {
+      // The RootsMagic `_EVDEF` spelling of the date-field flag
+      // (`DATE Y`/`N`) — the same slot `_DATE_TYPE` carries (see
+      // EventDefinitionRecord.dateType).
+      rec.dateType = reqText(child);
+      continue;
+    }
+    if (child.tag === 'DESC') {
+      // The RootsMagic `_EVDEF` spelling of the description-field
+      // flag (`DESC Y`/`N`) — the same slot `_DESC_FLAG` carries (see
+      // EventDefinitionRecord.descriptionFlag).
+      rec.descriptionFlag = reqText(child);
+      continue;
+    }
     const sentenceMatch = /^_SEN([1-8])$/.exec(child.tag);
     if (sentenceMatch !== null) {
       setSentence(rec, Number(sentenceMatch[1]) - 1, child);
@@ -172,11 +206,9 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
       paf[pafField] = reqText(child);
       continue;
     }
-    if (child.tag.startsWith('_') || NON_UNDERSCORE_VENDOR_TAGS.has(child.tag)) {
-      addExtension(rec, child, ctx);
-      continue;
-    }
-    fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under _EVENT_DEFN`, child.position);
+    // Full leniency: any other child stays a generic extension.
+    addExtension(rec, child, ctx);
+    continue;
   }
   return rec;
 }
@@ -199,15 +231,19 @@ function parseWitnessRole(node: RawNode, ctx: Ctx): WitnessRoleSentenceSet {
       setSentence(Number(sentenceMatch[1]) - 1, child);
       continue;
     }
+    if (child.tag === 'SENT') {
+      // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` role sentence
+      // template (see WitnessRoleSentenceSet.sentence).
+      out.sentence = reqText(child);
+      continue;
+    }
     if (child.tag === '_DEF') {
       out.defaultRole = parsePrivacyFlag(child, '_DEF');
       continue;
     }
-    if (child.tag.startsWith('_') || NON_UNDERSCORE_VENDOR_TAGS.has(child.tag)) {
-      addExtension(out, child, ctx);
-      continue;
-    }
-    fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under ROLE`, child.position);
+    // Full leniency: any other child stays a generic extension.
+    addExtension(out, child, ctx);
+    continue;
   }
   return out;
 }

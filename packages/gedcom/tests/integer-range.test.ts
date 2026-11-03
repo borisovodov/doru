@@ -39,18 +39,36 @@ function doc551(body: string): string {
 }
 
 describe('integer range strictness', () => {
-  test('a year beyond the exactly representable range is rejected (5.5.1)', () => {
-    expect(err551(doc551('1 BIRT\n2 DATE 99999999999999999999999'))).toBe('date.bad-year');
+  test('a year beyond the exactly representable range is kept as the date phrase (5.5.1)', () => {
+    const result = parseGedcom551(enc(doc551('1 BIRT\n2 DATE 99999999999999999999999')));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result.error));
+    }
+    const record = result.value.records.find((r) => r.xref === '@I1@');
+    const date = record?.tag === 'INDI' ? record.events?.[0]?.detail?.date : undefined;
+    expect(date).toEqual({ value: { kind: 'unknown' }, phrase: '99999999999999999999999' });
   });
 
-  test('a dual year beyond the range is rejected (5.5.1)', () => {
-    expect(err551(doc551('1 BIRT\n2 DATE 99999999999999999999999/99'))).toBe('date.bad-year');
+  test('a dual year beyond the range is kept as the date phrase (5.5.1)', () => {
+    const result = parseGedcom551(enc(doc551('1 BIRT\n2 DATE 99999999999999999999999/99')));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result.error));
+    }
+    const record = result.value.records.find((r) => r.xref === '@I1@');
+    const date = record?.tag === 'INDI' ? record.events?.[0]?.detail?.date : undefined;
+    expect(date).toEqual({ value: { kind: 'unknown' }, phrase: '99999999999999999999999/99' });
   });
 
-  test('a year beyond the range is rejected (7.0)', () => {
-    expect(err70(
+  test('a year beyond the range is kept as the date phrase (7.0)', () => {
+    const result = parseGedcom70(enc(
       ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 DATE 5 JAN 9007199254740992', '0 TRLR'].join('\n'),
-    )).toBe('date.bad-year');
+    ));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result.error));
+    }
+    const record = result.value.records.find((r) => r.xref === '@I1@');
+    const date = record?.tag === 'INDI' ? record.events?.[0]?.detail?.date : undefined;
+    expect(date).toEqual({ value: { kind: 'unknown' }, phrase: '5 JAN 9007199254740992' });
   });
 
   test('the largest safe year is accepted exactly (7.0)', () => {

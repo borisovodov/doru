@@ -165,6 +165,11 @@ export function formatDateValue551(value: DateValue): string | undefined {
 }
 
 export function formatDateExact(value: DateExact, version: Version): string | undefined {
+  if (value.day === undefined || value.month === undefined || value.year === undefined) {
+    // A partial exact date (the full-leniency container rule) has no
+    // conformant spelling; the caller writes the parenthesized form.
+    return undefined;
+  }
   if (version === '7.0') {
     // GEDCOM 7.0 §2.4 DateExact = `day D month D year` has no epoch
     // production: an epoch on the model value (only reachable

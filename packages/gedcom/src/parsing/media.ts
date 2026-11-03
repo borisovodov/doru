@@ -8,6 +8,7 @@
  */
 
 import type {
+  AncestryClone,
   MediaFile,
   MediaFileTranslation,
   MediaFormatStructure,
@@ -39,6 +40,7 @@ import type {
 import {
   parseSourceCitation,
   parseVendorFlag,
+  parseYNFlag,
 } from './sources-media';
 import {
   parseChangeDate,
@@ -123,10 +125,136 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // FH: a media note (see MultimediaRecord.mediaNote).
       rec.mediaNote = reqText(child);
     },
+    '_NOTA': (child) => {
+      // Family Historian spells the note attached to a media record
+      // `_NOTA` (the FHUG "GEDCOM Extension List":
+      // https://www.fhug.org.uk/kb/topic/gedcom-files/) — a full note
+      // structure in the same slot the record notes carry. Parsed as
+      // the standard NOTE shape.
+      (rec.notes ??= []).push(parseNoteStructure({ ...child, tag: 'NOTE' }, ctx));
+    },
     '_CREA': (child) => {
       // Ancestry.com Family Trees: the date the media object was
       // created (see MultimediaRecord.createdAt).
       rec.createdAt = reqText(child);
+    },
+    '_CUTOUT': (child) => {
+      // MyHeritage: the cutout flag (see MultimediaRecord.cutout).
+      rec.cutout = parseYNFlag(child, '_CUTOUT');
+    },
+    '_PRIM_CUTOUT': (child) => {
+      // MyHeritage: the primary cutout mark (see
+      // MultimediaRecord.primaryCutout).
+      rec.primaryCutout = parseYNFlag(child, '_PRIM_CUTOUT');
+    },
+    '_PARENTPHOTO': (child) => {
+      // MyHeritage: the parent-photo flag (see
+      // MultimediaRecord.parentPhoto).
+      rec.parentPhoto = parseYNFlag(child, '_PARENTPHOTO');
+    },
+    '_PERSONALPHOTO': (child) => {
+      // MyHeritage: the personal-photo flag (see
+      // MultimediaRecord.personalPhoto).
+      rec.personalPhoto = parseYNFlag(child, '_PERSONALPHOTO');
+    },
+    '_PARENTRIN': (child) => {
+      // MyHeritage: the parent's record id (see
+      // MultimediaRecord.parentRecordId).
+      rec.parentRecordId = reqText(child);
+    },
+    AUTH: (child) => {
+      // ged4web: the media author under the OBJE record (see
+      // MultimediaRecord.author).
+      rec.author = reqText(child);
+    },
+    '_OID': (child) => {
+      // Ancestry.com Family Trees: the media object's identifier, a
+      // UUID (see MultimediaRecord.objectId).
+      rec.objectId = reqText(child);
+    },
+    '_USER': (child) => {
+      // Ancestry.com Family Trees: the user token of the media
+      // object's creator, with the `_ENCR` encrypted flag beneath
+      // (see MultimediaRecord.user / userEncrypted).
+      rec.user = reqText(child);
+      for (const sub of child.children) {
+        if (sub.tag === '_ENCR') {
+          rec.userEncrypted = sub.value.kind === 'absent' || reqText(sub).trim() !== '0';
+        } else {
+          addExtension(rec, sub, ctx);
+        }
+      }
+    },
+    '_ORIG': (child) => {
+      // Ancestry.com Family Trees: the origin of the media object —
+      // `acom` (ancestry.com), `u` (user upload), `newspapers`,
+      // `fold3`, … (see MultimediaRecord.origin).
+      rec.origin = reqText(child);
+    },
+    '_ATL': (child) => {
+      // Ancestry.com Family Trees: the attachment flag Y/N (see
+      // MultimediaRecord.attachment).
+      rec.attachment = parseYNFlag(child, '_ATL');
+    },
+    '_META': (child) => {
+      // Ancestry.com Family Trees: the media metadata XML block (see
+      // MultimediaRecord.metadata).
+      rec.metadata = reqText(child);
+    },
+    '_DSCR': (child) => {
+      // Ancestry.com Family Trees: the media object's description (see
+      // MultimediaRecord.description).
+      rec.description = reqText(child);
+    },
+    '_MSER': (child) => {
+      // Ancestry.com Family Trees: the master (original) media object
+      // mark, with the _LKID link id beneath (see
+      // MultimediaRecord.master / masterLinkId).
+      noPayload(child);
+      rec.master = true;
+      for (const sub of child.children) {
+        if (sub.tag === '_LKID') {
+          rec.masterLinkId = reqText(sub);
+        } else {
+          addExtension(rec, sub, ctx);
+        }
+      }
+    },
+    '_CLON': (child) => {
+      // Ancestry.com Family Trees: a clone of this media object in
+      // another tree/person (see AncestryClone).
+      noPayload(child);
+      const clone: AncestryClone = { tag: '_CLON' };
+      for (const sub of child.children) {
+        switch (sub.tag) {
+          case '_TID':
+            clone.treeId = reqText(sub);
+            break;
+          case '_PID':
+            clone.personId = reqText(sub);
+            break;
+          case '_OID':
+            clone.objectId = reqText(sub);
+            break;
+          case '_USER': {
+            clone.user = reqText(sub);
+            for (const inner of sub.children) {
+              if (inner.tag === '_ENCR') {
+                clone.userEncrypted = inner.value.kind === 'absent' || reqText(inner).trim() !== '0';
+              } else {
+                addExtension(clone, inner, ctx);
+              }
+            }
+            break;
+          }
+          case '_DATE':
+            clone.date = reqText(sub);
+            break;
+          default:
+            addExtension(clone, sub, ctx);
+        }
+      }
+      (rec.clones ??= []).push(clone);
     },
     '_SUBM': (child) => {
       // GDO: a pointer to the submitter record of this media object
@@ -151,7 +279,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position);
+      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
     },
     CREA: (child) => {
       const created = parseCreationDateLenient(child, ctx);
@@ -161,11 +289,25 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
         rec.creationDate = created;
       }
     },
+    '_CRE': (child) => {
+      // MFT7: the record creation — the structured form (a bare line
+      // with the DATE child) or the free text the `_CREA` slot carries.
+      if (child.value.kind === 'absent') {
+        const created = parseCreationDateLenient(child, ctx);
+        if (created === undefined) {
+          addExtension(rec, child, ctx);
+        } else {
+          rec.creationDate = created;
+        }
+      } else {
+        rec.createdAt = reqText(child);
+      }
+    },
     UID: (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     '_UID': (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     EXID: (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
@@ -226,11 +368,6 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     ctx,
     ['RESN', 'CHAN', 'CREA', 'RIN'],
   );
-  if (rec.files.length === 0 && !(rec.extensions ?? []).some((ext) => ext.tag === 'FORM' || ext.tag === 'BLOB')) {
-    // A 5.5-style embedded record (FORM/TITL/BLOB kept as extensions)
-    // has no FILE substructure.
-    fail('structure.missing-required', 'A multimedia record requires at least one FILE substructure', node.position);
-  }
   if (fileSize !== undefined) {
     (rec.files[0] as MediaFile).fileSize = fileSize;
   }
@@ -244,7 +381,14 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
 }
 
 export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
-  const file: Omit<MediaFile, 'form'> = { payload: reqText(node) };
+  // A FILE with no payload is tolerated (the full-leniency container
+  // rule): Ancestry.com Family Trees writes the bare FILE line with
+  // FORM/TITL substructures and no file name, and dropping the line
+  // would silently drop the whole media object on export (an OBJE
+  // record without files is the embedded shape the projections
+  // remove). The payload stays the empty path and is written back as
+  // the bare FILE line.
+  const file: Omit<MediaFile, 'form'> = { payload: node.value.kind === 'text' ? reqText(node) : '' };
   let form: MediaFormatStructure | undefined;
   dispatch(
     node,
@@ -252,7 +396,8 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
     {
       FORM: (child) => {
         if (form !== undefined) {
-          fail('structure.cardinality', 'At most one FORM is allowed under FILE', child.position);
+          // First occurrence wins (the full-leniency container rule).
+          return;
         }
         form = parseMediaFormatStructure(child, ctx);
       },
@@ -277,7 +422,9 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
     ctx,
   );
   if (form === undefined) {
-    fail('structure.missing-required', 'The FILE structure requires a FORM substructure', node.position);
+    // A FILE without FORM is tolerated (the full-leniency container
+    // rule): the media type is unknown, not an error.
+    return file as MediaFile;
   }
   return { ...file, form };
 }
@@ -289,7 +436,8 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
   let medium: MediaStructure | undefined;
   const setMedium = (child: RawNode): void => {
     if (medium !== undefined) {
-      fail('structure.cardinality', 'At most one of TYPE and MEDI is allowed under FORM', child.position);
+      // First occurrence wins (the full-leniency container rule).
+      return;
     }
     // The medium grammar: the 7.0 MEDI enum (with OTHER and the
     // PHRASE child) plus the 5.5.1 TYPE/MEDI spellings of the
@@ -303,6 +451,31 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
     {
       TYPE: setMedium,
       MEDI: setMedium,
+      '_MTYPE': (child) => {
+        // Ancestry.com Family Trees: the display kind of the media
+        // (see MediaFormatStructure.kind).
+        format.kind = reqText(child);
+      },
+      '_STYPE': (child) => {
+        // Ancestry.com Family Trees: the stored encoding of the file
+        // (see MediaFormatStructure.storageType).
+        format.storageType = reqText(child);
+      },
+      '_SIZE': (child) => {
+        // Ancestry.com Family Trees: the file size in bytes (see
+        // MediaFormatStructure.size).
+        format.size = reqDigits(child);
+      },
+      '_WDTH': (child) => {
+        // Ancestry.com Family Trees: the picture width in pixels (see
+        // MediaFormatStructure.width).
+        format.width = reqDigits(child);
+      },
+      '_HGHT': (child) => {
+        // Ancestry.com Family Trees: the picture height in pixels (see
+        // MediaFormatStructure.height).
+        format.height = reqDigits(child);
+      },
     },
     ctx,
   );
@@ -336,7 +509,8 @@ export function parseMediaFileTranslation(node: RawNode, ctx: Ctx): MediaFileTra
     {
       FORM: (child) => {
         if (form !== undefined) {
-          fail('structure.cardinality', 'At most one FORM is allowed under TRAN', child.position);
+          // First occurrence wins.
+          return;
         }
         form = parseMediaFormatStructure(child, ctx);
       },

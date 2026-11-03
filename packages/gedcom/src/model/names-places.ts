@@ -11,8 +11,8 @@ import type {
   Text,
 } from '../primitives';
 
-import type { DateStructure, ExternalIdentifierStructure, NoteStructure } from './common';
 import type { CensusRecord } from './census-record';
+import type { CreationDate, DateStructure, ExternalIdentifierStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { MultimediaLink, SourceCitation } from './sources-media';
 import type { PlaceRecord } from './place-record';
@@ -41,6 +41,29 @@ export interface PersonalNameStructure extends GedcomStructureBase {
   type?: NameTypeStructure;
   /** <<PERSONAL_NAME_PIECES>> {0:1}. */
   pieces?: PersonalNamePieces;
+  /**
+   * `_PRIM Y` {0:1} — marks the primary name of the person. Written
+   * by Legacy Family Tree under NAME (the same preferred-mark family
+   * as its `_PREF`; see FamilyPartnerLink.preferred). Not part of any
+   * GEDCOM version. Recognized on input and written back as
+   * `_PRIM Y` in both versions.
+   */
+  primary?: boolean;
+  /**
+   * `_MIDN {0:1}` — the middle name, written under NAME as its own
+   * line (the ged4web exports, e.g. the corpus file
+   * GEDs_Gresham-187.ged: `2 _MIDN Newton`). Kept verbatim. Not part
+   * of any GEDCOM version. Recognized on input and written back as
+   * `_MIDN` in both versions.
+   */
+  middleName?: Text;
+  /**
+   * CREA/`_CRE` {0:1} — the name entry's creation date (the MFT7
+   * exports write `2 CREA` or `2 _CRE` with the DATE child under
+   * NAME). Recognized on input with the creation-date grammar and
+   * written back as CREA in 7.0 and `_CRE` in 5.5.1.
+   */
+  creationDate?: CreationDate;
   /**
    * `_RUFNAME` {0:1} — the call name (Rufname): the given name that
    * official German documents mark as the one in use (GEDCOM-L
@@ -102,6 +125,36 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * under the NAME line in both versions.
    */
   aliases?: Text[];
+  /**
+   * `_MARNM` {0:1} — the married name: the surname used (or once
+   * used) after marriage, kept as a name-level value for programs
+   * that cannot store several full NAME lines. Written under NAME by
+   * Brother's Keeper 6+, Ancestral Quest 3, PAF 5, Stammbaumdrucker,
+   * Family Tree Builder, webtrees and Ahnenblatt (the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" catalog, "verwendet für verheiratete
+   * Namen":
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); Brother's
+   * Keeper spells the same fact `_MARN`. Not part of any GEDCOM
+   * version. Recognized on input (both spellings) and written back
+   * as `_MARNM` in both versions.
+   */
+  marriedName?: Text;
+  /**
+   * `_AKA` {0:M} — an "also known as" name variant of the person
+   * (often the alternate surname), kept as free text: a further name
+   * for programs that cannot store several NAME lines. Written under
+   * NAME by Stammbaumdrucker, GenPlus, Family Tree Builder, PAF,
+   * Ancestral Quest and webtrees (the GenWiki "GEDCOM/_Nutzerdef-Tag"
+   * catalog: "als Ersatz für Programme, die keine Mehrfachnamen
+   * verarbeiten" — https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag;
+   * the webtrees per-vendor custom-tag registry documents the same
+   * under `INDI:NAME:_AKA`, PersonalAncestralFile.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PersonalAncestralFile.php).
+   * The BKW6/PAF5 spelling `_AKAN` carries the same fact. Not part of
+   * any GEDCOM version. Recognized on input (both spellings) and
+   * written back as `_AKA` in both versions.
+   */
+  alsoKnownAs?: Text[];
   /**
    * SECG {0:1} — the second and further given names: with several
    * given names, all of them from the second onward, kept apart from
@@ -171,10 +224,14 @@ export interface PersonalNameStructure extends GedcomStructureBase {
 export interface PhoneticNameVariation extends GedcomStructureBase {
   /** The FONE payload, {1:1} PersonalName. */
   payload: PersonalName;
-  /** TYPE {1:1} — the phonetic method. */
-  type: Text;
+  /** TYPE {0:1} — the phonetic method. Missing TYPE is tolerated (the full-leniency container rule). */
+  type?: Text;
   /** <<PERSONAL_NAME_PIECES>> {0:1}. */
   pieces?: PersonalNamePieces;
+  /** <<NOTE_STRUCTURE>> {0:M}, GEDCOM 5.5.1 §2 (p.55) NAME_PHONETIC_VARIATION. */
+  notes?: NoteStructure[];
+  /** <<SOURCE_CITATION>> {0:M}, GEDCOM 5.5.1 §2 (p.55) NAME_PHONETIC_VARIATION. */
+  citations?: SourceCitation[];
 }
 
 /**
@@ -187,10 +244,14 @@ export interface PhoneticNameVariation extends GedcomStructureBase {
 export interface RomanizedNameVariation extends GedcomStructureBase {
   /** The ROMN payload, {1:1} PersonalName. */
   payload: PersonalName;
-  /** TYPE {1:1} — the romanization method. */
-  type: Text;
+  /** TYPE {0:1} — the romanization method. Missing TYPE is tolerated (the full-leniency container rule). */
+  type?: Text;
   /** <<PERSONAL_NAME_PIECES>> {0:1}. */
   pieces?: PersonalNamePieces;
+  /** <<NOTE_STRUCTURE>> {0:M}, GEDCOM 5.5.1 §2 (p.56) NAME_ROMANIZED_VARIATION. */
+  notes?: NoteStructure[];
+  /** <<SOURCE_CITATION>> {0:M}, GEDCOM 5.5.1 §2 (p.56) NAME_ROMANIZED_VARIATION. */
+  citations?: SourceCitation[];
 }
 
 /**
@@ -247,8 +308,8 @@ export interface PersonalNamePieces extends GedcomStructureBase {
 export interface NameTranslation extends GedcomStructureBase {
   /** The TRAN payload, {1:1} PersonalName. */
   payload: PersonalName;
-  /** LANG {1:1}, g7:LANG. */
-  language: Language;
+  /** LANG {0:1}, g7:LANG. Missing LANG is tolerated (the full-leniency container rule). */
+  language?: Language;
   /** <<PERSONAL_NAME_PIECES>> {0:1}. */
   pieces?: PersonalNamePieces;
 }
@@ -297,6 +358,14 @@ export interface PlaceStructure extends GedcomStructureBase {
   map?: MapCoordinates;
   /** EXID {0:M}, g7:EXID — external identifiers for the place. Dropped when serializing to 5.5.1. */
   externalIds?: ExternalIdentifierStructure[];
+  /**
+   * `_PID` {0:1} — the place's id in the exporting system (`3 _PID
+   * curie-joliot-place-q102317`, the Wikidata-style id of the Swarm
+   * public-release family-tree packs). Kept verbatim. Not part of any
+   * GEDCOM version. Recognized on input and written back as `_PID`
+   * under the PLAC line in both versions.
+   */
+  placeId?: Text;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /**
@@ -366,8 +435,8 @@ export interface PlaceStructure extends GedcomStructureBase {
 export interface PhoneticPlaceVariation extends GedcomStructureBase {
   /** The FONE payload, {1:1} List:Text. */
   payload: ListText;
-  /** TYPE {1:1} — the phonetic method. */
-  type: Text;
+  /** TYPE {0:1} — the phonetic method. Missing TYPE is tolerated (the full-leniency container rule). */
+  type?: Text;
 }
 
 /**
@@ -378,8 +447,8 @@ export interface PhoneticPlaceVariation extends GedcomStructureBase {
 export interface RomanizedPlaceVariation extends GedcomStructureBase {
   /** The ROMN payload, {1:1} List:Text. */
   payload: ListText;
-  /** TYPE {1:1} — the romanization method. */
-  type: Text;
+  /** TYPE {0:1} — the romanization method. Missing TYPE is tolerated (the full-leniency container rule). */
+  type?: Text;
 }
 
 /**
@@ -394,8 +463,8 @@ export interface RomanizedPlaceVariation extends GedcomStructureBase {
 export interface PlaceTranslation extends GedcomStructureBase {
   /** The TRAN payload, {1:1} List:Text. */
   payload: ListText;
-  /** LANG {1:1}, g7:LANG. */
-  language: Language;
+  /** LANG {0:1}, g7:LANG. Missing LANG is tolerated (the full-leniency container rule). */
+  language?: Language;
 }
 
 /**

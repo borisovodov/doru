@@ -11,7 +11,7 @@
  * Recognized on input and written back as `_TODO` in both versions.
  */
 import type { Pointer, Special, Text, Xref } from '../primitives';
-import type { DateStructure, NoteStructure } from './common';
+import type { ChangeDate, DateStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { RepositoryRecord } from './records';
 
@@ -19,7 +19,7 @@ export interface TodoRecord extends GedcomStructureBase {
   tag: '_TODO';
   /** The record's cross-reference identifier (@…@); optional when nothing points to it. */
   xref?: Xref;
-  /** The task description, {1:1} Text. */
+  /** The task description, {1:1} Text. The My Family Tree `_TASK` record (see below) carries its description in the `_TDSC` child, which normalizes into this payload. */
   payload: Text;
   /** _CAT {0:1} — the category of the to-do item. */
   category?: Text;
@@ -27,8 +27,49 @@ export interface TodoRecord extends GedcomStructureBase {
   closedDate?: Text;
   /** _LOCL {0:1} — the locality of the to-do item. */
   locality?: Text;
-  /** _RDATE {0:1} — the reminder date of the to-do item (free text). */
+  /** _RDATE {0:1} — the reminder date of the to-do item (free text). The My Family Tree `_TRDT` child normalizes into this slot. */
   reminderDate?: Text;
+  /**
+   * `_TTIL` {0:1} — the task's title (the My Family Tree `_TASK`
+   * record form; the GenWiki "GEDCOM/_Nutzerdef-Tag" catalog lists
+   * `_TASK` for AGES! — https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag).
+   * Written back as `_TTIL` in both versions.
+   */
+  title?: Text;
+  /**
+   * `_TSTS` {0:1} — the task's status (My Family Tree writes e.g.
+   * `InProgress`; same source as `title`). Written back as `_TSTS`.
+   */
+  status?: Text;
+  /**
+   * `_TPTY` {0:1} — the task's priority (My Family Tree writes e.g.
+   * `High`; same source as `title`). Written back as `_TPTY`.
+   */
+  priority?: Text;
+  /**
+   * `_TSDT` {0:1} — the task's scheduled date, in the vendor's
+   * encoded date form (same source as `title`). Kept verbatim;
+   * written back as `_TSDT`.
+   */
+  scheduledDate?: Text;
+  /**
+   * `_TCDT` {0:1} — the task's creation date, in the vendor's
+   * encoded date form (same source as `title`). Kept verbatim;
+   * written back as `_TCDT`.
+   */
+  createdDate?: Text;
+  /**
+   * _UID {0:M} — unique identifiers of the task (the My Family Tree
+   * `_TASK` record form; same source as `title`). Written back as
+   * `_UID`.
+   */
+  uids?: Special[];
+  /**
+   * CHAN {0:1} — the change stamp of the task (the My Family Tree
+   * `_TASK` record form; same source as `title`). Written back as
+   * the CHAN block.
+   */
+  changed?: ChangeDate;
 }
 
 /**

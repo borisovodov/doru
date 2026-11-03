@@ -63,8 +63,8 @@ describe('parseGedcom551 — header', () => {
     }
   });
 
-  test('rejects pre-5.5 versions with an explicit error', () => {
-    for (const version of ['3.0', '4.0', '5.0', '5.3', '5.4']) {
+  test('rejects pre-5 versions with an explicit error; accepts the 5.x drafts', () => {
+    for (const version of ['3.0', '4.0']) {
       const result = parseGedcom551(
         enc(
           `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
@@ -75,6 +75,14 @@ describe('parseGedcom551 — header', () => {
         expect((result.error as { code: string }).code, version).toBe('document.wrong-version');
         expect((result.error as { message: string }).message, version).toContain('not a supported GEDCOM version');
       }
+    }
+    for (const version of ['5.0', '5.3', '5.4', '5.50', '5.01']) {
+      const result = parseGedcom551(
+        enc(
+          `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
+        ),
+      );
+      expect(result.ok, version).toBe(true);
     }
   });
 
@@ -99,10 +107,11 @@ describe('parseGedcom551 — header', () => {
     }
   });
 
-  test('validates the GEDCOM form', () => {
-    expect(
-      err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM OTHER-FORM\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
-    ).toBe('enum.invalid-value');
+  test('keeps any GEDCOM form value', () => {
+    const dataset = parse551(
+      '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM OTHER-FORM\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n',
+    );
+    expect(dataset.header.gedcom.form).toBe('OTHER-FORM');
   });
 
   test('parses SUBN, FILE, LANG and PLAC', () => {
@@ -535,10 +544,18 @@ describe('parseGedcom551 — strictness', () => {
     expect(result.ok).toBe(true);
   });
 
-  test('rejects reserved calendar escapes', () => {
-    expect(
-      err551([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DROMAN@ 1 JAN 1900', ...SUBM, '0 TRLR'].join('\n')),
-    ).toBe('date.reserved-calendar');
+  test('keeps reserved calendar escapes as the date phrase', () => {
+    const result = parseGedcom551(
+      enc([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DROMAN@ 1 JAN 1900', ...SUBM, '0 TRLR'].join('\n')),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const record = result.value.records.find((entry) => entry.tag === 'INDI');
+      expect((record as { events?: Array<{ detail?: { date?: unknown } }> }).events?.[0]?.detail?.date).toEqual({
+        value: { kind: 'unknown' },
+        phrase: '@#DROMAN@ 1 JAN 1900',
+      });
+    }
   });
 
   test('accepts the void pointer in pointers', () => {

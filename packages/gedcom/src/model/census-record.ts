@@ -146,8 +146,8 @@ export interface CensusRelative extends GedcomStructureBase {
  */
 export interface CensusRelocatedEvent extends GedcomStructureBase {
   tag: 'BIRT' | 'MARR';
-  /** The `Y` payload asserting the event is known to have occurred. */
-  payload?: true;
+  /** The `Y` payload asserting the event is known to have occurred; a non-`Y` text payload of files in the wild is kept verbatim. */
+  payload?: true | Text;
   /** <<EVENT_DETAIL>> {0:1}. */
   detail?: EventDetail;
 }

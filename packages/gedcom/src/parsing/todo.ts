@@ -8,17 +8,65 @@
 
 import { dispatch, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
+import { fail } from '../errors';
 import type { RawNode } from './lines';
 import type { TodoRecord, TodoStructure } from '../structures';
-import { parseDateStructure, parseNoteStructure } from './substructures';
+import { parseChangeDate, parseDateStructure, parseNoteStructure } from './substructures';
 
-/** Parses a `_TODO` record into a TodoRecord. */
+/**
+ * Parses a `_TODO` record into a TodoRecord. The My Family Tree
+ * `_TASK` spelling (see TodoRecord) normalizes into the same record:
+ * it has no payload and carries the description in the `_TDSC`
+ * child.
+ */
 export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
-  const out: TodoRecord = { tag: '_TODO', payload: reqText(node), ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  const raw = node.value.kind === 'text' ? node.value.text : undefined;
+  const out: TodoRecord = {
+    tag: '_TODO',
+    payload: raw ?? '',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
   dispatch(
     node,
     out,
     {
+      _TDSC: (child) => {
+        // My Family Tree `_TASK`: the description. Fills the payload
+        // when the record carries none; a duplicate alongside a
+        // payload is the same fact and is dropped.
+        if (out.payload === '') {
+          out.payload = reqText(child);
+        }
+      },
+      _TTIL: (child) => {
+        // My Family Tree `_TASK`: the task's title (see
+        // TodoRecord.title).
+        out.title = reqText(child);
+      },
+      _TSTS: (child) => {
+        // My Family Tree `_TASK`: the status (see TodoRecord.status).
+        out.status = reqText(child);
+      },
+      _TPTY: (child) => {
+        // My Family Tree `_TASK`: the priority (see
+        // TodoRecord.priority).
+        out.priority = reqText(child);
+      },
+      _TSDT: (child) => {
+        // My Family Tree `_TASK`: the scheduled date in the vendor's
+        // encoded form (see TodoRecord.scheduledDate).
+        out.scheduledDate = reqText(child);
+      },
+      _TCDT: (child) => {
+        // My Family Tree `_TASK`: the creation date in the vendor's
+        // encoded form (see TodoRecord.createdDate).
+        out.createdDate = reqText(child);
+      },
+      _TRDT: (child) => {
+        // My Family Tree `_TASK`: the reminder date — the same slot
+        // `_RDATE` carries (see TodoRecord.reminderDate).
+        out.reminderDate = reqText(child);
+      },
       _CAT: (child) => {
         out.category = reqText(child);
       },
@@ -31,10 +79,23 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
       _RDATE: (child) => {
         out.reminderDate = reqText(child);
       },
+      _UID: (child) => {
+        // My Family Tree `_TASK`: the unique identifier (see
+        // TodoRecord.uids).
+        (out.uids ??= []).push(reqText(child));
+      },
+      CHAN: (child) => {
+        // My Family Tree `_TASK`: the change stamp (see
+        // TodoRecord.changed).
+        out.changed = parseChangeDate(child, ctx);
+      },
     },
     ctx,
-    ['_CAT', '_CDATE', '_LOCL', '_RDATE'],
+    ['_TDSC', '_TTIL', '_TSTS', '_TPTY', '_TSDT', '_TCDT', '_TRDT', '_CAT', '_CDATE', '_LOCL', '_RDATE', 'CHAN'],
   );
+  if (out.payload === '') {
+    fail('structure.missing-payload', 'The task record requires a description (the record payload or the _TDSC child)', node.position);
+  }
   return out;
 }
 

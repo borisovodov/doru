@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { decodeDocument, detectCharset551 } from '../src/parsing/decode';
+import { decodeDocument, decodeSniffed, detectCharset551 } from '../src/parsing/decode';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -32,19 +32,27 @@ describe('decodeDocument (7.0 UTF-8)', () => {
     expect(result.lines[0]?.text).toBe('0 HEAD');
   });
 
-  test('rejects a BOM on a later line', () => {
+  test('strips a BOM wherever a line starts', () => {
     const bytes = new Uint8Array([...enc('0 HEAD\n'), 0xef, 0xbb, 0xbf, ...enc('0 TRLR\n')]);
-    expect(expectErr(decodeDocument(bytes, '7.0'))).toBe('decoding.bom');
+    const result = expectOk(decodeDocument(bytes, '7.0'));
+    expect(result.lines[1]?.text).toBe('0 TRLR');
   });
 
-  test('rejects invalid UTF-8 with the line position', () => {
-    const bytes = new Uint8Array([...enc('0 HEAD\n'), 0x66, 0xff, 0x21, ...enc('\n0 TRLR\n')]);
-    const result = decodeDocument(bytes, '7.0');
+  test('falls back to CP1252 for lines that are not valid UTF-8', () => {
+    // A UTF-8-declared file holding 8-bit text: 0xE9 = é in CP1252.
+    const bytes = new Uint8Array([...enc('0 HEAD\n1 NOTE Jos'), 0xe9, ...enc(' /Doe/\n0 TRLR\n')]);
+    const result = expectOk(decodeDocument(bytes, '7.0'));
+    expect(result.lines[1]?.text).toBe('1 NOTE Jos\u00e9 /Doe/');
+  });
+
+  test('rejects invalid UTF-8 when no charset declaration allows a fallback', () => {
+    // The sniffing path decodes strictly first: without a CHAR tag the
+    // UTF-8 failure is the honest report.
+    const bytes = new Uint8Array([...enc('0 HEAD\n1 GEDC\n0 TRLR\n'), 0x66, 0xff, 0x21]);
+    const result = decodeSniffed(bytes);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe('decoding.invalid-utf8');
-      expect(result.error.position?.line).toBe(2);
-      expect(result.error.position?.offset).toBe(7);
     }
   });
 
@@ -113,14 +121,10 @@ describe('decodeDocument (5.5.1)', () => {
     expect(result.lines[2]?.text).toBe('1 NOTE x\u0304');
   });
 
-  test('rejects a dangling non-spacing character without a base', () => {
+  test('appends a dangling non-spacing character without a base at the line end', () => {
     const bytes = new Uint8Array([...enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE caf'), 0xe2, ...enc('\n0 TRLR')]);
-    const result = decodeDocument(bytes, '5.5.1');
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe('decoding.invalid-ansel');
-      expect(result.error.position?.line).toBe(3);
-    }
+    const result = expectOk(decodeDocument(bytes, '5.5.1'));
+    expect(result.lines[2]?.text).toBe(`1 NOTE caf${'\u0301'}`);
   });
 
   test('decodes ANSEL spacing characters', () => {
@@ -145,10 +149,16 @@ describe('decodeDocument (5.5.1)', () => {
     expect(expectErr(decodeDocument(bytes, '5.5.1'))).toBe('decoding.invalid-ansel');
   });
 
-  test('requires a BOM for UNICODE and decodes UTF-16LE', () => {
-    const missing = expectErr(decodeDocument(enc('0 HEAD\n1 CHAR UNICODE\n0 TRLR'), '5.5.1'));
-    expect(missing).toBe('decoding.bom');
-    const body = '0 HEAD\r\n0 TRLR\r\n';
+  test('decodes UNICODE with a BOM, and sniffs a BOM-less UTF-16 stream', () => {
+    // A 5.5.1 file declaring CHAR UNICODE without a BOM (files in the
+    // wild cut it off): the byte pattern picks the byte order.
+    const body = '0 HEAD\r\n1 CHAR UNICODE\r\n0 TRLR\r\n';
+    const noBom = new Uint8Array(body.length * 2);
+    for (let i = 0; i < body.length; i++) {
+      noBom[i * 2] = body.charCodeAt(i);
+    }
+    const sniffed = expectOk(decodeDocument(noBom, '5.5.1'));
+    expect(sniffed.lines.map((line) => line.text)).toEqual(['0 HEAD', '1 CHAR UNICODE', '0 TRLR']);
     const bytes = new Uint8Array(2 + body.length * 2);
     bytes[0] = 0xff;
     bytes[1] = 0xfe;
@@ -156,6 +166,6 @@ describe('decodeDocument (5.5.1)', () => {
       bytes[2 + i * 2] = body.charCodeAt(i);
     }
     const result = expectOk(decodeDocument(bytes, '5.5.1'));
-    expect(result.lines.map((line) => line.text)).toEqual(['0 HEAD', '0 TRLR']);
+    expect(result.lines.map((line) => line.text)).toEqual(['0 HEAD', '1 CHAR UNICODE', '0 TRLR']);
   });
 });

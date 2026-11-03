@@ -16,6 +16,7 @@ import type {
   GedcomVersion,
 } from '../primitives';
 import type {
+  GedcomError,
   ParseResult,
 } from '../errors';
 import {
@@ -30,15 +31,16 @@ import {
  * Roman) are not in the specification but are written by real software,
  * so the parser accepts them under the de-facto CHAR spellings below.
  */
-export type Charset551 = 'ANSEL' | 'ASCII' | 'UTF-8' | 'UNICODE' | 'CP1252' | 'CP850' | 'MACINTOSH';
+export type Charset551 = 'ANSEL' | 'ASCII' | 'UTF-8' | 'UNICODE' | 'CP1252' | 'CP850' | 'MACINTOSH' | 'LATIN1';
 
 /**
  * Maps a 5.5.1 CHAR value to a decoder. The GEDCOM 5.5.1 §3 (p.77)
  * spellings (ANSEL, ASCII, UTF-8, UNICODE) plus the de-facto spellings
  * found in files: UTF8, UTF-16 (UNICODE); ANSI, WINDOWS, WINDOWS-1252,
- * CP1252 (Windows Western; FTM writes ANSI); IBM-PC, IBMPC, DOS, CP850,
- * IBM850 (DOS Western); MAC, MACINTOSH (Mac Roman). The value is
- * matched case-insensitively; anything else is a decoding error.
+ * CP1252, IBM WINDOWS (Windows Western; FTM writes ANSI); IBM-PC,
+ * IBMPC, DOS, CP850, IBM850, MS-DOS (DOS Western); MAC, MACINTOSH (Mac
+ * Roman); LATIN1, ISO-8859-1 (ISO Latin-1). The value is matched
+ * case-insensitively; anything else is a decoding error.
  */
 const CHARSET551_ALIASES: Readonly<Record<string, Charset551>> = {
   ANSEL: 'ANSEL',
@@ -51,13 +53,17 @@ const CHARSET551_ALIASES: Readonly<Record<string, Charset551>> = {
   CP1252: 'CP1252',
   WINDOWS: 'CP1252',
   'WINDOWS-1252': 'CP1252',
+  'IBM WINDOWS': 'CP1252',
   'IBM-PC': 'CP850',
   IBMPC: 'CP850',
   DOS: 'CP850',
+  'MS-DOS': 'CP850',
   CP850: 'CP850',
   IBM850: 'CP850',
   MAC: 'MACINTOSH',
   MACINTOSH: 'MACINTOSH',
+  LATIN1: 'LATIN1',
+  'ISO-8859-1': 'LATIN1',
 };
 
 /** Normalizes a CHAR value to a decoder charset, or undefined when unknown. */
@@ -76,11 +82,15 @@ export const ANSEL_SPACING: ReadonlyMap<number, number> = new Map([
   [0xa4, 0x00de], // thorn, uppercase
   [0xa5, 0x00c6], // AE ligature, uppercase
   [0xa6, 0x0152], // OE ligature, uppercase
+  [0xa7, 0x02b9], // modifier letter prime (miagkii znak, the Cyrillic soft sign)
   [0xa8, 0x00b7], // middle dot
   [0xa9, 0x266d], // musical flat
   [0xaa, 0x00ae], // registered trademark
   [0xab, 0x00b1], // plus or minus
+  [0xac, 0x01a0], // hook O, uppercase
+  [0xad, 0x01af], // hook U, uppercase
   [0xae, 0x02be], // alif
+  [0xaf, 0x02bf], // ayn
   [0xb0, 0x02bf], // ayn
   [0xb1, 0x0142], // slash l, lowercase
   [0xb2, 0x00f8], // slash o, lowercase
@@ -88,10 +98,17 @@ export const ANSEL_SPACING: ReadonlyMap<number, number> = new Map([
   [0xb4, 0x00fe], // thorn, lowercase
   [0xb5, 0x00e6], // ae ligature, lowercase
   [0xb6, 0x0153], // oe ligature, lowercase
+  [0xb7, 0x02ba], // modifier letter double prime (tverdyi znak, the Cyrillic hard sign)
   [0xb8, 0x0131], // dotless i, lowercase
   [0xb9, 0x00a3], // British pound
   [0xba, 0x00f0], // eth
+  [0xbc, 0x01a1], // hook o, lowercase
+  [0xbd, 0x01b0], // hook u, lowercase
+  [0xc0, 0x00b0], // degree sign
+  [0xc1, 0x2113], // script l (litre sign)
+  [0xc2, 0x2117], // phonograph copyright mark
   [0xc3, 0x00a9], // copyright mark
+  [0xc4, 0x266f], // musical sharp
   [0xc5, 0x00bf], // inverted question mark
   [0xc6, 0x00a1], // inverted exclamation mark
   [0xcf, 0x00df], // ess-zed
@@ -102,6 +119,7 @@ export const ANSEL_SPACING: ReadonlyMap<number, number> = new Map([
  * byte value to Unicode combining code point.
  */
 export const ANSEL_NONSPACING: ReadonlyMap<number, number> = new Map([
+  [0xe0, 0x0309], // hook above
   [0xe1, 0x0300], // grave accent
   [0xe2, 0x0301], // acute accent
   [0xe3, 0x0302], // circumflex accent
@@ -112,11 +130,23 @@ export const ANSEL_NONSPACING: ReadonlyMap<number, number> = new Map([
   [0xe8, 0x0308], // umlaut (diaeresis)
   [0xe9, 0x030c], // hacek
   [0xea, 0x030a], // circle above (angstrom)
+  [0xeb, 0xfe20], // ligature, left half
+  [0xec, 0xfe21], // ligature, right half
   [0xed, 0x0315], // high comma, off center
   [0xee, 0x030b], // double acute accent
+  [0xef, 0x0310], // candrabindu
   [0xf0, 0x0327], // cedilla
   [0xf1, 0x0328], // right hook (ogonek)
+  [0xf2, 0x0323], // dot below
+  [0xf3, 0x0324], // double dot below (diaeresis below)
+  [0xf4, 0x0325], // circle below (ring below)
+  [0xf5, 0x0333], // double underscore (double low line)
   [0xf6, 0x0332], // underscore
+  [0xf7, 0x0326], // left hook (comma below)
+  [0xf8, 0x031c], // right cedilla (left half ring below)
+  [0xf9, 0x032e], // half circle below (breve below)
+  [0xfa, 0xfe22], // double tilde, left half
+  [0xfb, 0xfe23], // double tilde, right half
   [0xfe, 0x0313], // high comma, centered
 ]);
 
@@ -167,25 +197,30 @@ function splitByteLines(bytes: Uint8Array): RawByteLine[] {
   return lines;
 }
 
-/* Decodes one UTF-8 line (with fatal errors); BOM allowed on line 1. */
-function decodeUtf8Line(line: RawByteLine, lineNumber: number, isFirst: boolean): ParseResult<string> {
+/**
+ * Decodes one UTF-8 line (with fatal errors); a leading BOM is
+ * stripped. `allowCp1252Fallback` retries the line as CP1252 (the
+ * single-byte encoding these files actually use when they declare
+ * UTF-8 but hold 8-bit text, see the README's Known strict
+ * decisions): the sniffing entry point passes false so a 5.5.1
+ * charset declaration still wins over the fallback.
+ */
+function decodeUtf8Line(
+  line: RawByteLine,
+  lineNumber: number,
+  allowCp1252Fallback: boolean,
+): ParseResult<string> {
   try {
     const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(line.bytes);
-    if (text.startsWith(UTF8_BOM_CHAR)) {
-      if (!isFirst) {
-        return {
-          ok: false,
-          error: {
-            code: 'decoding.bom',
-            message: 'A byte-order mark is only allowed as the first character of the document',
-            position: { line: lineNumber, column: 1, offset: line.offset },
-          },
-        };
-      }
-      return ok(text.slice(1));
-    }
-    return ok(text);
+    // A byte-order mark is only standard at the start of the
+    // document; real files carry one at later line starts too (e.g.
+    // after concatenating two exports). The mark is stripped
+    // wherever it appears.
+    return ok(text.startsWith(UTF8_BOM_CHAR) ? text.slice(1) : text);
   } catch {
+    if (allowCp1252Fallback) {
+      return decodeSingleByteLine(line, 'CP1252');
+    }
     return {
       ok: false,
       error: {
@@ -240,23 +275,20 @@ function decodeAnselLine(line: RawByteLine, lineNumber: number): ParseResult<str
     };
   }
   if (pendingMarks !== '') {
-    return {
-      ok: false,
-      error: {
-        code: 'decoding.invalid-ansel',
-        message: 'A non-spacing ANSEL character must be followed by a base character',
-        position: { line: lineNumber, column: line.bytes.length, offset: line.offset },
-      },
-    };
+    // A line ending in a non-spacing mark (files in the wild cut the
+    // base character off — e.g. the gedcom4j "issue81" sample): the
+    // pending marks are appended as-is instead of failing the line.
+    out += pendingMarks;
   }
   return ok(out.normalize('NFC'));
 }
 
 /**
  * GEDCOM 5.5.1 out-of-spec character sets written by real software,
- * indexed by the byte value minus 0x80. CP1252 defines only 0x80-0x9F
- * (0x81, 0x8D, 0x8F, 0x90, 0x9D are holes); bytes at and above 0xA0
- * are ISO 8859-1 identity. CP850 and Mac Roman define all of
+ * indexed by the byte value minus 0x80. CP1252 defines 0x80-0x9F with
+ * five holes (0x81, 0x8D, 0x8F, 0x90, 0x9D), which decode to the C1
+ * controls of the same number (see decodeSingleByteLine); bytes at and
+ * above 0xA0 are ISO 8859-1 identity. CP850 and Mac Roman define all of
  * 0x80-0xFF.
  */
 const CP1252_TABLE: ReadonlyMap<number, number> = new Map([
@@ -305,11 +337,14 @@ const MACINTOSH_TABLE: readonly number[] = [
   0x00af, 0x02d8, 0x02d9, 0x02da, 0x00b8, 0x02dd, 0x02db, 0x02c7,
 ];
 
-/** Decodes one single-byte out-of-spec line (CP1252, CP850, Mac Roman). */
+/** Decodes one single-byte out-of-spec line (CP1252, CP850, Mac
+ *  Roman, Latin-1). The five CP1252 holes (0x81, 0x8D, 0x8F, 0x90,
+ *  0x9D) decode to the C1 controls of the same number (the
+ *  Windows/Python `cp1252` behavior): files in the wild carry these
+ *  bytes, and rejecting the line loses the whole document. */
 function decodeSingleByteLine(
   line: RawByteLine,
-  lineNumber: number,
-  charset: 'CP1252' | 'CP850' | 'MACINTOSH',
+  charset: 'CP1252' | 'CP850' | 'MACINTOSH' | 'LATIN1',
 ): ParseResult<string> {
   let out = '';
   for (let i = 0; i < line.bytes.length; i++) {
@@ -321,21 +356,13 @@ function decodeSingleByteLine(
       code = CP850_TABLE[b - 0x80] as number;
     } else if (charset === 'MACINTOSH') {
       code = MACINTOSH_TABLE[b - 0x80] as number;
+    } else if (charset === 'LATIN1') {
+      // ISO 8859-1 is the identity mapping for every byte above 0x7F.
+      code = b;
     } else if (b >= 0xa0) {
       code = b;
     } else {
-      const mapped = CP1252_TABLE.get(b);
-      if (mapped === undefined) {
-        return {
-          ok: false,
-          error: {
-            code: 'decoding.invalid-cp1252',
-            message: `Byte 0x${b.toString(16).toUpperCase()} is not defined in the ${charset} character set`,
-            position: { line: lineNumber, column: i + 1, offset: line.offset },
-          },
-        };
-      }
-      code = mapped;
+      code = CP1252_TABLE.get(b) ?? b;
     }
     out += String.fromCharCode(code);
   }
@@ -360,26 +387,67 @@ function decodeAsciiLine(line: RawByteLine, lineNumber: number): ParseResult<str
   return ok(new TextDecoder('ascii').decode(line.bytes));
 }
 
-/** Decodes a UTF-16 (UNICODE) document; a BOM is required. */
+/**
+ * Detects the byte order of a BOM-less UTF-16 stream from the byte
+ * pattern: ASCII interleaved with NULs reads 0x00 at every odd offset
+ * in little-endian and at every even offset in big-endian.
+ */
+function utf16Endianness(bytes: Uint8Array): 'le' | 'be' | undefined {
+  const n = Math.min(bytes.length, 256);
+  let oddZero = 0;
+  let evenZero = 0;
+  for (let i = 0; i < n; i++) {
+    if (bytes[i] === 0) {
+      if (i % 2 === 1) {
+        oddZero += 1;
+      } else {
+        evenZero += 1;
+      }
+    }
+  }
+  if (oddZero > n / 4 && evenZero < n / 8) {
+    return 'le';
+  }
+  if (evenZero > n / 4 && oddZero < n / 8) {
+    return 'be';
+  }
+  return undefined;
+}
+
+/** Decodes a UTF-16 (UNICODE) document. A BOM selects the byte order;
+ *  without one (files in the wild cut it off — e.g. the geneweb export
+ *  tests) the byte pattern picks it. A trailing dangling byte (an
+ *  odd-length file, e.g. truncated on export) is ignored: its half
+ *  code unit cannot be decoded, and dropping it keeps the rest of the
+ *  document readable. */
 function decodeUtf16Document(bytes: Uint8Array): ParseResult<DecodedDocument> {
   let encoding: 'utf-16le' | 'utf-16be';
+  let start: number;
   if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
     encoding = 'utf-16le';
+    start = 2;
   } else if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
     encoding = 'utf-16be';
+    start = 2;
   } else {
-    return {
-      ok: false,
-      error: {
-        code: 'decoding.bom',
-        message: 'The UNICODE character set requires a byte-order mark (FF FE or FE FF)',
-        position: DOCUMENT_START,
-      },
-    };
+    const sniffed = utf16Endianness(bytes);
+    if (sniffed === undefined) {
+      return {
+        ok: false,
+        error: {
+          code: 'decoding.bom',
+          message: 'The UNICODE character set requires a byte-order mark (FF FE or FE FF)',
+          position: DOCUMENT_START,
+        },
+      };
+    }
+    encoding = sniffed === 'le' ? 'utf-16le' : 'utf-16be';
+    start = 0;
   }
   let text: string;
   try {
-    text = new TextDecoder(encoding, { fatal: true, ignoreBOM: true }).decode(bytes.subarray(2));
+    const body = bytes.subarray(start, bytes.length - ((bytes.length - start) % 2));
+    text = new TextDecoder(encoding, { fatal: true, ignoreBOM: true }).decode(body);
   } catch {
     return {
       ok: false,
@@ -391,12 +459,12 @@ function decodeUtf16Document(bytes: Uint8Array): ParseResult<DecodedDocument> {
   }
   const lines: DecodedLine[] = [];
   let lineNumber = 1;
-  let start = 0;
+  let lineStart = 0;
   let i = 0;
   while (i < text.length) {
     const c = text[i];
     if (c === '\r' || c === '\n') {
-      lines.push({ text: text.slice(start, i), line: lineNumber, offset: 2 + start * 2 });
+      lines.push({ text: text.slice(lineStart, i), line: lineNumber, offset: start + lineStart * 2 });
       lineNumber++;
       if (c === '\r' && text[i + 1] === '\n') {
         i++;
@@ -404,13 +472,13 @@ function decodeUtf16Document(bytes: Uint8Array): ParseResult<DecodedDocument> {
         i++;
       }
       i++;
-      start = i;
+      lineStart = i;
     } else {
       i++;
     }
   }
-  if (start < text.length) {
-    lines.push({ text: text.slice(start), line: lineNumber, offset: 2 + start * 2 });
+  if (lineStart < text.length) {
+    lines.push({ text: text.slice(lineStart), line: lineNumber, offset: start + lineStart * 2 });
   }
   return ok({ text, lines });
 }
@@ -484,6 +552,7 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
   }
   const lines = splitByteLines(bytes);
   let charset: string | undefined;
+  let seenHead = false;
   for (const line of lines) {
     const parsed = tokenizeAsciiLine(new TextDecoder('ascii').decode(line.bytes));
     if (!parsed) {
@@ -493,12 +562,41 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
       charset = parsed.value;
       break;
     }
-    // The header ends at the first data record (level 0 after HEAD).
-    if (parsed.level === 0 && parsed.tag !== 'HEAD') {
-      break;
+    if (parsed.level === 0) {
+      if (parsed.tag === 'HEAD') {
+        seenHead = true;
+      } else if (seenHead) {
+        // The header ends at the first data record after the HEAD.
+        break;
+      }
+      // A level-0 record before the HEAD (files in the wild start
+      // with a NOTE) does not stop the scan.
     }
   }
   if (charset === undefined) {
+    // A BOM-less UTF-16 stream is not ASCII-scannable; sniff its byte
+    // order and scan the header as UTF-16 (files in the wild cut the
+    // BOM off — e.g. the geneweb export tests).
+    const endianness = utf16Endianness(bytes);
+    if (endianness !== undefined) {
+      const text = new TextDecoder(endianness === 'le' ? 'utf-16le' : 'utf-16be', { fatal: true, ignoreBOM: true }).decode(
+        bytes.subarray(0, Math.min(bytes.length, 2048)),
+      );
+      for (const line of text.split(/\r\n|\n|\r/)) {
+        const parsed = tokenizeAsciiLine(line);
+        if (parsed === null) {
+          continue;
+        }
+        if (parsed.level === 1 && parsed.tag === 'CHAR') {
+          // The stream is UTF-16 by pattern; its CHAR value names the
+          // content charset, which for these files is UNICODE.
+          return ok('UNICODE');
+        }
+        if (parsed.level === 0 && parsed.tag !== 'HEAD') {
+          break;
+        }
+      }
+    }
     return {
       ok: false,
       error: {
@@ -516,7 +614,7 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
     ok: false,
     error: {
       code: 'decoding.unknown-charset',
-      message: `Unknown character set "${charset}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, or MACINTOSH`,
+      message: `Unknown character set "${charset}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, MACINTOSH, or LATIN1`,
       position: DOCUMENT_START,
     },
   };
@@ -524,46 +622,60 @@ export function detectCharset551(bytes: Uint8Array): ParseResult<Charset551> {
 
 /**
  * Decodes a document for GEDCOM 7.0 (UTF-8) or GEDCOM 5.5.1 (per the
- * header CHAR tag) into lines with byte offsets.
+ * header CHAR tag) into lines with byte offsets. The UTF-8 decode
+ * carries the CP1252 line fallback (see decodeUtf8Line): both versions
+ * declare UTF-8, so a fallback here never overrides a different
+ * declared charset.
  */
-export function decodeDocument(bytes: Uint8Array, version: GedcomVersion): ParseResult<DecodedDocument> {
+export function decodeDocument(bytes: Uint8Array, version: GedcomVersion, errors?: GedcomError[]): ParseResult<DecodedDocument> {
   if (version === '7.0') {
-    return decodeWithCharset(bytes, 'UTF-8');
+    return decodeWithCharset(bytes, 'UTF-8', true, errors);
   }
   const detected = detectCharset551(bytes);
   if (!detected.ok) {
     return detected;
   }
-  return decodeWithCharset(bytes, detected.value);
+  return decodeWithCharset(bytes, detected.value, detected.value === 'UTF-8', errors);
 }
 
 /**
- * Decodes a document by sniffing its encoding: a full UTF-8 decode is
- * tried first (the GEDCOM 7.0 charset), and a failure falls back to the
- * header CHAR tag (the 5.5.1 charsets; a UTF-16 stream announces itself
- * with a BOM and fails the UTF-8 decode). When the header declares no
- * 5.5.1 charset, the UTF-8 failure is the honest report (a 7.0 file
- * with invalid UTF-8). This is the decode of the `parse` entry point:
- * the file's own declarations select the encoding.
+ * Decodes a document by sniffing its encoding: a strict full UTF-8
+ * decode is tried first (the GEDCOM 7.0 charset, without the CP1252
+ * fallback so that a declared 5.5.1 charset still wins), and a failure
+ * falls back to the header CHAR tag (the 5.5.1 charsets; a UTF-16
+ * stream announces itself with a BOM and fails the UTF-8 decode). When
+ * the header declares no 5.5.1 charset, the UTF-8 failure is the
+ * honest report (a 7.0 file with invalid UTF-8). This is the decode of
+ * the `parse` entry point: the file's own declarations select the
+ * encoding.
  */
-export function decodeSniffed(bytes: Uint8Array): ParseResult<DecodedDocument> {
-  const utf8 = decodeWithCharset(bytes, 'UTF-8');
+export function decodeSniffed(bytes: Uint8Array, errors?: GedcomError[]): ParseResult<DecodedDocument> {
+  // The first UTF-8 attempt always runs strictly (no per-line
+  // recording): with the tolerant per-line skips it would "succeed"
+  // on any bytes and mask a declared (or BOM-detected) charset.
+  const utf8 = decodeWithCharset(bytes, 'UTF-8', false, undefined);
   if (utf8.ok) {
     return utf8;
   }
   const detected = detectCharset551(bytes);
   if (!detected.ok) {
+    if (errors !== undefined) {
+      // Tolerant mode: the charset-detection failure is recorded and
+      // the document decodes as UTF-8 with per-line skips.
+      errors.push(detected.error);
+      return decodeWithCharset(bytes, 'UTF-8', true, errors);
+    }
     // A BOM-flagged UTF-16 stream skips the UTF-8 attempt in
     // detectCharset551; otherwise a missing/unknown CHAR is the 5.5.1
     // report — unless the UTF-8 failure itself is the honest error
-    // (a 7.0 file with invalid UTF-8 or a misplaced BOM).
-    return utf8.error.code === 'decoding.invalid-utf8' || utf8.error.code === 'decoding.bom' ? utf8 : detected;
+    // (a 7.0 file with invalid UTF-8).
+    return utf8.error.code === 'decoding.invalid-utf8' ? utf8 : detected;
   }
-  return decodeWithCharset(bytes, detected.value);
+  return decodeWithCharset(bytes, detected.value, detected.value === 'UTF-8', errors);
 }
 
 /** Decodes the document in one charset into lines with byte offsets. */
-function decodeWithCharset(bytes: Uint8Array, charset: Charset551): ParseResult<DecodedDocument> {
+function decodeWithCharset(bytes: Uint8Array, charset: Charset551, utf8Fallback: boolean, errors?: GedcomError[]): ParseResult<DecodedDocument> {
   if (charset === 'UNICODE') {
     return decodeUtf16Document(bytes);
   }
@@ -573,22 +685,27 @@ function decodeWithCharset(bytes: Uint8Array, charset: Charset551): ParseResult<
   for (let i = 0; i < rawLines.length; i++) {
     const raw = rawLines[i] as RawByteLine;
     const lineNumber = i + 1;
-    const isFirst = lineNumber === 1;
     let result: ParseResult<string>;
     if (charset === 'UTF-8') {
-      result = decodeUtf8Line(raw, lineNumber, isFirst);
+      result = decodeUtf8Line(raw, lineNumber, utf8Fallback);
     } else if (charset === 'ANSEL') {
       result = decodeAnselLine(raw, lineNumber);
-    } else if (charset === 'CP1252') {
-      result = decodeSingleByteLine(raw, lineNumber, charset);
-    } else if (charset === 'CP850') {
-      result = decodeSingleByteLine(raw, lineNumber, charset);
-    } else if (charset === 'MACINTOSH') {
-      result = decodeSingleByteLine(raw, lineNumber, charset);
+    } else if (charset === 'CP1252' || charset === 'CP850' || charset === 'MACINTOSH' || charset === 'LATIN1') {
+      result = decodeSingleByteLine(raw, charset);
     } else {
       result = decodeAsciiLine(raw, lineNumber);
     }
     if (!result.ok) {
+      if (errors !== undefined) {
+        // Tolerant mode: the undecodable line is recorded and skipped
+        // (it becomes a blank line).
+        errors.push(result.error);
+        lines.push({ text: '', line: lineNumber, offset: raw.offset });
+        if (i > 0) {
+          text += '\n';
+        }
+        continue;
+      }
       return result;
     }
     lines.push({ text: result.value, line: lineNumber, offset: raw.offset });

@@ -21,29 +21,37 @@ function err70(text: string): { code: string; message: string } {
 }
 
 describe('parseGedcom70 — document level', () => {
-  test('rejects a document without a header', () => {
-    expect(err70('0 @I1@ INDI\n0 TRLR\n').code).toBe('document.missing-header');
+  test('synthesizes an empty header when the document has none', () => {
+    const dataset = parse70('0 @I1@ INDI\n0 TRLR\n');
+    expect(dataset.header.gedcom.version).toBe('5.5.1');
+    expect(dataset.records).toHaveLength(1);
+    expect(dataset.records[0]?.xref).toBe('@I1@');
   });
 
-  test('rejects a document without a trailer', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n').code).toBe('document.missing-trailer');
+  test('synthesizes a trailer when the document has none', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n');
+    expect(dataset.trailer).toEqual({ tag: 'TRLR' });
+    expect(dataset.records).toHaveLength(1);
+    expect(dataset.records[0]?.xref).toBe('@I1@');
   });
 
-  test('rejects content after the trailer', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n0 @I1@ INDI\n').code).toBe('document.trailer-not-last');
+  test('keeps records after the trailer', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n0 @I1@ INDI\n');
+    expect(dataset.trailer).toEqual({ tag: 'TRLR' });
+    expect(dataset.records.map((record) => record.xref)).toEqual(['@I1@']);
   });
 
-  test('accepts a 5.x version declaration; a missing VERS still errors', () => {
+  test('accepts a 5.x version declaration; a missing VERS defaults to 5.5.1', () => {
     const result = parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 5.5.1\n0 TRLR\n'));
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.header.gedcom.version).toBe('5.5.1');
     }
-    expect(err70('0 HEAD\n1 GEDC\n0 TRLR\n').code).toBe('structure.missing-required');
+    expect(parse70('0 HEAD\n1 GEDC\n0 TRLR\n').header.gedcom.version).toBe('5.5.1');
   });
 
-  test('rejects a missing GEDC', () => {
-    expect(err70('0 HEAD\n0 TRLR\n').code).toBe('structure.missing-required');
+  test('a missing GEDC synthesizes the 5.5.1 default', () => {
+    expect(parse70('0 HEAD\n0 TRLR\n').header.gedcom.version).toBe('5.5.1');
   });
 
   test('rejects a TRLR with substructures', () => {
@@ -319,13 +327,18 @@ describe('parseGedcom70 — dates and payloads', () => {
     expect(indi.events[0].detail?.date?.phrase).toBe('5 January (year unknown)');
   });
 
-  test('rejects invalid dates', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 32 JAN 1900\n0 TRLR\n').code).toBe('date.bad-day');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE XYZ 1900\n0 TRLR\n').code).toBe('date.bad-month');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE BET 1900\n0 TRLR\n').code).toBe('date.invalid');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE FRENCH_R 1 JAN 1900\n0 TRLR\n').code).toBe('date.bad-month');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE HEBREW 1 TSH 5750 BCE\n0 TRLR\n').code).toBe('date.bad-epoch');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 29 FEB 1900\n0 TRLR\n').code).toBe('date.bad-day');
+  test('keeps unparseable dates as the phrase with an unknown value', () => {
+    const cases = ['32 JAN 1900', 'XYZ 1900', 'BET 1900', 'FRENCH_R 1 JAN 1900', 'HEBREW 1 TSH 5750 BCE', '29 FEB 1900'];
+    for (const text of cases) {
+      const dataset = parse70(
+        `0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE ${text}\n0 TRLR\n`,
+      );
+      const indi = dataset.records[0];
+      if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'BIRT') {
+        throw new Error('expected BIRT');
+      }
+      expect(indi.events[0].detail?.date, text).toEqual({ value: { kind: 'unknown' }, phrase: text });
+    }
     const leap = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 29 FEB 2000\n0 TRLR\n');
     expect(leap.records[0]?.tag).toBe('INDI');
   });
@@ -346,18 +359,34 @@ describe('parseGedcom70 — dates and payloads', () => {
     });
   });
 
-  test('rejects invalid enums, times and ages', () => {
+  test('rejects invalid enums and times; unparseable ages become empty', () => {
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 SEX Z\n0 TRLR\n').code).toBe('enum.invalid-value');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1900\n2 AGE 3y 2y\n0 TRLR\n').code).toBe('age.invalid');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1900\n2 AGE 3x\n0 TRLR\n').code).toBe('age.invalid');
+    // A repeated unit makes the age unparseable: the empty age form.
+    const duplicateUnits = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1900\n2 AGE 3y 2y\n0 TRLR\n');
+    expect(
+      (duplicateUnits.records[0] as { events?: Array<{ detail?: { age?: unknown } }> }).events?.[0]?.detail?.age,
+    ).toEqual({});
+    // A number with a stray letter keeps the number as the years.
+    const strayLetter = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1900\n2 AGE 3x\n0 TRLR\n');
+    expect(
+      (strayLetter.records[0] as { events?: Array<{ detail?: { age?: unknown } }> }).events?.[0]?.detail?.age,
+    ).toEqual({ payload: { years: 3 } });
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 DATE 1 JAN 2024\n2 TIME 24:00\n0 TRLR\n').code).toBe('time.invalid');
   });
 });
 
 describe('parseGedcom70 — strictness', () => {
-  test('rejects unknown standard tags in context', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 BOGUS x\n0 TRLR\n').code).toBe('structure.unknown-tag');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 HUSB @I2@\n0 @I2@ INDI\n0 TRLR\n').code).toBe('structure.unknown-tag');
+  test('keeps unknown standard tags as generic extensions', () => {
+    const withHeaderTag = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 BOGUS x\n0 TRLR\n');
+    expect(withHeaderTag.header.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    const withIndiTag = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 HUSB @I2@\n0 @I2@ INDI\n0 TRLR\n');
+    const indi = withIndiTag.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const husband = indi.extensions?.find((extension) => extension.tag === 'HUSB');
+    expect(husband?.payload).toBe('@I2@');
+    expect(husband?.payloadKind).toBe('pointer');
   });
 
   test('accepts extension tags anywhere', () => {
@@ -372,12 +401,19 @@ describe('parseGedcom70 — strictness', () => {
     expect(indi.extensions?.[0]?.children[0]?.tag).toBe('_DEEP');
   });
 
-  test('rejects cardinality violations', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 SEX M\n1 SEX F\n0 TRLR\n').code).toBe('structure.cardinality');
+  test('duplicate singles keep the first occurrence', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 SEX M\n1 SEX F\n0 TRLR\n');
+    const indi = dataset.records[0] as { sex?: string };
+    expect(indi.sex).toBe('M');
   });
 
-  test('rejects dangling pointers', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 FAMS @F9@\n0 TRLR\n').code).toBe('document.xref-not-found');
+  test('drops dangling pointer links', () => {
+    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 FAMS @F9@\n0 TRLR\n');
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.spouseFamilies).toEqual([]);
   });
 
   test('accepts the void pointer in 7.0', () => {

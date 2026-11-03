@@ -8,13 +8,16 @@
  */
 
 import {
-  DOCUMENT_START,
   fail,
+} from '../errors';
+import type {
+  GedcomError,
 } from '../errors';
 import type {
   ExtensionRecord,
   GedcomDataset,
   GedcomRecord,
+  Header,
   SubmissionRecord,
   Trailer,
 } from '../structures';
@@ -24,6 +27,7 @@ import type {
 import {
   noPayload,
   parseExtension,
+  tolerate,
 } from './context';
 import {
   parseFamilyRecord,
@@ -38,9 +42,6 @@ import {
 import type {
   RawNode,
 } from './lines';
-import {
-  NON_UNDERSCORE_VENDOR_TAGS,
-} from './vendor-tags';
 import {
   RECORD_TAGS_70,
   resolveStandardTagByUri,
@@ -57,6 +58,9 @@ import {
 import { linkPlacesByName, parsePlaceRecord } from './places';
 import { parseTodoRecord } from './todo';
 import { parseEventDefinitionRecord } from './event-definition';
+import { parseGroupRecord } from './group';
+import { parseTreeCategoryRecord, parseTreeTagRecord } from './tree-tags';
+import { parseOccurrenceRecord } from './occurrence';
 import {
   parseSubmissionRecord,
   parseSubmitterRecord,
@@ -101,52 +105,95 @@ function collectXrefs(nodes: RawNode[]): Set<string> {
   return xrefs;
 }
 
-export function parseDocument(raw: { nodes: RawNode[] }): GedcomDataset {
+export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[]): GedcomDataset {
   const ctx: Ctx = {
     xrefs: collectXrefs(raw.nodes),
     synthetic: [],
     syntheticIndex: 0,
     schemaTags: new Map(),
     schema53Labels: new Map(),
+    ...(errors === undefined ? {} : { errors }),
   };
   const nodes = raw.nodes;
 
-  if (nodes.length === 0 || nodes[0]?.tag !== 'HEAD') {
-    fail('document.missing-header', 'The document must begin with a HEAD line', nodes[0]?.position ?? DOCUMENT_START);
+  // The HEAD record may appear anywhere in the record stream: files in
+  // the wild start with a NOTE or straight into records, with the real
+  // HEAD following (a document with no HEAD at all gets the
+  // synthesized empty header — the full-leniency container rule;
+  // parseHeader completes its GEDC). The first HEAD node in the stream
+  // is parsed as the header; a later duplicate stays a generic record.
+  const headerIndex = nodes.findIndex((node) => node.tag === 'HEAD');
+  let header: Header = { tag: 'HEAD', gedcom: { version: '5.5.1' } };
+  if (headerIndex !== -1) {
+    try {
+      header = parseHeader(nodes[headerIndex] as RawNode, ctx);
+    } catch (error) {
+      if (!tolerate(ctx, error)) {
+        throw error;
+      }
+      // Tolerant mode: an unparseable header becomes the synthesized
+      // empty one.
+    }
   }
-  const header = parseHeader(nodes[0] as RawNode, ctx);
 
-  let index = 1;
+  let index = 0;
   let submission: SubmissionRecord | undefined;
   // The SUBN record must immediately follow the header (GEDCOM 5.5.1
-  // §2 p.23); accepted in any file.
-  if (nodes[index]?.tag === 'SUBN') {
-    submission = parseSubmissionRecord(nodes[index] as RawNode, ctx);
-    index++;
+  // §2 p.23); accepted in any file. With the header mid-stream, the
+  // SUBN right after it counts.
+  const submissionIndex = headerIndex === -1 ? 0 : headerIndex + 1;
+  if (nodes[submissionIndex]?.tag === 'SUBN') {
+    try {
+      submission = parseSubmissionRecord(nodes[submissionIndex] as RawNode, ctx);
+    } catch (error) {
+      if (!tolerate(ctx, error)) {
+        throw error;
+      }
+    }
   }
 
   const records: GedcomRecord[] = [];
   let trailer: Trailer | undefined;
   for (; index < nodes.length; index++) {
-    const node = nodes[index] as RawNode;
-    if (node.tag === 'TRLR') {
-      noPayload(node);
-      if (node.children.length > 0) {
-        fail('structure.unexpected-payload', 'The TRLR line must not have substructures', (node.children[0] as RawNode).position);
-      }
-      if (node.xref !== undefined) {
-        fail('line.xref-on-substructure', 'The TRLR pseudo-structure must not have a cross-reference identifier', node.position);
-      }
-      trailer = { tag: 'TRLR' };
-      if (index !== nodes.length - 1) {
-        fail('document.trailer-not-last', 'The TRLR line must be the last line of the document', node.position);
-      }
+    if (index === headerIndex) {
+      // The node already parsed as the header.
       continue;
     }
-    records.push(parseRecord(node, ctx));
+    if (index === submissionIndex && submission !== undefined) {
+      // The node already parsed as the submission record.
+      continue;
+    }
+    const node = nodes[index] as RawNode;
+    if (node.tag === 'HEAD') {
+      // A duplicate HEAD block mid-stream (the FamilyEcho CS555
+      // exercise files repeat the header per section) is skipped: its
+      // content is the already-parsed header's.
+      continue;
+    }
+    try {
+      if (node.tag === 'TRLR') {
+        noPayload(node);
+        if (node.children.length > 0) {
+          fail('structure.unexpected-payload', 'The TRLR line must not have substructures', (node.children[0] as RawNode).position);
+        }
+        if (node.xref !== undefined) {
+          fail('line.xref-on-substructure', 'The TRLR pseudo-structure must not have a cross-reference identifier', node.position);
+        }
+        // The TRLR is tolerated anywhere (the full-leniency container
+        // rule): the records after it still parse.
+        trailer = { tag: 'TRLR' };
+        continue;
+      }
+      records.push(parseRecord(node, ctx));
+    } catch (error) {
+      if (!tolerate(ctx, error)) {
+        throw error;
+      }
+    }
   }
   if (trailer === undefined) {
-    fail('document.missing-trailer', 'The document must end with a TRLR line', DOCUMENT_START);
+    // A missing TRLR is tolerated (the full-leniency container rule).
+    trailer = { tag: 'TRLR' };
   }
 
   linkPlacesByName(records, ctx);
@@ -161,6 +208,19 @@ export function parseDocument(raw: { nodes: RawNode[] }): GedcomDataset {
 }
 
 export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
+  try {
+    return parseRecordStrict(node, ctx);
+  } catch (error) {
+    if (tolerate(ctx, error)) {
+      // Tolerant mode: the record's error is recorded and the record
+      // is preserved verbatim as a generic extension record.
+      return parseExtension(node, ctx) as ExtensionRecord;
+    }
+    throw error;
+  }
+}
+
+function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
   if (node.tag.startsWith('_')) {
     // A SCHMA-documented record alias (`_USER → g7:record-SUBM`, …)
     // parses as the standard record — standard-first (see
@@ -208,6 +268,7 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case '_PLACE':
     case '_LOC':
     case '_PLAC_DEFN':
+    case '_PLC':
       if (node.tag === '_LOC' && !node.children.some((child) => child.tag === 'NAME')) {
         // A `_LOC` record without a NAME child is not the GEDCOM-L
         // place record — that dialect requires the NAME. It is an
@@ -220,25 +281,35 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
     case '_CENR':
       return parseCensusRecord(node, ctx);
     case '_TODO':
+    case '_TASK':
+      // The My Family Tree `_TASK` spelling normalizes into the
+      // Legacy to-do record (see TodoRecord).
       return parseTodoRecord(node, ctx);
     case '_EVENT_DEFN':
+    case '_EVDEF':
+      // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` spelling
+      // normalizes into the Legacy event-definition record (see
+      // EventDefinitionRecord).
       return parseEventDefinitionRecord(node, ctx);
     case '_ALIA':
       return parseDuplicateCandidateRecord(node, ctx);
     case '_PUBLISH':
       return parsePublishedSiteRecord(node, ctx);
+    case '_GRP':
+      return parseGroupRecord(node, ctx);
+    case '_OCUR':
+      return parseOccurrenceRecord(node, ctx);
+    case '_MTTAG':
+      return parseTreeTagRecord(node, ctx);
+    case '_MTCAT':
+      return parseTreeCategoryRecord(node, ctx);
     default:
-      if (node.tag.startsWith('_')) {
-        return parseExtension(node, ctx) as ExtensionRecord;
-      }
-      if (NON_UNDERSCORE_VENDOR_TAGS.has(node.tag)) {
-        // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
-        // accepted at record level as generic extension records where
-        // the standard grammar has no slot for them, in any file (see
-        // the README's import-grammar decision).
-        return parseExtension(node, ctx) as ExtensionRecord;
-      }
-      fail('structure.unknown-tag', `Unknown record tag ${node.tag}`, node.position);
+      // Full leniency (see the README's Known strict decisions): any
+      // record tag the typed grammar has no slot for — an underscore
+      // extension tag, a non-underscore vendor tag, or an unknown
+      // spelling — parses as a generic ExtensionRecord, preserved
+      // verbatim. Unknown record tags are never rejected by spelling.
+      return parseExtension(node, ctx) as ExtensionRecord;
   }
 }
 

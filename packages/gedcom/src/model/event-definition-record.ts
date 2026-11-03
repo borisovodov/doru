@@ -7,9 +7,15 @@
  * reports and the sentence templates used to word them. Written by
  * Legacy Family Tree and Personal Ancestral File (see the Legacy
  * "Custom GEDCOM Tags" help:
- * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm). Not
- * part of any GEDCOM version. Recognized on input and written back as
- * `_EVENT_DEFN` in both versions.
+ * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm). The
+ * GEDCOM 5.5.5 draft (§2, the event definition record) defines the
+ * same record as `0 @X@ _EVDEF` with the TYPE, TITL, ABBR, SENT,
+ * ROLE, PLAC, DATE and DESC members — the spelling RootsMagic
+ * writes for its fact-type definitions (`0 _EVDEF BIRT` + `1 TITL
+ * Birth` + `1 ABBR Birth` + `1 SENT [person] was born…` + `1 ROLE
+ * Witness` blocks; observed in real RootsMagic exports). Not
+ * part of any released GEDCOM version. Recognized on input in both
+ * spellings and written back as `_EVENT_DEFN` in both versions.
  *
  * The vendor's help enumerates the members but not the wire shape, so
  * the parser accepts every documented form: the defined event/fact tag
@@ -79,14 +85,28 @@ export interface EventDefinitionRecord extends GedcomStructureBase {
    * `_CONF_FLAG` in both versions.
    */
   confidentialFlag?: boolean;
-  /** _DATE_TYPE {0:1} — whether a Date field is shown for this event; free text (YES/NO in the wild). */
+  /** _DATE_TYPE {0:1} — whether a Date field is shown for this event; free text (YES/NO in the wild). The RootsMagic `_EVDEF` spelling `DATE Y`/`N` (see the record JSDoc) normalizes into this slot. */
   dateType?: Text;
-  /** _DESC_FLAG {0:1} — whether a Description field is shown for this event; free text. */
+  /** _DESC_FLAG {0:1} — whether a Description field is shown for this event; free text. The RootsMagic `_EVDEF` spelling `DESC Y`/`N` (see the record JSDoc) normalizes into this slot. */
   descriptionFlag?: Text;
-  /** _PLACE_TYPE {0:1} — whether a Place field is shown for this event; free text. */
+  /** _PLACE_TYPE {0:1} — whether a Place field is shown for this event; free text. The RootsMagic `_EVDEF` spelling `PLAC Y`/`N` (see the record JSDoc) normalizes into this slot. */
   placeType?: Text;
   /** _PP_EXCLUDE {0:1} — the event is excluded from the Potential Problems reporting; free text. */
   potentialProblemsExcluded?: Text;
+  /**
+   * ABBR {0:1} — the abbreviation of the defined event (the GEDCOM
+   * 5.5.5 draft event definition record; RootsMagic writes e.g.
+   * `1 ABBR Birth`). Recognized on input and written back as `ABBR`
+   * in both versions.
+   */
+  abbreviation?: Text;
+  /**
+   * SENT {0:1} — the event's sentence template (the GEDCOM 5.5.5
+   * draft event definition record; RootsMagic writes e.g.
+   * `1 SENT [person] was born< [Date]>< [PlaceDetails]>…`). Kept
+   * verbatim; written back as `SENT` in both versions.
+   */
+  sentence?: Text;
   /** _SEN1 {0:1} … _SEN8 {0:1} — the eight Legacy sentence definitions, kept in order (gaps stay empty). */
   sentences?: Text[];
   /** The PAF5 sentence set: _SENM/_SENF/_SENU and the Date-Only / Place-Only / Date-and-Place variants. */
@@ -107,6 +127,13 @@ export interface WitnessRoleSentenceSet extends GedcomStructureBase {
   role: Text;
   /** _SEN1 {0:1} … _SEN8 {0:1} — the eight role sentences, kept in order (gaps stay empty). */
   sentences?: Text[];
+  /**
+   * SENT {0:1} — the role's sentence template (the GEDCOM 5.5.5
+   * draft event definition record; RootsMagic writes `2 SENT
+   * [ThisPerson] witnessed the birth of [person]…` under the ROLE
+   * block). Written back as `SENT` in both versions.
+   */
+  sentence?: Text;
   /** _DEF {0:1} — the role is the default one (a presence flag). */
   defaultRole?: boolean;
 }

@@ -15,6 +15,7 @@ import {
   FAMILY_CHILD_STATUS_ENUM_VALUES,
   ORDINANCE_STATUS_ENUM_VALUES,
   PEDIGREE_ENUM_VALUES,
+  QUALITY_ENUM_VALUES,
   RESTRICTION_ENUM_VALUES,
 } from '../enumerations';
 import {
@@ -47,6 +48,8 @@ import type {
   LdsOrdinanceDetail,
   OrdinanceStatusStructure,
   PedigreeStructure,
+  ProfileLink,
+  ChildSealingOrdinance,
   SpouseFamilyLink,
   SpouseSealingOrdinance,
   UsmBirthType,
@@ -86,6 +89,8 @@ import {
   parseAddressStructure,
   parseAgeStructure,
   parseAssociation,
+  parseChangeDate,
+  parseCreationDateLenient,
   parseDateExactStructure,
   parseDateStructure,
   parseNoteStructure,
@@ -179,6 +184,19 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
     PHRASE: (child) => {
       out.phrase = reqText(child);
     },
+    NOTE: (child) => {
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    QUOT: (child) => {
+      // A quotation attached to the child link (novel/game character
+      // trees): kept as an inline NOTE.
+      (out.notes ??= []).push({ tag: 'NOTE', payload: reqText(child) });
+    },
+    SLGC: (child) => {
+      // The child's sealing under the CHIL link (see
+      // FamilyChildLink.sealings).
+      (out.sealings ??= []).push(parseChildSealing(child, ctx));
+    },
   };
   handlers['_FREL'] = (child) => {
     out.fatherRelation = reqText(child);
@@ -236,8 +254,38 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
       // https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/).
       out.pedigree = parsePedigree(child, ctx);
     },
+    '_PLINK': (child) => {
+      // The Swarm family-tree packs: a FamilySearch profile link
+      // attached to the FAMC link (see ProfileLink).
+      const link: ProfileLink = {
+        tag: '_PLINK',
+        ...(child.value.kind === 'pointer' ? { individual: child.value.pointer } : {}),
+      };
+      dispatch(
+        child,
+        link,
+        {
+          '_FTSID': (grandchild) => {
+            link.familyTreeId = reqText(grandchild);
+          },
+          PEDI: (grandchild) => {
+            link.pedigree = parsePedigree(grandchild, ctx);
+          },
+          SOUR: (grandchild) => {
+            (link.citations ??= []).push(parseSourceCitation(grandchild, ctx));
+          },
+        },
+        ctx,
+      );
+      (out.profileLinks ??= []).push(link);
+    },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    QUOT: (child) => {
+      // A quotation attached to the child link (novel/game character
+      // trees): kept as an inline NOTE.
+      (out.notes ??= []).push({ tag: 'NOTE', payload: reqText(child) });
     },
   };
   // The 7.0 INDI.FAMC link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
@@ -274,7 +322,17 @@ export const SEX_551: Record<'M' | 'F' | 'U' | 'X' | 'N', string> = {
 };
 
 export function parsePedigree(node: RawNode, ctx: Ctx): PedigreeStructure {
-  const out: PedigreeStructure = { payload: parseEnum(reqText(node), PEDIGREE_ENUM_VALUES, node.position) };
+  const raw = reqText(node);
+  const upper = raw.toUpperCase();
+  const known = (Object.keys(PEDIGREE_ENUM_VALUES) as string[]).some((key) => key.toUpperCase() === upper);
+  const out: PedigreeStructure = {
+    ...(known
+      ? { payload: parseEnum(raw, PEDIGREE_ENUM_VALUES, node.position) }
+      : // A descriptive value ("Adopted (father)") is kept as the
+        // OTHER pedigree with the phrase (the full-leniency container
+        // rule — nothing is dropped).
+        { payload: 'OTHER' as PedigreeStructure['payload'], phrase: raw }),
+  };
   dispatch(
     node,
     out,
@@ -389,6 +447,32 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     DATE: (child) => {
       detail.date = parseDateStructure(child, ctx);
     },
+    TIME: (child) => {
+      // Pro-Gen writes the event time beside DATE (the standard slot
+      // is DATE.TIME): when the DATE has already parsed, the time
+      // attaches to it. A TIME without a parsed DATE — or one the
+      // time grammar rejects (`2:00pm`) — stays a generic extension
+      // of the detail (nothing is dropped).
+      if (detail.date !== undefined && detail.date.time === undefined) {
+        try {
+          detail.date.time = parseTime551(reqText(child), child.position);
+          return;
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code === 'time.invalid') {
+            addExtension(detail, child, ctx);
+            return;
+          }
+          throw error;
+        }
+      }
+      addExtension(detail, child, ctx);
+    },
+    '_PRIM': (child) => {
+      // Legacy: the primary event mark — the `_PRIM` spelling of the
+      // `_PRI` slot (see EventDetail.primary).
+      detail.primary = parseYNFlag(child, '_PRIM');
+    },
     '_DATE2': (child) => {
       // The vendor end date ("bis-Datum"); same value grammar as DATE.
       detail.endDate = parseDateStructure(child, ctx);
@@ -414,6 +498,31 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     CAUS: (child) => {
       detail.cause = reqText(child);
     },
+    QUAY: (child) => {
+      // The event's own reliability assessment (see
+      // EventDetail.quality).
+      detail.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+    },
+    CHAN: (child) => {
+      // The change date attached to the event (see
+      // EventDetail.changeDate).
+      detail.changeDate = parseChangeDate(child, ctx);
+    },
+    CREA: (child) => {
+      // The creation date attached to the event (see
+      // EventDetail.creationDate); an undecodable form stays a
+      // generic extension (nothing is dropped).
+      const created = parseCreationDateLenient(child, ctx);
+      if (created === undefined) {
+        addExtension(detail, child, ctx);
+      } else {
+        detail.creationDate = created;
+      }
+    },
+    '_FNA': (child) => {
+      // Heredis: the event flag (see EventDetail.fna).
+      detail.fna = parseYNFlag(child, '_FNA');
+    },
     '_SENT': (child) => {
       // RootsMagic: the event sentence (report wording).
       detail.sentence = reqText(child);
@@ -437,7 +546,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       detail.eventNumber = reqText(child);
     },
     RESN: (child) => {
-      detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position);
+      detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
     },
     NOTE: (child) => {
       (detail.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -451,9 +560,14 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     '_WT_OBJE_SORT': (child) => {
       (detail.media ??= []).push(parseMultimediaLink(child, ctx));
     },
+    RIN: (child) => {
+      // Ancestry.com Family Trees: the record-level RIN repeated under
+      // the event (see EventDetail.automatedRecordId).
+      detail.automatedRecordId = reqText(child);
+    },
   };
   handlers['_SDATE'] = (child) => {
-    detail.sortDate = parseSortDate551(child);
+    detail.sortDate = parseSortDate551(child, ctx);
   };
   handlers['_SHAR'] = (child) => {
     (detail.associations ??= []).push(parseSharedParticipant(child, ctx));
@@ -667,6 +781,8 @@ export interface EventShape extends GedcomStructureBase {
   wifeLabel?: string;
   /** Legacy: the marriage report phrases (see MarriageEvent.reportPhrases). */
   reportPhrases?: string[];
+  /** Legacy: the preferred event mark (see FamilyEventBase.preferred). */
+  preferred?: boolean;
   /** USM6: the birth type (see BirthEvent.birthType). */
   birthType?: UsmBirthType;
   /** USM6: the child-count certainty (see
@@ -707,6 +823,11 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   };
   handlers["WIFE"] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
+  };
+  handlers['_PREF'] = (child) => {
+    // Legacy: the preferred event of its kind (see
+    // FamilyEventBase.preferred).
+    event.preferred = parseYNFlag(child, '_PREF');
   };
   if (tag === 'MARR') {
     // The Legacy report labels and phrases of the marriage (see the
@@ -862,11 +983,14 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       event.adoptionFamily = parseAdoptionFamilyLink(child, ctx);
     } else if (tag === 'BIRT' || tag === 'CHR') {
       event.familyChild = reqPtr(child, ctx);
-      if (child.children.length > 0) {
-        fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under FAMC`, (child.children[0] as RawNode).position);
+      for (const grandchild of child.children) {
+        // Full leniency: unexpected children stay generic extensions.
+        addExtension(event, grandchild, ctx);
       }
     } else {
-      fail('structure.unknown-tag', 'A FAMC is only allowed under ADOP, BIRT or CHR', child.position);
+      // Full leniency: a FAMC in any other event stays a generic
+      // extension instead of failing.
+      addExtension(event, child, ctx);
     }
   };
   if (tag === 'BIRT') {
@@ -888,7 +1012,8 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       // wire value is a plain number of years (`AGED 80`); the full
       // AGE grammar is tolerated too.
       if (detail.age !== undefined) {
-        fail('structure.cardinality', 'At most one AGE or AGED is allowed under BURI', child.position);
+        // First occurrence wins.
+        return;
       }
       const raw = reqText(child);
       const payload = /^\d+$/.test(raw) ? { years: Number(raw) } : parseAge551(raw, child.position);
@@ -1067,7 +1192,9 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
       if (tag === 'SLGC') {
         event.familyChild = reqPtr(child, ctx);
       } else {
-        fail('structure.unknown-tag', `A FAMC is not allowed under ${tag}`, child.position);
+        // Full leniency: a FAMC under another ordinance stays a
+        // generic extension.
+        addExtension(event, child, ctx);
       }
     },
     // The 7.0 ordinance details carry <<NOTE_STRUCTURE>> {0:M} (GEDCOM
@@ -1130,9 +1257,10 @@ export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string)
     ctx,
   );
   if (date === undefined) {
-    fail('structure.missing-required', 'The STAT structure requires a DATE substructure', node.position);
+    // A STAT without DATE is tolerated (the full-leniency container
+    // rule).
   }
-  return { ...out, date };
+  return { ...out, ...(date === undefined ? {} : { date }) };
 }
 
 export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdinance {
@@ -1169,4 +1297,12 @@ export function parseSpouseSealing(node: RawNode, ctx: Ctx): SpouseSealingOrdina
     out.detail = detail;
   }
   return out;
+}
+
+/** Parses the LDS child sealing under a FAM record (see
+ *  ChildSealingOrdinance) — the same ordinance-detail grammar the
+ *  spouse sealing carries, spelled SLGC. */
+export function parseChildSealing(node: RawNode, ctx: Ctx): ChildSealingOrdinance {
+  const sealing = parseSpouseSealing(node, ctx);
+  return { tag: 'SLGC', ...(sealing.detail === undefined ? {} : { detail: sealing.detail }) };
 }

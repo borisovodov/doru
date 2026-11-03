@@ -76,12 +76,10 @@ describe('the FTW marriage statuses _MSTAT/_MEND under FAM', () => {
     }
   });
 
-  test('a repeated _MSTAT is a cardinality error', () => {
-    const result = parseGedcom551(enc(fam551(['1 _MSTAT Friends', '1 _MSTAT Engaged'])));
-    if (result.ok) {
-      throw new Error('expected a duplicate _MSTAT to fail');
-    }
-    expect(result.error.code).toBe('structure.cardinality');
+  test('a repeated _MSTAT keeps the first occurrence', () => {
+    const dataset = parseOk551(fam551(['1 _MSTAT Friends', '1 _MSTAT Engaged']));
+    const fam = dataset.records.find((record): record is FamilyRecord => record.tag === 'FAM');
+    expect(fam?.marriageBeginningStatus).toBe('Friends');
   });
 });
 
@@ -220,23 +218,19 @@ describe('the Legacy _EVENT_DEFN record', () => {
     expect(parseOk70(output70)).toEqual(dataset70);
   });
 
-  test('keeps unknown underscore tags generic and rejects unknown standard tags', () => {
+  test('keeps unknown underscore tags generic and unknown standard tags as extensions', () => {
     const dataset = parseOk551([...H551, '0 _EVENT_DEFN BIRT', '1 _FOO note', ...SUBM, '0 TRLR'].join('\n'));
     const record = dataset.records.find((entry): entry is EventDefinitionRecord => entry.tag === '_EVENT_DEFN');
     expect(record?.extensions).toEqual([{ tag: '_FOO', payload: 'note', children: [] }]);
-    const bad = parseGedcom551(enc([...H551, '0 _EVENT_DEFN BIRT', '1 BOGUS x', ...SUBM, '0 TRLR'].join('\n')));
-    if (bad.ok) {
-      throw new Error('expected BOGUS under _EVENT_DEFN to fail');
-    }
-    expect(bad.error.code).toBe('structure.unknown-tag');
+    const withStandard = parseOk551([...H551, '0 _EVENT_DEFN BIRT', '1 BOGUS x', ...SUBM, '0 TRLR'].join('\n'));
+    const record2 = withStandard.records.find((entry): entry is EventDefinitionRecord => entry.tag === '_EVENT_DEFN');
+    expect(record2?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
-  test('two event-type keys are a cardinality error', () => {
-    const result = parseGedcom551(enc([...H551, '0 _EVENT_DEFN BIRT', '1 MARR', ...SUBM, '0 TRLR'].join('\n')));
-    if (result.ok) {
-      throw new Error('expected two event types to fail');
-    }
-    expect(result.error.code).toBe('structure.cardinality');
+  test('two event-type keys keep the payload form', () => {
+    const dataset = parseOk551([...H551, '0 _EVENT_DEFN BIRT', '1 MARR', ...SUBM, '0 TRLR'].join('\n'));
+    const record = dataset.records.find((entry): entry is EventDefinitionRecord => entry.tag === '_EVENT_DEFN');
+    expect(record?.eventType).toBe('BIRT');
   });
 
   test('an _EVENT_DEFN with an xref keeps it', () => {

@@ -6,7 +6,7 @@ quoted in the JSDoc of the code that recognizes or normalizes these tags
 (see the "Known strict decisions" section of the package README for the
 project's stance on extensions).
 
-Compiled 2026-10. Links checked at compilation time; some vendors block
+Compiled 2026-11. Links checked at compilation time; some vendors block
 scrapers (FHUG, Gramps wiki, Legacy help) — those pages are still cited
 because their URLs are stable and the content was verified via search
 results and secondary sources.
@@ -191,6 +191,27 @@ block.
 - `_SCHEMA`/`SCHEMA`, `DEFN`, `LABL`, `ISA` — leftover GEDCOM 5.3
   schema mechanism still written by FTM; source: Tamura Jones
   (<https://www.tamurajones.net/GEDCOMTags.xhtml>).
+- `_OID`, `_USER` + `_ENCR`, `_ORIG`, `_ATL`, `_META`, `_CLON` (with
+  `_TID`/`_PID`/`_OID`/`_USER`/`_ENCR`/`_DATE`) under the OBJE record
+  — the media-object management block of the Ancestry.com Family Trees
+  export: object id, creator token, origin, attachment flag, metadata
+  XML, and the per-clone links. The wire format is undocumented; the
+  shape is taken from Ancestry's own exports (the GEDCOM.NET test tree,
+  <https://github.com/JasonRawlins/Gedcom> — HEAD.SOUR "Ancestry.com
+  Family Trees", VERS 2025.08). The same exports write the record-level
+  RIN under each event too (`2 RIN` under BIRT/DEAT/MARR/BURI…).
+- `_MTYPE`/`_STYPE`/`_SIZE`/`_WDTH`/`_HGHT` under OBJE.FILE.FORM —
+  the media metadata of the same exports: the display kind (portrait,
+  document, headstone, story, place, …), the stored encoding (jpeg,
+  png, x-inline, pdf, …), the file size in bytes and the picture
+  dimensions in pixels. `_DSCR` (the description) and the `_MSER` +
+  `_LKID` pair (the master mark with the link id tying the clones to
+  it) sit beside them under the OBJE record. The crop rectangle under
+  the inline media links is spelled `_CROP` with `_LEFT`/`_TOP`/
+  `_WDTH`/`_HGHT`. Same source as above.
+- The bare `FILE` line of those media records (FORM/TITL substructures
+  but no file name) is accepted as the empty path so the record
+  survives export.
 
 ### RootsMagic
 
@@ -277,6 +298,15 @@ Sources: GED-VIEW (<https://ged-view.com/guides/custom-gedcom-tags>)
 and the `_UID` section of jfcardinal
 (<https://jfcardinal.github.io/GEDCOM-5.5.2/extensions.html>).
 
+- `_MTTAG` records — the tree tags (user-defined labels such as "DNA
+  Match", "Common DNA Ancestor"): NAME, RIN, the `_VISI 1` visible
+  flag and the `_MTCAT @C…@` category pointer; individuals link their
+  tags with `1 _MTTAG @T…@`. The `_MTCAT` records carry NAME and RIN.
+  Observed in MyHeritage exports (the corpus files "Natasha Taylor
+  Family Tree.ged", "DiGiustino Bio_2023.ged", …); the wire format is
+  undocumented. Typed as `TreeTagRecord` / `TreeCategoryRecord` +
+  `IndividualRecord.treeTags`.
+
 ### Brother's Keeper
 
 Extensive private name/event tags, catalogued by Legacy: `_ADPN`,
@@ -309,9 +339,22 @@ Heredis exports standard GEDCOM 5.5.1 with media, URLs and notes, and
 is known for a sloppy header (no byte-order mark, per Tamura Jones'
 "Heredis 2025 Place Name Handling":
 <https://www.tamurajones.net/Heredis2025PlaceNameHandling.xhtml>).
-Nothing to type; unknown `_` tags round-trip generically. The T2G
-template notes it has no sort dates:
+The T2G template notes it has no sort dates:
 <https://www.tmgtogedcom.com/en/template-heredis.htm>.
+
+- `_FIL` under INDI — the person's filiation: their child status
+  relative to the recorded parents (`LEGITIMATE_CHILD`,
+  `NATURAL_CHILD`, `ADOPTED_CHILD`, `RELATIONSHIP_UNKNOW` — observed
+  in Heredis exports such as "Dudouyt Heredis 2014-Export.ged",
+  HEAD.SOUR "Heredis MAC2021"; the webtrees per-vendor registry lists
+  the tag as "what do they mean?"). Typed as
+  `IndividualRecord.filiation` (free text, written back as `_FIL` in
+  both versions).
+- `_UST` under FAM — the union status of the couple (MARRIED,
+  DIVORCED, SEPARATED, COMMON_LAW, COHABITATION, ENGAGEMENT, UNKNOWN
+  — observed in the same exports). Typed as
+  `FamilyRecord.unionStatus` (free text, written back as `_UST` in
+  both versions).
 
 ### Ancestris
 
@@ -531,8 +574,8 @@ its JSDoc.
 | Tag | Vendors | Meaning | Model field |
 | --- | --- | --- | --- |
 | `_TMPLT` | RootsMagic, FTM | Evidence Explained source template: `FIELD`/`VALUE` pairs under SOUR (page, URL, film no, …) | `SourceRecord.template` (TID + FIELD NAME/VALUE) |
-| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name | `names[]` with `TYPE MARRIED` |
-| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name | `names[]` with `TYPE AKA` |
+| `_MARNM` (also `_MARN`) | AQ, PAF5, BKW6, "several programs and websites" | Married name — at INDI level a separate name entry, at NAME level (the GenWiki-documented position) a name-level value | `names[]` with `TYPE MARRIED` (INDI level) / `PersonalNameStructure.marriedName` (NAME level, written back as `_MARNM`) |
+| `_AKA` / `_AKAN` | AQ, PAF4/5, BKW6 | "Also known as" name — same two positions as `_MARNM` | `names[]` with `TYPE AKA` (INDI level) / `PersonalNameStructure.alsoKnownAs` (NAME level, written back as `_AKA`) |
 | `_UPD` | MyHeritage | Record last-updated timestamp | `IndividualRecord.updatedAt` / `FamilyRecord.updatedAt` |
 | `_WT_OBJE_SORT` | webtrees | Per-link media sort order | `media` (array order preserves the sort) |
 | `_DATE` under OBJE | Legacy, webtrees | Date of a media object | `MultimediaRecord.date` |
@@ -609,9 +652,131 @@ its JSDoc.
 | `UGNM` under NAME | USM6 | The call name (Rufname) | `PersonalNameStructure.callName` (the same slot `_RUFNAME` carries; written back as `_RUFNAME`) |
 | `NAME_` under NAME | USM6 | Surname variants | `PersonalNameStructure.surnameVariants` (5.5.1 writes `_NAME_`; dropped on 7.0) |
 | `SECG` under NAME | MFT7 | The second and further given names | `PersonalNameStructure.furtherGivenNames` (5.5.1 writes `_SECG`; dropped on 7.0) |
+| `_MHID` under INDI / FAM | MyHeritage | The person's / family's MyHeritage tree identifier (`individual-12345` / `family-555`; observed in MyHeritage exports) | `IndividualRecord.myHeritageId` / `FamilyRecord.myHeritageId` (written back as `_MHID` in both versions) |
+| `_SKYPEID` / `_JABBERID` under SUBM | the official FamilySearch maximal70 sample | The submitter's Skype / Jabber identifier — the sample's own SCHMA declares the FOAF URIs (`http://xmlns.com/foaf/0.1/skypeID`, `…/jabberID`; FOAF Vocabulary Specification: <http://xmlns.com/foaf/spec/>) | `SubmitterRecord.skypeId` / `jabberId` (written back in both versions) |
+| `_TITL` under HEAD | My Family Tree (Chronoplex) | The title of the tree (observed in real exports) | `Header.title` (written back as `_TITL` in both versions) |
+| `_STS` under HEAD | My Family Tree (Chronoplex) | The dataset statistics block: one count line per record type (`2 INDI 179`, `2 _TASK 1`, …; observed in real exports) | `Header.statistics` (written back as the `_STS` block in both versions) |
+| `_TREE` under HEAD.SOUR | Ancestry.com | The tree the export came from: the numeric tree id as the payload, with the NOTE and RIN children (webtrees per-vendor custom-tag registry, `Ancestry.php`: <https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Ancestry.php>) | `HeaderSource.tree` (written back as the `_TREE` block in both versions) |
+| `_TASK` record | AGES! (GenWiki), My Family Tree (observed) | A task (to-do) record: the description in `_TDSC`, plus `_TTIL` (title), `_TSTS` (status), `_TPTY` (priority), `_TSDT`/`_TRDT`/`_TCDT` (scheduled/reminder/created dates in the vendor's encoded form), `_UID`, `CHAN` | `TodoRecord` (the `_TASK` spelling normalizes into the Legacy `_TODO` record; written back as `_TODO` with the `_TDSC` description as the payload and the extras as their tags) |
+| `_EVDEF` record | RootsMagic; the GEDCOM 5.5.5 draft (the event definition record) | The event/fact definition: the defined event tag as the payload, `TYPE` (kind code), `TITL`, `ABBR`, `SENT` (the sentence template), `ROLE` blocks with their own `SENT`, and the `PLAC Y`/`DATE Y`/`DESC N` field flags | `EventDefinitionRecord` (the `_EVDEF` spelling normalizes into the Legacy `_EVENT_DEFN` record; `PLAC`/`DATE`/`DESC` map into `placeType`/`dateType`/`descriptionFlag`, written back as `_PLACE_TYPE`/`_DATE_TYPE`/`_DESC_FLAG`) |
+| `_GRP` record | GEDKeeper | A research group record: a NAME and free-text NOTE children (observed in the GEDKeeper test resources, <https://github.com/Serg-Norseman/GEDKeeper>) | `GroupRecord` (written back as `_GRP` in both versions) |
+| `_PLC` record | GEDKeeper | The GEDKeeper place card: `NAME` (the name), `FORM` (the display form), `TYPE` (a numeric place-kind code), `_PLP @parent@` (the parent place), `RIN` (the record id) | `PlaceRecord` (the `_PLC` spelling joins `_PLAC`/`_LOC`/`_PLAC_DEFN`; `FORM` → `PlaceRecord.form`, `RIN` → `automatedRecordId`, `_PLP` → `parents`; the 7.0 emitter writes the card back as a `_LOC` record) |
+| `_URL` / `_CONF` / `_ACC` / `FILE` under SOUR | the Hutson family-tree data (self-documented in the file header: "_URL = web address of the source", "_CONF = confidence level (Primary / Secondary / Tentative / Provided)", "_ACC = date the source was accessed", https://github.com/CuriousG102/family-tree); `_URL` matches the webtrees `SOUR:URL` (PhpGedView.php); `FILE` is the obsidian charted-roots attachment form (https://github.com/banisterious/obsidian-charted-roots) | The source's web address, confidence level, access date (ISO-style free text) and directly attached media files | `SourceRecord.url` / `confidence` / `accessDate` / `files` (written back in both versions) |
+| `_CONF` / `NAME` / `_QUAL` under citations | the Hutson convention (citation level); RootsMagic 2026 (`NAME` = the import description) and MyHeritage (`NAME` = the profile reference); MFT7 (`_QUAL` block) | The citation's confidence level, the name of the cited source, the MFT7 quality block | `SourceCitation.confidence` / `name` / `qualityAssessment` (written back in both versions) |
+| `SOUR` under an inline OBJE link / `_CONF` under FAM / `_NOTA` under OBJE | the Hutson data (citations on media links); the family-tree-skill fixture (FAM confidence); Family Historian (`_NOTA` media note, the FHUG "GEDCOM Extension List") | Citations attached to a media link, the family record's confidence level, the media note | `MultimediaLink.citations` / `FamilyRecord.confidence` / `MultimediaRecord.notes` (written back in both versions) |
+| `_AMTID` under INDI | RootsMagic | The person's Ancestry Member Tree reference (`tree:family:person` id of the Ancestry sync; observed in real RootsMagic exports) | `IndividualRecord.ancestryMemberTreeId` (written back in both versions) |
+| `_SOSADABOVILLE` under INDI | Ancestris | The Sosa–d'Aboville number (`1 G1`: generation + position letter; the Ancestris user guide "Tags" page, https://docs.ancestris.org/books/user-guide/page/tags) | `IndividualRecord.sosaDAboville` (free text, written back in both versions) |
+| `_ENV` under HEAD.SOUR._TREE | Ancestry.com (2025 exports) | The Ancestry environment the export came from (`prd`) | `HeaderSource.tree.environment` (written back in both versions) |
+| `_OCUR` record + `_OCREF` under INDI | the glamberson gedcom-occurrences extension | An occurrence record: `TYPE`, `DATE`, `PLAC`, `_PART @xref@` participants with `ROLE`/`AGE`/`NOTE`, `SOUR`, `NOTE`; records link to them with `_OCREF @xref@` (https://github.com/glamberson/gedcom-occurrences) | `OccurrenceRecord` + `IndividualRecord.occurrences` (written back in both versions) |
+| `PRFX` / `IRI` + `TAG`/`ISA`/`LANG` under SCHMA | the FHISO Extended Legacy Format (ELF) | The ELF extension declarations: `PRFX <tag> <uri>` prefix bindings and `IRI <curie>` entries with the `TAG`, `ISA` and `LANG` children (https://fhiso.org/TR/elf; test files in https://github.com/fhiso/legacy-format) | `Schema.prefixes` / `Schema.elfDefinitions` (written back in both versions) |
+| `DATE` under NAME | files in the wild (and the official `warnings70.ged`) | The name's period of use, spelled with the standard tag — the same slot the TMG `_DATE` carries | `PersonalNameStructure.date` (written back as `_DATE` in both versions) |
+| `MARR` / `DIV` / `ANUL` / `ENGA` / `MARB` / `MARC` / `MARL` / `MARS` under INDI | game-generated exports (CK3DynastyGenerator) and hand-edited files | A person-level marriage/divorce/engagement event; neither standard has the slot, so they normalize into the standard `EVEN` + `TYPE` (Marriage, Divorce, …), with the event-detail children typing normally | `IndividualRecord.events` as `EVEN` + TYPE (standard-first; written back as `EVEN` + `TYPE` in both versions) |
+| `_OID` / `_USER` + `_ENCR` / `_ORIG` / `_ATL` / `_META` / `_CLON` (with `_TID`/`_PID`/`_OID`/`_USER`/`_ENCR`/`_DATE`) under OBJE | Ancestry.com Family Trees | The media-object management block: the object id (a UUID), the creator's user token with the `_ENCR 1` encrypted flag, the origin code (`acom`, `u`, `newspapers`, `fold3`), the Y/N attachment flag, the `<metadataxml>` block, and one `_CLON` block per clone (tree id, person id, object id, user token, clone timestamp). The wire format is undocumented; the shape is taken from Ancestry's own exports (the GEDCOM.NET test tree, https://github.com/JasonRawlins/Gedcom — HEAD.SOUR "Ancestry.com Family Trees"). A bare FILE line (no file name) under the same records is accepted as the empty path so the record survives export | `MultimediaRecord.objectId` / `user`+`userEncrypted` / `origin` / `attachment` / `metadata` / `clones` (AncestryClone) |
+| `_MTYPE` / `_STYPE` / `_SIZE` / `_WDTH` / `_HGHT` under OBJE.FILE.FORM | Ancestry.com Family Trees | The media metadata: the display kind (portrait, document, headstone, story, place, …), the stored encoding (jpeg, png, x-inline, pdf, …), the file size in bytes and the picture dimensions in pixels (same source as the block above) | `MediaFormatStructure.kind` / `storageType` / `size` / `width` / `height` (written back under the FORM line in both versions) |
+| `_DSCR` / `_MSER` + `_LKID` under OBJE | Ancestry.com Family Trees | The media object's description (the "(Ancestry media: Description)" placeholder included) and the master mark with the link id tying the clones to it (same source as above) | `MultimediaRecord.description` / `master`+`masterLinkId` |
+| `RIN` under events | Ancestry.com Family Trees | The record-level RIN (GEDCOM 5.5.1 §2 AUTOMATED_RECORD_ID) repeated under the record's BIRT/DEAT/MARR/BURI… events — the same value, the same meaning (the findmypast gedcom-samples Queen.ged, HEAD.SOUR "Ancestry.com Family Trees") | `EventDetail.automatedRecordId` (written back as `RIN` under the event in 5.5.1; dropped on 7.0, like the record-level RIN) |
+| `_FIL` under INDI | Heredis | The person's filiation — their child status relative to the recorded parents: LEGITIMATE_CHILD, NATURAL_CHILD, ADOPTED_CHILD, RELATIONSHIP_UNKNOW (observed in Heredis exports; kept verbatim) | `IndividualRecord.filiation` (written back as `_FIL` in both versions) |
+| `_UST` under FAM | Heredis | The union status of the couple: MARRIED, DIVORCED, SEPARATED, COMMON_LAW, COHABITATION, ENGAGEMENT, UNKNOWN (observed in Heredis exports; kept verbatim) | `FamilyRecord.unionStatus` (written back as `_UST` in both versions) |
+| `WWW` under HEAD.SOUR | Family Echo and other exporters | The web address of the source product (`2 WWW http://www.familyecho.com/`) | `HeaderSource.www` (written back as `WWW` under the SOUR line in both versions) |
+| `REFN` / `WWW` under a citation (and `WWW` under its DATA) | exports in the wild (the Ancestry-import sample, the Archivist fixtures, GEDBAS) | A reference number of the citation itself and the web address of the cited material, written beside or under DATA | `SourceCitation.referenceNumber` / `www` and `SourceCitationData.www` (written back as `REFN`/`WWW` in both versions) |
+| `_CROP` with `_LEFT`/`_TOP`/`_WDTH`/`_HGHT` under an inline OBJE link | Ancestry.com Family Trees | The crop rectangle (offset plus size) — the same slots the standard 7.0 CROP carries | `MultimediaLink.crop` (7.0 writes the standard CROP block; 5.5.1 writes the `_CROP` spelling) |
+| `_MTTAG` / `_MTCAT` records + `1 _MTTAG @T…@` under INDI | MyHeritage | The tree tags (user-defined labels: "DNA Match", …) with NAME, RIN, the `_VISI` visible flag and the category pointer; the categories carry NAME and RIN; the individuals link their tags | `TreeTagRecord` / `TreeCategoryRecord` + `IndividualRecord.treeTags` (written back as the `_MTTAG`/`_MTCAT` records and links in both versions) |
+| `QUAY` directly under an event | Brother's Keeper | The event's own reliability assessment (`2 QUAY 2` under BIRT/DEAT/MARR; the gedcom-go broskeep fixture, the GEDKeeper US-presidents sample) — the standard 5.5.1 tag in the event-level position | `EventDetail.quality` (written back as `QUAY` under the event in 5.5.1; dropped on 7.0, which has no QUAY) |
+| `_PREF Y` under FAM / FAM.MARR | Legacy | The preferred family / the preferred marriage — the FAM/MARR positions of the same "_PREF = Indicates a Preferred spouse, child or parents" tag typed under HUSB/WIFE/CHIL | `FamilyRecord.preferred` / `FamilyEventBase.preferred` (written back as `_PREF Y` in both versions) |
+| `_WPID` / `_HPID` under a marriage citation | MyHeritage | The wife's / husband's person id (`1,61370::465131`, the Ancestry-style id with the MyHeritage `1,` prefix) | `SourceCitation.wifePersonId` / `husbandPersonId` (written back as `_WPID`/`_HPID` in both versions) |
+| `_FOOT` under a citation | exports in the wild | The footnote text of the citation (free text) | `SourceCitation.footnote` (written back as `_FOOT` in both versions) |
+| `PAGE` / `REFN` / `WWW` / `_WPID` / `_HPID` / `_FOOT` under a free-text SOUR | files in the wild | The 5.5.1 SOURCE_DESCRIPTION form keeps the full citation grammar beneath the description text (GEDCOM 5.5.1 §2 p.39) — the same slots the pointer form carries | the pointer-form slots of `SourceCitation` (page, referenceNumber, www, wifePersonId, husbandPersonId, footnote) |
+| `_APID` under SOUR records and INDI records | Ancestry tree downloads | The record-level Ancestry reference (`1 _APID 1,1030::0`), the same tag and value shape the citations carry | `SourceRecord.ancestryPointers` / `IndividualRecord.ancestryPointers` (written back as `_APID` in both versions) |
+| `SOUR` under FONE/ROMN | (standard 5.5.1) | The NAME_PHONETIC_VARIATION / NAME_ROMANIZED_VARIATION citations and notes (GEDCOM 5.5.1 §2 p.55–56) | `PhoneticNameVariation.citations`/`notes`, `RomanizedNameVariation.citations`/`notes` (written back under FONE/ROMN in 5.5.1) |
+| `SOUR` under the inline OBJE link | the Hutson family-tree data | A citation attached to the 5.5.1 inline media link; it lands on the synthesized multimedia record (like the link's NOTE) | `MultimediaRecord.citations` |
+| `_FTSID` under INDI and SOUR + `_PLINK` blocks under INDI.FAMC | the Swarm family-tree packs (HEAD.SOUR "SwarmFamilyTreePacks") | The person's/source's FamilySearch tree id in UUID form, and the profile links to the linked profiles as recorded in the FamilySearch shared tree (`_PLINK @I…@` with `_FTSID`, the lenient PEDI and the backing citations) | `IndividualRecord.familyTreeSystemId` / `SourceRecord.familyTreeSystemId` / `ChildFamilyLink.profileLinks` (ProfileLink) |
+| `TIME` beside the event DATE | Pro-Gen | The event time written next to DATE (the standard slot is DATE.TIME); attaches to the DATE's time when the DATE has parsed, stays a generic extension otherwise (or when the value is not a valid time) | `DateStructure.time` under the event (written back as DATE.TIME in both versions) |
+| `_PRIM Y` under events and under NAME | Legacy | The primary event of its kind / the primary name — the `_PRIM` spellings of the same marks `_PRI` and `_PREF` carry | `EventDetail.primary` (written back as `_PRI`) / `PersonalNameStructure.primary` (written back as `_PRIM Y`) |
+| `QUOT` under INDI / FAM | novel and game character trees | The person's / family's quotation | INDI: FACT + TYPE "Quotation"; FAM: an inline NOTE (the FAM.FACT structure is 7.0-only and would be dropped on 5.5.1 export) |
+| `ADDR` directly under INDI | PAF and other exporters | The person's contact address without an event wrapper (the `_NAME` label and the ADR1–CTRY/contacts grammar type with it) | `IndividualRecord.address` (written back as the ADDR block in 5.5.1; dropped on 7.0) |
+| `REF` under a citation | findmypast | The citation's web address (the findmypast record URL) — the `REF` spelling of the `WWW` slot | `SourceCitation.www` (written back as `WWW`) |
+| `_GCID` under INDI and FAM | GEDitCOM II | The record's GEDitCOM id (a UUID, HEAD.SOUR "GEDitCOM II") | `IndividualRecord.geditcomId` / `FamilyRecord.geditcomId` (written back as `_GCID` in both versions) |
+| `_WEBTAG` under SOUR records | RootsMagic | An external web link attached to the source record (NAME + URL) | `SourceRecord.webTags` (written back as the `_WEBTAG` block in both versions) |
+| `QUOT` under CHIL and ASSO links | novel and game character trees | A quotation attached to the child/association link | an inline NOTE on the link (`FamilyChildLink.notes` / `AssociationStructure.notes`) |
+| `_GCID` under NOTE, `_PLAC` and SUBM records | GEDitCOM II | The record's GEDitCOM id on the remaining record kinds | `NoteRecord.geditcomId` / `PlaceRecord.geditcomId` / `SubmitterRecord.geditcomId` |
+| `CHAN` under events | exporters in the wild | The change date attached to the event itself (DATE + TIME + `_WT_USER`) | `EventDetail.changeDate` (written back as the CHAN block in both versions) |
+| `CREA` under events | exporters in the wild | The structured creation date attached to the event (the standard-tag twin of the `_CREA` free text) | `EventDetail.creationDate` (written back as the CREA block in 7.0; dropped on 5.5.1) |
+| `_CUTOUT Y` / `_PRIM_CUTOUT Y` / `_PARENTPHOTO Y` / `_PERSONALPHOTO Y` / `_PARENTRIN` under the media link | MyHeritage | The media display flags (cutout, primary cutout, parent photo, personal photo) and the parent's record id (`MH:P…`) | `MultimediaRecord.cutout` / `primaryCutout` / `parentPhoto` / `personalPhoto` / `parentRecordId` |
+| `AUTH` under the OBJE record | ged4web exports | The media object's author (the standard AUTH tag in the media position) | `MultimediaRecord.author` |
+| `_PID` under PLAC | the Swarm family-tree packs | The place's id in the exporting system (`curie-joliot-place-q102317`) | `PlaceStructure.placeId` |
+| `RIN` under a citation | MyHeritage | The citation's record id in the source system (`MH:SC…`) — the citation-level repetition of the record-level RIN | `SourceCitation.automatedRecordId` (written back as `RIN` in 5.5.1; dropped on 7.0) |
+| `_MIDN` under NAME | ged4web exports | The middle name written as its own line under NAME | `PersonalNameStructure.middleName` |
+| `_TYPE` under the crop block | Ancestry-family exports | The crop variant (`primary`) | `CropStructure.type` |
+| `_FNA` under events | Heredis | The Heredis event flag (Y/N, YES/NO; the vendor does not document the meaning — the webtrees registry lists `INDI:*:_FNA` as "???") | `EventDetail.fna` (written back as `_FNA Y`/`_FNA N`) |
+| `_CRE` under INDI/FAM/OBJE/NAME/NOTE/SOUR (and `CREA` under NAME) | MFT7 | The structured record creation: a bare line with the DATE (and TIME) child — the `_CREA`/`_CREAT` free-text twin | the record's `creationDate` / `PersonalNameStructure.creationDate` (written back as CREA in 7.0 and `_CRE` in 5.5.1) |
+| `SLGC` under FAM and under FAM.CHIL | exports in the wild (the George Washington family trees) | The child's LDS sealing to the parents, written under the family record or the child link instead of the child's INDI | `FamilyRecord.childSealings` / `FamilyChildLink.sealings` (ChildSealingOrdinance) |
+| `APPT` under INDI | the GSMD Mayflower Society trees | A (supplemental) membership application, with the DATE and the "Supplemental - …" PLAC | `EVEN` + TYPE "Application" |
+| `_PLACE` as the name child of a `_PLC` record | GEDKeeper (the Windsor dialect) | The place name spelled `_PLACE` instead of NAME | the same `PlaceRecord.names` entry the NAME child carries |
 
-**Brother's Keeper family** (BKW6, Legacy cat.): name variants
-(`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
+### Container leniencies of the 2026-11 sweep
+
+- **The HEAD may appear anywhere in the record stream.** Files in the
+  wild start with a NOTE or straight into records, with the real HEAD
+  following; the first HEAD node is parsed as the header wherever it
+  sits (a duplicate HEAD block mid-stream — the FamilyEcho CS555
+  exercise files repeat the header per section — is skipped: its
+  content is the already-parsed header's). The charset detector scans
+  the same way (a leading level-0 record does not stop the scan).
+- **Any GEDCOM 5.x version is accepted** (the superseded drafts 5.3
+  and 5.4 and the odd patch levels 5.50/5.01 included): the declared
+  value never selects a grammar, and the 5.x record grammar is close
+  enough to 5.5.1 that rejecting the file would lose the whole
+  document. Only 3.0/4.0 are still rejected.
+- **A missing space after the level or xref** (`1GEDC`, `0 @I1@INDI`)
+  is tolerated like the leading-zero leniency: the tag starts right
+  after the digits/identifier.
+
+### Visual and application-state tags (deliberately not typed)
+
+A small set of vendor tags describes how the vendor's UI draws the
+data — diagram coordinates, node colors, encoded view state — rather
+than genealogical content. These are **not typed into the model**
+(deliberate decision): a Dóru tree has no use for another program's
+canvas layout, and the values are meaningless outside the writing
+program. On input they are accepted and kept verbatim as generic
+extensions (the documents still import); on export they are dropped in
+both versions, like every generic extension. The corpus run
+(`scripts/gedcom-corpus.test.ts`) reports them as remaining in the
+generic pile — that is expected for this set.
+
+| Tag | Vendor | Meaning | Source |
+| --- | --- | --- | --- |
+| `_XY` | Gedcom-XY-Editor (cmosher01) | The x/y coordinates of a diagram node, a bare payload pair like `_XY 100,200` on the record | observed in the Gedcom-XY-Editor test files: <https://github.com/cmosher01/Gedcom-XY-Editor> |
+| `_COLOR` | Yet Another Genealogy Program (YAGP) | The fill color of the diagram node | observed in YAGP sample exports (GenWiki's catalog lists the tag name only, no meaning) |
+| `_DATI` | My Family Tree (Chronoplex) | An encoded status string the program writes under events and attributes (`V02C0000S01091118410000000E01000000000000000T`): internal view/flags state, not user data | observed in My Family Tree exports; the encoding is undocumented |
+| `_NSTY` | My Family Tree (Chronoplex) | A display-style flag under the INDI-level NOTE (`_NSTY Y`): how the note is shown, not its content | observed in My Family Tree exports |
+
+The official FamilySearch extension demo tags of `extensions.ged`
+(`_LOC` without NAME, `_PARTY`, `_RECORD`, `_IN`, `_EXT1`, `_CREATOR`,
+`_PHRASE` and their `DATE`/`NAME`/`SUBM` children) likewise stay
+generic by design — see the "Undocumented extension records stay
+generic" decision in chapter 4.
+
+### Single-file internal formats (deliberately not typed)
+
+A few tags belong to one program's internal block format and occur in
+exactly one corpus file each — typing them would model a private wire
+format with no second producer. They stay generic extensions
+(preserved verbatim on input, dropped on export like every generic
+extension); the corpus runner reports them as remaining in the pile,
+which is expected:
+
+| Tag | File / vendor | Meaning |
+| --- | --- | --- |
+| `_STE`, `_STF`, `_ACT`, `_ORD`, `_LCS`, `_SCS`, `_FOM` (and the `_PTE`/`_PTF`/`_VCS`/`_NCS` variant) | Synium MacFamilyTree exports (6 corpus copies of the same format: Nushi-Genealogy.ged, Hilligsoe.ged, the Franz Schubert export pair, the spindler sample, the Sidam31 test file — HEAD.SOUR "SyniumFamilyTree") | nested statement/fact blocks of one private export format (thousands of occurrences each — the files' whole structure) |
+| `PEDIGREELINK` records with `FAMILY`/`INDIVIDUAL`/`POSITION`/`DISPLAY`/`BOUNDARYRECT` children | GenoPro exports (the linguatree family tree, HEAD.SOUR "GenoPro") | the tree-layout record of the program: pedigree display positions, boundary rectangles and display options — pure layout state, no genealogical content |
+| `_POSITION <x> <y> <w> <h>` under OBJE, `ZOOM`/`PLEV` under `_PLAC.MAP` | various exporters | the media-object layout coordinates and the map zoom/level — display state |
+| `NAME` under HEAD.SUBM | Family Echo exports | the submitter's contact written under the SUBM pointer (an e-mail as the NAME); kept as a header extension like the Aldfaer contacts (same deliberate decision) |
+| `_FS_ID` | a single merge-test fixture | synthetic test data |
+| `_GROUP` | a single geotour-genoroots fixture | synthetic test data |
+| `NAME_GIVN`, `NAME_SURN`, `BIRT_DATE`, `BIRT_SOUR__QUAL__…`, `DEAT_PLAC_MAP_LATI`, `HEAL_TYPE`, `BURI_SOUR`, `CHR_…` and the rest of the underscore-joined family | `corsier-1680-1840.ged` and its GEDZIP twin (zenodo 10.5281/zenodo.4674521, lucasrappo/corsier-1680-1840 — two corpus entries, one content) | a Heredis export post-processed by a tool that flattened every hierarchy into one underscore-joined level-1 tag: `BIRT.DATE` → `BIRT_DATE`, `BIRT.SOUR._QUAL` → `BIRT_SOUR__QUAL`, `DEAT.PLAC.MAP.LATI` → `DEAT_PLAC_MAP_LATI`. The record skeleton (`0 @I…@ INDI`, `1 NAME`, `1 SEX`, `1 FAMC`) is standard, the substructures are not, and the notes carry RTF. Typing the flattened spellings would model one broken export — they stay generic extensions |
+
+**Brother's Keeper family** (BKW6, Legacy cat.): name variants(`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
 `_GERN`/`_HEBN`/`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` → `NAME` `TYPE
 OTHER` with a PHRASE label; `_AKAN`/`_MARN` are in the table above);
 physical descriptors (`_EYEC`/`_HAIR`/`_HEIG`/`_WEIG` → `FACT` + TYPE);
@@ -833,6 +998,67 @@ bare MagiKey descriptors normalized to OTHER + phrase); the MagiKey
 
 Covered by `tests/audit-fixes.test.ts`.
 
+### The 2026-11 Ancestry media sweep (typed additions)
+
+The generic-pile ranking of the 2026-11 corpus run (the tolerant
+parse) put the Ancestry.com Family Trees media block first — the
+largest remaining vendor-specific pile, ~140k occurrences across 27
+files. This sweep types it, plus the RIN the same exports repeat under
+events:
+
+| Tag | Vendors | Meaning | Model field |
+| --- | --- | --- | --- |
+| `_OID` / `_USER`+`_ENCR` / `_ORIG` / `_ATL` / `_META` / `_CLON` under OBJE | Ancestry.com Family Trees | The media-object management block (object id, creator token + encrypted flag, origin code, attachment flag, metadata XML, per-clone links); the shape is taken from Ancestry's own exports — the GEDCOM.NET test tree (JasonRawlins/Gedcom) | `MultimediaRecord.objectId` / `user`+`userEncrypted` / `origin` / `attachment` / `metadata` / `clones` (AncestryClone; written back as the same tags in both versions) |
+| bare `FILE` under OBJE | Ancestry.com Family Trees | The FILE line of those media records carries no file name (FORM/TITL only) | accepted as the empty path (`MediaFile.payload` `''`), so the record keeps its required FILE on export instead of being dropped as the embedded shape |
+| `RIN` under events | Ancestry.com Family Trees | The record-level RIN repeated under BIRT/DEAT/MARR/BURI… (the findmypast gedcom-samples Queen.ged) | `EventDetail.automatedRecordId` (written back as `RIN` under the event in 5.5.1; dropped on 7.0) |
+| `_MTYPE` / `_STYPE` / `_SIZE` / `_WDTH` / `_HGHT` under OBJE.FILE.FORM | Ancestry.com Family Trees | The media metadata: display kind, stored encoding, file size in bytes, picture dimensions in pixels | `MediaFormatStructure.kind` / `storageType` / `size` / `width` / `height` (written back under the FORM line in both versions) |
+| `_DSCR` / `_MSER`+`_LKID` under OBJE | Ancestry.com Family Trees | The media object's description and the master mark with its link id | `MultimediaRecord.description` / `master`+`masterLinkId` |
+| `_FIL` under INDI | Heredis | The person's filiation (LEGITIMATE_CHILD / NATURAL_CHILD / ADOPTED_CHILD / RELATIONSHIP_UNKNOW, kept verbatim) | `IndividualRecord.filiation` (written back as `_FIL` in both versions) |
+
+Covered by `tests/vendor-extensions-corpus-typing-3.test.ts`. The
+follow-up rounds typed the rest of the pile: `_UST` under FAM (Heredis
+union status → `FamilyRecord.unionStatus`), `WWW` under HEAD.SOUR
+(Family Echo → `HeaderSource.www`), `REFN`/`WWW` under citations and
+`WWW` under the citation DATA (→ `SourceCitation.referenceNumber`/
+`www`/`SourceCitationData.www`), the `_CROP` crop block under inline
+media links (→ `MultimediaLink.crop`, the same slot the standard 7.0
+CROP carries), the MyHeritage `_MTTAG`/`_MTCAT` tree-tag records with
+the INDI links (→ `TreeTagRecord`/`TreeCategoryRecord`/
+`IndividualRecord.treeTags`), pointers with a trailing C-style comment
+(`2 FAMC @4@ /* … */` parses as the pointer, the comment is dropped),
+the event-level `QUAY` (Brother's Keeper → `EventDetail.quality`),
+`_PREF Y` under FAM and FAM.MARR (Legacy → `FamilyRecord.preferred` /
+`FamilyEventBase.preferred`), `_WPID`/`_HPID` under marriage citations
+(MyHeritage → `SourceCitation.wifePersonId`/`husbandPersonId`) and
+`_FOOT` under citations (→ `SourceCitation.footnote`), the record-level
+`_APID` under SOUR and INDI (→ `SourceRecord.ancestryPointers` /
+`IndividualRecord.ancestryPointers`), the standard 5.5.1 citations
+under FONE/ROMN and the inline OBJE link, and the Swarm family-tree
+pack block (`_FTSID` under INDI/SOUR → `familyTreeSystemId`, the
+`_PLINK` profile links under INDI.FAMC → `ChildFamilyLink.profileLinks`).
+The 2026-11 remainder sweep closed the rest of the working pile: the
+Pro-Gen event-level `TIME` (attaches to the event DATE's time), the
+Legacy `_PRIM` under events and names, the character-tree `QUOT`
+(INDI FACT + TYPE "Quotation" / FAM inline NOTE), the PAF INDI-level
+`ADDR` (→ `IndividualRecord.address`), the findmypast `REF` under
+citations (→ `SourceCitation.www`), the GEDitCOM `_GCID`
+(→ `geditcomId` on INDI and FAM) and the RootsMagic `_WEBTAG` under
+SOUR records (→ `SourceRecord.webTags`). The overnight remainder
+sweep closed the rest: the `QUOT` positions under CHIL and ASSO
+links (→ inline notes), `_GCID` on the remaining record kinds, and
+the event-level `CHAN`/`CREA` (→ `EventDetail.changeDate`/
+`creationDate`). The final round typed the MyHeritage media flags
+(`_CUTOUT`/`_PRIM_CUTOUT`/`_PARENTPHOTO`/`_PERSONALPHOTO`/
+`_PARENTRIN` → `MultimediaRecord`), the ged4web `AUTH` under OBJE and
+`_MIDN` under NAME, the swarm `_PID` under PLAC (→
+`PlaceStructure.placeId`) and the MyHeritage `RIN` under citations
+(→ `SourceCitation.automatedRecordId`).
+Left in the pile deliberately: the loose `REFN` positions on other
+structures, the `_ATTC`/`_PART` swarm blocks (a dozen occurrences),
+the GenoPro layout dialect, the media/map display state
+(`_POSITION`, `ZOOM`/`PLEV`), the NAME under HEAD.SUBM, and the tags
+of single-file formats.
+
 ## 7. Deferred: presentation and UI state
 
 Pure report/interface data; a viewer that ignores these loses nothing
@@ -1001,8 +1227,9 @@ tables are the inventory, so the list is not repeated here):
 
 - **Accepted in any file** (the import grammar accepts the tags of
   both versions wherever the file declares them; see the README's
-  Known strict decisions). Unknown non-underscore tags remain strict
-  errors; the list is closed.
+  Known strict decisions). Under the full-leniency rule, unknown
+  non-underscore tags outside the catalog are likewise accepted as
+  generic extensions — the list selects the *typed* rules.
 - **Typed where the catalogs document a meaning**, normalized into the
   model slot that carries the same fact — the same standard-first
   normalization the underscore vendor tags use:

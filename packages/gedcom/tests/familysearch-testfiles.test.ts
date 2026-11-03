@@ -72,15 +72,16 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
     // the standard pointer slot; the undocumented `_EXT1` stays generic.
     expect(indi.submitters).toEqual(['@U1@', '@U2@']);
     expect(indi.extensions?.map((entry) => entry.tag)).toEqual(['_EXT1']);
-    // The FAMC link: a documented extension enumeration, plus a
-    // `_PHRASE` documented as g7:PHRASE — but FAMC has no PHRASE
-    // substructure in the 7.0 grammar (only the PEDI/STAT children
-    // carry one), so the tag keeps its extension meaning and stays a
+    // The FAMC link: a documented extension enumeration whose URI
+    // names no standard value keeps the OTHER pedigree with the
+    // phrase (the full-leniency container rule); the `_PHRASE`
+    // documented as g7:PHRASE has no PHRASE slot on the FAMC link
+    // itself (only the PEDI/STAT children carry one), so it stays a
     // generic extension of the link, preserved verbatim.
     const famc = indi.childFamilies?.[0];
-    expect(famc?.pedigree?.payload).toBe('_ENUMVAL');
+    expect(famc?.pedigree).toEqual({ payload: 'OTHER', phrase: '_ENUMVAL' });
     expect(famc?.extensions).toEqual([{ tag: '_PHRASE', payload: 'A Family', children: [] }]);
-    expect(indi.childFamilies?.[1]?.pedigree?.payload).toBe('_ENUM2');
+    expect(indi.childFamilies?.[1]?.pedigree).toEqual({ payload: 'OTHER', phrase: '_ENUM2' });
 
     const noxref = dataset.records.find((entry) => entry.tag === 'INDI' && entry.xref === undefined);
     if (noxref === undefined || noxref.tag !== 'INDI') {
@@ -238,13 +239,11 @@ describe('the SCHMA-documented extension tag resolution (GEDCOM 7.0 §1.5 / §2.
     expect(parseOk70(ser70(dataset))).toEqual(dataset);
   });
 
-  test('the standard grammar stays strict inside a resolved alias', () => {
-    // A documented record alias must satisfy the standard grammar of
-    // the record it abbreviates: SUBMITTER_RECORD requires a NAME.
-    const result = parseGedcom70(enc(doc('0 @S1@ _SUB')));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe('structure.missing-required');
-    }
+  test('a resolved record alias without a NAME synthesizes the empty name', () => {
+    // A documented record alias parses as the record it abbreviates; a
+    // SUBMITTER_RECORD without a NAME gets the empty name (the
+    // full-leniency container rule).
+    const dataset = parseOk70(doc('0 @S1@ _SUB'));
+    expect(dataset.records[0]).toEqual({ tag: 'SUBM', name: '', xref: '@S1@' });
   });
 });

@@ -22,6 +22,9 @@ import type { AssociationStructure } from './common';
 import type { ChangeDate } from './common';
 import type { CensusRecord } from './census-record';
 import type { CreationDate } from './common';
+import type { GroupRecord } from './group-record';
+import type { OccurrenceRecord } from './occurrence-record';
+import type { TreeCategoryRecord, TreeTagRecord } from './tree-tag-record';
 import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
 import type { DatePeriodStructure } from './common';
@@ -44,7 +47,7 @@ import type { PersonalNameStructure } from './names-places';
 import type { PlaceStructure } from './names-places';
 import type { SourceCitation } from './sources-media';
 import type { SourceRepositoryCitation } from './sources-media';
-import type { SpouseSealingOrdinance } from './lds';
+import type { SpouseSealingOrdinance, ChildSealingOrdinance } from './lds';
 import type { PlaceRecord } from './place-record';
 import type { PublishedSiteRecord } from './published-site-record';
 import type { TodoRecord } from './todo-record';
@@ -94,7 +97,7 @@ export type UsmUnionKind = '1' | '2' | '3' | '4' | '5';
  * <https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/>. See
  * IndividualRecord.recordFlags.
  */
-export interface RecordFlagStructure {
+export interface RecordFlagStructure extends GedcomStructureBase {
   /** The generated flag tag (`__…`). */
   tag: Text;
   /** The full flag name (the payload of the flag line). */
@@ -207,8 +210,8 @@ export interface MarriageStatusStructure extends GedcomStructureBase {
 export interface WebTagStructure extends GedcomStructureBase {
   /** NAME {0:1} — the link text. */
   name?: Text;
-  /** URL {1:1} — the address of the link. */
-  url: Text;
+  /** URL {0:1} — the address of the link. Missing URL is tolerated (the full-leniency container rule). */
+  url?: Text;
 }
 
 /**
@@ -346,6 +349,34 @@ export interface FamilyRecord extends GedcomStructureBase {
    * spell a non-underscore extension tag).
    */
   unionKind?: UsmUnionKind;
+  /**
+   * `_UST` {0:1} — the union status of the couple (Heredis' "union
+   * status" of the family: MARRIED, DIVORCED, SEPARATED, COMMON_LAW,
+   * COHABITATION, ENGAGEMENT, UNKNOWN — observed in Heredis exports,
+   * e.g. the corpus file "Dudouyt Heredis 2014-Export.ged", HEAD.SOUR
+   * "Heredis MAC2021"; kept verbatim, the value set is not documented
+   * by the vendor). Not part of any GEDCOM version. Recognized on
+   * input and written back as `_UST` in both versions.
+   */
+  unionStatus?: Text;
+  /**
+   * `_GCID` {0:1} — the record's GEDitCOM id (a UUID assigned by
+   * GEDitCOM II, John A. Nairn / RSAC Software — HEAD.SOUR "GEDitCOM
+   * II" in the corpus file Ajmani.ged). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_GCID` in both
+   * versions.
+   */
+  geditcomId?: Text;
+  /**
+   * `_PREF Y` {0:1} — marks the preferred family (the family of the
+   * preferred parents, from the child's perspective). Written by
+   * Legacy Family Tree at the FAM level — the same "_PREF = Indicates
+   * a Preferred spouse, child or parents" tag it writes under
+   * HUSB/WIFE/CHIL/MARR (see FamilyPartnerLink.preferred). Not part
+   * of any GEDCOM version. Recognized on input and written back as
+   * `_PREF Y` in both versions.
+   */
+  preferred?: boolean;
   /** HUSB {0:1}, g7:FAM-HUSB — one partner (a layout hint, not a gender assertion). */
   husband?: FamilyPartnerLink;
   /** WIFE {0:1}, g7:FAM-WIFE — the other partner. */
@@ -363,6 +394,44 @@ export interface FamilyRecord extends GedcomStructureBase {
   submitters?: Pointer<SubmitterRecord>[];
   /** <<LDS_SPOUSE_SEALING>> {0:M}. */
   spouseSealings?: SpouseSealingOrdinance[];
+  /**
+   * SLGC {0:M} — the LDS child sealings under the FAM record (see
+   * ChildSealingOrdinance).
+   */
+  childSealings?: ChildSealingOrdinance[];
+  /**
+   * `_MHID` {0:1} — the family's MyHeritage family-tree identifier
+   * (`family-555` in MyHeritage exports; the same tag under INDI
+   * carries the person id, see IndividualRecord.myHeritageId). Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `_MHID` in both versions.
+   */
+  myHeritageId?: Text;
+  /**
+   * `_CONF` {0:1} — the confidence level of the family record as a
+   * whole (the family-tree-skill fixture writes PROVEN / PROBABLE
+   * under FAM, https://github.com/cjcovell/family-tree-skill; the
+   * same convention the Hutson data uses on sources). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_CONF`
+   * in both versions.
+   */
+  confidence?: Text;
+  /**
+   * `_CURRENT` {0:1} — the family is the current (primary) family of
+   * its members. Written with a `Y` by exports in the wild (observed
+   * in the CS555 test corpora and other hand-built files). Presence
+   * flag: an absent value or `Y` sets it, `N` clears it. Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_CURRENT Y` in both versions.
+   */
+  current?: boolean;
+  /**
+   * `_PRIMARY` {0:1} — the family is the primary family of its
+   * members (same source as `current`; under INDI.FAMC the same tag
+   * types as ChildFamilyLink.primary). Recognized on input and
+   * written back as `_PRIMARY Y` in both versions.
+   */
+  primary?: boolean;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -460,6 +529,17 @@ export interface FamilyChildLink extends GedcomStructureBase {
    * `_PREF` in both versions.
    */
   preferred?: boolean;
+  /**
+   * NOTE {0:M} — notes attached to the child link (GEDCOM 5.5.1
+   * `CHILD_TO_FAMILY_LINK`, p.31); the character-tree `QUOT`
+   * quotations normalize into this slot.
+   */
+  notes?: NoteStructure[];
+  /**
+   * SLGC {0:M} — the child's LDS sealing to the parents, written
+   * under the FAM.CHIL link (see ChildSealingOrdinance).
+   */
+  sealings?: ChildSealingOrdinance[];
   /**
    * _STAT {0:1} — the child's birth multiplicity, free text (Twin,
    * Triplet, …). Written by Legacy Family Tree under CHIL (see its
@@ -576,6 +656,104 @@ export interface IndividualRecord extends GedcomStructureBase {
    * written back as `_FSFTID` in both versions.
    */
   familySearchId?: Text;
+  /**
+   * `_FTSID` {0:1} — the person's id in the FamilySearch shared tree
+   * in the UUID form written by the Swarm public-release family-tree
+   * pack builder (HEAD.SOUR "SwarmFamilyTreePacks" in the samoilev_swarm
+   * corpus files) — the same fact the `_FSFTID` PID spelling carries
+   * (see `familySearchId`), in a different id form, so it keeps its
+   * own slot. Not part of any GEDCOM version. Recognized on input and
+   * written back as `_FTSID` in both versions.
+   */
+  familyTreeSystemId?: Text;
+  /**
+   * ADDR {0:1} — the person's contact address, written directly under
+   * the INDI record (PAF and other exporters; neither standard has
+   * the position — the 5.5.1/7.0 address lives under events).
+   * Recognized on input with the full address grammar (the `_NAME`
+   * label, ADR1–CTRY, contacts) and written back as the ADDR block
+   * under the INDI record in 5.5.1; dropped on 7.0 output (7.0 has no
+   * INDI address position either).
+   */
+  address?: AddressStructure;
+  /**
+   * `_MHID` {0:1} — the person's MyHeritage family-tree identifier
+   * (`individual-12345` in MyHeritage exports; the same tag under FAM
+   * carries the tree's family id, `family-555`). The MyHeritage
+   * "My Heritage Family Tree" export writes it under every INDI and
+   * FAM record. Not part of any GEDCOM version. Recognized on input
+   * and written back as `_MHID` in both versions.
+   */
+  myHeritageId?: Text;
+  /**
+   * `_FIL` {0:1} — the person's filiation: their child status relative
+   * to the parents recorded in the file. Written by Heredis under
+   * every INDI record (observed in Heredis exports — e.g. the corpus
+   * file "Dudouyt Heredis 2014-Export.ged", HEAD.SOUR "Heredis
+   * MAC2021"); the observed value set is LEGITIMATE_CHILD,
+   * NATURAL_CHILD, ADOPTED_CHILD and RELATIONSHIP_UNKNOW, kept
+   * verbatim (free text; Heredis does not document the wire format —
+   * the webtrees per-vendor registry lists `INDI:_FIL` as "what do
+   * they mean?", https://github.com/fisharebest/webtrees, Heredis.php).
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as `_FIL` in both versions.
+   */
+  filiation?: Text;
+  /**
+   * `_GCID` {0:1} — the record's GEDitCOM id (a UUID assigned by
+   * GEDitCOM II, John A. Nairn / RSAC Software — HEAD.SOUR "GEDitCOM
+   * II" in the corpus file Ajmani.ged). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_GCID` in both
+   * versions.
+   */
+  geditcomId?: Text;
+  /**
+   * `_MTTAG {0:M}` — pointers to the MyHeritage tree tags applied to
+   * the person (`1 _MTTAG @T10@`; see TreeTagRecord). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_MTTAG`
+   * in both versions.
+   */
+  treeTags?: Pointer<TreeTagRecord>[];
+  /**
+   * `_AMTID` {0:1} — the person's Ancestry Member Tree reference
+   * (`412781982829:1030:210595317`: the tree id, family id and person
+   * id RootsMagic records for its Ancestry sync; observed in real
+   * RootsMagic exports). Not part of any GEDCOM version. Recognized on
+   * input and written back as `_AMTID` in both versions.
+   */
+  ancestryMemberTreeId?: Text;
+  /**
+   * `_APID` {0:M} — Ancestry.com record references directly under the
+   * INDI record, format `dbid::record` (in the wild often prefixed,
+   * e.g. `1,7602::12345`) — the same tag and value shape the
+   * citations carry (see SourceCitation.ancestryPointers). Not part
+   * of any GEDCOM version (documented by TMG to GEDCOM:
+   * https://tmgtogedcom.com/en/apid.htm). Recognized on input and
+   * written back as `_APID` in both versions.
+   */
+  ancestryPointers?: Text[];
+  /**
+   * `_SOSADABOVILLE` {0:1} — the person's Sosa–d'Aboville number
+   * (`1 G1`: the Sosa generation followed by the position letter
+   * within it), the numbering Ancestris assigns in its d'Aboville
+   * view (the Ancestris user guide, "Tags":
+   * https://docs.ancestris.org/books/user-guide/page/tags — the same
+   * page documents `_SOSA`). Kept as free text. Not part of any
+   * GEDCOM version. Recognized on input and written back as
+   * `_SOSADABOVILLE` in both versions.
+   */
+  sosaDAboville?: Text;
+  /**
+   * `_OCREF @xref@` {0:M} — a pointer to a shared occurrence record
+   * (the glamberson gedcom-occurrences extension, see
+   * OccurrenceRecord): the documented occurrence of the person in a
+   * source the record describes
+   * (https://github.com/glamberson/gedcom-occurrences). The pointer
+   * must resolve to an existing `_OCUR` record
+   * (`document.xref-not-found` otherwise). Written back as `_OCREF`
+   * in both versions.
+   */
+  occurrences?: Pointer<OccurrenceRecord>[];
   /**
    * _TAG {0:1} and _TAG2–_TAG9 {0:1 each} — the individual's named
    * tag marks (Tag 1 through Tag 9), kept in order. Written by Legacy
@@ -775,6 +953,28 @@ export interface IndividualRecord extends GedcomStructureBase {
 }
 
 /**
+ * The FamilySearch profile link of the Swarm family-tree packs: a
+ * `_PLINK` block under an INDI.FAMC link, naming the linked profile
+ * as recorded in the FamilySearch shared tree. Written by the Swarm
+ * public-release family-tree pack builder (HEAD.SOUR
+ * "SwarmFamilyTreePacks" in the samoilev_swarm corpus files:
+ * https://github.com/samoilev_swarm); the wire format is
+ * undocumented. Not part of any GEDCOM version. Recognized on input
+ * and written back as the `_PLINK` block in both versions.
+ */
+export interface ProfileLink extends GedcomStructureBase {
+  tag: '_PLINK';
+  /** The _PLINK payload, {0:1} — a pointer to the linked profile's INDI record (kept verbatim; the linked person may not have a record in the file). */
+  individual?: Pointer<IndividualRecord>;
+  /** _FTSID {0:1} — the linked profile's FamilySearch tree id (a UUID). */
+  familyTreeId?: Text;
+  /** PEDI {0:1} — the pedigree kind of the link (birth, adoptive, …; the same lenient PEDI grammar the FAMC link uses). */
+  pedigree?: PedigreeStructure;
+  /** <<SOURCE_CITATION>> {0:M} — the citations backing the link. */
+  citations?: SourceCitation[];
+}
+
+/**
  * GEDCOM 7.0 §3.2.2 INDIVIDUAL_RECORD — g7:INDI-FAMC: the family in which an
  * individual appears as a child, with pedigree and status details.
  *
@@ -862,6 +1062,11 @@ export interface ChildFamilyLink extends GedcomStructureBase {
   status?: FamilyChildStatusStructure;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+  /**
+   * _PLINK {0:M} — the FamilySearch profile links of the Swarm
+   * family-tree packs, attached to the FAMC link (see ProfileLink).
+   */
+  profileLinks?: ProfileLink[];
 }
 
 /**
@@ -928,6 +1133,35 @@ export interface AliasLink extends GedcomStructureBase {
   individual: Pointer<IndividualRecord>;
   /** PHRASE {0:1}, g7:PHRASE (GEDCOM 7.0 §3.2.2 INDIVIDUAL_RECORD). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
+}
+
+/**
+ * The Ancestry.com Family Trees media clone block: `_CLON {0:M}` under
+ * the OBJE record, one per clone of the media object (the same object
+ * linked from another tree or person). The wire format is
+ * undocumented; the shape is taken from Ancestry's own exports — e.g.
+ * the GEDCOM.NET test tree (HEAD.SOUR "Ancestry.com Family Trees",
+ * VERS 2025.08): https://github.com/JasonRawlins/Gedcom (file
+ * GedcomNetTestTree.ged) — where each block carries `_TID` (tree id),
+ * `_PID` (person id), `_OID` (object id), `_USER` (user token, with
+ * the `_ENCR` encrypted flag) and `_DATE` (clone timestamp). Not part
+ * of any GEDCOM version; recognized on input and written back as the
+ * `_CLON` block in both versions.
+ */
+export interface AncestryClone extends GedcomStructureBase {
+  tag: '_CLON';
+  /** _TID {0:1} — the id of the tree the clone belongs to (kept verbatim). */
+  treeId?: Text;
+  /** _PID {0:1} — the id of the person the clone belongs to (kept verbatim). */
+  personId?: Text;
+  /** _OID {0:1} — the clone's object id (a UUID). */
+  objectId?: Text;
+  /** _USER {0:1} — the clone's user token (kept verbatim). */
+  user?: Text;
+  /** _ENCR {0:1} — 1 when the clone's `_USER` token is encrypted. */
+  userEncrypted?: boolean;
+  /** _DATE {0:1} — the clone timestamp (kept verbatim; the wire format is undocumented). */
+  date?: Text;
 }
 
 /**
@@ -1036,6 +1270,127 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * versions.
    */
   mediaNote?: Text;
+  /**
+   * _OID {0:1} — the media object's identifier, a UUID. Written by
+   * Ancestry.com Family Trees under the OBJE record (the wire format
+   * is undocumented; the shape is taken from Ancestry's own exports,
+   * e.g. the GEDCOM.NET test tree — see AncestryClone). Not part of
+   * any GEDCOM version. Recognized on input and written back as `_OID`
+   * in both versions.
+   */
+  objectId?: Text;
+  /**
+   * _USER {0:1} — the token of the Ancestry user who created the media
+   * object (kept verbatim; a base64-looking opaque string). Written by
+   * Ancestry.com Family Trees under the OBJE record (same source as
+   * `objectId`), with the `_ENCR 1` substructure marking the token
+   * encrypted. Not part of any GEDCOM version. Recognized on input and
+   * written back as the `_USER`/`_ENCR` pair in both versions.
+   */
+  user?: Text;
+  /**
+   * _ENCR {0:1} — 1 when the `_USER` token of this record is
+   * encrypted; the substructure of `_USER` (same source as `user`).
+   * Only emitted together with `user`.
+   */
+  userEncrypted?: boolean;
+  /**
+   * _ORIG {0:1} — the origin of the media object: `acom`
+   * (ancestry.com), `u` (user upload), `newspapers`, `fold3`, … (kept
+   * verbatim). Written by Ancestry.com Family Trees under the OBJE
+   * record (same source as `objectId`). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_ORIG` in both
+   * versions.
+   */
+  origin?: Text;
+  /**
+   * _ATL {0:1} — the attachment flag (Y/N). Written by Ancestry.com
+   * Family Trees under the OBJE record (same source as `objectId`).
+   * Not part of any GEDCOM version. Recognized on input (Y/N) and
+   * written back as `_ATL Y` in both versions when set.
+   */
+  attachment?: boolean;
+  /**
+   * _META {0:1} — the media metadata XML block
+   * (`<metadataxml>…</metadataxml>`, kept verbatim; CONC continuations
+   * are merged into the value). Written by Ancestry.com Family Trees
+   * under the OBJE record (same source as `objectId`). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_META` in
+   * both versions.
+   */
+  metadata?: Text;
+  /**
+   * _DSCR {0:1} — the description of the media object (free text;
+   * Ancestry writes "(Ancestry media: Description)" as the placeholder
+   * of an empty description). Written by Ancestry.com Family Trees
+   * under the OBJE record (same source as `objectId`). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_DSCR`
+   * in both versions.
+   */
+  description?: Text;
+  /**
+   * _MSER {0:1} — the record is the master (original) media object;
+   * its clones (the `_CLON` blocks of other records) link back to it.
+   * Written by Ancestry.com Family Trees under the OBJE record as the
+   * bare tag with the `_LKID` link id beneath (same source as
+   * `objectId`). Not part of any GEDCOM version. Recognized on input
+   * (the bare tag marks the flag) and written back as `_MSER` with
+   * its `_LKID` in both versions.
+   */
+  master?: boolean;
+  /**
+   * _LKID {0:1} — the link id tying the clones to this master record
+   * (a UUID, the same value as the master's `_OID`); the substructure
+   * of `_MSER` (same source as `master`). Only emitted together with
+   * `master`.
+   */
+  masterLinkId?: Text;
+  /**
+   * `_CUTOUT Y` {0:1} — the photo is displayed cut out (its
+   * background removed). Written by MyHeritage under the media link
+   * (observed in the corpus file bs.ged); not part of any GEDCOM
+   * version. Recognized on input and written back as `_CUTOUT Y` in
+   * both versions.
+   */
+  cutout?: boolean;
+  /**
+   * `_PRIM_CUTOUT Y` {0:1} — the primary cutout mark of the photo
+   * (same source as `cutout`). Recognized on input and written back
+   * as `_PRIM_CUTOUT Y` in both versions.
+   */
+  primaryCutout?: boolean;
+  /**
+   * `_PARENTPHOTO Y` {0:1} — the media object is the parent's photo
+   * (same source as `cutout`). Recognized on input and written back
+   * as `_PARENTPHOTO Y` in both versions.
+   */
+  parentPhoto?: boolean;
+  /**
+   * `_PERSONALPHOTO Y` {0:1} — the media object is the person's own
+   * photo (same source as `cutout`). Recognized on input and written
+   * back as `_PERSONALPHOTO Y` in both versions.
+   */
+  personalPhoto?: boolean;
+  /**
+   * `_PARENTRIN {0:1}` — the parent's record id (`MH:P500006`, the
+   * MyHeritage person id; same source as `cutout`). Kept verbatim.
+   * Recognized on input and written back as `_PARENTRIN` in both
+   * versions.
+   */
+  parentRecordId?: Text;
+  /**
+   * AUTH {0:1} — the author of the media object, written with the
+   * standard AUTH tag under the OBJE record (the ged4web exports,
+   * e.g. the corpus file GEDs_Gresham-187.ged). Neither standard has
+   * the slot. Recognized on input and written back as `AUTH` in both
+   * versions.
+   */
+  author?: Text;
+  /**
+   * _CLON {0:M} — the clones of this media object (the same object
+   * linked from another tree or person); see AncestryClone.
+   */
+  clones?: AncestryClone[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -1076,11 +1431,21 @@ export interface MultimediaRecord extends GedcomStructureBase {
  * by FILE.FORM.TYPE (`SOURCE_MEDIA_TYPE`) instead of FILE.FORM.MEDI, and
  * TRAN is 7.0-only.
  */
-export interface MediaFile extends GedcomStructureBase {
-  /** The FILE payload, {1:1} FilePath. */
+/**
+ * A `FILE` directly under a SOUR record (see SourceRecord.files): the
+ * path of a media file attached to the source without a separate OBJE
+ * record. Neither standard has the slot; the form is the bare path.
+ */
+export interface SourceFileStructure extends GedcomStructureBase {
+  tag: 'FILE';
+  /** The FILE payload, {1:1} FilePath — the media file path. */
   payload: FilePath;
-  /** FORM {1:1}, g7:FORM — the media type of the file. */
-  form: MediaFormatStructure;
+}
+
+export interface MediaFile extends GedcomStructureBase {  /** The FILE payload, {1:1} FilePath — the media file path. A bare FILE line (no payload) is tolerated as the empty path: Ancestry.com Family Trees writes it with FORM/TITL substructures and no file name; it is written back as the bare FILE line. */
+  payload: FilePath;
+  /** FORM {0:1}, g7:FORM — the media type of the file. Missing FORM is tolerated (the full-leniency container rule). */
+  form?: MediaFormatStructure;
   /** TITL {0:1}, g7:TITL — a title of the file. */
   title?: Text;
   /**
@@ -1151,6 +1516,48 @@ export interface MediaFormatStructure extends GedcomStructureBase {
   payload: MediaType;
   /** MEDI {0:1}, g7:MEDI — Enum of g7:enumset-MEDI; the medium from which the file was derived. */
   medium?: MediaStructure;
+  /**
+   * _MTYPE {0:1} — the display kind of the media: `portrait`,
+   * `document`, `headstone`, `story`, `place`, `newspaperarticle`,
+   * `marriagecertificate`, `obituary`, … (free text, kept verbatim).
+   * Written by Ancestry.com Family Trees under OBJE.FILE.FORM (the
+   * wire format is undocumented; the shape is taken from Ancestry's
+   * own exports — the GEDCOM.NET test tree:
+   * https://github.com/JasonRawlins/Gedcom, GedcomNetTestTree.ged).
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as `_MTYPE` under the FORM line in both versions.
+   */
+  kind?: Text;
+  /**
+   * _STYPE {0:1} — the stored encoding of the file: `jpeg`, `png`,
+   * `pjpeg`, `x-inline` (the inline story text), `pdf`, `msword`, …
+   * (free text, kept verbatim). Written by Ancestry.com Family Trees
+   * under OBJE.FILE.FORM (same source as `kind`). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_STYPE`
+   * under the FORM line in both versions.
+   */
+  storageType?: Text;
+  /**
+   * _SIZE {0:1} — the size of the media file in bytes. Written by
+   * Ancestry.com Family Trees under OBJE.FILE.FORM (same source as
+   * `kind`). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_SIZE` under the FORM line in both versions.
+   */
+  size?: Integer;
+  /**
+   * _WDTH {0:1} — the width of the picture in pixels. Written by
+   * Ancestry.com Family Trees under OBJE.FILE.FORM (same source as
+   * `kind`). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_WDTH` under the FORM line in both versions.
+   */
+  width?: Integer;
+  /**
+   * _HGHT {0:1} — the height of the picture in pixels. Written by
+   * Ancestry.com Family Trees under OBJE.FILE.FORM (same source as
+   * `kind`). Not part of any GEDCOM version. Recognized on input and
+   * written back as `_HGHT` under the FORM line in both versions.
+   */
+  height?: Integer;
 }
 
 /**
@@ -1302,12 +1709,20 @@ export interface NoteRecord extends GedcomStructureBase {
   citations?: SourceCitation[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
+  /** <<CREATION_DATE>> {0:1} — 7.0-only; written back as `_CRE` in 5.5.1. */
+  creationDate?: CreationDate;
   /**
    * RIN {0:1} — a record identification number assigned by the source
    * system. GEDCOM 5.5.1 §2 (p.43). Removed in GEDCOM 7.0; dropped when
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * `_GCID` {0:1} — the record's GEDitCOM id (see
+   * IndividualRecord.geditcomId). Recognized on input and written
+   * back as `_GCID` in both versions.
+   */
+  geditcomId?: Text;
   /**
    * _SUBM {0:M} — a pointer to the submitter record of this note.
    * Written by GDO under every record (see SourceRecord.submitters);
@@ -1411,6 +1826,69 @@ export interface SourceRecord extends GedcomStructureBase {
   notes?: NoteStructure[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
+  /**
+   * `_URL` {0:1} — the web address of the source. Written by the
+   * Hutson family-tree data under the SOUR record (the writing
+   * project's own data dictionary, in the file header: "_URL = web
+   * address of the source", https://github.com/CuriousG102/family-tree);
+   * the webtrees per-vendor custom-tag registry types the standard
+   * `URL` under SOUR the same way (PhpGedView.php). Not part of any
+   * GEDCOM version. Recognized on input and written back as `_URL` in
+   * both versions.
+   */
+  url?: Text;
+  /**
+   * `_CONF` {0:1} — the confidence level of the source (the Hutson
+   * convention, same source as `url`: Primary / Secondary / Tentative
+   * / Provided). Not part of any GEDCOM version. Recognized on input
+   * and written back as `_CONF` in both versions.
+   */
+  confidence?: Text;
+  /**
+   * `_ACC` {0:1} — the date the source was accessed (the Hutson
+   * convention, same source as `url`; the values are ISO-style
+   * `2026-07-11`, kept as free text). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_ACC` in both versions.
+   */
+  accessDate?: Text;
+  /**
+   * `_APID` {0:M} — Ancestry.com record references at the record
+   * level, format `dbid::record` (in the wild often prefixed, e.g.
+   * `1,1030::0`) — the same tag and value shape the citations carry
+   * (see SourceCitation.ancestryPointers; written by Ancestry tree
+   * downloads under the SOUR record too). Not part of any GEDCOM
+   * version (documented by TMG to GEDCOM:
+   * https://tmgtogedcom.com/en/apid.htm). Recognized on input and
+   * written back as `_APID` in both versions.
+   */
+  ancestryPointers?: Text[];
+  /**
+   * `_FTSID` {0:1} — the source's id in the FamilySearch shared tree,
+   * the UUID form written by the Swarm public-release family-tree
+   * pack builder under the SOUR record (see
+   * IndividualRecord.familyTreeSystemId). Not part of any GEDCOM
+   * version. Recognized on input and written back as `_FTSID` in both
+   * versions.
+   */
+  familyTreeSystemId?: Text;
+  /**
+   * `_WEBTAG {0:M}` — an external web link attached to the source
+   * record: the NAME link text plus the URL address (the same
+   * RootsMagic block the individuals carry, written under SOUR too;
+   * see WebTagStructure). Not part of any GEDCOM version. Recognized
+   * on input and written back as the `_WEBTAG` block in both
+   * versions.
+   */
+  webTags?: WebTagStructure[];
+  /**
+   * FILE {0:M} — media files attached directly to the source record
+   * (a file path without a separate OBJE record; the obsidian
+   * charted-roots fixture writes the census images this way,
+   * https://github.com/banisterious/obsidian-charted-roots). Neither
+   * standard has a FILE slot under SOUR. Recognized on input and
+   * written back as `FILE` under the SOUR record in both versions.
+   */
+  files?: SourceFileStructure[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
   /** <<CREATION_DATE>> {0:1} — 7.0-only. Dropped when serializing to 5.5.1. */
@@ -1733,6 +2211,26 @@ export interface SubmitterRecord extends GedcomStructureBase {
    * block the 5.5.1 serializer writes it back as `_WEB`.
    */
   www?: Special[];
+  /**
+   * `_SKYPEID` {0:1} — the submitter's Skype identifier. The official
+   * FamilySearch GEDCOM 7.0 maximal sample declares the tag in its
+   * SCHMA block as the FOAF `skypeID` property
+   * (http://xmlns.com/foaf/0.1/skypeID, the FOAF Vocabulary
+   * Specification: http://xmlns.com/foaf/spec/) and writes it under
+   * the SUBM record. Not part of any GEDCOM version. Recognized on
+   * input and written back as `_SKYPEID` in both versions.
+   */
+  skypeId?: Text;
+  /**
+   * `_JABBERID` {0:1} — the submitter's Jabber/XMPP identifier. The
+   * official FamilySearch GEDCOM 7.0 maximal sample declares the tag
+   * in its SCHMA block as the FOAF `jabberID` property
+   * (http://xmlns.com/foaf/0.1/jabberID, same source as `skypeId`)
+   * and writes it under the SUBM record. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_JABBERID` in
+   * both versions.
+   */
+  jabberId?: Text;
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
   /** LANG {0:M}, g7:SUBM-LANG — languages the subject of the record understands. At most 3 in 5.5.1 ({0:3}); the limit is enforced at validation time, not in the types. */
@@ -1757,6 +2255,12 @@ export interface SubmitterRecord extends GedcomStructureBase {
    * serializing to 7.0.
    */
   automatedRecordId?: Text;
+  /**
+   * `_GCID` {0:1} — the record's GEDitCOM id (see
+   * IndividualRecord.geditcomId). Recognized on input and written
+   * back as `_GCID` in both versions.
+   */
+  geditcomId?: Text;
   /**
    * _SUBM {0:M} — a pointer to another submitter record. Written by
    * GDO under every record (see SourceRecord.submitters); not part of
@@ -1842,4 +2346,8 @@ export type GedcomRecord =
   | EventDefinitionRecord
   | DuplicateCandidateRecord
   | PublishedSiteRecord
+  | GroupRecord
+  | OccurrenceRecord
+  | TreeTagRecord
+  | TreeCategoryRecord
   | ExtensionRecord;

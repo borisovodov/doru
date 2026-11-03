@@ -8,6 +8,7 @@
 
 import type {
   AddressStructure,
+  AncestryClone,
   CallNumberStructure,
   ChangeDate,
   CreationDate,
@@ -76,11 +77,35 @@ import type {
   DateStructure,
   SourcePublicationDetails,
 } from '../../structures';
+import type {
+  AgeStructure,
+} from '../../structures';
+import {
+  emitAge,
+} from './structures';
 
 export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void {
   w.line(0, 'FAM', { xref: rec.xref });
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
+  }
+  if (rec.myHeritageId !== undefined) {
+    // MyHeritage: the family's tree identifier (see
+    // FamilyRecord.myHeritageId).
+    w.line(1, '_MHID', { value: rec.myHeritageId });
+  }
+  if (rec.confidence !== undefined) {
+    // The confidence level of the family record (see
+    // FamilyRecord.confidence).
+    w.line(1, '_CONF', { value: rec.confidence });
+  }
+  if (rec.current === true) {
+    // The current-family flag (see FamilyRecord.current).
+    w.line(1, '_CURRENT', { value: 'Y' });
+  }
+  if (rec.primary === true) {
+    // The primary-family flag (see FamilyRecord.primary).
+    w.line(1, '_PRIMARY', { value: 'Y' });
   }
   if (rec.createdAt !== undefined) {
     // GenPlus: the record creation date (see FamilyRecord.createdAt).
@@ -123,6 +148,19 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
     // requires user-defined tags to begin with an underscore. Both
     // spellings are recognized on input.
     w.line(1, '_UTYP', { value: rec.unionKind });
+  }
+  if (rec.unionStatus !== undefined) {
+    // Heredis: the union status of the couple (see
+    // FamilyRecord.unionStatus).
+    w.line(1, '_UST', { value: rec.unionStatus });
+  }
+  if (rec.geditcomId !== undefined) {
+    // GEDitCOM II: the record's id (see FamilyRecord.geditcomId).
+    w.line(1, '_GCID', { value: rec.geditcomId });
+  }
+  if (rec.preferred === true) {
+    // Legacy: the preferred family (see FamilyRecord.preferred).
+    w.line(1, '_PREF', { value: 'Y' });
   }
   if (rec.marks !== undefined) {
     rec.marks.forEach((mark, index) => {
@@ -300,6 +338,16 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
         w.line(2, '_MREL', { value: child.motherRelation });
       }
     }
+    for (const note of child.notes ?? []) {
+      emitNoteStructure(w, version, 2, note);
+    }
+    for (const sealing of child.sealings ?? []) {
+      // The child's sealing under the CHIL link (see
+      // FamilyChildLink.sealings).
+      w.line(2, 'SLGC');
+      emitLdsDetail(w, version, 3, sealing.detail, 'SLGC');
+      emitExtensions(w, version, 3, sealing);
+    }
     emitExtensions(w, version, 2, child);
   }
   for (const association of rec.associations ?? []) {
@@ -316,6 +364,13 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
   for (const sealing of rec.spouseSealings ?? []) {
     w.line(1, 'SLGS');
     emitLdsDetail(w, version, 2, sealing.detail, 'SLGS');
+    emitExtensions(w, version, 2, sealing);
+  }
+  for (const sealing of rec.childSealings ?? []) {
+    // The child sealing under the FAM record (see
+    // ChildSealingOrdinance).
+    w.line(1, 'SLGC');
+    emitLdsDetail(w, version, 2, sealing.detail, 'SLGC');
     emitExtensions(w, version, 2, sealing);
   }
   commonRecordFields(w, version, rec, 1);
@@ -338,6 +393,56 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   }
   if (rec.familySearchId !== undefined) {
     w.line(1, '_FSFTID', { value: rec.familySearchId });
+  }
+  if (rec.myHeritageId !== undefined) {
+    // MyHeritage: the person's tree identifier (see
+    // IndividualRecord.myHeritageId).
+    w.line(1, '_MHID', { value: rec.myHeritageId });
+  }
+  if (rec.filiation !== undefined) {
+    // Heredis: the person's filiation — their child status relative
+    // to the recorded parents (see IndividualRecord.filiation).
+    w.line(1, '_FIL', { value: rec.filiation });
+  }
+  if (rec.ancestryMemberTreeId !== undefined) {
+    // RootsMagic: the Ancestry Member Tree reference (see
+    // IndividualRecord.ancestryMemberTreeId).
+    w.line(1, '_AMTID', { value: rec.ancestryMemberTreeId });
+  }
+  for (const pointer of rec.ancestryPointers ?? []) {
+    // Ancestry: the record-level Ancestry reference (see
+    // IndividualRecord.ancestryPointers).
+    w.line(1, '_APID', { value: pointer });
+  }
+  if (rec.familyTreeSystemId !== undefined) {
+    // The Swarm family-tree packs: the person's FamilySearch tree id
+    // (see IndividualRecord.familyTreeSystemId).
+    w.line(1, '_FTSID', { value: rec.familyTreeSystemId });
+  }
+  if (version === '5.5.1' && rec.address !== undefined) {
+    // PAF: the person's contact address directly under the INDI
+    // record (see IndividualRecord.address); 7.0 has no INDI address
+    // position.
+    emitAddress(w, version, 1, rec.address);
+  }
+  if (rec.geditcomId !== undefined) {
+    // GEDitCOM II: the record's id (see IndividualRecord.geditcomId).
+    w.line(1, '_GCID', { value: rec.geditcomId });
+  }
+  if (rec.sosaDAboville !== undefined) {
+    // Ancestris: the Sosa–d'Aboville number (see
+    // IndividualRecord.sosaDAboville).
+    w.line(1, '_SOSADABOVILLE', { value: rec.sosaDAboville });
+  }
+  for (const occurrence of rec.occurrences ?? []) {
+    // The glamberson gedcom-occurrences links (see
+    // IndividualRecord.occurrences).
+    ptr(w, version, 1, '_OCREF', occurrence);
+  }
+  for (const treeTag of rec.treeTags ?? []) {
+    // MyHeritage: a pointer to a tree tag applied to the person (see
+    // IndividualRecord.treeTags).
+    ptr(w, version, 1, '_MTTAG', treeTag);
   }
   if (version === '5.5.1' && rec.canSign !== undefined) {
     // USM6: whether the person can sign (see IndividualRecord.canSign);
@@ -580,6 +685,30 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     for (const note of link.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }
+    for (const profile of link.profileLinks ?? []) {
+      // The Swarm family-tree packs: a FamilySearch profile link
+      // attached to the FAMC link (see ProfileLink).
+      w.line(2, '_PLINK', { value: profile.individual, pointer: profile.individual !== undefined });
+      if (profile.familyTreeId !== undefined) {
+        w.line(3, '_FTSID', { value: profile.familyTreeId });
+      }
+      if (profile.pedigree !== undefined) {
+        const value = pedigree(w, version, profile.pedigree.payload);
+        if (value !== undefined) {
+          w.line(3, 'PEDI', { value });
+          if (version === '7.0' && profile.pedigree.phrase !== undefined) {
+            w.line(4, 'PHRASE', { value: profile.pedigree.phrase });
+          }
+        } else if (profile.pedigree.phrase !== undefined) {
+          // OTHER cannot be spelled; the phrase is the value.
+          w.line(3, 'PEDI', { value: profile.pedigree.phrase });
+        }
+      }
+      for (const citation of profile.citations ?? []) {
+        emitSourceCitation(w, version, 3, citation);
+      }
+      emitExtensions(w, version, 3, profile);
+    }
     emitExtensions(w, version, 2, link);
   }
   for (const link of rec.spouseFamilies ?? []) {
@@ -630,6 +759,13 @@ export function emitTodoRecord(w: Writer, _version: Version, rec: {
   closedDate?: string;
   locality?: string;
   reminderDate?: string;
+  title?: string;
+  status?: string;
+  priority?: string;
+  scheduledDate?: string;
+  createdDate?: string;
+  uids?: string[];
+  changed?: ChangeDate;
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
@@ -646,6 +782,42 @@ export function emitTodoRecord(w: Writer, _version: Version, rec: {
   if (rec.reminderDate !== undefined) {
     w.line(1, '_RDATE', { value: rec.reminderDate });
   }
+  if (rec.title !== undefined) {
+    // My Family Tree: the task's title (see TodoRecord.title).
+    w.line(1, '_TTIL', { value: rec.title });
+  }
+  if (rec.status !== undefined) {
+    // My Family Tree: the task's status (see TodoRecord.status).
+    w.line(1, '_TSTS', { value: rec.status });
+  }
+  if (rec.priority !== undefined) {
+    // My Family Tree: the task's priority (see TodoRecord.priority).
+    w.line(1, '_TPTY', { value: rec.priority });
+  }
+  if (rec.scheduledDate !== undefined) {
+    // My Family Tree: the scheduled date (see TodoRecord.scheduledDate).
+    w.line(1, '_TSDT', { value: rec.scheduledDate });
+  }
+  if (rec.createdDate !== undefined) {
+    // My Family Tree: the creation date (see TodoRecord.createdDate).
+    w.line(1, '_TCDT', { value: rec.createdDate });
+  }
+  for (const uid of rec.uids ?? []) {
+    // My Family Tree: the unique identifier (see TodoRecord.uids).
+    w.line(1, '_UID', { value: uid });
+  }
+  if (rec.changed !== undefined) {
+    // My Family Tree: the change stamp (see TodoRecord.changed).
+    w.line(1, 'CHAN');
+    emitDateExact(w, _version, 2, 'DATE', rec.changed.date, rec.changed.date.time);
+    for (const note of rec.changed.notes ?? []) {
+      emitNoteStructure(w, _version, 2, note);
+    }
+    if (rec.changed.user !== undefined) {
+      w.line(2, '_WT_USER', { value: rec.changed.user });
+    }
+    emitExtensions(w, _version, 2, rec.changed);
+  }
   emitExtensions(w, _version, 1, rec);
 }
 
@@ -655,13 +827,15 @@ export function emitEventDefinition(w: Writer, version: Version, rec: {
   eventType?: string;
   kind?: string;
   title?: string;
-  witnessRoles?: Array<{ role: string; sentences?: string[]; defaultRole?: boolean; extensions?: ExtensionStructure[] }>;
+  witnessRoles?: Array<{ role: string; sentences?: string[]; sentence?: string; defaultRole?: boolean; extensions?: ExtensionStructure[] }>;
   includeNotes?: boolean;
   confidentialFlag?: boolean;
   dateType?: string;
   descriptionFlag?: string;
   placeType?: string;
   potentialProblemsExcluded?: string;
+  abbreviation?: string;
+  sentence?: string;
   sentences?: string[];
   pafSentences?: {
     male?: string;
@@ -689,6 +863,16 @@ export function emitEventDefinition(w: Writer, version: Version, rec: {
     // The display title (see EventDefinitionRecord.title).
     w.line(1, 'TITL', { value: rec.title });
   }
+  if (rec.abbreviation !== undefined) {
+    // The GEDCOM 5.5.5 draft / RootsMagic abbreviation (see
+    // EventDefinitionRecord.abbreviation).
+    w.line(1, 'ABBR', { value: rec.abbreviation });
+  }
+  if (rec.sentence !== undefined) {
+    // The GEDCOM 5.5.5 draft / RootsMagic sentence template (see
+    // EventDefinitionRecord.sentence).
+    w.line(1, 'SENT', { value: rec.sentence });
+  }
   for (const role of rec.witnessRoles ?? []) {
     // The per-role sentence sets (see WitnessRoleSentenceSet).
     w.line(1, 'ROLE', { value: role.role });
@@ -697,6 +881,11 @@ export function emitEventDefinition(w: Writer, version: Version, rec: {
         w.line(2, index === 0 ? '_SEN1' : `_SEN${index + 1}`, { value: sentence });
       }
     });
+    if (role.sentence !== undefined) {
+      // The GEDCOM 5.5.5 draft / RootsMagic role sentence template
+      // (see WitnessRoleSentenceSet.sentence).
+      w.line(2, 'SENT', { value: role.sentence });
+    }
     if (role.defaultRole === true) {
       w.line(2, '_DEF', { value: 'Y' });
     }
@@ -872,6 +1061,22 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   keywords?: string;
   filePath?: string;
   mediaNote?: string;
+  objectId?: string;
+  user?: string;
+  userEncrypted?: boolean;
+  origin?: string;
+  attachment?: boolean;
+  metadata?: string;
+  description?: string;
+  master?: boolean;
+  masterLinkId?: string;
+  cutout?: boolean;
+  primaryCutout?: boolean;
+  parentPhoto?: boolean;
+  personalPhoto?: boolean;
+  parentRecordId?: string;
+  author?: string;
+  clones?: AncestryClone[];
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
   citations?: SourceCitation[];
@@ -931,6 +1136,102 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   if (rec.mediaNote !== undefined) {
     // FH: a media note (see MultimediaRecord.mediaNote).
     w.line(1, '_NOTE', { value: rec.mediaNote });
+  }
+  if (rec.objectId !== undefined) {
+    // Ancestry.com Family Trees: the media object's identifier (see
+    // MultimediaRecord.objectId).
+    w.line(1, '_OID', { value: rec.objectId });
+  }
+  if (rec.user !== undefined) {
+    // Ancestry.com Family Trees: the user token of the media object's
+    // creator, with the _ENCR encrypted flag beneath (see
+    // MultimediaRecord.user / userEncrypted).
+    w.line(1, '_USER', { value: rec.user });
+    if (rec.userEncrypted === true) {
+      w.line(2, '_ENCR', { value: '1' });
+    }
+  }
+  if (rec.origin !== undefined) {
+    // Ancestry.com Family Trees: the origin of the media object (see
+    // MultimediaRecord.origin).
+    w.line(1, '_ORIG', { value: rec.origin });
+  }
+  if (rec.attachment === true) {
+    // Ancestry.com Family Trees: the attachment flag (see
+    // MultimediaRecord.attachment).
+    w.line(1, '_ATL', { value: 'Y' });
+  }
+  if (rec.metadata !== undefined) {
+    // Ancestry.com Family Trees: the media metadata XML block (see
+    // MultimediaRecord.metadata).
+    w.line(1, '_META', { value: rec.metadata });
+  }
+  if (rec.description !== undefined) {
+    // Ancestry.com Family Trees: the media object's description (see
+    // MultimediaRecord.description).
+    w.line(1, '_DSCR', { value: rec.description });
+  }
+  if (rec.master === true) {
+    // Ancestry.com Family Trees: the master (original) media object
+    // mark with the _LKID link id beneath (see
+    // MultimediaRecord.master / masterLinkId).
+    w.line(1, '_MSER');
+    if (rec.masterLinkId !== undefined) {
+      w.line(2, '_LKID', { value: rec.masterLinkId });
+    }
+  }
+  if (rec.cutout === true) {
+    // MyHeritage: the cutout flag (see MultimediaRecord.cutout).
+    w.line(1, '_CUTOUT', { value: 'Y' });
+  }
+  if (rec.primaryCutout === true) {
+    // MyHeritage: the primary cutout mark (see
+    // MultimediaRecord.primaryCutout).
+    w.line(1, '_PRIM_CUTOUT', { value: 'Y' });
+  }
+  if (rec.parentPhoto === true) {
+    // MyHeritage: the parent-photo flag (see
+    // MultimediaRecord.parentPhoto).
+    w.line(1, '_PARENTPHOTO', { value: 'Y' });
+  }
+  if (rec.personalPhoto === true) {
+    // MyHeritage: the personal-photo flag (see
+    // MultimediaRecord.personalPhoto).
+    w.line(1, '_PERSONALPHOTO', { value: 'Y' });
+  }
+  if (rec.parentRecordId !== undefined) {
+    // MyHeritage: the parent's record id (see
+    // MultimediaRecord.parentRecordId).
+    w.line(1, '_PARENTRIN', { value: rec.parentRecordId });
+  }
+  if (rec.author !== undefined) {
+    // ged4web: the media author under the OBJE record (see
+    // MultimediaRecord.author).
+    w.line(1, 'AUTH', { value: rec.author });
+  }
+  for (const clone of rec.clones ?? []) {
+    // Ancestry.com Family Trees: a clone of this media object in
+    // another tree/person (see AncestryClone).
+    w.line(1, '_CLON');
+    if (clone.treeId !== undefined) {
+      w.line(2, '_TID', { value: clone.treeId });
+    }
+    if (clone.personId !== undefined) {
+      w.line(2, '_PID', { value: clone.personId });
+    }
+    if (clone.objectId !== undefined) {
+      w.line(2, '_OID', { value: clone.objectId });
+    }
+    if (clone.user !== undefined) {
+      w.line(2, '_USER', { value: clone.user });
+      if (clone.userEncrypted === true) {
+        w.line(3, '_ENCR', { value: '1' });
+      }
+    }
+    if (clone.date !== undefined) {
+      w.line(2, '_DATE', { value: clone.date });
+    }
+    emitExtensions(w, version, 2, clone);
   }
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
@@ -1037,11 +1338,16 @@ export function emitNoteRecord(w: Writer, version: Version, rec: {
   citations?: SourceCitation[];
   changeDate?: ChangeDate;
   automatedRecordId?: string;
+  geditcomId?: string;
   submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
+  if (rec.geditcomId !== undefined) {
+    // GEDitCOM II: the record's id (see NoteRecord.geditcomId).
+    w.line(1, '_GCID', { value: rec.geditcomId });
+  }
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
@@ -1119,6 +1425,13 @@ export function emitSource(w: Writer, version: Version, rec: {
   citationDetailTextIncluded?: boolean;
   citationDetailNotesIncluded?: boolean;
   quality?: { source?: string; information?: string; evidence?: string; extensions?: ExtensionStructure[] };
+  url?: string;
+  confidence?: string;
+  accessDate?: string;
+  ancestryPointers?: string[];
+  familyTreeSystemId?: string;
+  webTags?: Array<{ name?: string; url?: string; extensions?: ExtensionStructure[] }>;
+  files?: Array<{ tag: 'FILE'; payload: string; extensions?: ExtensionStructure[] }>;
   evidenceAvailable?: boolean;
   volumeYear?: string;
   submitters?: string[];
@@ -1292,6 +1605,44 @@ export function emitSource(w: Writer, version: Version, rec: {
     }
     emitExtensions(w, version, 2, rec.quality);
   }
+  if (rec.url !== undefined) {
+    // The web address of the source (see SourceRecord.url).
+    w.line(1, '_URL', { value: rec.url });
+  }
+  if (rec.confidence !== undefined) {
+    // The confidence level of the source (see SourceRecord.confidence).
+    w.line(1, '_CONF', { value: rec.confidence });
+  }
+  if (rec.accessDate !== undefined) {
+    // The date the source was accessed (see SourceRecord.accessDate).
+    w.line(1, '_ACC', { value: rec.accessDate });
+  }
+  for (const pointer of rec.ancestryPointers ?? []) {
+    // Ancestry: the record-level Ancestry reference (see
+    // SourceRecord.ancestryPointers).
+    w.line(1, '_APID', { value: pointer });
+  }
+  if (rec.familyTreeSystemId !== undefined) {
+    // The Swarm family-tree packs: the source's FamilySearch tree id
+    // (see SourceRecord.familyTreeSystemId).
+    w.line(1, '_FTSID', { value: rec.familyTreeSystemId });
+  }
+  for (const webTag of rec.webTags ?? []) {
+    // RootsMagic: an external web link under the SOUR record (see
+    // SourceRecord.webTags).
+    w.line(1, '_WEBTAG');
+    if (webTag.name !== undefined) {
+      w.line(2, 'NAME', { value: webTag.name });
+    }
+    w.line(2, 'URL', { value: webTag.url });
+    emitExtensions(w, version, 2, webTag);
+  }
+  for (const file of rec.files ?? []) {
+    // A media file attached directly to the source record (see
+    // SourceRecord.files).
+    w.line(1, 'FILE', { value: file.payload });
+    emitExtensions(w, version, 2, file);
+  }
   if (rec.evidenceAvailable === true) {
     // PC-AHNEN: evidence of the event is available (see
     // SourceRecord.evidenceAvailable).
@@ -1350,3 +1701,109 @@ export function emitRepositoryCitation(w: Writer, version: Version, level: numbe
   emitExtensions(w, version, level + 1, citation);
 }
 
+
+/** Emits the GEDKeeper `_GRP` record (see GroupRecord). */
+export function emitGroupRecord(w: Writer, version: Version, rec: {
+  tag: '_GRP';
+  name?: string;
+  notes?: NoteStructure[];
+  extensions?: ExtensionStructure[];
+  xref?: string;
+}): void {
+  w.line(0, '_GRP', { xref: rec.xref });
+  if (rec.name !== undefined) {
+    w.line(1, 'NAME', { value: rec.name });
+  }
+  for (const note of rec.notes ?? []) {
+    emitNoteStructure(w, version, 1, note);
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
+/** Emits the MyHeritage `_MTTAG` tree-tag record (see TreeTagRecord). */
+export function emitTreeTagRecord(w: Writer, version: Version, rec: {
+  tag: '_MTTAG';
+  name?: string;
+  automatedRecordId?: string;
+  visible?: boolean;
+  category?: string;
+  extensions?: ExtensionStructure[];
+  xref?: string;
+}): void {
+  w.line(0, '_MTTAG', { xref: rec.xref });
+  if (rec.name !== undefined) {
+    w.line(1, 'NAME', { value: rec.name });
+  }
+  if (rec.automatedRecordId !== undefined) {
+    w.line(1, 'RIN', { value: rec.automatedRecordId });
+  }
+  if (rec.visible !== undefined) {
+    w.line(1, '_VISI', { value: rec.visible ? '1' : '0' });
+  }
+  if (rec.category !== undefined) {
+    ptr(w, version, 1, '_MTCAT', rec.category);
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
+/** Emits the MyHeritage `_MTCAT` tree-category record (see TreeCategoryRecord). */
+export function emitTreeCategoryRecord(w: Writer, version: Version, rec: {
+  tag: '_MTCAT';
+  name?: string;
+  automatedRecordId?: string;
+  extensions?: ExtensionStructure[];
+  xref?: string;
+}): void {
+  w.line(0, '_MTCAT', { xref: rec.xref });
+  if (rec.name !== undefined) {
+    w.line(1, 'NAME', { value: rec.name });
+  }
+  if (rec.automatedRecordId !== undefined) {
+    w.line(1, 'RIN', { value: rec.automatedRecordId });
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
+/** Emits the `_OCUR` occurrence record (see OccurrenceRecord). */
+export function emitOccurrenceRecord(w: Writer, version: Version, rec: {
+  tag: '_OCUR';
+  xref?: string;
+  type?: string;
+  date?: DateStructure;
+  place?: PlaceStructure;
+  participants?: Array<{ tag: '_PART'; individual: string; role?: string; age?: AgeStructure; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
+  notes?: NoteStructure[];
+  citations?: SourceCitation[];
+  extensions?: ExtensionStructure[];
+}): void {
+  w.line(0, '_OCUR', { xref: rec.xref });
+  if (rec.type !== undefined) {
+    w.line(1, 'TYPE', { value: rec.type });
+  }
+  if (rec.date !== undefined) {
+    emitDate(w, version, 1, 'DATE', rec.date);
+  }
+  if (rec.place !== undefined) {
+    emitPlace(w, version, 1, rec.place);
+  }
+  for (const participant of rec.participants ?? []) {
+    ptr(w, version, 1, '_PART', participant.individual);
+    if (participant.role !== undefined) {
+      w.line(2, 'ROLE', { value: participant.role });
+    }
+    if (participant.age !== undefined) {
+      emitAge(w, version, 2, participant.age);
+    }
+    for (const note of participant.notes ?? []) {
+      emitNoteStructure(w, version, 2, note);
+    }
+    emitExtensions(w, version, 2, participant);
+  }
+  for (const note of rec.notes ?? []) {
+    emitNoteStructure(w, version, 1, note);
+  }
+  for (const citation of rec.citations ?? []) {
+    emitSourceCitation(w, version, 1, citation);
+  }
+  emitExtensions(w, version, 1, rec);
+}

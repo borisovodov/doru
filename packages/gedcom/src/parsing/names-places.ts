@@ -25,6 +25,7 @@ import type {
   RomanizedPlaceVariation,
 } from '../structures';
 import {
+  addExtension,
   dispatch,
   noPayload,
   one,
@@ -42,9 +43,11 @@ import {
   parseMultimediaLink,
   parsePrivacyFlag,
   parseSourceCitation,
+  parseYNFlag,
 } from './sources-media';
 import {
   datedSourceHandlers,
+  parseCreationDateLenient,
   parseDateStructure,
   parseExternalIdentifier,
   parseNoteStructure,
@@ -60,9 +63,10 @@ import {
 // ---------------------------------------------------------------------------
 
 /** 7.0 name pieces: repeated tags ({0:M}). */
-export function pieces70(out: PersonalNamePieces, tag: string, child: RawNode): void {
-  if (child.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under ${tag}`, (child.children[0] as RawNode).position);
+export function pieces70(out: PersonalNamePieces, tag: string, child: RawNode, ctx: Ctx): void {
+  for (const grandchild of child.children) {
+    // Full leniency: unexpected children stay generic extensions.
+    addExtension(out, grandchild, ctx);
   }
   const text = reqText(child);
   switch (tag) {
@@ -97,22 +101,22 @@ export function pieces70(out: PersonalNamePieces, tag: string, child: RawNode): 
  * kept), and a RUF-marked GIVN returns its name as the call name (the
  * same slot the GEDCOM-L `_RUFNAME` agreement Ruf.B2 fills).
  */
-export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode): string | undefined {
+export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode, ctx: Ctx): string | undefined {
   let ruf: string | undefined;
-  if (tag === 'GIVN') {
-    const type = one(child, 'TYPE');
-    if (child.children.length > (type === undefined ? 0 : 1)) {
-      fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under ${tag}`, (child.children[0] as RawNode).position);
+  const type = tag === 'GIVN' ? one(child, 'TYPE') : undefined;
+  if (type !== undefined) {
+    const value = reqText(type).toUpperCase();
+    if (value !== 'RUF') {
+      fail('enum.invalid-value', `The NAME TYPE "${value}" under GIVN must be RUF`, type.position);
     }
-    if (type !== undefined) {
-      const value = reqText(type).toUpperCase();
-      if (value !== 'RUF') {
-        fail('enum.invalid-value', `The NAME TYPE "${value}" under GIVN must be RUF`, type.position);
-      }
-      ruf = reqText(child);
+    ruf = reqText(child);
+  }
+  for (const grandchild of child.children) {
+    if (grandchild === type) {
+      continue;
     }
-  } else if (child.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under ${tag}`, (child.children[0] as RawNode).position);
+    // Full leniency: unexpected children stay generic extensions.
+    addExtension(out, grandchild, ctx);
   }
   const parts = reqText(child).split(',').map((part) => part.trim());
   switch (tag) {
@@ -152,6 +156,36 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     '_RUFNAME': (child) => {
       out.callName = reqText(child);
     },
+    '_PRIM': (child) => {
+      // Legacy: the primary name mark (see
+      // PersonalNameStructure.primary).
+      out.primary = parseYNFlag(child, '_PRIM');
+    },
+    '_MIDN': (child) => {
+      // ged4web: the middle name under NAME (see
+      // PersonalNameStructure.middleName).
+      out.middleName = reqText(child);
+    },
+    CREA: (child) => {
+      // MFT7: the name entry's creation date (see
+      // PersonalNameStructure.creationDate).
+      const created = parseCreationDateLenient(child, ctx);
+      if (created === undefined) {
+        addExtension(out, child, ctx);
+      } else {
+        out.creationDate = created;
+      }
+    },
+    '_CRE': (child) => {
+      // MFT7: the `_CRE` spelling of the name creation (see
+      // PersonalNameStructure.creationDate).
+      const created = parseCreationDateLenient(child, ctx);
+      if (created === undefined) {
+        addExtension(out, child, ctx);
+      } else {
+        out.creationDate = created;
+      }
+    },
     '_USED': (child) => {
       // FH: the given name used (see
       // PersonalNameStructure.givenNameUsed).
@@ -168,10 +202,33 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PersonalNameStructure.date).
       out.date = parseDateStructure(child, ctx);
     },
+    'DATE': (child) => {
+      // A standard DATE under the NAME — the name's period of use,
+      // spelled with the standard tag instead of the TMG `_DATE`
+      // (the same slot; written back as `_DATE`).
+      out.date = parseDateStructure(child, ctx);
+    },
     '_ALIA': (child) => {
       // PRO-GEN: an alias of the name, as pure text (see
       // PersonalNameStructure.aliases).
       (out.aliases ??= []).push(reqText(child));
+    },
+    '_MARNM': (child) => {
+      // The married name (see PersonalNameStructure.marriedName).
+      out.marriedName = reqText(child);
+    },
+    '_MARN': (child) => {
+      // The Brother's Keeper spelling of the married name.
+      out.marriedName = reqText(child);
+    },
+    '_AKA': (child) => {
+      // An "also known as" name variant (see
+      // PersonalNameStructure.alsoKnownAs).
+      (out.alsoKnownAs ??= []).push(reqText(child));
+    },
+    '_AKAN': (child) => {
+      // The BKW6/PAF5 spelling of _AKA.
+      (out.alsoKnownAs ??= []).push(reqText(child));
     },
     '_APID': (child) => {
       // The Ancestry record reference attached to names (see
@@ -193,7 +250,7 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // The 5.5.1 pieces grammar: comma-separated values, repeated
       // pieces appended, a RUF-marked GIVN typed as the call name.
       out.pieces ??= {};
-      const ruf = pieces551(out.pieces, tag, child);
+      const ruf = pieces551(out.pieces, tag, child, ctx);
       if (ruf !== undefined) {
         out.callName = ruf;
       }
@@ -291,15 +348,18 @@ export function parseNameType(node: RawNode, ctx: Ctx): NameTypeStructure {
 }
 
 export function parseNameTranslation(node: RawNode, ctx: Ctx): NameTranslation {
+  // A missing or value-less LANG is tolerated (the full-leniency
+  // container rule).
+  const langNode = one(node, 'LANG');
   const out: NameTranslation = {
     payload: parsePersonalName(reqText(node), node.position),
-    language: reqText(req(node, 'LANG')),
+    ...(langNode !== undefined && langNode.value.kind === 'text' ? { language: reqText(langNode) } : {}),
   };
   const handlers: Record<string, (child: RawNode) => void> = { LANG: () => undefined };
   for (const tag of PIECE_TAGS) {
     handlers[tag] = (child) => {
       out.pieces ??= {};
-      pieces70(out.pieces, tag, child);
+      pieces70(out.pieces, tag, child, ctx);
     };
   }
   dispatch(node, out, handlers, ctx);
@@ -307,15 +367,30 @@ export function parseNameTranslation(node: RawNode, ctx: Ctx): NameTranslation {
 }
 
 export function parsePhoneticNameVariation(node: RawNode, ctx: Ctx): PhoneticNameVariation {
+  // A missing or value-less TYPE is tolerated (the full-leniency
+  // container rule).
+  const typeNode = one(node, 'TYPE');
   const out: PhoneticNameVariation = {
     payload: parsePersonalName(reqText(node), node.position),
-    type: reqText(req(node, 'TYPE')),
+    ...(typeNode !== undefined && typeNode.value.kind === 'text' ? { type: reqText(typeNode) } : {}),
   };
-  const handlers: Record<string, (child: RawNode) => void> = { TYPE: () => undefined };
+  const handlers: Record<string, (child: RawNode) => void> = {
+    TYPE: () => undefined,
+    NOTE: (child) => {
+      // The 5.5.1 NAME_PHONETIC_VARIATION notes (GEDCOM 5.5.1 §2
+      // p.55); the 7.0 TRAN has the same slot.
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    SOUR: (child) => {
+      // The 5.5.1 NAME_PHONETIC_VARIATION citations (GEDCOM 5.5.1 §2
+      // p.55).
+      (out.citations ??= []).push(parseSourceCitation(child, ctx));
+    },
+  };
   for (const tag of PIECE_TAGS) {
     handlers[tag] = (child) => {
       out.pieces ??= {};
-      pieces551(out.pieces, tag, child);
+      pieces551(out.pieces, tag, child, ctx);
     };
   }
   dispatch(node, out, handlers, ctx);
@@ -323,15 +398,30 @@ export function parsePhoneticNameVariation(node: RawNode, ctx: Ctx): PhoneticNam
 }
 
 export function parseRomanizedNameVariation(node: RawNode, ctx: Ctx): RomanizedNameVariation {
+  // A missing or value-less TYPE is tolerated (the full-leniency
+  // container rule).
+  const typeNode = one(node, 'TYPE');
   const out: RomanizedNameVariation = {
     payload: parsePersonalName(reqText(node), node.position),
-    type: reqText(req(node, 'TYPE')),
+    ...(typeNode !== undefined && typeNode.value.kind === 'text' ? { type: reqText(typeNode) } : {}),
   };
-  const handlers: Record<string, (child: RawNode) => void> = { TYPE: () => undefined };
+  const handlers: Record<string, (child: RawNode) => void> = {
+    TYPE: () => undefined,
+    NOTE: (child) => {
+      // The 5.5.1 NAME_ROMANIZED_VARIATION notes (GEDCOM 5.5.1 §2
+      // p.56).
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    SOUR: (child) => {
+      // The 5.5.1 NAME_ROMANIZED_VARIATION citations (GEDCOM 5.5.1 §2
+      // p.56).
+      (out.citations ??= []).push(parseSourceCitation(child, ctx));
+    },
+  };
   for (const tag of PIECE_TAGS) {
     handlers[tag] = (child) => {
       out.pieces ??= {};
-      pieces551(out.pieces, tag, child);
+      pieces551(out.pieces, tag, child, ctx);
     };
   }
   dispatch(node, out, handlers, ctx);
@@ -354,12 +444,17 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
         // GenWiki article "Gedcom 5.5EL":
         // http://wiki-en.genealogy.net/Gedcom_5.5EL.
         const typeNode = one(child, 'TYPE');
-        if (child.children.length > 0 && (typeNode === undefined || child.children.length !== 1)) {
-          fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under MAP`, (child.children[0] as RawNode).position);
+        for (const grandchild of child.children) {
+          if (grandchild === typeNode) {
+            continue;
+          }
+          // Full leniency: unexpected children stay generic extensions.
+          addExtension(out, grandchild, ctx);
         }
         if (typeNode !== undefined) {
-          if (typeNode.children.length > 0) {
-            fail('structure.unknown-tag', `The tag ${(typeNode.children[0] as RawNode).tag} is not allowed under TYPE`, (typeNode.children[0] as RawNode).position);
+          for (const grandchild of typeNode.children) {
+            // Full leniency: unexpected children stay generic extensions.
+            addExtension(out, grandchild, ctx);
           }
           if (reqText(typeNode).toUpperCase() !== 'MAIDENHEAD') {
             fail('enum.invalid-value', `The MAP TYPE must be MAIDENHEAD, got "${reqText(typeNode)}"`, typeNode.position);
@@ -400,6 +495,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // PlaceStructure.hebrewName).
       out.hebrewName = reqText(child);
     },
+    '_PID': (child) => {
+      // The Swarm family-tree packs: the place's id (see
+      // PlaceStructure.placeId).
+      out.placeId = reqText(child);
+    },
     '_COR': (child) => {
       // MFT7: the place coordinates, split into degrees/minutes/seconds
       // plus the direction: _LAD/_LAM/_LAS/_LAN for the latitude,
@@ -408,7 +508,7 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG"). Normalized
       // into the standard map coordinates and written back as
       // MAP/LATI/LONG.
-      out.map = parseMftCoordinates(child);
+      out.map = parseMftCoordinates(child, ctx, out);
     },
     // The the 7.0 LANG/TRAN/EXID/SNOTE spellings are
     // accepted in any file, as are the 5.5.1 FONE/ROMN and the
@@ -428,10 +528,10 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
     FONE: (child) => {
-      (out.phonetic ??= []).push(parsePhoneticPlaceVariation(child));
+      (out.phonetic ??= []).push(parsePhoneticPlaceVariation(child, ctx));
     },
     ROMN: (child) => {
-      (out.romanized ??= []).push(parseRomanizedPlaceVariation(child));
+      (out.romanized ??= []).push(parseRomanizedPlaceVariation(child, ctx));
     },
     POST: (child) => {
       // The historical GEDCOM 5.5EL agreement wrote the postal code
@@ -450,32 +550,47 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
 }
 
 export function parsePlaceTranslation(node: RawNode, ctx: Ctx): PlaceTranslation {
+  // A missing or value-less LANG is tolerated (the full-leniency
+  // container rule).
+  const langNode = one(node, 'LANG');
   const out: PlaceTranslation = {
     payload: parseListText(reqText(node)),
-    language: reqText(req(node, 'LANG')),
+    ...(langNode !== undefined && langNode.value.kind === 'text' ? { language: reqText(langNode) } : {}),
   };
   dispatch(node, out, { LANG: () => undefined }, ctx);
   return out;
 }
 
-export function parsePhoneticPlaceVariation(node: RawNode): PhoneticPlaceVariation {
+export function parsePhoneticPlaceVariation(node: RawNode, ctx: Ctx): PhoneticPlaceVariation {
+  // A missing or value-less TYPE is tolerated (the full-leniency
+  // container rule).
+  const typeNode = one(node, 'TYPE');
   const out: PhoneticPlaceVariation = {
     payload: parseListText(reqText(node)),
-    type: reqText(req(node, 'TYPE')),
+    ...(typeNode !== undefined && typeNode.value.kind === 'text' ? { type: reqText(typeNode) } : {}),
   };
-  if (node.children.some((child) => child.tag !== 'TYPE')) {
-    fail('structure.unknown-tag', 'Unexpected substructure under FONE', node.position);
+  for (const child of node.children) {
+    if (child.tag !== 'TYPE') {
+      // Full leniency: unexpected children stay generic extensions.
+      addExtension(out, child, ctx);
+    }
   }
   return out;
 }
 
-export function parseRomanizedPlaceVariation(node: RawNode): RomanizedPlaceVariation {
+export function parseRomanizedPlaceVariation(node: RawNode, ctx: Ctx): RomanizedPlaceVariation {
+  // A missing or value-less TYPE is tolerated (the full-leniency
+  // container rule).
+  const typeNode = one(node, 'TYPE');
   const out: RomanizedPlaceVariation = {
     payload: parseListText(reqText(node)),
-    type: reqText(req(node, 'TYPE')),
+    ...(typeNode !== undefined && typeNode.value.kind === 'text' ? { type: reqText(typeNode) } : {}),
   };
-  if (node.children.some((child) => child.tag !== 'TYPE')) {
-    fail('structure.unknown-tag', 'Unexpected substructure under ROMN', node.position);
+  for (const child of node.children) {
+    if (child.tag !== 'TYPE') {
+      // Full leniency: unexpected children stay generic extensions.
+      addExtension(out, child, ctx);
+    }
   }
   return out;
 }
@@ -501,7 +616,7 @@ export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
  * MAP/LATI/LONG (the GenWiki "GEDCOM/_Nutzerdef-Tag" table notes the
  * equivalent: "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG").
  */
-export function parseMftCoordinates(node: RawNode): MapCoordinates {
+export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: PlaceStructure): MapCoordinates {
   noPayload(node);
   const read = (
     degreesTag: string,
@@ -544,7 +659,8 @@ export function parseMftCoordinates(node: RawNode): MapCoordinates {
   const allowed = new Set(['_LAD', '_LAM', '_LAS', '_LAN', '_LOD', '_LOM', '_LOS', '_LON']);
   for (const child of node.children) {
     if (!allowed.has(child.tag)) {
-      fail('structure.unknown-tag', `The tag ${child.tag} is not allowed under _COR`, child.position);
+      // Full leniency: unexpected children stay generic extensions.
+      addExtension(target, child, ctx);
     }
   }
   return {

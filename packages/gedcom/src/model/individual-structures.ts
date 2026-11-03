@@ -163,8 +163,8 @@ export type IndividualAttributeStructure =
  */
 interface IndividualEventBase<Tag extends string> extends GedcomStructureBase {
   tag: Tag;
-  /** {1:1} — `[Y|<NULL>]`: the optional `Y` payload asserting the event occurred (GEDCOM 7.0 §3.3.1). */
-  payload?: EventAssertion;
+  /** {1:1} — `[Y|<NULL>]`: the optional `Y` payload asserting the event occurred (GEDCOM 7.0 §3.3.1); a non-`Y` text payload of files in the wild is kept verbatim (the full-leniency container rule). */
+  payload?: EventAssertion | Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the event. */
   type?: Text;
   /** <<INDIVIDUAL_EVENT_DETAIL>> {0:1}. */

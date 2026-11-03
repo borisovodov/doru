@@ -163,24 +163,32 @@ describe('change dates, creation dates and sort dates', () => {
     expect(rec551.events?.[0]?.detail?.sortDate?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1900 });
   });
 
-  test('5.5.1 _SDATE keeps a phrase and rejects substructures', () => {
+  test('5.5.1 _SDATE keeps a phrase and its substructures as extensions', () => {
     const dataset = parse551(indi551(['1 BIRT', '2 _SDATE (sometime)']));
     const rec = dataset.records[0] as { events?: Array<{ detail?: { sortDate?: { phrase?: string } } }> };
     expect(rec.events?.[0]?.detail?.sortDate?.phrase).toBe('sometime');
-    expect(err551(indi551(['1 BIRT', '2 _SDATE 1900', '3 BOGUS x']))).toBe('structure.unknown-tag');
+    const withChild = parse551(indi551(['1 BIRT', '2 _SDATE 1900', '3 BOGUS x']));
+    const rec2 = withChild.records[0] as { events?: Array<{ detail?: { sortDate?: { extensions?: Array<{ tag: string }> } } }> };
+    expect(rec2.events?.[0]?.detail?.sortDate?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
-  test('a bare DATE is the empty date form; unknown substructures still fail', () => {
+  test('a bare DATE is the empty date form; unknown substructures become extensions', () => {
     const bare = parseGedcom551(enc(indi551(['1 BIRT', '2 DATE'])));
     expect(bare.ok).toBe(true);
-    expect(err551(indi551(['1 BIRT', '2 DATE 1900', '3 BOGUS x']))).toBe('structure.unknown-tag');
+    const withChild = parse551(indi551(['1 BIRT', '2 DATE 1900', '3 BOGUS x']));
+    const rec = withChild.records[0] as { events?: Array<{ detail?: { date?: { extensions?: Array<{ tag: string }> } } }> };
+    expect(rec.events?.[0]?.detail?.date?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('5.5.1 DATE_EXACT variants inside CHAN', () => {
-    // Year-only is not a DATE_EXACT.
-    expect(err551(indi551(['1 CHAN', '2 DATE 1900']))).toBe('date.invalid');
-    // A dual year is not a DATE_EXACT.
-    expect(err551(indi551(['1 CHAN', '2 DATE 1 JAN 1900/01']))).toBe('date.invalid');
+    // A year-only exact date is tolerated with the absent components unset.
+    const yearOnly = parse551(indi551(['1 CHAN', '2 DATE 1900']));
+    const rec0 = yearOnly.records[0] as { changeDate?: { date: { value: unknown } } };
+    expect(rec0.changeDate?.date.value).toEqual({ year: 1900 });
+    // A dual year composes to its single year.
+    const dual = parse551(indi551(['1 CHAN', '2 DATE 1 JAN 1900/01']));
+    const rec1 = dual.records[0] as { changeDate?: { date: { value: unknown } } };
+    expect(rec1.changeDate?.date.value).toEqual({ day: 1, month: 'JAN', year: 1901 });
     // A phrase-only date is not a DATE_EXACT.
     expect(err551(indi551(['1 CHAN', '2 DATE (sometime)']))).toBe('date.invalid');
     // TIME is allowed on the exact date.
@@ -215,15 +223,25 @@ describe('change dates, creation dates and sort dates', () => {
 });
 
 describe('note structures', () => {
-  test('SNOTE reference rejects substructures', () => {
-    expect(err70(indi70(['0 @N1@ SNOTE text', '1 SNOTE @N1@', '2 BOGUS x']))).toBe('structure.unknown-tag');
+  test('SNOTE reference keeps substructures as extensions', () => {
+    const dataset = parse70(indi70(['0 @N1@ SNOTE text', '1 SNOTE @N1@', '2 BOGUS x']));
+    const snote = dataset.records.find((record) => record.tag === 'SNOTE') as {
+      extensions?: Array<{ tag: string; payload?: string; payloadKind?: string; children?: Array<{ tag: string }> }>;
+    };
+    const reference = snote?.extensions?.find((extension) => extension.tag === 'SNOTE');
+    expect(reference?.payload).toBe('@N1@');
+    expect(reference?.payloadKind).toBe('pointer');
+    expect(reference?.children?.some((child) => child.tag === 'BOGUS')).toBe(true);
   });
 
-  test('5.5.1 NOTE pointer reference resolves and rejects substructures', () => {
+  test('5.5.1 NOTE pointer reference resolves and keeps substructures as extensions', () => {
     const dataset = parse551(indi551(['1 NOTE @N1@', '0 @N1@ NOTE text']));
     const rec = dataset.records[0] as { notes?: Array<{ tag: string; note: string }> };
     expect(rec.notes?.[0]).toEqual({ tag: 'NOTE', note: '@N1@' });
-    expect(err551(indi551(['1 NOTE @N1@', '2 BOGUS x', '0 @N1@ NOTE text']))).toBe('structure.unknown-tag');
+    const withChild = parse551(indi551(['1 NOTE @N1@', '2 BOGUS x', '0 @N1@ NOTE text']));
+    const rec2 = withChild.records[0] as { notes?: Array<{ note: string; extensions?: Array<{ tag: string }> }> };
+    expect(rec2.notes?.[0]?.note).toBe('@N1@');
+    expect(rec2.notes?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('5.5.1 NOTE pointer accepts bare SOUR pointers beneath it', () => {
@@ -246,10 +264,20 @@ describe('note structures', () => {
         { tag: 'SOUR', source: '@S3@' },
       ],
     });
-    // The SOUR under a NOTE pointer is a bare pointer: substructures are
-    // rejected, and the pointer must resolve.
-    expect(err551(indi551(['1 NOTE @N1@', '2 SOUR @S2@', '3 BOGUS x', '0 @N1@ NOTE text', '0 @S2@ SOUR', '1 TITL S']))).toBe('structure.unknown-tag');
-    expect(err551(indi551(['1 NOTE @N1@', '2 SOUR @NOPE@', '0 @N1@ NOTE text']))).toBe('document.xref-not-found');
+    // The SOUR under a NOTE pointer is a bare pointer: a dangling one
+    // stays verbatim; an unknown child of the pointer becomes an
+    // extension of the note.
+    const withChild = parse551(
+      indi551(['1 NOTE @N1@', '2 SOUR @S2@', '3 BOGUS x', '0 @N1@ NOTE text', '0 @S2@ SOUR', '1 TITL S']),
+    );
+    const rec2 = withChild.records[0] as {
+      notes?: Array<{ note: string; extensions?: Array<{ tag: string }>; citations?: Array<{ source: string }> }>;
+    };
+    expect(rec2.notes?.[0]?.citations?.[0]?.source).toBe('@S2@');
+    expect(rec2.notes?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    const dangling = parse551(indi551(['1 NOTE @N1@', '2 SOUR @NOPE@', '0 @N1@ NOTE text']));
+    const rec3 = dangling.records[0] as { notes?: Array<{ citations?: Array<{ source: string }> }> };
+    expect(rec3.notes?.[0]?.citations ?? []).toEqual([]);
   });
 
   test('NOTE pointer citations: 5.5.1 writes them back, 7.0 drops them', () => {
@@ -295,13 +323,18 @@ describe('note structures', () => {
     expect(err70(indi70(['1 NOTE x', '2 TRAN de']))).toBe('structure.missing-required');
   });
 
-  test('UID rejects substructures', () => {
-    expect(err70(indi70(['1 UID u', '2 BOGUS x']))).toBe('structure.unknown-tag');
+  test('UID keeps substructures as extensions', () => {
+    const dataset = parse70(indi70(['1 UID u', '2 BOGUS x']));
+    const rec = dataset.records[0] as { identifiers?: Array<{ tag: string; extensions?: Array<{ tag: string }> }> };
+    expect(rec.identifiers?.[0]?.tag).toBe('UID');
+    expect(rec.identifiers?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
-  test('EXID TYPE must be a valid URI', () => {
+  test('EXID TYPE must be a valid URI; a bare TYPE line is skipped', () => {
     expect(err70(indi70(['1 EXID https://x.example/id', '2 TYPE bad uri']))).toBe('uri.invalid');
-    expect(err70(indi70(['1 EXID https://x.example/id', '2 TYPE']))).toBe('structure.missing-payload');
+    const dataset = parse70(indi70(['1 EXID https://x.example/id', '2 TYPE']));
+    const rec = dataset.records[0] as { identifiers?: Array<{ tag: string; payload: string }> };
+    expect(rec.identifiers).toEqual([{ tag: 'EXID', payload: 'https://x.example/id' }]);
   });
 });
 
@@ -389,11 +422,13 @@ describe('source citations and media links', () => {
     expect(rec.events?.[0]?.detail?.citations?.[1]?.data?.texts?.[0]?.payload).toBe('the transcript');
   });
 
-  test('5.5.1 SOUR citation requires a payload', () => {
-    expect(err551(indi551(['1 BIRT', '2 SOUR']))).toBe('structure.missing-payload');
+  test('5.5.1 bare SOUR citation line is skipped', () => {
+    const dataset = parse551(indi551(['1 BIRT', '2 SOUR']));
+    const rec = dataset.records[0] as { events?: Array<{ detail?: { citations?: unknown[] } }> };
+    expect(rec.events?.[0]?.detail?.citations).toEqual([]);
   });
 
-  test('5.5.1 inline OBJE synthesizes a record; a text payload is rejected', () => {
+  test('5.5.1 inline OBJE synthesizes a record; unknown children become extensions', () => {
     const dataset = parse551(
       indi551([
         '1 OBJE',
@@ -421,11 +456,17 @@ describe('source citations and media links', () => {
     expect(synthetic.objectType).toBe('portrait');
     expect(synthetic.soundFile).toBe('s.wav');
     expect(synthetic.date).toBeDefined();
-    expect(err551(indi551(['1 OBJE', '2 BOGUS']))).toBe('structure.unknown-tag');
+    const withBogus = parse551(indi551(['1 OBJE', '2 FILE b.jpg', '3 FORM jpg', '2 BOGUS']));
+    const synthetic2 = withBogus.records.find((record) => record.tag === 'OBJE') as { extensions?: Array<{ tag: string }> };
+    expect(synthetic2?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
-  test('5.5.1 inline OBJE requires a FILE', () => {
-    expect(err551(indi551(['1 OBJE']))).toBe('structure.missing-required');
+  test('5.5.1 inline OBJE without a FILE still synthesizes an empty record', () => {
+    const dataset = parse551(indi551(['1 OBJE']));
+    const rec = dataset.records[0] as { media?: Array<{ object: string }> };
+    expect(rec.media?.[0]?.object).toBe('@_SYNO0@');
+    const synthetic = dataset.records.find((record) => record.tag === 'OBJE') as { files: unknown[] };
+    expect(synthetic?.files).toEqual([]);
   });
 
   test('_PRIV flag semantics', () => {
@@ -519,9 +560,16 @@ describe('event details', () => {
     expect(detail?.cause).toBe('Old age');
   });
 
-  test('INDI FAMC is only allowed under ADOP, BIRT and CHR', () => {
-    expect(err70(indi70(['1 DEAT', '2 FAMC @F1@', '0 @F1@ FAM']))).toBe('structure.unknown-tag');
-    expect(err70(indi70(['1 BIRT', '2 FAMC @F1@', '3 BOGUS x', '0 @F1@ FAM']))).toBe('structure.unknown-tag');
+  test('INDI FAMC outside ADOP, BIRT and CHR falls back to extensions', () => {
+    const deat = parse70(indi70(['1 DEAT', '2 FAMC @F1@', '0 @F1@ FAM']));
+    const rec = deat.records[0] as { events?: Array<{ tag: string; extensions?: Array<{ tag: string; payload?: string; payloadKind?: string }> }> };
+    const famc = rec.events?.[0]?.extensions?.find((extension) => extension.tag === 'FAMC');
+    expect(famc?.payload).toBe('@F1@');
+    expect(famc?.payloadKind).toBe('pointer');
+    const birt = parse70(indi70(['1 BIRT', '2 FAMC @F1@', '3 BOGUS x', '0 @F1@ FAM']));
+    const birtRec = birt.records[0] as { events?: Array<{ familyChild?: string; extensions?: Array<{ tag: string }> }> };
+    expect(birtRec.events?.[0]?.familyChild).toBe('@F1@');
+    expect(birtRec.events?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('ADOP FAMC with ADOP detail', () => {
@@ -530,9 +578,14 @@ describe('event details', () => {
     expect(rec.events?.[0]?.adoptionFamily).toEqual({ family: '@F1@', adoption: { payload: 'BOTH', phrase: 'both parents' } });
   });
 
-  test('NCHI rejects substructures; NMR requires digits', () => {
-    expect(err70(indi70(['1 NCHI 3', '2 BOGUS x']))).toBe('structure.unknown-tag');
-    expect(err70(indi70(['1 NMR three']))).toBe('structure.unexpected-payload');
+  test('NCHI keeps substructures as extensions; NMR requires digits', () => {
+    const dataset = parse70(indi70(['1 NCHI 3', '2 BOGUS x']));
+    const rec = dataset.records[0] as { attributes?: Array<{ tag: string; extensions?: Array<{ tag: string }> }> };
+    expect(rec.attributes?.[0]?.tag).toBe('NCHI');
+    expect(rec.attributes?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    // The stray text is stripped by the dispatch retry; the payload-less
+    // NMR line then fails its required value.
+    expect(err70(indi70(['1 NMR three']))).toBe('structure.missing-payload');
   });
 
   test('IDNO and FACT attributes no longer require TYPE', () => {
@@ -542,7 +595,7 @@ describe('event details', () => {
     expect(parseGedcom70(enc(indi70(['1 FACT tall']))).ok).toBe(true);
   });
 
-  test('individual ordinances keep FAMC only under SLGC', () => {
+  test('individual ordinances type FAMC only under SLGC and extend it elsewhere', () => {
     const dataset = parse70(indi70(['1 SLGC', '2 FAMC @F1@', '2 STAT COMPLETED', '3 DATE 1 JAN 2000', '2 TEMP SLAKE', '2 PLAC Salt Lake', '0 @F1@ FAM']));
     const rec = dataset.records[0] as {
       ordinances?: Array<{
@@ -559,19 +612,32 @@ describe('event details', () => {
     expect(rec.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
     expect(rec.ordinances?.[0]?.detail?.temple).toBe('SLAKE');
     expect(rec.ordinances?.[0]?.detail?.place?.payload).toEqual(['Salt Lake']);
-    expect(err70(indi70(['1 BAPL', '2 FAMC @F1@']))).toBe('structure.unknown-tag');
+    const bapl = parse70(indi70(['1 BAPL', '2 FAMC @F1@', '0 @F1@ FAM']));
+    const baplRec = bapl.records[0] as { ordinances?: Array<{ tag: string; extensions?: Array<{ tag: string; payload?: string; payloadKind?: string }> }> };
+    const famc = baplRec.ordinances?.[0]?.extensions?.find((extension) => extension.tag === 'FAMC');
+    expect(famc?.payload).toBe('@F1@');
+    expect(famc?.payloadKind).toBe('pointer');
   });
 
-  test('5.5.1 ordinance status table and errors', () => {
+  test('5.5.1 ordinance status table; a STAT without DATE parses', () => {
     const dataset = parse551(
       indi551(['1 BAPL', '2 STAT PRE-1970', '3 DATE 1 JAN 2000']),
     );
     const rec = dataset.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; date: { value: unknown } } } }> };
     expect(rec.ordinances?.[0]?.detail?.status?.payload).toBe('PRE_1970');
     expect(err551(indi551(['1 BAPL', '2 STAT NOPE', '3 DATE 1 JAN 2000']))).toBe('enum.invalid-value');
-    expect(err551(indi551(['1 BAPL', '2 STAT COMPLETED', '3 DATE 1 JAN 2000', '3 BOGUS x']))).toBe('structure.unknown-tag');
-    expect(err551(indi551(['1 BAPL', '2 STAT COMPLETED']))).toBe('structure.missing-required');
-    expect(err70(indi70(['1 BAPL', '2 STAT COMPLETED']))).toBe('structure.missing-required');
+    const withChild = parse551(indi551(['1 BAPL', '2 STAT COMPLETED', '3 DATE 1 JAN 2000', '3 BOGUS x']));
+    const rec2 = withChild.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; extensions?: Array<{ tag: string }> } } }> };
+    expect(rec2.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
+    expect(rec2.ordinances?.[0]?.detail?.status?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    const undated551 = parse551(indi551(['1 BAPL', '2 STAT COMPLETED']));
+    const undatedRec551 = undated551.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; date?: unknown } } }> };
+    expect(undatedRec551.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
+    expect(undatedRec551.ordinances?.[0]?.detail?.status?.date).toBeUndefined();
+    const undated70 = parse70(indi70(['1 BAPL', '2 STAT COMPLETED']));
+    const undatedRec70 = undated70.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; date?: unknown } } }> };
+    expect(undatedRec70.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
+    expect(undatedRec70.ordinances?.[0]?.detail?.status?.date).toBeUndefined();
   });
 
   test('SLGS spouse sealing', () => {
@@ -666,10 +732,13 @@ describe('family and individual records', () => {
     expect(fam.automatedRecordId).toBe('9');
   });
 
-  test('vendor FAM negatives validate their payloads', () => {
+  test('vendor FAM negatives validate their payloads and extend substructures', () => {
     expect(err551([...H551, '0 @F1@ FAM', '1 _MARR Y', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
     expect(err551([...H551, '0 @F1@ FAM', '1 _NMR N', ...SUBM, '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
-    expect(err551([...H551, '0 @F1@ FAM', '1 _MARR N', '2 BOGUS x', ...SUBM, '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+    const withChild = parse551([...H551, '0 @F1@ FAM', '1 _MARR N', '2 BOGUS x', ...SUBM, '0 TRLR'].join('\n'));
+    const fam = withChild.records[0] as { extensions?: Array<{ tag: string }>; nonEvents?: Array<{ payload: string }> };
+    expect(fam.nonEvents?.[0]?.payload).toBe('MARR');
+    expect(fam.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
     // A FAM _TYPE value other than same-sex no longer fails the import:
     // it is preserved as a generic extension (see the FAM _TYPE handler).
     expect(parse551([...H551, '0 @F1@ FAM', '1 _TYPE other', ...SUBM, '0 TRLR'].join('\n'))).toBeTruthy();
@@ -748,45 +817,76 @@ describe('family and individual records', () => {
 });
 
 describe('payload readers and document structure', () => {
-  test('reqText rejects pointer values', () => {
-    expect(err70(indi70(['0 @I2@ INDI', '1 NAME X', '1 NAME @I2@']))).toBe('structure.missing-payload');
+  test('reqText skips pointer values', () => {
+    const dataset = parse70(indi70(['0 @I2@ INDI', '1 NAME X', '1 NAME @I2@']));
+    const rec = dataset.records[1] as { names?: Array<{ tag: string; payload: unknown }> };
+    expect(rec.names).toEqual([{ tag: 'NAME', payload: { given: 'X' } }]);
   });
 
-  test('reqPtr rejects text values', () => {
-    expect(err70([...H70, '0 @F1@ FAM', '1 HUSB John', '0 TRLR'].join('\n'))).toBe('structure.missing-payload');
+  test('a bare-identifier pointer whose target is missing is dropped', () => {
+    const dataset = parse70([...H70, '0 @F1@ FAM', '1 HUSB John', '0 TRLR'].join('\n'));
+    const fam = dataset.records[0] as { husband?: { partner?: string } };
+    expect(fam.husband).toBeUndefined();
   });
 
-  test('optPtr rejects text payloads on REPO citations', () => {
-    expect(err70([...H70, '0 @S1@ SOUR', '1 REPO Text', '0 TRLR'].join('\n'))).toBe('structure.unexpected-payload');
+  test('a bare-identifier pointer with an existing target resolves', () => {
+    const dataset = parse70([...H70, '0 @I1@ INDI', '1 NAME X', '0 @F1@ FAM', '1 HUSB I1', '0 TRLR'].join('\n'));
+    const fam = dataset.records[1] as { husband?: { partner?: string } };
+    expect(fam.husband?.partner).toBe('@I1@');
   });
 
-  test('the Y assertion rejects other values', () => {
-    expect(err70(indi70(['1 BIRT N']))).toBe('structure.unexpected-payload');
+  test('a stray text payload on a REPO citation is stripped', () => {
+    const dataset = parse70([...H70, '0 @S1@ SOUR', '1 REPO Text', '0 TRLR'].join('\n'));
+    const sour = dataset.records[0] as { repositoryCitations?: Array<{ repository?: string }> };
+    expect(sour.repositoryCitations?.[0]?.repository).toBe('@VOID@');
   });
 
-  test('duplicate singles are cardinality errors', () => {
-    expect(err70(indi70(['1 SEX M', '1 SEX F']))).toBe('structure.cardinality');
-    expect(err551(indi551(['1 EVEN', '2 TYPE a', '2 TYPE b']))).toBe('structure.cardinality');
-    expect(err70(indi70(['1 EVEN', '2 TYPE a', '2 TYPE b']))).toBe('structure.cardinality');
+  test('the Y assertion keeps a non-Y text payload verbatim', () => {
+    const dataset = parse70(indi70(['1 BIRT N']));
+    const rec = dataset.records[0] as { events?: Array<{ tag: string; payload?: unknown }> };
+    expect(rec.events?.[0]?.payload).toBe('N');
+  });
+
+  test('duplicate singles keep the first occurrence', () => {
+    const sex = parse70(indi70(['1 SEX M', '1 SEX F']));
+    expect((sex.records[0] as { sex?: string }).sex).toBe('M');
+    // The individual-event TYPE is read last by the event handler, so
+    // a repeated TYPE keeps the later value.
+    const even551 = parse551(indi551(['1 EVEN', '2 TYPE a', '2 TYPE b']));
+    expect((even551.records[0] as { events?: Array<{ type?: string }> }).events?.[0]?.type).toBe('b');
+    const even70 = parse70(indi70(['1 EVEN', '2 TYPE a', '2 TYPE b']));
+    expect((even70.records[0] as { events?: Array<{ type?: string }> }).events?.[0]?.type).toBe('b');
   });
 
   test('document level errors', () => {
-    expect(err70('0 TRLR\n')).toBe('document.missing-header');
+    // A document without a header gets a synthesized empty one.
+    const noHeader = parse70('0 TRLR\n');
+    expect(noHeader.header.gedcom.version).toBe('5.5.1');
+    expect(noHeader.records).toEqual([]);
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @X@ TRLR\n')).toBe('line.xref-on-substructure');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n0 @I1@ INDI\n')).toBe('document.trailer-not-last');
+    // Records after the trailer still parse.
+    const afterTrailer = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n0 @I1@ INDI\n');
+    expect(afterTrailer.records.map((record) => record.xref)).toEqual(['@I1@']);
     // Both note records are accepted in any file.
     expect(parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @N1@ NOTE text\n0 TRLR\n')).ok).toBe(true);
     expect(parseGedcom551(enc([...H551, '0 @N1@ SNOTE text', ...SUBM, '0 TRLR'].join('\n'))).ok).toBe(true);
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 BOGUS\n0 TRLR\n')).toBe('structure.unknown-tag');
+    // An unknown record-level tag becomes an ExtensionRecord.
+    const bogus = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 BOGUS\n0 TRLR\n');
+    expect(bogus.records[0]?.tag).toBe('BOGUS');
   });
 
-  test('duplicate cross-reference identifiers are rejected anywhere, not just adjacent', () => {
+  test('duplicate cross-reference identifiers keep the later record; the first occurrence registers', () => {
+    const dataset70 = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME A /B/\n0 @I2@ INDI\n1 NAME C /D/\n0 @I1@ INDI\n1 NAME E /F/\n0 TRLR\n',
+    );
+    expect(dataset70.records.map((record) => record.xref)).toEqual(['@I1@', '@I2@', '@I1@']);
     expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME A /B/\n0 @I2@ INDI\n1 NAME C /D/\n0 @I1@ INDI\n1 NAME E /F/\n0 TRLR\n'),
-    ).toBe('document.duplicate-xref');
-    expect(
-      err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME A /B/\n0 @I2@ INDI\n1 NAME C /D/\n0 @I1@ INDI\n1 NAME E /F/\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n'),
-    ).toBe('document.duplicate-xref');
+      (dataset70.records[2] as { names?: Array<{ payload?: { given?: string } }> }).names?.[0]?.payload?.given,
+    ).toBe('E');
+    const dataset551 = parse551(
+      '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME A /B/\n0 @I2@ INDI\n1 NAME C /D/\n0 @I1@ INDI\n1 NAME E /F/\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n',
+    );
+    expect(dataset551.records.filter((record) => record.xref === '@I1@')).toHaveLength(2);
   });
 
   test('extension records keep pointer payloads', () => {
@@ -800,7 +900,9 @@ describe('payload readers and document structure', () => {
 
   test('header edge cases', () => {
     expect(err70('0 @H@ HEAD\n1 GEDC\n2 VERS 7.0\n0 TRLR\n')).toBe('line.xref-on-substructure');
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 GEDC\n2 VERS 7.0\n0 TRLR\n')).toBe('structure.cardinality');
+    // A repeated GEDC keeps the first occurrence.
+    const repeated = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 GEDC\n2 VERS 7.0\n0 TRLR\n');
+    expect(repeated.header.gedcom.version).toBe('7.0');
     // The FORM under GEDC is accepted in any file.
     expect(parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n0 TRLR\n')).ok).toBe(true);
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 SCHMA\n2 TAG _X x\n3 BOGUS y\n0 TRLR\n')).toBe('structure.unexpected-payload');

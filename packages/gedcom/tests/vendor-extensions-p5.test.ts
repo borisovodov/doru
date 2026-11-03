@@ -280,11 +280,13 @@ describe('the 5.5.1 export validity fixes', () => {
     }
   });
 
-  test('7.0 input rejects a PHRASE directly under FAMC', () => {
+  test('7.0 input keeps a PHRASE directly under FAMC as an extension', () => {
     const result = parseGedcom70(enc([...H70, '0 @F1@ FAM', '1 HUSB @I1@', '0 @I1@ INDI', '1 NAME John /Doe/', '1 FAMC @F1@', '2 PHRASE x', '0 TRLR'].join('\n')));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe('structure.unknown-tag');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const indi = result.value.records.find((record) => record.tag === 'INDI' && record.xref === '@I1@');
+      expect(indi?.tag === 'INDI' ? indi.childFamilies?.[0]?.family : undefined).toBe('@F1@');
+      expect(indi?.tag === 'INDI' ? indi.childFamilies?.[0]?.extensions?.some((extension) => extension.tag === 'PHRASE') : undefined).toBe(true);
     }
   });
 
@@ -308,15 +310,12 @@ describe('the 5.5.1 export validity fixes', () => {
     expect(ser551(dataset2)).not.toContain('PHRASE');
   });
 
-  test('the 5.5.1 version gate accepts only 5.5, 5.5.1 and 5.5.5', () => {
-    for (const bad of ['5.5.2', '5.5.9', '5.5.0']) {
+  test('the 5.5.1 version gate accepts any 5.x version', () => {
+    for (const bad of ['5.5.2', '5.5.9', '5.5.0', '5.3', '5.4', '5.50', '5.01']) {
       const result = parseGedcom551(
         enc(['0 HEAD', '1 SOUR DORU', '1 SUBM @S1@', '1 GEDC', `2 VERS ${bad}`, '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', ...SUBM551, '0 TRLR'].join('\n')),
       );
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error.code).toBe('document.wrong-version');
-      }
+      expect(result.ok).toBe(true);
     }
   });
 });

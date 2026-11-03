@@ -38,6 +38,10 @@ import {
   emitEventDefinition,
   emitDuplicateCandidateRecord,
   emitPublishedSiteRecord,
+  emitGroupRecord,
+  emitOccurrenceRecord,
+  emitTreeCategoryRecord,
+  emitTreeTagRecord,
 } from './records';
 import {
   emitCensusRecord,
@@ -86,6 +90,35 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
         w.line(2, 'TAG', { value: `${def.payload.tag} ${def.payload.uri}` });
       }
       emitExtensions(w, version, 2, h.schema);
+    }
+  }
+  if (h.schema !== undefined && ((h.schema.prefixes?.length ?? 0) > 0 || (h.schema.elfDefinitions?.length ?? 0) > 0)) {
+    // The ELF declarations live in the SCHMA block of the ELF
+    // serialization (https://fhiso.org/TR/elf) whatever the declared
+    // version; 5.5.1 files carry them the same way (the ELF test
+    // files declare 5.5.1), so they are written back in both
+    // versions — 7.0 reopens its own SCHMA line for them.
+    if (version === '5.5.1') {
+      w.line(1, 'SCHMA');
+    }
+    for (const prefix of h.schema.prefixes ?? []) {
+      // The ELF prefix declaration (see Schema.prefixes).
+      w.line(2, 'PRFX', { value: `${prefix.prefix} ${prefix.uri}` });
+      emitExtensions(w, version, 3, prefix);
+    }
+    for (const definition of h.schema.elfDefinitions ?? []) {
+      // The ELF tag declaration (see Schema.elfDefinitions).
+      w.line(2, 'IRI', { value: definition.iri });
+      for (const tagValue of definition.tagValues ?? []) {
+        w.line(3, 'TAG', { value: tagValue });
+      }
+      for (const parent of definition.parents ?? []) {
+        w.line(3, 'ISA', { value: parent });
+      }
+      if (definition.language !== undefined) {
+        w.line(3, 'LANG', { value: definition.language });
+      }
+      emitExtensions(w, version, 3, definition);
     }
   }
   if (h.source !== undefined) {
@@ -181,7 +214,9 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   }
   if (h.place !== undefined) {
     w.line(1, 'PLAC');
-    w.line(2, 'FORM', { value: h.place.form.join(', ') });
+    if (h.place.form !== undefined) {
+      w.line(2, 'FORM', { value: h.place.form.join(', ') });
+    }
     emitExtensions(w, version, 2, h.place);
   }
   if (h.note !== undefined) {
@@ -227,6 +262,34 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
     // Header.descriptionAware).
     w.line(1, '_DESCRIPTION_AWARE', { value: 'Y' });
   }
+  if (h.title !== undefined) {
+    // My Family Tree: the title of the tree (see Header.title).
+    w.line(1, '_TITL', { value: h.title });
+  }
+  if (h.statistics !== undefined) {
+    // My Family Tree: the dataset statistics block (see
+    // Header.statistics).
+    w.line(1, '_STS');
+    for (const [tag, value] of [
+      ['INDI', h.statistics.individuals],
+      ['FAM', h.statistics.families],
+      ['REPO', h.statistics.repositories],
+      ['SOUR', h.statistics.sources],
+      ['NOTE', h.statistics.notes],
+      ['SUBM', h.statistics.submitters],
+      ['OBJE', h.statistics.media],
+      ['_TASK', h.statistics.tasks],
+    ] as ReadonlyArray<readonly [string, string | undefined]>) {
+      if (value !== undefined) {
+        w.line(2, tag, { value });
+      }
+    }
+    emitExtensions(w, version, 2, h.statistics);
+  }
+  for (const www of h.www ?? []) {
+    // The web address(es) of the dataset (see Header.www).
+    w.line(1, 'WWW', { value: www });
+  }
   emitExtensions(w, version, 1, h);
 }
 
@@ -250,6 +313,15 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
     extensions?: ExtensionStructure[];
   };
   rtlSave?: string;
+  www?: string;
+  tree?: {
+    tag: '_TREE';
+    id?: string;
+    note?: string;
+    rin?: string;
+    environment?: string;
+    extensions?: ExtensionStructure[];
+  };
   extensions?: ExtensionStructure[];
 }): void {
   w.line(1, 'SOUR', { value: source.payload });
@@ -262,6 +334,28 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
   if (source.rtlSave !== undefined) {
     // MyHeritage: the right-to-left save mode (see HeaderSource.rtlSave).
     w.line(2, '_RTLSAVE', { value: source.rtlSave });
+  }
+  if (source.www !== undefined) {
+    // Family Echo and other exporters: the web address of the source
+    // product (see HeaderSource.www).
+    w.line(2, 'WWW', { value: source.www });
+  }
+  if (source.tree !== undefined) {
+    // Ancestry.com: the tree the export came from (see
+    // HeaderSource.tree).
+    w.line(2, '_TREE', source.tree.id === undefined ? {} : { value: source.tree.id });
+    if (source.tree.note !== undefined) {
+      w.line(3, 'NOTE', { value: source.tree.note });
+    }
+    if (source.tree.rin !== undefined) {
+      w.line(3, 'RIN', { value: source.tree.rin });
+    }
+    if (source.tree.environment !== undefined) {
+      // The Ancestry environment the export came from (see
+      // AncestryTreeStructure.environment).
+      w.line(3, '_ENV', { value: source.tree.environment });
+    }
+    emitExtensions(w, version, 3, source.tree);
   }
   if (source.corporation !== undefined) {
     emitCorporation(w, version, source.corporation);
@@ -368,6 +462,18 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
     case '_PUBLISH':
       emitPublishedSiteRecord(w, version, record as Parameters<typeof emitPublishedSiteRecord>[2]);
       return;
+    case '_GRP':
+      emitGroupRecord(w, version, record as Parameters<typeof emitGroupRecord>[2]);
+      return;
+    case '_OCUR':
+      emitOccurrenceRecord(w, version, record as Parameters<typeof emitOccurrenceRecord>[2]);
+      return;
+    case '_MTTAG':
+      emitTreeTagRecord(w, version, record as Parameters<typeof emitTreeTagRecord>[2]);
+      return;
+    case '_MTCAT':
+      emitTreeCategoryRecord(w, version, record as Parameters<typeof emitTreeCategoryRecord>[2]);
+      return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);
       return;
@@ -433,8 +539,10 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
     }
     emitExtensions(w, version, level + 1, rec.changeDate);
   }
-  if (rec.creationDate !== undefined && version === '7.0') {
-    w.line(level, 'CREA');
+  if (rec.creationDate !== undefined) {
+    // 7.0 writes the standard CREA; 5.5.1 has no CREA slot and keeps
+    // the MFT7 `_CRE` spelling the parser accepts in both versions.
+    w.line(level, version === '7.0' ? 'CREA' : '_CRE');
     emitDateExact(w, version, level + 1, 'DATE', rec.creationDate.date, rec.creationDate.date.time);
     emitExtensions(w, version, level + 1, rec.creationDate);
   }
@@ -465,6 +573,8 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   email?: string[];
   fax?: string[];
   www?: string[];
+  skypeId?: string;
+  jabberId?: string;
   media?: MultimediaLink[];
   languages?: string[];
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
@@ -473,12 +583,18 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   creationDate?: CreationDate;
   registeredRfn?: string;
   automatedRecordId?: string;
+  geditcomId?: string;
   submitters?: string[];
   extensions?: ExtensionStructure[];
   xref?: string;
 }): void {
   w.line(0, 'SUBM', { xref: rec.xref });
   w.line(1, 'NAME', { value: rec.name });
+  if (rec.geditcomId !== undefined) {
+    // GEDitCOM II: the record's id (see
+    // IndividualRecord.geditcomId).
+    w.line(1, '_GCID', { value: rec.geditcomId });
+  }
   const address = mergedAddress(w, version, rec.address, rec);
   if (address !== undefined) {
     emitAddress(w, version, 1, address);
@@ -523,6 +639,14 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   }
   if (rec.registeredRfn !== undefined && version === '5.5.1') {
     w.line(1, 'RFN', { value: rec.registeredRfn });
+  }
+  if (rec.skypeId !== undefined) {
+    // The FOAF Skype id (see SubmitterRecord.skypeId).
+    w.line(1, '_SKYPEID', { value: rec.skypeId });
+  }
+  if (rec.jabberId !== undefined) {
+    // The FOAF Jabber id (see SubmitterRecord.jabberId).
+    w.line(1, '_JABBERID', { value: rec.jabberId });
   }
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);

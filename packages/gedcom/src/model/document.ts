@@ -197,6 +197,32 @@ export interface Header extends GedcomStructureBase {
    * `_ORGSOUR` block in both versions.
    */
   originalSource?: OriginalSourceStructure;
+  /**
+   * `_TITL` {0:1} — the title of the tree. Written under HEAD by My
+   * Family Tree (Chronoplex Software) exports (observed in real
+   * files, e.g. `1 _TITL The English and British Kings and Queens`);
+   * not part of any GEDCOM version (neither standard has a title
+   * slot in the header). Recognized on input and written back as
+   * `_TITL` in both versions.
+   */
+  title?: Text;
+  /**
+   * `_STS` {0:1} — the dataset statistics block of My Family Tree
+   * exports: one count line per record type under HEAD (`2 INDI 179`,
+   * `2 FAM 85`, `2 REPO 1`, `2 SOUR 3`, `2 NOTE 10`, `2 SUBM 1`,
+   * `2 OBJE 0`) plus the task count (`2 _TASK 1`). Program-generated
+   * metadata, kept verbatim as free text per count. Not part of any
+   * GEDCOM version. Recognized on input and written back as the
+   * `_STS` block in both versions.
+   */
+  statistics?: DatasetStatistics;
+  /**
+   * WWW {0:M} — the web address(es) of the dataset, written directly
+   * under the header (a widespread convention in the wild; neither
+   * standard has a WWW slot in the header). Recognized on input and
+   * written back as `WWW` in both versions.
+   */
+  www?: Text[];
 }
 /**
  * GEDCOM 7.0 §3.2.1 HEADER rule — g7:GEDC: a container for information about the
@@ -249,13 +275,38 @@ export interface GedcomAddendum extends GedcomStructureBase {
 }
 
 /**
+ * The My Family Tree `_STS` statistics block under HEAD (see
+ * Header.statistics): one count per record type, as written by the
+ * vendor (`2 INDI 179`, `2 _TASK 1`, …). The counts are free text —
+ * the vendor documents no value format beyond decimal numbers.
+ */
+export interface DatasetStatistics extends GedcomStructureBase {
+  tag: '_STS';
+  /** INDI {0:1} — the number of individual records. */
+  individuals?: Text;
+  /** FAM {0:1} — the number of family records. */
+  families?: Text;
+  /** REPO {0:1} — the number of repository records. */
+  repositories?: Text;
+  /** SOUR {0:1} — the number of source records. */
+  sources?: Text;
+  /** NOTE {0:1} — the number of note records. */
+  notes?: Text;
+  /** SUBM {0:1} — the number of submitter records. */
+  submitters?: Text;
+  /** OBJE {0:1} — the number of multimedia records. */
+  media?: Text;
+  /** _TASK {0:1} — the number of task (to-do) records. */
+  tasks?: Text;
+}
+
+/**
  * `_ORGSOUR` under HEAD — the product that originally wrote the data
  * (see Header.originalSource): the foreign file's SOUR.NAME and
  * SOUR.VERS kept as NAME/VERS children. Documented in the GenWiki
  * "GEDCOM/_Nutzerdef-Tag" table; not part of any GEDCOM version.
  */
-export interface OriginalSourceStructure extends GedcomStructureBase {
-  tag: '_ORGSOUR';
+export interface OriginalSourceStructure extends GedcomStructureBase {  tag: '_ORGSOUR';
   /** NAME {0:1} — the original product's name (the foreign SOUR.NAME). */
   name?: Text;
   /** VERS {0:1} — the original product's version (the foreign SOUR.VERS). */
@@ -271,6 +322,53 @@ export interface OriginalSourceStructure extends GedcomStructureBase {
 export interface Schema extends GedcomStructureBase {
   /** TAG {0:M}, g7:TAG — a tag definition. GEDCOM 7.0 §3.2.1. */
   tagDefinitions: TagDefinitionStructure[];
+  /**
+   * PRFX {0:M} — an ELF prefix declaration: a `PRFX <tag> <uri>` line
+   * binding an IRI prefix (`2 PRFX elf https://terms.fhiso.org/elf/`).
+   * The Extended Legacy Format (ELF), the FHISO serialization of the
+   * GEDCOM data model, declares its extensions inside the SCHMA block
+   * this way (the ELF specification: https://fhiso.org/TR/elf, with
+   * its test files in https://github.com/fhiso/legacy-format). Not
+   * part of the GEDCOM grammar. Recognized on input and written back
+   * as the PRFX lines in both versions.
+   */
+  prefixes?: SchemaPrefix[];
+  /**
+   * IRI {0:M} — an ELF tag declaration: an `IRI <curie>` line with
+   * the `TAG` (the tag and its supertype IRIs), `ISA` (the supertype
+   * IRI) and `LANG` children (same source as `prefixes`). Not part of
+   * the GEDCOM grammar. Recognized on input and written back as the
+   * IRI lines with their children in both versions.
+   */
+  elfDefinitions?: ElfDefinition[];
+}
+
+/**
+ * The ELF `PRFX` declaration under SCHMA (see Schema.prefixes): the
+ * prefix tag with the IRI it abbreviates.
+ */
+export interface SchemaPrefix extends GedcomStructureBase {
+  tag: 'PRFX';
+  /** The PRFX payload, {1:1} — the prefix tag (e.g. `elf`). */
+  prefix: Text;
+  /** The PRFX value, {1:1} — the IRI the prefix abbreviates. */
+  uri: Text;
+}
+
+/**
+ * The ELF `IRI` declaration under SCHMA (see Schema.elfDefinitions):
+ * one extension tag declared as the IRI's legacy spelling.
+ */
+export interface ElfDefinition extends GedcomStructureBase {
+  tag: 'IRI';
+  /** The IRI payload, {1:1} — the declared IRI (as a CURIE, e.g. `elf:ADDRESS`). */
+  iri: Text;
+  /** TAG {0:M} — the tags this IRI spells, followed by the IRIs it occurs under; each kept verbatim. */
+  tagValues?: Text[];
+  /** ISA {0:M} — the IRIs of the supertypes. */
+  parents?: Text[];
+  /** LANG {0:1} — the language of the declaration. */
+  language?: Text;
 }
 
 /**
@@ -313,6 +411,45 @@ export interface HeaderSource extends GedcomStructureBase {
    * and written back as `_RTLSAVE` in both versions.
    */
   rtlSave?: Text;
+  /**
+   * WWW {0:1} — the web address of the source product, written under
+   * HEAD.SOUR (Family Echo exports: `2 WWW http://www.familyecho.com/`).
+   * Neither standard has the slot. Recognized on input and written
+   * back as `WWW` under the SOUR line in both versions.
+   */
+  www?: Text;
+  /**
+   * `_TREE` {0:1} — the Ancestry.com tree the dataset was exported
+   * from, as the numeric tree id under HEAD.SOUR (the webtrees
+   * per-vendor custom-tag registry, Ancestry.php: `HEAD:SOUR:_TREE`
+   * — https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Ancestry.php),
+   * with the NOTE and RIN children the same registry documents. Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as the `_TREE` block in both versions.
+   */
+  tree?: AncestryTreeStructure;
+}
+
+/**
+ * The Ancestry.com `_TREE` block under HEAD.SOUR (see
+ * HeaderSource.tree): the tree the dataset was exported from, with
+ * its id as the payload.
+ */
+export interface AncestryTreeStructure extends GedcomStructureBase {
+  tag: '_TREE';
+  /** The _TREE payload, {0:1} — the numeric tree id. */
+  id?: Text;
+  /** NOTE {0:1} — a note about the tree. */
+  note?: Text;
+  /** RIN {0:1} — the record id number of the tree. */
+  rin?: Text;
+  /**
+   * `_ENV` {0:1} — the Ancestry environment the export came from
+   * (`prd` for production in the 2025 exports; observed in real
+   * Ancestry.com Family Trees exports). Recognized on input and
+   * written back as `_ENV` under the `_TREE` block in both versions.
+   */
+  environment?: Text;
 }
 
 /**
@@ -363,8 +500,8 @@ export interface HeaderSourceData extends GedcomStructureBase {
  * (PLAC.FORM {1:1}).
  */
 export interface HeaderPlace extends GedcomStructureBase {
-  /** FORM {1:1}, g7:HEAD-PLAC-FORM — any PLAC with no FORM shall be treated as if it has this FORM. */
-  form: ListText;
+  /** FORM {0:1}, g7:HEAD-PLAC-FORM — any PLAC with no FORM shall be treated as if it has this FORM. Missing FORM is tolerated (the full-leniency container rule). */
+  form?: ListText;
 }
 
 /**

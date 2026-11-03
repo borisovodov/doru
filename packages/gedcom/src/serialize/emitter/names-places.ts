@@ -34,6 +34,7 @@ import {
 import { commonRecordFields } from './document';
 import {
   emitDate,
+  emitDateExact,
   emitEventDetail,
   emitExtensions,
   emitMultimediaLink,
@@ -47,6 +48,16 @@ import {
 } from './values';
 
 export function emitMediaFile(w: Writer, version: Version, level: number, file: MediaFile): void {
+  if (file.form === undefined) {
+    // A FILE without FORM (the full-leniency container rule): written
+    // back without the FORM line.
+    w.line(level, 'FILE', { value: file.payload });
+    if (file.title !== undefined) {
+      w.line(level + 1, 'TITL', { value: file.title });
+    }
+    emitExtensions(w, version, level + 1, file);
+    return;
+  }
   if (version === '5.5.1' && mediaType(w, version, file.form.payload) === undefined) {
     // 5.5.1 can only name the seven fixed formats; a file whose format
     // cannot be named is dropped together with its substructures.
@@ -113,6 +124,31 @@ export function emitMediaFormat(w: Writer, version: Version, level: number, form
       }
     }
   }
+  if (format.kind !== undefined) {
+    // Ancestry.com Family Trees: the display kind of the media (see
+    // MediaFormatStructure.kind).
+    w.line(level + 1, '_MTYPE', { value: format.kind });
+  }
+  if (format.storageType !== undefined) {
+    // Ancestry.com Family Trees: the stored encoding of the file (see
+    // MediaFormatStructure.storageType).
+    w.line(level + 1, '_STYPE', { value: format.storageType });
+  }
+  if (format.size !== undefined) {
+    // Ancestry.com Family Trees: the file size in bytes (see
+    // MediaFormatStructure.size).
+    w.line(level + 1, '_SIZE', { value: String(format.size) });
+  }
+  if (format.width !== undefined) {
+    // Ancestry.com Family Trees: the picture width in pixels (see
+    // MediaFormatStructure.width).
+    w.line(level + 1, '_WDTH', { value: String(format.width) });
+  }
+  if (format.height !== undefined) {
+    // Ancestry.com Family Trees: the picture height in pixels (see
+    // MediaFormatStructure.height).
+    w.line(level + 1, '_HGHT', { value: String(format.height) });
+  }
   emitExtensions(w, version, level + 1, format);
 }
 
@@ -157,6 +193,32 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // PersonalNameStructure.aliases).
     w.line(level + 1, '_ALIA', { value: alias });
   }
+  if (name.marriedName !== undefined) {
+    // The married name (see PersonalNameStructure.marriedName).
+    w.line(level + 1, '_MARNM', { value: name.marriedName });
+  }
+  if (name.primary === true) {
+    // Legacy: the primary name mark (see
+    // PersonalNameStructure.primary).
+    w.line(level + 1, '_PRIM', { value: 'Y' });
+  }
+  if (name.middleName !== undefined) {
+    // ged4web: the middle name under NAME (see
+    // PersonalNameStructure.middleName).
+    w.line(level + 1, '_MIDN', { value: name.middleName });
+  }
+  if (name.creationDate !== undefined) {
+    // MFT7: the name entry's creation date (see
+    // PersonalNameStructure.creationDate).
+    w.line(level + 1, version === '7.0' ? 'CREA' : '_CRE');
+    emitDateExact(w, version, level + 2, 'DATE', name.creationDate.date, name.creationDate.date.time);
+    emitExtensions(w, version, level + 2, name.creationDate);
+  }
+  for (const aka of name.alsoKnownAs ?? []) {
+    // An "also known as" name variant (see
+    // PersonalNameStructure.alsoKnownAs).
+    w.line(level + 1, '_AKA', { value: aka });
+  }
   if (name.givenNameUsed !== undefined) {
     // FH: the given name used (see PersonalNameStructure.givenNameUsed).
     w.line(level + 1, '_USED', { value: name.givenNameUsed });
@@ -199,7 +261,7 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // The 5.5.1 phonetic/romanized variations become TRANs where the
     // method names a known language; unknown methods are dropped.
     for (const variation of name.phonetic ?? []) {
-      const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+      const language = variation.type !== undefined ? METHOD_TO_LANGUAGE_70.get(variation.type) : undefined;
       if (language === undefined) {
         continue;
       }
@@ -208,7 +270,7 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
       emitNamePieces(w, version, level + 2, variation.pieces);
     }
     for (const variation of name.romanized ?? []) {
-      const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+      const language = variation.type !== undefined ? METHOD_TO_LANGUAGE_70.get(variation.type) : undefined;
       if (language === undefined) {
         continue;
       }
@@ -217,6 +279,9 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
       emitNamePieces(w, version, level + 2, variation.pieces);
     }
     for (const translation of name.translations ?? []) {
+      if (translation.language === undefined) {
+        continue;
+      }
       w.line(level + 1, 'TRAN', { value: formatName70(translation.payload) });
       w.line(level + 2, 'LANG', { value: translation.language });
       emitNamePieces(w, version, level + 2, translation.pieces);
@@ -225,6 +290,9 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // The 7.0 TRANs become FONE/ROMN where the language names a known
     // method; unknown languages are dropped.
     for (const translation of name.translations ?? []) {
+      if (translation.language === undefined) {
+        continue;
+      }
       const method = LANGUAGE_TO_METHOD_551.get(translation.language.toLowerCase());
       if (method === undefined) {
         continue;
@@ -238,11 +306,23 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
       w.line(level + 1, 'FONE', { value: formatName551(variation.payload) });
       w.line(level + 2, 'TYPE', { value: variation.type });
       emitNamePieces(w, version, level + 2, variation.pieces);
+      for (const note of variation.notes ?? []) {
+        emitNoteStructure(w, version, level + 2, note);
+      }
+      for (const citation of variation.citations ?? []) {
+        emitSourceCitation(w, version, level + 2, citation);
+      }
     }
     for (const variation of name.romanized ?? []) {
       w.line(level + 1, 'ROMN', { value: formatName551(variation.payload) });
       w.line(level + 2, 'TYPE', { value: variation.type });
       emitNamePieces(w, version, level + 2, variation.pieces);
+      for (const note of variation.notes ?? []) {
+        emitNoteStructure(w, version, level + 2, note);
+      }
+      for (const citation of variation.citations ?? []) {
+        emitSourceCitation(w, version, level + 2, citation);
+      }
     }
   }
   // The name's notes and citations live at the name level in both
@@ -416,6 +496,20 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
     // PlaceRecord.preposition).
     w.line(1, '_PREP', { value: record.preposition });
   }
+  if (record.form !== undefined) {
+    // GEDKeeper: the display form of the place name (see
+    // PlaceRecord.form).
+    w.line(1, 'FORM', { value: record.form });
+  }
+  if (record.automatedRecordId !== undefined) {
+    // GEDKeeper: the record id of the place (see
+    // PlaceRecord.automatedRecordId).
+    w.line(1, 'RIN', { value: record.automatedRecordId });
+  }
+  if (record.geditcomId !== undefined) {
+    // GEDitCOM II: the record's id (see PlaceRecord.geditcomId).
+    w.line(1, '_GCID', { value: record.geditcomId });
+  }
   if (record.denomination !== undefined) {
     w.line(1, 'RELI', { value: record.denomination });
   }
@@ -493,6 +587,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     // PlaceStructure.hebrewName).
     w.line(level + 1, '_HEB', { value: place.hebrewName });
   }
+  if (place.placeId !== undefined) {
+    // The Swarm family-tree packs: the place's id (see
+    // PlaceStructure.placeId).
+    w.line(level + 1, '_PID', { value: place.placeId });
+  }
   if (place.location !== undefined) {
     // The GEDCOM-L card survived the prepare projection; the pointer
     // is kept.
@@ -513,7 +612,7 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
       }
     }
     for (const variation of place.phonetic ?? []) {
-      const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+      const language = variation.type !== undefined ? METHOD_TO_LANGUAGE_70.get(variation.type) : undefined;
       if (language === undefined) {
         continue;
       }
@@ -521,7 +620,7 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
       w.line(level + 2, 'LANG', { value: language });
     }
     for (const variation of place.romanized ?? []) {
-      const language = METHOD_TO_LANGUAGE_70.get(variation.type);
+      const language = variation.type !== undefined ? METHOD_TO_LANGUAGE_70.get(variation.type) : undefined;
       if (language === undefined) {
         continue;
       }
@@ -535,6 +634,9 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     // 5.5.1 has no LANG/EXID on PLAC; dropped. The 7.0 TRANs become
     // FONE/ROMN where the language names a known method.
     for (const translation of place.translations ?? []) {
+      if (translation.language === undefined) {
+        continue;
+      }
       const method = LANGUAGE_TO_METHOD_551.get(translation.language.toLowerCase());
       if (method === undefined) {
         continue;

@@ -43,6 +43,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   dispatch,
   noPayload,
   one,
@@ -184,6 +185,11 @@ export function parseAssociation(node: RawNode, ctx: Ctx): AssociationStructure 
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
+    QUOT: (child) => {
+      // A quotation attached to the association (novel/game character
+      // trees): kept as an inline NOTE.
+      (out.notes ??= []).push({ tag: 'NOTE', payload: reqText(child) });
+    },
     SOUR: (child) => {
       (out.citations ??= []).push(parseSourceCitation(child, ctx));
     },
@@ -219,10 +225,12 @@ export function parseRole(node: RawNode, ctx: Ctx): RoleStructure {
     return out;
   }
   if (upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU') {
-    if (node.children.length > 0) {
-      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ROLE`, (node.children[0] as RawNode).position);
+    const out: RoleStructure = { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
+    for (const child of node.children) {
+      // Full leniency: unexpected children stay generic extensions.
+      addExtension(out, child, ctx);
     }
-    return { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
+    return out;
   }
   // A parenthesized descriptor or the Gramps-style bare descriptor:
   // OTHER + phrase; a PHRASE child overrides the descriptor.
@@ -352,7 +360,19 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   if (raw === undefined) {
     out.value = { kind: 'unknown' };
   } else {
-    applyDateValue551(out, parseDateValue(raw, node.position, tagResolver(ctx)), raw);
+    try {
+      applyDateValue551(out, parseDateValue(raw, node.position, tagResolver(ctx)), raw);
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code !== undefined && code.startsWith('date.')) {
+        // An unparseable date is kept whole as the phrase (the
+        // full-leniency container rule — nothing is dropped).
+        out.value = { kind: 'unknown' };
+        out.phrase = raw;
+      } else {
+        throw error;
+      }
+    }
   }
   dispatch(
     node,
@@ -375,18 +395,35 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
   const raw = reqText(node);
   const parsed = parseDateValue(raw, node.position, tagResolver(ctx));
   const value = parsed.value;
-  if (value.kind !== 'date' || value.day === undefined || value.month === undefined || value.year === undefined) {
-    fail('date.invalid', `Invalid DATE_EXACT "${raw}"; expected "<day> <month> <year>"`, node.position);
+  if (value.kind === 'date' && value.year !== undefined && value.month !== undefined && value.day !== undefined) {
+    const out: DateExactStructure = {
+      value: {
+        day: value.day,
+        month: value.month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
+        year: value.year,
+        ...(value.epoch === undefined ? {} : { epoch: value.epoch }),
+      },
+    };
+    const timeNode = one(node, 'TIME');
+    if (timeNode !== undefined) {
+      out.time = parseTime70(reqText(timeNode), timeNode.position);
+    }
+    return out;
   }
   if (parsed.dualYear || parsed.phrase !== undefined) {
     fail('date.invalid', `Invalid DATE_EXACT "${raw}"`, node.position);
   }
+  // A year-only (or month+year, or month-only) exact date: tolerated
+  // with the absent components unset (the full-leniency container
+  // rule — real files write year-only CHANGE_DATEs).
   const out: DateExactStructure = {
     value: {
-      day: value.day,
-      month: value.month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
-      year: value.year,
-      ...(value.epoch === undefined ? {} : { epoch: value.epoch }),
+      ...(value.kind === 'date' && value.year !== undefined ? { year: value.year } : {}),
+      ...(value.kind === 'date' && value.month !== undefined
+        ? { month: value.month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC' }
+        : {}),
+      ...(value.kind === 'date' && value.day !== undefined ? { day: value.day } : {}),
+      ...(value.kind === 'date' && value.epoch !== undefined ? { epoch: value.epoch } : {}),
     },
   };
   const timeNode = one(node, 'TIME');
@@ -445,7 +482,34 @@ export function parseAgeStructure(
       ? // The empty age form (GEDCOM 7.0 §2.6 / 5.5.1 AGE_AT_EVENT):
         // no payload, optionally a PHRASE.
         {}
-      : { payload: parseAge(raw, node.position) };
+      : (() => {
+          // The lenient age forms real files carry (the full-leniency
+          // container rule — nothing is dropped):
+          // - `29-30` (an age range): the lower bound becomes the
+          //   years, the raw range is kept in the MagiKey `_AGER`
+          //   slot;
+          // - `84v` (a number with a stray letter): the number is the
+          //   years;
+          // - an otherwise unparseable value (a stray word): the
+          //   empty age form.
+          const trimmed = raw.trim();
+          const range = /^(\d+)-(\d+)$/.exec(trimmed);
+          if (range !== null) {
+            return { payload: { years: Number(range[1]) }, ageRange: `${range[1]}-${range[2]}` };
+          }
+          const bare = /^(\d+)([A-Za-z])?$/.exec(trimmed);
+          if (bare !== null && (bare[2] === undefined || !'ymwd'.includes((bare[2] as string).toLowerCase()))) {
+            return { payload: { years: Number(bare[1]) } };
+          }
+          try {
+            return { payload: parseAge(trimmed, node.position) };
+          } catch (error) {
+            if ((error as { code?: string }).code === 'age.invalid') {
+              return {};
+            }
+            throw error;
+          }
+        })();
   dispatch(
     node,
     out,
@@ -494,14 +558,15 @@ export function parseReferenceIdentifier(node: RawNode, ctx: Ctx): ReferenceIden
 
 /** Parses a 5.5.1 `_SDATE` line into a SortDateStructure (the same
  *  date value grammar as DATE). */
-export function parseSortDate551(node: RawNode): SortDateStructure {
+export function parseSortDate551(node: RawNode, ctx: Ctx): SortDateStructure {
   const out: SortDateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
   if (raw !== undefined) {
     applyDateValue551(out, parseDateValue(raw, node.position), raw);
   }
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under _SDATE`, (node.children[0] as RawNode).position);
+  for (const child of node.children) {
+    // Full leniency: unexpected children stay generic extensions.
+    addExtension(out, child, ctx);
   }
   return out;
 }
@@ -512,7 +577,8 @@ export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStru
   let roleSeen = false;
   const setRole = (child: RawNode): void => {
     if (roleSeen) {
-      fail('structure.cardinality', 'At most one role is allowed under _SHAR', child.position);
+      // First occurrence wins (the full-leniency container rule).
+      return;
     }
     roleSeen = true;
     out.role = { payload: 'OTHER', phrase: reqText(child) };
@@ -535,10 +601,11 @@ export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStru
   return out;
 }
 
-export function parseUniqueIdentifier(node: RawNode): UniqueIdentifierStructure {
+export function parseUniqueIdentifier(node: RawNode, ctx: Ctx): UniqueIdentifierStructure {
   const out: UniqueIdentifierStructure = { tag: 'UID', payload: reqText(node) };
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under UID`, (node.children[0] as RawNode).position);
+  for (const child of node.children) {
+    // Full leniency: unexpected children stay generic extensions.
+    addExtension(out, child, ctx);
   }
   return out;
 }
@@ -590,12 +657,15 @@ export function parseNonEvent(node: RawNode, ctx: Ctx): NonEventStructure {
 export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
   if (node.tag === 'SNOTE') {
     const out: SharedNoteReference = { tag: 'SNOTE', note: reqPtr(node, ctx) };
-    if (node.children.length > 0) {
-      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under SNOTE`, (node.children[0] as RawNode).position);
+    for (const child of node.children) {
+      // Full leniency: unexpected children stay generic extensions.
+      addExtension(out, child, ctx);
     }
     return out;
   }
   if (node.tag !== 'NOTE') {
+    // An internal-contract guard, not a leniency target: callers must
+    // only pass NOTE/SNOTE nodes here.
     fail('structure.unknown-tag', `Unknown note structure tag ${node.tag}`, node.position);
   }
   if (node.value.kind === 'pointer') {
@@ -611,8 +681,10 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
         {
           SOUR: (child) => {
             const source = reqPtr(child, ctx);
-            if (child.children.length > 0) {
-              fail('structure.unknown-tag', `The tag ${(child.children[0] as RawNode).tag} is not allowed under the NOTE SOUR pointer`, (child.children[0] as RawNode).position);
+            for (const grandchild of child.children) {
+              // Full leniency: unexpected children under the NOTE SOUR
+              // pointer stay generic extensions.
+              addExtension(out, grandchild, ctx);
             }
             (out.citations ??= []).push({ tag: 'SOUR', source });
           },

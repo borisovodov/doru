@@ -13,22 +13,6 @@ function parse70(text: string): GedcomDataset {
   return result.value;
 }
 
-function err70(text: string): string {
-  const result = parseGedcom70(enc(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
-function err551(text: string): string {
-  const result = parseGedcom551(enc(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
 function ser70(dataset: GedcomDataset): string {
   const result = serializeGedcom70(dataset);
   if (!result.ok) {
@@ -174,13 +158,18 @@ describe('SNOTE coverage (GEDCOM 7.0)', () => {
     expect(dataset.header.note).toEqual({ tag: 'SNOTE', note: '@N1@' });
   });
 
-  test('rejects SNOTE with substructures and bad pointers', () => {
-    expect(
-      err70([...H70, '0 @N1@ SNOTE text', '0 @I1@ INDI', '1 SNOTE @N1@', '2 BOGUS x', '0 TRLR'].join('\n')),
-    ).toBe('structure.unknown-tag');
-    expect(
-      err70([...H70, '0 @I1@ INDI', '1 SNOTE @NOPE@', '0 TRLR'].join('\n')),
-    ).toBe('document.xref-not-found');
+  test('keeps SNOTE substructures as extensions; dangling pointers are dropped', () => {
+    const dataset = parse70([...H70, '0 @N1@ SNOTE text', '0 @I1@ INDI', '1 SNOTE @N1@', '2 BOGUS x', '0 TRLR'].join('\n'));
+    const indi = dataset.records.find((record) => record.tag === 'INDI') as {
+      notes?: Array<{ tag: string; note: string; extensions?: Array<{ tag: string }> }>;
+    };
+    expect(indi?.notes?.[0]?.note).toBe('@N1@');
+    expect(indi?.notes?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    const dangling = parse70([...H70, '0 @I1@ INDI', '1 SNOTE @NOPE@', '0 TRLR'].join('\n'));
+    const indi2 = dangling.records.find((record) => record.tag === 'INDI') as {
+      notes?: Array<{ tag: string; note: string }>;
+    };
+    expect(indi2?.notes).toEqual([]);
   });
 
   test('keeps SNOTE on a 7.0 round trip', () => {
