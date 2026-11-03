@@ -140,6 +140,9 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   ATTR: { kind: 'fact', type: 'Attribute' }, // FTW5, TMG; a TYPE child overrides.
   QUOT: { kind: 'fact', type: 'Quotation' }, // novel/game character trees: the person's quotation.
   BLOODPURITY: { kind: 'fact', type: 'Blood purity' }, // the Harry Potter fan trees: Pure-blood / Half-blood / Muggle-born.
+  HOUSE: { kind: 'fact', type: 'House' }, // the Harry Potter fan trees: the wizard's Hogwarts house.
+  ALLEGIANCE: { kind: 'fact', type: 'Allegiance' }, // the Harry Potter fan trees.
+  FILMPORTRAYAL: { kind: 'fact', type: 'Film portrayal' }, // the Harry Potter fan trees: who played the character.
   // Events (EVEN + TYPE).
   APPT: { kind: 'event', type: 'Application' }, // the GSMD Mayflower Society trees: a (supplemental) membership application, with the DATE and the "Supplemental - …" PLAC.
   BIC: { kind: 'fact', type: 'Born in covenant' }, // TMG.

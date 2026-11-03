@@ -168,7 +168,7 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     // Pro-Gen RFN and TIME and the Legacy MEDI (generic where the
     // standard grammar has no slot for them; typed at their documented
     // positions), plus the novel/game character-tree QUOT.
-    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(170);
+    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(173);
     expect(LEGACY_GENERIC_TAGS.size).toBe(36);
   });
 

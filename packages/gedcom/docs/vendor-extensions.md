@@ -729,6 +729,12 @@ its JSDoc.
 | `BLOODPURITY` under INDI | the Harry Potter fan trees | The wizard's blood status (Pure-blood / Half-blood / Muggle-born) | FACT + TYPE "Blood purity" |
 | `NUMB` under INDI and FAM | the French gedcom-to-xml files | A running number the exporter assigns to the record | `IndividualRecord.sequenceNumber` / `FamilyRecord.sequenceNumber` |
 | `DATE` under FAMS | files in the wild | The date of the family link itself | `SpouseFamilyLink.date` |
+| `MIDDLE` under NAME | GenoPro trees | The middle name (`2 MIDDLE Thomas`) — the standard-tag spelling of the `_MIDN` slot | `PersonalNameStructure.middleName` |
+| `_PGVN` under NAME | ged4web exports | The preferred given name (`2 _PGVN Esther`) — the same slot the FH `_USED` carries | `PersonalNameStructure.givenNameUsed` |
+| `_SOSAN` under INDI | Ancestris | The Sosa number with the leading zeros (`1 _SOSAN 00004`) — the same slot `_SOSA` carries | `IndividualRecord.sosaNumber` |
+| `_FTSID` under FAM | the Swarm family-tree packs | The family's FamilySearch tree id | `FamilyRecord.familyTreeSystemId` |
+| `HOUSE` / `ALLEGIANCE` / `FILMPORTRAYAL` under INDI | the Harry Potter fan trees | The wizard's Hogwarts house, allegiance and film portrayal | FACT + TYPE "House" / "Allegiance" / "Film portrayal" |
+| `_DESCRIPTION` under an event | MyHeritage | The event's description-aware flag (the same flag the header's `_DESCRIPTION_AWARE` declares file-wide) | `EventDetail.descriptionAware` (written back as `_DESCRIPTION Y`/`_DESCRIPTION N`) |
 
 ### Leniencies of the error sweep
 
@@ -812,6 +818,7 @@ which is expected:
 | `_PATRIARCH` under INDI | GEDKeeper | the tree's patriarch (root ancestor) mark — display state |
 | the GenoPro entity records (`Occupation`/`Education`/`Contact`/`Label`/`Picture`/`SocialEntity`/… with their `TITL`/`NOTE`/`TEXT`/`PLAC`/`SOUR` children and the `Picture` cache fields `CACHE`/`DIMENSION`/`DPI`/`FILESIZE`/`PATH`/`REPORT`/…) | GenoPro exports (the linguatree and Harry Potter trees) | the program's entity dialect — data (names, dates, places) mixed with display geometry in one private record format; the records stay generic (their inner standard tags count as nested-in-generic) |
 | the long event spellings (`BATM`/`ILL`/`EDUS`/`NEWS`/`EMPL`/`OBIT`/`REMV` and the one-off event names of the gedcom5-conversion tests) | single test corpora | one-off event spellings of test fixtures |
+| the `_DESCRIPTION Y` flag under an event's NOTE | MyHeritage | marks that particular note as the event's description — the flag sits inside the note block, so it stays nested-in-generic (the event-level flag does type, see `EventDetail.descriptionAware`) |
 | `NAME` under HEAD.SUBM | Family Echo exports | the submitter's contact written under the SUBM pointer (an e-mail as the NAME); kept as a header extension like the Aldfaer contacts (same deliberate decision) |
 | `_FS_ID` | a single merge-test fixture | synthetic test data |
 | `_GROUP` | a single geotour-genoroots fixture | synthetic test data |

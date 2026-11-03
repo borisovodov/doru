@@ -162,6 +162,11 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
     // The exporter's running number (see FamilyRecord.sequenceNumber).
     w.line(1, 'NUMB', { value: rec.sequenceNumber });
   }
+  if (rec.familyTreeSystemId !== undefined) {
+    // The Swarm family-tree packs: the family's FamilySearch tree id
+    // (see FamilyRecord.familyTreeSystemId).
+    w.line(1, '_FTSID', { value: rec.familyTreeSystemId });
+  }
   if (rec.preferred === true) {
     // Legacy: the preferred family (see FamilyRecord.preferred).
     w.line(1, '_PREF', { value: 'Y' });

@@ -534,6 +534,11 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       // MFT7: the event's coordinates (see EventDetail.map).
       detail.map = parseMftCoordinates(child, ctx, detail);
     },
+    '_DESCRIPTION': (child) => {
+      // MyHeritage: the event's description-aware flag (see
+      // EventDetail.descriptionAware).
+      detail.descriptionAware = parseYNFlag(child, '_DESCRIPTION');
+    },
     MAP: (child) => {
       // The standard spelling of the event's coordinates (see
       // EventDetail.map); recognized in any file.

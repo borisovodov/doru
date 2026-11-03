@@ -167,6 +167,17 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PersonalNameStructure.middleName).
       out.middleName = reqText(child);
     },
+    MIDDLE: (child) => {
+      // The standard-tag spelling of the middle name (the GenoPro
+      // trees write `2 MIDDLE Thomas` under NAME).
+      out.middleName = reqText(child);
+    },
+    '_PGVN': (child) => {
+      // ged4web: the preferred given name (`2 _PGVN Esther` under
+      // NAME) — the same slot the FH `_USED` carries (see
+      // PersonalNameStructure.givenNameUsed).
+      out.givenNameUsed = reqText(child);
+    },
     '_PATN': (child) => {
       // The patronymic under NAME (see
       // PersonalNameStructure.patronymic).

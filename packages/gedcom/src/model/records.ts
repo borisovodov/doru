@@ -363,6 +363,13 @@ export interface FamilyRecord extends GedcomStructureBase {
    */
   unionStatus?: Text;
   /**
+   * `_FTSID` {0:1} — the family's id in the FamilySearch shared tree
+   * (the Swarm family-tree packs write it under FAM too; see
+   * IndividualRecord.familyTreeSystemId). Recognized on input and
+   * written back as `_FTSID` in both versions.
+   */
+  familyTreeSystemId?: Text;
+  /**
    * `_GCID` {0:1} — the record's GEDitCOM id (a UUID assigned by
    * GEDitCOM II, John A. Nairn / RSAC Software — HEAD.SOUR "GEDitCOM
    * II" in the corpus file Ajmani.ged). Not part of any GEDCOM

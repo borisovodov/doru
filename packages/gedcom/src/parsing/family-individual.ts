@@ -537,6 +537,11 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     // FamilyRecord.sequenceNumber).
     rec.sequenceNumber = reqText(child);
   };
+  handlers['_FTSID'] = (child) => {
+    // The Swarm family-tree packs: the family's FamilySearch tree id
+    // (see FamilyRecord.familyTreeSystemId).
+    rec.familyTreeSystemId = reqText(child);
+  };
   handlers['QUOT'] = (child) => {
     // A quotation of the family (novel/game character trees write the
     // family's quote under QUOT): kept as an inline NOTE — the FAM
@@ -1815,6 +1820,12 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     // The exporter's running number for the person (see
     // IndividualRecord.sequenceNumber).
     rec.sequenceNumber = reqText(child);
+  };
+  handlers['_SOSAN'] = (child) => {
+    // Ancestris: the Sosa number with the leading zeros
+    // (`1 _SOSAN 00004`) — the same slot `_SOSA` carries (see
+    // IndividualRecord.sosaNumber).
+    rec.sosaNumber = reqText(child);
   };
   handlers['RFN'] = (child) => {
     rec.recordFileNumber = reqText(child);

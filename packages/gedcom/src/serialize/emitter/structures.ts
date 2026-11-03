@@ -574,6 +574,11 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // Heredis: the event flag (see EventDetail.fna).
     w.line(level, '_FNA', { value: detail.fna ? 'Y' : 'N' });
   }
+  if (detail.descriptionAware !== undefined) {
+    // MyHeritage: the event's description-aware flag (see
+    // EventDetail.descriptionAware).
+    w.line(level, '_DESCRIPTION', { value: detail.descriptionAware ? 'Y' : 'N' });
+  }
   if (version === '5.5.1') {
     // The USM6 event marks; 7.0 cannot spell the tags. The 5.5.1
     // output uses the underscore spellings `_POTM`/`_SRCH`/`_NOTRY` —

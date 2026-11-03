@@ -446,6 +446,14 @@ export interface EventDetail extends GedcomStructureBase {
    */
   map?: MapCoordinates;
   /**
+   * `_DESCRIPTION Y` {0:1} — the event carries a description field
+   * (the MyHeritage exports; the same flag the header's
+   * `_DESCRIPTION_AWARE` declares file-wide). Not part of any GEDCOM
+   * version. Recognized on input and written back as
+   * `_DESCRIPTION Y`/`_DESCRIPTION N` in both versions.
+   */
+  descriptionAware?: boolean;
+  /**
    * QUAY {0:1} — the event's own reliability assessment, written with
    * the standard QUAY tag directly under the event (Brother's Keeper
    * writes `2 QUAY 2` under BIRT/DEAT/MARR; observed in the gedcom-go
