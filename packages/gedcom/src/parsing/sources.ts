@@ -25,10 +25,12 @@ import type {
   RepositoryRecord,
   SharedNoteRecord,
   SourceDataEvent,
+  SourceFileStructure,
   SourcePublicationDetails,
   SourceRecord,
   SourceRecordData,
   SourceText,
+  WebTagStructure,
 } from '../structures';
 import type {
   Ctx,
@@ -38,8 +40,8 @@ import {
   dispatch,
   merge551RecordContacts,
   noPayload,
+  one,
   parseImportReference,
-  req,
   reqPtr,
   reqText,
 } from './context';
@@ -71,8 +73,22 @@ import {
 } from './substructures';
 
 export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord {
-  noPayload(node);
-  const rec: RepositoryRecord = { tag: 'REPO', name: reqText(req(node, 'NAME')), ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  // A text payload on the record line (files in the wild put the
+  // repository name there) becomes the name when no NAME child
+  // follows; a missing or value-less NAME is tolerated (the
+  // full-leniency container rule).
+  const nameNode = one(node, 'NAME');
+  const payloadText = node.value.kind === 'text' ? node.value.text : undefined;
+  const rec: RepositoryRecord = {
+    tag: 'REPO',
+    name:
+      nameNode !== undefined && nameNode.value.kind === 'text'
+        ? nameNode.value.text
+        : payloadText !== undefined
+          ? payloadText
+          : '',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
   const handlers: Record<string, (child: RawNode) => void> = {
     NAME: () => undefined,
     ADDR: (child) => {
@@ -132,10 +148,10 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
       }
     },
     UID: (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     '_UID': (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     EXID: (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
@@ -193,7 +209,7 @@ export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord
         (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
       },
       UID: (child) => {
-        (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+        (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
       },
       EXID: (child) => {
         (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
@@ -216,7 +232,13 @@ export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord
 }
 
 export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
-  const rec: NoteRecord = { tag: 'NOTE', payload: reqText(node), ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  // A missing or value-less payload is tolerated (the full-leniency
+  // container rule): the note text defaults to the empty string.
+  const rec: NoteRecord = {
+    tag: 'NOTE',
+    payload: node.value.kind === 'text' ? node.value.text : '',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
   dispatch(
     node,
     rec,
@@ -227,14 +249,36 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
       CHAN: (child) => {
         rec.changeDate = parseChangeDate(child, ctx);
       },
+      CREA: (child) => {
+        const created = parseCreationDateLenient(child, ctx);
+        if (created === undefined) {
+          addExtension(rec, child, ctx);
+        } else {
+          rec.creationDate = created;
+        }
+      },
+      '_CRE': (child) => {
+        // MFT7: the structured creation (a bare line with the DATE
+        // child).
+        const created = parseCreationDateLenient(child, ctx);
+        if (created === undefined) {
+          addExtension(rec, child, ctx);
+        } else {
+          rec.creationDate = created;
+        }
+      },
       REFN: (child) => {
         (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
       },
       RIN: (child) => {
         rec.automatedRecordId = reqText(child);
       },
+      '_GCID': (child) => {
+        // GEDitCOM II: the record's id (see NoteRecord.geditcomId).
+        rec.geditcomId = reqText(child);
+      },
       _UID: (child) => {
-        (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+        (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
       },
       _SUBM: (child) => {
         // GDO: a pointer to the submitter record of this note (see
@@ -253,8 +297,14 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
 }
 
 export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
-  noPayload(node);
-  const rec: SourceRecord = { tag: 'SOUR', ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  // A text payload on the record line (files in the wild put the
+  // source title there) becomes the title when no TITL child follows.
+  const payloadText = node.value.kind === 'text' ? node.value.text : undefined;
+  const rec: SourceRecord = {
+    tag: 'SOUR',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+    ...(payloadText !== undefined ? { title: payloadText } : {}),
+  };
   const handlers: Record<string, (child: RawNode) => void> = {
     DATA: (child) => {
       rec.data = parseSourceRecordData(child, ctx);
@@ -287,6 +337,37 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
         rec.abbreviationExtensions = base.extensions;
       }
     },
+    '_APID': (child) => {
+      // Ancestry: the record-level Ancestry reference (see
+      // SourceRecord.ancestryPointers).
+      (rec.ancestryPointers ??= []).push(reqText(child));
+    },
+    '_FTSID': (child) => {
+      // The Swarm family-tree packs: the source's FamilySearch tree
+      // id (see SourceRecord.familyTreeSystemId).
+      rec.familyTreeSystemId = reqText(child);
+    },
+    _WEBTAG: (child) => {
+      // RootsMagic: an external web link under the SOUR record (see
+      // SourceRecord.webTags) — the NAME text plus the URL address.
+      const urlNode = one(child, 'URL');
+      const tag: WebTagStructure = {
+        ...(urlNode !== undefined && urlNode.value.kind === 'text' ? { url: reqText(urlNode) } : {}),
+      };
+      dispatch(
+        child,
+        tag,
+        {
+          NAME: (grandchild) => {
+            tag.name = reqText(grandchild);
+          },
+          URL: () => undefined,
+        },
+        ctx,
+        ['NAME', 'URL'],
+      );
+      (rec.webTags ??= []).push(tag);
+    },
     PUBL: (child) => {
       rec.publication = reqText(child);
       // The Ancestry publication details (registry: Ancestry_PUBL_DATE
@@ -318,6 +399,25 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     },
     _FULL: (child) => {
       rec.fullFootnote = reqText(child);
+    },
+    _URL: (child) => {
+      // The web address of the source (see SourceRecord.url).
+      rec.url = reqText(child);
+    },
+    _CONF: (child) => {
+      // The confidence level of the source (see SourceRecord.confidence).
+      rec.confidence = reqText(child);
+    },
+    _ACC: (child) => {
+      // The date the source was accessed (see SourceRecord.accessDate).
+      rec.accessDate = reqText(child);
+    },
+    FILE: (child) => {
+      // A media file attached directly to the source record (see
+      // SourceRecord.files).
+      const file: SourceFileStructure = { tag: 'FILE', payload: reqText(child) };
+      dispatch(child, file, {}, ctx);
+      (rec.files ??= []).push(file);
     },
     _ITALIC: (child) => {
       // Legacy / AQ: the source title prints in italics (see
@@ -459,11 +559,20 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       rec.creationDate = created;
     }
   };
+  handlers['_CRE'] = (child) => {
+    // MFT7: the structured creation (a bare line with the DATE child).
+    const created = parseCreationDateLenient(child, ctx);
+    if (created === undefined) {
+      addExtension(rec, child, ctx);
+    } else {
+      rec.creationDate = created;
+    }
+  };
   handlers['UID'] = (child) => {
-    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
   };
   handlers['_UID'] = (child) => {
-    (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+    (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
   };
   handlers['EXID'] = (child) => {
     (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
@@ -536,7 +645,7 @@ function parseReportFlag(node: RawNode, tag: string): boolean {
 }
 
 /** Parses the MFT7 `_QUAL` source-quality block (see MftSourceQuality). */
-function parseMftSourceQuality(node: RawNode, ctx: Ctx): MftSourceQuality {
+export function parseMftSourceQuality(node: RawNode, ctx: Ctx): MftSourceQuality {
   noPayload(node);
   const out: MftSourceQuality = { tag: '_QUAL' };
   dispatch(
@@ -583,7 +692,13 @@ export function parseEvidenceTemplate(node: RawNode, ctx: Ctx): EvidenceTemplate
 /** Parses one FIELD of an evidence template (NAME {1:1}, VALUE {0:1}). */
 function parseEvidenceTemplateField(node: RawNode, ctx: Ctx): EvidenceTemplateField {
   noPayload(node);
-  const out: EvidenceTemplateField = { tag: 'FIELD', name: reqText(req(node, 'NAME')) };
+  // A missing or value-less NAME is tolerated (the full-leniency
+  // container rule): the field name defaults to the empty string.
+  const nameNode = one(node, 'NAME');
+  const out: EvidenceTemplateField = {
+    tag: 'FIELD',
+    name: nameNode !== undefined && nameNode.value.kind === 'text' ? nameNode.value.text : '',
+  };
   dispatch(
     node,
     out,

@@ -424,13 +424,11 @@ describe('the MagiKey _CENR census link', () => {
     expect((person['names'] as Array<{ censusLinks?: string[] }>)[0]?.censusLinks).toEqual(['@C1@']);
   });
 
-  test('rejects a dangling link pointer', () => {
-    const sample = SAMPLE('7.0').replace('@C1@', '@C9@');
-    const result = parseGedcom70(enc(sample));
-    if (result.ok) {
-      throw new Error('expected an error');
-    }
-    expect((result.error as { code: string }).code).toBe('document.xref-not-found');
+  test('drops a dangling link pointer', () => {
+    const sample = SAMPLE('7.0').replace(/_CENR @C1@/g, '_CENR @C9@');
+    const dataset = parse70(sample);
+    const person = indi(dataset);
+    expect((person['names'] as Array<{ censusLinks?: string[] }>)[0]?.censusLinks).toEqual([]);
   });
 
   test('round-trips the links in both versions', () => {

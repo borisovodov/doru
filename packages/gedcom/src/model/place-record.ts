@@ -19,6 +19,12 @@
  *   required child substructure; `_LOC` records form a hierarchy via a
  *   `_LOC @parent@` child, and events link to them explicitly with
  *   `_LOC @xref@` under PLAC.
+ * - `_PLC` with a `NAME <name>` child (GEDKeeper) — the same
+ *   name-child shape, plus the GEDKeeper extras `FORM` (the display
+ *   form of the name), `TYPE` (a numeric place-kind code), `_PLP
+ *   @parent@` (the parent place) and `RIN` (the record id); observed
+ *   in the GEDKeeper test resources
+ *   (https://github.com/Serg-Norseman/GEDKeeper).
  *
  * A `_LOC` record *without* a `NAME` child is not the GEDCOM-L place
  * record — that dialect requires the name. It is an extension record
@@ -151,6 +157,29 @@ export interface PlaceRecord extends GedcomStructureBase {
   identifiers?: IdentifierStructure[];
   /** <<CHANGE_DATE>> {0:1}. */
   changeDate?: ChangeDate;
+  /**
+   * `FORM` {0:1} — the display form of the place name: the full
+   * hierarchical spelling (e.g. `Tving, Karlskrona, Blekinge länge,
+   * Sverige`), separate from the short NAME. Written by GEDKeeper
+   * under its `_PLC` records (observed in the GEDKeeper test
+   * resources, https://github.com/Serg-Norseman/GEDKeeper). Not part
+   * of any GEDCOM version. Recognized on input and written back as
+   * `FORM` under the `_LOC` record in both versions.
+   */
+  form?: Text;
+  /**
+   * `RIN` {0:1} — the place's automated record id in the source
+   * system (GEDKeeper writes the record number under its `_PLC`
+   * records; same source as `form`). Recognized on input and written
+   * back as `RIN` under the `_LOC` record in both versions.
+   */
+  automatedRecordId?: Text;
+  /**
+   * `_GCID` {0:1} — the record's GEDitCOM id (see
+   * IndividualRecord.geditcomId). Recognized on input and written
+   * back as `_GCID` in both versions.
+   */
+  geditcomId?: Text;
 }
 
 /**

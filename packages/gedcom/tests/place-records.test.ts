@@ -352,14 +352,6 @@ describe('the unified policy on 7.0 input', () => {
 });
 
 describe('GEDCOM-L NAME abbreviations (ABBR {0:M})', () => {
-  const err551 = (text: string): string => {
-    const result = parseGedcom551(enc(text));
-    if (result.ok) {
-      throw new Error('expected an error');
-    }
-    return (result.error as { code: string }).code;
-  };
-
   test('parses several abbreviations per name, each with its own TYPE', () => {
     const dataset = parseOk551(
       [
@@ -385,20 +377,20 @@ describe('GEDCOM-L NAME abbreviations (ABBR {0:M})', () => {
     expect(card?.names?.[0]?.language).toBe('de');
   });
 
-  test('rejects a second TYPE under one ABBR', () => {
-    expect(
-      err551(
-        [
-          ...HEADER551,
-          '0 @P1@ _LOC',
-          '1 NAME Frankfurt am Main',
-          '2 ABBR Ffm.',
-          '3 TYPE railway',
-          '3 TYPE other',
-          '0 TRLR',
-        ].join('\n'),
-      ),
-    ).toBe('structure.cardinality');
+  test('a second TYPE under one ABBR keeps the first occurrence', () => {
+    const dataset = parseOk551(
+      [
+        ...HEADER551,
+        '0 @P1@ _LOC',
+        '1 NAME Frankfurt am Main',
+        '2 ABBR Ffm.',
+        '3 TYPE railway',
+        '3 TYPE other',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const card = places(dataset)[0];
+    expect(card?.names?.[0]?.abbreviations).toEqual([{ abbreviation: 'Ffm.', type: 'railway' }]);
   });
 
   test('round-trips all abbreviations through the _LOC write-back', () => {

@@ -34,6 +34,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   dispatch,
   noPayload,
   reqDigits,
@@ -183,7 +184,7 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
         out.occupation = parseCensusRelocatedAttribute(child, ctx, 'OCCU');
       },
       ROLE: (child) => {
-        out.role = parseCensusRole(child);
+        out.role = parseCensusRole(child, ctx);
       },
       SEX: (child) => {
         out.sex = parseCensusSexValue(child, ctx);
@@ -217,20 +218,21 @@ function parseCensusSexValue(node: RawNode, _ctx: Ctx): SexEnum {
  * write-back spells them parenthesized). Documented leniency, like the
  * standard 5.5.1 ROLE.
  */
-function parseCensusRole(node: RawNode): RoleStructure {
-  if (node.children.length > 0) {
-    fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ROLE`, (node.children[0] as RawNode).position);
-  }
+function parseCensusRole(node: RawNode, ctx: Ctx): RoleStructure {
   const raw = reqText(node);
   const upper = raw.toUpperCase();
-  if (upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU') {
-    return { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
+  const out: RoleStructure =
+    upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU'
+      ? { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' }
+      : raw.startsWith('(') && raw.endsWith(')')
+        ? { payload: 'OTHER', phrase: raw.slice(1, -1) }
+        : // The lenient bare-descriptor form of real MagiKey files (`Head`).
+          { payload: 'OTHER', phrase: raw };
+  for (const child of node.children) {
+    // Full leniency: unexpected children stay generic extensions.
+    addExtension(out, child, ctx);
   }
-  if (raw.startsWith('(') && raw.endsWith(')')) {
-    return { payload: 'OTHER', phrase: raw.slice(1, -1) };
-  }
-  // The lenient bare-descriptor form of real MagiKey files (`Head`).
-  return { payload: 'OTHER', phrase: raw };
+  return out;
 }
 
 function parseCensusRelative(node: RawNode, ctx: Ctx, tag: 'FATH' | 'MOTH'): CensusRelative {

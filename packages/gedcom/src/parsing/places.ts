@@ -39,7 +39,8 @@ import type {
 import type { EventDetail } from '../structures';
 import type { PlaceEventStructure } from '../structures';
 
-/** Parses a `_PLAC`, `_PLAC` (FTB), `_LOC` or `_PLAC_DEFN` record into a PlaceRecord. */
+/** Parses a `_PLAC`, `_PLAC` (FTB), `_LOC`, `_PLAC_DEFN` or `_PLC`
+ *  (GEDKeeper) record into a PlaceRecord. */
 export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
   let payload: string;
   if (node.tag === '_PLAC' || node.tag === '_PLACE') {
@@ -52,12 +53,13 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
     if (node.value.kind !== 'absent') {
       fail('structure.unexpected-payload', `The ${node.tag} line must not have a payload`, node.position);
     }
-    // 5.5EL keeps the name in a NAME child (1:M). The names are
-    // collected by the NAME handler below; the payload is derived from
-    // the first one after dispatch. req() would enforce at-most-one;
-    // only the presence is checked here.
-    if (!node.children.some((child) => child.tag === 'NAME')) {
-      fail('structure.missing-required', 'The _LOC record requires a NAME child', node.position);
+    // 5.5EL and GEDKeeper keep the name in a NAME child (1:M); the
+    // GEDKeeper Windsor dialect spells it `_PLACE`. The names are
+    // collected by the NAME/_PLACE handlers below; the payload is
+    // derived from the first one after dispatch. req() would enforce
+    // at-most-one; only the presence is checked here.
+    if (!node.children.some((child) => child.tag === 'NAME' || child.tag === '_PLACE')) {
+      fail('structure.missing-required', `The ${node.tag} record requires a NAME child`, node.position);
     }
     payload = '';
   }
@@ -78,7 +80,8 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
           dispatch(grandchild, abbr, {
             TYPE: (greatGrandchild) => {
               if (sawType) {
-                fail('structure.cardinality', 'At most one TYPE is allowed under ABBR', greatGrandchild.position);
+                // First occurrence wins.
+                return;
               }
               sawType = true;
               abbr.type = reqText(greatGrandchild);
@@ -193,6 +196,28 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         },
       }, ctx);
     },
+    '_PLP': (child) => {
+      // GEDKeeper: the parent place of the `_PLC` record — the same
+      // slot `_LOC @parent@` carries (see PlaceRecord.parents).
+      const entry: PlaceHierarchyLink = { parent: reqPtr(child, ctx) };
+      (out.parents ??= []).push(entry);
+      dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
+    },
+    FORM: (child) => {
+      // GEDKeeper: the display form of the place name (see
+      // PlaceRecord.form).
+      out.form = reqText(child);
+    },
+    RIN: (child) => {
+      // GEDKeeper: the record id of the place (see
+      // PlaceRecord.automatedRecordId).
+      out.automatedRecordId = reqText(child);
+    },
+    '_GCID': (child) => {
+      // GEDitCOM II: the record's id (see
+      // IndividualRecord.geditcomId).
+      out.geditcomId = reqText(child);
+    },
     ABBR: (child) => {
       out.abbreviation = reqText(child);
     },
@@ -231,7 +256,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       (out.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
     '_UID': (child) => {
-      (out.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (out.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     CHAN: (child) => {
       out.changeDate = parseChangeDate(child, ctx);
@@ -241,7 +266,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
   // are accepted in any file (the 5.5.1 _UID spelling above stays
   // strict by position; the canonical choice is step 2).
   handlers['UID'] = (child) => {
-    (out.identifiers ??= []).push(parseUniqueIdentifier(child));
+    (out.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
   };
   handlers['EXID'] = (child) => {
     (out.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
@@ -260,11 +285,14 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
   // preserved as generic extensions instead of failing the import.
   // MAP is not in the singles list: the GEDCOM 5.5EL form allows
   // several MAP entries ({0:M}; see PlaceRecord.elMaps).
-  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'CHAN'], 'extension');
-  if (node.tag === '_LOC') {
+  // The GEDKeeper Windsor dialect spells the name child `_PLACE`; it
+  // parses into the same name entry the NAME child carries.
+  handlers['_PLACE'] = handlers['NAME'] as (child: RawNode) => void;
+  dispatch(node, out, handlers, ctx, ['ABBR', '_PREP', 'CHAN']);
+  if (node.tag === '_LOC' || node.tag === '_PLC') {
     // NAME {1:M}; the first entry is the payload used for name matching.
     if (out.names === undefined || out.names.length === 0) {
-      fail('structure.missing-required', 'The _LOC record requires a NAME child', node.position);
+      fail('structure.missing-required', `The ${node.tag} record requires a NAME child`, node.position);
     }
     out.payload = (out.names[0] as PlaceNameStructure).name;
   } else if (payload !== '' && out.names === undefined) {

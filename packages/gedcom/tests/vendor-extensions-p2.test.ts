@@ -318,11 +318,15 @@ describe('the FAM childless marker _NONE', () => {
   test('rejects any other _NONE value', () => {
     expect(err551(FAM551('1 _NONE N'))).toBe('enum.invalid-value');
     expect(err551(FAM551('1 _NONE yes'))).toBe('enum.invalid-value');
-    expect(err551(FAM551('1 _NONE @I1@'))).toBe('structure.unexpected-payload');
+    // A pointer payload is stripped by the dispatch retry; the bare
+    // _NONE still means the couple had no children.
+    expect(fam(parseOk551(FAM551('1 _NONE @I1@')), '@F1@').attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
   });
 
-  test('rejects substructures under _NONE', () => {
-    expect(err551(FAM551('1 _NONE Y\n2 NOTE not allowed'))).toBe('structure.unknown-tag');
+  test('keeps substructures under _NONE as generic extensions', () => {
+    const dataset = parseOk551(FAM551('1 _NONE Y\n2 NOTE not allowed'));
+    expect(fam(dataset, '@F1@').attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
+    expect(fam(dataset, '@F1@').extensions?.some((extension) => extension.tag === 'NOTE')).toBe(true);
   });
 
   test('writes the standard NCHI 0 in both versions', () => {

@@ -42,14 +42,6 @@ function err70(text: string): string {
   return (result.error as { code: string }).code;
 }
 
-function err551(text: string): string {
-  const result = parseGedcom551(new TextEncoder().encode(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
 describe('date value parsers (7.0)', () => {
   test('empty payload is the unknown date', () => {
     expect(parseDateValue70('', pos)).toEqual({ kind: 'unknown' });
@@ -90,19 +82,22 @@ describe('date value parsers (7.0)', () => {
     expect(codeOf(() => parseDateValue70('x 1900', pos))).toBe('date.bad-month');
   });
 
-  test('day validation per calendar', () => {
-    expect(codeOf(() => parseDateValue70('32 JAN 1900', pos))).toBe('date.bad-day');
-    expect(codeOf(() => parseDateValue70('29 FEB 1900', pos))).toBe('date.bad-day');
+  test('impossible days are kept verbatim', () => {
+    // The day is no longer validated against the calendar: files in the
+    // wild carry impossible days (31 NOV, day 170), and dropping the
+    // whole date loses more than the unvalidated day.
+    expect(parseDateValue70('32 JAN 1900', pos)).toMatchObject({ kind: 'date', day: 32, month: 'JAN', year: 1900 });
+    expect(parseDateValue70('29 FEB 1900', pos)).toMatchObject({ kind: 'date', day: 29, month: 'FEB', year: 1900 });
     expect(parseDateValue70('29 FEB 2000', pos)).toMatchObject({ kind: 'date', day: 29, month: 'FEB', year: 2000 });
-    expect(codeOf(() => parseDateValue70('31 APR 1900', pos))).toBe('date.bad-day');
+    expect(parseDateValue70('31 APR 1900', pos)).toMatchObject({ kind: 'date', day: 31, month: 'APR', year: 1900 });
     // The 7.0 specification lists the French Republican months without
-    // stating their lengths, so no French day-of-month limit is
-    // enforced (the official FamilySearch test file date.ged exercises
-    // `23 COMP`); days validate against the uniform 30-day grid only.
+    // stating their lengths, so no French day-of-month limit applies
+    // anyway (the official FamilySearch test file date.ged exercises
+    // `23 COMP`).
     expect(parseDateValue70('FRENCH_R 7 COMP 8', pos)).toMatchObject({ kind: 'date', day: 7, month: 'COMP', year: 8 });
-    expect(codeOf(() => parseDateValue70('FRENCH_R 31 COMP 8', pos))).toBe('date.bad-day');
-    expect(codeOf(() => parseDateValue70('HEBREW 31 TSH 5750', pos))).toBe('date.bad-day');
-    expect(codeOf(() => parseDateValue70('_CAL 37 _MON 1900', pos))).toBe('date.bad-day');
+    expect(parseDateValue70('FRENCH_R 31 COMP 8', pos)).toMatchObject({ kind: 'date', day: 31, month: 'COMP', year: 8 });
+    expect(parseDateValue70('HEBREW 31 TSH 5750', pos)).toMatchObject({ kind: 'date', day: 31, month: 'TSH', year: 5750 });
+    expect(parseDateValue70('_CAL 37 _MON 1900', pos)).toMatchObject({ kind: 'date', day: 37, month: '_MON', year: 1900 });
     expect(parseDateValue70('HEBREW 1 TSH 5750', pos)).toMatchObject({ kind: 'date', day: 1, month: 'TSH', year: 5750 });
   });
 
@@ -246,7 +241,9 @@ describe('names, coordinates and tag definitions', () => {
     // Commas are accepted in any file (the 5.5.1 rule
     // rejected them; the 7.0 rule accepts them).
     expect(parsePersonalName('Doe, John', pos)).toEqual({ given: 'Doe, John' });
-    expect(codeOf(() => parsePersonalName('John /Doe/ Extra /Part/', pos))).toBe('name.invalid');
+    // Slashes that do not form the standard shape keep the whole text
+    // as the given name.
+    expect(parsePersonalName('John /Doe/ Extra /Part/', pos)).toEqual({ given: 'John /Doe/ Extra /Part/' });
   });
 
   test('latitude and longitude', () => {
@@ -320,8 +317,13 @@ describe('calendar conversions and bounds', () => {
 });
 
 describe('names and places edge cases', () => {
-  test('name pieces reject substructures', () => {
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 GIVN John\n3 BOGUS x\n0 TRLR\n')).toBe('structure.unknown-tag');
+  test('name pieces keep substructures as extensions', () => {
+    const result = parseGedcom70(new TextEncoder().encode('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 GIVN John\n3 BOGUS x\n0 TRLR\n'));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    const rec = result.value.records[0] as { names?: Array<{ pieces?: { extensions?: Array<{ tag: string }> } }> };
+    expect(rec.names?.[0]?.pieces?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('5.5.1 name pieces with commas and a custom TYPE', () => {
@@ -356,13 +358,19 @@ describe('names and places edge cases', () => {
     expect(rec.names?.[0]?.type).toEqual({ payload: 'OTHER', phrase: 'custom label' });
   });
 
-  test('7.0 name TYPE with a PHRASE and 5.5.1 TYPE rejects substructures', () => {
+  test('7.0 name TYPE with a PHRASE and 5.5.1 TYPE keeps substructures as extensions', () => {
     expect(
       parseGedcom70(new TextEncoder().encode(
         '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE BIRTH\n3 PHRASE at birth\n0 TRLR\n',
       )).ok,
     ).toBe(true);
-    expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE maiden\n3 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).toBe('structure.unknown-tag');
+    const result = parseGedcom551(new TextEncoder().encode('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE maiden\n3 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n'));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    const rec = result.value.records[0] as { names?: Array<{ type?: { payload: string; extensions?: Array<{ tag: string }> } }> };
+    expect(rec.names?.[0]?.type?.payload).toBe('MAIDEN');
+    expect(rec.names?.[0]?.type?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('name translations and 5.5.1 variations keep pieces', () => {
@@ -391,8 +399,14 @@ describe('names and places edge cases', () => {
     expect(rec.names?.[0]?.romanized?.[0]?.pieces?.surnames).toEqual(['Doe']);
   });
 
-  test('place phonetic variations reject non-TYPE substructures', () => {
-    expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 BIRT\n2 PLAC Berlin\n3 FONE Berurin\n4 TYPE kana\n4 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).toBe('structure.unknown-tag');
+  test('place phonetic variations keep non-TYPE substructures as extensions', () => {
+    const result = parseGedcom551(new TextEncoder().encode('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 BIRT\n2 PLAC Berlin\n3 FONE Berurin\n4 TYPE kana\n4 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n'));
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    const rec = result.value.records[0] as { events?: Array<{ detail?: { place?: { phonetic?: Array<{ type: string; extensions?: Array<{ tag: string }> }> } } }> };
+    expect(rec.events?.[0]?.detail?.place?.phonetic?.[0]?.type).toBe('kana');
+    expect(rec.events?.[0]?.detail?.place?.phonetic?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('_POST with DATE and SOUR under a place', () => {

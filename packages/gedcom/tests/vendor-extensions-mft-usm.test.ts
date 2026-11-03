@@ -181,12 +181,9 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     }
   });
 
-  test('unknown non-underscore tags remain strict errors on 5.5.1 input', () => {
-    const result = parseGedcom551(enc(indi551(['1 NOTATAG x'])));
-    if (result.ok) {
-      throw new Error('expected an error');
-    }
-    expect((result.error as { code: string }).code).toBe('structure.unknown-tag');
+  test('unknown non-underscore tags become generic extensions on 5.5.1 input', () => {
+    const dataset = parseOk551(indi551(['1 NOTATAG x']));
+    expect(indi(dataset).extensions?.some((extension) => extension.tag === 'NOTATAG')).toBe(true);
   });
 });
 

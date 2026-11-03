@@ -17,11 +17,11 @@ import type {
   MultimediaRecord,
 } from '../structures';
 import type {
+  GedcomError,
+} from '../errors';
+import type {
   RawNode,
 } from './lines';
-import {
-  NON_UNDERSCORE_VENDOR_TAGS,
-} from './vendor-tags';
 import {
   resolveStandardTagByUri,
 } from './schema-tags';
@@ -50,6 +50,32 @@ export interface Ctx {
    * their TYPE from it.
    */
   schema53Labels: Map<string, string>;
+  /**
+   * The error sink of the tolerant parse (see parseTolerant): when
+   * present, every error is recorded here (up to
+   * MAX_TOLERANT_ERRORS entries) and the offending construct is
+   * skipped instead of aborting the parse. Absent in the strict
+   * (fail-fast) pipeline.
+   */
+  errors?: GedcomError[];
+}
+
+/** The cap on recorded errors per document (see Ctx.errors). */
+export const MAX_TOLERANT_ERRORS = 10_000;
+
+/** Records an error in tolerant mode; returns true when the caller
+ *  should skip the offending construct, false when the error should
+ *  propagate (strict mode). The list is capped: a cascade (one broken
+ *  line orphaning thousands of others) would otherwise dominate the
+ *  report with duplicates of the same root cause. */
+export function tolerate(ctx: Ctx, error: unknown): boolean {
+  if (ctx.errors === undefined) {
+    return false;
+  }
+  if (ctx.errors.length < MAX_TOLERANT_ERRORS) {
+    ctx.errors.push(error as GedcomError);
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,6 +101,13 @@ export function resolvePtr(pointer: string, ctx: Ctx, node: RawNode): string {
 
 export function reqPtr(node: RawNode, ctx: Ctx): string {
   if (node.value.kind !== 'pointer') {
+    // The Geni.com bare-identifier dialect writes pointers without
+    // the @ delimiters (`1 FAMC F0515745826`): the identifier shape
+    // is unambiguous, so the value is wrapped into the standard
+    // spelling (the full-leniency container rule).
+    if (node.value.kind === 'text' && /^[A-Za-z][A-Za-z0-9_]*$/.test(node.value.text)) {
+      return resolvePtr(`@${node.value.text}@`, ctx, node);
+    }
     fail('structure.missing-payload', `The ${node.tag} line requires a pointer value`, node.position);
   }
   return resolvePtr(node.value.pointer, ctx, node);
@@ -96,13 +129,18 @@ export function noPayload(node: RawNode): void {
   }
 }
 
-/** The optional `Y` assertion payload. */
-export function yFlag(node: RawNode): true | undefined {
+/** The optional `Y` assertion payload. A non-`Y` text payload is kept
+ *  verbatim (the full-leniency container rule — files in the wild put
+ *  descriptive text on the event line). */
+export function yFlag(node: RawNode): true | string | undefined {
   if (node.value.kind === 'absent') {
     return undefined;
   }
-  if (node.value.kind === 'text' && node.value.text === 'Y') {
-    return true;
+  if (node.value.kind === 'text') {
+    if (node.value.text === 'Y') {
+      return true;
+    }
+    return node.value.text;
   }
   fail('structure.unexpected-payload', `The ${node.tag} payload must be Y or absent`, node.position);
 }
@@ -131,7 +169,8 @@ export function kids(node: RawNode, tag: string): RawNode[] {
 export function one(node: RawNode, tag: string): RawNode | undefined {
   const list = kids(node, tag);
   if (list.length > 1) {
-    fail('structure.cardinality', `At most one ${tag} is allowed here`, (list[1] as RawNode).position);
+    // First occurrence wins (the full-leniency container rule).
+    return list[0];
   }
   return list[0];
 }
@@ -145,13 +184,10 @@ export function req(node: RawNode, tag: string): RawNode {
   return found;
 }
 
-/** GEDCOM 5.5.1 {0:3} limits. */
+/** GEDCOM 5.5.1 {0:3} limits. The later entries beyond the third are
+ *  dropped (the full-leniency container rule: first occurrences win). */
 export function atMostThree(node: RawNode, tag: string): RawNode[] {
-  const list = kids(node, tag);
-  if (list.length > 3) {
-    fail('structure.cardinality', `At most 3 ${tag} substructures are allowed`, (list[3] as RawNode).position);
-  }
-  return list;
+  return kids(node, tag).slice(0, 3);
 }
 
 export function addExtension(out: GedcomStructureBase, node: RawNode, ctx: Ctx): void {
@@ -198,11 +234,13 @@ export function merge551RecordContacts(rec: {
   }
 }
 
-export function parseExtension(node: RawNode, ctx: Ctx): ExtensionStructure {
+/** Builds one extension node (payload handling shared by the
+ *  iterative walker below). */
+function extensionOf(node: RawNode): ExtensionStructure {
   const out: ExtensionStructure = {
     tag: node.tag,
     ...(node.xref === undefined ? {} : { xref: node.xref }),
-    children: node.children.map((child) => parseExtension(child, ctx)),
+    children: [],
   };
   if (node.value.kind === 'text') {
     out.payload = node.value.text;
@@ -220,6 +258,30 @@ export function parseExtension(node: RawNode, ctx: Ctx): ExtensionStructure {
     out.payloadKind = 'pointer';
   }
   return out;
+}
+
+export function parseExtension(node: RawNode, ctx: Ctx): ExtensionStructure {
+  void ctx;
+  // An iterative depth-first build: a hand-made file can nest
+  // thousands of levels (the vscode-gedcom "numbered list" fixture
+  // nests 9000), and a recursive build would blow the JS stack.
+  const root = extensionOf(node);
+  const stack: Array<{ parent: ExtensionStructure; siblings: RawNode[]; index: number }> = [
+    { parent: root, siblings: node.children, index: 0 },
+  ];
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1] as { parent: ExtensionStructure; siblings: RawNode[]; index: number };
+    if (frame.index >= frame.siblings.length) {
+      stack.pop();
+      continue;
+    }
+    const child = frame.siblings[frame.index] as RawNode;
+    frame.index += 1;
+    const out = extensionOf(child);
+    frame.parent.children.push(out);
+    stack.push({ parent: out, siblings: child.children, index: 0 });
+  }
+  return root;
 }
 
 /**
@@ -291,7 +353,6 @@ export function dispatch(
   handlers: Record<string, (child: RawNode) => void>,
   ctx: Ctx,
   singles: readonly string[] = [],
-  fallback: 'error' | 'extension' = 'error',
 ): void {
   const seen = new Set<string>();
   for (const child of node.children) {
@@ -310,35 +371,65 @@ export function dispatch(
       }
     }
     if (handlers[tag] === undefined) {
-      if (tag.startsWith('_')) {
-        addExtension(out, child, ctx);
-        continue;
-      }
-      if (NON_UNDERSCORE_VENDOR_TAGS.has(tag)) {
-        // The non-underscore vendor tags of 5.x (see vendor-tags.ts):
-        // accepted as generic extensions where the standard grammar has
-        // no slot for them, in any file (see the README's Known strict
-        // decisions).
-        addExtension(out, child, ctx);
-        continue;
-      }
-      if (fallback === 'extension') {
-        // An extension record's grammar is defined by the extension
-        // itself (GEDCOM 7.0 §1.5): a standard tag the typed grammar
-        // does not know is an extension-defined substructure and is
-        // preserved verbatim instead of failing the import.
-        addExtension(out, child, ctx);
-        continue;
-      }
-      fail('structure.unknown-tag', `The tag ${tag} is not allowed in this context (${node.tag})`, child.position);
+      // A tag the typed grammar has no slot for — an underscore
+      // extension tag, a non-underscore vendor tag, or a standard
+      // tag in a position the standard does not define — becomes a
+      // generic extension structure, preserved verbatim. This is
+      // the full-leniency tag rule (see the README's Known strict
+      // decisions): the tag's meaning stays in the pile instead of
+      // failing the import; unknown tags are never rejected by
+      // spelling.
+      addExtension(out, child, ctx);
+      continue;
     }
     if (singles.includes(tag)) {
       if (seen.has(tag)) {
-        fail('structure.cardinality', `At most one ${tag} is allowed here`, child.position);
+        // First occurrence wins (the full-leniency container rule):
+        // the later line is dropped silently.
+        continue;
       }
       seen.add(tag);
     }
-    (handlers[tag] as (child: RawNode) => void)(resolved);
+    try {
+      (handlers[tag] as (child: RawNode) => void)(resolved);
+    } catch (error) {
+      const err = error as { code?: string; position?: { line?: number } };
+      if (err.code === 'structure.missing-payload' && err.position?.line === child.position.line) {
+        // A line whose required payload is absent is skipped silently
+        // (the full-leniency container rule, see the README's Known
+        // strict decisions): real files ship bare `1 NAME`, `1 SUBN`
+        // and `1 OCCU` lines, and dropping the line loses less than
+        // failing the whole document. The line's substructures die
+        // with it. A missing payload deeper in the tree rethrows —
+        // the dispatch enclosing that line decides. In tolerant mode
+        // the skip is recorded as a diagnostic.
+        void tolerate(ctx, error);
+        continue;
+      }
+      if (err.code === 'structure.unexpected-payload' && err.position?.line === child.position.line) {
+        // A line carrying a stray value parses without it (the
+        // full-leniency container rule).
+        void tolerate(ctx, error);
+        try {
+          (handlers[tag] as (child: RawNode) => void)({ ...resolved, value: { kind: 'absent' }, valueColumn: 0 });
+        } catch (retryError) {
+          throw retryError;
+        }
+        continue;
+      }
+      if (err.code === 'document.xref-not-found' && err.position?.line === child.position.line) {
+        // A dangling pointer link is dropped (the full-leniency
+        // container rule — the information it pointed to is already
+        // gone, and the export must not carry unresolved references).
+        void tolerate(ctx, error);
+        continue;
+      }
+      if (tolerate(ctx, error)) {
+        // Tolerant mode: the error is recorded and the line is skipped.
+        continue;
+      }
+      throw error;
+    }
   }
 }
 

@@ -54,8 +54,10 @@
  *   the underscore prefix for user-defined tags, and 7.0 §1.5
  *   requires extension tags to be underscore-prefixed) and is
  *   dropped on export in both versions.
- * - Unknown non-underscore tags remain strict errors
- *   (`structure.unknown-tag`) — the list below is closed.
+ * - Since the full-leniency rule (see the README's Known strict
+ *   decisions) unknown tags are never rejected by spelling: a tag
+ *   outside the lists below also becomes a generic extension. The
+ *   lists still matter — membership selects the *typed* rule.
  */
 
 import type { NameTypeEnum } from '../enumerations';
@@ -136,6 +138,9 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   REBA: { kind: 'event', type: 'Rebaptism' }, // TMG.
   // Attributes (FACT + TYPE).
   ATTR: { kind: 'fact', type: 'Attribute' }, // FTW5, TMG; a TYPE child overrides.
+  QUOT: { kind: 'fact', type: 'Quotation' }, // novel/game character trees: the person's quotation.
+  // Events (EVEN + TYPE).
+  APPT: { kind: 'event', type: 'Application' }, // the GSMD Mayflower Society trees: a (supplemental) membership application, with the DATE and the "Supplemental - …" PLAC.
   BIC: { kind: 'fact', type: 'Born in covenant' }, // TMG.
   CANC: { kind: 'fact', type: 'Sealing canceled' }, // TMG.
   CEME: { kind: 'fact', type: 'Cemetery' }, // FTW5.

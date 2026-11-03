@@ -23,8 +23,8 @@ import {
   kids,
   merge551RecordContacts,
   noPayload,
+  one,
   parseImportReference,
-  req,
   reqDigits,
   reqPtr,
   reqText,
@@ -50,7 +50,14 @@ import {
 
 export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
   noPayload(node);
-  const rec: SubmitterRecord = { tag: 'SUBM', name: reqText(req(node, 'NAME')), ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  // A missing or value-less NAME is tolerated (the full-leniency
+  // container rule): the name defaults to the empty string.
+  const nameNode = one(node, 'NAME');
+  const rec: SubmitterRecord = {
+    tag: 'SUBM',
+    name: nameNode !== undefined && nameNode.value.kind === 'text' ? nameNode.value.text : '',
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
   const handlers: Record<string, (child: RawNode) => void> = {
     NAME: () => undefined,
     ADDR: (child) => {
@@ -106,6 +113,14 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     WWW: (child) => {
       (rec.www ??= []).push(reqText(child));
     },
+    '_SKYPEID': (child) => {
+      // The FOAF Skype id (see SubmitterRecord.skypeId).
+      rec.skypeId = reqText(child);
+    },
+    '_JABBERID': (child) => {
+      // The FOAF Jabber id (see SubmitterRecord.jabberId).
+      rec.jabberId = reqText(child);
+    },
     CREA: (child) => {
       const created = parseCreationDateLenient(child, ctx);
       if (created === undefined) {
@@ -115,10 +130,10 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
       }
     },
     UID: (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     '_UID': (child) => {
-      (rec.identifiers ??= []).push(parseUniqueIdentifier(child));
+      (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     EXID: (child) => {
       (rec.identifiers ??= []).push(parseExternalIdentifier(child, ctx));
@@ -128,6 +143,11 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     },
     RIN: (child) => {
       rec.automatedRecordId = reqText(child);
+    },
+    '_GCID': (child) => {
+      // GEDitCOM II: the record's id (see
+      // IndividualRecord.geditcomId).
+      rec.geditcomId = reqText(child);
     },
     // The 7.0 SUBMITTER_RECORD carries <<NOTE_STRUCTURE>> {0:M}
     // (GEDCOM 7.0 §3.2.2); accepted in any file.

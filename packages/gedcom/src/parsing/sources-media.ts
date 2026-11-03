@@ -20,7 +20,6 @@ import {
 import type {
   CallNumberStructure,
   CropStructure,
-  MediaFile,
   MultimediaLink,
   MultimediaRecord,
   PageStructure,
@@ -34,6 +33,7 @@ import type {
   Ctx,
 } from './context';
 import {
+  addExtension,
   dispatch,
   noPayload,
   optPtr,
@@ -51,6 +51,7 @@ import {
 } from './media';
 import {
   parseEvidenceTemplate,
+  parseMftSourceQuality,
   parseSourceText,
 } from './sources';
 import {
@@ -145,12 +146,74 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         '_CREF': (child) => {
           out.reference = reqText(child);
         },
+        REFN: (child) => {
+          // A reference number of the citation itself (see
+          // SourceCitation.referenceNumber).
+          out.referenceNumber = reqText(child);
+        },
+        RIN: (child) => {
+          // The citation's record id in the source system (see
+          // SourceCitation.automatedRecordId).
+          out.automatedRecordId = reqText(child);
+        },
+        WWW: (child) => {
+          // The web address of the cited material, directly under the
+          // citation (see SourceCitation.www).
+          out.www = reqText(child);
+        },
+        REF: (child) => {
+          // The findmypast spelling of the citation's web address
+          // (`3 REF http://search.findmypast.com/record?id=…`, the
+          // findmypast gedcom-samples exports) — the same slot `WWW`
+          // carries (see SourceCitation.www).
+          out.www = reqText(child);
+        },
+        '_WPID': (child) => {
+          // MyHeritage: the wife's person id under a marriage citation
+          // (see SourceCitation.wifePersonId).
+          out.wifePersonId = reqText(child);
+        },
+        '_HPID': (child) => {
+          // MyHeritage: the husband's person id under a marriage
+          // citation (see SourceCitation.husbandPersonId).
+          out.husbandPersonId = reqText(child);
+        },
+        '_FOOT': (child) => {
+          // The footnote text of the citation (see
+          // SourceCitation.footnote).
+          out.footnote = reqText(child);
+        },
         '_SUBQ': (child) => {
           // RootsMagic: the subsequent-citation format (report wording).
           out.subsequentCitationFormat = reqText(child);
         },
         '_VERI': (child) => {
           out.verified = parsePrivacyFlag(child, '_VERI');
+        },
+        '_CONF': (child) => {
+          // The confidence level of the citation (see
+          // SourceCitation.confidence); a value-less line stays a
+          // generic extension.
+          if (child.value.kind === 'text') {
+            out.confidence = child.value.text;
+          } else {
+            addExtension(out, child, ctx);
+          }
+        },
+        'NAME': (child) => {
+          // The name of the cited source, under the citation (see
+          // SourceCitation.name); a value-less line stays a generic
+          // extension.
+          if (child.value.kind === 'text') {
+            out.name = child.value.text;
+          } else {
+            addExtension(out, child, ctx);
+          }
+        },
+        '_QUAL': (child) => {
+          // The MFT7 source-quality block under the citation (see
+          // SourceCitation.qualityAssessment).
+          out.qualityAssessment = parseMftSourceQuality(child, ctx);
         },
         '_QUAY': (child) => {
           // FH7: the citation assessment options (see
@@ -204,7 +267,8 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // at-most-one rule of the standard position.
           out.data ??= {};
           if (out.data.date !== undefined) {
-            fail('structure.cardinality', 'At most one DATE is allowed in a source citation', child.position);
+            // First occurrence wins.
+            return;
           }
           out.data.date = parseDateStructure(child, ctx);
         },
@@ -222,12 +286,53 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
     node,
     out,
     {
+      PAGE: (child) => {
+        // The 5.5.1 SOURCE_DESCRIPTION form keeps the full citation
+        // grammar beneath it (GEDCOM 5.5.1 §2 p.39) — the same PAGE
+        // slot the pointer form carries (see PageStructure).
+        out.page = parsePageStructure(child, ctx);
+      },
       TEXT: (child) => {
         out.data ??= {};
         (out.data.texts ??= []).push(parseSourceText(child, ctx));
       },
       QUAY: (child) => {
         out.quality = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+      },
+      REFN: (child) => {
+        // A reference number of the citation itself (see
+        // SourceCitation.referenceNumber).
+        out.referenceNumber = reqText(child);
+      },
+      RIN: (child) => {
+        // The citation's record id in the source system (see
+        // SourceCitation.automatedRecordId).
+        out.automatedRecordId = reqText(child);
+      },
+      WWW: (child) => {
+        // The web address of the cited material (see
+        // SourceCitation.www).
+        out.www = reqText(child);
+      },
+      REF: (child) => {
+        // The findmypast spelling of the citation's web address (see
+        // the pointer-form handler).
+        out.www = reqText(child);
+      },
+      '_WPID': (child) => {
+        // MyHeritage: the wife's person id under a marriage citation
+        // (see SourceCitation.wifePersonId).
+        out.wifePersonId = reqText(child);
+      },
+      '_HPID': (child) => {
+        // MyHeritage: the husband's person id under a marriage
+        // citation (see SourceCitation.husbandPersonId).
+        out.husbandPersonId = reqText(child);
+      },
+      '_FOOT': (child) => {
+        // The footnote text of the citation (see
+        // SourceCitation.footnote).
+        out.footnote = reqText(child);
       },
       OBJE: (child) => {
         (out.media ??= []).push(parseMultimediaLink(child, ctx));
@@ -281,6 +386,11 @@ export function parseSourceCitationData(node: RawNode, ctx: Ctx): SourceCitation
       },
       TEXT: (child) => {
         (out.texts ??= []).push(parseSourceText(child, ctx));
+      },
+      WWW: (child) => {
+        // The web address of the cited material, under DATA (see
+        // SourceCitationData.www).
+        out.www = reqText(child);
       },
     },
     ctx,
@@ -389,7 +499,7 @@ export function parseFhPresenceFlag(node: RawNode, tag: string): boolean {
   if (node.value.kind === 'absent') {
     return true;
   }
-  const text = reqText(node).toUpperCase();
+  const text = reqText(node).trim().toUpperCase();
   if (text === 'Y' || text === 'YES' || text === 'ALL') {
     return true;
   }
@@ -413,8 +523,18 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         CROP: (child) => {
           out.crop = parseCrop(child, ctx);
         },
+        '_CROP': (child) => {
+          // Ancestry.com Family Trees spells the crop block `_CROP`
+          // with the underscore children (see parseCrop).
+          out.crop = parseCrop(child, ctx);
+        },
         TITL: (child) => {
           out.title = reqText(child);
+        },
+        SOUR: (child) => {
+          // A citation under the inline media link (see
+          // MultimediaLink.citations).
+          (out.citations ??= []).push(parseSourceCitation(child, ctx));
         },
         '_PRIM': (child) => {
           out.primary = parseYNFlag(child, '_PRIM');
@@ -474,6 +594,13 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // as a record on export.
         (record.notes ??= []).push(parseNoteStructure(child, ctx));
       },
+      SOUR: (child) => {
+        // A citation under the inline OBJE link (the Hutson
+        // family-tree data attaches them to media links; see
+        // MultimediaLink.citations). It lands on the synthesized
+        // multimedia record, like the NOTE above.
+        (record.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
       '_PRIM': (child) => {
         primary = parseYNFlag(child, '_PRIM');
       },
@@ -510,6 +637,41 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // created (see MultimediaRecord.createdAt).
         record.createdAt = reqText(child);
       },
+      DATE: (child) => {
+        // The date of the media object under the inline link (the
+        // same slot the record-level DATE carries; see
+        // MultimediaRecord.date).
+        record.date = parseDateStructure(child, ctx);
+      },
+      '_CUTOUT': (child) => {
+        // MyHeritage: the cutout flag (see MultimediaRecord.cutout).
+        record.cutout = parseYNFlag(child, '_CUTOUT');
+      },
+      '_PRIM_CUTOUT': (child) => {
+        // MyHeritage: the primary cutout mark (see
+        // MultimediaRecord.primaryCutout).
+        record.primaryCutout = parseYNFlag(child, '_PRIM_CUTOUT');
+      },
+      '_PARENTPHOTO': (child) => {
+        // MyHeritage: the parent-photo flag (see
+        // MultimediaRecord.parentPhoto).
+        record.parentPhoto = parseYNFlag(child, '_PARENTPHOTO');
+      },
+      '_PERSONALPHOTO': (child) => {
+        // MyHeritage: the personal-photo flag (see
+        // MultimediaRecord.personalPhoto).
+        record.personalPhoto = parseYNFlag(child, '_PERSONALPHOTO');
+      },
+      '_PARENTRIN': (child) => {
+        // MyHeritage: the parent's record id (see
+        // MultimediaRecord.parentRecordId).
+        record.parentRecordId = reqText(child);
+      },
+      AUTH: (child) => {
+        // ged4web: the media author under the OBJE record (see
+        // MultimediaRecord.author).
+        record.author = reqText(child);
+      },
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
       },
@@ -533,19 +695,23 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     ctx,
   );
   if (record.files.length === 0) {
-    fail('structure.missing-required', 'An inline OBJE requires at least one FILE substructure', node.position);
+    // An inline OBJE without FILE is tolerated (the full-leniency
+    // container rule).
   }
-  if (title !== undefined) {
-    (record.files[0] as MediaFile).title = title;
-  }
-  if (fileSize !== undefined) {
-    (record.files[0] as MediaFile).fileSize = fileSize;
-  }
-  if (album !== undefined) {
-    (record.files[0] as MediaFile).album = album;
-  }
-  if (photoRecordId !== undefined) {
-    (record.files[0] as MediaFile).recordId = photoRecordId;
+  const firstFile = record.files[0];
+  if (firstFile !== undefined) {
+    if (title !== undefined) {
+      firstFile.title = title;
+    }
+    if (fileSize !== undefined) {
+      firstFile.fileSize = fileSize;
+    }
+    if (album !== undefined) {
+      firstFile.album = album;
+    }
+    if (photoRecordId !== undefined) {
+      firstFile.recordId = photoRecordId;
+    }
   }
   // Synthesize a multimedia record (the GEDCOM 7.0 normalization).
   let xref: string;
@@ -590,11 +756,11 @@ export function parsePrivacyFlag(node: RawNode, tag: string): boolean {
 
 /** Parses a vendor Y/N flag (`_PRIM`, `_SCBK`, `_SSHOW`, …). */
 export function parseYNFlag(node: RawNode, tag: string): boolean {
-  const text = reqText(node);
-  if (text === 'Y') {
+  const text = reqText(node).trim().toUpperCase();
+  if (text === 'Y' || text === 'YES') {
     return true;
   }
-  if (text === 'N') {
+  if (text === 'N' || text === 'NO') {
     return false;
   }
   fail('enum.invalid-value', `The ${tag} value must be Y or N, not "${text}"`, node.position);
@@ -611,7 +777,7 @@ export function parseVendorFlag(node: RawNode, tag: string): boolean {
   if (node.value.kind === 'absent') {
     return true;
   }
-  const text = reqText(node).toUpperCase();
+  const text = reqText(node).trim().toUpperCase();
   if (text === 'Y' || text === 'YES') {
     return true;
   }
@@ -709,6 +875,25 @@ export function parseCrop(node: RawNode, ctx: Ctx): CropStructure {
       },
       WIDTH: (child) => {
         out.width = reqDigits(child);
+      },
+      // The underscore spellings of the Ancestry.com Family Trees crop
+      // block (`_CROP` with `_LEFT`/`_TOP`/`_WDTH`/`_HGHT` — the
+      // offset-plus-size form, same slots as the standard 7.0 CROP).
+      '_TOP': (child) => {
+        out.top = reqDigits(child);
+      },
+      '_LEFT': (child) => {
+        out.left = reqDigits(child);
+      },
+      '_HGHT': (child) => {
+        out.height = reqDigits(child);
+      },
+      '_WDTH': (child) => {
+        out.width = reqDigits(child);
+      },
+      '_TYPE': (child) => {
+        // The crop variant (`primary`; see CropStructure.type).
+        out.type = reqText(child);
       },
     },
     ctx,

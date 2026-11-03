@@ -167,8 +167,8 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     // generic phpGedView SERV and MyHeritage PERSONALPHOTO, plus the
     // Pro-Gen RFN and TIME and the Legacy MEDI (generic where the
     // standard grammar has no slot for them; typed at their documented
-    // positions).
-    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(167);
+    // positions), plus the novel/game character-tree QUOT.
+    expect(NON_UNDERSCORE_VENDOR_TAGS.size).toBe(169);
     expect(LEGACY_GENERIC_TAGS.size).toBe(36);
   });
 
@@ -336,12 +336,10 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     }
   });
 
-  test('unknown non-underscore tags remain strict errors on 5.5.1 input', () => {
-    const result = parseGedcom551(enc(indi551(['1 ZZXQ x'])));
-    if (result.ok) {
-      throw new Error('expected ZZXQ to fail');
-    }
-    expect(result.error.code).toBe('structure.unknown-tag');
+  test('unknown non-underscore tags become generic extensions on 5.5.1 input', () => {
+    const dataset = parseOk551(indi551(['1 ZZXQ x']));
+    const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi as IndividualRecord).extensions?.some((extension) => extension.tag === 'ZZXQ')).toBe(true);
   });
 
   test('record-level tags become ExtensionRecords with their xref, dropped on export', () => {
@@ -399,32 +397,29 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
     expect(event2?.payload).toBe('');
   });
 
-  test('a legacy person link rejects substructures', () => {
-    const result = parseGedcom551(enc(indi551(['1 FATH @I2@', '2 NOTE x', '0 @I2@ INDI'])));
-    if (result.ok) {
-      throw new Error('expected FATH with a child to fail');
-    }
-    expect(result.error.code).toBe('structure.unknown-tag');
+  test('a legacy person link keeps substructures as extensions', () => {
+    const dataset = parseOk551(indi551(['1 FATH @I2@', '2 NOTE x', '0 @I2@ INDI']));
+    const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    const father = (indi as IndividualRecord).associations?.[0];
+    expect(father?.individual).toBe('@I2@');
+    expect(father?.relationship).toBe('Father');
+    expect(father?.extensions?.some((extension) => extension.tag === 'NOTE')).toBe(true);
   });
 
-  test('the LDS wrapper falls back to extensions and rejects unknown tags', () => {
+  test('the LDS wrapper falls back to extensions for unknown children too', () => {
     const dataset = parseOk551(indi551(['1 LDS', '2 BAPL', '2 _FOO x']));
     const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
     expect((indi as IndividualRecord).ordinances?.map((ordinance) => ordinance.tag)).toEqual(['BAPL']);
     expect((indi as IndividualRecord).extensions?.map((entry) => entry.tag)).toEqual(['_FOO']);
-    const bad = parseGedcom551(enc(indi551(['1 LDS', '2 BOGUS x'])));
-    if (bad.ok) {
-      throw new Error('expected BOGUS under LDS to fail');
-    }
-    expect(bad.error.code).toBe('structure.unknown-tag');
+    const withStandard = parseOk551(indi551(['1 LDS', '2 BOGUS x']));
+    const indi2 = withStandard.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi2 as IndividualRecord).extensions?.some((entry) => entry.tag === 'BOGUS')).toBe(true);
   });
 
-  test('a legacy note tag requires a text payload', () => {
-    const result = parseGedcom551(enc(indi551(['1 HIST'])));
-    if (result.ok) {
-      throw new Error('expected a bare HIST to fail');
-    }
-    expect(result.error.code).toBe('structure.missing-payload');
+  test('a bare legacy note tag is skipped', () => {
+    const dataset = parseOk551(indi551(['1 HIST']));
+    const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
+    expect((indi as IndividualRecord).notes).toBeUndefined();
   });
 
   test('a Y assertion on a FAM count fact is dropped from the payload', () => {

@@ -12,6 +12,7 @@ import type {
 
 import type { GedcomStructureBase } from './extensions';
 import type { EvidenceTemplate } from './records';
+import type { MftSourceQuality } from './records';
 import type { MultimediaRecord } from './records';
 import type { NoteStructure } from './common';
 import type { RepositoryRecord } from './records';
@@ -62,6 +63,33 @@ export interface SourceCitation extends GedcomStructureBase {
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /**
+   * `_CONF` {0:1} — the confidence level of the citation (the
+   * writing project's own convention; the Hutson family-tree data
+   * documents the values Primary / Secondary / Tentative / Provided
+   * in its header, https://github.com/CuriousG102/family-tree, and
+   * the family-tree-skill fixture uses PROVEN / PROBABLE). Not part
+   * of any GEDCOM version. Recognized on input and written back as
+   * `_CONF` in both versions.
+   */
+  confidence?: Text;
+  /**
+   * `NAME` {0:1} — the name of the cited source, under the citation
+   * (RootsMagic 2026 writes the import description there; MyHeritage
+   * exports carry the profile URL inside it). Not part of any GEDCOM
+   * version. Recognized on input and written back as `NAME` in both
+   * versions.
+   */
+  name?: Text;
+  /**
+   * `_QUAL` {0:1} — the MFT7 source-quality block under a citation:
+   * the same `_SOUR`/`_INFO`/`_EVID` assessment the SOUR record
+   * carries (see SourceRecord.quality / MftSourceQuality; the GenWiki
+   * "GEDCOM/_Nutzerdef-Tag" table). Not part of any GEDCOM version.
+   * Recognized on input and written back as the `_QUAL` block in both
+   * versions.
+   */
+  qualityAssessment?: MftSourceQuality;
+  /**
    * _APID {0:M} — Ancestry.com record references, format `dbid::record`
    * (in the wild often prefixed, e.g. `1,7602::2771226`), written by
    * Ancestry tree downloads and read by Family Tree Maker. Not part of
@@ -78,6 +106,54 @@ export interface SourceCitation extends GedcomStructureBase {
    * versions.
    */
   reference?: Text;
+  /**
+   * REFN {0:1} — a reference number assigned to the citation itself.
+   * Neither standard has the slot under a citation (the 5.5.1 REFN
+   * belongs to records); exports in the wild write it there (observed
+   * in the corpus: the Ancestry-import sample
+   * share_gprime_data_tests_imp_sample.ged, the Archivist golden
+   * parish fixture). Recognized on input and written back as `REFN`
+   * under the citation in both versions.
+   */
+  referenceNumber?: Text;
+  /**
+   * RIN {0:1} — the citation's record id in the source system
+   * (`3 RIN MH:SC500011` in MyHeritage exports, the record-level
+   * AUTOMATED_RECORD_ID repeated under the citation). Removed in
+   * GEDCOM 7.0 (like the record-level RIN): recognized on input in
+   * any file and written back as `RIN` under the citation in 5.5.1
+   * only.
+   */
+  automatedRecordId?: Text;
+  /**
+   * `_WPID` / `_HPID` {0:1} — the wife's / husband's person id under
+   * a marriage citation (`3 _WPID 1,61370::900465131` — the
+   * Ancestry-style `dbid::record` id with the MyHeritage `1,`
+   * prefix). Written by MyHeritage under FAM.MARR.SOUR (observed in
+   * the corpus file nextjs-genealogy_data_family.ged). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_WPID`/`_HPID` under the citation in both versions.
+   */
+  wifePersonId?: Text;
+  husbandPersonId?: Text;
+  /**
+   * `_FOOT` {0:1} — the footnote text of the citation, free text
+   * ("Guy Allen Sims, Guy Allen Sims. 25 APR 2001"). Written under
+   * the citation by exports in the wild (observed in the corpus file
+   * examples_norseGods.ged and the Ancestry test tree). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_FOOT` under the citation in both versions.
+   */
+  footnote?: Text;
+  /**
+   * WWW {0:1} — the web address of the cited material, written
+   * directly under the citation (beside DATA, where the 5.5.1
+   * grammar keeps the citation text). Exports in the wild write it
+   * there (the same corpus files as `referenceNumber`). Recognized on
+   * input and written back as `WWW` under the citation in both
+   * versions.
+   */
+  www?: Text;
   /**
    * _SUBQ {0:1} — the format used for subsequent citations of the same
    * source (report wording). Written by RootsMagic (see the Legacy
@@ -209,6 +285,13 @@ export interface SourceCitationData extends GedcomStructureBase {
   date?: DateStructure;
   /** TEXT {0:M}, g7:TEXT — the relevant text from the source. */
   texts?: SourceText[];
+  /**
+   * WWW {0:1} — the web address of the cited material, written under
+   * DATA (`4 WWW https://…` in GEDBAS/Ancestry-family exports).
+   * Neither standard has the slot under DATA. Recognized on input and
+   * written back as `WWW` under the DATA line in both versions.
+   */
+  www?: Text;
 }
 
 /**
@@ -310,10 +393,19 @@ export interface MultimediaLink extends GedcomStructureBase {
   tag: 'OBJE';
   /** The OBJE payload, {1:1} pointer to an OBJE record. */
   object: Pointer<MultimediaRecord>;
-  /** CROP {0:1}, g7:CROP — a subregion of an image to display. Dropped when serializing to 5.5.1. */
+  /** CROP {0:1}, g7:CROP — a subregion of an image to display. Written back as the standard CROP block in 7.0 and as the Ancestry.com Family Trees `_CROP` spelling (`_LEFT`/`_TOP`/`_WDTH`/`_HGHT`) in 5.5.1, which has no standard slot. */
   crop?: CropStructure;
   /** TITL {0:1}, g7:TITL — supersedes any OBJE.FILE.TITL in the multimedia record. Dropped when serializing to 5.5.1. */
   title?: Text;
+  /**
+   * SOUR {0:M} — source citations under the inline media link
+   * (neither standard has the slot; the Hutson family-tree data
+   * attaches citations to media links this way,
+   * https://github.com/CuriousG102/family-tree). Recognized on input
+   * and written back as the SOUR lines under the OBJE link in both
+   * versions.
+   */
+  citations?: SourceCitation[];
   /**
    * _PRIM Y {0:1} — marks the preferred/primary multimedia item. A
    * vendor extension (Legacy Family Tree, Family Tree Maker, RootsMagic,
@@ -401,4 +493,11 @@ export interface CropStructure extends GedcomStructureBase {
   height?: Integer;
   /** WIDTH {0:1}, g7:WIDTH — how many pixels to display horizontally. */
   width?: Integer;
+  /**
+   * `_TYPE` {0:1} — the crop variant (`primary`; observed in
+   * Ancestry-family exports). Neither standard has the slot.
+   * Recognized on input and written back as `_TYPE` under the crop
+   * block in both versions.
+   */
+  type?: Text;
 }

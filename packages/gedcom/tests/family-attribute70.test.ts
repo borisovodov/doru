@@ -116,9 +116,17 @@ describe('GEDCOM 7.0 FAMILY_ATTRIBUTE_STRUCTURE details', () => {
     expect(fact?.detail?.wife?.age?.payload).toEqual({ years: 39 });
   });
 
-  test('enforces the cardinalities (TYPE/HUSB/WIFE at most once, AGE required)', () => {
-    expect(err70([...H70, '0 @F1@ FAM', '1 NCHI 1', '2 TYPE A', '2 TYPE B', '0 TRLR'].join('\n'))).toBe('structure.cardinality');
-    expect(err70([...H70, '0 @F1@ FAM', '1 NCHI 1', '2 HUSB', '3 AGE 40y', '2 HUSB', '3 AGE 41y', '0 TRLR'].join('\n'))).toBe('structure.cardinality');
+  test('duplicate TYPE/HUSB keep the first occurrence; the AGE stays required', () => {
+    const typeDup = parse70([...H70, '0 @F1@ FAM', '1 NCHI 1', '2 TYPE A', '2 TYPE B', '0 TRLR'].join('\n'));
+    const typeFam = typeDup.records[0] as { attributes?: Array<{ type?: string }> };
+    expect(typeFam.attributes?.[0]?.type).toBe('A');
+    const husbDup = parse70(
+      [...H70, '0 @F1@ FAM', '1 NCHI 1', '2 HUSB', '3 AGE 40y', '2 HUSB', '3 AGE 41y', '0 TRLR'].join('\n'),
+    );
+    const husbFam = husbDup.records[0] as {
+      attributes?: Array<{ detail?: { husband?: { age?: { payload?: unknown } } } }>;
+    };
+    expect(husbFam.attributes?.[0]?.detail?.husband?.age?.payload).toEqual({ years: 40 });
     expect(err70([...H70, '0 @F1@ FAM', '1 NCHI 1', '2 HUSB', '0 TRLR'].join('\n'))).toBe('structure.missing-required');
   });
 

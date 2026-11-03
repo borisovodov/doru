@@ -1,5 +1,6 @@
 import type {
   EventEnum,
+  QualityEnum,
   RestrictionEnum,
   RoleEnum,
 } from '../enumerations';
@@ -410,6 +411,43 @@ export interface EventDetail extends GedcomStructureBase {
   /** CAUS {0:1}, g7:CAUS — the reasons which precipitated an event. */
   cause?: Text;
   /**
+   * CHAN {0:1} — the change date attached to the event itself (the
+   * exporter records when the event entry was last modified; neither
+   * standard has the position — CHAN belongs to records). Recognized
+   * on input with the full change-date grammar and written back as
+   * the CHAN block under the event in both versions.
+   */
+  changeDate?: ChangeDate;
+  /**
+   * CREA {0:1} — the creation date attached to the event (the
+   * standard-tag spelling of the `_CREA` free text in
+   * `createdAt`, carrying the structured DATE+TIME). Recognized on
+   * input and written back as the CREA block in 7.0; dropped on 5.5.1
+   * output (like the record-level CREA).
+   */
+  creationDate?: CreationDate;
+  /**
+   * `_FNA` {0:1} — the Heredis event flag (Y/N; YES/NO accepted).
+   * Written by Heredis under its events; the vendor does not document
+   * the meaning (the webtrees per-vendor registry lists `INDI:*:_FNA`
+   * as "what do they mean?"), so the wire spelling is kept in the
+   * field name. Recognized on input and written back as `_FNA Y`/
+   * `_FNA N` in both versions.
+   */
+  fna?: boolean;
+  /**
+   * QUAY {0:1} — the event's own reliability assessment, written with
+   * the standard QUAY tag directly under the event (Brother's Keeper
+   * writes `2 QUAY 2` under BIRT/DEAT/MARR; observed in the gedcom-go
+   * ibmpc-cp437-broskeep fixture and the GEDKeeper US-presidents
+   * sample). The standard 5.5.1 position is under the source
+   * citation (see SourceCitation.quality); this is the event-level
+   * repetition. Removed in GEDCOM 7.0 (like QUAY itself): recognized
+   * on input in any file and written back as `QUAY` under the event
+   * in 5.5.1 only.
+   */
+  quality?: QualityEnum;
+  /**
    * _SENT {0:1} — the event sentence (report wording). Written by
    * RootsMagic under events and facts (see the Legacy "User-Defined
    * GEDCOM Tags" help, which catalogs the non-underscore `SENT`
@@ -626,6 +664,20 @@ export interface EventDetail extends GedcomStructureBase {
    * both versions and written back as `_CREAT` in both versions.
    */
   createdAt?: Text;
+  /**
+   * RIN {0:1} — the automated record id of the event's enclosing
+   * record, repeated under the event. Ancestry.com Family Trees writes
+   * the record-level RIN (the standard GEDCOM 5.5.1 §2
+   * AUTOMATED_RECORD_ID) under the record's BIRT/DEAT/MARR/BURI…
+   * events as well — the same value, the same meaning (the shape is
+   * observable in Ancestry's exports, e.g. the findmypast gedcom-samples
+   * Queen.ged, HEAD.SOUR "Ancestry.com Family Trees"). The standard
+   * position is the record itself (see the `automatedRecordId` slots on
+   * the records); this is the event-level repetition. Removed in
+   * GEDCOM 7.0 (like the record-level RIN): recognized on input in any
+   * file and written back as `RIN` under the event in 5.5.1 only.
+   */
+  automatedRecordId?: Text;
 }
 
 /**

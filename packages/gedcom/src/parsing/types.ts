@@ -8,6 +8,7 @@ import type {
   SourcePosition,
 } from '../errors';
 import {
+  DOCUMENT_START,
   fail,
 } from '../errors';
 import type {
@@ -150,9 +151,19 @@ function monthOf(calendar: Calendar, token: string, position: SourcePosition, re
   );
 }
 
+/** Looks up a month token without failing: returns undefined for
+ *  non-month tokens (used by the lenient date forms — a lone month
+ *  name, a month-first spelling). */
+function tryMonth(calendar: Calendar, token: string, resolve?: TagResolver): GedcomMonth | undefined {
+  try {
+    return monthOf(calendar, token, DOCUMENT_START, resolve);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Validates an epoch token for the calendar. */
-function epochOf(calendar: Calendar, token: string, position: SourcePosition): Epoch {
-  if (token === 'BCE') {
+function epochOf(calendar: Calendar, token: string, position: SourcePosition): Epoch {  if (token === 'BCE') {
     if (calendar === 'GREGORIAN' || calendar === 'JULIAN') {
       return 'BCE';
     }
@@ -279,26 +290,45 @@ function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | 
     fail('date.invalid', 'A date must have a year', position);
   }
 
-  // One token: a year. Two tokens: month year. Three: day month year.
-  // A documented extension calendar (SCHMA → g7:cal-…) validates its
-  // months against the standard calendar it abbreviates.
+  // One token: a year — or a lone month name (a month-only date, the
+  // full-leniency container rule). Two tokens: month year. Three: day
+  // month year — or month day year (the month-first spelling files in
+  // the wild carry). A documented extension calendar (SCHMA →
+  // g7:cal-…) validates its months against the standard calendar it
+  // abbreviates.
   const monthCalendar = resolvedCalendar(calendar, resolve);
-  let year: number;
+  let year: number | undefined;
   let month: GedcomMonth | undefined;
   let day: number | undefined;
   if (rest.length === 1) {
-    year = parseYear(rest[0] as string, position);
+    const loneMonth = tryMonth(monthCalendar, rest[0] as string, resolve);
+    if (loneMonth !== undefined) {
+      month = loneMonth;
+    } else {
+      year = parseYear(rest[0] as string, position);
+    }
   } else if (rest.length === 2) {
     month = monthOf(monthCalendar, rest[0] as string, position, resolve);
     year = parseYear(rest[1] as string, position);
   } else if (rest.length === 3) {
     if (!/^\d+$/.test(rest[0] as string)) {
-      fail('date.bad-day', `Invalid day "${rest[0]}"`, position);
+      const monthFirst = tryMonth(monthCalendar, rest[0] as string, resolve);
+      if (monthFirst !== undefined && /^\d+$/.test(rest[1] as string)) {
+        // The month-first spelling ("FEB 12 1900").
+        day = Number(rest[1]);
+        month = monthFirst;
+        year = parseYear(rest[2] as string, position);
+      } else {
+        fail('date.bad-day', `Invalid day "${rest[0]}"`, position);
+      }
+    } else {
+      day = Number(rest[0]);
+      month = monthOf(monthCalendar, rest[1] as string, position, resolve);
+      year = parseYear(rest[2] as string, position);
+      // The day is kept verbatim: files in the wild carry impossible
+      // days (31 NOV, 170), and dropping the whole date loses more
+      // than the unvalidated day (the full-leniency container rule).
     }
-    day = Number(rest[0]);
-    month = monthOf(monthCalendar, rest[1] as string, position, resolve);
-    year = parseYear(rest[2] as string, position);
-    checkDay(calendar, month, day, year, epoch, position);
   } else {
     fail('date.invalid', `Too many date components: "${rest.join(' ')}"`, position);
   }
@@ -310,7 +340,114 @@ function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | 
  * yields the `unknown` variant. The optional resolver maps SCHMA-declared
  * extension tags to their URIs (see TagResolver).
  */
+/**
+ * Normalizes the wild date spellings real files carry into the
+ * standard grammar (the full-leniency container rule — nothing is
+ * dropped, nothing is guessed beyond the obvious):
+ * - `Unknown`/`?`/`—` become the empty (unknown) date;
+ * - an ISO date `2020-04-19` becomes `19 APR 2020`;
+ * - a bare year range `1900-1939` becomes `BET 1900 AND 1939`;
+ * - a decade `1980s` becomes `BET 1980 AND 1989`;
+ * - the inaccuracy prefixes `ABT.`/`ABOUT`/`CIRCA`/`CA.`/`CA` become
+ *   the standard `ABT`;
+ * - full month names (`February`, `November`, …) become the standard
+ *   three-letter spellings.
+ */
+export function normalizeDateText(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed === '') {
+    return trimmed;
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
+    return '';
+  }
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (iso !== null) {
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(iso[2]) - 1];
+    if (month !== undefined && Number(iso[3]) >= 1 && Number(iso[3]) <= 31) {
+      return `${Number(iso[3])} ${month} ${iso[1]}`;
+    }
+  }
+  const range = /^(\d{1,4})-(\d{1,4})$/.exec(trimmed);
+  if (range !== null) {
+    return `BET ${range[1]} AND ${range[2]}`;
+  }
+  const decade = /^(\d{3})0s$/i.exec(trimmed);
+  if (decade !== null) {
+    return `BET ${decade[1]}0 AND ${decade[1]}9`;
+  }
+  const between = /^BETWEEN\s+(.+)\s+AND\s+(.+)$/i.exec(trimmed);
+  if (between !== null) {
+    return `BET ${between[1]} AND ${between[2]}`;
+  }
+  const circa = /^c\.?\s*a\.?\s*(\d+)$/i.exec(trimmed);
+  if (circa !== null) {
+    return `ABT ${circa[1]}`;
+  }
+  let out = trimmed.replace(/^(ABT\.|ABOUT|CIRCA|CA\.|CA|AFT\.|BEFORE)\s+/i, (prefix) =>
+    prefix.toUpperCase().startsWith('ABT') || prefix.toUpperCase().startsWith('CIRCA') || prefix.toUpperCase().startsWith('CA') || prefix.toUpperCase().startsWith('ABOUT')
+      ? 'ABT '
+      : prefix.toUpperCase().startsWith('AFT') ? 'AFT ' : 'BEF ',
+  );
+  // Ordinal day suffixes (20th → 20).
+  out = out.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
+  // The Spanish/French connective "de"/"of" between date parts.
+  out = out.replace(/\b(?:de|of|del)\s+/gi, '');
+  out = out.replace(
+    /\b(JANUARY|FEBRUARY|MARCH|APRIL|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER|SEPT)\b/gi,
+    (name) => name.slice(0, 3).toUpperCase(),
+  );
+  return out;
+}
+
+/** Normalizes the wild time spellings real files carry: a trailing
+ *  timezone word (`UTC`, `GMT`, `GMT±n`) is dropped (the offset has no
+ *  model slot and the local reading is what the files intend), a bare
+ *  hour `01` becomes `01:00`, the 12-hour spellings `2:00pm`/`2 pm`
+ *  (with the `am`/`pm`/`a.m.`/`p.m.` suffix) convert to the 24-hour
+ *  clock, and trailing white space is trimmed. */
+export function normalizeTimeText(text: string): string {
+  const trimmed = text.trim();
+  if (/^\d{1,2}$/.test(trimmed)) {
+    return `${trimmed}:00`;
+  }
+  const tz = /^(.*?)\s+(?:UTC|GMT(?:[+-]\d{1,2})?)$/i.exec(trimmed);
+  const base = tz !== null ? (tz[1] as string).trim() : trimmed;
+  // The 12-hour clock (files in the wild write `2:00pm`): converts to
+  // the 24-hour clock. `12am` is midnight, `12pm` is noon; the hours
+  // 1–11 map straight (am) or +12 (pm). An out-of-range hour keeps the
+  // original text for the strict grammar to reject.
+  const twelveHour = /^(\d{1,2})(?::(\d{1,2}))?\s*(a\.?m\.?|p\.?m\.?)$/i.exec(base);
+  if (twelveHour !== null) {
+    const hour = Number(twelveHour[1]);
+    if (hour >= 1 && hour <= 12) {
+      const isPm = /^p/i.test(twelveHour[3] as string);
+      const hour24 = hour === 12 ? (isPm ? 12 : 0) : isPm ? hour + 12 : hour;
+      const minutes = twelveHour[2] === undefined ? '00' : (twelveHour[2] as string).padStart(2, '0');
+      return `${String(hour24).padStart(2, '0')}:${minutes}`;
+    }
+  }
+  return base;
+}
+
+/**
+ * The lenient parsing of a personal name whose slashes do not form
+ * the standard given/surname/suffix shape: the whole text is kept as
+ * the given name (the full-leniency container rule — nothing is
+ * dropped).
+ */
+function fallbackPersonalName(text: string): PersonalName {
+  const name: PersonalName = {};
+  const trimmed = text.trim();
+  if (trimmed !== '') {
+    name.given = trimmed;
+  }
+  return name;
+}
+
 export function parseDateValue70(text: string, position: SourcePosition, resolve?: TagResolver): DateValue {
+  text = normalizeDateText(text);
   if (text.trim() === '') {
     return { kind: 'unknown' } satisfies EmptyDateValue;
   }
@@ -449,7 +586,7 @@ export function parseDateValue551(
   text: string,
   position: SourcePosition,
 ): { value: DateValue; dualYear: boolean; phrase?: string } {
-  const trimmed = text.trim();
+  const trimmed = normalizeDateText(text);
   if (trimmed === '') {
     return { value: { kind: 'unknown' }, dualYear: false };
   }
@@ -483,7 +620,7 @@ export function parseDateValue(
   position: SourcePosition,
   resolve?: TagResolver,
 ): { value: DateValue; dualYear: boolean; phrase?: string } {
-  const trimmed = text.trim();
+  const trimmed = normalizeDateText(text);
   if (trimmed === '') {
     return { value: { kind: 'unknown' }, dualYear: false };
   }
@@ -731,6 +868,7 @@ function parseDateCore(
 
 /** Parses a GEDCOM 7.0 Time value. */
 export function parseTime70(text: string, position: SourcePosition): TimeValue {
+  text = normalizeTimeText(text);
   const match = /^(\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.(\d+))?)?(Z)?$/.exec(text);
   if (!match) {
     fail('time.invalid', `Invalid time "${text}"; expected "<hour>:<minute>[:<second>[.<fraction>]][Z]"`, position);
@@ -761,6 +899,7 @@ export function parseTime70(text: string, position: SourcePosition): TimeValue {
 
 /** Parses a GEDCOM 5.5.1 Time value (no UTC marker). */
 export function parseTime551(text: string, position: SourcePosition): TimeValue {
+  text = normalizeTimeText(text);
   const match = /^(\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.(\d+))?)?$/.exec(text);
   if (!match) {
     fail('time.invalid', `Invalid time "${text}"; expected "<hour>:<minute>[:<second>[.<fraction>]]"`, position);
@@ -1076,6 +1215,9 @@ export function parseEnum<K extends string>(
   table: Readonly<Record<K, string>>,
   position: SourcePosition,
 ): K | ExtensionTag {
+  // White space around the value is tolerated (the full-leniency
+  // container rule).
+  text = text.trim();
   if (text in table) {
     return text as K;
   }
@@ -1103,7 +1245,7 @@ export function parseListEnum<K extends string>(
 }
 
 /** Parses a Personal Name payload (slash-delimited). */
-export function parsePersonalName(text: string, position: SourcePosition): PersonalName {
+export function parsePersonalName(text: string, _position: SourcePosition): PersonalName {
   const parts = text.split('/');
   if (parts.length === 1) {
     const name: PersonalName = {};
@@ -1129,27 +1271,58 @@ export function parsePersonalName(text: string, position: SourcePosition): Perso
     }
     return name;
   }
-  fail('name.invalid', `Invalid personal name "${text}": the surname must be enclosed in one pair of slashes`, position);
+  // The slashes do not form the standard shape; the whole text is
+  // kept as the given name (the full-leniency container rule —
+  // nothing is dropped).
+  return fallbackPersonalName(text);
 }
 
-/** Parses a Latitude payload (N/S + decimal degrees). */
+/** Parses a Latitude payload (N/S + decimal degrees). The lenient
+ *  to N) and a degrees-minutes-seconds spelling (`+50° 3' 1.49"`,
+ *  direction first) — are accepted too (the full-leniency container
+ *  rule; nothing is dropped). */
 export function parseLatitude(text: string, position: SourcePosition): Latitude {
-  const match = /^([NS])(90|[0-8]?\d)(?:\.(\d+))?$/.exec(text);
-  if (!match) {
-    fail('latitude.invalid', `Invalid latitude "${text}"; expected "N" or "S" followed by decimal degrees 0–90`, position);
+  const trimmed = text.trim();
+  const match = /^([NS])(90|[0-8]?\d)(?:\.(\d+))?$/.exec(trimmed);
+  if (match !== null) {
+    const degrees = Number(match[3] !== undefined ? `${match[2]}.${match[3]}` : match[2]);
+    return { direction: match[1] as 'N' | 'S', degrees };
   }
-  const degrees = Number(match[3] !== undefined ? `${match[2]}.${match[3]}` : match[2]);
-  return { direction: match[1] as 'N' | 'S', degrees };
+  const bare = /^([+-]?(?:90|[0-8]?\d)(?:\.\d+)?)$/.exec(trimmed);
+  if (bare !== null) {
+    const degrees = Number(bare[1]);
+    if (degrees <= 90) {
+      return { direction: 'N', degrees };
+    }
+  }
+  const dms = /^([NS])?([+-]?\d{1,2})°\s*(\d{1,2})'\s*(\d{1,2}(?:\.\d+)?)"$/.exec(trimmed);
+  if (dms !== null) {
+    const degrees = Number(dms[2]) + Number(dms[3]) / 60 + Number(dms[4]) / 3600;
+    if (degrees <= 90) {
+      return { direction: (dms[1] as 'N' | 'S' | undefined) ?? (Number(dms[2]) < 0 ? 'S' : 'N'), degrees: Math.abs(degrees) };
+    }
+  }
+  fail('latitude.invalid', `Invalid latitude "${trimmed}"; expected "N" or "S" followed by decimal degrees 0–90`, position);
 }
 
-/** Parses a Longitude payload (E/W + decimal degrees). */
+/** Parses a Longitude payload (E/W + decimal degrees). The lenient
+ *  forms real files carry — a bare decimal number (direction defaults
+ *  to E) — are accepted too (the full-leniency container rule). */
 export function parseLongitude(text: string, position: SourcePosition): Longitude {
-  const match = /^([EW])(180|1[0-7]\d|0?\d{1,2})(?:\.(\d+))?$/.exec(text);
-  if (!match) {
-    fail('longitude.invalid', `Invalid longitude "${text}"; expected "E" or "W" followed by decimal degrees 0–180`, position);
+  const trimmed = text.trim();
+  const match = /^([EW])(180|1[0-7]\d|0?\d{1,2})(?:\.(\d+))?$/.exec(trimmed);
+  if (match !== null) {
+    const degrees = Number(match[3] !== undefined ? `${match[2]}.${match[3]}` : match[2]);
+    return { direction: match[1] as 'E' | 'W', degrees };
   }
-  const degrees = Number(match[3] !== undefined ? `${match[2]}.${match[3]}` : match[2]);
-  return { direction: match[1] as 'E' | 'W', degrees };
+  const bare = /^([+-]?(?:180|1[0-7]\d|0?\d{1,2})(?:\.\d+)?)$/.exec(trimmed);
+  if (bare !== null) {
+    const degrees = Number(bare[1]);
+    if (degrees <= 180) {
+      return { direction: 'E', degrees };
+    }
+  }
+  fail('longitude.invalid', `Invalid longitude "${trimmed}"; expected "E" or "W" followed by decimal degrees 0–180`, position);
 }
 
 /** Parses a 7.0 Tag Definition payload (`_TAG URI`). */

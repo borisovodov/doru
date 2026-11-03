@@ -12,6 +12,7 @@
  */
 
 import type {
+  GedcomError,
   SourcePosition,
 } from '../errors';
 import {
@@ -50,6 +51,18 @@ export interface RawDocument {
 const DIGIT = /[0-9]/;
 const TAG_CHAR_551 = /[A-Za-z0-9_]/;
 const ALPHANUM_551 = /[A-Za-z0-9_]/;
+
+/**
+ * The record tags of the typed grammar (mirrors the record dispatch of
+ * parsing/document.ts): used to recognize the Geni.com bare-identifier
+ * record dialect (`0 I1234 INDI`), where the identifier sits in the
+ * tag position and the record tag in the value.
+ */
+const RECORD_TAGS: ReadonlySet<string> = new Set([
+  'INDI', 'FAM', 'SOUR', 'REPO', 'NOTE', 'OBJE', 'SUBM', 'SUBN', 'SNOTE',
+  '_CENR', '_PLAC', '_PLACE', '_LOC', '_PLAC_DEFN', '_PLC',
+  '_TODO', '_TASK', '_EVENT_DEFN', '_EVDEF', '_ALIA', '_PUBLISH', '_GRP', '_OCUR',
+]);
 
 /**
  * Checks the banned-character rule in a line value: the C0
@@ -138,12 +151,24 @@ export type EscapeRule = '7.0' | '5.5.1';
  */
 function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
   checkBanned(raw, position);
-  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#')) {
-    if (!/^@[A-Za-z0-9_][^@]*@$/.test(raw)) {
-      fail('line.unescaped-at', 'A single @ in a line value must start a pointer or an escape, or be doubled', position);
-    }
+  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#') && /^@[A-Za-z0-9_][^@]*@$/.test(raw)) {
     return { kind: 'pointer', pointer: raw };
   }
+  // A pointer with a trailing C-style comment (`2 FAMC @F4@ /* note:
+  // this ptr is not required but is allowed in 5.5 */`, real hand-built
+  // files ship these) parses as the pointer; the comment is silently
+  // dropped — it annotates the link, not the linked record, and there
+  // is no model slot for it (the full-leniency container rule: the
+  // pointer is the only information the value carries).
+  const commentedPointer = /^(@[A-Za-z0-9_][^@]*@)\s*\/\*.*\*\/\s*$/.exec(raw);
+  if (commentedPointer !== null) {
+    return { kind: 'pointer', pointer: commentedPointer[1] as string };
+  }
+  // A value that starts with a single @ but does not match the
+  // pointer production (a list of pointers, a pointer with a comment
+  // suffix, a stray @ before a word) is text: the leading @ is a
+  // literal character (the full-leniency container rule — nothing is
+  // dropped, nothing is guessed).
   // Text with @@ unescaping and @#…@ escapes (a single space after an
   // escape is discarded). The 7.0 rule unescapes only the leading pair;
   // the 5.5.1 rule unescapes every pair.
@@ -221,13 +246,13 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   if (i === 0) {
     fail('line.bad-level', `Expected a level number at the start of the line, got "${text[0]}"`, linePosition);
   }
-  if (i > 1 && text[0] === '0') {
-    fail('line.bad-level', 'Level numbers must not have leading zeroes', linePosition);
+  // Leading zeroes are tolerated (the full-leniency container rule):
+  // real files write `01 GEDC`, and the number value is unambiguous.
+  // A missing space after the level (`1GEDC`, files in the wild) is
+  // tolerated the same way: the tag starts right after the digits.
+  if (text[i] === ' ') {
+    i++;
   }
-  if (text[i] !== ' ') {
-    fail('line.missing-delimiter', 'A level number must be followed by a single space', at(i));
-  }
-  i++;
 
   // Optional cross-reference identifier.
   let xref: string | undefined;
@@ -240,18 +265,28 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
     checkXref(raw, at(i));
     xref = raw;
     i = close + 1;
-    if (text[i] !== ' ') {
-      fail('line.missing-delimiter', 'A cross-reference identifier must be followed by a single space', at(i));
+    // A missing space after the xref (`0 @I1@INDI`) is tolerated the
+    // same way: the tag starts right after the identifier.
+    if (text[i] === ' ') {
+      i++;
     }
-    i++;
   }
 
-  // Tag.
+  // Tag. Extra spaces before the tag are tolerated (the full-leniency
+  // container rule: files in the wild write `1  SOUR`).
+  while (i < text.length && text[i] === ' ') {
+    i++;
+  }
   const tagStart = i;
   while (i < text.length && text[i] !== ' ') {
     i++;
   }
   const tag = text.slice(tagStart, i);
+  if (tag === '') {
+    // A line without a tag (a stray `1 ` or `1  `) is skipped like a
+    // blank line.
+    return null;
+  }
   checkTag(tag, at(tagStart));
   const valueColumn = i < text.length ? trimCount + i + 2 : 0;
   if (i < text.length) {
@@ -280,10 +315,9 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
  * collection and CONT/CONC continuation merging. The values are
  * unescaped per the document's declared at-sign rule (see EscapeRule).
  */
-export function parseRawDocument(document: DecodedDocument, rule: EscapeRule): RawDocument {
+export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, errors?: GedcomError[]): RawDocument {
   const roots: RawNode[] = [];
   const stack: RawNode[] = [];
-  let sawContent = false;
   const seenXrefs = new Set<string>();
 
   const attach = (node: RawNode): void => {
@@ -292,7 +326,19 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule): R
       stack.length = 0;
       stack.push(node);
     } else {
-      const parent = stack[node.level - 1];
+      let parent = stack[node.level - 1];
+      if (parent === undefined) {
+        // A level jump is repaired by attaching the line to the
+        // nearest enclosing line (the deepest one with a smaller
+        // level), the lenient container rule real files force.
+        for (let level = node.level - 2; level >= 0; level--) {
+          const candidate = stack[level];
+          if (candidate !== undefined) {
+            parent = candidate;
+            break;
+          }
+        }
+      }
       if (parent === undefined) {
         fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
       }
@@ -305,7 +351,10 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule): R
         fail('line.xref-on-substructure', 'A cross-reference identifier is only allowed on a record or on a tagged extension structure', node.position);
       }
       if (seenXrefs.has(node.xref)) {
-        fail('document.duplicate-xref', `Duplicate cross-reference identifier ${node.xref}`, node.position);
+        // A duplicate cross-reference identifier: the first occurrence
+        // wins (the full-leniency container rule); the later line
+        // keeps its identifier in the model but does not re-register.
+        return;
       }
       seenXrefs.add(node.xref);
     }
@@ -342,34 +391,53 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule): R
   };
 
   for (const line of document.lines) {
-    const node = tokenizeLine(line, rule);
-    if (node === null) {
-      // Blank line. Reading systems ignore extra line terminators
-      // before the first line (the 5.x rule; they are accepted
-      // them in every file).
-      if (!sawContent) {
+    try {
+      let node = tokenizeLine(line, rule);
+      if (node === null) {
+        // Blank line. The 5.x rule officially ignores extra line
+        // terminators only before the first line, but real files carry
+        // blank lines anywhere (a quarter of the corpus files fail
+        // otherwise), and every major reader skips them: a blank line
+        // cannot disturb the hierarchy, the continuation merge, or any
+        // value, so the line is dropped silently in any position (see
+        // the README's Known strict decisions).
         continue;
       }
-      fail('line.blank', 'Blank lines are not allowed in a GEDCOM transmission', {
-        line: line.line,
-        column: 1,
-        offset: line.offset,
-      });
-    }
-    sawContent = true;
-
-    // A continuation line extends the payload of its parent line (the
-    // enclosing line at level - 1) and must come before any other
-    // substructure of that parent.
-    if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
-      const parent = stack[node.level - 1];
-      if (parent === undefined) {
-        fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+      // The Geni.com bare-identifier dialect: `0 I1234 INDI` spells the
+      // cross-reference identifier without the @ delimiters. The shape
+      // is unambiguous — a bare identifier in the tag position with a
+      // record tag as the value — so the line is normalized to the
+      // standard spelling (the full-leniency container rule).
+      if (
+        node.level === 0 &&
+        node.xref === undefined &&
+        !RECORD_TAGS.has(node.tag) &&
+        node.value.kind === 'text' &&
+        RECORD_TAGS.has(node.value.text)
+      ) {
+        node = { ...node, xref: `@${node.tag}@`, tag: node.value.text, value: { kind: 'absent' }, valueColumn: 0 };
       }
-      mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '');
-      continue;
+
+      // A continuation line extends the payload of its parent line (the
+      // enclosing line at level - 1) and must come before any other
+      // substructure of that parent.
+      if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
+        const parent = stack[node.level - 1];
+        if (parent === undefined) {
+          fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+        }
+        mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '');
+        continue;
+      }
+      attach(node);
+    } catch (error) {
+      if (errors !== undefined) {
+        // Tolerant mode: the error is recorded and the line is skipped.
+        errors.push(error as GedcomError);
+        continue;
+      }
+      throw error;
     }
-    attach(node);
   }
 
   return { nodes: roots };

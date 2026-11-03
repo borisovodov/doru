@@ -14,6 +14,8 @@
 
 import type { CensusRecord } from './census-record';
 import type { DuplicateCandidateRecord } from './duplicate-record';
+import type { GroupRecord } from './group-record';
+import type { OccurrenceRecord } from './occurrence-record';
 import type { PlaceRecord } from './place-record';
 import type {
   FamilyRecord,
@@ -57,7 +59,22 @@ export function isDuplicateCandidateRecord(record: GedcomRecord): record is Dupl
 }
 
 /** True when the record is a typed vendor place card (`_PLAC` /
- *  `_LOC` / `_PLAC_DEFN` input, see PlaceRecord). */
+ *  `_LOC` / `_PLAC_DEFN` / `_PLC` input, see PlaceRecord). */
 export function isPlaceRecord(record: GedcomRecord): record is PlaceRecord {
   return record.tag === '_PLAC';
+}
+
+/** True when the record is the typed GEDKeeper `_GRP` group record
+ *  (see GroupRecord). The parsers never produce a generic
+ *  ExtensionRecord for a `_GRP` tag. */
+export function isGroupRecord(record: GedcomRecord): record is GroupRecord {
+  return record.tag === '_GRP';
+}
+
+/** True when the record is the typed `_OCUR` occurrence record (the
+ *  glamberson gedcom-occurrences extension, see OccurrenceRecord).
+ *  The parsers never produce a generic ExtensionRecord for an `_OCUR`
+ *  tag. */
+export function isOccurrenceRecord(record: GedcomRecord): record is OccurrenceRecord {
+  return record.tag === '_OCUR';
 }

@@ -73,6 +73,7 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
   husbandLabel?: string;
   wifeLabel?: string;
   reportPhrases?: string[];
+  preferred?: boolean;
   extensions?: ExtensionStructure[];
 }): void {
   if (event.tag === 'EVEN') {
@@ -82,13 +83,18 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
       w.line(1, 'EVEN', { value: (event.payload as string) || undefined });
     }
     emitFamilyDetail(w, version, 2, event.detail, event.type);
+    if (event.preferred === true) {
+      // Legacy: the preferred event of its kind (see
+      // FamilyEventBase.preferred).
+      w.line(2, '_PREF', { value: 'Y' });
+    }
     emitExtensions(w, version, 2, event);
     return;
   }
   if (version === '7.0') {
-    w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
+    w.line(1, event.tag, { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
   } else if (event.tag === 'MARR') {
-    w.line(1, 'MARR', { value: event.payload === true ? 'Y' : undefined });
+    w.line(1, 'MARR', { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
   } else {
     // 5.5.1 cannot carry the Y assertion here; the value is dropped.
     w.line(1, event.tag);
@@ -108,6 +114,11 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
         w.line(2, index === 0 ? '_RPT_PHRS' : '_RPT_PHRS2', { value: phrase });
       }
     });
+  }
+  if (event.preferred === true) {
+    // Legacy: the preferred event of its kind (see
+    // FamilyEventBase.preferred).
+    w.line(2, '_PREF', { value: 'Y' });
   }
   emitExtensions(w, version, 2, event);
 }
@@ -143,11 +154,11 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
     return;
   }
   if (version === '7.0') {
-    w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
+    w.line(1, event.tag, { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
   } else if (event.tag === 'ADOP' || event.tag === 'BIRT' || event.tag === 'CHR' || event.tag === 'DEAT') {
     // GEDCOM 5.5.1 §2 (p.34): these four events take the `[Y|<NULL>]`
     // assertion payload; the others are bare.
-    w.line(1, event.tag, { value: event.payload === true ? 'Y' : undefined });
+    w.line(1, event.tag, { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
   } else {
     // 5.5.1 cannot carry the Y assertion here; the value is dropped.
     w.line(1, event.tag);
@@ -194,7 +205,9 @@ export function emitLdsDetail(w: Writer, version: Version, level: number, detail
     const value = ordStat(w, version, detail.status.payload);
     if (value !== undefined) {
       w.line(level, 'STAT', { value });
-      emitDateExact(w, version, level + 1, 'DATE', detail.status.date, detail.status.date.time);
+      if (detail.status.date !== undefined) {
+        emitDateExact(w, version, level + 1, 'DATE', detail.status.date, detail.status.date.time);
+      }
       emitExtensions(w, version, level + 1, detail.status);
     }
   }

@@ -231,7 +231,7 @@ src/
   detect.ts         unified entry point: container + version detection
   parsing/
     decode.ts       charsets: UTF-8/BOM, ANSEL (Appendix C, NFC), ASCII,
-                    UTF-16, CP1252, CP850, Mac Roman
+                    UTF-16, CP1252, CP850, Mac Roman, Latin-1
     lines.ts        strict container tokenizer and raw tree builder
     types.ts        payload parsers: dates, times, ages, lists, names, enums
     assemble.ts     public entry: parseGedcom70/parseGedcom551
@@ -268,15 +268,15 @@ parse(bytes: Uint8Array): ParseResult<ParsedGedcom>
 ```
 
 Detection: bytes starting with the zip magic `PK` are a GEDZIP archive;
-otherwise the encoding is sniffed: a full UTF-8 decode is tried first
-(the 7.0 charset), and a failure falls back to the `CHAR` tag declared
-in the ASCII-compatible header (ANSEL, ASCII, UTF-16, CP1252, CP850 or
-Mac Roman). Both pipelines share the one import grammar (see below), so
-the reported version comes from the file's own `GEDC.VERS` declaration,
-not from which decode path ran; a 5.5.1-declared file parses as 5.5.1
-even when the bytes are UTF-8. A 7.0 file with invalid UTF-8 reports
-its `decoding.invalid-utf8` error (there is no `CHAR` to fall back
-to).
+otherwise the encoding is sniffed: a strict full UTF-8 decode is tried
+first (the 7.0 charset), and a failure falls back to the `CHAR` tag
+declared in the ASCII-compatible header (ANSEL, ASCII, UTF-16, CP1252,
+CP850, Mac Roman or Latin-1). Both pipelines share the one import
+grammar (see below), so the reported version comes from the file's own
+`GEDC.VERS` declaration, not from which decode path ran; a
+5.5.1-declared file parses as 5.5.1 even when the bytes are UTF-8. A
+7.0 file with invalid UTF-8 and no `CHAR` to fall back to reports its
+`decoding.invalid-utf8` error.
 
 Input is always bytes. Version handling:
 
@@ -294,19 +294,27 @@ Input is always bytes. Version handling:
   byte contracts (UTF-8 vs the `CHAR`-declared charset); the `parse`
   entry point sniffs the encoding as described above. The grammar
   behind all three is the same.
-- **7.0** — UTF-8, optional BOM on the first line only (a BOM anywhere
-  else is an error). The 7.0-only banned-character rule (the C1
+- **7.0** — UTF-8, optional BOM (a BOM at the start of any line is
+  stripped). A line that is not valid UTF-8 is retried as CP1252 —
+  the single-byte encoding such files actually hold when they
+  declare UTF-8. The 7.0-only banned-character rule (the C1
   controls) is lifted: the 5.x rule (tab allowed, the
   other C0 controls and DEL banned) applies everywhere.
 - **5.5.1** — the character set is detected from the header `CHAR` tag
-  (required). `ANSEL` uses the Appendix C tables; non-spacing characters
-  are buffered and attached to their base character, and the result is
-  NFC-normalized (`e` + combining acute → `é`). `ASCII` rejects bytes
-  above 0x7F, `UNICODE` is UTF-16 and requires a BOM. Beyond the spec's
-  set, the de-facto charsets written by real software are accepted
-  under their common spellings: `ANSI`/`CP1252`/`WINDOWS-1252`
-  (Windows Western, with the CP1252 holes rejected), `IBM-PC`/`CP850`/
-  `DOS` (DOS Western), and `MAC`/`MACINTOSH` (Mac Roman).
+  (required). `ANSEL` uses the complete Appendix C tables; non-spacing
+  characters are buffered and attached to their base character, and
+  the result is NFC-normalized (`e` + combining acute → `é`). `ASCII`
+  rejects bytes above 0x7F, `UNICODE` is UTF-16 (a missing BOM is
+  sniffed from the byte pattern, and a dangling trailing byte of a
+  truncated file is ignored). Beyond the
+  spec's set, the de-facto charsets written by real software are
+  accepted under their common spellings: `ANSI`/`CP1252`/
+  `WINDOWS-1252`/`IBM WINDOWS` (Windows Western, with the five
+  undefined CP1252 bytes decoding to the C1 controls of the same
+  number), `IBM-PC`/`CP850`/`DOS`/`MS-DOS` (DOS Western),
+  `MAC`/`MACINTOSH` (Mac Roman), and `LATIN1`/`ISO-8859-1`
+  (Latin-1). A UTF-8-declared line that fails to decode is likewise
+  retried as CP1252.
 - **The 5.5.5 vocabulary** — files declaring `GEDC.VERS 5.5.5` parse
   under the same 5.5.1 rules, and the 5.5.5 additions are accepted in
   any 5.x file: `SEX X` (intersex) and `SEX N` (not recorded; 5.5.5
@@ -549,8 +557,10 @@ The agreed policy:
   slot) — see "The legacy non-underscore tags are typed"
   below. Unknown `_` tags are preserved verbatim as generic
   extensions (`ExtensionStructure`/`ExtensionRecord`) and are never
-  typed; only unknown non-underscore tags are strict errors
-  (`structure.unknown-tag`).
+  typed; under the full-leniency rule every other unknown tag —
+  non-underscore vendor tags outside the catalogs, standard tags in
+  vendor positions — is likewise preserved as a generic extension
+  instead of failing.
 - **Same behavior in both versions.** Known vendor tags are recognized
   on input in 5.5.1 and 7.0 alike. On output, a construct that has a
   standard equivalent is written in the standard spelling of the target
@@ -664,8 +674,8 @@ The agreed policy:
   (5.5.1 reserves the underscore prefix for user-defined tags and 7.0
   accepts only extTags); each tag's reason is recorded in
   docs/vendor-extensions.md chapter 8. The whole list is accepted in
-  any file; unknown non-underscore tags remain
-  `structure.unknown-tag` errors.
+  any file; under the full-leniency rule tags outside it are likewise
+  accepted as generic extensions.
   The full per-tag inventory with sources is
   docs/vendor-extensions.md chapter 8 and `parsing/vendor-tags.ts`.
 - **The one standard-first exception.** `_FREL`/`_MREL` are per-parent
@@ -767,15 +777,85 @@ would be, or where the model takes a documented position:
   grammars disagree semantically rather than by omission, the
   semantically sound rule wins even when it is the stricter one: the
   BCE epoch is rejected outside the Gregorian and Julian calendars
-  (the 7.0 rule; the 5.5.1 parser silently accepted it). Unknown tags
-  remain `structure.unknown-tag` errors — the grammar is lenient to
-  known forms, never a guess. The normalization is canonical too:
+  (the 7.0 rule; the 5.5.1 parser silently accepted it). The
+  normalization is canonical too:
   identical bytes parse into the identical model whatever the
   declaration says (only the stored version string differs; the
   invariant test `tests/version-invariant.test.ts` pins this) — the
   contacts always relocate into the address block, the free-text role
   descriptors type into the OTHER role + phrase, and the value sets
   (SEX, PEDI, LDS statuses, dates, ages) are the same in every file.
+- **Lenient container tolerances.** Real files violate the container
+  rules constantly, and each tolerance below drops or synthesizes
+  less than failing the whole document would:
+  - A line whose required payload is absent (a bare `1 NAME`, `1
+    SUBN`, `1 OCCU`, a pointer where text is expected, …) is skipped
+    silently, together with its substructures.
+  - A header without `HEAD` (or a GEDC without `VERS`) is completed
+    with an empty header / `GEDC 5.5.1` — the values the version gate
+    and the escape rule already assume for such files. A missing or
+    misplaced TRLR is tolerated.
+  - A SUBM/REPO record without a NAME gets the empty name; a NOTE
+    record without a payload gets the empty text.
+  - `FORM` under FILE, `MIME`/`LANG` under NOTE.TRAN, `TYPE` under
+    FONE/ROMN, `LANG` under TRAN, `DATE` under STAT, `FORM` under
+    HEAD.PLAC and `URL` under `_WEBTAG` are optional; OBJE records
+    and inline OBJE links without FILE parse; a bare FILE line (no
+    file name — the Ancestry media-record shape, FORM/TITL only)
+    parses with the empty path.
+  - Leading zeroes in level numbers (`01 GEDC`) parse as the number;
+    a missing space after the level or xref (`1GEDC`, `0 @I1@INDI`)
+    parses too (the tag starts right after the digits/identifier); a
+    level jump attaches the line to the nearest enclosing level.
+  - The HEAD may appear anywhere in the record stream (a NOTE
+    preamble or straight records first); a duplicate HEAD block
+    mid-stream is skipped. Any GEDCOM 5.x version is accepted (5.3,
+    5.4, 5.50, 5.01 included); only 3.0/4.0 are rejected.
+  - The first occurrence wins: duplicate cross-reference identifiers
+    (later records keep their identifier but references resolve to the
+    first) and repeated `{0:1}` fields (the later line is dropped).
+  - A value that starts with a single `@` but is not a valid pointer
+    is text; a pointer with a trailing C-style comment (`2 FAMC @4@
+    /* … */`) parses as the pointer and drops the comment; a dangling
+    pointer link is dropped (the tolerant parse records
+    `document.xref-not-found`); the Geni.com bare-identifier
+    dialect (`0 I1234 INDI`, `1 FAMC F123`) is normalized to the
+    standard spellings.
+  - Value leniencies: a non-`Y` text payload on an event line is kept
+    verbatim (and a stray value on a no-payload line is dropped, the
+    line parses without it); a text payload on a SOUR/REPO record line
+    becomes the title/name; extra spaces before the tag and tag-less
+    lines are skipped; dates accept full month names, the
+    ABT./ABOUT/CIRCA/CA prefixes, ISO dates, bare year ranges, decades,
+    `Unknown`/`Inconnu`/`n/a`, month-only and month-first spellings,
+    ordinal days, the `de`/`of` connectives and impossible days kept
+    verbatim (an unparseable date becomes a phrase); times accept
+    `UTC`/`GMT±n` suffixes and bare hours; malformed names keep the
+    whole text as the given name; enums are trimmed (with `none` RESN
+    filtered, descriptive PEDI kept as OTHER + phrase, YES/NO flags);
+    coordinates accept bare decimals and DMS; ages accept ranges and
+    stray-letter numbers; GEDZIP archives without `gedcom.ged` use the
+    first `.ged` entry.
+- **The tolerant parse.** `parseTolerant` records EVERY problem of a
+  document and keeps parsing: one error entry per offending line,
+  structure or record (capped at 10,000 per document so a cascade does
+  not drown the report), and the best-effort dataset is returned
+  alongside the list. The strict `parse` entry stays fail-fast on the
+  first error. The corpus runner drives `parseTolerant`, so each file
+  reports its complete error set, not just the first one.
+- **Full leniency for unknown tags.** A tag the typed grammar has no
+  slot for — an underscore extension tag, a catalogued non-underscore
+  vendor tag, a standard tag in a position the standard does not
+  define, or a completely unknown spelling — parses as a generic
+  `ExtensionStructure`/`ExtensionRecord`, preserved verbatim, and is
+  dropped on export like every generic extension. `structure.unknown-tag`
+  survives only for the SUBN-after-header ordering rule and the
+  internal call-contract guards. The trade-off is deliberate: real
+  files scatter standard tags across vendor positions (84% of the
+  corpus' unknown-tag failures were standard tags in the wrong
+  context), and the closed vendor catalogs still select the *typed*
+  rules — but a misspelled standard tag now imports as a generic
+  extension instead of surfacing as an error.
 - **The at-sign escape convention is read from the declaration.**
   GEDCOM 7.0 §1.3 doubles only the *first* at sign of a line value
   (interior `@@` is two literal at signs — the official FamilySearch
@@ -818,12 +898,37 @@ would be, or where the model takes a documented position:
   spec's own typos, e.g. `Mandrin`) as `LANGUAGE_IDS_551`; it is not
   one-to-one with BCP 47 (Catalan/Catalan_Spn), so the mapping lives in
   the serializer, not the type.
-- ANSEL input is NFC-normalized on decode (see Parsing).
+- ANSEL input is NFC-normalized on decode (see Parsing). The ANSEL
+  table is the complete GEDCOM 5.5.1 Appendix C set (including the
+  prime/double-prime, hook-O/U, degree, script-l, phonograph-copyright
+  and musical-sharp spacings and every non-spacing mark); bytes outside
+  the table are `decoding.invalid-ansel` errors.
+- Blank lines are ignored anywhere in a transmission, not only before
+  the first line (the 5.x letter). Real files carry them mid-document
+  (a quarter of the corpus files otherwise fail), a blank line cannot
+  disturb the hierarchy or the continuation merge, and every major
+  reader skips them.
 - 5.5.1 `CHAR` declarations are accepted beyond the spec's set: the
-  out-of-spec CP1252, CP850, and Mac Roman charsets (and their
-  de-facto spellings such as `ANSI` and `IBM-PC`) decode rather than
-  fail, because real software writes them; anything else is a
+  out-of-spec CP1252, CP850, Mac Roman and Latin-1 charsets (and their
+  de-facto spellings such as `ANSI`, `IBM-PC`, `MS-DOS`, `IBM
+  WINDOWS`, `LATIN1`, `ISO-8859-1`) decode rather than fail, because
+  real software writes them; anything else is a
   `decoding.unknown-charset` error (see Parsing).
+- A line of a UTF-8 document that is not valid UTF-8 is retried as
+  CP1252 — the single-byte encoding such files actually hold when
+  they declare UTF-8 (real 5.5.1 and 7.0 exports carry 8-bit text;
+  the fallback never overrides a different declared `CHAR` charset,
+  and the sniffing entry point still reports `decoding.invalid-utf8`
+  when no charset declaration allows a fallback).
+- The five undefined CP1252 bytes (0x81, 0x8D, 0x8F, 0x90, 0x9D)
+  decode to the C1 controls of the same number (the Windows/Python
+  `cp1252` behavior) instead of failing the line.
+- A UTF-8 byte-order mark is stripped at the start of any line, not
+  only the first (concatenated exports carry one mid-file); a UTF-16
+  document without a byte-order mark is decoded by the byte pattern of
+  its stream (files in the wild cut the BOM off), and one with a
+  dangling trailing byte (odd length, truncated on export) decodes
+  without it.
 - The 5.5.1 `FILE.FORM` medium is accepted under both spellings the
   specification itself uses: `TYPE` (the MULTIMEDIA_RECORD grammar,
   p.26) and `MEDI` (the inline MULTIMEDIA_LINK grammar, p.37). Both

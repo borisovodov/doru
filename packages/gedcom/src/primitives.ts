@@ -379,12 +379,12 @@ export type DateValue =
  * `B.C.` and additionally allows the year modifier `NUMBER/NUMBER`.
  */
 export interface DateExact {
-  /** GEDCOM 7.0 §2.4 — `day`. */
-  day: Integer;
-  /** GEDCOM 7.0 §2.4 — `month`; DateExact is always in the Gregorian calendar. */
-  month: GregorianMonth;
-  /** GEDCOM 7.0 §2.4 — `year`. */
-  year: Integer;
+  /** GEDCOM 7.0 §2.4 — `day`. Optional in the model: a year-only (or month+year) exact date of files in the wild is kept with the absent components unset (the full-leniency container rule). */
+  day?: Integer;
+  /** GEDCOM 7.0 §2.4 — `month`; DateExact is always in the Gregorian calendar. Optional in the model (see `day`). */
+  month?: GregorianMonth;
+  /** GEDCOM 7.0 §2.4 — `year`. Optional in the model (see `day`). */
+  year?: Integer;
   /** GEDCOM 7.0 §2.4 — the BCE epoch is the only one permitted in the Gregorian calendar. */
   epoch?: Epoch;
 }

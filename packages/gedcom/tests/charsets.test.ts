@@ -46,14 +46,10 @@ describe('the out-of-spec 5.5.1 charsets', () => {
     expectName('ANSI', [0x93, ...ascii('J'), 0xe9, ...ascii('r'), 0xf4, ...ascii('me'), 0x94, ...ascii(' /Doe/')], '\u201cJ\u00e9r\u00f4me\u201d Doe');
   });
 
-  test('CP1252 byte holes are strict errors with a position', () => {
-    const result = parseGedcom551(documentWith('ANSI', [...ascii('Jo'), 0x81]));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe('decoding.invalid-cp1252');
-      expect(result.error.position?.line).toBe(11);
-      expect(result.error.position?.column).toBeGreaterThanOrEqual(1);
-    }
+  test('CP1252 byte holes decode to the C1 controls of the same number', () => {
+    // 0x81 is undefined in CP1252; the Windows/Python cp1252 tables
+    // map it to U+0081, and files in the wild carry it.
+    expectName('ANSI', [...ascii('Jo'), 0x81], `Jo${'\u0081'}`);
   });
 
   test('CP850 (CHAR IBM-PC): the DOS e-acute', () => {

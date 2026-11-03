@@ -59,16 +59,20 @@ describe('line tokenization (7.0)', () => {
     expect(nodes[0]?.tag).toBe('HEAD');
   });
 
-  test('errors on blank lines', () => {
-    expect(expectErr(() => raw70('0 HEAD\n\n0 TRLR\n'))).toBe('line.blank');
+  test('ignores blank lines', () => {
+    const { nodes } = raw70('0 HEAD\n\n0 TRLR\n');
+    expect(nodes[0]?.tag).toBe('HEAD');
   });
 
-  test('errors on a leading-zero level', () => {
-    expect(expectErr(() => raw70('0 HEAD\n01 GEDC\n0 TRLR\n'))).toBe('line.bad-level');
+  test('accepts a leading-zero level', () => {
+    const { nodes } = raw70('0 HEAD\n01 GEDC\n0 TRLR\n');
+    expect(nodes[0]?.children[0]?.tag).toBe('GEDC');
+    expect(nodes[0]?.children[0]?.level).toBe(1);
   });
 
-  test('errors on a missing delimiter', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1GEDC\n0 TRLR\n'))).toBe('line.missing-delimiter');
+  test('tolerates a missing delimiter after the level', () => {
+    const { nodes } = raw70('0 HEAD\n1GEDC\n0 TRLR\n');
+    expect(nodes[0]?.children[0]?.tag).toBe('GEDC');
   });
 
   test('accepts lowercase tags', () => {
@@ -86,8 +90,9 @@ describe('line tokenization (7.0)', () => {
     expect(nodes[0]?.xref).toBe('@VOID@');
   });
 
-  test('errors on a single leading at-sign in a value', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 NOTE @foo\n0 TRLR\n'))).toBe('line.unescaped-at');
+  test('keeps a single leading at-sign in a value as text', () => {
+    const { nodes } = raw70('0 HEAD\n1 NOTE @foo\n0 TRLR\n');
+    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '@foo' });
   });
 
   test('banned characters: DEL and C0 stay banned, C1 is tolerated', () => {
@@ -107,12 +112,17 @@ describe('line tokenization (7.0)', () => {
     expect(expectErr(() => raw70('0 HEAD\n1 @X@ GEDC\n0 TRLR\n'))).toBe('line.xref-on-substructure');
   });
 
-  test('errors on duplicate xrefs', () => {
-    expect(expectErr(() => raw70('0 @I1@ INDI\n0 @I1@ INDI\n0 TRLR\n'))).toBe('document.duplicate-xref');
+  test('keeps duplicate xrefs; the first occurrence registers', () => {
+    const { nodes } = raw70('0 @I1@ INDI\n0 @I1@ INDI\n0 TRLR\n');
+    expect(nodes).toHaveLength(3);
+    expect(nodes[0]?.xref).toBe('@I1@');
+    expect(nodes[1]?.xref).toBe('@I1@');
   });
 
-  test('errors on a level skip', () => {
-    expect(expectErr(() => raw70('0 HEAD\n2 GEDC\n0 TRLR\n'))).toBe('line.level-skip');
+  test('repairs a level jump by attaching to the nearest enclosing line', () => {
+    const { nodes } = raw70('0 HEAD\n2 GEDC\n0 TRLR\n');
+    expect(nodes[0]?.tag).toBe('HEAD');
+    expect((nodes[0]?.children[0] as RawNode | undefined)?.tag).toBe('GEDC');
   });
 
   test('merges CONT continuations preserving blank lines', () => {
@@ -146,16 +156,16 @@ describe('line tokenization (5.5.1)', () => {
     expect(nodes[0]?.tag).toBe('HEAD');
   });
 
-  test('ignores leading blank lines only', () => {
-    const { nodes } = raw551('\n\n0 HEAD\n1 CHAR ANSEL\n0 TRLR\n');
+  test('ignores blank lines anywhere', () => {
+    const { nodes } = raw551('\n\n0 HEAD\n1 CHAR ANSEL\n\n0 TRLR\n');
     expect(nodes[0]?.tag).toBe('HEAD');
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n\n0 TRLR\n'))).toBe('line.blank');
   });
 
-  test('the 99 level limit is lifted (only the hierarchy check remains)', () => {
-    // A deep but consistent hierarchy parses; an inconsistent one is
-    // still a level-skip error.
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n100 NOTE x\n0 TRLR\n'))).toBe('line.level-skip');
+  test('the 99 level limit is lifted; deep levels attach to the nearest enclosing line', () => {
+    const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n100 NOTE x\n0 TRLR\n');
+    expect((nodes[0]?.children[0] as RawNode | undefined)?.children[0]?.tag).toBe('NOTE');
+    // A first line at a positive level still has no enclosing line.
+    expect(expectErr(() => raw551('1 CHAR ANSEL\n0 TRLR\n'))).toBe('line.level-skip');
   });
 
   test('doubles at-signs in values', () => {
@@ -163,13 +173,13 @@ describe('line tokenization (5.5.1)', () => {
     expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a@b' });
   });
 
-  test('tolerates a lone interior at-sign in a value', () => {
+  test('tolerates a lone at-sign anywhere in a value', () => {
     const doc = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a@b\n0 TRLR\n');
     const head = doc.nodes[0];
     expect(head?.children[1]?.value).toEqual({ kind: 'text', text: 'a@b' });
-    // The leading single @ stays strict: it must be a pointer or
-    // doubled.
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @lone\n0 TRLR\n'))).toBe('line.unescaped-at');
+    // A leading single @ that is not a pointer is text too.
+    const lone = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @lone\n0 TRLR\n');
+    expect(lone.nodes[0]?.children[1]?.value).toEqual({ kind: 'text', text: '@lone' });
   });
 
   test('keeps escape sequences in values', () => {

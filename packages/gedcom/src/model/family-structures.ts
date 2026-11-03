@@ -126,12 +126,22 @@ export type FamilyAttributeStructure =
  */
 interface FamilyEventBase<Tag extends string> extends GedcomStructureBase {
   tag: Tag;
-  /** {1:1} — `[Y|<NULL>]`: the optional `Y` payload asserting the event occurred (GEDCOM 7.0 §3.3.1). */
-  payload?: EventAssertion;
+  /** {1:1} — `[Y|<NULL>]`: the optional `Y` payload asserting the event occurred (GEDCOM 7.0 §3.3.1); a non-`Y` text payload of files in the wild is kept verbatim (the full-leniency container rule). */
+  payload?: EventAssertion | Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the event. */
   type?: Text;
   /** <<FAMILY_EVENT_DETAIL>> {0:1}. */
   detail?: FamilyEventDetail;
+  /**
+   * `_PREF Y` {0:1} — marks the preferred event of its kind (the
+   * preferred marriage among a person's several marriages). Written
+   * by Legacy Family Tree under FAM.MARR and FAM.EVEN — the same
+   * "_PREF = Indicates a Preferred spouse, child or parents" tag it
+   * writes under HUSB/WIFE/CHIL (see FamilyPartnerLink.preferred).
+   * Not part of any GEDCOM version. Recognized on input and written
+   * back as `_PREF Y` in both versions.
+   */
+  preferred?: boolean;
 }
 
 /** GEDCOM 7.0 §3.2.3 FAMILY_EVENT_STRUCTURE — g7:ANUL: annulment. GEDCOM 7.0 §3.3.1.2. */

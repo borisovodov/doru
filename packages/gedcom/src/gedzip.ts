@@ -79,9 +79,18 @@ export function parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive> {
       }
       fail('gedzip.invalid-archive', 'The input is not a valid zip archive');
     }
-    const datasetBytes = entries[GEDZIP_DATASET_ENTRY];
+    let datasetEntryName = GEDZIP_DATASET_ENTRY;
+    let datasetBytes = entries[GEDZIP_DATASET_ENTRY];
     if (datasetBytes === undefined) {
-      fail('gedzip.missing-dataset', `The archive has no ${GEDZIP_DATASET_ENTRY} entry`);
+      // A zip without the `gedcom.ged` entry: the first `.ged` entry is
+      // used instead (the full-leniency container rule — files in the
+      // wild bundle the dataset under another name).
+      const fallback = Object.keys(entries).find((name) => /\.ged$/i.test(name));
+      if (fallback === undefined) {
+        fail('gedzip.missing-dataset', `The archive has no ${GEDZIP_DATASET_ENTRY} entry`);
+      }
+      datasetEntryName = fallback as string;
+      datasetBytes = entries[fallback as string] as Uint8Array;
     }
     const dataset = parseAny(datasetBytes);
     if (!dataset.ok) {
@@ -89,7 +98,7 @@ export function parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive> {
     }
     const mediaFiles: GedzipMediaEntry[] = [];
     for (const [name, contents] of Object.entries(entries)) {
-      if (name === GEDZIP_DATASET_ENTRY || name.endsWith('/')) {
+      if (name === datasetEntryName || name.endsWith('/')) {
         continue;
       }
       mediaFiles.push({ name, contents });

@@ -12,6 +12,7 @@
  */
 
 import type {
+  GedcomError,
   ParseResult,
 } from '../errors';
 import {
@@ -71,13 +72,13 @@ function declaredEscapeRule(document: DecodedDocument): EscapeRule {
   return '5.5.1';
 }
 
-function parseGedcom(input: Uint8Array, version: '7.0' | '5.5.1'): GedcomDataset {
-  const decoded = decodeDocument(input, version);
+function parseGedcom(input: Uint8Array, version: '7.0' | '5.5.1', errors?: GedcomError[]): GedcomDataset {
+  const decoded = decodeDocument(input, version, errors);
   if (!decoded.ok) {
     throw decoded.error;
   }
-  const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value));
-  return parseDocument(raw);
+  const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value), errors);
+  return parseDocument(raw, errors);
 }
 
 /**
@@ -86,13 +87,13 @@ function parseGedcom(input: Uint8Array, version: '7.0' | '5.5.1'): GedcomDataset
  * decodeSniffed). The grammar behind it is the same import grammar as
  * everywhere else.
  */
-export function parseAny(input: Uint8Array): ParseResult<GedcomDataset> {
+export function parseAny(input: Uint8Array, errors?: GedcomError[]): ParseResult<GedcomDataset> {
   return run(() => {
-    const decoded = decodeSniffed(input);
+    const decoded = decodeSniffed(input, errors);
     if (!decoded.ok) {
       throw decoded.error;
     }
-    const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value));
-    return parseDocument(raw);
+    const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value), errors);
+    return parseDocument(raw, errors);
   });
 }

@@ -113,10 +113,18 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
     });
   });
 
-  test('a year-less date outside the Gregorian calendar is rejected', () => {
-    expect(err551([...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE @#DJULIAN@ 25 DEC', ...SUBM, '0 TRLR'].join('\n'))).toBe(
-      'date.invalid',
+  test('a year-less date outside the Gregorian calendar is kept as the date phrase', () => {
+    const result = parseGedcom551(
+      enc([...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE @#DJULIAN@ 25 DEC', ...SUBM, '0 TRLR'].join('\n')),
     );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const record = result.value.records.find((entry) => entry.tag === 'INDI');
+      expect((record as { events?: Array<{ detail?: { date?: unknown } }> }).events?.[0]?.detail?.date).toEqual({
+        value: { kind: 'unknown' },
+        phrase: '@#DJULIAN@ 25 DEC',
+      });
+    }
   });
 
   test('the full 5.5.5 media format set and OLE are all accepted (5.5.1 ∪ 5.5.5 sets)', () => {
@@ -189,7 +197,7 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
   test('GEDC.FORM.VERS is tolerated and discarded (GEDCOM 5.5.5 §1 p.49)', () => {
     const dataset = parse551([...HEADER555, ...SUBM, '0 TRLR'].join('\n'));
     expect(dataset.header.gedcom).not.toHaveProperty('formVersion');
-    // Two VERS under FORM is still a cardinality error.
+    // Two VERS under FORM keep the first occurrence.
     const doubled = [
       '0 HEAD',
       '1 SOUR DORU',
@@ -202,7 +210,7 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
       ...SUBM,
       '0 TRLR',
     ].join('\n');
-    expect(err551(doubled)).toBe('structure.cardinality');
+    expect(parseGedcom551(enc(doubled)).ok).toBe(true);
   });
 
   test('a 5.5.5 file needs no byte-order mark (5.5.1 container rules apply)', () => {

@@ -56,12 +56,12 @@ describe('GEDCOM 5.5EL header marker', () => {
     expect(dataset.header.gedcom.version).toBe('5.5.1 EL');
   });
 
-  test('unpublished 5.5 patch levels are still rejected', () => {
+  test('unpublished 5.5 patch levels parse under the 5.5.1 grammar', () => {
     const result = parseGedcom551(
       enc(['0 HEAD', '1 SOUR PAF', '1 GEDC', '2 VERS 5.5.9', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 TRLR'].join('\n')),
     );
-    expect(result.ok).toBe(false);
-    expect((result as { error: { code: string } }).error.code).toBe('document.wrong-version');
+    expect(result.ok).toBe(true);
+    expect(result.value?.header.gedcom.version).toBe('5.5.9');
   });
 });
 
@@ -198,15 +198,16 @@ describe('vendor contact and identifier additions', () => {
     expect(ser551(dataset)).toContain('1 _EMAIL a@@b.c');
   });
 
-  test('PAF INDI contacts parse (EMAIL typed, ADDR/PHON/FAX kept for 7.0)', () => {
+  test('PAF INDI contacts parse (EMAIL typed, ADDR typed into the record slot)', () => {
     const dataset = parseOk551([...HEADER551, '0 @I1@ INDI', '1 ADDR Main St', '2 CITY Town', '1 PHON 123', '1 EMAIL a@@b.c', ...SUBM, '0 TRLR'].join('\n'));
     const indi = dataset.records.find((r): r is IndividualRecord => r.tag === 'INDI');
     expect(indi?.email).toEqual(['a@b.c']);
-    // The INDI-level ADDR/PHON/FAX are non-underscore vendor positions:
-    // they have no conformant 5.5.1 spelling (user-defined tags must
-    // be underscore-prefixed), so the 5.5.1 writer drops them.
+    // The INDI-level ADDR types into IndividualRecord.address and is
+    // written back as the ADDR block in 5.5.1; 7.0 has no INDI address
+    // position and drops it. PHON has no INDI slot and stays generic.
     const text = ser551(dataset);
-    expect(text).not.toContain('1 ADDR Main St');
+    expect(text).toContain('1 ADDR Main St');
+    expect(text).toContain('2 CITY Town');
     expect(text).not.toContain('1 PHON 123');
     // The typed e-mail writes back as the _EMAIL spelling.
     expect(text).toContain('1 _EMAIL a@@b.c');

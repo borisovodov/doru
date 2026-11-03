@@ -53,8 +53,8 @@ export interface LdsOrdinanceDetail extends GedcomStructureBase {
 export interface OrdinanceStatusStructure extends GedcomStructureBase {
   /** The STAT payload, {1:1} Enum of g7:enumset-ord-STAT. */
   payload: OrdinanceStatusEnum;
-  /** DATE {1:1}, g7:DATE-exact. */
-  date: DateExactStructure;
+  /** DATE {0:1}, g7:DATE-exact. Missing DATE is tolerated (the full-leniency container rule). */
+  date?: DateExactStructure;
 }
 
 /** Base of the LDS individual ordinance structures of GEDCOM 7.0 §3.2.3. */
@@ -103,6 +103,21 @@ export type LdsIndividualOrdinance =
  */
 export interface SpouseSealingOrdinance extends GedcomStructureBase {
   tag: 'SLGS';
+  /** <<LDS_ORDINANCE_DETAIL>> {0:1}. */
+  detail?: LdsOrdinanceDetail;
+}
+
+/**
+ * The LDS child sealing under a FAM record (`1 SLGC` with the
+ * <<LDS_ORDINANCE_DETAIL>> — the child's sealing to the parents,
+ * written under the family record by exports in the wild instead of
+ * under the child's INDI; observed in the George Washington family
+ * tree files). Neither standard has the position (SLGC belongs to the
+ * individual). Recognized on input and written back as the SLGC
+ * block in both versions.
+ */
+export interface ChildSealingOrdinance extends GedcomStructureBase {
+  tag: 'SLGC';
   /** <<LDS_ORDINANCE_DETAIL>> {0:1}. */
   detail?: LdsOrdinanceDetail;
 }

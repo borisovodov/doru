@@ -310,12 +310,11 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
 export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
   const raw = formatDateExact(date.value, version);
   if (raw === undefined) {
-    // A BCE epoch on a DateExact (programmatic only: the parsers
-    // reject it) — the 5.5.1 DATE_EXACT grammar allows `B.C.` only on
-    // the year-only form, so the value is kept as the parenthesized
-    // 5.5.1 date phrase (lossless as text).
+    // A partial (year-only) or BCE-epoch DateExact: kept lossless as
+    // the parenthesized date text.
+    const parts = [date.value.day, date.value.month, date.value.year].filter((part) => part !== undefined);
     const epoch = date.value.epoch === undefined ? '' : date.value.epoch === 'BCE' ? ' B.C.' : ` ${date.value.epoch}`;
-    w.line(level, tag, { value: `(${date.value.day} ${date.value.month} ${date.value.year}${epoch})` });
+    w.line(level, tag, { value: `(${parts.join(' ')}${epoch})` });
     emitExtensions(w, version, level + 1, date);
     return;
   }
@@ -425,6 +424,32 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   }
   if (detail.cause !== undefined) {
     w.line(level, 'CAUS', { value: detail.cause });
+  }
+  if (version === '5.5.1' && detail.quality !== undefined) {
+    // The event's own reliability assessment (see EventDetail.quality);
+    // 7.0 has no QUAY anywhere.
+    w.line(level, 'QUAY', { value: detail.quality });
+  }
+  if (detail.changeDate !== undefined) {
+    // The change date attached to the event (see
+    // EventDetail.changeDate).
+    w.line(level, 'CHAN');
+    emitDateExact(w, version, level + 1, 'DATE', detail.changeDate.date, detail.changeDate.date.time);
+    for (const note of detail.changeDate.notes ?? []) {
+      emitNoteStructure(w, version, level + 1, note);
+    }
+    if (detail.changeDate.user !== undefined) {
+      w.line(level + 1, '_WT_USER', { value: detail.changeDate.user });
+    }
+    emitExtensions(w, version, level + 1, detail.changeDate);
+  }
+  if (detail.creationDate !== undefined && version === '7.0') {
+    // The creation date attached to the event (see
+    // EventDetail.creationDate); 5.5.1 drops it (like the
+    // record-level CREA).
+    w.line(level, 'CREA');
+    emitDateExact(w, version, level + 1, 'DATE', detail.creationDate.date, detail.creationDate.date.time);
+    emitExtensions(w, version, level + 1, detail.creationDate);
   }
   if (detail.sentence !== undefined) {
     // RootsMagic: the event sentence (report wording).
@@ -538,6 +563,10 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // EventDetail.createdAt).
     w.line(level, '_CREAT', { value: detail.createdAt });
   }
+  if (detail.fna !== undefined) {
+    // Heredis: the event flag (see EventDetail.fna).
+    w.line(level, '_FNA', { value: detail.fna ? 'Y' : 'N' });
+  }
   if (version === '5.5.1') {
     // The USM6 event marks; 7.0 cannot spell the tags. The 5.5.1
     // output uses the underscore spellings `_POTM`/`_SRCH`/`_NOTRY` —
@@ -552,6 +581,11 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     }
     if (detail.notary !== undefined) {
       w.line(level, '_NOTRY', { value: detail.notary });
+    }
+    if (detail.automatedRecordId !== undefined) {
+      // Ancestry.com Family Trees: the record-level RIN repeated under
+      // the event (see EventDetail.automatedRecordId). 7.0 has no RIN.
+      w.line(level, 'RIN', { value: detail.automatedRecordId });
     }
   }
   if (detail.factFlags !== undefined && detail.factFlags.length > 0) {
@@ -649,6 +683,35 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
       return;
     }
     w.line(level, tag, { value: citation.description });
+    if (citation.page !== undefined) {
+      // The page of the description-form citation (see
+      // SourceCitation.page).
+      w.line(level + 1, 'PAGE', { value: citation.page.payload });
+      emitExtensions(w, version, level + 2, citation.page);
+    }
+    if (citation.referenceNumber !== undefined) {
+      // A reference number of the citation itself (see
+      // SourceCitation.referenceNumber).
+      w.line(level + 1, 'REFN', { value: citation.referenceNumber });
+    }
+    if (citation.automatedRecordId !== undefined) {
+      // The citation's record id in the source system (see
+      // SourceCitation.automatedRecordId); 5.5.1-only branch.
+      w.line(level + 1, 'RIN', { value: citation.automatedRecordId });
+    }
+    if (citation.www !== undefined) {
+      // The web address of the cited material (see SourceCitation.www).
+      w.line(level + 1, 'WWW', { value: citation.www });
+    }
+    if (citation.wifePersonId !== undefined) {
+      w.line(level + 1, '_WPID', { value: citation.wifePersonId });
+    }
+    if (citation.husbandPersonId !== undefined) {
+      w.line(level + 1, '_HPID', { value: citation.husbandPersonId });
+    }
+    if (citation.footnote !== undefined) {
+      w.line(level + 1, '_FOOT', { value: citation.footnote });
+    }
     for (const text of citation.data?.texts ?? []) {
       w.line(level + 1, 'TEXT', { value: text.payload });
     }
@@ -717,6 +780,35 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   if (citation.reference !== undefined) {
     w.line(level + 1, '_CREF', { value: citation.reference });
   }
+  if (citation.referenceNumber !== undefined) {
+    // A reference number of the citation itself (see
+    // SourceCitation.referenceNumber).
+    w.line(level + 1, 'REFN', { value: citation.referenceNumber });
+  }
+  if (version === '5.5.1' && citation.automatedRecordId !== undefined) {
+    // The citation's record id in the source system (see
+    // SourceCitation.automatedRecordId); 7.0 has no RIN.
+    w.line(level + 1, 'RIN', { value: citation.automatedRecordId });
+  }
+  if (citation.www !== undefined) {
+    // The web address of the cited material, directly under the
+    // citation (see SourceCitation.www).
+    w.line(level + 1, 'WWW', { value: citation.www });
+  }
+  if (citation.wifePersonId !== undefined) {
+    // MyHeritage: the wife's person id under a marriage citation (see
+    // SourceCitation.wifePersonId).
+    w.line(level + 1, '_WPID', { value: citation.wifePersonId });
+  }
+  if (citation.husbandPersonId !== undefined) {
+    // MyHeritage: the husband's person id under a marriage citation
+    // (see SourceCitation.husbandPersonId).
+    w.line(level + 1, '_HPID', { value: citation.husbandPersonId });
+  }
+  if (citation.footnote !== undefined) {
+    // The footnote text of the citation (see SourceCitation.footnote).
+    w.line(level + 1, '_FOOT', { value: citation.footnote });
+  }
   for (const link of citation.links ?? []) {
     // FTM: an internet link associated with the source (see
     // SourceCitation.links).
@@ -728,6 +820,31 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
   }
   if (citation.verified === true) {
     w.line(level + 1, '_VERI', { value: 'Y' });
+  }
+  if (citation.confidence !== undefined) {
+    // The confidence level of the citation (see
+    // SourceCitation.confidence).
+    w.line(level + 1, '_CONF', { value: citation.confidence });
+  }
+  if (citation.name !== undefined) {
+    // The name of the cited source, under the citation (see
+    // SourceCitation.name).
+    w.line(level + 1, 'NAME', { value: citation.name });
+  }
+  if (citation.qualityAssessment !== undefined) {
+    // The MFT7 source-quality block under the citation (see
+    // SourceCitation.qualityAssessment).
+    w.line(level + 1, '_QUAL');
+    if (citation.qualityAssessment.source !== undefined) {
+      w.line(level + 2, '_SOUR', { value: citation.qualityAssessment.source });
+    }
+    if (citation.qualityAssessment.information !== undefined) {
+      w.line(level + 2, '_INFO', { value: citation.qualityAssessment.information });
+    }
+    if (citation.qualityAssessment.evidence !== undefined) {
+      w.line(level + 2, '_EVID', { value: citation.qualityAssessment.evidence });
+    }
+    emitExtensions(w, version, level + 2, citation.qualityAssessment);
   }
   if (citation.assessment !== undefined) {
     // FH7: the citation assessment options (see SourceCitation.assessment).
@@ -762,6 +879,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
           w.line(level + 3, 'LANG', { value: text.language });
         }
       }
+    }
+    if (citation.data.www !== undefined) {
+      // The web address of the cited material, under DATA (see
+      // SourceCitationData.www).
+      w.line(level + 2, 'WWW', { value: citation.data.www });
     }
   }
   if (citation.event !== undefined && !(version === '7.0' && citation.event.payload === undefined)) {
@@ -831,6 +953,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
 
 export function emitMultimediaLink(w: Writer, version: Version, level: number, link: MultimediaLink): void {
   ptr(w, version, level, 'OBJE', link.object);
+  for (const citation of link.citations ?? []) {
+    // A citation under the inline media link (see
+    // MultimediaLink.citations).
+    emitSourceCitation(w, version, level + 1, citation);
+  }
   if (link.primary === true) {
     w.line(level + 1, '_PRIM', { value: 'Y' });
   }
@@ -878,6 +1005,10 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
       if (link.crop.width !== undefined) {
         w.line(level + 2, 'WIDTH', { value: String(link.crop.width) });
       }
+      if (link.crop.type !== undefined) {
+        // The crop variant (see CropStructure.type).
+        w.line(level + 2, '_TYPE', { value: link.crop.type });
+      }
     }
     if (link.title !== undefined) {
       w.line(level + 1, 'TITL', { value: link.title });
@@ -885,33 +1016,71 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
     if (link.crop !== undefined) {
       emitExtensions(w, version, level + 2, link.crop);
     }
+  } else if (link.crop !== undefined) {
+    // 5.5.1 has no standard CROP under OBJE; the Ancestry.com Family
+    // Trees spelling is written back instead (the `_CROP` block with
+    // `_LEFT`/`_TOP`/`_WDTH`/`_HGHT` — the offset-plus-size form the
+    // parser reads into the same slots).
+    w.line(level + 1, '_CROP');
+    if (link.crop.left !== undefined) {
+      w.line(level + 2, '_LEFT', { value: String(link.crop.left) });
+    }
+    if (link.crop.top !== undefined) {
+      w.line(level + 2, '_TOP', { value: String(link.crop.top) });
+    }
+    if (link.crop.width !== undefined) {
+      w.line(level + 2, '_WDTH', { value: String(link.crop.width) });
+    }
+    if (link.crop.height !== undefined) {
+      w.line(level + 2, '_HGHT', { value: String(link.crop.height) });
+    }
+    if (link.crop.type !== undefined) {
+      // The crop variant (see CropStructure.type).
+      w.line(level + 2, '_TYPE', { value: link.crop.type });
+    }
+    emitExtensions(w, version, level + 2, link.crop);
   }
-  // 5.5.1 has no CROP/TITL under OBJE; dropped.
   emitExtensions(w, version, level + 1, link);
 }
 
 export function emitExtension(w: Writer, version: Version, level: number, ext: ExtensionStructure, top = true): void {
-  if (top && !ext.tag.startsWith('_')) {
-    // A non-underscore vendor extension accepted on input (see
-    // parsing/vendor-tags.ts) is not spelled by either target grammar:
-    // 7.0 §1.5 extension tags must be underscore-prefixed (extTag),
-    // and 5.5.1 reserves the underscore prefix for user-defined tags
-    // the same way. It is dropped on export in both versions. Nested
-    // children are exempt: their meaning is defined by the containing
-    // extension, which may use standard tags (GEDCOM 7.0 §1.5).
-    return;
+  // An iterative depth-first walk: deeply nested extension trees must
+  // not blow the JS stack (see parseExtension).
+  interface Frame {
+    ext: ExtensionStructure;
+    level: number;
+    top: boolean;
   }
-  const payload = ext.payload === undefined ? undefined : ext.payload;
-  // The cross-reference identifier: GEDCOM 7.0 §1.3 forbids one on a
-  // substructure ("A substructure or pseudo-structure must not have a
-  // cross-reference identifier"), so 7.0 output carries it only at
-  // record level (level 0); 5.5.1 files in the wild carry xrefs on
-  // vendor substructures, and the lenient 5.5.1 writer keeps them
-  // verbatim (see ExtensionStructure.xref).
-  const xref = version === '7.0' && level > 0 ? undefined : ext.xref;
-  w.line(level, ext.tag, { xref, value: payload, ...(ext.payloadKind === 'pointer' ? { pointer: true } : {}) });
-  for (const child of ext.children) {
-    emitExtension(w, version, level + 1, child, false);
+  const stack: Frame[] = [{ ext, level, top }];
+  while (stack.length > 0) {
+    const frame = stack.pop() as Frame;
+    const current = frame.ext;
+    if (frame.top && !current.tag.startsWith('_')) {
+      // A non-underscore vendor extension accepted on input (see
+      // parsing/vendor-tags.ts) is not spelled by either target grammar:
+      // 7.0 §1.5 extension tags must be underscore-prefixed (extTag),
+      // and 5.5.1 reserves the underscore prefix for user-defined tags
+      // the same way. It is dropped on export in both versions. Nested
+      // children are exempt: their meaning is defined by the containing
+      // extension, which may use standard tags (GEDCOM 7.0 §1.5).
+      continue;
+    }
+    const payload = current.payload === undefined ? undefined : current.payload;
+    // The cross-reference identifier: GEDCOM 7.0 §1.3 forbids one on a
+    // substructure ("A substructure or pseudo-structure must not have a
+    // cross-reference identifier"), so 7.0 output carries it only at
+    // record level (level 0); 5.5.1 files in the wild carry xrefs on
+    // vendor substructures, and the lenient 5.5.1 writer keeps them
+    // verbatim (see ExtensionStructure.xref).
+    const xref = version === '7.0' && frame.level > 0 ? undefined : current.xref;
+    w.line(frame.level, current.tag, {
+      xref,
+      value: payload,
+      ...(current.payloadKind === 'pointer' ? { pointer: true } : {}),
+    });
+    for (let i = current.children.length - 1; i >= 0; i--) {
+      stack.push({ ext: current.children[i] as ExtensionStructure, level: frame.level + 1, top: false });
+    }
   }
 }
 

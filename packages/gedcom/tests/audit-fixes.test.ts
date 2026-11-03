@@ -78,14 +78,22 @@ describe('the closed-list import fixes (webtrees registry)', () => {
     expect(lines(ser70(dataset))).toContain('1 REFN 42');
   });
 
-  test('BIRT:TIME (Pro-Gen) is accepted generically on 5.x input', () => {
+  test('BIRT:TIME (Pro-Gen) attaches to the event DATE', () => {
     const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 DATE 1 JAN 1900', '2 TIME 10:30', ...SUBM, '0 TRLR'].join('\n'));
     const person = indi(dataset);
     const birth = person.events?.find((entry) => entry.tag === 'BIRT');
     // The DATE parses; the BIRT-level TIME (Pro-Gen's position, beside
-    // DATE) is preserved as a generic extension of the event.
+    // DATE) attaches to the DATE.time slot (the standard position).
     expect(birth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', day: 1, month: 'JAN', year: 1900 });
-    expect(birth?.extensions).toContainEqual(expect.objectContaining({ tag: 'TIME', payload: '10:30' }));
+    expect(birth?.detail?.date?.time).toEqual({ hour: 10, minute: 30 });
+    expect(birth?.extensions).toBeUndefined();
+  });
+
+  test('a BIRT-level TIME without a parsed DATE stays a generic extension', () => {
+    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 TIME 10:30', ...SUBM, '0 TRLR'].join('\n'));
+    const person = indi(dataset);
+    const birth = person.events?.find((entry) => entry.tag === 'BIRT');
+    expect(birth?.detail?.extensions).toContainEqual(expect.objectContaining({ tag: 'TIME', payload: '10:30' }));
   });
 });
 

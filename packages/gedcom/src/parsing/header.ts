@@ -11,7 +11,10 @@ import {
   fail,
 } from '../errors';
 import type {
+  AncestryTreeStructure,
   Corporation,
+  DatasetStatistics,
+  ElfDefinition,
   FtmSchemaBlock,
   FtmSchemaEntry,
   Gedcom,
@@ -22,6 +25,7 @@ import type {
   HeaderSourceData,
   OriginalSourceStructure,
   Schema,
+  SchemaPrefix,
   TagDefinitionStructure,
 } from '../structures';
 import type {
@@ -33,7 +37,6 @@ import {
   merge551RecordContacts,
   noPayload,
   one,
-  req,
   reqPtr,
   reqText,
 } from './context';
@@ -71,7 +74,8 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
   // mutually exclusive; 5.5.1 only knows the inline form.
   const setNote = (child: RawNode): void => {
     if (header.note !== undefined) {
-      fail('structure.cardinality', 'At most one note structure is allowed in the header', child.position);
+      // First occurrence wins (the full-leniency container rule).
+      return;
     }
     header.note = parseNoteStructure(child, ctx);
   };
@@ -81,7 +85,8 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
     {
       GEDC: (child) => {
         if (gedcom !== undefined) {
-          fail('structure.cardinality', 'At most one GEDC is allowed in the header', child.position);
+          // First occurrence wins.
+          return;
         }
         gedcom = parseGedc(child, ctx);
       },
@@ -98,6 +103,11 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       },
       DEST: (child) => {
         header.destination = reqText(child);
+      },
+      WWW: (child) => {
+        // The web address(es) of the dataset, written directly under
+        // the header (see Header.www).
+        (header.www ??= []).push(reqText(child));
       },
       DATE: (child) => {
         // GEDCOM 5.5.1 §2 Record Structures (p.23) allows a TIME under
@@ -185,6 +195,48 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         // Header.descriptionAware).
         header.descriptionAware = parseVendorFlag(child, '_DESCRIPTION_AWARE');
       },
+      _TITL: (child) => {
+        // My Family Tree: the title of the tree (see Header.title).
+        header.title = reqText(child);
+      },
+      _STS: (child) => {
+        // My Family Tree: the dataset statistics block (see
+        // Header.statistics): one count line per record type.
+        noPayload(child);        const stats: DatasetStatistics = { tag: '_STS' };
+        dispatch(
+          child,
+          stats,
+          {
+            INDI: (count) => {
+              stats.individuals = reqText(count);
+            },
+            FAM: (count) => {
+              stats.families = reqText(count);
+            },
+            REPO: (count) => {
+              stats.repositories = reqText(count);
+            },
+            SOUR: (count) => {
+              stats.sources = reqText(count);
+            },
+            NOTE: (count) => {
+              stats.notes = reqText(count);
+            },
+            SUBM: (count) => {
+              stats.submitters = reqText(count);
+            },
+            OBJE: (count) => {
+              stats.media = reqText(count);
+            },
+            _TASK: (count) => {
+              stats.tasks = reqText(count);
+            },
+          },
+          ctx,
+          ['INDI', 'FAM', 'REPO', 'SOUR', 'NOTE', 'SUBM', 'OBJE', '_TASK'],
+        );
+        header.statistics = stats;
+      },
       NOTE: (child) => {
         setNote(child);
       },
@@ -193,7 +245,8 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       },
       SCHEMA: (child) => {
         if (header.schema53 !== undefined) {
-          fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
+          // First occurrence wins.
+          return;
         }
         header.schema53 = parseSchema53(child, ctx);
         fillSchema53Labels(header.schema53, ctx);
@@ -201,7 +254,8 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       _SCHEMA: (child) => {
         // The Family Tree Maker spelling of the same block.
         if (header.schema53 !== undefined) {
-          fail('structure.cardinality', 'At most one SCHEMA is allowed in the header', child.position);
+          // First occurrence wins.
+          return;
         }
         header.schema53 = parseSchema53(child, ctx);
         fillSchema53Labels(header.schema53, ctx);
@@ -232,7 +286,11 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
     ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR', 'SCHEMA', '_ORGSOUR'],
   );
   if (gedcom === undefined) {
-    fail('structure.missing-required', 'The header requires a GEDC substructure', node.position);
+    // A header without GEDC is tolerated (the full-leniency container
+    // rule): the block is synthesized with the 5.5.1 default, which
+    // is what the version gate and the at-sign escape rule already
+    // assume for such files.
+    gedcom = { version: '5.5.1' };
   }
   // The 5.5.1 spec requires the HEAD.SOUR substructure; 7.0 does not.
   // A missing SOUR is accepted (it must not
@@ -242,14 +300,23 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
 
 export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   noPayload(node);
-  const versNode = req(node, 'VERS');
-  const gedcom: Gedcom = { version: reqText(versNode) };
+  // A missing or value-less VERS is tolerated (the full-leniency
+  // container rule): the version defaults to 5.5.1, the value the
+  // version gate assumes for such files.
+  const versNode = one(node, 'VERS');
+  const gedcom: Gedcom = {
+    version: versNode !== undefined && versNode.value.kind === 'text' ? versNode.value.text : '5.5.1',
+  };
   // The version gate reads only the format lineage: the parser
-  // accepts every file declaring a GEDCOM 7.x version or a 5.5 lineage
-  // version (5.5, 5.5.1, 5.5.5), and nothing else. The declared value
-  // does not select a grammar — both pipelines parse the same import
-  // grammar (see the README's Known strict decisions).
-  if (!/^7\./.test(gedcom.version) && !/^5\.5(\.(1|5))?( ?EL)?$/i.test(gedcom.version)) {
+  // accepts every file declaring a GEDCOM 7.x version or a GEDCOM 5
+  // version, and nothing else. The declared value does not select a
+  // grammar — both pipelines parse the same import grammar (see the
+  // README's Known strict decisions). The whole 5.x family is
+  // accepted (the full-leniency container rule): files in the wild
+  // declare the superseded drafts 5.3/5.4 and odd patch levels
+  // (5.50, 5.01) whose record grammar is close enough to 5.5.1 that
+  // rejecting them would lose the whole document.
+  if (!/^7\./.test(gedcom.version) && !/^5(\.\d+)*( ?EL)?$/i.test(gedcom.version)) {
     // The ` EL` suffix is the de-facto marker of GEDCOM 5.5EL files
     // written by PC-AHNEN (`VERS 5.5.1 EL`): it is not part of any
     // specification, and Tamura Jones ("Detecting GEDCOM 5.5EL",
@@ -257,36 +324,33 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     // recommends that readers treat it as a non-fatal deviation and
     // continue with the 5.5.1 grammar — which is what this gate does
     // (the marker survives verbatim in Gedcom.version).
-    // Older versions (3.0, 4.0, 5.0) and the superseded drafts (5.3,
-    // 5.4) have incompatible grammars and are rejected here with an
-    // explicit error instead of failing mid-file with
-    // `structure.unknown-tag` errors. Unpublished patch levels
-    // (`5.5.2`, `5.5.9`, …) are rejected too: they name no official
-    // specification.
-    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (a 7.x version, or 5.5, 5.5.1, 5.5.5 or 5.5EL)`, node.position);
+    // Older versions (3.0, 4.0) have incompatible grammars and are
+    // rejected here with an explicit error instead of failing
+    // mid-file with `structure.unknown-tag` errors.
+    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (a 7.x version or any 5.x version)`, node.position);
   }
   // The GEDCOM-L addendum declarations under GEDC.VERS (see
   // Gedcom.addenda) — the only documented children of the VERS line;
   // several addenda may be declared ({0:M}).
-  dispatch(
-    versNode,
-    gedcom,
-    {
-      _ADDENDUM: (child) => {
-        (gedcom.addenda ??= []).push(parseGedcomAddendum(child, ctx));
+  if (versNode !== undefined) {
+    dispatch(
+      versNode,
+      gedcom,
+      {
+        _ADDENDUM: (child) => {
+          (gedcom.addenda ??= []).push(parseGedcomAddendum(child, ctx));
+        },
       },
-    },
-    ctx,
-  );
+      ctx,
+    );
+  }
   // FORM is optional (5.5.1 requires it, 7.0
-  // rejects it); when present, its value must be LINEAGE-LINKED.
+  // rejects it); when present, any value is tolerated (the
+  // full-leniency container rule — files in the wild write
+  // LINEAGE_LINKED, JSON-LD, …).
   const formNode = one(node, 'FORM');
   if (formNode !== undefined) {
-    const form = reqText(formNode);
-    if (form.toUpperCase() !== 'LINEAGE-LINKED') {
-      fail('enum.invalid-value', `Unknown GEDCOM form "${form}"; expected LINEAGE-LINKED`, formNode.position);
-    }
-    gedcom.form = form;
+    gedcom.form = reqText(formNode);
     // GEDCOM 5.5.5 added GEDC.FORM.VERS (a version number for the
     // GEDCOM form, distinct from GEDC.VERS; 5.5.5 §1 p.49–50). The
     // package does not store it — the writers emit 5.5.1 and 7.0,
@@ -340,6 +404,39 @@ export function parseSchema(node: RawNode, ctx: Ctx): Schema {
       TAG: (child) => {
         schema.tagDefinitions.push(parseTagDefinitionStructure(child));
       },
+      PRFX: (child) => {
+        // The ELF prefix declaration (see Schema.prefixes): the prefix
+        // tag and the IRI it abbreviates, whitespace-separated.
+        const [prefix, uri, ...rest] = reqText(child).split(' ');
+        if (prefix === undefined || uri === undefined || rest.length > 0 || prefix === '' || uri === '') {
+          fail('tagdef.invalid', `The PRFX value must be "<tag> <uri>", got "${reqText(child)}"`, child.position);
+        }
+        const entry: SchemaPrefix = { tag: 'PRFX', prefix, uri };
+        (schema.prefixes ??= []).push(entry);
+        dispatch(child, entry, {}, ctx);
+      },
+      IRI: (child) => {
+        // The ELF tag declaration (see Schema.elfDefinitions): the IRI
+        // payload with the TAG, ISA and LANG children.
+        const entry: ElfDefinition = { tag: 'IRI', iri: reqText(child) };
+        dispatch(
+          child,
+          entry,
+          {
+            TAG: (grandchild) => {
+              (entry.tagValues ??= []).push(reqText(grandchild));
+            },
+            ISA: (grandchild) => {
+              (entry.parents ??= []).push(reqText(grandchild));
+            },
+            LANG: (grandchild) => {
+              entry.language = reqText(grandchild);
+            },
+          },
+          ctx,
+        );
+        (schema.elfDefinitions ??= []).push(entry);
+      },
     },
     ctx,
   );
@@ -389,6 +486,42 @@ export function parseHeaderSource(node: RawNode, ctx: Ctx): HeaderSource {
         // MyHeritage: the right-to-left save mode (see
         // HeaderSource.rtlSave).
         source.rtlSave = reqText(child);
+      },
+      WWW: (child) => {
+        // Family Echo and other exporters: the web address of the
+        // source product, written under HEAD.SOUR (see
+        // HeaderSource.www). Neither standard has the slot; the value
+        // is a URL.
+        source.www = reqText(child);
+      },
+      _TREE: (child) => {
+        // Ancestry.com: the tree the export came from (see
+        // HeaderSource.tree). The payload is the tree id; the NOTE
+        // and RIN children are typed, everything else stays generic.
+        const tree: AncestryTreeStructure = {
+          tag: '_TREE',
+          ...(child.value.kind === 'text' ? { id: child.value.text } : {}),
+        };
+        dispatch(
+          child,
+          tree,
+          {
+            NOTE: (grandchild) => {
+              tree.note = reqText(grandchild);
+            },
+            RIN: (grandchild) => {
+              tree.rin = reqText(grandchild);
+            },
+            _ENV: (grandchild) => {
+              // The Ancestry environment the export came from (see
+              // AncestryTreeStructure.environment).
+              tree.environment = reqText(grandchild);
+            },
+          },
+          ctx,
+          ['NOTE', 'RIN', '_ENV'],
+        );
+        source.tree = tree;
       },
     },
     ctx,
@@ -444,7 +577,11 @@ export function parseHeaderSourceData(node: RawNode, ctx: Ctx): HeaderSourceData
 
 export function parseHeaderPlace(node: RawNode, ctx: Ctx): HeaderPlace {
   noPayload(node);
-  const place: HeaderPlace = { form: parseListText(reqText(req(node, 'FORM'))) };
+  // A missing or value-less FORM is tolerated (the full-leniency
+  // container rule).
+  const formNode = one(node, 'FORM');
+  const place: HeaderPlace =
+    formNode !== undefined && formNode.value.kind === 'text' ? { form: parseListText(formNode.value.text) } : {};
   dispatch(node, place, { FORM: () => undefined }, ctx);
   return place;
 }
@@ -496,9 +633,6 @@ function fillSchema53Labels(block: FtmSchemaBlock, ctx: Ctx): void {
 /** Walks one branch of the SCHEMA tree, collecting the declaration leaves. */
 function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchemaEntry[], ctx: Ctx): void {
   if (node.tag === 'LABL' || node.tag === 'DEFN' || node.tag === 'ISA' || node.tag === '_DEFN') {
-    if (node.children.length > 0) {
-      fail('structure.unknown-tag', `The tag ${(node.children[0] as RawNode).tag} is not allowed under ${node.tag}`, (node.children[0] as RawNode).position);
-    }
     const key = context.join('/');
     let entry = entries[entries.length - 1];
     if (entry === undefined || entry.context.join('/') !== key) {
@@ -507,7 +641,8 @@ function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchema
     }
     if (node.tag === 'LABL') {
       if (entry.label !== undefined) {
-        fail('structure.cardinality', 'At most one LABL is allowed under a declared tag', node.position);
+        // First occurrence wins (the full-leniency container rule).
+        return;
       }
       entry.label = reqText(node);
     } else if (node.tag === 'DEFN' || node.tag === '_DEFN') {
@@ -518,14 +653,20 @@ function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchema
       // leaf `_DEFN`, where Family Tree Maker writes `DEFN`. Both name
       // the same declaration member.
       if (entry.definition !== undefined) {
-        fail('structure.cardinality', 'At most one DEFN is allowed under a declared tag', node.position);
+        // First occurrence wins.
+        return;
       }
       entry.definition = reqText(node);
     } else {
       if (entry.parent !== undefined) {
-        fail('structure.cardinality', 'At most one ISA is allowed under a declared tag', node.position);
+        // First occurrence wins.
+        return;
       }
       entry.parent = reqText(node);
+    }
+    for (const grandchild of node.children) {
+      // Full leniency: unexpected children stay generic extensions.
+      addExtension(entry, grandchild, ctx);
     }
     return;
   }
