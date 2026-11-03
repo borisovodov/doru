@@ -1179,3 +1179,180 @@ describe('the MFT _CRE blocks, FAM SLGC and APPT', () => {
     expect(parseOk551(serialized)).toEqual(dataset);
   });
 });
+
+describe('the data clusters of the remainder sweep', () => {
+  test('RELATION/ISDEAD/_PHOTO/_WLNK/PHON under records type', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 ISDEAD Y',
+        '1 PHON 336-874-7241',
+        '1 _PHOTO @M1@',
+        '1 _WLNK',
+        '2 TITL Birth records, search Kolovec',
+        '2 NOTE http://www.portafontium.eu/searching',
+        '0 @F1@ FAM',
+        '1 RELATION Marriage',
+        '0 @M1@ OBJE',
+        '1 FILE',
+        '2 FORM jpg',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    const fam = dataset.records.find((r) => r.tag === 'FAM');
+    if (indi?.tag !== 'INDI' || fam?.tag !== 'FAM') {
+      throw new Error('expected records');
+    }
+    expect(indi.deceased).toBe(true);
+    expect(indi.phone).toEqual(['336-874-7241']);
+    expect(indi.media?.[0]?.object).toBe('@M1@');
+    expect(indi.webLinks?.[0]).toMatchObject({ tag: '_WLNK', title: 'Birth records, search Kolovec', url: 'http://www.portafontium.eu/searching' });
+    expect(fam.unionStatus).toBe('Marriage');
+    const serialized = ser551(dataset);
+    expect(serialized).toContain('1 ISDEAD Y');
+    expect(serialized).toContain('1 PHON 336-874-7241');
+    expect(serialized).toContain('1 _WLNK');
+    expect(serialized).toContain('2 NOTE http://www.portafontium.eu/searching');
+    expect(parseOk551(serialized)).toEqual(dataset);
+  });
+
+  test('_XREF under PLAC and _PATN under NAME type', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '2 _PATN Ivanovich',
+        '1 BIRT',
+        '2 PLAC Vicarage Rd, Camberwell',
+        '3 _XREF @P14@',
+        '0 @P14@ PLAC',
+        '1 NAME Camberwell',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.names?.[0]?.patronymic).toBe('Ivanovich');
+    expect(indi.events?.[0]?.detail?.place?.placeCard).toBe('@P14@');
+    const serialized = ser551(dataset);
+    expect(serialized).toContain('2 _PATN Ivanovich');
+    expect(serialized).toContain('3 _XREF @P14@');
+    // The generic `0 @P14@ PLAC` card is dropped on export (the
+    // non-underscore extension-record rule), so no full-equality
+    // round-trip here; the typed fields survive.
+    const reparsed = parseOk551(serialized);
+    const indi2 = reparsed.records.find((r) => r.tag === 'INDI');
+    expect(indi2?.events?.[0]?.detail?.place?.placeCard).toBe('@P14@');
+  });
+
+  test('_COR under an event types into the event map', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 BIRT',
+        '2 _COR',
+        '3 _LAD 41',
+        '3 _LAM 38',
+        '3 _LAS 26',
+        '3 _LAN N',
+        '3 _LOD 4',
+        '3 _LOM 51',
+        '3 _LOS 24',
+        '3 _LON E',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.events?.[0]?.detail?.map?.latitude.direction).toBe('N');
+    expect(indi.events?.[0]?.detail?.map?.longitude.direction).toBe('E');
+    const serialized = ser551(dataset);
+    expect(serialized).toContain('2 MAP');
+    expect(serialized).toContain('3 LATI N41.64055555555556');
+    expect(parseOk551(serialized)).toEqual(dataset);
+  });
+
+  test('the error leniencies: TYPE other, QUAY 4, SEX long, bare SOUR, pointer text', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 SEX Male',
+        '1 BIRT',
+        '2 QUAY 4',
+        '2 SOUR',
+        '3 PAGE NSW Registry of Births',
+        '0 @M1@ OBJE',
+        '1 FILE',
+        '2 FORM jpg',
+        '3 TYPE image',
+        '2 TITL @R5@',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    const obje = dataset.records.find((r) => r.tag === 'OBJE');
+    if (indi?.tag !== 'INDI' || obje?.tag !== 'OBJE') {
+      throw new Error('expected records');
+    }
+    expect(indi.sex).toBe('M');
+    expect(indi.events?.[0]?.detail?.quality).toBe('4');
+    // The bare SOUR is kept as an empty description with its PAGE.
+    expect(indi.events?.[0]?.detail?.citations?.[0]?.description).toBe('');
+    expect(indi.events?.[0]?.detail?.citations?.[0]?.page?.payload).toBe('NSW Registry of Births');
+    // TYPE image becomes OTHER + phrase.
+    expect(obje.files?.[0]?.form?.medium?.payload).toBe('OTHER');
+    expect(obje.files?.[0]?.form?.medium?.phrase).toBe('image');
+    // TITL with a pointer keeps the pointer string.
+    expect(obje.files?.[0]?.title).toBe('@R5@');
+    const serialized = ser551(dataset);
+    expect(parseOk551(serialized)).toEqual(dataset);
+  });
+});
+
+describe('_TEXT under FILE and _COR under the place card', () => {
+  test('_TEXT under the FILE line types into the file text', () => {
+    const dataset = parseOk551(
+      [HEAD551, '0 @M3@ OBJE', '1 FILE C:\\FTM\\US_Presidents_20', '2 FORM bmp', '2 _TEXT Year: 1880; Census Place: District 14', '0 TRLR', ''].join('\n'),
+    );
+    const obje = dataset.records.find((r) => r.tag === 'OBJE');
+    if (obje?.tag !== 'OBJE') {
+      throw new Error('expected OBJE');
+    }
+    expect(obje.files?.[0]?.text).toBe('Year: 1880; Census Place: District 14');
+    const serialized = ser551(dataset);
+    expect(serialized).toContain('2 _TEXT Year: 1880; Census Place: District 14');
+    expect(parseOk551(serialized)).toEqual(dataset);
+  });
+
+  test('_COR under a _PLAC card types into the card map', () => {
+    const dataset = parseOk551(
+      [HEAD551, '0 @P1@ _PLAC Somewhere', '1 _COR', '2 _LAD 41', '2 _LAM 38', '2 _LAS 26', '2 _LAN N', '2 _LOD 4', '2 _LOM 51', '2 _LOS 24', '2 _LON E', '0 TRLR', ''].join('\n'),
+    );
+    const plc = dataset.records.find((r) => r.tag === '_PLAC');
+    if (plc?.tag !== '_PLAC') {
+      throw new Error('expected _PLAC');
+    }
+    expect(plc.map?.latitude.direction).toBe('N');
+    expect(plc.map?.longitude.direction).toBe('E');
+    // The 5.5.1 projection flattens the card into the referencing
+    // PLAC payloads; an unreferenced card is dropped entirely.
+    const serialized = ser551(dataset);
+    expect(serialized).not.toContain('@P1@');
+  });
+});

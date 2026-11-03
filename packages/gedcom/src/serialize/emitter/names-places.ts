@@ -68,6 +68,10 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
   if (file.title !== undefined) {
     w.line(level + 1, 'TITL', { value: file.title });
   }
+  if (file.text !== undefined) {
+    // FTM: the file's transcription text (see MediaFile.text).
+    w.line(level + 1, '_TEXT', { value: file.text });
+  }
   if (file.contentType !== undefined) {
     // Ahnenblatt: the content type of the picture (see
     // MediaFile.contentType). Written back under the FILE line in both
@@ -121,6 +125,10 @@ export function emitMediaFormat(w: Writer, version: Version, level: number, form
       const medium = medi551(w, version, format.medium.payload);
       if (medium !== undefined) {
         w.line(level + 1, 'TYPE', { value: medium });
+      } else if (format.medium.phrase !== undefined) {
+        // 5.5.1 cannot spell OTHER; the phrase is the vendor's own
+        // value (`TYPE image`), written back so nothing is lost.
+        w.line(level + 1, 'TYPE', { value: format.medium.phrase });
       }
     }
   }
@@ -206,6 +214,11 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // ged4web: the middle name under NAME (see
     // PersonalNameStructure.middleName).
     w.line(level + 1, '_MIDN', { value: name.middleName });
+  }
+  if (name.patronymic !== undefined) {
+    // The patronymic under NAME (see
+    // PersonalNameStructure.patronymic).
+    w.line(level + 1, '_PATN', { value: name.patronymic });
   }
   if (name.creationDate !== undefined) {
     // MFT7: the name entry's creation date (see
@@ -591,6 +604,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     // The Swarm family-tree packs: the place's id (see
     // PlaceStructure.placeId).
     w.line(level + 1, '_PID', { value: place.placeId });
+  }
+  if (place.placeCard !== undefined) {
+    // GenoPro: a pointer to the place's card record (see
+    // PlaceStructure.placeCard) — kept verbatim, unresolved.
+    w.line(level + 1, '_XREF', { value: place.placeCard, pointer: place.placeCard.startsWith('@') });
   }
   if (place.location !== undefined) {
     // The GEDCOM-L card survived the prepare projection; the pointer

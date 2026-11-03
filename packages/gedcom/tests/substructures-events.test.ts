@@ -422,10 +422,10 @@ describe('source citations and media links', () => {
     expect(rec.events?.[0]?.detail?.citations?.[1]?.data?.texts?.[0]?.payload).toBe('the transcript');
   });
 
-  test('5.5.1 bare SOUR citation line is skipped', () => {
+  test('5.5.1 bare SOUR citation line is kept as an empty description', () => {
     const dataset = parse551(indi551(['1 BIRT', '2 SOUR']));
     const rec = dataset.records[0] as { events?: Array<{ detail?: { citations?: unknown[] } }> };
-    expect(rec.events?.[0]?.detail?.citations).toEqual([]);
+    expect(rec.events?.[0]?.detail?.citations).toEqual([{ tag: 'SOUR', source: '@VOID@', description: '' }]);
   });
 
   test('5.5.1 inline OBJE synthesizes a record; unknown children become extensions', () => {
@@ -817,10 +817,13 @@ describe('family and individual records', () => {
 });
 
 describe('payload readers and document structure', () => {
-  test('reqText skips pointer values', () => {
+  test('reqText coerces pointer values to text', () => {
     const dataset = parse70(indi70(['0 @I2@ INDI', '1 NAME X', '1 NAME @I2@']));
     const rec = dataset.records[1] as { names?: Array<{ tag: string; payload: unknown }> };
-    expect(rec.names).toEqual([{ tag: 'NAME', payload: { given: 'X' } }]);
+    expect(rec.names).toEqual([
+      { tag: 'NAME', payload: { given: 'X' } },
+      { tag: 'NAME', payload: { given: '@I2@' } },
+    ]);
   });
 
   test('a bare-identifier pointer whose target is missing is dropped', () => {

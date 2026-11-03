@@ -819,8 +819,16 @@ would be, or where the model takes a documented position:
     /* … */`) parses as the pointer and drops the comment; a dangling
     pointer link is dropped (the tolerant parse records
     `document.xref-not-found`); the Geni.com bare-identifier
-    dialect (`0 I1234 INDI`, `1 FAMC F123`) is normalized to the
-    standard spellings.
+    dialect (`0 I1234 INDI`, `1 FAMC F123`, bare numeric ids like
+    `1 CHIL 0517745826`) is normalized to the standard spellings.
+  - A line whose required payload is absent — or a pointer in a text
+    slot (`1 TITL @R5@`) — is retried with the value coerced to text:
+    the line is kept with an empty payload (or the pointer string)
+    and its substructures survive; pointer slots with no value are
+    dropped. An unknown medium value (`TYPE image`, `TYPE story`,
+    `MEDI Article`) becomes OTHER with the phrase; the sex accepts
+    the long spellings Male/Female/MALE/FEMALE; the quality accepts
+    the non-standard `4`.
   - Value leniencies: a non-`Y` text payload on an event line is kept
     verbatim (and a stray value on a no-payload line is dropped, the
     line parses without it); a text payload on a SOUR/REPO record line

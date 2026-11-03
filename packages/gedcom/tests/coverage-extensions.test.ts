@@ -204,11 +204,11 @@ describe('vendor contact and identifier additions', () => {
     expect(indi?.email).toEqual(['a@b.c']);
     // The INDI-level ADDR types into IndividualRecord.address and is
     // written back as the ADDR block in 5.5.1; 7.0 has no INDI address
-    // position and drops it. PHON has no INDI slot and stays generic.
+    // position and drops it. PHON types into the phone slot.
     const text = ser551(dataset);
     expect(text).toContain('1 ADDR Main St');
     expect(text).toContain('2 CITY Town');
-    expect(text).not.toContain('1 PHON 123');
+    expect(text).toContain('1 PHON 123');
     // The typed e-mail writes back as the _EMAIL spelling.
     expect(text).toContain('1 _EMAIL a@@b.c');
   });

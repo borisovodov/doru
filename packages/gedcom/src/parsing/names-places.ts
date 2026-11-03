@@ -11,6 +11,7 @@ import {
   fail,
 } from '../errors';
 import type {
+  GedcomStructureBase,
   MapCoordinates,
   NameTranslation,
   NameTypeStructure,
@@ -118,7 +119,7 @@ export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode, 
     // Full leniency: unexpected children stay generic extensions.
     addExtension(out, grandchild, ctx);
   }
-  const parts = reqText(child).split(',').map((part) => part.trim());
+  const parts = reqText(child).split(',').map((part) => part.trim()).filter((part) => part !== '');
   switch (tag) {
     case 'NPFX':
       out.namePrefixes = [...(out.namePrefixes ?? []), ...parts];
@@ -165,6 +166,11 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // ged4web: the middle name under NAME (see
       // PersonalNameStructure.middleName).
       out.middleName = reqText(child);
+    },
+    '_PATN': (child) => {
+      // The patronymic under NAME (see
+      // PersonalNameStructure.patronymic).
+      out.patronymic = reqText(child);
     },
     CREA: (child) => {
       // MFT7: the name entry's creation date (see
@@ -500,6 +506,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // PlaceStructure.placeId).
       out.placeId = reqText(child);
     },
+    '_XREF': (child) => {
+      // GenoPro: a pointer to the place's card record (see
+      // PlaceStructure.placeCard) — kept verbatim, unresolved.
+      out.placeCard = child.value.kind === 'pointer' ? child.value.pointer : reqText(child);
+    },
     '_COR': (child) => {
       // MFT7: the place coordinates, split into degrees/minutes/seconds
       // plus the direction: _LAD/_LAM/_LAS/_LAN for the latitude,
@@ -616,7 +627,7 @@ export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
  * MAP/LATI/LONG (the GenWiki "GEDCOM/_Nutzerdef-Tag" table notes the
  * equivalent: "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG").
  */
-export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: PlaceStructure): MapCoordinates {
+export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStructureBase): MapCoordinates {
   noPayload(node);
   const read = (
     degreesTag: string,

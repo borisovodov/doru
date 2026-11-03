@@ -26,7 +26,7 @@ import type { MultimediaLink } from './sources-media';
 import type { NoteRecord } from './records';
 import type { SharedNoteRecord } from './records';
 import type { SourceCitation } from './sources-media';
-import type { PlaceStructure } from './names-places';
+import type { MapCoordinates, PlaceStructure } from './names-places';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.3 Substructures — address, dates, identifiers, notes
@@ -435,6 +435,16 @@ export interface EventDetail extends GedcomStructureBase {
    * `_FNA N` in both versions.
    */
   fna?: boolean;
+  /**
+   * `_COR` {0:1} — the event's coordinates, written with the MFT7
+   * coordinate block (`2 _COR` with the `_LAD`/`_LAM`/`_LAS`/
+   * `_LOD`/`_LOM`/`_LOS`/`_LON` DMS children) directly under the
+   * event, beside or instead of a PLAC (the standard position is
+   * under PLAC — see PlaceStructure.map). Recognized on input and
+   * written back as the standard MAP/LATI/LONG under the event in
+   * both versions.
+   */
+  map?: MapCoordinates;
   /**
    * QUAY {0:1} — the event's own reliability assessment, written with
    * the standard QUAY tag directly under the event (Brother's Keeper

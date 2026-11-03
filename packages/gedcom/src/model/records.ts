@@ -355,8 +355,11 @@ export interface FamilyRecord extends GedcomStructureBase {
    * COHABITATION, ENGAGEMENT, UNKNOWN — observed in Heredis exports,
    * e.g. the corpus file "Dudouyt Heredis 2014-Export.ged", HEAD.SOUR
    * "Heredis MAC2021"; kept verbatim, the value set is not documented
-   * by the vendor). Not part of any GEDCOM version. Recognized on
-   * input and written back as `_UST` in both versions.
+   * by the vendor). GenoPro's `RELATION` under FAM carries the same
+   * fact (Marriage, Divorce, CommittedRelationship, SeparationLegal,
+   * Widowed, …) and normalizes into this slot. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_UST` in both
+   * versions.
    */
   unionStatus?: Text;
   /**
@@ -775,6 +778,37 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   email?: Text[];
   /**
+   * PHON {0:M} — the individual's phone numbers, written directly
+   * under the INDI record (PAF and the ged4web exports; the standard
+   * positions are the event/address contacts). Not part of any GEDCOM
+   * version. Recognized on input and written back as `PHON` in both
+   * versions.
+   */
+  phone?: Text[];
+  /**
+   * FAX {0:M} — the individual's fax numbers, written directly under
+   * the INDI record (PAF; see `phone`). Not part of any GEDCOM
+   * version. Recognized on input and written back as `FAX` in both
+   * versions.
+   */
+  fax?: Text[];
+  /**
+   * ISDEAD {0:1} — the person's vital flag (Y/N): the GenoPro trees
+   * assert the person is dead without a DEAT event (observed in the
+   * linguatree family tree, HEAD.SOUR "GenoPro"). Not part of any
+   * GEDCOM version. Recognized on input and written back as
+   * `ISDEAD Y`/`ISDEAD N` in both versions.
+   */
+  deceased?: boolean;
+  /**
+   * `_WLNK {0:M}` — an external web link attached to the person: the
+   * TITL description and the NOTE payload carrying the URL (observed
+   * in the Ancestry-family exports, e.g. nextjs-genealogy's
+   * data_family.ged). Not part of any GEDCOM version. Recognized on
+   * input and written back as the `_WLNK` block in both versions.
+   */
+  webLinks?: WebLinkStructure[];
+  /**
    * _TODO {0:M} — research tasks attached to the individual: the
    * GenoPro / RootsMagic / Ahnenblatt to-do structure with the
    * sub-tags DESC, PRTY, STAT, DATE and NOTE (see TodoStructure; the
@@ -1136,6 +1170,19 @@ export interface AliasLink extends GedcomStructureBase {
 }
 
 /**
+ * The `_WLNK` web-link block under an INDI record (see
+ * IndividualRecord.webLinks): the TITL description and the NOTE
+ * payload carrying the URL.
+ */
+export interface WebLinkStructure extends GedcomStructureBase {
+  tag: '_WLNK';
+  /** TITL {0:1} — the link's description. */
+  title?: Text;
+  /** NOTE {0:1} — the link's URL, carried as the NOTE payload. */
+  url?: Text;
+}
+
+/**
  * The Ancestry.com Family Trees media clone block: `_CLON {0:M}` under
  * the OBJE record, one per clone of the media object (the same object
  * linked from another tree or person). The wire format is
@@ -1448,6 +1495,13 @@ export interface MediaFile extends GedcomStructureBase {  /** The FILE payload, 
   form?: MediaFormatStructure;
   /** TITL {0:1}, g7:TITL — a title of the file. */
   title?: Text;
+  /**
+   * `_TEXT`/TEXT {0:1} — the file's transcription text (the FTM
+   * embedded-media shape writes it under the FILE line). Neither
+   * standard has the slot. Recognized on input and written back as
+   * `_TEXT` under the FILE line in both versions.
+   */
+  text?: Text;
   /**
    * _CTYP {0:1} — the content type of the picture (person, group,
    * place, signature, tombstone, document, heirloom). Written by

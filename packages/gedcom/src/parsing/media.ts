@@ -133,6 +133,16 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // the standard NOTE shape.
       (rec.notes ??= []).push(parseNoteStructure({ ...child, tag: 'NOTE' }, ctx));
     },
+    '_TEXT': (child) => {
+      // The ged4web exports write the media object's comment text
+      // with the TEXT tag under the OBJE record — the same slot the
+      // FH `_NOTE` carries (see MultimediaRecord.mediaNote).
+      rec.mediaNote = reqText(child);
+    },
+    TEXT: (child) => {
+      // The standard spelling of the media comment text.
+      rec.mediaNote = reqText(child);
+    },
     '_CREA': (child) => {
       // Ancestry.com Family Trees: the date the media object was
       // created (see MultimediaRecord.createdAt).
@@ -404,6 +414,15 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
       TITL: (child) => {
         file.title = reqText(child);
       },
+      '_TEXT': (child) => {
+        // FTM: the file's transcription text under the FILE line (the
+        // embedded-media shape; see MediaFile.text).
+        file.text = reqText(child);
+      },
+      TEXT: (child) => {
+        // The standard spelling of the file's transcription text.
+        file.text = reqText(child);
+      },
       _CTYP: (child) => {
         // Ahnenblatt: the content type of the picture (person, group,
         // place, signature, tombstone, document, heirloom; see
@@ -486,7 +505,15 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
 }
 
 export function parseMediaStructure(node: RawNode, ctx: Ctx): MediaStructure {
-  const out: MediaStructure = { payload: parseEnum(reqText(node), MEDIA_ENUM_VALUES, node.position) };
+  const raw = reqText(node);
+  // The lenient medium: a value outside the MEDI enum (files in the
+  // wild write `TYPE image`, `TYPE story`, `MEDI Article`, …) is kept
+  // as OTHER with the phrase (the full-leniency container rule —
+  // nothing is dropped).
+  const known = (Object.keys(MEDIA_ENUM_VALUES) as string[]).some((key) => key.toUpperCase() === raw.toUpperCase());
+  const out: MediaStructure = known
+    ? { payload: parseEnum(raw, MEDIA_ENUM_VALUES, node.position) }
+    : { payload: 'OTHER', phrase: raw };
   dispatch(
     node,
     out,

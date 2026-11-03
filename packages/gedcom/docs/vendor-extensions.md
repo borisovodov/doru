@@ -712,6 +712,37 @@ its JSDoc.
 | `SLGC` under FAM and under FAM.CHIL | exports in the wild (the George Washington family trees) | The child's LDS sealing to the parents, written under the family record or the child link instead of the child's INDI | `FamilyRecord.childSealings` / `FamilyChildLink.sealings` (ChildSealingOrdinance) |
 | `APPT` under INDI | the GSMD Mayflower Society trees | A (supplemental) membership application, with the DATE and the "Supplemental - …" PLAC | `EVEN` + TYPE "Application" |
 | `_PLACE` as the name child of a `_PLC` record | GEDKeeper (the Windsor dialect) | The place name spelled `_PLACE` instead of NAME | the same `PlaceRecord.names` entry the NAME child carries |
+| `RELATION` under FAM | GenoPro | The kind of the union (Marriage, Divorce, CommittedRelationship, SeparationLegal, Widowed, …) | `FamilyRecord.unionStatus` (the same slot Heredis' `_UST` carries; written back as `_UST`) |
+| `ISDEAD Y/N` under INDI | GenoPro | The person's vital flag — dead without a DEAT event | `IndividualRecord.deceased` (written back as `ISDEAD Y`/`ISDEAD N`) |
+| `_XREF @place@` under PLAC | GenoPro | A pointer to the place's card record — the `_XREF` spelling of the `_LOC` place link | `PlaceStructure.placeCard` |
+| `_PHOTO @M…@` under INDI | MyHeritage | A pointer to the person's photo record | `IndividualRecord.media` (the standard media link) |
+| `PHON` under INDI | PAF and the ged4web exports | The individual's phone number directly under the record | `IndividualRecord.phone` (written back as `PHON`) |
+| `_PATN` under NAME | Russian/Ukrainian trees | The patronymic, written as its own line under NAME | `PersonalNameStructure.patronymic` |
+| `_TEXT`/`TEXT` under the OBJE record | ged4web exports | The media object's comment text — the same slot the FH `_NOTE` carries | `MultimediaRecord.mediaNote` (written back as `_NOTE`) |
+| `_WLNK` under INDI | Ancestry-family exports | A web-link block: the TITL description and the NOTE payload carrying the URL | `IndividualRecord.webLinks` (WebLinkStructure) |
+| `_COR` under events | MFT7 | The event's coordinates, written with the DMS block directly under the event (beside or instead of a PLAC) | `EventDetail.map` (written back as the standard MAP/LATI/LONG) |
+| `_COR` under the place card | MFT7 | The place card's coordinates at the record level | `PlaceRecord.map` |
+| `_TEXT` under the FILE line | FTM | The file's transcription text (the embedded-media shape) | `MediaFile.text` (written back as `_TEXT` under the FILE line) |
+| `FAX` under INDI | PAF | The individual's fax number directly under the record | `IndividualRecord.fax` |
+
+### Leniencies of the error sweep
+
+- **The bare-line retry.** A line whose required payload is absent —
+  or a pointer in a text slot (`1 TITL @R5@`) — is retried with the
+  value coerced to text: the line is kept with an empty payload (or
+  the pointer string) and its substructures survive; pointer slots
+  with no value are dropped. The deviation stays recorded in the
+  tolerant diagnostics.
+- **The medium leniency.** A value outside the MEDI enum (`TYPE
+  image`, `TYPE story`, `MEDI Article`, `MEDI "Document agrafé"`)
+  becomes OTHER with the phrase; 5.5.1 writes the phrase back as the
+  TYPE value.
+- **The sex leniency.** The long spellings Male/MALE/Female/FEMALE
+  normalize into the standard M/F letters.
+- **The quality leniency.** The non-standard `QUAY 4` (GEDBAS) is
+  accepted as a fourth assessment level.
+- **Bare numeric pointers.** The Geni bare-identifier rule extends to
+  digit ids (`1 CHIL 0517745826` wraps into `@0517745826@`).
 
 ### Container leniencies of the 2026-11 sweep
 
@@ -770,7 +801,10 @@ which is expected:
 | --- | --- | --- |
 | `_STE`, `_STF`, `_ACT`, `_ORD`, `_LCS`, `_SCS`, `_FOM` (and the `_PTE`/`_PTF`/`_VCS`/`_NCS` variant) | Synium MacFamilyTree exports (6 corpus copies of the same format: Nushi-Genealogy.ged, Hilligsoe.ged, the Franz Schubert export pair, the spindler sample, the Sidam31 test file — HEAD.SOUR "SyniumFamilyTree") | nested statement/fact blocks of one private export format (thousands of occurrences each — the files' whole structure) |
 | `PEDIGREELINK` records with `FAMILY`/`INDIVIDUAL`/`POSITION`/`DISPLAY`/`BOUNDARYRECT` children | GenoPro exports (the linguatree family tree, HEAD.SOUR "GenoPro") | the tree-layout record of the program: pedigree display positions, boundary rectangles and display options — pure layout state, no genealogical content |
+| `LEFT`/`RIGHT`/`TOP`/`BOTTOM`/`FILL`/`SIZE`/`WIDTH`/`HEIGHT`/`ALIGNMENT`/`VERTICAL`/`HORIZONTAL`/`BORDER`/`COLOR`/`COLORS`/`OUTLINE`/`POINTS`/`PADDING`/`LINES` | GenoPro exports | the geometry and colors of the layout blocks (the `POSITION`/`DISPLAY` rectangles and labels) — display state |
 | `_POSITION <x> <y> <w> <h>` under OBJE, `ZOOM`/`PLEV` under `_PLAC.MAP` | various exporters | the media-object layout coordinates and the map zoom/level — display state |
+| `_PPEXCLUDE` under INDI | report-oriented exporters | the "exclude from printed reports" flag — presentation state |
+| `_PATRIARCH` under INDI | GEDKeeper | the tree's patriarch (root ancestor) mark — display state |
 | `NAME` under HEAD.SUBM | Family Echo exports | the submitter's contact written under the SUBM pointer (an e-mail as the NAME); kept as a header extension like the Aldfaer contacts (same deliberate decision) |
 | `_FS_ID` | a single merge-test fixture | synthetic test data |
 | `_GROUP` | a single geotour-genoroots fixture | synthetic test data |

@@ -430,6 +430,13 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // 7.0 has no QUAY anywhere.
     w.line(level, 'QUAY', { value: detail.quality });
   }
+  if (detail.map !== undefined) {
+    // MFT7: the event's coordinates (see EventDetail.map), written
+    // back as the standard MAP/LATI/LONG.
+    w.line(level, 'MAP');
+    w.line(level + 1, 'LATI', { value: `${detail.map.latitude.direction}${detail.map.latitude.degrees}` });
+    w.line(level + 1, 'LONG', { value: `${detail.map.longitude.direction}${detail.map.longitude.degrees}` });
+  }
   if (detail.changeDate !== undefined) {
     // The change date attached to the event (see
     // EventDetail.changeDate).

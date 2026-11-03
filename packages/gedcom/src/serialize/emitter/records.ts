@@ -545,6 +545,29 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     // IndividualRecord.email).
     w.line(1, '_EMAIL', { value: address });
   }
+  for (const number of rec.phone ?? []) {
+    // The INDI-level phone number (see IndividualRecord.phone).
+    w.line(1, 'PHON', { value: number });
+  }
+  for (const number of rec.fax ?? []) {
+    // The INDI-level fax number (see IndividualRecord.fax).
+    w.line(1, 'FAX', { value: number });
+  }
+  if (rec.deceased !== undefined) {
+    // GenoPro: the person's vital flag (see IndividualRecord.deceased).
+    w.line(1, 'ISDEAD', { value: rec.deceased ? 'Y' : 'N' });
+  }
+  for (const link of rec.webLinks ?? []) {
+    // The web-link block under INDI (see IndividualRecord.webLinks).
+    w.line(1, '_WLNK');
+    if (link.title !== undefined) {
+      w.line(2, 'TITL', { value: link.title });
+    }
+    if (link.url !== undefined) {
+      w.line(2, 'NOTE', { value: link.url });
+    }
+    emitExtensions(w, version, 2, link);
+  }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
   }

@@ -672,6 +672,15 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // MultimediaRecord.author).
         record.author = reqText(child);
       },
+      '_TEXT': (child) => {
+        // ged4web: the media comment text (the same slot the FH
+        // `_NOTE` carries; see MultimediaRecord.mediaNote).
+        record.mediaNote = reqText(child);
+      },
+      TEXT: (child) => {
+        // The standard spelling of the media comment text.
+        record.mediaNote = reqText(child);
+      },
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
       },

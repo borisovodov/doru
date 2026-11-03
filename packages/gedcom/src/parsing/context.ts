@@ -102,10 +102,12 @@ export function resolvePtr(pointer: string, ctx: Ctx, node: RawNode): string {
 export function reqPtr(node: RawNode, ctx: Ctx): string {
   if (node.value.kind !== 'pointer') {
     // The Geni.com bare-identifier dialect writes pointers without
-    // the @ delimiters (`1 FAMC F0515745826`): the identifier shape
+    // the @ delimiters (`1 FAMC F0515745826`, and files in the wild
+    // bare numeric ids: `1 CHIL 0515745826`): the identifier shape
     // is unambiguous, so the value is wrapped into the standard
-    // spelling (the full-leniency container rule).
-    if (node.value.kind === 'text' && /^[A-Za-z][A-Za-z0-9_]*$/.test(node.value.text)) {
+    // spelling (the full-leniency container rule). A dangling target
+    // is dropped like any other dangling pointer.
+    if (node.value.kind === 'text' && /^[A-Za-z0-9_]+$/.test(node.value.text)) {
       return resolvePtr(`@${node.value.text}@`, ctx, node);
     }
     fail('structure.missing-payload', `The ${node.tag} line requires a pointer value`, node.position);
@@ -395,15 +397,28 @@ export function dispatch(
     } catch (error) {
       const err = error as { code?: string; position?: { line?: number } };
       if (err.code === 'structure.missing-payload' && err.position?.line === child.position.line) {
-        // A line whose required payload is absent is skipped silently
-        // (the full-leniency container rule, see the README's Known
-        // strict decisions): real files ship bare `1 NAME`, `1 SUBN`
-        // and `1 OCCU` lines, and dropping the line loses less than
-        // failing the whole document. The line's substructures die
-        // with it. A missing payload deeper in the tree rethrows —
-        // the dispatch enclosing that line decides. In tolerant mode
-        // the skip is recorded as a diagnostic.
+        // A line whose required payload is absent (or a pointer in a
+        // text slot) is retried with the value coerced to text — the
+        // original pointer string survives, an absent payload becomes
+        // the empty text (the full-leniency container rule, see the
+        // README's Known strict decisions): real files ship bare
+        // `1 NAME`, `1 SUBN`, `1 OCCU`, `2 SOUR` and `1 TITL @R5@`
+        // lines, and keeping the line with an empty payload loses
+        // less than dropping it — its substructures survive. When the
+        // retry fails too (pointer slots with no value), the line is
+        // dropped. In tolerant mode the skip is recorded as a
+        // diagnostic.
         void tolerate(ctx, error);
+        const coerced: RawNode = {
+          ...resolved,
+          value: resolved.value.kind === 'pointer' ? { kind: 'text', text: resolved.value.pointer } : { kind: 'text', text: '' },
+          valueColumn: 0,
+        };
+        try {
+          (handlers[tag] as (child: RawNode) => void)(coerced);
+        } catch {
+          // The line is dropped; the error is already recorded.
+        }
         continue;
       }
       if (err.code === 'structure.unexpected-payload' && err.position?.line === child.position.line) {

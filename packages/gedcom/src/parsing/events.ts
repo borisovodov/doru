@@ -72,6 +72,8 @@ import type {
   RawNode,
 } from './lines';
 import {
+  parseMapCoordinates,
+  parseMftCoordinates,
   parsePersonalNameStructure,
   parsePlaceStructure,
 } from './names-places';
@@ -522,6 +524,15 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     '_FNA': (child) => {
       // Heredis: the event flag (see EventDetail.fna).
       detail.fna = parseYNFlag(child, '_FNA');
+    },
+    '_COR': (child) => {
+      // MFT7: the event's coordinates (see EventDetail.map).
+      detail.map = parseMftCoordinates(child, ctx, detail);
+    },
+    MAP: (child) => {
+      // The standard spelling of the event's coordinates (see
+      // EventDetail.map); recognized in any file.
+      detail.map = parseMapCoordinates(child, ctx);
     },
     '_SENT': (child) => {
       // RootsMagic: the event sentence (report wording).

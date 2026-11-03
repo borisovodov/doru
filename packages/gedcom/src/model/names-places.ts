@@ -58,6 +58,14 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   middleName?: Text;
   /**
+   * `_PATN {0:1}` — the patronymic (the father-derived name), written
+   * under NAME as its own line (the Russian/Ukrainian trees, e.g. the
+   * corpus file Емаши1811.ged). Kept verbatim. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_PATN` in both
+   * versions.
+   */
+  patronymic?: Text;
+  /**
    * CREA/`_CRE` {0:1} — the name entry's creation date (the MFT7
    * exports write `2 CREA` or `2 _CRE` with the DATE child under
    * NAME). Recognized on input with the creation-date grammar and
@@ -366,6 +374,15 @@ export interface PlaceStructure extends GedcomStructureBase {
    * under the PLAC line in both versions.
    */
   placeId?: Text;
+  /**
+   * `_XREF {0:1}` — a pointer to the place's card record (the GenoPro
+   * spelling of the place link, `3 _XREF @place00014@` under PLAC —
+   * the same fact the GEDCOM-L `_LOC` link carries; see
+   * PlaceStructure.location). Kept verbatim, unresolved: the target
+   * card is a generic record that the export drops. Recognized on
+   * input and written back as `_XREF` in both versions.
+   */
+  placeCard?: Text;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /**
