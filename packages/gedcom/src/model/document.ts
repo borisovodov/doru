@@ -99,6 +99,15 @@ export interface Header extends GedcomStructureBase {
   /** SUBM {0:1}, g7:SUBM — the submitter of the dataset. GEDCOM 7.0 §3.2.1; required {1:1} in 5.5.1. Written in both versions; when serializing to 5.5.1 a missing or void pointer is filled from an existing SUBM record or a synthesized one named "Unknown". */
   submitter?: Pointer<SubmitterRecord>;
   /**
+   * NAME {0:1} — a name under the HEAD.SUBM pointer line. The Family
+   * Echo exports write `1 SUBM @I1@` / `2 NAME rclark3@stevens.edu`
+   * — the submitter's contact carried as the NAME child of the
+   * pointer (no GEDCOM version has a NAME slot there). Recognized on
+   * input and written back as the NAME line under the SUBM line in
+   * both versions.
+   */
+  submitterName?: Text;
+  /**
    * SUBN {0:1} — a pointer to the submission record.
    * GEDCOM 5.5.1 §2 Record Structures (p.23). Removed in GEDCOM 7.0;
    * dropped when serializing to 7.0.

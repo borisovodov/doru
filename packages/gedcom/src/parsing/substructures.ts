@@ -61,6 +61,9 @@ import {
   parseYNFlag,
 } from './sources-media';
 import {
+  parsePlaceStructure,
+} from './names-places';
+import {
   parseAge,
   parseDatePeriod70,
   parseDateValue,
@@ -156,6 +159,11 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
       // recommends readers "Accept URL as a synonym for WWW" (5.5.5
       // §2 p.65). Normalized into the standard www slot.
       (out.www ??= []).push(reqText(child));
+    },
+    NOTE: (child) => {
+      // The standard 5.5.1 ADDRESS_STRUCTURE note slot (see
+      // AddressStructure.notes).
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
   };
   dispatch(node, out, handlers, ctx, ['ADR1', 'ADR2', 'ADR3', 'CITY', 'STAE', 'POST', 'CTRY']);
@@ -261,6 +269,10 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
     },
     NOTE: (child) => {
       (base.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    SOUR: (child) => {
+      // Citations under the CHAN block (see ChangeDate.citations).
+      (base.citations ??= []).push(parseSourceCitation(child, ctx));
     },
     '_WT_USER': (child) => {
       // webtrees: the user name of the user who made the change (see
@@ -383,6 +395,11 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
       },
       PHRASE: (child) => {
         out.phrase = reqText(child);
+      },
+      SOUR: (child) => {
+        // TMG: citations attached to the DATE line (see
+        // DateStructure.citations).
+        (out.citations ??= []).push(parseSourceCitation(child, ctx));
       },
     },
     ctx,
@@ -720,6 +737,16 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
         // The note privacy flag: WinFamily's NOTP normalizes into this
         // (see Note.private); the wire spelling under a note is _PRIV.
         out.private = parsePrivacyFlag(child, '_PRIV');
+      },
+      DATE: (child) => {
+        // TMG: the date the note was recorded, under the note itself
+        // (see Note.date).
+        out.date = parseDateStructure(child, ctx);
+      },
+      PLAC: (child) => {
+        // TMG: the place associated with the note, under the note
+        // itself (see Note.place).
+        out.place = parsePlaceStructure(child, ctx);
       },
       SOUR: (child) => {
         (out.citations ??= []).push(parseSourceCitation(child, ctx));

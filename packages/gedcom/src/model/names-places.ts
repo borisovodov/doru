@@ -134,6 +134,17 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   aliases?: Text[];
   /**
+   * ALIA {0:M} — an alias of the name written with the standard tag
+   * spelling, with optional citations. The Master Genealogist
+   * (TMG-to-GEDCOM) writes its name aliases under NAME with the
+   * standard ALIA tag (`2 ALIA William/Pitt/`), attaching `3 SOUR`
+   * citations; the Hawaiian Kings trees in the corpus use the shape
+   * throughout. No GEDCOM version has the ALIA tag under NAME.
+   * Recognized on input and written back as ALIA lines (with their
+   * SOUR children) in both versions.
+   */
+  aliasLinks?: AliasTextLink[];
+  /**
    * `_MARNM` {0:1} — the married name: the surname used (or once
    * used) after marriage, kept as a name-level value for programs
    * that cannot store several full NAME lines. Written under NAME by
@@ -147,6 +158,14 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * as `_MARNM` in both versions.
    */
   marriedName?: Text;
+  /**
+   * TITL {0:1} — a title or honorific carried by the name itself
+   * (`2 TITL Queen` under `1 NAME /Liliuokalani/`, the Hawaiian Kings
+   * trees in the corpus). No GEDCOM version has the TITL tag under
+   * NAME. Recognized on input and written back as `TITL` under the
+   * NAME line in both versions.
+   */
+  title?: Text;
   /**
    * `_AKA` {0:M} — an "also known as" name variant of the person
    * (often the alternate surname), kept as free text: a further name
@@ -239,6 +258,20 @@ export interface PhoneticNameVariation extends GedcomStructureBase {
   /** <<NOTE_STRUCTURE>> {0:M}, GEDCOM 5.5.1 §2 (p.55) NAME_PHONETIC_VARIATION. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}, GEDCOM 5.5.1 §2 (p.55) NAME_PHONETIC_VARIATION. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * A name-level alias written with the standard ALIA spelling, with
+ * optional citations (see PersonalNameStructure.aliasLinks). TMG
+ * writes its name aliases this way; no GEDCOM version has ALIA under
+ * NAME.
+ */
+export interface AliasTextLink extends GedcomStructureBase {
+  tag: 'ALIA';
+  /** The ALIA payload, {1:1} Text. */
+  value: Text;
+  /** <<SOURCE_CITATION>> {0:M} — the citations backing the alias. */
   citations?: SourceCitation[];
 }
 
@@ -385,6 +418,16 @@ export interface PlaceStructure extends GedcomStructureBase {
   placeCard?: Text;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+  /**
+   * SOUR {0:M} — the citations attached to the PLAC line. Written by
+   * The Master Genealogist (TMG-to-GEDCOM: the Hawaiian Kings trees
+   * in the corpus put `3 SOUR` under the event `2 PLAC`, e.g.
+   * `1 DEAT` / `2 PLAC Waikiki, O'ahu` / `3 SOUR @S307@`); no GEDCOM
+   * version has a citation slot inside PLACE_STRUCTURE. Recognized on
+   * input and written back as SOUR lines under the PLAC line in both
+   * versions.
+   */
+  citations?: SourceCitation[];
   /**
    * _VERI Y {0:1} — the "verified" checkmark on the place. Written by
    * Legacy Family Tree (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);

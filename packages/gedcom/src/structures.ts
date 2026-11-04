@@ -32,6 +32,8 @@ export * from './model/census-record';
 export * from './model/group-record';
 export * from './model/occurrence-record';
 export * from './model/tree-tag-record';
+export * from './model/genopro-entity';
+export * from './model/title-record';
 export * from './model/common';
 export * from './model/names-places';
 export * from './model/sources-media';

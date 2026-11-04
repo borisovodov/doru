@@ -213,6 +213,20 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // PersonalNameStructure.aliases).
     w.line(level + 1, '_ALIA', { value: alias });
   }
+  for (const link of name.aliasLinks ?? []) {
+    // TMG: an alias written with the standard ALIA spelling, with its
+    // citations (see PersonalNameStructure.aliasLinks).
+    w.line(level + 1, 'ALIA', { value: link.value });
+    for (const citation of link.citations ?? []) {
+      emitSourceCitation(w, version, level + 2, citation);
+    }
+    emitExtensions(w, version, level + 2, link);
+  }
+  if (name.title !== undefined) {
+    // A title carried by the name itself (see
+    // PersonalNameStructure.title).
+    w.line(level + 1, 'TITL', { value: name.title });
+  }
   if (name.marriedName !== undefined) {
     // The married name (see PersonalNameStructure.marriedName).
     w.line(level + 1, '_MARNM', { value: name.marriedName });
@@ -691,6 +705,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     w.line(level + 1, 'MAP');
     w.line(level + 2, 'LATI', { value: `${place.map.latitude.direction}${place.map.latitude.degrees}` });
     w.line(level + 2, 'LONG', { value: `${place.map.longitude.direction}${place.map.longitude.degrees}` });
+  }
+  for (const citation of place.citations ?? []) {
+    // TMG: citations attached to the PLAC line (see
+    // PlaceStructure.citations).
+    emitSourceCitation(w, version, level + 1, citation);
   }
   emitExtensions(w, version, level + 1, place);
 }

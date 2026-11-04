@@ -356,8 +356,11 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       addExtension(rec, child, ctx);
     },
     TITL: (child) => {
-      // Généatique; same convention as FORM (see above).
-      addExtension(rec, child, ctx);
+      // The media object's title at the record level (the ged4web and
+      // Dutch-royal exports; see MultimediaRecord.title). The
+      // Généatique embedded shape (FORM/TITL/BLOB without FILE) is
+      // dropped by the projections either way.
+      rec.title = reqText(child);
     },
     BLOB: (child) => {
       // The GEDCOM 5.5 embedded object (5.5.1 removed the BLOB form);

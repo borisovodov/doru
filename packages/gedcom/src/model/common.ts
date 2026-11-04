@@ -98,6 +98,13 @@ export interface AddressStructure extends GedcomStructureBase {
   postalCode?: Special;
   /** CTRY {0:1}, g7:CTRY — the name of the country. */
   country?: Special;
+  /** <<NOTE_STRUCTURE>> {0:M} — the standard 5.5.1 ADDRESS_STRUCTURE
+   *  note slot (GEDCOM 5.5.1 §2 p.31; the 7.0 ADDRESS_STRUCTURE has no
+   *  NOTE, and the position is accepted in any file). The corpus files
+   *  use it heavily (the RM11 family histories put the repository
+   *  attribution notes under REPO.ADDR, the Allmon trees put burial
+   *  notes under BURI.ADDR). */
+  notes?: NoteStructure[];
   /**
    * _PRIV {0:1} — marks the address as private. Written by Legacy
    * Family Tree (see its "Custom GEDCOM Tags" help:
@@ -240,6 +247,15 @@ export interface ChangeDate extends GedcomStructureBase {
   /** <<NOTE_STRUCTURE>> {0:M} — may describe previous changes as well. */
   notes?: NoteStructure[];
   /**
+   * SOUR {0:M} — citations under the CHAN block. The David England
+   * GEDs in the corpus (LydiaHargrove.ged) write `2 SOUR @S03712@` /
+   * `3 DATA` / `4 TEXT Date of Import: 27 Jun 2005` under `1 CHAN`;
+   * no GEDCOM version has a citation slot in CHANGE_DATE. Recognized
+   * on input and written back as SOUR lines under the CHAN line in
+   * both versions.
+   */
+  citations?: SourceCitation[];
+  /**
    * _WT_USER {0:1} — the user name of the user who made the change.
    * Written by webtrees (and kiwitrees) under CHAN (see the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" table:
@@ -279,6 +295,15 @@ export interface DateStructure extends GedcomStructureBase {
   time?: TimeValue;
   /** PHRASE {0:1}, g7:PHRASE — textual information that cannot be expressed in the payload. */
   phrase?: Text;
+  /**
+   * SOUR {0:M} — the citations attached to the DATE line. Written by
+   * The Master Genealogist (TMG-to-GEDCOM: the Hawaiian Kings trees in
+   * the corpus put `3 SOUR` under the event `2 DATE`, e.g. `1 DEAT` /
+   * `2 DATE 1794` / `3 SOUR @S307@`); no GEDCOM version has a
+   * citation slot inside DATE_VALUE. Recognized on input and written
+   * back as SOUR lines under the DATE line in both versions.
+   */
+  citations?: SourceCitation[];
 }
 
 /**
@@ -867,6 +892,21 @@ export interface Note extends GedcomStructureBase {
   translations?: NoteTranslation[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
+  /**
+   * DATE {0:1} — the date the note was recorded, under the note
+   * itself. Written by The Master Genealogist (TMG-to-GEDCOM: the
+   * Hawaiian Kings trees in the corpus put `2 DATE 1736` under the
+   * `1 NOTE` of a person); no GEDCOM version has a DATE slot inside
+   * NOTE_STRUCTURE. Recognized on input and written back as a DATE
+   * line under the NOTE line in both versions.
+   */
+  date?: DateStructure;
+  /**
+   * PLAC {0:1} — the place associated with the note, under the note
+   * itself (the same TMG shape as Note.date). Recognized on input and
+   * written back as a PLAC line under the NOTE line in both versions.
+   */
+  place?: PlaceStructure;
   /**
    * _PRIV {0:1} — marks the note as private: text the author recorded
    * as not for publication (living persons, sensitive material).

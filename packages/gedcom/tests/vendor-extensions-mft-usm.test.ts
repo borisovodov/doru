@@ -102,11 +102,13 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     const name = person.names?.[0];
     expect(name?.furtherGivenNames).toBe('Johann');
     expect(name?.surnameVariants).toBe('Variant');
-    // …and the undocumented tail stays generic in the model.
+    // …and the undocumented tail stays generic in the model. (MISE is
+    // now typed — the Case006 long spelling of military service.)
     const extensionTags = (person.extensions ?? []).map((entry) => entry.tag);
     expect(extensionTags).toEqual(
-      expect.arrayContaining(['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT']),
+      expect.arrayContaining(['DEED', 'MRCI', 'MRRE', 'PRIV', 'RECT']),
     );
+    expect(person.events?.some((entry) => entry.tag === 'EVEN' && entry.type === 'Military service' && entry.payload === 'x')).toBe(true);
     // The children under a generic extension survive in the model too.
     const mrci = person.extensions?.find((entry) => entry.tag === 'MRCI');
     expect(mrci?.children).toEqual([{ tag: 'DATE', payload: '12 JUN 1910', children: [] }]);

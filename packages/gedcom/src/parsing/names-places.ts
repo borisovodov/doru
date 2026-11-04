@@ -11,6 +11,7 @@ import {
   fail,
 } from '../errors';
 import type {
+  AliasTextLink,
   GedcomStructureBase,
   MapCoordinates,
   NameTranslation,
@@ -229,6 +230,28 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PRO-GEN: an alias of the name, as pure text (see
       // PersonalNameStructure.aliases).
       (out.aliases ??= []).push(reqText(child));
+    },
+    ALIA: (child) => {
+      // TMG: an alias of the name written with the standard ALIA
+      // spelling, with optional SOUR citations (see
+      // PersonalNameStructure.aliasLinks).
+      const link: AliasTextLink = { tag: 'ALIA', value: reqText(child) };
+      dispatch(
+        child,
+        link,
+        {
+          SOUR: (grandchild) => {
+            (link.citations ??= []).push(parseSourceCitation(grandchild, ctx));
+          },
+        },
+        ctx,
+      );
+      (out.aliasLinks ??= []).push(link);
+    },
+    TITL: (child) => {
+      // A title carried by the name itself (see
+      // PersonalNameStructure.title).
+      out.title = reqText(child);
     },
     '_MARNM': (child) => {
       // The married name (see PersonalNameStructure.marriedName).
@@ -484,6 +507,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
     },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    SOUR: (child) => {
+      // TMG: citations attached to the PLAC line (see
+      // PlaceStructure.citations).
+      (out.citations ??= []).push(parseSourceCitation(child, ctx));
     },
     '_LOC': (child) => {
       out.location = reqPtr(child, ctx);

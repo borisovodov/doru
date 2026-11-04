@@ -24,6 +24,14 @@ import type { CensusRecord } from './census-record';
 import type { CreationDate } from './common';
 import type { GroupRecord } from './group-record';
 import type { OccurrenceRecord } from './occurrence-record';
+import type {
+  ContactRecord,
+  EducationRecord,
+  MarriageRecord,
+  OccupationRecord,
+  TwinRecord,
+} from './genopro-entity';
+import type { TitleRecord } from './title-record';
 import type { TreeCategoryRecord, TreeTagRecord } from './tree-tag-record';
 import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
@@ -717,6 +725,7 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   filiation?: Text;
   /**
+  /**
    * `_GCID` {0:1} — the record's GEDitCOM id (a UUID assigned by
    * GEDitCOM II, John A. Nairn / RSAC Software — HEAD.SOUR "GEDitCOM
    * II" in the corpus file Ajmani.ged). Not part of any GEDCOM
@@ -829,6 +838,17 @@ export interface IndividualRecord extends GedcomStructureBase {
    * input and written back as the `_WLNK` block in both versions.
    */
   webLinks?: WebLinkStructure[];
+  /**
+   * OCCUPATIONS/EDUCATIONS/CONTACTS/UNIONS/TWINS {0:M} — pointers to
+   * the GenoPro entity records of the person (see the
+   * genopro-entity model). Recognized on input and written back as
+   * the container lines in both versions.
+   */
+  occupations?: Pointer<OccupationRecord>[];
+  educations?: Pointer<EducationRecord>[];
+  contacts?: Pointer<ContactRecord>[];
+  marriages?: Pointer<MarriageRecord>[];
+  twins?: Pointer<TwinRecord>[];
   /**
    * _TODO {0:M} — research tasks attached to the individual: the
    * GenoPro / RootsMagic / Ahnenblatt to-do structure with the
@@ -1467,6 +1487,13 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * linked from another tree or person); see AncestryClone.
    */
   clones?: AncestryClone[];
+  /**
+   * TITL {0:1} — the media object's title at the record level (the
+   * ged4web exports; the FILE-level TITL is MediaFile.title). Neither
+   * standard has the record-level slot. Recognized on input and
+   * written back as `TITL` in both versions.
+   */
+  title?: Text;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -1849,6 +1876,28 @@ export interface SourceRecord extends GedcomStructureBase {
   author?: Text;
   /** TITL {0:1}, g7:TITL — the title of the source. */
   title?: Text;
+  /**
+   * TITL {0:1} — the pointer form of the title: a pointer to an
+   * Ancestris `TITL` record (see TitleRecord). The kennedy sample in
+   * the corpus writes `1 TITL @R5@` under the SOUR record, with the
+   * bibliography carried by the title record. Recognized on input and
+   * written back as the pointer TITL line in both versions.
+   */
+  titlRef?: Pointer<TitleRecord>;
+  /**
+   * DATE {0:1} — the date of the source record itself. Written by the
+   * Canvas Roots exports (`1 DATE 1910` under `0 @S1@ SOUR`, the
+   * gedcom-sample-medium-sources fixture in the corpus); no GEDCOM
+   * version has a DATE slot under SOUR. Recognized on input and
+   * written back as a DATE line in both versions.
+   */
+  date?: DateStructure;
+  /**
+   * PLAC {0:1} — the place of the source record itself (the same
+   * Canvas Roots shape as SourceRecord.date). Recognized on input and
+   * written back as a PLAC line in both versions.
+   */
+  place?: PlaceStructure;
   /** ABBR {0:1}, g7:ABBR — a short name used for sorting, filing, and retrieving records. */
   abbreviation?: Text;
   /**
@@ -2441,4 +2490,10 @@ export type GedcomRecord =
   | OccurrenceRecord
   | TreeTagRecord
   | TreeCategoryRecord
+  | OccupationRecord
+  | EducationRecord
+  | ContactRecord
+  | MarriageRecord
+  | TwinRecord
+  | TitleRecord
   | ExtensionRecord;

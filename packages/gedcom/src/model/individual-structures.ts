@@ -291,7 +291,15 @@ export interface ProbateEvent extends IndividualEventBase<'PROB'> {}
 export interface RetirementEvent extends IndividualEventBase<'RETI'> {}
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_EVENT_STRUCTURE — g7:WILL: will. GEDCOM 7.0 §3.3.1.1. */
-export interface WillEvent extends IndividualEventBase<'WILL'> {}
+export interface WillEvent extends IndividualEventBase<'WILL'> {
+  /**
+   * TEXT {0:M} — the testament text under the will event (the
+   * ged4web exports write `2 TEXT` under `1 WILL` with the will's
+   * transcription). Recognized on input and written back as `TEXT`
+   * in both versions.
+   */
+  texts?: Text[];
+}
 
 /**
  * GEDCOM 7.0 §3.2.3 INDIVIDUAL_EVENT_STRUCTURE — g7:INDI-EVEN: a generic individual

@@ -132,8 +132,13 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Aldfaer.php).
         // They are kept verbatim as header extensions instead of being
         // discarded (the nesting is normalized to the header level on
-        // export).
+        // export). The Family Echo NAME child types into
+        // Header.submitterName.
         for (const grandchild of child.children) {
+          if (grandchild.tag === 'NAME') {
+            header.submitterName = reqText(grandchild);
+            continue;
+          }
           addExtension(header, grandchild, ctx);
         }
       },

@@ -352,7 +352,9 @@ describe('the GEDCOM 5.5 embedded-multimedia record shape', () => {  const EMBED
     const dataset = parseOk551(EMBEDDED);
     const media = dataset.records.find((r) => r.tag === 'OBJE');
     expect(media?.tag === 'OBJE' ? media.files.length : -1).toBe(0);
-    expect(media?.tag === 'OBJE' ? media.extensions?.map((e) => e.tag) : undefined).toEqual(['FORM', 'TITL']);
+    expect(media?.tag === 'OBJE' ? media.extensions?.map((e) => e.tag) : undefined).toEqual(['FORM']);
+    // The TITL types into the record title.
+    expect(media?.tag === 'OBJE' ? media.title : undefined).toBe('The picture');
   });
 
   test('the record is dropped entirely on 5.5.1 export, links stripped', () => {

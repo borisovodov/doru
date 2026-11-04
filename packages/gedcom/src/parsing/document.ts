@@ -60,6 +60,14 @@ import { parseTodoRecord } from './todo';
 import { parseEventDefinitionRecord } from './event-definition';
 import { parseGroupRecord } from './group';
 import { parseTreeCategoryRecord, parseTreeTagRecord } from './tree-tags';
+import { parseTitleRecord } from './title-record';
+import {
+  parseContactRecord,
+  parseEducationRecord,
+  parseMarriageRecord,
+  parseOccupationRecord,
+  parseTwinRecord,
+} from './genopro';
 import { parseOccurrenceRecord } from './occurrence';
 import {
   parseSubmissionRecord,
@@ -303,6 +311,18 @@ function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseTreeTagRecord(node, ctx);
     case '_MTCAT':
       return parseTreeCategoryRecord(node, ctx);
+    case 'Occupation':
+      return parseOccupationRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Education':
+      return parseEducationRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Contact':
+      return parseContactRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Marriage':
+      return parseMarriageRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Twin':
+      return parseTwinRecord(node, ctx) as unknown as GedcomRecord;
+    case 'TITL':
+      return parseTitleRecord(node, ctx) as unknown as GedcomRecord;
     default:
       // Full leniency (see the README's Known strict decisions): any
       // record tag the typed grammar has no slot for — an underscore

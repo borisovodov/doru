@@ -695,6 +695,13 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // MultimediaRecord.date).
         record.date = parseDateStructure(child, ctx);
       },
+      PLAC: (child) => {
+        // The place of the media object under the inline link (the
+        // WikiTree-style exports: `1 OBJE` / `2 FILE …` / `2 PLAC
+        // AL.` — the same slot the record-level PLAC carries; see
+        // MultimediaRecord.place).
+        record.place = reqText(child);
+      },
       '_CUTOUT': (child) => {
         // MyHeritage: the cutout flag (see MultimediaRecord.cutout).
         record.cutout = parseYNFlag(child, '_CUTOUT');

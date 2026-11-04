@@ -48,6 +48,8 @@ const TYPED_RECORD_TAGS = new Set([
   'FAM', 'INDI', 'OBJE', 'REPO', 'SNOTE', 'NOTE', 'SOUR', 'SUBM', 'SUBN',
   '_CENR', '_PLAC', '_TODO', '_EVENT_DEFN', '_ALIA', '_PUBLISH', '_GRP', '_OCUR',
   '_MTTAG', '_MTCAT',
+  'Occupation', 'Education', 'Contact', 'Marriage', 'Twin',
+  'TITL',
 ]);
 
 /** Cap on distinct contexts kept per tag in the per-file detail string. */

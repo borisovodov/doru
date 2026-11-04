@@ -313,12 +313,12 @@ describe('multimedia record additions', () => {
 
   test('Généatique OBJE.FORM/TITL are kept on input and dropped on export', () => {
     const dataset = parseOk551([...HEADER551, '0 @O1@ OBJE', '1 FILE p.jpg', '2 FORM jpg', '1 FORM gif', '1 TITL The picture', ...SUBM, '0 TRLR'].join('\n'));
-    // The record-level FORM/TITL are the GEDCOM 5.5 embedded shape: the
-    // 5.5.1 writer has no spelling for them and drops them; the FILE
-    // record itself survives.
+    // The record-level FORM is the GEDCOM 5.5 embedded shape: the
+    // 5.5.1 writer has no spelling for it and drops it; the TITL types
+    // into the record title and is written back.
     const text = ser551(dataset);
     expect(text).not.toContain('1 FORM gif');
-    expect(text).not.toContain('1 TITL The picture');
+    expect(text).toContain('1 TITL The picture');
     expect(text).toContain('0 @O1@ OBJE');
     expect(text).toContain('1 FILE p.jpg');
   });

@@ -804,6 +804,8 @@ export interface EventShape extends GedcomStructureBase {
   reportPhrases?: string[];
   /** Legacy: the preferred event mark (see FamilyEventBase.preferred). */
   preferred?: boolean;
+  /** The testament text under the WILL event (see WillEvent.texts). */
+  texts?: string[];
   /** USM6: the birth type (see BirthEvent.birthType). */
   birthType?: UsmBirthType;
   /** USM6: the child-count certainty (see
@@ -998,6 +1000,15 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   };
   handlers["AGE"] = (child) => {
     detail.age = parseAgeStructure(child, ctx);
+  };
+  handlers["TEXT"] = (child) => {
+    // The testament text under the WILL event (see WillEvent.texts);
+    // a TEXT under any other event stays generic.
+    if (tag === 'WILL') {
+      (event.texts ??= []).push(reqText(child));
+    } else {
+      addExtension(event, child, ctx);
+    }
   };
   handlers["FAMC"] = (child) => {
     if (tag === 'ADOP') {

@@ -42,6 +42,8 @@ import {
   emitOccurrenceRecord,
   emitTreeCategoryRecord,
   emitTreeTagRecord,
+  emitGenoProRecord,
+  emitTitleRecord,
 } from './records';
 import {
   emitCensusRecord,
@@ -140,6 +142,11 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
     // kept verbatim, @VOID@ included); prepareFor551 fills a live
     // pointer for 5.5.1, where SUBM is required.
     ptr(w, version, 1, 'SUBM', h.submitter);
+    if (h.submitterName !== undefined) {
+      // The Family Echo submitter contact under the SUBM pointer (see
+      // Header.submitterName).
+      w.line(2, 'NAME', { value: h.submitterName });
+    }
   }
   if (version === '5.5.1') {
     if (h.submission !== undefined) {
@@ -474,6 +481,16 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
     case '_MTCAT':
       emitTreeCategoryRecord(w, version, record as Parameters<typeof emitTreeCategoryRecord>[2]);
       return;
+    case 'Occupation':
+    case 'Education':
+    case 'Contact':
+    case 'Marriage':
+    case 'Twin':
+      emitGenoProRecord(w, version, record as Parameters<typeof emitGenoProRecord>[2]);
+      return;
+    case 'TITL':
+      emitTitleRecord(w, version, record as Parameters<typeof emitTitleRecord>[2]);
+      return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);
       return;
@@ -532,6 +549,10 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
     emitDateExact(w, version, level + 1, 'DATE', rec.changeDate.date, rec.changeDate.date.time);
     for (const note of rec.changeDate.notes ?? []) {
       emitNoteStructure(w, version, level + 1, note);
+    }
+    for (const citation of rec.changeDate.citations ?? []) {
+      // Citations under the CHAN block (see ChangeDate.citations).
+      emitSourceCitation(w, version, level + 1, citation);
     }
     if (rec.changeDate.user !== undefined) {
       // webtrees: the user who made the change (see ChangeDate.user).
@@ -695,6 +716,10 @@ export function emitSubmission(w: Writer, version: Version, rec: {
     emitDateExact(w, version, 2, 'DATE', rec.changeDate.date, rec.changeDate.date.time);
     for (const note of rec.changeDate.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
+    }
+    for (const citation of rec.changeDate.citations ?? []) {
+      // Citations under the CHAN block (see ChangeDate.citations).
+      emitSourceCitation(w, version, 2, citation);
     }
     if (rec.changeDate.user !== undefined) {
       // webtrees: the user who made the change (see ChangeDate.user).

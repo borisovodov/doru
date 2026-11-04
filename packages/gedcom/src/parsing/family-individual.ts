@@ -65,6 +65,9 @@ import {
   parseTodoStructure,
 } from './todo';
 import {
+  parseGenoproContainer,
+} from './genopro';
+import {
   parseAddressStructure,
 } from './substructures';
 import type {
@@ -1315,6 +1318,24 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _MILT: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military'));
     },
+    _MIL: (child) => {
+      // The Case006 long-spelling twin of _MILT (the FamilySearch
+      // gedcom5-conversion test corpus): military service.
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military'));
+    },
+    _MILITARY_SERVICE: (child) => {
+      // The Case006 long spelling: military service.
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military service'));
+    },
+    _MISE: (child) => {
+      // The Case006 long spelling: military service.
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military service'));
+    },
+    _DEGREE: (child) => {
+      // The Case006 long spelling of _DEG: the EDUC attribute with
+      // TYPE "Degree".
+      pushVendorAttribute(rec, child, ctx, 'EDUC', 'Degree');
+    },
     _MDCL: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Medical'));
     },
@@ -1533,6 +1554,21 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
         ctx,
       );
       (rec.webLinks ??= []).push(link);
+    },
+    OCCUPATIONS: (child) => {
+      (rec.occupations ??= []).push(parseGenoproContainer(child, ctx));
+    },
+    EDUCATIONS: (child) => {
+      (rec.educations ??= []).push(parseGenoproContainer(child, ctx));
+    },
+    CONTACTS: (child) => {
+      (rec.contacts ??= []).push(parseGenoproContainer(child, ctx));
+    },
+    UNIONS: (child) => {
+      (rec.marriages ??= []).push(parseGenoproContainer(child, ctx));
+    },
+    TWINS: (child) => {
+      (rec.twins ??= []).push(parseGenoproContainer(child, ctx));
     },
     _INIT: (child) => {
       // Ancestry.com Family Trees: the LDS initiatory ordinance, the
