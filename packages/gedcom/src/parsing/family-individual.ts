@@ -1556,19 +1556,19 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.webLinks ??= []).push(link);
     },
     OCCUPATIONS: (child) => {
-      (rec.occupations ??= []).push(parseGenoproContainer(child, ctx));
+      (rec.occupations ??= []).push(...parseGenoproContainer(child, ctx));
     },
     EDUCATIONS: (child) => {
-      (rec.educations ??= []).push(parseGenoproContainer(child, ctx));
+      (rec.educations ??= []).push(...parseGenoproContainer(child, ctx));
     },
     CONTACTS: (child) => {
-      (rec.contacts ??= []).push(parseGenoproContainer(child, ctx));
+      (rec.contacts ??= []).push(...parseGenoproContainer(child, ctx));
     },
     UNIONS: (child) => {
-      (rec.marriages ??= []).push(parseGenoproContainer(child, ctx));
+      (rec.marriages ??= []).push(...parseGenoproContainer(child, ctx));
     },
     TWINS: (child) => {
-      (rec.twins ??= []).push(parseGenoproContainer(child, ctx));
+      (rec.twins ??= []).push(...parseGenoproContainer(child, ctx));
     },
     _INIT: (child) => {
       // Ancestry.com Family Trees: the LDS initiatory ordinance, the
@@ -1771,6 +1771,16 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.associations ??= []).push(parseAssociation(child, ctx));
     },
     ALIA: (child) => {
+      if (child.value.kind === 'text') {
+        // A text payload in the pointer slot: files in the wild write
+        // `1 ALIA /Becky/` — an "also known as" name instead of a
+        // pointer to another INDI (BURNETT.GED, GRAY, the norse-gods
+        // trees). Kept as a NAME with the AKA type (the
+        // standard-first normalization of the legacy AKA rule) —
+        // nothing is dropped.
+        pushVendorName(rec, child, ctx, 'AKA');
+        return;
+      }
       (rec.aliases ??= []).push(parseAliasLink(child, ctx));
     },
     ANCI: (child) => {

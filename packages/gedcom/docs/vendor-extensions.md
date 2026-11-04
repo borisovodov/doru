@@ -755,8 +755,38 @@ its JSDoc.
   or a pointer in a text slot (`1 TITL @R5@`) — is retried with the
   value coerced to text: the line is kept with an empty payload (or
   the pointer string) and its substructures survive; pointer slots
-  with no value are dropped. The deviation stays recorded in the
-  tolerant diagnostics.
+  with no value are dropped. **The repair is a resolution, not an
+  error:** when the retry succeeds nothing is recorded (the tolerant
+  diagnostics carry only the unresolved drops — pointer slots with no
+  value, lines whose retry fails too). The strict parser applies the
+  same repair silently.
+- **The stray-value retry.** A line carrying a stray value (`1 SEX M
+  extra`) parses without it; like the bare-line retry, a successful
+  repair records nothing, and only a failing retry (e.g. `1 ANCE ten`
+  whose rule requires digits) surfaces the error.
+- **A text alias in the ALIA pointer slot.** `1 ALIA /Becky/` — an
+  "also known as" name written where the standard expects a pointer to
+  another INDI (BURNETT.GED, GRAY, the norse-gods trees) — is kept as
+  a NAME with the AKA type (the standard-first normalization of the
+  legacy AKA rule); written back as `1 NAME …` + `2 TYPE AKA`.
+- **Pointer comments.** A pointer with a trailing comment — `2 FAMC
+  @F4@ /* note */` and the line-comment spelling `1 WIFE @I9@ //
+  Assuming Unknown_spouse` (the gprime imp-sample files) — parses as
+  the pointer; the comment is dropped (it annotates the link, and no
+  model slot carries it). A pointer with a trailing blank or a bare
+  US escape artifact (`1 FAMC @F2@ `, `1 SUBM @<US20>I1@`) parses as
+  the trimmed token.
+- **Pointer lists in the GenoPro containers.** `1 OCCUPATIONS
+  @occu00012@, @occu00063@` — the comma-separated pointer list of the
+  GenoPro entity containers — is split and every pointer resolves
+  (dangling members drop by the xref rules); written back as separate
+  container lines.
+- **Bare lines inside direct-iteration parsers.** The `_EVENT_DEFN`
+  record and the MAP/`_COR` coordinate blocks iterate their children
+  directly (no dispatch retry); a bare member line — an empty
+  `_SEN1`/`ABBR` sentence or flag, an empty `LATI`/`_LAS`/`_LOS`
+  coordinate — carries no data: the text slot keeps the empty value
+  and a coordinate-less MAP/`_COR` block is dropped, silently.
 - **The medium leniency.** A value outside the MEDI enum (`TYPE
   image`, `TYPE story`, `MEDI Article`, `MEDI "Document agrafé"`)
   becomes OTHER with the phrase; 5.5.1 writes the phrase back as the

@@ -31,7 +31,6 @@ import {
   dispatch,
   noPayload,
   one,
-  req,
   reqPtr,
   reqText,
 } from './context';
@@ -503,7 +502,10 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
         out.maidenhead = child.value.text;
         return;
       }
-      out.map = parseMapCoordinates(child, ctx);
+      const map = parseMapCoordinates(child, ctx);
+      if (map !== undefined) {
+        out.map = map;
+      }
     },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -558,7 +560,10 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG"). Normalized
       // into the standard map coordinates and written back as
       // MAP/LATI/LONG.
-      out.map = parseMftCoordinates(child, ctx, out);
+      const map = parseMftCoordinates(child, ctx, out);
+      if (map !== undefined) {
+        out.map = map;
+      }
     },
     // The the 7.0 LANG/TRAN/EXID/SNOTE spellings are
     // accepted in any file, as are the 5.5.1 FONE/ROMN and the
@@ -645,10 +650,18 @@ export function parseRomanizedPlaceVariation(node: RawNode, ctx: Ctx): Romanized
   return out;
 }
 
-export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
+export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates | undefined {
   noPayload(node);
-  const latNode = req(node, 'LATI');
-  const lonNode = req(node, 'LONG');
+  const latNode = one(node, 'LATI');
+  const lonNode = one(node, 'LONG');
+  if (latNode === undefined || lonNode === undefined) {
+    fail('structure.missing-required', 'The MAP structure requires LATI and LONG substructures', node.position);
+  }
+  if (latNode.value.kind === 'absent' || lonNode.value.kind === 'absent') {
+    // Bare coordinate lines carry no data; the coordinate-less MAP is
+    // dropped silently (the full-leniency container rule).
+    return undefined;
+  }
   const out: MapCoordinates = {
     latitude: parseLatitude(reqText(latNode), latNode.position),
     longitude: parseLongitude(reqText(lonNode), lonNode.position),
@@ -666,7 +679,7 @@ export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
  * MAP/LATI/LONG (the GenWiki "GEDCOM/_Nutzerdef-Tag" table notes the
  * equivalent: "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG").
  */
-export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStructureBase): MapCoordinates {
+export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStructureBase): MapCoordinates | undefined {
   noPayload(node);
   const read = (
     degreesTag: string,
@@ -674,23 +687,35 @@ export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStruc
     secondsTag: string,
     directionTag: string,
     kind: 'latitude' | 'longitude',
-  ): { direction: 'N' | 'S' | 'E' | 'W'; degrees: number } => {
-    const degreesNode = req(node, degreesTag);
+  ): { direction: 'N' | 'S' | 'E' | 'W'; degrees: number } | undefined => {
+    const degreesNode = one(node, degreesTag);
+    if (degreesNode === undefined) {
+      fail('structure.missing-required', `The _COR structure requires the ${degreesTag} substructure`, node.position);
+    }
+    if (degreesNode.value.kind === 'absent') {
+      // A bare coordinate line carries no data; the coordinate-less
+      // block is dropped silently (the full-leniency container rule).
+      return undefined;
+    }
     const degrees = Number(reqText(degreesNode));
     if (!Number.isFinite(degrees) || degrees < 0) {
       fail(`${kind}.invalid`, `Invalid ${degreesTag} value "${reqText(degreesNode)}"`, degreesNode.position);
     }
     const minutesNode = one(node, minutesTag);
-    const minutes = minutesNode === undefined ? 0 : Number(reqText(minutesNode));
+    const minutes = minutesNode === undefined || minutesNode.value.kind === 'absent' ? 0 : Number(reqText(minutesNode));
     const secondsNode = one(node, secondsTag);
-    const seconds = secondsNode === undefined ? 0 : Number(reqText(secondsNode));
+    const seconds = secondsNode === undefined || secondsNode.value.kind === 'absent' ? 0 : Number(reqText(secondsNode));
     if (!Number.isFinite(minutes) || minutes < 0 || !Number.isFinite(seconds) || seconds < 0) {
       fail(`${kind}.invalid`, `Invalid ${degreesTag} minutes or seconds`, node.position);
     }
     const directionNode = one(node, directionTag);
-    // The direction is optional in the wild; latitude defaults to
-    // North, longitude to East.
-    const rawDirection = directionNode === undefined ? undefined : reqText(directionNode).toUpperCase();
+    // The direction is optional in the wild (and a bare direction
+    // line is empty, the full-leniency container rule); latitude
+    // defaults to North, longitude to East.
+    const rawDirection =
+      directionNode === undefined || directionNode.value.kind === 'absent'
+        ? undefined
+        : reqText(directionNode).toUpperCase();
     const direction = rawDirection === undefined || rawDirection === ''
       ? (kind === 'latitude' ? 'N' : 'E')
       : rawDirection === 'O' ? 'E' : rawDirection;
@@ -706,6 +731,10 @@ export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStruc
   };
   const latitude = read('_LAD', '_LAM', '_LAS', '_LAN', 'latitude');
   const longitude = read('_LOD', '_LOM', '_LOS', '_LON', 'longitude');
+  if (latitude === undefined || longitude === undefined) {
+    // A bare coordinate line (see read above).
+    return undefined;
+  }
   const allowed = new Set(['_LAD', '_LAM', '_LAS', '_LAN', '_LOD', '_LOM', '_LOS', '_LON']);
   for (const child of node.children) {
     if (!allowed.has(child.tag)) {

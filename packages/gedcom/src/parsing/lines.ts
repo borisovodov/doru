@@ -151,8 +151,17 @@ export type EscapeRule = '7.0' | '5.5.1';
  */
 function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
   checkBanned(raw, position);
-  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#') && /^@[A-Za-z0-9_][^@]*@$/.test(raw)) {
-    return { kind: 'pointer', pointer: raw };
+  // Escape artifacts inside a pointer token (`@<US20>F1@`, the
+  // testfiles_sprint3.ged files, and `@<US01>I1@`, the US01–US06
+  // test files: a US escape written bare inside the xref) are
+  // stripped before the pointer production — the token names the same
+  // record without the artifact. A trailing blank after the closing
+  // at sign (`1 FAMC @F2@ `) is junk too; the pointer keeps the
+  // trimmed token. Values that do not match the production stay text
+  // with the raw bytes untouched.
+  const stripped = raw.replace(/<US\d+>/g, '');
+  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#') && /^@[A-Za-z0-9_][^@]*@\s*$/.test(stripped)) {
+    return { kind: 'pointer', pointer: stripped.trim() };
   }
   // A pointer with a trailing C-style comment (`2 FAMC @F4@ /* note:
   // this ptr is not required but is allowed in 5.5 */`, real hand-built
@@ -163,6 +172,13 @@ function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): Ra
   const commentedPointer = /^(@[A-Za-z0-9_][^@]*@)\s*\/\*.*\*\/\s*$/.exec(raw);
   if (commentedPointer !== null) {
     return { kind: 'pointer', pointer: commentedPointer[1] as string };
+  }
+  // The line-comment spelling of the same shape (`1 WIFE @I9@ //
+  // Assuming Unknown_spouse`, the gprime imp-sample files): the `//`
+  // comment is dropped the same way.
+  const lineCommentedPointer = /^(@[A-Za-z0-9_][^@]*@)\s*\/\/.*$/.exec(raw);
+  if (lineCommentedPointer !== null) {
+    return { kind: 'pointer', pointer: lineCommentedPointer[1] as string };
   }
   // A value that starts with a single @ but does not match the
   // pointer production (a list of pointers, a pointer with a comment

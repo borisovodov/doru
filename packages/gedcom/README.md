@@ -825,10 +825,18 @@ would be, or where the model takes a documented position:
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)
     and its substructures survive; pointer slots with no value are
-    dropped. An unknown medium value (`TYPE image`, `TYPE story`,
-    `MEDI Article`) becomes OTHER with the phrase; the sex accepts
-    the long spellings Male/Female/MALE/FEMALE; the quality accepts
-    the non-standard `4`.
+    dropped. The repair is a resolution, not an error — nothing is
+    recorded when it succeeds. A text payload in the ALIA pointer
+    slot (`1 ALIA /Becky/`) is kept as a NAME with the AKA type; a
+    pointer with a trailing `//` comment (`1 WIFE @I9@ // …`) parses
+    as the pointer like the `/* … */` form; a comma-separated pointer
+    list in the GenoPro containers (`1 OCCUPATIONS @a@, @b@`) is
+    split and every pointer resolves; a pointer with a trailing blank
+    or a bare US escape artifact (`1 FAMC @F2@ `, `1 SUBM @<US20>I1@`)
+    parses as the trimmed token. An unknown medium value (`TYPE
+    image`, `TYPE story`, `MEDI Article`) becomes OTHER with the
+    phrase; the sex accepts the long spellings Male/Female/MALE/FEMALE;
+    the quality accepts the non-standard `4`.
   - Value leniencies: a non-`Y` text payload on an event line is kept
     verbatim (and a stray value on a no-payload line is dropped, the
     line parses without it); a text payload on a SOUR/REPO record line
@@ -844,13 +852,18 @@ would be, or where the model takes a documented position:
     coordinates accept bare decimals and DMS; ages accept ranges and
     stray-letter numbers; GEDZIP archives without `gedcom.ged` use the
     first `.ged` entry.
-- **The tolerant parse.** `parseTolerant` records EVERY problem of a
-  document and keeps parsing: one error entry per offending line,
-  structure or record (capped at 10,000 per document so a cascade does
-  not drown the report), and the best-effort dataset is returned
-  alongside the list. The strict `parse` entry stays fail-fast on the
-  first error. The corpus runner drives `parseTolerant`, so each file
-  reports its complete error set, not just the first one.
+- **The tolerant parse.** `parseTolerant` records every *unresolved*
+  problem of a document and keeps parsing: one error entry per
+  offending line, structure or record (capped at 10,000 per document
+  so a cascade does not drown the report), and the best-effort dataset
+  is returned alongside the list. Repairs the rules above define a
+  resolution for (the bare-line retry that succeeds, the stray-value
+  drop, the comment-stripped pointers, the comma-split pointer lists,
+  the text alias) are applied silently — an error entry means the
+  line was dropped or the value rejected with no recovery. The strict
+  `parse` entry stays fail-fast on the first error. The corpus runner
+  drives `parseTolerant`, so each file reports its complete error set,
+  not just the first one.
 - **Full leniency for unknown tags.** A tag the typed grammar has no
   slot for — an underscore extension tag, a catalogued non-underscore
   vendor tag, a standard tag in a position the standard does not

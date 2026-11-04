@@ -404,11 +404,11 @@ export function dispatch(
         // README's Known strict decisions): real files ship bare
         // `1 NAME`, `1 SUBN`, `1 OCCU`, `2 SOUR` and `1 TITL @R5@`
         // lines, and keeping the line with an empty payload loses
-        // less than dropping it — its substructures survive. When the
-        // retry fails too (pointer slots with no value), the line is
-        // dropped. In tolerant mode the skip is recorded as a
-        // diagnostic.
-        void tolerate(ctx, error);
+        // less than dropping it — its substructures survive. The
+        // repair is a resolution: nothing is recorded when it
+        // succeeds. When the retry fails too (pointer slots with no
+        // value), the line is dropped — that case has no resolution,
+        // and the error is recorded.
         const coerced: RawNode = {
           ...resolved,
           value: resolved.value.kind === 'pointer' ? { kind: 'text', text: resolved.value.pointer } : { kind: 'text', text: '' },
@@ -417,17 +417,24 @@ export function dispatch(
         try {
           (handlers[tag] as (child: RawNode) => void)(coerced);
         } catch {
-          // The line is dropped; the error is already recorded.
+          // The line is dropped. A bare line carries no data — the
+          // drop is a resolution and stays silent. A line that had a
+          // value the slot cannot keep (a text in a pointer slot)
+          // loses data — that drop is the unresolved error.
+          if (resolved.value.kind !== 'absent') {
+            void tolerate(ctx, error);
+          }
         }
         continue;
       }
       if (err.code === 'structure.unexpected-payload' && err.position?.line === child.position.line) {
         // A line carrying a stray value parses without it (the
-        // full-leniency container rule).
-        void tolerate(ctx, error);
+        // full-leniency container rule). The repair is a resolution:
+        // nothing is recorded when it succeeds.
         try {
           (handlers[tag] as (child: RawNode) => void)({ ...resolved, value: { kind: 'absent' }, valueColumn: 0 });
         } catch (retryError) {
+          void tolerate(ctx, error);
           throw retryError;
         }
         continue;

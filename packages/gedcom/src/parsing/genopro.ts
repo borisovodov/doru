@@ -7,6 +7,7 @@
  */
 
 import { dispatch, noPayload, reqPtr, reqText } from './context';
+import { fail } from '../errors';
 import type { Ctx } from './context';
 import type { RawNode } from './lines';
 import { parseDateStructure, parseNoteStructure } from './substructures';
@@ -157,7 +158,34 @@ export const GENOPRO_CONTAINERS: Record<string, string> = {
 };
 
 /** A GenoPro container line under INDI: `1 OCCUPATIONS @occu…@` —
- *  the pointer to the entity record, resolved. */
-export function parseGenoproContainer(node: RawNode, ctx: Ctx): string {
-  return reqPtr(node, ctx);
+ *  the pointer to the entity record, resolved. Real GenoPro files
+ *  join several pointers on one line with a comma (`1 OCCUPATIONS
+ *  @occu00012@, @occu00063@`); the list is split and every pointer
+ *  resolves — nothing is dropped. */
+export function parseGenoproContainer(node: RawNode, ctx: Ctx): string[] {
+  if (node.value.kind === 'pointer') {
+    return [reqPtr(node, ctx)];
+  }
+  const text = reqText(node).trim();
+  if (text === '') {
+    // A bare container line has no link to keep.
+    fail('structure.missing-payload', 'The container line requires a pointer', node.position);
+  }
+  const pointers: string[] = [];
+  for (const piece of text.split(',')) {
+    const trimmed = piece.trim();
+    if (trimmed === '') {
+      continue;
+    }
+    if (trimmed.startsWith('@') && trimmed.endsWith('@')) {
+      // The pointer form of the list member; resolved (a dangling
+      // member is dropped by the resolve rules).
+      pointers.push(reqPtr({ ...node, value: { kind: 'pointer', pointer: trimmed } }, ctx));
+      continue;
+    }
+    // A non-pointer member: kept verbatim as the pointer text (the
+    // same coercion the dispatch retry applies).
+    pointers.push(trimmed);
+  }
+  return pointers;
 }

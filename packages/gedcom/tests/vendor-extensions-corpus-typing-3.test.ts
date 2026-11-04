@@ -1735,3 +1735,83 @@ describe('the corpus-remainder typings (round 7)', () => {
     expect(parseOk551(text)).toEqual(dataset);
   });
 });
+
+describe('the corpus-remainder typings (round 8)', () => {
+  test('a text payload in the INDI ALIA pointer slot becomes a NAME with the AKA type', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME Robert /Burnett/',
+        '1 ALIA /Becky/',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.names?.[1]).toEqual({
+      tag: 'NAME',
+      payload: { surname: 'Becky' },
+      type: { payload: 'AKA' },
+    });
+    const text = ser551(dataset);
+    expect(text).toContain('1 NAME /Becky/');
+    expect(text).toContain('2 TYPE aka');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+
+  test('a pointer with a trailing // comment parses as the pointer', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @F1@ FAM',
+        '1 WIFE @I9@  // Assuming Unknown_spouse record',
+        '0 @I9@ INDI',
+        '1 NAME X /Y/',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const fam = dataset.records.find((r) => r.tag === 'FAM');
+    if (fam?.tag !== 'FAM') {
+      throw new Error('expected FAM');
+    }
+    expect(fam.wife?.partner).toBe('@I9@');
+    const text = ser551(dataset);
+    expect(text).toContain('1 WIFE @I9@');
+    expect(text).not.toContain('Assuming');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+
+  test('a comma-separated pointer list in the GenoPro containers splits and resolves', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 OCCUPATIONS @occu1@, @occu2@',
+        '1 CONTACTS @c1@',
+        '0 @occu1@ Occupation',
+        '1 COMPANY X',
+        '0 @occu2@ Occupation',
+        '1 COMPANY Y',
+        '0 @c1@ Contact',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.occupations).toEqual(['@occu1@', '@occu2@']);
+    expect(indi.contacts).toEqual(['@c1@']);
+    const text = ser551(dataset);
+    expect(text).toContain('1 OCCUPATIONS @occu1@');
+    expect(text).toContain('1 OCCUPATIONS @occu2@');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+});

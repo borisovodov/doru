@@ -18,7 +18,6 @@ import type {
 } from './context';
 import {
   addExtension,
-  reqText,
 } from './context';
 import type {
   RawNode,
@@ -58,13 +57,14 @@ const PAF_SENTENCE_TAGS: Readonly<Record<string, keyof PafSentenceDefinitions>> 
 };
 
 /** Sets the n-th Legacy sentence, padding the gaps (see
- *  EventDefinitionRecord.sentences). */
+ *  EventDefinitionRecord.sentences). A bare sentence line carries no
+ *  data and is kept as the empty sentence. */
 function setSentence(rec: EventDefinitionRecord, index: number, node: RawNode): void {
   const sentences = (rec.sentences ??= []);
   while (sentences.length <= index) {
     sentences.push('');
   }
-  sentences[index] = reqText(node);
+  sentences[index] = node.value.kind === 'text' ? node.value.text : '';
 }
 
 /**
@@ -97,6 +97,11 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
     }
     rec.kind = code;
   };
+  // A bare line carries no data; every text slot below reads the
+  // empty string (the full-leniency container rule — the same retry
+  // the dispatch applies elsewhere; this parser iterates its
+  // children directly).
+  const text = (n: RawNode): string => (n.value.kind === 'text' ? n.value.text : '');
   for (const child of node.children) {
     if (EVENT_DEFINITION_TYPE_TAGS.has(child.tag)) {
       if (child.value.kind !== 'absent') {
@@ -116,7 +121,7 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
           // First occurrence wins.
           continue;
         }
-        rec.title = reqText(child);
+        rec.title = text(child);
       }
       continue;
     }
@@ -124,14 +129,14 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
       // The event kind code (I = individual, F = family in the real
       // Legacy exports; the GEDCOM 5.5.5 draft / RootsMagic `_EVDEF`
       // writes P for a person event — see EventDefinitionRecord.kind).
-      setKind(reqText(child));
+      setKind(text(child));
       continue;
     }
     if (child.tag === '_TYPE') {
       // The legacy underscore spelling: the defined event tag, kept as
       // an eventType source for backward compatibility (no real file
       // with this form was found).
-      setType(reqText(child));
+      setType(text(child));
       continue;
     }
     if (child.tag === 'ROLE') {
@@ -147,52 +152,52 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
       continue;
     }
     if (child.tag === '_DATE_TYPE') {
-      rec.dateType = reqText(child);
+      rec.dateType = text(child);
       continue;
     }
     if (child.tag === '_DESC_FLAG') {
-      rec.descriptionFlag = reqText(child);
+      rec.descriptionFlag = text(child);
       continue;
     }
     if (child.tag === '_PLACE_TYPE') {
-      rec.placeType = reqText(child);
+      rec.placeType = text(child);
       continue;
     }
     if (child.tag === '_PP_EXCLUDE') {
-      rec.potentialProblemsExcluded = reqText(child);
+      rec.potentialProblemsExcluded = text(child);
       continue;
     }
     if (child.tag === 'ABBR') {
       // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` abbreviation of
       // the defined event (see EventDefinitionRecord.abbreviation).
-      rec.abbreviation = reqText(child);
+      rec.abbreviation = text(child);
       continue;
     }
     if (child.tag === 'SENT') {
       // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` sentence
       // template (see EventDefinitionRecord.sentence).
-      rec.sentence = reqText(child);
+      rec.sentence = text(child);
       continue;
     }
     if (child.tag === 'PLAC') {
       // The RootsMagic `_EVDEF` spelling of the place-field flag
       // (`PLAC Y`/`N`) — the same slot `_PLACE_TYPE` carries (see
       // EventDefinitionRecord.placeType).
-      rec.placeType = reqText(child);
+      rec.placeType = text(child);
       continue;
     }
     if (child.tag === 'DATE') {
       // The RootsMagic `_EVDEF` spelling of the date-field flag
       // (`DATE Y`/`N`) — the same slot `_DATE_TYPE` carries (see
       // EventDefinitionRecord.dateType).
-      rec.dateType = reqText(child);
+      rec.dateType = text(child);
       continue;
     }
     if (child.tag === 'DESC') {
       // The RootsMagic `_EVDEF` spelling of the description-field
       // flag (`DESC Y`/`N`) — the same slot `_DESC_FLAG` carries (see
       // EventDefinitionRecord.descriptionFlag).
-      rec.descriptionFlag = reqText(child);
+      rec.descriptionFlag = text(child);
       continue;
     }
     const sentenceMatch = /^_SEN([1-8])$/.exec(child.tag);
@@ -203,7 +208,7 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
     const pafField = PAF_SENTENCE_TAGS[child.tag];
     if (pafField !== undefined) {
       const paf = (rec.pafSentences ??= {});
-      paf[pafField] = reqText(child);
+      paf[pafField] = text(child);
       continue;
     }
     // Full leniency: any other child stays a generic extension.
@@ -217,13 +222,19 @@ export function parseEventDefinitionRecord(node: RawNode, ctx: Ctx): EventDefini
  *  WitnessRoleSentenceSet): `ROLE <name>` with the eight `_SEN1`–`_SEN8`
  *  sentences and the `_DEF` default-role mark. */
 function parseWitnessRole(node: RawNode, ctx: Ctx): WitnessRoleSentenceSet {
-  const out: WitnessRoleSentenceSet = { tag: 'ROLE', role: reqText(node) };
+  // A bare ROLE line carries no data and keeps the empty role name.
+  const out: WitnessRoleSentenceSet = {
+    tag: 'ROLE',
+    role: node.value.kind === 'text' ? node.value.text : '',
+  };
   const setSentence = (index: number, child: RawNode): void => {
     const sentences = (out.sentences ??= []);
     while (sentences.length <= index) {
       sentences.push('');
     }
-    sentences[index] = reqText(child);
+    // A bare sentence line carries no data and is kept as the empty
+    // sentence (the full-leniency container rule).
+    sentences[index] = child.value.kind === 'text' ? child.value.text : '';
   };
   for (const child of node.children) {
     const sentenceMatch = /^_SEN([1-8])$/.exec(child.tag);
@@ -233,8 +244,9 @@ function parseWitnessRole(node: RawNode, ctx: Ctx): WitnessRoleSentenceSet {
     }
     if (child.tag === 'SENT') {
       // The GEDCOM 5.5.5 draft / RootsMagic `_EVDEF` role sentence
-      // template (see WitnessRoleSentenceSet.sentence).
-      out.sentence = reqText(child);
+      // template (see WitnessRoleSentenceSet.sentence); a bare line
+      // is the empty template.
+      out.sentence = child.value.kind === 'text' ? child.value.text : '';
       continue;
     }
     if (child.tag === '_DEF') {

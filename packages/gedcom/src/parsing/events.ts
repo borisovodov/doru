@@ -532,7 +532,10 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     },
     '_COR': (child) => {
       // MFT7: the event's coordinates (see EventDetail.map).
-      detail.map = parseMftCoordinates(child, ctx, detail);
+      const map = parseMftCoordinates(child, ctx, detail);
+      if (map !== undefined) {
+        detail.map = map;
+      }
     },
     '_DESCRIPTION': (child) => {
       // MyHeritage: the event's description-aware flag (see
@@ -542,7 +545,10 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     MAP: (child) => {
       // The standard spelling of the event's coordinates (see
       // EventDetail.map); recognized in any file.
-      detail.map = parseMapCoordinates(child, ctx);
+      const map = parseMapCoordinates(child, ctx);
+      if (map !== undefined) {
+        detail.map = map;
+      }
     },
     '_SENT': (child) => {
       // RootsMagic: the event sentence (report wording).
