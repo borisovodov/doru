@@ -801,6 +801,14 @@ its JSDoc.
   design documents, VHDL sources and HTML pages under `.ged`/`.gdz`
   names); it fails once with `document.not-gedcom` — one clear error
   instead of the per-line `line.bad-level` cascade.
+- **The ANSEL windows-1251 fallback.** An ANSEL-declared document
+  whose lines mostly fail the ANSEL set is actually windows-1251 —
+  the Agelong Tree export dialect (the GenWiki "GEDCOM/_Nutzerdef-Tag"
+  article documents the exporter writing windows-1251 while declaring
+  CHAR ANSEL). The whole document decodes as CP1251, silently; a file
+  with only a few genuinely undefined ANSEL bytes (a stray byte, the
+  TGC551 torture tests) stays below the threshold and keeps its
+  `decoding.invalid-ansel` errors.
 - **The unleveled-continuation merge.** An unleveled line *inside* an
   otherwise valid GEDCOM file merges into the payload of the
   NOTE/TEXT line it directly follows, as a newline continuation —

@@ -680,6 +680,11 @@ function decodeWithCharset(bytes: Uint8Array, charset: Charset551, utf8Fallback:
     return decodeUtf16Document(bytes);
   }
   const rawLines = splitByteLines(bytes);
+  if (charset === 'ANSEL') {
+    // The ANSEL document with the Agelong windows-1251 fallback (see
+    // decodeAnselDocument).
+    return decodeAnselDocument(rawLines, errors);
+  }
   const lines: DecodedLine[] = [];
   let text = '';
   for (let i = 0; i < rawLines.length; i++) {
@@ -688,8 +693,6 @@ function decodeWithCharset(bytes: Uint8Array, charset: Charset551, utf8Fallback:
     let result: ParseResult<string>;
     if (charset === 'UTF-8') {
       result = decodeUtf8Line(raw, lineNumber, utf8Fallback);
-    } else if (charset === 'ANSEL') {
-      result = decodeAnselLine(raw, lineNumber);
     } else if (charset === 'CP1252' || charset === 'CP850' || charset === 'MACINTOSH' || charset === 'LATIN1') {
       result = decodeSingleByteLine(raw, charset);
     } else {
@@ -709,6 +712,105 @@ function decodeWithCharset(bytes: Uint8Array, charset: Charset551, utf8Fallback:
       return result;
     }
     lines.push({ text: result.value, line: lineNumber, offset: raw.offset });
+    if (i > 0) {
+      text += '\n';
+    }
+    text += result.value;
+  }
+  return ok({ text, lines });
+}
+
+/** A full decode pass: every line's result, in order. */
+function decodeLinesPass(
+  rawLines: RawByteLine[],
+  decoder: (raw: RawByteLine, lineNumber: number) => ParseResult<string>,
+): Array<ParseResult<string>> {
+  return rawLines.map((raw, i) => decoder(raw, i + 1));
+}
+
+/** The number of lines that carry a byte above 0x7F. */
+function highByteLineCount(rawLines: RawByteLine[]): number {
+  let count = 0;
+  for (const raw of rawLines) {
+    for (const b of raw.bytes) {
+      if (b > 0x7f) {
+        count++;
+        break;
+      }
+    }
+  }
+  return count;
+}
+
+/** Decodes one line as windows-1251 (the Agelong fallback charset). */
+function decodeCp1251Line(raw: RawByteLine, lineNumber: number): ParseResult<string> {
+  try {
+    return ok(new TextDecoder('windows-1251', { fatal: true }).decode(raw.bytes));
+  } catch (error) {
+    const b = (error as unknown as { input?: Uint8Array }).input;
+    return {
+      ok: false,
+      error: {
+        code: 'decoding.invalid-ansel',
+        message: 'Byte 0x' + ((b?.[0] ?? 0) as number).toString(16).toUpperCase() + ' is not valid in windows-1251',
+        position: { line: lineNumber, column: 1, offset: raw.offset },
+      },
+    };
+  }
+}
+
+/** Decodes the ANSEL document, with the Agelong fallback (see the
+ *  JSDoc of decodeAnselDocument). */
+function decodeAnselDocument(
+  rawLines: RawByteLine[],
+  errors: GedcomError[] | undefined,
+): ParseResult<DecodedDocument> {
+  const ansel = decodeLinesPass(rawLines, decodeAnselLine);
+  const anselFailures = ansel.filter((result) => !result.ok).length;
+  if (anselFailures >= 10 && anselFailures / highByteLineCount(rawLines) > 0.5) {
+    // The Agelong Tree dialect (the GenWiki "GEDCOM/_Nutzerdef-Tag"
+    // article documents the exporter writing windows-1251 while
+    // declaring CHAR ANSEL): when most high-byte lines fail the ANSEL
+    // set, the document is actually windows-1251 — the whole
+    // document decodes as CP1251 and nothing is recorded. A file
+    // with a few genuinely undefined ANSEL bytes (a single stray
+    // byte, the TGC551 torture tests) stays below the threshold and
+    // keeps its errors.
+    const cp1251 = decodeLinesPass(rawLines, decodeCp1251Line);
+    if (cp1251.every((result) => result.ok)) {
+      const lines: DecodedLine[] = [];
+      let text = '';
+      for (let i = 0; i < cp1251.length; i++) {
+        const raw = rawLines[i] as RawByteLine;
+        const value = (cp1251[i] as { ok: true; value: string }).value;
+        lines.push({ text: value, line: i + 1, offset: raw.offset });
+        if (i > 0) {
+          text += '\n';
+        }
+        text += value;
+      }
+      return ok({ text, lines });
+    }
+  }
+  // The ANSEL result stands: tolerant mode records the failures and
+  // skips the lines; strict mode fails on the first one.
+  const lines: DecodedLine[] = [];
+  let text = '';
+  for (let i = 0; i < ansel.length; i++) {
+    const raw = rawLines[i] as RawByteLine;
+    const result = ansel[i] as ParseResult<string>;
+    if (!result.ok) {
+      if (errors !== undefined) {
+        errors.push(result.error);
+        lines.push({ text: '', line: i + 1, offset: raw.offset });
+        if (i > 0) {
+          text += '\n';
+        }
+        continue;
+      }
+      return result;
+    }
+    lines.push({ text: result.value, line: i + 1, offset: raw.offset });
     if (i > 0) {
       text += '\n';
     }
