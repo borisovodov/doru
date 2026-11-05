@@ -16,7 +16,6 @@ import {
   ORDINANCE_STATUS_ENUM_VALUES,
   PEDIGREE_ENUM_VALUES,
   QUALITY_ENUM_VALUES,
-  RESTRICTION_ENUM_VALUES,
 } from '../enumerations';
 import {
   fail,
@@ -102,7 +101,7 @@ import {
 } from './substructures';
 import {
   parseEnum,
-  parseListEnum,
+  parseRestrictionList,
 } from './types';
 import {
   parseAge551,
@@ -573,7 +572,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       detail.eventNumber = reqText(child);
     },
     RESN: (child) => {
-      detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      detail.restriction = parseRestrictionList(reqText(child), child.position);
     },
     NOTE: (child) => {
       (detail.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -1251,11 +1250,11 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
 
 /** The 5.5.1 per-ordinance status value sets (canonical 7.0 spellings). */
 export const LDS_STATUS_551: Record<string, Record<string, string>> = {
-  BAPL: { CHILD: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  CONL: { CHILD: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  ENDL: { CHILD: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  SLGC: { BIC: '', COMPLETED: '', EXCLUDED: '', DNS: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  SLGS: { CANCELED: '', COMPLETED: '', DNS: '', EXCLUDED: '', 'DNS/CAN': 'DNS_CAN', 'PRE-1970': 'PRE_1970', SUBMITTED: '', UNCLEARED: '' },
+  BAPL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  CONL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  ENDL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  SLGC: { BIC: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', DNS: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  SLGS: { CANCELED: '', CLEARED: '', COMPLETED: '', DNS: '', EXCLUDED: '', 'DNS/CAN': 'DNS_CAN', 'PRE-1970': 'PRE_1970', QUALIFIED: '', SUBMITTED: '', UNCLEARED: '' },
 };
 
 export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string): OrdinanceStatusStructure {

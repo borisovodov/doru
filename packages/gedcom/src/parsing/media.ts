@@ -17,7 +17,6 @@ import type {
 } from '../structures';
 import {
   MEDIA_ENUM_VALUES,
-  RESTRICTION_ENUM_VALUES,
 } from '../enumerations';
 import {
   fail,
@@ -53,8 +52,8 @@ import {
 } from './substructures';
 import {
   parseEnum,
-  parseListEnum,
   parseMediaFormat,
+  parseRestrictionList,
 } from './types';
 
 export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord {
@@ -289,7 +288,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      rec.restriction = parseRestrictionList(reqText(child), child.position);
     },
     CREA: (child) => {
       const created = parseCreationDateLenient(child, ctx);

@@ -360,3 +360,104 @@ describe('the xref-not-found repairs', () => {
     expect(indi?.xref).toBe('@I1@');
   });
 });
+
+describe('the enum leniencies', () => {
+  test('the LDS ordinance statuses CLEARED and QUALIFIED parse verbatim', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 BAPL',
+      '2 STAT Cleared',
+      '1 ENDL',
+      '2 STAT QUALIFIED',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.ordinances?.map((ordinance) => ordinance.detail?.status?.payload)).toEqual(['CLEARED', 'QUALIFIED']);
+  });
+
+  test('RESN none and NONE list parts are filtered before the enum', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 RESN none',
+      '0 @I2@ INDI',
+      '1 NAME B /C/',
+      '1 RESN NONE, LOCKED',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.restriction).toEqual([]);
+    const indi2 = dataset?.records[1];
+    expect(indi2?.tag === 'INDI' ? indi2.restriction : undefined).toEqual(['LOCKED']);
+  });
+
+  test('the GEDKeeper numeric direction marker defaults like an absent direction', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 BIRT',
+      '2 PLAC X',
+      '3 _COR',
+      '4 _LAD 41',
+      '4 _LAM 38',
+      '4 _LAS 26',
+      '4 _LOD 4',
+      '4 _LOM 51',
+      '4 _LOS 24',
+      '4 _LON 1',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const map = indi.events?.[0]?.detail?.place?.map;
+    expect(map?.latitude).toEqual({ direction: 'N', degrees: 41 + 38 / 60 + 26 / 3600 });
+    expect(map?.longitude).toEqual({ direction: 'E', degrees: 4 + 51 / 60 + 24 / 3600 });
+  });
+
+  test('_CONF_FLAG 1 marks the confidential flag', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @E1@ _EVENT_DEFN',
+      '1 _CONF_FLAG 1',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const def = dataset?.records[0];
+    expect(def?.tag === '_EVENT_DEFN' ? def.confidentialFlag : undefined).toBe(true);
+  });
+});

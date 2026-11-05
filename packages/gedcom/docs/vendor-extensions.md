@@ -821,6 +821,14 @@ its JSDoc.
   TYPE value.
 - **The sex leniency.** The long spellings Male/MALE/Female/FEMALE
   normalize into the standard M/F letters.
+- **The enum leniencies of the remainder sweep.** The 5.5.1 LDS
+  ordinance statuses CLEARED and QUALIFIED (dropped from the 7.0
+  enumset) are kept verbatim; the `RESN` parts spelled `none` (any
+  case) are filtered before the enum validation, so `RESN NONE,
+  LOCKED` keeps LOCKED; the GEDKeeper numeric direction marker of the
+  MFT `_COR` block (`_LON 1`, the gedcomimport_samples) defaults like
+  an absent direction (the DMS numbers are the data, the marker is
+  not); and the GEDKeeper `_CONF_FLAG 1`/`0` spells the Y/N flag.
 - **The quality leniency.** The non-standard `QUAY 4` (GEDBAS) is
   accepted as a fourth assessment level.
 - **Bare numeric pointers.** The Geni bare-identifier rule extends to

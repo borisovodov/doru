@@ -43,6 +43,12 @@ import {
   MULTIMEDIA_FORMATS_551,
   MULTIMEDIA_FORMATS_555,
 } from '../primitives';
+import {
+  RESTRICTION_ENUM_VALUES,
+} from '../enumerations';
+import type {
+  RestrictionEnum,
+} from '../enumerations';
 
 const CALENDAR_NAMES: ReadonlyMap<string, Calendar> = new Map([
   ['GREGORIAN', 'GREGORIAN'],
@@ -1242,6 +1248,22 @@ export function parseListEnum<K extends string>(
   position: SourcePosition,
 ): Array<K | ExtensionTag> {
   return text.split(',').map((item) => parseEnum(item.trim(), table, position));
+}
+
+/**
+ * Parses a RESN value: the wild writes `RESN none` (no restriction)
+ * and lists like `RESN NONE, LOCKED` — the none parts are filtered
+ * before the enum validation (the full-leniency container rule).
+ */
+export function parseRestrictionList(
+  text: string,
+  position: SourcePosition,
+): Array<RestrictionEnum | ExtensionTag> {
+  return text
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '' && item.toUpperCase() !== 'NONE')
+    .map((item) => parseEnum(item, RESTRICTION_ENUM_VALUES, position));
 }
 
 /** Parses a Personal Name payload (slash-delimited). */

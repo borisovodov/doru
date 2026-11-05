@@ -7,9 +7,6 @@
  * error naming the offending line.
  */
 
-import {
-  RESTRICTION_ENUM_VALUES,
-} from '../enumerations';
 import type {
   AssociationStructure,
   EventDetail,
@@ -103,8 +100,8 @@ import {
 } from './events';
 import {
   parseEnum,
-  parseListEnum,
   parsePersonalName,
+  parseRestrictionList,
 } from './types';
 import {
   LEGACY_FAMILY_TAGS,
@@ -138,7 +135,7 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
   let lastPartner: FamilyPartnerLink | undefined;
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      rec.restriction = parseRestrictionList(reqText(child), child.position);
     },
     HUSB: (child) => {
       rec.husband = parseFamilyPartnerLink(child, ctx);
@@ -1023,7 +1020,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      rec.restriction = parseRestrictionList(reqText(child), child.position);
     },
     NAME: (child) => {
       (rec.names ??= []).push(parsePersonalNameStructure(child, ctx));

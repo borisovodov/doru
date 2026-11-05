@@ -711,16 +711,23 @@ export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStruc
     const directionNode = one(node, directionTag);
     // The direction is optional in the wild (and a bare direction
     // line is empty, the full-leniency container rule); latitude
-    // defaults to North, longitude to East.
+    // defaults to North, longitude to East. The GEDKeeper exports
+    // write a numeric marker (`_LON 1`, the gedcomimport_samples) —
+    // it carries no decodable letter, so the direction defaults the
+    // same way (the DMS numbers are the data, the marker is not).
     const rawDirection =
       directionNode === undefined || directionNode.value.kind === 'absent'
         ? undefined
         : reqText(directionNode).toUpperCase();
-    const direction = rawDirection === undefined || rawDirection === ''
+    let direction = rawDirection === undefined || rawDirection === ''
       ? (kind === 'latitude' ? 'N' : 'E')
       : rawDirection === 'O' ? 'E' : rawDirection;
     if (direction !== 'N' && direction !== 'S' && direction !== 'E' && direction !== 'W') {
-      fail('enum.invalid-value', `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`, (directionNode as RawNode).position);
+      if (/^\d+$/.test(rawDirection as string)) {
+        direction = kind === 'latitude' ? 'N' : 'E';
+      } else {
+        fail('enum.invalid-value', `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`, (directionNode as RawNode).position);
+      }
     }
     const total = degrees + minutes / 60 + seconds / 3600;
     const limit = kind === 'latitude' ? 90 : 180;

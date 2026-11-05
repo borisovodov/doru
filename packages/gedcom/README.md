@@ -862,7 +862,11 @@ would be, or where the model takes a documented position:
     verbatim (an unparseable date becomes a phrase); times accept
     `UTC`/`GMT±n` suffixes and bare hours; malformed names keep the
     whole text as the given name; enums are trimmed (with `none` RESN
-    filtered, descriptive PEDI kept as OTHER + phrase, YES/NO flags);
+    filtered before validation — `RESN NONE, LOCKED` keeps LOCKED —
+    descriptive PEDI kept as OTHER + phrase, YES/NO flags; the 5.5.1
+    LDS statuses CLEARED/QUALIFIED kept verbatim; the GEDKeeper
+    numeric direction marker `_LON 1` defaults like an absent
+    direction, and `_CONF_FLAG 1`/`0` spells the Y/N flag);
     coordinates accept bare decimals and DMS; ages accept ranges and
     stray-letter numbers; GEDZIP archives without `gedcom.ged` use the
     first `.ged` entry.

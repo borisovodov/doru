@@ -812,11 +812,13 @@ export function parsePrivacyFlag(node: RawNode, tag: string): boolean {
   if (node.value.kind === 'absent') {
     return true;
   }
-  const text = reqText(node);
-  if (text === 'Y') {
+  // The GEDKeeper exports spell the flag with the numeric marker
+  // (`_CONF_FLAG 1`, the gedcomimport_samples).
+  const text = reqText(node).trim();
+  if (text === 'Y' || text === '1') {
     return true;
   }
-  if (text === 'N') {
+  if (text === 'N' || text === '0') {
     return false;
   }
   fail('enum.invalid-value', `The ${tag} value must be Y or N, not "${text}"`, node.position);
