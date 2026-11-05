@@ -815,6 +815,12 @@ its JSDoc.
   with only a few genuinely undefined ANSEL bytes (a stray byte, the
   TGC551 torture tests) stays below the threshold and keeps its
   `decoding.invalid-ansel` errors.
+- **The charset-name leniencies.** The `utf8bom` spelling (the GenData
+  test file) is UTF-8, and a CHAR value that cannot name a character
+  set — no ASCII letters, like the lone euro marker byte the
+  lifelines exports write — carries no declaration: the bytes decode
+  as CP1252, whose table maps every byte and absorbs the stray
+  markers cleanly.
 - **The bare translation and the ISO exact date.** A NOTE.TRAN
   without a MIME/LANG substructure (the maximal70 test files write
   `2 TRAN British English` bare) keeps the translation text alone —

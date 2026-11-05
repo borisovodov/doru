@@ -82,4 +82,14 @@ describe('the out-of-spec 5.5.1 charsets', () => {
       expect(result.error.code).toBe('decoding.unknown-charset');
     }
   });
+
+  test('the utf8bom spelling is UTF-8', () => {
+    expectName('utf8bom', ascii('Jos\u00e9 /Doe/'), 'Jos\u00e9 Doe');
+  });
+
+  test('a letterless CHAR value decodes as CP1252', () => {
+    // The lifelines exports carry a lone euro marker byte as the CHAR
+    // value: it names no character set, and CP1252 maps every byte.
+    expectName('\u20ac', ascii('Jose /Doe/'), 'Jose Doe');
+  });
 });

@@ -63,12 +63,27 @@ const CHARSET551_ALIASES: Readonly<Record<string, Charset551>> = {
   MAC: 'MACINTOSH',
   MACINTOSH: 'MACINTOSH',
   LATIN1: 'LATIN1',
+  // The BOM-flavoured UTF-8 spelling of the German GEDCOM-L exports
+  // (the GenData test file writes `CHAR utf8bom`).
+  UTF8BOM: 'UTF-8',
   'ISO-8859-1': 'LATIN1',
 };
 
 /** Normalizes a CHAR value to a decoder charset, or undefined when unknown. */
 export function normalizeCharset551(value: string): Charset551 | undefined {
-  return CHARSET551_ALIASES[value.trim().toUpperCase()];
+  const trimmed = value.trim();
+  const alias = CHARSET551_ALIASES[trimmed.toUpperCase()];
+  if (alias !== undefined) {
+    return alias;
+  }
+  // A CHAR value that cannot name a character set — no ASCII letters
+  // (the lifelines exports carry a lone euro marker byte) — carries
+  // no declaration: the bytes decode as CP1252, whose table maps
+  // every byte and absorbs the stray markers cleanly.
+  if (!/[A-Za-z]/.test(trimmed)) {
+    return 'CP1252';
+  }
+  return undefined;
 }
 
 /**
