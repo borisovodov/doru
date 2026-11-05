@@ -99,16 +99,19 @@ import {
  *  any depth, and a pointer may address it). */
 function collectXrefs(nodes: RawNode[]): Set<string> {
   const xrefs = new Set<string>();
-  const walk = (node: RawNode): void => {
+  // An iterative depth-first walk: a hand-made file can nest
+  // thousands of levels (the vscode-gedcom "numbered list" fixture
+  // nests 9000), and a recursive walk would blow the JS stack (the
+  // same reason parseExtension builds iteratively).
+  const stack: RawNode[] = [...nodes];
+  while (stack.length > 0) {
+    const node = stack.pop() as RawNode;
     if (node.xref !== undefined) {
       xrefs.add(node.xref);
     }
-    for (const child of node.children) {
-      walk(child);
+    for (let i = node.children.length - 1; i >= 0; i -= 1) {
+      stack.push(node.children[i] as RawNode);
     }
-  };
-  for (const node of nodes) {
-    walk(node);
   }
   return xrefs;
 }

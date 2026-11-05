@@ -566,7 +566,10 @@ The agreed policy:
   typed; under the full-leniency rule every other unknown tag —
   non-underscore vendor tags outside the catalogs, standard tags in
   vendor positions — is likewise preserved as a generic extension
-  instead of failing.
+  instead of failing. The extension tree and every structural walk
+  over the model build iteratively: a hand-made file can nest
+  thousands of levels (the vscode-gedcom "numbered list" fixture
+  nests 9000), and the recursive walks would blow the JS stack.
 - **Same behavior in both versions.** Known vendor tags are recognized
   on input in 5.5.1 and 7.0 alike. On output, a construct that has a
   standard equivalent is written in the standard spelling of the target

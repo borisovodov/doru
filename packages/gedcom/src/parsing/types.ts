@@ -737,7 +737,7 @@ function parseDateBody(
   const tokens = dateTokens551(text);
   const parseDate = (parts: string[]): { fields: DateFields; dualYear: boolean } =>
     full ? parseDateCore(parts, position, resolve, true) : parseDate551(parts, position);
-  const first = (tokens[0] as string).toUpperCase();
+  const first = tokens.length === 0 ? '' : (tokens[0] as string).toUpperCase();
   if (first === 'FROM' || first === 'TO') {
     const from = first === 'FROM';
     const toIndex = from ? tokens.findIndex((token, index) => index > 0 && token.toUpperCase() === 'TO') : -1;
@@ -805,6 +805,14 @@ function parseDateCore(
 ): { fields: DateFields; dualYear: boolean } {
   let calendar: Calendar = 'GREGORIAN';
   let rest = tokens;
+  if (tokens.length === 0) {
+    // A date part that is empty (`2 DATE ABT` with no date after the
+    // modifier, `2 DATE BET  AND 1907`, `2 DATE FROM  to 1947`):
+    // the caller keeps the whole payload as the phrase (see
+    // parseDateStructure), so the code only needs to be a date error
+    // instead of a TypeError on `tokens[0]`.
+    fail('date.invalid', 'A date part is empty (a modifier with no date follows)', position);
+  }
   const first = tokens[0] as string;
   if (first.startsWith('@#D')) {
     const mapped = CALENDAR_ESCAPES_551.get(first);

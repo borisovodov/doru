@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseTolerant } from '../src/detect';
 import { parseGedcom70 } from '../src/parsing/assemble';
+import { serializeGedcom551 } from '../src/serialize/serialize';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -697,5 +698,72 @@ describe('the European date spellings', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     expect(dataset?.header.date?.value).toEqual({ day: 23, month: 'APR', year: 1998 });
+  });
+});
+
+describe('the empty date parts', () => {
+  test('a modifier with no date is kept whole as the phrase', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 DEAT',
+      '2 DATE Aft',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
+    const death = individual?.events.find((event) => event.tag === 'DEAT');
+    expect(death?.detail.date.phrase).toBe('Aft');
+  });
+
+  test('a BET with an empty start and a FROM with an empty from parse as phrases', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 BIRT',
+      '2 DATE BET  AND 1907',
+      '1 DEAT',
+      '2 DATE From  to 1947',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
+    const birth = individual?.events.find((event) => event.tag === 'BIRT');
+    const death = individual?.events.find((event) => event.tag === 'DEAT');
+    expect(birth?.detail.date.phrase).toBe('BET  AND 1907');
+    expect(death?.detail.date.phrase).toBe('From  to 1947');
+  });
+});
+
+describe('the deep nesting', () => {
+  test('a 9000-level extension chain parses and serializes without a stack overflow', () => {
+    // The vscode-gedcom "numbered list" fixture shape: one unknown tag
+    // nested 9000 levels deep. The iterative walks (collectXrefs,
+    // parseExtension, the serialize-side clone/collect walks) must
+    // survive it.
+    const lines = ['0 HEAD', '1 GEDC', '2 VERS 5.5.1'];
+    for (let level = 3; level <= 9000; level += 1) {
+      lines.push(`${level} Step ${level - 2} of the recipe`);
+    }
+    lines.push('0 TRLR', '');
+    const { value, errors } = parseTolerant(enc(lines.join('\n')));
+    expect(errors).toEqual([]);
+    expect(value?.kind).toBe('dataset');
+    if (value?.kind === 'dataset') {
+      const out = serializeGedcom551(value.dataset);
+      expect(out.ok).toBe(true);
+    }
   });
 });

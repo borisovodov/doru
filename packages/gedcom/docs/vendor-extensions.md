@@ -867,7 +867,11 @@ its JSDoc.
   period. The European numeric spellings (`23.8.2024`, `10-08-2011`
   — day first, like the GEDCOM date itself) and the month-named dash
   spelling (`23-Apr-98`, the two-digit year is the 20th-century one)
-  normalize to the standard form; `unbek` joins the unknown set.
+  normalize to the standard form; `unbek` joins the unknown set. A
+  date part that is empty (`2 DATE ABT` with nothing after the
+  modifier, `2 DATE BET  AND 1907`, `2 DATE FROM  to 1947` — the
+  gedcom-go longsword and Internet Archive trees) keeps the whole
+  payload as the phrase instead of crashing the parse.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters
