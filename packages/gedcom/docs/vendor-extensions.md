@@ -846,6 +846,12 @@ its JSDoc.
   text-bearing NOTE/TEXT line on the stack — the immediately
   preceding text line, nothing further is guessed. A level-skip
   without such an anchor keeps the error.
+- **The SUBN placement.** The ordering rule (the SUBN record right
+  after the header, GEDCOM 5.5.1 §2 p.23) is serialization pedantry:
+  a SUBN anywhere in the stream parses as the submission record (the
+  header-adjacent one binds the dataset slot, the others stay
+  records — real files place SUBN after the SUBM record). The ORDI
+  payload accepts the abbreviated Y/N spellings beside yes/no.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

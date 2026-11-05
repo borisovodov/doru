@@ -271,7 +271,12 @@ function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
     case 'SUBM':
       return parseSubmitterRecord(node, ctx);
     case 'SUBN':
-      fail('structure.unknown-tag', 'The SUBN record must immediately follow the header', node.position);
+      // The ordering rule (the SUBN right after the header, GEDCOM
+      // 5.5.1 §2 p.23) is serialization pedantry: a SUBN anywhere in
+      // the stream parses as the submission record — the
+      // header-adjacent one binds the dataset slot, the others stay
+      // records (real files place SUBN after the SUBM record).
+      return parseSubmissionRecord(node, ctx);
     case '_PLAC':
     case '_PLACE':
     case '_LOC':

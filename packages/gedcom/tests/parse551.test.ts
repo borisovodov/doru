@@ -144,8 +144,11 @@ describe('parseGedcom551 — header', () => {
     expect(dataset.submission?.ordinanceProcessFlag).toBe('yes');
   });
 
-  test('rejects a SUBN record not directly after the header', () => {
-    expect(err551([...HEADER, ...SUBM, '0 @N1@ SUBN', '0 TRLR'].join('\n'))).toBe('structure.unknown-tag');
+  test('accepts a SUBN record anywhere in the stream', () => {
+    const dataset = parse551([...HEADER, ...SUBM, '0 @N1@ SUBN', '1 DESC 1', '1 ORDI N', '0 TRLR'].join('\n'));
+    const submission = dataset.records.find((record) => record.tag === 'SUBN');
+    expect(submission?.tag === 'SUBN' ? submission.generationsOfDescendants : undefined).toBe(1);
+    expect(submission?.tag === 'SUBN' ? submission.ordinanceProcessFlag : undefined).toBe('no');
   });
 });
 

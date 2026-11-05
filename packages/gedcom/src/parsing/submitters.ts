@@ -189,11 +189,16 @@ export function parseSubmissionRecord(node: RawNode, ctx: Ctx): SubmissionRecord
         rec.generationsOfDescendants = reqDigits(child);
       },
       ORDI: (child) => {
-        const value = reqText(child);
-        if (value.toLowerCase() !== 'yes' && value.toLowerCase() !== 'no') {
+        // The wild writes the abbreviated spellings (`1 ORDI N`, the
+        // legacy-gedcom samples) beside yes/no.
+        const value = reqText(child).toLowerCase();
+        if (value === 'y' || value === 'yes') {
+          rec.ordinanceProcessFlag = 'yes';
+        } else if (value === 'n' || value === 'no') {
+          rec.ordinanceProcessFlag = 'no';
+        } else {
           fail('enum.invalid-value', `The ORDI payload must be yes or no, got "${value}"`, child.position);
         }
-        rec.ordinanceProcessFlag = value.toLowerCase() === 'yes' ? 'yes' : 'no';
       },
       RIN: (child) => {
         rec.automatedRecordId = reqText(child);
