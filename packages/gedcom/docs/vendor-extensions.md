@@ -809,6 +809,14 @@ its JSDoc.
   with only a few genuinely undefined ANSEL bytes (a stray byte, the
   TGC551 torture tests) stays below the threshold and keeps its
   `decoding.invalid-ansel` errors.
+- **The bare translation and the ISO exact date.** A NOTE.TRAN
+  without a MIME/LANG substructure (the maximal70 test files write
+  `2 TRAN British English` bare) keeps the translation text alone —
+  the payload is the data, the kind declaration is not. The
+  ISO-8601 timestamp form of the exact date (`2 DATE
+  2022-08-24T12:26:24.532Z`, the geneafinder exports write it as the
+  CHAN.DATE value) parses the date part into the DateExact value and
+  the time part into the TimeValue (the fraction and the Z survive).
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

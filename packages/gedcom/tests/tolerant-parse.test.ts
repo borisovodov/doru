@@ -461,3 +461,50 @@ describe('the enum leniencies', () => {
     expect(def?.tag === '_EVENT_DEFN' ? def.confidentialFlag : undefined).toBe(true);
   });
 });
+
+describe('the ISO-8601 exact date', () => {
+  test('the ISO-8601 timestamp in CHAN.DATE parses the date and the time', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 CHAN ',
+      '2 DATE  2022-08-24T12:26:24.532Z',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.changeDate?.date.value).toEqual({ day: 24, month: 'AUG', year: 2022 });
+    expect(indi.changeDate?.date.time).toEqual({ hour: 12, minute: 26, second: 24, fraction: '532', utc: true });
+  });
+
+  test('a bare NOTE.TRAN keeps the translation text', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NOTE American English',
+      '2 TRAN British English',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'translations' in note ? note.translations?.[0] : undefined).toEqual({ payload: 'British English' });
+  });
+});

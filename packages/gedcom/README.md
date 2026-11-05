@@ -875,7 +875,10 @@ would be, or where the model takes a documented position:
     direction, and `_CONF_FLAG 1`/`0` spells the Y/N flag);
     coordinates accept bare decimals and DMS; ages accept ranges and
     stray-letter numbers; GEDZIP archives without `gedcom.ged` use the
-    first `.ged` entry. An ANSEL-declared document whose lines mostly
+    first `.ged` entry; a NOTE.TRAN without MIME/LANG keeps the
+    translation text alone, and the ISO-8601 timestamp form of the
+    exact date (`2 DATE 2022-08-24T12:26:24.532Z`) parses the date
+    and the time. An ANSEL-declared document whose lines mostly
     fail the ANSEL set decodes as windows-1251 (the Agelong Tree
     export dialect); a file with only a few undefined ANSEL bytes
     keeps its decoding errors.

@@ -319,8 +319,14 @@ describe('note structures', () => {
     });
   });
 
-  test('NOTE.TRAN requires MIME or LANG', () => {
-    expect(err70(indi70(['1 NOTE x', '2 TRAN de']))).toBe('structure.missing-required');
+  test('NOTE.TRAN without MIME or LANG keeps the translation text', () => {
+    const dataset = parse70(indi70(['1 NOTE x', '2 TRAN de']));
+    const indi = dataset.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'translations' in note ? note.translations?.[0] : undefined).toEqual({ payload: 'de' });
   });
 
   test('UID keeps substructures as extensions', () => {
