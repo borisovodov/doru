@@ -65,26 +65,41 @@ const RECORD_TAGS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Checks the banned-character rule in a line value: the C0
- * control characters other than the horizontal tab, plus DEL. GEDCOM
- * 5.5.1 §1 disallows every control character; GEDCOM 5.5.5 (gedcom.org,
+ * Sanitizes the banned characters of a line value: the C0 control
+ * characters other than the horizontal tab, plus DEL. GEDCOM 5.5.1
+ * §1 disallows every control character; GEDCOM 5.5.5 (gedcom.org,
  * 2019) legalized the tab in user text ("Tab is Legal": most
- * applications already wrote tabs despite 5.5.1); GEDCOM 7.0 §1.1 bans
- * the C1 controls too, but those cannot survive the decoders. The
- * the parser accepts the tab in any file and bans the other C0
- * controls and DEL — the most lenient of the supported rules (see the
- * README's "Known strict decisions").
+ * applications already wrote tabs despite 5.5.1); GEDCOM 7.0 §1.1
+ * bans the C1 controls too, but those cannot survive the decoders.
+ * The parser accepts the tab in any file.
+ *
+ * The other controls are real in the wild and carry meaning: the
+ * vertical tab (U+000B) is a line break inside note text (the
+ * exporters write it where CONT belongs — `Subj: …\vDate: …\vFrom:
+ * …`, the LydiaSHargrove and webprowett notes), so it becomes the
+ * newline (the CONT semantics the model already carries). The
+ * remaining controls are noise — they are dropped, and the line
+ * survives (nothing is recorded: the resolution is defined). Only a
+ * control character inside a cross-reference identifier stays an
+ * error (see checkXref): the identifier itself is broken.
  */
-function checkBanned(text: string, position: SourcePosition): void {
+function sanitizeBanned(text: string): string {
+  let out = '';
+  let changed = false;
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
-    if ((c <= 0x1f && c !== 0x09) || c === 0x7f) {
-      fail('line.banned-char', `Banned character U+${c.toString(16).toUpperCase()} in a line value`, {
-        ...position,
-        column: position.column + i,
-      });
+    if (c === 0x0b) {
+      out += '\n';
+      changed = true;
+      continue;
     }
+    if ((c <= 0x1f && c !== 0x09) || c === 0x7f) {
+      changed = true;
+      continue;
+    }
+    out += text[i] as string;
   }
+  return changed ? out : text;
 }
 
 /** Validates a cross-reference identifier (the 5.x rule: alphanumeric
@@ -150,7 +165,7 @@ export type EscapeRule = '7.0' | '5.5.1';
  * rule; the calendar escapes it carries are the date parser's).
  */
 function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
-  checkBanned(raw, position);
+  raw = sanitizeBanned(raw);
   // Escape artifacts inside a pointer token (`@<US20>F1@`, the
   // testfiles_sprint3.ged files, and `@<US01>I1@`, the US01–US06
   // test files: a US escape written bare inside the xref) are

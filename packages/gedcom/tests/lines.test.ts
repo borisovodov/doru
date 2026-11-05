@@ -95,8 +95,13 @@ describe('line tokenization (7.0)', () => {
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '@foo' });
   });
 
-  test('banned characters: DEL and C0 stay banned, C1 is tolerated', () => {
-    expect(expectErr(() => raw70(`0 HEAD\n1 NOTE bad${'\u007f'}char\n0 TRLR\n`))).toBe('line.banned-char');
+  test('banned characters: DEL and C0 are sanitized, C1 is tolerated', () => {
+    // DEL and the C0 controls (except the tab) are dropped from the
+    // value, the vertical tab becomes the newline; the line survives.
+    const del = raw70(`0 HEAD\n1 NOTE bad${'\u007f'}char\n0 TRLR\n`);
+    expect((del.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'badchar' });
+    const vt = raw70(`0 HEAD\n1 NOTE a${'\u000b'}b\n0 TRLR\n`);
+    expect((vt.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
     // The 5.x rule does not check the C1 controls (the 7.0 rule does);
     // the lenient rule wins.
     const { nodes } = raw70(`0 HEAD\n1 NOTE ${'\u0085'}\n0 TRLR\n`);
@@ -198,10 +203,15 @@ describe('line tokenization (5.5.1)', () => {
     expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
   });
 
-  test('still rejects the other control characters', () => {
-    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u0001'}b\n0 TRLR\n`))).toBe('line.banned-char');
-    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u000b'}b\n0 TRLR\n`))).toBe('line.banned-char');
-    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u007f'}b\n0 TRLR\n`))).toBe('line.banned-char');
+  test('sanitizes the other control characters out of values', () => {
+    // The C0 controls (except the tab) and DEL are dropped from the
+    // value; the vertical tab becomes the newline; the line survives.
+    const a = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u0001'}b\n0 TRLR\n`);
+    expect((a.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
+    const b = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u000b'}b\n0 TRLR\n`);
+    expect((b.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
+    const c = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u007f'}b\n0 TRLR\n`);
+    expect((c.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
   test('merges CONC without a line break', () => {
@@ -216,5 +226,11 @@ describe('line tokenization (5.5.1)', () => {
 
   test('rejects an xref starting with a number sign', () => {
     expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n0 @#1@ INDI\n0 TRLR\n'))).toBe('line.bad-xref');
+  });
+});
+
+describe('the control-char xref guard', () => {
+  test('a control character inside an xref stays an error', () => {
+    expect(expectErr(() => raw70(`0 HEAD\n1 @A \t 7@ NOTE x\n0 TRLR\n`))).toBe('line.banned-char');
   });
 });

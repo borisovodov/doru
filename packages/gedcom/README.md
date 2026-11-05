@@ -299,7 +299,13 @@ Input is always bytes. Version handling:
   the single-byte encoding such files actually hold when they
   declare UTF-8. The 7.0-only banned-character rule (the C1
   controls) is lifted: the 5.x rule (tab allowed, the
-  other C0 controls and DEL banned) applies everywhere.
+  other C0 controls and DEL banned) applies everywhere. The banned
+  controls of a line *value* are sanitized rather than rejected: the
+  vertical tab is a line break in the wild (the exporters write it
+  where CONT belongs) and becomes the newline; the remaining
+  controls are dropped and the line survives. A control character
+  inside a cross-reference identifier stays an error — the
+  identifier itself is broken.
 - **5.5.1** — the character set is detected from the header `CHAR` tag
   (required). `ANSEL` uses the complete Appendix C tables; non-spacing
   characters are buffered and attached to their base character, and

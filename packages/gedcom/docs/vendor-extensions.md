@@ -809,6 +809,15 @@ its JSDoc.
   with only a few genuinely undefined ANSEL bytes (a stray byte, the
   TGC551 torture tests) stays below the threshold and keeps its
   `decoding.invalid-ansel` errors.
+- **The banned-control sanitization.** The C0 controls of a line
+  *value* (the tab aside) are sanitized rather than rejected: the
+  vertical tab (U+000B) is a line break in the wild — the exporters
+  write it inside note text where CONT belongs (`Subj: …\vDate:
+  …\vFrom: …`, the LydiaSHargrove and webprowett notes) — and becomes
+  the newline; the remaining controls (DEL, the stray DC4 of the
+  willis-ansel sample) are dropped and the line survives, silently. A
+  control character inside a cross-reference identifier stays
+  `line.banned-char` — the identifier itself is broken.
 - **The unleveled-continuation merge.** An unleveled line *inside* an
   otherwise valid GEDCOM file merges into the payload of the
   NOTE/TEXT line it directly follows, as a newline continuation —
