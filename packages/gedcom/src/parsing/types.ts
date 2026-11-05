@@ -63,6 +63,10 @@ const CALENDAR_ESCAPES_551: ReadonlyMap<string, Calendar> = new Map([
   ['@#DJULIAN@', 'JULIAN'],
   ['@#DFRENCH R@', 'FRENCH_R'],
   ['@#DHEBREW@', 'HEBREW'],
+  // The D-less spelling (`@#JULIAN@`, the gedcom_single-person royal
+  // exports) is the same Julian escape with the calendar marker
+  // dropped — accepted as an alias.
+  ['@#JULIAN@', 'JULIAN'],
 ]);
 
 /** Month tags valid in each standard calendar. */
@@ -827,18 +831,16 @@ function parseDateCore(
     fail('date.invalid', 'A date part is empty (a modifier with no date follows)', position);
   }
   const first = tokens[0] as string;
-  if (first.startsWith('@#D')) {
+  if (first.startsWith('@#')) {
     const mapped = CALENDAR_ESCAPES_551.get(first);
     if (mapped !== undefined) {
       calendar = mapped;
+      rest = tokens.slice(1);
     } else if (first === '@#DROMAN@' || first === '@#DUNKNOWN@') {
       fail('date.reserved-calendar', `The ${first} calendar is reserved in GEDCOM 5.5.1 and has no defined months`, position);
     } else {
       fail('line.bad-escape', `Unknown calendar escape ${first}`, position);
     }
-    rest = tokens.slice(1);
-  } else if (first.startsWith('@#')) {
-    fail('line.bad-escape', `Unknown escape ${first}`, position);
   } else if (full && CALENDAR_NAMES.has(first)) {
     // The 7.0 calendar keywords.
     calendar = CALENDAR_NAMES.get(first) as Calendar;

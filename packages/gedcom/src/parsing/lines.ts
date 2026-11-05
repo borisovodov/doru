@@ -164,7 +164,7 @@ export type EscapeRule = '7.0' | '5.5.1';
  * escape rule (a `@#…@` escape sequence is kept verbatim in either
  * rule; the calendar escapes it carries are the date parser's).
  */
-function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
+function parseValue(raw: string, rule: EscapeRule): RawValue {
   raw = sanitizeBanned(raw);
   // A line-comment value (`0 @F1@ FAM // Family for Peter's parents`,
   // `1 DEAT // Burial information suggests …` — the hand-annotated
@@ -222,7 +222,14 @@ function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): Ra
     if (c === '@' && raw[i + 1] === '#') {
       const close = raw.indexOf('@', i + 2);
       if (close === -1) {
-        fail('line.bad-escape', 'Unterminated escape sequence', { ...position, column: position.column + i });
+        // A lone `@#` with no closing @ is literal text: real files
+        // (the comprehensive test trees, the gedcom-go edge-case
+        // fixture) carry `@#$%&*` inside free text, which is not an
+        // escape. The characters stay verbatim and the scan
+        // continues.
+        out += '@#';
+        i += 2;
+        continue;
       }
       out += raw.slice(i, close + 1);
       i = close + 1;
@@ -353,7 +360,7 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   // Value.
   let value: RawValue = { kind: 'absent' };
   if (i < text.length) {
-    value = parseValue(text.slice(i), rule, at(i));
+    value = parseValue(text.slice(i), rule);
   }
 
   return {

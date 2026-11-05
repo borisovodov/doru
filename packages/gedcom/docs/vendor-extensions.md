@@ -873,7 +873,15 @@ its JSDoc.
   date part that is empty (`2 DATE ABT` with nothing after the
   modifier, `2 DATE BET  AND 1907`, `2 DATE FROM  to 1947` — the
   gedcom-go longsword and Internet Archive trees) keeps the whole
-  payload as the phrase instead of crashing the parse.
+  payload as the phrase instead of crashing the parse. The
+  D-less Julian escape (`@#JULIAN@ 28 JUN 1491`, the
+  gedcom_single-person royal exports) resolves to the Julian
+  calendar.
+- **The at-sign escape leniencies.** A lone `@#` with no closing at
+  sign in a text value (`This note includes special characters:
+  @#$%&*`, the comprehensive test trees and the gedcom-go edge-case
+  fixture) is literal text, not an escape — the characters stay
+  verbatim and the scan continues.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

@@ -206,10 +206,9 @@ describe('line tokenization (5.5.1)', () => {
     expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW@ text' });
   });
 
-  test('rejects an unterminated escape', () => {
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @#DHEBREW text\n0 TRLR\n'))).toBe(
-      'line.bad-escape',
-    );
+  test('keeps an unterminated escape literal', () => {
+    const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @#DHEBREW text\n0 TRLR\n');
+    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW text' });
   });
 
   test('allows tabs in values (5.5.5 legalized them)', () => {

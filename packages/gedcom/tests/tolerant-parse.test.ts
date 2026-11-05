@@ -784,3 +784,43 @@ describe('the American month-first date spelling', () => {
     expect(dataset?.header.date?.value).toEqual({ day: 13, month: 'FEB', year: 2026 });
   });
 });
+
+describe('the calendar escape leniencies', () => {
+  test('the D-less Julian escape resolves to the Julian calendar', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 BIRT',
+      '2 DATE @#JULIAN@ 28 JUN 1491',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
+    const birth = individual?.events.find((event) => event.tag === 'BIRT');
+    expect(birth?.detail.date.value).toEqual({ kind: 'date', calendar: 'JULIAN', year: 1491, day: 28, month: 'JUN' });
+  });
+
+  test('a lone @# in free text stays literal', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 NOTE This note includes special characters: @#$%&*',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
+    expect(individual?.notes?.[0]?.payload).toBe('This note includes special characters: @#$%&*');
+  });
+});
