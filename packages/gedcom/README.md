@@ -837,9 +837,11 @@ would be, or where the model takes a documented position:
     file merges into the payload of the NOTE/TEXT line it directly
     follows (a newline continuation — human-edited files drop the
     CONT prefixes: the Sopranos and ancestry-quirks fixtures, the
-    MyHeritage Hebrew bios under citation TEXT); a blank line ends
-    the run, and any other anchor (a name, a pointer line, the file
-    start) keeps the `line.bad-level` error — those lines have no
+    MyHeritage Hebrew bios under citation TEXT); a numbered-list
+    marker (`1. Jaume I`) is free text too — no valid GEDCOM line
+    starts with digits and a dot; a blank line ends the run, and any
+    other anchor (a name, a pointer line, the file start) keeps the
+    `line.bad-level`/`line.bad-tag` error — those lines have no
     principled home.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:

@@ -508,3 +508,48 @@ describe('the ISO-8601 exact date', () => {
     expect(note && 'translations' in note ? note.translations?.[0] : undefined).toEqual({ payload: 'British English' });
   });
 });
+
+describe('the numbered-list markers', () => {
+  test('a numbered-list marker under a NOTE merges into the note', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE Regne independent',
+      '1. Jaume I',
+      'La mort del Jaume I (1276)',
+      '2. Jaume II',
+      'El Regne de Mallorca esdevingue independent',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe(
+      'Regne independent\n1. Jaume I\nLa mort del Jaume I (1276)\n2. Jaume II\nEl Regne de Mallorca esdevingue independent',
+    );
+  });
+
+  test('a numbered-list marker without a NOTE anchor keeps the bad-tag error', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1. Jaume I',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors.map((error) => error.code)).toEqual(['line.bad-tag']);
+  });
+});

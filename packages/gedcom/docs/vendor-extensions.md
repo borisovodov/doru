@@ -831,15 +831,17 @@ its JSDoc.
   NOTE/TEXT line it directly follows, as a newline continuation —
   human-edited files drop the CONT prefixes (the Gedcom4Sharp
   Sopranos fixture, the ancestry-quirks fixture, the MyHeritage
-  Hebrew bios under the citation `4 TEXT`). The CONC/CONT chain case
-  is covered because a merged continuation leaves its parent on the
-  stack. A blank line ends the run (the ancestry-quirks "after a
-  blank line" line stays an error), a pointer-valued note cannot take
-  text, and any other anchor — a name, a pointer line, the file
-  start, post-TRLR prose, markdown fences — keeps the
-  `line.bad-level` error: those lines have no principled home, and
-  the nothing-is-guessed policy forbids attaching them to a
-  neighbouring structure.
+  Hebrew bios under the citation `4 TEXT`). A numbered-list marker
+  (`1. Jaume I`, the myheritage sample notes) is free text too: no
+  valid GEDCOM line starts with digits and a dot. The CONC/CONT
+  chain case is covered because a merged continuation leaves its
+  parent on the stack. A blank line ends the run (the
+  ancestry-quirks "after a blank line" line stays an error), a
+  pointer-valued note cannot take text, and any other anchor — a
+  name, a pointer line, the file start, post-TRLR prose, markdown
+  fences — keeps the `line.bad-level`/`line.bad-tag` error: those
+  lines have no principled home, and the nothing-is-guessed policy
+  forbids attaching them to a neighbouring structure.
 - **The medium leniency.** A value outside the MEDI enum (`TYPE
   image`, `TYPE story`, `MEDI Article`, `MEDI "Document agrafé"`)
   becomes OTHER with the phrase; 5.5.1 writes the phrase back as the

@@ -448,13 +448,17 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       // it as a newline continuation — human-edited files drop the
       // CONT prefixes (the Gedcom4Sharp Sopranos fixture, the
       // ancestry-quirks fixture, the MyHeritage Hebrew bios under the
-      // citation TEXT). The CONC/CONT chain case is covered because a
-      // merged continuation leaves its parent on the stack. A blank
-      // line ends the run, a pointer-valued note cannot take text,
-      // and any other anchor keeps the line.bad-level error — those
-      // lines have no principled home (the nothing-is-guessed rule).
+      // citation TEXT). A numbered-list marker (`1. Jaume I`, the
+      // myheritage sample notes) is free text too: no valid GEDCOM
+      // line starts with digits and a dot. The CONC/CONT chain case
+      // is covered because a merged continuation leaves its parent on
+      // the stack. A blank line ends the run, a pointer-valued note
+      // cannot take text, and any other anchor keeps the
+      // line.bad-tag/line.bad-level error — those lines have no
+      // principled home (the nothing-is-guessed rule).
       const trimmed = line.text.replace(/^[ \t]+/, '');
-      if (trimmed.length > 0 && !DIGIT.test(trimmed[0] as string)) {
+      const freeText = trimmed.length > 0 && (!DIGIT.test(trimmed[0] as string) || /^\d+\.\s/.test(trimmed));
+      if (freeText) {
         const anchor = stack[stack.length - 1];
         if (
           !sawBlank &&
