@@ -461,7 +461,7 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
     }
   };
 
-  const mergeContinuation = (target: RawNode, continuation: RawNode, joiner: string): void => {
+  const mergeContinuation = (target: RawNode, continuation: RawNode, joiner: string): boolean => {
     // The order rule (a continuation must precede the target's other
     // substructures) is serialization pedantry: the model stores the
     // payload and the children independently, and the emitter writes
@@ -475,6 +475,13 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         // empty payload becomes the empty string and the continuation
         // merges into it.
         target.value = { kind: 'text', text: '' };
+      } else if (target.value.kind === 'pointer') {
+        // A continuation under a pointer line cannot merge into the
+        // pointer (the gedbas exports write note text under the FAMC
+        // pointer): the caller attaches the line as a child of the
+        // pointer slot instead, and the dispatch keeps it as a
+        // generic extension — the text is kept, nothing is guessed.
+        return false;
       } else {
         fail(
           'line.continuation-no-payload',
@@ -483,11 +490,18 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         );
       }
     }
-    if (continuation.value.kind === 'pointer') {
-      fail('line.continuation-no-payload', 'A continuation line must not carry a pointer', continuation.position);
-    }
-    const extra = continuation.value.kind === 'text' ? continuation.value.text : '';
+    // A pointer-valued continuation (`1 CONC @NI156@`, the Ajmani
+    // exports) keeps the pointer string as the text — the same rule
+    // the missing-payload retry follows (the original pointer string
+    // survives).
+    const extra =
+      continuation.value.kind === 'text'
+        ? continuation.value.text
+        : continuation.value.kind === 'pointer'
+          ? continuation.value.pointer
+          : '';
     target.value = { kind: 'text', text: target.value.text + joiner + extra };
+    return true;
   };
 
   let sawBlank = false;
@@ -592,7 +606,11 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
             parent = candidate;
           }
         }
-        mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '');
+        if (!mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '')) {
+          // The pointer-slot target: the line attaches as a regular
+          // child (see mergeContinuation).
+          attach(node);
+        }
         continue;
       }
       attach(node);

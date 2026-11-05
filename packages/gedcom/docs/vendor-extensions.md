@@ -837,7 +837,12 @@ its JSDoc.
   the GenMVD/Geni demo exports; `3 TEXT …` + `2 CONC …`, the
   myheritage fixture) continues the preceding text-bearing line —
   the exporters drop one level of indentation, and the immediately
-  preceding text line is the only candidate.
+  preceding text line is the only candidate. A continuation under a
+  pointer slot cannot merge into the pointer — the gedbas exports
+  write note text under the FAMC pointer — so the line stays a
+  child of the pointer slot and the dispatch keeps it as a generic
+  extension; a pointer-valued continuation (`1 CONC @NI156@`, the
+  Ajmani exports) keeps the pointer string as the text.
 - **The line-comment values.** A value that is a line comment
   (`0 @F1@ FAM // Family for Peter's parents`, `1 DEAT // Burial
   information suggests …` — the hand-annotated ged_record samples)
@@ -888,11 +893,7 @@ its JSDoc.
   payload as the phrase instead of crashing the parse. The
   D-less Julian escape (`@#JULIAN@ 28 JUN 1491`, the
   gedcom_single-person royal exports) resolves to the Julian
-  calendar. A TIME value the time grammar rejects — the webtrees
-  exports write the date phrase under the TIME tag (`3 TIME
-  (Približno 1917)`, Slovenian "approximately") — stays a generic
-  extension of the date structure (the same rule the event-level
-  TIME follows; nothing is dropped).
+  calendar.
 - **The at-sign escape leniencies.** A lone `@#` with no closing at
   sign in a text value (`This note includes special characters:
   @#$%&*`, the comprehensive test trees and the gedcom-go edge-case

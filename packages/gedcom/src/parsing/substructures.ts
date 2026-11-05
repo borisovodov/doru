@@ -24,7 +24,6 @@ import type {
   DatePeriodStructure,
   DateStructure,
   ExternalIdentifierStructure,
-  GedcomStructureBase,
   NonEventStructure,
   Note,
   NoteReference,
@@ -39,7 +38,6 @@ import type {
 } from '../structures';
 import type {
   DateValue,
-  TimeValue,
 } from '../primitives';
 import type {
   Ctx,
@@ -365,23 +363,6 @@ function tagResolver(ctx: Ctx): TagResolver {
   return (tag) => ctx.schemaTags.get(tag);
 }
 
-/** Parses a TIME child: a value the time grammar rejects is kept as a
- *  generic extension of the enclosing structure instead of an error
- *  (the same rule the event-level TIME follows — nothing is dropped;
- *  the webtrees exports write the date phrase under the TIME tag). */
-function attachTime(out: GedcomStructureBase & { time?: TimeValue }, child: RawNode, ctx: Ctx): void {
-  try {
-    out.time = parseTime70(reqText(child), child.position);
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === 'time.invalid') {
-      addExtension(out, child, ctx);
-      return;
-    }
-    throw error;
-  }
-}
-
 export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   const out: DateStructure = {};
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
@@ -410,7 +391,7 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
     out,
     {
       TIME: (child) => {
-        attachTime(out, child, ctx);
+        out.time = parseTime70(reqText(child), child.position);
       },
       PHRASE: (child) => {
         out.phrase = reqText(child);
@@ -478,7 +459,7 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
     };
     const timeNode = one(node, 'TIME');
     if (timeNode !== undefined) {
-      attachTime(out, timeNode, ctx);
+      out.time = parseTime70(reqText(timeNode), timeNode.position);
     }
     return out;
   }
@@ -500,7 +481,7 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
   };
   const timeNode = one(node, 'TIME');
   if (timeNode !== undefined) {
-    attachTime(out, timeNode, ctx);
+    out.time = parseTime70(reqText(timeNode), timeNode.position);
   }
   return out;
 }
@@ -532,7 +513,7 @@ export function parseSortDateStructure(node: RawNode, ctx: Ctx): SortDateStructu
     out,
     {
       TIME: (child) => {
-        attachTime(out, child, ctx);
+        out.time = parseTime70(reqText(child), child.position);
       },
       PHRASE: (child) => {
         out.phrase = reqText(child);

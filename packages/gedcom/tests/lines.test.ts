@@ -162,10 +162,11 @@ describe('line tokenization (7.0)', () => {
     expect(note.value).toEqual({ kind: 'text', text: 'a note\nits continuation' });
   });
 
-  test('rejects a continuation of a pointer', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 SUBM @S1@\n2 CONT x\n0 TRLR\n'))).toBe(
-      'line.continuation-no-payload',
-    );
+  test('keeps a continuation of a pointer as a child of the pointer slot', () => {
+    const { nodes } = raw70('0 HEAD\n1 SUBM @S1@\n2 CONT x\n0 TRLR\n');
+    const sub = nodes[0]?.children[0] as RawNode;
+    expect(sub.children).toHaveLength(1);
+    expect(sub.children[0]).toMatchObject({ tag: 'CONT', value: { kind: 'text', text: 'x' } });
   });
 });
 

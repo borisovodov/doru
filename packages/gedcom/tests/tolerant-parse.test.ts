@@ -824,3 +824,43 @@ describe('the calendar escape leniencies', () => {
     expect(individual?.notes?.[0]?.payload).toBe('This note includes special characters: @#$%&*');
   });
 });
+
+describe('the pointer-slot continuations', () => {
+  test('a continuation under a pointer slot stays as its extension', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @F1@ FAM',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 FAMC @F1@',
+      '2 CONC note text about the family',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records.find((record) => record.tag === 'INDI');
+    const famc = individual?.tag === 'INDI' ? individual.childFamilies?.[0] : undefined;
+    expect(famc?.extensions?.[0]).toMatchObject({ tag: 'CONC', payload: 'note text about the family' });
+  });
+
+  test('a pointer-valued continuation keeps the pointer string as the text', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @N1@ NOTE',
+      '1 CONC @NI124@',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const note = dataset?.records.find((record) => record.tag === 'NOTE');
+    expect(note?.tag === 'NOTE' ? note.payload : undefined).toBe('@NI124@');
+  });
+});
