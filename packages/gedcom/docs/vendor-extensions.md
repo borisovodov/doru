@@ -817,6 +817,15 @@ its JSDoc.
   2022-08-24T12:26:24.532Z`, the geneafinder exports write it as the
   CHAN.DATE value) parses the date part into the DateExact value and
   the time part into the TimeValue (the fraction and the Z survive).
+- **The continuation leniencies.** A CONC/CONT line merges into its
+  parent's payload even after the parent's other substructures (the
+  order rule is serialization pedantry — the model stores the
+  payload and the children independently, and the emitter restores
+  the order). A wrong-level continuation (`1 NOTE …` + `1 CONT …`,
+  the GenMVD/Geni demo exports; `3 TEXT …` + `2 CONC …`, the
+  myheritage fixture) continues the preceding text-bearing line —
+  the exporters drop one level of indentation, and the immediately
+  preceding text line is the only candidate.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

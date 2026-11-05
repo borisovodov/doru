@@ -142,10 +142,19 @@ describe('line tokenization (7.0)', () => {
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
-  test('rejects a continuation after other substructures', () => {
-    expect(
-      expectErr(() => raw70('0 HEAD\n1 NOTE a\n2 MIME text/plain\n2 CONT b\n0 TRLR\n')),
-    ).toBe('line.continuation-out-of-order');
+  test('merges a continuation that follows other substructures', () => {
+    const { nodes } = raw70('0 HEAD\n1 NOTE a\n2 MIME text/plain\n2 CONT b\n0 TRLR\n');
+    const note = nodes[0]?.children[0] as RawNode;
+    expect(note.value).toEqual({ kind: 'text', text: 'a\nb' });
+    expect(note.children).toHaveLength(1);
+  });
+
+  test('re-targets a wrong-level continuation to the preceding text line', () => {
+    const { nodes } = raw70('0 HEAD\n0 @I1@ INDI\n1 NAME A /B/\n1 NOTE a note\n1 CONT its continuation\n0 TRLR\n');
+    const indi = nodes[1] as RawNode;
+    const note = indi.children[1] as RawNode;
+    expect(note.tag).toBe('NOTE');
+    expect(note.value).toEqual({ kind: 'text', text: 'a note\nits continuation' });
   });
 
   test('rejects a continuation of a pointer', () => {

@@ -411,13 +411,12 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
   };
 
   const mergeContinuation = (target: RawNode, continuation: RawNode, joiner: string): void => {
-    if (target.children.length > 0) {
-      fail(
-        'line.continuation-out-of-order',
-        'A continuation line must immediately follow the line it continues, before any other substructures',
-        continuation.position,
-      );
-    }
+    // The order rule (a continuation must precede the target's other
+    // substructures) is serialization pedantry: the model stores the
+    // payload and the children independently, and the emitter writes
+    // the continuation first again. A continuation that follows the
+    // substructures merges into the payload all the same (the
+    // full-leniency container rule — the text is kept).
     if (target.value.kind !== 'text') {
       if (target.value.kind === 'absent') {
         // Real files continue an empty payload: the canonical Legacy
@@ -506,9 +505,26 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       // enclosing line at level - 1) and must come before any other
       // substructure of that parent.
       if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
-        const parent = stack[node.level - 1];
+        let parent = stack[node.level - 1];
         if (parent === undefined) {
           fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+        }
+        // The wrong-level repair: a continuation whose natural target
+        // cannot take text (a record line or a pointer) but whose last
+        // child chain ends in a text payload continues that text —
+        // the exporters drop one level of indentation (`1 NOTE …` +
+        // `1 CONT …`, the GenMVD/Geni demo exports; `3 TEXT …` +
+        // `2 CONC …`, the myheritage fixture). The immediately
+        // preceding text-bearing line is the only candidate — nothing
+        // further is guessed.
+        if (parent.value.kind !== 'text' && parent.children.length > 0) {
+          let candidate = parent.children[parent.children.length - 1];
+          while (candidate !== undefined && candidate.children.length > 0) {
+            candidate = candidate.children[candidate.children.length - 1];
+          }
+          if (candidate !== undefined && candidate.value.kind === 'text') {
+            parent = candidate;
+          }
         }
         mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '');
         continue;

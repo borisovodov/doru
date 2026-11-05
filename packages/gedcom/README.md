@@ -842,7 +842,11 @@ would be, or where the model takes a documented position:
     starts with digits and a dot; a blank line ends the run, and any
     other anchor (a name, a pointer line, the file start) keeps the
     `line.bad-level`/`line.bad-tag` error — those lines have no
-    principled home.
+    principled home. A CONC/CONT line merges into its parent's
+    payload even after the parent's other substructures (the order
+    rule is serialization pedantry), and a wrong-level continuation
+    (`1 NOTE …` + `1 CONT …`) continues the preceding text-bearing
+    line.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)
