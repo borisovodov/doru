@@ -20,7 +20,7 @@ describe('parseTolerant', () => {
       '1 BIRT',
       '2 DATE 32 JAN 1900', // impossible day — kept verbatim (not an error)
       '1 OCCU', // bare line — repaired silently (kept with an empty payload)
-      '1 FAMS @NOPE@', // dangling pointer — dropped
+      '1 FAMS @NOPE@', // dangling pointer — kept verbatim as a generic extension
       '0 @I2@ INDI',
       '1 NAME Mary /Doe/',
       '0 TRLR',
@@ -29,7 +29,7 @@ describe('parseTolerant', () => {
     const { value, errors } = parseTolerant(enc(text));
     expect(value?.kind).toBe('dataset');
     const codes = errors.map((error) => error.code).sort();
-    expect(codes).toEqual(['document.xref-not-found', 'enum.invalid-value']);
+    expect(codes).toEqual(['enum.invalid-value']);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     expect(dataset?.records).toHaveLength(2);
     const indi = dataset?.records[0];
@@ -42,6 +42,10 @@ describe('parseTolerant', () => {
     expect(indi.attributes).toEqual([{ tag: 'OCCU', payload: '' }]);
     expect(indi.occupations ?? []).toEqual([]);
     expect(indi.spouseFamilies ?? []).toEqual([]);
+    // The dangling FAMS line survives verbatim as a generic extension.
+    expect(indi.extensions?.[0]?.tag).toBe('FAMS');
+    expect(indi.extensions?.[0]?.payload).toBe('@NOPE@');
+    expect(indi.extensions?.[0]?.payloadKind).toBe('pointer');
     expect(indi.events?.[0]?.detail?.date?.value).toBeDefined();
   });
 
@@ -337,5 +341,26 @@ describe('the unleveled-continuation merge', () => {
       const note = indi?.tag === 'INDI' ? indi.notes?.[0] : undefined;
       expect(note && 'payload' in note ? note.payload : undefined).toBe('A note\nits continuation');
     }
+  });
+});
+
+describe('the xref-not-found repairs', () => {
+  test('a US escape artifact inside a record xref matches its stripped pointer', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 SUBM @<US01>I1@',
+      '0 @<US01>I1@ INDI',
+      '1 NAME Jennifer /Cafiero/',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.submitter).toBe('@I1@');
+    const indi = dataset?.records.find((record) => record.tag === 'INDI');
+    expect(indi?.xref).toBe('@I1@');
   });
 });

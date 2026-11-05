@@ -407,13 +407,16 @@ describe('parseGedcom70 — strictness', () => {
     expect(indi.sex).toBe('M');
   });
 
-  test('drops dangling pointer links', () => {
+  test('keeps dangling pointer links verbatim as generic extensions', () => {
     const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 FAMS @F9@\n0 TRLR\n');
     const indi = dataset.records[0];
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
     expect(indi.spouseFamilies).toEqual([]);
+    expect(indi.extensions?.[0]?.tag).toBe('FAMS');
+    expect(indi.extensions?.[0]?.payload).toBe('@F9@');
+    expect(indi.extensions?.[0]?.payloadKind).toBe('pointer');
   });
 
   test('accepts the void pointer in 7.0', () => {

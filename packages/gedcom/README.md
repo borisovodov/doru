@@ -817,10 +817,13 @@ would be, or where the model takes a documented position:
   - A value that starts with a single `@` but is not a valid pointer
     is text; a pointer with a trailing C-style comment (`2 FAMC @4@
     /* … */`) parses as the pointer and drops the comment; a dangling
-    pointer link is dropped (the tolerant parse records
-    `document.xref-not-found`); the Geni.com bare-identifier
-    dialect (`0 I1234 INDI`, `1 FAMC F123`, bare numeric ids like
-    `1 CHIL 0517745826`) is normalized to the standard spellings.
+    pointer link is kept verbatim as a generic extension — the target
+    record is not in the document, but the pointer string itself is
+    data, so nothing is dropped and nothing is recorded (the export
+    does not re-emit the unresolved reference); the Geni.com
+    bare-identifier dialect (`0 I1234 INDI`, `1 FAMC F123`, bare
+    numeric ids like `1 CHIL 0517745826`) is normalized to the
+    standard spellings.
   - A document with content but without a single level-0 line is not
     GEDCOM at all (REXX scripts, ASCII-art design documents, VHDL
     sources and HTML pages under `.ged`/`.gdz` names in the corpus):

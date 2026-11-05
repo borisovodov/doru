@@ -270,14 +270,17 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
     i++;
   }
 
-  // Optional cross-reference identifier.
+  // Optional cross-reference identifier. The US escape artifact
+  // inside an xref (`0 @<US01>I1@ INDI`, the US01–US06 test files)
+  // is stripped the same way the pointer-value parser strips it —
+  // the record and its pointers must name the same identifier.
   let xref: string | undefined;
   if (text[i] === '@') {
     const close = text.indexOf('@', i + 1);
     if (close === -1) {
       fail('line.bad-xref', 'Unterminated cross-reference identifier', at(i));
     }
-    const raw = text.slice(i, close + 1);
+    const raw = text.slice(i, close + 1).replace(/<US\d+>/g, '');
     checkXref(raw, at(i));
     xref = raw;
     i = close + 1;
