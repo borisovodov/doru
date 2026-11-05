@@ -248,3 +248,23 @@ describe('the control-char xref guard', () => {
     expect(expectErr(() => raw70(`0 HEAD\n1 @A \t 7@ NOTE x\n0 TRLR\n`))).toBe('line.banned-char');
   });
 });
+
+describe('the xref repairs', () => {
+  test('accepts non-ASCII characters in xrefs', () => {
+    const { nodes } = raw70('0 HEAD\n0 @家族1@ FAM\n1 HUSB @人物1@\n0 @人物1@ INDI\n1 NAME 田中 /一郎/\n0 TRLR\n');
+    expect(nodes[1]?.xref).toBe('@家族1@');
+    expect(nodes[2]?.xref).toBe('@人物1@');
+  });
+
+  test('an empty xref (@@) leaves the record without an identifier', () => {
+    const { nodes } = raw70('0 HEAD\n0 @@ OBJE\n1 FILE p.jpg\n0 TRLR\n');
+    expect(nodes[1]?.xref).toBeUndefined();
+    expect(nodes[1]?.tag).toBe('OBJE');
+  });
+
+  test('an unterminated xref is closed at the next blank', () => {
+    const { nodes } = raw70('0 HEAD\n0 @I1 SUBM\n1 NAME N\n0 TRLR\n');
+    expect(nodes[1]?.xref).toBe('@I1@');
+    expect(nodes[1]?.tag).toBe('SUBM');
+  });
+});

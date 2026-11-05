@@ -852,6 +852,12 @@ its JSDoc.
   header-adjacent one binds the dataset slot, the others stay
   records — real files place SUBN after the SUBM record). The ORDI
   payload accepts the abbreviated Y/N spellings beside yes/no.
+- **The xref repairs.** Non-ASCII characters in an xref are accepted
+  (the 7.0 grammar allows them and the wild writes them: `0 @家族1@
+  FAM`, `0 @شجرة عائلة@ INDI` — the unicode_xref-nonlatin fixture and
+  the kahatTree exports); an empty identifier (`0 @@ OBJE`) leaves
+  the record without an xref; an unterminated xref (`0 @I1 SUBM`)
+  is closed at the next blank.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

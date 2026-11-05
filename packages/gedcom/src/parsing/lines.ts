@@ -103,25 +103,25 @@ function sanitizeBanned(text: string): string {
 }
 
 /** Validates a cross-reference identifier (the 5.x rule: alphanumeric
- *  body, no number-sign start, no control characters). */
+ *  body, no number-sign start, no control characters; non-ASCII
+ *  characters are accepted — the 7.0 grammar allows them, and the
+ *  wild writes them: `0 @家族1@ FAM`, `0 @شجرة عائلة@ INDI`, the
+ *  unicode_xref-nonlatin fixture and the kahatTree exports). */
 function checkXref(raw: string, position: SourcePosition): void {
   const body = raw.slice(1, -1);
-  if (body.length === 0) {
-    fail('line.bad-xref', 'A cross-reference identifier must not be empty', position);
-  }
   if (body[0] === '#') {
     fail('line.bad-xref', 'A cross-reference identifier must not begin with a number sign', {
       ...position,
       column: position.column + 1,
     });
   }
-  if (!ALPHANUM_551.test(body[0] as string)) {
+  if (body[0] !== undefined && body.charCodeAt(0) <= 0x7f && !ALPHANUM_551.test(body[0])) {
     fail('line.bad-xref', `Invalid first character "${body[0]}" in a cross-reference identifier`, {
       ...position,
       column: position.column + 1,
     });
   }
-  for (let i = 1; i < body.length; i++) {
+  for (let i = 0; i < body.length; i++) {
     const c = body.charCodeAt(i);
     if (c <= 0x1f || c === 0x7f) {
       fail('line.banned-char', 'Control characters are not allowed in a cross-reference identifier', {
@@ -298,13 +298,29 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   // the record and its pointers must name the same identifier.
   let xref: string | undefined;
   if (text[i] === '@') {
-    const close = text.indexOf('@', i + 1);
+    let close = text.indexOf('@', i + 1);
+    let repaired = false;
     if (close === -1) {
-      fail('line.bad-xref', 'Unterminated cross-reference identifier', at(i));
+      // An unterminated xref (`0 @I1 SUBM`, the exporter dropped the
+      // closing at sign) is closed at the next blank — the identifier
+      // runs to there. Without a blank (the line ends mid-identifier)
+      // there is nothing to repair.
+      const blank = text.indexOf(' ', i + 1);
+      const tab = text.indexOf('\t', i + 1);
+      const end = blank === -1 ? tab : tab === -1 ? blank : Math.min(blank, tab);
+      if (end === -1) {
+        fail('line.bad-xref', 'Unterminated cross-reference identifier', at(i));
+      }
+      close = end;
+      repaired = true;
     }
-    const raw = text.slice(i, close + 1).replace(/<US\d+>/g, '');
+    const raw = (repaired ? `${text.slice(i, close)}@` : text.slice(i, close + 1)).replace(/<US\d+>/g, '');
     checkXref(raw, at(i));
-    xref = raw;
+    // An empty identifier (`0 @@ OBJE`) carries no name: the record
+    // has no xref.
+    if (raw !== '@@') {
+      xref = raw;
+    }
     i = close + 1;
     // A missing space after the xref (`0 @I1@INDI`) is tolerated the
     // same way: the tag starts right after the identifier.

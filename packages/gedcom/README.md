@@ -851,7 +851,9 @@ would be, or where the model takes a documented position:
     substructure line with no value (`1 @I2@ HUSB`) relocates into
     the value slot, where the tag expects it. A CONC/CONT indented
     one level too deep merges into the deepest text-bearing
-    NOTE/TEXT line on the stack.
+    NOTE/TEXT line on the stack. Non-ASCII xref characters are
+    accepted, an empty `@@` identifier leaves the record without an
+    xref, and an unterminated xref is closed at the next blank.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)
