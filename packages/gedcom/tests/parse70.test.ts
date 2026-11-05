@@ -371,7 +371,12 @@ describe('parseGedcom70 — dates and payloads', () => {
     expect(
       (strayLetter.records[0] as { events?: Array<{ detail?: { age?: unknown } }> }).events?.[0]?.detail?.age,
     ).toEqual({ payload: { years: 3 } });
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 DATE 1 JAN 2024\n2 TIME 24:00\n0 TRLR\n').code).toBe('time.invalid');
+    // A TIME the grammar rejects stays a generic extension of the
+    // date structure (the same rule the event-level TIME follows).
+    const badTime = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 DATE 1 JAN 2024\n2 TIME 24:00\n0 TRLR\n');
+    expect(
+      badTime.header.date?.extensions?.some((extension) => extension.tag === 'TIME'),
+    ).toBe(true);
   });
 });
 

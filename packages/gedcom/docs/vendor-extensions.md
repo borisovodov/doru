@@ -888,7 +888,11 @@ its JSDoc.
   payload as the phrase instead of crashing the parse. The
   D-less Julian escape (`@#JULIAN@ 28 JUN 1491`, the
   gedcom_single-person royal exports) resolves to the Julian
-  calendar.
+  calendar. A TIME value the time grammar rejects — the webtrees
+  exports write the date phrase under the TIME tag (`3 TIME
+  (Približno 1917)`, Slovenian "approximately") — stays a generic
+  extension of the date structure (the same rule the event-level
+  TIME follows; nothing is dropped).
 - **The at-sign escape leniencies.** A lone `@#` with no closing at
   sign in a text value (`This note includes special characters:
   @#$%&*`, the comprehensive test trees and the gedcom-go edge-case
