@@ -826,6 +826,11 @@ its JSDoc.
   myheritage fixture) continues the preceding text-bearing line —
   the exporters drop one level of indentation, and the immediately
   preceding text line is the only candidate.
+- **The line-comment values.** A value that is a line comment
+  (`0 @F1@ FAM // Family for Peter's parents`, `1 DEAT // Burial
+  information suggests …` — the hand-annotated ged_record samples)
+  is dropped: it annotates the line, not the data — the same rule
+  the pointer comments follow.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

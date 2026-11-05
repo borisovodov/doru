@@ -166,6 +166,13 @@ export type EscapeRule = '7.0' | '5.5.1';
  */
 function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
   raw = sanitizeBanned(raw);
+  // A line-comment value (`0 @F1@ FAM // Family for Peter's parents`,
+  // `1 DEAT // Burial information suggests …` — the hand-annotated
+  // ged_record samples) is dropped: it annotates the line, not the
+  // data — the same rule the pointer comments follow.
+  if (raw.replace(/^[ \t]+/, '').startsWith('//')) {
+    return { kind: 'absent' };
+  }
   // Escape artifacts inside a pointer token (`@<US20>F1@`, the
   // testfiles_sprint3.ged files, and `@<US01>I1@`, the US01–US06
   // test files: a US escape written bare inside the xref) are

@@ -846,7 +846,8 @@ would be, or where the model takes a documented position:
     payload even after the parent's other substructures (the order
     rule is serialization pedantry), and a wrong-level continuation
     (`1 NOTE …` + `1 CONT …`) continues the preceding text-bearing
-    line.
+    line. A value that is a line comment (`0 @F1@ FAM // comment`)
+    is dropped — it annotates the line, not the data.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)

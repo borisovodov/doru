@@ -553,3 +553,27 @@ describe('the numbered-list markers', () => {
     expect(errors.map((error) => error.code)).toEqual(['line.bad-tag']);
   });
 });
+
+describe('the line-comment values', () => {
+  test('a // comment after a record or event line is dropped silently', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @F1@ FAM  // Family for the parents',
+      '1 HUSB @I1@',
+      '0 @I1@ INDI',
+      '1 NAME Jako /BACH/',
+      '1 DEAT // Burial information suggests',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const fam = dataset?.records.find((record) => record.tag === 'FAM');
+    expect(fam?.tag === 'FAM' ? fam.husband?.partner : undefined).toBe('@I1@');
+    const indi = dataset?.records.find((record) => record.tag === 'INDI');
+    expect(indi?.tag === 'INDI' ? indi.events?.length : -1).toBe(1);
+  });
+});
