@@ -864,7 +864,10 @@ its JSDoc.
   (Ancestry source: Publisher date)`, the GEDCOM.NET test tree)
   rides along without the INT keyword; a plain date in the period
   slot (`3 DATE 5 JUL 1776` under SOUR.DATA.EVEN) is the single-date
-  period.
+  period. The European numeric spellings (`23.8.2024`, `10-08-2011`
+  — day first, like the GEDCOM date itself) and the month-named dash
+  spelling (`23-Apr-98`, the two-digit year is the 20th-century one)
+  normalize to the standard form; `unbek` joins the unknown set.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

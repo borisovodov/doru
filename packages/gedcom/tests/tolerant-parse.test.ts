@@ -667,3 +667,35 @@ describe('the date leniencies', () => {
     });
   });
 });
+
+describe('the European date spellings', () => {
+  test('the dotted, dashed and month-named European dates parse', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 DATE 23.8.2024',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.date?.value).toEqual({ day: 23, month: 'AUG', year: 2024 });
+  });
+
+  test('the two-digit-year dash spelling maps to the 20th century', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 DATE 23-Apr-98',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.date?.value).toEqual({ day: 23, month: 'APR', year: 1998 });
+  });
+});

@@ -365,7 +365,7 @@ export function normalizeDateText(text: string): string {
     return trimmed;
   }
   const lower = trimmed.toLowerCase();
-  if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
+  if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'unbek' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
     return '';
   }
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
@@ -373,6 +373,29 @@ export function normalizeDateText(text: string): string {
     const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(iso[2]) - 1];
     if (month !== undefined && Number(iso[3]) >= 1 && Number(iso[3]) <= 31) {
       return `${Number(iso[3])} ${month} ${iso[1]}`;
+    }
+  }
+  // The European numeric spellings (`23.8.2024`, `10-08-2011`,
+  // `9-10-2015` — the German exports) — day first, like the GEDCOM
+  // date itself.
+  const european = /^(\d{1,2})[.-](\d{1,2})[.-](\d{4})$/.exec(trimmed);
+  if (european !== null) {
+    const day = Number(european[1]);
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(european[2]) - 1];
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} ${european[3]}`;
+    }
+  }
+  // The PAF-era dash spelling with a month name (`23-Apr-98`): the
+  // two-digit year is the 20th-century one.
+  const dashedNamed = /^(\d{1,2})-([A-Za-z]{3,9})-(\d{2})$/.exec(trimmed);
+  if (dashedNamed !== null) {
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find(
+      (m) => m.startsWith((dashedNamed[2] as string).toUpperCase().slice(0, 3)),
+    );
+    const day = Number(dashedNamed[1]);
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} 19${dashedNamed[3]}`;
     }
   }
   const range = /^(\d{1,4})-(\d{1,4})$/.exec(trimmed);
