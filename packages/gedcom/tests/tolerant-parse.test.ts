@@ -577,3 +577,49 @@ describe('the line-comment values', () => {
     expect(indi?.tag === 'INDI' ? indi.events?.length : -1).toBe(1);
   });
 });
+
+describe('the over-indented continuations', () => {
+  test('a continuation indented one level too deep merges into the note', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE Main decisive actions:',
+      '2 CONT - Delivers impassioned speech',
+      '3 CONT - Orders the execution',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe(
+      'Main decisive actions:\n- Delivers impassioned speech\n- Orders the execution',
+    );
+  });
+
+  test('a level-skip without a text-bearing anchor keeps the error', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE x',
+      '2 SOUR @S1@',
+      '4 CONT deep',
+      '0 @S1@ SOUR',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { errors } = parseTolerant(enc(text));
+    expect(errors.map((error) => error.code)).toContain('line.level-skip');
+  });
+});

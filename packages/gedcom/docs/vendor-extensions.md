@@ -839,6 +839,13 @@ its JSDoc.
   not exist stays a dangling pointer (dropped silently by the
   resolve rules). An xref on a substructure that also carries a
   value stays `line.xref-on-substructure`.
+- **The over-indented continuation.** A CONC/CONT whose enclosing
+  level is missing (the exporter indented the continuation one level
+  too deep — `2 CONT Main decisive actions:` + `3 CONT - Delivers
+  …`, the three-body-problem fan trees) merges into the deepest
+  text-bearing NOTE/TEXT line on the stack — the immediately
+  preceding text line, nothing further is guessed. A level-skip
+  without such an anchor keeps the error.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

@@ -535,7 +535,22 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
         let parent = stack[node.level - 1];
         if (parent === undefined) {
-          fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+          // The exporter indented the continuation one level too deep
+          // (`2 CONT Main decisive actions:` + `3 CONT - Delivers …`,
+          // the three-body-problem fan trees): the deepest
+          // text-bearing line on the stack is the continuation's
+          // target — the immediately preceding text line, nothing
+          // further is guessed.
+          const candidate = stack[stack.length - 1];
+          if (
+            candidate !== undefined &&
+            candidate.value.kind === 'text' &&
+            (candidate.tag === 'NOTE' || candidate.tag === 'TEXT')
+          ) {
+            parent = candidate;
+          } else {
+            fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+          }
         }
         // The wrong-level repair: a continuation whose natural target
         // cannot take text (a record line or a pointer) but whose last

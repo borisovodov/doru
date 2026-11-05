@@ -849,7 +849,9 @@ would be, or where the model takes a documented position:
     line. A value that is a line comment (`0 @F1@ FAM // comment`)
     is dropped — it annotates the line, not the data. An xref on a
     substructure line with no value (`1 @I2@ HUSB`) relocates into
-    the value slot, where the tag expects it.
+    the value slot, where the tag expects it. A CONC/CONT indented
+    one level too deep merges into the deepest text-bearing
+    NOTE/TEXT line on the stack.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)
