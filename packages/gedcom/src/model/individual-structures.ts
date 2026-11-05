@@ -89,6 +89,20 @@ export interface OccupationAttribute extends IndividualAttributeBase<'OCCU', Tex
    * `_PRIM Y` under the OCCU line in both versions.
    */
   primary?: boolean;
+  /**
+   * `_BERUF_KB {0:1}` — the occupation in the wording of the church
+   * book (Kirchenbuch) entry. The OFB-Werkstatt convention, documented
+   * in the exporter's own tag reference (the URI its GEDCOM 7 SCHMA
+   * declarations point to):
+   * <https://github.com/thobgg/ofb-werkstatt/blob/main/doku/gedcom7-tags.md>
+   * ("Die Berufsbezeichnung im Wortlaut des Kirchenbuchs, etwa
+   * 'Bürger und Weingärtner'"). Written either under the OCCU line
+   * (the older OFB convention) or as the bare `_BERUF_KB` line in
+   * place of an OCCU (the current exporter). Both forms parse into
+   * this slot; both versions write it back as `_BERUF_KB` under the
+   * OCCU line.
+   */
+  asRecorded?: Text;
 }
 
 /** GEDCOM 7.0 §3.2.3 INDIVIDUAL_ATTRIBUTE_STRUCTURE — g7:PROP: property. GEDCOM 7.0 §3.3.2.1. */

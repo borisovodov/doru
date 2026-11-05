@@ -47,6 +47,9 @@ import {
   resolveStandardTagByUri,
 } from './schema-tags';
 import {
+  GEDCOM_555_TAG_ALIASES,
+} from './gedcom-555';
+import {
   parseMultimediaRecord,
 } from './media';
 import {
@@ -133,7 +136,9 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
   // synthesized empty header — the full-leniency container rule;
   // parseHeader completes its GEDC). The first HEAD node in the stream
   // is parsed as the header; a later duplicate stays a generic record.
-  const headerIndex = nodes.findIndex((node) => node.tag === 'HEAD');
+  const headerIndex = nodes.findIndex(
+    (node) => node.tag === 'HEAD' || GEDCOM_555_TAG_ALIASES[node.tag] === 'HEAD',
+  );
   let header: Header = { tag: 'HEAD', gedcom: { version: '5.5.1' } };
   if (headerIndex !== -1) {
     try {
@@ -232,6 +237,14 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
 }
 
 function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
+  // The GEDCOM 5.5.5 draft's full-word record spellings (HEADER for
+  // HEAD, INDIVIDUAL for INDI, TRAILER for TRLR — the published 5.5.5
+  // sample and the FamilySearch gedcom5-conversion test resources;
+  // see parsing/gedcom-555.ts) parse as the standard record.
+  const recordAlias = GEDCOM_555_TAG_ALIASES[node.tag];
+  if (recordAlias !== undefined) {
+    node = { ...node, tag: recordAlias };
+  }
   if (node.tag.startsWith('_')) {
     // A SCHMA-documented record alias (`_USER → g7:record-SUBM`, …)
     // parses as the standard record — standard-first (see

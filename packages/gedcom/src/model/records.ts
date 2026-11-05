@@ -638,6 +638,22 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   updatedAt?: Text;
   /**
+   * `_ALTER_KB {0:1}` — the age as stated in the church book entry,
+   * often down to years, months and days (a computed birth date
+   * belongs under BIRT.DATE with CAL instead). The OFB-Werkstatt
+   * convention — the same tag reference as occupationAsRecorded.
+   * Recognized on input and written back as `_ALTER_KB` in both
+   * versions.
+   */
+  ageAsRecorded?: Text;
+  /**
+   * `_TODURSACHE {0:1}` — the cause of death in the wording of the
+   * church book entry. The OFB-Werkstatt convention — the same tag
+   * reference as occupationAsRecorded. Recognized on input and
+   * written back as `_TODURSACHE` in both versions.
+   */
+  deathCauseAsRecorded?: Text;
+  /**
    * _CREAT {0:1} — the date the record was created (a free text value;
    * the wire format of GenPlus, which writes it, is undocumented, so
    * the value is kept verbatim rather than parsed into the 7.0 CREA

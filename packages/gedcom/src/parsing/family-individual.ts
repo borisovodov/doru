@@ -1040,6 +1040,28 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _UPD: (child) => {
       rec.updatedAt = reqText(child);
     },
+    _BERUF_KB: (child) => {
+      // OFB-Werkstatt: the bare `_BERUF_KB` line in place of an OCCU
+      // (the current exporter's form) — an occupation attribute whose
+      // payload is the empty string and whose church-book wording is
+      // the asRecorded slot (see OccupationAttribute.asRecorded). The
+      // write-back emits the OCCU + `_BERUF_KB` pair.
+      (rec.attributes ??= []).push({
+        tag: 'OCCU',
+        payload: '',
+        asRecorded: reqText(child),
+      });
+    },
+    _ALTER_KB: (child) => {
+      // OFB-Werkstatt: the age as stated in the entry (see
+      // IndividualRecord.ageAsRecorded).
+      rec.ageAsRecorded = reqText(child);
+    },
+    _TODURSACHE: (child) => {
+      // OFB-Werkstatt: the cause of death in the church book's wording
+      // (see IndividualRecord.deathCauseAsRecorded).
+      rec.deathCauseAsRecorded = reqText(child);
+    },
     _URL: (child) => {
       rec.url = reqText(child);
     },

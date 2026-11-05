@@ -84,6 +84,17 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   callName?: Text;
   /**
+   * `_KB_NAME {0:1}` — the name in the spelling of the church book
+   * (Kirchenbuch), written under NAME alongside the normalized form.
+   * The OFB-Werkstatt convention, documented in the exporter's own
+   * tag reference (the URI its GEDCOM 7 SCHMA declarations point to):
+   * <https://github.com/thobgg/ofb-werkstatt/blob/main/doku/gedcom7-tags.md>
+   * ("Der Name in der Schreibweise des Kirchenbuchs, neben der
+   * normalisierten Form unter NAME"). Recognized on input and written
+   * back as `_KB_NAME` in both versions.
+   */
+  nameAsRecorded?: Text;
+  /**
    * `_USED` {0:1} — the given name used: which of the person's given
    * names they actually use (a "Tony" out of "Anthony Edward"). The
    * Family Historian convention under the NAME tag, documented in the

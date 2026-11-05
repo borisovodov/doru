@@ -818,6 +818,9 @@ export interface EventShape extends GedcomStructureBase {
   childCountCertain?: boolean;
   /** Ahnenblatt: the primary occupation flag (see OccupationAttribute.primary). */
   primary?: boolean;
+  /** OFB-Werkstatt: the church-book wording of the occupation (see
+   *  OccupationAttribute.asRecorded). */
+  asRecorded?: string;
 }
 
 /** Assigns the optional `Y` flag, leaving the field unset when absent. */
@@ -1187,6 +1190,11 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
       // Ahnenblatt: the primary occupation flag (see
       // OccupationAttribute.primary).
       event.primary = parseVendorFlag(child, '_PRIM');
+    };
+    handlers['_BERUF_KB'] = (child) => {
+      // OFB-Werkstatt: the church-book wording of the occupation (see
+      // OccupationAttribute.asRecorded).
+      event.asRecorded = reqText(child);
     };
   }
   // The TYPE is optional on the generic IDNO and

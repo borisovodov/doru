@@ -157,6 +157,11 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     '_RUFNAME': (child) => {
       out.callName = reqText(child);
     },
+    '_KB_NAME': (child) => {
+      // OFB-Werkstatt: the name in the church book's spelling (see
+      // PersonalNameStructure.nameAsRecorded).
+      out.nameAsRecorded = reqText(child);
+    },
     '_PRIM': (child) => {
       // Legacy: the primary name mark (see
       // PersonalNameStructure.primary).

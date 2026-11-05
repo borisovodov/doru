@@ -25,6 +25,9 @@ import type {
 import {
   resolveStandardTagByUri,
 } from './schema-tags';
+import {
+  GEDCOM_555_TAG_ALIASES,
+} from './gedcom-555';
 
 /** The shared state of one parse: the known xrefs, the synthetic
  *  multimedia records synthesized from inline 5.5.1 OBJE links, and
@@ -169,7 +172,9 @@ export function kids(node: RawNode, tag: string): RawNode[] {
 
 /** At most one occurrence; a second is a cardinality error. */
 export function one(node: RawNode, tag: string): RawNode | undefined {
-  const list = kids(node, tag);
+  const list = node.children.filter(
+    (child) => child.tag === tag || GEDCOM_555_TAG_ALIASES[child.tag] === tag,
+  );
   if (list.length > 1) {
     // First occurrence wins (the full-leniency container rule).
     return list[0];
@@ -360,6 +365,19 @@ export function dispatch(
   for (const child of node.children) {
     let tag = child.tag;
     let resolved: RawNode = child;
+    if (handlers[tag] === undefined) {
+      // The GEDCOM 5.5.5 draft's full-word spelling of a standard tag
+      // (BIRTH for BIRT, OCCUPATION for OCCU — see parsing/gedcom-555.ts)
+      // parses as that tag when the full word itself has no handler
+      // here. The alias fires only where nothing else claims the word,
+      // so the GenoPro dialect's own INDIVIDUAL/FAMILY children keep
+      // their meaning.
+      const aliased = GEDCOM_555_TAG_ALIASES[tag];
+      if (aliased !== undefined && handlers[aliased] !== undefined) {
+        tag = aliased;
+        resolved = { ...child, tag: aliased };
+      }
+    }
     if (handlers[tag] === undefined && tag.startsWith('_')) {
       // A SCHMA-documented extension tag whose URI names a standard
       // structure type with a slot here parses as that structure —

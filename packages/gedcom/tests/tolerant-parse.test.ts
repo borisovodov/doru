@@ -901,3 +901,110 @@ describe('the numeric and dotted month spellings', () => {
     expect(birth?.detail.date.value).toMatchObject({ month: 'JAN', year: 2015 });
   });
 });
+
+describe('the GEDCOM 5.5.5 draft spellings', () => {
+  test('the full-word record and structure tags parse as the standard tags', () => {
+    const text = [
+      '0 HEADER',
+      '1 SOURCE FTW',
+      '1 DESTINATION FTW',
+      '1 GEDCOM',
+      '2 VERSION 5.5.5',
+      '2 FORM LINEAGE-LINKED',
+      '0 @I1@ INDIVIDUAL',
+      '1 NAME Robert /Williams/',
+      '2 GIVEN_NAME Robert',
+      '2 SURNAME Williams',
+      '1 BIRTH',
+      '2 DATE 2 APR 1937',
+      '2 PLACE Springfield',
+      '1 OCCUPATION Engineer',
+      '0 @F1@ FAMILY',
+      '1 MARRIAGE',
+      '2 DATE 1960',
+      '1 HUSBAND @I1@',
+      '1 WIFE @I2@',
+      '0 TRAILER',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.source?.payload).toBe('FTW');
+    expect(dataset?.header.destination).toBe('FTW');
+    expect(dataset?.header.gedcom.version).toBe('5.5.5');
+    const individual = dataset?.records.find((record) => record.tag === 'INDI');
+    expect(individual?.tag === 'INDI' ? individual.names?.[0]?.pieces : undefined).toMatchObject({
+      givenNames: ['Robert'],
+      surnames: ['Williams'],
+    });
+    expect(individual?.tag === 'INDI' ? individual.events?.[0]?.tag : undefined).toBe('BIRT');
+    const occupation = individual?.tag === 'INDI' ? individual.attributes?.[0] : undefined;
+    expect(occupation?.tag === 'OCCU' ? occupation.payload : undefined).toBe('Engineer');
+    const family = dataset?.records.find((record) => record.tag === 'FAM');
+    expect(family?.tag === 'FAM' ? family.events?.[0]?.tag : undefined).toBe('MARR');
+    expect(family?.tag === 'FAM' ? family.husband?.partner : undefined).toBe('@I1@');
+  });
+
+  test("the GenoPro INDIVIDUAL/FAMILY children keep their dialect's meaning", () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @G1@ GENOMAP',
+      '1 PEDIGREELINK',
+      '2 INDIVIDUAL @ind00001@',
+      '2 FAMILY @fam00001@',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const genomap = dataset?.records.find((record) => record.tag === 'GENOMAP');
+    expect(genomap).toBeDefined();
+    // The GenoPro PEDIGREELINK children keep their own INDIVIDUAL/FAMILY
+    // tags — the 5.5.5 alias must not rename them (see gedcom-555.ts).
+    const link = genomap?.extensions?.[0] ?? (genomap as { children?: { tag: string }[] }).children?.[0];
+    const children = (link as { children?: { tag: string }[] }).children;
+    expect(children?.map((child) => child.tag)).toEqual(['INDIVIDUAL', 'FAMILY']);
+  });
+});
+
+describe('the OFB-Werkstatt tags', () => {
+  test('the church-book wording tags type into the dedicated slots', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Rosina Margaretha /Frey/',
+      '2 GIVN Rosina Margaretha',
+      '2 SURN Frey',
+      '2 _KB_NAME Rosina Margaretha /Frey/',
+      '1 OCCU',
+      '2 _BERUF_KB Weingärtner',
+      '1 _TODURSACHE Hitziges Fieber',
+      '1 _ALTER_KB 60 Jahre, 3 Monate',
+      '0 @I2@ INDI',
+      '1 NAME X /Y/',
+      '1 _BERUF_KB Tagelöhner',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const first = dataset?.records[0];
+    expect(first?.tag === 'INDI' ? first.names?.[0]?.nameAsRecorded : undefined).toBe('Rosina Margaretha /Frey/');
+    expect(first?.tag === 'INDI' ? first.deathCauseAsRecorded : undefined).toBe('Hitziges Fieber');
+    expect(first?.tag === 'INDI' ? first.ageAsRecorded : undefined).toBe('60 Jahre, 3 Monate');
+    const occupation = first?.tag === 'INDI' ? first.attributes?.[0] : undefined;
+    expect(occupation?.tag === 'OCCU' ? occupation.asRecorded : undefined).toBe('Weingärtner');
+    // The bare INDI-level spelling becomes the OCCU + _BERUF_KB pair.
+    const second = dataset?.records[1];
+    const bare = second?.tag === 'INDI' ? second.attributes?.[0] : undefined;
+    expect(bare?.tag === 'OCCU' ? bare.payload : undefined).toBe('');
+    expect(bare?.tag === 'OCCU' ? bare.asRecorded : undefined).toBe('Tagelöhner');
+  });
+});

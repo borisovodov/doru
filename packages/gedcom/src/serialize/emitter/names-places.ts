@@ -203,6 +203,11 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   if (name.callName !== undefined) {
     w.line(level + 1, '_RUFNAME', { value: name.callName });
   }
+  if (name.nameAsRecorded !== undefined) {
+    // OFB-Werkstatt: the name in the church book's spelling (see
+    // PersonalNameStructure.nameAsRecorded).
+    w.line(level + 1, '_KB_NAME', { value: name.nameAsRecorded });
+  }
   if (name.date !== undefined) {
     // TMG: a date associated with the name (see
     // PersonalNameStructure.date).

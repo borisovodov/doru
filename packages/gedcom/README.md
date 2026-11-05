@@ -78,8 +78,12 @@ The complete picture, at a glance:
   identifiers, and the POLI|RELI|GEOG|CULT hierarchy, plus the
   person-side tags, same-sex unions, negatives, and cohabitation —
   and written back in both versions. The GEDCOM 5.5.5 vocabulary is
-  accepted on any 5.x import as part of the 5.x grammar (see
-  Parsing); the 5.5.5 container rules are not a target.
+  accepted on any 5.x import as part of the 5.x grammar — the values
+  (SEX X/N, BCE/BC) plus the abandoned 1999 5.5.5 draft's full-word
+  tag spellings (INDIVIDUAL for INDI, BIRTH for BIRT, OCCUPATION for
+  OCCU — the published 5.5.5 sample and the FamilySearch
+  gedcom5-conversion test resources; see parsing/gedcom-555.ts); the
+  5.5.5 container rules are not a target.
 - **GEDZIP.** FamilySearch `.gdz` archives read and write on the same
   layer (see GEDZIP).
 - **Errors are values.** `ParseResult<T>` end to end — no exceptions,

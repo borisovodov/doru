@@ -821,6 +821,17 @@ its JSDoc.
   lifelines exports write — carries no declaration: the bytes decode
   as CP1252, whose table maps every byte and absorbs the stray
   markers cleanly.
+- **The OFB-Werkstatt tags.** The church-book (Kirchenbuch) wording
+  fields of the OFB-Werkstatt exporter, documented in its own tag
+  reference (the URI the exporter's GEDCOM 7 SCHMA declarations point
+  to: <https://github.com/thobgg/ofb-werkstatt/blob/main/doku/gedcom7-tags.md>)
+  type into dedicated slots: `_KB_NAME` under NAME (the name in the
+  church book's spelling — `PersonalNameStructure.nameAsRecorded`),
+  `_BERUF_KB` under OCCU or as the bare INDI-level line (the
+  occupation's wording — `OccupationAttribute.asRecorded`), and the
+  INDI-level `_TODURSACHE`/`_ALTER_KB` (the cause of death and the
+  age as stated in the entry — `IndividualRecord.deathCauseAsRecorded`/
+  `ageAsRecorded`). Written back as the same tags in both versions.
 - **The bare translation and the ISO exact date.** A NOTE.TRAN
   without a MIME/LANG substructure (the maximal70 test files write
   `2 TRAN British English` bare) keeps the translation text alone —

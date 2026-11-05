@@ -390,6 +390,16 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
   }
+  if (rec.ageAsRecorded !== undefined) {
+    // OFB-Werkstatt: the age as stated in the entry (see
+    // IndividualRecord.ageAsRecorded).
+    w.line(1, '_ALTER_KB', { value: rec.ageAsRecorded });
+  }
+  if (rec.deathCauseAsRecorded !== undefined) {
+    // OFB-Werkstatt: the cause of death in the church book's wording
+    // (see IndividualRecord.deathCauseAsRecorded).
+    w.line(1, '_TODURSACHE', { value: rec.deathCauseAsRecorded });
+  }
   if (rec.createdAt !== undefined) {
     // GenPlus: the record creation date (see IndividualRecord.createdAt).
     w.line(1, '_CREAT', { value: rec.createdAt });
@@ -625,6 +635,11 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
       // Ahnenblatt: the primary occupation flag (see
       // OccupationAttribute.primary).
       w.line(2, '_PRIM', { value: 'Y' });
+    }
+    if (attribute.tag === 'OCCU' && attribute.asRecorded !== undefined) {
+      // OFB-Werkstatt: the church-book wording of the occupation (see
+      // OccupationAttribute.asRecorded).
+      w.line(2, '_BERUF_KB', { value: attribute.asRecorded });
     }
     if (version === '5.5.1' && attribute.tag === 'NCHI' && attribute.childCountCertain !== undefined) {
       // USM6: the child count certainty marker (see
