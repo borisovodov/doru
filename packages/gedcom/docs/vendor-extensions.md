@@ -831,6 +831,14 @@ its JSDoc.
   information suggests …` — the hand-annotated ged_record samples)
   is dropped: it annotates the line, not the data — the same rule
   the pointer comments follow.
+- **The xref in the value position.** An xref on a substructure line
+  with no value (`1 @I2@ HUSB`, the backend_family.ged exports write
+  the partner and child pointers in the xref position) relocates
+  into the value slot, where the tag expects it; the misplaced
+  identifier is not registered, so a relocation whose target does
+  not exist stays a dangling pointer (dropped silently by the
+  resolve rules). An xref on a substructure that also carries a
+  value stays `line.xref-on-substructure`.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

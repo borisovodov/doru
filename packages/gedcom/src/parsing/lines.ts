@@ -378,6 +378,27 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
   }
 
   const attach = (node: RawNode): void => {
+    if (
+      node.xref !== undefined &&
+      node.level > 0 &&
+      !node.tag.startsWith('_') &&
+      node.value.kind === 'absent'
+    ) {
+      // The exporters write the pointer in the xref position
+      // (`1 @I2@ HUSB`, the backend_family.ged exports): the xref
+      // relocates into the value slot, where the tag expects it. The
+      // misplaced identifier is not registered (it is not a record
+      // line), so a relocation whose target does not exist stays a
+      // dangling pointer — dropped silently by the resolve rules.
+      const relocated = node.xref;
+      const { xref: _dropped, ...rest } = node;
+      void _dropped;
+      node = {
+        ...rest,
+        value: { kind: 'pointer', pointer: relocated },
+        valueColumn: 0,
+      };
+    }
     if (node.level === 0) {
       roots.push(node);
       stack.length = 0;

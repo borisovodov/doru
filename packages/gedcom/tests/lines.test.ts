@@ -113,8 +113,13 @@ describe('line tokenization (7.0)', () => {
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
   });
 
-  test('errors on an xref on a substructure', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 @X@ GEDC\n0 TRLR\n'))).toBe('line.xref-on-substructure');
+  test('relocates an xref on a substructure into the value slot', () => {
+    const { nodes } = raw70('0 HEAD\n1 @X@ GEDC\n0 TRLR\n');
+    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@X@' });
+  });
+
+  test('errors on an xref on a substructure that also has a value', () => {
+    expect(expectErr(() => raw70('0 HEAD\n1 @X@ GEDC v\n0 TRLR\n'))).toBe('line.xref-on-substructure');
   });
 
   test('keeps duplicate xrefs; the first occurrence registers', () => {

@@ -847,7 +847,9 @@ would be, or where the model takes a documented position:
     rule is serialization pedantry), and a wrong-level continuation
     (`1 NOTE …` + `1 CONT …`) continues the preceding text-bearing
     line. A value that is a line comment (`0 @F1@ FAM // comment`)
-    is dropped — it annotates the line, not the data.
+    is dropped — it annotates the line, not the data. An xref on a
+    substructure line with no value (`1 @I2@ HUSB`) relocates into
+    the value slot, where the tag expects it.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)
