@@ -119,7 +119,9 @@ describe('exact and period dates (7.0)', () => {
   test('DatePeriod', () => {
     expect(parseDatePeriod70('', pos)).toEqual({ kind: 'period' });
     expect(parseDatePeriod70('FROM 1900 TO 1910', pos).kind).toBe('period');
-    expect(codeOf(() => parseDatePeriod70('1900', pos))).toBe('date.invalid');
+    // A plain date in the period slot is the single-date period (the
+    // full-leniency container rule).
+    expect(parseDatePeriod70('1900', pos)).toEqual({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 } });
   });
 });
 

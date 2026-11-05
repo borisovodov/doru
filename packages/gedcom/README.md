@@ -853,7 +853,10 @@ would be, or where the model takes a documented position:
     one level too deep merges into the deepest text-bearing
     NOTE/TEXT line on the stack. Non-ASCII xref characters are
     accepted, an empty `@@` identifier leaves the record without an
-    xref, and an unterminated xref is closed at the next blank.
+    xref, and an unterminated xref is closed at the next blank. A
+    leading weekday name and a trailing parenthesized phrase are
+    dropped from a date, and a plain date in the period slot is the
+    single-date period.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)

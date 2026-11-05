@@ -623,3 +623,47 @@ describe('the over-indented continuations', () => {
     expect(errors.map((error) => error.code)).toContain('line.level-skip');
   });
 });
+
+describe('the date leniencies', () => {
+  test('a weekday-prefixed and a phrase-suffixed exact date parse', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 DATE Friday, 20th November 1992',
+      '0 @S1@ SOUR',
+      '1 PUBL X',
+      '2 DATE 1 Jan 2026 (Ancestry source: Publisher date)',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.date?.value).toEqual({ day: 20, month: 'NOV', year: 1992 });
+  });
+
+  test('a plain date in the SOUR.DATA.EVEN period slot parses as a single-date period', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @S1@ SOUR',
+      '1 DATA',
+      '2 EVEN CENS',
+      '3 DATE 5 JUL 1776',
+      '3 PLAC Philadelphia, PA',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const source = dataset?.records.find((record) => record.tag === 'SOUR');
+    const event = source?.tag === 'SOUR' ? source.data?.events?.[0] : undefined;
+    expect(event?.date?.value).toEqual({
+      kind: 'period',
+      from: { calendar: 'GREGORIAN', day: 5, month: 'JUL', year: 1776 },
+    });
+  });
+});

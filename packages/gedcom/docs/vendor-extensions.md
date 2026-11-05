@@ -858,6 +858,13 @@ its JSDoc.
   the kahatTree exports); an empty identifier (`0 @@ OBJE`) leaves
   the record without an xref; an unterminated xref (`0 @I1 SUBM`)
   is closed at the next blank.
+- **The date leniencies.** A leading weekday name (`Friday, 20th
+  November 1992`, the PAF royal-family exports) is dropped; a
+  trailing parenthesized phrase after a plain date (`1 Jan 2026
+  (Ancestry source: Publisher date)`, the GEDCOM.NET test tree)
+  rides along without the INT keyword; a plain date in the period
+  slot (`3 DATE 5 JUL 1776` under SOUR.DATA.EVEN) is the single-date
+  period.
 - **The banned-control sanitization.** The C0 controls of a line
   *value* (the tab aside) are sanitized rather than rejected: the
   vertical tab (U+000B) is a line break in the wild — the exporters

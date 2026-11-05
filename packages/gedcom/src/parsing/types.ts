@@ -391,7 +391,10 @@ export function normalizeDateText(text: string): string {
   if (circa !== null) {
     return `ABT ${circa[1]}`;
   }
-  let out = trimmed.replace(/^(ABT\.|ABOUT|CIRCA|CA\.|CA|AFT\.|BEFORE)\s+/i, (prefix) =>
+  // A leading weekday name (`Friday, 20th November 1992`, the PAF
+  // royal-family exports) names no data the date grammar carries.
+  const withoutWeekday = trimmed.replace(/^(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)[\s,]+/i, '');
+  let out = withoutWeekday.replace(/^(ABT\.|ABOUT|CIRCA|CA\.|CA|AFT\.|BEFORE)\s+/i, (prefix) =>
     prefix.toUpperCase().startsWith('ABT') || prefix.toUpperCase().startsWith('CIRCA') || prefix.toUpperCase().startsWith('CA') || prefix.toUpperCase().startsWith('ABOUT')
       ? 'ABT '
       : prefix.toUpperCase().startsWith('AFT') ? 'AFT ' : 'BEF ',
@@ -562,6 +565,22 @@ export function parseDatePeriod70(text: string, position: SourcePosition, resolv
   if (first === 'FROM' || first === 'TO') {
     return parsePeriod70(tokens, position, resolve);
   }
+  // A plain date in the period slot (`3 DATE 5 JUL 1776` under
+  // SOUR.DATA.EVEN, the GEDCOM.NET test tree): the period is the
+  // single date.
+  const date = parseDateValue(text, position, resolve).value;
+  if (date.kind === 'date' && date.year !== undefined) {
+    return {
+      kind: 'period',
+      from: {
+        ...(date.calendar === undefined ? {} : { calendar: date.calendar }),
+        ...(date.day === undefined ? {} : { day: date.day }),
+        ...(date.month === undefined ? {} : { month: date.month }),
+        year: date.year,
+        ...(date.epoch === undefined ? {} : { epoch: date.epoch }),
+      },
+    };
+  }
   fail('date.invalid', `Invalid date period "${text}"; expected FROM/TO`, position);
 }
 
@@ -609,6 +628,14 @@ export function parseDateValue551(
     return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
   }
 
+  // A trailing parenthesized phrase after a plain date (the same
+  // INT-less form the shared parseDateValue accepts).
+  const trailingPhrase = /^(.*)\(([^()]*)\)$/.exec(trimmed);
+  if (trailingPhrase !== null) {
+    const inner = parseDate551Body((trailingPhrase[1] as string).trim(), position);
+    return { value: inner.value, dualYear: inner.dualYear, phrase: (trailingPhrase[2] as string).trim() };
+  }
+
   return parseDate551Body(trimmed, position);
 }
 
@@ -639,6 +666,14 @@ export function parseDateValue(
   if (intMatch) {
     const inner = parseDateBody(intMatch[1] as string, position, resolve, true);
     return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
+  }
+  // A trailing parenthesized phrase after a plain date (`1 Jan 2026
+  // (Ancestry source: Publisher date)`, the GEDCOM.NET test tree):
+  // the phrase rides along without the INT keyword.
+  const trailingPhrase = /^(.*)\(([^()]*)\)$/.exec(trimmed);
+  if (trailingPhrase !== null) {
+    const inner = parseDateBody((trailingPhrase[1] as string).trim(), position, resolve, true);
+    return { value: inner.value, dualYear: inner.dualYear, phrase: (trailingPhrase[2] as string).trim() };
   }
   return parseDateBody(trimmed, position, resolve, true);
 }
