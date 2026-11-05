@@ -790,6 +790,12 @@ its JSDoc.
   inside an xref (`0 @<US01>I1@ INDI`) is stripped like the
   pointer-side artifact, so the record and its pointers name the
   same identifier.
+- **The coordinate spellings.** The MAP/LATI/LONG values accept the
+  DMS human form (`+50° 3' 1.49"`, the gedcom4j samples — the
+  direction defaults from the sign) and the colon-separated DMS of
+  the webtrees exports (`N46::3::19"`, the double colon is the
+  degree/minute separator and the trailing double quote is dropped;
+  the single-colon `N46:3:19` spelling parses the same way).
 - **Bare lines inside direct-iteration parsers.** The `_EVENT_DEFN`
   record and the MAP/`_COR` coordinate blocks iterate their children
   directly (no dispatch retry); a bare member line — an empty

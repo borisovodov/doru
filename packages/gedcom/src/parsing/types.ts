@@ -1405,6 +1405,17 @@ export function parseLatitude(text: string, position: SourcePosition): Latitude 
       return { direction: (dms[1] as 'N' | 'S' | undefined) ?? (Number(dms[2]) < 0 ? 'S' : 'N'), degrees: Math.abs(degrees) };
     }
   }
+  // The colon-separated DMS of the webtrees exports (`N46::3::19"`):
+  // the degree and minute signs are the double colons, and the
+  // trailing double quote is dropped. The single-colon spelling
+  // (`N46:3:19`) is accepted the same way.
+  const colon = /^([NS])(\d{1,2}):{1,2}(\d{1,2}):{1,2}(\d{1,2}(?:\.\d+)?)"?$/.exec(trimmed);
+  if (colon !== null) {
+    const degrees = Number(colon[2]) + Number(colon[3]) / 60 + Number(colon[4]) / 3600;
+    if (degrees <= 90) {
+      return { direction: colon[1] as 'N' | 'S', degrees };
+    }
+  }
   fail('latitude.invalid', `Invalid latitude "${trimmed}"; expected "N" or "S" followed by decimal degrees 0–90`, position);
 }
 
@@ -1423,6 +1434,26 @@ export function parseLongitude(text: string, position: SourcePosition): Longitud
     const degrees = Number(bare[1]);
     if (degrees <= 180) {
       return { direction: 'E', degrees };
+    }
+  }
+  // The DMS spelling (`+19° 56' 21.48"`, the gedcom4j samples): the
+  // direction defaults from the sign — positive is East, negative
+  // West — like the latitude DMS defaults from the sign.
+  const dms = /^([EW])?([+-]?\d{1,3})°\s*(\d{1,2})'\s*(\d{1,2}(?:\.\d+)?)"$/.exec(trimmed);
+  if (dms !== null) {
+    const degrees = Number(dms[2]) + Number(dms[3]) / 60 + Number(dms[4]) / 3600;
+    if (degrees <= 180) {
+      return { direction: (dms[1] as 'E' | 'W' | undefined) ?? (Number(dms[2]) < 0 ? 'W' : 'E'), degrees: Math.abs(degrees) };
+    }
+  }
+  // The colon-separated DMS of the webtrees exports (`E14::30::52"`):
+  // the same double-colon spelling the latitude accepts, with the
+  // trailing double quote dropped.
+  const colon = /^([EW])(\d{1,3}):{1,2}(\d{1,2}):{1,2}(\d{1,2}(?:\.\d+)?)"?$/.exec(trimmed);
+  if (colon !== null) {
+    const degrees = Number(colon[2]) + Number(colon[3]) / 60 + Number(colon[4]) / 3600;
+    if (degrees <= 180) {
+      return { direction: colon[1] as 'E' | 'W', degrees };
     }
   }
   fail('longitude.invalid', `Invalid longitude "${trimmed}"; expected "E" or "W" followed by decimal degrees 0–180`, position);
