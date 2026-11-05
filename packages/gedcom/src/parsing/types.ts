@@ -398,6 +398,19 @@ export function normalizeDateText(text: string): string {
       return `${day} ${month} 19${dashedNamed[3]}`;
     }
   }
+  // The American month-first spelling (`FEB 13 2026`, the WIJA
+  // exports): the month name leads and the day follows — swapped to
+  // the GEDCOM day-first order.
+  const american = /^([A-Za-z]{3,9})\s+(\d{1,2})\s+(\d{4})$/.exec(trimmed);
+  if (american !== null) {
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find(
+      (m) => m.startsWith((american[1] as string).toUpperCase().slice(0, 3)),
+    );
+    const day = Number(american[2]);
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} ${american[3]}`;
+    }
+  }
   const range = /^(\d{1,4})-(\d{1,4})$/.exec(trimmed);
   if (range !== null) {
     return `BET ${range[1]} AND ${range[2]}`;

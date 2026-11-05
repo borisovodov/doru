@@ -767,3 +767,20 @@ describe('the deep nesting', () => {
     }
   });
 });
+
+describe('the American month-first date spelling', () => {
+  test('FEB 13 2026 swaps to the day-first order', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 DATE FEB 13 2026',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.date?.value).toEqual({ day: 13, month: 'FEB', year: 2026 });
+  });
+});
