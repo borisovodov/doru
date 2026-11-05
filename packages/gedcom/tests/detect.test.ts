@@ -151,7 +151,7 @@ describe('parse (unified entry point)', () => {
     const result = parse(enc('this is garbage'));
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe('line.bad-level');
+      expect(result.error.code).toBe('document.not-gedcom');
     }
   });
 

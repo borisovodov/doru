@@ -787,6 +787,25 @@ its JSDoc.
   `_SEN1`/`ABBR` sentence or flag, an empty `LATI`/`_LAS`/`_LOS`
   coordinate — carries no data: the text slot keeps the empty value
   and a coordinate-less MAP/`_COR` block is dropped, silently.
+- **The not-GEDCOM detection.** A document with content but without a
+  single level-0 line is not GEDCOM at all (REXX scripts, ASCII-art
+  design documents, VHDL sources and HTML pages under `.ged`/`.gdz`
+  names); it fails once with `document.not-gedcom` — one clear error
+  instead of the per-line `line.bad-level` cascade.
+- **The unleveled-continuation merge.** An unleveled line *inside* an
+  otherwise valid GEDCOM file merges into the payload of the
+  NOTE/TEXT line it directly follows, as a newline continuation —
+  human-edited files drop the CONT prefixes (the Gedcom4Sharp
+  Sopranos fixture, the ancestry-quirks fixture, the MyHeritage
+  Hebrew bios under the citation `4 TEXT`). The CONC/CONT chain case
+  is covered because a merged continuation leaves its parent on the
+  stack. A blank line ends the run (the ancestry-quirks "after a
+  blank line" line stays an error), a pointer-valued note cannot take
+  text, and any other anchor — a name, a pointer line, the file
+  start, post-TRLR prose, markdown fences — keeps the
+  `line.bad-level` error: those lines have no principled home, and
+  the nothing-is-guessed policy forbids attaching them to a
+  neighbouring structure.
 - **The medium leniency.** A value outside the MEDI enum (`TYPE
   image`, `TYPE story`, `MEDI Article`, `MEDI "Document agrafé"`)
   becomes OTHER with the phrase; 5.5.1 writes the phrase back as the

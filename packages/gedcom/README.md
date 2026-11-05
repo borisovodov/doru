@@ -821,6 +821,18 @@ would be, or where the model takes a documented position:
     `document.xref-not-found`); the Geni.com bare-identifier
     dialect (`0 I1234 INDI`, `1 FAMC F123`, bare numeric ids like
     `1 CHIL 0517745826`) is normalized to the standard spellings.
+  - A document with content but without a single level-0 line is not
+    GEDCOM at all (REXX scripts, ASCII-art design documents, VHDL
+    sources and HTML pages under `.ged`/`.gdz` names in the corpus):
+    it fails once with `document.not-gedcom` instead of a per-line
+    `line.bad-level` cascade. An unleveled line *inside* a GEDCOM
+    file merges into the payload of the NOTE/TEXT line it directly
+    follows (a newline continuation — human-edited files drop the
+    CONT prefixes: the Sopranos and ancestry-quirks fixtures, the
+    MyHeritage Hebrew bios under citation TEXT); a blank line ends
+    the run, and any other anchor (a name, a pointer line, the file
+    start) keeps the `line.bad-level` error — those lines have no
+    principled home.
   - A line whose required payload is absent — or a pointer in a text
     slot (`1 TITL @R5@`) — is retried with the value coerced to text:
     the line is kept with an empty payload (or the pointer string)

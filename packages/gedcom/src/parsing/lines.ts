@@ -336,6 +336,22 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
   const stack: RawNode[] = [];
   const seenXrefs = new Set<string>();
 
+  // A document with content but without a single level-0 line is not
+  // GEDCOM at all — the corpus carries REXX scripts, ASCII-art design
+  // documents, VHDL sources and HTML pages under `.ged`/`.gdz` names.
+  // One clear error replaces the per-line bad-level cascade (the
+  // full-leniency container rule: the rest of the file is meaningless,
+  // and there is nothing to parse line by line).
+  const hasContent = document.lines.some((line) => line.text.trim() !== '');
+  const hasLevel0 = document.lines.some((line) => /^[ \t]*0+[ \t]/.test(line.text));
+  if (hasContent && !hasLevel0) {
+    fail('document.not-gedcom', 'The document is not a GEDCOM file: no line starts with a level-0 record', {
+      line: 1,
+      column: 1,
+      offset: 0,
+    });
+  }
+
   const attach = (node: RawNode): void => {
     if (node.level === 0) {
       roots.push(node);
@@ -406,8 +422,36 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
     target.value = { kind: 'text', text: target.value.text + joiner + extra };
   };
 
+  let sawBlank = false;
   for (const line of document.lines) {
     try {
+      // The unleveled-continuation merge: a line without a level
+      // number that directly follows a NOTE/TEXT payload merges into
+      // it as a newline continuation — human-edited files drop the
+      // CONT prefixes (the Gedcom4Sharp Sopranos fixture, the
+      // ancestry-quirks fixture, the MyHeritage Hebrew bios under the
+      // citation TEXT). The CONC/CONT chain case is covered because a
+      // merged continuation leaves its parent on the stack. A blank
+      // line ends the run, a pointer-valued note cannot take text,
+      // and any other anchor keeps the line.bad-level error — those
+      // lines have no principled home (the nothing-is-guessed rule).
+      const trimmed = line.text.replace(/^[ \t]+/, '');
+      if (trimmed.length > 0 && !DIGIT.test(trimmed[0] as string)) {
+        const anchor = stack[stack.length - 1];
+        if (
+          !sawBlank &&
+          anchor !== undefined &&
+          (anchor.tag === 'NOTE' || anchor.tag === 'TEXT') &&
+          anchor.value.kind !== 'pointer'
+        ) {
+          if (anchor.value.kind === 'absent') {
+            anchor.value = { kind: 'text', text: trimmed };
+          } else {
+            anchor.value = { kind: 'text', text: anchor.value.text + '\n' + trimmed };
+          }
+          continue;
+        }
+      }
       let node = tokenizeLine(line, rule);
       if (node === null) {
         // Blank line. The 5.x rule officially ignores extra line
@@ -417,8 +461,10 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         // cannot disturb the hierarchy, the continuation merge, or any
         // value, so the line is dropped silently in any position (see
         // the README's Known strict decisions).
+        sawBlank = true;
         continue;
       }
+      sawBlank = false;
       // The Geni.com bare-identifier dialect: `0 I1234 INDI` spells the
       // cross-reference identifier without the @ delimiters. The shape
       // is unambiguous — a bare identifier in the tag position with a

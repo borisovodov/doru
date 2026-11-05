@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'vitest';
 import { parseTolerant } from '../src/detect';
+import { parseGedcom70 } from '../src/parsing/assemble';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -51,14 +52,10 @@ describe('parseTolerant', () => {
     expect(value?.kind).toBe('dataset');
   });
 
-  test('a document that is nothing but junk still yields a dataset', () => {
+  test('a document that is nothing but junk fails once with not-gedcom', () => {
     const { value, errors } = parseTolerant(enc('NOT GEDCOM AT ALL\njust prose\n'));
-    expect(errors.length).toBeGreaterThan(0);
-    expect(value?.kind).toBe('dataset');
-    if (value?.kind === 'dataset') {
-      expect(value.dataset.header.gedcom.version).toBe('5.5.1');
-      expect(value.dataset.records).toEqual([]);
-    }
+    expect(value).toBeUndefined();
+    expect(errors.map((error) => error.code)).toEqual(['document.not-gedcom']);
   });
 });
 
@@ -162,5 +159,183 @@ describe('the pointer and coordinate repairs', () => {
       throw new Error('expected INDI');
     }
     expect(indi.events?.[0]?.detail?.place?.map).toBeUndefined();
+  });
+});
+
+describe('the not-GEDCOM detection', () => {
+  test('a document without a single level-0 line fails once in tolerant mode', () => {
+    const text = [
+      'if (LEFT(ADDRESS(), 6) ~= "GOLDED") then',
+      "  address 'GOLDED.1'",
+      'exit',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(value).toBeUndefined();
+    expect(errors.map((error) => error.code)).toEqual(['document.not-gedcom']);
+  });
+
+  test('a blank document keeps parsing as before', () => {
+    const { value, errors } = parseTolerant(enc('\n\n\n'));
+    expect(errors).toEqual([]);
+    expect(value?.kind).toBe('dataset');
+  });
+
+  test('the strict parse fails with the same code', () => {
+    const result = parseGedcom70(enc('ASCII art * * *\n'));
+    expect(result.ok).toBe(false);
+    expect(result.ok ? undefined : result.error.code).toBe('document.not-gedcom');
+  });
+});
+
+describe('the unleveled-continuation merge', () => {
+  const HEAD70 = ['0 HEAD', '1 GEDC', '2 VERS 7.0'];
+
+  test('an unleveled line after a NOTE merges as a newline continuation', () => {
+    // The Gedcom4Sharp Sopranos fixture: the CONT prefixes were
+    // hand-edited away.
+    const text = [
+      ...HEAD70,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE This note was hand-edited',
+      'This is the next line of the text',
+      'This is another line of continuation text',
+      '1 FAMS @F1@',
+      '0 @F1@ FAM',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe(
+      'This note was hand-edited\nThis is the next line of the text\nThis is another line of continuation text',
+    );
+    expect(indi.spouseFamilies?.map((link) => link.family)).toEqual(['@F1@']);
+  });
+
+  test('a run anchored by a CONC chain merges into the note too', () => {
+    // The ancestry-quirks fixture shape.
+    const text = [
+      ...HEAD70,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE Wren kept a diary from 18',
+      '2 CONC 71 until her death. She wrote about the',
+      '2 CONC  harvest every autumn.',
+      'Ancestry wrote this paragraph without a CONT tag.',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe(
+      'Wren kept a diary from 1871 until her death. She wrote about the harvest every autumn.\nAncestry wrote this paragraph without a CONT tag.',
+    );
+  });
+
+  test('a blank line ends the run; the tail stays an error', () => {
+    const text = [
+      ...HEAD70,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE A paragraph',
+      'Its unleveled continuation',
+      '',
+      'And this one after a blank line.',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors.map((error) => error.code)).toEqual(['line.bad-level']);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe('A paragraph\nIts unleveled continuation');
+  });
+
+  test('a NAME anchor keeps the error (nothing is guessed)', () => {
+    // The GED-Example1 shape: the raw lines are source titles that
+    // lost their 0-line, not the repository name's continuation.
+    const text = [
+      ...HEAD70,
+      '0 @R1@ REPO',
+      '1 NAME Brabants Historisch Informatie Centrum',
+      'Boek',
+      'Huwelijksregister 1851',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors.map((error) => error.code)).toEqual(['line.bad-level', 'line.bad-level']);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const repo = dataset?.records[0];
+    if (repo?.tag !== 'REPO') {
+      throw new Error('expected REPO');
+    }
+    expect(repo.name).toBe('Brabants Historisch Informatie Centrum');
+  });
+
+  test('a citation TEXT anchor merges (the Hebrew bios shape)', () => {
+    const text = [
+      ...HEAD70,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 BIRT',
+      '2 SOUR @S1@',
+      '3 DATA',
+      '4 TEXT Messoda Dite Marcelle Ben Abou',
+      'לידה: 10 בדצמ 1914',
+      'פטירה: 30 בינו 2008',
+      '0 @S1@ SOUR',
+      '1 TITL X',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records[0];
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const citation = indi.events?.[0]?.detail?.citations?.[0];
+    expect(citation?.data?.texts?.[0]?.payload).toBe(
+      'Messoda Dite Marcelle Ben Abou\nלידה: 10 בדצמ 1914\nפטירה: 30 בינו 2008',
+    );
+  });
+
+  test('the merge applies in the strict parse too', () => {
+    const text = [
+      ...HEAD70,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE A note',
+      'its continuation',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const result = parseGedcom70(enc(text));
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const indi = result.value.records.find((record) => record.tag === 'INDI');
+      const note = indi?.tag === 'INDI' ? indi.notes?.[0] : undefined;
+      expect(note && 'payload' in note ? note.payload : undefined).toBe('A note\nits continuation');
+    }
   });
 });
