@@ -864,3 +864,40 @@ describe('the pointer-slot continuations', () => {
     expect(note?.tag === 'NOTE' ? note.payload : undefined).toBe('@NI124@');
   });
 });
+
+describe('the numeric and dotted month spellings', () => {
+  test('an all-numeric European date maps to the day-first order', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 DATE 20 10 1996',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.date?.value).toEqual({ day: 20, month: 'OCT', year: 1996 });
+  });
+
+  test('a dotted month abbreviation strips the dot', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '1 BIRT',
+      '2 DATE Jan. 2015',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
+    const birth = individual?.events.find((event) => event.tag === 'BIRT');
+    expect(birth?.detail.date.value).toMatchObject({ month: 'JAN', year: 2015 });
+  });
+});

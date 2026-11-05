@@ -415,6 +415,16 @@ export function normalizeDateText(text: string): string {
       return `${day} ${month} ${american[3]}`;
     }
   }
+  // The all-numeric European spelling (`20 10 1996`, the Kgene
+  // exports): day first, like the GEDCOM date itself.
+  const numeric = /^(\d{1,2})\s+(\d{1,2})\s+(\d{4})$/.exec(trimmed);
+  if (numeric !== null) {
+    const day = Number(numeric[1]);
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(numeric[2]) - 1];
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} ${numeric[3]}`;
+    }
+  }
   const range = /^(\d{1,4})-(\d{1,4})$/.exec(trimmed);
   if (range !== null) {
     return `BET ${range[1]} AND ${range[2]}`;
@@ -443,6 +453,9 @@ export function normalizeDateText(text: string): string {
   out = out.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
   // The Spanish/French connective "de"/"of" between date parts.
   out = out.replace(/\b(?:de|of|del)\s+/gi, '');
+  // The German month abbreviations carry a trailing dot (`Jan. 2015`,
+  // the gedbas exports): the dot is stripped before the month lookup.
+  out = out.replace(/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\./gi, '$1');
   out = out.replace(
     /\b(JANUARY|FEBRUARY|MARCH|APRIL|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER|SEPT)\b/gi,
     (name) => name.slice(0, 3).toUpperCase(),

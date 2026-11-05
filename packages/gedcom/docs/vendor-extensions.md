@@ -886,7 +886,10 @@ its JSDoc.
   spelling (`23-Apr-98`, the two-digit year is the 20th-century one)
   normalize to the standard form; `unbek` joins the unknown set. The
   American month-first spelling (`FEB 13 2026`, the WIJA exports)
-  swaps to the day-first order. A
+  swaps to the day-first order; the all-numeric European spelling
+  (`20 10 1996`, the Kgene exports) maps the same way; a dotted
+  German month abbreviation (`Jan. 2015`, the gedbas exports) strips
+  the dot. A
   date part that is empty (`2 DATE ABT` with nothing after the
   modifier, `2 DATE BET  AND 1907`, `2 DATE FROM  to 1947` — the
   gedcom-go longsword and Internet Archive trees) keeps the whole
