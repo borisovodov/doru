@@ -815,8 +815,11 @@ would be, or where the model takes a documented position:
     level jump attaches the line to the nearest enclosing level.
   - The HEAD may appear anywhere in the record stream (a NOTE
     preamble or straight records first); a duplicate HEAD block
-    mid-stream is skipped. Any GEDCOM 5.x version is accepted (5.3,
-    5.4, 5.50, 5.01 included); only 3.0/4.0 are rejected.
+    mid-stream is skipped. Any dotted GEDCOM version is accepted
+    (the 5.x drafts 5.3/5.4/5.50/5.01, the pre-5.x versions 1.0/3.0/
+    4.0/4.18 — the full leniency keeps their unknown tags generic —
+    and the `GEDCOM 5.5` prefix and `5.5.1n` typo spellings); the
+    value survives verbatim in the model.
   - The first occurrence wins: duplicate cross-reference identifiers
     (later records keep their identifier but references resolve to the
     first) and repeated `{0:1}` fields (the later line is dropped).
