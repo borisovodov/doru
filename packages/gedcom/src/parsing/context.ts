@@ -440,15 +440,11 @@ export function dispatch(
         continue;
       }
       if (err.code === 'document.xref-not-found' && err.position?.line === child.position.line) {
-        // A dangling pointer link is kept verbatim as a generic
-        // extension: the target record is not in the document, but
-        // the pointer string itself is data (a MyHeritage source id
-        // whose record sits in the split-off part of the export), so
-        // nothing is dropped and nothing is recorded — the
-        // resolution is defined. The export does not re-emit the
-        // dangling reference (generic extensions are dropped in both
-        // versions), so the output's referential integrity is kept.
-        addExtension(out, child, ctx);
+        // A dangling pointer link is dropped silently: the target
+        // record is not in the document, and the link carries
+        // nothing without it — the pointer string alone is
+        // meaningless, so it is neither imported nor recorded as an
+        // error (the resolution is defined: drop the dead link).
         continue;
       }
       if (tolerate(ctx, error)) {

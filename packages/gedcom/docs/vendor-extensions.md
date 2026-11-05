@@ -779,19 +779,17 @@ its JSDoc.
 - **Pointer lists in the GenoPro containers.** `1 OCCUPATIONS
   @occu00012@, @occu00063@` — the comma-separated pointer list of the
   GenoPro entity containers — is split and every pointer resolves
-  (a dangling member keeps the whole line verbatim as a generic
-  extension, like any dangling pointer); written back as separate
-  container lines.
-- **The dangling-pointer keep.** A pointer whose target record is not
+  (a dangling member drops the whole line silently, like any
+  dangling pointer); written back as separate container lines.
+- **The dangling-pointer drop.** A pointer whose target record is not
   in the document (`1 FAMS @F9@` without a `0 @F9@ FAM`, the
-  MyHeritage source ids of the split-off part of an export) is kept
-  verbatim as a generic extension — the pointer string itself is
-  data, so nothing is dropped and nothing is recorded (the
-  `document.xref-not-found` error is gone). The export drops the
-  extension like every generic extension, so no unresolved reference
-  is ever re-emitted. A US escape artifact inside an xref
-  (`0 @<US01>I1@ INDI`) is stripped like the pointer-side artifact,
-  so the record and its pointers name the same identifier.
+  MyHeritage source ids of the split-off part of an export) is
+  dropped silently: the link carries nothing without its target, so
+  it is neither imported nor recorded as an error (the
+  `document.xref-not-found` error is gone). A US escape artifact
+  inside an xref (`0 @<US01>I1@ INDI`) is stripped like the
+  pointer-side artifact, so the record and its pointers name the
+  same identifier.
 - **Bare lines inside direct-iteration parsers.** The `_EVENT_DEFN`
   record and the MAP/`_COR` coordinate blocks iterate their children
   directly (no dispatch retry); a bare member line — an empty

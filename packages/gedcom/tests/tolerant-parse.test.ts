@@ -20,7 +20,7 @@ describe('parseTolerant', () => {
       '1 BIRT',
       '2 DATE 32 JAN 1900', // impossible day — kept verbatim (not an error)
       '1 OCCU', // bare line — repaired silently (kept with an empty payload)
-      '1 FAMS @NOPE@', // dangling pointer — kept verbatim as a generic extension
+      '1 FAMS @NOPE@', // dangling pointer — dropped silently (the link has no content)
       '0 @I2@ INDI',
       '1 NAME Mary /Doe/',
       '0 TRLR',
@@ -42,10 +42,6 @@ describe('parseTolerant', () => {
     expect(indi.attributes).toEqual([{ tag: 'OCCU', payload: '' }]);
     expect(indi.occupations ?? []).toEqual([]);
     expect(indi.spouseFamilies ?? []).toEqual([]);
-    // The dangling FAMS line survives verbatim as a generic extension.
-    expect(indi.extensions?.[0]?.tag).toBe('FAMS');
-    expect(indi.extensions?.[0]?.payload).toBe('@NOPE@');
-    expect(indi.extensions?.[0]?.payloadKind).toBe('pointer');
     expect(indi.events?.[0]?.detail?.date?.value).toBeDefined();
   });
 

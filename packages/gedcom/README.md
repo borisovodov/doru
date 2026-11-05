@@ -817,10 +817,9 @@ would be, or where the model takes a documented position:
   - A value that starts with a single `@` but is not a valid pointer
     is text; a pointer with a trailing C-style comment (`2 FAMC @4@
     /* … */`) parses as the pointer and drops the comment; a dangling
-    pointer link is kept verbatim as a generic extension — the target
-    record is not in the document, but the pointer string itself is
-    data, so nothing is dropped and nothing is recorded (the export
-    does not re-emit the unresolved reference); the Geni.com
+    pointer link is dropped silently — the target record is not in
+    the document, and the link carries nothing without it, so it is
+    neither imported nor recorded as an error; the Geni.com
     bare-identifier dialect (`0 I1234 INDI`, `1 FAMC F123`, bare
     numeric ids like `1 CHIL 0517745826`) is normalized to the
     standard spellings.
