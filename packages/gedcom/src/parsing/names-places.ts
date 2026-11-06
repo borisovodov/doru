@@ -162,6 +162,11 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PersonalNameStructure.nameAsRecorded).
       out.nameAsRecorded = reqText(child);
     },
+    '_SHON': (child) => {
+      // Brother's Keeper 6: the short name (see
+      // PersonalNameStructure.shortName).
+      out.shortName = reqText(child);
+    },
     '_PRIM': (child) => {
       // Legacy: the primary name mark (see
       // PersonalNameStructure.primary).
@@ -551,6 +556,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // The Swarm family-tree packs: the place's id (see
       // PlaceStructure.placeId).
       out.placeId = reqText(child);
+    },
+    '_FAMILIO_GUID': (child) => {
+      // Familio: the place's identifier on familio.org (see
+      // PlaceStructure.familioId).
+      out.familioId = reqText(child);
     },
     '_XREF': (child) => {
       // GenoPro: a pointer to the place's card record (see

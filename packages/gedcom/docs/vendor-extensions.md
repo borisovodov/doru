@@ -821,6 +821,13 @@ its JSDoc.
   lifelines exports write — carries no declaration: the bytes decode
   as CP1252, whose table maps every byte and absorbs the stray
   markers cleanly.
+- **The short name and the Familio place id.** `_SHON` under NAME
+  (Brother's Keeper 6's short name, catalogued in the GenWiki
+  "GEDCOM/_Nutzerdef-Tag" table) types into
+  `PersonalNameStructure.shortName`; `_FAMILIO_GUID` under PLAC (the
+  place's identifier on familio.org, written by the Familio exports
+  next to the settlement's URL) types into `PlaceStructure.familioId`.
+  Both round-trip in both versions.
 - **The OFB-Werkstatt tags.** The church-book (Kirchenbuch) wording
   fields of the OFB-Werkstatt exporter, documented in its own tag
   reference (the URI the exporter's GEDCOM 7 SCHMA declarations point

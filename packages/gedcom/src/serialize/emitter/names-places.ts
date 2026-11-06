@@ -208,6 +208,11 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // PersonalNameStructure.nameAsRecorded).
     w.line(level + 1, '_KB_NAME', { value: name.nameAsRecorded });
   }
+  if (name.shortName !== undefined) {
+    // Brother's Keeper 6: the short name (see
+    // PersonalNameStructure.shortName).
+    w.line(level + 1, '_SHON', { value: name.shortName });
+  }
   if (name.date !== undefined) {
     // TMG: a date associated with the name (see
     // PersonalNameStructure.date).
@@ -635,6 +640,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     // The Swarm family-tree packs: the place's id (see
     // PlaceStructure.placeId).
     w.line(level + 1, '_PID', { value: place.placeId });
+  }
+  if (place.familioId !== undefined) {
+    // Familio: the place's identifier on familio.org (see
+    // PlaceStructure.familioId).
+    w.line(level + 1, '_FAMILIO_GUID', { value: place.familioId });
   }
   if (place.placeCard !== undefined) {
     // GenoPro: a pointer to the place's card record (see

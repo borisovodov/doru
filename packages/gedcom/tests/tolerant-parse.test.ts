@@ -1008,3 +1008,50 @@ describe('the OFB-Werkstatt tags', () => {
     expect(bare?.tag === 'OCCU' ? bare.asRecorded : undefined).toBe('Tagelöhner');
   });
 });
+
+describe('the short name and the Familio place id', () => {
+  test('_SHON under NAME types as the short name', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Alexander Jonas /Eriksen/',
+      '2 GIVN Alexander Jonas',
+      '2 SURN Eriksen',
+      '2 _SHON Alex',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0];
+    expect(individual?.tag === 'INDI' ? individual.names?.[0]?.shortName : undefined).toBe('Alex');
+  });
+
+  test('_FAMILIO_GUID under PLAC types as the familio.org place id', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME X /Y/',
+      '1 BIRT',
+      '2 PLAC Somewhere',
+      '3 _FAMILIO_GUID b18382fe-f188-45a4-96cf-65274665e66b',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const individual = dataset?.records[0];
+    const birth = individual?.tag === 'INDI' ? individual.events.find((event) => event.tag === 'BIRT') : undefined;
+    expect(birth?.detail.place?.familioId).toBe('b18382fe-f188-45a4-96cf-65274665e66b');
+    if (value?.kind === 'dataset') {
+      const out = serializeGedcom551(value.dataset);
+      expect(out.ok && out.value.includes('_FAMILIO_GUID b18382fe-f188-45a4-96cf-65274665e66b')).toBe(true);
+    }
+  });
+});

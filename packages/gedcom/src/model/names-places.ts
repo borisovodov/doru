@@ -95,6 +95,16 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   nameAsRecorded?: Text;
   /**
+   * `_SHON {0:1}` — the short name: how the person is usually called
+   * ("Alex" out of "Alexander Jonas"). Written by Brother's Keeper 6
+   * under NAME, catalogued by the GEDCOM-L working group in the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table
+   * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag: "_SHON
+   * INDI.NAME — Short name — BKW6"). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_SHON` in both versions.
+   */
+  shortName?: Text;
+  /**
    * `_USED` {0:1} — the given name used: which of the person's given
    * names they actually use (a "Tony" out of "Anthony Edward"). The
    * Family Historian convention under the NAME tag, documented in the
@@ -418,6 +428,16 @@ export interface PlaceStructure extends GedcomStructureBase {
    * under the PLAC line in both versions.
    */
   placeId?: Text;
+  /**
+   * `_FAMILIO_GUID {0:1}` — the place's identifier on familio.org (a
+   * UUID; the Familio exports write it under the PLAC next to the
+   * settlement's familio.org URL in a NOTE — the corpus files
+   * `gedcom_Familio_gedcom Cherednikov_…` and
+   * `gedcom_Familio_merged_…`). Kept verbatim. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_FAMILIO_GUID`
+   * under the PLAC line in both versions.
+   */
+  familioId?: Text;
   /**
    * `_XREF {0:1}` — a pointer to the place's card record (the GenoPro
    * spelling of the place link, `3 _XREF @place00014@` under PLAC —
