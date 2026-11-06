@@ -655,6 +655,14 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     const value = sex(w, version, rec.sex);
     if (value !== undefined) {
       w.line(1, 'SEX', { value });
+      if (version !== '7.0') {
+        for (const citation of rec.sexCitations ?? []) {
+          // The citations of the SEX fact (see
+          // IndividualRecord.sexCitations); 7.0 drops them (no slot),
+          // and so does a version that drops the SEX line itself.
+          emitSourceCitation(w, version, 2, citation);
+        }
+      }
     }
   }
   for (const attribute of rec.attributes ?? []) {
@@ -2101,6 +2109,11 @@ export function emitOccurrenceRecord(w: Writer, version: Version, rec: {
     w.line(1, 'RELI', { value: rec.religion });
   }
   for (const participant of rec.participants ?? []) {
+    if (version !== '7.0' && participant.individual === '@VOID@') {
+      // 5.5.1 has no void pointer and the participant block has no
+      // payload-free spelling; it is dropped (the void-citation rule).
+      continue;
+    }
     ptr(w, version, 1, '_PART', participant.individual);
     if (participant.role !== undefined) {
       w.line(2, 'ROLE', { value: participant.role });

@@ -1017,7 +1017,7 @@ describe('the GEDCOM 5.5.5 draft spellings', () => {
     const children = (link as { children?: { tag: string }[] }).children;
     expect(children?.map((child) => child.tag)).toEqual(['INDIVIDUAL', 'FAMILY']);
   });
-});
+
   test('the full-word LABEL leaf of the FTM schema block parses as LABL', () => {
     // The official FTM 5.5.5 sample (555SAMPLE-FTM.GED) writes
     // `4 LABEL Fact 1` under its `_SCHEMA` context tags.
@@ -1049,7 +1049,7 @@ describe('the GEDCOM 5.5.5 draft spellings', () => {
     });
     expect(dataset?.header.schema53?.entries?.[1]?.label).toBe('Fact 2');
   });
-
+});
 
 describe('the OFB-Werkstatt tags', () => {
   test('the church-book wording tags type into the dedicated slots', () => {
@@ -1186,13 +1186,20 @@ describe('the glued and wrapped line leniencies', () => {
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
-    const indi = dataset?.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
+    if (dataset === undefined) {
+      throw new Error('expected a dataset');
+    }
+    const indi = dataset.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
     expect(indi.sex).toBe('M');
-    const sexExt = (indi as unknown as { extensions?: Array<{ tag: string }> }).extensions;
-    expect(sexExt?.some((e) => e.tag === 'SOUR')).toBe(true);
+    // The unwrapped citation under SEX types into the dedicated
+    // sexCitations slot (the FTM Mac fact-citation shape), and the
+    // 5.5.1 export writes it back under the SEX line.
+    expect(indi.sexCitations?.[0]?.source).toBe('@S2@');
+    const unwrapped = serializeGedcom551(dataset);
+    expect(unwrapped.ok && unwrapped.value.includes('1 SEX M\r\n2 SOUR @S2@')).toBe(true);
     const birth = indi.events.find((e) => e.tag === 'BIRT');
     expect(birth?.detail.citations?.[0]?.page?.payload).toBe('Database online. Year: 1910; West Virginia; Roll: T624_1679.');
   });

@@ -36,7 +36,7 @@ import type {
   NoteStructure,
 } from './common';
 import type { GedcomStructureBase } from './extensions';
-import type { IndividualRecord } from './records';
+import type { IndividualRecord, MultimediaRecord } from './records';
 import type { PlaceStructure } from './names-places';
 import type { SourceCitation } from './sources-media';
 
@@ -74,8 +74,8 @@ export interface EvidenceRecord extends GedcomStructureBase {
   notes?: NoteStructure[];
   /** UID {0:M} — the v2 unique identifiers. */
   uids?: Special[];
-  /** `_RDOC @xref@` {0:M} — related research documents (the census-example link form; the target record kind is the writer's choice). */
-  documents?: Pointer<ResearchDocumentRecord>[];
+  /** `_RDOC @xref@` {0:M} — related research documents (the census-example link form; in that file the pointer targets an OBJE media record — the target kind is the writer's choice, the pointer is kept verbatim). */
+  documents?: Pointer<ResearchDocumentRecord | MultimediaRecord>[];
   /** CHAN {0:1}. */
   changeDate?: ChangeDate;
 }

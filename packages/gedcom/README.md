@@ -63,7 +63,14 @@ The complete picture, at a glance:
   the target version cannot spell is never written in a form its
   grammar does not define — it is dropped (with the rule recorded in
   the JSDoc of the affected field) or written in the vendor extension
-  spelling where one exists. Some data may therefore be lost when
+  spelling where one exists. Where a vendor writes a *standard* tag in
+  a position the grammar does not define (the citations under CHAN or
+  under the SEX line, the source-level QUAY, the pedigree under
+  FAM.CHIL), the field's JSDoc records the per-version rule: 5.5.1
+  output mirrors the vendor position — its real-world readers accept
+  it and the spelling is the vendor's own — while 7.0 output, whose
+  §1.5 binds non-underscore tags to the standard grammar, drops or
+  projects the construct. Some data may therefore be lost when
   serializing a model built from a richer version; that is by design
   (the specifications, not the model, are the narrowest point).
 - **Vendor extensions with a policy.** Known vendor tags are typed on
@@ -226,6 +233,9 @@ src/
     names-places.ts names, places, map coordinates
     sources-media.ts sources, citations, media links
     family-structures.ts / individual-structures.ts / lds.ts
+    census-record.ts / place-record.ts / todo-record.ts /
+    occurrence-record.ts / evidence-record.ts / …
+                    the typed extension-record families
   gedzip.ts         GEDZIP read/write (7.0 chapter 4, via fflate)
   dates.ts          calendar arithmetic: DateFields/DateValue bounds,
                     JS Date conversion, convertCalendar
@@ -242,7 +252,8 @@ src/
     context.ts      Ctx, payload readers, children helpers
     document.ts / header.ts / substructures.ts / names-places.ts /
     sources-media.ts / events.ts / family-individual.ts / media.ts /
-    sources.ts / submitters.ts     per-group assemblers
+    sources.ts / submitters.ts / todo.ts / occurrence.ts /
+    evidence.ts     per-group assemblers
   serialize/
     serialize.ts    public entry: serializeGedcom70/551 (+Bytes)
     writer.ts       line writing: escaping, CONT/CONC splitting
@@ -250,7 +261,7 @@ src/
     tables.ts       cross-version projection and spelling tables
     prepare.ts      model-level 5.5.1 projection (NO rule, SOUR/SUBM)
     emitter/        structure emitters: values, document, records, events,
-                    structures, names-places
+                    structures, names-places, census, evidence
 tests/
   decode / lines / parse70 / parse551 / serialize / roundtrip
 ```
@@ -901,9 +912,10 @@ would be, or where the model takes a documented position:
     parses as the trimmed token. An unknown medium value (`TYPE
     image`, `TYPE story`, `MEDI Article`) becomes OTHER with the
     phrase; the sex accepts the long spellings Male/Female/MALE/FEMALE
-    and the MyFamily spelling OTHER (as X); children of the SEX line
-    (the unwrapped FTM Mac citations) survive as record extensions;
-    the quality accepts the non-standard `4`.
+    and the MyFamily spelling OTHER (as X); the citations under the
+    SEX line (the unwrapped FTM Mac ones) type into the sex-fact
+    citation slot and any other SEX children survive as record
+    extensions; the quality accepts the non-standard `4`.
   - Value leniencies: a non-`Y` text payload on an event line is kept
     verbatim (and a stray value on a no-payload line is dropped, the
     line parses without it); a text payload on a SOUR/REPO record line

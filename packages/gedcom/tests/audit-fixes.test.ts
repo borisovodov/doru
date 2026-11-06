@@ -600,3 +600,189 @@ describe('the FTM citation _LINK and the FTB/MyHeritage media attributes', () =>
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 });
+
+describe('the extension-family pointers under the NO rule and void pointers', () => {
+  test('a _PART at a FAM the NO rule drops is stripped from the 5.5.1 output', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @F1@ FAM',
+        '1 NO DIV',
+        '0 @O1@ _OCUR',
+        '1 TYPE Census',
+        '1 _PART @F1@',
+        '2 ROLE Household',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('@F1@');
+    expect(text).not.toContain('_PART');
+    expect(text).not.toContain('ROLE Household');
+    expect(text).toContain('0 @O1@ _OCUR');
+    expect(text).toContain('1 TYPE Census');
+  });
+
+  test('a _SUBJ at an INDI the NO rule drops is stripped; the conclusion keeps its text', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @I2@ INDI',
+        '1 NO BIRT',
+        '0 @R1@ _RDOC',
+        '1 _TEXT The analysis.',
+        '1 _SUBJ @I2@',
+        '1 _CONC',
+        '2 _SUBJ @I2@',
+        '2 _TEXT Definitely identified',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('@I2@');
+    expect(text).not.toContain('_SUBJ');
+    expect(text).toContain('0 @R1@ _RDOC');
+    expect(text).toContain('1 _CONC');
+    expect(text).toContain('2 _TEXT Definitely identified');
+  });
+
+  test('a _PARENT at a dropped INDI is stripped; the PEDI value survives', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @F1@ FAM',
+        '1 HUSB @I3@',
+        '1 CHIL @I4@',
+        '2 PEDI BIRTH',
+        '3 _PARENT @I2@',
+        '0 @I2@ INDI',
+        '1 NO BIRT',
+        '0 @I3@ INDI',
+        '1 NAME F /G/',
+        '0 @I4@ INDI',
+        '1 NAME C /D/',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('@I2@');
+    expect(text).toContain('2 PEDI BIRTH');
+    expect(text).toContain('1 CHIL @I4@');
+  });
+
+  test('void pointers: 7.0 keeps the block, 5.5.1 drops it whole', () => {
+    const dataset = parseOk70(
+      [
+        ...H70,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 _EVREF @VOID@',
+        '2 _CONF High',
+        '1 _OCREF @VOID@',
+        '2 ROLE Head',
+        '1 _TAG @VOID@',
+        '2 NOTE kept in 7.0 only',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text70 = ser70(dataset);
+    expect(text70).toContain('1 _EVREF @VOID@');
+    expect(text70).toContain('2 _CONF High');
+    expect(text70).toContain('1 _OCREF @VOID@');
+    expect(text70).toContain('1 _TAG @VOID@');
+    expect(parseOk70(text70)).toEqual(dataset);
+    // 5.5.1 has no void pointer: the blocks are dropped whole, with
+    // their children (no orphaned substructure lines).
+    const text551 = ser551(dataset);
+    expect(text551).not.toContain('@VOID@');
+    expect(text551).not.toContain('_EVREF');
+    expect(text551).not.toContain('_OCREF');
+    expect(text551).not.toContain('_TAG');
+    expect(text551).not.toContain('_CONF');
+  });
+
+  test('an _RDOC link at an embedded OBJE dropped by the projections is stripped', () => {
+    // 7.0 cannot spell the embedded shape even when typed (FORM
+    // without FILE), and 5.5.1 drops an unspelled embedded record:
+    // the `_EVID` documents link must not dangle in either output.
+    const dataset551 = parseOk551(
+      [
+        ...H551,
+        '0 @M1@ OBJE',
+        '1 TITL The picture',
+        '0 @E1@ _EVID',
+        '1 _TYPE Person',
+        '1 _RDOC @M1@',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 _EVID @E1@',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text551 = ser551(dataset551);
+    expect(text551).not.toContain('@M1@');
+    expect(text551).not.toContain('1 _RDOC');
+    expect(text551).toContain('0 @E1@ _EVID');
+    expect(text551).toContain('1 _EVREF @E1@');
+
+    const datasetForm = parseOk551(
+      [
+        ...H551,
+        '0 @M2@ OBJE',
+        '1 FORM gif',
+        '1 TITL The picture',
+        '0 @E2@ _EVID',
+        '1 _TYPE Person',
+        '1 _RDOC @M2@',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    // The typed FORM keeps the record in 5.5.1 …
+    const text551b = ser551(datasetForm);
+    expect(text551b).toContain('0 @M2@ OBJE');
+    expect(text551b).toContain('1 _RDOC @M2@');
+    // … but 7.0 drops it and strips the link.
+    const text70 = ser70(datasetForm);
+    expect(text70).not.toContain('@M2@');
+    expect(text70).not.toContain('1 _RDOC');
+    expect(text70).toContain('0 @E2@ _EVID');
+  });
+
+  test('the SEX citations type, write back under SEX in 5.5.1 and drop in 7.0', () => {
+    // The FTM Mac willis shape: a full citation subtree under the SEX
+    // fact, with the 5.5.1-style DATA/TEXT inside.
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 SEX M',
+        '2 SOUR @S9@',
+        '3 PAGE Year: 1880',
+        '3 DATA',
+        '4 TEXT Record for Charles Willis',
+        '0 @S9@ SOUR',
+        '1 TITL t',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI') as IndividualRecord;
+    expect(indi.sexCitations?.[0]?.source).toBe('@S9@');
+    expect(indi.sexCitations?.[0]?.page?.payload).toBe('Year: 1880');
+    expect((indi as { extensions?: unknown[] }).extensions).toBeUndefined();
+    const text = ser551(dataset);
+    expect(text).toContain('1 SEX M\r\n2 SOUR @S9@');
+    expect(text).toContain('3 PAGE Year: 1880');
+    expect(parseOk551(text)).toEqual(dataset);
+    // 7.0 has no citation slot at the bare SEX enum: dropped.
+    const text70 = ser70(dataset);
+    expect(text70).toContain('1 SEX M');
+    expect(text70).not.toContain('2 SOUR @S9@');
+  });
+});

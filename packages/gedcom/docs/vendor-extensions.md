@@ -46,22 +46,24 @@ results and secondary sources.
   standard family with its own XML/JSON syntax) are different
   formats, not text GEDCOM — deliberately out of scope, with no
   import planned.
-  - **The GEDCOM 5.5 embedded-multimedia shape is accepted but not
-    written.** 5.5.1 removed the embedded `BLOB` form of the
-    multimedia record (5.5 records carry `FORM`/`TITL`/`BLOB` directly
-    under `OBJE`; 5.5.1 keeps only the external `FILE` form), but old
-    files and Généatique (webtrees per-vendor custom-tag registry,
-    `Geneatique.php`) still write record-level `FORM`/`TITL` in
-    5.5.1-declared documents. Those tags — and a `BLOB` left over from
-    a 5.5 file — are accepted in any file and kept verbatim as
-    generic extensions of the multimedia record (the base64 payload
-    is preserved as text, continuations merged); there is no typed
-    model slot for the embedded binary. On export the extensions are
-    dropped in both versions — neither target grammar has the
-    embedded shape, and both require extension tags to be
-    underscore-prefixed — and a record that carried no `FILE` at all
-    (a pure 5.5-embedded record) is dropped entirely, its links
-    stripped (`serialize/prepare.ts`).
+  - **The GEDCOM 5.5/5.5.1 embedded-multimedia shape is typed and
+    spelled back in 5.5.1.** The 5.5.1 `MULTIMEDIA_RECORD` grammar is
+    the embedded one: record-level `FORM` {1:1} + `BLOB` {1:1} with
+    the encoded `CONT` lines — the external `FILE` form only arrives
+    with the 5.5.5 draft and GEDCOM 7.0, which remove `BLOB`. The
+    5.5.1-declaring corpus files carry the shape (the gramps
+    `MediaTest.ged` import fixture: `0 @M1@ OBJE` + `1 FORM jpeg` +
+    `1 BLOB` + CONT lines; the GT4 demo export embeds base64 JPEGs),
+    and Généatique writes record-level `FORM`/`TITL` beside `FILE`
+    lines in modern documents (webtrees per-vendor custom-tag
+    registry, `Geneatique.php`). The record-level `FORM` types into
+    `MultimediaRecord.embeddedForm` and the `BLOB` block into
+    `.embeddedBlob` (the decoded text, continuations merged; accepted
+    in any file, on records and on inline links alike). The 5.5.1
+    export spells the shape back; the 7.0 export cannot — it drops the
+    fields, and a record left without any `FILE` is dropped entirely,
+    its links stripped (`serialize/prepare.ts`). A record with typed
+    embedded content survives the 5.5.1 projection.
 - **GEDCOM 7.0** has an official mechanism: extension tags declared in
   `HEAD.SCHMA` with URIs, plus an official registry of extensions:
   - FamilySearch GEDCOM 7 specification (extension rules):
@@ -1365,8 +1367,18 @@ and 10).
 | `_LOCL` under the INDI/FAM `_TODO` | the webtrees registry, Legacy.php `INDI:_TODO:_LOCL` (the gedcom4j legacycustomtags sample) | The research task's location | `TodoStructure.locality` (the record form's slot) |
 | `_CUTOUT`/`_PRIM_CUTOUT`/`_PARENTPHOTO`/`_PERSONALPHOTO`/`_PARENTRIN` under the pointer-form OBJE link | MyHeritage; the GEDKeeper samples write them there | The media display flags of the link | the `MultimediaLink` twins of the record-level fields (both versions) |
 | `PEDI` under FAM.CHIL (with the per-parent `3 _PARENT @x@`) | the MacFamilyTree exports (the bechbd gedcomimport samples, Synium fixtures); the slaktforskning swedish-royal examples | The pedigree kind of the child link — a position neither standard defines | `FamilyChildLink.pedigrees` (5.5.1 writes the lines back; 7.0 projects an agreeing value onto the child's `INDI.FAMC.PEDI`, the `_FREL`/`_MREL` rule) |
-| record-level `FORM` + `BLOB` with the CONT lines | GEDCOM 5.5.1 §2 `MULTIMEDIA_RECORD` (the official TGC551 torture file); the webtrees registry, Geneatique.php `OBJE:FORM` | The embedded-multimedia shape of 5.5/5.5.1 | `MultimediaRecord.embeddedForm`/`.embeddedBlob` — the 5.5.1 export spells the shape back (the record is no longer dropped), 7.0 drops it with the record when no FILE exists |
+| record-level `FORM` + `BLOB` with the CONT lines | GEDCOM 5.5.1 §2 `MULTIMEDIA_RECORD` — the 5.5.1-declaring corpus files carry it (the gramps `MediaTest.ged` import fixture, the GT4 demo export); the webtrees registry, Geneatique.php `OBJE:FORM` | The embedded-multimedia shape of 5.5/5.5.1 — `FILE`, and with it the removal of `BLOB`, only arrives with the 5.5.5 draft and 7.0 | `MultimediaRecord.embeddedForm`/`.embeddedBlob` — the 5.5.1 export spells the shape back (the record is no longer dropped), 7.0 drops it with the record when no FILE exists |
+| `SOUR` under `SEX` | Family Tree Maker for Mac OS X (the gedcom4j willis samples — where the continuation bug wraps the citation lines into `2 CONT 2 SOUR …`; the gemenet Genoese-merchant trees, the Ancestry-derived fixtures) | The citations of the sex fact — FTM treats SEX as citeable | `IndividualRecord.sexCitations` — 5.5.1 writes them back under the SEX line; 7.0 drops them (the bare enum has no slot) |
 | `SEX OTHER` | the MyFamily exports (the MyFamily23Nov2017544 corpus file) | The long spelling of the X value ("does not fit the typical definition of only Male or only Female") | `IndividualRecord.sex` = `X` |
+
+The vendor-position writebacks above follow the rule the citations
+under CHAN set (`ChangeDate.citations`, written back in both
+versions): a *standard* tag a vendor writes in a position the grammar
+does not define is mirrored in 5.5.1 — its real-world readers accept
+the vendor's own spelling — and dropped or projected in 7.0, whose
+§1.5 binds non-underscore tags to the standard grammar. Each field's
+JSDoc records its per-version rule (see also the README's
+"Serialization as a projection").
 
 **The glamberson documented extension family** (each corpus file
 declares the tags in `HEAD.SCHMA` with the repository URL; the

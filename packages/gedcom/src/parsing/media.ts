@@ -356,8 +356,9 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     },
     FORM: (child) => {
       // The record-level multimedia format: the GEDCOM 5.5/5.5.1
-      // embedded shape (FORM + BLOB, the TGC551 torture files) and the
-      // Généatique modern spelling beside FILE lines (the webtrees
+      // embedded shape (FORM + BLOB — the GEDCOM 5.5 torture files
+      // and the gramps 5.5.1 MediaTest fixture) and the Généatique
+      // modern spelling beside FILE lines (the webtrees
       // registry, Geneatique.php) — see MultimediaRecord.embeddedForm.
       // A FORM without a payload stays a generic extension (there is
       // no format to keep).

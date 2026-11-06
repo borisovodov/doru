@@ -14,6 +14,7 @@
 
 import type { CensusRecord } from './census-record';
 import type { DuplicateCandidateRecord } from './duplicate-record';
+import type { EvidenceRecord, ResearchDocumentRecord } from './evidence-record';
 import type { GroupRecord } from './group-record';
 import type { OccurrenceRecord } from './occurrence-record';
 import type { PlaceRecord } from './place-record';
@@ -77,4 +78,20 @@ export function isGroupRecord(record: GedcomRecord): record is GroupRecord {
  *  tag. */
 export function isOccurrenceRecord(record: GedcomRecord): record is OccurrenceRecord {
   return record.tag === '_OCUR';
+}
+
+/** True when the record is the typed `_EVID` evidence record (the
+ *  glamberson gedcom-evidence extension, see EvidenceRecord). The
+ *  parsers never produce a generic ExtensionRecord for an `_EVID`
+ *  record tag. */
+export function isEvidenceRecord(record: GedcomRecord): record is EvidenceRecord {
+  return record.tag === '_EVID';
+}
+
+/** True when the record is the typed `_RDOC` research-documentation
+ *  record (the glamberson gedcom-evidence extension, see
+ *  ResearchDocumentRecord). The parsers never produce a generic
+ *  ExtensionRecord for an `_RDOC` tag. */
+export function isResearchDocumentRecord(record: GedcomRecord): record is ResearchDocumentRecord {
+  return record.tag === '_RDOC';
 }

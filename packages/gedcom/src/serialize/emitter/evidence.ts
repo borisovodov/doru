@@ -80,6 +80,11 @@ export function emitEvidenceFinding(w: Writer, version: Version, level: number, 
 
 /** Emits one person/family-side `_EVREF` evidence reference. */
 export function emitEvidenceReference(w: Writer, version: Version, level: number, ref: EvidenceReference): void {
+  if (version !== '7.0' && ref.evidence === '@VOID@') {
+    // 5.5.1 has no void pointer and the reference has no payload-free
+    // spelling; the whole block is dropped (the void-citation rule).
+    return;
+  }
   ptr(w, version, level, '_EVREF', ref.evidence);
   if (ref.confidence !== undefined) {
     w.line(level + 1, '_CONF', { value: ref.confidence });
@@ -125,6 +130,11 @@ export function emitEvidenceEvent(w: Writer, version: Version, level: number, ev
 
 /** Emits one `_OCREF` occurrence reference. */
 export function emitOccurrenceReference(w: Writer, version: Version, level: number, ref: OccurrenceReference): void {
+  if (version !== '7.0' && ref.occurrence === '@VOID@') {
+    // 5.5.1 has no void pointer and the reference has no payload-free
+    // spelling; the whole block is dropped (the void-citation rule).
+    return;
+  }
   ptr(w, version, level, '_OCREF', ref.occurrence);
   if (ref.role !== undefined) {
     w.line(level + 1, 'ROLE', { value: ref.role });
@@ -146,6 +156,11 @@ export function emitOccurrenceReference(w: Writer, version: Version, level: numb
 
 /** Emits one `_TAG @xref@` application link. */
 export function emitTagLink(w: Writer, version: Version, level: number, link: TagLink): void {
+  if (version !== '7.0' && link.target === '@VOID@') {
+    // 5.5.1 has no void pointer and the link has no payload-free
+    // spelling; the whole block is dropped (the void-citation rule).
+    return;
+  }
   ptr(w, version, level, '_TAG', link.target);
   if (link.date !== undefined) {
     emitDate(w, version, level + 1, 'DATE', link.date);

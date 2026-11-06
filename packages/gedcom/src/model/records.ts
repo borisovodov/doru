@@ -686,6 +686,21 @@ export interface IndividualRecord extends GedcomStructureBase {
    * serialize/emitter/values.ts).
    */
   sex?: SexEnum;
+  /**
+   * SOUR {0:M} — the citations attached to the SEX line. Family Tree
+   * Maker for Mac OS X treats SEX as a citeable fact and writes full
+   * source citations under it (`1 SEX M` + `2 SOUR @S453@` with
+   * PAGE/DATA/TEXT, the gedcom4j willis samples — where a
+   * continuation bug wraps the lines into `2 CONT 2 SOUR …`, see the
+   * README's container leniencies; the gemenet Genoese-merchant trees
+   * and the Ancestry-derived fixtures carry the same shape). Neither
+   * grammar gives SEX substructures. Recognized on input and written
+   * back as the SOUR lines under the SEX line in 5.5.1 (the
+   * vendor-position writeback rule, like the citations under CHAN);
+   * dropped on 7.0 — the record-level position has no citation slot
+   * there and the SEX fact is a bare enum.
+   */
+  sexCitations?: SourceCitation[];
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */
   attributes?: IndividualAttributeStructure[];
   /** <<INDIVIDUAL_EVENT_STRUCTURE>> {0:M}. */
@@ -1377,17 +1392,18 @@ export interface MultimediaRecord extends GedcomStructureBase {
   /**
    * FORM {0:1} — the record-level multimedia format: the GEDCOM
    * 5.5/5.5.1 embedded-multimedia shape (`MULTIMEDIA_RECORD` := FORM
-   * {1:1} + BLOB {1:1} with the encoded CONT lines; the official
-   * TGC551 torture file exercises it, and the 5.5.1 grammar has no
-   * FILE slot at all) and the Généatique modern spelling beside FILE
-   * lines (the webtrees per-vendor custom-tag registry, Geneatique.php,
-   * `OBJE:FORM` = MultimediaFormat:
+   * {1:1} + BLOB {1:1} with the encoded CONT lines; the 5.5.1 grammar
+   * has no FILE slot at all, and 5.5.1-declaring files in the corpus
+   * carry the shape — the gramps `MediaTest.ged` import fixture and
+   * the GT4 demo export) and the Généatique modern spelling beside
+   * FILE lines (the webtrees per-vendor custom-tag registry,
+   * Geneatique.php, `OBJE:FORM` = MultimediaFormat:
    * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Geneatique.php).
    * The FILE-level format is MediaFile.form. Removed by the 5.5.5
-   * draft and GEDCOM 7.0. Recognized on input in any file and written
-   * back as the record-level `FORM` line in 5.5.1; dropped on 7.0
-   * (whose projections remove the whole record when it has no FILE —
-   * the embedded shape has no 7.0 spelling).
+   * draft and GEDCOM 7.0 (which introduced FILE). Recognized on input
+   * in any file and written back as the record-level `FORM` line in
+   * 5.5.1; dropped on 7.0 (whose projections remove the whole record
+   * when it has no FILE — the embedded shape has no 7.0 spelling).
    */
   embeddedForm?: Text;
   /**

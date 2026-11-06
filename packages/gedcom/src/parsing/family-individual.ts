@@ -1746,13 +1746,20 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       } else {
         rec.sex = parseEnum(upper, SEX_551, child.position);
       }
-      // Children of the SEX line have no slot in any version (the
-      // unwrapped `2 SOUR @S453@` citations of the FTM Mac
-      // continuation bug, hand-built files): they stay record
-      // extensions, preserved verbatim.
-      for (const grandchild of child.children) {
-        addExtension(rec, grandchild, ctx);
-      }
+      // Children of the SEX line have no slot in any version. The
+      // FTM Mac exports attach full source citations to the SEX fact
+      // (the gedcom4j willis samples, where the continuation bug also
+      // wraps them into CONT lines) — those type into the dedicated
+      // sexCitations slot; anything else stays a record extension,
+      // preserved verbatim (the dispatch fallback). Bare lines follow
+      // the standard dispatch retry/drop rule (the Ancestry-derived
+      // fixtures ship bare `2 SOUR` under SEX, like they do under
+      // NAME).
+      dispatch(child, rec, {
+        SOUR: (grandchild) => {
+          (rec.sexCitations ??= []).push(parseSourceCitation(grandchild, ctx));
+        },
+      }, ctx);
     },
     _CORR: (child) => {
       // FO7: the correspondence entry block (see
