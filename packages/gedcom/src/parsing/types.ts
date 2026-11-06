@@ -372,7 +372,7 @@ export function normalizeDateText(text: string): string {
   if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'unbek' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
     return '';
   }
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  const iso = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(trimmed);
   if (iso !== null) {
     const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(iso[2]) - 1];
     if (month !== undefined && Number(iso[3]) >= 1 && Number(iso[3]) <= 31) {
@@ -380,14 +380,16 @@ export function normalizeDateText(text: string): string {
     }
   }
   // The European numeric spellings (`23.8.2024`, `10-08-2011`,
-  // `9-10-2015` — the German exports) — day first, like the GEDCOM
-  // date itself.
-  const european = /^(\d{1,2})[.-](\d{1,2})[.-](\d{4})$/.exec(trimmed);
+  // `9-10-2015` — the German exports; `04/12/2023` — the Ahnen2GED
+  // header dates) — day first, like the GEDCOM date itself. The
+  // separator must be the same on both positions (a mixed `4/12-2023`
+  // is no date spelling).
+  const european = /^(\d{1,2})([.-/])(\d{1,2})\2(\d{4})$/.exec(trimmed);
   if (european !== null) {
     const day = Number(european[1]);
-    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(european[2]) - 1];
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(european[3]) - 1];
     if (month !== undefined && day >= 1 && day <= 31) {
-      return `${day} ${month} ${european[3]}`;
+      return `${day} ${month} ${european[4]}`;
     }
   }
   // The PAF-era dash spelling with a month name (`23-Apr-98`): the

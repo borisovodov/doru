@@ -700,6 +700,11 @@ function decodeWithCharset(bytes: Uint8Array, charset: Charset551, utf8Fallback:
     // decodeAnselDocument).
     return decodeAnselDocument(rawLines, errors);
   }
+  if (charset === 'ASCII') {
+    // The ASCII document with the mislabeled-western fallback (see
+    // decodeAsciiDocument).
+    return decodeAsciiDocument(rawLines, errors);
+  }
   const lines: DecodedLine[] = [];
   let text = '';
   for (let i = 0; i < rawLines.length; i++) {
@@ -814,6 +819,70 @@ function decodeAnselDocument(
   for (let i = 0; i < ansel.length; i++) {
     const raw = rawLines[i] as RawByteLine;
     const result = ansel[i] as ParseResult<string>;
+    if (!result.ok) {
+      if (errors !== undefined) {
+        errors.push(result.error);
+        lines.push({ text: '', line: i + 1, offset: raw.offset });
+        if (i > 0) {
+          text += '\n';
+        }
+        continue;
+      }
+      return result;
+    }
+    lines.push({ text: result.value, line: i + 1, offset: raw.offset });
+    if (i > 0) {
+      text += '\n';
+    }
+    text += result.value;
+  }
+  return ok({ text, lines });
+}
+
+/**
+ * Decodes an ASCII-declared document, with the mislabeled-western
+ * fallback: ASCII is the strict subset of the 8-bit western encodings,
+ * and files that declare `CHAR ASCII` while carrying systematic 8-bit
+ * text are mislabeled western files — the gramps import test corpus
+ * ships exactly that case (the `data/tests/imp/Latin_1_*.ged` files:
+ * French-Canadian trees written in Latin-1 under an ASCII
+ * declaration). The same rule the ANSEL Agelong fallback follows
+ * applies: when at least 10 lines fail the declared set and most
+ * high-byte lines fail, the whole document decodes as windows-1252
+ * (the de-facto western superset the codebase already falls back to
+ * for unnamed charsets; identical to Latin-1 from 0xA0 up) and nothing
+ * is recorded. A file with a few stray high bytes stays below the
+ * threshold and keeps its decoding errors.
+ */
+function decodeAsciiDocument(
+  rawLines: RawByteLine[],
+  errors: GedcomError[] | undefined,
+): ParseResult<DecodedDocument> {
+  const ascii = decodeLinesPass(rawLines, decodeAsciiLine);
+  const asciiFailures = ascii.filter((result) => !result.ok).length;
+  const highLines = highByteLineCount(rawLines);
+  if (asciiFailures >= 10 && highLines > 0 && asciiFailures / highLines > 0.5) {
+    const lines: DecodedLine[] = [];
+    let text = '';
+    for (let i = 0; i < rawLines.length; i++) {
+      const raw = rawLines[i] as RawByteLine;
+      const decoded = decodeSingleByteLine(raw, 'CP1252');
+      const value = decoded.ok ? decoded.value : '';
+      lines.push({ text: value, line: i + 1, offset: raw.offset });
+      if (i > 0) {
+        text += '\n';
+      }
+      text += value;
+    }
+    return ok({ text, lines });
+  }
+  // The ASCII result stands: tolerant mode records the failures and
+  // skips the lines; strict mode fails on the first one.
+  const lines: DecodedLine[] = [];
+  let text = '';
+  for (let i = 0; i < ascii.length; i++) {
+    const raw = rawLines[i] as RawByteLine;
+    const result = ascii[i] as ParseResult<string>;
     if (!result.ok) {
       if (errors !== undefined) {
         errors.push(result.error);

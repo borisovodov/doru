@@ -51,7 +51,7 @@ export function parse(bytes: Uint8Array): ParseResult<ParsedGedcom> {
 export function parseTolerant(bytes: Uint8Array): { value: ParsedGedcom | undefined; errors: GedcomError[] } {
   const errors: GedcomError[] = [];
   if (bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b) {
-    const archive = parseGedzip(bytes);
+    const archive = parseGedzip(bytes, errors);
     if (!archive.ok) {
       errors.push(archive.error);
       return { value: undefined, errors };

@@ -64,6 +64,19 @@ const RECORD_TAGS: ReadonlySet<string> = new Set([
   '_TODO', '_TASK', '_EVENT_DEFN', '_EVDEF', '_ALIA', '_PUBLISH', '_GRP', '_OCUR',
 ]);
 
+/** The shape of a real GEDCOM tag: the upper-case alphabet, digits and
+ *  the underscore (both standards; the vendor catalogs keep the
+ *  spelling). Prose words inside note text are lowercase (`jaar`,
+ *  `children`) or carry punctuation (`-05-1857`) — the digit-leading
+ *  note-run merge uses the shape to tell a line from text. */
+const TAG_SHAPE = /^[A-Z0-9_]+$/;
+
+/** The deepest level a real line reaches inside a note run; deeper
+ *  "levels" are note text that starts with a number (`26 jaar`). The
+ *  deliberate deep-nesting torture files use underscore tags, which
+ *  the shape rule keeps as lines. */
+const MAX_PLAUSIBLE_LEVEL = 9;
+
 /**
  * Sanitizes the banned characters of a line value: the C0 control
  * characters other than the horizontal tab, plus DEL. GEDCOM 5.5.1
@@ -179,10 +192,22 @@ function parseValue(raw: string, rule: EscapeRule): RawValue {
   // stripped before the pointer production — the token names the same
   // record without the artifact. A trailing blank after the closing
   // at sign (`1 FAMC @F2@ `) is junk too; the pointer keeps the
-  // trimmed token. Values that do not match the production stay text
-  // with the raw bytes untouched.
-  const stripped = raw.replace(/<US\d+>/g, '');
-  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#') && /^@[A-Za-z0-9_][^@]*@\s*$/.test(stripped)) {
+  // trimmed token. Leading blanks are delimiters, not payload: the
+  // double-space exports (`1 WIFE  @I5@`, the CS555 project files and
+  // the PAF genealogy_test sample) still name a pointer. The first
+  // identifier character follows the record-side rule (checkXref):
+  // ASCII alphanumeric or any non-ASCII character (the
+  // unicode_xref-nonlatin fixtures point at `@人物1@` and `@Мария@`).
+  // Values that do not match the production stay text with the raw
+  // bytes untouched.
+  const lead = raw.replace(/^[ \t]+/, '');
+  const stripped = lead.replace(/<US\d+>/g, '');
+  if (
+    lead[0] === '@' &&
+    !lead.startsWith('@@') &&
+    !lead.startsWith('@#') &&
+    /^@([A-Za-z0-9_]|[^\u0000-\u007f])[^@]*@\s*$/.test(stripped)
+  ) {
     return { kind: 'pointer', pointer: stripped.trim() };
   }
   // A pointer with a trailing C-style comment (`2 FAMC @F4@ /* note:
@@ -201,6 +226,15 @@ function parseValue(raw: string, rule: EscapeRule): RawValue {
   const lineCommentedPointer = /^(@[A-Za-z0-9_][^@]*@)\s*\/\/.*$/.exec(raw);
   if (lineCommentedPointer !== null) {
     return { kind: 'pointer', pointer: lineCommentedPointer[1] as string };
+  }
+  // The number-sign line comment after a pointer (`1 _OCREF @O1@
+  // # Reference to shared census event`, the hand-written glamberson
+  // extension examples): the `#` comment annotates the line and is
+  // dropped the same way. A blank must separate the pointer from the
+  // comment — an at-sign-joined `@X@#tag` stays text.
+  const hashCommentedPointer = /^(@(?:[A-Za-z0-9_]|[^\u0000-\u007f])[^@]*@)[ \t]+#.*$/.exec(lead);
+  if (hashCommentedPointer !== null) {
+    return { kind: 'pointer', pointer: hashCommentedPointer[1] as string };
   }
   // A value that starts with a single @ but does not match the
   // pointer production (a list of pointers, a pointer with a comment
@@ -295,7 +329,10 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   // real files write `01 GEDC`, and the number value is unambiguous.
   // A missing space after the level (`1GEDC`, files in the wild) is
   // tolerated the same way: the tag starts right after the digits.
-  if (text[i] === ' ') {
+  // Extra spaces between the level and the xref/tag are delimiters
+  // (`0              @1A@ INDI`, the PAF genealogy_test sample): the
+  // whole run is skipped before the identifier is looked for.
+  while (text[i] === ' ') {
     i++;
   }
 
@@ -352,7 +389,7 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
     return null;
   }
   checkTag(tag, at(tagStart));
-  const valueColumn = i < text.length ? trimCount + i + 2 : 0;
+  let valueColumn = i < text.length ? trimCount + i + 2 : 0;
   if (i < text.length) {
     i++; // Skip the single delimiter; the rest is the value.
   }
@@ -361,6 +398,16 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   let value: RawValue = { kind: 'absent' };
   if (i < text.length) {
     value = parseValue(text.slice(i), rule);
+  }
+  if (value.kind === 'text' && tag !== 'CONC' && tag !== 'CONT' && value.text.trim() === '') {
+    // A whitespace-only payload is no payload: the trailing spaces of
+    // `0 @F1@ FAM          ` (the meganyim family.ged, the glamberson
+    // examples_advanced.ged) and the empty `1 SEX ` (the gedcom4j
+    // heuler sample) carry no data — the line parses as the bare tag.
+    // CONC/CONT are exempt: their leading blanks are the payload (the
+    // 5.x continuation rule).
+    value = { kind: 'absent' };
+    valueColumn = 0;
   }
 
   return {
@@ -504,41 +551,224 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
     return true;
   };
 
-  let sawBlank = false;
+  /**
+   * The tags that never carry a payload and take part in the
+   * glued-line resplit: the Geni.com exports lose the line break
+   * between CHAN and its DATE (`1 CHAN 2 DATE 28 DEC 2019`, the
+   * CompareGedcomsForDates BloodTree1 sample — 433 times in one
+   * file). The payload of such a line is dropped by the dispatch
+   * anyway (structure.unexpected-payload); when it is exactly the
+   * well-formed line that belongs under the tag (level + 1), the line
+   * is resplit instead — the data survives and the CHAN structure
+   * gets its DATE. Nothing else is guessed: the resplit requires the
+   * deeper level and a valid line shape.
+   */
+  const GLUED_SPLIT_TAGS: ReadonlySet<string> = new Set(['CHAN']);
+
+  /** Matches a text that starts like a complete GEDCOM line: level,
+   *  optional xref, tag. */
+  const EMBEDDED_LINE = /^\d+[ \t]+(@[^@ \t]+@[ \t]+)?[A-Za-z0-9_]+([ \t]|$)/;
+
+  /**
+   * Retokenizes a node's text payload as a line of its own (the
+   * embedded-line shape of the glued lines and the
+   * continuation-wrapped lines), shifting the positions into the
+   * original line. Returns null when the payload is not a well-formed
+   * line — the text then stays the payload (the nothing-is-guessed
+   * rule).
+   */
+  const tokenizeEmbeddedLine = (node: RawNode): RawNode | null => {
+    if (node.value.kind !== 'text' || !EMBEDDED_LINE.test(node.value.text)) {
+      return null;
+    }
+    try {
+      const inner = tokenizeLine({ text: node.value.text, line: node.position.line, offset: node.position.offset }, rule);
+      if (inner === null) {
+        return null;
+      }
+      const shift = node.valueColumn > 0 ? node.valueColumn - 1 : 0;
+      inner.position = { ...inner.position, column: inner.position.column + shift };
+      if (inner.valueColumn > 0) {
+        inner.valueColumn += shift;
+      }
+      return inner;
+    } catch {
+      return null;
+    }
+  };
+
+  /** Places one tokenized node: the glued-line resplit, the
+   *  continuation merge and unwrap, and the attach. Recursive — an
+   *  unwrapped or resplit inner line goes through the same rules. */
+  const placeNode = (node: RawNode): void => {
+    // The glued-line resplit (see GLUED_SPLIT_TAGS).
+    if (GLUED_SPLIT_TAGS.has(node.tag) && node.value.kind === 'text') {
+      const inner = tokenizeEmbeddedLine(node);
+      if (inner !== null && inner.level === node.level + 1) {
+        attach({ ...node, value: { kind: 'absent' }, valueColumn: 0 });
+        placeNode(inner);
+        return;
+      }
+    }
+    // A continuation line extends the payload of its parent line (the
+    // enclosing line at level - 1) and must come before any other
+    // substructure of that parent.
+    if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
+      let parent = stack[node.level - 1];
+      if (parent === undefined) {
+        // The exporter indented the continuation one level too deep
+        // (`2 CONT Main decisive actions:` + `3 CONT - Delivers …`,
+        // the three-body-problem fan trees): the deepest
+        // text-bearing line on the stack is the continuation's
+        // target — the immediately preceding text line, nothing
+        // further is guessed.
+        const candidate = stack[stack.length - 1];
+        if (
+          candidate !== undefined &&
+          candidate.value.kind === 'text' &&
+          (candidate.tag === 'NOTE' || candidate.tag === 'TEXT')
+        ) {
+          parent = candidate;
+        } else {
+          fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+        }
+      }
+      // The wrong-level repair: a continuation whose natural target
+      // cannot take text (a record line or a pointer) but whose last
+      // child chain ends in a text payload continues that text —
+      // the exporters drop one level of indentation (`1 NOTE …` +
+      // `1 CONT …`, the GenMVD/Geni demo exports; `3 TEXT …` +
+      // `2 CONC …`, the myheritage fixture). The immediately
+      // preceding text-bearing line is the only candidate — nothing
+      // further is guessed.
+      if (parent.value.kind !== 'text' && parent.children.length > 0) {
+        let candidate = parent.children[parent.children.length - 1];
+        while (candidate !== undefined && candidate.children.length > 0) {
+          candidate = candidate.children[candidate.children.length - 1];
+        }
+        if (candidate !== undefined && candidate.value.kind === 'text') {
+          parent = candidate;
+        }
+      }
+      // The continuation-wrapped line: Family Tree Maker for Mac OS X
+      // wraps whole lines into continuations of the preceding value —
+      // `1 SEX M` + `2 CONT 2 SOUR @S453@` and `3 PAGE …West ` +
+      // `4 CONT 4 CONC Virginia; Roll: …` (the gedcom4j willis
+      // samples, HEAD.SOUR "Family Tree Maker for Mac OS X"). When
+      // the payload is itself a complete line at the continuation's
+      // own level and the merge target is not a prose slot (a NOTE or
+      // TEXT — their payloads legitimately quote GEDCOM lines, the
+      // TGC551 torture notes), the payload is that misplaced line: it
+      // is processed in place of the continuation, so the SEX keeps
+      // its enum value and the wrapped SOUR/PAGE text lands where the
+      // exporter meant it.
+      if (parent.tag !== 'NOTE' && parent.tag !== 'TEXT') {
+        const inner = tokenizeEmbeddedLine(node);
+        if (inner !== null && inner.level === node.level) {
+          placeNode(inner);
+          return;
+        }
+      }
+      if (!mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '')) {
+        // The pointer-slot target: the line attaches as a regular
+        // child (see mergeContinuation).
+        attach(node);
+      }
+      return;
+    }
+    attach(node);
+  };
+
   for (const line of document.lines) {
     try {
       // The unleveled-continuation merge: a line without a level
-      // number that directly follows a NOTE/TEXT payload merges into
-      // it as a newline continuation — human-edited files drop the
-      // CONT prefixes (the Gedcom4Sharp Sopranos fixture, the
+      // number that follows a NOTE/TEXT payload merges into it as a
+      // newline continuation — human-edited files drop the CONT
+      // prefixes (the Gedcom4Sharp Sopranos fixture, the
       // ancestry-quirks fixture, the MyHeritage Hebrew bios under the
       // citation TEXT). A numbered-list marker (`1. Jaume I`, the
-      // myheritage sample notes) is free text too: no valid GEDCOM
+      // myheritage sample notes) is free text too — no valid GEDCOM
       // line starts with digits and a dot. The CONC/CONT chain case
       // is covered because a merged continuation leaves its parent on
-      // the stack. A blank line ends the run, a pointer-valued note
-      // cannot take text, and any other anchor keeps the
-      // line.bad-tag/line.bad-level error — those lines have no
-      // principled home (the nothing-is-guessed rule).
+      // the stack. The merge also runs across blank lines: the
+      // FamilySearch LifeSketch notes (the sandi-gedcom matic trees)
+      // and the note rewrites of the escyb3 our-family-tree exports
+      // carry paragraph blanks inside the run — the text is kept, and
+      // a non-text anchor (a name, a pointer line, the file start,
+      // TRLR) still keeps the line.bad-tag/line.bad-level error:
+      // those lines have no principled home (the nothing-is-guessed
+      // rule).
       const trimmed = line.text.replace(/^[ \t]+/, '');
-      const freeText = trimmed.length > 0 && (!DIGIT.test(trimmed[0] as string) || /^\d+\.\s/.test(trimmed));
+      const anchor = stack[stack.length - 1];
+      const anchorTakesText =
+        anchor !== undefined &&
+        (anchor.tag === 'NOTE' || anchor.tag === 'TEXT') &&
+        anchor.value.kind !== 'pointer';
+      const mergeIntoAnchor = (): void => {
+        const target = anchor as RawNode;
+        if (target.value.kind === 'absent') {
+          target.value = { kind: 'text', text: trimmed };
+        } else if (target.value.kind === 'text') {
+          target.value = { kind: 'text', text: target.value.text + '\n' + trimmed };
+        }
+      };
+      const digitStart = trimmed.length > 0 && DIGIT.test(trimmed[0] as string);
+      const freeText = trimmed.length > 0 && (!digitStart || /^\d+\.\s/.test(trimmed));
       if (freeText) {
-        const anchor = stack[stack.length - 1];
-        if (
-          !sawBlank &&
-          anchor !== undefined &&
-          (anchor.tag === 'NOTE' || anchor.tag === 'TEXT') &&
-          anchor.value.kind !== 'pointer'
-        ) {
-          if (anchor.value.kind === 'absent') {
-            anchor.value = { kind: 'text', text: trimmed };
-          } else {
-            anchor.value = { kind: 'text', text: anchor.value.text + '\n' + trimmed };
-          }
+        if (anchorTakesText) {
+          mergeIntoAnchor();
+          continue;
+        }
+        if (trimmed[0] === '#') {
+          // A full-line number-sign comment: the hand-written GEDCOM 7
+          // extension examples (the glamberson gedcom-occurrences /
+          // gedcom-evidence samples), the meganyim SSWFinalProject
+          // files and the parser-project fixtures carry markdown
+          // style comment banners between the records. A comment
+          // annotates the file, it is no data — the line is dropped
+          // (the same rule the `//` line comments follow). A `#` line
+          // inside a note run still merges as text (the branch above
+          // wins): note payloads legitimately carry markdown.
           continue;
         }
       }
-      let node = tokenizeLine(line, rule);
+      // A digit-leading line inside a note run is ambiguous: the
+      // Dutch transcripts lose CONT prefixes on lines that start with
+      // a number (`1 jaar en 3 mnd` — "1 year and 3 months", `26
+      // jaar`, `28-05-1857`). The line is the note's text unless it
+      // tokenizes as a line a GEDCOM file could really carry here: a
+      // tag in the upper-case GEDCOM shape at a plausible level
+      // (KNOWN shapes like `2 CONC e Vries`, vendor extensions like
+      // `2 BOGUS x`). Anything else — a lowercase prose word in the
+      // tag slot (`jaar`), a tag with punctuation (`-05-1857`), an
+      // absurd level (`26 …`) — merges into the note: the text is
+      // kept, and a fake `1 jaar` line would also poison the stack
+      // and cascade bad-level errors over the rest of the run.
+      let node: RawNode | null;
+      try {
+        node = tokenizeLine(line, rule);
+      } catch (error) {
+        if (digitStart && anchorTakesText) {
+          mergeIntoAnchor();
+          continue;
+        }
+        throw error;
+      }
+      if (
+        node !== null &&
+        digitStart &&
+        anchorTakesText &&
+        node.level >= 1 &&
+        (node.level > MAX_PLAUSIBLE_LEVEL || !TAG_SHAPE.test(node.tag))
+      ) {
+        // Not a line a GEDCOM file could really carry here: the note's
+        // text merges (see the comment above). Level 0 is exempt — a
+        // record line always starts a record, whatever its tag
+        // spelling (the GenoPro mixed-case entity records follow note
+        // runs in the corpus trees).
+        mergeIntoAnchor();
+        continue;
+      }
       if (node === null) {
         // Blank line. The 5.x rule officially ignores extra line
         // terminators only before the first line, but real files carry
@@ -547,73 +777,22 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         // cannot disturb the hierarchy, the continuation merge, or any
         // value, so the line is dropped silently in any position (see
         // the README's Known strict decisions).
-        sawBlank = true;
         continue;
       }
-      sawBlank = false;
       // The Geni.com bare-identifier dialect: `0 I1234 INDI` spells the
       // cross-reference identifier without the @ delimiters. The shape
       // is unambiguous — a bare identifier in the tag position with a
       // record tag as the value — so the line is normalized to the
       // standard spelling (the full-leniency container rule).
-      if (
+      placeNode(
         node.level === 0 &&
-        node.xref === undefined &&
-        !RECORD_TAGS.has(node.tag) &&
-        node.value.kind === 'text' &&
-        RECORD_TAGS.has(node.value.text)
-      ) {
-        node = { ...node, xref: `@${node.tag}@`, tag: node.value.text, value: { kind: 'absent' }, valueColumn: 0 };
-      }
-
-      // A continuation line extends the payload of its parent line (the
-      // enclosing line at level - 1) and must come before any other
-      // substructure of that parent.
-      if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
-        let parent = stack[node.level - 1];
-        if (parent === undefined) {
-          // The exporter indented the continuation one level too deep
-          // (`2 CONT Main decisive actions:` + `3 CONT - Delivers …`,
-          // the three-body-problem fan trees): the deepest
-          // text-bearing line on the stack is the continuation's
-          // target — the immediately preceding text line, nothing
-          // further is guessed.
-          const candidate = stack[stack.length - 1];
-          if (
-            candidate !== undefined &&
-            candidate.value.kind === 'text' &&
-            (candidate.tag === 'NOTE' || candidate.tag === 'TEXT')
-          ) {
-            parent = candidate;
-          } else {
-            fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
-          }
-        }
-        // The wrong-level repair: a continuation whose natural target
-        // cannot take text (a record line or a pointer) but whose last
-        // child chain ends in a text payload continues that text —
-        // the exporters drop one level of indentation (`1 NOTE …` +
-        // `1 CONT …`, the GenMVD/Geni demo exports; `3 TEXT …` +
-        // `2 CONC …`, the myheritage fixture). The immediately
-        // preceding text-bearing line is the only candidate — nothing
-        // further is guessed.
-        if (parent.value.kind !== 'text' && parent.children.length > 0) {
-          let candidate = parent.children[parent.children.length - 1];
-          while (candidate !== undefined && candidate.children.length > 0) {
-            candidate = candidate.children[candidate.children.length - 1];
-          }
-          if (candidate !== undefined && candidate.value.kind === 'text') {
-            parent = candidate;
-          }
-        }
-        if (!mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '')) {
-          // The pointer-slot target: the line attaches as a regular
-          // child (see mergeContinuation).
-          attach(node);
-        }
-        continue;
-      }
-      attach(node);
+          node.xref === undefined &&
+          !RECORD_TAGS.has(node.tag) &&
+          node.value.kind === 'text' &&
+          RECORD_TAGS.has(node.value.text)
+          ? { ...node, xref: `@${node.tag}@`, tag: node.value.text, value: { kind: 'absent' }, valueColumn: 0 }
+          : node,
+      );
     } catch (error) {
       if (errors !== undefined) {
         // Tolerant mode: the error is recorded and the line is skipped.

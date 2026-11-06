@@ -11,7 +11,7 @@
  */
 
 import { unzipSync, zipSync } from 'fflate';
-import { fail, run, type ParseResult } from './errors';
+import { fail, run, type GedcomError, type ParseResult } from './errors';
 import { parseAny } from './parsing/assemble';
 import type { FilePath } from './primitives';
 import { serializeGedcom70Bytes } from './serialize/serialize';
@@ -54,9 +54,13 @@ export interface GedzipMediaEntry {
  * Parses a GEDZIP archive: unzips it, parses the `gedcom.ged` entry
  * with the sniffing entry point (the import grammar accepts whatever
  * the entry declares), and surfaces every other entry as a media file.
- * Zip directory markers (names ending in `/`) are skipped.
+ * Zip directory markers (names ending in `/`) are skipped. With an
+ * `errors` array the inner dataset parses tolerantly: an archive whose
+ * stream carries errors (the geditcom TestGED.zip bundles the TGC551
+ * torture files) still yields its dataset and media instead of failing
+ * the whole container.
  */
-export function parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive> {
+export function parseGedzip(bytes: Uint8Array, errors?: GedcomError[]): ParseResult<GedzipArchive> {
   return run(() => {
     let entries: Record<string, Uint8Array>;
     const seen = new Set<string>();
@@ -92,7 +96,7 @@ export function parseGedzip(bytes: Uint8Array): ParseResult<GedzipArchive> {
       datasetEntryName = fallback as string;
       datasetBytes = entries[fallback as string] as Uint8Array;
     }
-    const dataset = parseAny(datasetBytes);
+    const dataset = parseAny(datasetBytes, errors);
     if (!dataset.ok) {
       throw dataset.error;
     }

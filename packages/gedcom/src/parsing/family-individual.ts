@@ -1669,17 +1669,27 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       const text = reqText(child).trim();
       const upper = text.toUpperCase();
       // The lenient sex: the long spellings (Male/MALE/Female/FEMALE)
-      // normalize into the standard letters; anything else goes
-      // through the enum (which rejects it with the diagnostic).
+      // normalize into the standard letters; OTHER is the MyFamily
+      // spelling of the X value ("does not fit the typical definition
+      // of only Male or only Female" — the MyFamily23Nov2017544
+      // exports); anything else goes through the enum (which rejects
+      // it with the diagnostic).
       if (upper === 'MALE') {
         rec.sex = 'M';
-        return;
-      }
-      if (upper === 'FEMALE') {
+      } else if (upper === 'FEMALE') {
         rec.sex = 'F';
-        return;
+      } else if (upper === 'OTHER') {
+        rec.sex = 'X';
+      } else {
+        rec.sex = parseEnum(upper, SEX_551, child.position);
       }
-      rec.sex = parseEnum(upper, SEX_551, child.position);
+      // Children of the SEX line have no slot in any version (the
+      // unwrapped `2 SOUR @S453@` citations of the FTM Mac
+      // continuation bug, hand-built files): they stay record
+      // extensions, preserved verbatim.
+      for (const grandchild of child.children) {
+        addExtension(rec, grandchild, ctx);
+      }
     },
     _CORR: (child) => {
       // FO7: the correspondence entry block (see

@@ -247,7 +247,12 @@ describe('the unleveled-continuation merge', () => {
     );
   });
 
-  test('a blank line ends the run; the tail stays an error', () => {
+  test('a blank line inside the run still merges (the LifeSketch paragraphs)', () => {
+    // The FamilySearch LifeSketch notes (the sandi-gedcom matic
+    // trees) and the note rewrites of the escyb3 our-family-tree
+    // exports carry paragraph blanks inside the continuation run: the
+    // bare text after a blank line is still the note's text, and
+    // dropping it would lose the paragraph.
     const text = [
       ...HEAD70,
       '0 @I1@ INDI',
@@ -260,14 +265,33 @@ describe('the unleveled-continuation merge', () => {
       '',
     ].join('\n');
     const { value, errors } = parseTolerant(enc(text));
-    expect(errors.map((error) => error.code)).toEqual(['line.bad-level']);
+    expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const indi = dataset?.records[0];
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
     const note = indi.notes?.[0];
-    expect(note && 'payload' in note ? note.payload : undefined).toBe('A paragraph\nIts unleveled continuation');
+    expect(note && 'payload' in note ? note.payload : undefined).toBe(
+      'A paragraph\nIts unleveled continuation\nAnd this one after a blank line.',
+    );
+  });
+
+  test('bare text after TRLR keeps the error (no text anchor)', () => {
+    // The gprime imp-sample shape: the trailing prose after the
+    // trailer has no principled home.
+    const text = [
+      ...HEAD70,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '0 TRLR',
+      '',
+      'The end',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors.map((error) => error.code)).toEqual(['line.bad-level']);
+    expect(value?.kind).toBe('dataset');
   });
 
   test('a NAME anchor keeps the error (nothing is guessed)', () => {
@@ -699,6 +723,30 @@ describe('the European date spellings', () => {
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     expect(dataset?.header.date?.value).toEqual({ day: 23, month: 'APR', year: 1998 });
   });
+
+  test('the slashed numeric spellings parse (day-first and ISO)', () => {
+    // The Ahnen2GED header date (`1 DATE 04/12/2023`) and the ISO
+    // shape with slashes.
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 DATE 04/12/2023',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 BIRT',
+      '2 DATE 2023/12/04',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.date?.value).toEqual({ day: 4, month: 'DEC', year: 2023 });
+    const indi = dataset?.records[0];
+    const birth = indi?.tag === 'INDI' ? indi.events.find((event) => event.tag === 'BIRT') : undefined;
+    expect(birth?.detail.date?.value).toMatchObject({ day: 4, month: 'DEC', year: 2023 });
+  });
 });
 
 describe('the empty date parts', () => {
@@ -1053,5 +1101,259 @@ describe('the short name and the Familio place id', () => {
       const out = serializeGedcom551(value.dataset);
       expect(out.ok && out.value.includes('_FAMILIO_GUID b18382fe-f188-45a4-96cf-65274665e66b')).toBe(true);
     }
+  });
+});
+
+describe('the glued and wrapped line leniencies', () => {
+  const HEAD = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 CHAR UTF-8', '1 SUBM @S1@', '0 @S1@ SUBM', '1 NAME T'];
+
+  test('a CHAN line glued to its DATE resplits (the Geni exports)', () => {
+    // The Geni.com export loses the line break between CHAN and its
+    // DATE (`1 CHAN 2 DATE 28 DEC 2019`, the CompareGedcomsForDates
+    // BloodTree1 sample — 433 times in one file).
+    const text = [
+      ...HEAD,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 CHAN 2 DATE 28 DEC 2019',
+      '3 TIME 21:14:21',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.changeDate?.date?.value).toEqual({ day: 28, month: 'DEC', year: 2019 });
+    expect(indi.changeDate?.date?.time).toEqual({ hour: 21, minute: 14, second: 21 });
+  });
+
+  test('a continuation-wrapped line unwraps (the FTM Mac exports)', () => {
+    // Family Tree Maker for Mac OS X wraps whole lines into
+    // continuations (`2 CONT 2 SOUR @S453@` under `1 SEX M`, the
+    // gedcom4j willis samples): the SEX keeps its enum value and the
+    // wrapped citation survives as the SEX line's extension.
+    const text = [
+      ...HEAD,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 SEX M',
+      '2 CONT 2 SOUR @S2@',
+      '1 BIRT',
+      '2 SOUR @S2@',
+      '3 PAGE Database online. Year: 1910; West ',
+      '4 CONT 4 CONC Virginia; Roll: T624_1679.',
+      '0 @S2@ SOUR',
+      '1 TITL t',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.sex).toBe('M');
+    const sexExt = (indi as unknown as { extensions?: Array<{ tag: string }> }).extensions;
+    expect(sexExt?.some((e) => e.tag === 'SOUR')).toBe(true);
+    const birth = indi.events.find((e) => e.tag === 'BIRT');
+    expect(birth?.detail.citations?.[0]?.page?.payload).toBe('Database online. Year: 1910; West Virginia; Roll: T624_1679.');
+  });
+
+  test('a NOTE payload that quotes a GEDCOM line stays text', () => {
+    // The prose-slot exception: a note documenting the format keeps
+    // its text (the TGC551 torture notes shape).
+    const text = [
+      ...HEAD,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE Syntax help:',
+      '2 CONT 2 SOUR @S2@ cites the source',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
+    const note = indi?.tag === 'INDI' ? indi.notes?.[0] : undefined;
+    expect(note && 'payload' in note ? note.payload : undefined).toBe('Syntax help:\n2 SOUR @S2@ cites the source');
+  });
+
+  test('whitespace-only payloads parse as the bare tag', () => {
+    const text = [
+      ...HEAD,
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 SEX ',
+      '1 BIRT',
+      '0 @F1@ FAM                                ',
+      '1 HUSB @I1@',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.sex).toBeUndefined();
+    const fam = dataset?.records.find((r) => r.tag === 'FAM');
+    expect(fam?.tag === 'FAM' ? fam.husband?.partner : undefined).toBe('@I1@');
+  });
+
+  test('pointer values tolerate leading blanks and non-Latin identifiers', () => {
+    // The CS555 double-space exports (`1 WIFE  @I5@`, the PAF
+    // genealogy_test sample) and the unicode_xref-nonlatin fixture.
+    const text = [
+      ...HEAD,
+      '0 @F1@ FAM',
+      '1 WIFE  @人物1@',
+      '0 @人物1@ INDI',
+      '1 NAME A /B/',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const fam = dataset?.records.find((r) => r.tag === 'FAM');
+    expect(fam?.tag === 'FAM' ? fam.wife?.partner : undefined).toBe('@人物1@');
+  });
+
+  test('extra spaces between the level and the xref parse', () => {
+    // The PAF genealogy_test sample (`0              @1A@ INDI`).
+    const text = [
+      ...HEAD,
+      '0              @1A@ INDI',
+      '1 NAME   Robert Eugene/Williams/',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.records.some((r) => r.xref === '@1A@')).toBe(true);
+  });
+});
+
+describe('the number-sign comment lines', () => {
+  test('full-line and trailing-pointer comments drop; note runs keep them', () => {
+    // The hand-written glamberson extension examples: markdown-style
+    // comment banners between the records, trailing comments after
+    // pointer values and after no-payload tags.
+    const text = [
+      '#SSWFinalProject',
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '##############################################',
+      '# A banner comment',
+      '0 @O1@ _OCUR                                # GRAMPS Event object',
+      '1 TYPE Census',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 _OCREF @O1@                              # Reference to shared census event',
+      '2 ROLE Head',
+      '1 NOTE # not a comment inside a note run',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const ocur = dataset?.records.find((r) => r.tag === '_OCUR');
+    expect(ocur?.xref).toBe('@O1@');
+    const indi = dataset?.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.occurrences?.[0]).toBe('@O1@');
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe('# not a comment inside a note run');
+  });
+});
+
+describe('the digit-leading note-run merge', () => {
+  test('prose lines that start with a number merge; real lines stay', () => {
+    // The escyb3 our-family-tree transcripts: the note text carries
+    // lines like `1 jaar en 3 mnd`, `26 jaar` and `28-05-1857` that
+    // tokenize as fake GEDCOM lines.
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '1 CHAR UTF-8',
+      '1 SUBM @S1@',
+      '0 @S1@ SUBM',
+      '1 NAME T',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 NOTE Leeftijd:',
+      '1 jaar en 3 mnd',
+      '2 CONC e Vries',
+      '26 jaar',
+      '28-05-1857',
+      '1 DEAT Y',
+      '2 DATE 4 JUN 1820',
+      '0 @edu1@ Education',
+      '1 INSTITUTION Smeltings',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const note = indi.notes?.[0];
+    expect(note && 'payload' in note ? note.payload : undefined).toBe(
+      'Leeftijd:\n1 jaar en 3 mnde Vries\n26 jaar\n28-05-1857',
+    );
+    // The real line after the run still parses as the death event …
+    const death = indi.events.find((e) => e.tag === 'DEAT');
+    expect(death?.detail.date?.value).toMatchObject({ day: 4, month: 'JUN', year: 1820 });
+    // … and the level-0 mixed-case entity record starts its own record.
+    expect(dataset?.records.some((r) => r.tag === 'Education' && r.xref === '@edu1@')).toBe(true);
+  });
+
+  test('an upper-case vendor tag line inside a note run stays a line', () => {
+    const text = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 CHAR UTF-8',
+      '1 SUBM @S1@',
+      '0 @S1@ SUBM',
+      '1 NAME T',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 BIRT',
+      '2 SOUR @S2@',
+      '3 TEXT t',
+      '4 BOGUS x',
+      '0 @S2@ SOUR',
+      '1 TITL x',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    const indi = dataset?.records.find((r) => r.tag === 'INDI');
+    const birth = indi?.tag === 'INDI' ? indi.events.find((e) => e.tag === 'BIRT') : undefined;
+    const citation = birth?.detail.citations?.[0];
+    const dataText = citation?.data?.texts?.[0];
+    const ext = (dataText as unknown as { extensions?: Array<{ tag: string }> } | undefined)?.extensions;
+    expect(ext?.some((e) => e.tag === 'BOGUS')).toBe(true);
   });
 });
