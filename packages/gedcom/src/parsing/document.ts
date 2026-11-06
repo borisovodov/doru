@@ -47,6 +47,9 @@ import {
   resolveStandardTagByUri,
 } from './schema-tags';
 import {
+  GEDCOM_555_TAG_ALIASES,
+} from './gedcom-555';
+import {
   parseMultimediaRecord,
 } from './media';
 import {
@@ -60,6 +63,14 @@ import { parseTodoRecord } from './todo';
 import { parseEventDefinitionRecord } from './event-definition';
 import { parseGroupRecord } from './group';
 import { parseTreeCategoryRecord, parseTreeTagRecord } from './tree-tags';
+import { parseTitleRecord } from './title-record';
+import {
+  parseContactRecord,
+  parseEducationRecord,
+  parseMarriageRecord,
+  parseOccupationRecord,
+  parseTwinRecord,
+} from './genopro';
 import { parseOccurrenceRecord } from './occurrence';
 import {
   parseSubmissionRecord,
@@ -91,16 +102,19 @@ import {
  *  any depth, and a pointer may address it). */
 function collectXrefs(nodes: RawNode[]): Set<string> {
   const xrefs = new Set<string>();
-  const walk = (node: RawNode): void => {
+  // An iterative depth-first walk: a hand-made file can nest
+  // thousands of levels (the vscode-gedcom "numbered list" fixture
+  // nests 9000), and a recursive walk would blow the JS stack (the
+  // same reason parseExtension builds iteratively).
+  const stack: RawNode[] = [...nodes];
+  while (stack.length > 0) {
+    const node = stack.pop() as RawNode;
     if (node.xref !== undefined) {
       xrefs.add(node.xref);
     }
-    for (const child of node.children) {
-      walk(child);
+    for (let i = node.children.length - 1; i >= 0; i -= 1) {
+      stack.push(node.children[i] as RawNode);
     }
-  };
-  for (const node of nodes) {
-    walk(node);
   }
   return xrefs;
 }
@@ -122,7 +136,9 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
   // synthesized empty header — the full-leniency container rule;
   // parseHeader completes its GEDC). The first HEAD node in the stream
   // is parsed as the header; a later duplicate stays a generic record.
-  const headerIndex = nodes.findIndex((node) => node.tag === 'HEAD');
+  const headerIndex = nodes.findIndex(
+    (node) => node.tag === 'HEAD' || GEDCOM_555_TAG_ALIASES[node.tag] === 'HEAD',
+  );
   let header: Header = { tag: 'HEAD', gedcom: { version: '5.5.1' } };
   if (headerIndex !== -1) {
     try {
@@ -221,6 +237,14 @@ export function parseRecord(node: RawNode, ctx: Ctx): GedcomRecord {
 }
 
 function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
+  // The GEDCOM 5.5.5 draft's full-word record spellings (HEADER for
+  // HEAD, INDIVIDUAL for INDI, TRAILER for TRLR — the published 5.5.5
+  // sample and the FamilySearch gedcom5-conversion test resources;
+  // see parsing/gedcom-555.ts) parse as the standard record.
+  const recordAlias = GEDCOM_555_TAG_ALIASES[node.tag];
+  if (recordAlias !== undefined) {
+    node = { ...node, tag: recordAlias };
+  }
   if (node.tag.startsWith('_')) {
     // A SCHMA-documented record alias (`_USER → g7:record-SUBM`, …)
     // parses as the standard record — standard-first (see
@@ -263,7 +287,12 @@ function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
     case 'SUBM':
       return parseSubmitterRecord(node, ctx);
     case 'SUBN':
-      fail('structure.unknown-tag', 'The SUBN record must immediately follow the header', node.position);
+      // The ordering rule (the SUBN right after the header, GEDCOM
+      // 5.5.1 §2 p.23) is serialization pedantry: a SUBN anywhere in
+      // the stream parses as the submission record — the
+      // header-adjacent one binds the dataset slot, the others stay
+      // records (real files place SUBN after the SUBM record).
+      return parseSubmissionRecord(node, ctx);
     case '_PLAC':
     case '_PLACE':
     case '_LOC':
@@ -303,6 +332,18 @@ function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseTreeTagRecord(node, ctx);
     case '_MTCAT':
       return parseTreeCategoryRecord(node, ctx);
+    case 'Occupation':
+      return parseOccupationRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Education':
+      return parseEducationRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Contact':
+      return parseContactRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Marriage':
+      return parseMarriageRecord(node, ctx) as unknown as GedcomRecord;
+    case 'Twin':
+      return parseTwinRecord(node, ctx) as unknown as GedcomRecord;
+    case 'TITL':
+      return parseTitleRecord(node, ctx) as unknown as GedcomRecord;
     default:
       // Full leniency (see the README's Known strict decisions): any
       // record tag the typed grammar has no slot for — an underscore

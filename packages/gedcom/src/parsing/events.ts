@@ -16,7 +16,6 @@ import {
   ORDINANCE_STATUS_ENUM_VALUES,
   PEDIGREE_ENUM_VALUES,
   QUALITY_ENUM_VALUES,
-  RESTRICTION_ENUM_VALUES,
 } from '../enumerations';
 import {
   fail,
@@ -72,6 +71,8 @@ import type {
   RawNode,
 } from './lines';
 import {
+  parseMapCoordinates,
+  parseMftCoordinates,
   parsePersonalNameStructure,
   parsePlaceStructure,
 } from './names-places';
@@ -100,7 +101,7 @@ import {
 } from './substructures';
 import {
   parseEnum,
-  parseListEnum,
+  parseRestrictionList,
 } from './types';
 import {
   parseAge551,
@@ -369,6 +370,11 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
+    DATE: (child) => {
+      // The date of the family link itself (files in the wild write
+      // `2 DATE` under FAMS — see SpouseFamilyLink.date).
+      out.date = parseDateStructure(child, ctx);
+    },
     '_PREF': (child) => {
       out.preferred = parseYNFlag(child, '_PREF');
     },
@@ -523,6 +529,26 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       // Heredis: the event flag (see EventDetail.fna).
       detail.fna = parseYNFlag(child, '_FNA');
     },
+    '_COR': (child) => {
+      // MFT7: the event's coordinates (see EventDetail.map).
+      const map = parseMftCoordinates(child, ctx, detail);
+      if (map !== undefined) {
+        detail.map = map;
+      }
+    },
+    '_DESCRIPTION': (child) => {
+      // MyHeritage: the event's description-aware flag (see
+      // EventDetail.descriptionAware).
+      detail.descriptionAware = parseYNFlag(child, '_DESCRIPTION');
+    },
+    MAP: (child) => {
+      // The standard spelling of the event's coordinates (see
+      // EventDetail.map); recognized in any file.
+      const map = parseMapCoordinates(child, ctx);
+      if (map !== undefined) {
+        detail.map = map;
+      }
+    },
     '_SENT': (child) => {
       // RootsMagic: the event sentence (report wording).
       detail.sentence = reqText(child);
@@ -546,7 +572,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       detail.eventNumber = reqText(child);
     },
     RESN: (child) => {
-      detail.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      detail.restriction = parseRestrictionList(reqText(child), child.position);
     },
     NOTE: (child) => {
       (detail.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -783,6 +809,8 @@ export interface EventShape extends GedcomStructureBase {
   reportPhrases?: string[];
   /** Legacy: the preferred event mark (see FamilyEventBase.preferred). */
   preferred?: boolean;
+  /** The testament text under the WILL event (see WillEvent.texts). */
+  texts?: string[];
   /** USM6: the birth type (see BirthEvent.birthType). */
   birthType?: UsmBirthType;
   /** USM6: the child-count certainty (see
@@ -790,6 +818,9 @@ export interface EventShape extends GedcomStructureBase {
   childCountCertain?: boolean;
   /** Ahnenblatt: the primary occupation flag (see OccupationAttribute.primary). */
   primary?: boolean;
+  /** OFB-Werkstatt: the church-book wording of the occupation (see
+   *  OccupationAttribute.asRecorded). */
+  asRecorded?: string;
 }
 
 /** Assigns the optional `Y` flag, leaving the field unset when absent. */
@@ -978,6 +1009,15 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   handlers["AGE"] = (child) => {
     detail.age = parseAgeStructure(child, ctx);
   };
+  handlers["TEXT"] = (child) => {
+    // The testament text under the WILL event (see WillEvent.texts);
+    // a TEXT under any other event stays generic.
+    if (tag === 'WILL') {
+      (event.texts ??= []).push(reqText(child));
+    } else {
+      addExtension(event, child, ctx);
+    }
+  };
   handlers["FAMC"] = (child) => {
     if (tag === 'ADOP') {
       event.adoptionFamily = parseAdoptionFamilyLink(child, ctx);
@@ -1151,6 +1191,11 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
       // OccupationAttribute.primary).
       event.primary = parseVendorFlag(child, '_PRIM');
     };
+    handlers['_BERUF_KB'] = (child) => {
+      // OFB-Werkstatt: the church-book wording of the occupation (see
+      // OccupationAttribute.asRecorded).
+      event.asRecorded = reqText(child);
+    };
   }
   // The TYPE is optional on the generic IDNO and
   // FACT attributes (the 5.5.1 grammar letter omits TYPE from the
@@ -1213,11 +1258,11 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
 
 /** The 5.5.1 per-ordinance status value sets (canonical 7.0 spellings). */
 export const LDS_STATUS_551: Record<string, Record<string, string>> = {
-  BAPL: { CHILD: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  CONL: { CHILD: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  ENDL: { CHILD: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  SLGC: { BIC: '', COMPLETED: '', EXCLUDED: '', DNS: '', 'PRE-1970': 'PRE_1970', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  SLGS: { CANCELED: '', COMPLETED: '', DNS: '', EXCLUDED: '', 'DNS/CAN': 'DNS_CAN', 'PRE-1970': 'PRE_1970', SUBMITTED: '', UNCLEARED: '' },
+  BAPL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  CONL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  ENDL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  SLGC: { BIC: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', DNS: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
+  SLGS: { CANCELED: '', CLEARED: '', COMPLETED: '', DNS: '', EXCLUDED: '', 'DNS/CAN': 'DNS_CAN', 'PRE-1970': 'PRE_1970', QUALIFIED: '', SUBMITTED: '', UNCLEARED: '' },
 };
 
 export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string): OrdinanceStatusStructure {

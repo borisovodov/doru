@@ -139,8 +139,52 @@ export const LEGACY_INDIVIDUAL_TAGS: Readonly<Record<string, LegacyIndividualRul
   // Attributes (FACT + TYPE).
   ATTR: { kind: 'fact', type: 'Attribute' }, // FTW5, TMG; a TYPE child overrides.
   QUOT: { kind: 'fact', type: 'Quotation' }, // novel/game character trees: the person's quotation.
+  BLOODPURITY: { kind: 'fact', type: 'Blood purity' }, // the Harry Potter fan trees: Pure-blood / Half-blood / Muggle-born.
+  HOUSE: { kind: 'fact', type: 'House' }, // the Harry Potter fan trees: the wizard's Hogwarts house.
+  ALLEGIANCE: { kind: 'fact', type: 'Allegiance' }, // the Harry Potter fan trees.
+  FILMPORTRAYAL: { kind: 'fact', type: 'Film portrayal' }, // the Harry Potter fan trees: who played the character.
   // Events (EVEN + TYPE).
   APPT: { kind: 'event', type: 'Application' }, // the GSMD Mayflower Society trees: a (supplemental) membership application, with the DATE and the "Supplemental - …" PLAC.
+  // The GEDKeeper long event spellings (the GEDKeeper exports write
+  // these non-underscore tags with the event payload and the DATE/
+  // PLAC children).
+  NEWS: { kind: 'event', type: 'News' }, // GEDKeeper.
+  OBIT: { kind: 'event', type: 'Obituary' }, // GEDKeeper.
+  REMV: { kind: 'event', type: 'Removal' }, // GEDKeeper: the removal of the remains.
+  ILL: { kind: 'event', type: 'Illness' }, // GEDKeeper.
+  EDUS: { kind: 'event', type: 'Education' }, // GEDKeeper: the studies, the payload is the description.
+  BATM: { kind: 'event', type: 'Bar Mitzvah' }, // GEDKeeper.
+  EMPL: { kind: 'event', type: 'Employment' }, // GEDKeeper.
+  // The FamilySearch gedcom5-conversion test corpus
+  // (Case006-PersonsFacts.ged) catalogs the long event spellings the
+  // converter accepts — the same long-spelling dialect as the
+  // GEDKeeper set above; typed as EVEN + TYPE.
+  MISE: { kind: 'event', type: 'Military service' }, // the Case006 long spelling; the MFT7 MISE "Militär-Info" normalizes into the same slot.
+  BAP: { kind: 'event', type: 'Baptism' },
+  BAPT: { kind: 'event', type: 'Baptism' },
+  BAPTISM: { kind: 'event', type: 'Baptism' },
+  BAR_MITZVAH: { kind: 'event', type: 'Bar Mitzvah' },
+  BAS_MITZVAH: { kind: 'event', type: 'Bas Mitzvah' },
+  BAT_MITZVAH: { kind: 'event', type: 'Bat Mitzvah' },
+  BLESSING: { kind: 'event', type: 'Blessing' },
+  BURIAL: { kind: 'event', type: 'Burial' },
+  ADOPTION: { kind: 'event', type: 'Adoption' },
+  CENSUS: { kind: 'event', type: 'Census' },
+  ADULT_CHRISTNG: { kind: 'event', type: 'Adult christening' },
+  CHRISTENING: { kind: 'event', type: 'Christening' },
+  CONFIRMATION: { kind: 'event', type: 'Confirmation' },
+  CREMATION: { kind: 'event', type: 'Cremation' },
+  EMIGRATION: { kind: 'event', type: 'Emigration' },
+  FIRST_COMMUNION: { kind: 'event', type: 'First communion' },
+  GRADUATION: { kind: 'event', type: 'Graduation' },
+  IMMIGRATION: { kind: 'event', type: 'Immigration' },
+  ORDINATION: { kind: 'event', type: 'Ordination' },
+  NATURALIZATION: { kind: 'event', type: 'Naturalization' },
+  PROBATE: { kind: 'event', type: 'Probate' },
+  RETIREMENT: { kind: 'event', type: 'Retirement' },
+  ENLIST: { kind: 'event', type: 'Enlistment' },
+  RESIDENCE: { kind: 'event', type: 'Residence' },
+  MIL: { kind: 'event', type: 'Military' },
   BIC: { kind: 'fact', type: 'Born in covenant' }, // TMG.
   CANC: { kind: 'fact', type: 'Sealing canceled' }, // TMG.
   CEME: { kind: 'fact', type: 'Cemetery' }, // FTW5.
@@ -316,7 +360,6 @@ export const LEGACY_GENERIC_TAGS: ReadonlySet<string> = new Set([
   'DEED', // MFT7: document info ("Dokument-Info").
   'FPRF', // USM6: the USM FAM settings block under HEAD.
   'MPRF', // USM6: the USM multimedia settings block under HEAD.
-  'MISE', // MFT7: military info ("Militär-Info").
   'MRCI', // MFT8: civil marriage (typed under FAM; generic elsewhere).
   'MRRE', // MFT8: religious marriage (typed under FAM; generic elsewhere).
   'MTYP', // USM6: parent-child relation kind (1=marital, 2=non-marital, …).

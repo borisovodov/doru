@@ -197,6 +197,8 @@ export const QUALITY_ENUM_VALUES = {
   '2': 'Secondary evidence, data officially recorded sometime after the event.',
   /** Direct and primary evidence used, or by dominance of the evidence. */
   '3': 'Direct and primary evidence used, or by dominance of the evidence.',
+  /** A fourth assessment level written by exports in the wild (GEDBAS) beyond the 0–3 set the standard defines. */
+  '4': 'A non-standard fourth assessment level written by exports in the wild.',
 } as const;
 
 /** GEDCOM 7.0 §3.4 g7:enumset-QUAY. */

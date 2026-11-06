@@ -322,6 +322,12 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       }
     },
     TITL: (child) => {
+      if (child.value.kind === 'pointer') {
+        // The Ancestris pointer form: the bibliography lives in a
+        // TITL record (see SourceRecord.titlRef and TitleRecord).
+        rec.titlRef = reqPtr(child, ctx);
+        return;
+      }
       rec.title = reqText(child);
       const base: GedcomStructureBase = {};
       dispatch(child, base, {}, ctx);
@@ -604,11 +610,18 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     addExtension(rec, child, ctx);
   };
   handlers['DATE'] = (child) => {
-    // Legacy Family Tree writes the source's date at record level
-    // (the canonical Legacy custom-tags sample, `1 DATE 29 Sep
-    // 2016`). Neither standard has a DATE slot under the SOUR
-    // record, so it stays a generic extension.
-    addExtension(rec, child, ctx);
+    // The source's date at record level. Legacy Family Tree writes
+    // the source's date at record level (the canonical Legacy
+    // custom-tags sample, `1 DATE 29 Sep 2016`); the Canvas Roots
+    // exports write the same shape (`1 DATE 1910` under `0 @S1@
+    // SOUR`). Neither standard has a DATE slot under the SOUR
+    // record; typed into SourceRecord.date.
+    rec.date = parseDateStructure(child, ctx);
+  };
+  handlers['PLAC'] = (child) => {
+    // The source's place at record level (the Canvas Roots shape;
+    // see SourceRecord.place).
+    rec.place = parsePlaceStructure(child, ctx);
   };
   handlers['MEDI'] = (child) => {
     // Legacy: the media type of the source, the standard MEDI tag in
@@ -622,7 +635,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     rec,
     handlers,
     ctx,
-    ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA', 'RIN', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL'],
+    ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA', 'RIN', 'DATE', 'PLAC', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL'],
   );
   return rec;
 }

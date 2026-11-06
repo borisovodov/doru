@@ -58,6 +58,14 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   middleName?: Text;
   /**
+   * `_PATN {0:1}` — the patronymic (the father-derived name), written
+   * under NAME as its own line (the Russian/Ukrainian trees, e.g. the
+   * corpus file Емаши1811.ged). Kept verbatim. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_PATN` in both
+   * versions.
+   */
+  patronymic?: Text;
+  /**
    * CREA/`_CRE` {0:1} — the name entry's creation date (the MFT7
    * exports write `2 CREA` or `2 _CRE` with the DATE child under
    * NAME). Recognized on input with the creation-date grammar and
@@ -75,6 +83,27 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * versions.
    */
   callName?: Text;
+  /**
+   * `_KB_NAME {0:1}` — the name in the spelling of the church book
+   * (Kirchenbuch), written under NAME alongside the normalized form.
+   * The OFB-Werkstatt convention, documented in the exporter's own
+   * tag reference (the URI its GEDCOM 7 SCHMA declarations point to):
+   * <https://github.com/thobgg/ofb-werkstatt/blob/main/doku/gedcom7-tags.md>
+   * ("Der Name in der Schreibweise des Kirchenbuchs, neben der
+   * normalisierten Form unter NAME"). Recognized on input and written
+   * back as `_KB_NAME` in both versions.
+   */
+  nameAsRecorded?: Text;
+  /**
+   * `_SHON {0:1}` — the short name: how the person is usually called
+   * ("Alex" out of "Alexander Jonas"). Written by Brother's Keeper 6
+   * under NAME, catalogued by the GEDCOM-L working group in the
+   * GenWiki "GEDCOM/_Nutzerdef-Tag" table
+   * (https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag: "_SHON
+   * INDI.NAME — Short name — BKW6"). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_SHON` in both versions.
+   */
+  shortName?: Text;
   /**
    * `_USED` {0:1} — the given name used: which of the person's given
    * names they actually use (a "Tony" out of "Anthony Edward"). The
@@ -126,6 +155,17 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   aliases?: Text[];
   /**
+   * ALIA {0:M} — an alias of the name written with the standard tag
+   * spelling, with optional citations. The Master Genealogist
+   * (TMG-to-GEDCOM) writes its name aliases under NAME with the
+   * standard ALIA tag (`2 ALIA William/Pitt/`), attaching `3 SOUR`
+   * citations; the Hawaiian Kings trees in the corpus use the shape
+   * throughout. No GEDCOM version has the ALIA tag under NAME.
+   * Recognized on input and written back as ALIA lines (with their
+   * SOUR children) in both versions.
+   */
+  aliasLinks?: AliasTextLink[];
+  /**
    * `_MARNM` {0:1} — the married name: the surname used (or once
    * used) after marriage, kept as a name-level value for programs
    * that cannot store several full NAME lines. Written under NAME by
@@ -139,6 +179,14 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    * as `_MARNM` in both versions.
    */
   marriedName?: Text;
+  /**
+   * TITL {0:1} — a title or honorific carried by the name itself
+   * (`2 TITL Queen` under `1 NAME /Liliuokalani/`, the Hawaiian Kings
+   * trees in the corpus). No GEDCOM version has the TITL tag under
+   * NAME. Recognized on input and written back as `TITL` under the
+   * NAME line in both versions.
+   */
+  title?: Text;
   /**
    * `_AKA` {0:M} — an "also known as" name variant of the person
    * (often the alternate surname), kept as free text: a further name
@@ -231,6 +279,20 @@ export interface PhoneticNameVariation extends GedcomStructureBase {
   /** <<NOTE_STRUCTURE>> {0:M}, GEDCOM 5.5.1 §2 (p.55) NAME_PHONETIC_VARIATION. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}, GEDCOM 5.5.1 §2 (p.55) NAME_PHONETIC_VARIATION. */
+  citations?: SourceCitation[];
+}
+
+/**
+ * A name-level alias written with the standard ALIA spelling, with
+ * optional citations (see PersonalNameStructure.aliasLinks). TMG
+ * writes its name aliases this way; no GEDCOM version has ALIA under
+ * NAME.
+ */
+export interface AliasTextLink extends GedcomStructureBase {
+  tag: 'ALIA';
+  /** The ALIA payload, {1:1} Text. */
+  value: Text;
+  /** <<SOURCE_CITATION>> {0:M} — the citations backing the alias. */
   citations?: SourceCitation[];
 }
 
@@ -366,8 +428,37 @@ export interface PlaceStructure extends GedcomStructureBase {
    * under the PLAC line in both versions.
    */
   placeId?: Text;
+  /**
+   * `_FAMILIO_GUID {0:1}` — the place's identifier on familio.org (a
+   * UUID; the Familio exports write it under the PLAC next to the
+   * settlement's familio.org URL in a NOTE — the corpus files
+   * `gedcom_Familio_gedcom Cherednikov_…` and
+   * `gedcom_Familio_merged_…`). Kept verbatim. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_FAMILIO_GUID`
+   * under the PLAC line in both versions.
+   */
+  familioId?: Text;
+  /**
+   * `_XREF {0:1}` — a pointer to the place's card record (the GenoPro
+   * spelling of the place link, `3 _XREF @place00014@` under PLAC —
+   * the same fact the GEDCOM-L `_LOC` link carries; see
+   * PlaceStructure.location). Kept verbatim, unresolved: the target
+   * card is a generic record that the export drops. Recognized on
+   * input and written back as `_XREF` in both versions.
+   */
+  placeCard?: Text;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+  /**
+   * SOUR {0:M} — the citations attached to the PLAC line. Written by
+   * The Master Genealogist (TMG-to-GEDCOM: the Hawaiian Kings trees
+   * in the corpus put `3 SOUR` under the event `2 PLAC`, e.g.
+   * `1 DEAT` / `2 PLAC Waikiki, O'ahu` / `3 SOUR @S307@`); no GEDCOM
+   * version has a citation slot inside PLACE_STRUCTURE. Recognized on
+   * input and written back as SOUR lines under the PLAC line in both
+   * versions.
+   */
+  citations?: SourceCitation[];
   /**
    * _VERI Y {0:1} — the "verified" checkmark on the place. Written by
    * Legacy Family Tree (see its "Custom GEDCOM Tags" help: https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm);

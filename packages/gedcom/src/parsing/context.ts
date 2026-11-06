@@ -25,6 +25,9 @@ import type {
 import {
   resolveStandardTagByUri,
 } from './schema-tags';
+import {
+  GEDCOM_555_TAG_ALIASES,
+} from './gedcom-555';
 
 /** The shared state of one parse: the known xrefs, the synthetic
  *  multimedia records synthesized from inline 5.5.1 OBJE links, and
@@ -102,10 +105,12 @@ export function resolvePtr(pointer: string, ctx: Ctx, node: RawNode): string {
 export function reqPtr(node: RawNode, ctx: Ctx): string {
   if (node.value.kind !== 'pointer') {
     // The Geni.com bare-identifier dialect writes pointers without
-    // the @ delimiters (`1 FAMC F0515745826`): the identifier shape
+    // the @ delimiters (`1 FAMC F0515745826`, and files in the wild
+    // bare numeric ids: `1 CHIL 0515745826`): the identifier shape
     // is unambiguous, so the value is wrapped into the standard
-    // spelling (the full-leniency container rule).
-    if (node.value.kind === 'text' && /^[A-Za-z][A-Za-z0-9_]*$/.test(node.value.text)) {
+    // spelling (the full-leniency container rule). A dangling target
+    // is dropped like any other dangling pointer.
+    if (node.value.kind === 'text' && /^[A-Za-z0-9_]+$/.test(node.value.text)) {
       return resolvePtr(`@${node.value.text}@`, ctx, node);
     }
     fail('structure.missing-payload', `The ${node.tag} line requires a pointer value`, node.position);
@@ -167,7 +172,9 @@ export function kids(node: RawNode, tag: string): RawNode[] {
 
 /** At most one occurrence; a second is a cardinality error. */
 export function one(node: RawNode, tag: string): RawNode | undefined {
-  const list = kids(node, tag);
+  const list = node.children.filter(
+    (child) => child.tag === tag || GEDCOM_555_TAG_ALIASES[child.tag] === tag,
+  );
   if (list.length > 1) {
     // First occurrence wins (the full-leniency container rule).
     return list[0];
@@ -358,6 +365,19 @@ export function dispatch(
   for (const child of node.children) {
     let tag = child.tag;
     let resolved: RawNode = child;
+    if (handlers[tag] === undefined) {
+      // The GEDCOM 5.5.5 draft's full-word spelling of a standard tag
+      // (BIRTH for BIRT, OCCUPATION for OCCU — see parsing/gedcom-555.ts)
+      // parses as that tag when the full word itself has no handler
+      // here. The alias fires only where nothing else claims the word,
+      // so the GenoPro dialect's own INDIVIDUAL/FAMILY children keep
+      // their meaning.
+      const aliased = GEDCOM_555_TAG_ALIASES[tag];
+      if (aliased !== undefined && handlers[aliased] !== undefined) {
+        tag = aliased;
+        resolved = { ...child, tag: aliased };
+      }
+    }
     if (handlers[tag] === undefined && tag.startsWith('_')) {
       // A SCHMA-documented extension tag whose URI names a standard
       // structure type with a slot here parses as that structure —
@@ -395,33 +415,54 @@ export function dispatch(
     } catch (error) {
       const err = error as { code?: string; position?: { line?: number } };
       if (err.code === 'structure.missing-payload' && err.position?.line === child.position.line) {
-        // A line whose required payload is absent is skipped silently
-        // (the full-leniency container rule, see the README's Known
-        // strict decisions): real files ship bare `1 NAME`, `1 SUBN`
-        // and `1 OCCU` lines, and dropping the line loses less than
-        // failing the whole document. The line's substructures die
-        // with it. A missing payload deeper in the tree rethrows —
-        // the dispatch enclosing that line decides. In tolerant mode
-        // the skip is recorded as a diagnostic.
-        void tolerate(ctx, error);
+        // A line whose required payload is absent (or a pointer in a
+        // text slot) is retried with the value coerced to text — the
+        // original pointer string survives, an absent payload becomes
+        // the empty text (the full-leniency container rule, see the
+        // README's Known strict decisions): real files ship bare
+        // `1 NAME`, `1 SUBN`, `1 OCCU`, `2 SOUR` and `1 TITL @R5@`
+        // lines, and keeping the line with an empty payload loses
+        // less than dropping it — its substructures survive. The
+        // repair is a resolution: nothing is recorded when it
+        // succeeds. When the retry fails too (pointer slots with no
+        // value), the line is dropped — that case has no resolution,
+        // and the error is recorded.
+        const coerced: RawNode = {
+          ...resolved,
+          value: resolved.value.kind === 'pointer' ? { kind: 'text', text: resolved.value.pointer } : { kind: 'text', text: '' },
+          valueColumn: 0,
+        };
+        try {
+          (handlers[tag] as (child: RawNode) => void)(coerced);
+        } catch {
+          // The line is dropped. A bare line carries no data — the
+          // drop is a resolution and stays silent. A line that had a
+          // value the slot cannot keep (a text in a pointer slot)
+          // loses data — that drop is the unresolved error.
+          if (resolved.value.kind !== 'absent') {
+            void tolerate(ctx, error);
+          }
+        }
         continue;
       }
       if (err.code === 'structure.unexpected-payload' && err.position?.line === child.position.line) {
         // A line carrying a stray value parses without it (the
-        // full-leniency container rule).
-        void tolerate(ctx, error);
+        // full-leniency container rule). The repair is a resolution:
+        // nothing is recorded when it succeeds.
         try {
           (handlers[tag] as (child: RawNode) => void)({ ...resolved, value: { kind: 'absent' }, valueColumn: 0 });
         } catch (retryError) {
+          void tolerate(ctx, error);
           throw retryError;
         }
         continue;
       }
       if (err.code === 'document.xref-not-found' && err.position?.line === child.position.line) {
-        // A dangling pointer link is dropped (the full-leniency
-        // container rule — the information it pointed to is already
-        // gone, and the export must not carry unresolved references).
-        void tolerate(ctx, error);
+        // A dangling pointer link is dropped silently: the target
+        // record is not in the document, and the link carries
+        // nothing without it — the pointer string alone is
+        // meaningless, so it is neither imported nor recorded as an
+        // error (the resolution is defined: drop the dead link).
         continue;
       }
       if (tolerate(ctx, error)) {

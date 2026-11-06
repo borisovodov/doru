@@ -55,6 +55,14 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
     if (file.title !== undefined) {
       w.line(level + 1, 'TITL', { value: file.title });
     }
+    if (file.text !== undefined) {
+      // FTM: the file's transcription text (see MediaFile.text).
+      w.line(level + 1, '_TEXT', { value: file.text });
+    }
+    if (file.date !== undefined) {
+      // FTM: the file's modification timestamp (see MediaFile.date).
+      w.line(level + 1, '_DATE', { value: file.date });
+    }
     emitExtensions(w, version, level + 1, file);
     return;
   }
@@ -67,6 +75,14 @@ export function emitMediaFile(w: Writer, version: Version, level: number, file: 
   emitMediaFormat(w, version, level + 1, file.form);
   if (file.title !== undefined) {
     w.line(level + 1, 'TITL', { value: file.title });
+  }
+  if (file.text !== undefined) {
+    // FTM: the file's transcription text (see MediaFile.text).
+    w.line(level + 1, '_TEXT', { value: file.text });
+  }
+  if (file.date !== undefined) {
+    // FTM: the file's modification timestamp (see MediaFile.date).
+    w.line(level + 1, '_DATE', { value: file.date });
   }
   if (file.contentType !== undefined) {
     // Ahnenblatt: the content type of the picture (see
@@ -121,6 +137,10 @@ export function emitMediaFormat(w: Writer, version: Version, level: number, form
       const medium = medi551(w, version, format.medium.payload);
       if (medium !== undefined) {
         w.line(level + 1, 'TYPE', { value: medium });
+      } else if (format.medium.phrase !== undefined) {
+        // 5.5.1 cannot spell OTHER; the phrase is the vendor's own
+        // value (`TYPE image`), written back so nothing is lost.
+        w.line(level + 1, 'TYPE', { value: format.medium.phrase });
       }
     }
   }
@@ -183,6 +203,16 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   if (name.callName !== undefined) {
     w.line(level + 1, '_RUFNAME', { value: name.callName });
   }
+  if (name.nameAsRecorded !== undefined) {
+    // OFB-Werkstatt: the name in the church book's spelling (see
+    // PersonalNameStructure.nameAsRecorded).
+    w.line(level + 1, '_KB_NAME', { value: name.nameAsRecorded });
+  }
+  if (name.shortName !== undefined) {
+    // Brother's Keeper 6: the short name (see
+    // PersonalNameStructure.shortName).
+    w.line(level + 1, '_SHON', { value: name.shortName });
+  }
   if (name.date !== undefined) {
     // TMG: a date associated with the name (see
     // PersonalNameStructure.date).
@@ -192,6 +222,20 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // PRO-GEN: an alias of the name, as pure text (see
     // PersonalNameStructure.aliases).
     w.line(level + 1, '_ALIA', { value: alias });
+  }
+  for (const link of name.aliasLinks ?? []) {
+    // TMG: an alias written with the standard ALIA spelling, with its
+    // citations (see PersonalNameStructure.aliasLinks).
+    w.line(level + 1, 'ALIA', { value: link.value });
+    for (const citation of link.citations ?? []) {
+      emitSourceCitation(w, version, level + 2, citation);
+    }
+    emitExtensions(w, version, level + 2, link);
+  }
+  if (name.title !== undefined) {
+    // A title carried by the name itself (see
+    // PersonalNameStructure.title).
+    w.line(level + 1, 'TITL', { value: name.title });
   }
   if (name.marriedName !== undefined) {
     // The married name (see PersonalNameStructure.marriedName).
@@ -206,6 +250,11 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
     // ged4web: the middle name under NAME (see
     // PersonalNameStructure.middleName).
     w.line(level + 1, '_MIDN', { value: name.middleName });
+  }
+  if (name.patronymic !== undefined) {
+    // The patronymic under NAME (see
+    // PersonalNameStructure.patronymic).
+    w.line(level + 1, '_PATN', { value: name.patronymic });
   }
   if (name.creationDate !== undefined) {
     // MFT7: the name entry's creation date (see
@@ -592,6 +641,16 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     // PlaceStructure.placeId).
     w.line(level + 1, '_PID', { value: place.placeId });
   }
+  if (place.familioId !== undefined) {
+    // Familio: the place's identifier on familio.org (see
+    // PlaceStructure.familioId).
+    w.line(level + 1, '_FAMILIO_GUID', { value: place.familioId });
+  }
+  if (place.placeCard !== undefined) {
+    // GenoPro: a pointer to the place's card record (see
+    // PlaceStructure.placeCard) — kept verbatim, unresolved.
+    w.line(level + 1, '_XREF', { value: place.placeCard, pointer: place.placeCard.startsWith('@') });
+  }
   if (place.location !== undefined) {
     // The GEDCOM-L card survived the prepare projection; the pointer
     // is kept.
@@ -661,6 +720,11 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
     w.line(level + 1, 'MAP');
     w.line(level + 2, 'LATI', { value: `${place.map.latitude.direction}${place.map.latitude.degrees}` });
     w.line(level + 2, 'LONG', { value: `${place.map.longitude.direction}${place.map.longitude.degrees}` });
+  }
+  for (const citation of place.citations ?? []) {
+    // TMG: citations attached to the PLAC line (see
+    // PlaceStructure.citations).
+    emitSourceCitation(w, version, level + 1, citation);
   }
   emitExtensions(w, version, level + 1, place);
 }

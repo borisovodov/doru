@@ -145,6 +145,7 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   familyChild?: string;
   adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } };
   birthType?: string;
+  texts?: string[];
   extensions?: ExtensionStructure[];
 }): void {
   if (event.tag === 'EVEN') {
@@ -162,6 +163,10 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   } else {
     // 5.5.1 cannot carry the Y assertion here; the value is dropped.
     w.line(1, event.tag);
+  }
+  for (const text of event.texts ?? []) {
+    // The testament text under the WILL event (see WillEvent.texts).
+    w.line(2, 'TEXT', { value: text });
   }
   if (event.tag === 'ADOP' && event.adoptionFamily !== undefined) {
     ptr(w, version, 2, 'FAMC', event.adoptionFamily.family);

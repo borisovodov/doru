@@ -17,24 +17,29 @@ import type { PlaceStructure } from './structures';
  */
 export function collectPlaces(root: unknown): PlaceStructure[] {
   const out: PlaceStructure[] = [];
-  const walk = (value: unknown): void => {
+  // An iterative structural walk: the model is a plain object graph,
+  // and a hand-made file can nest thousands of extension levels (the
+  // same reason parseExtension, emitExtension and the serialize-side
+  // walks iterate).
+  const stack: unknown[] = [root];
+  while (stack.length > 0) {
+    const value = stack.pop();
     if (Array.isArray(value)) {
       for (const item of value) {
-        walk(item);
+        stack.push(item);
       }
-      return;
+      continue;
     }
     if (value === null || typeof value !== 'object') {
-      return;
+      continue;
     }
     const obj = value as Record<string, unknown>;
     if (obj['tag'] === 'PLAC' && Array.isArray(obj['payload'])) {
       out.push(value as PlaceStructure);
     }
     for (const key of Object.keys(obj)) {
-      walk(obj[key]);
+      stack.push(obj[key]);
     }
-  };
-  walk(root);
+  }
   return out;
 }

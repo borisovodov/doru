@@ -204,11 +204,11 @@ describe('vendor contact and identifier additions', () => {
     expect(indi?.email).toEqual(['a@b.c']);
     // The INDI-level ADDR types into IndividualRecord.address and is
     // written back as the ADDR block in 5.5.1; 7.0 has no INDI address
-    // position and drops it. PHON has no INDI slot and stays generic.
+    // position and drops it. PHON types into the phone slot.
     const text = ser551(dataset);
     expect(text).toContain('1 ADDR Main St');
     expect(text).toContain('2 CITY Town');
-    expect(text).not.toContain('1 PHON 123');
+    expect(text).toContain('1 PHON 123');
     // The typed e-mail writes back as the _EMAIL spelling.
     expect(text).toContain('1 _EMAIL a@@b.c');
   });
@@ -313,12 +313,12 @@ describe('multimedia record additions', () => {
 
   test('Généatique OBJE.FORM/TITL are kept on input and dropped on export', () => {
     const dataset = parseOk551([...HEADER551, '0 @O1@ OBJE', '1 FILE p.jpg', '2 FORM jpg', '1 FORM gif', '1 TITL The picture', ...SUBM, '0 TRLR'].join('\n'));
-    // The record-level FORM/TITL are the GEDCOM 5.5 embedded shape: the
-    // 5.5.1 writer has no spelling for them and drops them; the FILE
-    // record itself survives.
+    // The record-level FORM is the GEDCOM 5.5 embedded shape: the
+    // 5.5.1 writer has no spelling for it and drops it; the TITL types
+    // into the record title and is written back.
     const text = ser551(dataset);
     expect(text).not.toContain('1 FORM gif');
-    expect(text).not.toContain('1 TITL The picture');
+    expect(text).toContain('1 TITL The picture');
     expect(text).toContain('0 @O1@ OBJE');
     expect(text).toContain('1 FILE p.jpg');
   });

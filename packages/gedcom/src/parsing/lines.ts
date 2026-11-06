@@ -65,48 +65,63 @@ const RECORD_TAGS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Checks the banned-character rule in a line value: the C0
- * control characters other than the horizontal tab, plus DEL. GEDCOM
- * 5.5.1 §1 disallows every control character; GEDCOM 5.5.5 (gedcom.org,
+ * Sanitizes the banned characters of a line value: the C0 control
+ * characters other than the horizontal tab, plus DEL. GEDCOM 5.5.1
+ * §1 disallows every control character; GEDCOM 5.5.5 (gedcom.org,
  * 2019) legalized the tab in user text ("Tab is Legal": most
- * applications already wrote tabs despite 5.5.1); GEDCOM 7.0 §1.1 bans
- * the C1 controls too, but those cannot survive the decoders. The
- * the parser accepts the tab in any file and bans the other C0
- * controls and DEL — the most lenient of the supported rules (see the
- * README's "Known strict decisions").
+ * applications already wrote tabs despite 5.5.1); GEDCOM 7.0 §1.1
+ * bans the C1 controls too, but those cannot survive the decoders.
+ * The parser accepts the tab in any file.
+ *
+ * The other controls are real in the wild and carry meaning: the
+ * vertical tab (U+000B) is a line break inside note text (the
+ * exporters write it where CONT belongs — `Subj: …\vDate: …\vFrom:
+ * …`, the LydiaSHargrove and webprowett notes), so it becomes the
+ * newline (the CONT semantics the model already carries). The
+ * remaining controls are noise — they are dropped, and the line
+ * survives (nothing is recorded: the resolution is defined). Only a
+ * control character inside a cross-reference identifier stays an
+ * error (see checkXref): the identifier itself is broken.
  */
-function checkBanned(text: string, position: SourcePosition): void {
+function sanitizeBanned(text: string): string {
+  let out = '';
+  let changed = false;
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
-    if ((c <= 0x1f && c !== 0x09) || c === 0x7f) {
-      fail('line.banned-char', `Banned character U+${c.toString(16).toUpperCase()} in a line value`, {
-        ...position,
-        column: position.column + i,
-      });
+    if (c === 0x0b) {
+      out += '\n';
+      changed = true;
+      continue;
     }
+    if ((c <= 0x1f && c !== 0x09) || c === 0x7f) {
+      changed = true;
+      continue;
+    }
+    out += text[i] as string;
   }
+  return changed ? out : text;
 }
 
 /** Validates a cross-reference identifier (the 5.x rule: alphanumeric
- *  body, no number-sign start, no control characters). */
+ *  body, no number-sign start, no control characters; non-ASCII
+ *  characters are accepted — the 7.0 grammar allows them, and the
+ *  wild writes them: `0 @家族1@ FAM`, `0 @شجرة عائلة@ INDI`, the
+ *  unicode_xref-nonlatin fixture and the kahatTree exports). */
 function checkXref(raw: string, position: SourcePosition): void {
   const body = raw.slice(1, -1);
-  if (body.length === 0) {
-    fail('line.bad-xref', 'A cross-reference identifier must not be empty', position);
-  }
   if (body[0] === '#') {
     fail('line.bad-xref', 'A cross-reference identifier must not begin with a number sign', {
       ...position,
       column: position.column + 1,
     });
   }
-  if (!ALPHANUM_551.test(body[0] as string)) {
+  if (body[0] !== undefined && body.charCodeAt(0) <= 0x7f && !ALPHANUM_551.test(body[0])) {
     fail('line.bad-xref', `Invalid first character "${body[0]}" in a cross-reference identifier`, {
       ...position,
       column: position.column + 1,
     });
   }
-  for (let i = 1; i < body.length; i++) {
+  for (let i = 0; i < body.length; i++) {
     const c = body.charCodeAt(i);
     if (c <= 0x1f || c === 0x7f) {
       fail('line.banned-char', 'Control characters are not allowed in a cross-reference identifier', {
@@ -149,10 +164,26 @@ export type EscapeRule = '7.0' | '5.5.1';
  * escape rule (a `@#…@` escape sequence is kept verbatim in either
  * rule; the calendar escapes it carries are the date parser's).
  */
-function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): RawValue {
-  checkBanned(raw, position);
-  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#') && /^@[A-Za-z0-9_][^@]*@$/.test(raw)) {
-    return { kind: 'pointer', pointer: raw };
+function parseValue(raw: string, rule: EscapeRule): RawValue {
+  raw = sanitizeBanned(raw);
+  // A line-comment value (`0 @F1@ FAM // Family for Peter's parents`,
+  // `1 DEAT // Burial information suggests …` — the hand-annotated
+  // ged_record samples) is dropped: it annotates the line, not the
+  // data — the same rule the pointer comments follow.
+  if (raw.replace(/^[ \t]+/, '').startsWith('//')) {
+    return { kind: 'absent' };
+  }
+  // Escape artifacts inside a pointer token (`@<US20>F1@`, the
+  // testfiles_sprint3.ged files, and `@<US01>I1@`, the US01–US06
+  // test files: a US escape written bare inside the xref) are
+  // stripped before the pointer production — the token names the same
+  // record without the artifact. A trailing blank after the closing
+  // at sign (`1 FAMC @F2@ `) is junk too; the pointer keeps the
+  // trimmed token. Values that do not match the production stay text
+  // with the raw bytes untouched.
+  const stripped = raw.replace(/<US\d+>/g, '');
+  if (raw[0] === '@' && !raw.startsWith('@@') && !raw.startsWith('@#') && /^@[A-Za-z0-9_][^@]*@\s*$/.test(stripped)) {
+    return { kind: 'pointer', pointer: stripped.trim() };
   }
   // A pointer with a trailing C-style comment (`2 FAMC @F4@ /* note:
   // this ptr is not required but is allowed in 5.5 */`, real hand-built
@@ -163,6 +194,13 @@ function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): Ra
   const commentedPointer = /^(@[A-Za-z0-9_][^@]*@)\s*\/\*.*\*\/\s*$/.exec(raw);
   if (commentedPointer !== null) {
     return { kind: 'pointer', pointer: commentedPointer[1] as string };
+  }
+  // The line-comment spelling of the same shape (`1 WIFE @I9@ //
+  // Assuming Unknown_spouse`, the gprime imp-sample files): the `//`
+  // comment is dropped the same way.
+  const lineCommentedPointer = /^(@[A-Za-z0-9_][^@]*@)\s*\/\/.*$/.exec(raw);
+  if (lineCommentedPointer !== null) {
+    return { kind: 'pointer', pointer: lineCommentedPointer[1] as string };
   }
   // A value that starts with a single @ but does not match the
   // pointer production (a list of pointers, a pointer with a comment
@@ -184,7 +222,14 @@ function parseValue(raw: string, rule: EscapeRule, position: SourcePosition): Ra
     if (c === '@' && raw[i + 1] === '#') {
       const close = raw.indexOf('@', i + 2);
       if (close === -1) {
-        fail('line.bad-escape', 'Unterminated escape sequence', { ...position, column: position.column + i });
+        // A lone `@#` with no closing @ is literal text: real files
+        // (the comprehensive test trees, the gedcom-go edge-case
+        // fixture) carry `@#$%&*` inside free text, which is not an
+        // escape. The characters stay verbatim and the scan
+        // continues.
+        out += '@#';
+        i += 2;
+        continue;
       }
       out += raw.slice(i, close + 1);
       i = close + 1;
@@ -254,16 +299,35 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
     i++;
   }
 
-  // Optional cross-reference identifier.
+  // Optional cross-reference identifier. The US escape artifact
+  // inside an xref (`0 @<US01>I1@ INDI`, the US01–US06 test files)
+  // is stripped the same way the pointer-value parser strips it —
+  // the record and its pointers must name the same identifier.
   let xref: string | undefined;
   if (text[i] === '@') {
-    const close = text.indexOf('@', i + 1);
+    let close = text.indexOf('@', i + 1);
+    let repaired = false;
     if (close === -1) {
-      fail('line.bad-xref', 'Unterminated cross-reference identifier', at(i));
+      // An unterminated xref (`0 @I1 SUBM`, the exporter dropped the
+      // closing at sign) is closed at the next blank — the identifier
+      // runs to there. Without a blank (the line ends mid-identifier)
+      // there is nothing to repair.
+      const blank = text.indexOf(' ', i + 1);
+      const tab = text.indexOf('\t', i + 1);
+      const end = blank === -1 ? tab : tab === -1 ? blank : Math.min(blank, tab);
+      if (end === -1) {
+        fail('line.bad-xref', 'Unterminated cross-reference identifier', at(i));
+      }
+      close = end;
+      repaired = true;
     }
-    const raw = text.slice(i, close + 1);
+    const raw = (repaired ? `${text.slice(i, close)}@` : text.slice(i, close + 1)).replace(/<US\d+>/g, '');
     checkXref(raw, at(i));
-    xref = raw;
+    // An empty identifier (`0 @@ OBJE`) carries no name: the record
+    // has no xref.
+    if (raw !== '@@') {
+      xref = raw;
+    }
     i = close + 1;
     // A missing space after the xref (`0 @I1@INDI`) is tolerated the
     // same way: the tag starts right after the identifier.
@@ -296,7 +360,7 @@ function tokenizeLine(line: DecodedLine, rule: EscapeRule): RawNode | null {
   // Value.
   let value: RawValue = { kind: 'absent' };
   if (i < text.length) {
-    value = parseValue(text.slice(i), rule, at(i));
+    value = parseValue(text.slice(i), rule);
   }
 
   return {
@@ -320,7 +384,44 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
   const stack: RawNode[] = [];
   const seenXrefs = new Set<string>();
 
+  // A document with content but without a single level-0 line is not
+  // GEDCOM at all — the corpus carries REXX scripts, ASCII-art design
+  // documents, VHDL sources and HTML pages under `.ged`/`.gdz` names.
+  // One clear error replaces the per-line bad-level cascade (the
+  // full-leniency container rule: the rest of the file is meaningless,
+  // and there is nothing to parse line by line).
+  const hasContent = document.lines.some((line) => line.text.trim() !== '');
+  const hasLevel0 = document.lines.some((line) => /^[ \t]*0+[ \t]/.test(line.text));
+  if (hasContent && !hasLevel0) {
+    fail('document.not-gedcom', 'The document is not a GEDCOM file: no line starts with a level-0 record', {
+      line: 1,
+      column: 1,
+      offset: 0,
+    });
+  }
+
   const attach = (node: RawNode): void => {
+    if (
+      node.xref !== undefined &&
+      node.level > 0 &&
+      !node.tag.startsWith('_') &&
+      node.value.kind === 'absent'
+    ) {
+      // The exporters write the pointer in the xref position
+      // (`1 @I2@ HUSB`, the backend_family.ged exports): the xref
+      // relocates into the value slot, where the tag expects it. The
+      // misplaced identifier is not registered (it is not a record
+      // line), so a relocation whose target does not exist stays a
+      // dangling pointer — dropped silently by the resolve rules.
+      const relocated = node.xref;
+      const { xref: _dropped, ...rest } = node;
+      void _dropped;
+      node = {
+        ...rest,
+        value: { kind: 'pointer', pointer: relocated },
+        valueColumn: 0,
+      };
+    }
     if (node.level === 0) {
       roots.push(node);
       stack.length = 0;
@@ -360,14 +461,13 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
     }
   };
 
-  const mergeContinuation = (target: RawNode, continuation: RawNode, joiner: string): void => {
-    if (target.children.length > 0) {
-      fail(
-        'line.continuation-out-of-order',
-        'A continuation line must immediately follow the line it continues, before any other substructures',
-        continuation.position,
-      );
-    }
+  const mergeContinuation = (target: RawNode, continuation: RawNode, joiner: string): boolean => {
+    // The order rule (a continuation must precede the target's other
+    // substructures) is serialization pedantry: the model stores the
+    // payload and the children independently, and the emitter writes
+    // the continuation first again. A continuation that follows the
+    // substructures merges into the payload all the same (the
+    // full-leniency container rule — the text is kept).
     if (target.value.kind !== 'text') {
       if (target.value.kind === 'absent') {
         // Real files continue an empty payload: the canonical Legacy
@@ -375,6 +475,13 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         // empty payload becomes the empty string and the continuation
         // merges into it.
         target.value = { kind: 'text', text: '' };
+      } else if (target.value.kind === 'pointer') {
+        // A continuation under a pointer line cannot merge into the
+        // pointer (the gedbas exports write note text under the FAMC
+        // pointer): the caller attaches the line as a child of the
+        // pointer slot instead, and the dispatch keeps it as a
+        // generic extension — the text is kept, nothing is guessed.
+        return false;
       } else {
         fail(
           'line.continuation-no-payload',
@@ -383,15 +490,54 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         );
       }
     }
-    if (continuation.value.kind === 'pointer') {
-      fail('line.continuation-no-payload', 'A continuation line must not carry a pointer', continuation.position);
-    }
-    const extra = continuation.value.kind === 'text' ? continuation.value.text : '';
+    // A pointer-valued continuation (`1 CONC @NI156@`, the Ajmani
+    // exports) keeps the pointer string as the text — the same rule
+    // the missing-payload retry follows (the original pointer string
+    // survives).
+    const extra =
+      continuation.value.kind === 'text'
+        ? continuation.value.text
+        : continuation.value.kind === 'pointer'
+          ? continuation.value.pointer
+          : '';
     target.value = { kind: 'text', text: target.value.text + joiner + extra };
+    return true;
   };
 
+  let sawBlank = false;
   for (const line of document.lines) {
     try {
+      // The unleveled-continuation merge: a line without a level
+      // number that directly follows a NOTE/TEXT payload merges into
+      // it as a newline continuation — human-edited files drop the
+      // CONT prefixes (the Gedcom4Sharp Sopranos fixture, the
+      // ancestry-quirks fixture, the MyHeritage Hebrew bios under the
+      // citation TEXT). A numbered-list marker (`1. Jaume I`, the
+      // myheritage sample notes) is free text too: no valid GEDCOM
+      // line starts with digits and a dot. The CONC/CONT chain case
+      // is covered because a merged continuation leaves its parent on
+      // the stack. A blank line ends the run, a pointer-valued note
+      // cannot take text, and any other anchor keeps the
+      // line.bad-tag/line.bad-level error — those lines have no
+      // principled home (the nothing-is-guessed rule).
+      const trimmed = line.text.replace(/^[ \t]+/, '');
+      const freeText = trimmed.length > 0 && (!DIGIT.test(trimmed[0] as string) || /^\d+\.\s/.test(trimmed));
+      if (freeText) {
+        const anchor = stack[stack.length - 1];
+        if (
+          !sawBlank &&
+          anchor !== undefined &&
+          (anchor.tag === 'NOTE' || anchor.tag === 'TEXT') &&
+          anchor.value.kind !== 'pointer'
+        ) {
+          if (anchor.value.kind === 'absent') {
+            anchor.value = { kind: 'text', text: trimmed };
+          } else {
+            anchor.value = { kind: 'text', text: anchor.value.text + '\n' + trimmed };
+          }
+          continue;
+        }
+      }
       let node = tokenizeLine(line, rule);
       if (node === null) {
         // Blank line. The 5.x rule officially ignores extra line
@@ -401,8 +547,10 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         // cannot disturb the hierarchy, the continuation merge, or any
         // value, so the line is dropped silently in any position (see
         // the README's Known strict decisions).
+        sawBlank = true;
         continue;
       }
+      sawBlank = false;
       // The Geni.com bare-identifier dialect: `0 I1234 INDI` spells the
       // cross-reference identifier without the @ delimiters. The shape
       // is unambiguous — a bare identifier in the tag position with a
@@ -422,11 +570,47 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       // enclosing line at level - 1) and must come before any other
       // substructure of that parent.
       if (node.level > 0 && (node.tag === 'CONC' || node.tag === 'CONT')) {
-        const parent = stack[node.level - 1];
+        let parent = stack[node.level - 1];
         if (parent === undefined) {
-          fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+          // The exporter indented the continuation one level too deep
+          // (`2 CONT Main decisive actions:` + `3 CONT - Delivers …`,
+          // the three-body-problem fan trees): the deepest
+          // text-bearing line on the stack is the continuation's
+          // target — the immediately preceding text line, nothing
+          // further is guessed.
+          const candidate = stack[stack.length - 1];
+          if (
+            candidate !== undefined &&
+            candidate.value.kind === 'text' &&
+            (candidate.tag === 'NOTE' || candidate.tag === 'TEXT')
+          ) {
+            parent = candidate;
+          } else {
+            fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+          }
         }
-        mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '');
+        // The wrong-level repair: a continuation whose natural target
+        // cannot take text (a record line or a pointer) but whose last
+        // child chain ends in a text payload continues that text —
+        // the exporters drop one level of indentation (`1 NOTE …` +
+        // `1 CONT …`, the GenMVD/Geni demo exports; `3 TEXT …` +
+        // `2 CONC …`, the myheritage fixture). The immediately
+        // preceding text-bearing line is the only candidate — nothing
+        // further is guessed.
+        if (parent.value.kind !== 'text' && parent.children.length > 0) {
+          let candidate = parent.children[parent.children.length - 1];
+          while (candidate !== undefined && candidate.children.length > 0) {
+            candidate = candidate.children[candidate.children.length - 1];
+          }
+          if (candidate !== undefined && candidate.value.kind === 'text') {
+            parent = candidate;
+          }
+        }
+        if (!mergeContinuation(parent, node, node.tag === 'CONT' ? '\n' : '')) {
+          // The pointer-slot target: the line attaches as a regular
+          // child (see mergeContinuation).
+          attach(node);
+        }
         continue;
       }
       attach(node);

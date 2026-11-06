@@ -60,6 +60,7 @@ export type GedcomErrorCode =
   | 'document.missing-gedc'
   | 'document.missing-gedc-vers'
   | 'document.wrong-version'
+  | 'document.not-gedcom'
   // Structure-level errors.
   | 'structure.unknown-tag'
   | 'structure.cardinality'

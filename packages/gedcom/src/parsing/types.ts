@@ -43,6 +43,12 @@ import {
   MULTIMEDIA_FORMATS_551,
   MULTIMEDIA_FORMATS_555,
 } from '../primitives';
+import {
+  RESTRICTION_ENUM_VALUES,
+} from '../enumerations';
+import type {
+  RestrictionEnum,
+} from '../enumerations';
 
 const CALENDAR_NAMES: ReadonlyMap<string, Calendar> = new Map([
   ['GREGORIAN', 'GREGORIAN'],
@@ -57,6 +63,10 @@ const CALENDAR_ESCAPES_551: ReadonlyMap<string, Calendar> = new Map([
   ['@#DJULIAN@', 'JULIAN'],
   ['@#DFRENCH R@', 'FRENCH_R'],
   ['@#DHEBREW@', 'HEBREW'],
+  // The D-less spelling (`@#JULIAN@`, the gedcom_single-person royal
+  // exports) is the same Julian escape with the calendar marker
+  // dropped — accepted as an alias.
+  ['@#JULIAN@', 'JULIAN'],
 ]);
 
 /** Month tags valid in each standard calendar. */
@@ -359,7 +369,7 @@ export function normalizeDateText(text: string): string {
     return trimmed;
   }
   const lower = trimmed.toLowerCase();
-  if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
+  if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'unbek' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
     return '';
   }
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
@@ -367,6 +377,52 @@ export function normalizeDateText(text: string): string {
     const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(iso[2]) - 1];
     if (month !== undefined && Number(iso[3]) >= 1 && Number(iso[3]) <= 31) {
       return `${Number(iso[3])} ${month} ${iso[1]}`;
+    }
+  }
+  // The European numeric spellings (`23.8.2024`, `10-08-2011`,
+  // `9-10-2015` — the German exports) — day first, like the GEDCOM
+  // date itself.
+  const european = /^(\d{1,2})[.-](\d{1,2})[.-](\d{4})$/.exec(trimmed);
+  if (european !== null) {
+    const day = Number(european[1]);
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(european[2]) - 1];
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} ${european[3]}`;
+    }
+  }
+  // The PAF-era dash spelling with a month name (`23-Apr-98`): the
+  // two-digit year is the 20th-century one.
+  const dashedNamed = /^(\d{1,2})-([A-Za-z]{3,9})-(\d{2})$/.exec(trimmed);
+  if (dashedNamed !== null) {
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find(
+      (m) => m.startsWith((dashedNamed[2] as string).toUpperCase().slice(0, 3)),
+    );
+    const day = Number(dashedNamed[1]);
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} 19${dashedNamed[3]}`;
+    }
+  }
+  // The American month-first spelling (`FEB 13 2026`, the WIJA
+  // exports): the month name leads and the day follows — swapped to
+  // the GEDCOM day-first order.
+  const american = /^([A-Za-z]{3,9})\s+(\d{1,2})\s+(\d{4})$/.exec(trimmed);
+  if (american !== null) {
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find(
+      (m) => m.startsWith((american[1] as string).toUpperCase().slice(0, 3)),
+    );
+    const day = Number(american[2]);
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} ${american[3]}`;
+    }
+  }
+  // The all-numeric European spelling (`20 10 1996`, the Kgene
+  // exports): day first, like the GEDCOM date itself.
+  const numeric = /^(\d{1,2})\s+(\d{1,2})\s+(\d{4})$/.exec(trimmed);
+  if (numeric !== null) {
+    const day = Number(numeric[1]);
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(numeric[2]) - 1];
+    if (month !== undefined && day >= 1 && day <= 31) {
+      return `${day} ${month} ${numeric[3]}`;
     }
   }
   const range = /^(\d{1,4})-(\d{1,4})$/.exec(trimmed);
@@ -385,7 +441,10 @@ export function normalizeDateText(text: string): string {
   if (circa !== null) {
     return `ABT ${circa[1]}`;
   }
-  let out = trimmed.replace(/^(ABT\.|ABOUT|CIRCA|CA\.|CA|AFT\.|BEFORE)\s+/i, (prefix) =>
+  // A leading weekday name (`Friday, 20th November 1992`, the PAF
+  // royal-family exports) names no data the date grammar carries.
+  const withoutWeekday = trimmed.replace(/^(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)[\s,]+/i, '');
+  let out = withoutWeekday.replace(/^(ABT\.|ABOUT|CIRCA|CA\.|CA|AFT\.|BEFORE)\s+/i, (prefix) =>
     prefix.toUpperCase().startsWith('ABT') || prefix.toUpperCase().startsWith('CIRCA') || prefix.toUpperCase().startsWith('CA') || prefix.toUpperCase().startsWith('ABOUT')
       ? 'ABT '
       : prefix.toUpperCase().startsWith('AFT') ? 'AFT ' : 'BEF ',
@@ -394,6 +453,9 @@ export function normalizeDateText(text: string): string {
   out = out.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
   // The Spanish/French connective "de"/"of" between date parts.
   out = out.replace(/\b(?:de|of|del)\s+/gi, '');
+  // The German month abbreviations carry a trailing dot (`Jan. 2015`,
+  // the gedbas exports): the dot is stripped before the month lookup.
+  out = out.replace(/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\./gi, '$1');
   out = out.replace(
     /\b(JANUARY|FEBRUARY|MARCH|APRIL|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER|SEPT)\b/gi,
     (name) => name.slice(0, 3).toUpperCase(),
@@ -556,6 +618,22 @@ export function parseDatePeriod70(text: string, position: SourcePosition, resolv
   if (first === 'FROM' || first === 'TO') {
     return parsePeriod70(tokens, position, resolve);
   }
+  // A plain date in the period slot (`3 DATE 5 JUL 1776` under
+  // SOUR.DATA.EVEN, the GEDCOM.NET test tree): the period is the
+  // single date.
+  const date = parseDateValue(text, position, resolve).value;
+  if (date.kind === 'date' && date.year !== undefined) {
+    return {
+      kind: 'period',
+      from: {
+        ...(date.calendar === undefined ? {} : { calendar: date.calendar }),
+        ...(date.day === undefined ? {} : { day: date.day }),
+        ...(date.month === undefined ? {} : { month: date.month }),
+        year: date.year,
+        ...(date.epoch === undefined ? {} : { epoch: date.epoch }),
+      },
+    };
+  }
   fail('date.invalid', `Invalid date period "${text}"; expected FROM/TO`, position);
 }
 
@@ -603,6 +681,14 @@ export function parseDateValue551(
     return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
   }
 
+  // A trailing parenthesized phrase after a plain date (the same
+  // INT-less form the shared parseDateValue accepts).
+  const trailingPhrase = /^(.*)\(([^()]*)\)$/.exec(trimmed);
+  if (trailingPhrase !== null) {
+    const inner = parseDate551Body((trailingPhrase[1] as string).trim(), position);
+    return { value: inner.value, dualYear: inner.dualYear, phrase: (trailingPhrase[2] as string).trim() };
+  }
+
   return parseDate551Body(trimmed, position);
 }
 
@@ -633,6 +719,14 @@ export function parseDateValue(
   if (intMatch) {
     const inner = parseDateBody(intMatch[1] as string, position, resolve, true);
     return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
+  }
+  // A trailing parenthesized phrase after a plain date (`1 Jan 2026
+  // (Ancestry source: Publisher date)`, the GEDCOM.NET test tree):
+  // the phrase rides along without the INT keyword.
+  const trailingPhrase = /^(.*)\(([^()]*)\)$/.exec(trimmed);
+  if (trailingPhrase !== null) {
+    const inner = parseDateBody((trailingPhrase[1] as string).trim(), position, resolve, true);
+    return { value: inner.value, dualYear: inner.dualYear, phrase: (trailingPhrase[2] as string).trim() };
   }
   return parseDateBody(trimmed, position, resolve, true);
 }
@@ -673,7 +767,7 @@ function parseDateBody(
   const tokens = dateTokens551(text);
   const parseDate = (parts: string[]): { fields: DateFields; dualYear: boolean } =>
     full ? parseDateCore(parts, position, resolve, true) : parseDate551(parts, position);
-  const first = (tokens[0] as string).toUpperCase();
+  const first = tokens.length === 0 ? '' : (tokens[0] as string).toUpperCase();
   if (first === 'FROM' || first === 'TO') {
     const from = first === 'FROM';
     const toIndex = from ? tokens.findIndex((token, index) => index > 0 && token.toUpperCase() === 'TO') : -1;
@@ -741,19 +835,25 @@ function parseDateCore(
 ): { fields: DateFields; dualYear: boolean } {
   let calendar: Calendar = 'GREGORIAN';
   let rest = tokens;
+  if (tokens.length === 0) {
+    // A date part that is empty (`2 DATE ABT` with no date after the
+    // modifier, `2 DATE BET  AND 1907`, `2 DATE FROM  to 1947`):
+    // the caller keeps the whole payload as the phrase (see
+    // parseDateStructure), so the code only needs to be a date error
+    // instead of a TypeError on `tokens[0]`.
+    fail('date.invalid', 'A date part is empty (a modifier with no date follows)', position);
+  }
   const first = tokens[0] as string;
-  if (first.startsWith('@#D')) {
+  if (first.startsWith('@#')) {
     const mapped = CALENDAR_ESCAPES_551.get(first);
     if (mapped !== undefined) {
       calendar = mapped;
+      rest = tokens.slice(1);
     } else if (first === '@#DROMAN@' || first === '@#DUNKNOWN@') {
       fail('date.reserved-calendar', `The ${first} calendar is reserved in GEDCOM 5.5.1 and has no defined months`, position);
     } else {
       fail('line.bad-escape', `Unknown calendar escape ${first}`, position);
     }
-    rest = tokens.slice(1);
-  } else if (first.startsWith('@#')) {
-    fail('line.bad-escape', `Unknown escape ${first}`, position);
   } else if (full && CALENDAR_NAMES.has(first)) {
     // The 7.0 calendar keywords.
     calendar = CALENDAR_NAMES.get(first) as Calendar;
@@ -1244,6 +1344,22 @@ export function parseListEnum<K extends string>(
   return text.split(',').map((item) => parseEnum(item.trim(), table, position));
 }
 
+/**
+ * Parses a RESN value: the wild writes `RESN none` (no restriction)
+ * and lists like `RESN NONE, LOCKED` — the none parts are filtered
+ * before the enum validation (the full-leniency container rule).
+ */
+export function parseRestrictionList(
+  text: string,
+  position: SourcePosition,
+): Array<RestrictionEnum | ExtensionTag> {
+  return text
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '' && item.toUpperCase() !== 'NONE')
+    .map((item) => parseEnum(item, RESTRICTION_ENUM_VALUES, position));
+}
+
 /** Parses a Personal Name payload (slash-delimited). */
 export function parsePersonalName(text: string, _position: SourcePosition): PersonalName {
   const parts = text.split('/');
@@ -1302,6 +1418,17 @@ export function parseLatitude(text: string, position: SourcePosition): Latitude 
       return { direction: (dms[1] as 'N' | 'S' | undefined) ?? (Number(dms[2]) < 0 ? 'S' : 'N'), degrees: Math.abs(degrees) };
     }
   }
+  // The colon-separated DMS of the webtrees exports (`N46::3::19"`):
+  // the degree and minute signs are the double colons, and the
+  // trailing double quote is dropped. The single-colon spelling
+  // (`N46:3:19`) is accepted the same way.
+  const colon = /^([NS])(\d{1,2}):{1,2}(\d{1,2}):{1,2}(\d{1,2}(?:\.\d+)?)"?$/.exec(trimmed);
+  if (colon !== null) {
+    const degrees = Number(colon[2]) + Number(colon[3]) / 60 + Number(colon[4]) / 3600;
+    if (degrees <= 90) {
+      return { direction: colon[1] as 'N' | 'S', degrees };
+    }
+  }
   fail('latitude.invalid', `Invalid latitude "${trimmed}"; expected "N" or "S" followed by decimal degrees 0–90`, position);
 }
 
@@ -1320,6 +1447,26 @@ export function parseLongitude(text: string, position: SourcePosition): Longitud
     const degrees = Number(bare[1]);
     if (degrees <= 180) {
       return { direction: 'E', degrees };
+    }
+  }
+  // The DMS spelling (`+19° 56' 21.48"`, the gedcom4j samples): the
+  // direction defaults from the sign — positive is East, negative
+  // West — like the latitude DMS defaults from the sign.
+  const dms = /^([EW])?([+-]?\d{1,3})°\s*(\d{1,2})'\s*(\d{1,2}(?:\.\d+)?)"$/.exec(trimmed);
+  if (dms !== null) {
+    const degrees = Number(dms[2]) + Number(dms[3]) / 60 + Number(dms[4]) / 3600;
+    if (degrees <= 180) {
+      return { direction: (dms[1] as 'E' | 'W' | undefined) ?? (Number(dms[2]) < 0 ? 'W' : 'E'), degrees: Math.abs(degrees) };
+    }
+  }
+  // The colon-separated DMS of the webtrees exports (`E14::30::52"`):
+  // the same double-colon spelling the latitude accepts, with the
+  // trailing double quote dropped.
+  const colon = /^([EW])(\d{1,3}):{1,2}(\d{1,2}):{1,2}(\d{1,2}(?:\.\d+)?)"?$/.exec(trimmed);
+  if (colon !== null) {
+    const degrees = Number(colon[2]) + Number(colon[3]) / 60 + Number(colon[4]) / 3600;
+    if (degrees <= 180) {
+      return { direction: colon[1] as 'E' | 'W', degrees };
     }
   }
   fail('longitude.invalid', `Invalid longitude "${trimmed}"; expected "E" or "W" followed by decimal degrees 0–180`, position);

@@ -11,6 +11,8 @@ import {
   fail,
 } from '../errors';
 import type {
+  AliasTextLink,
+  GedcomStructureBase,
   MapCoordinates,
   NameTranslation,
   NameTypeStructure,
@@ -29,7 +31,6 @@ import {
   dispatch,
   noPayload,
   one,
-  req,
   reqPtr,
   reqText,
 } from './context';
@@ -118,7 +119,7 @@ export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode, 
     // Full leniency: unexpected children stay generic extensions.
     addExtension(out, grandchild, ctx);
   }
-  const parts = reqText(child).split(',').map((part) => part.trim());
+  const parts = reqText(child).split(',').map((part) => part.trim()).filter((part) => part !== '');
   switch (tag) {
     case 'NPFX':
       out.namePrefixes = [...(out.namePrefixes ?? []), ...parts];
@@ -156,6 +157,16 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     '_RUFNAME': (child) => {
       out.callName = reqText(child);
     },
+    '_KB_NAME': (child) => {
+      // OFB-Werkstatt: the name in the church book's spelling (see
+      // PersonalNameStructure.nameAsRecorded).
+      out.nameAsRecorded = reqText(child);
+    },
+    '_SHON': (child) => {
+      // Brother's Keeper 6: the short name (see
+      // PersonalNameStructure.shortName).
+      out.shortName = reqText(child);
+    },
     '_PRIM': (child) => {
       // Legacy: the primary name mark (see
       // PersonalNameStructure.primary).
@@ -165,6 +176,22 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // ged4web: the middle name under NAME (see
       // PersonalNameStructure.middleName).
       out.middleName = reqText(child);
+    },
+    MIDDLE: (child) => {
+      // The standard-tag spelling of the middle name (the GenoPro
+      // trees write `2 MIDDLE Thomas` under NAME).
+      out.middleName = reqText(child);
+    },
+    '_PGVN': (child) => {
+      // ged4web: the preferred given name (`2 _PGVN Esther` under
+      // NAME) — the same slot the FH `_USED` carries (see
+      // PersonalNameStructure.givenNameUsed).
+      out.givenNameUsed = reqText(child);
+    },
+    '_PATN': (child) => {
+      // The patronymic under NAME (see
+      // PersonalNameStructure.patronymic).
+      out.patronymic = reqText(child);
     },
     CREA: (child) => {
       // MFT7: the name entry's creation date (see
@@ -212,6 +239,28 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PRO-GEN: an alias of the name, as pure text (see
       // PersonalNameStructure.aliases).
       (out.aliases ??= []).push(reqText(child));
+    },
+    ALIA: (child) => {
+      // TMG: an alias of the name written with the standard ALIA
+      // spelling, with optional SOUR citations (see
+      // PersonalNameStructure.aliasLinks).
+      const link: AliasTextLink = { tag: 'ALIA', value: reqText(child) };
+      dispatch(
+        child,
+        link,
+        {
+          SOUR: (grandchild) => {
+            (link.citations ??= []).push(parseSourceCitation(grandchild, ctx));
+          },
+        },
+        ctx,
+      );
+      (out.aliasLinks ??= []).push(link);
+    },
+    TITL: (child) => {
+      // A title carried by the name itself (see
+      // PersonalNameStructure.title).
+      out.title = reqText(child);
     },
     '_MARNM': (child) => {
       // The married name (see PersonalNameStructure.marriedName).
@@ -463,10 +512,18 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
         out.maidenhead = child.value.text;
         return;
       }
-      out.map = parseMapCoordinates(child, ctx);
+      const map = parseMapCoordinates(child, ctx);
+      if (map !== undefined) {
+        out.map = map;
+      }
     },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    SOUR: (child) => {
+      // TMG: citations attached to the PLAC line (see
+      // PlaceStructure.citations).
+      (out.citations ??= []).push(parseSourceCitation(child, ctx));
     },
     '_LOC': (child) => {
       out.location = reqPtr(child, ctx);
@@ -500,6 +557,16 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // PlaceStructure.placeId).
       out.placeId = reqText(child);
     },
+    '_FAMILIO_GUID': (child) => {
+      // Familio: the place's identifier on familio.org (see
+      // PlaceStructure.familioId).
+      out.familioId = reqText(child);
+    },
+    '_XREF': (child) => {
+      // GenoPro: a pointer to the place's card record (see
+      // PlaceStructure.placeCard) — kept verbatim, unresolved.
+      out.placeCard = child.value.kind === 'pointer' ? child.value.pointer : reqText(child);
+    },
     '_COR': (child) => {
       // MFT7: the place coordinates, split into degrees/minutes/seconds
       // plus the direction: _LAD/_LAM/_LAS/_LAN for the latitude,
@@ -508,7 +575,10 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG"). Normalized
       // into the standard map coordinates and written back as
       // MAP/LATI/LONG.
-      out.map = parseMftCoordinates(child, ctx, out);
+      const map = parseMftCoordinates(child, ctx, out);
+      if (map !== undefined) {
+        out.map = map;
+      }
     },
     // The the 7.0 LANG/TRAN/EXID/SNOTE spellings are
     // accepted in any file, as are the 5.5.1 FONE/ROMN and the
@@ -595,10 +665,18 @@ export function parseRomanizedPlaceVariation(node: RawNode, ctx: Ctx): Romanized
   return out;
 }
 
-export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
+export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates | undefined {
   noPayload(node);
-  const latNode = req(node, 'LATI');
-  const lonNode = req(node, 'LONG');
+  const latNode = one(node, 'LATI');
+  const lonNode = one(node, 'LONG');
+  if (latNode === undefined || lonNode === undefined) {
+    fail('structure.missing-required', 'The MAP structure requires LATI and LONG substructures', node.position);
+  }
+  if (latNode.value.kind === 'absent' || lonNode.value.kind === 'absent') {
+    // Bare coordinate lines carry no data; the coordinate-less MAP is
+    // dropped silently (the full-leniency container rule).
+    return undefined;
+  }
   const out: MapCoordinates = {
     latitude: parseLatitude(reqText(latNode), latNode.position),
     longitude: parseLongitude(reqText(lonNode), lonNode.position),
@@ -616,7 +694,7 @@ export function parseMapCoordinates(node: RawNode, ctx: Ctx): MapCoordinates {
  * MAP/LATI/LONG (the GenWiki "GEDCOM/_Nutzerdef-Tag" table notes the
  * equivalent: "GEDCOM 5.5.1: PLAC.MAP mit UnterTags LATI, LONG").
  */
-export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: PlaceStructure): MapCoordinates {
+export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStructureBase): MapCoordinates | undefined {
   noPayload(node);
   const read = (
     degreesTag: string,
@@ -624,28 +702,47 @@ export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: PlaceStruct
     secondsTag: string,
     directionTag: string,
     kind: 'latitude' | 'longitude',
-  ): { direction: 'N' | 'S' | 'E' | 'W'; degrees: number } => {
-    const degreesNode = req(node, degreesTag);
+  ): { direction: 'N' | 'S' | 'E' | 'W'; degrees: number } | undefined => {
+    const degreesNode = one(node, degreesTag);
+    if (degreesNode === undefined) {
+      fail('structure.missing-required', `The _COR structure requires the ${degreesTag} substructure`, node.position);
+    }
+    if (degreesNode.value.kind === 'absent') {
+      // A bare coordinate line carries no data; the coordinate-less
+      // block is dropped silently (the full-leniency container rule).
+      return undefined;
+    }
     const degrees = Number(reqText(degreesNode));
     if (!Number.isFinite(degrees) || degrees < 0) {
       fail(`${kind}.invalid`, `Invalid ${degreesTag} value "${reqText(degreesNode)}"`, degreesNode.position);
     }
     const minutesNode = one(node, minutesTag);
-    const minutes = minutesNode === undefined ? 0 : Number(reqText(minutesNode));
+    const minutes = minutesNode === undefined || minutesNode.value.kind === 'absent' ? 0 : Number(reqText(minutesNode));
     const secondsNode = one(node, secondsTag);
-    const seconds = secondsNode === undefined ? 0 : Number(reqText(secondsNode));
+    const seconds = secondsNode === undefined || secondsNode.value.kind === 'absent' ? 0 : Number(reqText(secondsNode));
     if (!Number.isFinite(minutes) || minutes < 0 || !Number.isFinite(seconds) || seconds < 0) {
       fail(`${kind}.invalid`, `Invalid ${degreesTag} minutes or seconds`, node.position);
     }
     const directionNode = one(node, directionTag);
-    // The direction is optional in the wild; latitude defaults to
-    // North, longitude to East.
-    const rawDirection = directionNode === undefined ? undefined : reqText(directionNode).toUpperCase();
-    const direction = rawDirection === undefined || rawDirection === ''
+    // The direction is optional in the wild (and a bare direction
+    // line is empty, the full-leniency container rule); latitude
+    // defaults to North, longitude to East. The GEDKeeper exports
+    // write a numeric marker (`_LON 1`, the gedcomimport_samples) —
+    // it carries no decodable letter, so the direction defaults the
+    // same way (the DMS numbers are the data, the marker is not).
+    const rawDirection =
+      directionNode === undefined || directionNode.value.kind === 'absent'
+        ? undefined
+        : reqText(directionNode).toUpperCase();
+    let direction = rawDirection === undefined || rawDirection === ''
       ? (kind === 'latitude' ? 'N' : 'E')
       : rawDirection === 'O' ? 'E' : rawDirection;
     if (direction !== 'N' && direction !== 'S' && direction !== 'E' && direction !== 'W') {
-      fail('enum.invalid-value', `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`, (directionNode as RawNode).position);
+      if (/^\d+$/.test(rawDirection as string)) {
+        direction = kind === 'latitude' ? 'N' : 'E';
+      } else {
+        fail('enum.invalid-value', `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`, (directionNode as RawNode).position);
+      }
     }
     const total = degrees + minutes / 60 + seconds / 3600;
     const limit = kind === 'latitude' ? 90 : 180;
@@ -656,6 +753,10 @@ export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: PlaceStruct
   };
   const latitude = read('_LAD', '_LAM', '_LAS', '_LAN', 'latitude');
   const longitude = read('_LOD', '_LOM', '_LOS', '_LON', 'longitude');
+  if (latitude === undefined || longitude === undefined) {
+    // A bare coordinate line (see read above).
+    return undefined;
+  }
   const allowed = new Set(['_LAD', '_LAM', '_LAS', '_LAN', '_LOD', '_LOM', '_LOS', '_LON']);
   for (const child of node.children) {
     if (!allowed.has(child.tag)) {

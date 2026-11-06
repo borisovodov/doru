@@ -158,6 +158,15 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
     // GEDitCOM II: the record's id (see FamilyRecord.geditcomId).
     w.line(1, '_GCID', { value: rec.geditcomId });
   }
+  if (rec.sequenceNumber !== undefined) {
+    // The exporter's running number (see FamilyRecord.sequenceNumber).
+    w.line(1, 'NUMB', { value: rec.sequenceNumber });
+  }
+  if (rec.familyTreeSystemId !== undefined) {
+    // The Swarm family-tree packs: the family's FamilySearch tree id
+    // (see FamilyRecord.familyTreeSystemId).
+    w.line(1, '_FTSID', { value: rec.familyTreeSystemId });
+  }
   if (rec.preferred === true) {
     // Legacy: the preferred family (see FamilyRecord.preferred).
     w.line(1, '_PREF', { value: 'Y' });
@@ -381,6 +390,16 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
   }
+  if (rec.ageAsRecorded !== undefined) {
+    // OFB-Werkstatt: the age as stated in the entry (see
+    // IndividualRecord.ageAsRecorded).
+    w.line(1, '_ALTER_KB', { value: rec.ageAsRecorded });
+  }
+  if (rec.deathCauseAsRecorded !== undefined) {
+    // OFB-Werkstatt: the cause of death in the church book's wording
+    // (see IndividualRecord.deathCauseAsRecorded).
+    w.line(1, '_TODURSACHE', { value: rec.deathCauseAsRecorded });
+  }
   if (rec.createdAt !== undefined) {
     // GenPlus: the record creation date (see IndividualRecord.createdAt).
     w.line(1, '_CREAT', { value: rec.createdAt });
@@ -428,6 +447,11 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   if (rec.geditcomId !== undefined) {
     // GEDitCOM II: the record's id (see IndividualRecord.geditcomId).
     w.line(1, '_GCID', { value: rec.geditcomId });
+  }
+  if (rec.sequenceNumber !== undefined) {
+    // The exporter's running number (see
+    // IndividualRecord.sequenceNumber).
+    w.line(1, 'NUMB', { value: rec.sequenceNumber });
   }
   if (rec.sosaDAboville !== undefined) {
     // Ancestris: the Sosa–d'Aboville number (see
@@ -545,6 +569,44 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     // IndividualRecord.email).
     w.line(1, '_EMAIL', { value: address });
   }
+  for (const number of rec.phone ?? []) {
+    // The INDI-level phone number (see IndividualRecord.phone).
+    w.line(1, 'PHON', { value: number });
+  }
+  for (const number of rec.fax ?? []) {
+    // The INDI-level fax number (see IndividualRecord.fax).
+    w.line(1, 'FAX', { value: number });
+  }
+  if (rec.deceased !== undefined) {
+    // GenoPro: the person's vital flag (see IndividualRecord.deceased).
+    w.line(1, 'ISDEAD', { value: rec.deceased ? 'Y' : 'N' });
+  }
+  for (const link of rec.webLinks ?? []) {
+    // The web-link block under INDI (see IndividualRecord.webLinks).
+    w.line(1, '_WLNK');
+    if (link.title !== undefined) {
+      w.line(2, 'TITL', { value: link.title });
+    }
+    if (link.url !== undefined) {
+      w.line(2, 'NOTE', { value: link.url });
+    }
+    emitExtensions(w, version, 2, link);
+  }
+  for (const entity of rec.occupations ?? []) {
+    ptr(w, version, 1, 'OCCUPATIONS', entity);
+  }
+  for (const entity of rec.educations ?? []) {
+    ptr(w, version, 1, 'EDUCATIONS', entity);
+  }
+  for (const entity of rec.contacts ?? []) {
+    ptr(w, version, 1, 'CONTACTS', entity);
+  }
+  for (const entity of rec.marriages ?? []) {
+    ptr(w, version, 1, 'UNIONS', entity);
+  }
+  for (const entity of rec.twins ?? []) {
+    ptr(w, version, 1, 'TWINS', entity);
+  }
   if (rec.restriction !== undefined) {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
   }
@@ -573,6 +635,11 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
       // Ahnenblatt: the primary occupation flag (see
       // OccupationAttribute.primary).
       w.line(2, '_PRIM', { value: 'Y' });
+    }
+    if (attribute.tag === 'OCCU' && attribute.asRecorded !== undefined) {
+      // OFB-Werkstatt: the church-book wording of the occupation (see
+      // OccupationAttribute.asRecorded).
+      w.line(2, '_BERUF_KB', { value: attribute.asRecorded });
     }
     if (version === '5.5.1' && attribute.tag === 'NCHI' && attribute.childCountCertain !== undefined) {
       // USM6: the child count certainty marker (see
@@ -715,6 +782,10 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     ptr(w, version, 1, 'FAMS', link.family);
     if (link.preferred === true) {
       w.line(2, '_PREF', { value: 'Y' });
+    }
+    if (link.date !== undefined) {
+      // The date of the family link itself (see SpouseFamilyLink.date).
+      emitDate(w, version, 2, 'DATE', link.date);
     }
     for (const note of link.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
@@ -1076,6 +1147,7 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   personalPhoto?: boolean;
   parentRecordId?: string;
   author?: string;
+  title?: string;
   clones?: AncestryClone[];
   identifiers?: Array<{ tag: string; payload: string; type?: string }>;
   notes?: NoteStructure[];
@@ -1208,6 +1280,11 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
     // ged4web: the media author under the OBJE record (see
     // MultimediaRecord.author).
     w.line(1, 'AUTH', { value: rec.author });
+  }
+  if (rec.title !== undefined) {
+    // The media object's title at the record level (see
+    // MultimediaRecord.title).
+    w.line(1, 'TITL', { value: rec.title });
   }
   for (const clone of rec.clones ?? []) {
     // Ancestry.com Family Trees: a clone of this media object in
@@ -1397,7 +1474,10 @@ export function emitSource(w: Writer, version: Version, rec: {
   author?: string;
   authorExtensions?: ExtensionStructure[];
   title?: string;
+  titlRef?: string;
   titleExtensions?: ExtensionStructure[];
+  date?: DateStructure;
+  place?: PlaceStructure;
   abbreviation?: string;
   abbreviationExtensions?: ExtensionStructure[];
   publication?: string;
@@ -1501,6 +1581,20 @@ export function emitSource(w: Writer, version: Version, rec: {
     if (rec.titleExtensions !== undefined) {
       emitExtensions(w, version, 2, { extensions: rec.titleExtensions });
     }
+  }
+  if (rec.titlRef !== undefined) {
+    // The Ancestris pointer form of the title (see SourceRecord.titlRef).
+    w.line(1, 'TITL', { value: rec.titlRef, pointer: true });
+  }
+  if (rec.date !== undefined) {
+    // Canvas Roots: the date of the source record itself (see
+    // SourceRecord.date).
+    emitDate(w, version, 1, 'DATE', rec.date);
+  }
+  if (rec.place !== undefined) {
+    // Canvas Roots: the place of the source record itself (see
+    // SourceRecord.place).
+    emitPlace(w, version, 1, rec.place);
   }
   if (rec.abbreviation !== undefined) {
     w.line(1, 'ABBR', { value: rec.abbreviation });
@@ -1760,6 +1854,138 @@ export function emitTreeCategoryRecord(w: Writer, version: Version, rec: {
   }
   if (rec.automatedRecordId !== undefined) {
     w.line(1, 'RIN', { value: rec.automatedRecordId });
+  }
+  emitExtensions(w, version, 1, rec);
+}
+
+/** The shared fields of the GenoPro entity records. */
+type GenoProEntityShape = {
+  tag: string;
+  xref?: string;
+  place?: PlaceStructure;
+  dateStart?: DateStructure;
+  dateEnd?: DateStructure;
+  notes?: NoteStructure[];
+  citations?: SourceCitation[];
+  extensions?: ExtensionStructure[];
+};
+
+/** Emits the shared GenoPro entity fields under the record line. */
+function emitGenoProEntityFields(w: Writer, version: Version, rec: GenoProEntityShape): void {
+  if (rec.place !== undefined) {
+    emitPlace(w, version, 1, rec.place);
+  }
+  if (rec.dateStart !== undefined) {
+    emitDate(w, version, 1, 'DATESTART', rec.dateStart);
+  }
+  if (rec.dateEnd !== undefined) {
+    emitDate(w, version, 1, 'DATEEND', rec.dateEnd);
+  }
+  for (const note of rec.notes ?? []) {
+    emitNoteStructure(w, version, 1, note);
+  }
+  for (const citation of rec.citations ?? []) {
+    emitSourceCitation(w, version, 1, citation);
+  }
+}
+
+/** Emits the GenoPro entity records (Occupation/Education/Contact/
+ *  Marriage/Twin). */
+export function emitGenoProRecord(w: Writer, version: Version, rec: GenoProEntityShape & {
+  company?: string;
+  industry?: string;
+  title?: string;
+  duration?: string;
+  institution?: string;
+  type?: string;
+  date?: DateStructure;
+  kind?: string;
+  family?: string;
+}): void {
+  w.line(0, rec.tag, { xref: rec.xref });
+  if (rec.company !== undefined) {
+    w.line(1, 'COMPANY', { value: rec.company });
+  }
+  if (rec.industry !== undefined) {
+    w.line(1, 'INDUSTRY', { value: rec.industry });
+  }
+  if (rec.title !== undefined) {
+    w.line(1, 'TITL', { value: rec.title });
+  }
+  if (rec.duration !== undefined) {
+    w.line(1, 'DURATION', { value: rec.duration });
+  }
+  if (rec.institution !== undefined) {
+    w.line(1, 'INSTITUTION', { value: rec.institution });
+  }
+  if (rec.type !== undefined) {
+    w.line(1, 'TYPE', { value: rec.type });
+  }
+  if (rec.date !== undefined) {
+    emitDate(w, version, 1, 'DATE', rec.date);
+  }
+  if (rec.kind !== undefined) {
+    w.line(1, 'TWINLINK', { value: rec.kind });
+  }
+  if (rec.family !== undefined) {
+    w.line(1, 'FAMILY', { value: rec.family, pointer: rec.family.startsWith('@') });
+  }
+  emitGenoProEntityFields(w, version, rec);
+  emitExtensions(w, version, 1, rec);
+}
+
+/** Emits the Ancestris `TITL` record (see TitleRecord). */
+export function emitTitleRecord(w: Writer, version: Version, rec: {
+  tag: 'TITL';
+  xref?: string;
+  payload?: string;
+  changeDate?: ChangeDate;
+  author?: string;
+  publisher?: string;
+  series?: string;
+  abbreviation?: string;
+  repository?: string;
+  sequenceNumber?: string;
+  callNumber?: string;
+  extensions?: ExtensionStructure[];
+}): void {
+  w.line(0, 'TITL', { xref: rec.xref, value: rec.payload });
+  if (rec.changeDate !== undefined) {
+    w.line(1, 'CHAN');
+    emitDateExact(w, version, 2, 'DATE', rec.changeDate.date, rec.changeDate.date.time);
+    for (const note of rec.changeDate.notes ?? []) {
+      emitNoteStructure(w, version, 2, note);
+    }
+    for (const citation of rec.changeDate.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
+    if (rec.changeDate.user !== undefined) {
+      w.line(2, '_WT_USER', { value: rec.changeDate.user });
+    }
+    emitExtensions(w, version, 2, rec.changeDate);
+  }
+  if (rec.author !== undefined) {
+    // A pointer to the author's INDI record, or free text (see
+    // TitleRecord.author).
+    w.line(1, 'AUTH', { value: rec.author, pointer: rec.author.startsWith('@') && rec.author.endsWith('@') });
+  }
+  if (rec.publisher !== undefined) {
+    w.line(1, 'PUBL', { value: rec.publisher });
+  }
+  if (rec.series !== undefined) {
+    w.line(1, 'SERS', { value: rec.series });
+  }
+  if (rec.abbreviation !== undefined) {
+    w.line(1, 'ABBR', { value: rec.abbreviation });
+  }
+  if (rec.repository !== undefined) {
+    w.line(1, 'REPO', { value: rec.repository, pointer: true });
+  }
+  if (rec.sequenceNumber !== undefined) {
+    w.line(1, 'NUMB', { value: rec.sequenceNumber });
+  }
+  if (rec.callNumber !== undefined) {
+    w.line(1, 'CALN', { value: rec.callNumber });
   }
   emitExtensions(w, version, 1, rec);
 }

@@ -17,7 +17,6 @@ import type {
 } from '../structures';
 import {
   MEDIA_ENUM_VALUES,
-  RESTRICTION_ENUM_VALUES,
 } from '../enumerations';
 import {
   fail,
@@ -53,8 +52,8 @@ import {
 } from './substructures';
 import {
   parseEnum,
-  parseListEnum,
   parseMediaFormat,
+  parseRestrictionList,
 } from './types';
 
 export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord {
@@ -132,6 +131,16 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // structure in the same slot the record notes carry. Parsed as
       // the standard NOTE shape.
       (rec.notes ??= []).push(parseNoteStructure({ ...child, tag: 'NOTE' }, ctx));
+    },
+    '_TEXT': (child) => {
+      // The ged4web exports write the media object's comment text
+      // with the TEXT tag under the OBJE record — the same slot the
+      // FH `_NOTE` carries (see MultimediaRecord.mediaNote).
+      rec.mediaNote = reqText(child);
+    },
+    TEXT: (child) => {
+      // The standard spelling of the media comment text.
+      rec.mediaNote = reqText(child);
     },
     '_CREA': (child) => {
       // Ancestry.com Family Trees: the date the media object was
@@ -279,7 +288,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      rec.restriction = parseRestrictionList(reqText(child), child.position);
     },
     CREA: (child) => {
       const created = parseCreationDateLenient(child, ctx);
@@ -346,8 +355,11 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       addExtension(rec, child, ctx);
     },
     TITL: (child) => {
-      // Généatique; same convention as FORM (see above).
-      addExtension(rec, child, ctx);
+      // The media object's title at the record level (the ged4web and
+      // Dutch-royal exports; see MultimediaRecord.title). The
+      // Généatique embedded shape (FORM/TITL/BLOB without FILE) is
+      // dropped by the projections either way.
+      rec.title = reqText(child);
     },
     BLOB: (child) => {
       // The GEDCOM 5.5 embedded object (5.5.1 removed the BLOB form);
@@ -403,6 +415,23 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
       },
       TITL: (child) => {
         file.title = reqText(child);
+      },
+      '_TEXT': (child) => {
+        // FTM: the file's transcription text under the FILE line (the
+        // embedded-media shape; see MediaFile.text).
+        file.text = reqText(child);
+      },
+      TEXT: (child) => {
+        // The standard spelling of the file's transcription text.
+        file.text = reqText(child);
+      },
+      '_DATE': (child) => {
+        // FTM: the file's modification timestamp (see MediaFile.date).
+        file.date = reqText(child);
+      },
+      DATE: (child) => {
+        // The standard spelling of the file's date.
+        file.date = reqText(child);
       },
       _CTYP: (child) => {
         // Ahnenblatt: the content type of the picture (person, group,
@@ -486,7 +515,15 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
 }
 
 export function parseMediaStructure(node: RawNode, ctx: Ctx): MediaStructure {
-  const out: MediaStructure = { payload: parseEnum(reqText(node), MEDIA_ENUM_VALUES, node.position) };
+  const raw = reqText(node);
+  // The lenient medium: a value outside the MEDI enum (files in the
+  // wild write `TYPE image`, `TYPE story`, `MEDI Article`, …) is kept
+  // as OTHER with the phrase (the full-leniency container rule —
+  // nothing is dropped).
+  const known = (Object.keys(MEDIA_ENUM_VALUES) as string[]).some((key) => key.toUpperCase() === raw.toUpperCase());
+  const out: MediaStructure = known
+    ? { payload: parseEnum(raw, MEDIA_ENUM_VALUES, node.position) }
+    : { payload: 'OTHER', phrase: raw };
   dispatch(
     node,
     out,

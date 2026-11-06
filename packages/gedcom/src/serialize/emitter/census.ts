@@ -28,6 +28,7 @@ import {
   emitEventDetail,
   emitExtensions,
   emitNoteStructure,
+  emitSourceCitation,
 } from './structures';
 import {
   ptr,
@@ -70,6 +71,10 @@ export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord)
     emitDateExact(w, version, 2, 'DATE', rec.changeDate.date, rec.changeDate.date.time);
     for (const note of rec.changeDate.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
+    }
+    for (const citation of rec.changeDate.citations ?? []) {
+      // Citations under the CHAN block (see ChangeDate.citations).
+      emitSourceCitation(w, version, 2, citation);
     }
     if (rec.changeDate.user !== undefined) {
       // webtrees: the user who made the change (see ChangeDate.user).

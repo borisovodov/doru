@@ -50,7 +50,43 @@ export const DEFAULT_SUBMITTER_NAME_551 = 'Unknown';
 
 /** Returns a deep clone of the dataset (the model is plain data). */
 function clone(dataset: GedcomDataset): GedcomDataset {
-  return structuredClone(dataset);
+  // An iterative clone: `structuredClone` recurses, and a hand-made
+  // file can nest thousands of extension levels (the vscode-gedcom
+  // "numbered list" fixture nests 9000) — the same reason
+  // parseExtension and emitExtension walk iteratively. The model is
+  // plain data (objects, arrays, primitives — see model/), so the
+  // generic clone covers it.
+  const root = {} as Record<string, unknown>;
+  const stack: Array<{ src: unknown; dst: unknown }> = [{ src: dataset, dst: root }];
+  while (stack.length > 0) {
+    const { src, dst } = stack.pop() as { src: unknown; dst: unknown };
+    if (Array.isArray(src)) {
+      const arr = dst as unknown[];
+      for (const item of src) {
+        if (item === null || typeof item !== 'object') {
+          arr.push(item);
+        } else {
+          const child: unknown[] | Record<string, unknown> = Array.isArray(item) ? [] : {};
+          arr.push(child);
+          stack.push({ src: item, dst: child });
+        }
+      }
+    } else {
+      const obj = dst as Record<string, unknown>;
+      const record = src as Record<string, unknown>;
+      for (const key of Object.keys(record)) {
+        const item = record[key];
+        if (item === null || typeof item !== 'object') {
+          obj[key] = item;
+        } else {
+          const child: unknown[] | Record<string, unknown> = Array.isArray(item) ? [] : {};
+          obj[key] = child;
+          stack.push({ src: item, dst: child });
+        }
+      }
+    }
+  }
+  return root as unknown as GedcomDataset;
 }
 
 /**
@@ -265,25 +301,30 @@ function fill551Header(dataset: GedcomDataset): void {
  */
 function collectExtensionPointerTargets(root: unknown): Set<string> {
   const out = new Set<string>();
-  const walk = (value: unknown): void => {
+  // An iterative structural walk: the model is a plain object graph,
+  // and a hand-made file can nest thousands of extension levels (the
+  // same reason parseExtension, emitExtension and the clone above
+  // walk iteratively).
+  const stack: unknown[] = [root];
+  while (stack.length > 0) {
+    const value = stack.pop();
     if (Array.isArray(value)) {
       for (const item of value) {
-        walk(item);
+        stack.push(item);
       }
-      return;
+      continue;
     }
     if (value === null || typeof value !== 'object') {
-      return;
+      continue;
     }
     const obj = value as Record<string, unknown>;
     if (obj['payloadKind'] === 'pointer' && typeof obj['payload'] === 'string') {
       out.add(obj['payload'] as string);
     }
     for (const key of Object.keys(obj)) {
-      walk(obj[key]);
+      stack.push(obj[key]);
     }
-  };
-  walk(root);
+  }
   return out;
 }
 

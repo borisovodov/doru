@@ -95,8 +95,13 @@ describe('line tokenization (7.0)', () => {
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '@foo' });
   });
 
-  test('banned characters: DEL and C0 stay banned, C1 is tolerated', () => {
-    expect(expectErr(() => raw70(`0 HEAD\n1 NOTE bad${'\u007f'}char\n0 TRLR\n`))).toBe('line.banned-char');
+  test('banned characters: DEL and C0 are sanitized, C1 is tolerated', () => {
+    // DEL and the C0 controls (except the tab) are dropped from the
+    // value, the vertical tab becomes the newline; the line survives.
+    const del = raw70(`0 HEAD\n1 NOTE bad${'\u007f'}char\n0 TRLR\n`);
+    expect((del.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'badchar' });
+    const vt = raw70(`0 HEAD\n1 NOTE a${'\u000b'}b\n0 TRLR\n`);
+    expect((vt.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
     // The 5.x rule does not check the C1 controls (the 7.0 rule does);
     // the lenient rule wins.
     const { nodes } = raw70(`0 HEAD\n1 NOTE ${'\u0085'}\n0 TRLR\n`);
@@ -108,8 +113,13 @@ describe('line tokenization (7.0)', () => {
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
   });
 
-  test('errors on an xref on a substructure', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 @X@ GEDC\n0 TRLR\n'))).toBe('line.xref-on-substructure');
+  test('relocates an xref on a substructure into the value slot', () => {
+    const { nodes } = raw70('0 HEAD\n1 @X@ GEDC\n0 TRLR\n');
+    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@X@' });
+  });
+
+  test('errors on an xref on a substructure that also has a value', () => {
+    expect(expectErr(() => raw70('0 HEAD\n1 @X@ GEDC v\n0 TRLR\n'))).toBe('line.xref-on-substructure');
   });
 
   test('keeps duplicate xrefs; the first occurrence registers', () => {
@@ -137,16 +147,26 @@ describe('line tokenization (7.0)', () => {
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
-  test('rejects a continuation after other substructures', () => {
-    expect(
-      expectErr(() => raw70('0 HEAD\n1 NOTE a\n2 MIME text/plain\n2 CONT b\n0 TRLR\n')),
-    ).toBe('line.continuation-out-of-order');
+  test('merges a continuation that follows other substructures', () => {
+    const { nodes } = raw70('0 HEAD\n1 NOTE a\n2 MIME text/plain\n2 CONT b\n0 TRLR\n');
+    const note = nodes[0]?.children[0] as RawNode;
+    expect(note.value).toEqual({ kind: 'text', text: 'a\nb' });
+    expect(note.children).toHaveLength(1);
   });
 
-  test('rejects a continuation of a pointer', () => {
-    expect(expectErr(() => raw70('0 HEAD\n1 SUBM @S1@\n2 CONT x\n0 TRLR\n'))).toBe(
-      'line.continuation-no-payload',
-    );
+  test('re-targets a wrong-level continuation to the preceding text line', () => {
+    const { nodes } = raw70('0 HEAD\n0 @I1@ INDI\n1 NAME A /B/\n1 NOTE a note\n1 CONT its continuation\n0 TRLR\n');
+    const indi = nodes[1] as RawNode;
+    const note = indi.children[1] as RawNode;
+    expect(note.tag).toBe('NOTE');
+    expect(note.value).toEqual({ kind: 'text', text: 'a note\nits continuation' });
+  });
+
+  test('keeps a continuation of a pointer as a child of the pointer slot', () => {
+    const { nodes } = raw70('0 HEAD\n1 SUBM @S1@\n2 CONT x\n0 TRLR\n');
+    const sub = nodes[0]?.children[0] as RawNode;
+    expect(sub.children).toHaveLength(1);
+    expect(sub.children[0]).toMatchObject({ tag: 'CONT', value: { kind: 'text', text: 'x' } });
   });
 });
 
@@ -187,10 +207,9 @@ describe('line tokenization (5.5.1)', () => {
     expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW@ text' });
   });
 
-  test('rejects an unterminated escape', () => {
-    expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @#DHEBREW text\n0 TRLR\n'))).toBe(
-      'line.bad-escape',
-    );
+  test('keeps an unterminated escape literal', () => {
+    const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @#DHEBREW text\n0 TRLR\n');
+    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW text' });
   });
 
   test('allows tabs in values (5.5.5 legalized them)', () => {
@@ -198,10 +217,15 @@ describe('line tokenization (5.5.1)', () => {
     expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
   });
 
-  test('still rejects the other control characters', () => {
-    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u0001'}b\n0 TRLR\n`))).toBe('line.banned-char');
-    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u000b'}b\n0 TRLR\n`))).toBe('line.banned-char');
-    expect(expectErr(() => raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u007f'}b\n0 TRLR\n`))).toBe('line.banned-char');
+  test('sanitizes the other control characters out of values', () => {
+    // The C0 controls (except the tab) and DEL are dropped from the
+    // value; the vertical tab becomes the newline; the line survives.
+    const a = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u0001'}b\n0 TRLR\n`);
+    expect((a.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
+    const b = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u000b'}b\n0 TRLR\n`);
+    expect((b.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
+    const c = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u007f'}b\n0 TRLR\n`);
+    expect((c.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
   test('merges CONC without a line break', () => {
@@ -216,5 +240,31 @@ describe('line tokenization (5.5.1)', () => {
 
   test('rejects an xref starting with a number sign', () => {
     expect(expectErr(() => raw551('0 HEAD\n1 CHAR ANSEL\n0 @#1@ INDI\n0 TRLR\n'))).toBe('line.bad-xref');
+  });
+});
+
+describe('the control-char xref guard', () => {
+  test('a control character inside an xref stays an error', () => {
+    expect(expectErr(() => raw70(`0 HEAD\n1 @A \t 7@ NOTE x\n0 TRLR\n`))).toBe('line.banned-char');
+  });
+});
+
+describe('the xref repairs', () => {
+  test('accepts non-ASCII characters in xrefs', () => {
+    const { nodes } = raw70('0 HEAD\n0 @家族1@ FAM\n1 HUSB @人物1@\n0 @人物1@ INDI\n1 NAME 田中 /一郎/\n0 TRLR\n');
+    expect(nodes[1]?.xref).toBe('@家族1@');
+    expect(nodes[2]?.xref).toBe('@人物1@');
+  });
+
+  test('an empty xref (@@) leaves the record without an identifier', () => {
+    const { nodes } = raw70('0 HEAD\n0 @@ OBJE\n1 FILE p.jpg\n0 TRLR\n');
+    expect(nodes[1]?.xref).toBeUndefined();
+    expect(nodes[1]?.tag).toBe('OBJE');
+  });
+
+  test('an unterminated xref is closed at the next blank', () => {
+    const { nodes } = raw70('0 HEAD\n0 @I1 SUBM\n1 NAME N\n0 TRLR\n');
+    expect(nodes[1]?.xref).toBe('@I1@');
+    expect(nodes[1]?.tag).toBe('SUBM');
   });
 });

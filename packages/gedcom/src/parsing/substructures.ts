@@ -61,6 +61,9 @@ import {
   parseYNFlag,
 } from './sources-media';
 import {
+  parsePlaceStructure,
+} from './names-places';
+import {
   parseAge,
   parseDatePeriod70,
   parseDateValue,
@@ -156,6 +159,11 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
       // recommends readers "Accept URL as a synonym for WWW" (5.5.5
       // §2 p.65). Normalized into the standard www slot.
       (out.www ??= []).push(reqText(child));
+    },
+    NOTE: (child) => {
+      // The standard 5.5.1 ADDRESS_STRUCTURE note slot (see
+      // AddressStructure.notes).
+      (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
   };
   dispatch(node, out, handlers, ctx, ['ADR1', 'ADR2', 'ADR3', 'CITY', 'STAE', 'POST', 'CTRY']);
@@ -261,6 +269,10 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
     },
     NOTE: (child) => {
       (base.notes ??= []).push(parseNoteStructure(child, ctx));
+    },
+    SOUR: (child) => {
+      // Citations under the CHAN block (see ChangeDate.citations).
+      (base.citations ??= []).push(parseSourceCitation(child, ctx));
     },
     '_WT_USER': (child) => {
       // webtrees: the user name of the user who made the change (see
@@ -384,6 +396,11 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
       PHRASE: (child) => {
         out.phrase = reqText(child);
       },
+      SOUR: (child) => {
+        // TMG: citations attached to the DATE line (see
+        // DateStructure.citations).
+        (out.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
     },
     ctx,
     ['TIME', 'PHRASE'],
@@ -393,6 +410,42 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
 
 export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStructure {
   const raw = reqText(node);
+  // The ISO-8601 timestamp form (`2022-08-24T12:26:24.532Z`, the
+  // geneafinder exports write it as the CHAN.DATE value): the date
+  // part becomes the DateExact value and the time part the TimeValue
+  // (the fraction and the Z survive). Out-of-range components fall
+  // through to the normal parser, which reports them.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?(Z)?$/.exec(raw.trim());
+  if (iso !== null) {
+    const month = (['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const)[Number(iso[2]) - 1];
+    const day = Number(iso[3]);
+    const hour = Number(iso[4]);
+    const minute = Number(iso[5]);
+    const second = iso[6] === undefined ? undefined : Number(iso[6]);
+    if (
+      month !== undefined &&
+      day >= 1 && day <= 31 &&
+      hour >= 0 && hour <= 23 &&
+      minute >= 0 && minute <= 59 &&
+      (second === undefined || (second >= 0 && second <= 59))
+    ) {
+      const out: DateExactStructure = {
+        value: {
+          day,
+          month,
+          year: Number(iso[1]),
+        },
+        time: {
+          hour,
+          minute,
+          ...(second === undefined ? {} : { second }),
+          ...(iso[7] === undefined ? {} : { fraction: iso[7] }),
+          ...(iso[8] === undefined ? {} : { utc: true }),
+        },
+      };
+      return out;
+    }
+  }
   const parsed = parseDateValue(raw, node.position, tagResolver(ctx));
   const value = parsed.value;
   if (value.kind === 'date' && value.year !== undefined && value.month !== undefined && value.day !== undefined) {
@@ -721,6 +774,16 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
         // (see Note.private); the wire spelling under a note is _PRIV.
         out.private = parsePrivacyFlag(child, '_PRIV');
       },
+      DATE: (child) => {
+        // TMG: the date the note was recorded, under the note itself
+        // (see Note.date).
+        out.date = parseDateStructure(child, ctx);
+      },
+      PLAC: (child) => {
+        // TMG: the place associated with the note, under the note
+        // itself (see Note.place).
+        out.place = parsePlaceStructure(child, ctx);
+      },
       SOUR: (child) => {
         (out.citations ??= []).push(parseSourceCitation(child, ctx));
       },
@@ -732,25 +795,23 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
 
 export function parseNoteTranslation(node: RawNode, ctx: Ctx): NoteTranslation {
   const out: NoteTranslation = { payload: reqText(node) };
-  let sawKind = false;
   dispatch(
     node,
     out,
     {
       MIME: (child) => {
         out.mediaType = reqText(child);
-        sawKind = true;
       },
       LANG: (child) => {
         out.language = reqText(child);
-        sawKind = true;
       },
     },
     ctx,
   );
-  if (!sawKind) {
-    fail('structure.missing-required', 'A NOTE.TRAN requires a MIME or LANG substructure', node.position);
-  }
+  // A TRAN without a MIME/LANG substructure (the maximal70 test files
+  // write `2 TRAN British English` bare) keeps the translation text
+  // alone — the payload is the data, the kind declaration is not (the
+  // full-leniency container rule).
   return out;
 }
 

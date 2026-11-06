@@ -703,6 +703,7 @@ its JSDoc.
 | `CREA` under events | exporters in the wild | The structured creation date attached to the event (the standard-tag twin of the `_CREA` free text) | `EventDetail.creationDate` (written back as the CREA block in 7.0; dropped on 5.5.1) |
 | `_CUTOUT Y` / `_PRIM_CUTOUT Y` / `_PARENTPHOTO Y` / `_PERSONALPHOTO Y` / `_PARENTRIN` under the media link | MyHeritage | The media display flags (cutout, primary cutout, parent photo, personal photo) and the parent's record id (`MH:P…`) | `MultimediaRecord.cutout` / `primaryCutout` / `parentPhoto` / `personalPhoto` / `parentRecordId` |
 | `AUTH` under the OBJE record | ged4web exports | The media object's author (the standard AUTH tag in the media position) | `MultimediaRecord.author` |
+| `TITL` under the OBJE record | ged4web and the Dutch-royal exports | The media object's title at the record level (the FILE-level TITL is `MediaFile.title`; the Généatique embedded shape is dropped by the projections either way) | `MultimediaRecord.title` |
 | `_PID` under PLAC | the Swarm family-tree packs | The place's id in the exporting system (`curie-joliot-place-q102317`) | `PlaceStructure.placeId` |
 | `RIN` under a citation | MyHeritage | The citation's record id in the source system (`MH:SC…`) — the citation-level repetition of the record-level RIN | `SourceCitation.automatedRecordId` (written back as `RIN` in 5.5.1; dropped on 7.0) |
 | `_MIDN` under NAME | ged4web exports | The middle name written as its own line under NAME | `PersonalNameStructure.middleName` |
@@ -712,6 +713,256 @@ its JSDoc.
 | `SLGC` under FAM and under FAM.CHIL | exports in the wild (the George Washington family trees) | The child's LDS sealing to the parents, written under the family record or the child link instead of the child's INDI | `FamilyRecord.childSealings` / `FamilyChildLink.sealings` (ChildSealingOrdinance) |
 | `APPT` under INDI | the GSMD Mayflower Society trees | A (supplemental) membership application, with the DATE and the "Supplemental - …" PLAC | `EVEN` + TYPE "Application" |
 | `_PLACE` as the name child of a `_PLC` record | GEDKeeper (the Windsor dialect) | The place name spelled `_PLACE` instead of NAME | the same `PlaceRecord.names` entry the NAME child carries |
+| `RELATION` under FAM | GenoPro | The kind of the union (Marriage, Divorce, CommittedRelationship, SeparationLegal, Widowed, …) | `FamilyRecord.unionStatus` (the same slot Heredis' `_UST` carries; written back as `_UST`) |
+| `ISDEAD Y/N` under INDI | GenoPro | The person's vital flag — dead without a DEAT event | `IndividualRecord.deceased` (written back as `ISDEAD Y`/`ISDEAD N`) |
+| `_XREF @place@` under PLAC | GenoPro | A pointer to the place's card record — the `_XREF` spelling of the `_LOC` place link | `PlaceStructure.placeCard` |
+| `_PHOTO @M…@` under INDI | MyHeritage | A pointer to the person's photo record | `IndividualRecord.media` (the standard media link) |
+| `PHON` under INDI | PAF and the ged4web exports | The individual's phone number directly under the record | `IndividualRecord.phone` (written back as `PHON`) |
+| `_PATN` under NAME | Russian/Ukrainian trees | The patronymic, written as its own line under NAME | `PersonalNameStructure.patronymic` |
+| `_TEXT`/`TEXT` under the OBJE record | ged4web exports | The media object's comment text — the same slot the FH `_NOTE` carries | `MultimediaRecord.mediaNote` (written back as `_NOTE`) |
+| `_WLNK` under INDI | Ancestry-family exports | A web-link block: the TITL description and the NOTE payload carrying the URL | `IndividualRecord.webLinks` (WebLinkStructure) |
+| `_COR` under events | MFT7 | The event's coordinates, written with the DMS block directly under the event (beside or instead of a PLAC) | `EventDetail.map` (written back as the standard MAP/LATI/LONG) |
+| `_COR` under the place card | MFT7 | The place card's coordinates at the record level | `PlaceRecord.map` |
+| `_TEXT` under the FILE line | FTM | The file's transcription text (the embedded-media shape) | `MediaFile.text` (written back as `_TEXT` under the FILE line) |
+| `FAX` under INDI | PAF | The individual's fax number directly under the record | `IndividualRecord.fax` |
+| `_DATE`/`DATE` under the FILE line | FTM | The file's modification timestamp (`2 _DATE 5/20/2017 1:51:01 PM`, kept verbatim) | `MediaFile.date` |
+| `_APID`/`_ABBR`/`_QUAL`/`_CONF`/`NAME`/`_CREF`/`_SUBQ`/`_VERI` under the free-text SOUR | the citation slots of the description form | The bare-SOUR leniency fills the description form; the citation slots now type there too (same fields as the pointer form) | the pointer-form `SourceCitation` slots |
+| `BLOODPURITY` under INDI | the Harry Potter fan trees | The wizard's blood status (Pure-blood / Half-blood / Muggle-born) | FACT + TYPE "Blood purity" |
+| `NUMB` under INDI and FAM | the French gedcom-to-xml files | A running number the exporter assigns to the record | `IndividualRecord.sequenceNumber` / `FamilyRecord.sequenceNumber` |
+| `DATE` under FAMS | files in the wild | The date of the family link itself | `SpouseFamilyLink.date` |
+| `MIDDLE` under NAME | GenoPro trees | The middle name (`2 MIDDLE Thomas`) — the standard-tag spelling of the `_MIDN` slot | `PersonalNameStructure.middleName` |
+| `_PGVN` under NAME | ged4web exports | The preferred given name (`2 _PGVN Esther`) — the same slot the FH `_USED` carries | `PersonalNameStructure.givenNameUsed` |
+| `_SOSAN` under INDI | Ancestris | The Sosa number with the leading zeros (`1 _SOSAN 00004`) — the same slot `_SOSA` carries | `IndividualRecord.sosaNumber` |
+| `_FTSID` under FAM | the Swarm family-tree packs | The family's FamilySearch tree id | `FamilyRecord.familyTreeSystemId` |
+| `HOUSE` / `ALLEGIANCE` / `FILMPORTRAYAL` under INDI | the Harry Potter fan trees | The wizard's Hogwarts house, allegiance and film portrayal | FACT + TYPE "House" / "Allegiance" / "Film portrayal" |
+| `Occupation` / `Education` / `Contact` / `Marriage` / `Twin` records with the `OCCUPATIONS` / `EDUCATIONS` / `CONTACTS` / `UNIONS` / `TWINS` INDI containers | GenoPro exports (the linguatree family tree and the Harry Potter trees) | The person's facts stored as entity records linked from the INDI: employment (`COMPANY`/`INDUSTRY`/`TITL`/`DURATION`), education (`INSTITUTION`), contacts, marriages and the twinning link (`TWINLINK`/`FAMILY`) — with `PLAC`/`DATESTART`/`DATEEND`/`NOTE`/`SOUR` | `OccupationRecord` / `EducationRecord` / `ContactRecord` / `MarriageRecord` / `TwinRecord` + `IndividualRecord.occupations`/`educations`/`contacts`/`marriages`/`twins` (written back as the same records and links in both versions) |
+| `TITL` records with `1 TITL @R…@` pointers under the SOUR record | the Ancestris kennedy sample (`gen-kennedy_kennedy.ged`) | The source bibliography in a separate title record: the payload is the title text, the record carries `CHAN`/`AUTH` (a pointer to the author's INDI or free text)/`PUBL`/`SERS`/`ABBR`/`REPO`/`NUMB`/`CALN` | `TitleRecord` + `SourceRecord.titlRef` (written back as the same records and pointers in both versions) |
+| the GEDKeeper long event spellings (`NEWS`/`OBIT`/`REMV`/`ILL`/`EDUS`/`BATM`/`EMPL`) and the gedcom5-conversion Case006 catalog (`BAP`/`BAPT`/`BAPTISM`/`BAR_MITZVAH`/`BAS_MITZVAH`/`BAT_MITZVAH`/`BLESSING`/`BURIAL`/`ADOPTION`/`CENSUS`/`ADULT_CHRISTNG`/`CHRISTENING`/`CONFIRMATION`/`CREMATION`/`EMIGRATION`/`FIRST_COMMUNION`/`GRADUATION`/`IMMIGRATION`/`ORDINATION`/`NATURALIZATION`/`PROBATE`/`RETIREMENT`/`ENLIST`/`RESIDENCE`/`MIL`/`MISE`/`_MIL`/`_MILITARY_SERVICE`/`_MISE`/`_DEGREE`) under INDI | GEDKeeper exports and the FamilySearch gedcom5-conversion test corpus (Case006-PersonsFacts.ged) | The event facts spelled with the long English names instead of the standard tags, with the payload and the `DATE`/`PLAC` children | EVEN + TYPE (the standard event tags in the same positions — `BAPM`/`BARM`/`BASM`/`CENS`/`CHRA`/`CONF`/`CREM` — parse as the standard events they already are) |
+| `TEXT` under the WILL event | ged4web exports | The will's transcription under `1 WILL` (`2 TEXT …`) | `WillEvent.texts` (written back as `TEXT` lines under WILL in both versions) |
+| `DATE`/`PLAC` under the SOUR record | Canvas Roots exports (the gedcom-sample-medium-sources fixture); the Legacy record-level DATE normalizes into the same slot | The date and place of the source record itself (`1 DATE 1910`, `1 PLAC Illinois` under `0 @S1@ SOUR`) | `SourceRecord.date` / `SourceRecord.place` (written back as `DATE`/`PLAC` in both versions) |
+| `SOUR` under an event's `DATE` or `PLAC` | TMG (the Hawaiian Kings trees: `1 DEAT` / `2 DATE 1794` / `3 SOUR @S307@`) | The citations attached to the date/place line itself | `DateStructure.citations` / `PlaceStructure.citations` (written back as `SOUR` lines under the DATE/PLAC line) |
+| `SOUR` under CHAN | the David England GEDs (LydiaHargrove.ged: `1 CHAN` / `2 SOUR @S03712@` / `3 DATA` / `4 TEXT Date of Import…`) | The citation of the change itself | `ChangeDate.citations` (written back as `SOUR` lines under the CHAN line) |
+| `NOTE` under ADDR | the standard 5.5.1 ADDRESS_STRUCTURE slot (REPO.ADDR.NOTE in the RM11 family histories; BURI.ADDR.NOTE in the Allmon trees) | Notes inside the address block | `AddressStructure.notes` (written back as `NOTE` under ADDR in both versions) |
+| `DATE`/`PLAC` under an inline NOTE | TMG (the Hawaiian Kings trees: `1 NOTE …` / `2 DATE 1736` / `2 PLAC …`) | The date and place of the note itself | `Note.date` / `Note.place` (written back as `DATE`/`PLAC` under the NOTE line) |
+| `ALIA` (with `SOUR`) and `TITL` under NAME | TMG (the Hawaiian Kings trees: `2 ALIA William/Pitt/` / `3 SOUR @S111@`, `2 TITL Queen`) | A name alias written with the standard ALIA spelling and its citations; a title carried by the name | `PersonalNameStructure.aliasLinks` (AliasTextLink) / `PersonalNameStructure.title` |
+| `PLAC`/`DATE` under the inline OBJE link | WikiTree-style exports (`1 OBJE` / `2 FILE …` / `2 PLAC AL.` / `2 DATE 1850`) | The place and date of the media object under the inline link — the same slots the record-level `PLAC`/`DATE` carry | `MultimediaRecord.place` / `MultimediaRecord.date` (written back as `_PLAC`/`_DATE`) |
+| `NAME` under HEAD.SUBM | Family Echo exports | The submitter's contact (an e-mail) as the NAME child of the SUBM pointer | `Header.submitterName` (written back as `NAME` under the SUBM line in both versions) |
+| `_DESCRIPTION` under an event | MyHeritage | The event's description-aware flag (the same flag the header's `_DESCRIPTION_AWARE` declares file-wide) | `EventDetail.descriptionAware` (written back as `_DESCRIPTION Y`/`_DESCRIPTION N`) |
+
+### Leniencies of the error sweep
+
+- **The bare-line retry.** A line whose required payload is absent —
+  or a pointer in a text slot (`1 TITL @R5@`) — is retried with the
+  value coerced to text: the line is kept with an empty payload (or
+  the pointer string) and its substructures survive; pointer slots
+  with no value are dropped. **The repair is a resolution, not an
+  error:** when the retry succeeds nothing is recorded (the tolerant
+  diagnostics carry only the unresolved drops — pointer slots with no
+  value, lines whose retry fails too). The strict parser applies the
+  same repair silently.
+- **The stray-value retry.** A line carrying a stray value (`1 SEX M
+  extra`) parses without it; like the bare-line retry, a successful
+  repair records nothing, and only a failing retry (e.g. `1 ANCE ten`
+  whose rule requires digits) surfaces the error.
+- **A text alias in the ALIA pointer slot.** `1 ALIA /Becky/` — an
+  "also known as" name written where the standard expects a pointer to
+  another INDI (BURNETT.GED, GRAY, the norse-gods trees) — is kept as
+  a NAME with the AKA type (the standard-first normalization of the
+  legacy AKA rule); written back as `1 NAME …` + `2 TYPE AKA`.
+- **Pointer comments.** A pointer with a trailing comment — `2 FAMC
+  @F4@ /* note */` and the line-comment spelling `1 WIFE @I9@ //
+  Assuming Unknown_spouse` (the gprime imp-sample files) — parses as
+  the pointer; the comment is dropped (it annotates the link, and no
+  model slot carries it). A pointer with a trailing blank or a bare
+  US escape artifact (`1 FAMC @F2@ `, `1 SUBM @<US20>I1@`) parses as
+  the trimmed token.
+- **Pointer lists in the GenoPro containers.** `1 OCCUPATIONS
+  @occu00012@, @occu00063@` — the comma-separated pointer list of the
+  GenoPro entity containers — is split and every pointer resolves
+  (a dangling member drops the whole line silently, like any
+  dangling pointer); written back as separate container lines.
+- **The dangling-pointer drop.** A pointer whose target record is not
+  in the document (`1 FAMS @F9@` without a `0 @F9@ FAM`, the
+  MyHeritage source ids of the split-off part of an export) is
+  dropped silently: the link carries nothing without its target, so
+  it is neither imported nor recorded as an error (the
+  `document.xref-not-found` error is gone). A US escape artifact
+  inside an xref (`0 @<US01>I1@ INDI`) is stripped like the
+  pointer-side artifact, so the record and its pointers name the
+  same identifier.
+- **The coordinate spellings.** The MAP/LATI/LONG values accept the
+  DMS human form (`+50° 3' 1.49"`, the gedcom4j samples — the
+  direction defaults from the sign) and the colon-separated DMS of
+  the webtrees exports (`N46::3::19"`, the double colon is the
+  degree/minute separator and the trailing double quote is dropped;
+  the single-colon `N46:3:19` spelling parses the same way).
+- **Bare lines inside direct-iteration parsers.** The `_EVENT_DEFN`
+  record and the MAP/`_COR` coordinate blocks iterate their children
+  directly (no dispatch retry); a bare member line — an empty
+  `_SEN1`/`ABBR` sentence or flag, an empty `LATI`/`_LAS`/`_LOS`
+  coordinate — carries no data: the text slot keeps the empty value
+  and a coordinate-less MAP/`_COR` block is dropped, silently.
+- **The not-GEDCOM detection.** A document with content but without a
+  single level-0 line is not GEDCOM at all (REXX scripts, ASCII-art
+  design documents, VHDL sources and HTML pages under `.ged`/`.gdz`
+  names); it fails once with `document.not-gedcom` — one clear error
+  instead of the per-line `line.bad-level` cascade.
+- **The ANSEL windows-1251 fallback.** An ANSEL-declared document
+  whose lines mostly fail the ANSEL set is actually windows-1251 —
+  the Agelong Tree export dialect (the GenWiki "GEDCOM/_Nutzerdef-Tag"
+  article documents the exporter writing windows-1251 while declaring
+  CHAR ANSEL). The whole document decodes as CP1251, silently; a file
+  with only a few genuinely undefined ANSEL bytes (a stray byte, the
+  TGC551 torture tests) stays below the threshold and keeps its
+  `decoding.invalid-ansel` errors.
+- **The charset-name leniencies.** The `utf8bom` spelling (the GenData
+  test file) is UTF-8, and a CHAR value that cannot name a character
+  set — no ASCII letters, like the lone euro marker byte the
+  lifelines exports write — carries no declaration: the bytes decode
+  as CP1252, whose table maps every byte and absorbs the stray
+  markers cleanly.
+- **The short name and the Familio place id.** `_SHON` under NAME
+  (Brother's Keeper 6's short name, catalogued in the GenWiki
+  "GEDCOM/_Nutzerdef-Tag" table) types into
+  `PersonalNameStructure.shortName`; `_FAMILIO_GUID` under PLAC (the
+  place's identifier on familio.org, written by the Familio exports
+  next to the settlement's URL) types into `PlaceStructure.familioId`.
+  Both round-trip in both versions.
+- **The OFB-Werkstatt tags.** The church-book (Kirchenbuch) wording
+  fields of the OFB-Werkstatt exporter, documented in its own tag
+  reference (the URI the exporter's GEDCOM 7 SCHMA declarations point
+  to: <https://github.com/thobgg/ofb-werkstatt/blob/main/doku/gedcom7-tags.md>)
+  type into dedicated slots: `_KB_NAME` under NAME (the name in the
+  church book's spelling — `PersonalNameStructure.nameAsRecorded`),
+  `_BERUF_KB` under OCCU or as the bare INDI-level line (the
+  occupation's wording — `OccupationAttribute.asRecorded`), and the
+  INDI-level `_TODURSACHE`/`_ALTER_KB` (the cause of death and the
+  age as stated in the entry — `IndividualRecord.deathCauseAsRecorded`/
+  `ageAsRecorded`). Written back as the same tags in both versions.
+- **The bare translation and the ISO exact date.** A NOTE.TRAN
+  without a MIME/LANG substructure (the maximal70 test files write
+  `2 TRAN British English` bare) keeps the translation text alone —
+  the payload is the data, the kind declaration is not. The
+  ISO-8601 timestamp form of the exact date (`2 DATE
+  2022-08-24T12:26:24.532Z`, the geneafinder exports write it as the
+  CHAN.DATE value) parses the date part into the DateExact value and
+  the time part into the TimeValue (the fraction and the Z survive).
+- **The continuation leniencies.** A CONC/CONT line merges into its
+  parent's payload even after the parent's other substructures (the
+  order rule is serialization pedantry — the model stores the
+  payload and the children independently, and the emitter restores
+  the order). A wrong-level continuation (`1 NOTE …` + `1 CONT …`,
+  the GenMVD/Geni demo exports; `3 TEXT …` + `2 CONC …`, the
+  myheritage fixture) continues the preceding text-bearing line —
+  the exporters drop one level of indentation, and the immediately
+  preceding text line is the only candidate. A continuation under a
+  pointer slot cannot merge into the pointer — the gedbas exports
+  write note text under the FAMC pointer — so the line stays a
+  child of the pointer slot and the dispatch keeps it as a generic
+  extension; a pointer-valued continuation (`1 CONC @NI156@`, the
+  Ajmani exports) keeps the pointer string as the text.
+- **The line-comment values.** A value that is a line comment
+  (`0 @F1@ FAM // Family for Peter's parents`, `1 DEAT // Burial
+  information suggests …` — the hand-annotated ged_record samples)
+  is dropped: it annotates the line, not the data — the same rule
+  the pointer comments follow.
+- **The xref in the value position.** An xref on a substructure line
+  with no value (`1 @I2@ HUSB`, the backend_family.ged exports write
+  the partner and child pointers in the xref position) relocates
+  into the value slot, where the tag expects it; the misplaced
+  identifier is not registered, so a relocation whose target does
+  not exist stays a dangling pointer (dropped silently by the
+  resolve rules). An xref on a substructure that also carries a
+  value stays `line.xref-on-substructure`.
+- **The over-indented continuation.** A CONC/CONT whose enclosing
+  level is missing (the exporter indented the continuation one level
+  too deep — `2 CONT Main decisive actions:` + `3 CONT - Delivers
+  …`, the three-body-problem fan trees) merges into the deepest
+  text-bearing NOTE/TEXT line on the stack — the immediately
+  preceding text line, nothing further is guessed. A level-skip
+  without such an anchor keeps the error.
+- **The SUBN placement.** The ordering rule (the SUBN record right
+  after the header, GEDCOM 5.5.1 §2 p.23) is serialization pedantry:
+  a SUBN anywhere in the stream parses as the submission record (the
+  header-adjacent one binds the dataset slot, the others stay
+  records — real files place SUBN after the SUBM record). The ORDI
+  payload accepts the abbreviated Y/N spellings beside yes/no.
+- **The xref repairs.** Non-ASCII characters in an xref are accepted
+  (the 7.0 grammar allows them and the wild writes them: `0 @家族1@
+  FAM`, `0 @شجرة عائلة@ INDI` — the unicode_xref-nonlatin fixture and
+  the kahatTree exports); an empty identifier (`0 @@ OBJE`) leaves
+  the record without an xref; an unterminated xref (`0 @I1 SUBM`)
+  is closed at the next blank.
+- **The date leniencies.** A leading weekday name (`Friday, 20th
+  November 1992`, the PAF royal-family exports) is dropped; a
+  trailing parenthesized phrase after a plain date (`1 Jan 2026
+  (Ancestry source: Publisher date)`, the GEDCOM.NET test tree)
+  rides along without the INT keyword; a plain date in the period
+  slot (`3 DATE 5 JUL 1776` under SOUR.DATA.EVEN) is the single-date
+  period. The European numeric spellings (`23.8.2024`, `10-08-2011`
+  — day first, like the GEDCOM date itself) and the month-named dash
+  spelling (`23-Apr-98`, the two-digit year is the 20th-century one)
+  normalize to the standard form; `unbek` joins the unknown set. The
+  American month-first spelling (`FEB 13 2026`, the WIJA exports)
+  swaps to the day-first order; the all-numeric European spelling
+  (`20 10 1996`, the Kgene exports) maps the same way; a dotted
+  German month abbreviation (`Jan. 2015`, the gedbas exports) strips
+  the dot. A
+  date part that is empty (`2 DATE ABT` with nothing after the
+  modifier, `2 DATE BET  AND 1907`, `2 DATE FROM  to 1947` — the
+  gedcom-go longsword and Internet Archive trees) keeps the whole
+  payload as the phrase instead of crashing the parse. The
+  D-less Julian escape (`@#JULIAN@ 28 JUN 1491`, the
+  gedcom_single-person royal exports) resolves to the Julian
+  calendar.
+- **The at-sign escape leniencies.** A lone `@#` with no closing at
+  sign in a text value (`This note includes special characters:
+  @#$%&*`, the comprehensive test trees and the gedcom-go edge-case
+  fixture) is literal text, not an escape — the characters stay
+  verbatim and the scan continues.
+- **The banned-control sanitization.** The C0 controls of a line
+  *value* (the tab aside) are sanitized rather than rejected: the
+  vertical tab (U+000B) is a line break in the wild — the exporters
+  write it inside note text where CONT belongs (`Subj: …\vDate:
+  …\vFrom: …`, the LydiaSHargrove and webprowett notes) — and becomes
+  the newline; the remaining controls (DEL, the stray DC4 of the
+  willis-ansel sample) are dropped and the line survives, silently. A
+  control character inside a cross-reference identifier stays
+  `line.banned-char` — the identifier itself is broken.
+- **The unleveled-continuation merge.** An unleveled line *inside* an
+  otherwise valid GEDCOM file merges into the payload of the
+  NOTE/TEXT line it directly follows, as a newline continuation —
+  human-edited files drop the CONT prefixes (the Gedcom4Sharp
+  Sopranos fixture, the ancestry-quirks fixture, the MyHeritage
+  Hebrew bios under the citation `4 TEXT`). A numbered-list marker
+  (`1. Jaume I`, the myheritage sample notes) is free text too: no
+  valid GEDCOM line starts with digits and a dot. The CONC/CONT
+  chain case is covered because a merged continuation leaves its
+  parent on the stack. A blank line ends the run (the
+  ancestry-quirks "after a blank line" line stays an error), a
+  pointer-valued note cannot take text, and any other anchor — a
+  name, a pointer line, the file start, post-TRLR prose, markdown
+  fences — keeps the `line.bad-level`/`line.bad-tag` error: those
+  lines have no principled home, and the nothing-is-guessed policy
+  forbids attaching them to a neighbouring structure.
+- **The medium leniency.** A value outside the MEDI enum (`TYPE
+  image`, `TYPE story`, `MEDI Article`, `MEDI "Document agrafé"`)
+  becomes OTHER with the phrase; 5.5.1 writes the phrase back as the
+  TYPE value.
+- **The sex leniency.** The long spellings Male/MALE/Female/FEMALE
+  normalize into the standard M/F letters.
+- **The enum leniencies of the remainder sweep.** The 5.5.1 LDS
+  ordinance statuses CLEARED and QUALIFIED (dropped from the 7.0
+  enumset) are kept verbatim; the `RESN` parts spelled `none` (any
+  case) are filtered before the enum validation, so `RESN NONE,
+  LOCKED` keeps LOCKED; the GEDKeeper numeric direction marker of the
+  MFT `_COR` block (`_LON 1`, the gedcomimport_samples) defaults like
+  an absent direction (the DMS numbers are the data, the marker is
+  not); and the GEDKeeper `_CONF_FLAG 1`/`0` spells the Y/N flag.
+- **The quality leniency.** The non-standard `QUAY 4` (GEDBAS) is
+  accepted as a fourth assessment level.
+- **Bare numeric pointers.** The Geni bare-identifier rule extends to
+  digit ids (`1 CHIL 0517745826` wraps into `@0517745826@`).
 
 ### Container leniencies of the 2026-11 sweep
 
@@ -770,11 +1021,16 @@ which is expected:
 | --- | --- | --- |
 | `_STE`, `_STF`, `_ACT`, `_ORD`, `_LCS`, `_SCS`, `_FOM` (and the `_PTE`/`_PTF`/`_VCS`/`_NCS` variant) | Synium MacFamilyTree exports (6 corpus copies of the same format: Nushi-Genealogy.ged, Hilligsoe.ged, the Franz Schubert export pair, the spindler sample, the Sidam31 test file — HEAD.SOUR "SyniumFamilyTree") | nested statement/fact blocks of one private export format (thousands of occurrences each — the files' whole structure) |
 | `PEDIGREELINK` records with `FAMILY`/`INDIVIDUAL`/`POSITION`/`DISPLAY`/`BOUNDARYRECT` children | GenoPro exports (the linguatree family tree, HEAD.SOUR "GenoPro") | the tree-layout record of the program: pedigree display positions, boundary rectangles and display options — pure layout state, no genealogical content |
+| `LEFT`/`RIGHT`/`TOP`/`BOTTOM`/`FILL`/`SIZE`/`WIDTH`/`HEIGHT`/`ALIGNMENT`/`VERTICAL`/`HORIZONTAL`/`BORDER`/`COLOR`/`COLORS`/`OUTLINE`/`POINTS`/`PADDING`/`LINES` | GenoPro exports | the geometry and colors of the layout blocks (the `POSITION`/`DISPLAY` rectangles and labels) — display state |
 | `_POSITION <x> <y> <w> <h>` under OBJE, `ZOOM`/`PLEV` under `_PLAC.MAP` | various exporters | the media-object layout coordinates and the map zoom/level — display state |
-| `NAME` under HEAD.SUBM | Family Echo exports | the submitter's contact written under the SUBM pointer (an e-mail as the NAME); kept as a header extension like the Aldfaer contacts (same deliberate decision) |
+| `_PPEXCLUDE` under INDI | report-oriented exporters | the "exclude from printed reports" flag — presentation state |
+| `_PATRIARCH` under INDI | GEDKeeper | the tree's patriarch (root ancestor) mark — display state |
+| the GenoPro display entities (`Label`/`Picture`/`SocialEntity`/`GLOBAL` and the relationship records, with their `POSITION`/`DISPLAY`/`SIZE`/`COLOR` geometry and the `Picture` cache fields `CACHE`/`DIMENSION`/`DPI`/`FILESIZE`/`PATH`/`REPORT`/…) | GenoPro exports (the linguatree and Harry Potter trees) | the display/schema half of the program's entity dialect — geometry, palette and interface state, no genealogical content; the records stay generic (their inner standard tags count as nested-in-generic). The *data* half — the `Occupation`/`Education`/`Contact`/`Marriage`/`Twin` entities with their `OCCUPATIONS`/`EDUCATIONS`/`CONTACTS`/`UNIONS`/`TWINS` INDI links — is typed, see chapter 6 |
+| the `_DESCRIPTION Y` flag under an event's NOTE | MyHeritage | marks that particular note as the event's description — the flag sits inside the note block, so it stays nested-in-generic (the event-level flag does type, see `EventDetail.descriptionAware`) |
 | `_FS_ID` | a single merge-test fixture | synthetic test data |
 | `_GROUP` | a single geotour-genoroots fixture | synthetic test data |
 | `NAME_GIVN`, `NAME_SURN`, `BIRT_DATE`, `BIRT_SOUR__QUAL__…`, `DEAT_PLAC_MAP_LATI`, `HEAL_TYPE`, `BURI_SOUR`, `CHR_…` and the rest of the underscore-joined family | `corsier-1680-1840.ged` and its GEDZIP twin (zenodo 10.5281/zenodo.4674521, lucasrappo/corsier-1680-1840 — two corpus entries, one content) | a Heredis export post-processed by a tool that flattened every hierarchy into one underscore-joined level-1 tag: `BIRT.DATE` → `BIRT_DATE`, `BIRT.SOUR._QUAL` → `BIRT_SOUR__QUAL`, `DEAT.PLAC.MAP.LATI` → `DEAT_PLAC_MAP_LATI`. The record skeleton (`0 @I…@ INDI`, `1 NAME`, `1 SEX`, `1 FAMC`) is standard, the substructures are not, and the notes carry RTF. Typing the flattened spellings would model one broken export — they stay generic extensions |
+| `CALN` directly under the SOUR record | the GEDCOM.NET test tree copies (Ancestry's GedcomNetTestTree, ~21 corpus copies) | the call number at the source-record level (no GEDCOM version has that position) with synthetic values (`CN 123`) — test-fixture data of one file family, kept generic |
 
 **Brother's Keeper family** (BKW6, Legacy cat.): name variants(`_BIRN` → `NAME` `TYPE BIRTH`; `_ADPN`/`_CENN`/`_CURN`/`_FARN`/`_FKAN`/
 `_GERN`/`_HEBN`/`_INDN`/`_OTHN`/`_RELN`/`_SHON`/`_SLDN` → `NAME` `TYPE
@@ -1056,8 +1312,38 @@ the event-level `CHAN`/`CREA` (→ `EventDetail.changeDate`/
 Left in the pile deliberately: the loose `REFN` positions on other
 structures, the `_ATTC`/`_PART` swarm blocks (a dozen occurrences),
 the GenoPro layout dialect, the media/map display state
-(`_POSITION`, `ZOOM`/`PLEV`), the NAME under HEAD.SUBM, and the tags
-of single-file formats.
+(`_POSITION`, `ZOOM`/`PLEV`), and the tags of single-file formats.
+
+### The 2026-11 remainder sweep II (typed additions)
+
+The final ranking of the tolerant corpus run (3002 files, ~62k
+generic occurrences left after the earlier sweeps) put the remaining
+*data* clusters — the tags that carry genealogical content inside
+standard positions that no GEDCOM version defines — first. This sweep
+types them; the leftovers are the deliberately-generic layout
+families of chapters 6–7 (MacFamilyTree ~30k, GenoPro display
+entities and layout, `_DATI`/`_FOM`, the map display state) and
+singletons nested inside generic records:
+
+| Tag / position | Vendors | Meaning | Model field |
+| --- | --- | --- | --- |
+| `NOTE` under ADDR | the standard 5.5.1 ADDRESS_STRUCTURE slot, used by the RM11 family histories (REPO.ADDR.NOTE) and the Allmon trees (BURI.ADDR.NOTE) | Notes inside the address block | `AddressStructure.notes` |
+| `SOUR` under CHAN (with `DATA`/`TEXT`) | the David England GEDs (LydiaHargrove.ged) | The citation of the change itself | `ChangeDate.citations` |
+| `SOUR` under an event's `DATE` or `PLAC` | TMG (the Hawaiian Kings trees) | Citations attached to the date/place line | `DateStructure.citations` / `PlaceStructure.citations` |
+| `ALIA` + `SOUR` and `TITL` under NAME | TMG (the Hawaiian Kings trees) | A name alias with its citations; a name-level title | `PersonalNameStructure.aliasLinks` / `.title` |
+| `DATE`/`PLAC` under an inline NOTE | TMG (the Hawaiian Kings trees) | The date and place of the note itself | `Note.date` / `Note.place` |
+| `DATE`/`PLAC` under the SOUR record | Canvas Roots exports; the Legacy record-level DATE normalizes into the same slot | The date and place of the source record itself | `SourceRecord.date` / `.place` |
+| `1 TITL @R…@` under SOUR + the `TITL` records | the Ancestris kennedy sample | The source bibliography in a separate title record (payload + CHAN/AUTH/PUBL/SERS/ABBR/REPO/NUMB/CALN) | `TitleRecord` + `SourceRecord.titlRef` |
+| `PLAC`/`DATE` under the inline OBJE link | WikiTree-style exports (GEDs_Gresham-187.ged) | The place and date of the media object under the inline link | `MultimediaRecord.place` / `.date` |
+| the GEDKeeper long event spellings and the gedcom5-conversion Case006 catalog | GEDKeeper exports, the FamilySearch gedcom5-conversion test corpus | Event facts spelled with long English names, with DATE/PLAC children | EVEN + TYPE |
+| `NAME` under HEAD.SUBM | Family Echo exports | The submitter's contact under the SUBM pointer | `Header.submitterName` |
+
+The previous round's GenoPro entity records (`Occupation`/
+`Education`/`Contact`/`Marriage`/`Twin` + the INDI containers), the
+Ancestris/ged4web INDI-level and OBJE-record `TITL`, the `TEXT` under
+the WILL event and the GEDKeeper `NEWS`/`OBIT`/`REMV`/`ILL`/`EDUS`/
+`BATM`/`EMPL` set are covered by the same test file
+(`tests/vendor-extensions-corpus-typing-3.test.ts`) and chapter 6.
 
 ## 7. Deferred: presentation and UI state
 

@@ -119,7 +119,9 @@ describe('exact and period dates (7.0)', () => {
   test('DatePeriod', () => {
     expect(parseDatePeriod70('', pos)).toEqual({ kind: 'period' });
     expect(parseDatePeriod70('FROM 1900 TO 1910', pos).kind).toBe('period');
-    expect(codeOf(() => parseDatePeriod70('1900', pos))).toBe('date.invalid');
+    // A plain date in the period slot is the single-date period (the
+    // full-leniency container rule).
+    expect(parseDatePeriod70('1900', pos)).toEqual({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 } });
   });
 });
 
@@ -254,6 +256,14 @@ describe('names, coordinates and tag definitions', () => {
     expect(parseLongitude('E13.4', pos)).toEqual({ direction: 'E', degrees: 13.4 });
     expect(parseLongitude('W180', pos)).toEqual({ direction: 'W', degrees: 180 });
     expect(codeOf(() => parseLongitude('E181', pos))).toBe('longitude.invalid');
+    // The DMS spelling (the gedcom4j samples): the direction defaults
+    // from the sign.
+    expect(parseLatitude("+50° 3' 1.49\"", pos)).toEqual({ direction: 'N', degrees: 50 + 3 / 60 + 1.49 / 3600 });
+    expect(parseLongitude("+19° 56' 21.48\"", pos)).toEqual({ direction: 'E', degrees: 19 + 56 / 60 + 21.48 / 3600 });
+    // The colon-separated DMS of the webtrees exports (double or
+    // single colons, optional trailing quote).
+    expect(parseLatitude('N46::3::19"', pos)).toEqual({ direction: 'N', degrees: 46 + 3 / 60 + 19 / 3600 });
+    expect(parseLongitude('E14:30:52', pos)).toEqual({ direction: 'E', degrees: 14 + 30 / 60 + 52 / 3600 });
   });
 
   test('tag definitions', () => {

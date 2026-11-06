@@ -78,8 +78,12 @@ The complete picture, at a glance:
   identifiers, and the POLI|RELI|GEOG|CULT hierarchy, plus the
   person-side tags, same-sex unions, negatives, and cohabitation —
   and written back in both versions. The GEDCOM 5.5.5 vocabulary is
-  accepted on any 5.x import as part of the 5.x grammar (see
-  Parsing); the 5.5.5 container rules are not a target.
+  accepted on any 5.x import as part of the 5.x grammar — the values
+  (SEX X/N, BCE/BC) plus the abandoned 1999 5.5.5 draft's full-word
+  tag spellings (INDIVIDUAL for INDI, BIRTH for BIRT, OCCUPATION for
+  OCCU — the published 5.5.5 sample and the FamilySearch
+  gedcom5-conversion test resources; see parsing/gedcom-555.ts); the
+  5.5.5 container rules are not a target.
 - **GEDZIP.** FamilySearch `.gdz` archives read and write on the same
   layer (see GEDZIP).
 - **Errors are values.** `ParseResult<T>` end to end — no exceptions,
@@ -299,7 +303,13 @@ Input is always bytes. Version handling:
   the single-byte encoding such files actually hold when they
   declare UTF-8. The 7.0-only banned-character rule (the C1
   controls) is lifted: the 5.x rule (tab allowed, the
-  other C0 controls and DEL banned) applies everywhere.
+  other C0 controls and DEL banned) applies everywhere. The banned
+  controls of a line *value* are sanitized rather than rejected: the
+  vertical tab is a line break in the wild (the exporters write it
+  where CONT belongs) and becomes the newline; the remaining
+  controls are dropped and the line survives. A control character
+  inside a cross-reference identifier stays an error — the
+  identifier itself is broken.
 - **5.5.1** — the character set is detected from the header `CHAR` tag
   (required). `ANSEL` uses the complete Appendix C tables; non-spacing
   characters are buffered and attached to their base character, and
@@ -560,7 +570,10 @@ The agreed policy:
   typed; under the full-leniency rule every other unknown tag —
   non-underscore vendor tags outside the catalogs, standard tags in
   vendor positions — is likewise preserved as a generic extension
-  instead of failing.
+  instead of failing. The extension tree and every structural walk
+  over the model build iteratively: a hand-made file can nest
+  thousands of levels (the vscode-gedcom "numbered list" fixture
+  nests 9000), and the recursive walks would blow the JS stack.
 - **Same behavior in both versions.** Known vendor tags are recognized
   on input in 5.5.1 and 7.0 alike. On output, a construct that has a
   standard equivalent is written in the standard spelling of the target
@@ -809,18 +822,67 @@ would be, or where the model takes a documented position:
     level jump attaches the line to the nearest enclosing level.
   - The HEAD may appear anywhere in the record stream (a NOTE
     preamble or straight records first); a duplicate HEAD block
-    mid-stream is skipped. Any GEDCOM 5.x version is accepted (5.3,
-    5.4, 5.50, 5.01 included); only 3.0/4.0 are rejected.
+    mid-stream is skipped. Any dotted GEDCOM version is accepted
+    (the 5.x drafts 5.3/5.4/5.50/5.01, the pre-5.x versions 1.0/3.0/
+    4.0/4.18 — the full leniency keeps their unknown tags generic —
+    and the `GEDCOM 5.5` prefix and `5.5.1n` typo spellings); the
+    value survives verbatim in the model.
   - The first occurrence wins: duplicate cross-reference identifiers
     (later records keep their identifier but references resolve to the
     first) and repeated `{0:1}` fields (the later line is dropped).
   - A value that starts with a single `@` but is not a valid pointer
     is text; a pointer with a trailing C-style comment (`2 FAMC @4@
     /* … */`) parses as the pointer and drops the comment; a dangling
-    pointer link is dropped (the tolerant parse records
-    `document.xref-not-found`); the Geni.com bare-identifier
-    dialect (`0 I1234 INDI`, `1 FAMC F123`) is normalized to the
+    pointer link is dropped silently — the target record is not in
+    the document, and the link carries nothing without it, so it is
+    neither imported nor recorded as an error; the Geni.com
+    bare-identifier dialect (`0 I1234 INDI`, `1 FAMC F123`, bare
+    numeric ids like `1 CHIL 0517745826`) is normalized to the
     standard spellings.
+  - A document with content but without a single level-0 line is not
+    GEDCOM at all (REXX scripts, ASCII-art design documents, VHDL
+    sources and HTML pages under `.ged`/`.gdz` names in the corpus):
+    it fails once with `document.not-gedcom` instead of a per-line
+    `line.bad-level` cascade. An unleveled line *inside* a GEDCOM
+    file merges into the payload of the NOTE/TEXT line it directly
+    follows (a newline continuation — human-edited files drop the
+    CONT prefixes: the Sopranos and ancestry-quirks fixtures, the
+    MyHeritage Hebrew bios under citation TEXT); a numbered-list
+    marker (`1. Jaume I`) is free text too — no valid GEDCOM line
+    starts with digits and a dot; a blank line ends the run, and any
+    other anchor (a name, a pointer line, the file start) keeps the
+    `line.bad-level`/`line.bad-tag` error — those lines have no
+    principled home. A CONC/CONT line merges into its parent's
+    payload even after the parent's other substructures (the order
+    rule is serialization pedantry), and a wrong-level continuation
+    (`1 NOTE …` + `1 CONT …`) continues the preceding text-bearing
+    line. A value that is a line comment (`0 @F1@ FAM // comment`)
+    is dropped — it annotates the line, not the data. An xref on a
+    substructure line with no value (`1 @I2@ HUSB`) relocates into
+    the value slot, where the tag expects it. A CONC/CONT indented
+    one level too deep merges into the deepest text-bearing
+    NOTE/TEXT line on the stack. Non-ASCII xref characters are
+    accepted, an empty `@@` identifier leaves the record without an
+    xref, and an unterminated xref is closed at the next blank. A
+    leading weekday name and a trailing parenthesized phrase are
+    dropped from a date, and a plain date in the period slot is the
+    single-date period.
+  - A line whose required payload is absent — or a pointer in a text
+    slot (`1 TITL @R5@`) — is retried with the value coerced to text:
+    the line is kept with an empty payload (or the pointer string)
+    and its substructures survive; pointer slots with no value are
+    dropped. The repair is a resolution, not an error — nothing is
+    recorded when it succeeds. A text payload in the ALIA pointer
+    slot (`1 ALIA /Becky/`) is kept as a NAME with the AKA type; a
+    pointer with a trailing `//` comment (`1 WIFE @I9@ // …`) parses
+    as the pointer like the `/* … */` form; a comma-separated pointer
+    list in the GenoPro containers (`1 OCCUPATIONS @a@, @b@`) is
+    split and every pointer resolves; a pointer with a trailing blank
+    or a bare US escape artifact (`1 FAMC @F2@ `, `1 SUBM @<US20>I1@`)
+    parses as the trimmed token. An unknown medium value (`TYPE
+    image`, `TYPE story`, `MEDI Article`) becomes OTHER with the
+    phrase; the sex accepts the long spellings Male/Female/MALE/FEMALE;
+    the quality accepts the non-standard `4`.
   - Value leniencies: a non-`Y` text payload on an event line is kept
     verbatim (and a stray value on a no-payload line is dropped, the
     line parses without it); a text payload on a SOUR/REPO record line
@@ -832,17 +894,32 @@ would be, or where the model takes a documented position:
     verbatim (an unparseable date becomes a phrase); times accept
     `UTC`/`GMT±n` suffixes and bare hours; malformed names keep the
     whole text as the given name; enums are trimmed (with `none` RESN
-    filtered, descriptive PEDI kept as OTHER + phrase, YES/NO flags);
+    filtered before validation — `RESN NONE, LOCKED` keeps LOCKED —
+    descriptive PEDI kept as OTHER + phrase, YES/NO flags; the 5.5.1
+    LDS statuses CLEARED/QUALIFIED kept verbatim; the GEDKeeper
+    numeric direction marker `_LON 1` defaults like an absent
+    direction, and `_CONF_FLAG 1`/`0` spells the Y/N flag);
     coordinates accept bare decimals and DMS; ages accept ranges and
     stray-letter numbers; GEDZIP archives without `gedcom.ged` use the
-    first `.ged` entry.
-- **The tolerant parse.** `parseTolerant` records EVERY problem of a
-  document and keeps parsing: one error entry per offending line,
-  structure or record (capped at 10,000 per document so a cascade does
-  not drown the report), and the best-effort dataset is returned
-  alongside the list. The strict `parse` entry stays fail-fast on the
-  first error. The corpus runner drives `parseTolerant`, so each file
-  reports its complete error set, not just the first one.
+    first `.ged` entry; a NOTE.TRAN without MIME/LANG keeps the
+    translation text alone, and the ISO-8601 timestamp form of the
+    exact date (`2 DATE 2022-08-24T12:26:24.532Z`) parses the date
+    and the time. An ANSEL-declared document whose lines mostly
+    fail the ANSEL set decodes as windows-1251 (the Agelong Tree
+    export dialect); a file with only a few undefined ANSEL bytes
+    keeps its decoding errors.
+- **The tolerant parse.** `parseTolerant` records every *unresolved*
+  problem of a document and keeps parsing: one error entry per
+  offending line, structure or record (capped at 10,000 per document
+  so a cascade does not drown the report), and the best-effort dataset
+  is returned alongside the list. Repairs the rules above define a
+  resolution for (the bare-line retry that succeeds, the stray-value
+  drop, the comment-stripped pointers, the comma-split pointer lists,
+  the text alias) are applied silently — an error entry means the
+  line was dropped or the value rejected with no recovery. The strict
+  `parse` entry stays fail-fast on the first error. The corpus runner
+  drives `parseTolerant`, so each file reports its complete error set,
+  not just the first one.
 - **Full leniency for unknown tags.** A tag the typed grammar has no
   slot for — an underscore extension tag, a catalogued non-underscore
   vendor tag, a standard tag in a position the standard does not

@@ -14,7 +14,7 @@ import { dispatch, req, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import type { RawNode } from './lines';
 import { eventDetailHandlers, merge551DetailContacts } from './events';
-import { parseMapCoordinates } from './names-places';
+import { parseMapCoordinates, parseMftCoordinates } from './names-places';
 import { parseMultimediaLink, parseSourceCitation } from './sources-media';
 import {
   datedSourceHandlers,
@@ -241,7 +241,18 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         dispatch(child, entry, { TYPE: () => undefined }, ctx, ['TYPE']);
         return;
       }
-      out.map = parseMapCoordinates(child, ctx);
+      const map = parseMapCoordinates(child, ctx);
+      if (map !== undefined) {
+        out.map = map;
+      }
+    },
+    '_COR': (child) => {
+      // MFT7: the place card's coordinates, the DMS block at the
+      // record level (see PlaceRecord.map).
+      const map = parseMftCoordinates(child, ctx, out);
+      if (map !== undefined) {
+        out.map = map;
+      }
     },
     NOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));

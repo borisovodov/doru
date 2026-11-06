@@ -132,8 +132,13 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Aldfaer.php).
         // They are kept verbatim as header extensions instead of being
         // discarded (the nesting is normalized to the header level on
-        // export).
+        // export). The Family Echo NAME child types into
+        // Header.submitterName.
         for (const grandchild of child.children) {
+          if (grandchild.tag === 'NAME') {
+            header.submitterName = reqText(grandchild);
+            continue;
+          }
           addExtension(header, grandchild, ctx);
         }
       },
@@ -308,25 +313,22 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     version: versNode !== undefined && versNode.value.kind === 'text' ? versNode.value.text : '5.5.1',
   };
   // The version gate reads only the format lineage: the parser
-  // accepts every file declaring a GEDCOM 7.x version or a GEDCOM 5
-  // version, and nothing else. The declared value does not select a
-  // grammar — both pipelines parse the same import grammar (see the
-  // README's Known strict decisions). The whole 5.x family is
-  // accepted (the full-leniency container rule): files in the wild
-  // declare the superseded drafts 5.3/5.4 and odd patch levels
-  // (5.50, 5.01) whose record grammar is close enough to 5.5.1 that
-  // rejecting them would lose the whole document.
-  if (!/^7\./.test(gedcom.version) && !/^5(\.\d+)*( ?EL)?$/i.test(gedcom.version)) {
-    // The ` EL` suffix is the de-facto marker of GEDCOM 5.5EL files
-    // written by PC-AHNEN (`VERS 5.5.1 EL`): it is not part of any
-    // specification, and Tamura Jones ("Detecting GEDCOM 5.5EL",
-    // https://www.tamurajones.net/DetectingGEDCOM5.5EL.xhtml)
-    // recommends that readers treat it as a non-fatal deviation and
-    // continue with the 5.5.1 grammar — which is what this gate does
-    // (the marker survives verbatim in Gedcom.version).
-    // Older versions (3.0, 4.0) have incompatible grammars and are
-    // rejected here with an explicit error instead of failing
-    // mid-file with `structure.unknown-tag` errors.
+  // accepts every file declaring a dotted version number, and
+  // nothing else. The declared value does not select a grammar —
+  // both pipelines parse the same import grammar (see the README's
+  // Known strict decisions). The whole 5.x family is accepted (the
+  // full-leniency container rule): files in the wild declare the
+  // superseded drafts 5.3/5.4 and odd patch levels (5.50, 5.01)
+  // whose record grammar is close enough to 5.5.1 that rejecting
+  // them would lose the whole document. The pre-5.x versions (1.0,
+  // 4.0, 4.18 — the PAF-era GEDs exports) are accepted the same way:
+  // the full leniency keeps their unknown tags generic instead of
+  // failing mid-file. The `GEDCOM ` prefix (`VERS GEDCOM 5.5`, the
+  // WJTHOMAS exports) and a trailing typo (`5.5.1n`, the
+  // student-test files) are tolerated — the value survives verbatim
+  // in Gedcom.version.
+  const declared = gedcom.version.replace(/^GEDCOM\s+/i, '').trim();
+  if (!/^\d+(\.\d+)*/.test(declared)) {
     fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (a 7.x version or any 5.x version)`, node.position);
   }
   // The GEDCOM-L addendum declarations under GEDC.VERS (see

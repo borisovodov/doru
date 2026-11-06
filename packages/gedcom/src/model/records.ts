@@ -24,6 +24,14 @@ import type { CensusRecord } from './census-record';
 import type { CreationDate } from './common';
 import type { GroupRecord } from './group-record';
 import type { OccurrenceRecord } from './occurrence-record';
+import type {
+  ContactRecord,
+  EducationRecord,
+  MarriageRecord,
+  OccupationRecord,
+  TwinRecord,
+} from './genopro-entity';
+import type { TitleRecord } from './title-record';
 import type { TreeCategoryRecord, TreeTagRecord } from './tree-tag-record';
 import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
@@ -355,10 +363,20 @@ export interface FamilyRecord extends GedcomStructureBase {
    * COHABITATION, ENGAGEMENT, UNKNOWN — observed in Heredis exports,
    * e.g. the corpus file "Dudouyt Heredis 2014-Export.ged", HEAD.SOUR
    * "Heredis MAC2021"; kept verbatim, the value set is not documented
-   * by the vendor). Not part of any GEDCOM version. Recognized on
-   * input and written back as `_UST` in both versions.
+   * by the vendor). GenoPro's `RELATION` under FAM carries the same
+   * fact (Marriage, Divorce, CommittedRelationship, SeparationLegal,
+   * Widowed, …) and normalizes into this slot. Not part of any GEDCOM
+   * version. Recognized on input and written back as `_UST` in both
+   * versions.
    */
   unionStatus?: Text;
+  /**
+   * `_FTSID` {0:1} — the family's id in the FamilySearch shared tree
+   * (the Swarm family-tree packs write it under FAM too; see
+   * IndividualRecord.familyTreeSystemId). Recognized on input and
+   * written back as `_FTSID` in both versions.
+   */
+  familyTreeSystemId?: Text;
   /**
    * `_GCID` {0:1} — the record's GEDitCOM id (a UUID assigned by
    * GEDitCOM II, John A. Nairn / RSAC Software — HEAD.SOUR "GEDitCOM
@@ -367,6 +385,13 @@ export interface FamilyRecord extends GedcomStructureBase {
    * versions.
    */
   geditcomId?: Text;
+  /**
+   * NUMB {0:1} — a running number the exporter assigns to the record
+   * (`1 NUMB 1`, the French gedcom-to-xml files). Kept verbatim. Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `NUMB` in both versions.
+   */
+  sequenceNumber?: Text;
   /**
    * `_PREF Y` {0:1} — marks the preferred family (the family of the
    * preferred parents, from the child's perspective). Written by
@@ -613,6 +638,22 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   updatedAt?: Text;
   /**
+   * `_ALTER_KB {0:1}` — the age as stated in the church book entry,
+   * often down to years, months and days (a computed birth date
+   * belongs under BIRT.DATE with CAL instead). The OFB-Werkstatt
+   * convention — the same tag reference as occupationAsRecorded.
+   * Recognized on input and written back as `_ALTER_KB` in both
+   * versions.
+   */
+  ageAsRecorded?: Text;
+  /**
+   * `_TODURSACHE {0:1}` — the cause of death in the wording of the
+   * church book entry. The OFB-Werkstatt convention — the same tag
+   * reference as occupationAsRecorded. Recognized on input and
+   * written back as `_TODURSACHE` in both versions.
+   */
+  deathCauseAsRecorded?: Text;
+  /**
    * _CREAT {0:1} — the date the record was created (a free text value;
    * the wire format of GenPlus, which writes it, is undocumented, so
    * the value is kept verbatim rather than parsed into the 7.0 CREA
@@ -700,6 +741,7 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   filiation?: Text;
   /**
+  /**
    * `_GCID` {0:1} — the record's GEDitCOM id (a UUID assigned by
    * GEDitCOM II, John A. Nairn / RSAC Software — HEAD.SOUR "GEDitCOM
    * II" in the corpus file Ajmani.ged). Not part of any GEDCOM
@@ -707,6 +749,13 @@ export interface IndividualRecord extends GedcomStructureBase {
    * versions.
    */
   geditcomId?: Text;
+  /**
+   * NUMB {0:1} — a running number the exporter assigns to the record
+   * (`1 NUMB 1`, the French gedcom-to-xml files). Kept verbatim. Not
+   * part of any GEDCOM version. Recognized on input and written back
+   * as `NUMB` in both versions.
+   */
+  sequenceNumber?: Text;
   /**
    * `_MTTAG {0:M}` — pointers to the MyHeritage tree tags applied to
    * the person (`1 _MTTAG @T10@`; see TreeTagRecord). Not part of any
@@ -774,6 +823,48 @@ export interface IndividualRecord extends GedcomStructureBase {
    * input and written back as `_EMAIL` in both versions.
    */
   email?: Text[];
+  /**
+   * PHON {0:M} — the individual's phone numbers, written directly
+   * under the INDI record (PAF and the ged4web exports; the standard
+   * positions are the event/address contacts). Not part of any GEDCOM
+   * version. Recognized on input and written back as `PHON` in both
+   * versions.
+   */
+  phone?: Text[];
+  /**
+   * FAX {0:M} — the individual's fax numbers, written directly under
+   * the INDI record (PAF; see `phone`). Not part of any GEDCOM
+   * version. Recognized on input and written back as `FAX` in both
+   * versions.
+   */
+  fax?: Text[];
+  /**
+   * ISDEAD {0:1} — the person's vital flag (Y/N): the GenoPro trees
+   * assert the person is dead without a DEAT event (observed in the
+   * linguatree family tree, HEAD.SOUR "GenoPro"). Not part of any
+   * GEDCOM version. Recognized on input and written back as
+   * `ISDEAD Y`/`ISDEAD N` in both versions.
+   */
+  deceased?: boolean;
+  /**
+   * `_WLNK {0:M}` — an external web link attached to the person: the
+   * TITL description and the NOTE payload carrying the URL (observed
+   * in the Ancestry-family exports, e.g. nextjs-genealogy's
+   * data_family.ged). Not part of any GEDCOM version. Recognized on
+   * input and written back as the `_WLNK` block in both versions.
+   */
+  webLinks?: WebLinkStructure[];
+  /**
+   * OCCUPATIONS/EDUCATIONS/CONTACTS/UNIONS/TWINS {0:M} — pointers to
+   * the GenoPro entity records of the person (see the
+   * genopro-entity model). Recognized on input and written back as
+   * the container lines in both versions.
+   */
+  occupations?: Pointer<OccupationRecord>[];
+  educations?: Pointer<EducationRecord>[];
+  contacts?: Pointer<ContactRecord>[];
+  marriages?: Pointer<MarriageRecord>[];
+  twins?: Pointer<TwinRecord>[];
   /**
    * _TODO {0:M} — research tasks attached to the individual: the
    * GenoPro / RootsMagic / Ahnenblatt to-do structure with the
@@ -1105,6 +1196,14 @@ export interface FamilyChildStatusStructure extends GedcomStructureBase {
 export interface SpouseFamilyLink extends GedcomStructureBase {
   /** The FAMS payload, {1:1} pointer to a FAM record. */
   family: Pointer<FamilyRecord>;
+  /**
+   * DATE {0:1} — the date of the family link itself (when the link
+   * was established; files in the wild write `2 DATE` under FAMS —
+   * observed in the cousin-marriage exercise files). Neither standard
+   * has the slot. Recognized on input and written back as `DATE`
+   * under the FAMS line in both versions.
+   */
+  date?: DateStructure;
   // Note: GEDCOM 7.0's INDI.FAMS has no PHRASE substructure at all
   // (g7:FAMS := FAMS + <<NOTE_STRUCTURE>>{0:M}, GEDCOM 7.0 §3.2.2); a
   // PHRASE under FAMS is not legal in any version and is discarded on
@@ -1133,6 +1232,19 @@ export interface AliasLink extends GedcomStructureBase {
   individual: Pointer<IndividualRecord>;
   /** PHRASE {0:1}, g7:PHRASE (GEDCOM 7.0 §3.2.2 INDIVIDUAL_RECORD). 5.5.1 has no PHRASE slot; dropped when serializing to 5.5.1. */
   phrase?: Text;
+}
+
+/**
+ * The `_WLNK` web-link block under an INDI record (see
+ * IndividualRecord.webLinks): the TITL description and the NOTE
+ * payload carrying the URL.
+ */
+export interface WebLinkStructure extends GedcomStructureBase {
+  tag: '_WLNK';
+  /** TITL {0:1} — the link's description. */
+  title?: Text;
+  /** NOTE {0:1} — the link's URL, carried as the NOTE payload. */
+  url?: Text;
 }
 
 /**
@@ -1391,6 +1503,13 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * linked from another tree or person); see AncestryClone.
    */
   clones?: AncestryClone[];
+  /**
+   * TITL {0:1} — the media object's title at the record level (the
+   * ged4web exports; the FILE-level TITL is MediaFile.title). Neither
+   * standard has the record-level slot. Recognized on input and
+   * written back as `TITL` in both versions.
+   */
+  title?: Text;
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -1448,6 +1567,21 @@ export interface MediaFile extends GedcomStructureBase {  /** The FILE payload, 
   form?: MediaFormatStructure;
   /** TITL {0:1}, g7:TITL — a title of the file. */
   title?: Text;
+  /**
+   * `_TEXT`/TEXT {0:1} — the file's transcription text (the FTM
+   * embedded-media shape writes it under the FILE line). Neither
+   * standard has the slot. Recognized on input and written back as
+   * `_TEXT` under the FILE line in both versions.
+   */
+  text?: Text;
+  /**
+   * `_DATE`/DATE {0:1} — the file's date (FTM writes the file
+   * modification timestamp under the FILE line: `2 _DATE 5/20/2017
+   * 1:51:01 PM`, kept verbatim). Neither standard has the slot.
+   * Recognized on input and written back as `_DATE` under the FILE
+   * line in both versions.
+   */
+  date?: Text;
   /**
    * _CTYP {0:1} — the content type of the picture (person, group,
    * place, signature, tombstone, document, heirloom). Written by
@@ -1758,6 +1892,28 @@ export interface SourceRecord extends GedcomStructureBase {
   author?: Text;
   /** TITL {0:1}, g7:TITL — the title of the source. */
   title?: Text;
+  /**
+   * TITL {0:1} — the pointer form of the title: a pointer to an
+   * Ancestris `TITL` record (see TitleRecord). The kennedy sample in
+   * the corpus writes `1 TITL @R5@` under the SOUR record, with the
+   * bibliography carried by the title record. Recognized on input and
+   * written back as the pointer TITL line in both versions.
+   */
+  titlRef?: Pointer<TitleRecord>;
+  /**
+   * DATE {0:1} — the date of the source record itself. Written by the
+   * Canvas Roots exports (`1 DATE 1910` under `0 @S1@ SOUR`, the
+   * gedcom-sample-medium-sources fixture in the corpus); no GEDCOM
+   * version has a DATE slot under SOUR. Recognized on input and
+   * written back as a DATE line in both versions.
+   */
+  date?: DateStructure;
+  /**
+   * PLAC {0:1} — the place of the source record itself (the same
+   * Canvas Roots shape as SourceRecord.date). Recognized on input and
+   * written back as a PLAC line in both versions.
+   */
+  place?: PlaceStructure;
   /** ABBR {0:1}, g7:ABBR — a short name used for sorting, filing, and retrieving records. */
   abbreviation?: Text;
   /**
@@ -2350,4 +2506,10 @@ export type GedcomRecord =
   | OccurrenceRecord
   | TreeTagRecord
   | TreeCategoryRecord
+  | OccupationRecord
+  | EducationRecord
+  | ContactRecord
+  | MarriageRecord
+  | TwinRecord
+  | TitleRecord
   | ExtensionRecord;

@@ -156,6 +156,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
           // SourceCitation.automatedRecordId).
           out.automatedRecordId = reqText(child);
         },
+        '_ABBR': (child) => {
+          // FTM: the cited source's short title (see
+          // SourceCitation.abbreviation).
+          out.abbreviation = reqText(child);
+        },
         WWW: (child) => {
           // The web address of the cited material, directly under the
           // citation (see SourceCitation.www).
@@ -309,6 +314,11 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         // SourceCitation.automatedRecordId).
         out.automatedRecordId = reqText(child);
       },
+      '_ABBR': (child) => {
+        // FTM: the cited source's short title (see
+        // SourceCitation.abbreviation).
+        out.abbreviation = reqText(child);
+      },
       WWW: (child) => {
         // The web address of the cited material (see
         // SourceCitation.www).
@@ -333,6 +343,48 @@ export function parseSourceCitation(node: RawNode, ctx: Ctx): SourceCitation {
         // The footnote text of the citation (see
         // SourceCitation.footnote).
         out.footnote = reqText(child);
+      },
+      '_APID': (child) => {
+        // Ancestry: the record reference under the citation (see
+        // SourceCitation.ancestryPointers).
+        (out.ancestryPointers ??= []).push(reqText(child));
+      },
+      '_CREF': (child) => {
+        // TMG-to-GEDCOM: the citation reference value (see
+        // SourceCitation.reference).
+        out.reference = reqText(child);
+      },
+      '_SUBQ': (child) => {
+        // RootsMagic: the subsequent-citation format (see
+        // SourceCitation.subsequentCitationFormat).
+        out.subsequentCitationFormat = reqText(child);
+      },
+      '_VERI': (child) => {
+        // Legacy: the verified checkmark (see SourceCitation.verified).
+        out.verified = parsePrivacyFlag(child, '_VERI');
+      },
+      '_CONF': (child) => {
+        // The confidence level of the citation (see
+        // SourceCitation.confidence); a value-less line stays generic.
+        if (child.value.kind === 'text') {
+          out.confidence = child.value.text;
+        } else {
+          addExtension(out, child, ctx);
+        }
+      },
+      'NAME': (child) => {
+        // The name of the cited source, under the citation (see
+        // SourceCitation.name); a value-less line stays generic.
+        if (child.value.kind === 'text') {
+          out.name = child.value.text;
+        } else {
+          addExtension(out, child, ctx);
+        }
+      },
+      '_QUAL': (child) => {
+        // The MFT7 source-quality block under the citation (see
+        // SourceCitation.qualityAssessment).
+        out.qualityAssessment = parseMftSourceQuality(child, ctx);
       },
       OBJE: (child) => {
         (out.media ??= []).push(parseMultimediaLink(child, ctx));
@@ -643,6 +695,13 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // MultimediaRecord.date).
         record.date = parseDateStructure(child, ctx);
       },
+      PLAC: (child) => {
+        // The place of the media object under the inline link (the
+        // WikiTree-style exports: `1 OBJE` / `2 FILE …` / `2 PLAC
+        // AL.` — the same slot the record-level PLAC carries; see
+        // MultimediaRecord.place).
+        record.place = reqText(child);
+      },
       '_CUTOUT': (child) => {
         // MyHeritage: the cutout flag (see MultimediaRecord.cutout).
         record.cutout = parseYNFlag(child, '_CUTOUT');
@@ -671,6 +730,15 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // ged4web: the media author under the OBJE record (see
         // MultimediaRecord.author).
         record.author = reqText(child);
+      },
+      '_TEXT': (child) => {
+        // ged4web: the media comment text (the same slot the FH
+        // `_NOTE` carries; see MultimediaRecord.mediaNote).
+        record.mediaNote = reqText(child);
+      },
+      TEXT: (child) => {
+        // The standard spelling of the media comment text.
+        record.mediaNote = reqText(child);
       },
       '_DATE': (child) => {
         record.date = parseDateStructure(child, ctx);
@@ -744,11 +812,13 @@ export function parsePrivacyFlag(node: RawNode, tag: string): boolean {
   if (node.value.kind === 'absent') {
     return true;
   }
-  const text = reqText(node);
-  if (text === 'Y') {
+  // The GEDKeeper exports spell the flag with the numeric marker
+  // (`_CONF_FLAG 1`, the gedcomimport_samples).
+  const text = reqText(node).trim();
+  if (text === 'Y' || text === '1') {
     return true;
   }
-  if (text === 'N') {
+  if (text === 'N' || text === '0') {
     return false;
   }
   fail('enum.invalid-value', `The ${tag} value must be Y or N, not "${text}"`, node.position);

@@ -7,9 +7,6 @@
  * error naming the offending line.
  */
 
-import {
-  RESTRICTION_ENUM_VALUES,
-} from '../enumerations';
 import type {
   AssociationStructure,
   EventDetail,
@@ -28,6 +25,7 @@ import type {
   NameTypeStructure,
   Note,
   WebTagStructure,
+  WebLinkStructure,
 } from '../structures';
 import type {
   Ctx,
@@ -64,6 +62,9 @@ import {
   parseTodoStructure,
 } from './todo';
 import {
+  parseGenoproContainer,
+} from './genopro';
+import {
   parseAddressStructure,
 } from './substructures';
 import type {
@@ -99,8 +100,8 @@ import {
 } from './events';
 import {
   parseEnum,
-  parseListEnum,
   parsePersonalName,
+  parseRestrictionList,
 } from './types';
 import {
   LEGACY_FAMILY_TAGS,
@@ -134,7 +135,7 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
   let lastPartner: FamilyPartnerLink | undefined;
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      rec.restriction = parseRestrictionList(reqText(child), child.position);
     },
     HUSB: (child) => {
       rec.husband = parseFamilyPartnerLink(child, ctx);
@@ -520,9 +521,26 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     // Legacy: the preferred family (see FamilyRecord.preferred).
     rec.preferred = parseYNFlag(child, '_PREF');
   };
+  handlers['RELATION'] = (child) => {
+    // GenoPro: the kind of the union (Marriage, Divorce,
+    // CommittedRelationship, SeparationLegal, Widowed, …) — the same
+    // free-text slot Heredis' `_UST` carries (see
+    // FamilyRecord.unionStatus).
+    rec.unionStatus = reqText(child);
+  };
   handlers['_GCID'] = (child) => {
     // GEDitCOM II: the record's id (see FamilyRecord.geditcomId).
     rec.geditcomId = reqText(child);
+  };
+  handlers['NUMB'] = (child) => {
+    // The exporter's running number for the family (see
+    // FamilyRecord.sequenceNumber).
+    rec.sequenceNumber = reqText(child);
+  };
+  handlers['_FTSID'] = (child) => {
+    // The Swarm family-tree packs: the family's FamilySearch tree id
+    // (see FamilyRecord.familyTreeSystemId).
+    rec.familyTreeSystemId = reqText(child);
   };
   handlers['QUOT'] = (child) => {
     // A quotation of the family (novel/game character trees write the
@@ -1002,7 +1020,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
   const rec: IndividualRecord = { tag: 'INDI', ...(node.xref === undefined ? {} : { xref: node.xref }) };
   const handlers: Record<string, (child: RawNode) => void> = {
     RESN: (child) => {
-      rec.restriction = parseListEnum(reqText(child), RESTRICTION_ENUM_VALUES, child.position).filter((value) => value.toUpperCase() !== 'NONE');
+      rec.restriction = parseRestrictionList(reqText(child), child.position);
     },
     NAME: (child) => {
       (rec.names ??= []).push(parsePersonalNameStructure(child, ctx));
@@ -1021,6 +1039,28 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     },
     _UPD: (child) => {
       rec.updatedAt = reqText(child);
+    },
+    _BERUF_KB: (child) => {
+      // OFB-Werkstatt: the bare `_BERUF_KB` line in place of an OCCU
+      // (the current exporter's form) — an occupation attribute whose
+      // payload is the empty string and whose church-book wording is
+      // the asRecorded slot (see OccupationAttribute.asRecorded). The
+      // write-back emits the OCCU + `_BERUF_KB` pair.
+      (rec.attributes ??= []).push({
+        tag: 'OCCU',
+        payload: '',
+        asRecorded: reqText(child),
+      });
+    },
+    _ALTER_KB: (child) => {
+      // OFB-Werkstatt: the age as stated in the entry (see
+      // IndividualRecord.ageAsRecorded).
+      rec.ageAsRecorded = reqText(child);
+    },
+    _TODURSACHE: (child) => {
+      // OFB-Werkstatt: the cause of death in the church book's wording
+      // (see IndividualRecord.deathCauseAsRecorded).
+      rec.deathCauseAsRecorded = reqText(child);
     },
     _URL: (child) => {
       rec.url = reqText(child);
@@ -1297,6 +1337,24 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     _MILT: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military'));
     },
+    _MIL: (child) => {
+      // The Case006 long-spelling twin of _MILT (the FamilySearch
+      // gedcom5-conversion test corpus): military service.
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military'));
+    },
+    _MILITARY_SERVICE: (child) => {
+      // The Case006 long spelling: military service.
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military service'));
+    },
+    _MISE: (child) => {
+      // The Case006 long spelling: military service.
+      (rec.events ??= []).push(parseVendorFact(child, ctx, 'Military service'));
+    },
+    _DEGREE: (child) => {
+      // The Case006 long spelling of _DEG: the EDUC attribute with
+      // TYPE "Degree".
+      pushVendorAttribute(rec, child, ctx, 'EDUC', 'Degree');
+    },
     _MDCL: (child) => {
       (rec.events ??= []).push(parseVendorFact(child, ctx, 'Medical'));
     },
@@ -1467,6 +1525,70 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // address under INDI (see IndividualRecord.email).
       (rec.email ??= []).push(reqText(child));
     },
+    EMAIL: (child) => {
+      // The standard-tag spelling of the INDI-level e-mail.
+      (rec.email ??= []).push(reqText(child));
+    },
+    PHON: (child) => {
+      // PAF and the ged4web exports: the individual's phone number
+      // directly under INDI (see IndividualRecord.phone).
+      (rec.phone ??= []).push(reqText(child));
+    },
+    '_PHON': (child) => {
+      // The underscore spelling of the INDI-level phone number.
+      (rec.phone ??= []).push(reqText(child));
+    },
+    FAX: (child) => {
+      // PAF: the individual's fax number under INDI (see
+      // IndividualRecord.fax).
+      (rec.fax ??= []).push(reqText(child));
+    },
+    ISDEAD: (child) => {
+      // GenoPro: the person's vital flag (see
+      // IndividualRecord.deceased).
+      rec.deceased = parseYNFlag(child, 'ISDEAD');
+    },
+    '_PHOTO': (child) => {
+      // MyHeritage: a pointer to the person's photo record — the same
+      // wire semantics an OBJE media link carries (see
+      // IndividualRecord.media).
+      (rec.media ??= []).push({ tag: 'OBJE', object: reqPtr(child, ctx) });
+    },
+    '_WLNK': (child) => {
+      // The web-link block under INDI (see
+      // IndividualRecord.webLinks): the TITL description and the NOTE
+      // payload carrying the URL.
+      const link: WebLinkStructure = { tag: '_WLNK' };
+      dispatch(
+        child,
+        link,
+        {
+          TITL: (grandchild) => {
+            link.title = reqText(grandchild);
+          },
+          NOTE: (grandchild) => {
+            link.url = reqText(grandchild);
+          },
+        },
+        ctx,
+      );
+      (rec.webLinks ??= []).push(link);
+    },
+    OCCUPATIONS: (child) => {
+      (rec.occupations ??= []).push(...parseGenoproContainer(child, ctx));
+    },
+    EDUCATIONS: (child) => {
+      (rec.educations ??= []).push(...parseGenoproContainer(child, ctx));
+    },
+    CONTACTS: (child) => {
+      (rec.contacts ??= []).push(...parseGenoproContainer(child, ctx));
+    },
+    UNIONS: (child) => {
+      (rec.marriages ??= []).push(...parseGenoproContainer(child, ctx));
+    },
+    TWINS: (child) => {
+      (rec.twins ??= []).push(...parseGenoproContainer(child, ctx));
+    },
     _INIT: (child) => {
       // Ancestry.com Family Trees: the LDS initiatory ordinance, the
       // vendor spelling of the 7.0 INIL (the webtrees per-vendor
@@ -1544,7 +1666,20 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       pushLegacyIndividualEvent(rec, child, ctx, 'Marriage settlement');
     },
     SEX: (child) => {
-      rec.sex = parseEnum(reqText(child), SEX_551, child.position);
+      const text = reqText(child).trim();
+      const upper = text.toUpperCase();
+      // The lenient sex: the long spellings (Male/MALE/Female/FEMALE)
+      // normalize into the standard letters; anything else goes
+      // through the enum (which rejects it with the diagnostic).
+      if (upper === 'MALE') {
+        rec.sex = 'M';
+        return;
+      }
+      if (upper === 'FEMALE') {
+        rec.sex = 'F';
+        return;
+      }
+      rec.sex = parseEnum(upper, SEX_551, child.position);
     },
     _CORR: (child) => {
       // FO7: the correspondence entry block (see
@@ -1655,6 +1790,16 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.associations ??= []).push(parseAssociation(child, ctx));
     },
     ALIA: (child) => {
+      if (child.value.kind === 'text') {
+        // A text payload in the pointer slot: files in the wild write
+        // `1 ALIA /Becky/` — an "also known as" name instead of a
+        // pointer to another INDI (BURNETT.GED, GRAY, the norse-gods
+        // trees). Kept as a NAME with the AKA type (the
+        // standard-first normalization of the legacy AKA rule) —
+        // nothing is dropped.
+        pushVendorName(rec, child, ctx, 'AKA');
+        return;
+      }
       (rec.aliases ??= []).push(parseAliasLink(child, ctx));
     },
     ANCI: (child) => {
@@ -1736,6 +1881,17 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     // GEDitCOM II: the record's id (see IndividualRecord.geditcomId).
     rec.geditcomId = reqText(child);
   };
+  handlers['NUMB'] = (child) => {
+    // The exporter's running number for the person (see
+    // IndividualRecord.sequenceNumber).
+    rec.sequenceNumber = reqText(child);
+  };
+  handlers['_SOSAN'] = (child) => {
+    // Ancestris: the Sosa number with the leading zeros
+    // (`1 _SOSAN 00004`) — the same slot `_SOSA` carries (see
+    // IndividualRecord.sosaNumber).
+    rec.sosaNumber = reqText(child);
+  };
   handlers['RFN'] = (child) => {
     rec.recordFileNumber = reqText(child);
   };
@@ -1797,16 +1953,6 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     // (ADR1/CITY/..., contacts, the `_NAME` label) types into the
     // record slot and is written back as the ADDR block in 5.5.1.
     rec.address = parseAddressStructure(child, ctx);
-  };
-  handlers['PHON'] = (child) => {
-    // PAF: the person's phone number under INDI (same source); kept
-    // verbatim as a record extension.
-    addExtension(rec, child, ctx);
-  };
-  handlers['FAX'] = (child) => {
-    // PAF: the person's fax number under INDI (same source); kept
-    // verbatim as a record extension.
-    addExtension(rec, child, ctx);
   };
   for (const tag of ['BAPL', 'CONL', 'ENDL', 'INIL', 'SLGC']) {
     handlers[tag] = (child) => {

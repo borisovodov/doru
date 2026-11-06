@@ -140,6 +140,11 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
   }
   // For 7.0 the contacts live at the record/detail level; the parent
   // emitter relocates the 5.5.1-position values there.
+  for (const note of address.notes ?? []) {
+    // The standard 5.5.1 ADDRESS_STRUCTURE note slot (see
+    // AddressStructure.notes); accepted and written in both versions.
+    emitNoteStructure(w, version, level + 1, note);
+  }
   emitExtensions(w, version, level + 1, address);
 }
 
@@ -221,6 +226,14 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
 }
 
 export function emitDate(w: Writer, version: Version, level: number, tag: string, date: DateStructure): void {
+  const emitTrailer = (): void => {
+    // TMG: citations attached to the DATE line (see
+    // DateStructure.citations) — SOUR lines subordinate to the DATE.
+    for (const citation of date.citations ?? []) {
+      emitSourceCitation(w, version, level + 1, citation);
+    }
+    emitExtensions(w, version, level + 1, date);
+  };
   if (version === '7.0') {
     const raw = date.value === undefined ? undefined : formatDateValue70(date.value);
     // A value the target cannot spell (the year-less 5.5.5 date form)
@@ -237,7 +250,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     if (date.phrase !== undefined) {
       w.line(level + 1, 'PHRASE', { value: date.phrase });
     }
-    emitExtensions(w, version, level + 1, date);
+    emitTrailer();
     return;
   }
   // 5.5.1: value + optional phrase. A phrase-only date becomes the
@@ -260,7 +273,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
   if (date.value === undefined) {
     if (date.phrase !== undefined) {
       writeDateLine(`(${date.phrase})`);
-      emitExtensions(w, version, level + 1, date);
+      emitTrailer();
     }
     // An empty date with no phrase has no 5.5.1 spelling (the 5.5.1
     // DATE_VALUE grammar has no empty production); the whole DATE —
@@ -280,7 +293,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
       if (date.phrase !== undefined) {
         w.line(level + 1, 'NOTE', { value: date.phrase });
       }
-      emitExtensions(w, version, level + 1, date);
+      emitTrailer();
     }
     return;
   }
@@ -290,7 +303,7 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
     if (date.phrase !== undefined) {
       writeDateLine(`(${date.phrase})`);
     }
-    emitExtensions(w, version, level + 1, date);
+    emitTrailer();
     return;
   }
   if (date.phrase !== undefined) {
@@ -300,11 +313,11 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
       writeDateLine(raw);
       w.line(level + 1, 'NOTE', { value: date.phrase });
     }
-    emitExtensions(w, version, level + 1, date);
+    emitTrailer();
     return;
   }
   writeDateLine(raw);
-  emitExtensions(w, version, level + 1, date);
+  emitTrailer();
 }
 
 export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
@@ -430,6 +443,13 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // 7.0 has no QUAY anywhere.
     w.line(level, 'QUAY', { value: detail.quality });
   }
+  if (detail.map !== undefined) {
+    // MFT7: the event's coordinates (see EventDetail.map), written
+    // back as the standard MAP/LATI/LONG.
+    w.line(level, 'MAP');
+    w.line(level + 1, 'LATI', { value: `${detail.map.latitude.direction}${detail.map.latitude.degrees}` });
+    w.line(level + 1, 'LONG', { value: `${detail.map.longitude.direction}${detail.map.longitude.degrees}` });
+  }
   if (detail.changeDate !== undefined) {
     // The change date attached to the event (see
     // EventDetail.changeDate).
@@ -437,6 +457,10 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     emitDateExact(w, version, level + 1, 'DATE', detail.changeDate.date, detail.changeDate.date.time);
     for (const note of detail.changeDate.notes ?? []) {
       emitNoteStructure(w, version, level + 1, note);
+    }
+    for (const citation of detail.changeDate.citations ?? []) {
+      // Citations under the CHAN block (see ChangeDate.citations).
+      emitSourceCitation(w, version, level + 1, citation);
     }
     if (detail.changeDate.user !== undefined) {
       w.line(level + 1, '_WT_USER', { value: detail.changeDate.user });
@@ -567,6 +591,11 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
     // Heredis: the event flag (see EventDetail.fna).
     w.line(level, '_FNA', { value: detail.fna ? 'Y' : 'N' });
   }
+  if (detail.descriptionAware !== undefined) {
+    // MyHeritage: the event's description-aware flag (see
+    // EventDetail.descriptionAware).
+    w.line(level, '_DESCRIPTION', { value: detail.descriptionAware ? 'Y' : 'N' });
+  }
   if (version === '5.5.1') {
     // The USM6 event marks; 7.0 cannot spell the tags. The 5.5.1
     // output uses the underscore spellings `_POTM`/`_SRCH`/`_NOTRY` —
@@ -655,6 +684,14 @@ export function emitNoteStructure(w: Writer, version: Version, level: number, no
   for (const citation of inline.citations ?? []) {
     emitSourceCitation(w, version, level + 1, citation);
   }
+  if (inline.date !== undefined) {
+    // TMG: the date the note was recorded (see Note.date).
+    emitDate(w, version, level + 1, 'DATE', inline.date);
+  }
+  if (inline.place !== undefined) {
+    // TMG: the place associated with the note (see Note.place).
+    emitPlace(w, version, level + 1, inline.place);
+  }
   emitExtensions(w, version, level + 1, inline);
 }
 
@@ -693,6 +730,11 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
       // A reference number of the citation itself (see
       // SourceCitation.referenceNumber).
       w.line(level + 1, 'REFN', { value: citation.referenceNumber });
+    }
+    if (citation.abbreviation !== undefined) {
+      // FTM: the cited source's short title (see
+      // SourceCitation.abbreviation).
+      w.line(level + 1, '_ABBR', { value: citation.abbreviation });
     }
     if (citation.automatedRecordId !== undefined) {
       // The citation's record id in the source system (see
@@ -784,6 +826,11 @@ export function emitCitationCommon(w: Writer, version: Version, level: number, c
     // A reference number of the citation itself (see
     // SourceCitation.referenceNumber).
     w.line(level + 1, 'REFN', { value: citation.referenceNumber });
+  }
+  if (citation.abbreviation !== undefined) {
+    // FTM: the cited source's short title (see
+    // SourceCitation.abbreviation).
+    w.line(level + 1, '_ABBR', { value: citation.abbreviation });
   }
   if (version === '5.5.1' && citation.automatedRecordId !== undefined) {
     // The citation's record id in the source system (see
