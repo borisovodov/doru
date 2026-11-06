@@ -10,6 +10,9 @@
 import {
   fail,
 } from '../errors';
+import {
+  GEDCOM_555_TAG_ALIASES,
+} from './gedcom-555';
 import type {
   AncestryTreeStructure,
   Corporation,
@@ -639,20 +642,24 @@ function fillSchema53Labels(block: FtmSchemaBlock, ctx: Ctx): void {
 
 /** Walks one branch of the SCHEMA tree, collecting the declaration leaves. */
 function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchemaEntry[], ctx: Ctx): void {
-  if (node.tag === 'LABL' || node.tag === 'DEFN' || node.tag === 'ISA' || node.tag === '_DEFN') {
+  // The 5.5.5 full-word spellings of the declaration leaves (the
+  // official FTM sample writes `4 LABEL Fact 1`): the alias resolves
+  // before the leaf check.
+  const tag = GEDCOM_555_TAG_ALIASES[node.tag] ?? node.tag;
+  if (tag === 'LABL' || tag === 'DEFN' || tag === 'ISA' || tag === '_DEFN') {
     const key = context.join('/');
     let entry = entries[entries.length - 1];
     if (entry === undefined || entry.context.join('/') !== key) {
       entry = { context: [...context] };
       entries.push(entry);
     }
-    if (node.tag === 'LABL') {
+    if (tag === 'LABL') {
       if (entry.label !== undefined) {
         // First occurrence wins (the full-leniency container rule).
         return;
       }
       entry.label = reqText(node);
-    } else if (node.tag === 'DEFN' || node.tag === '_DEFN') {
+    } else if (tag === 'DEFN' || tag === '_DEFN') {
       // The underscore spelling is the GEDCOM-L convention (agreement
       // Nutzerdef.N5; see the GenWiki "GEDCOM/_Nutzerdef-Tag" article:
       // https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag): the

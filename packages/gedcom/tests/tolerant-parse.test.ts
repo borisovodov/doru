@@ -1018,6 +1018,38 @@ describe('the GEDCOM 5.5.5 draft spellings', () => {
     expect(children?.map((child) => child.tag)).toEqual(['INDIVIDUAL', 'FAMILY']);
   });
 });
+  test('the full-word LABEL leaf of the FTM schema block parses as LABL', () => {
+    // The official FTM 5.5.5 sample (555SAMPLE-FTM.GED) writes
+    // `4 LABEL Fact 1` under its `_SCHEMA` context tags.
+    const text = [
+      '0 HEADER',
+      '1 SOURCE FTW',
+      '1 GEDCOM',
+      '2 VERSION 5.5',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHARACTER IBMPC',
+      '1 SUBMITTER Unknown',
+      '1 _SCHEMA',
+      '2 INDIVIDUAL',
+      '3 _FACT1',
+      '4 LABEL Fact 1',
+      '3 _FACT2',
+      '4 LABEL Fact 2',
+      '0 @I1@ INDIVIDUAL',
+      '1 NAME Robert /Williams/',
+      '0 TRAILER',
+      '',
+    ].join('\n');
+    const { value, errors } = parseTolerant(enc(text));
+    expect(errors).toEqual([]);
+    const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
+    expect(dataset?.header.schema53?.entries?.[0]).toEqual({
+      context: ['INDIVIDUAL', '_FACT1'],
+      label: 'Fact 1',
+    });
+    expect(dataset?.header.schema53?.entries?.[1]?.label).toBe('Fact 2');
+  });
+
 
 describe('the OFB-Werkstatt tags', () => {
   test('the church-book wording tags type into the dedicated slots', () => {
