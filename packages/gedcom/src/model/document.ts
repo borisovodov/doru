@@ -216,6 +216,19 @@ export interface Header extends GedcomStructureBase {
    */
   title?: Text;
   /**
+   * `_UID` {0:1} — the unique identifier of the dataset/file. Written
+   * under HEAD by MyHeritage (the webtrees per-vendor custom-tag
+   * registry, MyHeritage.php, `HEAD:_UID` = PafUid "Unique identifier":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/MyHeritage.php);
+   * the Family Historian exports carry it too (the corpus
+   * Sample-GEDCOM.ged and fh-sample.ged, in the braced UUID form
+   * `{13F463F0-…}`). The value is kept verbatim, like the record-level
+   * `_UID` identifiers. Not part of any GEDCOM version (neither
+   * standard has an identifier slot in the header). Recognized on input
+   * and written back as `_UID` in both versions.
+   */
+  uid?: Text;
+  /**
    * `_STS` {0:1} — the dataset statistics block of My Family Tree
    * exports: one count line per record type under HEAD (`2 INDI 179`,
    * `2 FAM 85`, `2 REPO 1`, `2 SOUR 3`, `2 NOTE 10`, `2 SUBM 1`,

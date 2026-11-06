@@ -1037,6 +1037,22 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
     // FH: the media item carries a caption (see MultimediaLink.caption).
     w.line(level + 1, '_CAPT', { value: 'Y' });
   }
+  if (link.cutout === true) {
+    // MyHeritage / GEDKeeper: the cutout flag (see MultimediaLink.cutout).
+    w.line(level + 1, '_CUTOUT', { value: 'Y' });
+  }
+  if (link.primaryCutout === true) {
+    w.line(level + 1, '_PRIM_CUTOUT', { value: 'Y' });
+  }
+  if (link.parentPhoto === true) {
+    w.line(level + 1, '_PARENTPHOTO', { value: 'Y' });
+  }
+  if (link.personalPhoto === true) {
+    w.line(level + 1, '_PERSONALPHOTO', { value: 'Y' });
+  }
+  if (link.parentRecordId !== undefined) {
+    w.line(level + 1, '_PARENTRIN', { value: link.parentRecordId });
+  }
   if (version === '7.0') {
     if (link.crop !== undefined) {
       w.line(level + 1, 'CROP');

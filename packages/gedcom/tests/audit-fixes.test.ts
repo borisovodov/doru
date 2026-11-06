@@ -352,17 +352,23 @@ describe('the GEDCOM 5.5 embedded-multimedia record shape', () => {  const EMBED
     const dataset = parseOk551(EMBEDDED);
     const media = dataset.records.find((r) => r.tag === 'OBJE');
     expect(media?.tag === 'OBJE' ? media.files.length : -1).toBe(0);
-    expect(media?.tag === 'OBJE' ? media.extensions?.map((e) => e.tag) : undefined).toEqual(['FORM']);
+    // The record-level FORM types into the embedded-format slot.
+    expect(media?.tag === 'OBJE' ? media.embeddedForm : undefined).toBe('gif');
     // The TITL types into the record title.
     expect(media?.tag === 'OBJE' ? media.title : undefined).toBe('The picture');
   });
 
-  test('the record is dropped entirely on 5.5.1 export, links stripped', () => {
+  test('the typed embedded shape is spelled back on 5.5.1 export', () => {
+    // FORM/BLOB are the native 5.5.1 record form — the record and the
+    // link survive (only the untyped remainder without embedded
+    // content is dropped).
     const dataset = parseOk551(EMBEDDED);
     const text = ser551(dataset);
-    expect(text).not.toContain('@O1@ OBJE');
-    expect(text).not.toContain('1 FORM gif');
-    expect(text).not.toContain('1 OBJE @O1@');
+    expect(text).toContain('@O1@ OBJE');
+    expect(text).toContain('1 FORM gif');
+    expect(text).toContain('1 TITL The picture');
+    expect(text).toContain('1 OBJE @O1@');
+    expect(parseOk551(text)).toEqual(dataset);
   });
 
   test('the record is dropped entirely on 7.0 export, links stripped', () => {

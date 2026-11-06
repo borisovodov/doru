@@ -2,6 +2,7 @@ import type {
   EventAttributeEnum,
   FamilyChildStatusEnum,
   PedigreeEnum,
+  QualityEnum,
   RestrictionEnum,
   SexEnum,
 } from '../enumerations';
@@ -596,6 +597,37 @@ export interface FamilyChildLink extends GedcomStructureBase {
    * `fatherRelation`.
    */
   motherRelation?: Text;
+  /**
+   * PEDI {0:M} — the pedigree kind of the child link, written under
+   * FAM.CHIL — a position neither standard defines (both keep PEDI on
+   * the INDI.FAMC link). Observed in the MacFamilyTree exports (a
+   * single lowercase `2 PEDI birth`, the bechbd gedcomimport samples
+   * and the Synium MobileFamilyTree fixtures) and in the per-parent
+   * spelling of the slaktforskning swedish-royal examples: one PEDI
+   * per parent, each with a `3 _PARENT @I…@` pointer naming the parent
+   * it describes. Recognized on input; written back as the PEDI lines
+   * under CHIL in 5.5.1; on 7.0 the value is projected onto the
+   * child's INDI.FAMC.PEDI when every entry agrees and that link's
+   * PEDI is still empty (the `_FREL`/`_MREL` rule), and dropped
+   * otherwise (see FamilyChildPedigree).
+   */
+  pedigrees?: FamilyChildPedigree[];
+}
+
+/**
+ * One PEDI entry under FAM.CHIL (see FamilyChildLink.pedigrees): the
+ * pedigree structure with the optional `_PARENT` pointer to the parent
+ * the entry describes (the slaktforskning swedish-royal examples; the
+ * MacFamilyTree exports write a single entry without the pointer). Not
+ * part of any GEDCOM version. Written back as the `PEDI` line with its
+ * `_PARENT` child in 5.5.1.
+ */
+export interface FamilyChildPedigree extends GedcomStructureBase {
+  tag: 'PEDI';
+  /** The PEDI payload and PHRASE — the same grammar the FAMC-link PEDI uses. */
+  pedigree: PedigreeStructure;
+  /** `_PARENT` {0:1} — the parent this pedigree entry refers to. */
+  parent?: Pointer<IndividualRecord>;
 }
 
 /**
@@ -1292,6 +1324,34 @@ export interface MultimediaRecord extends GedcomStructureBase {
   restriction?: ListEnum<RestrictionEnum>;
   /** FILE {1:M}, g7:FILE — the external files, grouped together. */
   files: MediaFile[];
+  /**
+   * FORM {0:1} — the record-level multimedia format: the GEDCOM
+   * 5.5/5.5.1 embedded-multimedia shape (`MULTIMEDIA_RECORD` := FORM
+   * {1:1} + BLOB {1:1} with the encoded CONT lines; the official
+   * TGC551 torture file exercises it, and the 5.5.1 grammar has no
+   * FILE slot at all) and the Généatique modern spelling beside FILE
+   * lines (the webtrees per-vendor custom-tag registry, Geneatique.php,
+   * `OBJE:FORM` = MultimediaFormat:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Geneatique.php).
+   * The FILE-level format is MediaFile.form. Removed by the 5.5.5
+   * draft and GEDCOM 7.0. Recognized on input in any file and written
+   * back as the record-level `FORM` line in 5.5.1; dropped on 7.0
+   * (whose projections remove the whole record when it has no FILE —
+   * the embedded shape has no 7.0 spelling).
+   */
+  embeddedForm?: Text;
+  /**
+   * BLOB {0:1} — the embedded multimedia content of the GEDCOM
+   * 5.5/5.5.1 record shape (see `embeddedForm`): the BLOB block's
+   * CONT lines joined with newlines, kept as decoded text. The 5.5
+   * encoding is a text-safe form of the binary object; the decoded
+   * text round-trips through the 5.5.1 export as the same CONT lines.
+   * Removed by the 5.5.5 draft and GEDCOM 7.0. Recognized on input in
+   * any file and written back as the `BLOB` + CONT block in 5.5.1;
+   * dropped on 7.0 (like `embeddedForm`, with the whole record when it
+   * has no FILE).
+   */
+  embeddedBlob?: Text;
   /**
    * _DATE {0:1} — a date associated with the media object, usually the
    * date of a picture or video. Written by Legacy Family Tree under
@@ -2007,6 +2067,32 @@ export interface SourceRecord extends GedcomStructureBase {
    * Recognized on input and written back as `_ACC` in both versions.
    */
   accessDate?: Text;
+  /**
+   * QUAY {0:1} — the certainty assessment of the source as a whole,
+   * written by Heredis with the standard QUAY tag at record level (the
+   * webtrees per-vendor custom-tag registry, Heredis.php, `SOUR:QUAY` =
+   * CertaintyAssessment "Quality of data":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Heredis.php;
+   * the alainamand and Dudouyt Heredis exports in the corpus). No
+   * GEDCOM version has the slot (5.5.1 puts QUAY under the citation's
+   * DATA, 7.0 keeps it on citations only). Recognized on input and
+   * written back as a `QUAY` line under the SOUR record in 5.5.1 (the
+   * Brother's Keeper event-level QUAY rule); dropped on 7.0, where a
+   * non-underscore tag in the position does not spell a valid file.
+   */
+  certainty?: QualityEnum;
+  /**
+   * _UPD {0:1} — the record's last-updated timestamp, kept verbatim
+   * (the wire format is undocumented). Written by MyHeritage under any
+   * record (the webtrees per-vendor custom-tag registry, MyHeritage.php,
+   * `*:_UPD` "Updated at":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/MyHeritage.php;
+   * the corpus carries it on the SOUR records of the MyHeritage-processed
+   * exports) — the same slot `IndividualRecord.updatedAt` and
+   * `FamilyRecord.updatedAt` carry. Not part of any GEDCOM version.
+   * Recognized on input and written back as `_UPD` in both versions.
+   */
+  updatedAt?: Text;
   /**
    * `_APID` {0:M} — Ancestry.com record references at the record
    * level, format `dbid::record` (in the wild often prefixed, e.g.

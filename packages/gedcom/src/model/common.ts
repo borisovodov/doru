@@ -259,9 +259,13 @@ export interface ChangeDate extends GedcomStructureBase {
    * _WT_USER {0:1} — the user name of the user who made the change.
    * Written by webtrees (and kiwitrees) under CHAN (see the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" table:
-   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
-   * GEDCOM version. Recognized on input and written back as `_WT_USER`
-   * in both versions.
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); phpGedView
+   * spells the same slot `_PGVU` ("Author of last change" — the
+   * webtrees per-vendor custom-tag registry, PhpGedView.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php,
+   * the UoEMainLibrary archiveslib PhpGedView 3.3.8 exports in the
+   * corpus). Not part of any GEDCOM version. Both spellings are
+   * recognized on input; written back as `_WT_USER` in both versions.
    */
   user?: Text;
 }

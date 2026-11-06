@@ -279,6 +279,12 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
       // ChangeDate.user).
       base.user = reqText(child);
     },
+    '_PGVU': (child) => {
+      // phpGedView: the same slot webtrees spells `_WT_USER` (the
+      // webtrees per-vendor custom-tag registry, PhpGedView.php; see
+      // ChangeDate.user).
+      base.user = reqText(child);
+    },
     // The 7.0 CHANGE_DATE carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM 7.0
     // §3.2.3); accepted in any file.
     SNOTE: (child) => {

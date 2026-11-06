@@ -482,6 +482,47 @@ export interface MultimediaLink extends GedcomStructureBase {
    * Recognized on input and written back as `_CAPT` in both versions.
    */
   caption?: boolean;
+  /**
+   * `_CUTOUT Y` {0:1} — the photo is displayed cut out (its background
+   * removed) for the person carrying the link. Written by MyHeritage
+   * and GEDKeeper under the pointer-form media link (the GEDKeeper
+   * samples Bach_Family/Human_Origins/Sample_Russia in the corpus
+   * write `1 OBJE @O3@` + `2 _PRIM Y` + `2 _CUTOUT Y`; the inline-link
+   * spelling lands on the synthesized record, see
+   * MultimediaRecord.cutout). Not part of any GEDCOM version.
+   * Recognized on input and written back as `_CUTOUT Y` in both
+   * versions.
+   */
+  cutout?: boolean;
+  /**
+   * `_PRIM_CUTOUT Y` {0:1} — the primary cutout mark of the linked
+   * photo (same sources as `cutout`; see
+   * MultimediaRecord.primaryCutout for the inline-link spelling).
+   * Recognized on input and written back as `_PRIM_CUTOUT Y` in both
+   * versions.
+   */
+  primaryCutout?: boolean;
+  /**
+   * `_PARENTPHOTO Y` {0:1} — the media object is the parent's photo
+   * (same sources as `cutout`; see MultimediaRecord.parentPhoto).
+   * Recognized on input and written back as `_PARENTPHOTO Y` in both
+   * versions.
+   */
+  parentPhoto?: boolean;
+  /**
+   * `_PERSONALPHOTO Y` {0:1} — the media object is the person's own
+   * photo (same sources as `cutout`; see MultimediaRecord.personalPhoto).
+   * Recognized on input and written back as `_PERSONALPHOTO Y` in both
+   * versions.
+   */
+  personalPhoto?: boolean;
+  /**
+   * `_PARENTRIN` {0:1} — the parent's record id (`MH:P500006`, the
+   * MyHeritage person id; same sources as `cutout`; see
+   * MultimediaRecord.parentRecordId). Kept verbatim. Recognized on
+   * input and written back as `_PARENTRIN` in both versions.
+   */
+  parentRecordId?: Text;
 }
 
 /**

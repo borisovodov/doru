@@ -101,6 +101,17 @@ export interface TodoStructure extends GedcomStructureBase {
   description?: Text;
   /** _CAT {0:1} — the category of the task (GEDCOM-L E1). */
   category?: Text;
+  /**
+   * _LOCL {0:1} — the location of the task, free text. Written by
+   * Legacy Family Tree under the INDI/FAM `_TODO` structure (the
+   * webtrees per-vendor custom-tag registry, Legacy.php,
+   * `INDI:_TODO:_LOCL` = "Location":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Legacy.php;
+   * the Legacy "Custom GEDCOM Tags" help lists the same tag for the
+   * record form, see TodoRecord.locality). Recognized on input and
+   * written back as `_LOCL` in both versions.
+   */
+  locality?: Text;
   /** PRTY {0:1} — the priority (the Legacy/GenoPro spelling; the GEDCOM-L E1 `_PRTY` normalizes into the same slot). */
   priority?: Text;
   /** TYPE {0:1} — the type of the task (GEDCOM-L E1: 0 = research, 1 = correspondence, 2 = other). */

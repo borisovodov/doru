@@ -9,6 +9,7 @@
 
 import {
   EVENT_ATTRIBUTE_ENUM_VALUES,
+  QUALITY_ENUM_VALUES,
 } from '../enumerations';
 import type {
   EventAttributeEnum,
@@ -48,6 +49,9 @@ import {
 import type {
   RawNode,
 } from './lines';
+import {
+  parseEnum,
+} from './types';
 import {
   parsePlaceStructure,
 } from './names-places';
@@ -603,11 +607,15 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
   handlers['QUAY'] = (child) => {
     // Heredis: the quality assessment of the whole source, written
     // with the standard QUAY tag at record level (the webtrees
-    // per-vendor custom-tag registry, Heredis.php). No typed slot —
-    // the record-level assessment stays a generic extension, dropped
-    // on export in both versions (QUAY is a citation-only tag, and
-    // neither target spells a non-underscore extension).
-    addExtension(rec, child, ctx);
+    // per-vendor custom-tag registry, Heredis.php; see
+    // SourceRecord.certainty for the export rule).
+    rec.certainty = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+  };
+  handlers['_UPD'] = (child) => {
+    // MyHeritage: the record's last-updated timestamp (the
+    // registry-documented `*:_UPD` position; see
+    // SourceRecord.updatedAt).
+    rec.updatedAt = reqText(child);
   };
   handlers['DATE'] = (child) => {
     // The source's date at record level. Legacy Family Tree writes

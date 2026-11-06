@@ -204,6 +204,11 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         // My Family Tree: the title of the tree (see Header.title).
         header.title = reqText(child);
       },
+      _UID: (child) => {
+        // MyHeritage / Family Historian: the unique identifier of the
+        // dataset (see Header.uid).
+        header.uid = reqText(child);
+      },
       _STS: (child) => {
         // My Family Tree: the dataset statistics block (see
         // Header.statistics): one count line per record type.

@@ -273,6 +273,11 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
     // My Family Tree: the title of the tree (see Header.title).
     w.line(1, '_TITL', { value: h.title });
   }
+  if (h.uid !== undefined) {
+    // MyHeritage / Family Historian: the dataset's unique identifier
+    // (see Header.uid).
+    w.line(1, '_UID', { value: h.uid });
+  }
   if (h.statistics !== undefined) {
     // My Family Tree: the dataset statistics block (see
     // Header.statistics).

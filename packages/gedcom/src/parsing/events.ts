@@ -32,6 +32,7 @@ import type {
   FactFlag,
   FamilyChildCountAttribute,
   FamilyChildLink,
+  FamilyChildPedigree,
   FamilyChildStatusStructure,
   FamilyEventDetail,
   FamilyEventStructure,
@@ -210,6 +211,23 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
   };
   handlers['_STAT'] = (child) => {
     out.multiplicity = reqText(child);
+  };
+  handlers['PEDI'] = (child) => {
+    // The pedigree under FAM.CHIL (see FamilyChildLink.pedigrees):
+    // MacFamilyTree writes a single entry, the swedish-royal examples
+    // one entry per parent with the `_PARENT` pointer beside it. The
+    // pointer child lifts into the entry; anything else stays the
+    // pedigree's own extension.
+    const parentNode = one(child, '_PARENT');
+    const pediNode =
+      parentNode === undefined
+        ? child
+        : { ...child, children: child.children.filter((grandchild) => grandchild !== parentNode) };
+    const entry: FamilyChildPedigree = { tag: 'PEDI', pedigree: parsePedigree(pediNode, ctx) };
+    if (parentNode !== undefined) {
+      entry.parent = reqPtr(parentNode, ctx);
+    }
+    (out.pedigrees ??= []).push(entry);
   };
   dispatch(node, out, handlers, ctx);
   return out;

@@ -120,6 +120,10 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
         // TodoStructure.category).
         out.category = reqText(child);
       },
+      _LOCL: (child) => {
+        // Legacy: the location of the task (see TodoStructure.locality).
+        out.locality = reqText(child);
+      },
       PRTY: setPriority,
       _PRTY: setPriority,
       TYPE: (child) => {
@@ -162,7 +166,7 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
       },
     },
     ctx,
-    ['DESC', '_CAT', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', 'REPO'],
+    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', 'REPO'],
   );
   return out;
 }
