@@ -33,6 +33,16 @@ import type {
   TwinRecord,
 } from './genopro-entity';
 import type { TitleRecord } from './title-record';
+import type {
+  EvidenceEvent,
+  EvidenceRecord,
+  EvidenceReference,
+  OccurrenceReference,
+  ResearchActivityRecord,
+  ResearchDocumentRecord,
+  TagLink,
+  TagRecord,
+} from './evidence-record';
 import type { TreeCategoryRecord, TreeTagRecord } from './tree-tag-record';
 import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
@@ -458,6 +468,26 @@ export interface FamilyRecord extends GedcomStructureBase {
    * written back as `_PRIMARY Y` in both versions.
    */
   primary?: boolean;
+  /**
+   * `_OCREF @xref@` {0:M} — the family's references to shared
+   * occurrence records (the gedcom-occurrences extension lists FAM as
+   * an `_OCREF` superstructure; see IndividualRecord.occurrences).
+   * Written back as `_OCREF` in both versions.
+   */
+  occurrences?: OccurrenceReference[];
+  /**
+   * `_EVREF @xref@` {0:M} — the references to floating evidence
+   * records (the gedcom-evidence `_EVREF.yaml` lists FAM as a
+   * superstructure; the v1 `_EVID` link spelling normalizes into the
+   * same slot). Written back as `_EVREF` in both versions.
+   */
+  evidence?: EvidenceReference[];
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the gedcom-tags extension; see TagLink). Written back in
+   * both versions.
+   */
+  tagLinks?: TagLink[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -825,16 +855,36 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   sosaDAboville?: Text;
   /**
-   * `_OCREF @xref@` {0:M} — a pointer to a shared occurrence record
-   * (the glamberson gedcom-occurrences extension, see
-   * OccurrenceRecord): the documented occurrence of the person in a
-   * source the record describes
-   * (https://github.com/glamberson/gedcom-occurrences). The pointer
-   * must resolve to an existing `_OCUR` record
-   * (`document.xref-not-found` otherwise). Written back as `_OCREF`
-   * in both versions.
+   * `_OCREF @xref@` {0:M} — the references to shared occurrence
+   * records (the glamberson gedcom-occurrences extension, see
+   * OccurrenceRecord): the documented occurrences of the person in a
+   * source the record describes, with the participation data (ROLE,
+   * AGE, notes, citations) the extension's v0.2.0 spec defines
+   * (https://github.com/glamberson/gedcom-occurrences,
+   * occurrence-extension.md). The pointer must resolve to an existing
+   * `_OCUR` record (`document.xref-not-found` otherwise). Written back
+   * as `_OCREF` in both versions.
    */
-  occurrences?: Pointer<OccurrenceRecord>[];
+  occurrences?: OccurrenceReference[];
+  /**
+   * `_EVREF @xref@` {0:M} — the references to floating evidence
+   * records (the glamberson gedcom-evidence extension; the v1 `_EVID`
+   * link spelling normalizes into the same slot, see
+   * EvidenceReference). Written back as `_EVREF` in both versions.
+   */
+  evidence?: EvidenceReference[];
+  /**
+   * `_EVEN_EVID` {0:M} — the attached-evidence events (the
+   * gedcom-evidence v2 "event container" pattern, see EvidenceEvent).
+   * Written back in both versions.
+   */
+  evidenceEvents?: EvidenceEvent[];
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension, see TagLink).
+   * Written back in both versions.
+   */
+  tagLinks?: TagLink[];
   /**
    * _TAG {0:1} and _TAG2–_TAG9 {0:1 each} — the individual's named
    * tag marks (Tag 1 through Tag 9), kept in order. Written by Legacy
@@ -1600,6 +1650,13 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -1839,6 +1896,13 @@ export interface RepositoryRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -1883,6 +1947,13 @@ export interface SharedNoteRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension; see TagLink). The
+   * 5.5.1 NOTE record projects onto SNOTE in 7.0 with its tag links.
+   * Written back in both versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -1931,6 +2002,13 @@ export interface NoteRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -2310,6 +2388,13 @@ export interface SourceRecord extends GedcomStructureBase {
    * versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -2598,4 +2683,8 @@ export type GedcomRecord =
   | MarriageRecord
   | TwinRecord
   | TitleRecord
+  | EvidenceRecord
+  | ResearchDocumentRecord
+  | ResearchActivityRecord
+  | TagRecord
   | ExtensionRecord;

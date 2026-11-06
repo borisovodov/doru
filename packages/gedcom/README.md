@@ -849,10 +849,25 @@ would be, or where the model takes a documented position:
     CONT prefixes: the Sopranos and ancestry-quirks fixtures, the
     MyHeritage Hebrew bios under citation TEXT); a numbered-list
     marker (`1. Jaume I`) is free text too — no valid GEDCOM line
-    starts with digits and a dot; a blank line ends the run, and any
-    other anchor (a name, a pointer line, the file start) keeps the
+    starts with digits and a dot; the merge runs across blank lines
+    (the FamilySearch LifeSketch paragraphs of the sandi-gedcom
+    matic trees) and takes digit-leading lines too unless they
+    tokenize as a real line — an upper-case GEDCOM-shaped tag at a
+    plausible level (the escyb3 our-family-tree transcripts lose
+    the CONT prefix on `1 jaar en 3 mnd`, `28-05-1857`). Any other
+    anchor (a name, a pointer line, the file start, TRLR) keeps the
     `line.bad-level`/`line.bad-tag` error — those lines have no
-    principled home. A CONC/CONT line merges into its parent's
+    principled home. A full-line `#` comment outside a note run is
+    dropped (the markdown banners of the hand-written extension
+    examples); a comment-only payload on a no-payload line and a
+    `#` comment after a pointer value drop like the `//` comments.
+    A line glued to its own substructure by a lost line break
+    (`1 CHAN 2 DATE 28 DEC 2019`, the Geni exports) resplits when
+    the payload is exactly the well-formed line one level deeper,
+    and a continuation whose payload is a complete line at its own
+    level unwraps into that line (`2 CONT 2 SOUR @S453@`, the FTM
+    Mac exports) unless the merge target is a NOTE/TEXT prose
+    slot. A CONC/CONT line merges into its parent's
     payload even after the parent's other substructures (the order
     rule is serialization pedantry), and a wrong-level continuation
     (`1 NOTE …` + `1 CONT …`) continues the preceding text-bearing
@@ -862,8 +877,12 @@ would be, or where the model takes a documented position:
     the value slot, where the tag expects it. A CONC/CONT indented
     one level too deep merges into the deepest text-bearing
     NOTE/TEXT line on the stack. Non-ASCII xref characters are
-    accepted, an empty `@@` identifier leaves the record without an
-    xref, and an unterminated xref is closed at the next blank. A
+    accepted in records and in pointer values (`1 WIFE @Мария@`),
+    pointer values tolerate leading blanks (`1 WIFE  @I5@`), extra
+    spaces between the level and the xref parse (`0    @1A@ INDI`),
+    a whitespace-only payload parses as the bare tag, an empty `@@`
+    identifier leaves the record without an xref, and an
+    unterminated xref is closed at the next blank. A
     leading weekday name and a trailing parenthesized phrase are
     dropped from a date, and a plain date in the period slot is the
     single-date period.
@@ -881,7 +900,9 @@ would be, or where the model takes a documented position:
     or a bare US escape artifact (`1 FAMC @F2@ `, `1 SUBM @<US20>I1@`)
     parses as the trimmed token. An unknown medium value (`TYPE
     image`, `TYPE story`, `MEDI Article`) becomes OTHER with the
-    phrase; the sex accepts the long spellings Male/Female/MALE/FEMALE;
+    phrase; the sex accepts the long spellings Male/Female/MALE/FEMALE
+    and the MyFamily spelling OTHER (as X); children of the SEX line
+    (the unwrapped FTM Mac citations) survive as record extensions;
     the quality accepts the non-standard `4`.
   - Value leniencies: a non-`Y` text payload on an event line is kept
     verbatim (and a stray value on a no-payload line is dropped, the
@@ -890,7 +911,9 @@ would be, or where the model takes a documented position:
     lines are skipped; dates accept full month names, the
     ABT./ABOUT/CIRCA/CA prefixes, ISO dates, bare year ranges, decades,
     `Unknown`/`Inconnu`/`n/a`, month-only and month-first spellings,
-    ordinal days, the `de`/`of` connectives and impossible days kept
+    ordinal days, the slashed numeric spellings (`04/12/2023`
+    day-first like the dashed ones, `2023/12/04` ISO), the
+    `de`/`of` connectives and impossible days kept
     verbatim (an unparseable date becomes a phrase); times accept
     `UTC`/`GMT±n` suffixes and bare hours; malformed names keep the
     whole text as the given name; enums are trimmed (with `none` RESN
@@ -901,13 +924,17 @@ would be, or where the model takes a documented position:
     direction, and `_CONF_FLAG 1`/`0` spells the Y/N flag);
     coordinates accept bare decimals and DMS; ages accept ranges and
     stray-letter numbers; GEDZIP archives without `gedcom.ged` use the
-    first `.ged` entry; a NOTE.TRAN without MIME/LANG keeps the
+    first `.ged` entry, and the tolerant parse reads an archive
+    whose dataset carries errors (the geditcom TestGED.zip bundles
+    the TGC torture files); a NOTE.TRAN without MIME/LANG keeps the
     translation text alone, and the ISO-8601 timestamp form of the
     exact date (`2 DATE 2022-08-24T12:26:24.532Z`) parses the date
     and the time. An ANSEL-declared document whose lines mostly
     fail the ANSEL set decodes as windows-1251 (the Agelong Tree
-    export dialect); a file with only a few undefined ANSEL bytes
-    keeps its decoding errors.
+    export dialect), and an ASCII-declared document whose high-byte
+    lines systematically fail decodes as windows-1252 (the gramps
+    Latin-1 import tests); a file with only a few stray bytes keeps
+    its decoding errors.
 - **The tolerant parse.** `parseTolerant` records every *unresolved*
   problem of a document and keeps parsing: one error entry per
   offending line, structure or record (capped at 10,000 per document

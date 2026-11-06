@@ -384,7 +384,7 @@ export function normalizeDateText(text: string): string {
   // header dates) — day first, like the GEDCOM date itself. The
   // separator must be the same on both positions (a mixed `4/12-2023`
   // is no date spelling).
-  const european = /^(\d{1,2})([.-/])(\d{1,2})\2(\d{4})$/.exec(trimmed);
+  const european = /^(\d{1,2})([-./])(\d{1,2})\2(\d{4})$/.exec(trimmed);
   if (european !== null) {
     const day = Number(european[1]);
     const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(european[3]) - 1];

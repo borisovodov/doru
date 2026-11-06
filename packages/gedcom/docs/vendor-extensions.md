@@ -1345,6 +1345,49 @@ the WILL event and the GEDKeeper `NEWS`/`OBIT`/`REMV`/`ILL`/`EDUS`/
 `BATM`/`EMPL` set are covered by the same test file
 (`tests/vendor-extensions-corpus-typing-3.test.ts`) and chapter 6.
 
+### The 2026-11 registry sweep III (typed additions)
+
+The sweep after the second full corpus run (2941 files): the
+webtrees-registry tags that were still in the pile, the GEDCOM 5.5.1
+embedded-multimedia shape, and the published glamberson extension
+family (every construct declares its repository URL in the corpus
+files' own `HEAD.SCHMA`). Each field cites its source in its JSDoc;
+covered by `tests/vendor-extensions-corpus-typing-3.test.ts` (rounds 9
+and 10).
+
+| Tag / position | Source | Meaning | Model field |
+| --- | --- | --- | --- |
+| `_PGVU` under CHAN | the webtrees per-vendor custom-tag registry, PhpGedView.php (the UoEMainLibrary PhpGedView 3.3.8 exports) | The author of the last change — the phpGedView spelling of the `_WT_USER` slot | `ChangeDate.user` (written back as `_WT_USER`) |
+| `QUAY` under the SOUR record | the webtrees registry, Heredis.php `SOUR:QUAY` (the alainamand/Dudouyt Heredis exports) | The certainty assessment of the whole source | `SourceRecord.certainty` (5.5.1 writes `QUAY` back; 7.0 drops — the BKW event-level QUAY rule) |
+| `_UPD` under the SOUR record | the webtrees registry, MyHeritage.php `*:_UPD` | The record's last-updated timestamp | `SourceRecord.updatedAt` (both versions) |
+| `_UID` under HEAD | the webtrees registry, MyHeritage.php `HEAD:_UID` (the FH Sample-GEDCOM/fh-sample fixtures) | The dataset's unique identifier | `Header.uid` (both versions) |
+| `_PLACE` under the OBJE record | the webtrees registry, FamilyTreeBuilder.php `OBJE:_PLACE` | The media object's place name | `MultimediaRecord.place` (the `PLAC`/`_PLAC` slot) |
+| `_LOCL` under the INDI/FAM `_TODO` | the webtrees registry, Legacy.php `INDI:_TODO:_LOCL` (the gedcom4j legacycustomtags sample) | The research task's location | `TodoStructure.locality` (the record form's slot) |
+| `_CUTOUT`/`_PRIM_CUTOUT`/`_PARENTPHOTO`/`_PERSONALPHOTO`/`_PARENTRIN` under the pointer-form OBJE link | MyHeritage; the GEDKeeper samples write them there | The media display flags of the link | the `MultimediaLink` twins of the record-level fields (both versions) |
+| `PEDI` under FAM.CHIL (with the per-parent `3 _PARENT @x@`) | the MacFamilyTree exports (the bechbd gedcomimport samples, Synium fixtures); the slaktforskning swedish-royal examples | The pedigree kind of the child link — a position neither standard defines | `FamilyChildLink.pedigrees` (5.5.1 writes the lines back; 7.0 projects an agreeing value onto the child's `INDI.FAMC.PEDI`, the `_FREL`/`_MREL` rule) |
+| record-level `FORM` + `BLOB` with the CONT lines | GEDCOM 5.5.1 §2 `MULTIMEDIA_RECORD` (the official TGC551 torture file); the webtrees registry, Geneatique.php `OBJE:FORM` | The embedded-multimedia shape of 5.5/5.5.1 | `MultimediaRecord.embeddedForm`/`.embeddedBlob` — the 5.5.1 export spells the shape back (the record is no longer dropped), 7.0 drops it with the record when no FILE exists |
+| `SEX OTHER` | the MyFamily exports (the MyFamily23Nov2017544 corpus file) | The long spelling of the X value ("does not fit the typical definition of only Male or only Female") | `IndividualRecord.sex` = `X` |
+
+**The glamberson documented extension family** (each corpus file
+declares the tags in `HEAD.SCHMA` with the repository URL; the
+specifications are the cited sources):
+
+| Extension | Constructs | Model |
+| --- | --- | --- |
+| gedcom-evidence v1 (specification.md) + v2 (the registry YAMLs), <https://github.com/glamberson/gedcom-evidence> | the `_EVID` record (v1 `_TYPE`/`_ID`, v2 `_DTYPE`/`_FIND`/`_ANAL`/DATE/SNOTE/UID — the union grammar), the `_RDOC` record (`_TITL`/`_TEXT`/`_SUBJ`/`_EVID`/`_CONC`+`_SUBJ`+`_TEXT`/AUTH/DATE), the `_RACT` record (`_TYPE`/`_PURP`/`_TARG`/`_VENU`/`_RSLT`/`_FIND`+`_EVID`/DATE/`_RSRCH`), the person/family-side reference (v1 `n _EVID @x@`, v2 `_EVREF` — one slot, written back as `_EVREF`) with `_CONF`/`_USED`/`_RDOC`/QUAY/NOTE, the `_EVEN_EVID` attached-evidence event, the NAME-level link of the gramps examples | `EvidenceRecord` / `ResearchDocumentRecord` + `ResearchConclusion` / `ResearchActivityRecord` / `EvidenceReference` / `EvidenceEvent` / `EvidenceFinding` on INDI, FAM and NAME |
+| gedcom-tags (tag-extension.md), <https://github.com/glamberson/gedcom-tags> | the `_TAG` record (NAME {1:1}, `_COLOR` `#RRGGBB`, `_ATTR`+`_VALUE`) and the `_TAG @xref@` application under any record (DATE/NOTE) | `TagRecord` / `TagLink` — the typed link slots exist on INDI, FAM, SOUR, REPO, OBJE, NOTE and SNOTE; a text-payload `_TAG` keeps its Legacy meaning (marks, report flags) |
+| gedcom-occurrences v0.2.0 completion (occurrence-extension.md), <https://github.com/glamberson/gedcom-occurrences> | `_OCUR` gains CAUS/AGNC/RELI/OBJE/UID/CHAN/`_ATTR`; `_PART` gains SOUR (its payload may point at a FAM); `_OCREF` becomes a structure (ROLE/AGE/NOTE/SOUR/`_ATTR`) under INDI, FAM and — the backward-compatibility position — under events | `OccurrenceRecord` / `OccurrenceParticipant` / `OccurrenceReference` on `IndividualRecord`, `FamilyRecord` and `EventDetail` |
+| gedcom-extended-ASSO (specification.md), <https://github.com/glamberson/gedcom-extended-ASSO> | `_TYPE`, `_PERIOD`+`_START`/`_END`, `_CONF` (0–5) and `_PRIV` under ASSO | `AssociationStructure.specificType`/`.period`/`.confidence`/`.private` |
+| gedcom-citations (templates-extension.md), <https://github.com/dthaler/gedcom-citations> | the `_FIEL`+`TEXT` field spelling under `_TMPLT` (the MagiKey/dthaler shape beside the RootsMagic `FIELD`+`NAME`/`VALUE` one) stays generic inside the typed `SourceRecord.template` block for now — the template payload keeps the inline `#` comment of the example files verbatim | (deferred: the `_TPLT`/`_MODL`/`_FIEL` typing needs the collection-SOUR slot too) |
+
+The container leniencies of the same sweep (the glued-line resplit,
+the continuation unwrap, the comment lines, the note-run merges, the
+pointer/xref whitespace repairs, the ASCII-declared western fallback,
+the tolerant GEDZIP read and the slashed dates) are documented in the
+README's "Lenient container tolerances" and covered by
+`tests/tolerant-parse.test.ts`, `tests/charsets.test.ts` and
+`tests/gedzip.test.ts`.
+
 ## 7. Deferred: presentation and UI state
 
 Pure report/interface data; a viewer that ignores these loses nothing

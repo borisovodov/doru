@@ -105,6 +105,9 @@ import {
   parseRestrictionList,
 } from './types';
 import {
+  parseOccurrenceReference,
+} from './evidence';
+import {
   parseAge551,
   parseTime551,
 } from './types';
@@ -626,6 +629,13 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   };
   handlers['_PLAC'] = (child) => {
     (detail.additionalPlaces ??= []).push(parsePlaceStructure(child, ctx));
+  };
+  handlers['_OCREF'] = (child) => {
+    // The gedcom-occurrences extension's backward-compatibility
+    // position: the occurrence reference under the event itself, so
+    // legacy readers see a normal embedded event (see
+    // EventDetail.occurrences).
+    (detail.occurrences ??= []).push(parseOccurrenceReference(child, ctx));
   };
   handlers['_PRIV'] = (child) => {
     if (parsePrivacyFlag(child, '_PRIV')) {

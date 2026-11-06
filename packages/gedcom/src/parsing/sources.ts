@@ -53,6 +53,9 @@ import {
   parseEnum,
 } from './types';
 import {
+  parseTagLink,
+} from './evidence';
+import {
   parsePlaceStructure,
 } from './names-places';
 import {
@@ -114,6 +117,14 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
       // FH (up to V6.2): the repository web address — the vendor
       // spelling of the standard WWW slot.
       (rec.www ??= []).push(reqText(child));
+    },
+    '_TAG': (child) => {
+      // The gedcom-tags application link (see RepositoryRecord.tagLinks).
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+      } else {
+        addExtension(rec, child, ctx);
+      }
     },
     '_SUBM': (child) => {
       // GDO: a pointer to the submitter record of this repository (see
@@ -198,6 +209,14 @@ export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord
       SOUR: (child) => {
         (rec.citations ??= []).push(parseSourceCitation(child, ctx));
       },
+      _TAG: (child) => {
+        // The gedcom-tags application link (see SharedNoteRecord.tagLinks).
+        if (child.value.kind === 'pointer') {
+          (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        } else {
+          addExtension(rec, child, ctx);
+        }
+      },
       CHAN: (child) => {
         rec.changeDate = parseChangeDate(child, ctx);
       },
@@ -249,6 +268,14 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
     {
       SOUR: (child) => {
         (rec.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+      _TAG: (child) => {
+        // The gedcom-tags application link (see NoteRecord.tagLinks).
+        if (child.value.kind === 'pointer') {
+          (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        } else {
+          addExtension(rec, child, ctx);
+        }
       },
       CHAN: (child) => {
         rec.changeDate = parseChangeDate(child, ctx);
@@ -451,11 +478,16 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       (rec.relocatedCitations ??= []).push(parseSourceCitation(child, ctx));
     },
     _TAG: (child) => {
-      // Legacy: the report inclusion flag (see
+      // The pointer payload is the gedcom-tags application link (see
+      // SourceRecord.tagLinks). Legacy: the report inclusion flag (see
       // SourceRecord.citationDetailIncluded). The vendor documents the
       // SOUR-position form only with a value (`_TAG NO`/`_TAG YES`); a
       // bare `_TAG` under SOUR is the undocumented "tagged" marking of
       // the same tag name and stays a generic extension.
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        return;
+      }
       if (child.value.kind === 'absent') {
         addExtension(rec, child, ctx);
         return;

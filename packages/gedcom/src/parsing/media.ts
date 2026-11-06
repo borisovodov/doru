@@ -33,6 +33,7 @@ import {
   reqPtr,
   reqText,
 } from './context';
+import { parseTagLink } from './evidence';
 import type {
   RawNode,
 } from './lines';
@@ -394,6 +395,15 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // Généatique writes a web address under the OBJE record (the
       // webtrees per-vendor custom-tag registry, Geneatique.php).
       addExtension(rec, child, ctx);
+    },
+    '_TAG': (child) => {
+      // The gedcom-tags application link (see
+      // MultimediaRecord.tagLinks).
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+      } else {
+        addExtension(rec, child, ctx);
+      }
     },
   };
   dispatch(

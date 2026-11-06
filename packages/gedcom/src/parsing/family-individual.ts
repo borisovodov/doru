@@ -62,6 +62,12 @@ import {
   parseTodoStructure,
 } from './todo';
 import {
+  parseEvidenceEvent,
+  parseEvidenceReference,
+  parseOccurrenceReference,
+  parseTagLink,
+} from './evidence';
+import {
   parseGenoproContainer,
 } from './genopro';
 import {
@@ -184,6 +190,33 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
       // MyHeritage: the family's tree identifier (see
       // FamilyRecord.myHeritageId).
       rec.myHeritageId = reqText(child);
+    },
+    _OCREF: (child) => {
+      // The gedcom-occurrences extension lists FAM as an `_OCREF`
+      // superstructure (see FamilyRecord.occurrences).
+      (rec.occurrences ??= []).push(parseOccurrenceReference(child, ctx));
+    },
+    _EVREF: (child) => {
+      // The gedcom-evidence `_EVREF.yaml` lists FAM as a
+      // superstructure (see FamilyRecord.evidence).
+      (rec.evidence ??= []).push(parseEvidenceReference(child, ctx));
+    },
+    _EVID: (child) => {
+      // The gedcom-evidence v1 link spelling (see the INDI handler).
+      if (child.value.kind === 'pointer') {
+        (rec.evidence ??= []).push(parseEvidenceReference(child, ctx));
+      } else {
+        addExtension(rec, child, ctx);
+      }
+    },
+    _TAG: (child) => {
+      // The gedcom-tags application link (see FamilyRecord.tagLinks);
+      // a text-payload `_TAG` under FAM stays a generic extension.
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        return;
+      }
+      addExtension(rec, child, ctx);
     },
     _CONF: (child) => {
       // The confidence level of the family record (see
@@ -1093,10 +1126,33 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       rec.sosaDAboville = reqText(child);
     },
     _OCREF: (child) => {
-      // The glamberson gedcom-occurrences extension: a pointer to the
-      // occurrence record the person appears in (see
-      // IndividualRecord.occurrences).
-      (rec.occurrences ??= []).push(reqPtr(child, ctx));
+      // The glamberson gedcom-occurrences extension: the reference to
+      // the occurrence record the person appears in, with the
+      // participation data (see IndividualRecord.occurrences).
+      (rec.occurrences ??= []).push(parseOccurrenceReference(child, ctx));
+    },
+    _EVREF: (child) => {
+      // The glamberson gedcom-evidence extension: the reference to a
+      // floating evidence record (see IndividualRecord.evidence).
+      (rec.evidence ??= []).push(parseEvidenceReference(child, ctx));
+    },
+    _EVID: (child) => {
+      // The gedcom-evidence v1 link spelling normalizes into the
+      // `_EVREF` slot — but only with a pointer payload: the
+      // slaktforskning examples write `2 _EVID <uuid>` under events
+      // (a different, undocumented convention), and a text-payload
+      // `_EVID` anywhere stays a generic extension (nothing is
+      // guessed).
+      if (child.value.kind === 'pointer') {
+        (rec.evidence ??= []).push(parseEvidenceReference(child, ctx));
+      } else {
+        addExtension(rec, child, ctx);
+      }
+    },
+    _EVEN_EVID: (child) => {
+      // The gedcom-evidence v2 attached-evidence event (see
+      // IndividualRecord.evidenceEvents).
+      (rec.evidenceEvents ??= []).push(parseEvidenceEvent(child, ctx));
     },
     _FID: (child) => {
       // MFT7 / Familienbuch: the FamilySearch Family Tree person id
@@ -1211,6 +1267,13 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.todos ??= []).push(parseTodoStructure(child, ctx));
     },
     _TAG: (child) => {
+      // The pointer payload is the gedcom-tags application link (see
+      // IndividualRecord.tagLinks); the text payload is the Legacy
+      // Tag-1 mark.
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        return;
+      }
       setMark(rec, 0, child, ctx);
     },
     _TAG2: (child) => {

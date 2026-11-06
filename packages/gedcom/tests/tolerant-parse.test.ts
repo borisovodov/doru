@@ -1275,7 +1275,8 @@ describe('the number-sign comment lines', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.occurrences?.[0]).toBe('@O1@');
+    expect(indi.occurrences?.[0]?.occurrence).toBe('@O1@');
+    expect(indi.occurrences?.[0]?.role).toBe('Head');
     const note = indi.notes?.[0];
     expect(note && 'payload' in note ? note.payload : undefined).toBe('# not a comment inside a note run');
   });
