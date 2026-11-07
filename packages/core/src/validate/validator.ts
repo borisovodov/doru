@@ -14,7 +14,7 @@ export function detectParentCycles(doc: TreeDocument): ValidationIssue[] {
     const result: string[] = [];
     for (const family of doc.families.values()) {
       if (family.children.includes(id)) {
-        result.push(...family.parents);
+        result.push(...family.partners);
       }
     }
     return result;

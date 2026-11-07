@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import type { EventRecord } from '@doru/core';
+import type { FactRecord } from '@doru/core';
 import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
@@ -10,15 +10,17 @@ import './EventsSection.css';
 const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];
 
 export function EventsSection({
-  events,
+  personId,
+  events: facts,
   refresh,
-  onAddEvent,
-  onDeleteEvent,
+  onAddFact,
+  onDeleteFact,
 }: {
-  events: EventRecord[];
+  personId: string;
+  events: FactRecord[];
   refresh: () => Promise<void>;
-  onAddEvent: (event: EventRecord) => Promise<void>;
-  onDeleteEvent: (event: EventRecord) => Promise<void>;
+  onAddFact: (fact: FactRecord) => Promise<void>;
+  onDeleteFact: (fact: FactRecord) => Promise<void>;
 }) {
   const [type, setType] = useState('');
   const [date, setDate] = useState<DateDraft>(emptyDate());
@@ -29,40 +31,42 @@ export function EventsSection({
     if (!trimmed) {
       return;
     }
-    const event: EventRecord = {
+    const fact: FactRecord = {
       id: crypto.randomUUID(),
-      type: trimmed,
+      personId,
+      tag: trimmed,
       date: fromDateDraft(date),
-      description: description.trim() || undefined,
+      place: date.place.trim() || undefined,
+      value: description.trim() || undefined,
     };
-    await onAddEvent(event);
+    await onAddFact(fact);
     setType('');
     setDate(emptyDate());
     setDescription('');
     await refresh();
   };
 
-  const remove = async (event: EventRecord) => {
-    await onDeleteEvent(event);
+  const remove = async (fact: FactRecord) => {
+    await onDeleteFact(fact);
     await refresh();
   };
 
   return (
     <div className="person-section">
       <h3>{nls.t('features.tree.events.title')}</h3>
-      {events.length === 0 ? (
+      {facts.length === 0 ? (
         <p className="notes-empty">{nls.t('features.tree.events.empty')}</p>
       ) : (
         <ul className="event-list">
-          {events.map((event) => (
-            <li key={event.id}>
-              <span className="event-type">{event.type}</span>
+          {facts.map((fact) => (
+            <li key={fact.id}>
+              <span className="event-type">{fact.tag}</span>
               <span className="event-date">
-                {event.date ? formatDate(event.date) : ''}
-                {event.place ? ` — ${event.place}` : ''}
+                {fact.date ? formatDate(fact.date) : ''}
+                {fact.place ? ` — ${fact.place}` : ''}
               </span>
-              {event.description ? <span className="event-description">{event.description}</span> : null}
-              <button title={nls.t('features.tree.events.remove')} onClick={() => void remove(event)}>
+              {fact.value ? <span className="event-description">{fact.value}</span> : null}
+              <button title={nls.t('features.tree.events.remove')} onClick={() => void remove(fact)}>
                 <X size={14} aria-hidden="true" />
               </button>
             </li>

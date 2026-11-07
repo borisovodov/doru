@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import type { PersonRecord } from '@doru/core';
-import { displayName } from '@doru/features';
+import type { FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
+import { displayName, familyLabel } from '@doru/features';
 import { moveTab, nls, type TabInfo } from '@doru/workbench';
 
 const TREE_TAB_ID = 'tree';
@@ -8,6 +8,8 @@ const SETTINGS_TAB_ID = 'settings';
 const NOTICES_TAB_ID = 'notices';
 const EXPORT_TAB_ID = 'export';
 const PERSON_TAB_PREFIX = 'person:';
+const FAMILY_TAB_PREFIX = 'family:';
+const SOURCE_TAB_PREFIX = 'source:';
 
 interface OpenTab {
   id: string;
@@ -15,7 +17,7 @@ interface OpenTab {
   closable: boolean;
 }
 
-function tabLabel(tab: OpenTab, persons: PersonRecord[]): string {
+function tabLabel(tab: OpenTab, persons: PersonRecord[], families: FamilyRecord[], sources: SourceRecord[]): string {
   if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
     const personId = tab.id.slice(PERSON_TAB_PREFIX.length);
     if (personId.startsWith('new:')) {
@@ -26,10 +28,25 @@ function tabLabel(tab: OpenTab, persons: PersonRecord[]): string {
       return displayName(person);
     }
   }
+  if (tab.id.startsWith(FAMILY_TAB_PREFIX)) {
+    const familyId = tab.id.slice(FAMILY_TAB_PREFIX.length);
+    const family = families.find((entry) => entry.id === familyId);
+    if (family) {
+      const personById = new Map(persons.map((person) => [person.id, person]));
+      return familyLabel(family, personById);
+    }
+  }
+  if (tab.id.startsWith(SOURCE_TAB_PREFIX)) {
+    const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
+    const source = sources.find((entry) => entry.id === sourceId);
+    if (source) {
+      return source.title;
+    }
+  }
   return tab.label;
 }
 
-export function useTabs(persons: PersonRecord[]) {
+export function useTabs(persons: PersonRecord[], families: FamilyRecord[], sources: SourceRecord[]) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
@@ -125,6 +142,20 @@ export function useTabs(persons: PersonRecord[]) {
     [persons, openTab],
   );
 
+  const openFamilyTab = useCallback(
+    (familyId: string) => {
+      openTab({ id: `${FAMILY_TAB_PREFIX}${familyId}`, label: familyId });
+    },
+    [openTab],
+  );
+
+  const openSourceTab = useCallback(
+    (sourceId: string) => {
+      openTab({ id: `${SOURCE_TAB_PREFIX}${sourceId}`, label: sourceId });
+    },
+    [openTab],
+  );
+
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -143,7 +174,7 @@ export function useTabs(persons: PersonRecord[]) {
 
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
-    label: tabLabel(tab, persons),
+    label: tabLabel(tab, persons, families, sources),
     closable: tab.closable,
   }));
 
@@ -160,6 +191,8 @@ export function useTabs(persons: PersonRecord[]) {
     prevTab,
     openTabAt,
     openPersonTab,
+    openFamilyTab,
+    openSourceTab,
     openSettingsTab,
     openNoticesTab,
     openExportTab,
@@ -167,4 +200,12 @@ export function useTabs(persons: PersonRecord[]) {
   };
 }
 
-export { SETTINGS_TAB_ID, TREE_TAB_ID, NOTICES_TAB_ID, EXPORT_TAB_ID, PERSON_TAB_PREFIX };
+export {
+  SETTINGS_TAB_ID,
+  TREE_TAB_ID,
+  NOTICES_TAB_ID,
+  EXPORT_TAB_ID,
+  PERSON_TAB_PREFIX,
+  FAMILY_TAB_PREFIX,
+  SOURCE_TAB_PREFIX,
+};

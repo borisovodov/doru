@@ -1,25 +1,21 @@
 import {
-  OpQueue,
-  addNoteOp,
-  addPersonOp,
-  addRelativeOp,
-  addSourceOp,
-  updatePersonOp,
-  type FamilyRecord,
+  type PersonName,
   type PersonRecord,
-  type TreeRepository,
-  type TreeStats,
+  TreeService,
 } from '@doru/core';
 
 export type TreeEditOp =
   | { kind: 'person.add'; person: PersonRecord }
   | { kind: 'person.update'; before: PersonRecord; after: PersonRecord };
 
+/**
+ * The agent-facing tree surface: adapts the MCP/AI tool calls onto the
+ * project's `TreeService`. The domain rules live in the service; this class
+ * only maps tool arguments, validates them for model output (which is
+ * untrusted), and shapes the tool replies.
+ */
 export class TreeMcpBackend {
-  constructor(
-    private readonly repo: TreeRepository,
-    private readonly queue: OpQueue,
-  ) {}
+  constructor(private readonly service: TreeService) {}
 
   async invoke(name: string, args: Record<string, unknown>): Promise<unknown> {
     switch (name) {
@@ -32,7 +28,7 @@ export class TreeMcpBackend {
       case 'tree_get':
         return this.get(args['personId'] as string);
       case 'tree_stats':
-        return this.stats();
+        return this.service.stats();
       case 'tree_edit':
         return this.edit(args['op'] as TreeEditOp);
       case 'tree_add_relative':
@@ -52,23 +48,19 @@ export class TreeMcpBackend {
 
   private query(query?: string, limit?: number, sex?: string): PersonRecord[] {
     const normalized = normalizeSearch(query);
-    const sexFilter = sex === 'M' || sex === 'F' || sex === 'U' ? sex : undefined;
-    return this.repo.listPersons({ search: normalized, sex: sexFilter, limit: limit ?? 20 });
+    const sexFilter = sex === 'M' || sex === 'F' || sex === 'X' || sex === 'U' ? sex : undefined;
+    return this.service.listPersons({ search: normalized, sex: sexFilter, limit: limit ?? 20 });
   }
 
   private get(personId: string): unknown {
-    const person = this.repo.getPerson(personId);
+    const person = this.service.getPerson(personId);
     if (!person) {
       return { found: false };
     }
-    const families = this.repo
+    const families = this.service
       .listFamilies()
-      .filter((family) => family.parents.includes(personId) || family.children.includes(personId));
+      .filter((family) => family.partners.includes(personId) || family.children.includes(personId));
     return { found: true, person, families };
-  }
-
-  private stats(): TreeStats {
-    return { persons: this.repo.countPersons(), families: this.repo.countFamilies() };
   }
 
   private edit(op: TreeEditOp): unknown {
@@ -76,67 +68,42 @@ export class TreeMcpBackend {
       throw new Error('tree_edit requires an "op" object');
     }
     if (op.kind === 'person.add') {
-      if (this.repo.getPerson(op.person.id)) {
+      const person = normalizePerson(op.person);
+      if (this.service.getPerson(person.id)) {
         throw new Error(
-          `A person with id "${op.person.id}" already exists in the tree; the new person needs an unused id.`,
+          `A person with id "${person.id}" already exists in the tree; the new person needs an unused id.`,
         );
       }
-      this.queue.apply(addPersonOp(op.person), { repo: this.repo });
-      return { ok: true, canUndo: this.queue.canUndo() };
+      const state = this.service.addPerson(person);
+      return { ok: true, canUndo: state.canUndo };
     }
     if (op.kind === 'person.update') {
-      this.queue.apply(updatePersonOp(op.before, op.after), { repo: this.repo });
-      return { ok: true, canUndo: this.queue.canUndo() };
+      const state = this.service.updatePerson(normalizePerson(op.before), normalizePerson(op.after));
+      return { ok: true, canUndo: state.canUndo };
     }
     throw new Error(`Unsupported op kind: ${(op as { kind?: string }).kind}`);
   }
 
   /**
    * Creates a person and links them to the anchor as a child, spouse or
-   * parent, mirroring the app's `tree:addRelative` IPC: the anchor's family
-   * is reused when it exists, otherwise a new one is created.
+   * parent — the service reuses the anchor's family or creates one.
    */
   private addRelative(
     relation: 'child' | 'spouse' | 'parent',
     anchorId: string,
     person: PersonRecord,
   ): unknown {
-    if (this.repo.getPerson(person.id)) {
+    const normalized = normalizePerson(person);
+    if (this.service.getPerson(normalized.id)) {
       throw new Error(
-        `A person with id "${person.id}" already exists in the tree; the new person needs an unused id.`,
+        `A person with id "${normalized.id}" already exists in the tree; the new person needs an unused id.`,
       );
     }
-    const anchor = this.repo.getPerson(anchorId);
-    if (!anchor) {
+    if (!this.service.getPerson(anchorId)) {
       return { ok: false, error: `Unknown anchor person: ${anchorId}` };
     }
-    const families = this.repo.listFamilies();
-    let links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
-    let created: FamilyRecord | undefined;
-    if (relation === 'parent') {
-      created = {
-        id: crypto.randomUUID(),
-        parents: [person.id],
-        children: [anchorId],
-      };
-    } else {
-      const target = families.find((family) => family.parents.includes(anchorId));
-      if (target) {
-        const after =
-          relation === 'child'
-            ? { ...target, children: [...target.children, person.id] }
-            : { ...target, parents: [...target.parents, person.id] };
-        links = [{ before: target, after }];
-      } else {
-        created = {
-          id: crypto.randomUUID(),
-          parents: relation === 'child' ? [anchorId] : [anchorId, person.id],
-          children: relation === 'child' ? [person.id] : [],
-        };
-      }
-    }
-    this.queue.apply(addRelativeOp(person, links, created), { repo: this.repo });
-    return { ok: true, canUndo: this.queue.canUndo() };
+    const state = this.service.addRelative(relation, anchorId, normalized);
+    return { ok: true, canUndo: state.canUndo };
   }
 
   private addSource(args: Record<string, unknown>): unknown {
@@ -152,8 +119,7 @@ export class TreeMcpBackend {
     };
     const targetType = args['targetType'] as string | undefined;
     const targetId = args['targetId'] as string | undefined;
-    const citation = targetType && targetId ? { targetType, targetId } : undefined;
-    this.queue.apply(addSourceOp(source, citation), { repo: this.repo });
+    this.service.addSource(source, targetType, targetId);
     return { ok: true, id: source.id };
   }
 
@@ -168,9 +134,38 @@ export class TreeMcpBackend {
       targetType: args['targetType'] as string | undefined,
       targetId: args['targetId'] as string | undefined,
     };
-    this.queue.apply(addNoteOp(note), { repo: this.repo });
+    this.service.addNote(note);
     return { ok: true, id: note.id };
   }
+}
+
+/**
+ * Completes a person payload coming from a model: name ids are generated
+ * when the model omitted them (they exist for stable in-app addressing,
+ * not for the model to invent), missing optional parts default to empty.
+ */
+function normalizePerson(person: PersonRecord | undefined | null): PersonRecord {
+  if (!person || typeof person.id !== 'string' || person.id === '') {
+    throw new Error('a person payload with an "id" is required');
+  }
+  const names: PersonName[] = (Array.isArray(person.names) ? person.names : []).map((name) => ({
+    id: typeof name.id === 'string' && name.id !== '' ? name.id : crypto.randomUUID(),
+    full: name.full,
+    given: name.given,
+    surname: name.surname,
+    surnamePrefix: name.surnamePrefix,
+    nickname: name.nickname,
+    prefix: name.prefix,
+    suffix: name.suffix,
+    type: name.type,
+  }));
+  return {
+    id: person.id,
+    xref: person.xref,
+    sex: person.sex === 'M' || person.sex === 'F' || person.sex === 'X' || person.sex === 'U' ? person.sex : 'U',
+    names,
+    facts: Array.isArray(person.facts) ? person.facts : [],
+  };
 }
 
 function normalizeSearch(query: string | undefined): string | undefined {

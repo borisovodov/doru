@@ -258,7 +258,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
         ],
         draggable: false,
         data: {
-          person: { id: draft.id, names: [], sex: 'U' },
+          person: { id: draft.id, names: [], sex: 'U', facts: [] },
           line: null,
           isFocus: false,
           hasSubtree: false,

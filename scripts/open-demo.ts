@@ -89,19 +89,29 @@ await page.evaluate(
       if (existing.has(id)) {
         continue;
       }
-      const person: PersonRecord = { id, names: [{ given, surname }], sex };
+      const person: PersonRecord = { id, names: [{ id: `N-${id}`, given, surname }], sex, facts: [] };
       if (birthYear !== undefined) {
-        person.birth = { year: birthYear, quality: 'exact' };
+        person.facts.push({
+          id: `B-${id}`,
+          personId: id,
+          tag: 'BIRT',
+          date: { quality: 'exact', component: { year: birthYear } },
+        });
       }
       if (deathYear !== undefined) {
-        person.death = { year: deathYear, quality: 'exact' };
+        person.facts.push({
+          id: `D-${id}`,
+          personId: id,
+          tag: 'DEAT',
+          date: { quality: 'exact', component: { year: deathYear } },
+        });
       }
       await window.doru.addPerson(project, person);
     }
     const existingFamilies = new Set((await window.doru.getFamilies(project)).map((f) => f.id));
-    for (const [id, [parents, children]] of Object.entries(families)) {
+    for (const [id, [partners, children]] of Object.entries(families)) {
       if (!existingFamilies.has(id)) {
-        await window.doru.addFamily(project, { id, parents, children });
+        await window.doru.addFamily(project, { id, partners, children });
       }
     }
     // A bit of extra content so the card badges are visible in the demo.

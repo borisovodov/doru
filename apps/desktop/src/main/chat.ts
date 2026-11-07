@@ -211,7 +211,7 @@ export async function sendChat(options: {
         }
       }
     } else {
-      const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
+      const backend = new TreeMcpBackend(runtime.service);
       const isDoru = settings.provider.id === 'doru';
       if (isDoru && !doruModelInstalled()) {
         log.warn('chat: Dóru AI model is not downloaded', runContext);

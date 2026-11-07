@@ -25,6 +25,7 @@
     "@doru/ai": "*",
     "@doru/core": "*",
     "@doru/features": "*",
+    "@doru/gedcom": "*",
     "@doru/platform": "*",
     "@doru/workbench": "*",
     "electron-log": "5.4.4",

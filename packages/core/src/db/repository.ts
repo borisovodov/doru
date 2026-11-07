@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type {
-  EventRecord,
+  CitationRecord,
+  FactRecord,
   FamilyRecord,
   MediaRecord,
   NoteRecord,
@@ -8,7 +9,7 @@ import type {
   SourceRecord,
   TreeDocument,
 } from '../model/types';
-import { EventRepo } from './eventRepo';
+import { FactRepo } from './factRepo';
 import { FamilyRepo } from './familyRepo';
 import { MediaRepo } from './mediaRepo';
 import { NoteRepo } from './noteRepo';
@@ -32,61 +33,104 @@ export interface TreeRepository {
   getFamily(id: string): FamilyRecord | undefined;
   deleteFamily(id: string): boolean;
   listFamilies(): FamilyRecord[];
+  insertFact(fact: FactRecord): void;
+  deleteFact(id: string): boolean;
+  listFactsForPerson(personId: string): FactRecord[];
+  listFactsForFamily(familyId: string): FactRecord[];
+  /** Every fact in the tree, ordered by date. */
+  listAllFacts(): FactRecord[];
   insertSource(source: SourceRecord): void;
   deleteSource(id: string): boolean;
   listSources(): SourceRecord[];
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void;
-  insertCitation(citation: { id: string; sourceId: string; targetType: string; targetId: string }): void;
+  insertCitation(citation: CitationRecord): void;
   deleteCitation(id: string): boolean;
-  getCitation(id: string): { id: string; sourceId: string; targetType: string; targetId: string } | undefined;
+  getCitation(id: string): CitationRecord | undefined;
   listCitationsFor(targetType: string, targetId: string): Array<{ id: string; source: SourceRecord }>;
+  /** Full citation rows for a target, including page and quality. */
+  listCitationRecordsFor(targetType: string, targetId: string): CitationRecord[];
+  /** Every citation in the tree. */
+  listAllCitations(): CitationRecord[];
   insertNote(note: NoteRecord): void;
   deleteNote(id: string): boolean;
   listNotes(): NoteRecord[];
-  insertEvent(event: EventRecord): void;
-  deleteEvent(id: string): boolean;
-  listEventsForPerson(personId: string): EventRecord[];
-  listEventsForFamily(familyId: string): EventRecord[];
+  listNotesFor(targetType: string, targetId: string): NoteRecord[];
   insertMedia(media: MediaRecord): void;
   deleteMedia(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
+  listAllMedia(): MediaRecord[];
   toTreeDocument(): TreeDocument;
   transaction<T>(fn: () => T): T;
 }
 
 /**
  * Facade over the per-entity repositories. Ops and services talk to this
- * interface; the entity split underneath is an implementation detail.
+ * interface; the entity split underneath is an implementation detail. The
+ * facade also composes the person aggregate: the person row plus names
+ * (PersonRepo) and facts (FactRepo).
  */
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
   private readonly persons: PersonRepo;
   private readonly families: FamilyRepo;
+  private readonly facts: FactRepo;
   private readonly sources: SourceRepo;
   private readonly notes: NoteRepo;
-  private readonly events: EventRepo;
   private readonly media: MediaRepo;
 
   constructor(db: DatabaseSync) {
     this.transactions = new TransactionScope(db);
-    this.persons = new PersonRepo(db);
+    this.persons = new PersonRepo(db, this.transactions);
     this.families = new FamilyRepo(db, this.transactions);
+    this.facts = new FactRepo(db);
     this.sources = new SourceRepo(db);
     this.notes = new NoteRepo(db);
-    this.events = new EventRepo(db);
     this.media = new MediaRepo(db);
   }
 
   insertPerson(person: PersonRecord): void {
-    this.persons.insertPerson(person);
+    this.transactions.run(() => {
+      this.persons.insertPerson(person);
+      for (const fact of person.facts) {
+        this.facts.insertFact(fact);
+      }
+    });
   }
 
+  /**
+   * Replaces the person aggregate: identity fields and names are rewritten
+   * in full, facts are synchronized by id (inserted when new, updated when
+   * present, deleted when missing from the incoming list). Callers pass the
+   * complete facts list; the before/after snapshot semantics make a save
+   * from a stale view drop facts it did not know about — the renderer
+   * reloads on external changes to keep that window small.
+   */
   updatePerson(person: PersonRecord): void {
-    this.persons.updatePerson(person);
+    this.transactions.run(() => {
+      this.persons.updatePerson(person);
+      const existing = this.facts.listFactsForPerson(person.id);
+      const incoming = new Map(person.facts.map((fact) => [fact.id, fact]));
+      for (const fact of person.facts) {
+        if (existing.some((entry) => entry.id === fact.id)) {
+          this.facts.updateFact(fact);
+        } else {
+          this.facts.insertFact(fact);
+        }
+      }
+      for (const old of existing) {
+        if (!incoming.has(old.id)) {
+          this.facts.deleteFact(old.id);
+        }
+      }
+    });
   }
 
   getPerson(id: string): PersonRecord | undefined {
-    return this.persons.getPerson(id);
+    const base = this.persons.getPerson(id);
+    if (!base) {
+      return undefined;
+    }
+    return { ...base, facts: this.facts.listFactsForPerson(id) };
   }
 
   deletePerson(id: string): boolean {
@@ -94,11 +138,17 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listPersons(query?: PersonQuery): PersonRecord[] {
-    return this.persons.listPersons(query);
+    return this.persons.listPersons(query).map((base) => ({
+      ...base,
+      facts: this.facts.listFactsForPerson(base.id),
+    }));
   }
 
   listAllPersons(): PersonRecord[] {
-    return this.persons.listAllPersons();
+    return this.persons.listAllPersons().map((base) => ({
+      ...base,
+      facts: this.facts.listFactsForPerson(base.id),
+    }));
   }
 
   countPersons(): number {
@@ -129,6 +179,26 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.families.listFamilies();
   }
 
+  insertFact(fact: FactRecord): void {
+    this.facts.insertFact(fact);
+  }
+
+  deleteFact(id: string): boolean {
+    return this.facts.deleteFact(id);
+  }
+
+  listFactsForPerson(personId: string): FactRecord[] {
+    return this.facts.listFactsForPerson(personId);
+  }
+
+  listFactsForFamily(familyId: string): FactRecord[] {
+    return this.facts.listFactsForFamily(familyId);
+  }
+
+  listAllFacts(): FactRecord[] {
+    return this.facts.listAllFacts();
+  }
+
   insertSource(source: SourceRecord): void {
     this.sources.insertSource(source);
   }
@@ -145,7 +215,7 @@ export class SqliteTreeRepository implements TreeRepository {
     this.sources.addSourceCitation(sourceId, targetType, targetId);
   }
 
-  insertCitation(citation: { id: string; sourceId: string; targetType: string; targetId: string }): void {
+  insertCitation(citation: CitationRecord): void {
     this.sources.insertCitation(citation);
   }
 
@@ -153,12 +223,20 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.sources.deleteCitation(id);
   }
 
-  getCitation(id: string): { id: string; sourceId: string; targetType: string; targetId: string } | undefined {
+  getCitation(id: string): CitationRecord | undefined {
     return this.sources.getCitation(id);
   }
 
   listCitationsFor(targetType: string, targetId: string): Array<{ id: string; source: SourceRecord }> {
     return this.sources.listCitationsFor(targetType, targetId);
+  }
+
+  listCitationRecordsFor(targetType: string, targetId: string): CitationRecord[] {
+    return this.sources.listCitations(targetType, targetId);
+  }
+
+  listAllCitations(): CitationRecord[] {
+    return this.sources.listAllCitations();
   }
 
   insertNote(note: NoteRecord): void {
@@ -173,20 +251,8 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.notes.listNotes();
   }
 
-  insertEvent(event: EventRecord): void {
-    this.events.insertEvent(event);
-  }
-
-  deleteEvent(id: string): boolean {
-    return this.events.deleteEvent(id);
-  }
-
-  listEventsForPerson(personId: string): EventRecord[] {
-    return this.events.listEventsForPerson(personId);
-  }
-
-  listEventsForFamily(familyId: string): EventRecord[] {
-    return this.events.listEventsForFamily(familyId);
+  listNotesFor(targetType: string, targetId: string): NoteRecord[] {
+    return this.notes.listNotesFor(targetType, targetId);
   }
 
   insertMedia(media: MediaRecord): void {
@@ -201,11 +267,14 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.media.listMediaFor(targetType, targetId);
   }
 
+  listAllMedia(): MediaRecord[] {
+    return this.media.listAllMedia();
+  }
+
   toTreeDocument(): TreeDocument {
     return {
       persons: new Map(this.listAllPersons().map((person) => [person.id, person])),
       families: new Map(this.listFamilies().map((family) => [family.id, family])),
-      sources: new Map(this.listSources().map((source) => [source.id, source])),
     };
   }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { FamilyRecord, PersonRecord } from '@doru/core';
-import type { PersonEditorApi } from '@doru/features';
+import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
+import type { MediaWithPath, PersonEditorApi } from '@doru/features';
 
 /**
  * Tree state and every mutation/reload that goes through `window.doru`.
@@ -9,17 +9,39 @@ import type { PersonEditorApi } from '@doru/features';
 export function useTreeData(projectPath: string | null | undefined) {
   const [persons, setPersons] = useState<PersonRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
+  const [facts, setFacts] = useState<FactRecord[]>([]);
+  const [sources, setSources] = useState<SourceRecord[]>([]);
+  const [media, setMedia] = useState<MediaWithPath[]>([]);
+  const [citations, setCitations] = useState<CitationRecord[]>([]);
+  const [notes, setNotes] = useState<NoteRecord[]>([]);
 
   const reloadTree = useCallback(async (path: string) => {
-    const data = await window.doru.all(path);
+    const [data, allFacts, allSources, allMedia, allCitations, allNotes] = await Promise.all([
+      window.doru.all(path),
+      window.doru.getAllFacts(path),
+      window.doru.getSources(path),
+      window.doru.getAllMedia(path),
+      window.doru.getAllCitations(path),
+      window.doru.listNotes(path),
+    ]);
     setPersons(data.persons);
     setFamilies(data.families);
+    setFacts(allFacts);
+    setSources(allSources);
+    setMedia(allMedia);
+    setCitations(allCitations);
+    setNotes(allNotes);
   }, []);
 
   useEffect(() => {
     if (!projectPath) {
       setPersons([]);
       setFamilies([]);
+      setFacts([]);
+      setSources([]);
+      setMedia([]);
+      setCitations([]);
+      setNotes([]);
       return;
     }
     void reloadTree(projectPath);
@@ -188,19 +210,19 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.detachCitation(projectPath, citationId);
       },
-      getEvents: (personId, familyId) =>
-        projectPath ? window.doru.getEvents(projectPath, personId, familyId) : Promise.resolve([]),
-      addEvent: async (event) => {
+      getFacts: (personId, familyId) =>
+        projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
+      addFact: async (fact) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.addEvent(projectPath, event);
+        await window.doru.addFact(projectPath, fact);
       },
-      deleteEvent: async (event) => {
+      deleteFact: async (fact) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.deleteEvent(projectPath, event);
+        await window.doru.deleteFact(projectPath, fact);
       },
       getMedia: (personId) =>
         projectPath ? window.doru.getMedia(projectPath, personId) : Promise.resolve([]),
@@ -223,6 +245,11 @@ export function useTreeData(projectPath: string | null | undefined) {
   return {
     persons,
     families,
+    facts,
+    sources,
+    media,
+    citations,
+    notes,
     undo,
     redo,
     refreshTree,

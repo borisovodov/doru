@@ -1,6 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import type { AcpAgentClient } from '@doru/ai';
-import type { ITreeStore, OpQueue, RecentProjects, SqliteTreeRepository } from '@doru/core';
+import type { ITreeStore, RecentProjects, TreeService } from '@doru/core';
 
 /**
  * Shared mutable state of the main process.
@@ -12,8 +12,8 @@ import type { ITreeStore, OpQueue, RecentProjects, SqliteTreeRepository } from '
 
 export interface ProjectRuntime {
   store: ITreeStore;
-  repo: SqliteTreeRepository;
-  queue: OpQueue;
+  /** The tree domain service — the single write path for the project. */
+  service: TreeService;
 }
 
 /** Keys of projects created from a GEDCOM import that are not saved yet. */

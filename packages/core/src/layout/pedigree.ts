@@ -50,7 +50,7 @@ export function suggestFocusPerson(
     for (const id of family.children) {
       children.add(id);
     }
-    for (const id of family.parents) {
+    for (const id of family.partners) {
       parents.add(id);
     }
   }
@@ -84,7 +84,7 @@ export function isDescendantOf(
   for (const family of families) {
     for (const childId of family.children) {
       const list = parentsByChild.get(childId) ?? [];
-      list.push(...family.parents);
+      list.push(...family.partners);
       parentsByChild.set(childId, list);
     }
   }

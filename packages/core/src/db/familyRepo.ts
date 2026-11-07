@@ -4,6 +4,7 @@ import type { TransactionScope } from './transaction';
 
 interface FamilyRow {
   id: string;
+  xref: string | null;
 }
 
 export class FamilyRepo {
@@ -14,29 +15,26 @@ export class FamilyRepo {
 
   insertFamily(family: FamilyRecord): void {
     this.transactions.run(() => {
-      const now = new Date().toISOString();
-      this.db
-        .prepare('INSERT INTO family (id, created_at, updated_at) VALUES (?, ?, ?)')
-        .run(family.id, now, now);
+      this.db.prepare('INSERT INTO family (id, xref) VALUES (?, ?)').run(family.id, family.xref ?? null);
       this.replaceLinks(family);
     });
   }
 
   updateFamily(family: FamilyRecord): void {
     this.transactions.run(() => {
-      this.db.prepare('UPDATE family SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), family.id);
-      this.db.prepare('DELETE FROM family_parent WHERE family_id = ?').run(family.id);
+      this.db.prepare('UPDATE family SET xref = ? WHERE id = ?').run(family.xref ?? null, family.id);
+      this.db.prepare('DELETE FROM family_partner WHERE family_id = ?').run(family.id);
       this.db.prepare('DELETE FROM family_child WHERE family_id = ?').run(family.id);
       this.replaceLinks(family);
     });
   }
 
   getFamily(id: string): FamilyRecord | undefined {
-    const row = this.db.prepare('SELECT id FROM family WHERE id = ?').get(id) as FamilyRow | undefined;
+    const row = this.db.prepare('SELECT id, xref FROM family WHERE id = ?').get(id) as FamilyRow | undefined;
     if (!row) {
       return undefined;
     }
-    return this.hydrateFamily(row.id);
+    return this.hydrate(row);
   }
 
   deleteFamily(id: string): boolean {
@@ -45,8 +43,8 @@ export class FamilyRepo {
   }
 
   listFamilies(): FamilyRecord[] {
-    const rows = this.db.prepare('SELECT id FROM family ORDER BY id').all() as unknown as FamilyRow[];
-    return rows.map((row) => this.hydrateFamily(row.id));
+    const rows = this.db.prepare('SELECT id, xref FROM family ORDER BY id').all() as unknown as FamilyRow[];
+    return rows.map((row) => this.hydrate(row));
   }
 
   countFamilies(): number {
@@ -56,12 +54,12 @@ export class FamilyRepo {
 
   private replaceLinks(family: FamilyRecord): void {
     const personExists = this.db.prepare('SELECT 1 FROM person WHERE id = ?');
-    const insertParent = this.db.prepare('INSERT INTO family_parent (family_id, parent_id) VALUES (?, ?)');
-    for (const parentId of family.parents) {
-      if (personExists.get(parentId) !== undefined) {
-        insertParent.run(family.id, parentId);
+    const insertPartner = this.db.prepare('INSERT INTO family_partner (family_id, person_id, position) VALUES (?, ?, ?)');
+    family.partners.forEach((personId, position) => {
+      if (personExists.get(personId) !== undefined) {
+        insertPartner.run(family.id, personId, position);
       }
-    }
+    });
     const insertChild = this.db.prepare('INSERT INTO family_child (family_id, child_id) VALUES (?, ?)');
     for (const childId of family.children) {
       if (personExists.get(childId) !== undefined) {
@@ -70,17 +68,18 @@ export class FamilyRepo {
     }
   }
 
-  private hydrateFamily(id: string): FamilyRecord {
-    const parents = this.db.prepare('SELECT parent_id FROM family_parent WHERE family_id = ?').all(id) as unknown as {
-      parent_id: string;
-    }[];
-    const children = this.db.prepare('SELECT child_id FROM family_child WHERE family_id = ?').all(id) as unknown as {
-      child_id: string;
-    }[];
+  private hydrate(row: FamilyRow): FamilyRecord {
+    const partners = this.db
+      .prepare('SELECT person_id FROM family_partner WHERE family_id = ? ORDER BY position')
+      .all(row.id) as unknown as { person_id: string }[];
+    const children = this.db
+      .prepare('SELECT child_id FROM family_child WHERE family_id = ? ORDER BY child_id')
+      .all(row.id) as unknown as { child_id: string }[];
     return {
-      id,
-      parents: parents.map((row) => row.parent_id),
-      children: children.map((row) => row.child_id),
+      id: row.id,
+      xref: row.xref ?? undefined,
+      partners: partners.map((entry) => entry.person_id),
+      children: children.map((entry) => entry.child_id),
     };
   }
 }

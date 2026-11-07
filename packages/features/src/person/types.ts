@@ -1,4 +1,4 @@
-import type { EventRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
+import type { FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 
 export interface MediaWithPath extends MediaRecord {
   absolutePath: string;
@@ -28,9 +28,9 @@ export interface PersonEditorApi {
   addSource(source: SourceRecord, targetId: string): Promise<void>;
   attachSource(sourceId: string, targetId: string): Promise<void>;
   detachCitation(citationId: string): Promise<void>;
-  getEvents(personId?: string, familyId?: string): Promise<EventRecord[]>;
-  addEvent(event: EventRecord): Promise<void>;
-  deleteEvent(event: EventRecord): Promise<void>;
+  getFacts(personId?: string, familyId?: string): Promise<FactRecord[]>;
+  addFact(fact: FactRecord): Promise<void>;
+  deleteFact(fact: FactRecord): Promise<void>;
   getMedia(personId: string): Promise<MediaWithPath[]>;
   addMedia(personId: string): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;

@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, NamePart, PersonRecord, Sex } from '../model/types';
+import type { PersonName, Sex } from '../model/types';
+import type { TransactionScope } from './transaction';
 
 export interface PersonQuery {
   search?: string | undefined;
@@ -9,54 +10,68 @@ export interface PersonQuery {
   offset?: number | undefined;
 }
 
+/**
+ * The identity part of the person aggregate: the row plus its names. The
+ * person's facts live in the fact table and are joined by the repository
+ * facade when a complete `PersonRecord` is needed.
+ */
+export interface PersonBase {
+  id: string;
+  xref?: string | undefined;
+  sex: Sex;
+  names: PersonName[];
+}
+
 interface PersonRow {
   id: string;
-  names: string;
-  sex: Sex | null;
-  birth_json: string | null;
-  death_json: string | null;
+  xref: string | null;
+  sex: string | null;
+}
+
+interface NameRow {
+  id: string;
+  full: string | null;
+  given: string | null;
+  surname: string | null;
+  surname_prefix: string | null;
+  nickname: string | null;
+  prefix: string | null;
+  suffix: string | null;
+  type: string | null;
 }
 
 export class PersonRepo {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly transactions: TransactionScope,
+  ) {}
 
-  insertPerson(person: PersonRecord): void {
-    const now = new Date().toISOString();
-    this.db
-      .prepare(
-        'INSERT INTO person (id, names, sex, birth_json, death_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        person.id,
-        JSON.stringify(person.names),
-        person.sex,
-        dateToJson(person.birth),
-        dateToJson(person.death),
-        now,
-        now,
-      );
+  insertPerson(person: PersonBase): void {
+    this.transactions.run(() => {
+      this.db
+        .prepare('INSERT INTO person (id, xref, sex) VALUES (?, ?, ?)')
+        .run(person.id, person.xref ?? null, person.sex);
+      this.replaceNames(person);
+    });
   }
 
-  updatePerson(person: PersonRecord): void {
-    this.db
-      .prepare(
-        'UPDATE person SET names = ?, sex = ?, birth_json = ?, death_json = ?, updated_at = ? WHERE id = ?',
-      )
-      .run(
-        JSON.stringify(person.names),
-        person.sex,
-        dateToJson(person.birth),
-        dateToJson(person.death),
-        new Date().toISOString(),
-        person.id,
-      );
+  updatePerson(person: PersonBase): void {
+    this.transactions.run(() => {
+      this.db
+        .prepare('UPDATE person SET xref = ?, sex = ? WHERE id = ?')
+        .run(person.xref ?? null, person.sex, person.id);
+      this.replaceNames(person);
+    });
   }
 
-  getPerson(id: string): PersonRecord | undefined {
-    const row = this.db.prepare('SELECT id, names, sex, birth_json, death_json FROM person WHERE id = ?').get(id) as
+  getPerson(id: string): PersonBase | undefined {
+    const row = this.db.prepare('SELECT id, xref, sex FROM person WHERE id = ?').get(id) as
       | PersonRow
       | undefined;
-    return row ? rowToPerson(row) : undefined;
+    if (!row) {
+      return undefined;
+    }
+    return { id: row.id, xref: row.xref ?? undefined, sex: (row.sex ?? 'U') as Sex, names: this.listNames(row.id) };
   }
 
   deletePerson(id: string): boolean {
@@ -64,38 +79,36 @@ export class PersonRepo {
     return result.changes > 0;
   }
 
-  listPersons(query: PersonQuery = {}): PersonRecord[] {
+  listPersons(query: PersonQuery = {}): PersonBase[] {
     const limit = query.limit ?? 100;
     const offset = query.offset ?? 0;
     const search = query.search?.trim();
-    const sex = query.sex;
-    if (search && !sex) {
-      const rows = this.searchByFts(search, limit, offset);
-      if (rows !== null) {
-        return rows.map(rowToPerson);
-      }
-    }
     const conditions: string[] = [];
-    const params: Array<string | number> = [];
+    const params: string[] = [];
+    let sql = 'SELECT DISTINCT p.id, p.xref, p.sex FROM person p';
     if (search) {
-      conditions.push('instr(lower(names), lower(?)) > 0');
-      params.push(search);
+      sql +=
+        ' JOIN person_name n ON n.person_id = p.id' +
+        ' WHERE (instr(lower(coalesce(n.full, \'\')), lower(?)) > 0' +
+        ' OR instr(lower(coalesce(n.given, \'\')), lower(?)) > 0' +
+        ' OR instr(lower(coalesce(n.surname, \'\')), lower(?)) > 0)';
+      params.push(search, search, search);
     }
-    if (sex) {
-      conditions.push('sex = ?');
-      params.push(sex);
+    if (query.sex) {
+      conditions.push('p.sex = ?');
+      params.push(query.sex);
     }
-    const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const sql = `SELECT id, names, sex, birth_json, death_json FROM person${where} ORDER BY id LIMIT ? OFFSET ?`;
+    if (conditions.length > 0) {
+      sql += (search ? ' AND ' : ' WHERE ') + conditions.join(' AND ');
+    }
+    sql += ' ORDER BY p.id LIMIT ? OFFSET ?';
     const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonRow[];
-    return rows.map(rowToPerson);
+    return rows.map((row) => this.hydrate(row));
   }
 
-  listAllPersons(): PersonRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, names, sex, birth_json, death_json FROM person ORDER BY id')
-      .all() as unknown as PersonRow[];
-    return rows.map(rowToPerson);
+  listAllPersons(): PersonBase[] {
+    const rows = this.db.prepare('SELECT id, xref, sex FROM person ORDER BY id').all() as unknown as PersonRow[];
+    return rows.map((row) => this.hydrate(row));
   }
 
   countPersons(): number {
@@ -103,40 +116,53 @@ export class PersonRepo {
     return row.n;
   }
 
-  private searchByFts(search: string, limit: number, offset: number): PersonRow[] | null {
-    try {
-      const match = search
-        .split(/\s+/)
-        .filter((token) => token.length > 0)
-        .map((token) => `"${token.replace(/"/g, '""')}"*`)
-        .join(' AND ');
-      if (!match) {
-        return null;
-      }
-      const rows = this.db
-        .prepare(
-          `SELECT p.id, p.names, p.sex, p.birth_json, p.death_json
-           FROM person_fts f JOIN person p ON p.rowid = f.rowid
-           WHERE person_fts MATCH ? ORDER BY rank LIMIT ? OFFSET ?`,
-        )
-        .all(match, limit, offset) as unknown as PersonRow[];
-      return rows;
-    } catch {
-      return null;
-    }
+  private hydrate(row: PersonRow): PersonBase {
+    return {
+      id: row.id,
+      xref: row.xref ?? undefined,
+      sex: (row.sex ?? 'U') as Sex,
+      names: this.listNames(row.id),
+    };
   }
-}
 
-function dateToJson(date: DateValue | undefined): string | null {
-  return date ? JSON.stringify(date) : null;
-}
+  private listNames(personId: string): PersonName[] {
+    const rows = this.db
+      .prepare(
+        'SELECT id, full, given, surname, surname_prefix, nickname, prefix, suffix, type FROM person_name WHERE person_id = ? ORDER BY position',
+      )
+      .all(personId) as unknown as NameRow[];
+    return rows.map((row) => ({
+      id: row.id,
+      full: row.full ?? undefined,
+      given: row.given ?? undefined,
+      surname: row.surname ?? undefined,
+      surnamePrefix: row.surname_prefix ?? undefined,
+      nickname: row.nickname ?? undefined,
+      prefix: row.prefix ?? undefined,
+      suffix: row.suffix ?? undefined,
+      type: row.type ?? undefined,
+    }));
+  }
 
-function rowToPerson(row: PersonRow): PersonRecord {
-  return {
-    id: row.id,
-    names: JSON.parse(row.names) as NamePart[],
-    sex: row.sex ?? 'U',
-    birth: row.birth_json ? (JSON.parse(row.birth_json) as DateValue) : undefined,
-    death: row.death_json ? (JSON.parse(row.death_json) as DateValue) : undefined,
-  };
+  private replaceNames(person: PersonBase): void {
+    this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(person.id);
+    const insert = this.db.prepare(
+      'INSERT INTO person_name (id, person_id, full, given, surname, surname_prefix, nickname, prefix, suffix, type, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    person.names.forEach((name, index) => {
+      insert.run(
+        name.id,
+        person.id,
+        name.full ?? null,
+        name.given ?? null,
+        name.surname ?? null,
+        name.surnamePrefix ?? null,
+        name.nickname ?? null,
+        name.prefix ?? null,
+        name.suffix ?? null,
+        name.type ?? null,
+        index,
+      );
+    });
+  }
 }

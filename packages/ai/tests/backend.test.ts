@@ -3,14 +3,19 @@ import type { PersonRecord } from '@doru/core';
 import { TreeMcpBackend } from '../src/backend';
 import { cleanupAiFixture, makeAiFixture } from './helpers';
 
-const ivan: PersonRecord = { id: '@I1@', names: [{ given: 'Ivan', surname: 'Ivanov' }], sex: 'M' };
+const ivan: PersonRecord = {
+  id: '@I1@',
+  names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
+  sex: 'M',
+  facts: [],
+};
 
 describe('TreeMcpBackend', () => {
   it('queries, reports stats, and edits through ops with the agent actor', async () => {
     const fixture = makeAiFixture();
     try {
       const queue = fixture.queue;
-      const backend = new TreeMcpBackend(fixture.repo, queue);
+      const backend = new TreeMcpBackend(fixture.service);
 
       fixture.repo.insertPerson(ivan);
 
@@ -34,8 +39,8 @@ describe('TreeMcpBackend', () => {
     const fixture = makeAiFixture();
     try {
       fixture.repo.insertPerson(ivan);
-      fixture.repo.insertPerson({ id: '@P2@', names: [], sex: 'F' });
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+      fixture.repo.insertPerson({ id: '@P2@', names: [], sex: 'F', facts: [] });
+      const backend = new TreeMcpBackend(fixture.service);
 
       expect(await backend.invoke('tree_query', {})).toHaveLength(2);
       expect(await backend.invoke('tree_query', { query: '*' })).toHaveLength(2);
@@ -48,7 +53,7 @@ describe('TreeMcpBackend', () => {
   it('rejects unknown tools and invalid edits', async () => {
     const fixture = makeAiFixture();
     try {
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+      const backend = new TreeMcpBackend(fixture.service);
       await expect(backend.invoke('nope', {})).rejects.toThrow('Unknown tool');
       await expect(backend.invoke('tree_edit', { op: { kind: 'person.destroy' } })).rejects.toThrow(
         'Unsupported op kind',

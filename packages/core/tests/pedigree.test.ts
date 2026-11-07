@@ -3,7 +3,7 @@ import { computePedigree } from '../src/pedigree';
 import type { PersonRecord } from '../src/model/types';
 import { cleanupRepo, makeRepo } from './helpers';
 
-const person = (id: string): PersonRecord => ({ id, names: [], sex: 'U' });
+const person = (id: string): PersonRecord => ({ id, names: [], sex: 'U', facts: [] });
 
 describe('computePedigree', () => {
   it('walks ancestors through family links', () => {
@@ -13,8 +13,8 @@ describe('computePedigree', () => {
       for (const id of ['child', 'mother', 'father', 'grandma']) {
         repo.insertPerson(person(id));
       }
-      repo.insertFamily({ id: 'F1', parents: ['father', 'mother'], children: ['child'] });
-      repo.insertFamily({ id: 'F2', parents: ['grandma'], children: ['mother'] });
+      repo.insertFamily({ id: 'F1', partners: ['father', 'mother'], children: ['child'] });
+      repo.insertFamily({ id: 'F2', partners: ['grandma'], children: ['mother'] });
 
       const pedigree = computePedigree(repo, 'child');
       expect(pedigree?.id).toBe('child');

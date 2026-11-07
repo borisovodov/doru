@@ -30,11 +30,12 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
     async ({ project }) => {
       await window.doru.addPerson(project, {
         id: 'KID2',
-        names: [{ given: 'Kid2', surname: 'Ivanov' }],
+        names: [{ id: 'NKID2', given: 'Kid2', surname: 'Ivanov' }],
         sex: 'U',
+        facts: [],
       });
-      await window.doru.addFamily(project, { id: 'F3', parents: ['I1'], children: ['KID2'] });
-      await window.doru.addFamily(project, { id: 'F4', parents: ['KID2'], children: [] });
+      await window.doru.addFamily(project, { id: 'F3', partners: ['I1'], children: ['KID2'] });
+      await window.doru.addFamily(project, { id: 'F4', partners: ['KID2'], children: [] });
     },
     { project },
   );
@@ -174,7 +175,7 @@ test('rename, search and delete with undo on the canvas', async () => {
   await page.locator('.card-toolbar button').nth(3).click();
   await expect(page.locator('.person-editor')).toBeVisible();
   await page.locator('.person-editor input').first().fill('Petya');
-  await page.locator('.person-editor-actions button').first().click();
+  await page.locator('.person-view-actions button').first().click();
   // Back to the tree tab to see the renamed card.
   await page.locator('.tab-bar .tab').first().click();
   await expect(page.locator('.person-card', { hasText: 'Petya Ivanov' }).first()).toBeVisible();

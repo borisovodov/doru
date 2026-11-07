@@ -10,35 +10,39 @@ export function computePedigree(
   personId: string,
   generations = 5,
 ): PedigreeNode | undefined {
-  const person = repo.getPerson(personId);
-  if (!person) {
+  if (!repo.getPerson(personId)) {
     return undefined;
   }
+  const families = repo.listFamilies();
+  const parentsByChild = new Map<string, string[]>();
+  for (const family of families) {
+    for (const childId of family.children) {
+      const parents = family.partners.filter((partnerId) => partnerId !== childId);
+      if (parents.length > 0) {
+        parentsByChild.set(childId, parents);
+      }
+    }
+  }
   const visited = new Set<string>([personId]);
-  return build(repo, personId, generations, visited);
+  return build(personId, generations, parentsByChild, visited);
 }
 
-function build(repo: TreeRepository, id: string, generations: number, visited: Set<string>): PedigreeNode {
+function build(
+  id: string,
+  generations: number,
+  parentsByChild: Map<string, string[]>,
+  visited: Set<string>,
+): PedigreeNode {
   const node: PedigreeNode = { id, parents: [] };
   if (generations <= 0) {
     return node;
   }
-  const parentIds = new Set<string>();
-  for (const family of repo.listFamilies()) {
-    if (family.children.includes(id)) {
-      for (const parentId of family.parents) {
-        if (parentId !== id) {
-          parentIds.add(parentId);
-        }
-      }
-    }
-  }
-  for (const parentId of parentIds) {
+  for (const parentId of parentsByChild.get(id) ?? []) {
     if (visited.has(parentId)) {
       continue;
     }
     visited.add(parentId);
-    node.parents.push(build(repo, parentId, generations - 1, visited));
+    node.parents.push(build(parentId, generations - 1, parentsByChild, visited));
   }
   return node;
 }

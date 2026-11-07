@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import type {
-  EventRecord,
+  FactRecord,
   FamilyRecord,
   NoteRecord,
   PersonRecord,
@@ -8,13 +9,14 @@ import type {
   SourceRecord,
 } from '@doru/core';
 import { nls } from '../nls';
+import '../sidebar/sidebar.css';
 import './PersonEditor.css';
 import { DateEditor } from './DateEditor';
 import { EventsSection } from './EventsSection';
 import { FamilySection } from './FamilySection';
 import { MediaSection } from './MediaSection';
 import { SourcesSection } from './SourcesSection';
-import type { PersonDraft } from './draft';
+import { draftInitials, draftSpan, type PersonDraft } from './draft';
 import type { CitationInfo, MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {
@@ -26,6 +28,10 @@ export interface PersonEditorProps {
   api: PersonEditorApi;
 }
 
+/**
+ * The person tab: a person card (avatar, name, life span, badges) above the
+ * identity form and the family/events/sources/media/notes sections.
+ */
 export function PersonEditor({
   draft,
   persons,
@@ -39,7 +45,7 @@ export function PersonEditor({
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
   const [citations, setCitations] = useState<CitationInfo[]>([]);
-  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [facts, setFacts] = useState<FactRecord[]>([]);
   const [media, setMedia] = useState<MediaWithPath[]>([]);
 
   useEffect(() => {
@@ -50,8 +56,8 @@ export function PersonEditor({
       });
       void refreshFamilies();
       void refreshCitations();
-      void api.getEvents(draft.id).then((loaded) => {
-        if (!cancelled) setEvents(loaded);
+      void api.getFacts(draft.id).then((loaded) => {
+        if (!cancelled) setFacts(loaded);
       });
       void api.getMedia(draft.id).then((loaded) => {
         if (!cancelled) setMedia(loaded);
@@ -61,7 +67,7 @@ export function PersonEditor({
       setFamilies([]);
       setSources([]);
       setCitations([]);
-      setEvents([]);
+      setFacts([]);
       setMedia([]);
     }
     setNoteDraft('');
@@ -80,8 +86,8 @@ export function PersonEditor({
     setSources(await api.getSources());
   };
 
-  const refreshEvents = async () => {
-    setEvents(await api.getEvents(draft.id));
+  const refreshFacts = async () => {
+    setFacts(await api.getFacts(draft.id));
   };
 
   const refreshMedia = async () => {
@@ -100,38 +106,94 @@ export function PersonEditor({
     setNotes(await api.getNotes(draft.id));
   };
 
+  const name = `${draft.given} ${draft.surname}`.trim();
+  const span = draftSpan(draft);
+  const deceased = draft.death.year !== '' || draft.death.text.trim() !== '';
+  const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : HelpCircle;
+  const sexTitle =
+    draft.sex === 'M'
+      ? nls.t('features.tree.sex.M')
+      : draft.sex === 'F'
+        ? nls.t('features.tree.sex.F')
+        : nls.t('features.tree.sex.U');
+  const badges = draft.isNew
+    ? []
+    : [
+        { icon: StickyNote, count: notes.length, title: nls.t('features.tree.notes.title') },
+        { icon: BookOpenText, count: citations.length, title: nls.t('features.tree.sources.title') },
+        { icon: ImageIcon, count: media.length, title: nls.t('features.tree.media.title') },
+      ];
+
   return (
     <div className="person-editor">
-      <label>
-        {nls.t('features.tree.field.given')}
-        <input value={draft.given} onChange={(event) => set({ given: event.target.value })} />
-      </label>
-      <label>
-        {nls.t('features.tree.field.surname')}
-        <input value={draft.surname} onChange={(event) => set({ surname: event.target.value })} />
-      </label>
-      <label>
-        {nls.t('features.tree.field.sex')}
-        <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
-          <option value="U">{nls.t('features.tree.sex.U')}</option>
-          <option value="M">{nls.t('features.tree.sex.M')}</option>
-          <option value="F">{nls.t('features.tree.sex.F')}</option>
-        </select>
-      </label>
-      <DateEditor
-        label={nls.t('features.tree.field.birthDate')}
-        value={draft.birth}
-        onChange={(birth) => set({ birth })}
-      />
-      <DateEditor
-        label={nls.t('features.tree.field.deathDate')}
-        value={draft.death}
-        onChange={(death) => set({ death })}
-      />
-      <div className="person-editor-actions">
-        <button onClick={onSave}>{nls.t('features.tree.save')}</button>
-        {onCancel && <button onClick={onCancel}>{nls.t('features.tree.back')}</button>}
-      </div>
+      <section className="person-view-card">
+        <span className={`doru-avatar person-view-avatar sex-${draft.sex.toLowerCase()}`} aria-hidden="true">
+          {draftInitials(draft)}
+        </span>
+        <div className="person-view-body">
+          <h2 className="person-view-name">
+            {name !== '' ? name : '—'}
+            <span className="person-view-sex" title={sexTitle}>
+              <SexIcon size={13} aria-hidden="true" />
+            </span>
+          </h2>
+          <p className="person-view-dates">
+            {deceased && <span className="person-view-cross">†</span>}
+            {span}
+          </p>
+        </div>
+        <div className="person-view-badges">
+          {badges.map(({ icon: Icon, count, title }) =>
+            count > 0 ? (
+              <span key={title} className="person-view-badge" title={`${title}: ${count}`}>
+                <Icon size={12} aria-hidden="true" />
+                <span>{count}</span>
+              </span>
+            ) : null,
+          )}
+        </div>
+        <div className="person-view-actions">
+          <button className="primary" onClick={onSave}>
+            {nls.t('features.tree.save')}
+          </button>
+          {onCancel && (
+            <button onClick={onCancel}>{nls.t('features.tree.back')}</button>
+          )}
+        </div>
+      </section>
+
+      <section className="person-section">
+        <h3>{nls.t('features.tree.details')}</h3>
+        <div className="person-form-grid">
+          <label>
+            {nls.t('features.tree.field.given')}
+            <input value={draft.given} onChange={(event) => set({ given: event.target.value })} />
+          </label>
+          <label>
+            {nls.t('features.tree.field.surname')}
+            <input value={draft.surname} onChange={(event) => set({ surname: event.target.value })} />
+          </label>
+          <label>
+            {nls.t('features.tree.field.sex')}
+            <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
+              <option value="U">{nls.t('features.tree.sex.U')}</option>
+              <option value="M">{nls.t('features.tree.sex.M')}</option>
+              <option value="F">{nls.t('features.tree.sex.F')}</option>
+            </select>
+          </label>
+        </div>
+        <DateEditor
+          label={nls.t('features.tree.field.birthDate')}
+          value={draft.birth}
+          onChange={(birth) => set({ birth })}
+        />
+        <DateEditor
+          label={nls.t('features.tree.field.deathDate')}
+          value={draft.death}
+          onChange={(death) => set({ death })}
+        />
+      </section>
+
       {!draft.isNew && (
         <>
           <FamilySection
@@ -142,15 +204,16 @@ export function PersonEditor({
             onAddFamily={api.addFamily}
             onUpdateFamily={api.updateFamily}
             onDeleteFamily={api.deleteFamily}
-            getEvents={api.getEvents}
-            onAddEvent={api.addEvent}
-            onDeleteEvent={api.deleteEvent}
+            getFacts={api.getFacts}
+            onAddFact={api.addFact}
+            onDeleteFact={api.deleteFact}
           />
           <EventsSection
-            events={events}
-            refresh={refreshEvents}
-            onAddEvent={api.addEvent}
-            onDeleteEvent={api.deleteEvent}
+            personId={draft.id}
+            events={facts}
+            refresh={refreshFacts}
+            onAddFact={api.addFact}
+            onDeleteFact={api.deleteFact}
           />
           <SourcesSection
             personId={draft.id}

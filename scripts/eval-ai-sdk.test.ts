@@ -47,7 +47,7 @@ describe('Dóru AI production path smoke (4B, non-thinking)', () => {
     const fixture = makeAiFixture();
     try {
       seedFixture(fixture.queue, fixture.repo, 'en');
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+      const backend = new TreeMcpBackend(fixture.service);
       const model = buildLanguageModel({
         providerId: 'doru',
         baseUrl: server.baseUrl,
@@ -76,7 +76,7 @@ describe('Dóru AI production path smoke (4B, non-thinking)', () => {
     const fixture = makeAiFixture();
     try {
       seedFixture(fixture.queue, fixture.repo, 'en');
-      const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+      const backend = new TreeMcpBackend(fixture.service);
       const model = buildLanguageModel({
         providerId: 'doru',
         baseUrl: server.baseUrl,
@@ -93,7 +93,7 @@ describe('Dóru AI production path smoke (4B, non-thinking)', () => {
       expect(result.error).toBeUndefined();
       const hasChild = fixture.repo.listFamilies().some(
         (family) =>
-          family.parents.includes('@I1@') &&
+          family.partners.includes('@I1@') &&
           family.children.some((id) => {
             const person = fixture.repo.getPerson(id);
             return person?.names.some((name) => (name.given ?? '').toLowerCase().includes('alexey')) ?? false;

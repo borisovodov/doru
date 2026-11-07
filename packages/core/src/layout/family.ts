@@ -69,7 +69,7 @@ export function layoutFamilyView(
   const spouseEntries: Array<{ spouseId: string; key: string; familyId: string }> = [];
   const childEntries: Array<{ childId: string; key: string; familyId: string }> = [];
   for (const family of focusFamilies) {
-    const spouses = orderMembers(family.parents, personById)
+    const spouses = orderMembers(family.partners, personById)
       .filter((id) => id !== focusId && personById.has(id))
       .slice(0, 2);
     for (const spouseId of spouses) {
@@ -139,7 +139,7 @@ export function layoutFamilyView(
   }
   const blocks: ParentBlock[] = [];
   for (const family of byChild.get(focusId) ?? []) {
-    const members = orderMembers(family.parents, personById)
+    const members = orderMembers(family.partners, personById)
       .filter((id) => id !== focusId && personById.has(id))
       .slice(0, 2);
     if (members.length > 0) {
@@ -151,7 +151,7 @@ export function layoutFamilyView(
       if (family.id === entry.familyId) {
         continue;
       }
-      const members = orderMembers(family.parents, personById)
+      const members = orderMembers(family.partners, personById)
         .filter((id) => id !== entry.spouseId && personById.has(id))
         .slice(0, 2);
       if (members.length > 0) {

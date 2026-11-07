@@ -315,7 +315,7 @@ async function startApp(): Promise<void> {
       spawnGuiInstance([url]);
     });
     const { runtime } = await ensureRuntime(mcpProject);
-    const backend = new TreeMcpBackend(runtime.repo, runtime.queue);
+    const backend = new TreeMcpBackend(runtime.service);
     const server = new DoruMcpServer(backend, app.getVersion());
     // The MCP SDK's stdio transport does not listen for stdin `end`, so a
     // client hangup would otherwise leave the helper running forever. A clean

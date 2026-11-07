@@ -2,6 +2,7 @@ import {
   OpQueue,
   ProjectOpener,
   SqliteTreeRepository,
+  TreeService,
   TreeStore,
   type ProjectSummary,
 } from '@doru/core';
@@ -39,7 +40,7 @@ export async function ensureRuntime(
   const { summary, store } = await opener.open(projectPath);
   const repo = new SqliteTreeRepository(store.db);
   const queue = new StampedOpQueue(() => markSelfWrite(summary.path));
-  const runtime: ProjectRuntime = { store, repo, queue };
+  const runtime: ProjectRuntime = { store, service: new TreeService(repo, queue) };
   runtimes.set(summary.path, runtime);
   return { summary, runtime };
 }
@@ -56,18 +57,22 @@ export function runtimeFilePath(projectKey: string): string {
 /**
  * Opens (or reopens) the store of a not-yet-saved project at its temporary
  * path: used by the import flow and by a failed save attempt that closed the
- * runtime first.
+ * runtime first. Returns the runtime — the same store connection the window
+ * will use.
  */
-export function openUntitledStore(projectKey: string, tempPath: string): void {
-  if (runtimes.has(projectKey)) {
-    return;
+export function openUntitledStore(projectKey: string, tempPath: string): ProjectRuntime {
+  const existing = runtimes.get(projectKey);
+  if (existing) {
+    return existing;
   }
   const store = TreeStore.open(tempPath);
-  runtimes.set(projectKey, {
+  const repo = new SqliteTreeRepository(store.db);
+  const runtime: ProjectRuntime = {
     store,
-    repo: new SqliteTreeRepository(store.db),
-    queue: new OpQueue(),
-  });
+    service: new TreeService(repo, new OpQueue()),
+  };
+  runtimes.set(projectKey, runtime);
+  return runtime;
 }
 
 export function closeProjectRuntime(

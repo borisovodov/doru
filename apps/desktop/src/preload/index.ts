@@ -121,14 +121,20 @@ const api = {
     ipcRenderer.invoke('tree:detachCitation', { projectPath, citationId }),
   getCitations: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:citations', { projectPath, personId }),
-  getEvents: (projectPath: string, personId?: string, familyId?: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:events', { projectPath, personId, familyId }),
-  addEvent: (projectPath: string, event: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addEvent', { projectPath, event }),
-  deleteEvent: (projectPath: string, event: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteEvent', { projectPath, event }),
+  getAllCitations: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:allCitations', { projectPath }),
+  getFacts: (projectPath: string, personId?: string, familyId?: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:facts', { projectPath, personId, familyId }),
+  getAllFacts: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:allFacts', { projectPath }),
+  addFact: (projectPath: string, fact: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addFact', { projectPath, fact }),
+  deleteFact: (projectPath: string, fact: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteFact', { projectPath, fact }),
   getMedia: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:media', { projectPath, personId }),
+  getAllMedia: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:allMedia', { projectPath }),
   addMedia: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addMedia', { projectPath, personId }),
   deleteMedia: (projectPath: string, media: unknown): Promise<unknown> =>

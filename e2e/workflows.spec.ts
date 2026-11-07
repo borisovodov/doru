@@ -39,8 +39,9 @@ test('full workflow through the desktop APIs and UI sections', async () => {
 
       await window.doru.addPerson(project, {
         id: 'E2E1',
-        names: [{ given: 'E2E', surname: 'Test' }],
+        names: [{ id: 'E2EN1', given: 'E2E', surname: 'Test' }],
         sex: 'U',
+        facts: [],
       });
 
       const stats = await window.doru.treeStats(project);
@@ -48,22 +49,22 @@ test('full workflow through the desktop APIs and UI sections', async () => {
 
       await window.doru.addFamily(project, {
         id: 'E2EF1',
-        parents: ['E2E1'],
+        partners: ['E2E1'],
         children: ['I3'],
       });
       const families = await window.doru.getFamilies(project);
-      if (!families.some((f) => f.id === 'E2EF1' && f.parents.includes('E2E1'))) {
+      if (!families.some((f) => f.id === 'E2EF1' && f.partners.includes('E2E1'))) {
         throw new Error('family missing');
       }
 
-      await window.doru.addEvent(project, {
+      await window.doru.addFact(project, {
         id: 'E2EEV1',
-        type: 'BURI',
-        date: { year: 2000, quality: 'exact' },
-        place: 'Testville',
         personId: 'E2E1',
+        tag: 'BURI',
+        date: { quality: 'exact', component: { year: 2000 } },
+        place: 'Testville',
       });
-      const events = await window.doru.getEvents(project, 'E2E1');
+      const events = await window.doru.getFacts(project, 'E2E1');
       if (events.length !== 1 || events[0]?.place !== 'Testville') {
         throw new Error('event missing');
       }

@@ -27,7 +27,7 @@ export function projectLayout(
   callbacks: ProjectionCallbacks,
 ): { nodes: CanvasNode[]; edges: Edge[] } {
   const personById = new Map(persons.map((person) => [person.id, person]));
-  const fallbackPerson = (id: string): PersonRecord => ({ id, names: [], sex: 'U' });
+  const fallbackPerson = (id: string): PersonRecord => ({ id, names: [], sex: 'U', facts: [] });
 
   const bandNodes: Node<GenerationBandData, 'generationBand'>[] = [
     ...new Set(layout.cards.map((card) => card.generation)),
