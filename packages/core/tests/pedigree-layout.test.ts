@@ -4,14 +4,17 @@ import type { FamilyRecord, PersonRecord } from '../src/model/types';
 
 const person = (id: string, sex: PersonRecord['sex'] = 'U', birthYear?: number): PersonRecord => ({
   id,
-  names: [{ given: id }],
+  names: [{ id: `name-${id}`, given: id }],
   sex,
-  ...(birthYear !== undefined ? { birth: { year: birthYear, quality: 'exact' } } : {}),
+  facts:
+    birthYear !== undefined
+      ? [{ id: `birth-${id}`, personId: id, tag: 'BIRT', date: { quality: 'exact', component: { year: birthYear } } }]
+      : [],
 });
 
-const family = (id: string, parents: string[], children: string[]): FamilyRecord => ({
+const family = (id: string, partners: string[], children: string[]): FamilyRecord => ({
   id,
-  parents,
+  partners,
   children,
 });
 
@@ -433,9 +436,9 @@ describe('layoutPedigree — lines', () => {
 });
 
 describe('isDescendantOf', () => {
-  const family = (id: string, parents: string[], children: string[]): FamilyRecord => ({
+  const family = (id: string, partners: string[], children: string[]): FamilyRecord => ({
     id,
-    parents,
+    partners,
     children,
   });
 

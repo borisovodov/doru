@@ -73,43 +73,45 @@ async function captureTreeScreenshots(app: ElectronApplication, project: string)
   await page.evaluate(async (projectPath) => {
     await window.doru.addPerson(projectPath, {
       id: 'I1',
-      names: [{ given: 'Ivan', surname: 'Ivanov' }],
+      names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
       sex: 'M',
-      birth: { year: 1923, quality: 'exact' },
-      death: { year: 1998, quality: 'exact' },
+      facts: [
+        { id: 'B1', personId: 'I1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } } },
+        { id: 'D1', personId: 'I1', tag: 'DEAT', date: { quality: 'exact', component: { year: 1998 } } },
+      ],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I2',
-      names: [{ given: 'Maria', surname: 'Ivanova' }],
+      names: [{ id: 'N2', given: 'Maria', surname: 'Ivanova' }],
       sex: 'F',
-      birth: { year: 1926, quality: 'exact' },
+      facts: [{ id: 'B2', personId: 'I2', tag: 'BIRT', date: { quality: 'exact', component: { year: 1926 } } }],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I3',
-      names: [{ given: 'Petr', surname: 'Ivanov' }],
+      names: [{ id: 'N3', given: 'Petr', surname: 'Ivanov' }],
       sex: 'M',
-      birth: { year: 1950, quality: 'exact' },
+      facts: [{ id: 'B3', personId: 'I3', tag: 'BIRT', date: { quality: 'exact', component: { year: 1950 } } }],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I4',
-      names: [{ given: 'Anna', surname: 'Ivanova' }],
+      names: [{ id: 'N4', given: 'Anna', surname: 'Ivanova' }],
       sex: 'F',
-      birth: { year: 1953, quality: 'exact' },
+      facts: [{ id: 'B4', personId: 'I4', tag: 'BIRT', date: { quality: 'exact', component: { year: 1953 } } }],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I5',
-      names: [{ given: 'Elena', surname: 'Petrova' }],
+      names: [{ id: 'N5', given: 'Elena', surname: 'Petrova' }],
       sex: 'F',
-      birth: { year: 1952, quality: 'exact' },
+      facts: [{ id: 'B5', personId: 'I5', tag: 'BIRT', date: { quality: 'exact', component: { year: 1952 } } }],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I6',
-      names: [{ given: 'Sergei', surname: 'Ivanov' }],
+      names: [{ id: 'N6', given: 'Sergei', surname: 'Ivanov' }],
       sex: 'M',
-      birth: { year: 1975, quality: 'exact' },
+      facts: [{ id: 'B6', personId: 'I6', tag: 'BIRT', date: { quality: 'exact', component: { year: 1975 } } }],
     });
-    await window.doru.addFamily(projectPath, { id: 'F1', parents: ['I1', 'I2'], children: ['I3', 'I4'] });
-    await window.doru.addFamily(projectPath, { id: 'F2', parents: ['I3', 'I5'], children: ['I6'] });
+    await window.doru.addFamily(projectPath, { id: 'F1', partners: ['I1', 'I2'], children: ['I3', 'I4'] });
+    await window.doru.addFamily(projectPath, { id: 'F2', partners: ['I3', 'I5'], children: ['I6'] });
   }, project);
 
   await page.reload();

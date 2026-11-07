@@ -1,6 +1,6 @@
 import type { PersonRecord } from '@doru/core';
-import './PersonList.css';
-import { displayName, years } from './format';
+import '../sidebar/sidebar.css';
+import { displayName, initials, lifeSpan } from './format';
 
 export interface PersonListProps {
   persons: PersonRecord[];
@@ -9,11 +9,14 @@ export interface PersonListProps {
 
 export function PersonList({ persons, onOpen }: PersonListProps) {
   return (
-    <ul className="person-list">
+    <ul className="side-section-list person-list">
       {persons.map((person) => (
-        <li key={person.id} onClick={() => onOpen(person.id)}>
-          <span className="person-name">{displayName(person)}</span>
-          <span className="person-dates">{years(person)}</span>
+        <li key={person.id} className="entity-card clickable" onClick={() => onOpen(person.id)}>
+          <span className={`doru-avatar sex-${person.sex.toLowerCase()}`}>{initials(person)}</span>
+          <span className="entity-card-body">
+            <span className="entity-card-title">{displayName(person)}</span>
+            {lifeSpan(person) !== '' && <span className="entity-card-subtitle">{lifeSpan(person)}</span>}
+          </span>
         </li>
       ))}
     </ul>

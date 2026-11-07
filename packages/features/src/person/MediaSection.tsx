@@ -38,7 +38,7 @@ export function MediaSection({
             <figure key={item.id} className="media-item">
               <img
                 src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
-                alt={item.caption ?? ''}
+                alt={item.title ?? ''}
                 loading="lazy"
               />
               <button

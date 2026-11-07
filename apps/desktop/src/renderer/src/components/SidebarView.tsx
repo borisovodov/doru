@@ -1,5 +1,15 @@
-import type { PersonRecord } from '@doru/core';
-import { PersonList, PlaceholderView } from '@doru/features';
+import type { CitationRecord, FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
+import {
+  PersonList,
+  PlaceholderView,
+  SidebarFamilies,
+  SidebarFacts,
+  SidebarMedia,
+  SidebarPlaces,
+  SidebarSearch,
+  SidebarSources,
+  type SidebarMediaItem,
+} from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
 /** Render cap for the People list on very large trees. */
@@ -8,11 +18,25 @@ const PEOPLE_LIST_LIMIT = 500;
 export function SidebarView({
   activeView,
   persons,
+  families,
+  facts,
+  sources,
+  media,
+  citations,
   onOpenPerson,
+  onOpenFamily,
+  onOpenSource,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
+  families: FamilyRecord[];
+  facts: FactRecord[];
+  sources: SourceRecord[];
+  media: SidebarMediaItem[];
+  citations: CitationRecord[];
   onOpenPerson: (personId: string) => void;
+  onOpenFamily: (familyId: string) => void;
+  onOpenSource: (sourceId: string) => void;
 }) {
   switch (activeView) {
     case 'people':
@@ -35,40 +59,62 @@ export function SidebarView({
         </>
       );
     case 'families':
+      if (families.length === 0) {
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.families')}
+            description={nls.t('features.families.placeholder')}
+          />
+        );
+      }
       return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.families')}
-          description={nls.t('features.families.placeholder')}
+        <SidebarFamilies
+          families={families}
+          persons={persons}
+          facts={facts}
+          onOpenFamily={onOpenFamily}
         />
       );
     case 'events':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.events')}
-          description={nls.t('features.events.placeholder')}
-        />
-      );
+      if (facts.length === 0) {
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.events')}
+            description={nls.t('features.events.placeholder')}
+          />
+        );
+      }
+      return <SidebarFacts facts={facts} persons={persons} families={families} onOpenPerson={onOpenPerson} />;
     case 'places':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.places')}
-          description={nls.t('features.places.placeholder')}
-        />
-      );
+      if (!facts.some((fact) => fact.place !== undefined)) {
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.places')}
+            description={nls.t('features.places.placeholder')}
+          />
+        );
+      }
+      return <SidebarPlaces facts={facts} />;
     case 'media':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.media')}
-          description={nls.t('features.media.placeholder')}
-        />
-      );
+      if (media.length === 0) {
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.media')}
+            description={nls.t('features.media.placeholder')}
+          />
+        );
+      }
+      return <SidebarMedia media={media} persons={persons} onOpenPerson={onOpenPerson} />;
     case 'sources':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.sources')}
-          description={nls.t('features.sources.placeholder')}
-        />
-      );
+      if (sources.length === 0) {
+        return (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.sources')}
+            description={nls.t('features.sources.placeholder')}
+          />
+        );
+      }
+      return <SidebarSources sources={sources} citations={citations} onOpenSource={onOpenSource} />;
     case 'tasks':
       return (
         <PlaceholderView
@@ -78,9 +124,14 @@ export function SidebarView({
       );
     case 'search':
       return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.search')}
-          description={nls.t('features.search.placeholder')}
+        <SidebarSearch
+          persons={persons}
+          families={families}
+          sources={sources}
+          facts={facts}
+          onOpenPerson={onOpenPerson}
+          onOpenFamily={onOpenFamily}
+          onOpenSource={onOpenSource}
         />
       );
     default:

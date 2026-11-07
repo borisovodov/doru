@@ -36,7 +36,7 @@ export class NodeFileSystem implements IFileSystem {
   }
 
   async remove(path: string): Promise<void> {
-    await rm(path, { force: true });
+    await rm(path, { force: true, recursive: true });
   }
 
   readBinary(path: string): Promise<Uint8Array> {

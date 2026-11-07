@@ -54,7 +54,7 @@ export const doruTools: ToolDefinition[] = [
             person: z.object({
               id: z
                 .string()
-                .describe('Id of the NEW person — must not exist in the tree yet; invent one (e.g. @N1@)'),
+                .describe('Id of the NEW person — must not exist in the tree yet; invent a fresh UUID'),
               names: z.array(
                 z.object({
                   given: z.string().optional(),
@@ -86,7 +86,7 @@ export const doruTools: ToolDefinition[] = [
       person: z.object({
         id: z
           .string()
-          .describe('Id of the NEW person — must not exist in the tree yet; invent one (e.g. @N1@)'),
+          .describe('Id of the NEW person — must not exist in the tree yet; invent a fresh UUID'),
         names: z.array(
           z.object({
             given: z.string().optional(),

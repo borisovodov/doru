@@ -338,7 +338,7 @@ async function runScenario(
       throw new Error('llama-server is not running');
     }
     seedFixture(fixture.queue, fixture.repo, scenario.seed);
-    const backend = new TreeMcpBackend(fixture.repo, fixture.queue);
+    const backend = new TreeMcpBackend(fixture.service);
     const messages: WireMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: scenario.prompt },

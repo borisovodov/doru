@@ -1,19 +1,20 @@
 export type { IFileSystem } from './fs';
 export type {
+  CitationRecord,
+  DateComponent,
   DateQuality,
   DateValue,
-  EventRecord,
+  FactRecord,
   FamilyRecord,
   MediaRecord,
-  NamePart,
   NoteRecord,
+  PersonName,
   PersonRecord,
-  PlaceRecord,
   Sex,
   SourceRecord,
   TreeDocument,
 } from './model/types';
-export { emptyDocument } from './model/types';
+export { emptyDocument, factOf, factYear, signedYear } from './model/types';
 export { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './db/schema';
 export { TreeStore, type ITreeStore, type TreeStoreFactory } from './db/store';
 export {
@@ -33,11 +34,19 @@ export {
 } from './project/opener';
 export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
+export {
+  TreeService,
+  type PersonCounts,
+  type RelativeRelation,
+  type TreeStats,
+  type UndoRedoState,
+} from './service/tree';
 export { addPersonOp } from './ops/addPerson';
 export { updatePersonOp, deletePersonOp, reparentOp, addRelativeOp } from './ops/person';
-export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp, type CitationRecord } from './ops/source';
+export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp } from './ops/source';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
-export { addEventOp, addMediaOp, deleteEventOp, deleteMediaOp } from './ops/record';
+export { addFactOp, deleteFactOp } from './ops/fact';
+export { addMediaOp, deleteMediaOp } from './ops/media';
 export { computePedigree, type PedigreeNode } from './pedigree';
 export {
   layoutPedigree,
@@ -53,11 +62,8 @@ export {
   type PedigreeLayoutOptions,
   type PedigreeLine,
 } from './layout/pedigree';
-export interface GedcomImportResult {
-  importedPersons: number;
-  importedFamilies: number;
-  totalPersons: number;
-}
+export { importGedcomDataset, type GedcomImportResult } from './import/gedcom';
+export { buildGedcomDataset } from './export/gedcom';
 
 /**
  * The renderer-facing identity of the project bound to a window: a real
@@ -73,13 +79,4 @@ export interface ProjectBinding {
   name: string;
 }
 
-export interface TreeStats {
-  persons: number;
-  families: number;
-}
-
-export interface UndoRedoState {
-  canUndo: boolean;
-  canRedo: boolean;
-}
 export { detectParentCycles, type ValidationIssue } from './validate/validator';

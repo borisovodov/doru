@@ -29,4 +29,21 @@ export class NoteRepo {
       targetId: row.target_id ?? undefined,
     }));
   }
+
+  listNotesFor(targetType: string, targetId: string): NoteRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, text, target_type, target_id FROM note WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .all(targetType, targetId) as unknown as Array<{
+      id: string;
+      text: string;
+      target_type: string | null;
+      target_id: string | null;
+    }>;
+    return rows.map((row) => ({
+      id: row.id,
+      text: row.text,
+      targetType: row.target_type ?? undefined,
+      targetId: row.target_id ?? undefined,
+    }));
+  }
 }

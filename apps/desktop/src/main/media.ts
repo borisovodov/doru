@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { dirname, extname, join } from 'node:path';
-import { MEDIA_DIR_NAME, addMediaOp, type MediaRecord } from '@doru/core';
+import { MEDIA_DIR_NAME, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { ensureRuntime, runtimeFilePath } from './runtime';
@@ -27,9 +27,18 @@ export async function listMediaForPerson(
 ): Promise<Array<MediaRecord & { absolutePath: string }>> {
   const { runtime } = await ensureRuntime(projectPath);
   const base = dirname(runtimeFilePath(projectPath));
-  return runtime.repo
+  return runtime.service
     .listMediaFor('person', personId)
     .map((media) => ({ ...media, absolutePath: join(base, media.path) }));
+}
+
+/** Every media record in the project, with resolvable absolute paths. */
+export async function listAllMedia(
+  projectPath: string,
+): Promise<Array<MediaRecord & { absolutePath: string }>> {
+  const { runtime } = await ensureRuntime(projectPath);
+  const base = dirname(runtimeFilePath(projectPath));
+  return runtime.service.listAllMedia().map((media) => ({ ...media, absolutePath: join(base, media.path) }));
 }
 
 export async function addMediaToPerson(
@@ -62,7 +71,7 @@ export async function addMediaToPerson(
       targetType: 'person',
       targetId: personId,
     };
-    runtime.queue.apply(addMediaOp(media), { repo: runtime.repo });
+    runtime.service.addMedia(media);
     added.push({ ...media, absolutePath: destination });
   }
   return added;

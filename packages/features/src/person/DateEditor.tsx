@@ -43,6 +43,7 @@ export function DateEditor({
           <option value="about">{nls.t('features.tree.date.about')}</option>
           <option value="before">{nls.t('features.tree.date.before')}</option>
           <option value="after">{nls.t('features.tree.date.after')}</option>
+          <option value="range">{nls.t('features.tree.date.range')}</option>
           <option value="unknown">{nls.t('features.tree.date.unknown')}</option>
         </select>
         <input
@@ -51,6 +52,33 @@ export function DateEditor({
           onChange={(event) => set({ place: event.target.value })}
         />
       </div>
+      {value.quality === 'range' && (
+        <div className="date-editor-row">
+          <span className="date-editor-range-label">{nls.t('features.tree.date.end')}</span>
+          <input
+            type="number"
+            placeholder={nls.t('features.tree.date.yearPlaceholder')}
+            value={value.endYear}
+            onChange={(event) => set({ endYear: event.target.value })}
+          />
+          <input
+            type="number"
+            placeholder={nls.t('features.tree.date.monthPlaceholder')}
+            min={1}
+            max={12}
+            value={value.endMonth}
+            onChange={(event) => set({ endMonth: event.target.value })}
+          />
+          <input
+            type="number"
+            placeholder={nls.t('features.tree.date.dayPlaceholder')}
+            min={1}
+            max={31}
+            value={value.endDay}
+            onChange={(event) => set({ endDay: event.target.value })}
+          />
+        </div>
+      )}
       <div className="date-editor-row">
         <input
           className="date-text-input"

@@ -43,23 +43,28 @@ test('opening a GEDCOM file opens a not-yet-saved project', async () => {
   expect(state).toMatchObject({ untitled: true, name: 'Ivanov family.ged' });
   expect(state?.path.startsWith('untitled:')).toBe(true);
 
-  // The untitled project is a working (for now empty) tree: adding a person
-  // goes through the same runtime as a saved project.
+  // The untitled project holds the imported tree: Ivan, male, from the
+  // GEDCOM. The same runtime serves it, so edits work like on a saved file.
   const projectPath = state?.path;
   if (!projectPath) {
     throw new Error('no project binding');
   }
   await page.evaluate(
     async ({ projectPath }) => {
-      const before = await window.doru.treeStats(projectPath);
-      if (before.persons !== 0) throw new Error(`expected empty tree, got ${before.persons}`);
+      const imported = await window.doru.listPersons(projectPath);
+      if (imported.length !== 1) throw new Error(`expected 1 imported person, got ${imported.length}`);
+      const [ivan] = imported;
+      if (ivan?.names[0]?.given !== 'Ivan' || ivan?.sex !== 'M') {
+        throw new Error(`unexpected imported person: ${JSON.stringify(imported)}`);
+      }
       await window.doru.addPerson(projectPath, {
         id: 'GED1',
-        names: [{ given: 'Stub', surname: 'Imported' }],
+        names: [{ id: 'GEDN1', given: 'Stub', surname: 'Imported' }],
         sex: 'U',
+        facts: [],
       });
       const after = await window.doru.treeStats(projectPath);
-      if (after.persons !== 1) throw new Error(`expected 1 person, got ${after.persons}`);
+      if (after.persons !== 2) throw new Error(`expected 2 persons, got ${after.persons}`);
     },
     { projectPath },
   );

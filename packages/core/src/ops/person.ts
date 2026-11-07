@@ -17,8 +17,8 @@ export function updatePersonOp(before: PersonRecord, after: PersonRecord): Op {
 
 /**
  * Deletes a person together with their family links: apply detaches the
- * person from every family and deletes the record; inverse restores both —
- * one undo step, no orphaned links.
+ * person from every family and deletes the record (its names and facts
+ * cascade); inverse restores both — one undo step, no orphaned links.
  */
 export function deletePersonOp(
   person: PersonRecord,

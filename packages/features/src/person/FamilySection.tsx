@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import type { EventRecord, FamilyRecord, PersonRecord } from '@doru/core';
+import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
@@ -15,9 +15,9 @@ interface FamilySectionProps {
   onAddFamily: (family: FamilyRecord) => Promise<void>;
   onUpdateFamily: (before: FamilyRecord, after: FamilyRecord) => Promise<void>;
   onDeleteFamily: (family: FamilyRecord) => Promise<void>;
-  getEvents: (personId?: string, familyId?: string) => Promise<EventRecord[]>;
-  onAddEvent: (event: EventRecord) => Promise<void>;
-  onDeleteEvent: (event: EventRecord) => Promise<void>;
+  getFacts: (personId?: string, familyId?: string) => Promise<FactRecord[]>;
+  onAddFact: (fact: FactRecord) => Promise<void>;
+  onDeleteFact: (fact: FactRecord) => Promise<void>;
 }
 
 export function FamilySection({
@@ -28,17 +28,17 @@ export function FamilySection({
   onAddFamily,
   onUpdateFamily,
   onDeleteFamily,
-  getEvents,
-  onAddEvent,
-  onDeleteEvent,
+  getFacts,
+  onAddFact,
+  onDeleteFact,
 }: FamilySectionProps) {
   const asChild = families.filter((family) => family.children.includes(personId));
-  const asParent = families.filter((family) => family.parents.includes(personId));
+  const asParent = families.filter((family) => family.partners.includes(personId));
 
   const addFamily = async (kind: 'child' | 'parent') => {
     await onAddFamily({
       id: crypto.randomUUID(),
-      parents: kind === 'parent' ? [personId] : [],
+      partners: kind === 'parent' ? [personId] : [],
       children: kind === 'child' ? [personId] : [],
     });
     await refresh();
@@ -47,7 +47,7 @@ export function FamilySection({
   const removeMember = async (family: FamilyRecord, memberId: string) => {
     const after: FamilyRecord = {
       ...family,
-      parents: family.parents.filter((id) => id !== memberId),
+      partners: family.partners.filter((id) => id !== memberId),
       children: family.children.filter((id) => id !== memberId),
     };
     await onUpdateFamily(family, after);
@@ -57,7 +57,7 @@ export function FamilySection({
   const addMember = async (family: FamilyRecord, role: 'parent' | 'child', memberId: string) => {
     const after: FamilyRecord = {
       ...family,
-      parents: role === 'parent' ? [...family.parents, memberId] : family.parents,
+      partners: role === 'parent' ? [...family.partners, memberId] : family.partners,
       children: role === 'child' ? [...family.children, memberId] : family.children,
     };
     await onUpdateFamily(family, after);
@@ -76,9 +76,9 @@ export function FamilySection({
     onRemoveMember: (memberId: string) => void removeMember(family, memberId),
     onAddMember: (role: 'parent' | 'child', memberId: string) => void addMember(family, role, memberId),
     onDelete: () => void deleteFamily(family),
-    getEvents,
-    onAddEvent,
-    onDeleteEvent,
+    getFacts,
+    onAddFact,
+    onDeleteFact,
   });
 
   return (
@@ -112,9 +112,9 @@ function FamilyCard({
   onRemoveMember,
   onAddMember,
   onDelete,
-  getEvents,
-  onAddEvent,
-  onDeleteEvent,
+  getFacts,
+  onAddFact,
+  onDeleteFact,
 }: {
   family: FamilyRecord;
   personId: string;
@@ -122,44 +122,45 @@ function FamilyCard({
   onRemoveMember: (memberId: string) => void;
   onAddMember: (role: 'parent' | 'child', memberId: string) => void;
   onDelete: () => void;
-  getEvents: (personId?: string, familyId?: string) => Promise<EventRecord[]>;
-  onAddEvent: (event: EventRecord) => Promise<void>;
-  onDeleteEvent: (event: EventRecord) => Promise<void>;
+  getFacts: (personId?: string, familyId?: string) => Promise<FactRecord[]>;
+  onAddFact: (fact: FactRecord) => Promise<void>;
+  onDeleteFact: (fact: FactRecord) => Promise<void>;
 }) {
-  const [familyEvents, setFamilyEvents] = useState<EventRecord[]>([]);
+  const [familyFacts, setFamilyFacts] = useState<FactRecord[]>([]);
   const [marriageDate, setMarriageDate] = useState<DateDraft>(emptyDate());
 
   useEffect(() => {
     let cancelled = false;
-    void getEvents(undefined, family.id).then((loaded) => {
-      if (!cancelled) setFamilyEvents(loaded);
+    void getFacts(undefined, family.id).then((loaded) => {
+      if (!cancelled) setFamilyFacts(loaded);
     });
     return () => {
       cancelled = true;
     };
-  }, [family.id, getEvents]);
+  }, [family.id, getFacts]);
 
   const addMarriage = async () => {
     const date = fromDateDraft(marriageDate);
-    await onAddEvent({ id: crypto.randomUUID(), type: 'MARR', date, familyId: family.id });
+    const place = marriageDate.place.trim() || undefined;
+    await onAddFact({ id: crypto.randomUUID(), familyId: family.id, tag: 'MARR', date, place });
     setMarriageDate(emptyDate());
-    setFamilyEvents(await getEvents(undefined, family.id));
+    setFamilyFacts(await getFacts(undefined, family.id));
   };
 
-  const removeEvent = async (event: EventRecord) => {
-    await onDeleteEvent(event);
-    setFamilyEvents(await getEvents(undefined, family.id));
+  const removeFact = async (fact: FactRecord) => {
+    await onDeleteFact(fact);
+    setFamilyFacts(await getFacts(undefined, family.id));
   };
 
   return (
     <div className="family-row">
       <div className="family-members">
-        {family.parents
+        {family.partners
           .filter((id) => id !== personId)
-          .map((parentId) => (
-            <span key={parentId} className="family-chip">
-              {displayName(persons.find((person) => person.id === parentId))}
-              <button title={nls.t('features.tree.family.removeMember')} onClick={() => onRemoveMember(parentId)}>
+          .map((partnerId) => (
+            <span key={partnerId} className="family-chip">
+              {displayName(persons.find((person) => person.id === partnerId))}
+              <button title={nls.t('features.tree.family.removeMember')} onClick={() => onRemoveMember(partnerId)}>
                 <X size={12} aria-hidden="true" />
               </button>
             </span>
@@ -174,17 +175,17 @@ function FamilyCard({
         ))}
         <PersonPicker
           persons={persons}
-          exclude={[...family.parents, ...family.children]}
+          exclude={[...family.partners, ...family.children]}
           onPick={(memberId) => onAddMember('child', memberId)}
         />
       </div>
       <div className="family-events">
         <span className="family-events-label">{nls.t('features.tree.families.marriage')}</span>
-        {familyEvents.map((event) => (
-          <span key={event.id} className="family-chip event">
-            {event.date ? formatDate(event.date) : ''}
-            {event.place ? ` — ${event.place}` : ''}
-            <button title={nls.t('features.tree.events.remove')} onClick={() => void removeEvent(event)}>
+        {familyFacts.map((fact) => (
+          <span key={fact.id} className="family-chip event">
+            {fact.date ? formatDate(fact.date) : ''}
+            {fact.place ? ` — ${fact.place}` : ''}
+            <button title={nls.t('features.tree.events.remove')} onClick={() => void removeFact(fact)}>
               <X size={12} aria-hidden="true" />
             </button>
           </span>

@@ -1,37 +1,18 @@
 import { ipcMain } from 'electron';
-import { randomUUID } from 'node:crypto';
-import {
-  addEventOp,
-  addFamilyOp,
-  addNoteOp,
-  addPersonOp,
-  addRelativeOp,
-  addSourceOp,
-  attachCitationOp,
-  deleteEventOp,
-  deleteFamilyOp,
-  deleteMediaOp,
-  deletePersonOp,
-  detachCitationOp,
-  reparentOp,
-  updateFamilyOp,
-  updatePersonOp,
-  type EventRecord,
-  type FamilyRecord,
-  type MediaRecord,
-  type NoteRecord,
-  type PersonRecord,
-  type SourceRecord,
-} from '@doru/core';
-import { addMediaToPerson, listMediaForPerson, removeMediaFile } from './media';
+import type { FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
+import { addMediaToPerson, listAllMedia, listMediaForPerson, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
 
+/**
+ * The tree IPC surface: thin handlers that forward the renderer's calls to
+ * the project's `TreeService`. No domain logic lives here.
+ */
 export function registerTreeIpc(): void {
   ipcMain.handle(
     'tree:list',
     async (_event, options: { projectPath: string; search?: string; limit?: number; offset?: number }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.repo.listPersons({
+      return runtime.service.listPersons({
         search: options.search,
         limit: options.limit ?? 100,
         offset: options.offset ?? 0,
@@ -42,40 +23,36 @@ export function registerTreeIpc(): void {
   ipcMain.handle('tree:all', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return {
-      persons: runtime.repo.listAllPersons(),
-      families: runtime.repo.listFamilies(),
+      persons: runtime.service.listAllPersons(),
+      families: runtime.service.listFamilies(),
     };
   });
 
   ipcMain.handle('tree:stats', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    return { persons: runtime.repo.countPersons(), families: runtime.repo.countFamilies() };
+    return runtime.service.stats();
   });
 
   ipcMain.handle('tree:undo', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.undo({ repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.undo();
   });
 
   ipcMain.handle('tree:redo', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.redo({ repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.redo();
   });
 
   ipcMain.handle('tree:addPerson', async (_event, options: { projectPath: string; person: PersonRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(addPersonOp(options.person), { repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.addPerson(options.person);
   });
 
   ipcMain.handle(
     'tree:updatePerson',
     async (_event, options: { projectPath: string; before: PersonRecord; after: PersonRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      runtime.queue.apply(updatePersonOp(options.before, options.after), { repo: runtime.repo });
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.updatePerson(options.before, options.after);
     },
   );
 
@@ -83,23 +60,7 @@ export function registerTreeIpc(): void {
     'tree:deletePerson',
     async (_event, options: { projectPath: string; person: PersonRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      const links = runtime.repo
-        .listFamilies()
-        .filter(
-          (family) =>
-            family.parents.includes(options.person.id) ||
-            family.children.includes(options.person.id),
-        )
-        .map((family) => ({
-          before: family,
-          after: {
-            ...family,
-            parents: family.parents.filter((id) => id !== options.person.id),
-            children: family.children.filter((id) => id !== options.person.id),
-          },
-        }));
-      runtime.queue.apply(deletePersonOp(options.person, links), { repo: runtime.repo });
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.deletePerson(options.person);
     },
   );
 
@@ -107,29 +68,7 @@ export function registerTreeIpc(): void {
     'tree:reparent',
     async (_event, options: { projectPath: string; childId: string; newParentId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      const families = runtime.repo.listFamilies();
-      const links = [];
-      for (const family of families.filter((entry) => entry.children.includes(options.childId))) {
-        links.push({
-          before: family,
-          after: {
-            ...family,
-            children: family.children.filter((id) => id !== options.childId),
-          },
-        });
-      }
-      const target = families.find((entry) => entry.parents.includes(options.newParentId));
-      if (target) {
-        links.push({
-          before: target,
-          after: { ...target, children: [...target.children, options.childId] },
-        });
-      }
-      const created = target
-        ? undefined
-        : { id: randomUUID(), parents: [options.newParentId], children: [options.childId] };
-      runtime.queue.apply(reparentOp(links, created), { repo: runtime.repo });
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.reparent(options.childId, options.newParentId);
     },
   );
 
@@ -145,36 +84,7 @@ export function registerTreeIpc(): void {
       },
     ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      const families = runtime.repo.listFamilies();
-      let links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
-      let created: FamilyRecord | undefined;
-      if (options.relation === 'parent') {
-        created = {
-          id: randomUUID(),
-          parents: [options.person.id],
-          children: [options.anchorId],
-        };
-      } else {
-        const target = families.find((entry) => entry.parents.includes(options.anchorId));
-        if (target) {
-          const after =
-            options.relation === 'child'
-              ? { ...target, children: [...target.children, options.person.id] }
-              : { ...target, parents: [...target.parents, options.person.id] };
-          links = [{ before: target, after }];
-        } else {
-          created = {
-            id: randomUUID(),
-            parents:
-              options.relation === 'child'
-                ? [options.anchorId]
-                : [options.anchorId, options.person.id],
-            children: options.relation === 'child' ? [options.person.id] : [],
-          };
-        }
-      }
-      runtime.queue.apply(addRelativeOp(options.person, links, created), { repo: runtime.repo });
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.addRelative(options.relation, options.anchorId, options.person);
     },
   );
 
@@ -182,13 +92,10 @@ export function registerTreeIpc(): void {
     'tree:notes',
     async (_event, options: { projectPath: string; personId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      const notes = runtime.repo.listNotes();
       if (!options.personId) {
-        return notes;
+        return runtime.service.listNotes();
       }
-      return notes.filter(
-        (note) => note.targetType === 'person' && note.targetId === options.personId,
-      );
+      return runtime.service.listNotesFor('person', options.personId);
     },
   );
 
@@ -196,56 +103,41 @@ export function registerTreeIpc(): void {
     'tree:personCounts',
     async (_event, options: { projectPath: string; personIds: string[] }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      const notes = runtime.repo.listNotes();
-      const counts: Record<string, { notes: number; sources: number; media: number }> = {};
-      for (const personId of options.personIds) {
-        counts[personId] = {
-          notes: notes.filter(
-            (note) => note.targetType === 'person' && note.targetId === personId,
-          ).length,
-          sources: runtime.repo.listCitationsFor('person', personId).length,
-          media: runtime.repo.listMediaFor('person', personId).length,
-        };
-      }
-      return counts;
+      return runtime.service.personCounts(options.personIds);
     },
   );
 
   ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(addNoteOp(options.note), { repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.addNote(options.note);
   });
 
   ipcMain.handle('tree:families', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.repo.listFamilies();
+    return runtime.service.listFamilies();
   });
 
   ipcMain.handle('tree:addFamily', async (_event, options: { projectPath: string; family: FamilyRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(addFamilyOp(options.family), { repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.addFamily(options.family);
   });
 
   ipcMain.handle(
     'tree:updateFamily',
     async (_event, options: { projectPath: string; before: FamilyRecord; after: FamilyRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      runtime.queue.apply(updateFamilyOp(options.before, options.after), { repo: runtime.repo });
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.updateFamily(options.before, options.after);
     },
   );
 
   ipcMain.handle('tree:deleteFamily', async (_event, options: { projectPath: string; family: FamilyRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(deleteFamilyOp(options.family), { repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.deleteFamily(options.family);
   });
 
   ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.repo.listSources();
+    return runtime.service.listSources();
   });
 
   ipcMain.handle(
@@ -255,12 +147,7 @@ export function registerTreeIpc(): void {
       options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string },
     ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      const citation =
-        options.targetType && options.targetId
-          ? { targetType: options.targetType, targetId: options.targetId }
-          : undefined;
-      runtime.queue.apply(addSourceOp(options.source, citation), { repo: runtime.repo });
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.addSource(options.source, options.targetType, options.targetId);
     },
   );
 
@@ -268,64 +155,57 @@ export function registerTreeIpc(): void {
     'tree:attachSource',
     async (_event, options: { projectPath: string; sourceId: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      runtime.queue.apply(
-        attachCitationOp({
-          id: randomUUID(),
-          sourceId: options.sourceId,
-          targetType: options.targetType,
-          targetId: options.targetId,
-        }),
-        { repo: runtime.repo },
-      );
-      return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+      return runtime.service.attachSource(options.sourceId, options.targetType, options.targetId);
     },
   );
 
   ipcMain.handle('tree:detachCitation', async (_event, options: { projectPath: string; citationId: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    const citation = runtime.repo.getCitation(options.citationId);
-    if (citation) {
-      runtime.queue.apply(detachCitationOp(citation), { repo: runtime.repo });
-    }
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.detachCitation(options.citationId);
   });
 
   ipcMain.handle(
     'tree:citations',
     async (_event, options: { projectPath: string; personId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.repo.listCitationsFor('person', options.personId);
+      return runtime.service.listCitationsFor('person', options.personId);
     },
   );
 
-  ipcMain.handle(
-    'tree:events',
-    async (_event, options: { projectPath: string; personId?: string; familyId?: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      if (options.personId) {
-        return runtime.repo.listEventsForPerson(options.personId);
-      }
-      if (options.familyId) {
-        return runtime.repo.listEventsForFamily(options.familyId);
-      }
-      return [];
-    },
-  );
-
-  ipcMain.handle('tree:addEvent', async (_event, options: { projectPath: string; event: EventRecord }) => {
+  ipcMain.handle('tree:allCitations', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(addEventOp(options.event), { repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.listAllCitations();
   });
 
-  ipcMain.handle('tree:deleteEvent', async (_event, options: { projectPath: string; event: EventRecord }) => {
+  ipcMain.handle(
+    'tree:facts',
+    async (_event, options: { projectPath: string; personId?: string; familyId?: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listFactsFor(options.personId, options.familyId);
+    },
+  );
+
+  ipcMain.handle('tree:allFacts', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(deleteEventOp(options.event), { repo: runtime.repo });
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return runtime.service.listAllFacts();
+  });
+
+  ipcMain.handle('tree:addFact', async (_event, options: { projectPath: string; fact: FactRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addFact(options.fact);
+  });
+
+  ipcMain.handle('tree:deleteFact', async (_event, options: { projectPath: string; fact: FactRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteFact(options.fact);
   });
 
   ipcMain.handle('tree:media', async (_event, options: { projectPath: string; personId: string }) =>
     listMediaForPerson(options.projectPath, options.personId),
+  );
+
+  ipcMain.handle('tree:allMedia', async (_event, options: { projectPath: string }) =>
+    listAllMedia(options.projectPath),
   );
 
   ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; personId: string }) =>
@@ -334,8 +214,8 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    runtime.queue.apply(deleteMediaOp(options.media), { repo: runtime.repo });
+    const state = runtime.service.deleteMedia(options.media);
     await removeMediaFile(options.projectPath, options.media.path);
-    return { canUndo: runtime.queue.canUndo(), canRedo: runtime.queue.canRedo() };
+    return state;
   });
 }

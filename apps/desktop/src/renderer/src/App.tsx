@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
-import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, NoticesView, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
+import {
+  ChatPanel,
+  ChatSetupPlaceholder,
+  EmptyEditorPage,
+  FamilyView,
+  NoticesView,
+  SettingsView,
+  SourceView,
+  TreeCanvas,
+  WelcomePage,
+} from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
@@ -13,9 +23,11 @@ import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
 import {
   EXPORT_TAB_ID,
+  FAMILY_TAB_PREFIX,
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   SETTINGS_TAB_ID,
+  SOURCE_TAB_PREFIX,
   TREE_TAB_ID,
   useTabs,
 } from './hooks/useTabs';
@@ -34,7 +46,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons);
+  const tabs = useTabs(tree.persons, tree.families, tree.sources);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -298,6 +310,42 @@ export function App() {
         />
       );
     }
+    if (tab.id.startsWith(FAMILY_TAB_PREFIX)) {
+      const familyId = tab.id.slice(FAMILY_TAB_PREFIX.length);
+      const family = tree.families.find((entry) => entry.id === familyId);
+      if (!family) {
+        return <p className="person-missing">{nls.t('features.tree.familyNotFound')}</p>;
+      }
+      return (
+        <FamilyView
+          family={family}
+          persons={tree.persons}
+          facts={tree.facts}
+          sources={tree.sources}
+          citations={tree.citations}
+          notes={tree.notes}
+          onOpenPerson={openPersonAndFocus}
+        />
+      );
+    }
+    if (tab.id.startsWith(SOURCE_TAB_PREFIX)) {
+      const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
+      const source = tree.sources.find((entry) => entry.id === sourceId);
+      if (!source) {
+        return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
+      }
+      return (
+        <SourceView
+          source={source}
+          persons={tree.persons}
+          families={tree.families}
+          facts={tree.facts}
+          citations={tree.citations}
+          notes={tree.notes}
+          onOpenPerson={openPersonAndFocus}
+        />
+      );
+    }
     return null;
   };
 
@@ -368,7 +416,14 @@ export function App() {
           <SidebarView
             activeView={activeView}
             persons={tree.persons}
+            families={tree.families}
+            facts={tree.facts}
+            sources={tree.sources}
+            media={tree.media}
+            citations={tree.citations}
             onOpenPerson={openPersonAndFocus}
+            onOpenFamily={tabs.openFamilyTab}
+            onOpenSource={tabs.openSourceTab}
           />
         }
         activeView={activeView}

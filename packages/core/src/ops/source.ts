@@ -1,12 +1,5 @@
-import type { NoteRecord, SourceRecord } from '../model/types';
+import type { CitationRecord, NoteRecord, SourceRecord } from '../model/types';
 import type { Op } from './op';
-
-export interface CitationRecord {
-  id: string;
-  sourceId: string;
-  targetType: string;
-  targetId: string;
-}
 
 export function addSourceOp(
   source: SourceRecord,

@@ -66,13 +66,13 @@ function PersonTabBody({
   }, [personId, persons, isNew]);
 
   const save = async () => {
-    const next = draftToRecord(draft);
+    const before = persons.find((entry) => entry.id === draft.id);
+    const next = draftToRecord(draft, before);
     if (draft.isNew) {
       await api.addPerson(next);
       onClose(tabId);
       return;
     }
-    const before = persons.find((entry) => entry.id === draft.id);
     if (before) {
       await api.updatePerson(before, next);
     }

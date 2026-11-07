@@ -1,3 +1,4 @@
+import { factYear } from '../model/types';
 import type { FamilyRecord, PersonRecord } from '../model/types';
 import { SEX_ORDER } from './types';
 import type { PedigreeCard, PedigreeLine, PedigreeCardRole } from './types';
@@ -38,8 +39,8 @@ export function orderMembers(ids: string[], personById: Map<string, PersonRecord
 
 export function orderChildren(ids: string[], personById: Map<string, PersonRecord>): string[] {
   return [...ids].sort((a, b) => {
-    const birthA = personById.get(a)?.birth?.year;
-    const birthB = personById.get(b)?.birth?.year;
+    const birthA = factYear(personById.get(a), 'BIRT');
+    const birthB = factYear(personById.get(b), 'BIRT');
     if (birthA === undefined && birthB === undefined) {
       return a.localeCompare(b);
     }
@@ -68,7 +69,7 @@ export function indexFamilies(
         byChild.set(childId, [family]);
       }
     }
-    for (const parentId of family.parents) {
+    for (const parentId of family.partners) {
       const list = byParent.get(parentId);
       if (list) {
         list.push(family);
@@ -128,7 +129,7 @@ export function buildDirectionalGraph(
       direction === 'ancestors' ? byChild.get(id) ?? [] : byParent.get(id) ?? [];
 
     for (const family of familiesToVisit) {
-      const memberIds = orderMembers(family.parents, personById).filter(
+      const memberIds = orderMembers(family.partners, personById).filter(
         (memberId) => memberId !== id && personById.has(memberId),
       );
       let members: string[];

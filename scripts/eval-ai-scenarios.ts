@@ -46,23 +46,23 @@ interface Seed {
 export const SEEDS: Record<'ru' | 'en', Seed> = {
   ru: {
     persons: [
-      { id: '@I1@', names: [{ given: 'Иван', surname: 'Петров' }], sex: 'M' },
-      { id: '@I2@', names: [{ given: 'Мария', surname: 'Сидорова' }], sex: 'F' },
-      { id: '@I3@', names: [{ given: 'Анна', surname: 'Ковалёва' }], sex: 'F' },
-      { id: '@I4@', names: [{ given: 'Борис', surname: 'Иванов' }], sex: 'M' },
-      { id: '@I5@', names: [{ given: 'Пётр', surname: 'Петров' }], sex: 'M' },
+      { id: '@I1@', names: [{ id: 'N1', given: 'Иван', surname: 'Петров' }], sex: 'M', facts: [] },
+      { id: '@I2@', names: [{ id: 'N2', given: 'Мария', surname: 'Сидорова' }], sex: 'F', facts: [] },
+      { id: '@I3@', names: [{ id: 'N3', given: 'Анна', surname: 'Ковалёва' }], sex: 'F', facts: [] },
+      { id: '@I4@', names: [{ id: 'N4', given: 'Борис', surname: 'Иванов' }], sex: 'M', facts: [] },
+      { id: '@I5@', names: [{ id: 'N5', given: 'Пётр', surname: 'Петров' }], sex: 'M', facts: [] },
     ],
-    families: [{ id: '@F1@', parents: ['@I1@'], children: ['@I5@'] }],
+    families: [{ id: '@F1@', partners: ['@I1@'], children: ['@I5@'] }],
   },
   en: {
     persons: [
-      { id: '@I1@', names: [{ given: 'Ivan', surname: 'Petrov' }], sex: 'M' },
-      { id: '@I2@', names: [{ given: 'Maria', surname: 'Sidorova' }], sex: 'F' },
-      { id: '@I3@', names: [{ given: 'Anna', surname: 'Kovaleva' }], sex: 'F' },
-      { id: '@I4@', names: [{ given: 'Boris', surname: 'Ivanov' }], sex: 'M' },
-      { id: '@I5@', names: [{ given: 'Pyotr', surname: 'Petrov' }], sex: 'M' },
+      { id: '@I1@', names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }], sex: 'M', facts: [] },
+      { id: '@I2@', names: [{ id: 'N2', given: 'Maria', surname: 'Sidorova' }], sex: 'F', facts: [] },
+      { id: '@I3@', names: [{ id: 'N3', given: 'Anna', surname: 'Kovaleva' }], sex: 'F', facts: [] },
+      { id: '@I4@', names: [{ id: 'N4', given: 'Boris', surname: 'Ivanov' }], sex: 'M', facts: [] },
+      { id: '@I5@', names: [{ id: 'N5', given: 'Pyotr', surname: 'Petrov' }], sex: 'M', facts: [] },
     ],
-    families: [{ id: '@F1@', parents: ['@I1@'], children: ['@I5@'] }],
+    families: [{ id: '@F1@', partners: ['@I1@'], children: ['@I5@'] }],
   },
 };
 
@@ -179,7 +179,7 @@ function familyWithChild(repo: TreeRepository, parentId: string, childGivenAlts:
   if (childId === undefined) {
     return false;
   }
-  return repo.listFamilies().some((family) => family.parents.includes(parentId) && family.children.includes(childId));
+  return repo.listFamilies().some((family) => family.partners.includes(parentId) && family.children.includes(childId));
 }
 
 /** A family where `anchorId` and a person matching the patterns are both parents (spouse link). */
@@ -188,7 +188,7 @@ function familyWithSpouse(repo: TreeRepository, anchorId: string, spouseGivenAlt
   if (spouseId === undefined) {
     return false;
   }
-  return repo.listFamilies().some((family) => family.parents.includes(anchorId) && family.parents.includes(spouseId));
+  return repo.listFamilies().some((family) => family.partners.includes(anchorId) && family.partners.includes(spouseId));
 }
 
 // --- scenarios -----------------------------------------------------------------
@@ -272,7 +272,7 @@ export const EVAL_SCENARIOS: EvalScenario[] = [
       }
       return repo
         .listFamilies()
-        .some((family) => family.parents.includes(dmitryId) && family.children.includes('@I4@'))
+        .some((family) => family.partners.includes(dmitryId) && family.children.includes('@I4@'))
         ? []
         : ['no family links Dmitry Petrov as the parent of Boris Ivanov (@I4@)'];
     },

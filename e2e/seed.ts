@@ -9,23 +9,25 @@ export async function seedFamilyTree(page: Page, project: string): Promise<void>
   await page.evaluate(async (projectPath) => {
     await window.doru.addPerson(projectPath, {
       id: 'I1',
-      names: [{ given: 'Ivan', surname: 'Ivanov' }],
+      names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
       sex: 'M',
-      birth: { year: 1923, quality: 'exact' },
+      facts: [{ id: 'B1', personId: 'I1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } } }],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I2',
-      names: [{ given: 'Maria', surname: 'Ivanova' }],
+      names: [{ id: 'N2', given: 'Maria', surname: 'Ivanova' }],
       sex: 'F',
+      facts: [],
     });
     await window.doru.addPerson(projectPath, {
       id: 'I3',
-      names: [{ given: 'Petr', surname: 'Ivanov' }],
+      names: [{ id: 'N3', given: 'Petr', surname: 'Ivanov' }],
       sex: 'M',
+      facts: [],
     });
     await window.doru.addFamily(projectPath, {
       id: 'F1',
-      parents: ['I1', 'I2'],
+      partners: ['I1', 'I2'],
       children: ['I3'],
     });
   }, project);

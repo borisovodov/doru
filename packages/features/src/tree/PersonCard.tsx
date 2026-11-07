@@ -21,6 +21,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
+import { factOf } from '@doru/core/model';
 import { nls } from '../nls';
 import { displayName, years } from '../person/format';
 import type { PersonCounts } from './types';
@@ -96,7 +97,7 @@ export const PersonCard = memo(function PersonCard({
     onDraftCancel,
     onAction,
   } = data;
-  const deceased = person.death?.year !== undefined;
+  const deceased = factOf(person, 'DEAT')?.date?.component?.year !== undefined;
   const dates = years(person);
   const [given, setGiven] = useState('');
   const [surname, setSurname] = useState('');
@@ -136,11 +137,13 @@ export const PersonCard = memo(function PersonCard({
       id: crypto.randomUUID(),
       names: [
         {
+          id: crypto.randomUUID(),
           ...(trimmedGiven !== '' ? { given: trimmedGiven } : {}),
           ...(trimmedSurname !== '' ? { surname: trimmedSurname } : {}),
         },
       ],
       sex: 'U',
+      facts: [],
     });
   };
 

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@doru/core', '@doru/platform', '@doru/ai'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@doru/core', '@doru/platform', '@doru/ai', '@doru/gedcom'] })],
   },
   preload: {
     plugins: [externalizeDepsPlugin()],

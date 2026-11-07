@@ -1,0 +1,311 @@
+/* ── Sidebar entity lists: one card per entity ─────────────────────── */
+
+.side-section-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.entity-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.entity-card.clickable {
+  cursor: pointer;
+}
+
+.entity-card.clickable:hover {
+  border-color: var(--doru-accent);
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.entity-card-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--doru-radius-sm);
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+}
+
+.entity-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.entity-card-title {
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-card-subtitle {
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-card-meta {
+  flex: none;
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+}
+
+.entity-card-meta.highlight {
+  color: var(--doru-accent);
+  font-weight: 600;
+}
+
+/* Fact tag chip (events sidebar, search results). */
+.tag-chip {
+  flex: none;
+  min-width: 38px;
+  text-align: center;
+  padding: 2px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--doru-accent) 14%, transparent);
+  color: var(--doru-accent);
+}
+
+.tag-chip.neutral {
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+}
+
+/* Shared avatar: initials on a sex-tinted tile. */
+.doru-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+  user-select: none;
+}
+
+.doru-avatar.sex-m {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--doru-info) 32%, transparent),
+    color-mix(in srgb, var(--doru-info) 10%, var(--doru-bg-input))
+  );
+  color: var(--doru-info);
+}
+
+.doru-avatar.sex-f {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--doru-line-maternal, #c98ba0) 32%, transparent),
+    color-mix(in srgb, var(--doru-line-maternal, #c98ba0) 10%, var(--doru-bg-input))
+  );
+  color: var(--doru-line-maternal, #c98ba0);
+}
+
+/* Media thumbnail tiles. */
+.entity-thumb {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: var(--doru-radius-sm);
+  background: var(--doru-bg-input);
+}
+
+/* Entity tabs (family, source): a view card + sections of entity cards. */
+.entity-tab {
+  max-width: 560px;
+  padding: 8px 16px;
+}
+
+.entity-view-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-lg);
+  box-shadow: var(--doru-ring);
+}
+
+.entity-view-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--doru-radius-md);
+}
+
+.entity-view-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entity-view-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-view-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-view-badges {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+.entity-view-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+}
+
+.entity-section {
+  margin-top: 14px;
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  border-radius: var(--doru-radius-lg);
+  padding: 12px;
+}
+
+.entity-section h3 {
+  margin: 0 0 8px;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+}
+
+.entity-section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entity-empty {
+  margin: 0;
+  color: var(--doru-fg-muted);
+}
+
+.entity-note-text {
+  white-space: pre-wrap;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+}
+
+.entity-missing {
+  padding: 8px 16px;
+  color: var(--doru-fg-muted);
+}
+
+/* Search view. */
+.side-search {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.side-search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 8px 0;
+  padding: 0 6px;
+  height: 28px;
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  color: var(--doru-fg-muted);
+}
+
+.side-search-field:focus-within {
+  border-color: var(--doru-focus);
+}
+
+.side-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.side-search-input:focus {
+  outline: none;
+}
+
+.side-search-group {
+  margin: 8px 8px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--doru-fg-faint);
+}
+
+.side-search-group:first-of-type {
+  margin-top: 8px;
+}
+
+.side-search-empty {
+  margin: 12px 8px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  text-align: center;
+}

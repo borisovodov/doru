@@ -1,5 +1,6 @@
 import type {
-  EventRecord,
+  CitationRecord,
+  FactRecord,
   FamilyRecord,
   MediaRecord,
   NoteRecord,
@@ -136,14 +137,17 @@ declare global {
         projectPath: string,
         personId: string,
       ): Promise<Array<{ id: string; source: SourceRecord }>>;
-      getEvents(
+      getAllCitations(projectPath: string): Promise<CitationRecord[]>;
+      getFacts(
         projectPath: string,
         personId?: string,
         familyId?: string,
-      ): Promise<EventRecord[]>;
-      addEvent(projectPath: string, event: EventRecord): Promise<UndoRedoState>;
-      deleteEvent(projectPath: string, event: EventRecord): Promise<UndoRedoState>;
+      ): Promise<FactRecord[]>;
+      getAllFacts(projectPath: string): Promise<FactRecord[]>;
+      addFact(projectPath: string, fact: FactRecord): Promise<UndoRedoState>;
+      deleteFact(projectPath: string, fact: FactRecord): Promise<UndoRedoState>;
       getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
+      getAllMedia(projectPath: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
       getAiSettings(): Promise<AiSettingsState>;
