@@ -63,16 +63,12 @@ The complete picture, at a glance:
   the target version cannot spell is never written in a form its
   grammar does not define — it is dropped (with the rule recorded in
   the JSDoc of the affected field) or written in the vendor extension
-  spelling where one exists. Where a vendor writes a *standard* tag in
-  a position the grammar does not define (the citations under CHAN or
-  under the SEX line, the source-level QUAY, the pedigree under
-  FAM.CHIL), the field's JSDoc records the per-version rule: 5.5.1
-  output mirrors the vendor position — its real-world readers accept
-  it and the spelling is the vendor's own — while 7.0 output, whose
-  §1.5 binds non-underscore tags to the standard grammar, drops or
-  projects the construct. Some data may therefore be lost when
-  serializing a model built from a richer version; that is by design
-  (the specifications, not the model, are the narrowest point).
+  spelling where one exists. A vendor tag found in a standard position
+  is normalized on input; a vendor's *standard* tag in a position the
+  grammar does not define is typed on input and dropped or projected
+  onto the standard slot on export. Some data may therefore be lost
+  when serializing a model built from a richer version; that is by
+  design (the specifications, not the model, are the narrowest point).
 - **Vendor extensions with a policy.** Known vendor tags are typed on
   input and standardized on output; unknown `_`-tags are preserved
   verbatim, and the inventory of every recognized tag with its
@@ -706,7 +702,10 @@ The agreed policy:
   while the standard `PEDI` is per-link. On 7.0 export an agreeing pair
   is projected onto `INDI.FAMC.PEDI` (natural → BIRTH, adopted →
   ADOPTED, foster → FOSTER, sealing → SEALING) and otherwise dropped;
-  5.5.1 always writes the tags back.
+  5.5.1 always writes the tags back. The vendor `PEDI` under `FAM.CHIL`
+  (see `FamilyChildLink.pedigrees`) is likewise projected onto the
+  child's `INDI.FAMC.PEDI` in both versions and never written in the
+  non-standard CHIL position.
 - **Place records are read-side entities.** `_PLAC`/`_LOC`/
   `_PLAC_DEFN` cards are parsed into `PlaceRecord` entities and linked
   to events (`PlaceStructure.location`) from explicit `_LOC` pointers
@@ -914,8 +913,9 @@ would be, or where the model takes a documented position:
     phrase; the sex accepts the long spellings Male/Female/MALE/FEMALE
     and the MyFamily spelling OTHER (as X); the citations under the
     SEX line (the unwrapped FTM Mac ones) type into the sex-fact
-    citation slot and any other SEX children survive as record
-    extensions; the quality accepts the non-standard `4`.
+    citation slot — projected onto the record-level INDI citations on
+    export — and any other SEX children survive as record extensions;
+    the quality accepts the non-standard `4`.
   - Value leniencies: a non-`Y` text payload on an event line is kept
     verbatim (and a stray value on a no-payload line is dropped, the
     line parses without it); a text payload on a SOUR/REPO record line

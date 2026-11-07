@@ -311,24 +311,19 @@ describe('multimedia record additions', () => {
     expect(ser551(dataset)).toContain('1 _PRIM Y');
   });
 
-  test('Généatique OBJE.FORM/TITL are kept on input and spelled back in 5.5.1', () => {
+  test('Généatique OBJE.FORM/TITL are kept on input, the record-level FORM is dropped', () => {
     const dataset = parseOk551([...HEADER551, '0 @O1@ OBJE', '1 FILE p.jpg', '2 FORM jpg', '1 FORM gif', '1 TITL The picture', ...SUBM, '0 TRLR'].join('\n'));
     // The record-level FORM types into the embedded-format slot (the
-    // GEDCOM 5.5/5.5.1 record shape and the Généatique spelling, the
-    // webtrees registry Geneatique.php): the 5.5.1 writer spells it
-    // back, 7.0 drops it (no record-level FORM there); the TITL types
-    // into the record title in both.
-    const text = ser551(dataset);
-    expect(text).toContain('1 FORM gif');
-    expect(text).toContain('2 FORM jpg');
-    expect(text).toContain('1 TITL The picture');
-    expect(text).toContain('0 @O1@ OBJE');
-    expect(text).toContain('1 FILE p.jpg');
-    expect(parseOk551(text)).toEqual(dataset);
-    const text70 = ser70(dataset);
-    expect(text70).not.toContain('1 FORM gif');
-    expect(text70).toContain('2 FORM jpg');
-    expect(text70).toContain('1 TITL The picture');
+    // Généatique spelling, webtrees registry Geneatique.php), but no
+    // target grammar defines that position: both writers drop it. The
+    // FILE-level FORM and the record title survive.
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('1 FORM gif');
+      expect(text).toContain('2 FORM jpg');
+      expect(text).toContain('1 TITL The picture');
+      expect(text).toContain('0 @O1@ OBJE');
+      expect(text).toContain('1 FILE p.jpg');
+    }
   });
 });
 

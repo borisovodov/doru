@@ -93,26 +93,18 @@ function clone(dataset: GedcomDataset): GedcomDataset {
 }
 
 /**
- * True when the record is a GEDCOM 5.5-style embedded-multimedia
- * record: an OBJE record with no FILE substructure (accepted in any
- * file by parsing/media.ts). GEDCOM 7.0 cannot spell the shape (FILE
- * {1:M} is required), so the 7.0 projection drops such records and
- * strips the links to them; 5.5.1 spells the typed embedded content
- * back (FORM/BLOB are the native 5.5.1 record form) — only a record
- * without any typed embedded content is dropped there too (see
- * isSpelledEmbeddedMediaRecord).
+ * True when the record is a GEDCOM 5.5 embedded-multimedia record: an
+ * OBJE record with no FILE substructure (its content is the
+ * record-level FORM/BLOB shape, accepted in any file by
+ * parsing/media.ts and typed into embeddedForm/embeddedBlob). GEDCOM
+ * 5.5.1 eliminated BLOB and requires FILE (the FamilySearch
+ * changelog, https://gedcom.io/changelog/#version-551), and 7.0
+ * requires FILE {1:M}: neither target version can spell the embedded
+ * shape, so both projections drop such records entirely and strip the
+ * links to them.
  */
 function isEmbeddedMediaRecord(record: GedcomRecord): boolean {
   return isMultimediaRecord(record) && record.files.length === 0;
-}
-
-/** True when the embedded media record carries the typed FORM/BLOB
- *  content the 5.5.1 emitter writes back. */
-function isSpelledEmbeddedMediaRecord(record: GedcomRecord): boolean {
-  return (
-    isMultimediaRecord(record) &&
-    (record.embeddedForm !== undefined || record.embeddedBlob !== undefined)
-  );
 }
 
 /** True when the record still carries content after the NO removal. */
@@ -549,6 +541,53 @@ function preservePlaceRecords70(dataset: GedcomDataset, pinned: ReadonlySet<stri
 }
 
 /**
+ * Projects the FAM.CHIL-position PEDI entries of the vendor files (see
+ * FamilyChildLink.pedigrees) onto the standard INDI.FAMC.PEDI. When
+ * every entry of a CHIL link agrees, the child's matching FAMC link
+ * gets that value; the per-parent `_PARENT` distinction and
+ * non-agreeing entries have no standard spelling and are dropped. The
+ * FAM.CHIL lines themselves are never written — neither target
+ * grammar defines PEDI in that position.
+ */
+function projectChildPedigrees(dataset: GedcomDataset): void {
+  const individuals = new Map<string, IndividualRecord>();
+  for (const record of dataset.records) {
+    if (isIndividualRecord(record) && record.xref !== undefined) {
+      individuals.set(record.xref, record);
+    }
+  }
+  for (const record of dataset.records) {
+    if (!isFamilyRecord(record)) {
+      continue;
+    }
+    const fam = record;
+    for (const link of fam.children ?? []) {
+      const entries = link.pedigrees;
+      if (entries === undefined || entries.length === 0) {
+        continue;
+      }
+      const first = entries[0];
+      if (first === undefined) {
+        continue;
+      }
+      const uniform = entries.every((entry) => entry.pedigree.payload === first.pedigree.payload);
+      if (!uniform) {
+        continue;
+      }
+      const child = individuals.get(link.child);
+      const famc = child?.childFamilies?.find((entry) => entry.family === fam.xref);
+      if (famc === undefined || famc.pedigree !== undefined) {
+        continue;
+      }
+      famc.pedigree = {
+        payload: first.pedigree.payload,
+        ...(first.pedigree.phrase === undefined ? {} : { phrase: first.pedigree.phrase }),
+      };
+    }
+  }
+}
+
+/**
  * Applies the NO rule and the required-field defaults, returning a new
  * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
  */
@@ -600,11 +639,11 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
       stripPointers(record, valid);
     }
     const kept = out.records.filter((record) => {
-      if (isEmbeddedMediaRecord(record) && !isSpelledEmbeddedMediaRecord(record)) {
-        // The 5.5 embedded shape without typed FORM/BLOB content has
-        // no 5.5.1 spelling: the record would be left without its
-        // required FILE {1:M} or BLOB content. Dropped even when
-        // pinned — an extension pointer payload to such a record
+      if (isEmbeddedMediaRecord(record)) {
+        // The 5.5 embedded shape has no 5.5.1 spelling: BLOB was
+        // eliminated in 5.5.1 (gedcom.io changelog) and the record
+        // would be left without its required FILE {1:M}. Dropped even
+        // when pinned — an extension pointer payload to such a record
         // cannot be kept valid anyway.
         return false;
       }
@@ -616,7 +655,11 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
     out.records = kept;
   }
 
-  // 3. A void or dangling SUBM pointer in the submission record cannot be
+  // 3. The FAM.CHIL-position PEDI entries project onto the standard
+  //    INDI.FAMC.PEDI link (see projectChildPedigrees).
+  projectChildPedigrees(out);
+
+  // 4. A void or dangling SUBM pointer in the submission record cannot be
   //    written (5.5.1 has no void pointer).
   if (out.submission !== undefined && out.submission.submitter === '@VOID@') {
     delete out.submission.submitter;
@@ -690,6 +733,7 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
       }
     }
   }
+  projectChildPedigrees(out);
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (isIndividualRecord(record) && record.xref !== undefined) {
@@ -702,26 +746,6 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
     }
     const fam = record;
     for (const link of fam.children ?? []) {
-      // The FAM.CHIL-position PEDI (see FamilyChildLink.pedigrees):
-      // 7.0 keeps the pedigree on the INDI.FAMC link — when every
-      // entry agrees, the child's matching FAMC link gets its PEDI
-      // filled; the per-parent `_PARENT` distinction has no 7.0 slot
-      // and non-agreeing entries are dropped (the 7.0 emitter never
-      // writes the CHIL-position lines).
-      if (link.pedigrees !== undefined && link.pedigrees.length > 0) {
-        const first = link.pedigrees[0];
-        const uniform = link.pedigrees.every((entry) => entry.pedigree.payload === first?.pedigree.payload);
-        if (first !== undefined && uniform) {
-          const pedIndividual = individuals.get(link.child);
-          const pedFamc = pedIndividual?.childFamilies?.find((entry) => entry.family === fam.xref);
-          if (pedFamc !== undefined && pedFamc.pedigree === undefined) {
-            pedFamc.pedigree = {
-              payload: first.pedigree.payload,
-              ...(first.pedigree.phrase === undefined ? {} : { phrase: first.pedigree.phrase }),
-            };
-          }
-        }
-      }
       if (link.fatherRelation === undefined && link.motherRelation === undefined) {
         continue;
       }

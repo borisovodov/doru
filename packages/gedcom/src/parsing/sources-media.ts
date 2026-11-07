@@ -679,9 +679,9 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         (record.citations ??= []).push(parseSourceCitation(child, ctx));
       },
       BLOB: (child) => {
-        // The embedded content of the 5.5/5.5.1 inline shape (see
+        // The embedded content of the 5.5 inline shape (see
         // MultimediaRecord.embeddedBlob) — lands on the synthesized
-        // record like the NOTE/FORM above.
+        // record like the NOTE/FORM above; both exports drop it.
         if (child.value.kind === 'text') {
           record.embeddedBlob = child.value.text.replace(/^\n/, '');
         }
@@ -802,8 +802,8 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
     // An inline OBJE without FILE is tolerated (the full-leniency
     // container rule). When no FILE carries the record-level FORM, the
     // format survives as the synthesized record's embedded format (the
-    // GEDCOM 5.5/5.5.1 embedded inline shape; see
-    // MultimediaRecord.embeddedForm).
+    // GEDCOM 5.5 embedded inline shape; see
+    // MultimediaRecord.embeddedForm). Both exports drop the shape.
     if (linkForm !== undefined && linkForm.value.kind === 'text') {
       record.embeddedForm = linkForm.value.text;
     }

@@ -635,11 +635,12 @@ export interface FamilyChildLink extends GedcomStructureBase {
    * and the Synium MobileFamilyTree fixtures) and in the per-parent
    * spelling of the slaktforskning swedish-royal examples: one PEDI
    * per parent, each with a `3 _PARENT @I…@` pointer naming the parent
-   * it describes. Recognized on input; written back as the PEDI lines
-   * under CHIL in 5.5.1; on 7.0 the value is projected onto the
-   * child's INDI.FAMC.PEDI when every entry agrees and that link's
-   * PEDI is still empty (the `_FREL`/`_MREL` rule), and dropped
-   * otherwise (see FamilyChildPedigree).
+   * it describes. Recognized on input; both exports project an
+   * agreeing value onto the child's INDI.FAMC.PEDI when that link's
+   * PEDI is still empty (the `_FREL`/`_MREL` rule), and drop
+   * non-agreeing entries and the per-parent `_PARENT` distinction —
+   * neither target grammar defines PEDI under CHIL (see
+   * FamilyChildPedigree).
    */
   pedigrees?: FamilyChildPedigree[];
 }
@@ -649,8 +650,10 @@ export interface FamilyChildLink extends GedcomStructureBase {
  * pedigree structure with the optional `_PARENT` pointer to the parent
  * the entry describes (the slaktforskning swedish-royal examples; the
  * MacFamilyTree exports write a single entry without the pointer). Not
- * part of any GEDCOM version. Written back as the `PEDI` line with its
- * `_PARENT` child in 5.5.1.
+ * part of any GEDCOM version. The FAM.CHIL-position lines are never
+ * written: both exports project an agreeing value onto the child's
+ * INDI.FAMC.PEDI and drop the `_PARENT` distinction (see
+ * projectChildPedigrees in serialize/prepare.ts).
  */
 export interface FamilyChildPedigree extends GedcomStructureBase {
   tag: 'PEDI';
@@ -694,11 +697,10 @@ export interface IndividualRecord extends GedcomStructureBase {
    * continuation bug wraps the lines into `2 CONT 2 SOUR …`, see the
    * README's container leniencies; the gemenet Genoese-merchant trees
    * and the Ancestry-derived fixtures carry the same shape). Neither
-   * grammar gives SEX substructures. Recognized on input and written
-   * back as the SOUR lines under the SEX line in 5.5.1 (the
-   * vendor-position writeback rule, like the citations under CHAN);
-   * dropped on 7.0 — the record-level position has no citation slot
-   * there and the SEX fact is a bare enum.
+   * grammar gives SEX substructures. Recognized on input; on export the
+   * citations are projected onto the record-level INDI citations (the
+   * only standard SOURCE_CITATION slot) in both versions — the SEX
+   * association itself has no standard spelling.
    */
   sexCitations?: SourceCitation[];
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */
@@ -1390,32 +1392,35 @@ export interface MultimediaRecord extends GedcomStructureBase {
   /** FILE {1:M}, g7:FILE — the external files, grouped together. */
   files: MediaFile[];
   /**
-   * FORM {0:1} — the record-level multimedia format: the GEDCOM
-   * 5.5/5.5.1 embedded-multimedia shape (`MULTIMEDIA_RECORD` := FORM
-   * {1:1} + BLOB {1:1} with the encoded CONT lines; the 5.5.1 grammar
-   * has no FILE slot at all, and 5.5.1-declaring files in the corpus
-   * carry the shape — the gramps `MediaTest.ged` import fixture and
-   * the GT4 demo export) and the Généatique modern spelling beside
-   * FILE lines (the webtrees per-vendor custom-tag registry,
-   * Geneatique.php, `OBJE:FORM` = MultimediaFormat:
-   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Geneatique.php).
-   * The FILE-level format is MediaFile.form. Removed by the 5.5.5
-   * draft and GEDCOM 7.0 (which introduced FILE). Recognized on input
-   * in any file and written back as the record-level `FORM` line in
-   * 5.5.1; dropped on 7.0 (whose projections remove the whole record
-   * when it has no FILE — the embedded shape has no 7.0 spelling).
+   * FORM {0:1} — the record-level multimedia format of the GEDCOM
+   * 5.5 embedded-multimedia shape (`MULTIMEDIA_RECORD` := FORM {1:1}
+   * + BLOB {1:1} with the encoded CONT lines). GEDCOM 5.5.1
+   * eliminated BLOB and added FILE with the FORM beneath it (the
+   * FamilySearch changelog, version 5.5.1: "Removed the option for
+   * encoding embedded multimedia objects… The BLOB tag was
+   * eliminated", https://gedcom.io/changelog/#version-551), so
+   * neither target version can spell the shape. It is recognized on
+   * input in any file — 5.5-era files, the nonconforming exports
+   * that keep writing it under 5.5.1 declarations (the corpus GT4
+   * demo file, the gramps MediaTest.ged import fixture) and the
+   * Généatique record-level FORM beside FILE lines (the webtrees
+   * per-vendor custom-tag registry, Geneatique.php, `OBJE:FORM` =
+   * MultimediaFormat:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Geneatique.php)
+   * — and kept in the model; both exports drop it, and a record left
+   * without any FILE is dropped entirely by the projections
+   * (serialize/prepare.ts). The FILE-level format is MediaFile.form.
    */
   embeddedForm?: Text;
   /**
-   * BLOB {0:1} — the embedded multimedia content of the GEDCOM
-   * 5.5/5.5.1 record shape (see `embeddedForm`): the BLOB block's
-   * CONT lines joined with newlines, kept as decoded text. The 5.5
-   * encoding is a text-safe form of the binary object; the decoded
-   * text round-trips through the 5.5.1 export as the same CONT lines.
-   * Removed by the 5.5.5 draft and GEDCOM 7.0. Recognized on input in
-   * any file and written back as the `BLOB` + CONT block in 5.5.1;
-   * dropped on 7.0 (like `embeddedForm`, with the whole record when it
-   * has no FILE).
+   * BLOB {0:1} — the embedded multimedia content of the GEDCOM 5.5
+   * record shape (see `embeddedForm`): the BLOB block's CONT lines
+   * joined with newlines, kept as decoded text. The 5.5 encoding is
+   * a text-safe form of the binary object. GEDCOM 5.5.1 eliminated
+   * BLOB (the FamilySearch changelog,
+   * https://gedcom.io/changelog/#version-551): the slot is recognized
+   * on input in any file and kept in the model, and both exports drop
+   * it — with the whole record when it has no FILE.
    */
   embeddedBlob?: Text;
   /**
@@ -2169,10 +2174,9 @@ export interface SourceRecord extends GedcomStructureBase {
    * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Heredis.php;
    * the alainamand and Dudouyt Heredis exports in the corpus). No
    * GEDCOM version has the slot (5.5.1 puts QUAY under the citation's
-   * DATA, 7.0 keeps it on citations only). Recognized on input and
-   * written back as a `QUAY` line under the SOUR record in 5.5.1 (the
-   * Brother's Keeper event-level QUAY rule); dropped on 7.0, where a
-   * non-underscore tag in the position does not spell a valid file.
+   * DATA, 7.0 keeps it on citations only). Recognized on input; dropped
+   * on both exports — a non-underscore tag in the record-level position
+   * does not spell a valid file in either version.
    */
   certainty?: QualityEnum;
   /**

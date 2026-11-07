@@ -355,10 +355,12 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       rec.place = reqText(child);
     },
     FORM: (child) => {
-      // The record-level multimedia format: the GEDCOM 5.5/5.5.1
-      // embedded shape (FORM + BLOB — the GEDCOM 5.5 torture files
-      // and the gramps 5.5.1 MediaTest fixture) and the Généatique
-      // modern spelling beside FILE lines (the webtrees
+      // The record-level multimedia format: the GEDCOM 5.5 embedded
+      // shape (FORM + BLOB; 5.5.1 eliminated BLOB and put FORM under
+      // FILE — the gedcom.io changelog — but 5.5.1-declaring files in
+      // the wild keep writing the record-level position: the GT4 demo
+      // export, the gramps MediaTest.ged import fixture) and the
+      // Généatique spelling beside FILE lines (the webtrees
       // registry, Geneatique.php) — see MultimediaRecord.embeddedForm.
       // A FORM without a payload stays a generic extension (there is
       // no format to keep).
@@ -379,12 +381,13 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       rec.title = reqText(child);
     },
     BLOB: (child) => {
-      // The embedded content of the GEDCOM 5.5/5.5.1 multimedia record
-      // (see MultimediaRecord.embeddedBlob): the raw-tree continuation
+      // The embedded content of the GEDCOM 5.5 multimedia record (see
+      // MultimediaRecord.embeddedBlob): the raw-tree continuation
       // merge has already joined the CONT lines into the payload with
       // newlines; the leading newline of the payload-less BLOB line is
-      // trimmed. Kept on input, written back as the BLOB + CONT block
-      // in 5.5.1, dropped on 7.0.
+      // trimmed. Typed on input in any file and kept in the model;
+      // both exports drop it (5.5.1 eliminated BLOB — the gedcom.io
+      // changelog).
       if (child.value.kind === 'text') {
         rec.embeddedBlob = child.value.text.replace(/^\n/, '');
       }

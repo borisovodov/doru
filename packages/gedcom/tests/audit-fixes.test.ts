@@ -358,17 +358,16 @@ describe('the GEDCOM 5.5 embedded-multimedia record shape', () => {  const EMBED
     expect(media?.tag === 'OBJE' ? media.title : undefined).toBe('The picture');
   });
 
-  test('the typed embedded shape is spelled back on 5.5.1 export', () => {
-    // FORM/BLOB are the native 5.5.1 record form — the record and the
-    // link survive (only the untyped remainder without embedded
-    // content is dropped).
+  test('the record is dropped entirely on 5.5.1 export, links stripped', () => {
+    // GEDCOM 5.5.1 eliminated BLOB and requires FILE (the FamilySearch
+    // changelog): the embedded record has no 5.5.1 spelling, so the
+    // record and the link to it are dropped.
     const dataset = parseOk551(EMBEDDED);
     const text = ser551(dataset);
-    expect(text).toContain('@O1@ OBJE');
-    expect(text).toContain('1 FORM gif');
-    expect(text).toContain('1 TITL The picture');
-    expect(text).toContain('1 OBJE @O1@');
-    expect(parseOk551(text)).toEqual(dataset);
+    expect(text).not.toContain('@O1@ OBJE');
+    expect(text).not.toContain('1 FORM gif');
+    expect(text).not.toContain('1 TITL The picture');
+    expect(text).not.toContain('1 OBJE @O1@');
   });
 
   test('the record is dropped entirely on 7.0 export, links stripped', () => {
@@ -663,13 +662,17 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
         '1 NAME F /G/',
         '0 @I4@ INDI',
         '1 NAME C /D/',
+        '1 FAMC @F1@',
         ...SUBM,
         '0 TRLR',
       ].join('\n'),
     );
     const text = ser551(dataset);
     expect(text).not.toContain('@I2@');
-    expect(text).toContain('2 PEDI BIRTH');
+    // The pedigree projects onto the standard FAMC link; the per-parent
+    // `_PARENT` pointer (a non-standard CHIL-position child) is dropped.
+    expect(text).toContain('2 PEDI birth');
+    expect(text).not.toContain('_PARENT');
     expect(text).toContain('1 CHIL @I4@');
   });
 
@@ -705,9 +708,9 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
   });
 
   test('an _RDOC link at an embedded OBJE dropped by the projections is stripped', () => {
-    // 7.0 cannot spell the embedded shape even when typed (FORM
-    // without FILE), and 5.5.1 drops an unspelled embedded record:
-    // the `_EVID` documents link must not dangle in either output.
+    // Neither target grammar can spell the embedded shape (5.5.1
+    // eliminated BLOB and requires FILE; 7.0 requires FILE): the
+    // `_EVID` documents link must not dangle in either output.
     const dataset551 = parseOk551(
       [
         ...H551,
@@ -742,20 +745,19 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
         '0 TRLR',
       ].join('\n'),
     );
-    // The typed FORM keeps the record in 5.5.1 …
-    const text551b = ser551(datasetForm);
-    expect(text551b).toContain('0 @M2@ OBJE');
-    expect(text551b).toContain('1 _RDOC @M2@');
-    // … but 7.0 drops it and strips the link.
-    const text70 = ser70(datasetForm);
-    expect(text70).not.toContain('@M2@');
-    expect(text70).not.toContain('1 _RDOC');
-    expect(text70).toContain('0 @E2@ _EVID');
+    // Both versions drop the record and strip the link.
+    for (const text of [ser551(datasetForm), ser70(datasetForm)]) {
+      expect(text).not.toContain('@M2@');
+      expect(text).not.toContain('1 _RDOC');
+      expect(text).toContain('0 @E2@ _EVID');
+    }
   });
 
-  test('the SEX citations type, write back under SEX in 5.5.1 and drop in 7.0', () => {
+  test('the SEX citations type and project onto record-level INDI citations', () => {
     // The FTM Mac willis shape: a full citation subtree under the SEX
-    // fact, with the 5.5.1-style DATA/TEXT inside.
+    // fact, with the 5.5.1-style DATA/TEXT inside. Neither grammar has
+    // a SEX substructure, so the citation moves to the standard INDI
+    // SOURCE_CITATION slot on export.
     const dataset = parseOk551(
       [
         ...H551,
@@ -776,13 +778,14 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
     expect(indi.sexCitations?.[0]?.source).toBe('@S9@');
     expect(indi.sexCitations?.[0]?.page?.payload).toBe('Year: 1880');
     expect((indi as { extensions?: unknown[] }).extensions).toBeUndefined();
-    const text = ser551(dataset);
-    expect(text).toContain('1 SEX M\r\n2 SOUR @S9@');
-    expect(text).toContain('3 PAGE Year: 1880');
-    expect(parseOk551(text)).toEqual(dataset);
-    // 7.0 has no citation slot at the bare SEX enum: dropped.
-    const text70 = ser70(dataset);
-    expect(text70).toContain('1 SEX M');
-    expect(text70).not.toContain('2 SOUR @S9@');
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).toContain('1 SEX M\r\n1 SOUR @S9@');
+      expect(text).toContain('2 PAGE Year: 1880');
+      expect(text).not.toContain('2 SOUR @S9@');
+      const reparsed = text.includes('2 VERS 7.0') ? parseOk70(text) : parseOk551(text);
+      const reparsedIndi = reparsed.records.find((r) => r.tag === 'INDI') as IndividualRecord;
+      expect(reparsedIndi.sexCitations).toBeUndefined();
+      expect(reparsedIndi.citations?.[0]?.source).toBe('@S9@');
+    }
   });
 });

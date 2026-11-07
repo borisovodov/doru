@@ -1861,11 +1861,14 @@ describe('the corpus-remainder typings (round 9)', () => {
       throw new Error('expected SOUR');
     }
     expect(sour.certainty).toBe('2');
-    const text = ser551(dataset);
-    expect(text).toContain('1 QUAY 2');
-    expect(parseOk551(text)).toEqual(dataset);
-    // 7.0 drops the record-level QUAY (no valid 7.0 position).
-    expect(ser70(dataset)).not.toContain('QUAY');
+    // Neither grammar has a source-level certainty slot: both writers
+    // drop the record-level QUAY.
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('1 QUAY 2');
+      const reparsed = text.includes('2 VERS 7.0') ? parseOk70(text) : parseOk551(text);
+      const reparsedSour = reparsed.records.find((r) => r.tag === 'SOUR');
+      expect(reparsedSour?.tag === 'SOUR' ? reparsedSour.certainty : 'unexpected').toBeUndefined();
+    }
   });
 
   test('_UPD under the SOUR record types as its update timestamp', () => {
@@ -2002,7 +2005,7 @@ describe('the corpus-remainder typings (round 9)', () => {
     expect(parseOk551(text)).toEqual(dataset);
   });
 
-  test('PEDI under FAM.CHIL types; 7.0 projects an agreeing value onto FAMC', () => {
+  test('PEDI under FAM.CHIL types; both versions project an agreeing value onto FAMC', () => {
     // The MacFamilyTree single spelling and the swedish-royal
     // per-parent spelling with `_PARENT`.
     const dataset = parseOk551(
@@ -2046,18 +2049,16 @@ describe('the corpus-remainder typings (round 9)', () => {
       ['BIRTH', '@I3@'],
       ['ADOPTED', '@I4@'],
     ]);
-    // 5.5.1 writes the CHIL-position lines back.
-    const text = ser551(dataset);
-    expect(text).toContain('2 PEDI BIRTH');
-    expect(text).toContain('3 _PARENT @I3@');
-    expect(parseOk551(text)).toEqual(dataset);
-    // 7.0: the single agreeing value lands on the child's FAMC link;
-    // the non-agreeing per-parent pair is dropped.
-    const text70 = ser70(dataset);
-    const i5 = text70.split('0 @I5@ INDI')[1]?.split('0 @')[0] ?? '';
-    expect(i5).toContain('2 PEDI BIRTH');
-    const i6 = text70.split('0 @I6@ INDI')[1]?.split('0 @')[0] ?? '';
-    expect(i6).not.toContain('PEDI');
+    // Both versions project the single agreeing value onto the child's
+    // FAMC link; the non-agreeing per-parent pair and the CHIL-position
+    // `_PARENT` lines are dropped.
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('3 _PARENT');
+      const i5 = text.split('0 @I5@ INDI')[1]?.split('0 @')[0] ?? '';
+      expect(i5.toLowerCase()).toContain('2 pedi birth');
+      const i6 = text.split('0 @I6@ INDI')[1]?.split('0 @')[0] ?? '';
+      expect(i6).not.toContain('PEDI');
+    }
   });
 
   test('_ELEC under INDI types as the Elected fact', () => {
@@ -2081,9 +2082,10 @@ describe('the corpus-remainder typings (round 9)', () => {
     expect(fact && 'payload' in fact ? fact.payload : undefined).toBe('Mayor of Springfield');
   });
 
-  test('the 5.5.1 embedded FORM/BLOB shape types and round-trips', () => {
-    // The official TGC551 torture shape: the GEDCOM 5.5/5.5.1
-    // MULTIMEDIA_RECORD with the record-level FORM and the BLOB block.
+  test('the 5.5 embedded FORM/BLOB shape types on input and drops on export', () => {
+    // The GEDCOM 5.5 MULTIMEDIA_RECORD with the record-level FORM and
+    // the BLOB block. GEDCOM 5.5.1 eliminated BLOB and requires FILE
+    // (the FamilySearch changelog), so neither export can spell it.
     const dataset = parseOk551(
       [
         HEAD551,
@@ -2106,21 +2108,15 @@ describe('the corpus-remainder typings (round 9)', () => {
     expect(obje.embeddedForm).toBe('PICT');
     expect(obje.embeddedBlob).toBe('.HM.......k.1..F.jwA.Dzzzzw\nA....1.........0U.66..E.8');
     expect(obje.title).toBe('Dummy Multimedia Object');
-    // The 5.5.1 export spells the embedded shape back and re-parses
-    // into the identical model.
-    const text = ser551(dataset);
-    expect(text).toContain('1 FORM PICT');
-    expect(text).toContain('1 BLOB');
-    expect(text).toContain('2 CONT .HM.......k.1..F.jwA.Dzzzzw');
-    expect(parseOk551(text)).toEqual(dataset);
-    // 7.0 has no embedded shape: the record and the link to it are
-    // dropped by the projection.
-    const text70 = ser70(dataset);
-    expect(text70).not.toContain('@M1@ OBJE');
-    expect(text70).not.toContain('1 OBJE @M1@');
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('@M1@ OBJE');
+      expect(text).not.toContain('1 OBJE @M1@');
+      expect(text).not.toContain('1 FORM PICT');
+      expect(text).not.toContain('1 BLOB');
+    }
   });
 
-  test('an inline OBJE with FORM and BLOB but no FILE keeps the embedded content', () => {
+  test('an inline OBJE with FORM and BLOB but no FILE drops on export', () => {
     const dataset = parseOk551(
       [
         HEAD551,
@@ -2139,13 +2135,12 @@ describe('the corpus-remainder typings (round 9)', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    // The inline shape synthesizes a media record on export; the
-    // embedded content survives on the link's synthesized record.
-    const text = ser551(dataset);
-    expect(text).toContain('1 FORM bmp');
-    expect(text).toContain('2 CONT AAAB');
-    expect(parseOk551(text)).toEqual(dataset);
     expect(indi.media !== undefined).toBe(true);
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('1 OBJE');
+      expect(text).not.toContain('1 FORM bmp');
+      expect(text).not.toContain('2 CONT AAAB');
+    }
   });
 });
 

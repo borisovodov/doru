@@ -1195,11 +1195,11 @@ describe('the glued and wrapped line leniencies', () => {
     }
     expect(indi.sex).toBe('M');
     // The unwrapped citation under SEX types into the dedicated
-    // sexCitations slot (the FTM Mac fact-citation shape), and the
-    // 5.5.1 export writes it back under the SEX line.
+    // sexCitations slot (the FTM Mac fact-citation shape); on export it
+    // is projected onto the standard record-level INDI citation slot.
     expect(indi.sexCitations?.[0]?.source).toBe('@S2@');
     const unwrapped = serializeGedcom551(dataset);
-    expect(unwrapped.ok && unwrapped.value.includes('1 SEX M\r\n2 SOUR @S2@')).toBe(true);
+    expect(unwrapped.ok && unwrapped.value.includes('1 SEX M\r\n1 SOUR @S2@')).toBe(true);
     const birth = indi.events.find((e) => e.tag === 'BIRT');
     expect(birth?.detail.citations?.[0]?.page?.payload).toBe('Database online. Year: 1910; West Virginia; Roll: T624_1679.');
   });

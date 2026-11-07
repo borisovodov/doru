@@ -363,18 +363,6 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
       if (child.motherRelation !== undefined) {
         w.line(2, '_MREL', { value: child.motherRelation });
       }
-      for (const entry of child.pedigrees ?? []) {
-        // The pedigree under FAM.CHIL (see FamilyChildLink.pedigrees);
-        // 7.0 projects it onto INDI.FAMC.PEDI in prepareFor70 and the
-        // 7.0 emitter never writes the CHIL-position lines. The PHRASE
-        // of the pedigree has no 5.5.1 slot and is dropped.
-        w.line(2, 'PEDI', { value: entry.pedigree.payload });
-        if (entry.parent !== undefined) {
-          ptr(w, version, 3, '_PARENT', entry.parent);
-        }
-        emitExtensions(w, version, 3, entry.pedigree);
-        emitExtensions(w, version, 3, entry);
-      }
     }
     for (const note of child.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
@@ -655,15 +643,14 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     const value = sex(w, version, rec.sex);
     if (value !== undefined) {
       w.line(1, 'SEX', { value });
-      if (version !== '7.0') {
-        for (const citation of rec.sexCitations ?? []) {
-          // The citations of the SEX fact (see
-          // IndividualRecord.sexCitations); 7.0 drops them (no slot),
-          // and so does a version that drops the SEX line itself.
-          emitSourceCitation(w, version, 2, citation);
-        }
-      }
     }
+  }
+  for (const citation of rec.sexCitations ?? []) {
+    // The citations of the SEX fact (see IndividualRecord.sexCitations)
+    // have no standard SEX position in either version: they are
+    // projected onto the record-level INDI citations, the only standard
+    // SOURCE_CITATION slot.
+    emitSourceCitation(w, version, 1, citation);
   }
   for (const attribute of rec.attributes ?? []) {
     const payload = attribute.payload;
@@ -1171,8 +1158,6 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   tag: 'OBJE';
   restriction?: Array<string | `_${string}`>;
   files: MediaFile[];
-  embeddedForm?: string;
-  embeddedBlob?: string;
   date?: DateStructure;
   place?: string;
   primary?: boolean;
@@ -1217,21 +1202,6 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   }
   for (const file of rec.files) {
     emitMediaFile(w, version, 1, file);
-  }
-  if (version !== '7.0') {
-    if (rec.embeddedForm !== undefined) {
-      // The GEDCOM 5.5/5.5.1 record-level format (see
-      // MultimediaRecord.embeddedForm); 7.0 has no record-level FORM.
-      w.line(1, 'FORM', { value: rec.embeddedForm });
-    }
-    if (rec.embeddedBlob !== undefined) {
-      // The embedded content of the 5.5/5.5.1 shape (see
-      // MultimediaRecord.embeddedBlob), written back as the CONT lines.
-      w.line(1, 'BLOB');
-      for (const blobLine of rec.embeddedBlob.split('\n')) {
-        w.line(2, 'CONT', { value: blobLine });
-      }
-    }
   }
   if (rec.date !== undefined) {
     emitDate(w, version, 1, '_DATE', rec.date);
@@ -1575,7 +1545,6 @@ export function emitSource(w: Writer, version: Version, rec: {
   url?: string;
   confidence?: string;
   accessDate?: string;
-  certainty?: string;
   updatedAt?: string;
   ancestryPointers?: string[];
   familyTreeSystemId?: string;
@@ -1779,12 +1748,6 @@ export function emitSource(w: Writer, version: Version, rec: {
   if (rec.accessDate !== undefined) {
     // The date the source was accessed (see SourceRecord.accessDate).
     w.line(1, '_ACC', { value: rec.accessDate });
-  }
-  if (rec.certainty !== undefined && version !== '7.0') {
-    // Heredis: the record-level certainty assessment (see
-    // SourceRecord.certainty); 7.0 drops it (a non-underscore tag in
-    // the position does not spell a valid 7.0 file).
-    w.line(1, 'QUAY', { value: rec.certainty });
   }
   if (rec.updatedAt !== undefined) {
     // MyHeritage: the record's last-updated timestamp (see

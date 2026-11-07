@@ -1750,7 +1750,8 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // FTM Mac exports attach full source citations to the SEX fact
       // (the gedcom4j willis samples, where the continuation bug also
       // wraps them into CONT lines) — those type into the dedicated
-      // sexCitations slot; anything else stays a record extension,
+      // sexCitations slot and are projected onto record-level INDI
+      // citations on export; anything else stays a record extension,
       // preserved verbatim (the dispatch fallback). Bare lines follow
       // the standard dispatch retry/drop rule (the Ancestry-derived
       // fixtures ship bare `2 SOUR` under SEX, like they do under
