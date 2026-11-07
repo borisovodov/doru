@@ -17,6 +17,7 @@ import {
 import type {
   AddressStructure,
   AgeStructure,
+  AssociationPeriod,
   AssociationStructure,
   ChangeDate,
   CreationDate,
@@ -206,6 +207,44 @@ export function parseAssociation(node: RawNode, ctx: Ctx): AssociationStructure 
     SNOTE: (child) => {
       (out.notes ??= []).push(parseNoteStructure(child, ctx));
     },
+    _TYPE: (child) => {
+      // The gedcom-extended-ASSO extension: the specific relationship
+      // type beyond the ROLE enum (see
+      // AssociationStructure.specificType).
+      out.specificType = reqText(child);
+    },
+    _PERIOD: (child) => {
+      // The gedcom-extended-ASSO time boundaries (see
+      // AssociationStructure.period).
+      const period: AssociationPeriod = { tag: '_PERIOD' };
+      dispatch(
+        child,
+        period,
+        {
+          _START: (grandchild) => {
+            period.start = parseDateStructure(grandchild, ctx);
+          },
+          _END: (grandchild) => {
+            period.end = parseDateStructure(grandchild, ctx);
+          },
+        },
+        ctx,
+        ['_START', '_END'],
+      );
+      out.period = period;
+    },
+    _CONF: (child) => {
+      // The gedcom-extended-ASSO confidence, the integer 0–5 kept
+      // verbatim (see AssociationStructure.confidence).
+      out.confidence = reqText(child);
+    },
+    _PRIV: (child) => {
+      // The gedcom-extended-ASSO privacy flag (see
+      // AssociationStructure.private); a bare tag or Y/YES sets it,
+      // N/NO clears it.
+      const text = child.value.kind === 'text' ? child.value.text.trim().toUpperCase() : '';
+      out.private = text !== 'N' && text !== 'NO';
+    },
   };
   dispatch(node, out, handlers, ctx, ['PHRASE', 'ROLE', 'RELA']);
   return out;
@@ -276,6 +315,12 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
     },
     '_WT_USER': (child) => {
       // webtrees: the user name of the user who made the change (see
+      // ChangeDate.user).
+      base.user = reqText(child);
+    },
+    '_PGVU': (child) => {
+      // phpGedView: the same slot webtrees spells `_WT_USER` (the
+      // webtrees per-vendor custom-tag registry, PhpGedView.php; see
       // ChangeDate.user).
       base.user = reqText(child);
     },

@@ -32,6 +32,7 @@ import type {
   FactFlag,
   FamilyChildCountAttribute,
   FamilyChildLink,
+  FamilyChildPedigree,
   FamilyChildStatusStructure,
   FamilyEventDetail,
   FamilyEventStructure,
@@ -103,6 +104,9 @@ import {
   parseEnum,
   parseRestrictionList,
 } from './types';
+import {
+  parseOccurrenceReference,
+} from './evidence';
 import {
   parseAge551,
   parseTime551,
@@ -210,6 +214,23 @@ export function parseFamilyChildLink(node: RawNode, ctx: Ctx): FamilyChildLink {
   };
   handlers['_STAT'] = (child) => {
     out.multiplicity = reqText(child);
+  };
+  handlers['PEDI'] = (child) => {
+    // The pedigree under FAM.CHIL (see FamilyChildLink.pedigrees):
+    // MacFamilyTree writes a single entry, the swedish-royal examples
+    // one entry per parent with the `_PARENT` pointer beside it. The
+    // pointer child lifts into the entry; anything else stays the
+    // pedigree's own extension.
+    const parentNode = one(child, '_PARENT');
+    const pediNode =
+      parentNode === undefined
+        ? child
+        : { ...child, children: child.children.filter((grandchild) => grandchild !== parentNode) };
+    const entry: FamilyChildPedigree = { tag: 'PEDI', pedigree: parsePedigree(pediNode, ctx) };
+    if (parentNode !== undefined) {
+      entry.parent = reqPtr(parentNode, ctx);
+    }
+    (out.pedigrees ??= []).push(entry);
   };
   dispatch(node, out, handlers, ctx);
   return out;
@@ -608,6 +629,13 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
   };
   handlers['_PLAC'] = (child) => {
     (detail.additionalPlaces ??= []).push(parsePlaceStructure(child, ctx));
+  };
+  handlers['_OCREF'] = (child) => {
+    // The gedcom-occurrences extension's backward-compatibility
+    // position: the occurrence reference under the event itself, so
+    // legacy readers see a normal embedded event (see
+    // EventDetail.occurrences).
+    (detail.occurrences ??= []).push(parseOccurrenceReference(child, ctx));
   };
   handlers['_PRIV'] = (child) => {
     if (parsePrivacyFlag(child, '_PRIV')) {

@@ -158,3 +158,32 @@ describe('GEDZIP', () => {
     expect(back.dataset).toEqual(dataset);
   });
 });
+
+describe('the tolerant GEDZIP parse', () => {
+  test('an archive whose dataset carries errors still yields the dataset', () => {
+    // The geditcom TestGED.zip shape: the bundled stream is a torture
+    // file with recorded errors — the container must not fail as a
+    // whole when the caller parses tolerantly.
+    const broken = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME A /B/',
+      '1 SEX Z',
+      '0 TRLR',
+    ].join('\n');
+    const bytes = zipSync({ 'gedcom.ged': enc(broken), 'media/photo.jpg': enc('JPEG-BYTES') });
+    const strict = parseGedzip(bytes);
+    expect(strict.ok).toBe(false);
+    const errors: import('../src/errors').GedcomError[] = [];
+    const result = parseGedzip(bytes, errors);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(errors.map((e) => e.code)).toEqual(['enum.invalid-value']);
+    expect(result.value.dataset.records.some((r) => r.tag === 'INDI')).toBe(true);
+    expect(result.value.mediaFiles.map((m) => m.name)).toEqual(['media/photo.jpg']);
+  });
+});

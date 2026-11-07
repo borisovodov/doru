@@ -47,7 +47,7 @@ const SKIP_FILES = new Set(['manifest.jsonl', 'MANUAL-SOURCES.md', 'MANUAL-GEDBA
 const TYPED_RECORD_TAGS = new Set([
   'FAM', 'INDI', 'OBJE', 'REPO', 'SNOTE', 'NOTE', 'SOUR', 'SUBM', 'SUBN',
   '_CENR', '_PLAC', '_TODO', '_EVENT_DEFN', '_ALIA', '_PUBLISH', '_GRP', '_OCUR',
-  '_MTTAG', '_MTCAT',
+  '_MTTAG', '_MTCAT', '_EVID', '_RDOC', '_RACT', '_TAG',
   'Occupation', 'Education', 'Contact', 'Marriage', 'Twin',
   'TITL',
 ]);

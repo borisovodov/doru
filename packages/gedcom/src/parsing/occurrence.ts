@@ -11,9 +11,10 @@ import { dispatch, noPayload, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import type { RawNode } from './lines';
 import type { OccurrenceParticipant, OccurrenceRecord } from '../structures';
-import { parseAgeStructure, parseDateStructure, parseNoteStructure } from './substructures';
+import { parseAgeStructure, parseChangeDate, parseDateStructure, parseNoteStructure } from './substructures';
 import { parsePlaceStructure } from './names-places';
-import { parseSourceCitation } from './sources-media';
+import { parseMultimediaLink, parseSourceCitation } from './sources-media';
+import { parseVendorAttribute } from './evidence';
 
 /** Parses a `_OCUR` record into an OccurrenceRecord. */
 export function parseOccurrenceRecord(node: RawNode, ctx: Ctx): OccurrenceRecord {
@@ -32,6 +33,18 @@ export function parseOccurrenceRecord(node: RawNode, ctx: Ctx): OccurrenceRecord
       PLAC: (child) => {
         out.place = parsePlaceStructure(child, ctx);
       },
+      CAUS: (child) => {
+        // occurrence-extension.md: the cause (for deaths etc.).
+        out.cause = reqText(child);
+      },
+      AGNC: (child) => {
+        // occurrence-extension.md: the agency (for official occurrences).
+        out.agency = reqText(child);
+      },
+      RELI: (child) => {
+        // occurrence-extension.md: the religion (for religious occurrences).
+        out.religion = reqText(child);
+      },
       _PART: (child) => {
         const participant: OccurrenceParticipant = { tag: '_PART', individual: reqPtr(child, ctx) };
         dispatch(
@@ -47,11 +60,18 @@ export function parseOccurrenceRecord(node: RawNode, ctx: Ctx): OccurrenceRecord
             NOTE: (grandchild) => {
               (participant.notes ??= []).push(parseNoteStructure(grandchild, ctx));
             },
+            SOUR: (grandchild) => {
+              (participant.citations ??= []).push(parseSourceCitation(grandchild, ctx));
+            },
           },
           ctx,
           ['ROLE', 'AGE'],
         );
         (out.participants ??= []).push(participant);
+      },
+      _ATTR: (child) => {
+        // occurrence-extension.md: the custom attributes.
+        (out.attributes ??= []).push(parseVendorAttribute(child, ctx));
       },
       NOTE: (child) => {
         (out.notes ??= []).push(parseNoteStructure(child, ctx));
@@ -59,9 +79,20 @@ export function parseOccurrenceRecord(node: RawNode, ctx: Ctx): OccurrenceRecord
       SOUR: (child) => {
         (out.citations ??= []).push(parseSourceCitation(child, ctx));
       },
+      OBJE: (child) => {
+        // occurrence-extension.md: media for the occurrence.
+        (out.media ??= []).push(parseMultimediaLink(child, ctx));
+      },
+      UID: (child) => {
+        // occurrence-extension.md: the GRAMPS event handles.
+        (out.uids ??= []).push(reqText(child));
+      },
+      CHAN: (child) => {
+        out.changeDate = parseChangeDate(child, ctx);
+      },
     },
     ctx,
-    ['TYPE', 'DATE', 'PLAC'],
+    ['TYPE', 'DATE', 'PLAC', 'CAUS', 'AGNC', 'RELI', 'CHAN'],
   );
   return out;
 }

@@ -227,6 +227,15 @@ export interface PersonalNameStructure extends GedcomStructureBase {
    */
   censusLinks?: Pointer<CensusRecord>[];
   /**
+   * `_EVREF @xref@` {0:M} — the references to floating evidence
+   * supporting this name (the glamberson gedcom-evidence extension;
+   * the gramps census example of the gedcom-occurrences repository
+   * writes the v1 link spelling `2 _EVID @E1@` + `3 _CONF Medium`
+   * under NAME — both spellings normalize into this slot, see
+   * EvidenceReference). Written back as `_EVREF` in both versions.
+   */
+  evidence?: import('./evidence-record').EvidenceReference[];
+  /**
    * _APID {0:M} — Ancestry.com record references, format `dbid::record`
    * (in the wild often prefixed, e.g. `1,7602::2771226`), written by
    * Ancestry tree downloads under names — not only under source

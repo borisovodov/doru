@@ -27,6 +27,7 @@ import type { NoteRecord } from './records';
 import type { SharedNoteRecord } from './records';
 import type { SourceCitation } from './sources-media';
 import type { MapCoordinates, PlaceStructure } from './names-places';
+import type { OccurrenceReference } from './evidence-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.3 Substructures — address, dates, identifiers, notes
@@ -212,10 +213,54 @@ export interface AssociationStructure extends GedcomStructureBase {
    * and drops it.
    */
   primary?: boolean;
+  /**
+   * `_TYPE` {0:1} — the specific relationship type beyond the ROLE
+   * enumeration ("Godparent", "Business Partnership", …), kept
+   * verbatim. The glamberson gedcom-extended-ASSO extension
+   * (specification.md:
+   * https://github.com/glamberson/gedcom-extended-ASSO). Not part of
+   * any GEDCOM version. Recognized on input and written back as
+   * `_TYPE` in both versions.
+   */
+  specificType?: Text;
+  /**
+   * `_PERIOD` {0:1} — the time boundaries of the association: the
+   * `_START`/`_END` dates (the gedcom-extended-ASSO extension, same
+   * source as `specificType`). Written back as the `_PERIOD` block in
+   * both versions.
+   */
+  period?: AssociationPeriod;
+  /**
+   * `_CONF` {0:1} — the confidence in the association assertion, the
+   * integer 0–5 of the gedcom-extended-ASSO spec (same source as
+   * `specificType`), kept verbatim. Written back as `_CONF` in both
+   * versions.
+   */
+  confidence?: Text;
+  /**
+   * `_PRIV Y|N` {0:1} — the association is private (the
+   * gedcom-extended-ASSO spec, same source as `specificType`). An
+   * absent value or `Y` sets the flag, `N` clears it. Written back as
+   * `_PRIV Y` in both versions (a cleared flag is not written).
+   */
+  private?: boolean;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
+}
+
+/**
+ * The `_PERIOD` container of the gedcom-extended-ASSO extension: the
+ * time boundaries of an association (`_START`/`_END`, each a full
+ * GEDCOM date value). Same source as AssociationStructure.specificType.
+ */
+export interface AssociationPeriod extends GedcomStructureBase {
+  tag: '_PERIOD';
+  /** `_START` {0:1} — when the association began. */
+  start?: DateStructure;
+  /** `_END` {0:1} — when the association ended. */
+  end?: DateStructure;
 }
 
 /**
@@ -259,9 +304,13 @@ export interface ChangeDate extends GedcomStructureBase {
    * _WT_USER {0:1} — the user name of the user who made the change.
    * Written by webtrees (and kiwitrees) under CHAN (see the GenWiki
    * "GEDCOM/_Nutzerdef-Tag" table:
-   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); not part of any
-   * GEDCOM version. Recognized on input and written back as `_WT_USER`
-   * in both versions.
+   * https://wiki.genealogy.net/GEDCOM/_Nutzerdef-Tag); phpGedView
+   * spells the same slot `_PGVU` ("Author of last change" — the
+   * webtrees per-vendor custom-tag registry, PhpGedView.php:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/PhpGedView.php,
+   * the UoEMainLibrary archiveslib PhpGedView 3.3.8 exports in the
+   * corpus). Not part of any GEDCOM version. Both spellings are
+   * recognized on input; written back as `_WT_USER` in both versions.
    */
   user?: Text;
 }
@@ -561,6 +610,18 @@ export interface EventDetail extends GedcomStructureBase {
   citations?: SourceCitation[];
   /** <<MULTIMEDIA_LINK>> {0:M}. */
   media?: MultimediaLink[];
+  /**
+   * `_OCREF @xref@` {0:M} — the references to shared occurrence
+   * records under the event itself: the backward-compatibility
+   * position of the gedcom-occurrences extension (its spec's example
+   * keeps the person's embedded `1 CENS` event and adds `2 _OCREF
+   * @O1@` with the participation data beneath, so legacy readers see
+   * a normal event;
+   * https://github.com/glamberson/gedcom-occurrences,
+   * occurrence-extension.md). Written back as `_OCREF` under the event
+   * in both versions.
+   */
+  occurrences?: OccurrenceReference[];
   /**
    * UID {0:M}, g7:UID. 5.5.1 has no UID; the vendor extension `_UID` is
    * written there instead (see the "Common GEDCOM Extensions" catalog:

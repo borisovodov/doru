@@ -129,6 +129,14 @@ export function optPtr(node: RawNode, ctx: Ctx): string | undefined {
 }
 
 export function noPayload(node: RawNode): void {
+  if (node.value.kind === 'text' && node.value.text.replace(/^[ \t]+/, '').startsWith('#')) {
+    // A comment-only payload on a no-payload line (`0 @O1@ _OCUR
+    // # GRAMPS Event object`, the hand-written glamberson extension
+    // examples): the comment annotates the line, not the data — it is
+    // dropped like the `//` line-comment values, and the line parses
+    // as the bare tag (there is no payload slot to fill anyway).
+    return;
+  }
   if (node.value.kind !== 'absent') {
     fail('structure.unexpected-payload', `The ${node.tag} line must not have a value`, node.position);
   }

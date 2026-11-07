@@ -46,22 +46,24 @@ results and secondary sources.
   standard family with its own XML/JSON syntax) are different
   formats, not text GEDCOM — deliberately out of scope, with no
   import planned.
-  - **The GEDCOM 5.5 embedded-multimedia shape is accepted but not
-    written.** 5.5.1 removed the embedded `BLOB` form of the
-    multimedia record (5.5 records carry `FORM`/`TITL`/`BLOB` directly
-    under `OBJE`; 5.5.1 keeps only the external `FILE` form), but old
-    files and Généatique (webtrees per-vendor custom-tag registry,
-    `Geneatique.php`) still write record-level `FORM`/`TITL` in
-    5.5.1-declared documents. Those tags — and a `BLOB` left over from
-    a 5.5 file — are accepted in any file and kept verbatim as
-    generic extensions of the multimedia record (the base64 payload
-    is preserved as text, continuations merged); there is no typed
-    model slot for the embedded binary. On export the extensions are
-    dropped in both versions — neither target grammar has the
-    embedded shape, and both require extension tags to be
-    underscore-prefixed — and a record that carried no `FILE` at all
-    (a pure 5.5-embedded record) is dropped entirely, its links
-    stripped (`serialize/prepare.ts`).
+  - **The GEDCOM 5.5 embedded-multimedia shape is typed on input and
+    dropped on export.** GEDCOM 5.5.1 eliminated the embedded `BLOB`
+    form and added `FILE` with `FORM` beneath it (the FamilySearch
+    changelog, version 5.5.1: "The BLOB tag was eliminated",
+    <https://gedcom.io/changelog/#version-551>). 5.5-era files,
+    nonconforming exporters that keep writing the old shape under
+    5.5.1 declarations (the gramps `MediaTest.ged` import fixture, the
+    GT4 demo export) and Généatique's record-level `FORM` beside
+    `FILE` lines (webtrees per-vendor custom-tag registry,
+    `Geneatique.php`) are recognized: the record-level `FORM` types
+    into `MultimediaRecord.embeddedForm` and the `BLOB` block into
+    `.embeddedBlob` (the decoded text, continuations merged; accepted
+    on records and on inline links alike). Neither target grammar can
+    spell the embedded shape — 5.5.1 requires `FILE`, 7.0 requires
+    `FILE` {1:M} — so both exports drop the fields, and a record left
+    without any `FILE` is dropped entirely, its links stripped
+    (`serialize/prepare.ts`). The FILE-level format is
+    `MediaFile.form`.
 - **GEDCOM 7.0** has an official mechanism: extension tags declared in
   `HEAD.SCHMA` with URIs, plus an official registry of extensions:
   - FamilySearch GEDCOM 7 specification (extension rules):
@@ -1344,6 +1346,58 @@ Ancestris/ged4web INDI-level and OBJE-record `TITL`, the `TEXT` under
 the WILL event and the GEDKeeper `NEWS`/`OBIT`/`REMV`/`ILL`/`EDUS`/
 `BATM`/`EMPL` set are covered by the same test file
 (`tests/vendor-extensions-corpus-typing-3.test.ts`) and chapter 6.
+
+### The 2026-11 registry sweep III (typed additions)
+
+The sweep after the second full corpus run (2941 files): the
+webtrees-registry tags that were still in the pile, the GEDCOM 5.5.1
+embedded-multimedia shape, and the published glamberson extension
+family (every construct declares its repository URL in the corpus
+files' own `HEAD.SCHMA`). Each field cites its source in its JSDoc;
+covered by `tests/vendor-extensions-corpus-typing-3.test.ts` (rounds 9
+and 10).
+
+| Tag / position | Source | Meaning | Model field |
+| --- | --- | --- | --- |
+| `_PGVU` under CHAN | the webtrees per-vendor custom-tag registry, PhpGedView.php (the UoEMainLibrary PhpGedView 3.3.8 exports) | The author of the last change — the phpGedView spelling of the `_WT_USER` slot | `ChangeDate.user` (written back as `_WT_USER`) |
+| `QUAY` under the SOUR record | the webtrees registry, Heredis.php `SOUR:QUAY` (the alainamand/Dudouyt Heredis exports) | The certainty assessment of the whole source | `SourceRecord.certainty` (recognized on input; dropped in both versions — neither grammar has a source-level certainty slot) |
+| `_UPD` under the SOUR record | the webtrees registry, MyHeritage.php `*:_UPD` | The record's last-updated timestamp | `SourceRecord.updatedAt` (both versions) |
+| `_UID` under HEAD | the webtrees registry, MyHeritage.php `HEAD:_UID` (the FH Sample-GEDCOM/fh-sample fixtures) | The dataset's unique identifier | `Header.uid` (both versions) |
+| `_PLACE` under the OBJE record | the webtrees registry, FamilyTreeBuilder.php `OBJE:_PLACE` | The media object's place name | `MultimediaRecord.place` (the `PLAC`/`_PLAC` slot) |
+| `_LOCL` under the INDI/FAM `_TODO` | the webtrees registry, Legacy.php `INDI:_TODO:_LOCL` (the gedcom4j legacycustomtags sample) | The research task's location | `TodoStructure.locality` (the record form's slot) |
+| `_CUTOUT`/`_PRIM_CUTOUT`/`_PARENTPHOTO`/`_PERSONALPHOTO`/`_PARENTRIN` under the pointer-form OBJE link | MyHeritage; the GEDKeeper samples write them there | The media display flags of the link | the `MultimediaLink` twins of the record-level fields (both versions) |
+| `PEDI` under FAM.CHIL (with the per-parent `3 _PARENT @x@`) | the MacFamilyTree exports (the bechbd gedcomimport samples, Synium fixtures); the slaktforskning swedish-royal examples | The pedigree kind of the child link — a position neither standard defines | `FamilyChildLink.pedigrees` (both exports project an agreeing value onto the child's `INDI.FAMC.PEDI`; the CHIL-position lines and the per-parent distinction are never written) |
+| record-level `FORM` + `BLOB` with the CONT lines | GEDCOM 5.5 §2 `MULTIMEDIA_RECORD` (the embedded shape; removed by 5.5.1, <https://gedcom.io/changelog/#version-551>) — the nonconforming 5.5.1-declaring files in the corpus (the gramps `MediaTest.ged` import fixture, the GT4 demo export); the webtrees registry, Geneatique.php `OBJE:FORM` | The embedded-multimedia shape of 5.5 | `MultimediaRecord.embeddedForm`/`.embeddedBlob` — typed on input; dropped in both versions, and a record without `FILE` is dropped with its links |
+| `SOUR` under `SEX` | Family Tree Maker for Mac OS X (the gedcom4j willis samples — where the continuation bug wraps the citation lines into `2 CONT 2 SOUR …`; the gemenet Genoese-merchant trees, the Ancestry-derived fixtures) | The citations of the sex fact — FTM treats SEX as citeable | `IndividualRecord.sexCitations` — projected onto the record-level `INDI.SOUR` citations in both versions (the only standard position) |
+| `SEX OTHER` | the MyFamily exports (the MyFamily23Nov2017544 corpus file) | The long spelling of the X value ("does not fit the typical definition of only Male or only Female") | `IndividualRecord.sex` = `X` |
+
+The standard-tag-in-vendor-position constructs above (`QUAY` under
+`SOUR`, `PEDI` under `FAM.CHIL`, record-level `FORM`/`BLOB`, `SOUR`
+under `SEX`) are recognized on input but never written in a position
+the target grammar does not define: they are dropped or projected onto
+the standard slot (the SEX-fact citations onto `INDI.SOUR`, the
+pedigree onto `INDI.FAMC.PEDI`). Each field's JSDoc records the rule
+(see also the README's "Serialization as a projection").
+
+**The glamberson documented extension family** (each corpus file
+declares the tags in `HEAD.SCHMA` with the repository URL; the
+specifications are the cited sources):
+
+| Extension | Constructs | Model |
+| --- | --- | --- |
+| gedcom-evidence v1 (specification.md) + v2 (the registry YAMLs), <https://github.com/glamberson/gedcom-evidence> | the `_EVID` record (v1 `_TYPE`/`_ID`, v2 `_DTYPE`/`_FIND`/`_ANAL`/DATE/SNOTE/UID — the union grammar), the `_RDOC` record (`_TITL`/`_TEXT`/`_SUBJ`/`_EVID`/`_CONC`+`_SUBJ`+`_TEXT`/AUTH/DATE), the `_RACT` record (`_TYPE`/`_PURP`/`_TARG`/`_VENU`/`_RSLT`/`_FIND`+`_EVID`/DATE/`_RSRCH`), the person/family-side reference (v1 `n _EVID @x@`, v2 `_EVREF` — one slot, written back as `_EVREF`) with `_CONF`/`_USED`/`_RDOC`/QUAY/NOTE, the `_EVEN_EVID` attached-evidence event, the NAME-level link of the gramps examples | `EvidenceRecord` / `ResearchDocumentRecord` + `ResearchConclusion` / `ResearchActivityRecord` / `EvidenceReference` / `EvidenceEvent` / `EvidenceFinding` on INDI, FAM and NAME |
+| gedcom-tags (tag-extension.md), <https://github.com/glamberson/gedcom-tags> | the `_TAG` record (NAME {1:1}, `_COLOR` `#RRGGBB`, `_ATTR`+`_VALUE`) and the `_TAG @xref@` application under any record (DATE/NOTE) | `TagRecord` / `TagLink` — the typed link slots exist on INDI, FAM, SOUR, REPO, OBJE, NOTE and SNOTE; a text-payload `_TAG` keeps its Legacy meaning (marks, report flags) |
+| gedcom-occurrences v0.2.0 completion (occurrence-extension.md), <https://github.com/glamberson/gedcom-occurrences> | `_OCUR` gains CAUS/AGNC/RELI/OBJE/UID/CHAN/`_ATTR`; `_PART` gains SOUR (its payload may point at a FAM); `_OCREF` becomes a structure (ROLE/AGE/NOTE/SOUR/`_ATTR`) under INDI, FAM and — the backward-compatibility position — under events | `OccurrenceRecord` / `OccurrenceParticipant` / `OccurrenceReference` on `IndividualRecord`, `FamilyRecord` and `EventDetail` |
+| gedcom-extended-ASSO (specification.md), <https://github.com/glamberson/gedcom-extended-ASSO> | `_TYPE`, `_PERIOD`+`_START`/`_END`, `_CONF` (0–5) and `_PRIV` under ASSO | `AssociationStructure.specificType`/`.period`/`.confidence`/`.private` |
+| gedcom-citations (templates-extension.md), <https://github.com/dthaler/gedcom-citations> | the `_FIEL`+`TEXT` field spelling under `_TMPLT` (the MagiKey/dthaler shape beside the RootsMagic `FIELD`+`NAME`/`VALUE` one) stays generic inside the typed `SourceRecord.template` block for now — the template payload keeps the inline `#` comment of the example files verbatim | (deferred: the `_TPLT`/`_MODL`/`_FIEL` typing needs the collection-SOUR slot too) |
+
+The container leniencies of the same sweep (the glued-line resplit,
+the continuation unwrap, the comment lines, the note-run merges, the
+pointer/xref whitespace repairs, the ASCII-declared western fallback,
+the tolerant GEDZIP read and the slashed dates) are documented in the
+README's "Lenient container tolerances" and covered by
+`tests/tolerant-parse.test.ts`, `tests/charsets.test.ts` and
+`tests/gedzip.test.ts`.
 
 ## 7. Deferred: presentation and UI state
 

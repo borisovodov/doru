@@ -33,6 +33,7 @@ import {
   reqPtr,
   reqText,
 } from './context';
+import { parseTagLink } from './evidence';
 import type {
   RawNode,
 } from './lines';
@@ -88,7 +89,16 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     '_PLAC': (child) => {
       // Ancestry.com Family Trees writes the place of the media object
       // with the standard PLAC tag (see MultimediaRecord.place); the
-      // underscore spelling is accepted into the same slot.
+      // underscore spelling is accepted into the same slot, as is the
+      // Family Tree Builder `_PLACE` spelling (the webtrees per-vendor
+      // custom-tag registry, FamilyTreeBuilder.php, `OBJE:_PLACE` =
+      // PlaceName:
+      // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/FamilyTreeBuilder.php).
+      rec.place = reqText(child);
+    },
+    '_PLACE': (child) => {
+      // Family Tree Builder / MyHeritage: the place name of the media
+      // object (see the `_PLAC` handler above).
       rec.place = reqText(child);
     },
     '_PRIM': (child) => {
@@ -345,14 +355,23 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       rec.place = reqText(child);
     },
     FORM: (child) => {
-      // Généatique writes the format and title at OBJE-record level
-      // (the webtrees per-vendor custom-tag registry, Geneatique.php) —
-      // the GEDCOM 5.5 embedded-multimedia record shape, whose BLOB was
-      // removed in 5.5.1. Kept as a record extension on input so 5.5
-      // files still import; dropped on export (neither target grammar
-      // has the embedded shape), and a record with no FILE at all is
-      // dropped entirely by the projections (see serialize/prepare.ts).
-      addExtension(rec, child, ctx);
+      // The record-level multimedia format: the GEDCOM 5.5 embedded
+      // shape (FORM + BLOB; 5.5.1 eliminated BLOB and put FORM under
+      // FILE — the gedcom.io changelog — but 5.5.1-declaring files in
+      // the wild keep writing the record-level position: the GT4 demo
+      // export, the gramps MediaTest.ged import fixture) and the
+      // Généatique spelling beside FILE lines (the webtrees
+      // registry, Geneatique.php) — see MultimediaRecord.embeddedForm.
+      // A FORM without a payload stays a generic extension (there is
+      // no format to keep).
+      if (child.value.kind === 'text' && rec.embeddedForm === undefined) {
+        rec.embeddedForm = child.value.text;
+        for (const grandchild of child.children) {
+          addExtension(rec, grandchild, ctx);
+        }
+      } else {
+        addExtension(rec, child, ctx);
+      }
     },
     TITL: (child) => {
       // The media object's title at the record level (the ged4web and
@@ -362,15 +381,33 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       rec.title = reqText(child);
     },
     BLOB: (child) => {
-      // The GEDCOM 5.5 embedded object (5.5.1 removed the BLOB form);
-      // same convention as FORM (see above): kept on input, dropped on
-      // export.
-      addExtension(rec, child, ctx);
+      // The embedded content of the GEDCOM 5.5 multimedia record (see
+      // MultimediaRecord.embeddedBlob): the raw-tree continuation
+      // merge has already joined the CONT lines into the payload with
+      // newlines; the leading newline of the payload-less BLOB line is
+      // trimmed. Typed on input in any file and kept in the model;
+      // both exports drop it (5.5.1 eliminated BLOB — the gedcom.io
+      // changelog).
+      if (child.value.kind === 'text') {
+        rec.embeddedBlob = child.value.text.replace(/^\n/, '');
+      }
+      for (const grandchild of child.children) {
+        addExtension(rec, grandchild, ctx);
+      }
     },
     WWW: (child) => {
       // Généatique writes a web address under the OBJE record (the
       // webtrees per-vendor custom-tag registry, Geneatique.php).
       addExtension(rec, child, ctx);
+    },
+    '_TAG': (child) => {
+      // The gedcom-tags application link (see
+      // MultimediaRecord.tagLinks).
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+      } else {
+        addExtension(rec, child, ctx);
+      }
     },
   };
   dispatch(

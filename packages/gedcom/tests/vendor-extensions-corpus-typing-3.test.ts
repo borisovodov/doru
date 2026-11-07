@@ -1815,3 +1815,626 @@ describe('the corpus-remainder typings (round 8)', () => {
     expect(parseOk551(text)).toEqual(dataset);
   });
 });
+
+describe('the corpus-remainder typings (round 9)', () => {
+  test('_PGVU under CHAN types as the change user (the phpGedView spelling)', () => {
+    // The UoEMainLibrary archiveslib PhpGedView 3.3.8 export (euf1.ged):
+    // `1 CHAN` + `2 DATE …` + `2 _PGVU admin` on every record.
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 CHAN',
+        '2 DATE 1 JAN 2005',
+        '2 _PGVU admin',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.changeDate?.user).toBe('admin');
+    // Written back in the canonical _WT_USER spelling of the same slot.
+    const text = ser551(dataset);
+    expect(text).toContain('2 _WT_USER admin');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+
+  test('QUAY under the SOUR record types as its certainty assessment', () => {
+    // Heredis writes the whole-source assessment at record level (the
+    // alainamand / Dudouyt exports; webtrees registry, Heredis.php).
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @S9@ SOUR',
+        '1 TITL t',
+        '1 QUAY 2',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const sour = dataset.records.find((r) => r.tag === 'SOUR');
+    if (sour?.tag !== 'SOUR') {
+      throw new Error('expected SOUR');
+    }
+    expect(sour.certainty).toBe('2');
+    // Neither grammar has a source-level certainty slot: both writers
+    // drop the record-level QUAY.
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('1 QUAY 2');
+      const reparsed = text.includes('2 VERS 7.0') ? parseOk70(text) : parseOk551(text);
+      const reparsedSour = reparsed.records.find((r) => r.tag === 'SOUR');
+      expect(reparsedSour?.tag === 'SOUR' ? reparsedSour.certainty : 'unexpected').toBeUndefined();
+    }
+  });
+
+  test('_UPD under the SOUR record types as its update timestamp', () => {
+    // The MyHeritage `*:_UPD` position (webtrees registry,
+    // MyHeritage.php; the ChatGPT-GEDCOM-processed MyHeritage exports
+    // carry it on every SOUR record).
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @S9@ SOUR',
+        '1 TITL t',
+        '1 _UPD 4 JUN 2024 08:12:27 GMT -0500',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const sour = dataset.records.find((r) => r.tag === 'SOUR');
+    if (sour?.tag !== 'SOUR') {
+      throw new Error('expected SOUR');
+    }
+    expect(sour.updatedAt).toBe('4 JUN 2024 08:12:27 GMT -0500');
+    const text = ser551(dataset);
+    expect(text).toContain('1 _UPD 4 JUN 2024 08:12:27 GMT -0500');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+
+  test('_UID under HEAD types as the dataset uid', () => {
+    // The Family Historian / MyHeritage header uid (the Sample-GEDCOM
+    // and fh-sample fixtures; webtrees registry, MyHeritage.php).
+    const dataset = parseOk551(
+      [
+        '0 HEAD',
+        '1 SOUR X',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '1 _UID {13F463F0-5340-4056-AB3F-49972FE733CB}',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    expect(dataset.header.uid).toBe('{13F463F0-5340-4056-AB3F-49972FE733CB}');
+    const text = ser551(dataset);
+    expect(text).toContain('1 _UID {13F463F0-5340-4056-AB3F-49972FE733CB}');
+  });
+
+  test('_PLACE under the OBJE record types as its place', () => {
+    // Family Tree Builder spelling (webtrees registry,
+    // FamilyTreeBuilder.php, OBJE:_PLACE).
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @M1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM jpg',
+        '1 _PLACE Rotterdam',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const obje = dataset.records.find((r) => r.tag === 'OBJE') as MultimediaRecord;
+    expect(obje.place).toBe('Rotterdam');
+    const text = ser551(dataset);
+    expect(text).toContain('_PLAC Rotterdam');
+  });
+
+  test('_LOCL under the INDI _TODO structure types as its location', () => {
+    // Legacy research-task location (webtrees registry, Legacy.php,
+    // INDI:_TODO:_LOCL; the gedcom4j legacycustomtags sample).
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 _TODO',
+        '2 DESC Obtain',
+        '2 _CAT Birth Certificate',
+        '2 _LOCL Somewhere over the rainbow',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.todos?.[0]?.locality).toBe('Somewhere over the rainbow');
+    const text = ser551(dataset);
+    expect(text).toContain('2 _LOCL Somewhere over the rainbow');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+
+  test('the MyHeritage media flags type on the pointer-form link', () => {
+    // The GEDKeeper samples write the flags under `1 OBJE @O3@`.
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 OBJE @M1@',
+        '2 _PRIM Y',
+        '2 _CUTOUT Y',
+        '2 _PRIM_CUTOUT Y',
+        '2 _PARENTPHOTO Y',
+        '2 _PERSONALPHOTO Y',
+        '2 _PARENTRIN MH:P500006',
+        '0 @M1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM jpg',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const link = indi.media?.[0];
+    expect(link?.primary).toBe(true);
+    expect(link?.cutout).toBe(true);
+    expect(link?.primaryCutout).toBe(true);
+    expect(link?.parentPhoto).toBe(true);
+    expect(link?.personalPhoto).toBe(true);
+    expect(link?.parentRecordId).toBe('MH:P500006');
+    const text = ser551(dataset);
+    expect(text).toContain('2 _PRIM_CUTOUT Y');
+    expect(text).toContain('2 _PARENTRIN MH:P500006');
+    expect(parseOk551(text)).toEqual(dataset);
+  });
+
+  test('PEDI under FAM.CHIL types; both versions project an agreeing value onto FAMC', () => {
+    // The MacFamilyTree single spelling and the swedish-royal
+    // per-parent spelling with `_PARENT`.
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @F1@ FAM',
+        '1 HUSB @I3@',
+        '1 CHIL @I5@',
+        '2 PEDI birth',
+        '0 @F2@ FAM',
+        '1 HUSB @I3@',
+        '1 CHIL @I6@',
+        '2 PEDI BIRTH',
+        '3 _PARENT @I3@',
+        '2 PEDI ADOPTED',
+        '3 _PARENT @I4@',
+        '0 @I5@ INDI',
+        '1 NAME C /D/',
+        '1 FAMC @F1@',
+        '0 @I6@ INDI',
+        '1 NAME E /F/',
+        '1 FAMC @F2@',
+        '0 @I3@ INDI',
+        '1 NAME G /H/',
+        '0 @I4@ INDI',
+        '1 NAME I /J/',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const fam1 = dataset.records.find((r) => r.tag === 'FAM' && r.xref === '@F1@');
+    if (fam1?.tag !== 'FAM') {
+      throw new Error('expected @F1@ FAM');
+    }
+    expect(fam1.children?.[0]?.pedigrees?.[0]?.pedigree.payload).toBe('BIRTH');
+    const fam2 = dataset.records.find((r) => r.tag === 'FAM' && r.xref === '@F2@');
+    if (fam2?.tag !== 'FAM') {
+      throw new Error('expected @F2@ FAM');
+    }
+    expect(fam2.children?.[0]?.pedigrees?.map((entry) => [entry.pedigree.payload, entry.parent])).toEqual([
+      ['BIRTH', '@I3@'],
+      ['ADOPTED', '@I4@'],
+    ]);
+    // Both versions project the single agreeing value onto the child's
+    // FAMC link; the non-agreeing per-parent pair and the CHIL-position
+    // `_PARENT` lines are dropped.
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('3 _PARENT');
+      const i5 = text.split('0 @I5@ INDI')[1]?.split('0 @')[0] ?? '';
+      expect(i5.toLowerCase()).toContain('2 pedi birth');
+      const i6 = text.split('0 @I6@ INDI')[1]?.split('0 @')[0] ?? '';
+      expect(i6).not.toContain('PEDI');
+    }
+  });
+
+  test('_ELEC under INDI types as the Elected fact', () => {
+    // FTM custom fact (webtrees registry, FamilyTreeMaker.php).
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 _ELEC Mayor of Springfield',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const fact = indi.attributes?.find((a) => 'type' in a && a.type === 'Elected');
+    expect(fact !== undefined).toBe(true);
+    expect(fact && 'payload' in fact ? fact.payload : undefined).toBe('Mayor of Springfield');
+  });
+
+  test('the 5.5 embedded FORM/BLOB shape types on input and drops on export', () => {
+    // The GEDCOM 5.5 MULTIMEDIA_RECORD with the record-level FORM and
+    // the BLOB block. GEDCOM 5.5.1 eliminated BLOB and requires FILE
+    // (the FamilySearch changelog), so neither export can spell it.
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 OBJE @M1@',
+        '0 @M1@ OBJE',
+        '1 TITL Dummy Multimedia Object',
+        '1 FORM PICT',
+        '1 BLOB',
+        '2 CONT .HM.......k.1..F.jwA.Dzzzzw',
+        '2 CONT A....1.........0U.66..E.8',
+        '1 NOTE Here are some notes on this multimedia object.',
+        '1 RIN 1',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const obje = dataset.records.find((r) => r.tag === 'OBJE') as MultimediaRecord;
+    expect(obje.embeddedForm).toBe('PICT');
+    expect(obje.embeddedBlob).toBe('.HM.......k.1..F.jwA.Dzzzzw\nA....1.........0U.66..E.8');
+    expect(obje.title).toBe('Dummy Multimedia Object');
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('@M1@ OBJE');
+      expect(text).not.toContain('1 OBJE @M1@');
+      expect(text).not.toContain('1 FORM PICT');
+      expect(text).not.toContain('1 BLOB');
+    }
+  });
+
+  test('an inline OBJE with FORM and BLOB but no FILE drops on export', () => {
+    const dataset = parseOk551(
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 OBJE',
+        '2 FORM bmp',
+        '2 BLOB',
+        '3 CONT AAAB',
+        '3 CONT AAAC',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.media !== undefined).toBe(true);
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).not.toContain('1 OBJE');
+      expect(text).not.toContain('1 FORM bmp');
+      expect(text).not.toContain('2 CONT AAAB');
+    }
+  });
+});
+
+describe('the glamberson documented extensions (round 10)', () => {
+  test('the v1 evidence shapes: _EVID records, links, _RDOC and _RACT', () => {
+    // The gedcom-evidence examples/basic-evidence.ged shape
+    // (specification.md v1).
+    const dataset = parseOk70(
+      [
+        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 @S1@ SOUR', '1 TITL 1850 Census',
+        '0 @E1@ _EVID',
+        '1 _TYPE Person',
+        '1 _ID John Smith',
+        '1 _ID aged 40',
+        '1 SOUR @S1@',
+        '2 PAGE Page 247, Line 12',
+        '0 @I1@ INDI',
+        '1 NAME John /Smith/',
+        '1 _EVID @E1@',
+        '2 _CONF 5',
+        '2 NOTE Census record matches known facts',
+        '0 @R1@ _RDOC',
+        '1 _TITL Analysis',
+        '1 _TEXT The ages match.',
+        '1 _EVID @E1@',
+        '1 _CONC',
+        '2 _SUBJ @I1@',
+        '2 _TEXT Definitely identified',
+        '1 AUTH Jane Researcher',
+        '0 @A1@ _RACT',
+        '1 _TYPE Search',
+        '1 _RSLT NotFound',
+        '1 DATE 20 JAN 2025',
+        '1 _FIND No birth record',
+        '2 _EVID @E1@',
+        '0 TRLR', '',
+      ].join('\n'),
+    );
+    const evid = dataset.records.find((r) => r.tag === '_EVID');
+    if (evid?.tag !== '_EVID') {
+      throw new Error('expected _EVID');
+    }
+    expect(evid.type).toBe('Person');
+    expect(evid.identifiers).toEqual(['John Smith', 'aged 40']);
+    expect(evid.citations?.[0]?.page?.payload).toBe('Page 247, Line 12');
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    // The v1 `_EVID` link normalizes into the `_EVREF` slot.
+    expect(indi.evidence?.[0]?.tag).toBe('_EVREF');
+    expect(indi.evidence?.[0]?.evidence).toBe('@E1@');
+    expect(indi.evidence?.[0]?.confidence).toBe('5');
+    const rdoc = dataset.records.find((r) => r.tag === '_RDOC');
+    if (rdoc?.tag !== '_RDOC') {
+      throw new Error('expected _RDOC');
+    }
+    expect(rdoc.title).toBe('Analysis');
+    expect(rdoc.conclusions?.[0]).toEqual({ tag: '_CONC', subject: '@I1@', text: 'Definitely identified' });
+    const ract = dataset.records.find((r) => r.tag === '_RACT');
+    if (ract?.tag !== '_RACT') {
+      throw new Error('expected _RACT');
+    }
+    expect(ract.result).toBe('NotFound');
+    expect(ract.findings?.[0]?.evidence).toEqual(['@E1@']);
+    // Both versions write the constructs back; the link as `_EVREF`.
+    for (const ser of [ser551(dataset), ser70(dataset)]) {
+      expect(ser).toContain('0 @E1@ _EVID');
+      expect(ser).toContain('1 _EVREF @E1@');
+      expect(ser).toContain('2 _CONF 5');
+      expect(ser).toContain('0 @R1@ _RDOC');
+      expect(ser).toContain('0 @A1@ _RACT');
+    }
+    expect(parseOk70(ser70(dataset))).toEqual(dataset);
+    const out551 = ser551(dataset);
+    expect(ser551(parseOk551(out551))).toBe(out551);
+  });
+
+  test('the v2 evidence shapes: _EVREF, _EVEN_EVID, _FIND, _DTYPE', () => {
+    // The registry YAML shapes (record-EVID.yaml, _EVREF.yaml,
+    // _EVEN_EVID.yaml, _FIND.yaml) of the pattern1/pattern2 examples.
+    const dataset = parseOk70(
+      [
+        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 @S1@ SOUR', '1 TITL t',
+        '0 @E1@ _EVID',
+        '1 _DTYPE Census',
+        '1 DATE 7 JUN 1850',
+        '1 SOUR @S1@',
+        '1 _FIND John Smith, age 42, farmer',
+        '2 TYPE Personal Information',
+        '2 AGE 42y',
+        '0 @I1@ INDI',
+        '1 NAME John /Smith/',
+        '1 _EVREF @E1@',
+        '2 _CONF High',
+        '2 _USED Name and age match',
+        '2 QUAY 3',
+        '1 _EVEN_EVID',
+        '2 TYPE Evidence Discovery',
+        '2 SOUR @S1@',
+        '2 _FIND born 4 May 1823',
+        '3 TYPE Birth Information',
+        '2 _CONF Medium',
+        '0 TRLR', '',
+      ].join('\n'),
+    );
+    const evid = dataset.records.find((r) => r.tag === '_EVID');
+    if (evid?.tag !== '_EVID') {
+      throw new Error('expected _EVID');
+    }
+    expect(evid.documentType).toBe('Census');
+    expect(evid.findings?.[0]?.payload).toBe('John Smith, age 42, farmer');
+    expect(evid.findings?.[0]?.type).toBe('Personal Information');
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.evidence?.[0]).toMatchObject({ tag: '_EVREF', evidence: '@E1@', confidence: 'High', used: 'Name and age match', quality: '3' });
+    expect(indi.evidenceEvents?.[0]?.type).toBe('Evidence Discovery');
+    expect(indi.evidenceEvents?.[0]?.findings?.[0]?.type).toBe('Birth Information');
+    expect(indi.evidenceEvents?.[0]?.confidence).toBe('Medium');
+    expect(parseOk70(ser70(dataset))).toEqual(dataset);
+    const out551 = ser551(dataset);
+    expect(ser551(parseOk551(out551))).toBe(out551);
+  });
+
+  test('the gedcom-tags records and applications round-trip', () => {
+    const dataset = parseOk70(
+      [
+        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 @T1@ _TAG',
+        '1 NAME DNA Match',
+        '1 _COLOR #00FF00',
+        '1 _ATTR priority',
+        '2 _VALUE high',
+        '0 @I1@ INDI',
+        '1 NAME John /Smith/',
+        '1 _TAG @T1@',
+        '2 DATE 15 DEC 2024',
+        '2 NOTE 3rd cousin match',
+        '0 @N1@ NOTE A shared note',
+        '1 _TAG @T1@',
+        '0 TRLR', '',
+      ].join('\n'),
+    );
+    const tag = dataset.records.find((r) => r.tag === '_TAG');
+    if (tag?.tag !== '_TAG') {
+      throw new Error('expected _TAG');
+    }
+    expect(tag.name).toBe('DNA Match');
+    expect(tag.color).toBe('#00FF00');
+    expect(tag.attributes?.[0]).toEqual({ tag: '_ATTR', payload: 'priority', value: 'high' });
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.tagLinks?.[0]?.target).toBe('@T1@');
+    expect(indi.tagLinks?.[0]?.notes?.[0]).toMatchObject({ payload: '3rd cousin match' });
+    const note = dataset.records.find((r) => r.tag === 'NOTE');
+    expect(note?.tag === 'NOTE' ? note.tagLinks?.[0]?.target : undefined).toBe('@T1@');
+    for (const ser of [ser551(dataset), ser70(dataset)]) {
+      expect(ser).toContain('0 @T1@ _TAG');
+      expect(ser).toContain('1 _COLOR #00FF00');
+      expect(ser).toContain('1 _ATTR priority');
+      expect(ser).toContain('2 _VALUE high');
+      expect(ser).toContain('1 _TAG @T1@');
+    }
+    // The NOTE record projects onto SNOTE in 7.0 and keeps its tag
+    // links there; both outputs are idempotent.
+    const out70 = ser70(dataset);
+    const reparsed70 = parseOk70(out70);
+    const snote = reparsed70.records.find((r) => r.tag === 'SNOTE');
+    expect(snote?.tag === 'SNOTE' ? snote.tagLinks?.[0]?.target : undefined).toBe('@T1@');
+    expect(ser70(reparsed70)).toBe(out70);
+    const out551 = ser551(dataset);
+    expect(ser551(parseOk551(out551))).toBe(out551);
+  });
+
+  test('the extended ASSO fields type and round-trip', () => {
+    // The gedcom-extended-ASSO specification.md shapes.
+    const dataset = parseOk70(
+      [
+        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 ASSO @I2@',
+        '2 ROLE Godfather',
+        '2 _TYPE Godparent',
+        '2 _PERIOD',
+        '3 _START 15 MAY 1850',
+        '3 _END 15 MAY 1868',
+        '2 _CONF 4',
+        '2 _PRIV Y',
+        '2 NOTE Spiritual guardian',
+        '0 @I2@ INDI',
+        '1 NAME C /D/',
+        '0 TRLR', '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const asso = indi.associations?.[0];
+    expect(asso?.specificType).toBe('Godparent');
+    expect(asso?.period?.start?.value).toMatchObject({ day: 15, month: 'MAY', year: 1850 });
+    expect(asso?.period?.end?.value).toMatchObject({ day: 15, month: 'MAY', year: 1868 });
+    expect(asso?.confidence).toBe('4');
+    expect(asso?.private).toBe(true);
+    for (const ser of [ser551(dataset), ser70(dataset)]) {
+      expect(ser).toContain('2 _TYPE Godparent');
+      expect(ser).toContain('2 _PERIOD');
+      expect(ser).toContain('2 _CONF 4');
+      expect(ser).toContain('2 _PRIV Y');
+    }
+    expect(parseOk70(ser70(dataset))).toEqual(dataset);
+  });
+
+  test('the occurrence v0.2.0 grammar: _OCREF data, FAM superstructure, event position, _OCUR extras', () => {
+    const dataset = parseOk70(
+      [
+        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 @O1@ _OCUR',
+        '1 TYPE Census',
+        '1 AGNC NARA',
+        '1 _ATTR Schedule_Type',
+        '2 _VALUE Population',
+        '1 _PART @F1@',
+        '2 ROLE Household',
+        '2 SOUR @S1@',
+        '0 @S1@ SOUR',
+        '1 TITL t',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 _OCREF @O1@',
+        '2 ROLE Head',
+        '0 @I1@ INDI',
+        '1 NAME John /Smith/',
+        '1 CENS',
+        '2 DATE 1850',
+        '2 _OCREF @O1@',
+        '3 ROLE Head',
+        '3 AGE 45y',
+        '0 TRLR', '',
+      ].join('\n'),
+    );
+    const ocur = dataset.records.find((r) => r.tag === '_OCUR');
+    if (ocur?.tag !== '_OCUR') {
+      throw new Error('expected _OCUR');
+    }
+    expect(ocur.agency).toBe('NARA');
+    expect(ocur.attributes?.[0]).toEqual({ tag: '_ATTR', payload: 'Schedule_Type', value: 'Population' });
+    expect(ocur.participants?.[0]?.individual).toBe('@F1@');
+    expect(ocur.participants?.[0]?.citations?.length).toBe(1);
+    const fam = dataset.records.find((r) => r.tag === 'FAM');
+    expect(fam?.tag === 'FAM' ? fam.occurrences?.[0]?.role : undefined).toBe('Head');
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    const cens = indi.events.find((e) => e.tag === 'CENS');
+    expect(cens?.detail.occurrences?.[0]?.occurrence).toBe('@O1@');
+    expect(cens?.detail.occurrences?.[0]?.role).toBe('Head');
+    expect(parseOk70(ser70(dataset))).toEqual(dataset);
+    const out551 = ser551(dataset);
+    expect(ser551(parseOk551(out551))).toBe(out551);
+  });
+
+  test('the NAME-level evidence link of the gramps census example types', () => {
+    const dataset = parseOk70(
+      [
+        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 @E1@ _EVID',
+        '1 _ID John Smith (census)',
+        '1 SOUR @S1@',
+        '0 @S1@ SOUR',
+        '1 TITL t',
+        '0 @I1@ INDI',
+        '1 NAME John /Smith/',
+        '2 TYPE Birth',
+        '2 _EVID @E1@',
+        '3 _CONF Medium',
+        '0 TRLR', '',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI');
+    if (indi?.tag !== 'INDI') {
+      throw new Error('expected INDI');
+    }
+    expect(indi.names?.[0]?.evidence?.[0]).toMatchObject({ tag: '_EVREF', evidence: '@E1@', confidence: 'Medium' });
+    const ser = ser70(dataset);
+    expect(ser).toContain('2 _EVREF @E1@');
+    expect(parseOk70(ser)).toEqual(dataset);
+  });
+});

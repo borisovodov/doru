@@ -48,6 +48,11 @@ export const GEDCOM_555_TAG_ALIASES: Readonly<Record<string, string>> = {
   LANGUAGE: 'LANG',
   CORPORATION: 'CORP',
   CALL_NUMBER: 'CALN',
+  // The 5.3/5.5.5 schema block leaves (the official FTM 5.5.5 sample
+  // 555SAMPLE-FTM.GED writes `4 LABEL Fact 1` under its `_SCHEMA`
+  // context tags).
+  LABEL: 'LABL',
+  DEFINITION: 'DEFN',
   // Individual events.
   BIRTH: 'BIRT',
   DEATH: 'DEAT',

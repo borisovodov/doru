@@ -24,6 +24,7 @@ import type {
   SourceCitation,
   SourceText,
   TodoStructure,
+  VendorAttribute,
 } from '../../structures';
 import {
   formatDateValue551,
@@ -61,6 +62,7 @@ import {
   emitDate,
   emitDateExact,
   emitExtensions,
+  emitMultimediaLink,
   emitNoteStructure,
   emitRelocatedCitation,
   emitSourceCitation,
@@ -83,6 +85,13 @@ import type {
 import {
   emitAge,
 } from './structures';
+import {
+  emitChangeBlock,
+  emitEvidenceEvent,
+  emitEvidenceReference,
+  emitOccurrenceReference,
+  emitVendorAttribute,
+} from './evidence';
 
 export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void {
   w.line(0, 'FAM', { xref: rec.xref });
@@ -106,6 +115,14 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
   if (rec.primary === true) {
     // The primary-family flag (see FamilyRecord.primary).
     w.line(1, '_PRIMARY', { value: 'Y' });
+  }
+  for (const occurrence of rec.occurrences ?? []) {
+    // The gedcom-occurrences references (see FamilyRecord.occurrences).
+    emitOccurrenceReference(w, version, 1, occurrence);
+  }
+  for (const evidence of rec.evidence ?? []) {
+    // The gedcom-evidence references (see FamilyRecord.evidence).
+    emitEvidenceReference(w, version, 1, evidence);
   }
   if (rec.createdAt !== undefined) {
     // GenPlus: the record creation date (see FamilyRecord.createdAt).
@@ -461,7 +478,16 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   for (const occurrence of rec.occurrences ?? []) {
     // The glamberson gedcom-occurrences links (see
     // IndividualRecord.occurrences).
-    ptr(w, version, 1, '_OCREF', occurrence);
+    emitOccurrenceReference(w, version, 1, occurrence);
+  }
+  for (const evidence of rec.evidence ?? []) {
+    // The gedcom-evidence references (see IndividualRecord.evidence).
+    emitEvidenceReference(w, version, 1, evidence);
+  }
+  for (const evidenceEvent of rec.evidenceEvents ?? []) {
+    // The gedcom-evidence attached-evidence events (see
+    // IndividualRecord.evidenceEvents).
+    emitEvidenceEvent(w, version, 1, evidenceEvent);
   }
   for (const treeTag of rec.treeTags ?? []) {
     // MyHeritage: a pointer to a tree tag applied to the person (see
@@ -618,6 +644,13 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     if (value !== undefined) {
       w.line(1, 'SEX', { value });
     }
+  }
+  for (const citation of rec.sexCitations ?? []) {
+    // The citations of the SEX fact (see IndividualRecord.sexCitations)
+    // have no standard SEX position in either version: they are
+    // projected onto the record-level INDI citations, the only standard
+    // SOURCE_CITATION slot.
+    emitSourceCitation(w, version, 1, citation);
   }
   for (const attribute of rec.attributes ?? []) {
     const payload = attribute.payload;
@@ -1077,6 +1110,10 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     // GEDCOM-L E1: the category of the task (see TodoStructure.category).
     w.line(level + 1, '_CAT', { value: rec.category });
   }
+  if (rec.locality !== undefined) {
+    // Legacy: the location of the task (see TodoStructure.locality).
+    w.line(level + 1, '_LOCL', { value: rec.locality });
+  }
   if (rec.priority !== undefined) {
     w.line(level + 1, 'PRTY', { value: rec.priority });
   }
@@ -1508,6 +1545,7 @@ export function emitSource(w: Writer, version: Version, rec: {
   url?: string;
   confidence?: string;
   accessDate?: string;
+  updatedAt?: string;
   ancestryPointers?: string[];
   familyTreeSystemId?: string;
   webTags?: Array<{ name?: string; url?: string; extensions?: ExtensionStructure[] }>;
@@ -1710,6 +1748,11 @@ export function emitSource(w: Writer, version: Version, rec: {
   if (rec.accessDate !== undefined) {
     // The date the source was accessed (see SourceRecord.accessDate).
     w.line(1, '_ACC', { value: rec.accessDate });
+  }
+  if (rec.updatedAt !== undefined) {
+    // MyHeritage: the record's last-updated timestamp (see
+    // SourceRecord.updatedAt).
+    w.line(1, '_UPD', { value: rec.updatedAt });
   }
   for (const pointer of rec.ancestryPointers ?? []) {
     // Ancestry: the record-level Ancestry reference (see
@@ -1997,9 +2040,16 @@ export function emitOccurrenceRecord(w: Writer, version: Version, rec: {
   type?: string;
   date?: DateStructure;
   place?: PlaceStructure;
-  participants?: Array<{ tag: '_PART'; individual: string; role?: string; age?: AgeStructure; notes?: NoteStructure[]; extensions?: ExtensionStructure[] }>;
+  cause?: string;
+  agency?: string;
+  religion?: string;
+  participants?: Array<{ tag: '_PART'; individual: string; role?: string; age?: AgeStructure; notes?: NoteStructure[]; citations?: SourceCitation[]; extensions?: ExtensionStructure[] }>;
+  attributes?: VendorAttribute[];
   notes?: NoteStructure[];
   citations?: SourceCitation[];
+  media?: MultimediaLink[];
+  uids?: string[];
+  changeDate?: ChangeDate;
   extensions?: ExtensionStructure[];
 }): void {
   w.line(0, '_OCUR', { xref: rec.xref });
@@ -2012,7 +2062,21 @@ export function emitOccurrenceRecord(w: Writer, version: Version, rec: {
   if (rec.place !== undefined) {
     emitPlace(w, version, 1, rec.place);
   }
+  if (rec.cause !== undefined) {
+    w.line(1, 'CAUS', { value: rec.cause });
+  }
+  if (rec.agency !== undefined) {
+    w.line(1, 'AGNC', { value: rec.agency });
+  }
+  if (rec.religion !== undefined) {
+    w.line(1, 'RELI', { value: rec.religion });
+  }
   for (const participant of rec.participants ?? []) {
+    if (version !== '7.0' && participant.individual === '@VOID@') {
+      // 5.5.1 has no void pointer and the participant block has no
+      // payload-free spelling; it is dropped (the void-citation rule).
+      continue;
+    }
     ptr(w, version, 1, '_PART', participant.individual);
     if (participant.role !== undefined) {
       w.line(2, 'ROLE', { value: participant.role });
@@ -2023,13 +2087,28 @@ export function emitOccurrenceRecord(w: Writer, version: Version, rec: {
     for (const note of participant.notes ?? []) {
       emitNoteStructure(w, version, 2, note);
     }
+    for (const citation of participant.citations ?? []) {
+      emitSourceCitation(w, version, 2, citation);
+    }
     emitExtensions(w, version, 2, participant);
+  }
+  for (const attribute of rec.attributes ?? []) {
+    emitVendorAttribute(w, version, 1, attribute);
   }
   for (const note of rec.notes ?? []) {
     emitNoteStructure(w, version, 1, note);
   }
   for (const citation of rec.citations ?? []) {
     emitSourceCitation(w, version, 1, citation);
+  }
+  for (const link of rec.media ?? []) {
+    emitMultimediaLink(w, version, 1, link);
+  }
+  for (const uid of rec.uids ?? []) {
+    w.line(1, 'UID', { value: uid });
+  }
+  if (rec.changeDate !== undefined) {
+    emitChangeBlock(w, version, 1, rec.changeDate);
   }
   emitExtensions(w, version, 1, rec);
 }

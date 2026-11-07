@@ -17,6 +17,7 @@ import type {
   MultimediaLink,
   NoteStructure,
   SourceCitation,
+  TagLink,
 } from '../../structures';
 import type {
   Version,
@@ -48,6 +49,13 @@ import {
 import {
   emitCensusRecord,
 } from './census';
+import {
+  emitEvidenceRecord,
+  emitResearchActivityRecord,
+  emitResearchDocumentRecord,
+  emitTagLink,
+  emitTagRecord,
+} from './evidence';
 import type {
   PlaceRecord,
 } from '../../structures';
@@ -273,6 +281,11 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
     // My Family Tree: the title of the tree (see Header.title).
     w.line(1, '_TITL', { value: h.title });
   }
+  if (h.uid !== undefined) {
+    // MyHeritage / Family Historian: the dataset's unique identifier
+    // (see Header.uid).
+    w.line(1, '_UID', { value: h.uid });
+  }
   if (h.statistics !== undefined) {
     // My Family Tree: the dataset statistics block (see
     // Header.statistics).
@@ -475,6 +488,18 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
     case '_OCUR':
       emitOccurrenceRecord(w, version, record as Parameters<typeof emitOccurrenceRecord>[2]);
       return;
+    case '_EVID':
+      emitEvidenceRecord(w, version, record as Parameters<typeof emitEvidenceRecord>[2]);
+      return;
+    case '_RDOC':
+      emitResearchDocumentRecord(w, version, record as Parameters<typeof emitResearchDocumentRecord>[2]);
+      return;
+    case '_RACT':
+      emitResearchActivityRecord(w, version, record as Parameters<typeof emitResearchActivityRecord>[2]);
+      return;
+    case '_TAG':
+      emitTagRecord(w, version, record as Parameters<typeof emitTagRecord>[2]);
+      return;
     case '_MTTAG':
       emitTreeTagRecord(w, version, record as Parameters<typeof emitTreeTagRecord>[2]);
       return;
@@ -514,6 +539,7 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
   notes?: NoteStructure[];
   citations?: SourceCitation[];
   media?: MultimediaLink[];
+  tagLinks?: TagLink[];
   changeDate?: ChangeDate;
   creationDate?: CreationDate;
   automatedRecordId?: string;
@@ -543,6 +569,10 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
   }
   for (const media of rec.media ?? []) {
     emitMultimediaLink(w, version, level, media);
+  }
+  for (const tagLink of rec.tagLinks ?? []) {
+    // The gedcom-tags applications (see TagLink).
+    emitTagLink(w, version, level, tagLink);
   }
   if (rec.changeDate !== undefined) {
     w.line(level, 'CHAN');

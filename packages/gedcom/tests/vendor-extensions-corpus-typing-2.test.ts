@@ -206,7 +206,7 @@ describe('the glamberson _OCUR occurrence records', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.occurrences).toEqual(['@O1@']);
+    expect(indi.occurrences).toEqual([{ tag: '_OCREF', occurrence: '@O1@' }]);
     const serialized = ser70(dataset);
     expect(serialized).toContain('0 @O1@ _OCUR');
     expect(serialized).toContain('1 _PART @I1@');

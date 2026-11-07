@@ -2,6 +2,7 @@ import type {
   EventAttributeEnum,
   FamilyChildStatusEnum,
   PedigreeEnum,
+  QualityEnum,
   RestrictionEnum,
   SexEnum,
 } from '../enumerations';
@@ -32,6 +33,16 @@ import type {
   TwinRecord,
 } from './genopro-entity';
 import type { TitleRecord } from './title-record';
+import type {
+  EvidenceEvent,
+  EvidenceRecord,
+  EvidenceReference,
+  OccurrenceReference,
+  ResearchActivityRecord,
+  ResearchDocumentRecord,
+  TagLink,
+  TagRecord,
+} from './evidence-record';
 import type { TreeCategoryRecord, TreeTagRecord } from './tree-tag-record';
 import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
@@ -457,6 +468,26 @@ export interface FamilyRecord extends GedcomStructureBase {
    * written back as `_PRIMARY Y` in both versions.
    */
   primary?: boolean;
+  /**
+   * `_OCREF @xref@` {0:M} — the family's references to shared
+   * occurrence records (the gedcom-occurrences extension lists FAM as
+   * an `_OCREF` superstructure; see IndividualRecord.occurrences).
+   * Written back as `_OCREF` in both versions.
+   */
+  occurrences?: OccurrenceReference[];
+  /**
+   * `_EVREF @xref@` {0:M} — the references to floating evidence
+   * records (the gedcom-evidence `_EVREF.yaml` lists FAM as a
+   * superstructure; the v1 `_EVID` link spelling normalizes into the
+   * same slot). Written back as `_EVREF` in both versions.
+   */
+  evidence?: EvidenceReference[];
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the gedcom-tags extension; see TagLink). Written back in
+   * both versions.
+   */
+  tagLinks?: TagLink[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */
   identifiers?: IdentifierStructure[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
@@ -596,6 +627,40 @@ export interface FamilyChildLink extends GedcomStructureBase {
    * `fatherRelation`.
    */
   motherRelation?: Text;
+  /**
+   * PEDI {0:M} — the pedigree kind of the child link, written under
+   * FAM.CHIL — a position neither standard defines (both keep PEDI on
+   * the INDI.FAMC link). Observed in the MacFamilyTree exports (a
+   * single lowercase `2 PEDI birth`, the bechbd gedcomimport samples
+   * and the Synium MobileFamilyTree fixtures) and in the per-parent
+   * spelling of the slaktforskning swedish-royal examples: one PEDI
+   * per parent, each with a `3 _PARENT @I…@` pointer naming the parent
+   * it describes. Recognized on input; both exports project an
+   * agreeing value onto the child's INDI.FAMC.PEDI when that link's
+   * PEDI is still empty (the `_FREL`/`_MREL` rule), and drop
+   * non-agreeing entries and the per-parent `_PARENT` distinction —
+   * neither target grammar defines PEDI under CHIL (see
+   * FamilyChildPedigree).
+   */
+  pedigrees?: FamilyChildPedigree[];
+}
+
+/**
+ * One PEDI entry under FAM.CHIL (see FamilyChildLink.pedigrees): the
+ * pedigree structure with the optional `_PARENT` pointer to the parent
+ * the entry describes (the slaktforskning swedish-royal examples; the
+ * MacFamilyTree exports write a single entry without the pointer). Not
+ * part of any GEDCOM version. The FAM.CHIL-position lines are never
+ * written: both exports project an agreeing value onto the child's
+ * INDI.FAMC.PEDI and drop the `_PARENT` distinction (see
+ * projectChildPedigrees in serialize/prepare.ts).
+ */
+export interface FamilyChildPedigree extends GedcomStructureBase {
+  tag: 'PEDI';
+  /** The PEDI payload and PHRASE — the same grammar the FAMC-link PEDI uses. */
+  pedigree: PedigreeStructure;
+  /** `_PARENT` {0:1} — the parent this pedigree entry refers to. */
+  parent?: Pointer<IndividualRecord>;
 }
 
 /**
@@ -624,6 +689,20 @@ export interface IndividualRecord extends GedcomStructureBase {
    * serialize/emitter/values.ts).
    */
   sex?: SexEnum;
+  /**
+   * SOUR {0:M} — the citations attached to the SEX line. Family Tree
+   * Maker for Mac OS X treats SEX as a citeable fact and writes full
+   * source citations under it (`1 SEX M` + `2 SOUR @S453@` with
+   * PAGE/DATA/TEXT, the gedcom4j willis samples — where a
+   * continuation bug wraps the lines into `2 CONT 2 SOUR …`, see the
+   * README's container leniencies; the gemenet Genoese-merchant trees
+   * and the Ancestry-derived fixtures carry the same shape). Neither
+   * grammar gives SEX substructures. Recognized on input; on export the
+   * citations are projected onto the record-level INDI citations (the
+   * only standard SOURCE_CITATION slot) in both versions — the SEX
+   * association itself has no standard spelling.
+   */
+  sexCitations?: SourceCitation[];
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */
   attributes?: IndividualAttributeStructure[];
   /** <<INDIVIDUAL_EVENT_STRUCTURE>> {0:M}. */
@@ -793,16 +872,36 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   sosaDAboville?: Text;
   /**
-   * `_OCREF @xref@` {0:M} — a pointer to a shared occurrence record
-   * (the glamberson gedcom-occurrences extension, see
-   * OccurrenceRecord): the documented occurrence of the person in a
-   * source the record describes
-   * (https://github.com/glamberson/gedcom-occurrences). The pointer
-   * must resolve to an existing `_OCUR` record
-   * (`document.xref-not-found` otherwise). Written back as `_OCREF`
-   * in both versions.
+   * `_OCREF @xref@` {0:M} — the references to shared occurrence
+   * records (the glamberson gedcom-occurrences extension, see
+   * OccurrenceRecord): the documented occurrences of the person in a
+   * source the record describes, with the participation data (ROLE,
+   * AGE, notes, citations) the extension's v0.2.0 spec defines
+   * (https://github.com/glamberson/gedcom-occurrences,
+   * occurrence-extension.md). The pointer must resolve to an existing
+   * `_OCUR` record (`document.xref-not-found` otherwise). Written back
+   * as `_OCREF` in both versions.
    */
-  occurrences?: Pointer<OccurrenceRecord>[];
+  occurrences?: OccurrenceReference[];
+  /**
+   * `_EVREF @xref@` {0:M} — the references to floating evidence
+   * records (the glamberson gedcom-evidence extension; the v1 `_EVID`
+   * link spelling normalizes into the same slot, see
+   * EvidenceReference). Written back as `_EVREF` in both versions.
+   */
+  evidence?: EvidenceReference[];
+  /**
+   * `_EVEN_EVID` {0:M} — the attached-evidence events (the
+   * gedcom-evidence v2 "event container" pattern, see EvidenceEvent).
+   * Written back in both versions.
+   */
+  evidenceEvents?: EvidenceEvent[];
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension, see TagLink).
+   * Written back in both versions.
+   */
+  tagLinks?: TagLink[];
   /**
    * _TAG {0:1} and _TAG2–_TAG9 {0:1 each} — the individual's named
    * tag marks (Tag 1 through Tag 9), kept in order. Written by Legacy
@@ -1293,6 +1392,38 @@ export interface MultimediaRecord extends GedcomStructureBase {
   /** FILE {1:M}, g7:FILE — the external files, grouped together. */
   files: MediaFile[];
   /**
+   * FORM {0:1} — the record-level multimedia format of the GEDCOM
+   * 5.5 embedded-multimedia shape (`MULTIMEDIA_RECORD` := FORM {1:1}
+   * + BLOB {1:1} with the encoded CONT lines). GEDCOM 5.5.1
+   * eliminated BLOB and added FILE with the FORM beneath it (the
+   * FamilySearch changelog, version 5.5.1: "Removed the option for
+   * encoding embedded multimedia objects… The BLOB tag was
+   * eliminated", https://gedcom.io/changelog/#version-551), so
+   * neither target version can spell the shape. It is recognized on
+   * input in any file — 5.5-era files, the nonconforming exports
+   * that keep writing it under 5.5.1 declarations (the corpus GT4
+   * demo file, the gramps MediaTest.ged import fixture) and the
+   * Généatique record-level FORM beside FILE lines (the webtrees
+   * per-vendor custom-tag registry, Geneatique.php, `OBJE:FORM` =
+   * MultimediaFormat:
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Geneatique.php)
+   * — and kept in the model; both exports drop it, and a record left
+   * without any FILE is dropped entirely by the projections
+   * (serialize/prepare.ts). The FILE-level format is MediaFile.form.
+   */
+  embeddedForm?: Text;
+  /**
+   * BLOB {0:1} — the embedded multimedia content of the GEDCOM 5.5
+   * record shape (see `embeddedForm`): the BLOB block's CONT lines
+   * joined with newlines, kept as decoded text. The 5.5 encoding is
+   * a text-safe form of the binary object. GEDCOM 5.5.1 eliminated
+   * BLOB (the FamilySearch changelog,
+   * https://gedcom.io/changelog/#version-551): the slot is recognized
+   * on input in any file and kept in the model, and both exports drop
+   * it — with the whole record when it has no FILE.
+   */
+  embeddedBlob?: Text;
+  /**
    * _DATE {0:1} — a date associated with the media object, usually the
    * date of a picture or video. Written by Legacy Family Tree under
    * OBJE (see its "Custom GEDCOM Tags" help:
@@ -1540,6 +1671,13 @@ export interface MultimediaRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -1779,6 +1917,13 @@ export interface RepositoryRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -1823,6 +1968,13 @@ export interface SharedNoteRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension; see TagLink). The
+   * 5.5.1 NOTE record projects onto SNOTE in 7.0 with its tag links.
+   * Written back in both versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -1871,6 +2023,13 @@ export interface NoteRecord extends GedcomStructureBase {
    * `_IMPF` block in both versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -2007,6 +2166,31 @@ export interface SourceRecord extends GedcomStructureBase {
    * Recognized on input and written back as `_ACC` in both versions.
    */
   accessDate?: Text;
+  /**
+   * QUAY {0:1} — the certainty assessment of the source as a whole,
+   * written by Heredis with the standard QUAY tag at record level (the
+   * webtrees per-vendor custom-tag registry, Heredis.php, `SOUR:QUAY` =
+   * CertaintyAssessment "Quality of data":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Heredis.php;
+   * the alainamand and Dudouyt Heredis exports in the corpus). No
+   * GEDCOM version has the slot (5.5.1 puts QUAY under the citation's
+   * DATA, 7.0 keeps it on citations only). Recognized on input; dropped
+   * on both exports — a non-underscore tag in the record-level position
+   * does not spell a valid file in either version.
+   */
+  certainty?: QualityEnum;
+  /**
+   * _UPD {0:1} — the record's last-updated timestamp, kept verbatim
+   * (the wire format is undocumented). Written by MyHeritage under any
+   * record (the webtrees per-vendor custom-tag registry, MyHeritage.php,
+   * `*:_UPD` "Updated at":
+   * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/MyHeritage.php;
+   * the corpus carries it on the SOUR records of the MyHeritage-processed
+   * exports) — the same slot `IndividualRecord.updatedAt` and
+   * `FamilyRecord.updatedAt` carry. Not part of any GEDCOM version.
+   * Recognized on input and written back as `_UPD` in both versions.
+   */
+  updatedAt?: Text;
   /**
    * `_APID` {0:M} — Ancestry.com record references at the record
    * level, format `dbid::record` (in the wild often prefixed, e.g.
@@ -2224,6 +2408,13 @@ export interface SourceRecord extends GedcomStructureBase {
    * versions.
    */
   importReference?: ImportFileReference;
+  /**
+   * `_TAG @xref@` {0:M} — the organizational tags applied to the
+   * record (the glamberson gedcom-tags extension applies tags to any
+   * record type, tag-extension.md; see TagLink). Written back in both
+   * versions.
+   */
+  tagLinks?: TagLink[];
 }
 
 /**
@@ -2512,4 +2703,8 @@ export type GedcomRecord =
   | MarriageRecord
   | TwinRecord
   | TitleRecord
+  | EvidenceRecord
+  | ResearchDocumentRecord
+  | ResearchActivityRecord
+  | TagRecord
   | ExtensionRecord;

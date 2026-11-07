@@ -352,16 +352,21 @@ describe('the GEDCOM 5.5 embedded-multimedia record shape', () => {  const EMBED
     const dataset = parseOk551(EMBEDDED);
     const media = dataset.records.find((r) => r.tag === 'OBJE');
     expect(media?.tag === 'OBJE' ? media.files.length : -1).toBe(0);
-    expect(media?.tag === 'OBJE' ? media.extensions?.map((e) => e.tag) : undefined).toEqual(['FORM']);
+    // The record-level FORM types into the embedded-format slot.
+    expect(media?.tag === 'OBJE' ? media.embeddedForm : undefined).toBe('gif');
     // The TITL types into the record title.
     expect(media?.tag === 'OBJE' ? media.title : undefined).toBe('The picture');
   });
 
   test('the record is dropped entirely on 5.5.1 export, links stripped', () => {
+    // GEDCOM 5.5.1 eliminated BLOB and requires FILE (the FamilySearch
+    // changelog): the embedded record has no 5.5.1 spelling, so the
+    // record and the link to it are dropped.
     const dataset = parseOk551(EMBEDDED);
     const text = ser551(dataset);
     expect(text).not.toContain('@O1@ OBJE');
     expect(text).not.toContain('1 FORM gif');
+    expect(text).not.toContain('1 TITL The picture');
     expect(text).not.toContain('1 OBJE @O1@');
   });
 
@@ -592,5 +597,195 @@ describe('the FTM citation _LINK and the FTB/MyHeritage media attributes', () =>
     expect(out).toContain('1 _FILESIZE 1024');
     expect(out).toContain('1 _ALBUM @A1@');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
+  });
+});
+
+describe('the extension-family pointers under the NO rule and void pointers', () => {
+  test('a _PART at a FAM the NO rule drops is stripped from the 5.5.1 output', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @F1@ FAM',
+        '1 NO DIV',
+        '0 @O1@ _OCUR',
+        '1 TYPE Census',
+        '1 _PART @F1@',
+        '2 ROLE Household',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('@F1@');
+    expect(text).not.toContain('_PART');
+    expect(text).not.toContain('ROLE Household');
+    expect(text).toContain('0 @O1@ _OCUR');
+    expect(text).toContain('1 TYPE Census');
+  });
+
+  test('a _SUBJ at an INDI the NO rule drops is stripped; the conclusion keeps its text', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @I2@ INDI',
+        '1 NO BIRT',
+        '0 @R1@ _RDOC',
+        '1 _TEXT The analysis.',
+        '1 _SUBJ @I2@',
+        '1 _CONC',
+        '2 _SUBJ @I2@',
+        '2 _TEXT Definitely identified',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('@I2@');
+    expect(text).not.toContain('_SUBJ');
+    expect(text).toContain('0 @R1@ _RDOC');
+    expect(text).toContain('1 _CONC');
+    expect(text).toContain('2 _TEXT Definitely identified');
+  });
+
+  test('a _PARENT at a dropped INDI is stripped; the PEDI value survives', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @F1@ FAM',
+        '1 HUSB @I3@',
+        '1 CHIL @I4@',
+        '2 PEDI BIRTH',
+        '3 _PARENT @I2@',
+        '0 @I2@ INDI',
+        '1 NO BIRT',
+        '0 @I3@ INDI',
+        '1 NAME F /G/',
+        '0 @I4@ INDI',
+        '1 NAME C /D/',
+        '1 FAMC @F1@',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('@I2@');
+    // The pedigree projects onto the standard FAMC link; the per-parent
+    // `_PARENT` pointer (a non-standard CHIL-position child) is dropped.
+    expect(text).toContain('2 PEDI birth');
+    expect(text).not.toContain('_PARENT');
+    expect(text).toContain('1 CHIL @I4@');
+  });
+
+  test('void pointers: 7.0 keeps the block, 5.5.1 drops it whole', () => {
+    const dataset = parseOk70(
+      [
+        ...H70,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 _EVREF @VOID@',
+        '2 _CONF High',
+        '1 _OCREF @VOID@',
+        '2 ROLE Head',
+        '1 _TAG @VOID@',
+        '2 NOTE kept in 7.0 only',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text70 = ser70(dataset);
+    expect(text70).toContain('1 _EVREF @VOID@');
+    expect(text70).toContain('2 _CONF High');
+    expect(text70).toContain('1 _OCREF @VOID@');
+    expect(text70).toContain('1 _TAG @VOID@');
+    expect(parseOk70(text70)).toEqual(dataset);
+    // 5.5.1 has no void pointer: the blocks are dropped whole, with
+    // their children (no orphaned substructure lines).
+    const text551 = ser551(dataset);
+    expect(text551).not.toContain('@VOID@');
+    expect(text551).not.toContain('_EVREF');
+    expect(text551).not.toContain('_OCREF');
+    expect(text551).not.toContain('_TAG');
+    expect(text551).not.toContain('_CONF');
+  });
+
+  test('an _RDOC link at an embedded OBJE dropped by the projections is stripped', () => {
+    // Neither target grammar can spell the embedded shape (5.5.1
+    // eliminated BLOB and requires FILE; 7.0 requires FILE): the
+    // `_EVID` documents link must not dangle in either output.
+    const dataset551 = parseOk551(
+      [
+        ...H551,
+        '0 @M1@ OBJE',
+        '1 TITL The picture',
+        '0 @E1@ _EVID',
+        '1 _TYPE Person',
+        '1 _RDOC @M1@',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 _EVID @E1@',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text551 = ser551(dataset551);
+    expect(text551).not.toContain('@M1@');
+    expect(text551).not.toContain('1 _RDOC');
+    expect(text551).toContain('0 @E1@ _EVID');
+    expect(text551).toContain('1 _EVREF @E1@');
+
+    const datasetForm = parseOk551(
+      [
+        ...H551,
+        '0 @M2@ OBJE',
+        '1 FORM gif',
+        '1 TITL The picture',
+        '0 @E2@ _EVID',
+        '1 _TYPE Person',
+        '1 _RDOC @M2@',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    // Both versions drop the record and strip the link.
+    for (const text of [ser551(datasetForm), ser70(datasetForm)]) {
+      expect(text).not.toContain('@M2@');
+      expect(text).not.toContain('1 _RDOC');
+      expect(text).toContain('0 @E2@ _EVID');
+    }
+  });
+
+  test('the SEX citations type and project onto record-level INDI citations', () => {
+    // The FTM Mac willis shape: a full citation subtree under the SEX
+    // fact, with the 5.5.1-style DATA/TEXT inside. Neither grammar has
+    // a SEX substructure, so the citation moves to the standard INDI
+    // SOURCE_CITATION slot on export.
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 SEX M',
+        '2 SOUR @S9@',
+        '3 PAGE Year: 1880',
+        '3 DATA',
+        '4 TEXT Record for Charles Willis',
+        '0 @S9@ SOUR',
+        '1 TITL t',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const indi = dataset.records.find((r) => r.tag === 'INDI') as IndividualRecord;
+    expect(indi.sexCitations?.[0]?.source).toBe('@S9@');
+    expect(indi.sexCitations?.[0]?.page?.payload).toBe('Year: 1880');
+    expect((indi as { extensions?: unknown[] }).extensions).toBeUndefined();
+    for (const text of [ser551(dataset), ser70(dataset)]) {
+      expect(text).toContain('1 SEX M\r\n1 SOUR @S9@');
+      expect(text).toContain('2 PAGE Year: 1880');
+      expect(text).not.toContain('2 SOUR @S9@');
+      const reparsed = text.includes('2 VERS 7.0') ? parseOk70(text) : parseOk551(text);
+      const reparsedIndi = reparsed.records.find((r) => r.tag === 'INDI') as IndividualRecord;
+      expect(reparsedIndi.sexCitations).toBeUndefined();
+      expect(reparsedIndi.citations?.[0]?.source).toBe('@S9@');
+    }
   });
 });

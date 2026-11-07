@@ -9,6 +9,7 @@
 
 import {
   EVENT_ATTRIBUTE_ENUM_VALUES,
+  QUALITY_ENUM_VALUES,
 } from '../enumerations';
 import type {
   EventAttributeEnum,
@@ -48,6 +49,12 @@ import {
 import type {
   RawNode,
 } from './lines';
+import {
+  parseEnum,
+} from './types';
+import {
+  parseTagLink,
+} from './evidence';
 import {
   parsePlaceStructure,
 } from './names-places';
@@ -110,6 +117,14 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
       // FH (up to V6.2): the repository web address — the vendor
       // spelling of the standard WWW slot.
       (rec.www ??= []).push(reqText(child));
+    },
+    '_TAG': (child) => {
+      // The gedcom-tags application link (see RepositoryRecord.tagLinks).
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+      } else {
+        addExtension(rec, child, ctx);
+      }
     },
     '_SUBM': (child) => {
       // GDO: a pointer to the submitter record of this repository (see
@@ -194,6 +209,14 @@ export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord
       SOUR: (child) => {
         (rec.citations ??= []).push(parseSourceCitation(child, ctx));
       },
+      _TAG: (child) => {
+        // The gedcom-tags application link (see SharedNoteRecord.tagLinks).
+        if (child.value.kind === 'pointer') {
+          (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        } else {
+          addExtension(rec, child, ctx);
+        }
+      },
       CHAN: (child) => {
         rec.changeDate = parseChangeDate(child, ctx);
       },
@@ -245,6 +268,14 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
     {
       SOUR: (child) => {
         (rec.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+      _TAG: (child) => {
+        // The gedcom-tags application link (see NoteRecord.tagLinks).
+        if (child.value.kind === 'pointer') {
+          (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        } else {
+          addExtension(rec, child, ctx);
+        }
       },
       CHAN: (child) => {
         rec.changeDate = parseChangeDate(child, ctx);
@@ -447,11 +478,16 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       (rec.relocatedCitations ??= []).push(parseSourceCitation(child, ctx));
     },
     _TAG: (child) => {
-      // Legacy: the report inclusion flag (see
+      // The pointer payload is the gedcom-tags application link (see
+      // SourceRecord.tagLinks). Legacy: the report inclusion flag (see
       // SourceRecord.citationDetailIncluded). The vendor documents the
       // SOUR-position form only with a value (`_TAG NO`/`_TAG YES`); a
       // bare `_TAG` under SOUR is the undocumented "tagged" marking of
       // the same tag name and stays a generic extension.
+      if (child.value.kind === 'pointer') {
+        (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
+        return;
+      }
       if (child.value.kind === 'absent') {
         addExtension(rec, child, ctx);
         return;
@@ -603,11 +639,15 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
   handlers['QUAY'] = (child) => {
     // Heredis: the quality assessment of the whole source, written
     // with the standard QUAY tag at record level (the webtrees
-    // per-vendor custom-tag registry, Heredis.php). No typed slot —
-    // the record-level assessment stays a generic extension, dropped
-    // on export in both versions (QUAY is a citation-only tag, and
-    // neither target spells a non-underscore extension).
-    addExtension(rec, child, ctx);
+    // per-vendor custom-tag registry, Heredis.php; see
+    // SourceRecord.certainty for the export rule).
+    rec.certainty = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+  };
+  handlers['_UPD'] = (child) => {
+    // MyHeritage: the record's last-updated timestamp (the
+    // registry-documented `*:_UPD` position; see
+    // SourceRecord.updatedAt).
+    rec.updatedAt = reqText(child);
   };
   handlers['DATE'] = (child) => {
     // The source's date at record level. Legacy Family Tree writes

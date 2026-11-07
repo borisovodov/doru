@@ -73,6 +73,12 @@ import {
 } from './genopro';
 import { parseOccurrenceRecord } from './occurrence';
 import {
+  parseEvidenceRecord,
+  parseResearchActivityRecord,
+  parseResearchDocumentRecord,
+  parseTagRecord,
+} from './evidence';
+import {
   parseSubmissionRecord,
   parseSubmitterRecord,
 } from './submitters';
@@ -328,6 +334,14 @@ function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
       return parseGroupRecord(node, ctx);
     case '_OCUR':
       return parseOccurrenceRecord(node, ctx);
+    case '_EVID':
+      return parseEvidenceRecord(node, ctx);
+    case '_RDOC':
+      return parseResearchDocumentRecord(node, ctx);
+    case '_RACT':
+      return parseResearchActivityRecord(node, ctx);
+    case '_TAG':
+      return parseTagRecord(node, ctx);
     case '_MTTAG':
       return parseTreeTagRecord(node, ctx);
     case '_MTCAT':

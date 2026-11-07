@@ -43,6 +43,9 @@ import {
   Writer,
 } from '../writer';
 import {
+  emitOccurrenceReference,
+} from './evidence';
+import {
   emitPlace,
 } from './names-places';
 import {
@@ -188,6 +191,7 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
     }
     ptr(w, version, level, tag, association.individual);
     w.line(level + 1, 'RELA', { value: relationship });
+    emitAssoExtensionFields(w, version, level + 1, association);
     for (const note of association.notes ?? []) {
       emitNoteStructure(w, version, level + 1, note);
     }
@@ -216,6 +220,7 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
     w.line(level + 2, 'PHRASE', { value: role.phrase });
   }
   emitExtensions(w, version, level + 2, role);
+  emitAssoExtensionFields(w, version, level + 1, association);
   for (const note of association.notes ?? []) {
     emitNoteStructure(w, version, level + 1, note);
   }
@@ -223,6 +228,33 @@ export function emitAssociation(w: Writer, version: Version, level: number, asso
     emitSourceCitation(w, version, level + 1, citation);
   }
   emitExtensions(w, version, level + 1, association);
+}
+
+/**
+ * The gedcom-extended-ASSO fields (see AssociationStructure): the
+ * underscore tags are valid extension spellings in both versions and
+ * are written back the same in each.
+ */
+function emitAssoExtensionFields(w: Writer, version: Version, level: number, association: AssociationStructure): void {
+  if (association.specificType !== undefined) {
+    w.line(level, '_TYPE', { value: association.specificType });
+  }
+  if (association.period !== undefined) {
+    w.line(level, '_PERIOD');
+    if (association.period.start !== undefined) {
+      emitDate(w, version, level + 1, '_START', association.period.start);
+    }
+    if (association.period.end !== undefined) {
+      emitDate(w, version, level + 1, '_END', association.period.end);
+    }
+    emitExtensions(w, version, level + 1, association.period);
+  }
+  if (association.confidence !== undefined) {
+    w.line(level, '_CONF', { value: association.confidence });
+  }
+  if (association.private === true) {
+    w.line(level, '_PRIV', { value: 'Y' });
+  }
 }
 
 export function emitDate(w: Writer, version: Version, level: number, tag: string, date: DateStructure): void {
@@ -545,6 +577,11 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
   }
   for (const media of detail.media ?? []) {
     emitMultimediaLink(w, version, level, media);
+  }
+  for (const occurrence of detail.occurrences ?? []) {
+    // The gedcom-occurrences backward-compatibility position: the
+    // reference under the event itself (see EventDetail.occurrences).
+    emitOccurrenceReference(w, version, level, occurrence);
   }
   if (version === '7.0') {
     for (const uid of detail.uniqueIds ?? []) {
@@ -1036,6 +1073,22 @@ export function emitMultimediaLink(w: Writer, version: Version, level: number, l
   if (link.caption === true) {
     // FH: the media item carries a caption (see MultimediaLink.caption).
     w.line(level + 1, '_CAPT', { value: 'Y' });
+  }
+  if (link.cutout === true) {
+    // MyHeritage / GEDKeeper: the cutout flag (see MultimediaLink.cutout).
+    w.line(level + 1, '_CUTOUT', { value: 'Y' });
+  }
+  if (link.primaryCutout === true) {
+    w.line(level + 1, '_PRIM_CUTOUT', { value: 'Y' });
+  }
+  if (link.parentPhoto === true) {
+    w.line(level + 1, '_PARENTPHOTO', { value: 'Y' });
+  }
+  if (link.personalPhoto === true) {
+    w.line(level + 1, '_PERSONALPHOTO', { value: 'Y' });
+  }
+  if (link.parentRecordId !== undefined) {
+    w.line(level + 1, '_PARENTRIN', { value: link.parentRecordId });
   }
   if (version === '7.0') {
     if (link.crop !== undefined) {

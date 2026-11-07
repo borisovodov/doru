@@ -93,3 +93,51 @@ describe('the out-of-spec 5.5.1 charsets', () => {
     expectName('\u20ac', ascii('Jose /Doe/'), 'Jose Doe');
   });
 });
+
+describe('the mislabeled-ASCII western fallback', () => {
+  /** A 5.5.1 ASCII-declared document whose NOTE lines carry the given raw bytes. */
+  function asciiDocWith(noteLines: number[][]): Uint8Array {
+    const head = ascii('0 HEAD\n1 SOUR X\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ASCII\n0 @S1@ SUBM\n1 NAME T\n0 @I1@ INDI\n1 NAME A /B/\n');
+    const parts: number[] = [...head];
+    noteLines.forEach((bytes, i) => {
+      parts.push(...ascii(`1 NOTE n${i} `), ...bytes, ...ascii('\n'));
+    });
+    parts.push(...ascii('0 TRLR\n'));
+    return new Uint8Array(parts);
+  }
+
+  test('systematic Latin-1 bytes under CHAR ASCII decode as windows-1252', () => {
+    // The gramps import test corpus (data/tests/imp/Latin_1_*.ged):
+    // French accents written in Latin-1 under an ASCII declaration —
+    // every high-byte line fails ASCII, the document is really
+    // windows-1252, and nothing is recorded.
+    const lines: number[][] = [];
+    for (let i = 0; i < 12; i++) {
+      lines.push([...ascii('Jos'), 0xe9, ...ascii(' /Doe/')]);
+    }
+    const result = parseGedcom551(asciiDocWith(lines));
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    const record = result.value.records.find((r) => r.xref === '@I1@');
+    if (record?.tag !== 'INDI') {
+      throw new Error('expected @I1@ INDI');
+    }
+    expect(record.notes?.length).toBe(12);
+    const first = record.notes?.[0];
+    expect(first && 'payload' in first ? first.payload : '').toBe('n0 Jos\u00e9 /Doe/');
+  });
+
+  test('a few stray high bytes keep their decoding errors', () => {
+    // Below the fallback threshold the honest report stands (the
+    // TGC551 torture-test rule).
+    const lines: number[][] = [[...ascii('ok')], [...ascii('Jos'), 0xe9], [...ascii('fine')]];
+    const bytes = asciiDocWith(lines);
+    const strict = parseGedcom551(bytes);
+    expect(strict.ok).toBe(false);
+    if (!strict.ok) {
+      expect(strict.error.code).toBe('decoding.invalid-ansel');
+    }
+  });
+});

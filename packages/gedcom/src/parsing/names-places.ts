@@ -34,6 +34,9 @@ import {
   reqPtr,
   reqText,
 } from './context';
+import {
+  parseEvidenceReference,
+} from './evidence';
 import type {
   Ctx,
 } from './context';
@@ -223,6 +226,21 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // superstructure INDI-NAME): a pointer to the shared census
       // record the name was recorded in. The pointer must resolve.
       (out.censusLinks ??= []).push(reqPtr(child, ctx));
+    },
+    '_EVREF': (child) => {
+      // The gedcom-evidence reference for this name (see
+      // PersonalNameStructure.evidence).
+      (out.evidence ??= []).push(parseEvidenceReference(child, ctx));
+    },
+    '_EVID': (child) => {
+      // The gedcom-evidence v1 link spelling (the gramps census
+      // example writes it under NAME); a text payload is a different,
+      // undocumented convention and stays generic.
+      if (child.value.kind === 'pointer') {
+        (out.evidence ??= []).push(parseEvidenceReference(child, ctx));
+      } else {
+        addExtension(out, child, ctx);
+      }
     },
     '_DATE': (child) => {
       // TMG: a date associated with the name (see

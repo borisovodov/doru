@@ -14,7 +14,7 @@
  * of any GEDCOM version. Recognized on input and written back as
  * `_OCUR` in both versions.
  */
-import type { Pointer, Text, Xref } from '../primitives';
+import type { Pointer, Special, Text, Xref } from '../primitives';
 import type { AgeStructure, DateStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { IndividualRecord } from './records';
@@ -31,23 +31,40 @@ export interface OccurrenceRecord extends GedcomStructureBase {
   date?: DateStructure;
   /** <<PLACE_STRUCTURE>> {0:1} — where it happened. */
   place?: PlaceStructure;
+  /** CAUS {0:1} — the cause (for deaths etc.; occurrence-extension.md). */
+  cause?: Text;
+  /** AGNC {0:1} — the responsible agency (for official occurrences). */
+  agency?: Text;
+  /** RELI {0:1} — the religion (for religious occurrences). */
+  religion?: Text;
   /** `_PART @xref@` {0:M} — one participant of the occurrence. */
   participants?: OccurrenceParticipant[];
+  /** `_ATTR` {0:M} — custom attributes (name + `_VALUE`; occurrence-extension.md). */
+  attributes?: import('./evidence-record').VendorAttribute[];
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
   /** <<SOURCE_CITATION>> {0:M}. */
   citations?: SourceCitation[];
+  /** <<MULTIMEDIA_LINK>> {0:M} — media for the occurrence (occurrence-extension.md). */
+  media?: import('./sources-media').MultimediaLink[];
+  /** UID {0:M} — unique identifiers of the occurrence (the GRAMPS event handles). */
+  uids?: Special[];
+  /** CHAN {0:1}. */
+  changeDate?: import('./common').ChangeDate;
 }
 
 /**
  * One `_PART` under an `_OCUR` record: a participant of the
- * occurrence, given as a pointer to the person with the role they
- * played, their age at the time, and optional notes (same source as
- * OccurrenceRecord).
+ * occurrence, given as a pointer with the role they played, their age
+ * at the time, optional notes and the sources for this participation
+ * (same source as OccurrenceRecord). The v0.2.0 spec allows the
+ * payload to point at an INDI or at a FAM record; the pointer is kept
+ * verbatim (the target's kind is the writer's choice, like the
+ * `_RDOC` link of the evidence records).
  */
 export interface OccurrenceParticipant extends GedcomStructureBase {
   tag: '_PART';
-  /** The _PART payload, {1:1} — the pointer to the participant. */
+  /** The _PART payload, {1:1} — the pointer to the participant (an INDI or FAM record). */
   individual: Pointer<IndividualRecord>;
   /** ROLE {0:1} — the role the person played (Groom, Bride, Witness, Officiator, …). */
   role?: Text;
@@ -55,4 +72,6 @@ export interface OccurrenceParticipant extends GedcomStructureBase {
   age?: AgeStructure;
   /** <<NOTE_STRUCTURE>> {0:M}. */
   notes?: NoteStructure[];
+  /** <<SOURCE_CITATION>> {0:M} — the sources for this participation. */
+  citations?: SourceCitation[];
 }

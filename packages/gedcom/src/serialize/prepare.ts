@@ -33,11 +33,14 @@ import type {
 import {
   isDuplicateCandidateRecord,
   isCensusRecord,
+  isEvidenceRecord,
   isFamilyOrIndividual,
   isFamilyRecord,
   isIndividualRecord,
   isMultimediaRecord,
+  isOccurrenceRecord,
   isPlaceRecord,
+  isResearchDocumentRecord,
 } from '../structures';
 import { collectPlaces } from '../places';
 import type { PedigreeEnum } from '../enumerations';
@@ -91,12 +94,14 @@ function clone(dataset: GedcomDataset): GedcomDataset {
 
 /**
  * True when the record is a GEDCOM 5.5 embedded-multimedia record: an
- * OBJE record whose content is the record-level FORM/TITL/BLOB shape
- * with no FILE substructure (accepted in any file by
- * parsing/media.ts). Neither target version can spell it — both
- * require FILE {1:M}, and the FORM/TITL/BLOB extensions themselves are
- * dropped by the emitter's extension rule — so the projections drop
- * the whole record and strip the links to it.
+ * OBJE record with no FILE substructure (its content is the
+ * record-level FORM/BLOB shape, accepted in any file by
+ * parsing/media.ts and typed into embeddedForm/embeddedBlob). GEDCOM
+ * 5.5.1 eliminated BLOB and requires FILE (the FamilySearch
+ * changelog, https://gedcom.io/changelog/#version-551), and 7.0
+ * requires FILE {1:M}: neither target version can spell the embedded
+ * shape, so both projections drop such records entirely and strip the
+ * links to them.
  */
 function isEmbeddedMediaRecord(record: GedcomRecord): boolean {
   return isMultimediaRecord(record) && record.files.length === 0;
@@ -177,6 +182,57 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
     }
     return;
   }
+  if (isOccurrenceRecord(record)) {
+    // The `_PART` payload points at an INDI or FAM record, which the
+    // NO rule can drop; a participant entry without its pointer has
+    // no 5.5.1 spelling (the payload is {1:1}), so the entry goes.
+    // A void pointer is kept — the emitter drops the line in 5.5.1.
+    const participants = (record.participants ?? []).filter(
+      (participant) => participant.individual === '@VOID@' || valid.has(participant.individual),
+    );
+    if (participants.length === 0) {
+      delete record.participants;
+    } else {
+      record.participants = participants;
+    }
+    return;
+  }
+  if (isEvidenceRecord(record)) {
+    // The `_RDOC` links of an evidence record may point at OBJE
+    // records (the gramps census example links the census image),
+    // which the embedded-media rule can drop.
+    const documents = (record.documents ?? []).filter(
+      (pointer) => pointer === '@VOID@' || valid.has(pointer),
+    );
+    if (documents.length === 0) {
+      delete record.documents;
+    } else {
+      record.documents = documents;
+    }
+    return;
+  }
+  if (isResearchDocumentRecord(record)) {
+    // The `_SUBJ` pointers name INDI records, which the NO rule can
+    // drop; a conclusion keeps its text without the subject.
+    const subjects = (record.subjects ?? []).filter(
+      (pointer) => pointer === '@VOID@' || valid.has(pointer),
+    );
+    if (subjects.length === 0) {
+      delete record.subjects;
+    } else {
+      record.subjects = subjects;
+    }
+    for (const conclusion of record.conclusions ?? []) {
+      if (
+        conclusion.subject !== undefined &&
+        conclusion.subject !== '@VOID@' &&
+        !valid.has(conclusion.subject)
+      ) {
+        delete conclusion.subject;
+      }
+    }
+    return;
+  }
   // Only FAM and INDI records participate in the NO rule (see
   // isEmpty), so only their pointers can dangle. Extension records in
   // particular carry an opaque `children` array that must never be
@@ -218,6 +274,21 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
       delete rec.wife;
     }
     rec.children = (rec.children ?? []).filter((link) => valid.has(link.child));
+    for (const link of rec.children) {
+      // The per-parent PEDI entries of the FAM.CHIL position (see
+      // FamilyChildPedigree.parent): a `_PARENT` pointer at an INDI
+      // record the NO rule dropped leaves the entry without its
+      // subject; the pedigree value itself survives.
+      for (const pedigree of link.pedigrees ?? []) {
+        if (
+          pedigree.parent !== undefined &&
+          pedigree.parent !== '@VOID@' &&
+          !valid.has(pedigree.parent)
+        ) {
+          delete pedigree.parent;
+        }
+      }
+    }
   }
   // The events' family links: FamilyEventStructure and
   // IndividualEventStructure spell them as optional fields on their
@@ -470,6 +541,53 @@ function preservePlaceRecords70(dataset: GedcomDataset, pinned: ReadonlySet<stri
 }
 
 /**
+ * Projects the FAM.CHIL-position PEDI entries of the vendor files (see
+ * FamilyChildLink.pedigrees) onto the standard INDI.FAMC.PEDI. When
+ * every entry of a CHIL link agrees, the child's matching FAMC link
+ * gets that value; the per-parent `_PARENT` distinction and
+ * non-agreeing entries have no standard spelling and are dropped. The
+ * FAM.CHIL lines themselves are never written — neither target
+ * grammar defines PEDI in that position.
+ */
+function projectChildPedigrees(dataset: GedcomDataset): void {
+  const individuals = new Map<string, IndividualRecord>();
+  for (const record of dataset.records) {
+    if (isIndividualRecord(record) && record.xref !== undefined) {
+      individuals.set(record.xref, record);
+    }
+  }
+  for (const record of dataset.records) {
+    if (!isFamilyRecord(record)) {
+      continue;
+    }
+    const fam = record;
+    for (const link of fam.children ?? []) {
+      const entries = link.pedigrees;
+      if (entries === undefined || entries.length === 0) {
+        continue;
+      }
+      const first = entries[0];
+      if (first === undefined) {
+        continue;
+      }
+      const uniform = entries.every((entry) => entry.pedigree.payload === first.pedigree.payload);
+      if (!uniform) {
+        continue;
+      }
+      const child = individuals.get(link.child);
+      const famc = child?.childFamilies?.find((entry) => entry.family === fam.xref);
+      if (famc === undefined || famc.pedigree !== undefined) {
+        continue;
+      }
+      famc.pedigree = {
+        payload: first.pedigree.payload,
+        ...(first.pedigree.phrase === undefined ? {} : { phrase: first.pedigree.phrase }),
+      };
+    }
+  }
+}
+
+/**
  * Applies the NO rule and the required-field defaults, returning a new
  * dataset safe to serialize as GEDCOM 5.5.1. The input is not mutated.
  */
@@ -522,9 +640,9 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
     }
     const kept = out.records.filter((record) => {
       if (isEmbeddedMediaRecord(record)) {
-        // No 5.5.1 spelling exists for the 5.5 embedded shape: the
-        // FORM/TITL/BLOB extensions are dropped by the emitter and the
-        // record is left without its required FILE {1:M}. Dropped even
+        // The 5.5 embedded shape has no 5.5.1 spelling: BLOB was
+        // eliminated in 5.5.1 (gedcom.io changelog) and the record
+        // would be left without its required FILE {1:M}. Dropped even
         // when pinned — an extension pointer payload to such a record
         // cannot be kept valid anyway.
         return false;
@@ -537,7 +655,11 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
     out.records = kept;
   }
 
-  // 3. A void or dangling SUBM pointer in the submission record cannot be
+  // 3. The FAM.CHIL-position PEDI entries project onto the standard
+  //    INDI.FAMC.PEDI link (see projectChildPedigrees).
+  projectChildPedigrees(out);
+
+  // 4. A void or dangling SUBM pointer in the submission record cannot be
   //    written (5.5.1 has no void pointer).
   if (out.submission !== undefined && out.submission.submitter === '@VOID@') {
     delete out.submission.submitter;
@@ -574,11 +696,13 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
   preservePlaceRecords70(out, pinned);
   // The GEDCOM 5.5 embedded-multimedia record shape (no FILE
   // substructure) has no 7.0 spelling either — 7.0 requires FILE {1:M}
-  // and the FORM/TITL/BLOB extensions are dropped by the emitter — so
+  // and the typed FORM/BLOB content is dropped by the emitter — so
   // such records are dropped here and the links to them stripped,
-  // like the 5.5.1 projection does. Only media links can point at an
-  // OBJE record, so one pass over the media links suffices (7.0 keeps
-  // void pointers, unlike the 5.5.1 stripPointers rule).
+  // like the 5.5.1 projection does. Media links and the evidence
+  // records' `_RDOC` links (the gramps census example points one at a
+  // media record) can reference an OBJE record, so one pass over both
+  // slot kinds suffices (7.0 keeps void pointers, unlike the 5.5.1
+  // stripPointers rule).
   const embedded = out.records.filter(isEmbeddedMediaRecord);
   if (embedded.length > 0) {
     const valid = new Set(
@@ -597,8 +721,19 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
           record.media = kept;
         }
       }
+      if (isEvidenceRecord(record)) {
+        const keptDocuments = (record.documents ?? []).filter(
+          (pointer) => pointer === '@VOID@' || valid.has(pointer),
+        );
+        if (keptDocuments.length === 0) {
+          delete record.documents;
+        } else {
+          record.documents = keptDocuments;
+        }
+      }
     }
   }
+  projectChildPedigrees(out);
   const individuals = new Map<string, IndividualRecord>();
   for (const record of out.records) {
     if (isIndividualRecord(record) && record.xref !== undefined) {

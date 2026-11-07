@@ -17,6 +17,9 @@ import type {
   PlaceStructure,
 } from '../../structures';
 import {
+  emitEvidenceReference,
+} from './evidence';
+import {
   formatName551,
   formatName70,
 } from '../format';
@@ -296,6 +299,11 @@ export function emitPersonalName(w: Writer, version: Version, level: number, nam
   }
   for (const link of name.censusLinks ?? []) {
     ptr(w, version, level + 1, '_CENR', link);
+  }
+  for (const evidence of name.evidence ?? []) {
+    // The gedcom-evidence references of the name (see
+    // PersonalNameStructure.evidence).
+    emitEvidenceReference(w, version, level + 1, evidence);
   }
   for (const apid of name.ancestryPointers ?? []) {
     w.line(level + 1, '_APID', { value: apid });

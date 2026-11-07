@@ -601,6 +601,31 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
           // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
           out.thumbnail = parseYNFlag(child, '_THUM');
         },
+        '_CUTOUT': (child) => {
+          // MyHeritage / GEDKeeper: the cutout flag on the pointer-form
+          // link (see MultimediaLink.cutout).
+          out.cutout = parseYNFlag(child, '_CUTOUT');
+        },
+        '_PRIM_CUTOUT': (child) => {
+          // MyHeritage / GEDKeeper: the primary cutout mark (see
+          // MultimediaLink.primaryCutout).
+          out.primaryCutout = parseYNFlag(child, '_PRIM_CUTOUT');
+        },
+        '_PARENTPHOTO': (child) => {
+          // MyHeritage: the parent-photo flag (see
+          // MultimediaLink.parentPhoto).
+          out.parentPhoto = parseYNFlag(child, '_PARENTPHOTO');
+        },
+        '_PERSONALPHOTO': (child) => {
+          // MyHeritage: the personal-photo flag (see
+          // MultimediaLink.personalPhoto).
+          out.personalPhoto = parseYNFlag(child, '_PERSONALPHOTO');
+        },
+        '_PARENTRIN': (child) => {
+          // MyHeritage: the parent's record id (see
+          // MultimediaLink.parentRecordId).
+          out.parentRecordId = reqText(child);
+        },
         ...fhMediaLinkHandlers(out),
       },
       ctx,
@@ -652,6 +677,17 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
         // MultimediaLink.citations). It lands on the synthesized
         // multimedia record, like the NOTE above.
         (record.citations ??= []).push(parseSourceCitation(child, ctx));
+      },
+      BLOB: (child) => {
+        // The embedded content of the 5.5 inline shape (see
+        // MultimediaRecord.embeddedBlob) — lands on the synthesized
+        // record like the NOTE/FORM above; both exports drop it.
+        if (child.value.kind === 'text') {
+          record.embeddedBlob = child.value.text.replace(/^\n/, '');
+        }
+        for (const grandchild of child.children) {
+          addExtension(record, grandchild, ctx);
+        }
       },
       '_PRIM': (child) => {
         primary = parseYNFlag(child, '_PRIM');
@@ -764,7 +800,13 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   );
   if (record.files.length === 0) {
     // An inline OBJE without FILE is tolerated (the full-leniency
-    // container rule).
+    // container rule). When no FILE carries the record-level FORM, the
+    // format survives as the synthesized record's embedded format (the
+    // GEDCOM 5.5 embedded inline shape; see
+    // MultimediaRecord.embeddedForm). Both exports drop the shape.
+    if (linkForm !== undefined && linkForm.value.kind === 'text') {
+      record.embeddedForm = linkForm.value.text;
+    }
   }
   const firstFile = record.files[0];
   if (firstFile !== undefined) {
