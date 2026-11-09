@@ -66,7 +66,7 @@ describe('importGedcomDataset', () => {
     try {
       const { repo } = fixture;
       const result = importGedcomDataset(parseDataset(), repo);
-      expect(result).toEqual({ importedPersons: 3, importedFamilies: 1, totalPersons: 3 });
+      expect(result).toEqual({ importedPersons: 3, importedFamilies: 1, importedSources: 1, importedPlaces: 2, totalPersons: 3, droppedStructures: 0 });
 
       const persons = repo.listAllPersons();
       expect(persons).toHaveLength(3);

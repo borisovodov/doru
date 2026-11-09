@@ -183,6 +183,7 @@ export interface TreeRepository {
   deleteEvidence(id: string): boolean;
   getEvidence(id: string): EvidenceRecord | undefined;
   listEvidence(): EvidenceRecord[];
+  insertEvidenceLink(link: EvidenceLinkRecord): void;
   listEvidenceLinksFor(targetType: string, targetId: string): EvidenceLinkRecord[];
   insertResearchDocument(document: ResearchDocumentRecord): void;
   updateResearchDocument(document: ResearchDocumentRecord): void;
@@ -848,6 +849,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listEvidence(): EvidenceRecord[] {
     return this.research.listEvidence();
+  }
+
+  insertEvidenceLink(link: EvidenceLinkRecord): void {
+    this.research.insertEvidenceLink(link);
   }
 
   listEvidenceLinksFor(targetType: string, targetId: string): EvidenceLinkRecord[] {

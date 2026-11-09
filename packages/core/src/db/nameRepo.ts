@@ -139,7 +139,12 @@ export class NameRepo {
       dateId,
       position,
     );
-    const parts = name.parts ?? partsFromFlat(name);
+    const parts = [...(name.parts ?? partsFromFlat(name))];
+    if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
+      // The verbatim display form is authoritative: keep it alongside the
+      // pieces even when the caller supplied explicit parts.
+      parts.push({ id: crypto.randomUUID(), kind: 'full', value: name.full.trim(), position: parts.length });
+    }
     parts.forEach((part, index) => {
       this.insertPart.run(part.id, name.id, part.kind, part.value, index);
     });
