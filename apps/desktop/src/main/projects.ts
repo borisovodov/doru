@@ -9,6 +9,7 @@ import {
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
+import { log } from './log';
 import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
 import {
@@ -103,7 +104,9 @@ export async function openProject(
     summary = (await ensureRuntime(filePath)).summary;
   } catch (error) {
     // The file is not readable: a sandboxed build without a working bookmark,
-    // or the file was moved or deleted. Drop the held access, if any.
+    // the file was moved or deleted, or its schema version is not understood
+    // by this build. Log the reason and drop the held access, if any.
+    log.error('failed to open project', filePath, error);
     releaseAccess(filePath);
     if (senderId !== undefined && !pickedViaDialog) {
       // A user-initiated reopen failed — let them pick the file again.

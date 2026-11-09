@@ -23,8 +23,11 @@ decisions about what we deliberately do **not** build, see
     makes a burst of concurrent openers queue briefly instead of failing
     with `SQLITE_BUSY`.
 - Opening a project is **idempotent**: an existing file opens as-is, a new one
-  is created with the latest schema. The only loud case is a corrupted
-  database — that must not be silently "healed" away.
+  is created with the latest schema. Two cases fail loudly instead of being
+  silently "healed": a corrupted database, and a file whose `user_version`
+  differs from the build's schema version (there are no migrations before
+  1.0.0, and `CREATE TABLE IF NOT EXISTS` never adds missing columns to an
+  old file — the store refuses it with a clear error).
 - **Creating** a project is the one deliberate exception to idempotency: the
   Save dialog asks about replacing an existing file (every OS does this), and
   the confirmed choice replaces the file with a new, empty project — like any

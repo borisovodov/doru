@@ -13,7 +13,7 @@ import { FactRepo } from './factRepo';
 import { FamilyRepo } from './familyRepo';
 import { MediaRepo } from './mediaRepo';
 import { NoteRepo } from './noteRepo';
-import { PersonRepo, type PersonQuery } from './personRepo';
+import { PersonRepo, type PersonBase, type PersonQuery } from './personRepo';
 import { SourceRepo } from './sourceRepo';
 import { TransactionScope } from './transaction';
 
@@ -33,6 +33,8 @@ export interface TreeRepository {
   getFamily(id: string): FamilyRecord | undefined;
   deleteFamily(id: string): boolean;
   listFamilies(): FamilyRecord[];
+  /** Every family the person belongs to, as a partner or a child. */
+  listFamiliesForPerson(personId: string): FamilyRecord[];
   insertFact(fact: FactRecord): void;
   deleteFact(id: string): boolean;
   listFactsForPerson(personId: string): FactRecord[];
@@ -138,17 +140,18 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listPersons(query?: PersonQuery): PersonRecord[] {
-    return this.persons.listPersons(query).map((base) => ({
-      ...base,
-      facts: this.facts.listFactsForPerson(base.id),
-    }));
+    const bases = this.persons.listPersons(query);
+    return this.withFacts(bases);
   }
 
   listAllPersons(): PersonRecord[] {
-    return this.persons.listAllPersons().map((base) => ({
-      ...base,
-      facts: this.facts.listFactsForPerson(base.id),
-    }));
+    return this.withFacts(this.persons.listAllPersons());
+  }
+
+  /** Attaches each base person's facts, loaded in one batched query. */
+  private withFacts(bases: PersonBase[]): PersonRecord[] {
+    const factsByPerson = this.facts.listFactsForPersons(bases.map((base) => base.id));
+    return bases.map((base) => ({ ...base, facts: factsByPerson.get(base.id) ?? [] }));
   }
 
   countPersons(): number {
@@ -177,6 +180,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listFamilies(): FamilyRecord[] {
     return this.families.listFamilies();
+  }
+
+  listFamiliesForPerson(personId: string): FamilyRecord[] {
+    return this.families.listFamiliesForPerson(personId);
   }
 
   insertFact(fact: FactRecord): void {

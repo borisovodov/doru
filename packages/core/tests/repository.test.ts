@@ -143,6 +143,73 @@ describe('SqliteTreeRepository', () => {
     }
   });
 
+  it('keeps child order across reads and updates', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      for (const id of ['A', 'B', 'C', 'D']) {
+        repo.insertPerson({ id, names: [], sex: 'U', facts: [] });
+      }
+      repo.insertFamily({ id: 'F1', partners: ['A'], children: ['D', 'B', 'C'] });
+      expect(repo.getFamily('F1')?.children).toEqual(['D', 'B', 'C']);
+
+      repo.updateFamily({ id: 'F1', partners: ['A'], children: ['C', 'D'] });
+      expect(repo.getFamily('F1')?.children).toEqual(['C', 'D']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('lists only the families a person belongs to', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      for (const id of ['A', 'B', 'C', 'D']) {
+        repo.insertPerson({ id, names: [], sex: 'U', facts: [] });
+      }
+      repo.insertFamily({ id: 'F1', partners: ['A', 'B'], children: ['C'] });
+      repo.insertFamily({ id: 'F2', partners: ['D'], children: [] });
+
+      expect(repo.listFamiliesForPerson('A').map((family) => family.id)).toEqual(['F1']);
+      expect(repo.listFamiliesForPerson('C').map((family) => family.id)).toEqual(['F1']);
+      expect(repo.listFamiliesForPerson('D').map((family) => family.id)).toEqual(['F2']);
+      expect(repo.listFamiliesForPerson('missing')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('searches names case-insensitively and by substring in any script', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson(ivan);
+      repo.insertPerson(maria);
+      const boris: PersonRecord = {
+        id: 'P3',
+        names: [{ id: 'N4', given: 'Борис', surname: 'Ёлкин' }],
+        sex: 'M',
+        facts: [],
+      };
+      repo.insertPerson(boris);
+
+      expect(repo.listPersons({ search: 'борис' }).map((p) => p.id)).toEqual(['P3']);
+      expect(repo.listPersons({ search: 'БОРИС' }).map((p) => p.id)).toEqual(['P3']);
+      expect(repo.listPersons({ search: 'ёлк' }).map((p) => p.id)).toEqual(['P3']);
+      expect(repo.listPersons({ search: 'борис ёлкин' }).map((p) => p.id)).toEqual(['P3']);
+      expect(repo.listPersons({ search: 'petr' }).map((p) => p.id)).toEqual(['P2']);
+      // Terms shorter than three characters fall back to a full scan.
+      expect(repo.listPersons({ search: 'бо' }).map((p) => p.id)).toEqual(['P3']);
+
+      // Updates re-index the name: the old name stops matching.
+      repo.updatePerson({ ...boris, names: [{ id: 'N4', given: 'Пётр', surname: 'Сидоров' }] });
+      expect(repo.listPersons({ search: 'борис' })).toEqual([]);
+      expect(repo.listPersons({ search: 'сидор' }).map((p) => p.id)).toEqual(['P3']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('cascades family links when a person is deleted', () => {
     const fixture = makeRepo();
     try {

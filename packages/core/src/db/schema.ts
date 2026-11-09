@@ -22,17 +22,26 @@
  * - Dates are stored as normalized columns (never JSON): one primary
  *   component, an optional end component for ranges, a free-text fallback,
  *   and a derived `sort_year` for ordering. See `model/types.ts`.
+ * - `person_name_fts` is an FTS5 (trigram) index over lowercased name parts
+ *   for substring search. It is a regular virtual table, not an external
+ *   content table: PersonRepo — the only writer of person_name — maintains
+ *   it on name insert/update and person delete.
+ * - Family children carry a `position` so their order survives round-trips
+ *   (partners have always had one).
  */
 
 export const DORU_APPLICATION_ID = 0x444f5255;
 
 /**
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
- * a newer version may simply not understand files written by older ones.
+ * a newer version may simply not understand files written by older ones
+ * (the store refuses to open them with a loud error).
  * (Version 2 added the import-facing columns: `surname_prefix`,
- * `date_modifier`, and text month codes; version 1 was the pre-rewrite stub.)
+ * `date_modifier`, and text month codes; version 1 was the pre-rewrite stub.
+ * Version 3 was the current pre-FTS shape. Version 4 adds the FTS5 index over
+ * person names and the `position` column that preserves child order.)
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -70,6 +79,7 @@ CREATE TABLE IF NOT EXISTS family_partner (
 CREATE TABLE IF NOT EXISTS family_child (
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
   child_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
   PRIMARY KEY (family_id, child_id)
 );
 
@@ -131,9 +141,19 @@ CREATE TABLE IF NOT EXISTS media (
   target_id TEXT
 );
 
+-- Case-insensitive substring search over person names. The trigram tokenizer
+-- indexes substrings of three or more characters; queries with shorter terms
+-- fall back to a scan in PersonRepo. The stored name is the lowercase join
+-- of the name's full/given/surname parts, so matching is case-insensitive for
+-- every script (SQLite's own lower() folds ASCII only). The table is kept in
+-- sync by PersonRepo — the single writer of person_name.
+CREATE VIRTUAL TABLE IF NOT EXISTS person_name_fts USING fts5(
+  person_id UNINDEXED,
+  name,
+  tokenize='trigram'
+);
+
 CREATE INDEX IF NOT EXISTS idx_person_name_person ON person_name(person_id, position);
-CREATE INDEX IF NOT EXISTS idx_person_name_given ON person_name(given);
-CREATE INDEX IF NOT EXISTS idx_person_name_surname ON person_name(surname);
 CREATE INDEX IF NOT EXISTS idx_family_partner_person ON family_partner(person_id);
 CREATE INDEX IF NOT EXISTS idx_family_child_child ON family_child(child_id);
 CREATE INDEX IF NOT EXISTS idx_fact_person ON fact(person_id);

@@ -69,6 +69,11 @@ export class TreeService {
     return this.repo.listFamilies();
   }
 
+  /** Every family the person belongs to, as a partner or a child. */
+  listFamiliesForPerson(personId: string): FamilyRecord[] {
+    return this.repo.listFamiliesForPerson(personId);
+  }
+
   stats(): TreeStats {
     return { persons: this.repo.countPersons(), families: this.repo.countFamilies() };
   }
@@ -154,8 +159,7 @@ export class TreeService {
   /** Deletes the person together with their family links — one undo step. */
   deletePerson(person: PersonRecord): UndoRedoState {
     const links = this.repo
-      .listFamilies()
-      .filter((family) => family.partners.includes(person.id) || family.children.includes(person.id))
+      .listFamiliesForPerson(person.id)
       .map((family) => ({
         before: family,
         after: {
@@ -172,15 +176,16 @@ export class TreeService {
    * that family when it does not exist — one undo step.
    */
   reparent(childId: string, newParentId: string): UndoRedoState {
-    const families = this.repo.listFamilies();
     const links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
-    for (const family of families.filter((entry) => entry.children.includes(childId))) {
+    for (const family of this.repo.listFamiliesForPerson(childId).filter((entry) => entry.children.includes(childId))) {
       links.push({
         before: family,
         after: { ...family, children: family.children.filter((id) => id !== childId) },
       });
     }
-    const target = families.find((entry) => entry.partners.includes(newParentId));
+    const target = this.repo
+      .listFamiliesForPerson(newParentId)
+      .find((entry) => entry.partners.includes(newParentId));
     if (target) {
       links.push({ before: target, after: { ...target, children: [...target.children, childId] } });
     }
@@ -197,13 +202,14 @@ export class TreeService {
    * person and the link.
    */
   addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): UndoRedoState {
-    const families = this.repo.listFamilies();
     let links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
     let created: FamilyRecord | undefined;
     if (relation === 'parent') {
       created = { id: crypto.randomUUID(), partners: [person.id], children: [anchorId] };
     } else {
-      const target = families.find((entry) => entry.partners.includes(anchorId));
+      const target = this.repo
+        .listFamiliesForPerson(anchorId)
+        .find((entry) => entry.partners.includes(anchorId));
       if (target) {
         const after =
           relation === 'child'

@@ -47,6 +47,19 @@ export class FamilyRepo {
     return rows.map((row) => this.hydrate(row));
   }
 
+  /** Every family the person belongs to, as a partner or a child. */
+  listFamiliesForPerson(personId: string): FamilyRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, xref FROM family f
+         WHERE EXISTS (SELECT 1 FROM family_partner p WHERE p.family_id = f.id AND p.person_id = ?)
+            OR EXISTS (SELECT 1 FROM family_child c WHERE c.family_id = f.id AND c.child_id = ?)
+         ORDER BY f.id`,
+      )
+      .all(personId, personId) as unknown as FamilyRow[];
+    return rows.map((row) => this.hydrate(row));
+  }
+
   countFamilies(): number {
     const row = this.db.prepare('SELECT COUNT(*) AS n FROM family').get() as { n: number };
     return row.n;
@@ -60,12 +73,12 @@ export class FamilyRepo {
         insertPartner.run(family.id, personId, position);
       }
     });
-    const insertChild = this.db.prepare('INSERT INTO family_child (family_id, child_id) VALUES (?, ?)');
-    for (const childId of family.children) {
+    const insertChild = this.db.prepare('INSERT INTO family_child (family_id, child_id, position) VALUES (?, ?, ?)');
+    family.children.forEach((childId, position) => {
       if (personExists.get(childId) !== undefined) {
-        insertChild.run(family.id, childId);
+        insertChild.run(family.id, childId, position);
       }
-    }
+    });
   }
 
   private hydrate(row: FamilyRow): FamilyRecord {
@@ -73,7 +86,7 @@ export class FamilyRepo {
       .prepare('SELECT person_id FROM family_partner WHERE family_id = ? ORDER BY position')
       .all(row.id) as unknown as { person_id: string }[];
     const children = this.db
-      .prepare('SELECT child_id FROM family_child WHERE family_id = ? ORDER BY child_id')
+      .prepare('SELECT child_id FROM family_child WHERE family_id = ? ORDER BY position')
       .all(row.id) as unknown as { child_id: string }[];
     return {
       id: row.id,

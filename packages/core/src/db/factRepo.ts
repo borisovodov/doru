@@ -70,6 +70,27 @@ export class FactRepo {
     return this.queryFacts('family_id', familyId);
   }
 
+  /** Facts of many persons in one query, grouped by person id. */
+  listFactsForPersons(personIds: string[]): Map<string, FactRecord[]> {
+    const byPerson = new Map<string, FactRecord[]>();
+    if (personIds.length === 0) {
+      return byPerson;
+    }
+    const placeholders = personIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT ${FACT_COLUMNS} FROM fact WHERE person_id IN (${placeholders})
+         ORDER BY sort_year IS NULL, sort_year, rowid`,
+      )
+      .all(...personIds) as unknown as FactRow[];
+    for (const row of rows) {
+      const facts = byPerson.get(row.person_id!) ?? [];
+      facts.push(rowToFact(row));
+      byPerson.set(row.person_id!, facts);
+    }
+    return byPerson;
+  }
+
   /** Every fact in the tree, ordered by date. */
   listAllFacts(): FactRecord[] {
     const rows = this.db
