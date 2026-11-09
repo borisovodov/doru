@@ -4,10 +4,23 @@ export interface MutationContext {
   repo: TreeRepository;
 }
 
+/**
+ * Where an op should record its change-log entry; the service writes the row
+ * before applying the op. Delete ops record on a target that is about to go,
+ * so their entry disappears with the entity and is restored from the op's
+ * attachment snapshot on undo.
+ */
+export interface OpChange {
+  targetType: string;
+  targetId: string;
+  kind: 'created' | 'changed';
+}
+
 export interface Op {
   readonly id: string;
   readonly kind: string;
   readonly timestamp: string;
+  readonly change?: OpChange;
   apply(ctx: MutationContext): void;
   inverse(ctx: MutationContext): void;
 }

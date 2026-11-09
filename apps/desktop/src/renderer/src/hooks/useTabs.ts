@@ -40,7 +40,7 @@ function tabLabel(tab: OpenTab, persons: PersonRecord[], families: FamilyRecord[
     const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
     const source = sources.find((entry) => entry.id === sourceId);
     if (source) {
-      return source.title;
+      return source.title ?? '';
     }
   }
   return tab.label;

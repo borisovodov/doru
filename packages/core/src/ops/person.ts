@@ -1,4 +1,5 @@
-import type { FamilyRecord, PersonRecord } from '../model/types';
+import type { AttachmentsSnapshot, FamilyRecord, PersonRecord } from '../model/types';
+import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
 
 export function updatePersonOp(before: PersonRecord, after: PersonRecord): Op {
@@ -6,6 +7,7 @@ export function updatePersonOp(before: PersonRecord, after: PersonRecord): Op {
     id: crypto.randomUUID(),
     kind: 'person.update',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'person', targetId: before.id, kind: 'changed' },
     apply(ctx) {
       ctx.repo.updatePerson(after);
     },
@@ -16,18 +18,21 @@ export function updatePersonOp(before: PersonRecord, after: PersonRecord): Op {
 }
 
 /**
- * Deletes a person together with their family links: apply detaches the
- * person from every family and deletes the record (its names and facts
- * cascade); inverse restores both — one undo step, no orphaned links.
+ * Deletes a person together with their family links and every attachment:
+ * apply detaches the person from every family and deletes the record (its
+ * names and facts cascade); inverse restores everything, attachments
+ * included — one undo step, no losses.
  */
 export function deletePersonOp(
   person: PersonRecord,
   familyLinks: Array<{ before: FamilyRecord; after: FamilyRecord }>,
+  attachments: AttachmentsSnapshot = emptyAttachments(),
 ): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'person.delete',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'person', targetId: person.id, kind: 'changed' },
     apply(ctx) {
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.after);
@@ -39,6 +44,7 @@ export function deletePersonOp(
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.before);
       }
+      ctx.repo.restoreAttachments(attachments);
     },
   };
 }
@@ -51,11 +57,13 @@ export function deletePersonOp(
 export function reparentOp(
   familyLinks: Array<{ before: FamilyRecord; after: FamilyRecord }>,
   created: FamilyRecord | undefined,
+  personId: string,
 ): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'person.reparent',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'person', targetId: personId, kind: 'changed' },
     apply(ctx) {
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.after);
@@ -89,6 +97,7 @@ export function addRelativeOp(
     id: crypto.randomUUID(),
     kind: 'person.addRelative',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'person', targetId: person.id, kind: 'created' },
     apply(ctx) {
       ctx.repo.insertPerson(person);
       for (const link of familyLinks) {

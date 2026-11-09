@@ -1,28 +1,47 @@
 export type { IFileSystem } from './fs';
 export type {
+  AddressRecord,
+  AttachmentsSnapshot,
+  ChangeRecord,
   CitationRecord,
+  ContactRecord,
   DateComponent,
   DateQuality,
   DateValue,
+  FactAge,
+  FactParticipant,
   FactRecord,
+  FactTypeRecord,
   FamilyChildLink,
   FamilyPartnerLink,
   FamilyRecord,
+  HeaderRecord,
+  IdentifierRecord,
+  MediaFile,
+  MediaLinkRecord,
   MediaRecord,
   NamePart,
   NamePartKind,
+  NoteLinkRecord,
   NoteRecord,
+  NoteTranslation,
   PersonName,
   PersonRecord,
   PlaceName,
   PlaceRecord,
+  RepositoryRecord,
+  RestrictionRecord,
   Sex,
   SourceRecord,
+  SourceText,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
   TargetType,
   TimeValue,
   TreeDocument,
 } from './model/types';
-export { TARGET_TYPES, emptyDocument, factOf, factYear, placeName, signedYear } from './model/types';
+export { TARGET_TYPES, emptyAttachments, emptyDocument, factOf, factYear, placeName, signedYear } from './model/types';
 export { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './db/schema';
 export { TreeStore, type ITreeStore, type TreeStoreFactory } from './db/store';
 export {
@@ -51,11 +70,47 @@ export {
 } from './service/tree';
 export { addPersonOp } from './ops/addPerson';
 export { updatePersonOp, deletePersonOp, reparentOp, addRelativeOp } from './ops/person';
-export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp } from './ops/source';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
-export { addFactOp, deleteFactOp } from './ops/fact';
+export { addFactOp, deleteFactOp, updateFactOp } from './ops/fact';
 export { addMediaOp, deleteMediaOp } from './ops/media';
 export { addPlaceOp, deletePlaceOp, updatePlaceOp } from './ops/place';
+export {
+  addAddressOp,
+  addContactOp,
+  addFactTypeOp,
+  addIdentifierOp,
+  addNoteOp,
+  addRepositoryOp,
+  addRestrictionOp,
+  addSourceOp,
+  addSubmitterOp,
+  addTagOp,
+  attachCitationOp,
+  attachMediaOp,
+  attachTagOp,
+  deleteAddressOp,
+  deleteContactOp,
+  deleteFactTypeOp,
+  deleteIdentifierOp,
+  deleteNoteOp,
+  deleteRepositoryOp,
+  deleteRestrictionOp,
+  deleteSourceOp,
+  deleteSubmitterOp,
+  deleteTagOp,
+  detachCitationOp,
+  detachMediaOp,
+  detachTagOp,
+  saveHeaderOp,
+  splitNoteOp,
+  updateAddressOp,
+  updateCitationOp,
+  updateFactTypeOp,
+  updateNoteOp,
+  updateRepositoryOp,
+  updateSourceOp,
+  updateSubmitterOp,
+} from './ops/attachments';
 export { computePedigree, type PedigreeNode } from './pedigree';
 export {
   layoutPedigree,

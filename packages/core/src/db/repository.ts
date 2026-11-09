@@ -1,24 +1,44 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type {
+  AddressRecord,
+  AttachmentsSnapshot,
+  ChangeRecord,
   CitationRecord,
+  ContactRecord,
   FactRecord,
+  FactTypeRecord,
   FamilyRecord,
+  HeaderRecord,
+  IdentifierRecord,
+  MediaLinkRecord,
   MediaRecord,
+  NoteLinkRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
+  RepositoryRecord,
+  RestrictionRecord,
   SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
   TreeDocument,
 } from '../model/types';
+import { emptyAttachments } from '../model/types';
+import { AddressRepo } from './addressRepo';
+import { AttachmentRepo } from './attachmentRepo';
 import { DateRepo } from './dateRepo';
 import { FactRepo } from './factRepo';
 import { FamilyRepo } from './familyRepo';
+import { HeaderRepo } from './headerRepo';
 import { MediaRepo } from './mediaRepo';
 import { NameRepo } from './nameRepo';
 import { NoteRepo } from './noteRepo';
 import { PersonRepo, type PersonQuery, type PersonRow } from './personRepo';
 import { PlaceRepo } from './placeRepo';
+import { RepositoryRepo } from './repositoryRepo';
 import { SourceRepo } from './sourceRepo';
+import { SubmitterRepo } from './submitterRepo';
 import { TransactionScope } from './transaction';
 
 export type { PersonQuery } from './personRepo';
@@ -48,6 +68,10 @@ export interface TreeRepository {
   listAllFacts(): FactRecord[];
   /** Facts that happened at the given place. */
   listFactsForPlace(placeId: string): FactRecord[];
+  insertFactType(type: FactTypeRecord): void;
+  updateFactType(type: FactTypeRecord): void;
+  deleteFactType(id: string): boolean;
+  listFactTypes(): FactTypeRecord[];
   insertPlace(place: PlaceRecord): void;
   updatePlace(place: PlaceRecord): void;
   getPlace(id: string): PlaceRecord | undefined;
@@ -55,10 +79,13 @@ export interface TreeRepository {
   listPlaces(): PlaceRecord[];
   searchPlaces(query: string, limit?: number): PlaceRecord[];
   insertSource(source: SourceRecord): void;
+  updateSource(source: SourceRecord): void;
+  getSource(id: string): SourceRecord | undefined;
   deleteSource(id: string): boolean;
   listSources(): SourceRecord[];
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void;
   insertCitation(citation: CitationRecord): void;
+  updateCitation(citation: CitationRecord): void;
   deleteCitation(id: string): boolean;
   getCitation(id: string): CitationRecord | undefined;
   listCitationsFor(targetType: string, targetId: string): Array<{ id: string; source: SourceRecord }>;
@@ -67,13 +94,60 @@ export interface TreeRepository {
   /** Every citation in the tree. */
   listAllCitations(): CitationRecord[];
   insertNote(note: NoteRecord): void;
+  updateNote(note: NoteRecord): void;
+  getNote(id: string): NoteRecord | undefined;
   deleteNote(id: string): boolean;
+  addNoteLink(noteId: string, link: NoteLinkRecord): void;
+  removeNoteLink(id: string): boolean;
   listNotes(): NoteRecord[];
   listNotesFor(targetType: string, targetId: string): NoteRecord[];
   insertMedia(media: MediaRecord): void;
+  updateMedia(media: MediaRecord): void;
+  getMedia(id: string): MediaRecord | undefined;
   deleteMedia(id: string): boolean;
+  addMediaLink(mediaId: string, link: MediaLinkRecord): void;
+  removeMediaLink(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
+  insertRepository(repository: RepositoryRecord): void;
+  updateRepository(repository: RepositoryRecord): void;
+  getRepository(id: string): RepositoryRecord | undefined;
+  deleteRepository(id: string): boolean;
+  listRepositories(): RepositoryRecord[];
+  insertSubmitter(submitter: SubmitterRecord): void;
+  updateSubmitter(submitter: SubmitterRecord): void;
+  getSubmitter(id: string): SubmitterRecord | undefined;
+  deleteSubmitter(id: string): boolean;
+  listSubmitters(): SubmitterRecord[];
+  insertAddress(address: AddressRecord): void;
+  updateAddress(address: AddressRecord): void;
+  getAddress(id: string): AddressRecord | undefined;
+  deleteAddress(id: string): boolean;
+  getHeader(): HeaderRecord;
+  saveHeader(header: HeaderRecord): void;
+  insertIdentifier(identifier: IdentifierRecord): void;
+  deleteIdentifier(id: string): boolean;
+  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[];
+  insertChange(change: ChangeRecord): void;
+  listChangesFor(targetType: string, targetId: string): ChangeRecord[];
+  insertContact(contact: ContactRecord): void;
+  deleteContact(id: string): boolean;
+  listContactsFor(targetType: string, targetId: string): ContactRecord[];
+  insertRestriction(restriction: RestrictionRecord): void;
+  deleteRestriction(id: string): boolean;
+  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[];
+  insertTag(tag: TagRecord): void;
+  deleteTag(id: string): boolean;
+  listTags(): TagRecord[];
+  insertTagLink(link: TagLinkRecord): void;
+  deleteTagLink(id: string): boolean;
+  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }>;
+  /** Everything attached to a target, for op snapshots before a cascade delete. */
+  listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot;
+  /** Removes every attachment of a target (cascade part of entity deletion). */
+  deleteAttachmentsFor(targetType: string, targetId: string): void;
+  /** Re-inserts a previously captured snapshot (the inverse of a cascade). */
+  restoreAttachments(snapshot: AttachmentsSnapshot): void;
   toTreeDocument(): TreeDocument;
   transaction<T>(fn: () => T): T;
 }
@@ -81,8 +155,8 @@ export interface TreeRepository {
 /**
  * Facade over the per-entity repositories. Ops and services talk to this
  * interface; the entity split underneath is an implementation detail. The
- * facade also composes the person aggregate: the person row plus names
- * (NameRepo) and facts (FactRepo).
+ * facade also composes the aggregates: the person row plus names (NameRepo)
+ * and facts (FactRepo), and the attachment snapshots used by ops.
  */
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
@@ -94,6 +168,11 @@ export class SqliteTreeRepository implements TreeRepository {
   private readonly sources: SourceRepo;
   private readonly notes: NoteRepo;
   private readonly media: MediaRepo;
+  private readonly attachments: AttachmentRepo;
+  private readonly repositories: RepositoryRepo;
+  private readonly submitters: SubmitterRepo;
+  private readonly addresses: AddressRepo;
+  private readonly header: HeaderRepo;
 
   constructor(db: DatabaseSync) {
     this.transactions = new TransactionScope(db);
@@ -103,9 +182,14 @@ export class SqliteTreeRepository implements TreeRepository {
     this.families = new FamilyRepo(db, this.transactions, dates);
     this.facts = new FactRepo(db, dates);
     this.places = new PlaceRepo(db, dates);
-    this.sources = new SourceRepo(db);
+    this.sources = new SourceRepo(db, dates);
     this.notes = new NoteRepo(db);
     this.media = new MediaRepo(db);
+    this.attachments = new AttachmentRepo(db, dates);
+    this.repositories = new RepositoryRepo(db);
+    this.submitters = new SubmitterRepo(db);
+    this.addresses = new AddressRepo(db);
+    this.header = new HeaderRepo(db, dates);
   }
 
   insertPerson(person: PersonRecord): void {
@@ -161,11 +245,12 @@ export class SqliteTreeRepository implements TreeRepository {
 
   /**
    * Deletes the person together with their name index rows, facts (and
-   * their dates) and family links. Attachment rows (notes, citations, …)
-   * are not touched until the attachment phase lands.
+   * their dates), family links and every attachment. The op that deletes a
+   * person captures the attachments first and restores them on undo.
    */
   deletePerson(id: string): boolean {
     return this.transactions.run(() => {
+      this.deleteAttachmentsFor('person', id);
       this.names.deleteFtsForPerson(id);
       this.facts.deleteFactsForPerson(id);
       this.families.removePersonFromFamilies(id);
@@ -216,6 +301,15 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteFamily(id: string): boolean {
     return this.transactions.run(() => {
+      const family = this.families.getFamily(id);
+      // Link rows cascade with the family; their attachments must go too.
+      for (const link of family?.partnerLinks ?? []) {
+        this.deleteAttachmentsFor('family_partner', link.id);
+      }
+      for (const link of family?.childLinks ?? []) {
+        this.deleteAttachmentsFor('family_child', link.id);
+      }
+      this.deleteAttachmentsFor('family', id);
       this.facts.deleteFactsForFamily(id);
       return this.families.deleteFamily(id);
     });
@@ -238,7 +332,10 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   deleteFact(id: string): boolean {
-    return this.facts.deleteFact(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('fact', id);
+      return this.facts.deleteFact(id);
+    });
   }
 
   listFactsForPerson(personId: string): FactRecord[] {
@@ -257,6 +354,22 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.facts.listFactsForPlace(placeId);
   }
 
+  insertFactType(type: FactTypeRecord): void {
+    this.facts.insertFactType(type);
+  }
+
+  updateFactType(type: FactTypeRecord): void {
+    this.facts.updateFactType(type);
+  }
+
+  deleteFactType(id: string): boolean {
+    return this.facts.deleteFactType(id);
+  }
+
+  listFactTypes(): FactTypeRecord[] {
+    return this.facts.listFactTypes();
+  }
+
   insertPlace(place: PlaceRecord): void {
     this.places.insertPlace(place);
   }
@@ -270,7 +383,10 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   deletePlace(id: string): boolean {
-    return this.places.deletePlace(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('place', id);
+      return this.places.deletePlace(id);
+    });
   }
 
   listPlaces(): PlaceRecord[] {
@@ -285,8 +401,19 @@ export class SqliteTreeRepository implements TreeRepository {
     this.sources.insertSource(source);
   }
 
+  updateSource(source: SourceRecord): void {
+    this.sources.updateSource(source);
+  }
+
+  getSource(id: string): SourceRecord | undefined {
+    return this.sources.getSource(id);
+  }
+
   deleteSource(id: string): boolean {
-    return this.sources.deleteSource(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('source', id);
+      return this.sources.deleteSource(id);
+    });
   }
 
   listSources(): SourceRecord[] {
@@ -301,8 +428,15 @@ export class SqliteTreeRepository implements TreeRepository {
     this.sources.insertCitation(citation);
   }
 
+  updateCitation(citation: CitationRecord): void {
+    this.sources.updateCitation(citation);
+  }
+
   deleteCitation(id: string): boolean {
-    return this.sources.deleteCitation(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('citation', id);
+      return this.sources.deleteCitation(id);
+    });
   }
 
   getCitation(id: string): CitationRecord | undefined {
@@ -325,8 +459,27 @@ export class SqliteTreeRepository implements TreeRepository {
     this.notes.insertNote(note);
   }
 
+  updateNote(note: NoteRecord): void {
+    this.notes.updateNote(note);
+  }
+
+  getNote(id: string): NoteRecord | undefined {
+    return this.notes.getNote(id);
+  }
+
   deleteNote(id: string): boolean {
-    return this.notes.deleteNote(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('note', id);
+      return this.notes.deleteNote(id);
+    });
+  }
+
+  addNoteLink(noteId: string, link: NoteLinkRecord): void {
+    this.notes.addNoteLink(noteId, link);
+  }
+
+  removeNoteLink(id: string): boolean {
+    return this.notes.removeNoteLink(id);
   }
 
   listNotes(): NoteRecord[] {
@@ -341,8 +494,27 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.insertMedia(media);
   }
 
+  updateMedia(media: MediaRecord): void {
+    this.media.updateMedia(media);
+  }
+
+  getMedia(id: string): MediaRecord | undefined {
+    return this.media.getMedia(id);
+  }
+
   deleteMedia(id: string): boolean {
-    return this.media.deleteMedia(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('media', id);
+      return this.media.deleteMedia(id);
+    });
+  }
+
+  addMediaLink(mediaId: string, link: MediaLinkRecord): void {
+    this.media.addMediaLink(mediaId, link);
+  }
+
+  removeMediaLink(id: string): boolean {
+    return this.media.removeMediaLink(id);
   }
 
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {
@@ -351,6 +523,201 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listAllMedia(): MediaRecord[] {
     return this.media.listAllMedia();
+  }
+
+  insertRepository(repository: RepositoryRecord): void {
+    this.repositories.insertRepository(repository);
+  }
+
+  updateRepository(repository: RepositoryRecord): void {
+    this.repositories.updateRepository(repository);
+  }
+
+  getRepository(id: string): RepositoryRecord | undefined {
+    return this.repositories.getRepository(id);
+  }
+
+  deleteRepository(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('repository', id);
+      return this.repositories.deleteRepository(id);
+    });
+  }
+
+  listRepositories(): RepositoryRecord[] {
+    return this.repositories.listRepositories();
+  }
+
+  insertSubmitter(submitter: SubmitterRecord): void {
+    this.submitters.insertSubmitter(submitter);
+  }
+
+  updateSubmitter(submitter: SubmitterRecord): void {
+    this.submitters.updateSubmitter(submitter);
+  }
+
+  getSubmitter(id: string): SubmitterRecord | undefined {
+    return this.submitters.getSubmitter(id);
+  }
+
+  deleteSubmitter(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('submitter', id);
+      return this.submitters.deleteSubmitter(id);
+    });
+  }
+
+  listSubmitters(): SubmitterRecord[] {
+    return this.submitters.listSubmitters();
+  }
+
+  insertAddress(address: AddressRecord): void {
+    this.addresses.insertAddress(address);
+  }
+
+  updateAddress(address: AddressRecord): void {
+    this.addresses.updateAddress(address);
+  }
+
+  getAddress(id: string): AddressRecord | undefined {
+    return this.addresses.getAddress(id);
+  }
+
+  deleteAddress(id: string): boolean {
+    return this.addresses.deleteAddress(id);
+  }
+
+  getHeader(): HeaderRecord {
+    return this.header.get();
+  }
+
+  saveHeader(header: HeaderRecord): void {
+    this.header.save(header);
+  }
+
+  insertIdentifier(identifier: IdentifierRecord): void {
+    this.attachments.insertIdentifier(identifier);
+  }
+
+  deleteIdentifier(id: string): boolean {
+    return this.attachments.deleteIdentifier(id);
+  }
+
+  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
+    return this.attachments.listIdentifiersFor(targetType, targetId);
+  }
+
+  insertChange(change: ChangeRecord): void {
+    this.attachments.insertChange(change);
+  }
+
+  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
+    return this.attachments.listChangesFor(targetType, targetId);
+  }
+
+  insertContact(contact: ContactRecord): void {
+    this.attachments.insertContact(contact);
+  }
+
+  deleteContact(id: string): boolean {
+    return this.attachments.deleteContact(id);
+  }
+
+  listContactsFor(targetType: string, targetId: string): ContactRecord[] {
+    return this.attachments.listContactsFor(targetType, targetId);
+  }
+
+  insertRestriction(restriction: RestrictionRecord): void {
+    this.attachments.insertRestriction(restriction);
+  }
+
+  deleteRestriction(id: string): boolean {
+    return this.attachments.deleteRestriction(id);
+  }
+
+  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
+    return this.attachments.listRestrictionsFor(targetType, targetId);
+  }
+
+  insertTag(tag: TagRecord): void {
+    this.attachments.insertTag(tag);
+  }
+
+  deleteTag(id: string): boolean {
+    return this.attachments.deleteTag(id);
+  }
+
+  listTags(): TagRecord[] {
+    return this.attachments.listTags();
+  }
+
+  insertTagLink(link: TagLinkRecord): void {
+    this.attachments.insertTagLink(link);
+  }
+
+  deleteTagLink(id: string): boolean {
+    return this.attachments.deleteTagLink(id);
+  }
+
+  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
+    return this.attachments.listTagLinksFor(targetType, targetId);
+  }
+
+  listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
+    return {
+      noteLinks: this.notes.listLinksFor(targetType, targetId),
+      citations: this.sources.listCitations(targetType, targetId),
+      mediaLinks: this.media.listLinksFor(targetType, targetId),
+      identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
+      contacts: this.attachments.listContactsFor(targetType, targetId),
+      restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
+      changes: this.attachments.listChangesFor(targetType, targetId),
+      tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
+    };
+  }
+
+  deleteAttachmentsFor(targetType: string, targetId: string): void {
+    this.notes.deleteLinksFor(targetType, targetId);
+    this.sources.deleteCitationsFor(targetType, targetId);
+    this.media.deleteLinksFor(targetType, targetId);
+    this.attachments.deleteAllFor(targetType, targetId);
+  }
+
+  restoreAttachments(snapshot: AttachmentsSnapshot): void {
+    for (const entry of snapshot.noteLinks) {
+      if (this.notes.getNote(entry.note.id) === undefined) {
+        // The note was deleted (it had no other links): re-inserting it
+        // restores all of its links at once.
+        this.notes.insertNote(entry.note);
+      } else {
+        this.notes.addNoteLink(entry.note.id, entry.link);
+      }
+    }
+    for (const citation of snapshot.citations) {
+      this.sources.insertCitation(citation);
+    }
+    for (const entry of snapshot.mediaLinks) {
+      if (this.media.getMedia(entry.media.id) === undefined) {
+        this.media.insertMedia(entry.media);
+      } else {
+        this.media.addMediaLink(entry.media.id, entry.link);
+      }
+    }
+    for (const identifier of snapshot.identifiers) {
+      this.attachments.insertIdentifier(identifier);
+    }
+    for (const contact of snapshot.contacts) {
+      this.attachments.insertContact(contact);
+    }
+    for (const restriction of snapshot.restrictions) {
+      this.attachments.insertRestriction(restriction);
+    }
+    for (const change of snapshot.changes) {
+      this.attachments.insertChange(change);
+    }
+    for (const entry of snapshot.tagLinks) {
+      this.attachments.insertTagLink(entry.link);
+    }
   }
 
   toTreeDocument(): TreeDocument {
@@ -363,4 +730,8 @@ export class SqliteTreeRepository implements TreeRepository {
   transaction<T>(fn: () => T): T {
     return this.transactions.run(fn);
   }
+}
+
+export function emptyAttachmentsSnapshot(): AttachmentsSnapshot {
+  return emptyAttachments();
 }

@@ -294,7 +294,7 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
   return {
     tag: 'SOUR',
     xref: xrefs.of(source.id),
-    title: source.title,
+    ...(source.title !== undefined ? { title: source.title } : {}),
     ...(source.abbreviation !== undefined ? { abbreviation: source.abbreviation } : {}),
     ...(source.author !== undefined ? { author: source.author } : {}),
     ...(source.publication !== undefined ? { publication: source.publication } : {}),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addFactOp, deleteFactOp } from '../src/ops/fact';
 import { addMediaOp, deleteMediaOp } from '../src/ops/media';
-import { cleanupRepo, makeRepo } from './helpers';
+import { cleanupRepo, flatMedia, makeRepo } from './helpers';
 
 describe('fact ops', () => {
   it('adds and deletes facts with dates and places and undo', () => {
@@ -44,7 +44,7 @@ describe('media ops', () => {
       const media = { id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' };
       const add = addMediaOp(media);
       add.apply(ctx);
-      expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([media]);
+      expect(fixture.repo.listMediaFor('person', 'P1').map(flatMedia)).toEqual([media]);
 
       const del = deleteMediaOp(media);
       del.apply(ctx);

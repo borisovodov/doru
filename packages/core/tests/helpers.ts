@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { SqliteTreeRepository } from '../src/db/repository';
 import { TreeStore } from '../src/db/store';
 import type { IFileSystem } from '../src/fs';
-import type { FamilyRecord, PersonRecord } from '../src/model/types';
+import type { FamilyRecord, MediaRecord, PersonRecord } from '../src/model/types';
 
 export interface RepoFixture {
   repo: SqliteTreeRepository;
@@ -59,6 +59,18 @@ export function flatPerson(person: PersonRecord): PersonRecord {
 /** The flat contract of a hydrated family: partner/child ids without link rows. */
 export function flatFamily(family: FamilyRecord): FamilyRecord {
   return { id: family.id, xref: family.xref, partners: family.partners, children: family.children };
+}
+
+/** The flat contract of a hydrated media record: the first file/link as flat fields. */
+export function flatMedia(media: MediaRecord): MediaRecord {
+  return {
+    id: media.id,
+    xref: media.xref,
+    path: media.path,
+    title: media.title,
+    targetType: media.targetType,
+    targetId: media.targetId,
+  };
 }
 
 export class MemoryFileSystem implements IFileSystem {

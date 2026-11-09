@@ -1,25 +1,79 @@
-import type { CitationRecord, FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, PlaceRecord, SourceRecord } from '../model/types';
+import type {
+  AddressRecord,
+  CitationRecord,
+  ContactRecord,
+  FactRecord,
+  FactTypeRecord,
+  FamilyRecord,
+  HeaderRecord,
+  IdentifierRecord,
+  MediaLinkRecord,
+  MediaRecord,
+  NoteLinkRecord,
+  NoteRecord,
+  PersonRecord,
+  PlaceRecord,
+  RepositoryRecord,
+  RestrictionRecord,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+} from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import {
+  addAddressOp,
+  addContactOp,
   addFactOp,
+  addFactTypeOp,
   addFamilyOp,
+  addIdentifierOp,
   addMediaOp,
   addNoteOp,
   addPersonOp,
   addPlaceOp,
   addRelativeOp,
+  addRepositoryOp,
+  addRestrictionOp,
   addSourceOp,
+  addSubmitterOp,
+  addTagOp,
   attachCitationOp,
+  attachMediaOp,
+  attachTagOp,
+  deleteAddressOp,
+  deleteContactOp,
   deleteFactOp,
+  deleteFactTypeOp,
   deleteFamilyOp,
+  deleteIdentifierOp,
   deleteMediaOp,
+  deleteNoteOp,
   deletePersonOp,
   deletePlaceOp,
+  deleteRepositoryOp,
+  deleteRestrictionOp,
+  deleteSourceOp,
+  deleteSubmitterOp,
+  deleteTagOp,
   detachCitationOp,
+  detachMediaOp,
+  detachTagOp,
   reparentOp,
+  saveHeaderOp,
+  splitNoteOp,
+  updateAddressOp,
+  updateCitationOp,
+  updateFactOp,
+  updateFactTypeOp,
   updateFamilyOp,
+  updateNoteOp,
   updatePersonOp,
   updatePlaceOp,
+  updateRepositoryOp,
+  updateSourceOp,
+  updateSubmitterOp,
+  type FamilyLinkAttachments,
 } from '../ops';
 import { OpQueue, type Op } from '../ops/op';
 
@@ -140,12 +194,18 @@ export class TreeService {
   // --- history -------------------------------------------------------------
 
   undo(): UndoRedoState {
-    this.queue.undo({ repo: this.repo });
+    const op = this.queue.undo({ repo: this.repo });
+    if (op) {
+      this.recordChange(op, 'changed');
+    }
     return this.historyState();
   }
 
   redo(): UndoRedoState {
-    this.queue.redo({ repo: this.repo });
+    const op = this.queue.redo({ repo: this.repo });
+    if (op) {
+      this.recordChange(op, 'changed');
+    }
     return this.historyState();
   }
 
@@ -159,7 +219,11 @@ export class TreeService {
     return this.apply(updatePersonOp(before, after));
   }
 
-  /** Deletes the person together with their family links — one undo step. */
+  /**
+   * Deletes the person together with their family links and every
+   * attachment (notes, citations, media links, identifiers, …) — one undo
+   * step restores everything, attachments included.
+   */
   deletePerson(person: PersonRecord): UndoRedoState {
     const links = this.repo
       .listFamiliesForPerson(person.id)
@@ -173,7 +237,8 @@ export class TreeService {
           childLinks: family.childLinks?.filter((link) => link.childId !== person.id),
         },
       }));
-    return this.apply(deletePersonOp(person, links));
+    const attachments = this.repo.listAttachmentsFor('person', person.id);
+    return this.apply(deletePersonOp(person, links, attachments));
   }
 
   /**
@@ -208,7 +273,7 @@ export class TreeService {
     const created = target
       ? undefined
       : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
-    return this.apply(reparentOp(links, created));
+    return this.apply(reparentOp(links, created, childId));
   }
 
   /**
@@ -262,7 +327,23 @@ export class TreeService {
   }
 
   deleteFamily(family: FamilyRecord): UndoRedoState {
-    return this.apply(deleteFamilyOp(family));
+    const attachments = this.repo.listAttachmentsFor('family', family.id);
+    const linkAttachments: FamilyLinkAttachments[] = [];
+    for (const link of family.partnerLinks ?? []) {
+      linkAttachments.push({
+        targetType: 'family_partner',
+        targetId: link.id,
+        attachments: this.repo.listAttachmentsFor('family_partner', link.id),
+      });
+    }
+    for (const link of family.childLinks ?? []) {
+      linkAttachments.push({
+        targetType: 'family_child',
+        targetId: link.id,
+        attachments: this.repo.listAttachmentsFor('family_child', link.id),
+      });
+    }
+    return this.apply(deleteFamilyOp(family, attachments, linkAttachments));
   }
 
   // --- places ---------------------------------------------------------------
@@ -295,7 +376,8 @@ export class TreeService {
     const facts = this.repo
       .listFactsForPlace(place.id)
       .map((fact) => ({ before: fact, after: { ...fact, placeId: undefined } }));
-    return this.apply(deletePlaceOp(place, facts));
+    const attachments = this.repo.listAttachmentsFor('place', place.id);
+    return this.apply(deletePlaceOp(place, facts, attachments));
   }
 
   // --- sources and citations ------------------------------------------------
@@ -305,9 +387,22 @@ export class TreeService {
     return this.apply(addSourceOp(source, citation));
   }
 
+  updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
+    return this.apply(updateSourceOp(before, after));
+  }
+
+  deleteSource(source: SourceRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('source', source.id);
+    return this.apply(deleteSourceOp(source, attachments));
+  }
+
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
     const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
     return this.apply(attachCitationOp(citation));
+  }
+
+  updateCitation(before: CitationRecord, after: CitationRecord): UndoRedoState {
+    return this.apply(updateCitationOp(before, after));
   }
 
   detachCitation(citationId: string): UndoRedoState {
@@ -324,12 +419,41 @@ export class TreeService {
     return this.apply(addFactOp(fact));
   }
 
+  updateFact(before: FactRecord, after: FactRecord): UndoRedoState {
+    return this.apply(updateFactOp(before, after));
+  }
+
   deleteFact(fact: FactRecord): UndoRedoState {
-    return this.apply(deleteFactOp(fact));
+    const attachments = this.repo.listAttachmentsFor('fact', fact.id);
+    return this.apply(deleteFactOp(fact, attachments));
   }
 
   addNote(note: NoteRecord): UndoRedoState {
     return this.apply(addNoteOp(note));
+  }
+
+  /**
+   * Updates a note. Editing a note that is attached to several places from
+   * one of them splits it (copy-on-write): a new note with the edited text
+   * takes the context's link, the shared text stays untouched.
+   */
+  updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): UndoRedoState {
+    const links = before.links ?? [];
+    if (context && links.length > 1) {
+      const matching = links.find(
+        (link) => link.targetType === context.targetType && link.targetId === context.targetId,
+      );
+      if (matching) {
+        const copy: NoteRecord = { ...after, id: crypto.randomUUID(), xref: undefined, links: [matching] };
+        return this.apply(splitNoteOp(before.id, copy, matching));
+      }
+    }
+    return this.apply(updateNoteOp(before, after));
+  }
+
+  deleteNote(note: NoteRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('note', note.id);
+    return this.apply(deleteNoteOp(note, attachments));
   }
 
   addMedia(media: MediaRecord): UndoRedoState {
@@ -337,14 +461,149 @@ export class TreeService {
   }
 
   deleteMedia(media: MediaRecord): UndoRedoState {
-    return this.apply(deleteMediaOp(media));
+    const attachments = this.repo.listAttachmentsFor('media', media.id);
+    return this.apply(deleteMediaOp(media, attachments));
+  }
+
+  attachMedia(link: MediaLinkRecord): UndoRedoState {
+    return this.apply(attachMediaOp(link));
+  }
+
+  detachMedia(link: MediaLinkRecord): UndoRedoState {
+    return this.apply(detachMediaOp(link));
+  }
+
+  // --- universal attachments --------------------------------------------------
+
+  addIdentifier(identifier: IdentifierRecord): UndoRedoState {
+    return this.apply(addIdentifierOp(identifier));
+  }
+
+  deleteIdentifier(identifier: IdentifierRecord): UndoRedoState {
+    return this.apply(deleteIdentifierOp(identifier));
+  }
+
+  addContact(contact: ContactRecord): UndoRedoState {
+    return this.apply(addContactOp(contact));
+  }
+
+  deleteContact(contact: ContactRecord): UndoRedoState {
+    return this.apply(deleteContactOp(contact));
+  }
+
+  addRestriction(restriction: RestrictionRecord): UndoRedoState {
+    return this.apply(addRestrictionOp(restriction));
+  }
+
+  deleteRestriction(restriction: RestrictionRecord): UndoRedoState {
+    return this.apply(deleteRestrictionOp(restriction));
+  }
+
+  addTag(tag: TagRecord): UndoRedoState {
+    return this.apply(addTagOp(tag));
+  }
+
+  deleteTag(tag: TagRecord): UndoRedoState {
+    return this.apply(deleteTagOp(tag));
+  }
+
+  attachTag(link: TagLinkRecord): UndoRedoState {
+    return this.apply(attachTagOp(link));
+  }
+
+  detachTag(link: TagLinkRecord): UndoRedoState {
+    return this.apply(detachTagOp(link));
+  }
+
+  // --- registries: repositories, submitters, addresses, fact types, header ------
+
+  addRepository(repository: RepositoryRecord): UndoRedoState {
+    return this.apply(addRepositoryOp(repository));
+  }
+
+  updateRepository(before: RepositoryRecord, after: RepositoryRecord): UndoRedoState {
+    return this.apply(updateRepositoryOp(before, after));
+  }
+
+  deleteRepository(repository: RepositoryRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('repository', repository.id);
+    return this.apply(deleteRepositoryOp(repository, attachments));
+  }
+
+  addSubmitter(submitter: SubmitterRecord): UndoRedoState {
+    return this.apply(addSubmitterOp(submitter));
+  }
+
+  updateSubmitter(before: SubmitterRecord, after: SubmitterRecord): UndoRedoState {
+    return this.apply(updateSubmitterOp(before, after));
+  }
+
+  deleteSubmitter(submitter: SubmitterRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('submitter', submitter.id);
+    return this.apply(deleteSubmitterOp(submitter, attachments));
+  }
+
+  addAddress(address: AddressRecord): UndoRedoState {
+    return this.apply(addAddressOp(address));
+  }
+
+  updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
+    return this.apply(updateAddressOp(before, after));
+  }
+
+  deleteAddress(address: AddressRecord): UndoRedoState {
+    return this.apply(deleteAddressOp(address));
+  }
+
+  addFactType(type: FactTypeRecord): UndoRedoState {
+    return this.apply(addFactTypeOp(type));
+  }
+
+  updateFactType(before: FactTypeRecord, after: FactTypeRecord): UndoRedoState {
+    return this.apply(updateFactTypeOp(before, after));
+  }
+
+  deleteFactType(type: FactTypeRecord): UndoRedoState {
+    return this.apply(deleteFactTypeOp(type));
+  }
+
+  saveHeader(header: HeaderRecord): UndoRedoState {
+    return this.apply(saveHeaderOp(this.repo.getHeader(), header));
   }
 
   // --- plumbing -------------------------------------------------------------
 
   private apply(op: Op): UndoRedoState {
+    this.recordChange(op, op.change?.kind ?? 'changed');
     this.queue.apply(op, { repo: this.repo });
     return this.historyState();
+  }
+
+  /**
+   * Records the change-log row for an op on the entity it touches. Runs
+   * before the mutation; the row disappears with the entity when the op
+   * deletes it and is restored from the op's attachment snapshot on undo.
+   */
+  private recordChange(op: Op, kind: 'created' | 'changed'): void {
+    if (!op.change) {
+      return;
+    }
+    const now = new Date();
+    this.repo.insertChange({
+      id: crypto.randomUUID(),
+      targetType: op.change.targetType,
+      targetId: op.change.targetId,
+      kind,
+      date: {
+        quality: 'exact',
+        component: {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          day: now.getDate(),
+        },
+        time: { hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds() },
+      },
+    });
   }
 
   private historyState(): UndoRedoState {

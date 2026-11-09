@@ -162,12 +162,52 @@ export interface FactRecord {
   placeId?: string | undefined;
   /** The place as typed/displayed. */
   place?: string | undefined;
+  addressId?: string | undefined;
   agency?: string | undefined;
   religiousAffiliation?: string | undefined;
   cause?: string | undefined;
   /** Display sentence template (GEDCOM SENT). */
   sentence?: string | undefined;
   quality?: string | undefined;
+  /** Ages at the fact (the subject's, or per partner role on family facts). */
+  ages?: FactAge[] | undefined;
+  /** Witnesses and other participants. */
+  participants?: FactParticipant[] | undefined;
+  /** Flags: private | preferred | tentative | rejected. */
+  flags?: string[] | undefined;
+}
+
+/** An age at a fact: the subject's (no person/role) or a partner's (HUSB/WIFE). */
+export interface FactAge {
+  id: string;
+  personId?: string | undefined;
+  role?: string | undefined;
+  bound?: string | undefined;
+  years?: number | undefined;
+  months?: number | undefined;
+  weeks?: number | undefined;
+  days?: number | undefined;
+  phrase?: string | undefined;
+}
+
+/** A witness or participant of a fact: a linked person or a free-text name. */
+export interface FactParticipant {
+  id: string;
+  personId?: string | undefined;
+  value?: string | undefined;
+  role?: string | undefined;
+  position: number;
+}
+
+/** A user-defined fact type (custom event/attribute definitions). */
+export interface FactTypeRecord {
+  id: string;
+  code?: string | undefined;
+  kind?: string | undefined;
+  title?: string | undefined;
+  abbreviation?: string | undefined;
+  sentence?: string | undefined;
+  confidential?: boolean | undefined;
 }
 
 export interface PersonRecord {
@@ -267,14 +307,32 @@ export function placeName(place: PlaceRecord | undefined): string {
 // Sources, citations, notes, media
 // ---------------------------------------------------------------------------
 
+export interface SourceText {
+  id: string;
+  text: string;
+  mime?: string | undefined;
+  language?: string | undefined;
+}
+
 export interface SourceRecord {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
-  title: string;
+  title?: string | undefined;
   abbreviation?: string | undefined;
   author?: string | undefined;
   publication?: string | undefined;
+  medium?: string | undefined;
+  url?: string | undefined;
+  accessDate?: string | undefined;
+  confidence?: string | undefined;
+  pubDate?: DateValue | undefined;
+  pubPlace?: string | undefined;
+  agency?: string | undefined;
+  texts?: SourceText[] | undefined;
+  dataEvents?: Array<{ id: string; tag: string; value?: string; date?: DateValue; placeId?: string }> | undefined;
+  repositories?: Array<{ id: string; repositoryId: string; callNumbers?: Array<{ id: string; value: string; medium?: string }> }> | undefined;
+  templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
 
 /**
@@ -289,22 +347,209 @@ export interface CitationRecord {
   targetId: string;
   page?: string | undefined;
   quality?: string | undefined;
+  description?: string | undefined;
+  confidence?: string | undefined;
+  event?: string | undefined;
+  role?: string | undefined;
+  phrase?: string | undefined;
+  date?: DateValue | undefined;
+  www?: string | undefined;
+  texts?: SourceText[] | undefined;
+  templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
 
-export interface NoteRecord {
+export interface NoteLinkRecord {
+  id: string;
+  targetType: string;
+  targetId: string;
+}
+
+export interface NoteTranslation {
   id: string;
   text: string;
-  targetType?: string | undefined;
-  targetId?: string | undefined;
+  mime?: string | undefined;
+  language?: string | undefined;
 }
 
+/**
+ * A note: inline (one link) or shared (several links). `targetType`/
+ * `targetId` are projections of the first link, kept for the renderer; the
+ * full attachment set lives in `links`.
+ */
+export interface NoteRecord {
+  id: string;
+  /** Set when the note is a shared NOTE/SNOTE record. */
+  xref?: string | undefined;
+  text: string;
+  mime?: string | undefined;
+  language?: string | undefined;
+  targetType?: string | undefined;
+  targetId?: string | undefined;
+  links?: NoteLinkRecord[] | undefined;
+  translations?: NoteTranslation[] | undefined;
+}
+
+/** One file of a media record; the bytes live in the media/ folder, never in the DB. */
+export interface MediaFile {
+  id: string;
+  path: string;
+  title?: string | undefined;
+}
+
+/** A media record attached to some target, with the link's usage details. */
+export interface MediaLinkRecord {
+  id: string;
+  mediaId: string;
+  targetType: string;
+  targetId: string;
+  crop?: { top?: number; left?: number; height?: number; width?: number } | undefined;
+  title?: string | undefined;
+  sequence?: number | undefined;
+  primary?: boolean | undefined;
+  scrapbook?: boolean | undefined;
+  slideshow?: boolean | undefined;
+  thumbnail?: boolean | undefined;
+  exclude?: boolean | undefined;
+  caption?: boolean | undefined;
+}
+
+/**
+ * A media record with its files and links. `path`, `targetType`, `targetId`
+ * and `title` are projections of the first file/link, kept for the renderer.
+ */
 export interface MediaRecord {
   id: string;
-  /** Project-relative path under the media folder. */
-  path: string;
+  /** Identifier assigned by a GEDCOM import; provenance only. */
+  xref?: string | undefined;
+  /** Project-relative path under the media folder (first file). */
+  path?: string | undefined;
   title?: string | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
+  files?: MediaFile[] | undefined;
+  links?: MediaLinkRecord[] | undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Repositories, submitters, addresses, header
+// ---------------------------------------------------------------------------
+
+export interface AddressRecord {
+  id: string;
+  lines: string[];
+  city?: string | undefined;
+  state?: string | undefined;
+  postalCode?: string | undefined;
+  country?: string | undefined;
+}
+
+export interface RepositoryRecord {
+  id: string;
+  xref?: string | undefined;
+  name: string;
+  addressId?: string | undefined;
+}
+
+export interface SubmitterRecord {
+  id: string;
+  xref?: string | undefined;
+  name: string;
+  addressId?: string | undefined;
+  languages?: string[] | undefined;
+}
+
+/** The single-row project header (GEDCOM header/submission metadata). */
+export interface HeaderRecord {
+  gedcomVersion?: string | undefined;
+  sourceSoftware?: string | undefined;
+  sourceVersion?: string | undefined;
+  sourceName?: string | undefined;
+  date?: DateValue | undefined;
+  language?: string | undefined;
+  placeForm?: string | undefined;
+  copyright?: string | undefined;
+  fileName?: string | undefined;
+  submitterId?: string | undefined;
+  familyFile?: string | undefined;
+  temple?: string | undefined;
+  generationsAncestors?: number | undefined;
+  generationsDescendants?: number | undefined;
+  ordinanceProcessFlag?: string | undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
+
+export interface IdentifierRecord {
+  id: string;
+  targetType: string;
+  targetId: string;
+  namespace: string;
+  value: string;
+}
+
+export interface ContactRecord {
+  id: string;
+  targetType: string;
+  targetId: string;
+  kind: string;
+  value: string;
+}
+
+export interface RestrictionRecord {
+  id: string;
+  targetType: string;
+  targetId: string;
+  level: string;
+}
+
+export interface ChangeRecord {
+  id: string;
+  targetType: string;
+  targetId: string;
+  kind: 'created' | 'changed';
+  date?: DateValue | undefined;
+  user?: string | undefined;
+}
+
+/** A named label attached to any target (no color — presentation lives in themes). */
+export interface TagRecord {
+  id: string;
+  name: string;
+}
+
+export interface TagLinkRecord {
+  id: string;
+  tagId: string;
+  targetType: string;
+  targetId: string;
+  date?: DateValue | undefined;
+}
+
+/** Everything attached to one target, for op snapshots and cascades. */
+export interface AttachmentsSnapshot {
+  noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
+  citations: CitationRecord[];
+  mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
+  identifiers: IdentifierRecord[];
+  contacts: ContactRecord[];
+  restrictions: RestrictionRecord[];
+  changes: ChangeRecord[];
+  tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
+}
+
+export function emptyAttachments(): AttachmentsSnapshot {
+  return {
+    noteLinks: [],
+    citations: [],
+    mediaLinks: [],
+    identifiers: [],
+    contacts: [],
+    restrictions: [],
+    changes: [],
+    tagLinks: [],
+  };
 }
 
 // ---------------------------------------------------------------------------

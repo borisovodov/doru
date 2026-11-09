@@ -288,7 +288,7 @@ export const EVAL_SCENARIOS: EvalScenario[] = [
     ],
     checkState: (repo) => {
       const failures: string[] = [];
-      if (!repo.listSources().some((source) => source.title.toLowerCase().includes('1897'))) {
+      if (!repo.listSources().some((source) => (source.title ?? '').toLowerCase().includes('1897'))) {
         failures.push('no source with "1897" in the title was added');
       }
       if (repo.listCitationsFor('person', '@I1@').length === 0) {
