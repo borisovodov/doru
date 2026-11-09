@@ -7,12 +7,12 @@ import { SCHEMA_VERSION } from '../src/db/schema';
 import { TreeStore } from '../src/db/store';
 
 describe('TreeStore', () => {
-  it('refuses files written by an older schema version', () => {
+  it('refuses files written by a different schema version', () => {
     const dir = mkdtempSync(join(tmpdir(), 'doru-store-'));
     try {
-      const path = join(dir, 'old.doru');
+      const path = join(dir, 'other.doru');
       const db = new DatabaseSync(path);
-      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION - 1}`);
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION + 1}`);
       db.close();
 
       expect(() => TreeStore.open(path)).toThrow(/schema version/);
@@ -21,12 +21,12 @@ describe('TreeStore', () => {
     }
   });
 
-  it('refuses files written by a newer schema version', () => {
+  it('refuses files written by a much newer schema version', () => {
     const dir = mkdtempSync(join(tmpdir(), 'doru-store-'));
     try {
       const path = join(dir, 'newer.doru');
       const db = new DatabaseSync(path);
-      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION + 1}`);
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION + 7}`);
       db.close();
 
       expect(() => TreeStore.open(path)).toThrow(/schema version/);

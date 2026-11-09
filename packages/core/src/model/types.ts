@@ -38,7 +38,18 @@ export interface DateComponent {
   epoch?: 'BCE' | undefined;
 }
 
+/** A time of day, optionally with UTC flag (GEDCOM TIME). */
+export interface TimeValue {
+  hour: number;
+  minute: number;
+  second?: number | undefined;
+  fraction?: string | undefined;
+  utc?: boolean | undefined;
+}
+
 export interface DateValue {
+  /** The date row id, when the date is addressable (for edits and citations). */
+  id?: string | undefined;
   quality: DateQuality;
   /**
    * Refines an 'about' date: how the approximation was reached — ABT
@@ -53,6 +64,8 @@ export interface DateValue {
   end?: DateComponent | undefined;
   /** Free-text date description, shown when the structured fields cannot express the date. */
   text?: string | undefined;
+  /** Time of day, when known. */
+  time?: TimeValue | undefined;
 }
 
 /** The astronomical (signed) year of a date component: BCE years count down from 0. */
@@ -68,13 +81,49 @@ export function signedYear(component: DateComponent | undefined): number | undef
 // ---------------------------------------------------------------------------
 
 /**
+ * One piece of a person's name: a given name, a surname, a prefix, … The
+ * pieces are stored as rows; any number of each kind is allowed. `full` is a
+ * special kind holding the display form verbatim when it cannot be derived
+ * from the pieces.
+ */
+export type NamePartKind =
+  | 'full'
+  | 'prefix'
+  | 'given'
+  | 'nickname'
+  | 'surnamePrefix'
+  | 'surname'
+  | 'suffix';
+
+export interface NamePart {
+  id: string;
+  kind: NamePartKind;
+  value: string;
+  position: number;
+}
+
+/**
  * One name of a person. A person can carry several names (birth name,
- * married name, alias, …); `full` is the display form, the piece fields are
- * its anatomy. `id` keeps the name addressable across edits (citations and
- * notes may target it) and stable through person updates.
+ * married name, alias, …) and each name can carry variants (translations,
+ * phonetic and romanized forms) as nested `variants`. `id` keeps the name
+ * addressable across edits (citations and notes may target it).
+ *
+ * The flat fields (`full`, `given`, `surname`, …) are projections of the
+ * first part of each kind — kept for the renderer and the agents; the parts
+ * themselves live in `parts`. When `parts` is absent on write, the flat
+ * fields are turned into parts by the repository.
  */
 export interface PersonName {
   id: string;
+  /** Translation/phonetic/romanized variant of another name; undefined for a top-level name. */
+  kind?: 'translation' | 'phonetic' | 'romanized' | undefined;
+  language?: string | undefined;
+  /** The name's kind: 'birth', 'maiden', 'married', 'aka', … */
+  type?: string | undefined;
+  /** The preferred name of the person. */
+  primary?: boolean | undefined;
+  date?: DateValue | undefined;
+  /** The verbatim display form, when a 'full' part is stored; consumers join the pieces otherwise. */
   full?: string | undefined;
   given?: string | undefined;
   surname?: string | undefined;
@@ -83,8 +132,8 @@ export interface PersonName {
   nickname?: string | undefined;
   prefix?: string | undefined;
   suffix?: string | undefined;
-  /** The name's kind: 'birth', 'maiden', 'married', 'aka', … */
-  type?: string | undefined;
+  parts?: NamePart[] | undefined;
+  variants?: PersonName[] | undefined;
 }
 
 /**
@@ -104,8 +153,21 @@ export interface FactRecord {
   /** Free-text subtype refining the tag (required for generic EVEN/FACT). */
   type?: string | undefined;
   value?: string | undefined;
+  /** The fact asserts the event did NOT happen (GEDCOM NO). */
+  negation?: boolean | undefined;
   date?: DateValue | undefined;
+  /** Sort date (GEDCOM SDATE): orders the fact when the display date cannot. */
+  sortDate?: DateValue | undefined;
+  /** The place entity this fact happened at; the raw string stays in `place`. */
+  placeId?: string | undefined;
+  /** The place as typed/displayed. */
   place?: string | undefined;
+  agency?: string | undefined;
+  religiousAffiliation?: string | undefined;
+  cause?: string | undefined;
+  /** Display sentence template (GEDCOM SENT). */
+  sentence?: string | undefined;
+  quality?: string | undefined;
 }
 
 export interface PersonRecord {
@@ -128,13 +190,77 @@ export function factYear(person: PersonRecord | undefined, tag: string): number 
   return person ? signedYear(factOf(person, tag)?.date?.component) : undefined;
 }
 
+/** One partner slot of a family, with its addressable id and details. */
+export interface FamilyPartnerLink {
+  id: string;
+  personId: string;
+  preferred?: boolean | undefined;
+  date?: DateValue | undefined;
+}
+
+/** One child slot of a family, with its addressable id and link details. */
+export interface FamilyChildLink {
+  id: string;
+  childId: string;
+  pedigree?: string | undefined;
+  pedigreePhrase?: string | undefined;
+  status?: string | undefined;
+  fatherRelation?: string | undefined;
+  motherRelation?: string | undefined;
+}
+
 export interface FamilyRecord {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
-  /** The partners, ordered (the first is the "leftmost" in the UI). */
+  /** The partners, ordered (the first is the "leftmost" in the UI) — projection of `partnerLinks`. */
   partners: string[];
   children: string[];
+  /** The ordered partner slots; the repository always fills them. */
+  partnerLinks?: FamilyPartnerLink[] | undefined;
+  childLinks?: FamilyChildLink[] | undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Places
+// ---------------------------------------------------------------------------
+
+/**
+ * One jurisdiction level of a place name ('Moscow' in 'Moscow, Russia').
+ * A place carries several name rows: the official name (one row per
+ * jurisdiction) plus translations/phonetic/romanized rows.
+ */
+export interface PlaceName {
+  id: string;
+  kind?: 'official' | 'translation' | 'phonetic' | 'romanized' | undefined;
+  language?: string | undefined;
+  type?: string | undefined;
+  position: number;
+  value: string;
+}
+
+export interface PlaceRecord {
+  id: string;
+  xref?: string | undefined;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
+  verified?: boolean | undefined;
+  names: PlaceName[];
+  hierarchy?: { parentId: string; type?: string }[] | undefined;
+  postalCodes?: { id: string; code: string; date?: DateValue }[] | undefined;
+}
+
+/** The joined display form of a place: jurisdictions smallest first. */
+export function placeName(place: PlaceRecord | undefined): string {
+  if (!place) {
+    return '';
+  }
+  return place.names
+    .filter((name) => name.kind === undefined || name.kind === 'official')
+    .sort((a, b) => a.position - b.position)
+    .map((name) => name.value)
+    .filter((value) => value !== '')
+    .join(', ');
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +306,41 @@ export interface MediaRecord {
   targetType?: string | undefined;
   targetId?: string | undefined;
 }
+
+// ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
+
+/**
+ * The machine-readable list of attachment target types. The polymorphic
+ * attachment tables pair `target_type` with the target row's UUID.
+ */
+export const TARGET_TYPES = [
+  'person',
+  'family',
+  'family_partner',
+  'family_child',
+  'fact',
+  'name',
+  'source',
+  'citation',
+  'note',
+  'media',
+  'media_file',
+  'place',
+  'repository',
+  'submitter',
+  'association',
+  'ordinance',
+  'evidence',
+  'todo',
+  'research_document',
+  'research_activity',
+  'title',
+  'census',
+] as const;
+
+export type TargetType = (typeof TARGET_TYPES)[number];
 
 // ---------------------------------------------------------------------------
 // Whole-tree helpers

@@ -1,4 +1,4 @@
-import type { CitationRecord, FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, SourceRecord } from '../model/types';
+import type { CitationRecord, FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, PlaceRecord, SourceRecord } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import {
   addFactOp,
@@ -6,6 +6,7 @@ import {
   addMediaOp,
   addNoteOp,
   addPersonOp,
+  addPlaceOp,
   addRelativeOp,
   addSourceOp,
   attachCitationOp,
@@ -13,10 +14,12 @@ import {
   deleteFamilyOp,
   deleteMediaOp,
   deletePersonOp,
+  deletePlaceOp,
   detachCitationOp,
   reparentOp,
   updateFamilyOp,
   updatePersonOp,
+  updatePlaceOp,
 } from '../ops';
 import { OpQueue, type Op } from '../ops/op';
 
@@ -166,6 +169,8 @@ export class TreeService {
           ...family,
           partners: family.partners.filter((id) => id !== person.id),
           children: family.children.filter((id) => id !== person.id),
+          partnerLinks: family.partnerLinks?.filter((link) => link.personId !== person.id),
+          childLinks: family.childLinks?.filter((link) => link.childId !== person.id),
         },
       }));
     return this.apply(deletePersonOp(person, links));
@@ -180,14 +185,25 @@ export class TreeService {
     for (const family of this.repo.listFamiliesForPerson(childId).filter((entry) => entry.children.includes(childId))) {
       links.push({
         before: family,
-        after: { ...family, children: family.children.filter((id) => id !== childId) },
+        after: {
+          ...family,
+          children: family.children.filter((id) => id !== childId),
+          childLinks: family.childLinks?.filter((link) => link.childId !== childId),
+        },
       });
     }
     const target = this.repo
       .listFamiliesForPerson(newParentId)
       .find((entry) => entry.partners.includes(newParentId));
     if (target) {
-      links.push({ before: target, after: { ...target, children: [...target.children, childId] } });
+      links.push({
+        before: target,
+        after: {
+          ...target,
+          children: [...target.children, childId],
+          childLinks: [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }],
+        },
+      });
     }
     const created = target
       ? undefined
@@ -213,8 +229,16 @@ export class TreeService {
       if (target) {
         const after =
           relation === 'child'
-            ? { ...target, children: [...target.children, person.id] }
-            : { ...target, partners: [...target.partners, person.id] };
+            ? {
+                ...target,
+                children: [...target.children, person.id],
+                childLinks: [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId: person.id }],
+              }
+            : {
+                ...target,
+                partners: [...target.partners, person.id],
+                partnerLinks: [...(target.partnerLinks ?? []), { id: crypto.randomUUID(), personId: person.id }],
+              };
         links = [{ before: target, after }];
       } else {
         created = {
@@ -239,6 +263,39 @@ export class TreeService {
 
   deleteFamily(family: FamilyRecord): UndoRedoState {
     return this.apply(deleteFamilyOp(family));
+  }
+
+  // --- places ---------------------------------------------------------------
+
+  listPlaces(): PlaceRecord[] {
+    return this.repo.listPlaces();
+  }
+
+  searchPlaces(query: string, limit?: number): PlaceRecord[] {
+    return this.repo.searchPlaces(query, limit);
+  }
+
+  getPlace(id: string): PlaceRecord | undefined {
+    return this.repo.getPlace(id);
+  }
+
+  addPlace(place: PlaceRecord): UndoRedoState {
+    return this.apply(addPlaceOp(place));
+  }
+
+  updatePlace(before: PlaceRecord, after: PlaceRecord): UndoRedoState {
+    return this.apply(updatePlaceOp(before, after));
+  }
+
+  /**
+   * Deletes the place, detaching the facts that reference it (their raw
+   * place string survives in `place_text`) — one undo step restores both.
+   */
+  deletePlace(place: PlaceRecord): UndoRedoState {
+    const facts = this.repo
+      .listFactsForPlace(place.id)
+      .map((fact) => ({ before: fact, after: { ...fact, placeId: undefined } }));
+    return this.apply(deletePlaceOp(place, facts));
   }
 
   // --- sources and citations ------------------------------------------------

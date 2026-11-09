@@ -6,14 +6,18 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   SourceRecord,
   TreeDocument,
 } from '../model/types';
+import { DateRepo } from './dateRepo';
 import { FactRepo } from './factRepo';
 import { FamilyRepo } from './familyRepo';
 import { MediaRepo } from './mediaRepo';
+import { NameRepo } from './nameRepo';
 import { NoteRepo } from './noteRepo';
-import { PersonRepo, type PersonBase, type PersonQuery } from './personRepo';
+import { PersonRepo, type PersonQuery, type PersonRow } from './personRepo';
+import { PlaceRepo } from './placeRepo';
 import { SourceRepo } from './sourceRepo';
 import { TransactionScope } from './transaction';
 
@@ -36,11 +40,20 @@ export interface TreeRepository {
   /** Every family the person belongs to, as a partner or a child. */
   listFamiliesForPerson(personId: string): FamilyRecord[];
   insertFact(fact: FactRecord): void;
+  updateFact(fact: FactRecord): void;
   deleteFact(id: string): boolean;
   listFactsForPerson(personId: string): FactRecord[];
   listFactsForFamily(familyId: string): FactRecord[];
   /** Every fact in the tree, ordered by date. */
   listAllFacts(): FactRecord[];
+  /** Facts that happened at the given place. */
+  listFactsForPlace(placeId: string): FactRecord[];
+  insertPlace(place: PlaceRecord): void;
+  updatePlace(place: PlaceRecord): void;
+  getPlace(id: string): PlaceRecord | undefined;
+  deletePlace(id: string): boolean;
+  listPlaces(): PlaceRecord[];
+  searchPlaces(query: string, limit?: number): PlaceRecord[];
   insertSource(source: SourceRecord): void;
   deleteSource(id: string): boolean;
   listSources(): SourceRecord[];
@@ -69,22 +82,27 @@ export interface TreeRepository {
  * Facade over the per-entity repositories. Ops and services talk to this
  * interface; the entity split underneath is an implementation detail. The
  * facade also composes the person aggregate: the person row plus names
- * (PersonRepo) and facts (FactRepo).
+ * (NameRepo) and facts (FactRepo).
  */
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
   private readonly persons: PersonRepo;
+  private readonly names: NameRepo;
   private readonly families: FamilyRepo;
   private readonly facts: FactRepo;
+  private readonly places: PlaceRepo;
   private readonly sources: SourceRepo;
   private readonly notes: NoteRepo;
   private readonly media: MediaRepo;
 
   constructor(db: DatabaseSync) {
     this.transactions = new TransactionScope(db);
+    const dates = new DateRepo(db);
     this.persons = new PersonRepo(db, this.transactions);
-    this.families = new FamilyRepo(db, this.transactions);
-    this.facts = new FactRepo(db);
+    this.names = new NameRepo(db, dates);
+    this.families = new FamilyRepo(db, this.transactions, dates);
+    this.facts = new FactRepo(db, dates);
+    this.places = new PlaceRepo(db, dates);
     this.sources = new SourceRepo(db);
     this.notes = new NoteRepo(db);
     this.media = new MediaRepo(db);
@@ -92,7 +110,8 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertPerson(person: PersonRecord): void {
     this.transactions.run(() => {
-      this.persons.insertPerson(person);
+      this.persons.insertPerson({ id: person.id, xref: person.xref, sex: person.sex });
+      this.names.replaceNamesForPerson(person.id, person.names);
       for (const fact of person.facts) {
         this.facts.insertFact(fact);
       }
@@ -109,7 +128,8 @@ export class SqliteTreeRepository implements TreeRepository {
    */
   updatePerson(person: PersonRecord): void {
     this.transactions.run(() => {
-      this.persons.updatePerson(person);
+      this.persons.updatePerson({ id: person.id, xref: person.xref, sex: person.sex });
+      this.names.replaceNamesForPerson(person.id, person.names);
       const existing = this.facts.listFactsForPerson(person.id);
       const incoming = new Map(person.facts.map((fact) => [fact.id, fact]));
       for (const fact of person.facts) {
@@ -132,26 +152,46 @@ export class SqliteTreeRepository implements TreeRepository {
     if (!base) {
       return undefined;
     }
-    return { ...base, facts: this.facts.listFactsForPerson(id) };
+    return {
+      ...base,
+      names: this.names.listNamesForPerson(id),
+      facts: this.facts.listFactsForPerson(id),
+    };
   }
 
+  /**
+   * Deletes the person together with their name index rows, facts (and
+   * their dates) and family links. Attachment rows (notes, citations, …)
+   * are not touched until the attachment phase lands.
+   */
   deletePerson(id: string): boolean {
-    return this.persons.deletePerson(id);
+    return this.transactions.run(() => {
+      this.names.deleteFtsForPerson(id);
+      this.facts.deleteFactsForPerson(id);
+      this.families.removePersonFromFamilies(id);
+      return this.persons.deletePerson(id);
+    });
   }
 
   listPersons(query?: PersonQuery): PersonRecord[] {
     const bases = this.persons.listPersons(query);
-    return this.withFacts(bases);
+    return this.withAggregates(bases);
   }
 
   listAllPersons(): PersonRecord[] {
-    return this.withFacts(this.persons.listAllPersons());
+    return this.withAggregates(this.persons.listAllPersons());
   }
 
-  /** Attaches each base person's facts, loaded in one batched query. */
-  private withFacts(bases: PersonBase[]): PersonRecord[] {
-    const factsByPerson = this.facts.listFactsForPersons(bases.map((base) => base.id));
-    return bases.map((base) => ({ ...base, facts: factsByPerson.get(base.id) ?? [] }));
+  /** Attaches each person's names and facts, loaded in batched queries. */
+  private withAggregates(bases: PersonRow[]): PersonRecord[] {
+    const ids = bases.map((base) => base.id);
+    const namesByPerson = this.names.listNamesForMany(ids);
+    const factsByPerson = this.facts.listFactsForPersons(ids);
+    return bases.map((base) => ({
+      ...base,
+      names: namesByPerson.get(base.id) ?? [],
+      facts: factsByPerson.get(base.id) ?? [],
+    }));
   }
 
   countPersons(): number {
@@ -175,7 +215,10 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   deleteFamily(id: string): boolean {
-    return this.families.deleteFamily(id);
+    return this.transactions.run(() => {
+      this.facts.deleteFactsForFamily(id);
+      return this.families.deleteFamily(id);
+    });
   }
 
   listFamilies(): FamilyRecord[] {
@@ -188,6 +231,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertFact(fact: FactRecord): void {
     this.facts.insertFact(fact);
+  }
+
+  updateFact(fact: FactRecord): void {
+    this.facts.updateFact(fact);
   }
 
   deleteFact(id: string): boolean {
@@ -204,6 +251,34 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listAllFacts(): FactRecord[] {
     return this.facts.listAllFacts();
+  }
+
+  listFactsForPlace(placeId: string): FactRecord[] {
+    return this.facts.listFactsForPlace(placeId);
+  }
+
+  insertPlace(place: PlaceRecord): void {
+    this.places.insertPlace(place);
+  }
+
+  updatePlace(place: PlaceRecord): void {
+    this.places.updatePlace(place);
+  }
+
+  getPlace(id: string): PlaceRecord | undefined {
+    return this.places.getPlace(id);
+  }
+
+  deletePlace(id: string): boolean {
+    return this.places.deletePlace(id);
+  }
+
+  listPlaces(): PlaceRecord[] {
+    return this.places.listPlaces();
+  }
+
+  searchPlaces(query: string, limit?: number): PlaceRecord[] {
+    return this.places.searchPlaces(query, limit);
   }
 
   insertSource(source: SourceRecord): void {

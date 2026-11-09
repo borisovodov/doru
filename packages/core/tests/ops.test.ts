@@ -3,7 +3,7 @@ import type { PersonRecord } from '../src/model/types';
 import { addPersonOp } from '../src/ops/addPerson';
 import { OpQueue } from '../src/ops/op';
 import { addRelativeOp, deletePersonOp, reparentOp, updatePersonOp } from '../src/ops/person';
-import { cleanupRepo, makeRepo } from './helpers';
+import { cleanupRepo, flatPerson, makeRepo } from './helpers';
 
 const person: PersonRecord = {
   id: 'P1',
@@ -28,7 +28,7 @@ describe('OpQueue', () => {
 
       const op = addPersonOp(person);
       queue.apply(op, ctx);
-      expect(fixture.repo.getPerson('P1')).toEqual(person);
+      expect(flatPerson(fixture.repo.getPerson('P1')!)).toEqual(person);
 
       expect(queue.canUndo()).toBe(true);
       expect(queue.canRedo()).toBe(false);
@@ -38,7 +38,7 @@ describe('OpQueue', () => {
       expect(queue.canRedo()).toBe(true);
 
       queue.redo(ctx);
-      expect(fixture.repo.getPerson('P1')).toEqual(person);
+      expect(flatPerson(fixture.repo.getPerson('P1')!)).toEqual(person);
     } finally {
       cleanupRepo(fixture);
     }
@@ -71,10 +71,10 @@ describe('OpQueue', () => {
       queue.apply(addPersonOp(person), ctx);
       const renamed: PersonRecord = { ...person, names: [{ id: 'N1', given: 'John' }] };
       queue.apply(updatePersonOp(person, renamed), ctx);
-      expect(fixture.repo.getPerson('P1')).toEqual(renamed);
+      expect(flatPerson(fixture.repo.getPerson('P1')!)).toEqual(renamed);
 
       queue.undo(ctx);
-      expect(fixture.repo.getPerson('P1')).toEqual(person);
+      expect(flatPerson(fixture.repo.getPerson('P1')!)).toEqual(person);
     } finally {
       cleanupRepo(fixture);
     }
@@ -100,7 +100,7 @@ describe('OpQueue', () => {
       expect(fixture.repo.getFamily('F1')?.partners).toEqual(['P2']);
 
       queue.undo(ctx);
-      expect(fixture.repo.getPerson('P1')).toEqual(person);
+      expect(flatPerson(fixture.repo.getPerson('P1')!)).toEqual(person);
       expect(fixture.repo.getFamily('F1')?.partners).toEqual(['P1', 'P2']);
     } finally {
       cleanupRepo(fixture);
@@ -120,7 +120,7 @@ describe('OpQueue', () => {
       const after = { ...family, children: ['K1'] };
       queue.apply(addRelativeOp(child, [{ before: family, after }], undefined), ctx);
 
-      expect(fixture.repo.getPerson('K1')).toEqual(child);
+      expect(flatPerson(fixture.repo.getPerson('K1')!)).toEqual(child);
       expect(fixture.repo.getFamily('F1')?.children).toEqual(['K1']);
 
       queue.undo(ctx);
@@ -142,7 +142,7 @@ describe('OpQueue', () => {
       const created = { id: 'F2', partners: ['P1', 'S1'], children: [] };
       queue.apply(addRelativeOp(spouse, [], created), ctx);
 
-      expect(fixture.repo.getPerson('S1')).toEqual(spouse);
+      expect(flatPerson(fixture.repo.getPerson('S1')!)).toEqual(spouse);
       expect(fixture.repo.getFamily('F2')?.partners).toEqual(['P1', 'S1']);
 
       queue.undo(ctx);

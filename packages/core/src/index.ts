@@ -5,16 +5,24 @@ export type {
   DateQuality,
   DateValue,
   FactRecord,
+  FamilyChildLink,
+  FamilyPartnerLink,
   FamilyRecord,
   MediaRecord,
+  NamePart,
+  NamePartKind,
   NoteRecord,
   PersonName,
   PersonRecord,
+  PlaceName,
+  PlaceRecord,
   Sex,
   SourceRecord,
+  TargetType,
+  TimeValue,
   TreeDocument,
 } from './model/types';
-export { emptyDocument, factOf, factYear, signedYear } from './model/types';
+export { TARGET_TYPES, emptyDocument, factOf, factYear, placeName, signedYear } from './model/types';
 export { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './db/schema';
 export { TreeStore, type ITreeStore, type TreeStoreFactory } from './db/store';
 export {
@@ -47,6 +55,7 @@ export { addNoteOp, addSourceOp, attachCitationOp, detachCitationOp } from './op
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
 export { addFactOp, deleteFactOp } from './ops/fact';
 export { addMediaOp, deleteMediaOp } from './ops/media';
+export { addPlaceOp, deletePlaceOp, updatePlaceOp } from './ops/place';
 export { computePedigree, type PedigreeNode } from './pedigree';
 export {
   layoutPedigree,

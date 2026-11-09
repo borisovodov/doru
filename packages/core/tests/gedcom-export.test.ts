@@ -59,11 +59,13 @@ describe('buildGedcomDataset', () => {
           expect.objectContaining({ given: 'Ivan', surname: 'Petrov', nickname: 'Vanya' }),
         );
         expect(ivan?.facts.find((fact) => fact.tag === 'BIRT')?.date).toEqual({
+          id: expect.any(String),
           quality: 'exact',
           component: { year: 1923, month: 3, day: 12 },
         });
         expect(ivan?.facts.find((fact) => fact.tag === 'BIRT')?.place).toBe('Moscow, Russia');
         expect(ivan?.facts.find((fact) => fact.tag === 'DEAT')?.date).toEqual({
+          id: expect.any(String),
           quality: 'after',
           component: { year: 1990 },
         });
@@ -160,20 +162,24 @@ describe('buildGedcomDataset', () => {
         importGedcomDataset(reparsed.value.dataset, target.repo);
         const person = target.repo.listAllPersons()[0];
         expect(person?.facts.find((fact) => fact.tag === 'BIRT')?.date).toEqual({
+          id: expect.any(String),
           quality: 'exact',
           component: { calendar: 'julian', year: 1826, month: 1, day: 3 },
         });
         expect(person?.facts.find((fact) => fact.tag === 'CHR')?.date).toEqual({
+          id: expect.any(String),
           quality: 'about',
           modifier: 'CAL',
           component: { year: 1826 },
         });
         expect(person?.facts.find((fact) => fact.tag === 'RESI')?.date).toEqual({
+          id: expect.any(String),
           quality: 'range',
           component: { year: 1900 },
           end: { year: 1905 },
         });
         expect(person?.facts.find((fact) => fact.tag === 'BURI')?.date).toEqual({
+          id: expect.any(String),
           quality: 'unknown',
           text: 'after the war',
         });

@@ -79,12 +79,13 @@ describe('importGedcomDataset', () => {
       ]);
       const birth = ivan?.facts.find((fact) => fact.tag === 'BIRT');
       expect(birth?.date).toEqual({
+        id: expect.any(String),
         quality: 'exact',
         component: { year: 1923, month: 3, day: 12 },
       });
       expect(birth?.place).toBe('Moscow, Russia');
       const death = ivan?.facts.find((fact) => fact.tag === 'DEAT');
-      expect(death?.date).toEqual({ quality: 'after', component: { year: 1990 } });
+      expect(death?.date).toEqual({ id: expect.any(String), quality: 'after', component: { year: 1990 } });
       const occupation = ivan?.facts.find((fact) => fact.tag === 'OCCU');
       expect(occupation?.value).toBe('Engineer');
 
@@ -93,6 +94,7 @@ describe('importGedcomDataset', () => {
         expect.objectContaining({ given: 'Maria', surname: 'Sidorova', surnamePrefix: 'de' }),
       );
       expect(maria?.facts.find((fact) => fact.tag === 'BIRT')?.date).toEqual({
+        id: expect.any(String),
         quality: 'exact',
         component: { calendar: 'julian', year: 1826, month: 1, day: 3 },
       });
@@ -105,6 +107,7 @@ describe('importGedcomDataset', () => {
       expect(family?.children).toEqual([byXref.get('@I3@')?.id]);
       const marriage = repo.listFactsForFamily(family?.id ?? '').find((fact) => fact.tag === 'MARR');
       expect(marriage?.date).toEqual({
+        id: expect.any(String),
         quality: 'range',
         component: { year: 1945 },
         end: { year: 1947 },
@@ -154,16 +157,19 @@ describe('importGedcomDataset', () => {
       importGedcomDataset(result.value.dataset, fixture.repo);
       const person = fixture.repo.listAllPersons()[0];
       expect(person?.facts.find((fact) => fact.tag === 'BIRT')?.date).toEqual({
+        id: expect.any(String),
         quality: 'about',
         modifier: 'ABT',
         component: { year: 1900 },
       });
       expect(person?.facts.find((fact) => fact.tag === 'DEAT')?.date).toEqual({
+        id: expect.any(String),
         quality: 'range',
         component: { year: 1945 },
         end: { year: 1946 },
       });
       expect(person?.facts.find((fact) => fact.tag === 'RESI')?.date).toEqual({
+        id: expect.any(String),
         quality: 'unknown',
         text: 'during the war',
       });
