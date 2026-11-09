@@ -329,6 +329,8 @@ export interface SourceRecord {
   pubDate?: DateValue | undefined;
   pubPlace?: string | undefined;
   agency?: string | undefined;
+  /** The bibliographic work (7.0 TITL record) this source cites. */
+  titleId?: string | undefined;
   texts?: SourceText[] | undefined;
   dataEvents?: Array<{ id: string; tag: string; value?: string; date?: DateValue; placeId?: string }> | undefined;
   repositories?: Array<{ id: string; repositoryId: string; callNumbers?: Array<{ id: string; value: string; medium?: string }> }> | undefined;
@@ -537,6 +539,10 @@ export interface AttachmentsSnapshot {
   restrictions: RestrictionRecord[];
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
+  ordinances: OrdinanceRecord[];
+  todos: TodoRecord[];
+  evidenceLinks: EvidenceLinkRecord[];
+  recordSubmitters: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
 }
 
 export function emptyAttachments(): AttachmentsSnapshot {
@@ -549,7 +555,165 @@ export function emptyAttachments(): AttachmentsSnapshot {
     restrictions: [],
     changes: [],
     tagLinks: [],
+    ordinances: [],
+    todos: [],
+    evidenceLinks: [],
+    recordSubmitters: [],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Relations and the research layer
+// ---------------------------------------------------------------------------
+
+/** A non-family relation between two persons (GEDCOM ASSO). */
+export interface AssociationRecord {
+  id: string;
+  personId: string;
+  otherPersonId: string;
+  role?: string | undefined;
+  relationship?: string | undefined;
+  phrase?: string | undefined;
+  primary?: boolean | undefined;
+  specificType?: string | undefined;
+  confidence?: string | undefined;
+  periodStart?: DateValue | undefined;
+  periodEnd?: DateValue | undefined;
+}
+
+/** An LDS ordinance attached to a person, family or family child link. */
+export interface OrdinanceRecord {
+  id: string;
+  kind: string;
+  targetType: string;
+  targetId: string;
+  date?: DateValue | undefined;
+  temple?: string | undefined;
+  placeId?: string | undefined;
+  status?: string | undefined;
+  statusDate?: DateValue | undefined;
+}
+
+/** A task, attached to some entity or free-standing. */
+export interface TodoRecord {
+  id: string;
+  text: string;
+  targetType?: string | undefined;
+  targetId?: string | undefined;
+  category?: string | undefined;
+  locality?: string | undefined;
+  priority?: string | undefined;
+  status?: string | undefined;
+  createdDate?: DateValue | undefined;
+  scheduledDate?: DateValue | undefined;
+  reminderDate?: DateValue | undefined;
+  closedDate?: DateValue | undefined;
+  repositoryId?: string | undefined;
+}
+
+/** One claim inside an evidence record. */
+export interface EvidenceFinding {
+  id: string;
+  type?: string | undefined;
+  value?: string | undefined;
+  date?: DateValue | undefined;
+  placeId?: string | undefined;
+  ageBound?: string | undefined;
+  ageYears?: number | undefined;
+  ageMonths?: number | undefined;
+  ageDays?: number | undefined;
+  agePhrase?: string | undefined;
+}
+
+/** A claim of an evidence record about some tree entity. */
+export interface EvidenceLinkRecord {
+  id: string;
+  evidenceId: string;
+  targetType: string;
+  targetId: string;
+  confidence?: string | undefined;
+  used?: string | undefined;
+  quality?: string | undefined;
+}
+
+export interface EvidenceRecord {
+  id: string;
+  type?: string | undefined;
+  documentType?: string | undefined;
+  analysis?: string | undefined;
+  findings: EvidenceFinding[];
+  links: EvidenceLinkRecord[];
+}
+
+export interface ResearchConclusion {
+  id: string;
+  personId: string;
+  text: string;
+}
+
+export interface ResearchDocumentRecord {
+  id: string;
+  title?: string | undefined;
+  text: string;
+  author?: string | undefined;
+  date?: DateValue | undefined;
+  subjectIds?: string[] | undefined;
+  conclusions?: ResearchConclusion[] | undefined;
+}
+
+export interface ResearchActivityRecord {
+  id: string;
+  type?: string | undefined;
+  purpose?: string | undefined;
+  target?: string | undefined;
+  venue?: string | undefined;
+  result?: string | undefined;
+  date?: DateValue | undefined;
+  researcher?: string | undefined;
+}
+
+export interface CensusEntry {
+  id: string;
+  personId: string;
+  fatherId?: string | undefined;
+  motherId?: string | undefined;
+  sex?: string | undefined;
+  ageValue?: string | undefined;
+  maritalStatus?: string | undefined;
+  occupation?: string | undefined;
+  birthDate?: DateValue | undefined;
+  birthPlace?: string | undefined;
+}
+
+export interface CensusRecord {
+  id: string;
+  schedule?: string | undefined;
+  date?: DateValue | undefined;
+  placeId?: string | undefined;
+  entries: CensusEntry[];
+}
+
+export interface DuplicateCandidateRecord {
+  id: string;
+  personId: string;
+  otherPersonId: string;
+  caption?: string | undefined;
+  assessment?: string | undefined;
+  status?: string | undefined;
+}
+
+/** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */
+export interface TitleRecord {
+  id: string;
+  xref?: string | undefined;
+  name?: string | undefined;
+  author?: string | undefined;
+  publisher?: string | undefined;
+  series?: string | undefined;
+  abbreviation?: string | undefined;
+  repositoryId?: string | undefined;
+  callNumber?: string | undefined;
+  sequence?: number | undefined;
 }
 
 // ---------------------------------------------------------------------------

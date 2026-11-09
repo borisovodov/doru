@@ -1,7 +1,11 @@
 import type {
   AddressRecord,
+  AssociationRecord,
+  CensusRecord,
   CitationRecord,
   ContactRecord,
+  DuplicateCandidateRecord,
+  EvidenceRecord,
   FactRecord,
   FactTypeRecord,
   FamilyRecord,
@@ -11,51 +15,76 @@ import type {
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
+  OrdinanceRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
+  ResearchActivityRecord,
+  ResearchDocumentRecord,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TitleRecord,
+  TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import {
   addAddressOp,
+  addAliasOp,
+  addAssociationOp,
+  addCensusOp,
   addContactOp,
+  addDuplicateOp,
+  addEvidenceOp,
   addFactOp,
   addFactTypeOp,
   addFamilyOp,
   addIdentifierOp,
   addMediaOp,
   addNoteOp,
+  addOrdinanceOp,
   addPersonOp,
   addPlaceOp,
   addRelativeOp,
   addRepositoryOp,
+  addResearchActivityOp,
+  addResearchDocumentOp,
   addRestrictionOp,
   addSourceOp,
   addSubmitterOp,
   addTagOp,
+  addTitleOp,
+  addTodoOp,
   attachCitationOp,
   attachMediaOp,
   attachTagOp,
   deleteAddressOp,
+  deleteAliasOp,
+  deleteAssociationOp,
+  deleteCensusOp,
   deleteContactOp,
+  deleteDuplicateOp,
+  deleteEvidenceOp,
   deleteFactOp,
   deleteFactTypeOp,
   deleteFamilyOp,
   deleteIdentifierOp,
   deleteMediaOp,
   deleteNoteOp,
+  deleteOrdinanceOp,
   deletePersonOp,
   deletePlaceOp,
   deleteRepositoryOp,
+  deleteResearchActivityOp,
+  deleteResearchDocumentOp,
   deleteRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
   deleteTagOp,
+  deleteTitleOp,
+  deleteTodoOp,
   detachCitationOp,
   detachMediaOp,
   detachTagOp,
@@ -63,16 +92,25 @@ import {
   saveHeaderOp,
   splitNoteOp,
   updateAddressOp,
+  updateAssociationOp,
+  updateCensusOp,
   updateCitationOp,
+  updateDuplicateOp,
+  updateEvidenceOp,
   updateFactOp,
   updateFactTypeOp,
   updateFamilyOp,
   updateNoteOp,
+  updateOrdinanceOp,
   updatePersonOp,
   updatePlaceOp,
   updateRepositoryOp,
+  updateResearchActivityOp,
+  updateResearchDocumentOp,
   updateSourceOp,
   updateSubmitterOp,
+  updateTitleOp,
+  updateTodoOp,
   type FamilyLinkAttachments,
 } from '../ops';
 import { OpQueue, type Op } from '../ops/op';
@@ -569,6 +607,132 @@ export class TreeService {
 
   saveHeader(header: HeaderRecord): UndoRedoState {
     return this.apply(saveHeaderOp(this.repo.getHeader(), header));
+  }
+
+  // --- relations and the research layer ----------------------------------------
+
+  addAssociation(association: AssociationRecord): UndoRedoState {
+    return this.apply(addAssociationOp(association));
+  }
+
+  updateAssociation(before: AssociationRecord, after: AssociationRecord): UndoRedoState {
+    return this.apply(updateAssociationOp(before, after));
+  }
+
+  deleteAssociation(association: AssociationRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('association', association.id);
+    return this.apply(deleteAssociationOp(association, attachments));
+  }
+
+  addAlias(personId: string, aliasId: string): UndoRedoState {
+    return this.apply(addAliasOp(crypto.randomUUID(), personId, aliasId));
+  }
+
+  deleteAlias(id: string, personId: string, aliasId: string): UndoRedoState {
+    return this.apply(deleteAliasOp(id, personId, aliasId));
+  }
+
+  addOrdinance(ordinance: OrdinanceRecord): UndoRedoState {
+    return this.apply(addOrdinanceOp(ordinance));
+  }
+
+  updateOrdinance(before: OrdinanceRecord, after: OrdinanceRecord): UndoRedoState {
+    return this.apply(updateOrdinanceOp(before, after));
+  }
+
+  deleteOrdinance(ordinance: OrdinanceRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('ordinance', ordinance.id);
+    return this.apply(deleteOrdinanceOp(ordinance, attachments));
+  }
+
+  addTodo(todo: TodoRecord): UndoRedoState {
+    return this.apply(addTodoOp(todo));
+  }
+
+  updateTodo(before: TodoRecord, after: TodoRecord): UndoRedoState {
+    return this.apply(updateTodoOp(before, after));
+  }
+
+  deleteTodo(todo: TodoRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('todo', todo.id);
+    return this.apply(deleteTodoOp(todo, attachments));
+  }
+
+  addEvidence(evidence: EvidenceRecord): UndoRedoState {
+    return this.apply(addEvidenceOp(evidence));
+  }
+
+  updateEvidence(before: EvidenceRecord, after: EvidenceRecord): UndoRedoState {
+    return this.apply(updateEvidenceOp(before, after));
+  }
+
+  deleteEvidence(evidence: EvidenceRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('evidence', evidence.id);
+    return this.apply(deleteEvidenceOp(evidence, attachments));
+  }
+
+  addResearchDocument(document: ResearchDocumentRecord): UndoRedoState {
+    return this.apply(addResearchDocumentOp(document));
+  }
+
+  updateResearchDocument(before: ResearchDocumentRecord, after: ResearchDocumentRecord): UndoRedoState {
+    return this.apply(updateResearchDocumentOp(before, after));
+  }
+
+  deleteResearchDocument(document: ResearchDocumentRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('research_document', document.id);
+    return this.apply(deleteResearchDocumentOp(document, attachments));
+  }
+
+  addResearchActivity(activity: ResearchActivityRecord): UndoRedoState {
+    return this.apply(addResearchActivityOp(activity));
+  }
+
+  updateResearchActivity(before: ResearchActivityRecord, after: ResearchActivityRecord): UndoRedoState {
+    return this.apply(updateResearchActivityOp(before, after));
+  }
+
+  deleteResearchActivity(activity: ResearchActivityRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('research_activity', activity.id);
+    return this.apply(deleteResearchActivityOp(activity, attachments));
+  }
+
+  addCensus(census: CensusRecord): UndoRedoState {
+    return this.apply(addCensusOp(census));
+  }
+
+  updateCensus(before: CensusRecord, after: CensusRecord): UndoRedoState {
+    return this.apply(updateCensusOp(before, after));
+  }
+
+  deleteCensus(census: CensusRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('census', census.id);
+    return this.apply(deleteCensusOp(census, attachments));
+  }
+
+  addDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {
+    return this.apply(addDuplicateOp(duplicate));
+  }
+
+  updateDuplicate(before: DuplicateCandidateRecord, after: DuplicateCandidateRecord): UndoRedoState {
+    return this.apply(updateDuplicateOp(before, after));
+  }
+
+  deleteDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {
+    return this.apply(deleteDuplicateOp(duplicate));
+  }
+
+  addTitle(title: TitleRecord): UndoRedoState {
+    return this.apply(addTitleOp(title));
+  }
+
+  updateTitle(before: TitleRecord, after: TitleRecord): UndoRedoState {
+    return this.apply(updateTitleOp(before, after));
+  }
+
+  deleteTitle(title: TitleRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('title', title.id);
+    return this.apply(deleteTitleOp(title, attachments));
   }
 
   // --- plumbing -------------------------------------------------------------

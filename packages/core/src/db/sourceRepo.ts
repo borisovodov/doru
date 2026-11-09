@@ -16,6 +16,7 @@ interface SourceRow {
   pub_date_id: string | null;
   pub_place_text: string | null;
   agency: string | null;
+  title_id: string | null;
 }
 
 interface CitationRow {
@@ -48,8 +49,8 @@ export class SourceRepo {
     this.db
       .prepare(
         `INSERT INTO source (id, xref, title, abbreviation, author, publication,
-           medium, url, access_date, confidence, pub_date_id, pub_place_text, agency)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...sourceParams(source, this.dates));
     this.replaceSourceDetails(source);
@@ -59,7 +60,7 @@ export class SourceRepo {
     this.db
       .prepare(
         `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
-           medium = ?, url = ?, access_date = ?, confidence = ?, pub_date_id = ?, pub_place_text = ?, agency = ?
+           medium = ?, url = ?, access_date = ?, confidence = ?, pub_date_id = ?, pub_place_text = ?, agency = ?, title_id = ?
          WHERE id = ?`,
       )
       .run(...sourceParams(source, this.dates), source.id);
@@ -267,6 +268,7 @@ export class SourceRepo {
       pubDate: row.pub_date_id !== null ? datesById.get(row.pub_date_id) : undefined,
       pubPlace: row.pub_place_text ?? undefined,
       agency: row.agency ?? undefined,
+      titleId: row.title_id ?? undefined,
     };
     if (texts.length > 0) {
       source.texts = texts.map((text) => ({
@@ -364,7 +366,7 @@ export class SourceRepo {
 }
 
 const sourceSelect = `SELECT id, xref, title, abbreviation, author, publication,
-  medium, url, access_date, confidence, pub_date_id, pub_place_text, agency
+  medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id
   FROM source`;
 
 const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, quality,
@@ -386,6 +388,7 @@ function sourceParams(source: SourceRecord, dates: DateRepo): Array<string | num
     source.pubDate ? dates.upsert(source.pubDate) : null,
     source.pubPlace ?? null,
     source.agency ?? null,
+    source.titleId ?? null,
   ];
 }
 

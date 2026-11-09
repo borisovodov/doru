@@ -1,10 +1,15 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type {
   AddressRecord,
+  AssociationRecord,
   AttachmentsSnapshot,
+  CensusRecord,
   ChangeRecord,
   CitationRecord,
   ContactRecord,
+  DuplicateCandidateRecord,
+  EvidenceLinkRecord,
+  EvidenceRecord,
   FactRecord,
   FactTypeRecord,
   FamilyRecord,
@@ -14,14 +19,19 @@ import type {
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
+  OrdinanceRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
+  ResearchActivityRecord,
+  ResearchDocumentRecord,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TitleRecord,
+  TodoRecord,
   TreeDocument,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
@@ -36,7 +46,9 @@ import { NameRepo } from './nameRepo';
 import { NoteRepo } from './noteRepo';
 import { PersonRepo, type PersonQuery, type PersonRow } from './personRepo';
 import { PlaceRepo } from './placeRepo';
+import { RelationRepo } from './relationRepo';
 import { RepositoryRepo } from './repositoryRepo';
+import { ResearchRepo } from './researchRepo';
 import { SourceRepo } from './sourceRepo';
 import { SubmitterRepo } from './submitterRepo';
 import { TransactionScope } from './transaction';
@@ -119,6 +131,12 @@ export interface TreeRepository {
   getSubmitter(id: string): SubmitterRecord | undefined;
   deleteSubmitter(id: string): boolean;
   listSubmitters(): SubmitterRecord[];
+  insertRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): void;
+  listSubmittersFor(targetType: string, targetId: string): string[];
+  listRecordSubmittersFor(
+    targetType: string,
+    targetId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
   getAddress(id: string): AddressRecord | undefined;
@@ -142,6 +160,52 @@ export interface TreeRepository {
   insertTagLink(link: TagLinkRecord): void;
   deleteTagLink(id: string): boolean;
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }>;
+  insertAssociation(association: AssociationRecord): void;
+  updateAssociation(association: AssociationRecord): void;
+  deleteAssociation(id: string): boolean;
+  listAssociations(): AssociationRecord[];
+  listAssociationsFor(personId: string): AssociationRecord[];
+  insertAlias(id: string, personId: string, aliasId: string): void;
+  deleteAlias(id: string): boolean;
+  listAliasesFor(personId: string): Array<{ id: string; aliasId: string }>;
+  insertOrdinance(ordinance: OrdinanceRecord): void;
+  updateOrdinance(ordinance: OrdinanceRecord): void;
+  deleteOrdinance(id: string): boolean;
+  listOrdinances(): OrdinanceRecord[];
+  listOrdinancesFor(targetType: string, targetId: string): OrdinanceRecord[];
+  insertTodo(todo: TodoRecord): void;
+  updateTodo(todo: TodoRecord): void;
+  deleteTodo(id: string): boolean;
+  listTodos(): TodoRecord[];
+  listTodosFor(targetType: string, targetId: string): TodoRecord[];
+  insertEvidence(evidence: EvidenceRecord): void;
+  updateEvidence(evidence: EvidenceRecord): void;
+  deleteEvidence(id: string): boolean;
+  getEvidence(id: string): EvidenceRecord | undefined;
+  listEvidence(): EvidenceRecord[];
+  listEvidenceLinksFor(targetType: string, targetId: string): EvidenceLinkRecord[];
+  insertResearchDocument(document: ResearchDocumentRecord): void;
+  updateResearchDocument(document: ResearchDocumentRecord): void;
+  deleteResearchDocument(id: string): boolean;
+  getResearchDocument(id: string): ResearchDocumentRecord | undefined;
+  listResearchDocuments(): ResearchDocumentRecord[];
+  insertResearchActivity(activity: ResearchActivityRecord): void;
+  updateResearchActivity(activity: ResearchActivityRecord): void;
+  deleteResearchActivity(id: string): boolean;
+  listResearchActivities(): ResearchActivityRecord[];
+  insertCensus(census: CensusRecord): void;
+  updateCensus(census: CensusRecord): void;
+  deleteCensus(id: string): boolean;
+  getCensus(id: string): CensusRecord | undefined;
+  listCensuses(): CensusRecord[];
+  insertDuplicate(duplicate: DuplicateCandidateRecord): void;
+  updateDuplicate(duplicate: DuplicateCandidateRecord): void;
+  deleteDuplicate(id: string): boolean;
+  listDuplicates(): DuplicateCandidateRecord[];
+  insertTitle(title: TitleRecord): void;
+  updateTitle(title: TitleRecord): void;
+  deleteTitle(id: string): boolean;
+  listTitles(): TitleRecord[];
   /** Everything attached to a target, for op snapshots before a cascade delete. */
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot;
   /** Removes every attachment of a target (cascade part of entity deletion). */
@@ -170,6 +234,8 @@ export class SqliteTreeRepository implements TreeRepository {
   private readonly media: MediaRepo;
   private readonly attachments: AttachmentRepo;
   private readonly repositories: RepositoryRepo;
+  private readonly relations: RelationRepo;
+  private readonly research: ResearchRepo;
   private readonly submitters: SubmitterRepo;
   private readonly addresses: AddressRepo;
   private readonly header: HeaderRepo;
@@ -187,6 +253,8 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media = new MediaRepo(db);
     this.attachments = new AttachmentRepo(db, dates);
     this.repositories = new RepositoryRepo(db);
+    this.relations = new RelationRepo(db, dates);
+    this.research = new ResearchRepo(db, dates);
     this.submitters = new SubmitterRepo(db);
     this.addresses = new AddressRepo(db);
     this.header = new HeaderRepo(db, dates);
@@ -571,6 +639,21 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.submitters.listSubmitters();
   }
 
+  insertRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): void {
+    this.submitters.insertRecordSubmitter(id, submitterId, targetType, targetId);
+  }
+
+  listSubmittersFor(targetType: string, targetId: string): string[] {
+    return this.submitters.listSubmittersFor(targetType, targetId);
+  }
+
+  listRecordSubmittersFor(
+    targetType: string,
+    targetId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+    return this.submitters.listRecordSubmittersFor(targetType, targetId);
+  }
+
   insertAddress(address: AddressRecord): void {
     this.addresses.insertAddress(address);
   }
@@ -663,6 +746,214 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.listTagLinksFor(targetType, targetId);
   }
 
+  insertAssociation(association: AssociationRecord): void {
+    this.relations.insertAssociation(association);
+  }
+
+  updateAssociation(association: AssociationRecord): void {
+    this.relations.updateAssociation(association);
+  }
+
+  deleteAssociation(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('association', id);
+      return this.relations.deleteAssociation(id);
+    });
+  }
+
+  listAssociations(): AssociationRecord[] {
+    return this.relations.listAssociations();
+  }
+
+  listAssociationsFor(personId: string): AssociationRecord[] {
+    return this.relations.listAssociationsFor(personId);
+  }
+
+  insertAlias(id: string, personId: string, aliasId: string): void {
+    this.relations.insertAlias(id, personId, aliasId);
+  }
+
+  deleteAlias(id: string): boolean {
+    return this.relations.deleteAlias(id);
+  }
+
+  listAliasesFor(personId: string): Array<{ id: string; aliasId: string }> {
+    return this.relations.listAliasesFor(personId);
+  }
+
+  insertOrdinance(ordinance: OrdinanceRecord): void {
+    this.relations.insertOrdinance(ordinance);
+  }
+
+  updateOrdinance(ordinance: OrdinanceRecord): void {
+    this.relations.updateOrdinance(ordinance);
+  }
+
+  deleteOrdinance(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('ordinance', id);
+      return this.relations.deleteOrdinance(id);
+    });
+  }
+
+  listOrdinances(): OrdinanceRecord[] {
+    return this.relations.listOrdinances();
+  }
+
+  listOrdinancesFor(targetType: string, targetId: string): OrdinanceRecord[] {
+    return this.relations.listOrdinancesFor(targetType, targetId);
+  }
+
+  insertTodo(todo: TodoRecord): void {
+    this.research.insertTodo(todo);
+  }
+
+  updateTodo(todo: TodoRecord): void {
+    this.research.updateTodo(todo);
+  }
+
+  deleteTodo(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('todo', id);
+      return this.research.deleteTodo(id);
+    });
+  }
+
+  listTodos(): TodoRecord[] {
+    return this.research.listTodos();
+  }
+
+  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
+    return this.research.listTodosFor(targetType, targetId);
+  }
+
+  insertEvidence(evidence: EvidenceRecord): void {
+    this.research.insertEvidence(evidence);
+  }
+
+  updateEvidence(evidence: EvidenceRecord): void {
+    this.research.updateEvidence(evidence);
+  }
+
+  deleteEvidence(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('evidence', id);
+      return this.research.deleteEvidence(id);
+    });
+  }
+
+  getEvidence(id: string): EvidenceRecord | undefined {
+    return this.research.getEvidence(id);
+  }
+
+  listEvidence(): EvidenceRecord[] {
+    return this.research.listEvidence();
+  }
+
+  listEvidenceLinksFor(targetType: string, targetId: string): EvidenceLinkRecord[] {
+    return this.research.listEvidenceLinksFor(targetType, targetId);
+  }
+
+  insertResearchDocument(document: ResearchDocumentRecord): void {
+    this.research.insertResearchDocument(document);
+  }
+
+  updateResearchDocument(document: ResearchDocumentRecord): void {
+    this.research.updateResearchDocument(document);
+  }
+
+  deleteResearchDocument(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('research_document', id);
+      return this.research.deleteResearchDocument(id);
+    });
+  }
+
+  getResearchDocument(id: string): ResearchDocumentRecord | undefined {
+    return this.research.getResearchDocument(id);
+  }
+
+  listResearchDocuments(): ResearchDocumentRecord[] {
+    return this.research.listResearchDocuments();
+  }
+
+  insertResearchActivity(activity: ResearchActivityRecord): void {
+    this.research.insertResearchActivity(activity);
+  }
+
+  updateResearchActivity(activity: ResearchActivityRecord): void {
+    this.research.updateResearchActivity(activity);
+  }
+
+  deleteResearchActivity(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('research_activity', id);
+      return this.research.deleteResearchActivity(id);
+    });
+  }
+
+  listResearchActivities(): ResearchActivityRecord[] {
+    return this.research.listResearchActivities();
+  }
+
+  insertCensus(census: CensusRecord): void {
+    this.research.insertCensus(census);
+  }
+
+  updateCensus(census: CensusRecord): void {
+    this.research.updateCensus(census);
+  }
+
+  deleteCensus(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('census', id);
+      return this.research.deleteCensus(id);
+    });
+  }
+
+  getCensus(id: string): CensusRecord | undefined {
+    return this.research.getCensus(id);
+  }
+
+  listCensuses(): CensusRecord[] {
+    return this.research.listCensuses();
+  }
+
+  insertDuplicate(duplicate: DuplicateCandidateRecord): void {
+    this.research.insertDuplicate(duplicate);
+  }
+
+  updateDuplicate(duplicate: DuplicateCandidateRecord): void {
+    this.research.updateDuplicate(duplicate);
+  }
+
+  deleteDuplicate(id: string): boolean {
+    return this.research.deleteDuplicate(id);
+  }
+
+  listDuplicates(): DuplicateCandidateRecord[] {
+    return this.research.listDuplicates();
+  }
+
+  insertTitle(title: TitleRecord): void {
+    this.research.insertTitle(title);
+  }
+
+  updateTitle(title: TitleRecord): void {
+    this.research.updateTitle(title);
+  }
+
+  deleteTitle(id: string): boolean {
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('title', id);
+      return this.research.deleteTitle(id);
+    });
+  }
+
+  listTitles(): TitleRecord[] {
+    return this.research.listTitles();
+  }
+
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
     return {
       noteLinks: this.notes.listLinksFor(targetType, targetId),
@@ -673,6 +964,10 @@ export class SqliteTreeRepository implements TreeRepository {
       restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
       changes: this.attachments.listChangesFor(targetType, targetId),
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
+      ordinances: this.relations.listOrdinancesFor(targetType, targetId),
+      todos: this.research.listTodosFor(targetType, targetId),
+      evidenceLinks: this.research.listEvidenceLinksFor(targetType, targetId),
+      recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
   }
 
@@ -681,6 +976,10 @@ export class SqliteTreeRepository implements TreeRepository {
     this.sources.deleteCitationsFor(targetType, targetId);
     this.media.deleteLinksFor(targetType, targetId);
     this.attachments.deleteAllFor(targetType, targetId);
+    this.relations.deleteOrdinancesFor(targetType, targetId);
+    this.research.deleteTodosFor(targetType, targetId);
+    this.research.deleteEvidenceLinksFor(targetType, targetId);
+    this.submitters.deleteRecordSubmittersFor(targetType, targetId);
   }
 
   restoreAttachments(snapshot: AttachmentsSnapshot): void {
@@ -717,6 +1016,18 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const entry of snapshot.tagLinks) {
       this.attachments.insertTagLink(entry.link);
+    }
+    for (const ordinance of snapshot.ordinances) {
+      this.relations.insertOrdinance(ordinance);
+    }
+    for (const todo of snapshot.todos) {
+      this.research.insertTodo(todo);
+    }
+    for (const link of snapshot.evidenceLinks) {
+      this.research.insertEvidenceLink(link);
+    }
+    for (const entry of snapshot.recordSubmitters) {
+      this.submitters.insertRecordSubmitter(entry.id, entry.submitterId, entry.targetType, entry.targetId);
     }
   }
 
