@@ -7,7 +7,7 @@ hero:
   tagline: "Un'app desktop per alberi genealogici. Il tuo albero vive in una semplice cartella sul disco, funziona completamente offline ed è guidato da agenti IA — tramite la chat integrata o qualsiasi client MCP/ACP."
 features:
   - icon: 🗂️
-    title: Local-first
+    title: Dati locali
     details: "Un progetto è un singolo file .doru (SQLite); le foto vivono in una cartella media accanto. Nulla è nascosto, nulla viene caricato. Backup copiando una cartella."
   - icon: 🤖
     title: Nativamente IA
@@ -29,7 +29,7 @@ features:
     details: "Funziona su macOS, Linux e Windows. L'interfaccia è completamente localizzata — dall'italiano e l'inglese al giapponese e al cinese semplificato."
   - icon: 🐙
     title: Vero open source
-    details: "L'intera app è sotto licenza MIT: libera per qualsiasi uso, modifica e ridistribuzione. Codice sorgente completamente aperto — nessuna parte proprietaria, nessun trucco open-core."
+    details: "L'intera app è sotto licenza MIT: libera per qualsiasi uso, modifica e ridistribuzione. Codice sorgente completamente aperto — nessuna parte proprietaria, niente viene trattenuto."
 ---
 
 <div class="doru-read-docs">

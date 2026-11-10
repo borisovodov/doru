@@ -7,7 +7,7 @@ hero:
   tagline: "Desktopová aplikace pro rodokmeny. Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta."
 features:
   - icon: 🗂️
-    title: Local-first
+    title: Lokální data
     details: "Projekt je jediný soubor .doru (SQLite); fotky žijí ve složce media vedle něj. Nic není skryto, nic se nenahrává. Záloha zkopírováním složky."
   - icon: 🤖
     title: Nativně AI
@@ -29,7 +29,7 @@ features:
     details: "Běží na macOS, Linuxu a Windows. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
   - icon: 🐙
     title: Skutečný open source
-    details: "Celá aplikace je pod licencí MIT: volná pro jakékoli použití, úpravy i šíření. Zdrojový kód je kompletně veřejný — bez proprietárních částí, bez open-core triků."
+    details: "Celá aplikace je pod licencí MIT: volná pro jakékoli použití, úpravy i šíření. Zdrojový kód je kompletně veřejný — bez proprietárních částí, nic nezadržujeme."
 ---
 
 <div class="doru-read-docs">

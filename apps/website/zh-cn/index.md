@@ -29,7 +29,7 @@ features:
     details: "支持 macOS、Linux 和 Windows。界面已完全本地化——从中英文到日文和简体中文。"
   - icon: 🐙
     title: 真正的开源
-    details: "整个应用采用 MIT 许可证：可自由使用、修改和再分发。源代码完全公开——没有专有部分，没有 open-core 套路。"
+    details: "整个应用采用 MIT 许可证：可自由使用、修改和再分发。源代码完全公开——没有专有部分，没有任何保留。"
 ---
 
 <div class="doru-read-docs">

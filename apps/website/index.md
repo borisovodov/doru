@@ -29,7 +29,7 @@ features:
     details: "Runs on macOS, Linux, and Windows. The interface is fully localized — from English and Russian to Japanese and Simplified Chinese."
   - icon: 🐙
     title: Open source
-    details: "The entire app is MIT-licensed: free for any use, modification, and redistribution. Full source in the open — no proprietary parts, no open-core tricks."
+    details: "The entire app is MIT-licensed: free for any use, modification, and redistribution. Full source in the open — no proprietary parts, nothing held back."
 ---
 
 <div class="doru-read-docs">

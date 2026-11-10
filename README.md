@@ -20,7 +20,7 @@ chat or any MCP/ACP client.
 
 Dóru is genuinely open source: the entire app is released under the
 [MIT license](LICENSE.md) — free for any use, modification, and
-redistribution, with no proprietary parts and no open-core tricks.
+redistribution, with no proprietary parts and nothing held back.
 
 The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 

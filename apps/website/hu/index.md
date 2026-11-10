@@ -7,7 +7,7 @@ hero:
   tagline: "Asztali alkalmazás családfákhoz. Családfája egy közönséges mappában él a lemezén, teljesen offline működik, és MI-ügynökök vezérlik — a beépített chaten vagy bármely MCP/ACP-kliensen keresztül."
 features:
   - icon: 🗂️
-    title: Local-first
+    title: Helyi adatok
     details: "A projekt egyetlen .doru fájl (SQLite); a fényképek a mellette lévő media mappában élnek. Semmi sincs elrejtve, semmi sincs feltöltve. Biztonsági mentés egy mappa másolásával."
   - icon: 🤖
     title: MI-natív
@@ -29,7 +29,7 @@ features:
     details: "macOS-en, Linuxon és Windowson fut. A felület teljesen lokalizált — a magyartól és az angoltól a japánig és az egyszerűsített kínaiig."
   - icon: 🐙
     title: Valódi nyílt forráskód
-    details: "A teljes alkalmazás MIT-licencű: szabadon használható, módosítható és terjeszthető bármilyen célra. A forráskód teljes egészében nyilvános — nincsenek zárt részek, nincsenek open-core trükkök."
+    details: "A teljes alkalmazás MIT-licencű: szabadon használható, módosítható és terjeszthető bármilyen célra. A forráskód teljes egészében nyilvános — nincsenek zárt részek, semmi sincs visszatartva."
 ---
 
 <div class="doru-read-docs">

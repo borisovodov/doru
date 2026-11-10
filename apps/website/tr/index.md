@@ -7,7 +7,7 @@ hero:
   tagline: "Soy ağaçları için bir masaüstü uygulaması. Soy ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla."
 features:
   - icon: 🗂️
-    title: Local-first
+    title: Yerel veriler
     details: "Bir proje tek bir .doru dosyasıdır (SQLite); fotoğraflar yanındaki media klasöründe yaşar. Hiçbir şey gizli değil, hiçbir şey yüklenmiyor. Bir klasörü kopyalayarak yedekleyin."
   - icon: 🤖
     title: YZ-yerel
@@ -29,7 +29,7 @@ features:
     details: "macOS, Linux ve Windows'ta çalışır. Arayüz tamamen yerelleştirildi — Türkçe ve İngilizceden Japoncaya ve basitleştirilmiş Çinceye kadar."
   - icon: 🐙
     title: Gerçek açık kaynak
-    details: "Uygulamanın tamamı MIT lisansı altındadır: her türlü kullanım, değişiklik ve yeniden dağıtım için özgürdür. Kaynak kodu tamamen açıktır — özel mülk parçalar yok, open-core oyunları yok."
+    details: "Uygulamanın tamamı MIT lisansı altındadır: her türlü kullanım, değişiklik ve yeniden dağıtım için özgürdür. Kaynak kodu tamamen açıktır — özel mülk parçalar yok, hiçbir şey saklanmaz."
 ---
 
 <div class="doru-read-docs">

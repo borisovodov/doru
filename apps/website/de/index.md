@@ -7,7 +7,7 @@ hero:
   tagline: "Eine Desktop-App für Stammbäume. Ihr Stammbaum lebt in einem gewöhnlichen Ordner auf Ihrer Festplatte, funktioniert vollständig offline und wird von KI-Agenten gesteuert — über den eingebauten Chat oder jeden MCP/ACP-Client."
 features:
   - icon: 🗂️
-    title: Local-first
+    title: Lokale Daten
     details: "Ein Projekt ist eine einzelne .doru-Datei (SQLite); Fotos liegen in einem media-Ordner daneben. Nichts ist versteckt, nichts wird hochgeladen. Backup durch Kopieren eines Ordners."
   - icon: 🤖
     title: KI-nativ
@@ -29,7 +29,7 @@ features:
     details: "Läuft auf macOS, Linux und Windows. Die Oberfläche ist vollständig lokalisiert — von Deutsch und Englisch bis Japanisch und vereinfachtem Chinesisch."
   - icon: 🐙
     title: Echtes Open Source
-    details: "Die gesamte App steht unter der MIT-Lizenz: frei für jede Nutzung, Änderung und Weitergabe. Vollständiger Quellcode öffentlich — keine proprietären Teile, keine Open-Core-Tricks."
+    details: "Die gesamte App steht unter der MIT-Lizenz: frei für jede Nutzung, Änderung und Weitergabe. Vollständiger Quellcode öffentlich — keine proprietären Teile, nichts wird zurückgehalten."
 ---
 
 <div class="doru-read-docs">
