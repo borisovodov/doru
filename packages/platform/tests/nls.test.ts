@@ -18,8 +18,20 @@ describe('resolveLocale', () => {
     expect(resolveLocale('zh-Hant')).toBe('zh-tw');
   });
 
+  it('normalizes case and underscores', () => {
+    expect(resolveLocale('RU')).toBe('ru');
+    expect(resolveLocale('pt_BR')).toBe('pt-br');
+  });
+
+  it('maps base tags through the base mapping', () => {
+    expect(resolveLocale('pt')).toBe('pt-br');
+    expect(resolveLocale('zh')).toBe('zh-cn');
+  });
+
   it('falls back to English for unknown locales', () => {
     expect(resolveLocale('xx-XX')).toBe('en');
+    expect(resolveLocale('xx')).toBe('en');
+    expect(resolveLocale('xx-YY')).toBe('en');
     expect(resolveLocale('')).toBe('en');
   });
 });
@@ -36,5 +48,17 @@ describe('LocalizationService', () => {
   it('interpolates arguments', () => {
     const service = new LocalizationService('en');
     expect(service.t('chat.toolCall', 'tree_query')).toBe('Tool: tree_query');
+  });
+
+  it('exposes the resolved locale and resolves unsupported setLocale calls', () => {
+    const service = new LocalizationService('de');
+    expect(service.locale).toBe('de');
+    service.setLocale('xx');
+    expect(service.locale).toBe('en');
+  });
+
+  it('lists every available locale', () => {
+    expect(LocalizationService.availableLocales()).toContain('en');
+    expect(LocalizationService.availableLocales()).toContain('zh-tw');
   });
 });
