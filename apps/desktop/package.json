@@ -5,7 +5,7 @@
   "type": "module",
   "productName": "Doru",
   "desktopName": "org.doru.doru",
-  "description": "Dóru — local-first, MIT-licensed genealogy for the AI era. Your data stays on your machine.",
+  "description": "Genealogy for the AI era.",
   "author": "Boris Ovodov <boris@ovodov.me>",
   "homepage": "https://github.com/borisovodov/doru",
   "license": "MIT",

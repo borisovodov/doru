@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: Genealogia local-first nell'era dell'IA
-  tagline: "Il tuo albero genealogico vive in una semplice cartella sul disco, funziona completamente offline ed è guidato da agenti IA — tramite la chat integrata o qualsiasi client MCP/ACP. Niente account, niente cloud, niente telemetria: i tuoi dati restano con te."
+  text: Genealogia nell'era dell'IA
+  tagline: "Un'app desktop per alberi genealogici. Il tuo albero vive in una semplice cartella sul disco, funziona completamente offline ed è guidato da agenti IA — tramite la chat integrata o qualsiasi client MCP/ACP."
 features:
   - icon: 🗂️
     title: Local-first

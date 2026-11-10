@@ -129,7 +129,7 @@ function openGraphHead({ pageData, title, description }: TransformContext): Head
     ['meta', { property: 'og:image', content: image }],
     ['meta', { property: 'og:image:width', content: '1200' }],
     ['meta', { property: 'og:image:height', content: '630' }],
-    ['meta', { property: 'og:image:alt', content: 'Dóru — local-first genealogy for the AI era' }],
+    ['meta', { property: 'og:image:alt', content: 'Dóru — genealogy for the AI era' }],
     ['meta', { property: 'og:locale', content: ogLocale(pageData.relativePath) }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: title }],
@@ -145,7 +145,7 @@ function openGraphHead({ pageData, title, description }: TransformContext): Head
 export default defineConfig({
   lang: 'en-US',
   title: 'Dóru',
-  description: 'Local-first genealogy for the AI era',
+  description: 'Genealogy for the AI era. A desktop app for your family tree. Your tree lives in a plain folder on your disk, works fully offline, and is driven by AI agents — through the built-in chat or any MCP/ACP client.',
   cleanUrls: true,
   // Strict by default in VitePress; keep it explicit so a dead link always
   // fails the build instead of silently regressing.

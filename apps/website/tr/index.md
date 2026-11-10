@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: Yapay zekâ çağında local-first soy ağacı
-  tagline: "Soy ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla. Hesap yok, bulut yok, telemetri yok: verileriniz sizde kalır."
+  text: Yapay zekâ çağında soy ağacı
+  tagline: "Soy ağaçları için bir masaüstü uygulaması. Soy ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla."
 features:
   - icon: 🗂️
     title: Local-first

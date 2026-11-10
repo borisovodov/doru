@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: Local-first genealogy for the AI era
-  tagline: "Your family tree lives in a plain folder on your disk, works fully offline, and is driven by AI agents — through the built-in chat or any MCP/ACP client. No accounts, no cloud, no telemetry: your data stays with you."
+  text: Genealogy for the AI era
+  tagline: "A desktop app for your family tree. Your tree lives in a plain folder on your disk, works fully offline, and is driven by AI agents — through the built-in chat or any MCP/ACP client."
 features:
   - icon: 🗂️
     title: Local-first

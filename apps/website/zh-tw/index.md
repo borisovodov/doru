@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: AI 時代的本地優先家譜
-  tagline: "您的家譜存放在磁碟上的普通資料夾中，完全離線運作，並透過內建聊天或任何 MCP/ACP 用戶端由 AI 代理人驅動。沒有帳戶，沒有雲端，沒有遙測：您的資料留在您自己手中。"
+  text: AI 時代的家譜
+  tagline: "一款家譜桌面應用。您的家譜存放在磁碟上的普通資料夾中，完全離線運作，並透過內建聊天或任何 MCP/ACP 用戶端由 AI 代理人驅動。"
 features:
   - icon: 🗂️
     title: 本地優先

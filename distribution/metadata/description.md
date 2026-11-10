@@ -1,6 +1,6 @@
-Dóru is local-first genealogy for the AI era. A project is a single `.doru`
-file (SQLite) with photos in a media folder next to it — nothing is hidden,
-nothing is uploaded.
+A desktop app for your family tree. Your tree lives in a plain folder on
+your disk, works fully offline, and is driven by AI agents — through the
+built-in chat or any MCP/ACP client.
 
 - **Your tree, your disk.** Trees live in plain files on your machine and work
   fully offline. Back up by copying a folder; open it on macOS, Linux, or

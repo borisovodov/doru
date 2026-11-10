@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: AI 시대의 local-first 계보
-  tagline: "가계도는 디스크의 평범한 폴더에 살아 있고, 완전히 오프라인으로 작동하며, 내장 채팅이나 모든 MCP/ACP 클라이언트를 통해 AI 에이전트가 조작합니다. 계정도, 클라우드도, 텔레메트리도 없습니다: 데이터는 여러분 곁에 남습니다."
+  text: AI 시대의 계보
+  tagline: "가계도를 위한 데스크톱 앱. 가계도는 디스크의 평범한 폴더에 살아 있고, 완전히 오프라인으로 작동하며, 내장 채팅이나 모든 MCP/ACP 클라이언트를 통해 AI 에이전트가 조작합니다."
 features:
   - icon: 🗂️
     title: Local-first

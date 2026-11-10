@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: Local-first családfakutatás a mesterséges intelligencia korában
-  tagline: "Családfája egy közönséges mappában él a lemezén, teljesen offline működik, és MI-ügynökök vezérlik — a beépített chaten vagy bármely MCP/ACP-kliensen keresztül. Nincs fiók, nincs felhő, nincs telemetria: adatai Önnél maradnak."
+  text: Családfakutatás a mesterséges intelligencia korában
+  tagline: "Asztali alkalmazás családfákhoz. Családfája egy közönséges mappában él a lemezén, teljesen offline működik, és MI-ügynökök vezérlik — a beépített chaten vagy bármely MCP/ACP-kliensen keresztül."
 features:
   - icon: 🗂️
     title: Local-first

@@ -4,7 +4,7 @@ Instructions for AI agents and contributors working on this repository.
 
 ## Project
 
-Dóru — local-first genealogy for the AI era: Electron + TypeScript, monorepo,
+Dóru — genealogy for the AI era: Electron + TypeScript, monorepo,
 SQLite-based tree documents (`.doru` files), text-based config/themes, MCP
 server mode, ACP agents, agent chat. MIT-licensed; no
 accounts, no cloud, no telemetry — user data never leaves the machine unless

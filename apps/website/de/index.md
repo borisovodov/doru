@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: Local-first-Genealogie im KI-Zeitalter
-  tagline: "Ihr Stammbaum lebt in einem gewöhnlichen Ordner auf Ihrer Festplatte, funktioniert vollständig offline und wird von KI-Agenten gesteuert — über den eingebauten Chat oder jeden MCP/ACP-Client. Keine Konten, keine Cloud, keine Telemetrie: Ihre Daten bleiben bei Ihnen."
+  text: Genealogie im KI-Zeitalter
+  tagline: "Eine Desktop-App für Stammbäume. Ihr Stammbaum lebt in einem gewöhnlichen Ordner auf Ihrer Festplatte, funktioniert vollständig offline und wird von KI-Agenten gesteuert — über den eingebauten Chat oder jeden MCP/ACP-Client."
 features:
   - icon: 🗂️
     title: Local-first

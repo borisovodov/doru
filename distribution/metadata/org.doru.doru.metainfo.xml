@@ -14,7 +14,7 @@
 <component type="desktop-application">
   <id>org.doru.doru</id>
   <name>Dóru</name>
-  <summary>Local-first genealogy for the AI era</summary>
+  <summary>Genealogy for the AI era</summary>
   <developer id="me.ovodov">
     <name>Boris Ovodov</name>
   </developer>
@@ -82,9 +82,9 @@
 
   <description>
     <p>
-      Dóru is local-first genealogy for the AI era. A project is a single
-      .doru file (SQLite) with photos in a media folder next to it — nothing
-      is hidden, nothing is uploaded.
+      A desktop app for your family tree. Your tree lives in a plain folder
+      on your disk, works fully offline, and is driven by AI agents —
+      through the built-in chat or any MCP/ACP client.
     </p>
     <p>
       Your family tree lives on your disk and works fully offline. Back up by

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Dóru
-  text: Local-first genealogie v éře AI
-  tagline: "Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta. Žádné účty, žádný cloud, žádná telemetrie: vaše data zůstávají u vás."
+  text: Genealogie v éře AI
+  tagline: "Desktopová aplikace pro rodokmeny. Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta."
 features:
   - icon: 🗂️
     title: Local-first
