@@ -1,18 +1,19 @@
 # Intro
 
-Dóru is a local-first genealogy app for the AI era. Your family tree lives in
-a plain folder on your disk, works fully offline, and can be driven by AI
-agents — through the built-in chat or any MCP/ACP client.
+Dóru is genealogy for the AI era, a desktop app for your family tree. Your
+tree lives in a plain folder on your disk, works fully offline, and is
+driven by AI agents — through the built-in chat or any MCP/ACP client.
 
 - **Local-first.** Nothing leaves your computer unless you say so. A project
   is a single `.doru` file; photos live in a `media/` folder next to it. No
   accounts, no cloud, no telemetry — your data stays with you.
 - **Open source.** The whole app is MIT-licensed — free for any use,
   modification, and redistribution, with the full source available.
-- **AI-native.** Talk to an agent in the app, or let external tools (Claude
-  Desktop, Cursor, coding agents) work with your tree over MCP/ACP.
-- **Plain files.** The tree is a single SQLite file; photos are ordinary files
-  in a `media/` folder.
+- **AI-native.** The built-in assistant, Dóru AI, runs entirely on your
+  machine. The in-app chat reads and edits the tree, and external tools
+  (Claude Desktop, Cursor, coding agents) work with it over MCP/ACP.
+- **Themes.** Nine built-in themes, each with dark and light palettes that
+  follow your OS appearance.
 
 ## Browse the guide
 
@@ -24,7 +25,7 @@ agents — through the built-in chat or any MCP/ACP client.
 | [Keyboard shortcuts](shortcuts.md) | The full list of keyboard shortcuts for macOS, Linux, and Windows. |
 | [Settings](settings.md) | The full `settings.json` reference and environment variables. |
 | [AI and agents](agents.md) | The in-app chat, ACP agents, MCP server mode, example prompts. |
-| [Themes](themes.md) | One theme with dark and light palettes, chosen per OS appearance. |
+| [Themes](themes.md) | Nine built-in themes with dark and light palettes per OS appearance — plus your own theme files. |
 | [Data and backups](data-backups.md) | Data ownership, privacy, backing up and restoring projects. |
 | [Troubleshooting](troubleshooting.md) | Common problems and their fixes. |
 

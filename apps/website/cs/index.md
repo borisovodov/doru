@@ -3,30 +3,33 @@ layout: home
 
 hero:
   name: Dóru
-  text: Local-first genealogie v éře AI
-  tagline: "Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta. Žádné účty, žádný cloud, žádná telemetrie: vaše data zůstávají u vás."
+  text: Genealogie v éře AI
+  tagline: "Desktopová aplikace pro rodokmeny. Váš rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta."
 features:
   - icon: 🗂️
-    title: Local-first
-    details: "Projekt je jediný soubor .doru (SQLite); fotky žijí ve složce media vedle něj. Nic není skryto, nic se nenahrává."
+    title: Lokální data
+    details: "Projekt je jediný soubor .doru (SQLite); fotky žijí ve složce media vedle něj. Nic není skryto, nic se nenahrává. Záloha zkopírováním složky."
   - icon: 🤖
     title: Nativně AI
-    details: "Chat s agenty a nástroji stromu, režim MCP serveru pro Claude Desktop a Cursor, MCP host pro externí servery, ACP agenti."
+    details: "Celá aplikace je nativně AI. Dóru AI, vestavěný asistent, běží lokálně a offline — bez účtu. Nebo připojte libovolného poskytovatele — Ollama, LM Studio, cloudové API, agenta ACP."
+  - icon: 🌳
+    title: Celý strom na jednom plátně
+    details: "Čtyři pohledy — předci, potomci, přesýpací hodiny, rodina — na jednom přibližitelném plátně. Přidávejte lidi přímo na místě, přetažením změňte rodiče, otevírejte plné editory dat, zdrojů a poznámek."
+  - icon: 💾
+    title: Import a export GEDCOM
+    details: "Import GEDCOM 5.5 a 5.5.1, export GEDCOM 7.0 — včetně archivů .gdz. Rozpoznávány jsou stovky tagů výrobců z reálného softwaru, takže se při importu nic důležitého neztratí."
   - icon: 🔒
     title: Soukromí z podstaty
-    details: "Aplikace sama nikam nevolá: žádné účty, žádný cloud, žádná telemetrie. Jediná síťová spojení vedou k poskytovatelům AI a MCP serverům, které si sami nakonfigurujete. API klíče zůstávají v systémové klíčence a s Ollamou nebo LM Studiem běží AI kompletně na vašem počítači."
+    details: "Žádné účty, žádný cloud, žádná telemetrie. Nic neopustí váš počítač, dokud to sami nepovolíte."
   - icon: 🎨
-    title: Textová konfigurace
-    details: "Nastavení v settings.json: poskytovatelé AI, motivy a další. Prostý text, živé znovunačtení, upravitelné lidmi i agenty."
+    title: Motivy
+    details: "Devět vestavěných motivů — od One Dark po Rosé Pine — každý s tmavou a světlou paletou, které se řídí vzhledem vašeho OS."
   - icon: 🌍
     title: Multiplatformní a 17 jazyků
     details: "Běží na macOS, Linuxu a Windows. Rozhraní je plně lokalizováno — od češtiny a angličtiny po japonštinu a zjednodušenou čínštinu."
-  - icon: 💾
-    title: Přenosné z podstaty
-    details: "Záloha zkopírováním složky. Otevřete ji na macOS, Linuxu nebo Windows. Import a export GEDCOM zajišťují interoperabilitu."
   - icon: 🐙
     title: Skutečný open source
-    details: "Celá aplikace je pod licencí MIT: volná pro jakékoli použití, úpravy i šíření. Zdrojový kód je kompletně veřejný — bez proprietárních částí, bez open-core triků."
+    details: "Celá aplikace je pod licencí MIT: volná pro jakékoli použití, úpravy i šíření. Zdrojový kód je kompletně veřejný — bez proprietárních částí, nic nezadržujeme."
 ---
 
 <div class="doru-read-docs">

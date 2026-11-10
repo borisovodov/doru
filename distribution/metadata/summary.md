@@ -1,1 +1,1 @@
-Local-first genealogy for the AI era
+Genealogy for the AI era

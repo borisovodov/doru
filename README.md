@@ -2,13 +2,11 @@
   <img src="apps/desktop/build/Icon-256@1x.png" alt="Dóru icon" width="112" />
 </p>
 
-<h1 align="center">Dóru</h1>
+# Dóru
 
-<p align="center"><strong>Local-first genealogy for the AI era.</strong></p>
+**Genealogy for the AI era.**
 
-<p align="center">
-  <a href="https://github.com/borisovodov/doru/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/borisovodov/doru/ci.yml?branch=main" /></a>
-</p>
+[![CI](https://img.shields.io/github/actions/workflow/status/borisovodov/doru/ci.yml?branch=main)](https://github.com/borisovodov/doru/actions/workflows/ci.yml)
 
 🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
 
@@ -16,16 +14,13 @@ PROJECT UNDER ACTIVE DEVELOPMENT, NOTHING WORKS, EVERYTHING CHANGES EVERY DAY UN
 
 🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
 
-A cross-platform desktop app for working with family trees: your data stays in
-plain folders on your disk, works fully offline, and is designed to be driven
-by AI agents through MCP and chat. There are no accounts, no cloud, and no
-telemetry — nothing leaves your machine unless you explicitly send it
-somewhere, and even AI features work with local models like Ollama if you
-prefer.
+A desktop app for your family tree. Your tree lives in a plain folder on your
+disk, works fully offline, and is driven by AI agents — through the built-in
+chat or any MCP/ACP client.
 
 Dóru is genuinely open source: the entire app is released under the
 [MIT license](LICENSE.md) — free for any use, modification, and
-redistribution, with no proprietary parts and no open-core tricks.
+redistribution, with no proprietary parts and nothing held back.
 
 The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
@@ -41,19 +36,17 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 - **Genuinely open source.** The whole app is MIT-licensed: free to use,
   modify, and redistribute, for any purpose. What you run is what is in the
   repo — no source-available bait, no proprietary parts.
-- **AI-native.** Dóru is both an MCP server — run `doru --mcp-server <project>`
-  and any MCP client (Claude Desktop, Cursor) can query and edit your tree
-  through `tree_query`, `tree_get`, `tree_stats`, `tree_edit`,
-  `tree_add_relative`, `sources_add`, `notes_write` — and an agent chat built
-  into the UI: a
-  step-by-step wizard sets up the provider (Ollama and LM Studio locally,
-  custom OpenAI-compatible endpoints, or ACP agents; cloud presets return one
-  by one), and keys are stored in the OS keychain.
-- **Auditable.** Every mutation is recorded with its actor — user or agent
-  (`agent:{host}/{model}#{promptHash}`). AI edits are always reviewable and
-  undoable.
+- **AI-native.** Dóru AI, the built-in assistant, runs entirely on your
+  machine — no account, no internet. Dóru is also an MCP server — run
+  `doru --mcp-server <project>` and any MCP client (Claude Desktop, Cursor)
+  can query and edit your tree through `tree_query`, `tree_get`,
+  `tree_stats`, `tree_edit`, `tree_add_relative`, `sources_add`,
+  `notes_write` — and an agent chat built into the UI: a step-by-step wizard
+  sets up the provider (Ollama and LM Studio locally, custom
+  OpenAI-compatible endpoints, or ACP agents; cloud presets return one by
+  one), and keys are stored in the OS keychain.
 - **Workbench-style UI.** Activity bar, sidebar, tabs, editor area, panel,
-  themes as text files, text-based settings.
+  themes, and an in-app settings page.
 
 ## Features
 
@@ -80,7 +73,9 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ### Import and export
 
-- **GEDCOM 5.5 / 5.5.1 import** and **GEDCOM 7.0 export**.
+- **GEDCOM 5.5 / 5.5.1 import** and **GEDCOM 7.0 export** (plus `.gdz`
+  archives). Hundreds of vendor tags from real-world software are recognized,
+  so nothing important is lost on the way in.
 - **Tabs** — a project opens in its own window, and entities (persons, the
   tree editor, settings) open as tabs inside it. Recent projects are listed on
   the start page, open project windows are restored on launch, and
@@ -89,6 +84,9 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ### AI and agents
 
+- **Built-in assistant** — Dóru AI runs entirely on your machine: downloaded
+  once, no account, no internet needed. It is the default provider on a fresh
+  install.
 - **In-app chat** — the agent reads and edits the tree with built-in tools:
   `tree_query`, `tree_get`, `tree_stats`, `tree_edit`, `tree_add_relative`,
   `sources_add`, `notes_write`.
@@ -102,10 +100,12 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ### Settings and themes
 
-- **`settings.json`** — plain JSON with comments, edited in any editor, picked up
-  live while the app runs.
-- **Themes** — the interface is styled through CSS custom properties; a dark
-  and a light theme are built in and chosen per OS appearance.
+- **Settings page** — providers, models, themes and more, all configured in
+  the app.
+- **Themes** — nine built-in themes (Dóru, One Dark, GitHub, Solarized,
+  Gruvbox, Catppuccin, Ayu, Rosé Pine, Everforest), each with dark and light
+  palettes that follow the OS appearance; styled entirely through CSS custom
+  properties.
 - **17 languages** — the UI always follows the operating system language.
 
 ## Installation
