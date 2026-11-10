@@ -1,5 +1,6 @@
 import { parse } from '@doru/gedcom';
 import { describe, expect, it } from 'vitest';
+import { buildGedcomDataset } from '../src/export/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import { cleanupRepo, makeRepo } from './helpers';
 
@@ -252,6 +253,52 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(repo.listAllMedia()).toEqual([]);
     } finally {
       cleanupRepo(fixture);
+    }
+  });
+
+  it('round-trips through export: import, export, re-import', async () => {
+    const { serializeGedcom70 } = await import('@doru/gedcom');
+    const first = makeRepo();
+    const second = makeRepo();
+    try {
+      importGedcomDataset(parseRich(), first.repo);
+      const dataset = buildGedcomDataset(first.repo);
+      const serialized = serializeGedcom70(dataset);
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      const reparsed = parse(new TextEncoder().encode(serialized.value));
+      if (!reparsed.ok || reparsed.value.kind !== 'dataset') {
+        throw new Error('reparse failed');
+      }
+      importGedcomDataset(reparsed.value.dataset, second.repo);
+
+      // The same persons, names and facts come back.
+      const persons = second.repo.listAllPersons();
+      expect(persons).toHaveLength(3);
+      const ivan = persons.find((person) => person.xref === '@I1@')!;
+      expect(ivan.names[0]?.given).toBe('Ivan');
+      expect(ivan.names[0]?.surname).toBe('Petrov');
+      const birth = second.repo.listFactsForPerson(ivan.id).find((fact) => fact.tag === 'BIRT')!;
+      expect(birth.date?.component).toEqual(expect.objectContaining({ year: 1892, month: 3, day: 2 }));
+      expect(birth.place).toBe('Moscow, Russia');
+      expect(birth.participants).toEqual([expect.objectContaining({ value: 'Witness Name', role: 'WITN' })]);
+
+      // Shared notes keep their xref and link again.
+      expect(second.repo.listNotesFor('person', ivan.id).map((note) => note.text)).toContain('shared note text');
+
+      // Sources, citations and the family survive.
+      expect(second.repo.listSources()[0]?.title).toBe('Parish register 1897');
+      const family = second.repo.listFamilies()[0]!;
+      expect(family.partners).toHaveLength(2);
+      expect(family.children).toHaveLength(1);
+      expect(family.childLinks?.[0]?.pedigree).toBe('adopted');
+      const marriage = second.repo.listFactsForFamily(family.id).find((fact) => fact.tag === 'MARR')!;
+      expect(marriage.ages?.map((age) => [age.role, age.years])).toEqual([['HUSB', 23], ['WIFE', 21]]);
+    } finally {
+      cleanupRepo(first);
+      cleanupRepo(second);
     }
   });
 });

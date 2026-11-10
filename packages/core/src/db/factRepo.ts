@@ -237,7 +237,7 @@ export class FactRepo {
     const rows = this.db
       .prepare(
         `SELECT id, fact_id, person_id, role, bound, years, months, weeks, days, phrase
-         FROM fact_age WHERE fact_id IN (${placeholders}) ORDER BY id`,
+         FROM fact_age WHERE fact_id IN (${placeholders}) ORDER BY rowid`,
       )
       .all(...factIds) as unknown as {
       id: string;
