@@ -9,8 +9,10 @@ export default defineConfig({
       'scripts/tests/**/*.test.ts',
     ],
     // SQLite-backed tests open a real database per test; slow CI runners
-    // (Windows) take seconds per test and flake on the 5s default.
-    testTimeout: 30_000,
+    // (Windows) take tens of seconds per test once the suite runs the
+    // whole model through them. 90s keeps a loaded runner from flaking
+    // while still catching real hangs.
+    testTimeout: 90_000,
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**', 'apps/*/src/**'],

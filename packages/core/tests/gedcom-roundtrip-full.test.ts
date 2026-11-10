@@ -24,7 +24,10 @@ function serializeAndParse(fixture: RepoFixture) {
 }
 
 describe('buildGedcomDataset kitchen sink', () => {
-  it('exports the full model and re-imports it without loss on the core entities', () => {
+  it(
+    'exports the full model and re-imports it without loss on the core entities',
+    { timeout: 240_000 },
+    () => {
     const fixture = makeRepo();
     try {
       buildKitchenSinkTree(fixture);
@@ -83,7 +86,8 @@ describe('buildGedcomDataset kitchen sink', () => {
     } finally {
       cleanupRepo(fixture);
     }
-  });
+    },
+  );
 
   it('exports the header fields and the submission record', () => {
     const fixture = makeRepo();
