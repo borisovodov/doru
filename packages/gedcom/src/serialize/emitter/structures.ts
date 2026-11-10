@@ -355,11 +355,13 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
 export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
   const raw = formatDateExact(date.value, version);
   if (raw === undefined) {
-    // A partial (year-only) or BCE-epoch DateExact: kept lossless as
-    // the parenthesized date text.
+    // A partial (year-only) or BCE-epoch DateExact has no conformant
+    // spelling; the components are written as plain date text, the form
+    // the parser tolerates for partial exact dates (the parenthesized
+    // form would be rejected as a phrase on re-parse).
     const parts = [date.value.day, date.value.month, date.value.year].filter((part) => part !== undefined);
     const epoch = date.value.epoch === undefined ? '' : date.value.epoch === 'BCE' ? ' B.C.' : ` ${date.value.epoch}`;
-    w.line(level, tag, { value: `(${parts.join(' ')}${epoch})` });
+    w.line(level, tag, { value: `${parts.join(' ')}${epoch}` });
     emitExtensions(w, version, level + 1, date);
     return;
   }

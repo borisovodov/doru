@@ -418,7 +418,7 @@ export function dateBounds(value: DateValue): DateBounds {
       return out;
     }
     case 'approx':
-      return dateFieldsBounds(value.date) ?? {};
+      return value.date !== undefined ? dateFieldsBounds(value.date) ?? {} : {};
     case 'period': {
       const out: DateBounds = {};
       if (value.from !== undefined) {

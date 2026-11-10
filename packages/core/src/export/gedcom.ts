@@ -151,7 +151,9 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...evidence.map((record) => buildEvidence(record, repo, xrefs)),
     ...documents.map((document) => buildResearchDocument(document, repo, xrefs)),
     ...activities.map((activity) => buildResearchActivity(activity, repo, xrefs)),
-    ...censuses.map((census) => buildCensus(census, repo, xrefs)),
+    ...censuses
+      .map((census) => buildCensus(census, repo, xrefs))
+      .filter((record): record is GedcomRecord => record !== undefined),
     ...todos.map((todo) => buildTodoRecord(todo)),
     ...factTypes.map((type) => buildFactType(type)),
     ...tags.map((tag) => buildTagRecord(tag)),
@@ -598,10 +600,10 @@ function buildResearchActivity(activity: import('../model/types').ResearchActivi
   } as GedcomRecord;
 }
 
-function buildCensus(census: import('../model/types').CensusRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
+function buildCensus(census: import('../model/types').CensusRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord | undefined {
   // The census record requires a date and a place; export only complete ones.
   if (census.date === undefined) {
-    return { tag: '_CENR' } as GedcomRecord;
+    return undefined;
   }
   const place = census.placeId !== undefined ? repo.getPlace(census.placeId) : undefined;
   return {
