@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { SqliteTreeRepository } from '../src/db/repository';
 import { TreeStore } from '../src/db/store';
 import type { IFileSystem } from '../src/fs';
+import type { FamilyRecord, MediaRecord, PersonRecord } from '../src/model/types';
 
 export interface RepoFixture {
   repo: SqliteTreeRepository;
@@ -20,6 +21,56 @@ export function makeRepo(): RepoFixture {
 export function cleanupRepo(fixture: RepoFixture): void {
   fixture.store.close();
   rmSync(fixture.dir, { recursive: true, force: true });
+}
+
+/**
+ * The flat contract of a hydrated person: the piece fields and the facts
+ * without their generated detail rows (date ids, name parts, link rows).
+ * Tests compare against this to keep the renderer-facing shape stable while
+ * the storage underneath is normalized.
+ */
+export function flatPerson(person: PersonRecord): PersonRecord {
+  return {
+    ...person,
+    names: person.names.map((name) => ({
+      id: name.id,
+      full: name.full,
+      given: name.given,
+      surname: name.surname,
+      surnamePrefix: name.surnamePrefix,
+      nickname: name.nickname,
+      prefix: name.prefix,
+      suffix: name.suffix,
+      type: name.type,
+    })),
+    facts: person.facts.map((fact) => ({
+      id: fact.id,
+      personId: fact.personId,
+      familyId: fact.familyId,
+      tag: fact.tag,
+      type: fact.type,
+      value: fact.value,
+      date: fact.date ? { ...fact.date, id: undefined } : undefined,
+      place: fact.place,
+    })),
+  };
+}
+
+/** The flat contract of a hydrated family: partner/child ids without link rows. */
+export function flatFamily(family: FamilyRecord): FamilyRecord {
+  return { id: family.id, xref: family.xref, partners: family.partners, children: family.children };
+}
+
+/** The flat contract of a hydrated media record: the first file/link as flat fields. */
+export function flatMedia(media: MediaRecord): MediaRecord {
+  return {
+    id: media.id,
+    xref: media.xref,
+    path: media.path,
+    title: media.title,
+    targetType: media.targetType,
+    targetId: media.targetId,
+  };
 }
 
 export class MemoryFileSystem implements IFileSystem {

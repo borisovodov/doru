@@ -57,9 +57,7 @@ export class TreeMcpBackend {
     if (!person) {
       return { found: false };
     }
-    const families = this.service
-      .listFamilies()
-      .filter((family) => family.partners.includes(personId) || family.children.includes(personId));
+    const families = this.service.listFamiliesForPerson(personId);
     return { found: true, person, families };
   }
 

@@ -1,4 +1,5 @@
-import type { MediaRecord } from '../model/types';
+import type { AttachmentsSnapshot, MediaRecord } from '../model/types';
+import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
 
 export function addMediaOp(media: MediaRecord): Op {
@@ -6,6 +7,7 @@ export function addMediaOp(media: MediaRecord): Op {
     id: crypto.randomUUID(),
     kind: 'media.add',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'media', targetId: media.id, kind: 'created' },
     apply(ctx) {
       ctx.repo.insertMedia(media);
     },
@@ -15,16 +17,18 @@ export function addMediaOp(media: MediaRecord): Op {
   };
 }
 
-export function deleteMediaOp(media: MediaRecord): Op {
+export function deleteMediaOp(media: MediaRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'media.delete',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'media', targetId: media.id, kind: 'changed' },
     apply(ctx) {
       ctx.repo.deleteMedia(media.id);
     },
     inverse(ctx) {
       ctx.repo.insertMedia(media);
+      ctx.repo.restoreAttachments(attachments);
     },
   };
 }

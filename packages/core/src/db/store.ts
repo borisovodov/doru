@@ -35,7 +35,17 @@ export class TreeStore implements ITreeStore {
     }
     db.exec('PRAGMA foreign_keys = ON');
     const version = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
-    if (version < SCHEMA_VERSION) {
+    if (version !== 0 && version !== SCHEMA_VERSION) {
+      // No migrations before 1.0.0: a file written by an older or newer
+      // build is refused loudly instead of being half-understood (the
+      // CREATE TABLE IF NOT EXISTS statements never add missing columns).
+      db.close();
+      throw new Error(
+        `Unsupported .doru file: schema version ${version}, this build writes ${SCHEMA_VERSION}. ` +
+          'Files written by other builds are not supported yet.',
+      );
+    }
+    if (version === 0) {
       db.exec(SCHEMA_SQL);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     }

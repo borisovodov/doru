@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addNoteOp, addSourceOp } from '../src/ops/source';
+import { addNoteOp, addSourceOp } from '../src/ops/attachments';
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('source and note ops', () => {

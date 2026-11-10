@@ -14,25 +14,39 @@
  * - Enum-like columns (`sex`, fact `tag`, `date_quality`, …) are plain TEXT
  *   without CHECK constraints so that unknown future values never brick a
  *   file (the same forward-compatibility rule as the settings schema).
- * - Facts (events and attributes) share one table with exactly one owner:
- *   either a person or a family.
+ * - Every addressable row — including link rows (`family_partner`,
+ *   `family_child`) — carries its own UUID, so the polymorphic attachment
+ *   tables can point at anything.
+ * - Dates live in one normalized `date` table shared by every entity; the
+ *   derived `sort_year` column powers ordering. See `model/types.ts`.
+ * - Names are normalized into `person_name` rows plus `name_part` piece rows
+ *   (any number of given names, surnames, …). The flat pieces exposed by the
+ *   model (given, surname, …) are projections of the parts.
+ * - Places are first-class entities with hierarchical names
+ *   (`place_name` rows, one jurisdiction per row).
  * - Notes, citations and media attach to their targets through a
- *   `(target_type, target_id)` pair — the three are the same polymorphic
- *   attachment shape, kept plain so SQLite needs no polymorphic FK tricks.
- * - Dates are stored as normalized columns (never JSON): one primary
- *   component, an optional end component for ranges, a free-text fallback,
- *   and a derived `sort_year` for ordering. See `model/types.ts`.
+ *   `(target_type, target_id)` pair — the polymorphic attachment shape, kept
+ *   plain so SQLite needs no polymorphic FK tricks. (Their tables still have
+ *   the pre-v1 shape until the attachment phase lands; only the core tree
+ *   entities were normalized in schema version 1.)
+ * - `person_name_fts` and `place_name_fts` are FTS5 (trigram) indexes over
+ *   lowercased name text for substring search. They are regular virtual
+ *   tables, not external content tables: NameRepo and PlaceRepo — the only
+ *   writers of their content tables — maintain them on write and delete.
+ * - Family children and partners carry a `position` so their order survives
+ *   round-trips.
  */
 
 export const DORU_APPLICATION_ID = 0x444f5255;
 
 /**
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
- * a newer version may simply not understand files written by older ones.
- * (Version 2 added the import-facing columns: `surname_prefix`,
- * `date_modifier`, and text month codes; version 1 was the pre-rewrite stub.)
+ * a newer version may simply not understand files written by older ones
+ * (the store refuses to open them with a loud error).
+ * Version 1 is the full-model schema; the pre-release scaffolds that
+ * preceded it (numbered 1–4) are not counted.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 1;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -44,14 +58,20 @@ CREATE TABLE IF NOT EXISTS person (
 CREATE TABLE IF NOT EXISTS person_name (
   id TEXT PRIMARY KEY,
   person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  full TEXT,
-  given TEXT,
-  surname TEXT,
-  surname_prefix TEXT,
-  nickname TEXT,
-  prefix TEXT,
-  suffix TEXT,
-  type TEXT,
+  variant_of_id TEXT REFERENCES person_name(id) ON DELETE CASCADE,
+  kind TEXT,          -- NULL = ordinary name; translation | phonetic | romanized
+  language TEXT,      -- BCP 47
+  type TEXT,          -- aka | birth | maiden | married | immigrant | professional | other
+  primary_flag INTEGER NOT NULL DEFAULT 0,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  position INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS name_part (
+  id TEXT PRIMARY KEY,
+  name_id TEXT NOT NULL REFERENCES person_name(id) ON DELETE CASCADE,
+  part_kind TEXT NOT NULL,   -- full | prefix | given | nickname | surname_prefix | surname | suffix
+  value TEXT NOT NULL,
   position INTEGER NOT NULL
 );
 
@@ -61,16 +81,39 @@ CREATE TABLE IF NOT EXISTS family (
 );
 
 CREATE TABLE IF NOT EXISTS family_partner (
+  id TEXT PRIMARY KEY,
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
   person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
-  PRIMARY KEY (family_id, person_id)
+  preferred INTEGER NOT NULL DEFAULT 0,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  UNIQUE (family_id, person_id)
 );
 
 CREATE TABLE IF NOT EXISTS family_child (
+  id TEXT PRIMARY KEY,
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
   child_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  PRIMARY KEY (family_id, child_id)
+  position INTEGER NOT NULL,
+  pedigree TEXT,          -- birth | adopted | foster | sealing | other
+  pedigree_phrase TEXT,
+  status TEXT,            -- challenged | disproven | proven
+  father_relation TEXT,   -- birth | adopted | guardian | foster | step | ...
+  mother_relation TEXT,
+  UNIQUE (family_id, child_id)
+);
+
+CREATE TABLE IF NOT EXISTS date (
+  id TEXT PRIMARY KEY,
+  quality TEXT NOT NULL,     -- exact | about | before | after | range | unknown
+  modifier TEXT,             -- ABT | CAL | EST
+  calendar TEXT,             -- NULL = gregorian; julian | french_republican | hebrew | ext
+  year INTEGER, month TEXT, day INTEGER, epoch TEXT,
+  end_calendar TEXT, end_year INTEGER, end_month TEXT, end_day INTEGER, end_epoch TEXT,
+  text TEXT,                 -- free-text phrase
+  time_hour INTEGER, time_minute INTEGER, time_second INTEGER,
+  time_fraction TEXT, utc INTEGER NOT NULL DEFAULT 0,
+  sort_year INTEGER          -- derived: signed year (BCE counts down from 0)
 );
 
 CREATE TABLE IF NOT EXISTS fact (
@@ -80,66 +123,550 @@ CREATE TABLE IF NOT EXISTS fact (
   tag TEXT NOT NULL,
   type TEXT,
   value TEXT,
-  date_quality TEXT,
-  date_modifier TEXT,
-  date_calendar TEXT,
-  date_year INTEGER,
-  date_month TEXT,
-  date_day INTEGER,
-  date_epoch TEXT,
-  date_end_calendar TEXT,
-  date_end_year INTEGER,
-  date_end_month TEXT,
-  date_end_day INTEGER,
-  date_end_epoch TEXT,
-  date_text TEXT,
-  sort_year INTEGER,
-  place TEXT,
+  negation INTEGER NOT NULL DEFAULT 0,   -- non-events (GEDCOM NO)
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  sort_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
+  place_text TEXT,          -- the raw place string as typed
+  address_id TEXT REFERENCES address(id) ON DELETE SET NULL,
+  agency TEXT,
+  religious_affiliation TEXT,
+  cause TEXT,
+  sentence TEXT,
+  quality TEXT,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
 );
+
+CREATE TABLE IF NOT EXISTS place (
+  id TEXT PRIMARY KEY,
+  xref TEXT,
+  latitude REAL, longitude REAL,
+  verified INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS place_name (
+  id TEXT PRIMARY KEY,
+  place_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL DEFAULT 'official',   -- official | translation | phonetic | romanized
+  language TEXT,
+  type TEXT,                                -- phonetic type
+  position INTEGER NOT NULL,                -- jurisdiction: 0 = smallest
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS place_hierarchy (
+  id TEXT PRIMARY KEY,
+  parent_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
+  child_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
+  type TEXT,                -- poli | reli | geog | cult
+  UNIQUE (parent_id, child_id, type)
+);
+
+CREATE TABLE IF NOT EXISTS place_postal_code (
+  id TEXT PRIMARY KEY,
+  place_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL
+);
+
+-- Notes: shared or inline. A note is one text row; note_link attaches it to
+-- any target (inline notes have exactly one link, shared notes several).
+
+CREATE TABLE IF NOT EXISTS note (
+  id TEXT PRIMARY KEY,
+  xref TEXT,             -- NULL = inline note; non-NULL = shared NOTE/SNOTE record
+  text TEXT NOT NULL,
+  mime TEXT,
+  language TEXT
+);
+
+CREATE TABLE IF NOT EXISTS note_link (
+  id TEXT PRIMARY KEY,
+  note_id TEXT NOT NULL REFERENCES note(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS note_translation (
+  id TEXT PRIMARY KEY,
+  note_id TEXT NOT NULL REFERENCES note(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  mime TEXT, language TEXT
+);
+
+-- Sources: the full source model plus its sub-rows.
 
 CREATE TABLE IF NOT EXISTS source (
   id TEXT PRIMARY KEY,
   xref TEXT,
-  title TEXT NOT NULL,
+  title TEXT,
   abbreviation TEXT,
   author TEXT,
-  publication TEXT
+  publication TEXT,
+  medium TEXT,
+  url TEXT,
+  access_date TEXT,
+  confidence TEXT,
+  pub_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  pub_place_text TEXT,
+  agency TEXT,
+  title_id TEXT REFERENCES title(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS source_text (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  mime TEXT, language TEXT
+);
+
+CREATE TABLE IF NOT EXISTS source_data_event (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  value TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS source_repository (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
+  repository_id TEXT NOT NULL REFERENCES repository(id) ON DELETE CASCADE,
+  UNIQUE (source_id, repository_id)
+);
+
+CREATE TABLE IF NOT EXISTS call_number (
+  id TEXT PRIMARY KEY,
+  source_repository_id TEXT NOT NULL REFERENCES source_repository(id) ON DELETE CASCADE,
+  value TEXT NOT NULL,
+  medium TEXT
+);
+
+CREATE TABLE IF NOT EXISTS source_template_field (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  value TEXT,
+  position INTEGER NOT NULL
+);
+
+-- Citations: a source cited at some target, with its details.
 
 CREATE TABLE IF NOT EXISTS citation (
   id TEXT PRIMARY KEY,
   source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
+  description TEXT,
   page TEXT,
-  quality TEXT
+  quality TEXT,
+  confidence TEXT,
+  event TEXT,
+  role TEXT,
+  phrase TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  www TEXT
 );
 
-CREATE TABLE IF NOT EXISTS note (
+CREATE TABLE IF NOT EXISTS citation_text (
   id TEXT PRIMARY KEY,
+  citation_id TEXT NOT NULL REFERENCES citation(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
-  target_type TEXT,
-  target_id TEXT
+  mime TEXT, language TEXT
 );
+
+CREATE TABLE IF NOT EXISTS citation_template_field (
+  id TEXT PRIMARY KEY,
+  citation_id TEXT NOT NULL REFERENCES citation(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  value TEXT,
+  position INTEGER NOT NULL
+);
+
+-- Media: records with file rows and links. File bytes live in the media/
+-- folder next to the .doru file, never in the database; only the path and
+-- the title are stored (MIME, size, dimensions come from the file).
 
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,
+  xref TEXT,
+  title TEXT
+);
+
+CREATE TABLE IF NOT EXISTS media_file (
+  id TEXT PRIMARY KEY,
+  media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
   path TEXT NOT NULL,
   title TEXT,
-  target_type TEXT,
-  target_id TEXT
+  position INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media_link (
+  id TEXT PRIMARY KEY,
+  media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  crop_top INTEGER, crop_left INTEGER, crop_height INTEGER, crop_width INTEGER,
+  title TEXT,
+  sequence INTEGER,
+  primary_flag INTEGER NOT NULL DEFAULT 0,
+  scrapbook INTEGER NOT NULL DEFAULT 0,
+  slideshow INTEGER NOT NULL DEFAULT 0,
+  thumbnail INTEGER NOT NULL DEFAULT 0,
+  exclude INTEGER NOT NULL DEFAULT 0,
+  caption INTEGER NOT NULL DEFAULT 0
+);
+
+-- Repositories, submitters, addresses, project header.
+
+CREATE TABLE IF NOT EXISTS repository (
+  id TEXT PRIMARY KEY,
+  xref TEXT,
+  name TEXT NOT NULL,
+  address_id TEXT REFERENCES address(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS submitter (
+  id TEXT PRIMARY KEY,
+  xref TEXT,
+  name TEXT NOT NULL,
+  address_id TEXT REFERENCES address(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS submitter_language (
+  submitter_id TEXT NOT NULL REFERENCES submitter(id) ON DELETE CASCADE,
+  language TEXT NOT NULL,
+  PRIMARY KEY (submitter_id, language)
+);
+
+CREATE TABLE IF NOT EXISTS record_submitter (
+  id TEXT PRIMARY KEY,
+  submitter_id TEXT NOT NULL REFERENCES submitter(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS address (
+  id TEXT PRIMARY KEY,
+  city TEXT, state TEXT, postal_code TEXT, country TEXT
+);
+
+CREATE TABLE IF NOT EXISTS address_line (
+  id TEXT PRIMARY KEY,
+  address_id TEXT NOT NULL REFERENCES address(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS header (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  gedcom_version TEXT,
+  source_software TEXT, source_version TEXT, source_name TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  language TEXT,
+  place_form TEXT,
+  copyright TEXT,
+  file_name TEXT,
+  submitter_id TEXT REFERENCES submitter(id) ON DELETE SET NULL,
+  family_file TEXT, temple TEXT,
+  generations_ancestors INTEGER, generations_descendants INTEGER,
+  ordinance_process_flag TEXT
+);
+
+-- Universal attachments: the single polymorphic shape, one table per kind.
+
+CREATE TABLE IF NOT EXISTS identifier (
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  namespace TEXT NOT NULL,   -- uid | exid | refn | rin | sosa | daboville | ...
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS contact (
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  kind TEXT NOT NULL,        -- email | phone | fax | url | www
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS restriction (
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  level TEXT NOT NULL        -- confidential | locked | privacy
+);
+
+CREATE TABLE IF NOT EXISTS change (
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  kind TEXT NOT NULL,        -- created | changed
+  date_id TEXT REFERENCES date(id) ON DELETE CASCADE,
+  user TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tag (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL
+  -- no color: presentation lives in themes/UI, not in data (issue #174)
+);
+
+CREATE TABLE IF NOT EXISTS tag_link (
+  id TEXT PRIMARY KEY,
+  tag_id TEXT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL
+);
+
+-- Fact details: ages, participants (witnesses, shared-event people) and
+-- flags on facts; user-defined fact types.
+
+CREATE TABLE IF NOT EXISTS fact_age (
+  id TEXT PRIMARY KEY,
+  fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
+  person_id TEXT REFERENCES person(id) ON DELETE CASCADE,
+  role TEXT,                 -- HUSB | WIFE for family facts; NULL = the subject
+  bound TEXT, years INTEGER, months INTEGER, weeks INTEGER, days INTEGER,
+  phrase TEXT
+);
+
+CREATE TABLE IF NOT EXISTS fact_participant (
+  id TEXT PRIMARY KEY,
+  fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
+  person_id TEXT REFERENCES person(id) ON DELETE CASCADE,
+  value TEXT,                -- free-text name when no person row exists
+  role TEXT,
+  position INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS fact_flag (
+  fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
+  flag TEXT NOT NULL,        -- private | preferred | tentative | rejected
+  PRIMARY KEY (fact_id, flag)
+);
+
+CREATE TABLE IF NOT EXISTS fact_type (
+  id TEXT PRIMARY KEY,
+  code TEXT,
+  kind TEXT,                 -- event | attribute
+  title TEXT,
+  abbreviation TEXT,
+  sentence TEXT,
+  confidential INTEGER NOT NULL DEFAULT 0
+);
+
+-- Relations between persons, and the research layer.
+
+CREATE TABLE IF NOT EXISTS association (
+  id TEXT PRIMARY KEY,
+  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  other_person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  role TEXT, relationship TEXT, phrase TEXT,
+  primary_flag INTEGER NOT NULL DEFAULT 0,
+  specific_type TEXT,
+  confidence TEXT,
+  period_start_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  period_end_id TEXT REFERENCES date(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS person_alias (
+  id TEXT PRIMARY KEY,
+  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  alias_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  UNIQUE (person_id, alias_id)
+);
+
+CREATE TABLE IF NOT EXISTS ordinance (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,                -- BAPL | CONL | ENDL | INIL | SLGC | SLGS
+  target_type TEXT NOT NULL,         -- person | family | family_child
+  target_id TEXT NOT NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  temple TEXT,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
+  status TEXT,
+  status_date_id TEXT REFERENCES date(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS todo (
+  id TEXT PRIMARY KEY,
+  text TEXT NOT NULL,
+  target_type TEXT, target_id TEXT,  -- may be a free-standing task
+  category TEXT, locality TEXT, priority TEXT, status TEXT,
+  created_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  scheduled_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  reminder_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  closed_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS evidence (
+  id TEXT PRIMARY KEY,
+  type TEXT, document_type TEXT, analysis TEXT
+);
+
+CREATE TABLE IF NOT EXISTS evidence_finding (
+  id TEXT PRIMARY KEY,
+  evidence_id TEXT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
+  type TEXT, value TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
+  age_bound TEXT, age_years INTEGER, age_months INTEGER, age_days INTEGER, age_phrase TEXT
+);
+
+CREATE TABLE IF NOT EXISTS evidence_link (
+  id TEXT PRIMARY KEY,
+  evidence_id TEXT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  confidence TEXT, used TEXT, quality TEXT
+);
+
+CREATE TABLE IF NOT EXISTS research_document (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  text TEXT NOT NULL,
+  author TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS research_document_subject (
+  id TEXT PRIMARY KEY,
+  research_document_id TEXT NOT NULL REFERENCES research_document(id) ON DELETE CASCADE,
+  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS research_conclusion (
+  id TEXT PRIMARY KEY,
+  research_document_id TEXT NOT NULL REFERENCES research_document(id) ON DELETE CASCADE,
+  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  text TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS research_activity (
+  id TEXT PRIMARY KEY,
+  type TEXT, purpose TEXT, target TEXT, venue TEXT, result TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  researcher TEXT
+);
+
+CREATE TABLE IF NOT EXISTS census (
+  id TEXT PRIMARY KEY,
+  schedule TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS census_entry (
+  id TEXT PRIMARY KEY,
+  census_id TEXT NOT NULL REFERENCES census(id) ON DELETE CASCADE,
+  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  father_id TEXT REFERENCES person(id) ON DELETE SET NULL,
+  mother_id TEXT REFERENCES person(id) ON DELETE SET NULL,
+  sex TEXT,
+  age_value TEXT, marital_status TEXT, occupation TEXT,
+  birth_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  birth_place_text TEXT
+);
+
+CREATE TABLE IF NOT EXISTS duplicate_candidate (
+  id TEXT PRIMARY KEY,
+  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  other_person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+  caption TEXT, assessment TEXT, status TEXT
+);
+
+CREATE TABLE IF NOT EXISTS title (
+  id TEXT PRIMARY KEY,
+  xref TEXT,
+  name TEXT,
+  author TEXT, publisher TEXT, series TEXT, abbreviation TEXT,
+  repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL,
+  call_number TEXT, sequence INTEGER
+);
+
+-- Case-insensitive substring search over person names. The trigram tokenizer
+-- indexes substrings of three or more characters; queries with shorter terms
+-- fall back to a scan in PersonRepo. The stored name is the lowercase join
+-- of the name's part values, so matching is case-insensitive for every
+-- script (SQLite's own lower() folds ASCII only). Kept in sync by NameRepo —
+-- the single writer of person_name and name_part.
+CREATE VIRTUAL TABLE IF NOT EXISTS person_name_fts USING fts5(
+  person_id UNINDEXED,
+  name,
+  tokenize='trigram'
+);
+
+-- Same idea for places: one FTS row per place_name row, lowercase value.
+-- Kept in sync by PlaceRepo — the single writer of the place tables.
+CREATE VIRTUAL TABLE IF NOT EXISTS place_name_fts USING fts5(
+  place_id UNINDEXED,
+  name,
+  tokenize='trigram'
 );
 
 CREATE INDEX IF NOT EXISTS idx_person_name_person ON person_name(person_id, position);
-CREATE INDEX IF NOT EXISTS idx_person_name_given ON person_name(given);
-CREATE INDEX IF NOT EXISTS idx_person_name_surname ON person_name(surname);
+CREATE INDEX IF NOT EXISTS idx_person_name_variant ON person_name(variant_of_id);
+CREATE INDEX IF NOT EXISTS idx_name_part_name ON name_part(name_id, position);
+CREATE INDEX IF NOT EXISTS idx_family_partner_family ON family_partner(family_id, position);
 CREATE INDEX IF NOT EXISTS idx_family_partner_person ON family_partner(person_id);
+CREATE INDEX IF NOT EXISTS idx_family_child_family ON family_child(family_id, position);
 CREATE INDEX IF NOT EXISTS idx_family_child_child ON family_child(child_id);
 CREATE INDEX IF NOT EXISTS idx_fact_person ON fact(person_id);
 CREATE INDEX IF NOT EXISTS idx_fact_family ON fact(family_id);
+CREATE INDEX IF NOT EXISTS idx_fact_date ON fact(date_id);
+CREATE INDEX IF NOT EXISTS idx_fact_sort_date ON fact(sort_date_id);
+CREATE INDEX IF NOT EXISTS idx_fact_place ON fact(place_id);
+CREATE INDEX IF NOT EXISTS idx_fact_address ON fact(address_id);
+CREATE INDEX IF NOT EXISTS idx_date_sort_year ON date(sort_year);
+CREATE INDEX IF NOT EXISTS idx_place_name_place ON place_name(place_id, position);
+CREATE INDEX IF NOT EXISTS idx_place_hierarchy_parent ON place_hierarchy(parent_id);
+CREATE INDEX IF NOT EXISTS idx_place_hierarchy_child ON place_hierarchy(child_id);
+CREATE INDEX IF NOT EXISTS idx_place_postal_code_place ON place_postal_code(place_id);
+CREATE INDEX IF NOT EXISTS idx_fact_age_fact ON fact_age(fact_id);
+CREATE INDEX IF NOT EXISTS idx_fact_participant_fact ON fact_participant(fact_id, position);
+CREATE INDEX IF NOT EXISTS idx_note_link_note ON note_link(note_id);
+CREATE INDEX IF NOT EXISTS idx_note_link_target ON note_link(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_note_translation_note ON note_translation(note_id);
+CREATE INDEX IF NOT EXISTS idx_source_text_source ON source_text(source_id);
+CREATE INDEX IF NOT EXISTS idx_source_data_event_source ON source_data_event(source_id);
+CREATE INDEX IF NOT EXISTS idx_source_repository_source ON source_repository(source_id);
+CREATE INDEX IF NOT EXISTS idx_source_repository_repo ON source_repository(repository_id);
+CREATE INDEX IF NOT EXISTS idx_call_number_link ON call_number(source_repository_id);
+CREATE INDEX IF NOT EXISTS idx_source_template_field_source ON source_template_field(source_id);
 CREATE INDEX IF NOT EXISTS idx_citation_source ON citation(source_id);
 CREATE INDEX IF NOT EXISTS idx_citation_target ON citation(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_note_target ON note(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_media_target ON media(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_citation_text_citation ON citation_text(citation_id);
+CREATE INDEX IF NOT EXISTS idx_citation_template_field_citation ON citation_template_field(citation_id);
+CREATE INDEX IF NOT EXISTS idx_media_file_media ON media_file(media_id, position);
+CREATE INDEX IF NOT EXISTS idx_media_link_media ON media_link(media_id);
+CREATE INDEX IF NOT EXISTS idx_media_link_target ON media_link(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitter_id);
+CREATE INDEX IF NOT EXISTS idx_record_submitter_submitter ON record_submitter(submitter_id);
+CREATE INDEX IF NOT EXISTS idx_record_submitter_target ON record_submitter(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_address_line_address ON address_line(address_id);
+CREATE INDEX IF NOT EXISTS idx_identifier_target ON identifier(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_contact_target ON contact(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_restriction_target ON restriction(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_change_target ON change(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_tag_link_tag ON tag_link(tag_id);
+CREATE INDEX IF NOT EXISTS idx_tag_link_target ON tag_link(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
+CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
+CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
+CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
+CREATE INDEX IF NOT EXISTS idx_ordinance_target ON ordinance(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_finding_evidence ON evidence_finding(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_link_evidence ON evidence_link(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_link_target ON evidence_link(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_research_subject_doc ON research_document_subject(research_document_id);
+CREATE INDEX IF NOT EXISTS idx_research_conclusion_doc ON research_conclusion(research_document_id);
+CREATE INDEX IF NOT EXISTS idx_census_entry_census ON census_entry(census_id);
+CREATE INDEX IF NOT EXISTS idx_census_entry_person ON census_entry(person_id);
+CREATE INDEX IF NOT EXISTS idx_duplicate_person ON duplicate_candidate(person_id);
 `;

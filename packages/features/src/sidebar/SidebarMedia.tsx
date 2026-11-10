@@ -58,7 +58,7 @@ export function SidebarMedia({
                 : undefined
             }
           >
-            {isImage(item.path) ? (
+            {isImage(item.path ?? '') ? (
               <img
                 className="entity-thumb"
                 src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
@@ -71,7 +71,7 @@ export function SidebarMedia({
               </span>
             )}
             <span className="entity-card-body">
-              <span className="entity-card-title">{item.title ?? fileName(item.path)}</span>
+              <span className="entity-card-title">{item.title ?? fileName(item.path ?? '')}</span>
               {owner !== undefined && <span className="entity-card-subtitle">{owner}</span>}
             </span>
           </li>

@@ -6,6 +6,7 @@ export function addPersonOp(person: PersonRecord): Op {
     id: crypto.randomUUID(),
     kind: 'person.add',
     timestamp: new Date().toISOString(),
+    change: { targetType: 'person', targetId: person.id, kind: 'created' },
     apply(ctx) {
       ctx.repo.insertPerson(person);
     },

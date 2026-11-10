@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { PersonName, Sex } from '../model/types';
+import type { Sex } from '../model/types';
 import type { TransactionScope } from './transaction';
 
 export interface PersonQuery {
@@ -11,33 +11,20 @@ export interface PersonQuery {
 }
 
 /**
- * The identity part of the person aggregate: the row plus its names. The
- * person's facts live in the fact table and are joined by the repository
- * facade when a complete `PersonRecord` is needed.
+ * The identity row of a person: the person table only. Names live in
+ * NameRepo (with the FTS index), facts in FactRepo; the repository facade
+ * composes the full aggregate.
  */
-export interface PersonBase {
+export interface PersonRow {
   id: string;
   xref?: string | undefined;
   sex: Sex;
-  names: PersonName[];
 }
 
-interface PersonRow {
+interface PersonDbRow {
   id: string;
   xref: string | null;
   sex: string | null;
-}
-
-interface NameRow {
-  id: string;
-  full: string | null;
-  given: string | null;
-  surname: string | null;
-  surname_prefix: string | null;
-  nickname: string | null;
-  prefix: string | null;
-  suffix: string | null;
-  type: string | null;
 }
 
 export class PersonRepo {
@@ -46,123 +33,82 @@ export class PersonRepo {
     private readonly transactions: TransactionScope,
   ) {}
 
-  insertPerson(person: PersonBase): void {
+  insertPerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
         .prepare('INSERT INTO person (id, xref, sex) VALUES (?, ?, ?)')
         .run(person.id, person.xref ?? null, person.sex);
-      this.replaceNames(person);
     });
   }
 
-  updatePerson(person: PersonBase): void {
+  updatePerson(person: PersonRow): void {
     this.transactions.run(() => {
-      this.db
-        .prepare('UPDATE person SET xref = ?, sex = ? WHERE id = ?')
-        .run(person.xref ?? null, person.sex, person.id);
-      this.replaceNames(person);
+      this.db.prepare('UPDATE person SET xref = ?, sex = ? WHERE id = ?').run(person.xref ?? null, person.sex, person.id);
     });
   }
 
-  getPerson(id: string): PersonBase | undefined {
-    const row = this.db.prepare('SELECT id, xref, sex FROM person WHERE id = ?').get(id) as
-      | PersonRow
-      | undefined;
-    if (!row) {
-      return undefined;
-    }
-    return { id: row.id, xref: row.xref ?? undefined, sex: (row.sex ?? 'U') as Sex, names: this.listNames(row.id) };
+  getPerson(id: string): PersonRow | undefined {
+    const row = this.db.prepare('SELECT id, xref, sex FROM person WHERE id = ?').get(id) as PersonDbRow | undefined;
+    return row ? toPerson(row) : undefined;
   }
 
   deletePerson(id: string): boolean {
-    const result = this.db.prepare('DELETE FROM person WHERE id = ?').run(id);
-    return result.changes > 0;
+    return this.transactions.run(() => this.db.prepare('DELETE FROM person WHERE id = ?').run(id).changes > 0);
   }
 
-  listPersons(query: PersonQuery = {}): PersonBase[] {
+  /**
+   * Persons matching the query, ordered by id. The name search runs against
+   * the FTS index owned by NameRepo (this repo only reads it): terms of 3+
+   * characters go through the trigram MATCH, shorter terms fall back to a
+   * scan of the lowercased FTS content so every query keeps working.
+   */
+  listPersons(query: PersonQuery = {}): PersonRow[] {
     const limit = query.limit ?? 100;
     const offset = query.offset ?? 0;
     const search = query.search?.trim();
     const conditions: string[] = [];
-    const params: string[] = [];
-    let sql = 'SELECT DISTINCT p.id, p.xref, p.sex FROM person p';
+    const params: Array<string | number> = [];
     if (search) {
-      sql +=
-        ' JOIN person_name n ON n.person_id = p.id' +
-        ' WHERE (instr(lower(coalesce(n.full, \'\')), lower(?)) > 0' +
-        ' OR instr(lower(coalesce(n.given, \'\')), lower(?)) > 0' +
-        ' OR instr(lower(coalesce(n.surname, \'\')), lower(?)) > 0)';
-      params.push(search, search, search);
+      const terms = search.split(/\s+/).filter((term) => term !== '');
+      if (terms.length > 0) {
+        if (terms.every((term) => [...term].length >= 3)) {
+          const matchQuery = terms.map((term) => `"${term.toLowerCase().replaceAll('"', '""')}"`).join(' AND ');
+          conditions.push(
+            'p.id IN (SELECT person_id FROM person_name_fts WHERE person_name_fts MATCH ?)',
+          );
+          params.push(matchQuery);
+        } else {
+          conditions.push(
+            'p.id IN (SELECT person_id FROM person_name_fts fts WHERE instr(fts.name, ?) > 0)',
+          );
+          params.push(search.toLowerCase());
+        }
+      }
     }
     if (query.sex) {
       conditions.push('p.sex = ?');
       params.push(query.sex);
     }
+    let sql = 'SELECT p.id, p.xref, p.sex FROM person p';
     if (conditions.length > 0) {
-      sql += (search ? ' AND ' : ' WHERE ') + conditions.join(' AND ');
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
     sql += ' ORDER BY p.id LIMIT ? OFFSET ?';
-    const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonRow[];
-    return rows.map((row) => this.hydrate(row));
+    const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonDbRow[];
+    return rows.map(toPerson);
   }
 
-  listAllPersons(): PersonBase[] {
-    const rows = this.db.prepare('SELECT id, xref, sex FROM person ORDER BY id').all() as unknown as PersonRow[];
-    return rows.map((row) => this.hydrate(row));
+  listAllPersons(): PersonRow[] {
+    const rows = this.db.prepare('SELECT id, xref, sex FROM person ORDER BY id').all() as unknown as PersonDbRow[];
+    return rows.map(toPerson);
   }
 
   countPersons(): number {
     const row = this.db.prepare('SELECT COUNT(*) AS n FROM person').get() as { n: number };
     return row.n;
   }
+}
 
-  private hydrate(row: PersonRow): PersonBase {
-    return {
-      id: row.id,
-      xref: row.xref ?? undefined,
-      sex: (row.sex ?? 'U') as Sex,
-      names: this.listNames(row.id),
-    };
-  }
-
-  private listNames(personId: string): PersonName[] {
-    const rows = this.db
-      .prepare(
-        'SELECT id, full, given, surname, surname_prefix, nickname, prefix, suffix, type FROM person_name WHERE person_id = ? ORDER BY position',
-      )
-      .all(personId) as unknown as NameRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      full: row.full ?? undefined,
-      given: row.given ?? undefined,
-      surname: row.surname ?? undefined,
-      surnamePrefix: row.surname_prefix ?? undefined,
-      nickname: row.nickname ?? undefined,
-      prefix: row.prefix ?? undefined,
-      suffix: row.suffix ?? undefined,
-      type: row.type ?? undefined,
-    }));
-  }
-
-  private replaceNames(person: PersonBase): void {
-    this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(person.id);
-    const insert = this.db.prepare(
-      'INSERT INTO person_name (id, person_id, full, given, surname, surname_prefix, nickname, prefix, suffix, type, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    );
-    person.names.forEach((name, index) => {
-      insert.run(
-        name.id,
-        person.id,
-        name.full ?? null,
-        name.given ?? null,
-        name.surname ?? null,
-        name.surnamePrefix ?? null,
-        name.nickname ?? null,
-        name.prefix ?? null,
-        name.suffix ?? null,
-        name.type ?? null,
-        index,
-      );
-    });
-  }
+function toPerson(row: PersonDbRow): PersonRow {
+  return { id: row.id, xref: row.xref ?? undefined, sex: (row.sex ?? 'U') as Sex };
 }

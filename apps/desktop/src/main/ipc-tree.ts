@@ -215,7 +215,7 @@ export function registerTreeIpc(): void {
   ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     const state = runtime.service.deleteMedia(options.media);
-    await removeMediaFile(options.projectPath, options.media.path);
+    await removeMediaFile(options.projectPath, options.media.path ?? '');
     return state;
   });
 }
