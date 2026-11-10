@@ -63,7 +63,7 @@ export class SourceRepo {
            medium = ?, url = ?, access_date = ?, confidence = ?, pub_date_id = ?, pub_place_text = ?, agency = ?, title_id = ?
          WHERE id = ?`,
       )
-      .run(...sourceParams(source, this.dates), source.id);
+      .run(...sourceParams(source, this.dates).slice(1), source.id);
     this.replaceSourceDetails(source);
   }
 
@@ -117,7 +117,7 @@ export class SourceRepo {
            quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, date_id = ?, www = ?
          WHERE id = ?`,
       )
-      .run(...citationParams(citation, this.dates), citation.id);
+      .run(...citationParams(citation, this.dates).slice(1), citation.id);
     this.replaceCitationDetails(citation);
   }
 
