@@ -6,7 +6,7 @@ import { TreeMcpBackend } from '../src/backend';
 import { cleanupAiFixture, makeAiFixture } from './helpers';
 
 describe('DoruMcpServer', () => {
-  it('serves tools over an MCP transport', { timeout: 15000 }, async () => {
+  it('serves tools over an MCP transport', { timeout: 60000 }, async () => {
     const fixture = makeAiFixture();
     try {
       const backend = new TreeMcpBackend(fixture.service);

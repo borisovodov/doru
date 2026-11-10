@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRecord } from '../src/model/types';
+import { placeName } from '../src/model/types';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const moscow: PlaceRecord = {
@@ -11,6 +12,23 @@ const moscow: PlaceRecord = {
     { id: 'PN2', kind: 'official', position: 1, value: 'Russia' },
   ],
 };
+
+describe('placeName', () => {
+  it('joins the official names smallest-first and skips empty values', () => {
+    expect(placeName(undefined)).toBe('');
+    expect(placeName({ id: 'P1', names: [] })).toBe('');
+    const place: PlaceRecord = {
+      id: 'P1',
+      names: [
+        { id: 'N2', kind: 'official', position: 1, value: 'Russia' },
+        { id: 'N1', kind: 'official', position: 0, value: 'Moscow' },
+        { id: 'N3', kind: 'translation', position: 0, value: 'Москва' },
+        { id: 'N4', kind: 'official', position: 2, value: '' },
+      ],
+    };
+    expect(placeName(place)).toBe('Moscow, Russia');
+  });
+});
 
 describe('PlaceRepo', () => {
   it('round-trips places with hierarchical names', () => {

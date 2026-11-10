@@ -28,7 +28,7 @@ export class RelationRepo {
            primary_flag = ?, specific_type = ?, confidence = ?, period_start_id = ?, period_end_id = ?
          WHERE id = ?`,
       )
-      .run(...associationParams(association, this.dates), association.id);
+      .run(...associationParams(association, this.dates).slice(1), association.id);
   }
 
   deleteAssociation(id: string): boolean {
@@ -134,7 +134,7 @@ export class RelationRepo {
         `UPDATE ordinance SET kind = ?, target_type = ?, target_id = ?, date_id = ?, temple = ?,
            place_id = ?, status = ?, status_date_id = ? WHERE id = ?`,
       )
-      .run(...ordinanceParams(ordinance, this.dates), ordinance.id);
+      .run(...ordinanceParams(ordinance, this.dates).slice(1), ordinance.id);
   }
 
   deleteOrdinance(id: string): boolean {

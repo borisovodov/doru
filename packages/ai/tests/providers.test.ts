@@ -52,4 +52,28 @@ describe('AI_PROVIDERS', () => {
   it('falls back to the first provider for unknown ids', () => {
     expect(findProvider('nope').id).toBe('doru');
   });
+
+  it('routes anthropic-served catalogs to the anthropic dialect', () => {
+    const anthropicProvider = {
+      id: 'x',
+      label: 'X',
+      kind: 'cloud',
+      defaultBaseUrl: '',
+      defaultModels: [],
+      requiresKey: true,
+      catalog: { npm: '@ai-sdk/anthropic' },
+    } as Parameters<typeof wireDialect>[0];
+    expect(wireDialect(anthropicProvider)).toBe('anthropic');
+
+    const openaiProvider = {
+      id: 'y',
+      label: 'Y',
+      kind: 'cloud',
+      defaultBaseUrl: '',
+      defaultModels: [],
+      requiresKey: true,
+      catalog: { npm: '@ai-sdk/openai' },
+    } as Parameters<typeof wireDialect>[0];
+    expect(wireDialect(openaiProvider)).toBe('openai');
+  });
 });

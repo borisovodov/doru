@@ -115,6 +115,23 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('skips over used xrefs when allocating fresh ones', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', xref: '@I1@', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+
+      const dataset = buildGedcomDataset(repo);
+      const xrefs = dataset.records.map((record) => record.xref);
+      expect(xrefs).toContain('@I1@');
+      // The fresh xref skipped the used @I1@.
+      expect(xrefs).toContain('@I2@');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('round-trips calendar, modifier and range dates', () => {
     const fixture = makeRepo();
     try {

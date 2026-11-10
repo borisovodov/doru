@@ -1,0 +1,158 @@
+import { describe, expect, it } from 'vitest';
+import { parse, serializeGedcom70 } from '@doru/gedcom';
+import { buildGedcomDataset } from '../src/export/gedcom';
+import { importGedcomDataset } from '../src/import/gedcom';
+import { cleanupRepo, makeRepo } from './helpers';
+import type { RepoFixture } from './helpers';
+import type { SqliteTreeRepository } from '../src/db/repository';
+import { buildKitchenSinkTree } from './kitchen-sink';
+
+function serializeAndParse(fixture: RepoFixture) {
+  const dataset = buildGedcomDataset(fixture.repo);
+  const serialized = serializeGedcom70(dataset);
+  if (!serialized.ok) {
+    throw new Error(`serialization failed: ${serialized.error.message}`);
+  }
+  const reparsed = parse(new TextEncoder().encode(serialized.value));
+  if (!reparsed.ok) {
+    throw new Error(`reparse failed: ${reparsed.error.message}`);
+  }
+  if (reparsed.value.kind !== 'dataset') {
+    throw new Error('reparse produced no dataset');
+  }
+  return reparsed.value.dataset;
+}
+
+describe('buildGedcomDataset kitchen sink', () => {
+  it(
+    'exports the full model and re-imports it without loss on the core entities',
+    { timeout: 240_000 },
+    () => {
+    const fixture = makeRepo();
+    try {
+      buildKitchenSinkTree(fixture);
+      const dataset = serializeAndParse(fixture);
+
+      // The dataset itself carries every record kind.
+      const tags = dataset.records.map((record) => record.tag);
+      expect(tags).toContain('INDI');
+      expect(tags).toContain('FAM');
+      expect(tags).toContain('SOUR');
+      expect(tags).toContain('REPO');
+      expect(tags).toContain('SUBM');
+      expect(tags).toContain('TITL');
+      expect(tags).toContain('SNOTE');
+      expect(tags).toContain('_EVID');
+      expect(tags).toContain('_RDOC');
+      expect(tags).toContain('_RACT');
+      expect(tags).toContain('_CENR');
+      expect(tags).toContain('_TODO');
+      expect(tags).toContain('_EVENT_DEFN');
+      expect(tags).toContain('_TAG');
+      // The SUBN record is asserted against the direct dataset in the
+      // header test below — the parser folds the submission record away.
+
+      const target = makeRepo();
+      try {
+        importGedcomDataset(dataset, target.repo as SqliteTreeRepository);
+
+        const persons = target.repo.listAllPersons();
+        expect(persons).toHaveLength(3);
+        const ivan = persons.find((entry) => entry.names[0]?.given === 'Ivan');
+        expect(ivan?.sex).toBe('M');
+        expect(ivan?.facts.find((fact) => fact.tag === 'BIRT')?.place).toBe('Moscow, Russia');
+
+        const families = target.repo.listFamilies();
+        expect(families).toHaveLength(1);
+        expect(families[0]?.partners).toHaveLength(2);
+        expect(families[0]?.children).toHaveLength(1);
+
+        expect(target.repo.listSources()).toHaveLength(1);
+        expect(target.repo.listRepositories()).toHaveLength(1);
+        expect(target.repo.listSubmitters()).toHaveLength(1);
+        expect(target.repo.listTitles()).toHaveLength(1);
+        expect(target.repo.listNotes()).toHaveLength(2);
+        expect(target.repo.listTags()).toHaveLength(1);
+        expect(target.repo.listFactTypes()).toHaveLength(1);
+        expect(target.repo.listCensuses().filter((census) => census.date !== undefined)).toHaveLength(1);
+        expect(target.repo.getEvidence('EV1') !== undefined || target.repo.listEvidence().length > 0).toBe(true);
+        expect(target.repo.listResearchDocuments().length).toBeGreaterThan(0);
+        expect(target.repo.listResearchActivities().length).toBeGreaterThan(0);
+        expect(target.repo.listAssociations().length).toBeGreaterThan(0);
+        expect(target.repo.listOrdinances().length).toBeGreaterThan(0);
+      } finally {
+        cleanupRepo(target);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+    },
+  );
+
+  it('exports the header fields and the submission record', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.saveHeader({
+        sourceSoftware: 'Dóru',
+        sourceVersion: '1.0',
+        sourceName: 'doru',
+        date: { quality: 'exact', component: { year: 2026 } },
+        language: 'ru',
+        placeForm: 'City, Country',
+        copyright: 'CC0',
+        fileName: 'family.ged',
+        familyFile: 'family.ged',
+        temple: 'Moscow',
+        generationsAncestors: 4,
+        generationsDescendants: 1,
+        ordinanceProcessFlag: 'yes',
+      });
+      const dataset = buildGedcomDataset(fixture.repo);
+      expect(dataset.header.gedcom).toEqual({ version: '7.0' });
+      expect(dataset.header.source).toMatchObject({ payload: 'Dóru', version: '1.0', name: 'doru' });
+      expect(dataset.header.language).toBe('ru');
+      expect(dataset.header.place).toEqual({ form: ['City', 'Country'] });
+      expect(dataset.header.copyright).toBe('CC0');
+      expect(dataset.header.fileName).toBe('family.ged');
+      const submission = dataset.records.find((record) => record.tag === 'SUBN');
+      expect(submission).toMatchObject({ familyFile: 'family.ged', temple: 'Moscow' });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('drops a census without a date from the export', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertCensus({ id: 'CN1', entries: [] });
+      const dataset = buildGedcomDataset(fixture.repo);
+      const census = dataset.records.find((record) => record.tag === '_CENR');
+      expect(census).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps non-numeric month codes and calendar mappings', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          { id: 'F1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { calendar: 'french_republican', year: 3, month: 'VEND' } } },
+          { id: 'F2', personId: 'P1', tag: 'DEAT', date: { quality: 'exact', component: { calendar: 'hebrew', year: 5700 } } },
+          { id: 'F3', personId: 'P1', tag: 'BURI', date: { quality: 'range', end: { year: 1999 } } },
+          { id: 'F4', personId: 'P1', tag: 'CHR', date: { quality: 'range', component: { year: 1900 } } },
+          { id: 'F5', personId: 'P1', tag: 'OCCU', value: 'x', date: { quality: 'range' } },
+        ],
+      });
+      const dataset = buildGedcomDataset(fixture.repo);
+      const serialized = serializeGedcom70(dataset);
+      expect(serialized.ok).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
