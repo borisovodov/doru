@@ -8,22 +8,25 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Un progetto è un singolo file .doru (SQLite); le foto vivono in una cartella media accanto. Nulla è nascosto, nulla viene caricato."
+    details: "Un progetto è un singolo file .doru (SQLite); le foto vivono in una cartella media accanto. Nulla è nascosto, nulla viene caricato. Backup copiando una cartella."
   - icon: 🤖
     title: Nativamente IA
-    details: "Chat con agenti e strumenti dell'albero, modalità server MCP per Claude Desktop e Cursor, host MCP per server esterni, agenti ACP."
+    details: "Tutta l'app è nativamente IA. Dóru AI, l'assistente integrato, gira in locale e offline — senza account. Oppure collega qualsiasi provider — Ollama, LM Studio, un'API cloud, un agente ACP."
+  - icon: 🌳
+    title: Tutto l'albero, un'unica tela
+    details: "Quattro viste — antenati, discendenti, clessidra, famiglia — su un'unica tela zoomabile. Aggiungi persone sul posto, trascina per cambiare genitori, apri editor completi per date, fonti e note."
+  - icon: 💾
+    title: Import ed export GEDCOM
+    details: "Importa GEDCOM 5.5 e 5.5.1, esporta GEDCOM 7.0 — archivi .gdz inclusi. Centinaia di tag di produttori da software reali vengono riconosciuti: nulla di importante va perso in ingresso."
   - icon: 🔒
     title: Progettato per la privacy
-    details: "L'app non fa mai chiamate di propria iniziativa: niente account, niente cloud, niente telemetria. Le uniche connessioni di rete vanno ai provider IA e ai server MCP che configuri tu stesso. Le chiavi API restano nel portachiavi di sistema e con Ollama o LM Studio l'IA gira interamente sulla tua macchina."
+    details: "Niente account, niente cloud, niente telemetria. Nulla lascia la tua macchina finché non lo dici tu."
   - icon: 🎨
-    title: Config in testo
-    details: "Impostazioni in settings.json: provider IA, temi e altro. Testo semplice, ricarica a caldo, modificabile da persone e agenti."
+    title: Temi
+    details: "Nove temi integrati — da One Dark a Rosé Pine — ognuno con palette chiara e scura che seguono l'aspetto del tuo sistema."
   - icon: 🌍
     title: Multipiattaforma e 17 lingue
     details: "Funziona su macOS, Linux e Windows. L'interfaccia è completamente localizzata — dall'italiano e l'inglese al giapponese e al cinese semplificato."
-  - icon: 💾
-    title: Portatile per progetto
-    details: "Backup copiando una cartella. Aprila su macOS, Linux o Windows. Import ed export GEDCOM garantiscono l'interoperabilità."
   - icon: 🐙
     title: Vero open source
     details: "L'intera app è sotto licenza MIT: libera per qualsiasi uso, modifica e ridistribuzione. Codice sorgente completamente aperto — nessuna parte proprietaria, nessun trucco open-core."

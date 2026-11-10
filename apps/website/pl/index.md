@@ -8,22 +8,25 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "Projekt to pojedynczy plik .doru (SQLite); zdjęcia żyją w folderze media obok niego. Nic nie jest ukryte, nic nie jest wysyłane."
+    details: "Projekt to pojedynczy plik .doru (SQLite); zdjęcia żyją w folderze media obok niego. Nic nie jest ukryte, nic nie jest wysyłane. Kopia zapasowa przez skopiowanie folderu."
   - icon: 🤖
     title: Natywna obsługa AI
-    details: "Czat z agentami i narzędziami drzewa, tryb serwera MCP dla Claude Desktop i Cursor, host MCP dla zewnętrznych serwerów, agenci ACP."
+    details: "Cała aplikacja jest natywnie AI. Dóru AI, wbudowany asystent, działa lokalnie i offline — bez konta. Albo podłącz dowolnego dostawcę — Ollama, LM Studio, API w chmurze, agenta ACP."
+  - icon: 🌳
+    title: Całe drzewo na jednym płótnie
+    details: "Cztery widoki — przodkowie, potomkowie, klepsydra, rodzina — na jednym przybliżalnym płótnie. Dodawaj osoby na miejscu, przeciągnij, by zmienić rodziców, otwieraj pełne edytory dat, źródeł i notatek."
+  - icon: 💾
+    title: Import i eksport GEDCOM
+    details: "Import GEDCOM 5.5 i 5.5.1, eksport GEDCOM 7.0 — łącznie z archiwami .gdz. Rozpoznawane są setki tagów producentów z prawdziwego oprogramowania, więc nic ważnego nie ginie przy imporcie."
   - icon: 🔒
     title: Prywatność z założenia
-    details: "Aplikacja nigdy nie łączy się sama: bez kont, bez chmury, bez telemetrii. Jedyne połączenia sieciowe idą do dostawców AI i serwerów MCP, które sam konfigurujesz. Klucze API pozostają w pęku kluczy systemu, a z Ollamą lub LM Studio AI działa w całości na Twoim komputerze."
+    details: "Bez kont, bez chmury, bez telemetrii. Nic nie opuszcza Twojego komputera, dopóki sam tego nie powiesz."
   - icon: 🎨
-    title: Konfiguracja w tekście
-    details: "Ustawienia w settings.json: dostawcy AI, motywy i więcej. Zwykły tekst, przeładowanie na żywo, edytowalne przez ludzi i agentów."
+    title: Motywy
+    details: "Dziewięć wbudowanych motywów — od One Dark po Rosé Pine — każdy z ciemną i jasną paletą podążającą za wyglądem Twojego systemu."
   - icon: 🌍
     title: Wieloplatformowość i 17 języków
     details: "Działa na macOS, Linuksie i Windows. Interfejs jest w pełni zlokalizowany — od polskiego i angielskiego po japoński i chiński uproszczony."
-  - icon: 💾
-    title: Przenośny z założenia
-    details: "Kopia zapasowa przez skopiowanie folderu. Otwieraj go na macOS, Linuksie lub Windows. Import i eksport GEDCOM zapewniają interoperacyjność."
   - icon: 🐙
     title: Prawdziwy open source
     details: "Cała aplikacja jest na licencji MIT: wolna do dowolnego użytku, modyfikacji i rozpowszechniania. Kod źródłowy w całości otwarty — bez zastrzeżonych części, bez sztuczek open-core."
