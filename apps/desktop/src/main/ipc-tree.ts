@@ -9,6 +9,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -328,6 +329,37 @@ export function registerTreeIpc(): void {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listRepositories();
   });
+
+  ipcMain.handle('tree:places', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listPlaces();
+  });
+
+  ipcMain.handle('tree:addPlace', async (_event, options: { projectPath: string; place: PlaceRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addPlace(options.place);
+  });
+
+  ipcMain.handle(
+    'tree:updatePlace',
+    async (_event, options: { projectPath: string; before: PlaceRecord; after: PlaceRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updatePlace(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle('tree:deletePlace', async (_event, options: { projectPath: string; place: PlaceRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deletePlace(options.place);
+  });
+
+  ipcMain.handle(
+    'tree:factsForPlace',
+    async (_event, options: { projectPath: string; placeId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listFactsForPlace(options.placeId);
+    },
+  );
 
   ipcMain.handle(
     'tree:addRepository',

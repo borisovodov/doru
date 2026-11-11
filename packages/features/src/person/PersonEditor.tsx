@@ -10,6 +10,7 @@ import type {
   IdentifierRecord,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   RestrictionRecord,
   Sex,
   SourceRecord,
@@ -67,6 +68,7 @@ export function PersonEditor({
   const [tags, setTags] = useState<TagRecord[]>([]);
   const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
   const [changes, setChanges] = useState<ChangeRecord[]>([]);
+  const [places, setPlaces] = useState<PlaceRecord[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +88,9 @@ export function PersonEditor({
         if (!cancelled) setMedia(loaded);
       });
       void refreshAttachments();
+      void api.getPlaces().then((loaded) => {
+        if (!cancelled) setPlaces(loaded);
+      });
     } else {
       setNotes([]);
       setFamilies([]);
@@ -100,6 +105,7 @@ export function PersonEditor({
       setTags([]);
       setTagLinks([]);
       setChanges([]);
+      setPlaces([]);
     }
     setNoteDraft('');
     return () => {
@@ -278,6 +284,7 @@ export function PersonEditor({
             personId={draft.id}
             events={facts}
             persons={persons}
+            places={places}
             refresh={refreshFacts}
             onAddFact={api.addFact}
             onUpdateFact={api.updateFact}

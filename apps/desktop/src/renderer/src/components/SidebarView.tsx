@@ -1,4 +1,4 @@
-import type { CitationRecord, FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
+import type { CitationRecord, FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
 import {
   PersonList,
   PlaceholderView,
@@ -23,9 +23,11 @@ export function SidebarView({
   sources,
   media,
   citations,
+  places,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
+  onOpenPlace,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
@@ -34,9 +36,11 @@ export function SidebarView({
   sources: SourceRecord[];
   media: SidebarMediaItem[];
   citations: CitationRecord[];
+  places: PlaceRecord[];
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
+  onOpenPlace: (placeId: string) => void;
 }) {
   switch (activeView) {
     case 'people':
@@ -86,7 +90,7 @@ export function SidebarView({
       }
       return <SidebarFacts facts={facts} persons={persons} families={families} onOpenPerson={onOpenPerson} />;
     case 'places':
-      if (!facts.some((fact) => fact.place !== undefined)) {
+      if (places.length === 0) {
         return (
           <PlaceholderView
             title={nls.t('workbench.activityBar.places')}
@@ -94,7 +98,7 @@ export function SidebarView({
           />
         );
       }
-      return <SidebarPlaces facts={facts} />;
+      return <SidebarPlaces places={places} onOpenPlace={onOpenPlace} />;
     case 'media':
       if (media.length === 0) {
         return (

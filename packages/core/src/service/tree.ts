@@ -404,6 +404,11 @@ export class TreeService {
     return this.repo.getPlace(id);
   }
 
+  /** The facts that happened at the place. */
+  listFactsForPlace(placeId: string): FactRecord[] {
+    return this.repo.listFactsForPlace(placeId);
+  }
+
   addPlace(place: PlaceRecord): UndoRedoState {
     return this.apply(addPlaceOp(place));
   }

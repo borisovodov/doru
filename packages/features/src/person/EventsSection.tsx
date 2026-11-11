@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
-import type { FactRecord, PersonRecord } from '@doru/core';
+import type { FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
@@ -13,6 +13,7 @@ export function EventsSection({
   personId,
   events: facts,
   persons,
+  places,
   refresh,
   onAddFact,
   onUpdateFact,
@@ -21,6 +22,7 @@ export function EventsSection({
   personId: string;
   events: FactRecord[];
   persons: PersonRecord[];
+  places: PlaceRecord[];
   refresh: () => Promise<void>;
   onAddFact: (fact: FactRecord) => Promise<void>;
   onUpdateFact: (before: FactRecord, after: FactRecord) => Promise<void>;
@@ -102,6 +104,7 @@ export function EventsSection({
                 <FactEditor
                   fact={fact}
                   persons={persons}
+                  places={places}
                   onSave={(next) => save(fact, next)}
                   onCancel={() => setExpandedId(null)}
                   onDelete={(deleted) => remove(deleted)}

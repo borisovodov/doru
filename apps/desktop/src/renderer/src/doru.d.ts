@@ -9,6 +9,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   ProjectBinding,
   ProjectSummary,
   RecentProject,
@@ -173,6 +174,15 @@ declare global {
       ): Promise<UndoRedoState>;
       getRepositories(projectPath: string): Promise<RepositoryRecord[]>;
       addRepository(projectPath: string, repository: RepositoryRecord): Promise<UndoRedoState>;
+      getPlaces(projectPath: string): Promise<PlaceRecord[]>;
+      addPlace(projectPath: string, place: PlaceRecord): Promise<UndoRedoState>;
+      updatePlace(
+        projectPath: string,
+        before: PlaceRecord,
+        after: PlaceRecord,
+      ): Promise<UndoRedoState>;
+      deletePlace(projectPath: string, place: PlaceRecord): Promise<UndoRedoState>;
+      getFactsForPlace(projectPath: string, placeId: string): Promise<FactRecord[]>;
       attachSource(
         projectPath: string,
         sourceId: string,

@@ -14,6 +14,7 @@ import {
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
+import { PlaceTab } from './components/PlaceTab';
 import { SourceTab } from './components/SourceTab';
 import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
@@ -26,6 +27,7 @@ import {
   FAMILY_TAB_PREFIX,
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
+  PLACE_TAB_PREFIX,
   SETTINGS_TAB_ID,
   SOURCE_TAB_PREFIX,
   TREE_TAB_ID,
@@ -46,7 +48,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons, tree.families, tree.sources);
+  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -349,6 +351,20 @@ export function App() {
         />
       );
     }
+    if (tab.id.startsWith(PLACE_TAB_PREFIX)) {
+      return (
+        <PlaceTab
+          tabId={tab.id}
+          places={tree.places}
+          api={tree.placeApi}
+          persons={tree.persons}
+          families={tree.families}
+          facts={tree.facts}
+          onOpenPerson={openPersonAndFocus}
+          onClose={tabs.closeTab}
+        />
+      );
+    }
     return null;
   };
 
@@ -424,9 +440,11 @@ export function App() {
             sources={tree.sources}
             media={tree.media}
             citations={tree.citations}
+            places={tree.places}
             onOpenPerson={openPersonAndFocus}
             onOpenFamily={tabs.openFamilyTab}
             onOpenSource={tabs.openSourceTab}
+            onOpenPlace={tabs.openPlaceTab}
           />
         }
         activeView={activeView}

@@ -9,6 +9,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -68,6 +69,7 @@ export interface PersonEditorApi {
   attachTag(link: TagLinkRecord): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
   getChanges(personId: string): Promise<ChangeRecord[]>;
+  getPlaces(): Promise<PlaceRecord[]>;
 }
 
 /** The service surface the source tab needs from its host application. */
@@ -77,4 +79,11 @@ export interface SourceEditorApi {
   deleteSource(source: SourceRecord): Promise<void>;
   getRepositories(): Promise<RepositoryRecord[]>;
   addRepository(repository: RepositoryRecord): Promise<void>;
+}
+
+/** The service surface the place tab needs from its host application. */
+export interface PlaceEditorApi {
+  getPlaces(): Promise<PlaceRecord[]>;
+  updatePlace(before: PlaceRecord, after: PlaceRecord): Promise<void>;
+  deletePlace(place: PlaceRecord): Promise<void>;
 }

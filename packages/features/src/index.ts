@@ -8,7 +8,7 @@ export {
   personToDraft,
   type PersonDraft,
 } from './person/draft';
-export type { MediaWithPath, PersonEditorApi, SourceEditorApi } from './person/types';
+export type { MediaWithPath, PersonEditorApi, PlaceEditorApi, SourceEditorApi } from './person/types';
 export { PersonList, type PersonListProps } from './person/PersonList';
 export { displayName, familyLabel, lifeSpan } from './person/format';
 export { SidebarFamilies } from './sidebar/SidebarFamilies';
@@ -21,6 +21,9 @@ export { FamilyView } from './sidebar/FamilyView';
 export { SourceCitationsList, EntityTab } from './sidebar/SourceView';
 export { SourceEditor } from './source/SourceEditor';
 export { sourceDraftToRecord, sourceToDraft, emptySourceDraft, sourceDraftMatches, type SourceDraft } from './source/sourceDraft';
+export { PlaceEditor } from './place/PlaceEditor';
+export { PlaceFactsList } from './place/PlaceFactsList';
+export { placeDraftToRecord, placeToDraft, emptyPlaceDraft, placeDraftMatches, type PlaceDraft } from './place/placeDraft';
 export { SettingsView, type SettingsViewProps, type ThemeEntry, type AiTestState } from './settings/SettingsView';
 export type { AiCatalogModelInfo, AiProviderInfo, AiSettingsState, ModelFetchState } from './settings/types';
 export { NoticesView, type NoticesViewProps } from './notices/NoticesView';

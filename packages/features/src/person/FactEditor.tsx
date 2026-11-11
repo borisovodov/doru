@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import type { FactAge, FactParticipant, FactRecord, PersonRecord } from '@doru/core';
+import type { FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
+import { placeName } from '@doru/core/model';
 import { DateEditor } from './DateEditor';
 import { displayName } from './format';
 import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from './factDraft';
@@ -17,12 +18,14 @@ const AGE_NUMBER_FIELDS = ['years', 'months', 'weeks', 'days'] as const;
 export function FactEditor({
   fact,
   persons,
+  places,
   onSave,
   onCancel,
   onDelete,
 }: {
   fact: FactRecord;
   persons: PersonRecord[];
+  places: PlaceRecord[];
   onSave: (fact: FactRecord) => Promise<void>;
   onCancel: () => void;
   onDelete: (fact: FactRecord) => Promise<void>;
@@ -105,8 +108,38 @@ export function FactEditor({
       <DateEditor
         label={nls.t('features.tree.events.dateField')}
         value={draft.date}
-        onChange={(date) => set({ date })}
+        onChange={(date) => {
+          const linked = places.find((place) => place.id === draft.placeId);
+          // Hand-editing the place text away from the linked place's name
+          // detaches the link.
+          if (linked !== undefined && date.place !== placeName(linked)) {
+            set({ date, placeId: undefined });
+          } else {
+            set({ date });
+          }
+        }}
       />
+      <label>
+        {nls.t('features.tree.fact.placeLink')}
+        <select
+          value={draft.placeId ?? ''}
+          onChange={(event) => {
+            const place = places.find((entry) => entry.id === event.target.value);
+            if (place) {
+              set({ placeId: place.id, date: { ...draft.date, place: placeName(place) } });
+            } else {
+              set({ placeId: undefined });
+            }
+          }}
+        >
+          <option value="">{nls.t('features.tree.fact.placeLink.none')}</option>
+          {places.map((place) => (
+            <option key={place.id} value={place.id}>
+              {placeName(place)}
+            </option>
+          ))}
+        </select>
+      </label>
       <DateEditor
         label={nls.t('features.tree.fact.sortDate')}
         value={draft.sortDate}

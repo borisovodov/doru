@@ -160,6 +160,16 @@ const api = {
     ipcRenderer.invoke('tree:updateCitation', { projectPath, before, after }),
   getRepositories: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:repositories', { projectPath }),
+  getPlaces: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:places', { projectPath }),
+  addPlace: (projectPath: string, place: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addPlace', { projectPath, place }),
+  updatePlace: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updatePlace', { projectPath, before, after }),
+  deletePlace: (projectPath: string, place: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deletePlace', { projectPath, place }),
+  getFactsForPlace: (projectPath: string, placeId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:factsForPlace', { projectPath, placeId }),
   addRepository: (projectPath: string, repository: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addRepository', { projectPath, repository }),
   attachSource: (projectPath: string, sourceId: string, targetType: string, targetId: string): Promise<unknown> =>
