@@ -183,9 +183,10 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listAllCitations()).toHaveLength(0);
       service.undo();
       expect(fixture.repo.getSource('S1')?.author).toBe('Ivan Petrov');
-      // Undoing the delete restores the source; the citation cascaded with
-      // the source row and is not re-attached.
-      expect(fixture.repo.listAllCitations()).toHaveLength(0);
+      // Undoing the delete restores the source and its citations — one
+      // undo step, no losses.
+      expect(fixture.repo.listAllCitations().map((entry) => entry.sourceId)).toEqual(['S1']);
+      expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);
     } finally {
       cleanupRepo(fixture);
     }

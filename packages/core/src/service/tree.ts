@@ -190,6 +190,11 @@ export class TreeService {
     return this.repo.listCitationsFor(targetType, targetId);
   }
 
+  /** Full citation rows for a target, including page and quality. */
+  listCitationRecordsFor(targetType: string, targetId: string): CitationRecord[] {
+    return this.repo.listCitationRecordsFor(targetType, targetId);
+  }
+
   listAllCitations(): CitationRecord[] {
     return this.repo.listAllCitations();
   }
@@ -432,7 +437,8 @@ export class TreeService {
 
   deleteSource(source: SourceRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('source', source.id);
-    return this.apply(deleteSourceOp(source, attachments));
+    const citations = this.repo.listAllCitations().filter((citation) => citation.sourceId === source.id);
+    return this.apply(deleteSourceOp(source, attachments, citations));
   }
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
@@ -580,6 +586,10 @@ export class TreeService {
   }
 
   // --- registries: repositories, submitters, addresses, fact types, header ------
+
+  listRepositories(): RepositoryRecord[] {
+    return this.repo.listRepositories();
+  }
 
   addRepository(repository: RepositoryRecord): UndoRedoState {
     return this.apply(addRepositoryOp(repository));

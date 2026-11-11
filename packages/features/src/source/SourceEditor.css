@@ -1,0 +1,135 @@
+/* ── Source editor ─────────────────────────────────────────────────── */
+
+.source-editor {
+  max-width: 560px;
+  padding: 8px 16px;
+}
+
+.source-editor label {
+  display: block;
+  margin: 10px 0;
+  color: var(--doru-fg-muted);
+}
+
+.source-editor input,
+.source-editor select,
+.source-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.source-editor input,
+.source-editor select {
+  height: var(--doru-control-height);
+}
+
+.source-editor textarea {
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.source-editor input:focus,
+.source-editor select:focus,
+.source-editor textarea:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.source-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+}
+
+.source-sub-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.source-sub-row input,
+.source-sub-row select {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.source-sub-row .icon-button {
+  flex: none;
+}
+
+.source-text-block {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.source-text-block textarea {
+  margin-top: 0;
+}
+
+.source-event-block,
+.source-repository-block {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.source-call-number {
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 2px solid var(--doru-border);
+}
+
+.source-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.new-repository {
+  flex: 1;
+}
+
+.source-editor .person-view-actions .source-delete-button {
+  color: var(--doru-danger);
+}
+
+.source-editor .add-button.small {
+  height: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: var(--doru-radius-sm);
+}
+
+.source-editor .plain-button {
+  height: var(--doru-control-height);
+  padding: 0 11px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  background: transparent;
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.source-editor .plain-button:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}

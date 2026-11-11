@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
-import type { MediaWithPath, PersonEditorApi } from '@doru/features';
+import type { MediaWithPath, PersonEditorApi, SourceEditorApi } from '@doru/features';
 
 /**
  * Tree state and every mutation/reload that goes through `window.doru`.
@@ -230,6 +230,12 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.detachCitation(projectPath, citationId);
       },
+      updateCitation: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateCitation(projectPath, before, after);
+      },
       getFacts: (personId, familyId) =>
         projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
       addFact: async (fact) => {
@@ -333,6 +339,33 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const sourceApi = useMemo<SourceEditorApi>(
+    () => ({
+      getSources: () => (projectPath ? window.doru.getSources(projectPath) : Promise.resolve([])),
+      updateSource: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateSource(projectPath, before, after);
+      },
+      deleteSource: async (source) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteSource(projectPath, source);
+      },
+      getRepositories: () =>
+        projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([]),
+      addRepository: async (repository) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addRepository(projectPath, repository);
+      },
+    }),
+    [projectPath],
+  );
+
   return {
     persons,
     families,
@@ -349,5 +382,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     reparent,
     personCounts,
     api,
+    sourceApi,
   };
 }

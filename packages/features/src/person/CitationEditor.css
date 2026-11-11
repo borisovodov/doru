@@ -1,0 +1,121 @@
+/* ── Citation editor ───────────────────────────────────────────────── */
+
+.citation-editor {
+  margin: 6px 0 10px;
+  padding: 10px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.citation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+}
+
+.citation-editor label {
+  display: block;
+  margin: 6px 0;
+  color: var(--doru-fg-muted);
+}
+
+.citation-editor input,
+.citation-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  background: var(--doru-bg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.citation-editor input {
+  height: var(--doru-control-height);
+}
+
+.citation-editor textarea {
+  min-height: 60px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.citation-editor input:focus,
+.citation-editor textarea:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.citation-subsection {
+  margin-top: 8px;
+}
+
+.citation-subsection h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doru-fg-muted);
+}
+
+.citation-text-block {
+  margin-bottom: 6px;
+  padding: 6px;
+  background: var(--doru-bg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.citation-text-block textarea {
+  margin-top: 0;
+}
+
+.citation-sub-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.citation-sub-row input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.citation-sub-row .icon-button {
+  flex: none;
+}
+
+.citation-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.citation-editor .add-button.small {
+  height: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: var(--doru-radius-sm);
+}
+
+.citation-editor .plain-button {
+  height: var(--doru-control-height);
+  padding: 0 11px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  background: transparent;
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.citation-editor .plain-button:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}

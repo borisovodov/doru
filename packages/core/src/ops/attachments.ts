@@ -118,7 +118,7 @@ export function updateSourceOp(before: SourceRecord, after: SourceRecord): Op {
   };
 }
 
-export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSnapshot): Op {
+export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSnapshot, citations: CitationRecord[]): Op {
   return op(
     crypto.randomUUID(),
     'source.delete',
@@ -126,6 +126,12 @@ export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSna
     (ctx) => {
       ctx.repo.insertSource(source);
       ctx.repo.restoreAttachments(attachments);
+      // Citations of the source cascade with the source row (FK) and are
+      // not part of the attachment snapshot (that one is keyed by target):
+      // re-insert them explicitly so one undo restores everything.
+      for (const citation of citations) {
+        ctx.repo.insertCitation(citation);
+      }
     },
   );
 }

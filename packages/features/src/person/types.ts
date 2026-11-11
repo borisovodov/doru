@@ -1,6 +1,7 @@
 import type {
   AssociationRecord,
   ChangeRecord,
+  CitationRecord,
   ContactRecord,
   FactRecord,
   FamilyRecord,
@@ -8,6 +9,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
   TagLinkRecord,
@@ -16,11 +18,6 @@ import type {
 
 export interface MediaWithPath extends MediaRecord {
   absolutePath: string;
-}
-
-export interface CitationInfo {
-  id: string;
-  source: SourceRecord;
 }
 
 /**
@@ -42,10 +39,13 @@ export interface PersonEditorApi {
   updateAssociation(before: AssociationRecord, after: AssociationRecord): Promise<void>;
   deleteAssociation(association: AssociationRecord): Promise<void>;
   getSources(): Promise<SourceRecord[]>;
-  getCitations(personId: string): Promise<CitationInfo[]>;
+  getCitations(personId: string): Promise<CitationRecord[]>;
   addSource(source: SourceRecord, targetId: string): Promise<void>;
   attachSource(sourceId: string, targetId: string): Promise<void>;
   detachCitation(citationId: string): Promise<void>;
+  updateCitation(before: CitationRecord, after: CitationRecord): Promise<void>;
+  /** Opens the source tab of the app (host-level navigation). */
+  openSource?: ((sourceId: string) => void) | undefined;
   getFacts(personId?: string, familyId?: string): Promise<FactRecord[]>;
   addFact(fact: FactRecord): Promise<void>;
   updateFact(before: FactRecord, after: FactRecord): Promise<void>;
@@ -68,4 +68,13 @@ export interface PersonEditorApi {
   attachTag(link: TagLinkRecord): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
   getChanges(personId: string): Promise<ChangeRecord[]>;
+}
+
+/** The service surface the source tab needs from its host application. */
+export interface SourceEditorApi {
+  getSources(): Promise<SourceRecord[]>;
+  updateSource(before: SourceRecord, after: SourceRecord): Promise<void>;
+  deleteSource(source: SourceRecord): Promise<void>;
+  getRepositories(): Promise<RepositoryRecord[]>;
+  addRepository(repository: RepositoryRecord): Promise<void>;
 }

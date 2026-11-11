@@ -3,6 +3,7 @@ import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus }
 import type {
   AssociationRecord,
   ChangeRecord,
+  CitationRecord,
   ContactRecord,
   FactRecord,
   FamilyRecord,
@@ -29,7 +30,7 @@ import { NamesSection } from './NamesSection';
 import { SourcesSection } from './SourcesSection';
 import { TagsSection } from './TagsSection';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from './draft';
-import type { CitationInfo, MediaWithPath, PersonEditorApi } from './types';
+import type { MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {
   draft: PersonDraft;
@@ -57,7 +58,7 @@ export function PersonEditor({
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
-  const [citations, setCitations] = useState<CitationInfo[]>([]);
+  const [citations, setCitations] = useState<CitationRecord[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [media, setMedia] = useState<MediaWithPath[]>([]);
   const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
@@ -290,6 +291,8 @@ export function PersonEditor({
             onAddSource={api.addSource}
             onAttachSource={api.attachSource}
             onDetachCitation={api.detachCitation}
+            onUpdateCitation={api.updateCitation}
+            onOpenSource={(sourceId) => api.openSource?.(sourceId)}
           />
           <MediaSection
             personId={draft.id}

@@ -7,15 +7,46 @@
 }
 
 .source-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 3px 0;
   border-bottom: 1px solid var(--doru-border);
 }
 
 .source-list li:last-child {
   border-bottom: none;
+}
+
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+}
+
+.source-open {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--doru-fg);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.source-open .source-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-open:hover .source-title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .sources-new {

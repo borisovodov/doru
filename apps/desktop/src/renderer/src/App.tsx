@@ -8,13 +8,13 @@ import {
   FamilyView,
   NoticesView,
   SettingsView,
-  SourceView,
   TreeCanvas,
   WelcomePage,
 } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { PersonTab } from './components/PersonTab';
+import { SourceTab } from './components/SourceTab';
 import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
@@ -305,7 +305,7 @@ export function App() {
         <PersonTab
           tabId={tab.id}
           persons={tree.persons}
-          api={tree.api}
+          api={{ ...tree.api, openSource: tabs.openSourceTab }}
           onClose={tabs.closeTab}
         />
       );
@@ -335,14 +335,17 @@ export function App() {
         return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
       }
       return (
-        <SourceView
-          source={source}
+        <SourceTab
+          tabId={tab.id}
+          sources={tree.sources}
+          api={tree.sourceApi}
           persons={tree.persons}
           families={tree.families}
           facts={tree.facts}
           citations={tree.citations}
           notes={tree.notes}
           onOpenPerson={openPersonAndFocus}
+          onClose={tabs.closeTab}
         />
       );
     }

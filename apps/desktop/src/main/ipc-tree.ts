@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import type {
   AssociationRecord,
+  CitationRecord,
   ContactRecord,
   FactRecord,
   FamilyRecord,
@@ -8,6 +9,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
   TagLinkRecord,
@@ -302,6 +304,40 @@ export function registerTreeIpc(): void {
   );
 
   ipcMain.handle(
+    'tree:updateSource',
+    async (_event, options: { projectPath: string; before: SourceRecord; after: SourceRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateSource(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle('tree:deleteSource', async (_event, options: { projectPath: string; source: SourceRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteSource(options.source);
+  });
+
+  ipcMain.handle(
+    'tree:updateCitation',
+    async (_event, options: { projectPath: string; before: CitationRecord; after: CitationRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateCitation(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle('tree:repositories', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listRepositories();
+  });
+
+  ipcMain.handle(
+    'tree:addRepository',
+    async (_event, options: { projectPath: string; repository: RepositoryRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addRepository(options.repository);
+    },
+  );
+
+  ipcMain.handle(
     'tree:attachSource',
     async (_event, options: { projectPath: string; sourceId: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
@@ -318,7 +354,7 @@ export function registerTreeIpc(): void {
     'tree:citations',
     async (_event, options: { projectPath: string; personId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listCitationsFor('person', options.personId);
+      return runtime.service.listCitationRecordsFor('person', options.personId);
     },
   );
 

@@ -13,6 +13,7 @@ import type {
   ProjectSummary,
   RecentProject,
   RestrictionRecord,
+  RepositoryRecord,
   SourceRecord,
   TagLinkRecord,
   TagRecord,
@@ -159,6 +160,19 @@ declare global {
         targetType?: string,
         targetId?: string,
       ): Promise<UndoRedoState>;
+      updateSource(
+        projectPath: string,
+        before: SourceRecord,
+        after: SourceRecord,
+      ): Promise<UndoRedoState>;
+      deleteSource(projectPath: string, source: SourceRecord): Promise<UndoRedoState>;
+      updateCitation(
+        projectPath: string,
+        before: CitationRecord,
+        after: CitationRecord,
+      ): Promise<UndoRedoState>;
+      getRepositories(projectPath: string): Promise<RepositoryRecord[]>;
+      addRepository(projectPath: string, repository: RepositoryRecord): Promise<UndoRedoState>;
       attachSource(
         projectPath: string,
         sourceId: string,
@@ -169,7 +183,7 @@ declare global {
       getCitations(
         projectPath: string,
         personId: string,
-      ): Promise<Array<{ id: string; source: SourceRecord }>>;
+      ): Promise<CitationRecord[]>;
       getAllCitations(projectPath: string): Promise<CitationRecord[]>;
       getFacts(
         projectPath: string,
