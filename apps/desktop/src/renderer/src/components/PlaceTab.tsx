@@ -23,6 +23,7 @@ export function PlaceTab({
   facts,
   onOpenPerson,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   places: PlaceRecord[];
@@ -32,6 +33,7 @@ export function PlaceTab({
   facts: FactRecord[];
   onOpenPerson: (personId: string) => void;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const placeId = tabId.slice(PLACE_TAB_PREFIX.length);
   const isNew = placeId.startsWith('new:');
@@ -51,6 +53,7 @@ export function PlaceTab({
       facts={facts}
       onOpenPerson={onOpenPerson}
       onClose={onClose}
+      onCreated={onCreated}
     />
   );
 }
@@ -66,6 +69,7 @@ function PlaceTabBody({
   facts,
   onOpenPerson,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   record: PlaceRecord | undefined;
@@ -77,6 +81,7 @@ function PlaceTabBody({
   facts: FactRecord[];
   onOpenPerson: (personId: string) => void;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const [draft, setDraft] = useState<PlaceDraft>(() =>
     isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
@@ -102,6 +107,7 @@ function PlaceTabBody({
     const next = placeDraftToRecord(draft);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
+      onCreated(next.id);
     } else {
       await api.updatePlace(lastSaved ?? record!, next);
     }

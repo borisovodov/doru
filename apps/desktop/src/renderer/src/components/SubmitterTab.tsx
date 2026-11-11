@@ -11,11 +11,13 @@ export function SubmitterTab({
   submitters,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   submitters: SubmitterRecord[];
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const submitterId = tabId.slice(SUBMITTER_TAB_PREFIX.length);
   const isNew = submitterId.startsWith('new:');
@@ -23,7 +25,7 @@ export function SubmitterTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.submitter.notFound')}</p>;
   }
-  return <SubmitterTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} />;
+  return <SubmitterTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} onCreated={onCreated} />;
 }
 
 function SubmitterTabBody({
@@ -32,12 +34,14 @@ function SubmitterTabBody({
   isNew,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   record: SubmitterRecord | undefined;
   isNew: boolean;
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const base: SubmitterRecord = record ?? { id: crypto.randomUUID(), name: '' };
   const [lastSaved, setLastSaved] = useState<SubmitterRecord | undefined>(record);
@@ -71,6 +75,7 @@ function SubmitterTabBody({
     next.addressId = await saveAddress();
     if (isNew && lastSaved === undefined) {
       await api.addSubmitter(next);
+      onCreated(next.id);
     } else {
       await api.updateSubmitter(lastSaved ?? base, next);
     }

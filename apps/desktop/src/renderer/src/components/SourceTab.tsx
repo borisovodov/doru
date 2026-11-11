@@ -34,6 +34,7 @@ export function SourceTab({
   notes,
   onOpenPerson,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   sources: SourceRecord[];
@@ -45,6 +46,7 @@ export function SourceTab({
   notes: NoteRecord[];
   onOpenPerson: (personId: string) => void;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const sourceId = tabId.slice(SOURCE_TAB_PREFIX.length);
   const isNew = sourceId.startsWith('new:');
@@ -65,6 +67,7 @@ export function SourceTab({
       notes={notes}
       onOpenPerson={onOpenPerson}
       onClose={onClose}
+      onCreated={onCreated}
     />
   );
 }
@@ -81,6 +84,7 @@ function SourceTabBody({
   notes,
   onOpenPerson,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   record: SourceRecord | undefined;
@@ -93,6 +97,7 @@ function SourceTabBody({
   notes: NoteRecord[];
   onOpenPerson: (personId: string) => void;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const [draft, setDraft] = useState<SourceDraft>(() =>
     isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
@@ -134,6 +139,7 @@ function SourceTabBody({
     const next = sourceDraftToRecord(draft);
     if (isNew && lastSaved === undefined) {
       await api.addSource(next);
+      onCreated(next.id);
     } else {
       await api.updateSource(lastSaved ?? record!, next);
     }

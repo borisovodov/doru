@@ -20,6 +20,7 @@ export function TaskTab({
   repositories,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   todos: TodoRecord[];
@@ -31,6 +32,7 @@ export function TaskTab({
     deleteTodo: (todo: TodoRecord) => Promise<void>;
   };
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const taskId = tabId.slice(TASK_TAB_PREFIX.length);
   const isNew = taskId.startsWith('new:');
@@ -38,7 +40,7 @@ export function TaskTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tasks.notFound')}</p>;
   }
-  return <TaskTabBody tabId={tabId} record={record} isNew={isNew} persons={persons} repositories={repositories} api={api} onClose={onClose} />;
+  return <TaskTabBody tabId={tabId} record={record} isNew={isNew} persons={persons} repositories={repositories} api={api} onClose={onClose} onCreated={onCreated} />;
 }
 
 function TaskTabBody({
@@ -49,6 +51,7 @@ function TaskTabBody({
   repositories,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   record: TodoRecord | undefined;
@@ -61,6 +64,7 @@ function TaskTabBody({
     deleteTodo: (todo: TodoRecord) => Promise<void>;
   };
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
   const [lastSaved, setLastSaved] = useState<TodoRecord | undefined>(record);
@@ -91,6 +95,7 @@ function TaskTabBody({
     const after = todoDraftToRecord(base, draft);
     if (isNew && lastSaved === undefined) {
       await api.addTodo(after);
+      onCreated(after.id);
     } else {
       await api.updateTodo(lastSaved ?? base, after);
     }

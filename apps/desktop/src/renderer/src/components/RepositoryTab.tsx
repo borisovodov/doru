@@ -11,11 +11,13 @@ export function RepositoryTab({
   repositories,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   repositories: RepositoryRecord[];
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const repositoryId = tabId.slice(REPOSITORY_TAB_PREFIX.length);
   const isNew = repositoryId.startsWith('new:');
@@ -23,7 +25,7 @@ export function RepositoryTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.repository.notFound')}</p>;
   }
-  return <RepositoryTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} />;
+  return <RepositoryTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} onCreated={onCreated} />;
 }
 
 function RepositoryTabBody({
@@ -32,12 +34,14 @@ function RepositoryTabBody({
   isNew,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   record: RepositoryRecord | undefined;
   isNew: boolean;
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
@@ -62,6 +66,7 @@ function RepositoryTabBody({
     next.addressId = await saveAddress();
     if (isNew && lastSaved === undefined) {
       await api.addRepository(next);
+      onCreated(next.id);
     } else {
       await api.updateRepository(lastSaved ?? base, next);
     }

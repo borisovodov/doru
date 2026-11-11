@@ -317,6 +317,7 @@ export function App() {
           persons={tree.persons}
           api={{ ...tree.api, openSource: tabs.openSourceTab }}
           onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${PERSON_TAB_PREFIX}${realId}`)}
         />
       );
     }
@@ -350,6 +351,7 @@ export function App() {
           tabId={tab.id}
           sources={tree.sources}
           api={tree.sourceApi}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${SOURCE_TAB_PREFIX}${realId}`)}
           persons={tree.persons}
           families={tree.families}
           facts={tree.facts}
@@ -366,6 +368,7 @@ export function App() {
           tabId={tab.id}
           places={tree.places}
           api={tree.placeApi}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${PLACE_TAB_PREFIX}${realId}`)}
           persons={tree.persons}
           families={tree.families}
           facts={tree.facts}
@@ -381,6 +384,7 @@ export function App() {
           repositories={tree.repositories}
           api={tree.registriesApi}
           onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${REPOSITORY_TAB_PREFIX}${realId}`)}
         />
       );
     }
@@ -391,6 +395,7 @@ export function App() {
           submitters={tree.submitters}
           api={tree.registriesApi}
           onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${SUBMITTER_TAB_PREFIX}${realId}`)}
         />
       );
     }
@@ -403,6 +408,7 @@ export function App() {
           repositories={tree.repositories}
           api={tree.todosApi}
           onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${TASK_TAB_PREFIX}${realId}`)}
         />
       );
     }
@@ -416,6 +422,7 @@ export function App() {
           api={tree.titlesApi}
           onClose={tabs.closeTab}
           onOpenSource={tabs.openSourceTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${TITLE_TAB_PREFIX}${realId}`)}
         />
       );
     }

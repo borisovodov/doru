@@ -13,6 +13,7 @@ export function TitleTab({
   api,
   onClose,
   onOpenSource,
+  onCreated,
 }: {
   tabId: string;
   titles: TitleRecord[];
@@ -25,6 +26,7 @@ export function TitleTab({
   };
   onClose: (tabId: string) => void;
   onOpenSource: (sourceId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const titleId = tabId.slice(TITLE_TAB_PREFIX.length);
   const isNew = titleId.startsWith('new:');
@@ -42,6 +44,7 @@ export function TitleTab({
       api={api}
       onClose={onClose}
       onOpenSource={onOpenSource}
+      onCreated={onCreated}
     />
   );
 }
@@ -55,6 +58,7 @@ function TitleTabBody({
   api,
   onClose,
   onOpenSource,
+  onCreated,
 }: {
   tabId: string;
   record: TitleRecord | undefined;
@@ -68,6 +72,7 @@ function TitleTabBody({
   };
   onClose: (tabId: string) => void;
   onOpenSource: (sourceId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID() };
   const [lastSaved, setLastSaved] = useState<TitleRecord | undefined>(record);
@@ -104,6 +109,7 @@ function TitleTabBody({
     const after = build();
     if (isNew && lastSaved === undefined) {
       await api.addTitle(after);
+      onCreated(after.id);
     } else {
       await api.updateTitle(lastSaved ?? base, after);
     }

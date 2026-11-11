@@ -181,6 +181,16 @@ export function useTabs(
     [openTabs],
   );
 
+  /** Re-keys a tab (a new: id becomes the created entity's id). */
+  const replaceTab = useCallback((oldId: string, newId: string) => {
+    setOpenTabs((current) =>
+      current.some((entry) => entry.id === newId)
+        ? current.filter((entry) => entry.id !== oldId)
+        : current.map((entry) => (entry.id === oldId ? { ...entry, id: newId } : entry)),
+    );
+    setActiveTabId((active) => (active === oldId ? newId : active));
+  }, []);
+
   /** Cycles to the tab after the active one, wrapping at the end. */
   const nextTab = useCallback(() => {
     setActiveTabId((active) => {
@@ -339,6 +349,7 @@ export function useTabs(
     ensureTreeTab,
     openTab,
     closeTab,
+    replaceTab,
     nextTab,
     prevTab,
     openTabAt,

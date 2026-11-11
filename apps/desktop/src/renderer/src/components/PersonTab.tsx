@@ -17,11 +17,13 @@ export function PersonTab({
   persons,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   persons: PersonRecord[];
   api: PersonEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const personId = tabId.slice(PERSON_TAB_PREFIX.length);
   const isNew = personId.startsWith('new:');
@@ -29,7 +31,7 @@ export function PersonTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.personNotFound')}</p>;
   }
-  return <PersonTabBody tabId={tabId} personId={personId} isNew={isNew} persons={persons} api={api} onClose={onClose} />;
+  return <PersonTabBody tabId={tabId} personId={personId} isNew={isNew} persons={persons} api={api} onClose={onClose} onCreated={onCreated} />;
 }
 
 function PersonTabBody({
@@ -39,6 +41,7 @@ function PersonTabBody({
   persons,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   personId: string;
@@ -46,6 +49,7 @@ function PersonTabBody({
   persons: PersonRecord[];
   api: PersonEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const record = persons.find((person) => person.id === personId);
   const [draft, setDraft] = useState<PersonDraft>(() =>
@@ -84,6 +88,7 @@ function PersonTabBody({
     if (before === undefined) {
       await api.addPerson(next);
       setCreated(true);
+      onCreated(next.id);
       return;
     }
     await api.updatePerson(before, next);
