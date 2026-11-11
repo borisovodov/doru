@@ -120,16 +120,27 @@
 
 /* ── Identity form ─────────────────────────────────────────────────── */
 
-.person-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
-}
-
 .person-editor label {
   display: block;
   margin: 10px 0;
   color: var(--doru-fg-muted);
+}
+
+/* The accent add-action button shared by the editor sections. */
+.person-editor .add-button {
+  height: var(--doru-control-height);
+  padding: 0 11px;
+  border: none;
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.person-editor .add-button:hover {
+  background: var(--doru-accent-hover);
 }
 
 .person-editor input,

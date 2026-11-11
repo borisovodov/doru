@@ -218,6 +218,12 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.addFact(projectPath, fact);
       },
+      updateFact: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateFact(projectPath, before, after);
+      },
       deleteFact: async (fact) => {
         if (!projectPath) {
           return;

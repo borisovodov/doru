@@ -129,6 +129,8 @@ const api = {
     ipcRenderer.invoke('tree:allFacts', { projectPath }),
   addFact: (projectPath: string, fact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addFact', { projectPath, fact }),
+  updateFact: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateFact', { projectPath, before, after }),
   deleteFact: (projectPath: string, fact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteFact', { projectPath, fact }),
   getMedia: (projectPath: string, personId: string): Promise<unknown> =>

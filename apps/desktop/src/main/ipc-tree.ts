@@ -195,6 +195,14 @@ export function registerTreeIpc(): void {
     return runtime.service.addFact(options.fact);
   });
 
+  ipcMain.handle(
+    'tree:updateFact',
+    async (_event, options: { projectPath: string; before: FactRecord; after: FactRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateFact(options.before, options.after);
+    },
+  );
+
   ipcMain.handle('tree:deleteFact', async (_event, options: { projectPath: string; fact: FactRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.deleteFact(options.fact);

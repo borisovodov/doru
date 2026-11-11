@@ -52,7 +52,7 @@ export function MediaSection({
           ))}
         </div>
       )}
-      <button onClick={() => void add()}>{nls.t('features.tree.media.add')}</button>
+      <button className="add-button" onClick={() => void add()}>{nls.t('features.tree.media.add')}</button>
     </div>
   );
 }

@@ -15,8 +15,9 @@ import { DateEditor } from './DateEditor';
 import { EventsSection } from './EventsSection';
 import { FamilySection } from './FamilySection';
 import { MediaSection } from './MediaSection';
+import { NamesSection } from './NamesSection';
 import { SourcesSection } from './SourcesSection';
-import { draftInitials, draftSpan, type PersonDraft } from './draft';
+import { draftInitials, draftSpan, nameDraftDisplay, type PersonDraft } from './draft';
 import type { CitationInfo, MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {
@@ -106,7 +107,7 @@ export function PersonEditor({
     setNotes(await api.getNotes(draft.id));
   };
 
-  const name = `${draft.given} ${draft.surname}`.trim();
+  const name = nameDraftDisplay(draft.names[0]);
   const span = draftSpan(draft);
   const deceased = draft.death.year !== '' || draft.death.text.trim() !== '';
   const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : HelpCircle;
@@ -163,25 +164,20 @@ export function PersonEditor({
       </section>
 
       <section className="person-section">
+        <h3>{nls.t('features.tree.names.title')}</h3>
+        <NamesSection names={draft.names} onChange={(names) => set({ names })} />
+      </section>
+
+      <section className="person-section">
         <h3>{nls.t('features.tree.details')}</h3>
-        <div className="person-form-grid">
-          <label>
-            {nls.t('features.tree.field.given')}
-            <input value={draft.given} onChange={(event) => set({ given: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.field.surname')}
-            <input value={draft.surname} onChange={(event) => set({ surname: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.field.sex')}
-            <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
-              <option value="U">{nls.t('features.tree.sex.U')}</option>
-              <option value="M">{nls.t('features.tree.sex.M')}</option>
-              <option value="F">{nls.t('features.tree.sex.F')}</option>
-            </select>
-          </label>
-        </div>
+        <label>
+          {nls.t('features.tree.field.sex')}
+          <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
+            <option value="U">{nls.t('features.tree.sex.U')}</option>
+            <option value="M">{nls.t('features.tree.sex.M')}</option>
+            <option value="F">{nls.t('features.tree.sex.F')}</option>
+          </select>
+        </label>
         <DateEditor
           label={nls.t('features.tree.field.birthDate')}
           value={draft.birth}
@@ -211,8 +207,10 @@ export function PersonEditor({
           <EventsSection
             personId={draft.id}
             events={facts}
+            persons={persons}
             refresh={refreshFacts}
             onAddFact={api.addFact}
+            onUpdateFact={api.updateFact}
             onDeleteFact={api.deleteFact}
           />
           <SourcesSection

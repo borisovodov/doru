@@ -1,22 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import type { DateDraft, PersonDraft } from '../src/person/draft';
+import type { DateDraft, NameDraft, PersonDraft } from '../src/person/draft';
 import {
   draftInitials,
   draftSpan,
   draftToRecord,
   emptyDate,
+  emptyNameDraft,
+  emptyVariantDraft,
   fromDateDraft,
+  nameDraftDisplay,
+  nameDraftEmpty,
+  nameDraftToName,
+  nameToDraft,
   newPersonDraft,
+  partOf,
   personDraftMatches,
   personToDraft,
+  setPartValue,
   toDateDraft,
+  variantDraftEmpty,
 } from '../src/person/draft';
-import type { PersonRecord } from '@doru/core';
+import type { NamePart, PersonName, PersonRecord } from '@doru/core';
+
+const part = (kind: NamePart['kind'], value: string, id = `${kind}-${value}`): NamePart => ({
+  id,
+  kind,
+  value,
+  position: 0,
+});
+
+const nameDraft = (overrides: Partial<NameDraft> = {}): NameDraft => ({
+  ...emptyNameDraft(),
+  parts: [part('given', 'Ivan'), part('surname', 'Petrov')],
+  ...overrides,
+});
 
 const draft = (overrides: Partial<PersonDraft> = {}): PersonDraft => ({
   id: 'P1',
-  given: '',
-  surname: '',
+  names: [nameDraft()],
   sex: 'U',
   birth: emptyDate(),
   death: emptyDate(),
@@ -50,22 +71,68 @@ describe('emptyDate', () => {
   });
 });
 
+describe('partOf / setPartValue', () => {
+  it('reads the first part of a kind', () => {
+    expect(partOf(nameDraft(), 'given')).toBe('Ivan');
+    expect(partOf(nameDraft(), 'suffix')).toBe('');
+  });
+
+  it('replaces every part of the kind with the typed value, keeping the first id', () => {
+    const withTwoGiven = nameDraft({
+      parts: [part('given', 'Anna', 'G1'), part('given', 'Maria', 'G2'), part('surname', 'Schmidt')],
+    });
+    const updated = setPartValue(withTwoGiven, 'given', 'Anna Maria');
+    expect(updated.parts).toEqual([part('surname', 'Schmidt'), { id: 'G1', kind: 'given', value: 'Anna Maria', position: 1 }]);
+  });
+
+  it('drops the kind when the value is emptied', () => {
+    const updated = setPartValue(nameDraft(), 'given', '  ');
+    expect(updated.parts).toEqual([part('surname', 'Petrov')]);
+  });
+
+  it('assigns a fresh id when the kind had no part', () => {
+    const updated = setPartValue(nameDraft(), 'suffix', 'Jr.');
+    expect(updated.parts[2]).toMatchObject({ kind: 'suffix', value: 'Jr.' });
+    expect(updated.parts[2]?.id).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+describe('nameDraftDisplay', () => {
+  it('is empty for a missing name', () => {
+    expect(nameDraftDisplay(undefined)).toBe('');
+  });
+
+  it('prefers the verbatim display form, stripping GEDCOM slashes', () => {
+    expect(nameDraftDisplay(nameDraft({ parts: [part('full', '/Ivan Petrov/'), part('given', 'Ivan')] }))).toBe('Ivan Petrov');
+  });
+
+  it('falls back to given + surname', () => {
+    expect(nameDraftDisplay(nameDraft())).toBe('Ivan Petrov');
+    expect(nameDraftDisplay(nameDraft({ parts: [part('given', 'Ivan')] }))).toBe('Ivan');
+    expect(nameDraftDisplay(nameDraft({ parts: [] }))).toBe('');
+  });
+});
+
 describe('draftInitials', () => {
-  it('returns "?" for an empty draft', () => {
-    expect(draftInitials(draft())).toBe('?');
+  it('returns "?" when there are no names', () => {
+    expect(draftInitials(draft({ names: [] }))).toBe('?');
   });
 
   it('derives initials from given and surname', () => {
-    expect(draftInitials(draft({ given: 'Ivan', surname: 'Petrov' }))).toBe('IP');
+    expect(draftInitials(draft())).toBe('IP');
+  });
+
+  it('derives initials from the first two words of the verbatim form', () => {
+    expect(draftInitials(draft({ names: [nameDraft({ parts: [part('full', 'Anna Maria Ivanova')] })] }))).toBe('AM');
   });
 
   it('works with a single part', () => {
-    expect(draftInitials(draft({ given: 'Ivan' }))).toBe('I');
-    expect(draftInitials(draft({ surname: 'Petrov' }))).toBe('P');
+    expect(draftInitials(draft({ names: [nameDraft({ parts: [part('given', 'Ivan')] })] }))).toBe('I');
+    expect(draftInitials(draft({ names: [nameDraft({ parts: [part('surname', 'Petrov')] })] }))).toBe('P');
   });
 
   it('ignores whitespace-only parts', () => {
-    expect(draftInitials(draft({ given: '   ', surname: 'Petrov' }))).toBe('P');
+    expect(draftInitials(draft({ names: [nameDraft({ parts: [part('given', '   '), part('surname', 'Petrov')] })] }))).toBe('P');
   });
 });
 
@@ -109,10 +176,13 @@ describe('draftSpan', () => {
 });
 
 describe('newPersonDraft', () => {
-  it('builds an empty new-person draft with a fresh id', () => {
+  it('builds an empty new-person draft with a fresh id and one empty name', () => {
     const created = newPersonDraft();
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(created).toMatchObject({ given: '', surname: '', sex: 'U', isNew: true });
+    expect(created).toMatchObject({ sex: 'U', isNew: true });
+    expect(created.names).toHaveLength(1);
+    expect(created.names[0]?.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(nameDraftEmpty(created.names[0]!)).toBe(true);
   });
 });
 
@@ -184,26 +254,143 @@ describe('fromDateDraft', () => {
   });
 });
 
+describe('nameToDraft / nameDraftToName', () => {
+  const sourceName: PersonName = {
+    id: 'N1',
+    type: 'maiden',
+    language: 'ru',
+    primary: true,
+    given: 'Ivan',
+    surname: 'Petrov',
+    variants: [
+      {
+        id: 'V1',
+        kind: 'translation',
+        language: 'en',
+        given: 'John',
+        surname: 'Petrov',
+      },
+    ],
+  };
+
+  it('synthesizes parts from the flat pieces and round-trips them', () => {
+    const draftName = nameToDraft(sourceName);
+    expect(draftName).toMatchObject({
+      id: 'N1',
+      type: 'maiden',
+      language: 'ru',
+      primary: true,
+      variants: [
+        {
+          id: 'V1',
+          kind: 'translation',
+          language: 'en',
+          variants: [],
+        },
+      ],
+    });
+    expect(draftName.parts.map((entry) => entry.kind)).toEqual(['given', 'surname']);
+    const written = nameDraftToName(draftName);
+    expect(written).toMatchObject({
+      id: 'N1',
+      type: 'maiden',
+      language: 'ru',
+      primary: true,
+      given: 'Ivan',
+      surname: 'Petrov',
+      variants: [
+        {
+          id: 'V1',
+          kind: 'translation',
+          language: 'en',
+          given: 'John',
+          surname: 'Petrov',
+        },
+      ],
+    });
+    expect(written?.parts?.map((entry) => entry.kind)).toEqual(['given', 'surname']);
+  });
+
+  it('preserves stored parts verbatim, ids and positions included', () => {
+    const stored: PersonName = {
+      id: 'N1',
+      given: 'Anna',
+      surname: 'Schmidt',
+      parts: [
+        { id: 'G1', kind: 'given', value: 'Anna', position: 0 },
+        { id: 'G2', kind: 'given', value: 'Maria', position: 1 },
+        { id: 'S1', kind: 'surname', value: 'Schmidt', position: 2 },
+      ],
+    };
+    const draftName = nameToDraft(stored);
+    expect(draftName.parts).toEqual(stored.parts);
+    const written = nameDraftToName(draftName);
+    expect(written?.parts).toEqual(stored.parts);
+    expect(written?.given).toBe('Anna');
+  });
+
+  it('defaults the variant kind to translation', () => {
+    const draftName = nameToDraft({ id: 'N1', variants: [{ id: 'V1', given: 'John' }] });
+    expect(draftName.variants[0]?.kind).toBe('translation');
+  });
+
+  it('preserves the verbatim display form of imported names', () => {
+    const draftName = nameToDraft({ id: 'N1', full: '/Иван Петров/' });
+    expect(partOf(draftName, 'full')).toBe('/Иван Петров/');
+    const written = nameDraftToName(draftName);
+    expect(written?.full).toBe('/Иван Петров/');
+    expect(written?.parts?.some((entry) => entry.kind === 'full')).toBe(true);
+  });
+
+  it('keeps a name with only a date (no text)', () => {
+    const date = { quality: 'exact' as const, component: { year: 1900 } };
+    expect(nameDraftEmpty(nameToDraft({ id: 'N1', date }))).toBe(false);
+    expect(nameDraftToName(nameToDraft({ id: 'N1', date }))).toMatchObject({ id: 'N1', date });
+  });
+});
+
+describe('empty name detection', () => {
+  it('drops names and variants without text', () => {
+    expect(nameDraftEmpty(nameDraft({ parts: [] }))).toBe(true);
+    expect(nameDraftEmpty(nameDraft({ parts: [], type: 'maiden' }))).toBe(true);
+    expect(nameDraftEmpty(nameDraft())).toBe(false);
+    expect(nameDraftEmpty(nameDraft({ parts: [], variants: [emptyVariantDraft()] }))).toBe(true);
+    expect(
+      nameDraftEmpty(
+        nameDraft({ parts: [], variants: [emptyVariantDraft(), { ...emptyVariantDraft(), parts: [part('given', 'John')] }] }),
+      ),
+    ).toBe(false);
+    expect(variantDraftEmpty(emptyVariantDraft())).toBe(true);
+    expect(variantDraftEmpty({ ...emptyVariantDraft(), parts: [part('surname', 'Petrov')] })).toBe(false);
+  });
+});
+
 describe('personToDraft', () => {
-  it('copies the primary name, sex and the birth/death facts', () => {
+  it('copies every name, the sex and the birth/death facts', () => {
     const source = person({
       id: 'P1',
       sex: 'M',
-      names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }],
+      names: [
+        { id: 'N1', given: 'Ivan', surname: 'Petrov' },
+        { id: 'N2', given: 'Vanya', type: 'aka' },
+      ],
       facts: [
         { id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } }, place: 'Moscow' },
         { id: 'E2', personId: 'P1', tag: 'OCCU', value: 'smith' },
       ],
     });
-    expect(personToDraft(source)).toEqual({
+    const result = personToDraft(source);
+    expect(result).toMatchObject({
       id: 'P1',
-      given: 'Ivan',
-      surname: 'Petrov',
       sex: 'M',
       birth: { ...emptyDate(), year: '1923', place: 'Moscow' },
       death: emptyDate(),
       isNew: false,
     });
+    expect(result.names).toHaveLength(2);
+    expect(result.names[0]).toMatchObject({ id: 'N1' });
+    expect(partOf(result.names[0]!, 'given')).toBe('Ivan');
+    expect(result.names[1]).toMatchObject({ id: 'N2', type: 'aka' });
   });
 });
 
@@ -219,34 +406,72 @@ describe('personDraftMatches', () => {
   });
 
   it('detects a changed name, sex or date', () => {
-    expect(personDraftMatches({ ...personToDraft(source), given: 'John' }, source)).toBe(false);
-    expect(personDraftMatches({ ...personToDraft(source), sex: 'F' }, source)).toBe(false);
-    expect(personDraftMatches({ ...personToDraft(source), birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
+    const base = personToDraft(source);
+    const renamed = { ...base, names: [setPartValue({ ...base.names[0]! }, 'given', 'John')] };
+    expect(personDraftMatches(renamed, source)).toBe(false);
+    expect(personDraftMatches({ ...base, sex: 'F' }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
+  });
+
+  it('detects added, removed and reordered names', () => {
+    const base = personToDraft(source);
+    expect(personDraftMatches({ ...base, names: [...base.names, nameDraft({ parts: [part('given', 'Vanya')] })] }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, names: [] }, source)).toBe(false);
+    const twoNames = person({
+      names: [
+        { id: 'N1', given: 'Ivan', surname: 'Petrov' },
+        { id: 'N2', given: 'Vanya' },
+      ],
+    });
+    expect(personDraftMatches({ ...personToDraft(twoNames), names: [...personToDraft(twoNames).names].reverse() }, twoNames)).toBe(
+      false,
+    );
   });
 });
 
 describe('draftToRecord', () => {
-  it('builds a record from a draft, dropping empty birth/death', () => {
-    const record = draftToRecord(draft({ given: 'Ivan', surname: 'Petrov', sex: 'M' }));
-    expect(record).toEqual({
-      id: 'P1',
-      sex: 'M',
-      names: [{ id: expect.any(String), given: 'Ivan', surname: 'Petrov', full: 'Ivan Petrov' }],
-      facts: [],
-    });
+  it('builds a record from a draft, dropping empty birth/death and empty names', () => {
+    const record = draftToRecord(draft({ names: [nameDraft(), nameDraft({ parts: [] })], sex: 'M' }));
+    expect(record).toMatchObject({ id: 'P1', sex: 'M', facts: [] });
+    expect(record.names).toHaveLength(1);
+    expect(record.names[0]).toMatchObject({ given: 'Ivan', surname: 'Petrov' });
   });
 
   it('keeps no name entry for a fully empty draft', () => {
-    const record = draftToRecord(draft());
+    const record = draftToRecord(draft({ names: [] }));
     expect(record.names).toEqual([]);
   });
 
-  it('rebuilds birth and death while preserving other facts and extra names', () => {
+  it('writes every name of the draft, preserving ids and variants', () => {
+    const record = draftToRecord(
+      draft({
+        names: [
+          nameDraft({
+            id: 'N1',
+            primary: true,
+            variants: [
+              { ...emptyVariantDraft(), id: 'V1', kind: 'romanized', language: 'en', parts: [part('given', 'Ivan'), part('surname', 'Petrov')] },
+            ],
+          }),
+          nameDraft({ id: 'N2', parts: [part('given', 'Vanya')], type: 'aka' }),
+        ],
+      }),
+    );
+    expect(record.names).toHaveLength(2);
+    expect(record.names[0]).toMatchObject({
+      id: 'N1',
+      primary: true,
+      given: 'Ivan',
+      surname: 'Petrov',
+      variants: [{ id: 'V1', kind: 'romanized', language: 'en', given: 'Ivan', surname: 'Petrov' }],
+    });
+    expect(record.names[0]?.parts?.map((entry) => entry.kind)).toEqual(['given', 'surname']);
+    expect(record.names[1]).toMatchObject({ id: 'N2', type: 'aka', given: 'Vanya' });
+  });
+
+  it('rebuilds birth and death while preserving other facts', () => {
     const existing = person({
-      names: [
-        { id: 'N1', given: 'Ivan', surname: 'Petrov', full: 'Ivan Petrov' },
-        { id: 'N2', given: 'Vanya', type: 'aka' },
-      ],
+      names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }],
       facts: [
         { id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1900 } } },
         { id: 'E2', personId: 'P1', tag: 'OCCU', value: 'smith' },
@@ -255,16 +480,13 @@ describe('draftToRecord', () => {
     });
     const record = draftToRecord(
       draft({
-        given: 'Ivan',
-        surname: 'Petrov',
+        names: [nameDraft({ id: 'N1' })],
         sex: 'M',
         birth: dateDraft({ year: '1923', place: 'Moscow' }),
         death: dateDraft(),
       }),
       existing,
     );
-    expect(record.names).toHaveLength(2);
-    expect(record.names[0]?.id).toBe('N1');
     expect(record.facts.map((fact) => fact.tag)).toEqual(['OCCU', 'BIRT']);
     expect(record.facts.find((fact) => fact.tag === 'BIRT')).toMatchObject({
       id: 'E1',
@@ -291,8 +513,9 @@ describe('draftToRecord', () => {
     expect(record.facts[0]).toMatchObject({ tag: 'BIRT', place: 'Moscow', date: undefined });
   });
 
-  it('preserves a trimmed given and surname', () => {
-    const record = draftToRecord(draft({ given: '  Ivan ', surname: ' Petrov ' }));
+  it('trims part values typed through the form', () => {
+    const typed = setPartValue(setPartValue(emptyNameDraft(), 'given', '  Ivan '), 'surname', ' Petrov ');
+    const record = draftToRecord(draft({ names: [typed] }));
     expect(record.names[0]).toMatchObject({ given: 'Ivan', surname: 'Petrov' });
   });
 });

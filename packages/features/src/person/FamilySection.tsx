@@ -191,7 +191,7 @@ function FamilyCard({
           </span>
         ))}
         <DateEditor label="" value={marriageDate} onChange={setMarriageDate} />
-        <button onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</button>
+        <button className="add-button" onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</button>
       </div>
       <div className="family-actions">
         <button onClick={onDelete}>{nls.t('features.tree.families.delete')}</button>

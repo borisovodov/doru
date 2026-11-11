@@ -30,6 +30,7 @@ export interface PersonEditorApi {
   detachCitation(citationId: string): Promise<void>;
   getFacts(personId?: string, familyId?: string): Promise<FactRecord[]>;
   addFact(fact: FactRecord): Promise<void>;
+  updateFact(before: FactRecord, after: FactRecord): Promise<void>;
   deleteFact(fact: FactRecord): Promise<void>;
   getMedia(personId: string): Promise<MediaWithPath[]>;
   addMedia(personId: string): Promise<void>;

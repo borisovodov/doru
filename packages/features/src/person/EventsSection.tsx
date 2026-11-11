@@ -1,30 +1,35 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
-import type { FactRecord } from '@doru/core';
+import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import type { FactRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
+import { EVENT_TYPES } from './factDraft';
+import { FactEditor } from './FactEditor';
 import { formatDate } from './format';
 import './EventsSection.css';
-
-const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];
 
 export function EventsSection({
   personId,
   events: facts,
+  persons,
   refresh,
   onAddFact,
+  onUpdateFact,
   onDeleteFact,
 }: {
   personId: string;
   events: FactRecord[];
+  persons: PersonRecord[];
   refresh: () => Promise<void>;
   onAddFact: (fact: FactRecord) => Promise<void>;
+  onUpdateFact: (before: FactRecord, after: FactRecord) => Promise<void>;
   onDeleteFact: (fact: FactRecord) => Promise<void>;
 }) {
   const [type, setType] = useState('');
   const [date, setDate] = useState<DateDraft>(emptyDate());
   const [description, setDescription] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const add = async () => {
     const trimmed = type.trim().toUpperCase();
@@ -48,6 +53,15 @@ export function EventsSection({
 
   const remove = async (fact: FactRecord) => {
     await onDeleteFact(fact);
+    if (expandedId === fact.id) {
+      setExpandedId(null);
+    }
+    await refresh();
+  };
+
+  const save = async (before: FactRecord, after: FactRecord) => {
+    await onUpdateFact(before, after);
+    setExpandedId(null);
     await refresh();
   };
 
@@ -60,15 +74,39 @@ export function EventsSection({
         <ul className="event-list">
           {facts.map((fact) => (
             <li key={fact.id}>
-              <span className="event-type">{fact.tag}</span>
-              <span className="event-date">
-                {fact.date ? formatDate(fact.date) : ''}
-                {fact.place ? ` — ${fact.place}` : ''}
-              </span>
-              {fact.value ? <span className="event-description">{fact.value}</span> : null}
-              <button title={nls.t('features.tree.events.remove')} onClick={() => void remove(fact)}>
-                <X size={14} aria-hidden="true" />
-              </button>
+              <div
+                className={`event-row${expandedId === fact.id ? ' expanded' : ''}`}
+                onClick={() => setExpandedId(expandedId === fact.id ? null : fact.id)}
+              >
+                <span className="event-chevron" aria-hidden="true">
+                  {expandedId === fact.id ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                </span>
+                <span className="event-type">{fact.type ? `${fact.tag} · ${fact.type}` : fact.tag}</span>
+                <span className="event-date">
+                  {fact.date ? formatDate(fact.date) : ''}
+                  {fact.place ? ` — ${fact.place}` : ''}
+                </span>
+                {fact.value ? <span className="event-description">{fact.value}</span> : null}
+                {fact.negation === true && <span className="event-negation">{nls.t('features.tree.fact.negation')}</span>}
+                <button
+                  title={nls.t('features.tree.events.remove')}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void remove(fact);
+                  }}
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </div>
+              {expandedId === fact.id && (
+                <FactEditor
+                  fact={fact}
+                  persons={persons}
+                  onSave={(next) => save(fact, next)}
+                  onCancel={() => setExpandedId(null)}
+                  onDelete={(deleted) => remove(deleted)}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -92,7 +130,9 @@ export function EventsSection({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
-        <button onClick={() => void add()}>{nls.t('features.tree.events.add')}</button>
+        <button className="add-button" onClick={() => void add()}>
+          {nls.t('features.tree.events.add')}
+        </button>
       </div>
     </div>
   );

@@ -78,7 +78,7 @@ export function SourcesSection({
           value={author}
           onChange={(event) => setAuthor(event.target.value)}
         />
-        <button onClick={() => void addNew()}>{nls.t('features.tree.sources.add')}</button>
+        <button className="add-button" onClick={() => void addNew()}>{nls.t('features.tree.sources.add')}</button>
       </div>
       {uncited.length > 0 && (
         <div className="sources-attach">

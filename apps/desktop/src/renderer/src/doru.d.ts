@@ -145,6 +145,11 @@ declare global {
       ): Promise<FactRecord[]>;
       getAllFacts(projectPath: string): Promise<FactRecord[]>;
       addFact(projectPath: string, fact: FactRecord): Promise<UndoRedoState>;
+      updateFact(
+        projectPath: string,
+        before: FactRecord,
+        after: FactRecord,
+      ): Promise<UndoRedoState>;
       deleteFact(projectPath: string, fact: FactRecord): Promise<UndoRedoState>;
       getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
       getAllMedia(projectPath: string): Promise<MediaWithPath[]>;

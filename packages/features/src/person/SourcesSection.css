@@ -35,3 +35,24 @@
   margin-top: 8px;
 }
 
+.sources-attach button {
+  height: var(--doru-control-height);
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  color: var(--doru-fg);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sources-attach button:hover {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+

@@ -6,10 +6,13 @@ export function DateEditor({
   label,
   value,
   onChange,
+  hidePlace = false,
 }: {
   label: string;
   value: DateDraft;
   onChange: (value: DateDraft) => void;
+  /** Hides the place input — for dates where only the date itself is meaningful (sort dates). */
+  hidePlace?: boolean;
 }) {
   const set = (patch: Partial<DateDraft>) => onChange({ ...value, ...patch });
   return (
@@ -46,11 +49,13 @@ export function DateEditor({
           <option value="range">{nls.t('features.tree.date.range')}</option>
           <option value="unknown">{nls.t('features.tree.date.unknown')}</option>
         </select>
-        <input
-          placeholder={nls.t('features.tree.field.place')}
-          value={value.place}
-          onChange={(event) => set({ place: event.target.value })}
-        />
+        {!hidePlace && (
+          <input
+            placeholder={nls.t('features.tree.field.place')}
+            value={value.place}
+            onChange={(event) => set({ place: event.target.value })}
+          />
+        )}
       </div>
       {value.quality === 'range' && (
         <div className="date-editor-row">
