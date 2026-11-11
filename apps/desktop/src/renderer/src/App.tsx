@@ -386,6 +386,8 @@ export function App() {
           tabId={tab.id}
           repositories={tree.repositories}
           api={tree.registriesApi}
+          sources={tree.sources}
+          onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${REPOSITORY_TAB_PREFIX}${realId}`)}
         />
@@ -397,6 +399,8 @@ export function App() {
           tabId={tab.id}
           submitters={tree.submitters}
           api={tree.registriesApi}
+          sources={tree.sources}
+          onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${SUBMITTER_TAB_PREFIX}${realId}`)}
         />

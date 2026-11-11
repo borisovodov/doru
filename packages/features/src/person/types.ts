@@ -165,7 +165,7 @@ export interface PlaceEditorApi extends AttachmentsApi {
 }
 
 /** The service surface the registries view needs from its host application. */
-export interface RegistriesEditorApi {
+export interface RegistriesEditorApi extends AttachmentsApi {
   getRepositories(): Promise<RepositoryRecord[]>;
   addRepository(repository: RepositoryRecord): Promise<void>;
   updateRepository(before: RepositoryRecord, after: RepositoryRecord): Promise<void>;

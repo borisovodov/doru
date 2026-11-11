@@ -761,6 +761,7 @@ export function useTreeData(projectPath: string | null | undefined) {
 
   const registriesApi = useMemo<RegistriesEditorApi>(
     () => ({
+      ...attachmentMethods,
       getRepositories: () =>
         projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([]),
       addRepository: async (repository) => {
@@ -810,7 +811,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       getAddress: (id) =>
         projectPath ? window.doru.getAddress(projectPath, id) : Promise.resolve(undefined),
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, attachmentMethods],
   );
 
   const titlesApi = useMemo(

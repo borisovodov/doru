@@ -1,7 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Plus, User, X } from 'lucide-react';
-import type { SubmitterRecord } from '@doru/core';
-import { AddressFields, EntityTab, addressLabel, type RegistriesEditorApi } from '@doru/features';
+import type {
+  CitationRecord,
+  ContactRecord,
+  IdentifierRecord,
+  NoteRecord,
+  RestrictionRecord,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+} from '@doru/core';
+import {
+  AddressFields,
+  ContactsSection,
+  EntityTab,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  addressLabel,
+  type RegistriesEditorApi,
+} from '@doru/features';
 import { nls } from '@doru/workbench';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
@@ -10,12 +31,16 @@ export function SubmitterTab({
   tabId,
   submitters,
   api,
+  sources,
+  onOpenSource,
   onClose,
   onCreated,
 }: {
   tabId: string;
   submitters: SubmitterRecord[];
   api: RegistriesEditorApi;
+  sources: SourceRecord[];
+  onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -25,7 +50,18 @@ export function SubmitterTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.submitter.notFound')}</p>;
   }
-  return <SubmitterTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} onCreated={onCreated} />;
+  return (
+    <SubmitterTabBody
+      tabId={tabId}
+      record={record}
+      isNew={isNew}
+      api={api}
+      sources={sources}
+      onOpenSource={onOpenSource}
+      onClose={onClose}
+      onCreated={onCreated}
+    />
+  );
 }
 
 function SubmitterTabBody({
@@ -33,6 +69,8 @@ function SubmitterTabBody({
   record,
   isNew,
   api,
+  sources,
+  onOpenSource,
   onClose,
   onCreated,
 }: {
@@ -40,6 +78,8 @@ function SubmitterTabBody({
   record: SubmitterRecord | undefined;
   isNew: boolean;
   api: RegistriesEditorApi;
+  sources: SourceRecord[];
+  onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -49,6 +89,43 @@ function SubmitterTabBody({
   const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
   const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
   const [addressText, setAddressText] = useState('');
+  const [submitterNotes, setSubmitterNotes] = useState<NoteRecord[]>([]);
+  const [submitterCitations, setSubmitterCitations] = useState<CitationRecord[]>([]);
+  const [tags, setTags] = useState<TagRecord[]>([]);
+  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
+  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
+  const [contacts, setContacts] = useState<ContactRecord[]>([]);
+  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
+
+  const targetId = (lastSaved ?? record)?.id;
+
+  const refreshAttachments = async () => {
+    if (targetId === undefined) {
+      return;
+    }
+    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions] =
+      await Promise.all([
+        api.getNotes('submitter', targetId),
+        api.getCitations('submitter', targetId),
+        api.getTags(),
+        api.getTagLinks('submitter', targetId),
+        api.getIdentifiers('submitter', targetId),
+        api.getContacts('submitter', targetId),
+        api.getRestrictions('submitter', targetId),
+      ]);
+    setSubmitterNotes(loadedNotes);
+    setSubmitterCitations(loadedCitations);
+    setTags(loadedTags);
+    setTagLinks(loadedTagLinks);
+    setIdentifiers(loadedIdentifiers);
+    setContacts(loadedContacts);
+    setRestrictions(loadedRestrictions);
+  };
+
+  useEffect(() => {
+    void refreshAttachments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +219,111 @@ function SubmitterTabBody({
           <AddressFields address={address} onChange={setAddress} />
         </section>
       </div>
+      {targetId !== undefined && (
+        <>
+          <SourcesSection
+            targetType="submitter"
+            targetId={targetId}
+            sources={sources}
+            citations={submitterCitations}
+            refresh={refreshAttachments}
+            onAddSource={api.addSource}
+            onAttachSource={api.attachSource}
+            onDetachCitation={api.detachCitation}
+            onUpdateCitation={api.updateCitation}
+            onOpenSource={onOpenSource}
+          />
+          <NotesSection
+            targetType="submitter"
+            targetId={targetId}
+            notes={submitterNotes}
+            onAdd={async (text) => {
+              await api.addNote({ id: crypto.randomUUID(), text, targetType: 'submitter', targetId });
+              await refreshAttachments();
+            }}
+            onUpdate={async (before, after, context) => {
+              await api.updateNote(before, after, context);
+              await refreshAttachments();
+            }}
+            onDelete={async (note) => {
+              await api.deleteNote(note);
+              await refreshAttachments();
+            }}
+          />
+          <IdentifiersSection
+            targetType="submitter"
+            targetId={targetId}
+            identifiers={identifiers}
+            onAdd={async (identifier) => {
+              await api.addIdentifier(identifier);
+              await refreshAttachments();
+            }}
+            onUpdate={async (before, after) => {
+              await api.updateIdentifier(before, after);
+              await refreshAttachments();
+            }}
+            onDelete={async (identifier) => {
+              await api.deleteIdentifier(identifier);
+              await refreshAttachments();
+            }}
+          />
+          <ContactsSection
+            targetType="submitter"
+            targetId={targetId}
+            contacts={contacts}
+            onAdd={async (contact) => {
+              await api.addContact(contact);
+              await refreshAttachments();
+            }}
+            onUpdate={async (before, after) => {
+              await api.updateContact(before, after);
+              await refreshAttachments();
+            }}
+            onDelete={async (contact) => {
+              await api.deleteContact(contact);
+              await refreshAttachments();
+            }}
+          />
+          <RestrictionsSection
+            targetType="submitter"
+            targetId={targetId}
+            restrictions={restrictions}
+            onAdd={async (restriction) => {
+              await api.addRestriction(restriction);
+              await refreshAttachments();
+            }}
+            onUpdate={async (before, after) => {
+              await api.updateRestriction(before, after);
+              await refreshAttachments();
+            }}
+            onDelete={async (restriction) => {
+              await api.deleteRestriction(restriction);
+              await refreshAttachments();
+            }}
+          />
+          <TagsSection
+            targetType="submitter"
+            targetId={targetId}
+            tags={tags}
+            tagLinks={tagLinks}
+            onAddTag={api.addTag}
+            onUpdateTag={api.updateTag}
+            onDeleteTag={api.deleteTag}
+            onAttachTag={async (link) => {
+              await api.attachTag(link);
+              await refreshAttachments();
+            }}
+            onDetachTag={async (link) => {
+              await api.detachTag(link);
+              await refreshAttachments();
+            }}
+            onUpdateTagLink={async (before, after) => {
+              await api.updateTagLink(before, after);
+              await refreshAttachments();
+            }}
+          />
+        </>
+      )}
     </EntityTab>
   );
 }
