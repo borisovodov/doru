@@ -130,4 +130,13 @@ describe('sourceDraftMatches', () => {
     expect(sourceDraftMatches({ ...base, texts: [{ id: 'T1', text: 'other' }] }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, pubDate: { ...emptyDate(), year: '1930' } }, stored)).toBe(false);
   });
+
+  it('detects the date refinements: modifier, calendar, era and time', () => {
+    const stored = source({ pubDate: { quality: 'about', modifier: 'ABT', component: { calendar: 'julian', year: 1923 } } });
+    const base = sourceToDraft(stored);
+    expect(sourceDraftMatches({ ...base, pubDate: { ...base.pubDate, modifier: 'EST' } }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, pubDate: { ...base.pubDate, calendar: 'gregorian' } }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, pubDate: { ...base.pubDate, epoch: 'BCE' } }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, pubDate: { ...base.pubDate, timeHour: '9' } }, stored)).toBe(false);
+  });
 });

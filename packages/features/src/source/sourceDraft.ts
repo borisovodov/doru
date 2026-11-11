@@ -287,6 +287,15 @@ function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
     a.endDay === b.endDay &&
     a.text === b.text &&
     a.quality === b.quality &&
-    a.place === b.place
+    a.place === b.place &&
+    a.modifier === b.modifier &&
+    a.calendar === b.calendar &&
+    a.epoch === b.epoch &&
+    a.endCalendar === b.endCalendar &&
+    a.endEpoch === b.endEpoch &&
+    a.timeHour === b.timeHour &&
+    a.timeMinute === b.timeMinute &&
+    a.timeSecond === b.timeSecond &&
+    a.timeUtc === b.timeUtc
   );
 }
