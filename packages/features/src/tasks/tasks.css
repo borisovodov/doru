@@ -1,4 +1,4 @@
-/* ── Tasks sidebar view ────────────────────────────────────────────── */
+/* ── Tasks sidebar list and the shared task editor fields ──────────── */
 
 .tasks-view {
   padding: 8px;
@@ -7,29 +7,9 @@
   gap: 8px;
 }
 
-.task-add-row {
+.tasks-header {
   display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.task-add-row input {
-  flex: 1;
-  min-width: 0;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  padding: 0 8px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.task-add-row input:focus {
-  border-color: var(--doru-focus);
-  outline: none;
+  justify-content: flex-end;
 }
 
 .task-list {
@@ -47,20 +27,12 @@
   border-radius: var(--doru-radius-md);
 }
 
-.task-item.editing {
-  border-color: var(--doru-focus);
-}
-
 .task-row {
   display: flex;
   gap: 6px;
   align-items: flex-start;
   padding: 6px 8px;
   cursor: pointer;
-}
-
-.task-row input[type='checkbox'] {
-  margin-top: 2px;
 }
 
 .task-row-body {

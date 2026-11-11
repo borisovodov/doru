@@ -18,6 +18,7 @@ import { PlaceTab } from './components/PlaceTab';
 import { RepositoryTab } from './components/RepositoryTab';
 import { SourceTab } from './components/SourceTab';
 import { SubmitterTab } from './components/SubmitterTab';
+import { TaskTab } from './components/TaskTab';
 import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
@@ -34,6 +35,7 @@ import {
   SETTINGS_TAB_ID,
   SOURCE_TAB_PREFIX,
   SUBMITTER_TAB_PREFIX,
+  TASK_TAB_PREFIX,
   TREE_TAB_ID,
   useTabs,
 } from './hooks/useTabs';
@@ -52,7 +54,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters);
+  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters, tree.todos);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -390,6 +392,18 @@ export function App() {
         />
       );
     }
+    if (tab.id.startsWith(TASK_TAB_PREFIX)) {
+      return (
+        <TaskTab
+          tabId={tab.id}
+          todos={tree.todos}
+          persons={tree.persons}
+          repositories={tree.repositories}
+          api={tree.todosApi}
+          onClose={tabs.closeTab}
+        />
+      );
+    }
     return null;
   };
 
@@ -475,9 +489,8 @@ export function App() {
             onOpenPlace={tabs.openPlaceTab}
             onOpenRepository={tabs.openRepositoryTab}
             onOpenSubmitter={tabs.openSubmitterTab}
-            onAddTodo={tree.todosApi.addTodo}
-            onUpdateTodo={tree.todosApi.updateTodo}
-            onDeleteTodo={tree.todosApi.deleteTodo}
+            onOpenTask={tabs.openTaskTab}
+            onNewTask={tabs.openNewTaskTab}
           />
         }
         activeView={activeView}

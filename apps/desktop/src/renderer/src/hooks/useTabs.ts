@@ -1,5 +1,13 @@
 import { useCallback, useState } from 'react';
-import type { FamilyRecord, PersonRecord, PlaceRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import type {
+  FamilyRecord,
+  PersonRecord,
+  PlaceRecord,
+  RepositoryRecord,
+  SourceRecord,
+  SubmitterRecord,
+  TodoRecord,
+} from '@doru/core';
 import { placeName } from '@doru/core/model';
 import { displayName, familyLabel } from '@doru/features';
 import { moveTab, nls, type TabInfo } from '@doru/workbench';
@@ -14,6 +22,7 @@ const SOURCE_TAB_PREFIX = 'source:';
 const PLACE_TAB_PREFIX = 'place:';
 const REPOSITORY_TAB_PREFIX = 'repository:';
 const SUBMITTER_TAB_PREFIX = 'submitter:';
+const TASK_TAB_PREFIX = 'task:';
 
 interface OpenTab {
   id: string;
@@ -29,6 +38,7 @@ function tabLabel(
   places: PlaceRecord[],
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
+  todos: TodoRecord[],
 ): string {
   if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
     const personId = tab.id.slice(PERSON_TAB_PREFIX.length);
@@ -76,6 +86,16 @@ function tabLabel(
       return submitter.name || '—';
     }
   }
+  if (tab.id.startsWith(TASK_TAB_PREFIX)) {
+    const taskId = tab.id.slice(TASK_TAB_PREFIX.length);
+    if (taskId.startsWith('new:')) {
+      return nls.t('features.tasks.newTask');
+    }
+    const todo = todos.find((entry) => entry.id === taskId);
+    if (todo) {
+      return todo.text || '—';
+    }
+  }
   return tab.label;
 }
 
@@ -86,6 +106,7 @@ export function useTabs(
   places: PlaceRecord[],
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
+  todos: TodoRecord[],
 ) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -217,6 +238,18 @@ export function useTabs(
     [openTab],
   );
 
+  const openTaskTab = useCallback(
+    (todoId: string) => {
+      const todo = todos.find((entry) => entry.id === todoId);
+      openTab({ id: `${TASK_TAB_PREFIX}${todoId}`, label: todo?.text ?? todoId });
+    },
+    [todos, openTab],
+  );
+
+  const openNewTaskTab = useCallback(() => {
+    openTab({ id: `${TASK_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tasks.newTask') });
+  }, [openTab]);
+
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -235,7 +268,7 @@ export function useTabs(
 
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
-    label: tabLabel(tab, persons, families, sources, places, repositories, submitters),
+    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, todos),
     closable: tab.closable,
   }));
 
@@ -257,6 +290,8 @@ export function useTabs(
     openPlaceTab,
     openRepositoryTab,
     openSubmitterTab,
+    openTaskTab,
+    openNewTaskTab,
     openSettingsTab,
     openNoticesTab,
     openExportTab,
@@ -275,4 +310,5 @@ export {
   PLACE_TAB_PREFIX,
   REPOSITORY_TAB_PREFIX,
   SUBMITTER_TAB_PREFIX,
+  TASK_TAB_PREFIX,
 };

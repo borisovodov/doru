@@ -47,9 +47,8 @@ export function SidebarView({
   onOpenPlace,
   onOpenRepository,
   onOpenSubmitter,
-  onAddTodo,
-  onUpdateTodo,
-  onDeleteTodo,
+  onOpenTask,
+  onNewTask,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
@@ -68,9 +67,8 @@ export function SidebarView({
   onOpenPlace: (placeId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
-  onAddTodo: (todo: TodoRecord) => Promise<void>;
-  onUpdateTodo: (before: TodoRecord, after: TodoRecord) => Promise<void>;
-  onDeleteTodo: (todo: TodoRecord) => Promise<void>;
+  onOpenTask: (todoId: string) => void;
+  onNewTask: () => void;
 }) {
   switch (activeView) {
     case 'people':
@@ -157,9 +155,8 @@ export function SidebarView({
           todos={todos}
           persons={persons}
           repositories={repositories}
-          onAddTodo={onAddTodo}
-          onUpdateTodo={onUpdateTodo}
-          onDeleteTodo={onDeleteTodo}
+          onOpenTask={onOpenTask}
+          onNewTask={onNewTask}
           onOpenPerson={onOpenPerson}
         />
       );
