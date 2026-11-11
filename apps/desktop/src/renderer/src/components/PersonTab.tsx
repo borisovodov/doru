@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PersonRecord } from '@doru/core';
 import {
   PersonEditor,
@@ -51,7 +51,11 @@ function PersonTabBody({
   const [draft, setDraft] = useState<PersonDraft>(() =>
     isNew ? newPersonDraft() : record ? personToDraft(record) : newPersonDraft(),
   );
+  const personRef = useRef(record);
 
+  // Reset the draft only when it still equals the previously stored person
+  // (no unsaved edits); unrelated tree reloads (a fact added elsewhere)
+  // must not clobber in-progress edits.
   useEffect(() => {
     if (isNew) {
       return;
@@ -60,8 +64,15 @@ function PersonTabBody({
     if (!person) {
       return;
     }
+    if (person === personRef.current) {
+      return;
+    }
+    const previous = personRef.current;
+    personRef.current = person;
     setDraft((current) =>
-      current && !current.isNew && personDraftMatches(current, person) ? current : personToDraft(person),
+      current && !current.isNew && previous !== undefined && personDraftMatches(current, previous)
+        ? current
+        : personToDraft(person),
     );
   }, [personId, persons, isNew]);
 

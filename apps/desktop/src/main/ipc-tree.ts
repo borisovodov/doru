@@ -9,6 +9,7 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  NoteLinkRecord,
   PlaceRecord,
   RepositoryRecord,
   RestrictionRecord,
@@ -126,6 +127,22 @@ export function registerTreeIpc(): void {
   ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.addNote(options.note);
+  });
+
+  ipcMain.handle(
+    'tree:updateNote',
+    async (
+      _event,
+      options: { projectPath: string; before: NoteRecord; after: NoteRecord; context?: NoteLinkRecord },
+    ) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateNote(options.before, options.after, options.context);
+    },
+  );
+
+  ipcMain.handle('tree:deleteNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteNote(options.note);
   });
 
   ipcMain.handle('tree:families', async (_event, options: { projectPath: string }) => {

@@ -5,7 +5,6 @@ import {
   ChatPanel,
   ChatSetupPlaceholder,
   EmptyEditorPage,
-  FamilyView,
   NoticesView,
   SettingsView,
   TreeCanvas,
@@ -13,6 +12,7 @@ import {
 } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
+import { FamilyTab } from './components/FamilyTab';
 import { PersonTab } from './components/PersonTab';
 import { PlaceTab } from './components/PlaceTab';
 import { SourceTab } from './components/SourceTab';
@@ -319,14 +319,15 @@ export function App() {
         return <p className="person-missing">{nls.t('features.tree.familyNotFound')}</p>;
       }
       return (
-        <FamilyView
-          family={family}
+        <FamilyTab
+          tabId={tab.id}
+          families={tree.families}
+          api={tree.familyApi}
           persons={tree.persons}
-          facts={tree.facts}
           sources={tree.sources}
           citations={tree.citations}
           notes={tree.notes}
-          onOpenPerson={openPersonAndFocus}
+          onClose={tabs.closeTab}
         />
       );
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import {
   EntityTab,
@@ -74,12 +74,19 @@ function PlaceTabBody({
   onClose: (tabId: string) => void;
 }) {
   const [draft, setDraft] = useState<PlaceDraft>(() => placeToDraft(record));
+  const recordRef = useRef(record);
 
-  // Keep the draft across tree reloads while it matches the stored place;
-  // reset it when an external change rewrote the place.
+  // Reset the draft only when it still equals the previous stored place —
+  // i.e. the user has no unsaved edits. Unrelated tree reloads must not
+  // clobber in-progress edits.
   useEffect(() => {
+    if (record === recordRef.current) {
+      return;
+    }
+    const previous = recordRef.current;
+    recordRef.current = record;
     setDraft((current) =>
-      current && placeDraftMatches(current, record) ? current : placeToDraft(record),
+      current && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
     );
   }, [record]);
 

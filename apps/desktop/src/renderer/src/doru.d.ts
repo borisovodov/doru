@@ -7,6 +7,7 @@ import type {
   FamilyRecord,
   IdentifierRecord,
   MediaRecord,
+  NoteLinkRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
@@ -120,6 +121,13 @@ declare global {
         personIds: string[],
       ): Promise<Record<string, { notes: number; sources: number; media: number }>>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
+      updateNote(
+        projectPath: string,
+        before: NoteRecord,
+        after: NoteRecord,
+        context?: NoteLinkRecord,
+      ): Promise<UndoRedoState>;
+      deleteNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getFamilies(projectPath: string): Promise<FamilyRecord[]>;
       addFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
       updateFamily(

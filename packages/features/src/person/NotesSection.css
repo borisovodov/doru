@@ -1,0 +1,53 @@
+/* ── Notes section ─────────────────────────────────────────────────── */
+
+.notes-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.notes-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.notes-row .icon-button {
+  flex: none;
+}
+
+.notes-edit textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 60px;
+  padding: 8px 10px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+  resize: vertical;
+}
+
+.notes-edit textarea:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.notes-edit-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.add-button.small,
+.plain-button.small {
+  height: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: var(--doru-radius-sm);
+}

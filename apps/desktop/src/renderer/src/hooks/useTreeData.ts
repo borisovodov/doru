@@ -8,7 +8,7 @@ import type {
   PlaceRecord,
   SourceRecord,
 } from '@doru/core';
-import type { MediaWithPath, PersonEditorApi, PlaceEditorApi, SourceEditorApi } from '@doru/features';
+import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, SourceEditorApi } from '@doru/features';
 
 /**
  * Tree state and every mutation/reload that goes through `window.doru`.
@@ -178,6 +178,20 @@ export function useTreeData(projectPath: string | null | undefined) {
           targetType: 'person',
           targetId: personId,
         });
+        await refreshTree();
+      },
+      updateNote: async (before, after, context) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateNote(projectPath, before, after, context);
+        await refreshTree();
+      },
+      deleteNote: async (note) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteNote(projectPath, note);
         await refreshTree();
       },
       getFamilies: () =>
@@ -410,6 +424,50 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const familyApi = useMemo<FamilyEditorApi>(
+    () => ({
+      getFacts: (personId, familyId) =>
+        projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
+      addFact: async (fact) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addFact(projectPath, fact);
+        await refreshTree();
+      },
+      updateFact: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateFact(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteFact: async (fact) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteFact(projectPath, fact);
+        await refreshTree();
+      },
+      getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
+      updateFamily: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateFamily(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteFamily: async (family) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteFamily(projectPath, family);
+        await refreshTree();
+      },
+    }),
+    [projectPath, refreshTree],
+  );
+
   return {
     persons,
     families,
@@ -429,5 +487,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     api,
     sourceApi,
     placeApi,
+    familyApi,
   };
 }

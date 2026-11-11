@@ -99,6 +99,10 @@ const api = {
     ipcRenderer.invoke('tree:personCounts', { projectPath, personIds }),
   addNote: (projectPath: string, note: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addNote', { projectPath, note }),
+  updateNote: (projectPath: string, before: unknown, after: unknown, context?: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateNote', { projectPath, before, after, context }),
+  deleteNote: (projectPath: string, note: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteNote', { projectPath, note }),
   getFamilies: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:families', { projectPath }),
   addFamily: (projectPath: string, family: unknown): Promise<unknown> =>

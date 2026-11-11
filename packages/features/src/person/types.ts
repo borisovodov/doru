@@ -7,6 +7,7 @@ import type {
   FamilyRecord,
   IdentifierRecord,
   MediaRecord,
+  NoteLinkRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
@@ -31,6 +32,8 @@ export interface PersonEditorApi {
   updatePerson(before: PersonRecord, after: PersonRecord): Promise<void>;
   getNotes(personId: string): Promise<NoteRecord[]>;
   addNote(personId: string, text: string): Promise<void>;
+  updateNote(before: NoteRecord, after: NoteRecord, context: NoteLinkRecord): Promise<void>;
+  deleteNote(note: NoteRecord): Promise<void>;
   getFamilies(): Promise<FamilyRecord[]>;
   addFamily(family: FamilyRecord): Promise<void>;
   updateFamily(before: FamilyRecord, after: FamilyRecord): Promise<void>;
@@ -86,4 +89,15 @@ export interface PlaceEditorApi {
   getPlaces(): Promise<PlaceRecord[]>;
   updatePlace(before: PlaceRecord, after: PlaceRecord): Promise<void>;
   deletePlace(place: PlaceRecord): Promise<void>;
+}
+
+/** The service surface the family tab needs from its host application. */
+export interface FamilyEditorApi {
+  getFacts(personId?: string, familyId?: string): Promise<FactRecord[]>;
+  addFact(fact: FactRecord): Promise<void>;
+  updateFact(before: FactRecord, after: FactRecord): Promise<void>;
+  deleteFact(fact: FactRecord): Promise<void>;
+  getPlaces(): Promise<PlaceRecord[]>;
+  updateFamily(before: FamilyRecord, after: FamilyRecord): Promise<void>;
+  deleteFamily(family: FamilyRecord): Promise<void>;
 }

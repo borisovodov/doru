@@ -7,10 +7,13 @@ import { emptyDate, fromDateDraft, type DateDraft } from './draft';
 import { EVENT_TYPES } from './factDraft';
 import { FactEditor } from './FactEditor';
 import { formatDate } from './format';
-import './EventsSection.css';
+import './FactsSection.css';
 
-export function EventsSection({
-  personId,
+/** The owner of the facts edited here: a person or a family. */
+export type FactOwner = { personId: string; familyId?: undefined } | { familyId: string; personId?: undefined };
+
+export function FactsSection({
+  owner,
   events: facts,
   persons,
   places,
@@ -19,7 +22,7 @@ export function EventsSection({
   onUpdateFact,
   onDeleteFact,
 }: {
-  personId: string;
+  owner: FactOwner;
   events: FactRecord[];
   persons: PersonRecord[];
   places: PlaceRecord[];
@@ -40,7 +43,8 @@ export function EventsSection({
     }
     const fact: FactRecord = {
       id: crypto.randomUUID(),
-      personId,
+      personId: owner.personId,
+      familyId: owner.familyId,
       tag: trimmed,
       date: fromDateDraft(date),
       place: date.place.trim() || undefined,

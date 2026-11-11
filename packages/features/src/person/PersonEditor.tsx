@@ -24,9 +24,10 @@ import { AssociationsSection } from './AssociationsSection';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
 import { ChangesSection } from './ChangesSection';
 import { DateEditor } from './DateEditor';
-import { EventsSection } from './EventsSection';
+import { FactsSection } from './FactsSection';
 import { FamilySection } from './FamilySection';
 import { MediaSection } from './MediaSection';
+import { NotesSection } from './NotesSection';
 import { NamesSection } from './NamesSection';
 import { SourcesSection } from './SourcesSection';
 import { TagsSection } from './TagsSection';
@@ -55,7 +56,6 @@ export function PersonEditor({
   api,
 }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
-  const [noteDraft, setNoteDraft] = useState('');
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
@@ -107,7 +107,6 @@ export function PersonEditor({
       setChanges([]);
       setPlaces([]);
     }
-    setNoteDraft('');
     return () => {
       cancelled = true;
     };
@@ -155,16 +154,6 @@ export function PersonEditor({
   };
 
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });
-
-  const addNote = async () => {
-    const text = noteDraft.trim();
-    if (!text) {
-      return;
-    }
-    await api.addNote(draft.id, text);
-    setNoteDraft('');
-    setNotes(await api.getNotes(draft.id));
-  };
 
   const name = nameDraftDisplay(primaryNameDraft(draft));
   const span = draftSpan(draft);
@@ -280,8 +269,8 @@ export function PersonEditor({
               await refreshAssociations();
             }}
           />
-          <EventsSection
-            personId={draft.id}
+          <FactsSection
+            owner={{ personId: draft.id }}
             events={facts}
             persons={persons}
             places={places}
@@ -308,31 +297,22 @@ export function PersonEditor({
             onAddMedia={api.addMedia}
             onDeleteMedia={api.deleteMedia}
           />
-          <div className="person-notes">
-            <h3>{nls.t('features.tree.notes.title')}</h3>
-            {notes.length === 0 ? (
-              <p className="notes-empty">{nls.t('features.tree.notes.empty')}</p>
-            ) : (
-              <ul>
-                {notes.map((note) => (
-                  <li key={note.id}>{note.text}</li>
-                ))}
-              </ul>
-            )}
-            <div className="notes-add">
-              <input
-                value={noteDraft}
-                placeholder={nls.t('features.tree.notes.placeholder')}
-                onChange={(event) => setNoteDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    void addNote();
-                  }
-                }}
-              />
-              <button onClick={() => void addNote()}>{nls.t('features.tree.notes.add')}</button>
-            </div>
-          </div>
+          <NotesSection
+            personId={draft.id}
+            notes={notes}
+            onAdd={async (text) => {
+              await api.addNote(draft.id, text);
+              setNotes(await api.getNotes(draft.id));
+            }}
+            onUpdate={async (before, after, context) => {
+              await api.updateNote(before, after, context);
+              setNotes(await api.getNotes(draft.id));
+            }}
+            onDelete={async (note) => {
+              await api.deleteNote(note);
+              setNotes(await api.getNotes(draft.id));
+            }}
+          />
           <IdentifiersSection
             personId={draft.id}
             identifiers={identifiers}

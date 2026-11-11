@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   CitationRecord,
   FactRecord,
@@ -90,12 +90,19 @@ function SourceTabBody({
 }) {
   const [draft, setDraft] = useState<SourceDraft>(() => sourceToDraft(record));
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
+  const recordRef = useRef(record);
 
-  // Keep the draft across tree reloads while it matches the stored record;
-  // reset it when an external change rewrote the source.
+  // Reset the draft only when it still equals the previous stored source —
+  // i.e. the user has no unsaved edits. Unrelated tree reloads must not
+  // clobber in-progress edits.
   useEffect(() => {
+    if (record === recordRef.current) {
+      return;
+    }
+    const previous = recordRef.current;
+    recordRef.current = record;
     setDraft((current) =>
-      current && sourceDraftMatches(current, record) ? current : sourceToDraft(record),
+      current && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
     );
   }, [record]);
 
