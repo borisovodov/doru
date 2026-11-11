@@ -142,6 +142,10 @@ const api = {
     ipcRenderer.invoke('tree:tagLinks', { projectPath, personId }),
   addTag: (projectPath: string, tag: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addTag', { projectPath, tag }),
+  updateTag: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateTag', { projectPath, before, after }),
+  deleteTag: (projectPath: string, tag: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteTag', { projectPath, tag }),
   attachTag: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:attachTag', { projectPath, link }),
   detachTag: (projectPath: string, link: unknown): Promise<unknown> =>

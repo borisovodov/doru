@@ -77,3 +77,34 @@
 .tag-chip .icon-button:hover {
   background: var(--doru-overlay-hover);
 }
+
+.tag-chip-name {
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: text;
+}
+
+.tag-chip-name:hover {
+  text-decoration: underline;
+}
+
+.tag-rename-input {
+  width: 90px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.tag-rename-input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}

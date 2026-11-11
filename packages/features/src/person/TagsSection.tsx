@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
 import { nls } from '../nls';
 import './AttachmentsSection.css';
 
-/** The tags attached to the person, with create-and-attach. */
+/**
+ * The tags attached to the person, with create-and-attach. A tag name
+ * click renames the tag (everywhere it is used); the trash removes the
+ * tag from the whole tree, links included.
+ */
 export function TagsSection({
   personId,
   tags,
   tagLinks,
   onAddTag,
+  onUpdateTag,
+  onDeleteTag,
   onAttachTag,
   onDetachTag,
 }: {
@@ -17,10 +23,17 @@ export function TagsSection({
   tags: TagRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   onAddTag: (tag: TagRecord) => Promise<void>;
+  onUpdateTag: (before: TagRecord, after: TagRecord) => Promise<void>;
+  onDeleteTag: (tag: TagRecord) => Promise<void>;
   onAttachTag: (link: TagLinkRecord) => Promise<void>;
   onDetachTag: (link: TagLinkRecord) => Promise<void>;
 }) {
   const [input, setInput] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  // Guards the rename against double commits (Enter followed by the
+  // input's blur, or Escape followed by the unmount blur).
+  const renameDone = useRef(false);
   const byId = new Map(tags.map((tag) => [tag.id, tag]));
 
   const attach = async () => {
@@ -37,6 +50,30 @@ export function TagsSection({
     setInput('');
   };
 
+  const startRename = (tag: TagRecord) => {
+    renameDone.current = false;
+    setEditingId(tag.id);
+    setEditValue(tag.name);
+  };
+
+  const commitRename = async (tagId: string) => {
+    if (renameDone.current) {
+      return;
+    }
+    renameDone.current = true;
+    const tag = byId.get(tagId);
+    const name = editValue.trim();
+    if (tag !== undefined && name !== '' && name !== tag.name) {
+      await onUpdateTag(tag, { ...tag, name });
+    }
+    setEditingId(null);
+  };
+
+  const cancelRename = () => {
+    renameDone.current = true;
+    setEditingId(null);
+  };
+
   return (
     <div className="person-section">
       <h3>{nls.t('features.tree.tags.title')}</h3>
@@ -44,9 +81,44 @@ export function TagsSection({
       <div className="tag-chips">
         {tagLinks.map(({ tagId, link }) => (
           <span key={link.id} className="tag-chip">
-            {byId.get(tagId)?.name ?? tagId}
+            {editingId === tagId ? (
+              <input
+                className="tag-rename-input"
+                value={editValue}
+                autoFocus
+                onChange={(event) => setEditValue(event.target.value)}
+                onBlur={() => void commitRename(tagId)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    void commitRename(tagId);
+                  } else if (event.key === 'Escape') {
+                    cancelRename();
+                  }
+                }}
+              />
+            ) : (
+              <button
+                className="tag-chip-name"
+                title={nls.t('features.tree.tags.rename')}
+                onClick={() => startRename(byId.get(tagId) ?? { id: tagId, name: tagId })}
+              >
+                {byId.get(tagId)?.name ?? tagId}
+              </button>
+            )}
             <button className="icon-button" title={nls.t('features.tree.tags.detach')} onClick={() => void onDetachTag(link)}>
               <X size={12} aria-hidden="true" />
+            </button>
+            <button
+              className="icon-button"
+              title={nls.t('features.tree.tags.delete')}
+              onClick={() => {
+                const tag = byId.get(tagId);
+                if (tag !== undefined) {
+                  void onDeleteTag(tag);
+                }
+              }}
+            >
+              <Trash2 size={12} aria-hidden="true" />
             </button>
           </span>
         ))}

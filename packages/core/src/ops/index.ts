@@ -39,6 +39,7 @@ export {
   updateRepositoryOp,
   updateSourceOp,
   updateSubmitterOp,
+  updateTagOp,
 } from './attachments';
 export {
   addAliasOp,

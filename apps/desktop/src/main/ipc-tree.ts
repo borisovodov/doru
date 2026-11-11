@@ -289,6 +289,19 @@ export function registerTreeIpc(): void {
     return runtime.service.addTag(options.tag);
   });
 
+  ipcMain.handle(
+    'tree:updateTag',
+    async (_event, options: { projectPath: string; before: TagRecord; after: TagRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateTag(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle('tree:deleteTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteTag(options.tag);
+  });
+
   ipcMain.handle('tree:attachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.attachTag(options.link);

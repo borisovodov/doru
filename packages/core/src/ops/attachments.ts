@@ -249,12 +249,31 @@ export function addTagOp(tag: TagRecord): Op {
   );
 }
 
-export function deleteTagOp(tag: TagRecord): Op {
+export function updateTagOp(before: TagRecord, after: TagRecord): Op {
+  return op(
+    crypto.randomUUID(),
+    'tag.update',
+    (ctx) => ctx.repo.updateTag(after),
+    (ctx) => ctx.repo.updateTag(before),
+  );
+}
+
+/**
+ * Deletes a tag together with its links (the FK cascade removes the
+ * tag_link rows); inverse restores the tag and every link — one undo
+ * step, no losses.
+ */
+export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
   return op(
     crypto.randomUUID(),
     'tag.delete',
     (ctx) => ctx.repo.deleteTag(tag.id),
-    (ctx) => ctx.repo.insertTag(tag),
+    (ctx) => {
+      ctx.repo.insertTag(tag);
+      for (const link of links) {
+        ctx.repo.insertTagLink(link);
+      }
+    },
   );
 }
 

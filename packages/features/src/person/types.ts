@@ -71,6 +71,8 @@ export interface PersonEditorApi {
   getTags(): Promise<TagRecord[]>;
   getTagLinks(personId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
   addTag(tag: TagRecord): Promise<void>;
+  updateTag(before: TagRecord, after: TagRecord): Promise<void>;
+  deleteTag(tag: TagRecord): Promise<void>;
   attachTag(link: TagLinkRecord): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
   getChanges(personId: string): Promise<ChangeRecord[]>;

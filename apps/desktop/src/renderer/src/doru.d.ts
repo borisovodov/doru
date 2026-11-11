@@ -161,6 +161,8 @@ declare global {
         personId: string,
       ): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
       addTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
+      updateTag(projectPath: string, before: TagRecord, after: TagRecord): Promise<UndoRedoState>;
+      deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       getChanges(projectPath: string, personId: string): Promise<ChangeRecord[]>;

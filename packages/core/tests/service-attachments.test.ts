@@ -280,10 +280,19 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
 
-      service.deleteTag(tag());
-      expect(fixture.repo.listTags()).toEqual([]);
+      const renamed = tag({ name: 'Verified' });
+      service.updateTag(tag(), renamed);
+      expect(fixture.repo.listTags()).toEqual([renamed]);
       service.undo();
       expect(fixture.repo.listTags()).toEqual([tag()]);
+
+      service.deleteTag(tag());
+      expect(fixture.repo.listTags()).toEqual([]);
+      // The FK cascade removes the links; the undo restores them too.
+      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
+      service.undo();
+      expect(fixture.repo.listTags()).toEqual([tag()]);
+      expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }

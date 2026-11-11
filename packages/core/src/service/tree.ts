@@ -108,6 +108,7 @@ import {
   updateResearchDocumentOp,
   updateSourceOp,
   updateSubmitterOp,
+  updateTagOp,
   updateTitleOp,
   updateTodoOp,
   type FamilyLinkAttachments,
@@ -571,8 +572,12 @@ export class TreeService {
     return this.apply(addTagOp(tag));
   }
 
+  updateTag(before: TagRecord, after: TagRecord): UndoRedoState {
+    return this.apply(updateTagOp(before, after));
+  }
+
   deleteTag(tag: TagRecord): UndoRedoState {
-    return this.apply(deleteTagOp(tag));
+    return this.apply(deleteTagOp(tag, this.repo.listTagLinksByTag(tag.id)));
   }
 
   attachTag(link: TagLinkRecord): UndoRedoState {

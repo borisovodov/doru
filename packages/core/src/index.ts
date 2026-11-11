@@ -121,6 +121,7 @@ export {
   updateRepositoryOp,
   updateSourceOp,
   updateSubmitterOp,
+  updateTagOp,
 } from './ops/attachments';
 export {
   addAliasOp,

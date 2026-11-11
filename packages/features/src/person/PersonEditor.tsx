@@ -354,6 +354,14 @@ export function PersonEditor({
             tags={tags}
             tagLinks={tagLinks}
             onAddTag={api.addTag}
+            onUpdateTag={async (before, after) => {
+              await api.updateTag(before, after);
+              await refreshAttachments();
+            }}
+            onDeleteTag={async (tag) => {
+              await api.deleteTag(tag);
+              await refreshAttachments();
+            }}
             onAttachTag={async (link) => {
               await api.attachTag(link);
               await refreshAttachments();

@@ -163,6 +163,10 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
   }
 
+  updateTag(tag: TagRecord): void {
+    this.db.prepare('UPDATE tag SET name = ? WHERE id = ?').run(tag.name, tag.id);
+  }
+
   listTags(): TagRecord[] {
     const rows = this.db.prepare('SELECT id, name FROM tag ORDER BY name').all() as unknown as {
       id: string;
@@ -202,6 +206,26 @@ export class AttachmentRepo {
         targetId: row.target_id,
         date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
       },
+    }));
+  }
+
+  listTagLinksByTag(tagId: string): TagLinkRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE tag_id = ? ORDER BY id')
+      .all(tagId) as unknown as {
+      id: string;
+      tag_id: string;
+      target_type: string;
+      target_id: string;
+      date_id: string | null;
+    }[];
+    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    return rows.map((row) => ({
+      id: row.id,
+      tagId: row.tag_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
     }));
   }
 

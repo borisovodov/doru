@@ -152,10 +152,12 @@ export interface TreeRepository {
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[];
   insertTag(tag: TagRecord): void;
   deleteTag(id: string): boolean;
+  updateTag(tag: TagRecord): void;
   listTags(): TagRecord[];
   insertTagLink(link: TagLinkRecord): void;
   deleteTagLink(id: string): boolean;
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }>;
+  listTagLinksByTag(tagId: string): TagLinkRecord[];
   insertAssociation(association: AssociationRecord): void;
   updateAssociation(association: AssociationRecord): void;
   deleteAssociation(id: string): boolean;
@@ -717,6 +719,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.deleteTag(id);
   }
 
+  updateTag(tag: TagRecord): void {
+    this.attachments.updateTag(tag);
+  }
+
   listTags(): TagRecord[] {
     return this.attachments.listTags();
   }
@@ -731,6 +737,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
     return this.attachments.listTagLinksFor(targetType, targetId);
+  }
+
+  listTagLinksByTag(tagId: string): TagLinkRecord[] {
+    return this.attachments.listTagLinksByTag(tagId);
   }
 
   insertAssociation(association: AssociationRecord): void {

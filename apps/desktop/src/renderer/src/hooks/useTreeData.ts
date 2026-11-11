@@ -378,6 +378,18 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.detachTag(projectPath, link);
       },
+      updateTag: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateTag(projectPath, before, after);
+      },
+      deleteTag: async (tag) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteTag(projectPath, tag);
+      },
       getChanges: (personId) =>
         projectPath ? window.doru.getChanges(projectPath, personId) : Promise.resolve([]),
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
