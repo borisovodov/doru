@@ -127,7 +127,7 @@
 }
 
 /* The accent add-action button shared by the editor sections. */
-.person-editor .add-button {
+.add-button {
   height: var(--doru-control-height);
   padding: 0 11px;
   border: none;
@@ -139,7 +139,7 @@
   cursor: pointer;
 }
 
-.person-editor .add-button:hover {
+.add-button:hover {
   background: var(--doru-accent-hover);
 }
 

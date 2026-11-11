@@ -39,8 +39,8 @@ describe('placeToDraft / placeDraftToRecord', () => {
       longitude: 37.61,
       verified: true,
       names: [
-        { id: 'N1', position: 0, value: 'Tula' },
-        { id: 'N2', position: 1, value: 'Tula Oblast' },
+        { id: 'N1', kind: 'official', position: 0, value: 'Tula' },
+        { id: 'N2', kind: 'official', position: 1, value: 'Tula Oblast' },
         { id: 'N3', kind: 'translation', language: 'en', position: 0, value: 'Tula' },
       ],
       hierarchy: [{ parentId: 'PL2', type: 'poli' }],
@@ -59,7 +59,7 @@ describe('placeToDraft / placeDraftToRecord', () => {
       hierarchy: [{ parentId: 'PL2', type: 'poli' }],
     });
     expect(draft.names).toHaveLength(3);
-    expect(draft.names[1]).toMatchObject({ id: 'N2', kind: '', value: 'Tula Oblast' });
+    expect(draft.names[1]).toMatchObject({ id: 'N2', kind: 'official', value: 'Tula Oblast' });
     expect(draft.postalCodes[0]).toMatchObject({ id: 'PC1', code: '300000', date: { ...emptyDate(), year: '1930' } });
     expect(placeDraftToRecord(draft)).toEqual(stored);
   });
@@ -69,13 +69,13 @@ describe('placeToDraft / placeDraftToRecord', () => {
       ...emptyPlaceDraft(),
       latitude: '54.19',
       longitude: 'abc',
-      names: [{ id: 'N1', kind: '', language: '', type: '', position: 0, value: '  Tula  ' }],
+      names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: '  Tula  ' }],
       postalCodes: [{ id: 'PC1', code: '  ', date: emptyDate() }],
       hierarchy: [{ parentId: '', type: '' }],
     });
     expect(record.latitude).toBe(54.19);
     expect(record.longitude).toBeUndefined();
-    expect(record.names).toEqual([{ id: 'N1', position: 0, value: 'Tula' }]);
+    expect(record.names).toEqual([{ id: 'N1', kind: 'official', position: 0, value: 'Tula' }]);
     expect(record.postalCodes).toEqual([]);
     expect(record.hierarchy).toEqual([]);
   });
@@ -106,7 +106,7 @@ describe('placeDraftMatches', () => {
     const stored = place();
     const base = placeToDraft(stored);
     expect(placeDraftMatches({ ...base, latitude: '54.2' }, stored)).toBe(false);
-    expect(placeDraftMatches({ ...base, names: [{ id: 'N1', kind: '', language: '', type: '', value: 'Kaluga' }] }, stored)).toBe(false);
+    expect(placeDraftMatches({ ...base, names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: 'Kaluga' }] }, stored)).toBe(false);
     expect(placeDraftMatches({ ...base, hierarchy: [{ parentId: 'PL2', type: '' }] }, stored)).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import type { PlaceRecord } from '@doru/core';
 import { fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
-/** The name kinds of a place row. '' is the official name (a jurisdiction level). */
+/** The name kinds of a place row. Official rows carry 'official' explicitly. */
 export const PLACE_NAME_KINDS = ['official', 'translation', 'phonetic', 'romanized'] as const;
 
 /** The hierarchy link kinds (GEDCOM place hierarchy types). */
@@ -10,7 +10,7 @@ export const HIERARCHY_TYPES = ['poli', 'reli', 'geog', 'cult'] as const;
 /** An editable name row of a place. Position is the jurisdiction level (0 = smallest). */
 export interface PlaceNameDraft {
   id: string;
-  kind: string; // '' = official
+  kind: string; // one of PLACE_NAME_KINDS
   language: string;
   type: string;
   position: number;
@@ -46,7 +46,7 @@ export interface PlaceDraft {
 }
 
 export function emptyPlaceNameDraft(position = 0): PlaceNameDraft {
-  return { id: crypto.randomUUID(), kind: '', language: '', type: '', position, value: '' };
+  return { id: crypto.randomUUID(), kind: 'official', language: '', type: '', position, value: '' };
 }
 
 export function emptyPlaceDraft(): PlaceDraft {
@@ -70,7 +70,7 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
     verified: place.verified === true,
     names: (place.names ?? []).map((name) => ({
       id: name.id,
-      kind: name.kind ?? '',
+      kind: name.kind ?? 'official',
       language: name.language ?? '',
       type: name.type ?? '',
       position: name.position,
@@ -100,7 +100,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
       .filter((name) => name.value.trim() !== '')
       .map((name) => ({
         id: name.id,
-        ...(name.kind !== '' ? { kind: name.kind as PlaceRecord['names'][number]['kind'] } : {}),
+        kind: name.kind as PlaceRecord['names'][number]['kind'],
         ...(name.language.trim() !== '' ? { language: name.language.trim() } : {}),
         ...(name.type.trim() !== '' ? { type: name.type.trim() } : {}),
         position: name.position,
@@ -128,7 +128,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
 /** The joined display form of the draft: official rows, smallest first. */
 export function placeDraftName(draft: PlaceDraft): string {
   return draft.names
-    .filter((name) => name.kind === '')
+    .filter((name) => name.kind === 'official')
     .map((name) => name.value.trim())
     .filter((value) => value !== '')
     .join(', ');

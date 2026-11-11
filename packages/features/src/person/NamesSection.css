@@ -75,7 +75,7 @@
 
 /* ── Shared small controls of the section ──────────────────────────── */
 
-.person-editor .icon-button {
+.icon-button {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -90,16 +90,16 @@
   cursor: pointer;
 }
 
-.person-editor .icon-button:hover {
+.icon-button:hover {
   background: var(--doru-bg-input);
   color: var(--doru-fg);
 }
 
-.person-editor .icon-button.is-primary {
+.icon-button.is-primary {
   color: var(--doru-accent);
 }
 
-.person-editor .secondary-button {
+.secondary-button {
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
@@ -115,6 +115,6 @@
   cursor: pointer;
 }
 
-.person-editor .secondary-button:hover {
+.secondary-button:hover {
   background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
 }

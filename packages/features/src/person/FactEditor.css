@@ -109,14 +109,14 @@
   cursor: default;
 }
 
-.person-editor .add-button.small {
+.add-button.small {
   height: auto;
   padding: 3px 8px;
   font-size: 12px;
   border-radius: var(--doru-radius-sm);
 }
 
-.person-editor .plain-button {
+.plain-button {
   height: var(--doru-control-height);
   padding: 0 11px;
   border: 1px solid var(--doru-border);
@@ -128,11 +128,11 @@
   cursor: pointer;
 }
 
-.person-editor .plain-button:hover {
+.plain-button:hover {
   background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
 }
 
-.person-editor .danger-button {
+.danger-button {
   height: var(--doru-control-height);
   padding: 0 11px;
   border: none;
@@ -145,6 +145,6 @@
   cursor: pointer;
 }
 
-.person-editor .danger-button:hover {
+.danger-button:hover {
   background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
 }
