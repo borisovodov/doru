@@ -53,6 +53,11 @@ export function SidebarView({
   onOpenSubmitter,
   onOpenTitle,
   onNewTitle,
+  onNewPerson,
+  onNewPlace,
+  onNewSource,
+  onNewRepository,
+  onNewSubmitter,
   onOpenTask,
   onNewTask,
 }: {
@@ -76,6 +81,11 @@ export function SidebarView({
   onOpenSubmitter: (submitterId: string) => void;
   onOpenTitle: (titleId: string) => void;
   onNewTitle: () => void;
+  onNewPerson: () => void;
+  onNewPlace: () => void;
+  onNewSource: () => void;
+  onNewRepository: () => void;
+  onNewSubmitter: () => void;
   onOpenTask: (todoId: string) => void;
   onNewTask: () => void;
 }) {
@@ -91,6 +101,11 @@ export function SidebarView({
       }
       return (
         <>
+          <div className="tasks-header">
+            <button className="icon-button" title={nls.t('features.tree.person.add')} onClick={onNewPerson}>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          </div>
           <PersonList persons={persons.slice(0, PEOPLE_LIST_LIMIT)} onOpen={onOpenPerson} />
           {persons.length > PEOPLE_LIST_LIMIT && (
             <p className="side-bar-note">
@@ -127,15 +142,23 @@ export function SidebarView({
       }
       return <SidebarFacts facts={facts} persons={persons} families={families} onOpenPerson={onOpenPerson} />;
     case 'places':
-      if (places.length === 0) {
-        return (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.places')}
-            description={nls.t('features.places.placeholder')}
-          />
-        );
-      }
-      return <SidebarPlaces places={places} onOpenPlace={onOpenPlace} />;
+      return (
+        <>
+          <div className="tasks-header">
+            <button className="icon-button" title={nls.t('features.tree.place.add')} onClick={onNewPlace}>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          </div>
+          {places.length === 0 ? (
+            <PlaceholderView
+              title={nls.t('workbench.activityBar.places')}
+              description={nls.t('features.places.placeholder')}
+            />
+          ) : (
+            <SidebarPlaces places={places} onOpenPlace={onOpenPlace} />
+          )}
+        </>
+      );
     case 'media':
       if (media.length === 0) {
         return (
@@ -159,6 +182,9 @@ export function SidebarView({
           onOpenSubmitter={onOpenSubmitter}
           onOpenTitle={onOpenTitle}
           onNewTitle={onNewTitle}
+          onNewSource={onNewSource}
+          onNewRepository={onNewRepository}
+          onNewSubmitter={onNewSubmitter}
         />
       );
     case 'tasks':
@@ -201,6 +227,9 @@ function SourcesSidebar({
   onOpenSubmitter,
   onOpenTitle,
   onNewTitle,
+  onNewSource,
+  onNewRepository,
+  onNewSubmitter,
 }: {
   sources: SourceRecord[];
   citations: CitationRecord[];
@@ -212,6 +241,9 @@ function SourcesSidebar({
   onOpenSubmitter: (submitterId: string) => void;
   onOpenTitle: (titleId: string) => void;
   onNewTitle: () => void;
+  onNewSource: () => void;
+  onNewRepository: () => void;
+  onNewSubmitter: () => void;
 }) {
   const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters' | 'titles'>('sources');
 
@@ -235,19 +267,43 @@ function SourcesSidebar({
           </button>
         ))}
       </div>
-      {segment === 'sources' &&
-        (sources.length === 0 ? (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.sources')}
-            description={nls.t('features.sources.placeholder')}
-          />
-        ) : (
-          <SidebarSources sources={sources} citations={citations} onOpenSource={onOpenSource} />
-        ))}
-      {segment === 'repositories' && (
-        <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
+      {segment === 'sources' && (
+        <>
+          <div className="tasks-header">
+            <button className="icon-button" title={nls.t('features.tree.source.add')} onClick={onNewSource}>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          </div>
+          {sources.length === 0 ? (
+            <PlaceholderView
+              title={nls.t('workbench.activityBar.sources')}
+              description={nls.t('features.sources.placeholder')}
+            />
+          ) : (
+            <SidebarSources sources={sources} citations={citations} onOpenSource={onOpenSource} />
+          )}
+        </>
       )}
-      {segment === 'submitters' && <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />}
+      {segment === 'repositories' && (
+        <>
+          <div className="tasks-header">
+            <button className="icon-button" title={nls.t('features.tree.repository.add')} onClick={onNewRepository}>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          </div>
+          <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
+        </>
+      )}
+      {segment === 'submitters' && (
+        <>
+          <div className="tasks-header">
+            <button className="icon-button" title={nls.t('features.tree.submitter.add')} onClick={onNewSubmitter}>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          </div>
+          <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />
+        </>
+      )}
       {segment === 'titles' && (
         <>
           <div className="tasks-header">

@@ -342,7 +342,7 @@ export function App() {
     if (tab.id.startsWith(SOURCE_TAB_PREFIX)) {
       const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
       const source = tree.sources.find((entry) => entry.id === sourceId);
-      if (!source) {
+      if (!sourceId.startsWith('new:') && !source) {
         return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
       }
       return (
@@ -507,6 +507,11 @@ export function App() {
             onOpenSubmitter={tabs.openSubmitterTab}
             onOpenTitle={tabs.openTitleTab}
             onNewTitle={tabs.openNewTitleTab}
+            onNewPerson={tabs.openNewPersonTab}
+            onNewPlace={tabs.openNewPlaceTab}
+            onNewSource={tabs.openNewSourceTab}
+            onNewRepository={tabs.openNewRepositoryTab}
+            onNewSubmitter={tabs.openNewSubmitterTab}
             onOpenTask={tabs.openTaskTab}
             onNewTask={tabs.openNewTaskTab}
           />

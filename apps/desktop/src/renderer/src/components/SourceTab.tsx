@@ -13,6 +13,7 @@ import {
   EntityTab,
   SourceCitationsList,
   SourceEditor,
+  emptySourceDraft,
   sourceDraftMatches,
   sourceDraftToRecord,
   sourceToDraft,
@@ -46,14 +47,16 @@ export function SourceTab({
   onClose: (tabId: string) => void;
 }) {
   const sourceId = tabId.slice(SOURCE_TAB_PREFIX.length);
+  const isNew = sourceId.startsWith('new:');
   const record = sources.find((source) => source.id === sourceId);
-  if (!record) {
+  if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
   }
   return (
     <SourceTabBody
       tabId={tabId}
       record={record}
+      isNew={isNew}
       api={api}
       persons={persons}
       families={families}
@@ -69,6 +72,7 @@ export function SourceTab({
 function SourceTabBody({
   tabId,
   record,
+  isNew,
   api,
   persons,
   families,
@@ -79,7 +83,8 @@ function SourceTabBody({
   onClose,
 }: {
   tabId: string;
-  record: SourceRecord;
+  record: SourceRecord | undefined;
+  isNew: boolean;
   api: SourceEditorApi;
   persons: PersonRecord[];
   families: FamilyRecord[];
@@ -89,7 +94,9 @@ function SourceTabBody({
   onOpenPerson: (personId: string) => void;
   onClose: (tabId: string) => void;
 }) {
-  const [draft, setDraft] = useState<SourceDraft>(() => sourceToDraft(record));
+  const [draft, setDraft] = useState<SourceDraft>(() =>
+    isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
+  );
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
@@ -98,15 +105,15 @@ function SourceTabBody({
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
   // clobber in-progress edits.
   useEffect(() => {
-    if (record === recordRef.current) {
+    if (isNew || record === undefined || record === recordRef.current) {
       return;
     }
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      current && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
+      current && previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
     );
-  }, [record]);
+  }, [record, isNew]);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,11 +130,21 @@ function SourceTabBody({
   }, [api, record]);
 
   const save = async () => {
-    await api.updateSource(record, sourceDraftToRecord(draft));
+    const next = sourceDraftToRecord(draft);
+    if (isNew) {
+      await api.addSource(next);
+      onClose(tabId);
+      return;
+    }
+    if (record) {
+      await api.updateSource(record, next);
+    }
   };
 
   const remove = async () => {
-    await api.deleteSource(record);
+    if (record) {
+      await api.deleteSource(record);
+    }
     onClose(tabId);
   };
 
@@ -143,17 +160,19 @@ function SourceTabBody({
           setRepositories(await api.getRepositories());
         }}
         onSave={() => void save()}
-        onDelete={() => void remove()}
+        onDelete={isNew ? undefined : () => void remove()}
       />
-      <SourceCitationsList
-        source={record}
+      {!isNew && record !== undefined && (
+        <SourceCitationsList
+          source={record}
         persons={persons}
         families={families}
         facts={facts}
         citations={citations}
         notes={notes}
         onOpenPerson={onOpenPerson}
-      />
+        />
+      )}
     </EntityTab>
   );
 }

@@ -4,6 +4,7 @@ import {
   EntityTab,
   PlaceEditor,
   PlaceFactsList,
+  emptyPlaceDraft,
   placeDraftMatches,
   placeDraftToRecord,
   placeToDraft,
@@ -33,14 +34,16 @@ export function PlaceTab({
   onClose: (tabId: string) => void;
 }) {
   const placeId = tabId.slice(PLACE_TAB_PREFIX.length);
+  const isNew = placeId.startsWith('new:');
   const record = places.find((place) => place.id === placeId);
-  if (!record) {
+  if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.place.notFound')}</p>;
   }
   return (
     <PlaceTabBody
       tabId={tabId}
       record={record}
+      isNew={isNew}
       places={places}
       api={api}
       persons={persons}
@@ -55,6 +58,7 @@ export function PlaceTab({
 function PlaceTabBody({
   tabId,
   record,
+  isNew,
   places,
   api,
   persons,
@@ -64,7 +68,8 @@ function PlaceTabBody({
   onClose,
 }: {
   tabId: string;
-  record: PlaceRecord;
+  record: PlaceRecord | undefined;
+  isNew: boolean;
   places: PlaceRecord[];
   api: PlaceEditorApi;
   persons: PersonRecord[];
@@ -73,33 +78,45 @@ function PlaceTabBody({
   onOpenPerson: (personId: string) => void;
   onClose: (tabId: string) => void;
 }) {
-  const [draft, setDraft] = useState<PlaceDraft>(() => placeToDraft(record));
+  const [draft, setDraft] = useState<PlaceDraft>(() =>
+    isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
+  );
   const recordRef = useRef(record);
 
   // Reset the draft only when it still equals the previous stored place —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
   // clobber in-progress edits.
   useEffect(() => {
-    if (record === recordRef.current) {
+    if (isNew || record === undefined || record === recordRef.current) {
       return;
     }
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      current && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
+      current && previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
     );
-  }, [record]);
+  }, [record, isNew]);
 
   const save = async () => {
-    await api.updatePlace(record, placeDraftToRecord(draft));
+    const next = placeDraftToRecord(draft);
+    if (isNew) {
+      await api.addPlace(next);
+      onClose(tabId);
+      return;
+    }
+    if (record) {
+      await api.updatePlace(record, next);
+    }
   };
 
   const remove = async () => {
-    await api.deletePlace(record);
+    if (record) {
+      await api.deletePlace(record);
+    }
     onClose(tabId);
   };
 
-  const factsAtPlace = facts.filter((fact) => fact.placeId === record.id);
+  const factsAtPlace = record !== undefined ? facts.filter((fact) => fact.placeId === record.id) : [];
 
   return (
     <EntityTab>
@@ -108,9 +125,9 @@ function PlaceTabBody({
         onChange={setDraft}
         places={places}
         onSave={() => void save()}
-        onDelete={() => void remove()}
+        onDelete={isNew ? undefined : () => void remove()}
       />
-      <PlaceFactsList facts={factsAtPlace} persons={persons} families={families} onOpenPerson={onOpenPerson} />
+      {!isNew && <PlaceFactsList facts={factsAtPlace} persons={persons} families={families} onOpenPerson={onOpenPerson} />}
     </EntityTab>
   );
 }

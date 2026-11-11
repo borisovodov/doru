@@ -18,48 +18,57 @@ export function RepositoryTab({
   onClose: (tabId: string) => void;
 }) {
   const repositoryId = tabId.slice(REPOSITORY_TAB_PREFIX.length);
+  const isNew = repositoryId.startsWith('new:');
   const record = repositories.find((repository) => repository.id === repositoryId);
-  if (!record) {
+  if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.repository.notFound')}</p>;
   }
-  return <RepositoryTabBody tabId={tabId} record={record} api={api} onClose={onClose} />;
+  return <RepositoryTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} />;
 }
 
 function RepositoryTabBody({
   tabId,
   record,
+  isNew,
   api,
   onClose,
 }: {
   tabId: string;
-  record: RepositoryRecord;
+  record: RepositoryRecord | undefined;
+  isNew: boolean;
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
 }) {
-  const [name, setName] = useState(record.name);
-  const { address, setAddress, saveAddress } = useRegistryAddress(api, record.addressId);
+  const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const [name, setName] = useState(base.name);
+  const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
   const [addressText, setAddressText] = useState('');
 
   useEffect(() => {
     let cancelled = false;
-    if (record.addressId !== undefined) {
-      void api.getAddress(record.addressId).then((loaded) => {
+    if (base.addressId !== undefined) {
+      void api.getAddress(base.addressId).then((loaded) => {
         if (!cancelled && loaded) setAddressText(addressLabel(loaded));
       });
     }
     return () => {
       cancelled = true;
     };
-  }, [record.addressId, api]);
+  }, [base.addressId, api]);
 
   const save = async () => {
-    const next: RepositoryRecord = { id: record.id, xref: record.xref, name: name.trim() };
+    const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
     next.addressId = await saveAddress();
-    await api.updateRepository(record, next);
+    if (isNew) {
+      await api.addRepository(next);
+      onClose(tabId);
+      return;
+    }
+    await api.updateRepository(base, next);
   };
 
   const remove = async () => {
-    await api.deleteRepository(record);
+    await api.deleteRepository(base);
     onClose(tabId);
   };
 
@@ -78,9 +87,11 @@ function RepositoryTabBody({
             <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
-            <button className="registry-delete-button" onClick={() => void remove()}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
+            {!isNew && (
+              <button className="registry-delete-button" onClick={() => void remove()}>
+                {nls.t('features.tree.fact.delete')}
+              </button>
+            )}
           </div>
         </section>
 

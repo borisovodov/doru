@@ -18,57 +18,66 @@ export function SubmitterTab({
   onClose: (tabId: string) => void;
 }) {
   const submitterId = tabId.slice(SUBMITTER_TAB_PREFIX.length);
+  const isNew = submitterId.startsWith('new:');
   const record = submitters.find((submitter) => submitter.id === submitterId);
-  if (!record) {
+  if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.submitter.notFound')}</p>;
   }
-  return <SubmitterTabBody tabId={tabId} record={record} api={api} onClose={onClose} />;
+  return <SubmitterTabBody tabId={tabId} record={record} isNew={isNew} api={api} onClose={onClose} />;
 }
 
 function SubmitterTabBody({
   tabId,
   record,
+  isNew,
   api,
   onClose,
 }: {
   tabId: string;
-  record: SubmitterRecord;
+  record: SubmitterRecord | undefined;
+  isNew: boolean;
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
 }) {
-  const [name, setName] = useState(record.name);
-  const [languages, setLanguages] = useState<string[]>([...(record.languages ?? [])]);
-  const { address, setAddress, saveAddress } = useRegistryAddress(api, record.addressId);
+  const base: SubmitterRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const [name, setName] = useState(base.name);
+  const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
+  const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
   const [addressText, setAddressText] = useState('');
 
   useEffect(() => {
     let cancelled = false;
-    if (record.addressId !== undefined) {
-      void api.getAddress(record.addressId).then((loaded) => {
+    if (base.addressId !== undefined) {
+      void api.getAddress(base.addressId).then((loaded) => {
         if (!cancelled && loaded) setAddressText(addressLabel(loaded));
       });
     }
     return () => {
       cancelled = true;
     };
-  }, [record.addressId, api]);
+  }, [base.addressId, api]);
 
   const patchLanguage = (index: number, value: string) =>
     setLanguages(languages.map((language, i) => (i === index ? value : language)));
 
   const save = async () => {
     const next: SubmitterRecord = {
-      id: record.id,
-      xref: record.xref,
+      id: base.id,
+      xref: base.xref,
       name: name.trim(),
       languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
     };
     next.addressId = await saveAddress();
-    await api.updateSubmitter(record, next);
+    if (isNew) {
+      await api.addSubmitter(next);
+      onClose(tabId);
+      return;
+    }
+    await api.updateSubmitter(base, next);
   };
 
   const remove = async () => {
-    await api.deleteSubmitter(record);
+    await api.deleteSubmitter(base);
     onClose(tabId);
   };
 
@@ -87,9 +96,11 @@ function SubmitterTabBody({
             <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
-            <button className="registry-delete-button" onClick={() => void remove()}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
+            {!isNew && (
+              <button className="registry-delete-button" onClick={() => void remove()}>
+                {nls.t('features.tree.fact.delete')}
+              </button>
+            )}
           </div>
         </section>
 

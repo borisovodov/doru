@@ -93,6 +93,7 @@ export interface PersonEditorApi {
 /** The service surface the source tab needs from its host application. */
 export interface SourceEditorApi {
   getSources(): Promise<SourceRecord[]>;
+  addSource(source: SourceRecord): Promise<void>;
   updateSource(before: SourceRecord, after: SourceRecord): Promise<void>;
   deleteSource(source: SourceRecord): Promise<void>;
   getRepositories(): Promise<RepositoryRecord[]>;
@@ -103,6 +104,7 @@ export interface SourceEditorApi {
 /** The service surface the place tab needs from its host application. */
 export interface PlaceEditorApi {
   getPlaces(): Promise<PlaceRecord[]>;
+  addPlace(place: PlaceRecord): Promise<void>;
   updatePlace(before: PlaceRecord, after: PlaceRecord): Promise<void>;
   deletePlace(place: PlaceRecord): Promise<void>;
 }

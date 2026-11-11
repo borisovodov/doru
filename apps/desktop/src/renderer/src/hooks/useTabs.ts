@@ -63,6 +63,9 @@ function tabLabel(
   }
   if (tab.id.startsWith(SOURCE_TAB_PREFIX)) {
     const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
+    if (sourceId.startsWith('new:')) {
+      return nls.t('features.tree.source.newSource');
+    }
     const source = sources.find((entry) => entry.id === sourceId);
     if (source) {
       return source.title ?? '';
@@ -70,6 +73,9 @@ function tabLabel(
   }
   if (tab.id.startsWith(PLACE_TAB_PREFIX)) {
     const placeId = tab.id.slice(PLACE_TAB_PREFIX.length);
+    if (placeId.startsWith('new:')) {
+      return nls.t('features.tree.place.newPlace');
+    }
     const place = places.find((entry) => entry.id === placeId);
     if (place) {
       return placeName(place);
@@ -77,6 +83,9 @@ function tabLabel(
   }
   if (tab.id.startsWith(REPOSITORY_TAB_PREFIX)) {
     const repositoryId = tab.id.slice(REPOSITORY_TAB_PREFIX.length);
+    if (repositoryId.startsWith('new:')) {
+      return nls.t('features.tree.repository.newRepository');
+    }
     const repository = repositories.find((entry) => entry.id === repositoryId);
     if (repository) {
       return repository.name || '—';
@@ -84,6 +93,9 @@ function tabLabel(
   }
   if (tab.id.startsWith(SUBMITTER_TAB_PREFIX)) {
     const submitterId = tab.id.slice(SUBMITTER_TAB_PREFIX.length);
+    if (submitterId.startsWith('new:')) {
+      return nls.t('features.tree.submitter.newSubmitter');
+    }
     const submitter = submitters.find((entry) => entry.id === submitterId);
     if (submitter) {
       return submitter.name || '—';
@@ -276,6 +288,26 @@ export function useTabs(
     openTab({ id: `${TITLE_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.title.newTitle') });
   }, [openTab]);
 
+  const openNewPersonTab = useCallback(() => {
+    openTab({ id: `${PERSON_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.addPerson') });
+  }, [openTab]);
+
+  const openNewPlaceTab = useCallback(() => {
+    openTab({ id: `${PLACE_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.place.newPlace') });
+  }, [openTab]);
+
+  const openNewSourceTab = useCallback(() => {
+    openTab({ id: `${SOURCE_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.source.newSource') });
+  }, [openTab]);
+
+  const openNewRepositoryTab = useCallback(() => {
+    openTab({ id: `${REPOSITORY_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.repository.newRepository') });
+  }, [openTab]);
+
+  const openNewSubmitterTab = useCallback(() => {
+    openTab({ id: `${SUBMITTER_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.submitter.newSubmitter') });
+  }, [openTab]);
+
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -320,6 +352,11 @@ export function useTabs(
     openNewTaskTab,
     openTitleTab,
     openNewTitleTab,
+    openNewPersonTab,
+    openNewPlaceTab,
+    openNewSourceTab,
+    openNewRepositoryTab,
+    openNewSubmitterTab,
     openSettingsTab,
     openNoticesTab,
     openExportTab,

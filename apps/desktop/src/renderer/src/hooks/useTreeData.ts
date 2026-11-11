@@ -445,6 +445,13 @@ export function useTreeData(projectPath: string | null | undefined) {
   const sourceApi = useMemo<SourceEditorApi>(
     () => ({
       getSources: () => (projectPath ? window.doru.getSources(projectPath) : Promise.resolve([])),
+      addSource: async (source) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addSource(projectPath, source);
+        await refreshTree();
+      },
       updateSource: async (before, after) => {
         if (!projectPath) {
           return;
@@ -476,6 +483,13 @@ export function useTreeData(projectPath: string | null | undefined) {
   const placeApi = useMemo<PlaceEditorApi>(
     () => ({
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
+      addPlace: async (place) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addPlace(projectPath, place);
+        await refreshTree();
+      },
       updatePlace: async (before, after) => {
         if (!projectPath) {
           return;
