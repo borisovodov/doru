@@ -40,6 +40,7 @@ import {
   addRestrictionOp,
   addSourceOp,
   addSubmitterOp,
+  addRecordSubmitterOp,
   addTagOp,
   addTitleOp,
   addTodoOp,
@@ -61,6 +62,7 @@ import {
   deleteRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
+  deleteRecordSubmitterOp,
   deleteTagOp,
   deleteTitleOp,
   deleteTodoOp,
@@ -599,6 +601,22 @@ export class TreeService {
   deleteSubmitter(submitter: SubmitterRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('submitter', submitter.id);
     return this.apply(deleteSubmitterOp(submitter, attachments));
+  }
+
+  /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
+  listRecordSubmittersFor(
+    targetType: string,
+    targetId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+    return this.repo.listRecordSubmittersFor(targetType, targetId);
+  }
+
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): UndoRedoState {
+    return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId));
+  }
+
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): UndoRedoState {
+    return this.apply(deleteRecordSubmitterOp(id, submitterId, targetType, targetId));
   }
 
   addAddress(address: AddressRecord): UndoRedoState {

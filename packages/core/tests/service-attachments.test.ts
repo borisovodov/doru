@@ -327,6 +327,25 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('links and unlinks record contributors with undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSubmitter(submitter());
+      service.addRecordSubmitter('SU1', 'person', 'P1');
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);
+      expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
+
+      const [link] = fixture.repo.listRecordSubmittersFor('person', 'P1')!;
+      service.deleteRecordSubmitter(link!.id, link!.submitterId, link!.targetType, link!.targetId);
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('changes are recorded for the touched entity and cleaned with the entity', () => {
     const { fixture, service } = makeService();
     try {

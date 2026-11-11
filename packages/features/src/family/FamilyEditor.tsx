@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Users, X } from 'lucide-react';
-import type { FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
+import type { FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
+import { ContributorsSection } from '../person/ContributorsSection';
 import { DateEditor } from '../person/DateEditor';
 import { FactsSection } from '../person/FactsSection';
 import { displayName } from '../person/format';
@@ -41,6 +42,10 @@ export function FamilyEditor({
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
+  const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
+  const [contributors, setContributors] = useState<
+    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
+  >([]);
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
 
@@ -50,6 +55,11 @@ export function FamilyEditor({
   const memberIds = new Set([...draft.partnerLinks.map((link) => link.personId), ...draft.childLinks.map((link) => link.childId)]);
   const candidates = persons.filter((person) => !memberIds.has(person.id));
 
+  const refreshContributors = async () => {
+    setSubmitters(await api.getSubmitters());
+    setContributors(await api.getRecordSubmitters('family', draft.id));
+  };
+
   useEffect(() => {
     let cancelled = false;
     void api.getFacts(undefined, draft.id).then((loaded) => {
@@ -58,6 +68,7 @@ export function FamilyEditor({
     void api.getPlaces().then((loaded) => {
       if (!cancelled) setPlaces(loaded);
     });
+    void refreshContributors();
     return () => {
       cancelled = true;
     };
@@ -255,6 +266,21 @@ export function FamilyEditor({
         onAddFact={api.addFact}
         onUpdateFact={api.updateFact}
         onDeleteFact={api.deleteFact}
+      />
+
+      <ContributorsSection
+        targetType="family"
+        targetId={draft.id}
+        submitters={submitters}
+        links={contributors}
+        onAdd={async (submitterId, targetType, targetId) => {
+          await api.addRecordSubmitter(submitterId, targetType, targetId);
+          await refreshContributors();
+        }}
+        onDelete={async (id, submitterId, targetType, targetId) => {
+          await api.deleteRecordSubmitter(id, submitterId, targetType, targetId);
+          await refreshContributors();
+        }}
       />
     </div>
   );

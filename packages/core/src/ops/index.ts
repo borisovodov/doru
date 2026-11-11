@@ -25,6 +25,8 @@ export {
   deleteRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
+  addRecordSubmitterOp,
+  deleteRecordSubmitterOp,
   deleteTagOp,
   detachCitationOp,
   detachMediaOp,

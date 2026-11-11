@@ -471,6 +471,30 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle(
+    'tree:recordSubmitters',
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listRecordSubmittersFor(options.targetType, options.targetId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addRecordSubmitter',
+    async (_event, options: { projectPath: string; submitterId: string; targetType: string; targetId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addRecordSubmitter(options.submitterId, options.targetType, options.targetId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteRecordSubmitter',
+    async (_event, options: { projectPath: string; id: string; submitterId: string; targetType: string; targetId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteRecordSubmitter(options.id, options.submitterId, options.targetType, options.targetId);
+    },
+  );
+
   ipcMain.handle('tree:addAddress', async (_event, options: { projectPath: string; address: AddressRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.addAddress(options.address);

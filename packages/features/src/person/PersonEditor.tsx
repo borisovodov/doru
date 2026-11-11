@@ -14,6 +14,7 @@ import type {
   RestrictionRecord,
   Sex,
   SourceRecord,
+  SubmitterRecord,
   TagLinkRecord,
   TagRecord,
 } from '@doru/core';
@@ -24,6 +25,7 @@ import { AssociationsSection } from './AssociationsSection';
 import { AliasesSection } from './AliasesSection';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
 import { ChangesSection } from './ChangesSection';
+import { ContributorsSection } from './ContributorsSection';
 import { DateEditor } from './DateEditor';
 import { FactsSection } from './FactsSection';
 import { FamilySection } from './FamilySection';
@@ -71,6 +73,10 @@ export function PersonEditor({
   const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
   const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
+  const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
+  const [contributors, setContributors] = useState<
+    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +96,7 @@ export function PersonEditor({
         if (!cancelled) setMedia(loaded);
       });
       void refreshAttachments();
+      void refreshContributors();
       void api.getPlaces().then((loaded) => {
         if (!cancelled) setPlaces(loaded);
       });
@@ -108,6 +115,8 @@ export function PersonEditor({
       setTagLinks([]);
       setChanges([]);
       setPlaces([]);
+      setSubmitters([]);
+      setContributors([]);
     }
     return () => {
       cancelled = true;
@@ -122,6 +131,11 @@ export function PersonEditor({
   const refreshAssociations = async () => {
     setAssociations(await api.getAssociations(draft.id));
     setAliases(await api.getAliases(draft.id));
+  };
+
+  const refreshContributors = async () => {
+    setSubmitters(await api.getSubmitters());
+    setContributors(await api.getRecordSubmitters('person', draft.id));
   };
 
   /** Reloads every universal attachment list of the person. */
@@ -385,6 +399,20 @@ export function PersonEditor({
             onDetachTag={async (link) => {
               await api.detachTag(link);
               await refreshAttachments();
+            }}
+          />
+          <ContributorsSection
+            targetType="person"
+            targetId={draft.id}
+            submitters={submitters}
+            links={contributors}
+            onAdd={async (submitterId, targetType, targetId) => {
+              await api.addRecordSubmitter(submitterId, targetType, targetId);
+              await refreshContributors();
+            }}
+            onDelete={async (id, submitterId, targetType, targetId) => {
+              await api.deleteRecordSubmitter(id, submitterId, targetType, targetId);
+              await refreshContributors();
             }}
           />
           <ChangesSection changes={changes} />

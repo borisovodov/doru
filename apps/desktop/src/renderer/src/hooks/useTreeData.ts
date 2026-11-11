@@ -379,6 +379,24 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteAlias(projectPath, id, personId, aliasId);
         await refreshTree();
       },
+      getRecordSubmitters: (targetType, targetId) =>
+        projectPath
+          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
+          : Promise.resolve([]),
+      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await refreshTree();
+      },
+      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await refreshTree();
+      },
       getTagLinks: (personId) =>
         projectPath ? window.doru.getTagLinks(projectPath, personId) : Promise.resolve([]),
       addTag: async (tag) => {
@@ -414,6 +432,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       getChanges: (personId) =>
         projectPath ? window.doru.getChanges(projectPath, personId) : Promise.resolve([]),
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
     }),
     [projectPath, refreshTree],
   );
@@ -507,6 +526,25 @@ export function useTreeData(projectPath: string | null | undefined) {
           return;
         }
         await window.doru.deleteFamily(projectPath, family);
+        await refreshTree();
+      },
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
+      getRecordSubmitters: (targetType, targetId) =>
+        projectPath
+          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
+          : Promise.resolve([]),
+      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await refreshTree();
+      },
+      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
         await refreshTree();
       },
     }),

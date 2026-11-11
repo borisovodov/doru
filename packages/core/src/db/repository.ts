@@ -123,6 +123,7 @@ export interface TreeRepository {
     targetType: string,
     targetId: string,
   ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  deleteRecordSubmitter(id: string): boolean;
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
   getAddress(id: string): AddressRecord | undefined;
@@ -591,6 +592,10 @@ export class SqliteTreeRepository implements TreeRepository {
     targetId: string,
   ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
     return this.submitters.listRecordSubmittersFor(targetType, targetId);
+  }
+
+  deleteRecordSubmitter(id: string): boolean {
+    return this.submitters.deleteRecordSubmitter(id);
   }
 
   insertAddress(address: AddressRecord): void {

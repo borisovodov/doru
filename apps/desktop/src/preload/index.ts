@@ -206,6 +206,18 @@ const api = {
     ipcRenderer.invoke('tree:updateSubmitter', { projectPath, before, after }),
   deleteSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteSubmitter', { projectPath, submitter }),
+  getRecordSubmitters: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:recordSubmitters', { projectPath, targetType, targetId }),
+  addRecordSubmitter: (projectPath: string, submitterId: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addRecordSubmitter', { projectPath, submitterId, targetType, targetId }),
+  deleteRecordSubmitter: (
+    projectPath: string,
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+  ): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteRecordSubmitter', { projectPath, id, submitterId, targetType, targetId }),
   addAddress: (projectPath: string, address: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addAddress', { projectPath, address }),
   updateAddress: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>

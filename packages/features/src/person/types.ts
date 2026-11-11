@@ -72,6 +72,13 @@ export interface PersonEditorApi {
   getAliases(personId: string): Promise<Array<{ id: string; aliasId: string }>>;
   addAlias(personId: string, aliasId: string): Promise<void>;
   deleteAlias(id: string, personId: string, aliasId: string): Promise<void>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  getRecordSubmitters(
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
   getTagLinks(personId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
   addTag(tag: TagRecord): Promise<void>;
   updateTag(before: TagRecord, after: TagRecord): Promise<void>;
@@ -123,4 +130,11 @@ export interface FamilyEditorApi {
   getPlaces(): Promise<PlaceRecord[]>;
   updateFamily(before: FamilyRecord, after: FamilyRecord): Promise<void>;
   deleteFamily(family: FamilyRecord): Promise<void>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  getRecordSubmitters(
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
 }

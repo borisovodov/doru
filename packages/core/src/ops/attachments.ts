@@ -356,6 +356,31 @@ export function deleteSubmitterOp(submitter: SubmitterRecord, attachments: Attac
   );
 }
 
+/** Links a submitter as the contributor of a record (GEDCOM SUBM on INDI/FAM). */
+export function addRecordSubmitterOp(submitterId: string, targetType: string, targetId: string): Op {
+  const id = crypto.randomUUID();
+  return op(
+    id,
+    'record_submitter.add',
+    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+    (ctx) => ctx.repo.deleteRecordSubmitter(id),
+  );
+}
+
+export function deleteRecordSubmitterOp(
+  id: string,
+  submitterId: string,
+  targetType: string,
+  targetId: string,
+): Op {
+  return op(
+    crypto.randomUUID(),
+    'record_submitter.delete',
+    (ctx) => ctx.repo.deleteRecordSubmitter(id),
+    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+  );
+}
+
 export function addAddressOp(address: AddressRecord): Op {
   return op(
     crypto.randomUUID(),
