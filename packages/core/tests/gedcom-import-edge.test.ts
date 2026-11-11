@@ -100,18 +100,6 @@ const GEDCOM = [
   '2 ROLE witness',
   '1 _PART @MISSING@',
   '0 @O2@ _OCUR',
-  '0 @C1@ _CENR',
-  '1 DATE 1901',
-  '1 PLAC Moscow, Russia',
-  '1 INDI @I1@',
-  '2 SEX M',
-  '2 AGE 17y',
-  '2 _MSTAT single',
-  '2 OCCU smith',
-  '2 BIRT',
-  '3 DATE 1884',
-  '3 PLAC Moscow',
-  '1 INDI @MISSING@',
   '0 @OB1@ OBJE',
   '0 @AL1@ _ALIA',
   '0 @PL1@ _PLAC Moscow, Russia',
@@ -177,17 +165,6 @@ const EDGE_GEDCOM = [
   '2 DATE 2026',
   '0 @T1@ _TAG',
   '1 NAME favorites',
-  '0 @C1@ _CENR',
-  '1 DATE 1901',
-  '1 PLAC Moscow, Russia',
-  '1 INDI @I1@',
-  '2 BIRT',
-  '3 DATE 1884',
-  '3 PLAC Moscow',
-  '1 INDI @I2@',
-  '2 BIRT',
-  '3 DATE 1885',
-  '3 PLAC Moscow',
   '0 TRLR',
 ].join('\n');
 
@@ -262,11 +239,6 @@ describe('importGedcomDataset edge coverage', () => {
       const facts = repo.listAllFacts();
       expect(facts.filter((fact) => fact.type === 'death')).toHaveLength(1);
 
-      // The census imported only the entry with a known person.
-      const census = repo.listCensuses()[0]!;
-      expect(census.entries).toHaveLength(1);
-      expect(census.entries[0]).toMatchObject({ ageValue: '17', maritalStatus: 'single', occupation: 'smith' });
-
       // The fact type record imported.
       expect(repo.listFactTypes()[0]).toMatchObject({ code: 'MILT', title: 'military service' });
     } finally {
@@ -317,18 +289,12 @@ describe('importGedcomDataset edge coverage', () => {
       const family = repo.listFamilies()[0]!;
       expect(repo.listTagLinksFor('family', family.id)).toHaveLength(1);
       expect(repo.listTodosFor('family', family.id)).toHaveLength(1);
-
-      // The shared text place "Moscow" is one row reused by both census entries.
-      const census = repo.listCensuses()[0]!;
-      expect(census.entries).toHaveLength(2);
-      expect(census.entries[0]?.birthPlace).toBe('Moscow');
-      expect(census.entries[1]?.birthPlace).toBe('Moscow');
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('drops the evidence and research records', () => {
+  it('drops the evidence, research and census records', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -342,6 +308,11 @@ describe('importGedcomDataset edge coverage', () => {
       '1 TEXT body',
       '0 @A1@ _RACT',
       '1 _TYPE visit',
+      '0 @C1@ _CENR',
+      '1 DATE 1901',
+      '1 PLAC Moscow',
+      '1 INDI @I1@',
+      '2 AGE 17y',
       '0 TRLR',
     ].join('\n');
     const result = parse(new TextEncoder().encode(gedcom));
@@ -351,8 +322,8 @@ describe('importGedcomDataset edge coverage', () => {
     const fixture = makeRepo();
     try {
       const summary = importGedcomDataset(result.value.dataset, fixture.repo);
-      // The three research records are counted as deliberately dropped.
-      expect(summary.droppedStructures).toBe(3);
+      // The four records are counted as deliberately dropped.
+      expect(summary.droppedStructures).toBe(4);
       expect(fixture.repo.listAllPersons()).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);

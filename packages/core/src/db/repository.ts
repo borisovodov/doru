@@ -3,7 +3,6 @@ import type {
   AddressRecord,
   AssociationRecord,
   AttachmentsSnapshot,
-  CensusRecord,
   ChangeRecord,
   CitationRecord,
   ContactRecord,
@@ -172,11 +171,6 @@ export interface TreeRepository {
   deleteTodo(id: string): boolean;
   listTodos(): TodoRecord[];
   listTodosFor(targetType: string, targetId: string): TodoRecord[];
-  insertCensus(census: CensusRecord): void;
-  updateCensus(census: CensusRecord): void;
-  deleteCensus(id: string): boolean;
-  getCensus(id: string): CensusRecord | undefined;
-  listCensuses(): CensusRecord[];
   insertDuplicate(duplicate: DuplicateCandidateRecord): void;
   updateDuplicate(duplicate: DuplicateCandidateRecord): void;
   deleteDuplicate(id: string): boolean;
@@ -802,29 +796,6 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listTodosFor(targetType: string, targetId: string): TodoRecord[] {
     return this.research.listTodosFor(targetType, targetId);
-  }
-
-  insertCensus(census: CensusRecord): void {
-    this.research.insertCensus(census);
-  }
-
-  updateCensus(census: CensusRecord): void {
-    this.research.updateCensus(census);
-  }
-
-  deleteCensus(id: string): boolean {
-    return this.transactions.run(() => {
-      this.deleteAttachmentsFor('census', id);
-      return this.research.deleteCensus(id);
-    });
-  }
-
-  getCensus(id: string): CensusRecord | undefined {
-    return this.research.getCensus(id);
-  }
-
-  listCensuses(): CensusRecord[] {
-    return this.research.listCensuses();
   }
 
   insertDuplicate(duplicate: DuplicateCandidateRecord): void {

@@ -590,27 +590,6 @@ export interface TodoRecord {
   repositoryId?: string | undefined;
 }
 
-export interface CensusEntry {
-  id: string;
-  personId: string;
-  fatherId?: string | undefined;
-  motherId?: string | undefined;
-  sex?: string | undefined;
-  ageValue?: string | undefined;
-  maritalStatus?: string | undefined;
-  occupation?: string | undefined;
-  birthDate?: DateValue | undefined;
-  birthPlace?: string | undefined;
-}
-
-export interface CensusRecord {
-  id: string;
-  schedule?: string | undefined;
-  date?: DateValue | undefined;
-  placeId?: string | undefined;
-  entries: CensusEntry[];
-}
-
 export interface DuplicateCandidateRecord {
   id: string;
   personId: string;
@@ -661,7 +640,6 @@ export const TARGET_TYPES = [
   'ordinance',
   'todo',
   'title',
-  'census',
 ] as const;
 
 export type TargetType = (typeof TARGET_TYPES)[number];

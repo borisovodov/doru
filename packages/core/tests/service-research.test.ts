@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type {
   AssociationRecord,
-  CensusRecord,
   DuplicateCandidateRecord,
   OrdinanceRecord,
   TitleRecord,
@@ -41,13 +40,6 @@ const todo = (overrides: Partial<TodoRecord> = {}): TodoRecord => ({
   id: 'T1',
   text: 'Order the birth record',
   status: 'open',
-  ...overrides,
-});
-
-const census = (overrides: Partial<CensusRecord> = {}): CensusRecord => ({
-  id: 'C1',
-  schedule: 'RG 13',
-  entries: [],
   ...overrides,
 });
 
@@ -153,29 +145,6 @@ describe('TreeService research layer', () => {
       // Repo-level cascade helper.
       fixture.repo.deleteAttachmentsFor('person', 'P1');
       expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('adds, updates, deletes and restores a census with entries', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addCensus(census());
-      expect(fixture.repo.getCensus('C1')).toEqual(census());
-      expect(fixture.repo.listCensuses()).toEqual([census()]);
-      expect(fixture.repo.getCensus('missing')).toBeUndefined();
-
-      const after = census({
-        entries: [{ id: 'CE1', personId: 'P1', ageValue: '17', occupation: 'smith' }],
-      });
-      service.updateCensus(census(), after);
-      expect(fixture.repo.getCensus('C1')).toEqual(after);
-
-      service.deleteCensus(after);
-      expect(fixture.repo.getCensus('C1')).toBeUndefined();
-      service.undo();
-      expect(fixture.repo.getCensus('C1')).toEqual(after);
     } finally {
       cleanupRepo(fixture);
     }

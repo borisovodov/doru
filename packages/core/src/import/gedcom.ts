@@ -31,7 +31,6 @@ import type {
 } from '@doru/gedcom';
 import { isFamilyRecord, isIndividualRecord } from '@doru/gedcom';
 import type {
-  CensusRecord as GedcomCensusRecord,
   EventDefinitionRecord as GedcomEventDefinitionRecord,
   OccurrenceRecord as GedcomOccurrenceRecord,
   TagLink as GedcomTagLink,
@@ -44,7 +43,6 @@ import type { LdsIndividualOrdinance, LdsOrdinanceDetail } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
 import type {
   AssociationRecord,
-  CensusRecord,
   CitationRecord,
   ContactRecord,
   DateComponent,
@@ -71,9 +69,10 @@ import type {
  * - media (OBJE): the import policy is an open question — issue #172. File
  *   paths point at the exporting machine; nothing is imported until the
  *   policy lands. The media tables stay empty on import.
- * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`): the parser
- *   keeps them, but the tree has no evidence layer — they are counted as
- *   dropped.
+ * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`) and the
+ *   MagiKey census record (`_CENR`): the parser keeps them, but the tree
+ *   has no such layers — they are counted as dropped. Census data from
+ *   real files arrives as CENS facts on persons.
  * - vendor-only structures (§3.2 of the schema plan): GenoPro entity
  *   records, MyHeritage tree tags, published sites, groups, USM types,
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
@@ -965,13 +964,13 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
       case '_EVID':
       case '_RDOC':
       case '_RACT':
-        // The evidence/research records (the glamberson gedcom-evidence
-        // extension) stay in the @doru/gedcom model but are deliberately
-        // not carried into the tree.
-        ctx.dropped += 1;
-        break;
       case '_CENR':
-        importCensus(record as GedcomCensusRecord, ctx);
+        // The evidence/research records (the glamberson gedcom-evidence
+        // extension) and the MagiKey census record stay in the
+        // @doru/gedcom model but are deliberately not carried into the
+        // tree. Census data imported from real files arrives as CENS
+        // facts on persons.
+        ctx.dropped += 1;
         break;
       case '_TODO':
         importTodoRecord(record as GedcomTodoRecord, ctx);
@@ -1008,39 +1007,6 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
         break;
     }
   }
-}
-
-function importCensus(record: GedcomCensusRecord, ctx: ImportContext): void {
-  const id = crypto.randomUUID();
-  const mapped: CensusRecord = {
-    id,
-    schedule: record.schedule,
-    date: mapDate(record.date),
-    entries: [],
-  };
-  if (record.place.trim() !== '') {
-    mapped.placeId = importPlaceText(record.place, ctx);
-  }
-  for (const entry of record.entries) {
-    const personId = ctx.personIds.get(entry.individual);
-    if (personId === undefined) {
-      continue;
-    }
-    mapped.entries.push({
-      id: crypto.randomUUID(),
-      personId,
-      sex: entry.sex,
-      ageValue:
-        entry.age?.phrase ??
-        entry.age?.payload?.description ??
-        (entry.age?.payload?.years !== undefined ? String(entry.age.payload.years) : undefined),
-      maritalStatus: entry.maritalStatus,
-      occupation: entry.occupation?.payload,
-      birthDate: mapDate(entry.birth?.detail?.date),
-      birthPlace: entry.birth?.detail?.place ? mapPlaceText(entry.birth.detail.place) : undefined,
-    });
-  }
-  ctx.repo.insertCensus(mapped);
 }
 
 function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
@@ -1518,20 +1484,5 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);
   ctx.placeIds.set(joined, id);
-  return id;
-}
-
-/** Creates a place row from a bare text (used by records that carry a string place). */
-function importPlaceText(text: string, ctx: ImportContext): string | undefined {
-  const existing = ctx.placeIds.get(text);
-  if (existing !== undefined) {
-    return existing;
-  }
-  const id = crypto.randomUUID();
-  ctx.repo.insertPlace({
-    id,
-    names: [{ id: crypto.randomUUID(), kind: 'official', position: 0, value: text }],
-  });
-  ctx.placeIds.set(text, id);
   return id;
 }

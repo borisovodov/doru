@@ -1,7 +1,6 @@
 import type {
   AddressRecord,
   AssociationRecord,
-  CensusRecord,
   ChangeRecord,
   CitationRecord,
   ContactRecord,
@@ -31,7 +30,6 @@ import {
   addAddressOp,
   addAliasOp,
   addAssociationOp,
-  addCensusOp,
   addContactOp,
   addDuplicateOp,
   addFactOp,
@@ -57,7 +55,6 @@ import {
   deleteAddressOp,
   deleteAliasOp,
   deleteAssociationOp,
-  deleteCensusOp,
   deleteContactOp,
   deleteDuplicateOp,
   deleteFactOp,
@@ -83,7 +80,6 @@ import {
   splitNoteOp,
   updateAddressOp,
   updateAssociationOp,
-  updateCensusOp,
   updateCitationOp,
   updateDuplicateOp,
   updateFactOp,
@@ -705,19 +701,6 @@ export class TreeService {
   deleteTodo(todo: TodoRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('todo', todo.id);
     return this.apply(deleteTodoOp(todo, attachments));
-  }
-
-  addCensus(census: CensusRecord): UndoRedoState {
-    return this.apply(addCensusOp(census));
-  }
-
-  updateCensus(before: CensusRecord, after: CensusRecord): UndoRedoState {
-    return this.apply(updateCensusOp(before, after));
-  }
-
-  deleteCensus(census: CensusRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('census', census.id);
-    return this.apply(deleteCensusOp(census, attachments));
   }
 
   addDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {

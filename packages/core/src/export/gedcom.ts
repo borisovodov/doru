@@ -9,7 +9,6 @@ import type {
   DateValue as GedcomDateValue,
   Epoch,
   EventDetail,
-  AgeValue,
   ChildFamilyLink,
   FamilyAttributeStructure,
   FamilyChildLink,
@@ -102,7 +101,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const submitters = repo.listSubmitters();
   const titles = repo.listTitles();
   const notes = repo.listNotes().filter((note): note is NoteRecord & { xref: string } => note.xref !== undefined);
-  const censuses = repo.listCensuses();
   const todos = repo.listTodos().filter((todo) => todo.targetType === undefined && todo.targetId === undefined);
   const factTypes = repo.listFactTypes();
   const tags = repo.listTags();
@@ -140,9 +138,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...notes.map((note) => buildSharedNote(note)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
-    ...censuses
-      .map((census) => buildCensus(census, repo, xrefs))
-      .filter((record): record is GedcomRecord => record !== undefined),
     ...todos.map((todo) => buildTodoRecord(todo)),
     ...factTypes.map((type) => buildFactType(type)),
     ...tags.map((tag) => buildTagRecord(tag)),
@@ -516,41 +511,6 @@ function buildSharedNote(note: NoteRecord): GedcomRecord {
       ? { translations: note.translations.map((translation) => ({ tag: 'TRAN', payload: translation.text, ...(translation.mime !== undefined ? { mediaType: translation.mime } : {}), ...(translation.language !== undefined ? { language: translation.language } : {}) })) }
       : {}),
   } as GedcomRecord;
-}
-
-function buildCensus(census: import('../model/types').CensusRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord | undefined {
-  // The census record requires a date and a place; export only complete ones.
-  if (census.date === undefined) {
-    return undefined;
-  }
-  const place = census.placeId !== undefined ? repo.getPlace(census.placeId) : undefined;
-  return {
-    tag: '_CENR',
-    ...(census.schedule !== undefined ? { schedule: census.schedule } : {}),
-    date: buildDate(census.date)!,
-    place: place !== undefined ? placeNameOf(place) : '',
-    ...(census.entries.length > 0
-      ? {
-          entries: census.entries.map((entry) => ({
-            tag: 'INDI',
-            individual: xrefs.of(entry.personId),
-            ...(entry.sex !== undefined ? { sex: entry.sex } : {}),
-            ...(entry.ageValue !== undefined ? { age: { payload: ageValuePayload(entry.ageValue) } } : {}),
-            ...(entry.maritalStatus !== undefined ? { maritalStatus: entry.maritalStatus } : {}),
-            ...(entry.occupation !== undefined ? { occupation: { tag: 'OCCU', payload: entry.occupation } } : {}),
-            ...(entry.birthDate !== undefined ? { birth: { tag: 'BIRT', detail: { ...(entry.birthPlace !== undefined ? { place: { tag: 'PLAC', payload: [entry.birthPlace] } } : {}) } } } : {}),
-          })),
-        }
-      : {}),
-  } as GedcomRecord;
-}
-
-function ageValuePayload(value: string): AgeValue {
-  const parsed = Number(value);
-  if (Number.isFinite(parsed)) {
-    return { years: parsed };
-  }
-  return { description: value as AgeValue['description'] } as AgeValue;
 }
 
 function buildTodoRecord(todo: TodoRecord): GedcomRecord {
@@ -1070,10 +1030,6 @@ function officialPlaceNames(place: PlaceRecord): string[] {
     .filter((name) => name.kind === undefined || name.kind === 'official')
     .sort((a, b) => a.position - b.position)
     .map((name) => name.value);
-}
-
-function placeNameOf(place: PlaceRecord): string {
-  return officialPlaceNames(place).join(', ');
 }
 
 function buildDate(date: DateValue | undefined): DateStructure | undefined {

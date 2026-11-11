@@ -1,7 +1,6 @@
 import type {
   AssociationRecord,
   AttachmentsSnapshot,
-  CensusRecord,
   DuplicateCandidateRecord,
   OrdinanceRecord,
   TitleRecord,
@@ -130,38 +129,6 @@ export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot 
     (ctx) => ctx.repo.deleteTodo(todo.id),
     (ctx) => {
       ctx.repo.insertTodo(todo);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
-}
-
-export function addCensusOp(census: CensusRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'census.add',
-    (ctx) => ctx.repo.insertCensus(census),
-    (ctx) => ctx.repo.deleteCensus(census.id),
-    { targetType: 'census', targetId: census.id, kind: 'created' },
-  );
-}
-
-export function updateCensusOp(before: CensusRecord, after: CensusRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'census.update',
-    (ctx) => ctx.repo.updateCensus(after),
-    (ctx) => ctx.repo.updateCensus(before),
-    { targetType: 'census', targetId: before.id, kind: 'changed' },
-  );
-}
-
-export function deleteCensusOp(census: CensusRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
-  return op(
-    crypto.randomUUID(),
-    'census.delete',
-    (ctx) => ctx.repo.deleteCensus(census.id),
-    (ctx) => {
-      ctx.repo.insertCensus(census);
       ctx.repo.restoreAttachments(attachments);
     },
   );

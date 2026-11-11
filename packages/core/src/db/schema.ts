@@ -489,25 +489,6 @@ CREATE TABLE IF NOT EXISTS todo (
   repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS census (
-  id TEXT PRIMARY KEY,
-  schedule TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS census_entry (
-  id TEXT PRIMARY KEY,
-  census_id TEXT NOT NULL REFERENCES census(id) ON DELETE CASCADE,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  father_id TEXT REFERENCES person(id) ON DELETE SET NULL,
-  mother_id TEXT REFERENCES person(id) ON DELETE SET NULL,
-  sex TEXT,
-  age_value TEXT, marital_status TEXT, occupation TEXT,
-  birth_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  birth_place_text TEXT
-);
-
 CREATE TABLE IF NOT EXISTS duplicate_candidate (
   id TEXT PRIMARY KEY,
   person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
@@ -596,7 +577,5 @@ CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
 CREATE INDEX IF NOT EXISTS idx_ordinance_target ON ordinance(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_census_entry_census ON census_entry(census_id);
-CREATE INDEX IF NOT EXISTS idx_census_entry_person ON census_entry(person_id);
 CREATE INDEX IF NOT EXISTS idx_duplicate_person ON duplicate_candidate(person_id);
 `;

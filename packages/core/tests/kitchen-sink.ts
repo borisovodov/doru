@@ -245,28 +245,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertOrdinance({ id: 'OR2', kind: 'SLGS', targetType: 'family', targetId: 'F1', status: 'CANCELED' });
   repo.insertOrdinance({ id: 'OR3', kind: 'SLGC', targetType: 'family', targetId: 'F1', date: { quality: 'exact', component: { year: 1946 } } });
 
-  // Census with entries.
-  repo.insertCensus({
-    id: 'CN1',
-    schedule: 'RG 13',
-    date: { quality: 'exact', component: { year: 1901 } },
-    placeId: 'PL1',
-    entries: [
-      {
-        id: 'CE1',
-        personId: 'P1',
-        sex: 'M',
-        ageValue: '17',
-        maritalStatus: 'single',
-        occupation: 'smith',
-        birthDate: { quality: 'exact', component: { year: 1884 } },
-        birthPlace: 'Moscow',
-      },
-      { id: 'CE2', personId: 'P2', ageValue: 'about fifteen' },
-    ],
-  });
-  repo.insertCensus({ id: 'CN2', entries: [] });
-
   // Todos: free-standing and attached.
   repo.insertTodo({ id: 'TD1', text: 'Order the birth record', category: 'records', locality: 'archive', priority: 'high', status: 'open', scheduledDate: { quality: 'exact', component: { year: 2026 } }, reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } }, closedDate: { quality: 'exact', component: { year: 2026, month: 3 } } });
   repo.insertTodo({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });

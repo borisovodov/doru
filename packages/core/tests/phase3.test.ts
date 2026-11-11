@@ -94,25 +94,12 @@ describe('Phase 3: research layer', () => {
     }
   });
 
-  it('round-trips censuses, duplicates and titles', () => {
+  it('round-trips duplicates and titles', () => {
     const fixture = makeRepo();
     try {
       const repo = fixture.repo;
       repo.insertPerson(person('P1'));
       repo.insertPerson(person('P2'));
-
-      repo.insertCensus({
-        id: 'C1',
-        schedule: '1897 census',
-        entries: [
-          { id: 'E1', personId: 'P1', ageValue: '3', occupation: 'none' },
-          { id: 'E2', personId: 'P2', ageValue: '40' },
-        ],
-      });
-      expect(repo.getCensus('C1')?.entries).toEqual([
-        expect.objectContaining({ id: 'E1', personId: 'P1', ageValue: '3' }),
-        expect.objectContaining({ id: 'E2', personId: 'P2', ageValue: '40' }),
-      ]);
 
       repo.insertDuplicate({ id: 'D1', personId: 'P1', otherPersonId: 'P2', assessment: 'maybe' });
       expect(repo.listDuplicates()).toEqual([

@@ -42,15 +42,15 @@ describe('buildGedcomDataset kitchen sink', () => {
       expect(tags).toContain('SUBM');
       expect(tags).toContain('TITL');
       expect(tags).toContain('SNOTE');
-      expect(tags).toContain('_CENR');
       expect(tags).toContain('_TODO');
       expect(tags).toContain('_EVENT_DEFN');
       expect(tags).toContain('_TAG');
-      // The evidence/research records stay out of the tree: the export
-      // must not carry them.
+      // The evidence/research and census records stay out of the tree:
+      // the export must not carry them.
       expect(tags).not.toContain('_EVID');
       expect(tags).not.toContain('_RDOC');
       expect(tags).not.toContain('_RACT');
+      expect(tags).not.toContain('_CENR');
       // The SUBN record is asserted against the direct dataset in the
       // header test below — the parser folds the submission record away.
 
@@ -76,7 +76,6 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(target.repo.listNotes()).toHaveLength(2);
         expect(target.repo.listTags()).toHaveLength(1);
         expect(target.repo.listFactTypes()).toHaveLength(1);
-        expect(target.repo.listCensuses().filter((census) => census.date !== undefined)).toHaveLength(1);
         expect(target.repo.listAssociations().length).toBeGreaterThan(0);
         expect(target.repo.listOrdinances().length).toBeGreaterThan(0);
       } finally {
@@ -96,18 +95,6 @@ describe('buildGedcomDataset kitchen sink', () => {
       expect(dataset.header.source).toMatchObject({ payload: 'DORU' });
       const submission = dataset.records.find((record) => record.tag === 'SUBN');
       expect(submission).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('drops a census without a date from the export', () => {
-    const fixture = makeRepo();
-    try {
-      fixture.repo.insertCensus({ id: 'CN1', entries: [] });
-      const dataset = buildGedcomDataset(fixture.repo);
-      const census = dataset.records.find((record) => record.tag === '_CENR');
-      expect(census).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }
