@@ -460,25 +460,6 @@ export interface SubmitterRecord {
   languages?: string[] | undefined;
 }
 
-/** The single-row project header (GEDCOM header/submission metadata). */
-export interface HeaderRecord {
-  gedcomVersion?: string | undefined;
-  sourceSoftware?: string | undefined;
-  sourceVersion?: string | undefined;
-  sourceName?: string | undefined;
-  date?: DateValue | undefined;
-  language?: string | undefined;
-  placeForm?: string | undefined;
-  copyright?: string | undefined;
-  fileName?: string | undefined;
-  submitterId?: string | undefined;
-  familyFile?: string | undefined;
-  temple?: string | undefined;
-  generationsAncestors?: number | undefined;
-  generationsDescendants?: number | undefined;
-  ordinanceProcessFlag?: string | undefined;
-}
-
 // ---------------------------------------------------------------------------
 // Attachments
 // ---------------------------------------------------------------------------

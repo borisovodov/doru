@@ -323,25 +323,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   // Fact types.
   repo.insertFactType({ id: 'FT1', code: 'MILT', kind: 'event', title: 'military service', abbreviation: 'mil', sentence: '{individual} served', confidential: true });
 
-  // Header.
-  repo.saveHeader({
-    gedcomVersion: '7.0',
-    sourceSoftware: 'Dóru',
-    sourceVersion: '0.0.34',
-    sourceName: 'doru',
-    date: { quality: 'exact', component: { year: 2026, month: 11, day: 10 }, time: { hour: 12, minute: 0, second: 0 } },
-    language: 'en',
-    placeForm: 'City, Country',
-    copyright: 'Public domain',
-    fileName: 'family.ged',
-    submitterId: 'SU1',
-    familyFile: 'family.ged',
-    temple: 'Moscow',
-    generationsAncestors: 4,
-    generationsDescendants: 2,
-    ordinanceProcessFlag: 'yes',
-  });
-
   // Submitter links on a person.
   repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1');
 }

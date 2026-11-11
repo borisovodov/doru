@@ -4,7 +4,6 @@ import type {
   CitationRecord,
   ContactRecord,
   FactTypeRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   NoteLinkRecord,
@@ -390,14 +389,5 @@ export function deleteFactTypeOp(type: FactTypeRecord): Op {
     'fact_type.delete',
     (ctx) => ctx.repo.deleteFactType(type.id),
     (ctx) => ctx.repo.insertFactType(type),
-  );
-}
-
-export function saveHeaderOp(before: HeaderRecord, after: HeaderRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'header.save',
-    (ctx) => ctx.repo.saveHeader(after),
-    (ctx) => ctx.repo.saveHeader(before),
   );
 }

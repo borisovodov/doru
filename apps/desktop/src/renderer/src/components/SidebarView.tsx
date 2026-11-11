@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   CitationRecord,
   FactRecord,
@@ -11,13 +12,14 @@ import type {
 import {
   PersonList,
   PlaceholderView,
+  RepositoryList,
   SidebarFamilies,
   SidebarFacts,
   SidebarMedia,
   SidebarPlaces,
-  SidebarRegistries,
   SidebarSearch,
   SidebarSources,
+  SubmitterList,
   type SidebarMediaItem,
 } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
@@ -40,7 +42,8 @@ export function SidebarView({
   onOpenFamily,
   onOpenSource,
   onOpenPlace,
-  onOpenRegistries,
+  onOpenRepository,
+  onOpenSubmitter,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
@@ -56,7 +59,8 @@ export function SidebarView({
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onOpenPlace: (placeId: string) => void;
-  onOpenRegistries: () => void;
+  onOpenRepository: (repositoryId: string) => void;
+  onOpenSubmitter: (submitterId: string) => void;
 }) {
   switch (activeView) {
     case 'people':
@@ -126,15 +130,17 @@ export function SidebarView({
       }
       return <SidebarMedia media={media} persons={persons} onOpenPerson={onOpenPerson} />;
     case 'sources':
-      if (sources.length === 0) {
-        return (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.sources')}
-            description={nls.t('features.sources.placeholder')}
-          />
-        );
-      }
-      return <SidebarSources sources={sources} citations={citations} onOpenSource={onOpenSource} />;
+      return (
+        <SourcesSidebar
+          sources={sources}
+          citations={citations}
+          repositories={repositories}
+          submitters={submitters}
+          onOpenSource={onOpenSource}
+          onOpenRepository={onOpenRepository}
+          onOpenSubmitter={onOpenSubmitter}
+        />
+      );
     case 'tasks':
       return (
         <PlaceholderView
@@ -142,8 +148,6 @@ export function SidebarView({
           description={nls.t('features.tasks.placeholder')}
         />
       );
-    case 'registries':
-      return <SidebarRegistries repositories={repositories} submitters={submitters} onOpenRegistries={onOpenRegistries} />;
     case 'search':
       return (
         <SidebarSearch
@@ -159,4 +163,60 @@ export function SidebarView({
     default:
       return null;
   }
+}
+
+/** The Sources sidebar: a segmented picker over sources, repositories and submitters. */
+function SourcesSidebar({
+  sources,
+  citations,
+  repositories,
+  submitters,
+  onOpenSource,
+  onOpenRepository,
+  onOpenSubmitter,
+}: {
+  sources: SourceRecord[];
+  citations: CitationRecord[];
+  repositories: RepositoryRecord[];
+  submitters: SubmitterRecord[];
+  onOpenSource: (sourceId: string) => void;
+  onOpenRepository: (repositoryId: string) => void;
+  onOpenSubmitter: (submitterId: string) => void;
+}) {
+  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters'>('sources');
+
+  return (
+    <>
+      <div className="sidebar-segments">
+        {(
+          [
+            ['sources', nls.t('workbench.activityBar.sources')],
+            ['repositories', nls.t('workbench.activityBar.repositories')],
+            ['submitters', nls.t('workbench.activityBar.submitters')],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            className={segment === id ? 'sidebar-segment active' : 'sidebar-segment'}
+            onClick={() => setSegment(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {segment === 'sources' &&
+        (sources.length === 0 ? (
+          <PlaceholderView
+            title={nls.t('workbench.activityBar.sources')}
+            description={nls.t('features.sources.placeholder')}
+          />
+        ) : (
+          <SidebarSources sources={sources} citations={citations} onOpenSource={onOpenSource} />
+        ))}
+      {segment === 'repositories' && (
+        <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
+      )}
+      {segment === 'submitters' && <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />}
+    </>
+  );
 }

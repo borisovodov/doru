@@ -318,7 +318,7 @@ CREATE TABLE IF NOT EXISTS media_link (
   caption INTEGER NOT NULL DEFAULT 0
 );
 
--- Repositories, submitters, addresses, project header.
+-- Repositories, submitters, addresses.
 
 CREATE TABLE IF NOT EXISTS repository (
   id TEXT PRIMARY KEY,
@@ -357,21 +357,6 @@ CREATE TABLE IF NOT EXISTS address_line (
   address_id TEXT NOT NULL REFERENCES address(id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
   value TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS header (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  gedcom_version TEXT,
-  source_software TEXT, source_version TEXT, source_name TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  language TEXT,
-  place_form TEXT,
-  copyright TEXT,
-  file_name TEXT,
-  submitter_id TEXT REFERENCES submitter(id) ON DELETE SET NULL,
-  family_file TEXT, temple TEXT,
-  generations_ancestors INTEGER, generations_descendants INTEGER,
-  ordinance_process_flag TEXT
 );
 
 -- Universal attachments: the single polymorphic shape, one table per kind.

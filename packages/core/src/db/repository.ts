@@ -13,7 +13,6 @@ import type {
   FactRecord,
   FactTypeRecord,
   FamilyRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
@@ -40,7 +39,6 @@ import { AttachmentRepo } from './attachmentRepo';
 import { DateRepo } from './dateRepo';
 import { FactRepo } from './factRepo';
 import { FamilyRepo } from './familyRepo';
-import { HeaderRepo } from './headerRepo';
 import { MediaRepo } from './mediaRepo';
 import { NameRepo } from './nameRepo';
 import { NoteRepo } from './noteRepo';
@@ -141,8 +139,6 @@ export interface TreeRepository {
   updateAddress(address: AddressRecord): void;
   getAddress(id: string): AddressRecord | undefined;
   deleteAddress(id: string): boolean;
-  getHeader(): HeaderRecord;
-  saveHeader(header: HeaderRecord): void;
   insertIdentifier(identifier: IdentifierRecord): void;
   deleteIdentifier(id: string): boolean;
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[];
@@ -239,7 +235,6 @@ export class SqliteTreeRepository implements TreeRepository {
   private readonly research: ResearchRepo;
   private readonly submitters: SubmitterRepo;
   private readonly addresses: AddressRepo;
-  private readonly header: HeaderRepo;
 
   constructor(db: DatabaseSync) {
     this.transactions = new TransactionScope(db);
@@ -258,7 +253,6 @@ export class SqliteTreeRepository implements TreeRepository {
     this.research = new ResearchRepo(db, dates);
     this.submitters = new SubmitterRepo(db);
     this.addresses = new AddressRepo(db);
-    this.header = new HeaderRepo(db, dates);
   }
 
   insertPerson(person: PersonRecord): void {
@@ -669,14 +663,6 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteAddress(id: string): boolean {
     return this.addresses.deleteAddress(id);
-  }
-
-  getHeader(): HeaderRecord {
-    return this.header.get();
-  }
-
-  saveHeader(header: HeaderRecord): void {
-    this.header.save(header);
   }
 
   insertIdentifier(identifier: IdentifierRecord): void {

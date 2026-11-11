@@ -6,7 +6,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaRecord,
   NoteRecord,
@@ -433,16 +432,6 @@ export function registerTreeIpc(): void {
       return runtime.service.deleteSubmitter(options.submitter);
     },
   );
-
-  ipcMain.handle('tree:header', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.getHeader();
-  });
-
-  ipcMain.handle('tree:saveHeader', async (_event, options: { projectPath: string; header: HeaderRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.saveHeader(options.header);
-  });
 
   ipcMain.handle('tree:addAddress', async (_event, options: { projectPath: string; address: AddressRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);

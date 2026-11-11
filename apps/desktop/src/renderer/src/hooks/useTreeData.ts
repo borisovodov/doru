@@ -516,13 +516,6 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteSubmitter(projectPath, submitter);
         await refreshTree();
       },
-      getHeader: () =>
-        projectPath ? window.doru.getHeader(projectPath) : Promise.resolve({}),
-      saveHeader: async (header) => {
-        if (!projectPath) return;
-        await window.doru.saveHeader(projectPath, header);
-        await refreshTree();
-      },
       addAddress: async (address) => {
         if (!projectPath) return;
         await window.doru.addAddress(projectPath, address);

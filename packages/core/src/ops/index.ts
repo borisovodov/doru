@@ -31,7 +31,6 @@ export {
   detachCitationOp,
   detachMediaOp,
   detachTagOp,
-  saveHeaderOp,
   splitNoteOp,
   updateAddressOp,
   updateCitationOp,

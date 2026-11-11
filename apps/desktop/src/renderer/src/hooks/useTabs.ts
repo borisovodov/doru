@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
+import type { FamilyRecord, PersonRecord, PlaceRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { placeName } from '@doru/core/model';
 import { displayName, familyLabel } from '@doru/features';
 import { moveTab, nls, type TabInfo } from '@doru/workbench';
@@ -8,11 +8,12 @@ const TREE_TAB_ID = 'tree';
 const SETTINGS_TAB_ID = 'settings';
 const NOTICES_TAB_ID = 'notices';
 const EXPORT_TAB_ID = 'export';
-const REGISTRIES_TAB_ID = 'registries';
 const PERSON_TAB_PREFIX = 'person:';
 const FAMILY_TAB_PREFIX = 'family:';
 const SOURCE_TAB_PREFIX = 'source:';
 const PLACE_TAB_PREFIX = 'place:';
+const REPOSITORY_TAB_PREFIX = 'repository:';
+const SUBMITTER_TAB_PREFIX = 'submitter:';
 
 interface OpenTab {
   id: string;
@@ -26,6 +27,8 @@ function tabLabel(
   families: FamilyRecord[],
   sources: SourceRecord[],
   places: PlaceRecord[],
+  repositories: RepositoryRecord[],
+  submitters: SubmitterRecord[],
 ): string {
   if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
     const personId = tab.id.slice(PERSON_TAB_PREFIX.length);
@@ -59,6 +62,20 @@ function tabLabel(
       return placeName(place);
     }
   }
+  if (tab.id.startsWith(REPOSITORY_TAB_PREFIX)) {
+    const repositoryId = tab.id.slice(REPOSITORY_TAB_PREFIX.length);
+    const repository = repositories.find((entry) => entry.id === repositoryId);
+    if (repository) {
+      return repository.name || '—';
+    }
+  }
+  if (tab.id.startsWith(SUBMITTER_TAB_PREFIX)) {
+    const submitterId = tab.id.slice(SUBMITTER_TAB_PREFIX.length);
+    const submitter = submitters.find((entry) => entry.id === submitterId);
+    if (submitter) {
+      return submitter.name || '—';
+    }
+  }
   return tab.label;
 }
 
@@ -67,6 +84,8 @@ export function useTabs(
   families: FamilyRecord[],
   sources: SourceRecord[],
   places: PlaceRecord[],
+  repositories: RepositoryRecord[],
+  submitters: SubmitterRecord[],
 ) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -184,6 +203,20 @@ export function useTabs(
     [openTab],
   );
 
+  const openRepositoryTab = useCallback(
+    (repositoryId: string) => {
+      openTab({ id: `${REPOSITORY_TAB_PREFIX}${repositoryId}`, label: repositoryId });
+    },
+    [openTab],
+  );
+
+  const openSubmitterTab = useCallback(
+    (submitterId: string) => {
+      openTab({ id: `${SUBMITTER_TAB_PREFIX}${submitterId}`, label: submitterId });
+    },
+    [openTab],
+  );
+
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -196,17 +229,13 @@ export function useTabs(
     openTab({ id: EXPORT_TAB_ID, label: nls.t('workbench.exportGedcom') });
   }, [openTab]);
 
-  const openRegistriesTab = useCallback(() => {
-    openTab({ id: REGISTRIES_TAB_ID, label: nls.t('workbench.registries') });
-  }, [openTab]);
-
   const reorderTabs = useCallback((sourceId: string, dropIndex: number) => {
     setOpenTabs((current) => moveTab(current, sourceId, dropIndex));
   }, []);
 
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
-    label: tabLabel(tab, persons, families, sources, places),
+    label: tabLabel(tab, persons, families, sources, places, repositories, submitters),
     closable: tab.closable,
   }));
 
@@ -226,10 +255,11 @@ export function useTabs(
     openFamilyTab,
     openSourceTab,
     openPlaceTab,
+    openRepositoryTab,
+    openSubmitterTab,
     openSettingsTab,
     openNoticesTab,
     openExportTab,
-    openRegistriesTab,
     reorderTabs,
   };
 }
@@ -239,9 +269,10 @@ export {
   TREE_TAB_ID,
   NOTICES_TAB_ID,
   EXPORT_TAB_ID,
-  REGISTRIES_TAB_ID,
   PERSON_TAB_PREFIX,
   FAMILY_TAB_PREFIX,
   SOURCE_TAB_PREFIX,
   PLACE_TAB_PREFIX,
+  REPOSITORY_TAB_PREFIX,
+  SUBMITTER_TAB_PREFIX,
 };

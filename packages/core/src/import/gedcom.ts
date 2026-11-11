@@ -165,7 +165,6 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     importRepositories(dataset.records, ctx);
     importSubmitters(dataset.records, ctx);
     importTags(dataset.records, ctx);
-    importHeader(dataset, ctx);
     importedSources = importSources(dataset.records, ctx);
     for (const record of dataset.records) {
       if (isIndividualRecord(record)) {
@@ -194,31 +193,11 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
 }
 
 // ---------------------------------------------------------------------------
-// Header, registries
+// Registries
 // ---------------------------------------------------------------------------
 
-function importHeader(dataset: GedcomDataset, ctx: ImportContext): void {
-  const header = dataset.header;
-  const submission = dataset.submission;
-  const source = header.source;
-  ctx.repo.saveHeader({
-    gedcomVersion: header.gedcom.version,
-    sourceSoftware: source?.payload,
-    sourceVersion: source?.version,
-    sourceName: source?.name,
-    date: mapDateExact(header.date),
-    language: header.language,
-    placeForm: header.place?.form ? header.place.form.join(', ') : undefined,
-    copyright: header.copyright,
-    fileName: header.fileName,
-    submitterId: header.submitter ? ctx.submitterIds.get(header.submitter) : undefined,
-    familyFile: submission?.familyFile,
-    temple: submission?.temple,
-    generationsAncestors: submission?.generationsOfAncestors,
-    generationsDescendants: submission?.generationsOfDescendants,
-    ordinanceProcessFlag: submission?.ordinanceProcessFlag,
-  });
-}
+// The GEDCOM header/submission metadata is not stored: the schema has no
+// header table, and the exporter synthesizes a fresh header on export.
 
 function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
   for (const record of records) {

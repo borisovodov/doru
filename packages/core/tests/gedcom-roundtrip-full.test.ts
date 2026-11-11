@@ -89,33 +89,14 @@ describe('buildGedcomDataset kitchen sink', () => {
     },
   );
 
-  it('exports the header fields and the submission record', () => {
+  it('exports a synthesized header naming the app as the source', () => {
     const fixture = makeRepo();
     try {
-      fixture.repo.saveHeader({
-        sourceSoftware: 'Dóru',
-        sourceVersion: '1.0',
-        sourceName: 'doru',
-        date: { quality: 'exact', component: { year: 2026 } },
-        language: 'ru',
-        placeForm: 'City, Country',
-        copyright: 'CC0',
-        fileName: 'family.ged',
-        familyFile: 'family.ged',
-        temple: 'Moscow',
-        generationsAncestors: 4,
-        generationsDescendants: 1,
-        ordinanceProcessFlag: 'yes',
-      });
       const dataset = buildGedcomDataset(fixture.repo);
       expect(dataset.header.gedcom).toEqual({ version: '7.0' });
-      expect(dataset.header.source).toMatchObject({ payload: 'Dóru', version: '1.0', name: 'doru' });
-      expect(dataset.header.language).toBe('ru');
-      expect(dataset.header.place).toEqual({ form: ['City', 'Country'] });
-      expect(dataset.header.copyright).toBe('CC0');
-      expect(dataset.header.fileName).toBe('family.ged');
+      expect(dataset.header.source).toMatchObject({ payload: 'DORU' });
       const submission = dataset.records.find((record) => record.tag === 'SUBN');
-      expect(submission).toMatchObject({ familyFile: 'family.ged', temple: 'Moscow' });
+      expect(submission).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

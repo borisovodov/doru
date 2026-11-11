@@ -17,14 +17,22 @@ export { SidebarPlaces } from './sidebar/SidebarPlaces';
 export { SidebarMedia, type SidebarMediaItem } from './sidebar/SidebarMedia';
 export { SidebarSources } from './sidebar/SidebarSources';
 export { SidebarSearch } from './sidebar/SidebarSearch';
-export { SidebarRegistries } from './sidebar/SidebarRegistries';
+export { RepositoryList, SubmitterList } from './sidebar/RegistryLists';
 export { FamilyInfoList } from './sidebar/FamilyView';
 export { SourceCitationsList, EntityTab } from './sidebar/SourceView';
 export { SourceEditor } from './source/SourceEditor';
 export { sourceDraftToRecord, sourceToDraft, emptySourceDraft, sourceDraftMatches, type SourceDraft } from './source/sourceDraft';
 export { FamilyEditor } from './family/FamilyEditor';
 export { familyDraftToRecord, familyToDraft, emptyFamilyDraft, familyDraftMatches, type FamilyDraft } from './family/familyDraft';
-export { RegistriesView } from './registries/RegistriesView';
+export { AddressFields } from './registries/AddressFields';
+export {
+  addressDraftEmpty,
+  addressDraftToRecord,
+  addressLabel,
+  addressToDraft,
+  emptyAddressDraft,
+  type AddressDraft,
+} from './registries/address';
 export { PlaceEditor } from './place/PlaceEditor';
 export { PlaceFactsList } from './place/PlaceFactsList';
 export { placeDraftToRecord, placeToDraft, emptyPlaceDraft, placeDraftMatches, type PlaceDraft } from './place/placeDraft';

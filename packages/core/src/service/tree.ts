@@ -10,7 +10,6 @@ import type {
   FactRecord,
   FactTypeRecord,
   FamilyRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
@@ -90,7 +89,6 @@ import {
   detachMediaOp,
   detachTagOp,
   reparentOp,
-  saveHeaderOp,
   splitNoteOp,
   updateAddressOp,
   updateAssociationOp,
@@ -604,10 +602,6 @@ export class TreeService {
     return this.repo.listSubmitters();
   }
 
-  getHeader(): HeaderRecord {
-    return this.repo.getHeader();
-  }
-
   updateRepository(before: RepositoryRecord, after: RepositoryRecord): UndoRedoState {
     return this.apply(updateRepositoryOp(before, after));
   }
@@ -656,10 +650,6 @@ export class TreeService {
 
   deleteFactType(type: FactTypeRecord): UndoRedoState {
     return this.apply(deleteFactTypeOp(type));
-  }
-
-  saveHeader(header: HeaderRecord): UndoRedoState {
-    return this.apply(saveHeaderOp(this.repo.getHeader(), header));
   }
 
   // --- relations and the research layer ----------------------------------------

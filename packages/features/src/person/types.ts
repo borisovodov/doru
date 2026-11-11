@@ -6,7 +6,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -104,8 +103,6 @@ export interface RegistriesEditorApi {
   addSubmitter(submitter: SubmitterRecord): Promise<void>;
   updateSubmitter(before: SubmitterRecord, after: SubmitterRecord): Promise<void>;
   deleteSubmitter(submitter: SubmitterRecord): Promise<void>;
-  getHeader(): Promise<HeaderRecord>;
-  saveHeader(header: HeaderRecord): Promise<void>;
   addAddress(address: AddressRecord): Promise<void>;
   updateAddress(before: AddressRecord, after: AddressRecord): Promise<void>;
   deleteAddress(address: AddressRecord): Promise<void>;

@@ -6,7 +6,6 @@ import {
   ChatSetupPlaceholder,
   EmptyEditorPage,
   NoticesView,
-  RegistriesView,
   SettingsView,
   TreeCanvas,
   WelcomePage,
@@ -16,7 +15,9 @@ import type { ProjectBinding } from '@doru/core';
 import { FamilyTab } from './components/FamilyTab';
 import { PersonTab } from './components/PersonTab';
 import { PlaceTab } from './components/PlaceTab';
+import { RepositoryTab } from './components/RepositoryTab';
 import { SourceTab } from './components/SourceTab';
+import { SubmitterTab } from './components/SubmitterTab';
 import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
@@ -29,9 +30,10 @@ import {
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   PLACE_TAB_PREFIX,
-  REGISTRIES_TAB_ID,
+  REPOSITORY_TAB_PREFIX,
   SETTINGS_TAB_ID,
   SOURCE_TAB_PREFIX,
+  SUBMITTER_TAB_PREFIX,
   TREE_TAB_ID,
   useTabs,
 } from './hooks/useTabs';
@@ -50,7 +52,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places);
+  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -128,11 +130,6 @@ export function App() {
       title: nls.t('workbench.settings'),
       handler: () => tabs.openSettingsTab(),
     });
-    const removeOpenRegistries = commands.register({
-      id: 'workbench.openRegistries',
-      title: nls.t('workbench.registries'),
-      handler: () => tabs.openRegistriesTab(),
-    });
     const removeNextTab = commands.register({
       id: 'workbench.nextTab',
       title: nls.t('workbench.nextTab'),
@@ -164,7 +161,6 @@ export function App() {
       removeCreate.dispose();
       removeExport.dispose();
       removeOpenSettings.dispose();
-      removeOpenRegistries.dispose();
       removeNextTab.dispose();
       removePrevTab.dispose();
       removeSwitchToTab.dispose();
@@ -178,7 +174,6 @@ export function App() {
     project.createProject,
     tabs.openExportTab,
     tabs.openSettingsTab,
-    tabs.openRegistriesTab,
     tabs.nextTab,
     tabs.prevTab,
     tabs.openTabAt,
@@ -215,8 +210,6 @@ export function App() {
       { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
       { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
       { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
-      { key: 'meta+shift+r', command: 'workbench.openRegistries' },
-      { key: 'ctrl+shift+r', command: 'workbench.openRegistries' },
       { key: 'meta+alt+b', command: 'workbench.toggleAgentChat' },
       { key: 'ctrl+alt+b', command: 'workbench.toggleAgentChat' },
       ...Array.from({ length: 9 }, (_, index) => [
@@ -313,9 +306,6 @@ export function App() {
     if (tab.id === EXPORT_TAB_ID) {
       return <ExportView onExportGedcom={() => void project.exportGedcom()} />;
     }
-    if (tab.id === REGISTRIES_TAB_ID) {
-      return <RegistriesView api={tree.registriesApi} />;
-    }
     if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
       return (
         <PersonTab
@@ -376,6 +366,26 @@ export function App() {
           families={tree.families}
           facts={tree.facts}
           onOpenPerson={openPersonAndFocus}
+          onClose={tabs.closeTab}
+        />
+      );
+    }
+    if (tab.id.startsWith(REPOSITORY_TAB_PREFIX)) {
+      return (
+        <RepositoryTab
+          tabId={tab.id}
+          repositories={tree.repositories}
+          api={tree.registriesApi}
+          onClose={tabs.closeTab}
+        />
+      );
+    }
+    if (tab.id.startsWith(SUBMITTER_TAB_PREFIX)) {
+      return (
+        <SubmitterTab
+          tabId={tab.id}
+          submitters={tree.submitters}
+          api={tree.registriesApi}
           onClose={tabs.closeTab}
         />
       );
@@ -462,7 +472,8 @@ export function App() {
             onOpenFamily={tabs.openFamilyTab}
             onOpenSource={tabs.openSourceTab}
             onOpenPlace={tabs.openPlaceTab}
-            onOpenRegistries={tabs.openRegistriesTab}
+            onOpenRepository={tabs.openRepositoryTab}
+            onOpenSubmitter={tabs.openSubmitterTab}
           />
         }
         activeView={activeView}

@@ -6,7 +6,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -199,8 +198,6 @@ declare global {
         after: SubmitterRecord,
       ): Promise<UndoRedoState>;
       deleteSubmitter(projectPath: string, submitter: SubmitterRecord): Promise<UndoRedoState>;
-      getHeader(projectPath: string): Promise<HeaderRecord>;
-      saveHeader(projectPath: string, header: HeaderRecord): Promise<UndoRedoState>;
       addAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
       updateAddress(
         projectPath: string,

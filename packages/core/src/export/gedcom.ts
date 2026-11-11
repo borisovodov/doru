@@ -139,7 +139,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     xrefs.assign('E', record.id, undefined);
   }
 
-  const header = repo.getHeader();
   const records: GedcomRecord[] = [
     ...submitters.map((submitter) => buildSubmitter(submitter, repo, xrefs)),
     ...repositories.map((repository) => buildRepository(repository, repo, xrefs)),
@@ -160,22 +159,14 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...buildAssociations(repo, xrefs),
     ...buildOrdinances(repo, xrefs),
   ];
-  if (header.familyFile !== undefined || header.temple !== undefined || header.generationsAncestors !== undefined) {
-    records.push(buildSubmission(header));
-  }
+  // The schema keeps no header table: the export synthesizes a fresh
+  // GEDCOM header naming this app as the source.
   return {
     header: {
       tag: 'HEAD',
-      gedcom: { version: header.gedcomVersion ?? '7.0' },
-      ...(header.sourceSoftware !== undefined
-        ? { source: { payload: header.sourceSoftware, ...(header.sourceVersion !== undefined ? { version: header.sourceVersion } : {}), ...(header.sourceName !== undefined ? { name: header.sourceName } : {}) } }
-        : { source: { payload: 'DORU' } }),
-      ...(header.date !== undefined ? { date: buildDateExactStructure(header.date) } : {}),
-      ...(header.submitterId !== undefined ? { submitter: xrefs.of(header.submitterId) } : {}),
-      ...(header.language !== undefined ? { language: header.language } : {}),
-      ...(header.placeForm !== undefined ? { place: { form: header.placeForm.split(', ').filter((part) => part !== '') } } : {}),
-      ...(header.copyright !== undefined ? { copyright: header.copyright } : {}),
-      ...(header.fileName !== undefined ? { fileName: header.fileName } : {}),
+      gedcom: { version: '7.0' },
+      source: { payload: 'DORU' },
+      ...(submitters.length > 0 ? { submitter: xrefs.of(submitters[0]!.id) } : {}),
     },
     records,
     trailer: { tag: 'TRLR' },
@@ -662,16 +653,6 @@ function buildTagRecord(tag: TagRecord): GedcomRecord {
   return { tag: '_TAG', name: tag.name } as GedcomRecord;
 }
 
-function buildSubmission(header: import('../model/types').HeaderRecord): GedcomRecord {
-  return {
-    tag: 'SUBN',
-    ...(header.familyFile !== undefined ? { familyFile: header.familyFile } : {}),
-    ...(header.temple !== undefined ? { temple: header.temple } : {}),
-    ...(header.generationsAncestors !== undefined ? { generationsOfAncestors: header.generationsAncestors } : {}),
-    ...(header.generationsDescendants !== undefined ? { generationsOfDescendants: header.generationsDescendants } : {}),
-    ...(header.ordinanceProcessFlag !== undefined ? { ordinanceProcessFlag: header.ordinanceProcessFlag } : {}),
-  } as GedcomRecord;
-}
 
 // ---------------------------------------------------------------------------
 // Relations exported as records

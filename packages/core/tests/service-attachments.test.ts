@@ -3,7 +3,6 @@ import type {
   AddressRecord,
   ContactRecord,
   FactTypeRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   NoteRecord,
@@ -332,20 +331,6 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listFactTypes()).toEqual([]);
       service.undo();
       expect(fixture.repo.listFactTypes()).toEqual([afterType]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('saves the project header with undo', () => {
-    const { fixture, service } = makeService();
-    try {
-      const header: HeaderRecord = { gedcomVersion: '7.0', sourceSoftware: 'Dóru' };
-      service.saveHeader(header);
-      expect(fixture.repo.getHeader()).toMatchObject(header);
-
-      service.undo();
-      expect(fixture.repo.getHeader()).toEqual({});
     } finally {
       cleanupRepo(fixture);
     }

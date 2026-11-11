@@ -188,10 +188,6 @@ const api = {
     ipcRenderer.invoke('tree:updateSubmitter', { projectPath, before, after }),
   deleteSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteSubmitter', { projectPath, submitter }),
-  getHeader: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:header', { projectPath }),
-  saveHeader: (projectPath: string, header: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:saveHeader', { projectPath, header }),
   addAddress: (projectPath: string, address: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addAddress', { projectPath, address }),
   updateAddress: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
