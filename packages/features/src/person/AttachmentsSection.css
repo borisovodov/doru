@@ -72,6 +72,58 @@
   margin-bottom: 8px;
 }
 
+.tag-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tag-chip-date {
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+}
+
+.tag-date-editor {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.tag-date-editor .date-editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.person-section .date-editor-row input,
+.person-section .date-editor-row select {
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-section .date-editor-row input:focus,
+.person-section .date-editor-row select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.person-section .date-editor > label {
+  display: block;
+  margin: 4px 0;
+  color: var(--doru-fg-muted);
+}
+
 .tag-chip {
   display: inline-flex;
   align-items: center;

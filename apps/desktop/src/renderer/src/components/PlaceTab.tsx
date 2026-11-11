@@ -301,6 +301,10 @@ function PlaceTabBody({
                   await api.detachTag(link);
                   await refreshAttachments();
                 }}
+                onUpdateTagLink={async (before, after) => {
+                  await api.updateTagLink(before, after);
+                  await refreshAttachments();
+                }}
               />
               <ContributorsSection
                 targetType="place"

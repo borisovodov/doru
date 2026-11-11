@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Νέος υποβάλλων",
   "features.tree.submitter.notFound": "Αυτός ο υποβάλλων δεν υπάρχει πλέον στο δέντρο.",
   "features.tree.tags.attach": "Επισύναψη",
+  "features.tree.tags.date": "Επισημάνθηκε στις",
+  "features.tree.tags.date.edit": "Επεξεργασία ημερομηνίας ετικέτας",
   "features.tree.tags.delete": "Διαγραφή αυτής της ετικέτας παντού",
   "features.tree.tags.detach": "Αποσύνδεση ετικέτας",
   "features.tree.tags.empty": "Δεν υπάρχουν επισυναπτόμενες ετικέτες.",

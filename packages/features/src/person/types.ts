@@ -57,6 +57,7 @@ export interface AttachmentsApi {
   deleteTag(tag: TagRecord): Promise<void>;
   attachTag(link: TagLinkRecord): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
+  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
 }
 
 /**
@@ -120,6 +121,7 @@ export interface PersonEditorApi {
   deleteTag(tag: TagRecord): Promise<void>;
   attachTag(link: TagLinkRecord): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
+  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
   getChanges(personId: string): Promise<ChangeRecord[]>;
   getPlaces(): Promise<PlaceRecord[]>;
 }

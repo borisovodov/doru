@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Нов подател",
   "features.tree.submitter.notFound": "Този подател вече не е в дървото.",
   "features.tree.tags.attach": "Прикачване",
+  "features.tree.tags.date": "Прикрепен на",
+  "features.tree.tags.date.edit": "Редактиране на датата на етикета",
   "features.tree.tags.delete": "Изтриване на този етикет отвсякъде",
   "features.tree.tags.detach": "Откачване на етикет",
   "features.tree.tags.empty": "Няма прикачени етикети.",

@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Nuevo remitente",
   "features.tree.submitter.notFound": "Este remitente ya no está en el árbol.",
   "features.tree.tags.attach": "Adjuntar",
+  "features.tree.tags.date": "Etiquetado el",
+  "features.tree.tags.date.edit": "Editar la fecha de la etiqueta",
   "features.tree.tags.delete": "Eliminar esta etiqueta en todas partes",
   "features.tree.tags.detach": "Despegar etiqueta",
   "features.tree.tags.empty": "Sin etiquetas adjuntas.",

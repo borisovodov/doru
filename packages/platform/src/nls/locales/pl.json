@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Nowy nadawca",
   "features.tree.submitter.notFound": "Tego nadawcy nie ma już w drzewie.",
   "features.tree.tags.attach": "Dołącz",
+  "features.tree.tags.date": "Oznaczono",
+  "features.tree.tags.date.edit": "Edytuj datę tagu",
   "features.tree.tags.delete": "Usuń tę etykietę wszędzie",
   "features.tree.tags.detach": "Odłącz etykietę",
   "features.tree.tags.empty": "Brak dołączonych etykiet.",

@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Новый автор",
   "features.tree.submitter.notFound": "Этого автора больше нет в древе.",
   "features.tree.tags.attach": "Прикрепить",
+  "features.tree.tags.date": "Дата прикрепления",
+  "features.tree.tags.date.edit": "Изменить дату прикрепления",
   "features.tree.tags.delete": "Удалить этот тег отовсюду",
   "features.tree.tags.detach": "Открепить метку",
   "features.tree.tags.empty": "Меток не прикреплено.",

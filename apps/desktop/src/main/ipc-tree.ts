@@ -339,6 +339,14 @@ export function registerTreeIpc(): void {
   });
 
   ipcMain.handle(
+    'tree:updateTagLink',
+    async (_event, options: { projectPath: string; before: TagLinkRecord; after: TagLinkRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateTagLink(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
     'tree:changes',
     async (_event, options: { projectPath: string; personId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);

@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "新提交者",
   "features.tree.submitter.notFound": "该提交者已不在树中。",
   "features.tree.tags.attach": "附加",
+  "features.tree.tags.date": "标记于",
+  "features.tree.tags.date.edit": "编辑标签日期",
   "features.tree.tags.delete": "从所有记录删除此标签",
   "features.tree.tags.detach": "分离标签",
   "features.tree.tags.empty": "未附加标签。",

@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Új beküldő",
   "features.tree.submitter.notFound": "Ez a beküldő már nincs a fában.",
   "features.tree.tags.attach": "Csatolás",
+  "features.tree.tags.date": "Címkézve",
+  "features.tree.tags.date.edit": "Címke dátumának szerkesztése",
   "features.tree.tags.delete": "Címke törlése mindenhonnan",
   "features.tree.tags.detach": "Címke leválasztása",
   "features.tree.tags.empty": "Nincs csatolt címke.",

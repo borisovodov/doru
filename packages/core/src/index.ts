@@ -102,6 +102,7 @@ export {
   detachCitationOp,
   detachMediaOp,
   detachTagOp,
+  updateTagLinkOp,
   splitNoteOp,
   updateAddressOp,
   updateCitationOp,

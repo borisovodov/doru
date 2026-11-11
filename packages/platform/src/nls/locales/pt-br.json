@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Novo submetedor",
   "features.tree.submitter.notFound": "Este submetedor não está mais na árvore.",
   "features.tree.tags.attach": "Anexar",
+  "features.tree.tags.date": "Marcado em",
+  "features.tree.tags.date.edit": "Editar a data da tag",
   "features.tree.tags.delete": "Excluir esta etiqueta de todos os registros",
   "features.tree.tags.detach": "Desanexar etiqueta",
   "features.tree.tags.empty": "Sem etiquetas anexadas.",

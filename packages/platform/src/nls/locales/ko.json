@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "새 제출자",
   "features.tree.submitter.notFound": "이 제출자는 더 이상 트리에 없습니다.",
   "features.tree.tags.attach": "붙이기",
+  "features.tree.tags.date": "부착일",
+  "features.tree.tags.date.edit": "태그 날짜 편집",
   "features.tree.tags.delete": "이 태그를 모든 곳에서 삭제",
   "features.tree.tags.detach": "태그 떼기",
   "features.tree.tags.empty": "붙은 태그가 없습니다.",

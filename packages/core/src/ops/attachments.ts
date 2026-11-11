@@ -294,6 +294,19 @@ export function detachTagOp(link: TagLinkRecord): Op {
   );
 }
 
+/** Changes the attachment date of a tag link. */
+export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'tag_link.update',
+      (ctx) => ctx.repo.updateTagLink(after),
+      (ctx) => ctx.repo.updateTagLink(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
+}
+
 // --- registries: repositories, submitters, addresses, fact types, header -------
 
 export function addRepositoryOp(repository: RepositoryRecord): Op {

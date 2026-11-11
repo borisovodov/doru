@@ -69,6 +69,7 @@ import {
   detachCitationOp,
   detachMediaOp,
   detachTagOp,
+  updateTagLinkOp,
   reparentOp,
   splitNoteOp,
   updateAddressOp,
@@ -560,6 +561,10 @@ export class TreeService {
 
   detachTag(link: TagLinkRecord): UndoRedoState {
     return this.apply(detachTagOp(link));
+  }
+
+  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): UndoRedoState {
+    return this.apply(updateTagLinkOp(before, after));
   }
 
   /** The change-log rows of a target (created/changed history). */

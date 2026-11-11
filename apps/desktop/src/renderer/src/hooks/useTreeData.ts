@@ -428,6 +428,12 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.detachTag(projectPath, link);
       },
+      updateTagLink: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateTagLink(projectPath, before, after);
+      },
       updateTag: async (before, after) => {
         if (!projectPath) {
           return;
@@ -553,6 +559,11 @@ export function useTreeData(projectPath: string | null | undefined) {
       detachTag: async (link: TagLinkRecord) => {
         if (!projectPath) return;
         await window.doru.detachTag(projectPath, link);
+        await refreshTree();
+      },
+      updateTagLink: async (before: TagLinkRecord, after: TagLinkRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateTagLink(projectPath, before, after);
         await refreshTree();
       },
     }),

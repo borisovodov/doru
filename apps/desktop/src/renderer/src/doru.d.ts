@@ -192,6 +192,11 @@ declare global {
       deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
+      updateTagLink(
+        projectPath: string,
+        before: TagLinkRecord,
+        after: TagLinkRecord,
+      ): Promise<UndoRedoState>;
       getTodos(projectPath: string): Promise<TodoRecord[]>;
       addTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
       updateTodo(projectPath: string, before: TodoRecord, after: TodoRecord): Promise<UndoRedoState>;

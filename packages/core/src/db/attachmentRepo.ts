@@ -186,6 +186,13 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
   }
 
+  updateTagLink(link: TagLinkRecord): void {
+    const dateId = link.date ? this.dates.upsert(link.date) : null;
+    this.db
+      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ?, date_id = ? WHERE id = ?')
+      .run(link.tagId, link.targetType, link.targetId, dateId, link.id);
+  }
+
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
     const rows = this.db
       .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id')

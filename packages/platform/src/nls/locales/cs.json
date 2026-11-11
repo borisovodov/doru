@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Nový odesílatel",
   "features.tree.submitter.notFound": "Tento odesílatel již není ve stromu.",
   "features.tree.tags.attach": "Připojit",
+  "features.tree.tags.date": "Označeno dne",
+  "features.tree.tags.date.edit": "Upravit datum štítku",
   "features.tree.tags.delete": "Smazat tento štítek všude",
   "features.tree.tags.detach": "Odpojit štítek",
   "features.tree.tags.empty": "Žádné připojené štítky.",

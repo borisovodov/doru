@@ -156,6 +156,8 @@ const api = {
     ipcRenderer.invoke('tree:attachTag', { projectPath, link }),
   detachTag: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:detachTag', { projectPath, link }),
+  updateTagLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateTagLink', { projectPath, before, after }),
   getTodos: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:todos', { projectPath }),
   addTodo: (projectPath: string, todo: unknown): Promise<unknown> =>

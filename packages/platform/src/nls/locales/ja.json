@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "新しい提出者",
   "features.tree.submitter.notFound": "この提出者はもう家系図にいません。",
   "features.tree.tags.attach": "付ける",
+  "features.tree.tags.date": "付与日",
+  "features.tree.tags.date.edit": "タグの日付を編集",
   "features.tree.tags.delete": "このタグをすべて削除",
   "features.tree.tags.detach": "タグを外す",
   "features.tree.tags.empty": "付いたタグはありません。",

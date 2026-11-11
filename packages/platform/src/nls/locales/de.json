@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Neuer Einsender",
   "features.tree.submitter.notFound": "Dieser Einsender ist nicht mehr im Stammbaum.",
   "features.tree.tags.attach": "Anhängen",
+  "features.tree.tags.date": "Angehängt am",
+  "features.tree.tags.date.edit": "Datum des Tags bearbeiten",
   "features.tree.tags.delete": "Dieses Schlagwort überall löschen",
   "features.tree.tags.detach": "Schlagwort lösen",
   "features.tree.tags.empty": "Keine Schlagwörter angehängt.",

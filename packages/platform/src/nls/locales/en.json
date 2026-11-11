@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "New submitter",
   "features.tree.submitter.notFound": "This submitter is no longer in the tree.",
   "features.tree.tags.attach": "Attach",
+  "features.tree.tags.date": "Tagged on",
+  "features.tree.tags.date.edit": "Edit the tag date",
   "features.tree.tags.delete": "Delete this tag from every record",
   "features.tree.tags.detach": "Detach tag",
   "features.tree.tags.empty": "No tags attached.",

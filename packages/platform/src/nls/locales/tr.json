@@ -372,6 +372,8 @@
   "features.tree.submitter.newSubmitter": "Yeni gönderen",
   "features.tree.submitter.notFound": "Bu gönderen artık ağaçta yok.",
   "features.tree.tags.attach": "Ekle",
+  "features.tree.tags.date": "Etiketlendiği tarih",
+  "features.tree.tags.date.edit": "Etiket tarihini düzenle",
   "features.tree.tags.delete": "Bu etiketi her yerden sil",
   "features.tree.tags.detach": "Etiketi ayır",
   "features.tree.tags.empty": "Ekli etiket yok.",
