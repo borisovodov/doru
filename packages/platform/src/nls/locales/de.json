@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Foto entfernen",
   "features.tree.media.title": "Medien",
   "features.tree.names.add": "Name hinzufügen",
+  "features.tree.names.date": "Gültigkeitszeitraum",
   "features.tree.names.displayForm": "Anzeigeform",
   "features.tree.names.language": "Sprache",
   "features.tree.names.part.given": "Vorname",

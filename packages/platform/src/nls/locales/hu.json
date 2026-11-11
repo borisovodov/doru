@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Fotó eltávolítása",
   "features.tree.media.title": "Média",
   "features.tree.names.add": "Név hozzáadása",
+  "features.tree.names.date": "Érvényességi idő",
   "features.tree.names.displayForm": "Megjelenített forma",
   "features.tree.names.language": "Nyelv",
   "features.tree.names.part.given": "Keresztnév",

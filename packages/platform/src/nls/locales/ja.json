@@ -230,6 +230,7 @@
   "features.tree.media.remove": "写真を削除",
   "features.tree.media.title": "メディア",
   "features.tree.names.add": "名前を追加",
+  "features.tree.names.date": "有効期間",
   "features.tree.names.displayForm": "表示形式",
   "features.tree.names.language": "言語",
   "features.tree.names.part.given": "名",

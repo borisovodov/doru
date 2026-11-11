@@ -1,14 +1,17 @@
 import { Plus, Star, X } from 'lucide-react';
 import { nls } from '../nls';
+import { DateEditor } from './DateEditor';
 import {
   NAME_PART_FIELDS,
   NAME_TYPES,
   NAME_VARIANT_KINDS,
+  emptyDate,
   emptyNameDraft,
   emptyVariantDraft,
   nameDraftDisplay,
   partOf,
   setPartValue,
+  type DateDraft,
   type NameDraft,
   type NameVariantDraft,
 } from './draft';
@@ -49,6 +52,12 @@ export function NamesSection({
     patch(nameIndex, {
       variants: name.variants.map((variant, i) => (i === variantIndex ? { ...variant, ...values } : variant)),
     });
+  };
+
+  /** An emptied date row drops the name's validity period entirely. */
+  const setDate = (index: number, date: DateDraft) => {
+    const emptied = dateDraftBlank(date);
+    patch(index, { date: emptied ? undefined : date });
   };
 
   const addVariant = (nameIndex: number) => {
@@ -95,6 +104,12 @@ export function NamesSection({
               <input value={name.language} onChange={(event) => patch(index, { language: event.target.value })} />
             </label>
           </div>
+          <DateEditor
+            label={nls.t('features.tree.names.date')}
+            value={name.date ?? emptyDate()}
+            onChange={(date) => setDate(index, date)}
+            hidePlace
+          />
           {partOf(name, 'full').trim() !== '' && (
             <label>
               {nls.t('features.tree.names.displayForm')}
@@ -195,5 +210,19 @@ function NamePartField({
       {nls.t(`features.tree.names.part.${field}`)}
       <input value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
+  );
+}
+
+/** True when the date draft holds nothing the user typed. */
+function dateDraftBlank(date: DateDraft): boolean {
+  return (
+    date.year === '' &&
+    date.month === '' &&
+    date.day === '' &&
+    date.endYear === '' &&
+    date.endMonth === '' &&
+    date.endDay === '' &&
+    date.text.trim() === '' &&
+    date.place.trim() === ''
   );
 }

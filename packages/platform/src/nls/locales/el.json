@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Αφαίρεση φωτογραφίας",
   "features.tree.media.title": "Πολυμέσα",
   "features.tree.names.add": "Προσθήκη ονόματος",
+  "features.tree.names.date": "Περίοδος ισχύος",
   "features.tree.names.displayForm": "Εμφανιζόμενη μορφή",
   "features.tree.names.language": "Γλώσσα",
   "features.tree.names.part.given": "Όνομα",

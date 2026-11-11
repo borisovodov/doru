@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Odebrat fotografii",
   "features.tree.media.title": "Média",
   "features.tree.names.add": "Přidat jméno",
+  "features.tree.names.date": "Doba platnosti",
   "features.tree.names.displayForm": "Zobrazovaná forma",
   "features.tree.names.language": "Jazyk",
   "features.tree.names.part.given": "Křestní jméno",

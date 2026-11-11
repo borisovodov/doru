@@ -230,6 +230,7 @@
   "features.tree.media.remove": "사진 제거",
   "features.tree.media.title": "미디어",
   "features.tree.names.add": "이름 추가",
+  "features.tree.names.date": "유효 기간",
   "features.tree.names.displayForm": "표시 형식",
   "features.tree.names.language": "언어",
   "features.tree.names.part.given": "이름",

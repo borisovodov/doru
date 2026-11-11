@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Удалить фото",
   "features.tree.media.title": "Медиа",
   "features.tree.names.add": "Добавить имя",
+  "features.tree.names.date": "Период действия",
   "features.tree.names.displayForm": "Отображаемая форма",
   "features.tree.names.language": "Язык",
   "features.tree.names.part.given": "Имя",

@@ -62,8 +62,7 @@ export interface NameVariantDraft {
  * field collapses that kind's parts into the typed value, untouched kinds
  * keep every stored part. `primary` marks the preferred display name; the
  * UI keeps the primary name first in the list, matching the model's
- * display rule. `date` (the name's validity period) is preserved but not
- * edited yet.
+ * display rule. `date` is the name's validity period.
  */
 export interface NameDraft {
   id: string;
@@ -71,7 +70,7 @@ export interface NameDraft {
   language: string; // BCP 47
   primary: boolean;
   parts: NamePart[];
-  date?: DateValue | undefined;
+  date?: DateDraft | undefined;
   variants: NameVariantDraft[];
 }
 
@@ -264,7 +263,7 @@ export function nameToDraft(name: PersonName): NameDraft {
     language: name.language ?? '',
     primary: name.primary === true,
     parts: [...partsOfName(name)],
-    date: name.date,
+    date: name.date !== undefined ? toDateDraft(name.date) : undefined,
     variants: (name.variants ?? []).map(variantToDraft),
   };
 }
@@ -300,10 +299,18 @@ function nameDraftMatches(a: NameDraft, b: NameDraft): boolean {
     a.language === b.language &&
     a.primary === b.primary &&
     partsEqual(a.parts, b.parts) &&
-    dateValueEqual(a.date, b.date) &&
+    nameDateMatches(a.date, b.date) &&
     a.variants.length === b.variants.length &&
     a.variants.every((variant, index) => variantDraftMatches(variant, b.variants[index]!))
   );
+}
+
+/** The name period compares as two date drafts; a missing period matches only a missing period. */
+function nameDateMatches(a: DateDraft | undefined, b: DateDraft | undefined): boolean {
+  if (a === undefined || b === undefined) {
+    return a === b;
+  }
+  return dateDraftsEqual(a, b);
 }
 
 function variantDraftMatches(a: NameVariantDraft, b: NameVariantDraft): boolean {
@@ -398,7 +405,7 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
     primary: draft.primary || undefined,
     parts: normalizedParts(draft.parts),
     ...flatFromParts(draft.parts),
-    date: draft.date,
+    date: draft.date !== undefined ? fromDateDraft(draft.date) : undefined,
     variants: draft.variants.map(variantDraftToName).filter((entry): entry is PersonName => entry !== undefined),
   };
 }

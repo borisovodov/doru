@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Fotoğrafı kaldır",
   "features.tree.media.title": "Medya",
   "features.tree.names.add": "Ad ekle",
+  "features.tree.names.date": "Geçerlilik dönemi",
   "features.tree.names.displayForm": "Görünen biçim",
   "features.tree.names.language": "Dil",
   "features.tree.names.part.given": "Ad",

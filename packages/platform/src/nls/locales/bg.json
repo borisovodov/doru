@@ -230,6 +230,7 @@
   "features.tree.media.remove": "Премахване на снимка",
   "features.tree.media.title": "Медия",
   "features.tree.names.add": "Добавяне на име",
+  "features.tree.names.date": "Период на действие",
   "features.tree.names.displayForm": "Показвана форма",
   "features.tree.names.language": "Език",
   "features.tree.names.part.given": "Собствено име",
