@@ -107,6 +107,14 @@ const api = {
     ipcRenderer.invoke('tree:updateFamily', { projectPath, before, after }),
   deleteFamily: (projectPath: string, family: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteFamily', { projectPath, family }),
+  getAssociations: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:associations', { projectPath, personId }),
+  addAssociation: (projectPath: string, association: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addAssociation', { projectPath, association }),
+  updateAssociation: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateAssociation', { projectPath, before, after }),
+  deleteAssociation: (projectPath: string, association: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteAssociation', { projectPath, association }),
   getSources: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:sources', { projectPath }),
   addSource: (

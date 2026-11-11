@@ -611,6 +611,11 @@ export class TreeService {
 
   // --- relations and the research layer ----------------------------------------
 
+  /** Every non-family relation of the person (GEDCOM ASSO). */
+  listAssociationsFor(personId: string): AssociationRecord[] {
+    return this.repo.listAssociationsFor(personId);
+  }
+
   addAssociation(association: AssociationRecord): UndoRedoState {
     return this.apply(addAssociationOp(association));
   }

@@ -1,5 +1,13 @@
 import { ipcMain } from 'electron';
-import type { FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
+import type {
+  AssociationRecord,
+  FactRecord,
+  FamilyRecord,
+  MediaRecord,
+  NoteRecord,
+  PersonRecord,
+  SourceRecord,
+} from '@doru/core';
 import { addMediaToPerson, listAllMedia, listMediaForPerson, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
 
@@ -134,6 +142,38 @@ export function registerTreeIpc(): void {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.deleteFamily(options.family);
   });
+
+  ipcMain.handle(
+    'tree:associations',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listAssociationsFor(options.personId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addAssociation',
+    async (_event, options: { projectPath: string; association: AssociationRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addAssociation(options.association);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:updateAssociation',
+    async (_event, options: { projectPath: string; before: AssociationRecord; after: AssociationRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateAssociation(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteAssociation',
+    async (_event, options: { projectPath: string; association: AssociationRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteAssociation(options.association);
+    },
+  );
 
   ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);

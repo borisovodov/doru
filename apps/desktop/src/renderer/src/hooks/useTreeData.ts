@@ -188,6 +188,26 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.deleteFamily(projectPath, family);
       },
+      getAssociations: (personId) =>
+        projectPath ? window.doru.getAssociations(projectPath, personId) : Promise.resolve([]),
+      addAssociation: async (association) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addAssociation(projectPath, association);
+      },
+      updateAssociation: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateAssociation(projectPath, before, after);
+      },
+      deleteAssociation: async (association) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteAssociation(projectPath, association);
+      },
       getSources: () =>
         projectPath ? window.doru.getSources(projectPath) : Promise.resolve([]),
       getCitations: (personId) =>

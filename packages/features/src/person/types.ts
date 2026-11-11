@@ -1,4 +1,12 @@
-import type { FactRecord, FamilyRecord, MediaRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
+import type {
+  AssociationRecord,
+  FactRecord,
+  FamilyRecord,
+  MediaRecord,
+  NoteRecord,
+  PersonRecord,
+  SourceRecord,
+} from '@doru/core';
 
 export interface MediaWithPath extends MediaRecord {
   absolutePath: string;
@@ -23,6 +31,10 @@ export interface PersonEditorApi {
   addFamily(family: FamilyRecord): Promise<void>;
   updateFamily(before: FamilyRecord, after: FamilyRecord): Promise<void>;
   deleteFamily(family: FamilyRecord): Promise<void>;
+  getAssociations(personId: string): Promise<AssociationRecord[]>;
+  addAssociation(association: AssociationRecord): Promise<void>;
+  updateAssociation(before: AssociationRecord, after: AssociationRecord): Promise<void>;
+  deleteAssociation(association: AssociationRecord): Promise<void>;
   getSources(): Promise<SourceRecord[]>;
   getCitations(personId: string): Promise<CitationInfo[]>;
   addSource(source: SourceRecord, targetId: string): Promise<void>;

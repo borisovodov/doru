@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import type {
+  AssociationRecord,
   FactRecord,
   FamilyRecord,
   NoteRecord,
@@ -11,6 +12,7 @@ import type {
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './PersonEditor.css';
+import { AssociationsSection } from './AssociationsSection';
 import { DateEditor } from './DateEditor';
 import { EventsSection } from './EventsSection';
 import { FamilySection } from './FamilySection';
@@ -44,6 +46,7 @@ export function PersonEditor({
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [noteDraft, setNoteDraft] = useState('');
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
+  const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
   const [citations, setCitations] = useState<CitationInfo[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
@@ -57,6 +60,9 @@ export function PersonEditor({
       });
       void refreshFamilies();
       void refreshCitations();
+      void api.getAssociations(draft.id).then((loaded) => {
+        if (!cancelled) setAssociations(loaded);
+      });
       void api.getFacts(draft.id).then((loaded) => {
         if (!cancelled) setFacts(loaded);
       });
@@ -66,6 +72,7 @@ export function PersonEditor({
     } else {
       setNotes([]);
       setFamilies([]);
+      setAssociations([]);
       setSources([]);
       setCitations([]);
       setFacts([]);
@@ -80,6 +87,10 @@ export function PersonEditor({
 
   const refreshFamilies = async () => {
     setFamilies(await api.getFamilies());
+  };
+
+  const refreshAssociations = async () => {
+    setAssociations(await api.getAssociations(draft.id));
   };
 
   const refreshCitations = async () => {
@@ -203,6 +214,23 @@ export function PersonEditor({
             getFacts={api.getFacts}
             onAddFact={api.addFact}
             onDeleteFact={api.deleteFact}
+          />
+          <AssociationsSection
+            personId={draft.id}
+            associations={associations}
+            persons={persons}
+            onAdd={async (association) => {
+              await api.addAssociation(association);
+              await refreshAssociations();
+            }}
+            onUpdate={async (before, after) => {
+              await api.updateAssociation(before, after);
+              await refreshAssociations();
+            }}
+            onDelete={async (association) => {
+              await api.deleteAssociation(association);
+              await refreshAssociations();
+            }}
           />
           <EventsSection
             personId={draft.id}

@@ -1,4 +1,5 @@
 import type {
+  AssociationRecord,
   CitationRecord,
   FactRecord,
   FamilyRecord,
@@ -119,6 +120,14 @@ declare global {
         after: FamilyRecord,
       ): Promise<UndoRedoState>;
       deleteFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
+      getAssociations(projectPath: string, personId: string): Promise<AssociationRecord[]>;
+      addAssociation(projectPath: string, association: AssociationRecord): Promise<UndoRedoState>;
+      updateAssociation(
+        projectPath: string,
+        before: AssociationRecord,
+        after: AssociationRecord,
+      ): Promise<UndoRedoState>;
+      deleteAssociation(projectPath: string, association: AssociationRecord): Promise<UndoRedoState>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(
         projectPath: string,
