@@ -46,8 +46,21 @@ export class TreeStore implements ITreeStore {
       );
     }
     if (version === 0) {
-      db.exec(SCHEMA_SQL);
-      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      // Every DDL statement is its own implicit transaction, and SQLite
+      // fsyncs and deletes the rollback journal on each commit. The schema
+      // has well over a hundred statements now, which turns into tens of
+      // seconds of file-system churn on Windows CI (and every new project
+      // file pays it once). Create the whole schema in one transaction so
+      // there is a single commit.
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        db.exec(SCHEMA_SQL);
+        db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
     }
     return new TreeStore(db, path);
   }
