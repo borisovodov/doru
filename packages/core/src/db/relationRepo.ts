@@ -112,9 +112,17 @@ export class RelationRepo {
 
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }> {
     const rows = this.db
-      .prepare('SELECT id, alias_id FROM person_alias WHERE person_id = ? ORDER BY id')
-      .all(personId) as unknown as { id: string; alias_id: string }[];
-    return rows.map((row) => ({ id: row.id, aliasId: row.alias_id }));
+      .prepare(
+        `SELECT id, person_id, alias_id FROM person_alias
+         WHERE person_id = ? OR alias_id = ?
+         ORDER BY id`,
+      )
+      .all(personId, personId) as unknown as { id: string; person_id: string; alias_id: string }[];
+    return rows.map((row) => ({
+      id: row.id,
+      // The link is symmetric for display: return the other person.
+      aliasId: row.person_id === personId ? row.alias_id : row.person_id,
+    }));
   }
 
 

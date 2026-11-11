@@ -74,6 +74,14 @@ declare global {
         anchorId: string,
         person: PersonRecord,
       ): Promise<UndoRedoState>;
+      getAliases(projectPath: string, personId: string): Promise<Array<{ id: string; aliasId: string }>>;
+      addAlias(projectPath: string, personId: string, aliasId: string): Promise<UndoRedoState>;
+      deleteAlias(
+        projectPath: string,
+        id: string,
+        personId: string,
+        aliasId: string,
+      ): Promise<UndoRedoState>;
       exportGedcom(projectPath: string): Promise<{ path: string } | null>;
       sendChat(projectPath: string, sessionId: string, text: string): Promise<ChatSendResult>;
       cancelChat(projectPath: string, sessionId: string): void;

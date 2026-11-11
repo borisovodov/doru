@@ -69,6 +69,30 @@ export function registerTreeIpc(): void {
   });
 
   ipcMain.handle(
+    'tree:aliases',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listAliasesFor(options.personId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addAlias',
+    async (_event, options: { projectPath: string; personId: string; aliasId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addAlias(options.personId, options.aliasId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteAlias',
+    async (_event, options: { projectPath: string; id: string; personId: string; aliasId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteAlias(options.id, options.personId, options.aliasId);
+    },
+  );
+
+  ipcMain.handle(
     'tree:updatePerson',
     async (_event, options: { projectPath: string; before: PersonRecord; after: PersonRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);

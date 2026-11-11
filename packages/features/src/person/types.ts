@@ -69,6 +69,9 @@ export interface PersonEditorApi {
   addRestriction(restriction: RestrictionRecord): Promise<void>;
   deleteRestriction(restriction: RestrictionRecord): Promise<void>;
   getTags(): Promise<TagRecord[]>;
+  getAliases(personId: string): Promise<Array<{ id: string; aliasId: string }>>;
+  addAlias(personId: string, aliasId: string): Promise<void>;
+  deleteAlias(id: string, personId: string, aliasId: string): Promise<void>;
   getTagLinks(personId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
   addTag(tag: TagRecord): Promise<void>;
   updateTag(before: TagRecord, after: TagRecord): Promise<void>;

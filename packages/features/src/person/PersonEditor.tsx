@@ -21,6 +21,7 @@ import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './PersonEditor.css';
 import { AssociationsSection } from './AssociationsSection';
+import { AliasesSection } from './AliasesSection';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
 import { ChangesSection } from './ChangesSection';
 import { DateEditor } from './DateEditor';
@@ -58,6 +59,7 @@ export function PersonEditor({
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
+  const [aliases, setAliases] = useState<Array<{ id: string; aliasId: string }>>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
   const [citations, setCitations] = useState<CitationRecord[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
@@ -119,6 +121,7 @@ export function PersonEditor({
 
   const refreshAssociations = async () => {
     setAssociations(await api.getAssociations(draft.id));
+    setAliases(await api.getAliases(draft.id));
   };
 
   /** Reloads every universal attachment list of the person. */
@@ -266,6 +269,19 @@ export function PersonEditor({
             }}
             onDelete={async (association) => {
               await api.deleteAssociation(association);
+              await refreshAssociations();
+            }}
+          />
+          <AliasesSection
+            personId={draft.id}
+            aliases={aliases}
+            persons={persons}
+            onAdd={async (personId, aliasId) => {
+              await api.addAlias(personId, aliasId);
+              await refreshAssociations();
+            }}
+            onDelete={async (id, personId, aliasId) => {
+              await api.deleteAlias(id, personId, aliasId);
               await refreshAssociations();
             }}
           />

@@ -363,6 +363,22 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteRestriction(projectPath, restriction);
       },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
+      getAliases: (personId) =>
+        projectPath ? window.doru.getAliases(projectPath, personId) : Promise.resolve([]),
+      addAlias: async (personId, aliasId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addAlias(projectPath, personId, aliasId);
+        await refreshTree();
+      },
+      deleteAlias: async (id, personId, aliasId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteAlias(projectPath, id, personId, aliasId);
+        await refreshTree();
+      },
       getTagLinks: (personId) =>
         projectPath ? window.doru.getTagLinks(projectPath, personId) : Promise.resolve([]),
       addTag: async (tag) => {

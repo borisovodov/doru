@@ -630,8 +630,16 @@ export class TreeService {
     return this.apply(deleteAssociationOp(association, attachments));
   }
 
+  listAssociationsFor(personId: string): AssociationRecord[] {
+    return this.repo.listAssociationsFor(personId);
+  }
+
   addAlias(personId: string, aliasId: string): UndoRedoState {
     return this.apply(addAliasOp(crypto.randomUUID(), personId, aliasId));
+  }
+
+  listAliasesFor(personId: string): Array<{ id: string; aliasId: string }> {
+    return this.repo.listAliasesFor(personId);
   }
 
   deleteAlias(id: string, personId: string, aliasId: string): UndoRedoState {

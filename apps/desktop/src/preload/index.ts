@@ -27,6 +27,12 @@ const api = {
     ipcRenderer.invoke('tree:redo', { projectPath }),
   addPerson: (projectPath: string, person: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addPerson', { projectPath, person }),
+  getAliases: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:aliases', { projectPath, personId }),
+  addAlias: (projectPath: string, personId: string, aliasId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addAlias', { projectPath, personId, aliasId }),
+  deleteAlias: (projectPath: string, id: string, personId: string, aliasId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteAlias', { projectPath, id, personId, aliasId }),
   updatePerson: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updatePerson', { projectPath, before, after }),
   deletePerson: (projectPath: string, person: unknown): Promise<unknown> =>
