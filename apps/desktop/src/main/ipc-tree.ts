@@ -18,6 +18,7 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TodoRecord,
 } from '@doru/core';
 import { addMediaToPerson, listAllMedia, listMediaForPerson, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
@@ -546,5 +547,28 @@ export function registerTreeIpc(): void {
     const state = runtime.service.deleteMedia(options.media);
     await removeMediaFile(options.projectPath, options.media.path ?? '');
     return state;
+  });
+
+  ipcMain.handle('tree:todos', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listTodos();
+  });
+
+  ipcMain.handle('tree:addTodo', async (_event, options: { projectPath: string; todo: TodoRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addTodo(options.todo);
+  });
+
+  ipcMain.handle(
+    'tree:updateTodo',
+    async (_event, options: { projectPath: string; before: TodoRecord; after: TodoRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateTodo(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle('tree:deleteTodo', async (_event, options: { projectPath: string; todo: TodoRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteTodo(options.todo);
   });
 }

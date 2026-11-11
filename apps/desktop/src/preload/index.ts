@@ -150,6 +150,14 @@ const api = {
     ipcRenderer.invoke('tree:attachTag', { projectPath, link }),
   detachTag: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:detachTag', { projectPath, link }),
+  getTodos: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:todos', { projectPath }),
+  addTodo: (projectPath: string, todo: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addTodo', { projectPath, todo }),
+  updateTodo: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateTodo', { projectPath, before, after }),
+  deleteTodo: (projectPath: string, todo: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteTodo', { projectPath, todo }),
   getChanges: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:changes', { projectPath, personId }),
   getSources: (projectPath: string): Promise<unknown> =>

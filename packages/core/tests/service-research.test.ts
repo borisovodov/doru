@@ -161,6 +161,7 @@ describe('TreeService research layer', () => {
     try {
       service.addTodo(todo());
       expect(fixture.repo.listTodos()).toEqual([todo()]);
+      expect(service.listTodos()).toEqual([todo()]);
       expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([]);
       service.addTodo(todo({ id: 'T2', targetType: 'person', targetId: 'P1' }));
       expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([todo({ id: 'T2', targetType: 'person', targetId: 'P1' })]);

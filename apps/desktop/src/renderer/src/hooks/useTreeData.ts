@@ -9,6 +9,7 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TodoRecord,
 } from '@doru/core';
 import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
 
@@ -27,9 +28,10 @@ export function useTreeData(projectPath: string | null | undefined) {
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
+  const [todos, setTodos] = useState<TodoRecord[]>([]);
 
   const reloadTree = useCallback(async (path: string) => {
-    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces, allRepositories, allSubmitters] =
+    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces, allRepositories, allSubmitters, allTodos] =
       await Promise.all([
         window.doru.all(path),
         window.doru.getAllFacts(path),
@@ -40,6 +42,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         window.doru.getPlaces(path),
         window.doru.getRepositories(path),
         window.doru.getSubmitters(path),
+        window.doru.getTodos(path),
       ]);
     setPersons(data.persons);
     setFamilies(data.families);
@@ -51,6 +54,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     setPlaces(allPlaces);
     setRepositories(allRepositories);
     setSubmitters(allSubmitters);
+    setTodos(allTodos);
   }, []);
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       setPlaces([]);
       setRepositories([]);
       setSubmitters([]);
+      setTodos([]);
       return;
     }
     void reloadTree(projectPath);
@@ -546,6 +551,27 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const todosApi = useMemo(
+    () => ({
+      addTodo: async (todo: TodoRecord) => {
+        if (!projectPath) return;
+        await window.doru.addTodo(projectPath, todo);
+        await refreshTree();
+      },
+      updateTodo: async (before: TodoRecord, after: TodoRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateTodo(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteTodo: async (todo: TodoRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteTodo(projectPath, todo);
+        await refreshTree();
+      },
+    }),
+    [projectPath, refreshTree],
+  );
+
   return {
     persons,
     families,
@@ -557,6 +583,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     places,
     repositories,
     submitters,
+    todos,
     undo,
     redo,
     refreshTree,
@@ -569,5 +596,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     placeApi,
     familyApi,
     registriesApi,
+    todosApi,
   };
 }

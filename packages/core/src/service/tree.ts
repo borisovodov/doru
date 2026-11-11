@@ -702,6 +702,14 @@ export class TreeService {
     return this.apply(addTodoOp(todo));
   }
 
+  listTodos(): TodoRecord[] {
+    return this.repo.listTodos();
+  }
+
+  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
+    return this.repo.listTodosFor(targetType, targetId);
+  }
+
   updateTodo(before: TodoRecord, after: TodoRecord): UndoRedoState {
     return this.apply(updateTodoOp(before, after));
   }

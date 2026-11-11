@@ -21,6 +21,7 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TodoRecord,
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
@@ -165,6 +166,10 @@ declare global {
       deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
+      getTodos(projectPath: string): Promise<TodoRecord[]>;
+      addTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
+      updateTodo(projectPath: string, before: TodoRecord, after: TodoRecord): Promise<UndoRedoState>;
+      deleteTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
       getChanges(projectPath: string, personId: string): Promise<ChangeRecord[]>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(

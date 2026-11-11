@@ -8,6 +8,7 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TodoRecord,
 } from '@doru/core';
 import {
   PersonList,
@@ -20,6 +21,7 @@ import {
   SidebarSearch,
   SidebarSources,
   SubmitterList,
+  TasksView,
   type SidebarMediaItem,
 } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
@@ -38,12 +40,16 @@ export function SidebarView({
   places,
   repositories,
   submitters,
+  todos,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
   onOpenPlace,
   onOpenRepository,
   onOpenSubmitter,
+  onAddTodo,
+  onUpdateTodo,
+  onDeleteTodo,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
@@ -55,12 +61,16 @@ export function SidebarView({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  todos: TodoRecord[];
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onOpenPlace: (placeId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
+  onAddTodo: (todo: TodoRecord) => Promise<void>;
+  onUpdateTodo: (before: TodoRecord, after: TodoRecord) => Promise<void>;
+  onDeleteTodo: (todo: TodoRecord) => Promise<void>;
 }) {
   switch (activeView) {
     case 'people':
@@ -143,9 +153,14 @@ export function SidebarView({
       );
     case 'tasks':
       return (
-        <PlaceholderView
-          title={nls.t('workbench.activityBar.tasks')}
-          description={nls.t('features.tasks.placeholder')}
+        <TasksView
+          todos={todos}
+          persons={persons}
+          repositories={repositories}
+          onAddTodo={onAddTodo}
+          onUpdateTodo={onUpdateTodo}
+          onDeleteTodo={onDeleteTodo}
+          onOpenPerson={onOpenPerson}
         />
       );
     case 'search':

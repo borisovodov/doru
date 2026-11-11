@@ -468,12 +468,16 @@ export function App() {
             places={tree.places}
             repositories={tree.repositories}
             submitters={tree.submitters}
+            todos={tree.todos}
             onOpenPerson={openPersonAndFocus}
             onOpenFamily={tabs.openFamilyTab}
             onOpenSource={tabs.openSourceTab}
             onOpenPlace={tabs.openPlaceTab}
             onOpenRepository={tabs.openRepositoryTab}
             onOpenSubmitter={tabs.openSubmitterTab}
+            onAddTodo={tree.todosApi.addTodo}
+            onUpdateTodo={tree.todosApi.updateTodo}
+            onDeleteTodo={tree.todosApi.deleteTodo}
           />
         }
         activeView={activeView}
