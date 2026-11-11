@@ -354,6 +354,7 @@ export function App() {
           persons={tree.persons}
           families={tree.families}
           facts={tree.facts}
+          places={tree.places}
           citations={tree.citations}
           notes={tree.notes}
           onOpenPerson={openPersonAndFocus}

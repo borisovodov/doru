@@ -7,6 +7,7 @@ import type {
   IdentifierRecord,
   NoteRecord,
   PersonRecord,
+  PlaceRecord,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -43,6 +44,7 @@ export function SourceTab({
   persons,
   families,
   facts,
+  places,
   citations,
   notes,
   onOpenPerson,
@@ -56,6 +58,7 @@ export function SourceTab({
   persons: PersonRecord[];
   families: FamilyRecord[];
   facts: FactRecord[];
+  places: PlaceRecord[];
   citations: CitationRecord[];
   notes: NoteRecord[];
   onOpenPerson: (personId: string) => void;
@@ -78,6 +81,7 @@ export function SourceTab({
       persons={persons}
       families={families}
       facts={facts}
+      places={places}
       sources={sources}
       citations={citations}
       notes={notes}
@@ -97,6 +101,7 @@ function SourceTabBody({
   persons,
   families,
   facts,
+  places,
   sources,
   citations,
   notes,
@@ -112,6 +117,7 @@ function SourceTabBody({
   persons: PersonRecord[];
   families: FamilyRecord[];
   facts: FactRecord[];
+  places: PlaceRecord[];
   sources: SourceRecord[];
   citations: CitationRecord[];
   notes: NoteRecord[];
@@ -227,6 +233,7 @@ function SourceTabBody({
         onChange={setDraft}
         repositories={repositories}
         titles={titles}
+        places={places}
         onAddRepository={async (repository) => {
           await api.addRepository(repository);
           setRepositories(await api.getRepositories());

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BookOpenText, Plus, X } from 'lucide-react';
-import type { RepositoryRecord, TitleRecord } from '@doru/core';
+import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
+import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
@@ -27,6 +28,7 @@ export function SourceEditor({
   onChange,
   repositories,
   titles,
+  places,
   onAddRepository,
   onSave,
   onCancel,
@@ -36,6 +38,7 @@ export function SourceEditor({
   onChange: (draft: SourceDraft) => void;
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
+  places: PlaceRecord[];
   onAddRepository: (repository: RepositoryRecord) => Promise<void>;
   onSave: () => void;
   onCancel?: (() => void) | undefined;
@@ -163,6 +166,25 @@ export function SourceEditor({
           value={draft.pubDate}
           onChange={(pubDate) => set({ pubDate })}
         />
+        <label>
+          {nls.t('features.tree.fact.placeLink')}
+          <select
+            value={places.find((place) => placeName(place) === draft.pubDate.place.trim())?.id ?? ''}
+            onChange={(event) => {
+              const place = places.find((entry) => entry.id === event.target.value);
+              if (place) {
+                set({ pubDate: { ...draft.pubDate, place: placeName(place) } });
+              }
+            }}
+          >
+            <option value="">{nls.t('features.tree.fact.placeLink.none')}</option>
+            {places.map((place) => (
+              <option key={place.id} value={place.id}>
+                {placeName(place)}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
 
       <section className="person-section">
@@ -230,6 +252,23 @@ export function SourceEditor({
               onChange={(date) => patchEvent(index, { date })}
               hidePlace
             />
+            <label>
+              {nls.t('features.tree.fact.placeLink')}
+              <select
+                value={event.placeId ?? ''}
+                onChange={(change) => {
+                  const place = places.find((entry) => entry.id === change.target.value);
+                  patchEvent(index, { placeId: place?.id });
+                }}
+              >
+                <option value="">{nls.t('features.tree.fact.placeLink.none')}</option>
+                {places.map((place) => (
+                  <option key={place.id} value={place.id}>
+                    {placeName(place)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         ))}
         <button className="add-button" onClick={addEvent}>
