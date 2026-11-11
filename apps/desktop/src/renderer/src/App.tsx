@@ -19,6 +19,7 @@ import { RepositoryTab } from './components/RepositoryTab';
 import { SourceTab } from './components/SourceTab';
 import { SubmitterTab } from './components/SubmitterTab';
 import { TaskTab } from './components/TaskTab';
+import { TitleTab } from './components/TitleTab';
 import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
@@ -36,6 +37,7 @@ import {
   SOURCE_TAB_PREFIX,
   SUBMITTER_TAB_PREFIX,
   TASK_TAB_PREFIX,
+  TITLE_TAB_PREFIX,
   TREE_TAB_ID,
   useTabs,
 } from './hooks/useTabs';
@@ -54,7 +56,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters, tree.todos);
+  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters, tree.todos, tree.titles);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -404,6 +406,19 @@ export function App() {
         />
       );
     }
+    if (tab.id.startsWith(TITLE_TAB_PREFIX)) {
+      return (
+        <TitleTab
+          tabId={tab.id}
+          titles={tree.titles}
+          sources={tree.sources}
+          repositories={tree.repositories}
+          api={tree.titlesApi}
+          onClose={tabs.closeTab}
+          onOpenSource={tabs.openSourceTab}
+        />
+      );
+    }
     return null;
   };
 
@@ -482,6 +497,7 @@ export function App() {
             places={tree.places}
             repositories={tree.repositories}
             submitters={tree.submitters}
+            titles={tree.titles}
             todos={tree.todos}
             onOpenPerson={openPersonAndFocus}
             onOpenFamily={tabs.openFamilyTab}
@@ -489,6 +505,8 @@ export function App() {
             onOpenPlace={tabs.openPlaceTab}
             onOpenRepository={tabs.openRepositoryTab}
             onOpenSubmitter={tabs.openSubmitterTab}
+            onOpenTitle={tabs.openTitleTab}
+            onNewTitle={tabs.openNewTitleTab}
             onOpenTask={tabs.openTaskTab}
             onNewTask={tabs.openNewTaskTab}
           />

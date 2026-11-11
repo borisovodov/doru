@@ -200,6 +200,14 @@ const api = {
     ipcRenderer.invoke('tree:deleteRepository', { projectPath, repository }),
   getSubmitters: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:submitters', { projectPath }),
+  getTitles: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:titles', { projectPath }),
+  addTitle: (projectPath: string, title: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addTitle', { projectPath, title }),
+  updateTitle: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateTitle', { projectPath, before, after }),
+  deleteTitle: (projectPath: string, title: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteTitle', { projectPath, title }),
   addSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addSubmitter', { projectPath, submitter }),
   updateSubmitter: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>

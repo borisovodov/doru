@@ -9,6 +9,7 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TitleRecord,
   TodoRecord,
 } from '@doru/core';
 import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
@@ -29,9 +30,10 @@ export function useTreeData(projectPath: string | null | undefined) {
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [todos, setTodos] = useState<TodoRecord[]>([]);
+  const [titles, setTitles] = useState<TitleRecord[]>([]);
 
   const reloadTree = useCallback(async (path: string) => {
-    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces, allRepositories, allSubmitters, allTodos] =
+    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces, allRepositories, allSubmitters, allTodos, allTitles] =
       await Promise.all([
         window.doru.all(path),
         window.doru.getAllFacts(path),
@@ -43,6 +45,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         window.doru.getRepositories(path),
         window.doru.getSubmitters(path),
         window.doru.getTodos(path),
+        window.doru.getTitles(path),
       ]);
     setPersons(data.persons);
     setFamilies(data.families);
@@ -55,6 +58,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     setRepositories(allRepositories);
     setSubmitters(allSubmitters);
     setTodos(allTodos);
+    setTitles(allTitles);
   }, []);
 
   useEffect(() => {
@@ -70,6 +74,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       setRepositories([]);
       setSubmitters([]);
       setTodos([]);
+      setTitles([]);
       return;
     }
     void reloadTree(projectPath);
@@ -463,6 +468,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.addRepository(projectPath, repository);
         await refreshTree();
       },
+      getTitles: () => (projectPath ? window.doru.getTitles(projectPath) : Promise.resolve([])),
     }),
     [projectPath, refreshTree],
   );
@@ -605,6 +611,27 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const titlesApi = useMemo(
+    () => ({
+      addTitle: async (title: TitleRecord) => {
+        if (!projectPath) return;
+        await window.doru.addTitle(projectPath, title);
+        await refreshTree();
+      },
+      updateTitle: async (before: TitleRecord, after: TitleRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateTitle(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteTitle: async (title: TitleRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteTitle(projectPath, title);
+        await refreshTree();
+      },
+    }),
+    [projectPath, refreshTree],
+  );
+
   const todosApi = useMemo(
     () => ({
       addTodo: async (todo: TodoRecord) => {
@@ -638,6 +665,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     repositories,
     submitters,
     todos,
+    titles,
     undo,
     redo,
     refreshTree,
@@ -651,5 +679,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     familyApi,
     registriesApi,
     todosApi,
+    titlesApi,
   };
 }

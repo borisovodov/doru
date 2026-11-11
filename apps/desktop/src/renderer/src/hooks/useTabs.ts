@@ -6,6 +6,7 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TitleRecord,
   TodoRecord,
 } from '@doru/core';
 import { placeName } from '@doru/core/model';
@@ -23,6 +24,7 @@ const PLACE_TAB_PREFIX = 'place:';
 const REPOSITORY_TAB_PREFIX = 'repository:';
 const SUBMITTER_TAB_PREFIX = 'submitter:';
 const TASK_TAB_PREFIX = 'task:';
+const TITLE_TAB_PREFIX = 'title:';
 
 interface OpenTab {
   id: string;
@@ -39,6 +41,7 @@ function tabLabel(
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
   todos: TodoRecord[],
+  titles: TitleRecord[],
 ): string {
   if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
     const personId = tab.id.slice(PERSON_TAB_PREFIX.length);
@@ -86,6 +89,16 @@ function tabLabel(
       return submitter.name || '—';
     }
   }
+  if (tab.id.startsWith(TITLE_TAB_PREFIX)) {
+    const titleId = tab.id.slice(TITLE_TAB_PREFIX.length);
+    if (titleId.startsWith('new:')) {
+      return nls.t('features.tree.title.newTitle');
+    }
+    const title = titles.find((entry) => entry.id === titleId);
+    if (title) {
+      return title.name || '—';
+    }
+  }
   if (tab.id.startsWith(TASK_TAB_PREFIX)) {
     const taskId = tab.id.slice(TASK_TAB_PREFIX.length);
     if (taskId.startsWith('new:')) {
@@ -107,6 +120,7 @@ export function useTabs(
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
   todos: TodoRecord[],
+  titles: TitleRecord[],
 ) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -250,6 +264,18 @@ export function useTabs(
     openTab({ id: `${TASK_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tasks.newTask') });
   }, [openTab]);
 
+  const openTitleTab = useCallback(
+    (titleId: string) => {
+      const title = titles.find((entry) => entry.id === titleId);
+      openTab({ id: `${TITLE_TAB_PREFIX}${titleId}`, label: title?.name ?? titleId });
+    },
+    [titles, openTab],
+  );
+
+  const openNewTitleTab = useCallback(() => {
+    openTab({ id: `${TITLE_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.title.newTitle') });
+  }, [openTab]);
+
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -268,7 +294,7 @@ export function useTabs(
 
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
-    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, todos),
+    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, todos, titles),
     closable: tab.closable,
   }));
 
@@ -292,6 +318,8 @@ export function useTabs(
     openSubmitterTab,
     openTaskTab,
     openNewTaskTab,
+    openTitleTab,
+    openNewTitleTab,
     openSettingsTab,
     openNoticesTab,
     openExportTab,
@@ -311,4 +339,5 @@ export {
   REPOSITORY_TAB_PREFIX,
   SUBMITTER_TAB_PREFIX,
   TASK_TAB_PREFIX,
+  TITLE_TAB_PREFIX,
 };

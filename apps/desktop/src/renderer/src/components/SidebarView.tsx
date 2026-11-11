@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import type {
   CitationRecord,
   FactRecord,
@@ -8,6 +9,7 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TitleRecord,
   TodoRecord,
 } from '@doru/core';
 import {
@@ -22,6 +24,7 @@ import {
   SidebarSources,
   SubmitterList,
   TasksView,
+  TitleList,
   type SidebarMediaItem,
 } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
@@ -40,6 +43,7 @@ export function SidebarView({
   places,
   repositories,
   submitters,
+  titles,
   todos,
   onOpenPerson,
   onOpenFamily,
@@ -47,6 +51,8 @@ export function SidebarView({
   onOpenPlace,
   onOpenRepository,
   onOpenSubmitter,
+  onOpenTitle,
+  onNewTitle,
   onOpenTask,
   onNewTask,
 }: {
@@ -60,6 +66,7 @@ export function SidebarView({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  titles: TitleRecord[];
   todos: TodoRecord[];
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
@@ -67,6 +74,8 @@ export function SidebarView({
   onOpenPlace: (placeId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
+  onOpenTitle: (titleId: string) => void;
+  onNewTitle: () => void;
   onOpenTask: (todoId: string) => void;
   onNewTask: () => void;
 }) {
@@ -144,9 +153,12 @@ export function SidebarView({
           citations={citations}
           repositories={repositories}
           submitters={submitters}
+          titles={titles}
           onOpenSource={onOpenSource}
           onOpenRepository={onOpenRepository}
           onOpenSubmitter={onOpenSubmitter}
+          onOpenTitle={onOpenTitle}
+          onNewTitle={onNewTitle}
         />
       );
     case 'tasks':
@@ -177,25 +189,31 @@ export function SidebarView({
   }
 }
 
-/** The Sources sidebar: a segmented picker over sources, repositories and submitters. */
+/** The Sources sidebar: a segmented picker over sources, repositories, submitters and titles. */
 function SourcesSidebar({
   sources,
   citations,
   repositories,
   submitters,
+  titles,
   onOpenSource,
   onOpenRepository,
   onOpenSubmitter,
+  onOpenTitle,
+  onNewTitle,
 }: {
   sources: SourceRecord[];
   citations: CitationRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  titles: TitleRecord[];
   onOpenSource: (sourceId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
+  onOpenTitle: (titleId: string) => void;
+  onNewTitle: () => void;
 }) {
-  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters'>('sources');
+  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters' | 'titles'>('sources');
 
   return (
     <>
@@ -205,6 +223,7 @@ function SourcesSidebar({
             ['sources', nls.t('workbench.activityBar.sources')],
             ['repositories', nls.t('workbench.activityBar.repositories')],
             ['submitters', nls.t('workbench.activityBar.submitters')],
+            ['titles', nls.t('workbench.activityBar.titles')],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -229,6 +248,16 @@ function SourcesSidebar({
         <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
       )}
       {segment === 'submitters' && <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />}
+      {segment === 'titles' && (
+        <>
+          <div className="tasks-header">
+            <button className="icon-button" title={nls.t('features.tree.title.add')} onClick={onNewTitle}>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          </div>
+          <TitleList titles={titles} onOpenTitle={onOpenTitle} />
+        </>
+      )}
     </>
   );
 }

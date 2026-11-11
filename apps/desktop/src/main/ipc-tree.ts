@@ -18,6 +18,7 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TitleRecord,
   TodoRecord,
 } from '@doru/core';
 import { addMediaToPerson, listAllMedia, listMediaForPerson, removeMediaFile } from './media';
@@ -446,6 +447,35 @@ export function registerTreeIpc(): void {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listSubmitters();
   });
+
+  ipcMain.handle('tree:titles', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listTitles();
+  });
+
+  ipcMain.handle(
+    'tree:addTitle',
+    async (_event, options: { projectPath: string; title: TitleRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addTitle(options.title);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:updateTitle',
+    async (_event, options: { projectPath: string; before: TitleRecord; after: TitleRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateTitle(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteTitle',
+    async (_event, options: { projectPath: string; title: TitleRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteTitle(options.title);
+    },
+  );
 
   ipcMain.handle(
     'tree:addSubmitter',

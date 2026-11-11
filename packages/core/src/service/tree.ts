@@ -689,6 +689,10 @@ export class TreeService {
     return this.apply(addTitleOp(title));
   }
 
+  listTitles(): TitleRecord[] {
+    return this.repo.listTitles();
+  }
+
   updateTitle(before: TitleRecord, after: TitleRecord): UndoRedoState {
     return this.apply(updateTitleOp(before, after));
   }

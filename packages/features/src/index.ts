@@ -17,7 +17,7 @@ export { SidebarPlaces } from './sidebar/SidebarPlaces';
 export { SidebarMedia, type SidebarMediaItem } from './sidebar/SidebarMedia';
 export { SidebarSources } from './sidebar/SidebarSources';
 export { SidebarSearch } from './sidebar/SidebarSearch';
-export { RepositoryList, SubmitterList } from './sidebar/RegistryLists';
+export { RepositoryList, SubmitterList, TitleList } from './sidebar/RegistryLists';
 export { FamilyInfoList } from './sidebar/FamilyView';
 export { SourceCitationsList, EntityTab } from './sidebar/SourceView';
 export { SourceEditor } from './source/SourceEditor';

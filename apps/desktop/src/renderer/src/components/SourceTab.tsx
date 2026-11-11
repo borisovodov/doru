@@ -7,6 +7,7 @@ import type {
   PersonRecord,
   RepositoryRecord,
   SourceRecord,
+  TitleRecord,
 } from '@doru/core';
 import {
   EntityTab,
@@ -90,6 +91,7 @@ function SourceTabBody({
 }) {
   const [draft, setDraft] = useState<SourceDraft>(() => sourceToDraft(record));
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
+  const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
 
   // Reset the draft only when it still equals the previous stored source —
@@ -110,6 +112,9 @@ function SourceTabBody({
     let cancelled = false;
     void api.getRepositories().then((loaded) => {
       if (!cancelled) setRepositories(loaded);
+    });
+    void api.getTitles().then((loaded) => {
+      if (!cancelled) setTitles(loaded);
     });
     return () => {
       cancelled = true;
@@ -132,6 +137,7 @@ function SourceTabBody({
         draft={draft}
         onChange={setDraft}
         repositories={repositories}
+        titles={titles}
         onAddRepository={async (repository) => {
           await api.addRepository(repository);
           setRepositories(await api.getRepositories());

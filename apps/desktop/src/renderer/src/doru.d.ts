@@ -21,6 +21,7 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TitleRecord,
   TodoRecord,
   TreeStats,
   UndoRedoState,
@@ -213,6 +214,10 @@ declare global {
         after: SubmitterRecord,
       ): Promise<UndoRedoState>;
       deleteSubmitter(projectPath: string, submitter: SubmitterRecord): Promise<UndoRedoState>;
+      getTitles(projectPath: string): Promise<TitleRecord[]>;
+      addTitle(projectPath: string, title: TitleRecord): Promise<UndoRedoState>;
+      updateTitle(projectPath: string, before: TitleRecord, after: TitleRecord): Promise<UndoRedoState>;
+      deleteTitle(projectPath: string, title: TitleRecord): Promise<UndoRedoState>;
       getRecordSubmitters(
         projectPath: string,
         targetType: string,

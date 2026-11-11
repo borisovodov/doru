@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BookOpenText, Plus, X } from 'lucide-react';
-import type { RepositoryRecord } from '@doru/core';
+import type { RepositoryRecord, TitleRecord } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
@@ -26,6 +26,7 @@ export function SourceEditor({
   draft,
   onChange,
   repositories,
+  titles,
   onAddRepository,
   onSave,
   onCancel,
@@ -34,6 +35,7 @@ export function SourceEditor({
   draft: SourceDraft;
   onChange: (draft: SourceDraft) => void;
   repositories: RepositoryRecord[];
+  titles: TitleRecord[];
   onAddRepository: (repository: RepositoryRecord) => Promise<void>;
   onSave: () => void;
   onCancel?: (() => void) | undefined;
@@ -107,6 +109,20 @@ export function SourceEditor({
         <label>
           {nls.t('features.tree.sources.titleField')}
           <input value={draft.title} onChange={(event) => set({ title: event.target.value })} />
+        </label>
+        <label>
+          {nls.t('features.tree.title.work')}
+          <select
+            value={draft.titleId ?? ''}
+            onChange={(event) => set({ titleId: event.target.value === '' ? undefined : event.target.value })}
+          >
+            <option value="">{nls.t('features.tree.title.none')}</option>
+            {titles.map((title) => (
+              <option key={title.id} value={title.id}>
+                {title.name ?? title.id}
+              </option>
+            ))}
+          </select>
         </label>
         <div className="source-grid">
           <label>

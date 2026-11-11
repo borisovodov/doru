@@ -18,6 +18,7 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TitleRecord,
 } from '@doru/core';
 
 export interface MediaWithPath extends MediaRecord {
@@ -96,6 +97,7 @@ export interface SourceEditorApi {
   deleteSource(source: SourceRecord): Promise<void>;
   getRepositories(): Promise<RepositoryRecord[]>;
   addRepository(repository: RepositoryRecord): Promise<void>;
+  getTitles(): Promise<TitleRecord[]>;
 }
 
 /** The service surface the place tab needs from its host application. */

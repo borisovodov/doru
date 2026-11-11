@@ -1,5 +1,5 @@
-import { Archive, User } from 'lucide-react';
-import type { RepositoryRecord, SubmitterRecord } from '@doru/core';
+import { Archive, BookMarked, User } from 'lucide-react';
+import type { RepositoryRecord, SubmitterRecord, TitleRecord } from '@doru/core';
 import { nls } from '../nls';
 import './sidebar.css';
 
@@ -50,6 +50,34 @@ export function SubmitterList({
           </span>
           <span className="entity-card-body">
             <span className="entity-card-title">{submitter.name || '—'}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The bibliographic-title list of the Sources sidebar; clicking opens the title tab. */
+export function TitleList({
+  titles,
+  onOpenTitle,
+}: {
+  titles: TitleRecord[];
+  onOpenTitle: (titleId: string) => void;
+}) {
+  if (titles.length === 0) {
+    return <p className="side-registries-note">{nls.t('features.tree.title.empty')}</p>;
+  }
+  return (
+    <ul className="side-section-list">
+      {titles.map((title) => (
+        <li key={title.id} className="entity-card clickable" onClick={() => onOpenTitle(title.id)}>
+          <span className="entity-card-icon">
+            <BookMarked size={15} aria-hidden="true" />
+          </span>
+          <span className="entity-card-body">
+            <span className="entity-card-title">{title.name || '—'}</span>
+            {title.author !== undefined && <span className="entity-card-subtitle">{title.author}</span>}
           </span>
         </li>
       ))}
