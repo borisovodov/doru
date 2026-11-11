@@ -1,0 +1,18 @@
+/* ── Registries sidebar ────────────────────────────────────────────── */
+
+.side-registries .side-section-list {
+  flex: none;
+}
+
+.side-registries-title {
+  margin: 10px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doru-fg-muted);
+}
+
+.side-registries-note {
+  margin: 0 12px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}

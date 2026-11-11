@@ -17,6 +17,7 @@ export { SidebarPlaces } from './sidebar/SidebarPlaces';
 export { SidebarMedia, type SidebarMediaItem } from './sidebar/SidebarMedia';
 export { SidebarSources } from './sidebar/SidebarSources';
 export { SidebarSearch } from './sidebar/SidebarSearch';
+export { SidebarRegistries } from './sidebar/SidebarRegistries';
 export { FamilyInfoList } from './sidebar/FamilyView';
 export { SourceCitationsList, EntityTab } from './sidebar/SourceView';
 export { SourceEditor } from './source/SourceEditor';

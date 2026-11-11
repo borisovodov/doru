@@ -6,7 +6,9 @@ import type {
   NoteRecord,
   PersonRecord,
   PlaceRecord,
+  RepositoryRecord,
   SourceRecord,
+  SubmitterRecord,
 } from '@doru/core';
 import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
 
@@ -23,17 +25,22 @@ export function useTreeData(projectPath: string | null | undefined) {
   const [citations, setCitations] = useState<CitationRecord[]>([]);
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
+  const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
+  const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
 
   const reloadTree = useCallback(async (path: string) => {
-    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces] = await Promise.all([
-      window.doru.all(path),
-      window.doru.getAllFacts(path),
-      window.doru.getSources(path),
-      window.doru.getAllMedia(path),
-      window.doru.getAllCitations(path),
-      window.doru.listNotes(path),
-      window.doru.getPlaces(path),
-    ]);
+    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces, allRepositories, allSubmitters] =
+      await Promise.all([
+        window.doru.all(path),
+        window.doru.getAllFacts(path),
+        window.doru.getSources(path),
+        window.doru.getAllMedia(path),
+        window.doru.getAllCitations(path),
+        window.doru.listNotes(path),
+        window.doru.getPlaces(path),
+        window.doru.getRepositories(path),
+        window.doru.getSubmitters(path),
+      ]);
     setPersons(data.persons);
     setFamilies(data.families);
     setFacts(allFacts);
@@ -42,6 +49,8 @@ export function useTreeData(projectPath: string | null | undefined) {
     setCitations(allCitations);
     setNotes(allNotes);
     setPlaces(allPlaces);
+    setRepositories(allRepositories);
+    setSubmitters(allSubmitters);
   }, []);
 
   useEffect(() => {
@@ -53,6 +62,9 @@ export function useTreeData(projectPath: string | null | undefined) {
       setMedia([]);
       setCitations([]);
       setNotes([]);
+      setPlaces([]);
+      setRepositories([]);
+      setSubmitters([]);
       return;
     }
     void reloadTree(projectPath);
@@ -538,6 +550,8 @@ export function useTreeData(projectPath: string | null | undefined) {
     citations,
     notes,
     places,
+    repositories,
+    submitters,
     undo,
     redo,
     refreshTree,

@@ -1,17 +1,25 @@
-import type { CitationRecord, FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
+import type {
+  CitationRecord,
+  FactRecord,
+  FamilyRecord,
+  PersonRecord,
+  PlaceRecord,
+  RepositoryRecord,
+  SourceRecord,
+  SubmitterRecord,
+} from '@doru/core';
 import {
   PersonList,
   PlaceholderView,
-  RegistriesView,
   SidebarFamilies,
   SidebarFacts,
   SidebarMedia,
   SidebarPlaces,
+  SidebarRegistries,
   SidebarSearch,
   SidebarSources,
   type SidebarMediaItem,
 } from '@doru/features';
-import type { RegistriesEditorApi } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
 /** Render cap for the People list on very large trees. */
@@ -26,11 +34,13 @@ export function SidebarView({
   media,
   citations,
   places,
-  registriesApi,
+  repositories,
+  submitters,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
   onOpenPlace,
+  onOpenRegistries,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
@@ -40,11 +50,13 @@ export function SidebarView({
   media: SidebarMediaItem[];
   citations: CitationRecord[];
   places: PlaceRecord[];
-  registriesApi: RegistriesEditorApi;
+  repositories: RepositoryRecord[];
+  submitters: SubmitterRecord[];
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onOpenPlace: (placeId: string) => void;
+  onOpenRegistries: () => void;
 }) {
   switch (activeView) {
     case 'people':
@@ -131,7 +143,7 @@ export function SidebarView({
         />
       );
     case 'registries':
-      return <RegistriesView api={registriesApi} sidebar />;
+      return <SidebarRegistries repositories={repositories} submitters={submitters} onOpenRegistries={onOpenRegistries} />;
     case 'search':
       return (
         <SidebarSearch

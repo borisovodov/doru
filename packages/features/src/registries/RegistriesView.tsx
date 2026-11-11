@@ -64,10 +64,9 @@ export function addressLabel(address: AddressRecord | undefined): string {
 
 /**
  * The project registries: repositories and submitters with their
- * addresses, and the project header. Lives in the sidebar as the
- * Registries activity view (or, without `sidebar`, as a standalone view).
+ * addresses, and the project header. One tab, three sections.
  */
-export function RegistriesView({ api, sidebar = false }: { api: RegistriesEditorApi; sidebar?: boolean }) {
+export function RegistriesView({ api }: { api: RegistriesEditorApi }) {
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [header, setHeader] = useState<HeaderRecord>({});
@@ -101,7 +100,7 @@ export function RegistriesView({ api, sidebar = false }: { api: RegistriesEditor
   };
 
   return (
-    <div className={`registries-view${sidebar ? ' sidebar' : ''}`}>
+    <div className="registries-view">
       <section className="person-section">
         <h3>{nls.t('features.tree.registries.repositories')}</h3>
         {repositories.length === 0 && (

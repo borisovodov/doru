@@ -5,17 +5,6 @@
   padding: 8px 16px;
 }
 
-/* Inside the sidebar the view fills the pane and drops the page padding. */
-.registries-view.sidebar {
-  max-width: none;
-  padding: 0;
-}
-
-.registries-view.sidebar .person-section {
-  margin-top: 10px;
-  padding: 10px;
-}
-
 .registries-view label {
   display: block;
   margin: 10px 0;
