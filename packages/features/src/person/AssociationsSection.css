@@ -50,7 +50,7 @@
   gap: 0 12px;
 }
 
-.association-primary {
+.person-editor .association-primary {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -58,9 +58,11 @@
   font-size: 12px;
 }
 
-.association-primary input {
+.person-editor .association-primary input {
   width: auto;
+  height: auto;
   margin: 0;
+  accent-color: var(--doru-accent);
 }
 
 .association-actions {

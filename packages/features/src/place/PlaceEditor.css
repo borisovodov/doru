@@ -60,16 +60,18 @@
   gap: 0 12px;
 }
 
-.place-verified {
+.place-editor .place-verified {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
 }
 
-.place-verified input {
+.place-editor .place-verified input {
   width: auto;
+  height: auto;
   margin: 0;
+  accent-color: var(--doru-accent);
 }
 
 .place-postal-block {

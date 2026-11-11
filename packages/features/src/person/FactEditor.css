@@ -23,7 +23,7 @@
   text-transform: uppercase;
 }
 
-.fact-negation {
+.person-editor .fact-negation {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -33,9 +33,11 @@
   white-space: nowrap;
 }
 
-.fact-negation input {
+.person-editor .fact-negation input {
   width: auto;
+  height: auto;
   margin: 0;
+  accent-color: var(--doru-accent);
 }
 
 .fact-details-grid {
@@ -84,7 +86,7 @@
   gap: 4px 14px;
 }
 
-.fact-flag {
+.person-editor .fact-flag {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -92,9 +94,11 @@
   font-size: 12px;
 }
 
-.fact-flag input {
+.person-editor .fact-flag input {
   width: auto;
+  height: auto;
   margin: 0;
+  accent-color: var(--doru-accent);
 }
 
 .fact-editor-actions {
