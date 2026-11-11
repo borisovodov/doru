@@ -174,7 +174,8 @@ test('rename, search and delete with undo on the canvas', async () => {
   await clickCard('Petr');
   await page.locator('.card-toolbar button').nth(3).click();
   await expect(page.locator('.person-editor')).toBeVisible();
-  await page.locator('.person-editor input').first().fill('Petya');
+  // The name-parts grid holds the given name second: prefix, given, …
+  await page.locator('.person-editor .name-parts-grid input').nth(1).fill('Petya');
   await page.locator('.person-view-actions button').first().click();
   // Back to the tree tab to see the renamed card.
   await page.locator('.tab-bar .tab').first().click();

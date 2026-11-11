@@ -9,7 +9,6 @@ import type {
   DateValue as GedcomDateValue,
   Epoch,
   EventDetail,
-  AgeValue,
   ChildFamilyLink,
   FamilyAttributeStructure,
   FamilyChildLink,
@@ -23,7 +22,6 @@ import type {
   IndividualAttributeStructure,
   IndividualEventStructure,
   IndividualRecord,
-  LdsIndividualOrdinance,
   ListEnum,
   NameTranslation,
   NameTypeStructure,
@@ -45,11 +43,9 @@ import type {
   AssociationRecord,
   DateComponent,
   DateValue,
-  EvidenceRecord,
   FactRecord,
   FamilyRecord,
   NoteRecord,
-  OrdinanceRecord,
   PersonName,
   PersonRecord,
   PlaceRecord,
@@ -103,12 +99,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const submitters = repo.listSubmitters();
   const titles = repo.listTitles();
   const notes = repo.listNotes().filter((note): note is NoteRecord & { xref: string } => note.xref !== undefined);
-  const evidence = repo.listEvidence();
-  const documents = repo.listResearchDocuments();
-  const activities = repo.listResearchActivities();
-  const censuses = repo.listCensuses();
   const todos = repo.listTodos().filter((todo) => todo.targetType === undefined && todo.targetId === undefined);
-  const factTypes = repo.listFactTypes();
   const tags = repo.listTags();
 
   for (const person of persons) {
@@ -135,11 +126,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   for (const tag of tags) {
     xrefs.assign('TAG', tag.id, undefined);
   }
-  for (const record of evidence) {
-    xrefs.assign('E', record.id, undefined);
-  }
 
-  const header = repo.getHeader();
   const records: GedcomRecord[] = [
     ...submitters.map((submitter) => buildSubmitter(submitter, repo, xrefs)),
     ...repositories.map((repository) => buildRepository(repository, repo, xrefs)),
@@ -148,34 +135,18 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...notes.map((note) => buildSharedNote(note)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
-    ...evidence.map((record) => buildEvidence(record, repo, xrefs)),
-    ...documents.map((document) => buildResearchDocument(document, repo, xrefs)),
-    ...activities.map((activity) => buildResearchActivity(activity, repo, xrefs)),
-    ...censuses
-      .map((census) => buildCensus(census, repo, xrefs))
-      .filter((record): record is GedcomRecord => record !== undefined),
     ...todos.map((todo) => buildTodoRecord(todo)),
-    ...factTypes.map((type) => buildFactType(type)),
     ...tags.map((tag) => buildTagRecord(tag)),
     ...buildAssociations(repo, xrefs),
-    ...buildOrdinances(repo, xrefs),
   ];
-  if (header.familyFile !== undefined || header.temple !== undefined || header.generationsAncestors !== undefined) {
-    records.push(buildSubmission(header));
-  }
+  // The schema keeps no header table: the export synthesizes a fresh
+  // GEDCOM header naming this app as the source.
   return {
     header: {
       tag: 'HEAD',
-      gedcom: { version: header.gedcomVersion ?? '7.0' },
-      ...(header.sourceSoftware !== undefined
-        ? { source: { payload: header.sourceSoftware, ...(header.sourceVersion !== undefined ? { version: header.sourceVersion } : {}), ...(header.sourceName !== undefined ? { name: header.sourceName } : {}) } }
-        : { source: { payload: 'DORU' } }),
-      ...(header.date !== undefined ? { date: buildDateExactStructure(header.date) } : {}),
-      ...(header.submitterId !== undefined ? { submitter: xrefs.of(header.submitterId) } : {}),
-      ...(header.language !== undefined ? { language: header.language } : {}),
-      ...(header.placeForm !== undefined ? { place: { form: header.placeForm.split(', ').filter((part) => part !== '') } } : {}),
-      ...(header.copyright !== undefined ? { copyright: header.copyright } : {}),
-      ...(header.fileName !== undefined ? { fileName: header.fileName } : {}),
+      gedcom: { version: '7.0' },
+      source: { payload: 'DORU' },
+      ...(submitters.length > 0 ? { submitter: xrefs.of(submitters[0]!.id) } : {}),
     },
     records,
     trailer: { tag: 'TRLR' },
@@ -226,13 +197,11 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...contacts,
     ...withCitationList(repo, 'person', person.id, xrefs),
     ...withNoteList(repo, 'person', person.id, xrefs),
-    ...withEvidenceList(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
     ...withTagLinks(repo, 'person', person.id, xrefs),
     ...withTodoStructures(repo, 'person', person.id),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
-    ...withPersonOrdinances(repo, person.id, xrefs),
     ...withChildFamilies(repo, person.id, xrefs),
     ...withSpouseFamilies(repo, person.id, xrefs),
   };
@@ -403,7 +372,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
   }
   const identifiers = withIdentifiers(repo, 'family', family.id);
   const restriction = repo.listRestrictionsFor('family', family.id).map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
-  const ordinances = repo.listOrdinancesFor('family', family.id);
   return {
     tag: 'FAM',
     xref: xrefs.of(family.id),
@@ -418,16 +386,9 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withChanges(repo, 'family', family.id),
     ...withCitationList(repo, 'family', family.id, xrefs),
     ...withNoteList(repo, 'family', family.id, xrefs),
-    ...withEvidenceList(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
     ...withTodoStructures(repo, 'family', family.id),
-    ...(ordinances.filter((ordinance) => ordinance.kind === 'SLGS').length > 0
-      ? { spouseSealings: ordinances.filter((ordinance) => ordinance.kind === 'SLGS').map((ordinance) => buildSpouseSealing(ordinance, repo, xrefs)) }
-      : {}),
-    ...(ordinances.filter((ordinance) => ordinance.kind === 'SLGC').length > 0
-      ? { childSealings: ordinances.filter((ordinance) => ordinance.kind === 'SLGC').map((ordinance) => buildChildSealing(ordinance, repo, xrefs)) }
-      : {}),
   };
 }
 
@@ -539,102 +500,6 @@ function buildSharedNote(note: NoteRecord): GedcomRecord {
   } as GedcomRecord;
 }
 
-function buildEvidence(record: EvidenceRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  const analysis = record.analysis !== undefined ? record.analysis.split('\n') : undefined;
-  return {
-    tag: '_EVID',
-    xref: xrefs.of(record.id),
-    ...(record.type !== undefined ? { type: record.type } : {}),
-    ...(record.documentType !== undefined ? { documentType: record.documentType } : {}),
-    ...(analysis !== undefined ? { analysis } : {}),
-    ...(record.findings.length > 0
-      ? {
-          findings: record.findings.map((finding) => ({
-            tag: '_FIND',
-            payload: finding.value ?? '',
-            ...(finding.type !== undefined ? { type: finding.type } : {}),
-            ...(finding.date !== undefined ? { date: buildDate(finding.date) } : {}),
-            ...(finding.placeId !== undefined ? { place: buildPlace(repo, finding.placeId) } : {}),
-            ...(finding.ageYears !== undefined || finding.ageBound !== undefined
-              ? { age: buildAge({ bound: finding.ageBound, years: finding.ageYears, months: finding.ageMonths, days: finding.ageDays, phrase: finding.agePhrase }) }
-              : {}),
-          })),
-        }
-      : {}),
-    ...withCitationList(repo, 'evidence', record.id, xrefs),
-    ...withNoteList(repo, 'evidence', record.id, xrefs),
-    ...withChanges(repo, 'evidence', record.id),
-  } as GedcomRecord;
-}
-
-function buildResearchDocument(document: import('../model/types').ResearchDocumentRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  return {
-    tag: '_RDOC',
-    ...(document.title !== undefined ? { title: document.title } : {}),
-    ...(document.text !== '' ? { text: document.text } : {}),
-    ...(document.subjectIds !== undefined && document.subjectIds.length > 0
-      ? { subjects: document.subjectIds.map((id) => xrefs.of(id)) }
-      : {}),
-    ...(document.conclusions !== undefined && document.conclusions.length > 0
-      ? { conclusions: document.conclusions.map((conclusion) => ({ tag: '_CONC', subject: xrefs.of(conclusion.personId), ...(conclusion.text !== '' ? { text: conclusion.text } : {}) })) }
-      : {}),
-    ...(document.author !== undefined ? { author: document.author } : {}),
-    ...(document.date !== undefined ? { date: buildDate(document.date) } : {}),
-    ...withNoteList(repo, 'research_document', document.id, xrefs),
-    ...withChanges(repo, 'research_document', document.id),
-  } as GedcomRecord;
-}
-
-function buildResearchActivity(activity: import('../model/types').ResearchActivityRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  return {
-    tag: '_RACT',
-    ...(activity.type !== undefined ? { type: activity.type } : {}),
-    ...(activity.purpose !== undefined ? { purpose: activity.purpose } : {}),
-    ...(activity.target !== undefined ? { target: activity.target } : {}),
-    ...(activity.venue !== undefined ? { venue: activity.venue } : {}),
-    ...(activity.result !== undefined ? { result: activity.result } : {}),
-    ...(activity.date !== undefined ? { date: buildDate(activity.date) } : { date: { value: { kind: 'unknown' } } }),
-    ...(activity.researcher !== undefined ? { researcher: activity.researcher } : {}),
-    ...withNoteList(repo, 'research_activity', activity.id, xrefs),
-    ...withChanges(repo, 'research_activity', activity.id),
-  } as GedcomRecord;
-}
-
-function buildCensus(census: import('../model/types').CensusRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord | undefined {
-  // The census record requires a date and a place; export only complete ones.
-  if (census.date === undefined) {
-    return undefined;
-  }
-  const place = census.placeId !== undefined ? repo.getPlace(census.placeId) : undefined;
-  return {
-    tag: '_CENR',
-    ...(census.schedule !== undefined ? { schedule: census.schedule } : {}),
-    date: buildDate(census.date)!,
-    place: place !== undefined ? placeNameOf(place) : '',
-    ...(census.entries.length > 0
-      ? {
-          entries: census.entries.map((entry) => ({
-            tag: 'INDI',
-            individual: xrefs.of(entry.personId),
-            ...(entry.sex !== undefined ? { sex: entry.sex } : {}),
-            ...(entry.ageValue !== undefined ? { age: { payload: ageValuePayload(entry.ageValue) } } : {}),
-            ...(entry.maritalStatus !== undefined ? { maritalStatus: entry.maritalStatus } : {}),
-            ...(entry.occupation !== undefined ? { occupation: { tag: 'OCCU', payload: entry.occupation } } : {}),
-            ...(entry.birthDate !== undefined ? { birth: { tag: 'BIRT', detail: { ...(entry.birthPlace !== undefined ? { place: { tag: 'PLAC', payload: [entry.birthPlace] } } : {}) } } } : {}),
-          })),
-        }
-      : {}),
-  } as GedcomRecord;
-}
-
-function ageValuePayload(value: string): AgeValue {
-  const parsed = Number(value);
-  if (Number.isFinite(parsed)) {
-    return { years: parsed };
-  }
-  return { description: value as AgeValue['description'] } as AgeValue;
-}
-
 function buildTodoRecord(todo: TodoRecord): GedcomRecord {
   return {
     tag: '_TODO',
@@ -646,32 +511,10 @@ function buildTodoRecord(todo: TodoRecord): GedcomRecord {
   } as GedcomRecord;
 }
 
-function buildFactType(type: import('../model/types').FactTypeRecord): GedcomRecord {
-  return {
-    tag: '_EVENT_DEFN',
-    ...(type.code !== undefined ? { eventType: type.code } : {}),
-    ...(type.kind !== undefined ? { kind: type.kind } : {}),
-    ...(type.title !== undefined ? { title: type.title } : {}),
-    ...(type.abbreviation !== undefined ? { abbreviation: type.abbreviation } : {}),
-    ...(type.sentence !== undefined ? { sentence: type.sentence } : {}),
-    ...(type.confidential === true ? { confidentialFlag: true } : {}),
-  } as GedcomRecord;
-}
-
 function buildTagRecord(tag: TagRecord): GedcomRecord {
   return { tag: '_TAG', name: tag.name } as GedcomRecord;
 }
 
-function buildSubmission(header: import('../model/types').HeaderRecord): GedcomRecord {
-  return {
-    tag: 'SUBN',
-    ...(header.familyFile !== undefined ? { familyFile: header.familyFile } : {}),
-    ...(header.temple !== undefined ? { temple: header.temple } : {}),
-    ...(header.generationsAncestors !== undefined ? { generationsOfAncestors: header.generationsAncestors } : {}),
-    ...(header.generationsDescendants !== undefined ? { generationsOfDescendants: header.generationsDescendants } : {}),
-    ...(header.ordinanceProcessFlag !== undefined ? { ordinanceProcessFlag: header.ordinanceProcessFlag } : {}),
-  } as GedcomRecord;
-}
 
 // ---------------------------------------------------------------------------
 // Relations exported as records
@@ -683,17 +526,6 @@ function buildAssociations(repo: TreeRepository, xrefs: Xrefs): GedcomRecord[] {
   void xrefs;
   return [];
 }
-
-function buildOrdinances(repo: TreeRepository, xrefs: Xrefs): GedcomRecord[] {
-  // Ordinances live under INDI/FAM; nothing to export at the top level.
-  void repo;
-  void xrefs;
-  return [];
-}
-
-// ---------------------------------------------------------------------------
-// Person-level relation helpers
-// ---------------------------------------------------------------------------
 
 function withAssociations(repo: TreeRepository, personId: string, xrefs: Xrefs): { associations?: import('@doru/gedcom').AssociationStructure[] } {
   const associations = repo
@@ -736,60 +568,6 @@ function withAliases(repo: TreeRepository, personId: string, xrefs: Xrefs): { al
     .listAliasesFor(personId)
     .map((alias) => ({ tag: 'ALIA' as const, individual: xrefs.of(alias.aliasId) }));
   return aliases.length > 0 ? { aliases } : {};
-}
-
-function withPersonOrdinances(repo: TreeRepository, personId: string, xrefs: Xrefs): { ordinances?: LdsIndividualOrdinance[] } {
-  const ordinances = repo
-    .listOrdinancesFor('person', personId)
-    .filter((ordinance) => ordinance.kind !== 'SLGC' && ordinance.kind !== 'SLGS')
-    .map((ordinance) => buildIndividualOrdinance(ordinance, repo, xrefs));
-  return ordinances.length > 0 ? { ordinances } : {};
-}
-
-function buildIndividualOrdinance(
-  ordinance: OrdinanceRecord,
-  repo: TreeRepository,
-  xrefs: Xrefs,
-): LdsIndividualOrdinance {
-  return {
-    tag: ordinance.kind as LdsIndividualOrdinance['tag'],
-    ...(buildOrdinanceDetail(ordinance, repo, xrefs) !== undefined
-      ? { detail: buildOrdinanceDetail(ordinance, repo, xrefs) }
-      : {}),
-  } as LdsIndividualOrdinance;
-}
-
-function buildSpouseSealing(ordinance: OrdinanceRecord, repo: TreeRepository, xrefs: Xrefs): import('@doru/gedcom').SpouseSealingOrdinance {
-  const detail = buildOrdinanceDetail(ordinance, repo, xrefs);
-  return { tag: 'SLGS', ...(detail !== undefined ? { detail } : {}) } as import('@doru/gedcom').SpouseSealingOrdinance;
-}
-
-function buildChildSealing(ordinance: OrdinanceRecord, repo: TreeRepository, xrefs: Xrefs): import('@doru/gedcom').ChildSealingOrdinance {
-  const detail = buildOrdinanceDetail(ordinance, repo, xrefs);
-  return { tag: 'SLGC', ...(detail !== undefined ? { detail } : {}) } as import('@doru/gedcom').ChildSealingOrdinance;
-}
-
-function buildOrdinanceDetail(
-  ordinance: OrdinanceRecord,
-  repo: TreeRepository,
-  xrefs: Xrefs,
-): import('@doru/gedcom').LdsOrdinanceDetail | undefined {
-  const date = buildDate(ordinance.date);
-  const place = ordinance.placeId !== undefined ? buildPlace(repo, ordinance.placeId) : undefined;
-  const statusDate = ordinance.statusDate !== undefined ? buildDateExactStructure(ordinance.statusDate) : undefined;
-  if (date === undefined && ordinance.temple === undefined && place === undefined && ordinance.status === undefined) {
-    return undefined;
-  }
-  return {
-    ...(date !== undefined ? { date } : {}),
-    ...(ordinance.temple !== undefined ? { temple: ordinance.temple } : {}),
-    ...(place !== undefined ? { place } : {}),
-    ...(ordinance.status !== undefined
-      ? { status: { payload: ordinance.status.toUpperCase() as import('@doru/gedcom').OrdinanceStatusEnum, ...(statusDate !== undefined ? { date: statusDate } : {}) } }
-      : {}),
-    ...withCitationList(repo, 'ordinance', ordinance.id, xrefs),
-    ...withNoteList(repo, 'ordinance', ordinance.id, xrefs),
-  };
 }
 
 function withChildFamilies(repo: TreeRepository, personId: string, xrefs: Xrefs): { childFamilies?: ChildFamilyLink[] } {
@@ -932,19 +710,6 @@ function withNoteList(repo: TreeRepository, targetType: string, targetId: string
           } as NoteStructure),
     );
   return { notes };
-}
-
-function withEvidenceList(repo: TreeRepository, targetType: string, targetId: string, xrefs: Xrefs): { evidence?: Array<{ tag: '_EVREF'; evidence: string; confidence?: string; used?: string; quality?: string }> } {
-  const links = repo
-    .listEvidenceLinksFor(targetType, targetId)
-    .map((link) => ({
-      tag: '_EVREF' as const,
-      evidence: xrefs.of(link.evidenceId),
-      ...(link.confidence !== undefined ? { confidence: link.confidence } : {}),
-      ...(link.used !== undefined ? { used: link.used } : {}),
-      ...(link.quality !== undefined ? { quality: link.quality } : {}),
-    }));
-  return links.length > 0 ? { evidence: links } : {};
 }
 
 function withSubmitterLinks(repo: TreeRepository, targetType: string, targetId: string, xrefs: Xrefs): { submitters?: string[] } {
@@ -1175,10 +940,6 @@ function officialPlaceNames(place: PlaceRecord): string[] {
     .filter((name) => name.kind === undefined || name.kind === 'official')
     .sort((a, b) => a.position - b.position)
     .map((name) => name.value);
-}
-
-function placeNameOf(place: PlaceRecord): string {
-  return officialPlaceNames(place).join(', ');
 }
 
 function buildDate(date: DateValue | undefined): DateStructure | undefined {

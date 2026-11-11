@@ -16,9 +16,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**', 'apps/*/src/**'],
-      // View components (.tsx) are exercised by the Playwright e2e suite;
-      // the unit-coverage gate tracks the logic underneath them.
-      exclude: ['**/*.tsx'],
+      // View components (.tsx) and the Electron process files (main and
+      // preload import 'electron' and cannot run under vitest) are
+      // exercised by the Playwright e2e suite; the unit-coverage gate
+      // tracks the logic underneath them.
+      exclude: ['**/*.tsx', 'apps/desktop/src/main/**', 'apps/desktop/src/preload/**'],
       reporter: ['text', 'json-summary'],
       thresholds: {
         lines: 80,

@@ -1,26 +1,19 @@
 import type {
   AddressRecord,
   AssociationRecord,
-  CensusRecord,
+  ChangeRecord,
   CitationRecord,
   ContactRecord,
-  DuplicateCandidateRecord,
-  EvidenceRecord,
   FactRecord,
-  FactTypeRecord,
   FamilyRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
-  OrdinanceRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
-  ResearchActivityRecord,
-  ResearchDocumentRecord,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
@@ -34,26 +27,20 @@ import {
   addAddressOp,
   addAliasOp,
   addAssociationOp,
-  addCensusOp,
   addContactOp,
-  addDuplicateOp,
-  addEvidenceOp,
   addFactOp,
-  addFactTypeOp,
   addFamilyOp,
   addIdentifierOp,
   addMediaOp,
   addNoteOp,
-  addOrdinanceOp,
   addPersonOp,
   addPlaceOp,
   addRelativeOp,
   addRepositoryOp,
-  addResearchActivityOp,
-  addResearchDocumentOp,
   addRestrictionOp,
   addSourceOp,
   addSubmitterOp,
+  addRecordSubmitterOp,
   addTagOp,
   addTitleOp,
   addTodoOp,
@@ -63,52 +50,43 @@ import {
   deleteAddressOp,
   deleteAliasOp,
   deleteAssociationOp,
-  deleteCensusOp,
   deleteContactOp,
-  deleteDuplicateOp,
-  deleteEvidenceOp,
+  updateContactOp,
   deleteFactOp,
-  deleteFactTypeOp,
   deleteFamilyOp,
   deleteIdentifierOp,
+  updateIdentifierOp,
   deleteMediaOp,
   deleteNoteOp,
-  deleteOrdinanceOp,
   deletePersonOp,
   deletePlaceOp,
   deleteRepositoryOp,
-  deleteResearchActivityOp,
-  deleteResearchDocumentOp,
   deleteRestrictionOp,
+  updateRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
+  deleteRecordSubmitterOp,
   deleteTagOp,
   deleteTitleOp,
   deleteTodoOp,
   detachCitationOp,
   detachMediaOp,
   detachTagOp,
+  updateTagLinkOp,
   reparentOp,
-  saveHeaderOp,
   splitNoteOp,
   updateAddressOp,
   updateAssociationOp,
-  updateCensusOp,
   updateCitationOp,
-  updateDuplicateOp,
-  updateEvidenceOp,
   updateFactOp,
-  updateFactTypeOp,
   updateFamilyOp,
   updateNoteOp,
-  updateOrdinanceOp,
   updatePersonOp,
   updatePlaceOp,
   updateRepositoryOp,
-  updateResearchActivityOp,
-  updateResearchDocumentOp,
   updateSourceOp,
   updateSubmitterOp,
+  updateTagOp,
   updateTitleOp,
   updateTodoOp,
   type FamilyLinkAttachments,
@@ -144,6 +122,8 @@ export class TreeService {
   constructor(
     private readonly repo: TreeRepository,
     private readonly queue: OpQueue,
+    /** The local user stamped into change-log rows (the OS account in the desktop app). */
+    private readonly changeUser?: string,
   ) {}
 
   // --- queries -------------------------------------------------------------
@@ -187,6 +167,11 @@ export class TreeService {
 
   listCitationsFor(targetType: string, targetId: string): Array<{ id: string; source: SourceRecord }> {
     return this.repo.listCitationsFor(targetType, targetId);
+  }
+
+  /** Full citation rows for a target, including page and quality. */
+  listCitationRecordsFor(targetType: string, targetId: string): CitationRecord[] {
+    return this.repo.listCitationRecordsFor(targetType, targetId);
   }
 
   listAllCitations(): CitationRecord[] {
@@ -398,6 +383,11 @@ export class TreeService {
     return this.repo.getPlace(id);
   }
 
+  /** The facts that happened at the place. */
+  listFactsForPlace(placeId: string): FactRecord[] {
+    return this.repo.listFactsForPlace(placeId);
+  }
+
   addPlace(place: PlaceRecord): UndoRedoState {
     return this.apply(addPlaceOp(place));
   }
@@ -431,7 +421,8 @@ export class TreeService {
 
   deleteSource(source: SourceRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('source', source.id);
-    return this.apply(deleteSourceOp(source, attachments));
+    const citations = this.repo.listAllCitations().filter((citation) => citation.sourceId === source.id);
+    return this.apply(deleteSourceOp(source, attachments, citations));
   }
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
@@ -513,12 +504,24 @@ export class TreeService {
 
   // --- universal attachments --------------------------------------------------
 
+  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
+    return this.repo.listIdentifiersFor(targetType, targetId);
+  }
+
   addIdentifier(identifier: IdentifierRecord): UndoRedoState {
     return this.apply(addIdentifierOp(identifier));
   }
 
   deleteIdentifier(identifier: IdentifierRecord): UndoRedoState {
     return this.apply(deleteIdentifierOp(identifier));
+  }
+
+  updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): UndoRedoState {
+    return this.apply(updateIdentifierOp(before, after));
+  }
+
+  listContactsFor(targetType: string, targetId: string): ContactRecord[] {
+    return this.repo.listContactsFor(targetType, targetId);
   }
 
   addContact(contact: ContactRecord): UndoRedoState {
@@ -529,6 +532,14 @@ export class TreeService {
     return this.apply(deleteContactOp(contact));
   }
 
+  updateContact(before: ContactRecord, after: ContactRecord): UndoRedoState {
+    return this.apply(updateContactOp(before, after));
+  }
+
+  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
+    return this.repo.listRestrictionsFor(targetType, targetId);
+  }
+
   addRestriction(restriction: RestrictionRecord): UndoRedoState {
     return this.apply(addRestrictionOp(restriction));
   }
@@ -537,12 +548,28 @@ export class TreeService {
     return this.apply(deleteRestrictionOp(restriction));
   }
 
+  updateRestriction(before: RestrictionRecord, after: RestrictionRecord): UndoRedoState {
+    return this.apply(updateRestrictionOp(before, after));
+  }
+
+  listTags(): TagRecord[] {
+    return this.repo.listTags();
+  }
+
+  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
+    return this.repo.listTagLinksFor(targetType, targetId);
+  }
+
   addTag(tag: TagRecord): UndoRedoState {
     return this.apply(addTagOp(tag));
   }
 
+  updateTag(before: TagRecord, after: TagRecord): UndoRedoState {
+    return this.apply(updateTagOp(before, after));
+  }
+
   deleteTag(tag: TagRecord): UndoRedoState {
-    return this.apply(deleteTagOp(tag));
+    return this.apply(deleteTagOp(tag, this.repo.listTagLinksByTag(tag.id)));
   }
 
   attachTag(link: TagLinkRecord): UndoRedoState {
@@ -553,10 +580,27 @@ export class TreeService {
     return this.apply(detachTagOp(link));
   }
 
+  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): UndoRedoState {
+    return this.apply(updateTagLinkOp(before, after));
+  }
+
+  /** The change-log rows of a target (created/changed history). */
+  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
+    return this.repo.listChangesFor(targetType, targetId);
+  }
+
   // --- registries: repositories, submitters, addresses, fact types, header ------
+
+  listRepositories(): RepositoryRecord[] {
+    return this.repo.listRepositories();
+  }
 
   addRepository(repository: RepositoryRecord): UndoRedoState {
     return this.apply(addRepositoryOp(repository));
+  }
+
+  listSubmitters(): SubmitterRecord[] {
+    return this.repo.listSubmitters();
   }
 
   updateRepository(before: RepositoryRecord, after: RepositoryRecord): UndoRedoState {
@@ -581,8 +625,32 @@ export class TreeService {
     return this.apply(deleteSubmitterOp(submitter, attachments));
   }
 
+  /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
+  listRecordSubmittersFor(
+    targetType: string,
+    targetId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+    return this.repo.listRecordSubmittersFor(targetType, targetId);
+  }
+
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): UndoRedoState {
+    return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId));
+  }
+
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): UndoRedoState {
+    return this.apply(deleteRecordSubmitterOp(id, submitterId, targetType, targetId));
+  }
+
   addAddress(address: AddressRecord): UndoRedoState {
     return this.apply(addAddressOp(address));
+  }
+
+  getAddress(id: string): AddressRecord | undefined {
+    return this.repo.getAddress(id);
+  }
+
+  listAddresses(): AddressRecord[] {
+    return this.repo.listAddresses();
   }
 
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
@@ -592,24 +660,6 @@ export class TreeService {
   deleteAddress(address: AddressRecord): UndoRedoState {
     return this.apply(deleteAddressOp(address));
   }
-
-  addFactType(type: FactTypeRecord): UndoRedoState {
-    return this.apply(addFactTypeOp(type));
-  }
-
-  updateFactType(before: FactTypeRecord, after: FactTypeRecord): UndoRedoState {
-    return this.apply(updateFactTypeOp(before, after));
-  }
-
-  deleteFactType(type: FactTypeRecord): UndoRedoState {
-    return this.apply(deleteFactTypeOp(type));
-  }
-
-  saveHeader(header: HeaderRecord): UndoRedoState {
-    return this.apply(saveHeaderOp(this.repo.getHeader(), header));
-  }
-
-  // --- relations and the research layer ----------------------------------------
 
   addAssociation(association: AssociationRecord): UndoRedoState {
     return this.apply(addAssociationOp(association));
@@ -624,29 +674,32 @@ export class TreeService {
     return this.apply(deleteAssociationOp(association, attachments));
   }
 
+  listAssociationsFor(personId: string): AssociationRecord[] {
+    return this.repo.listAssociationsFor(personId);
+  }
+
   addAlias(personId: string, aliasId: string): UndoRedoState {
     return this.apply(addAliasOp(crypto.randomUUID(), personId, aliasId));
+  }
+
+  listAliasesFor(personId: string): Array<{ id: string; aliasId: string }> {
+    return this.repo.listAliasesFor(personId);
   }
 
   deleteAlias(id: string, personId: string, aliasId: string): UndoRedoState {
     return this.apply(deleteAliasOp(id, personId, aliasId));
   }
 
-  addOrdinance(ordinance: OrdinanceRecord): UndoRedoState {
-    return this.apply(addOrdinanceOp(ordinance));
-  }
-
-  updateOrdinance(before: OrdinanceRecord, after: OrdinanceRecord): UndoRedoState {
-    return this.apply(updateOrdinanceOp(before, after));
-  }
-
-  deleteOrdinance(ordinance: OrdinanceRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('ordinance', ordinance.id);
-    return this.apply(deleteOrdinanceOp(ordinance, attachments));
-  }
-
   addTodo(todo: TodoRecord): UndoRedoState {
     return this.apply(addTodoOp(todo));
+  }
+
+  listTodos(): TodoRecord[] {
+    return this.repo.listTodos();
+  }
+
+  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
+    return this.repo.listTodosFor(targetType, targetId);
   }
 
   updateTodo(before: TodoRecord, after: TodoRecord): UndoRedoState {
@@ -658,72 +711,12 @@ export class TreeService {
     return this.apply(deleteTodoOp(todo, attachments));
   }
 
-  addEvidence(evidence: EvidenceRecord): UndoRedoState {
-    return this.apply(addEvidenceOp(evidence));
-  }
-
-  updateEvidence(before: EvidenceRecord, after: EvidenceRecord): UndoRedoState {
-    return this.apply(updateEvidenceOp(before, after));
-  }
-
-  deleteEvidence(evidence: EvidenceRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('evidence', evidence.id);
-    return this.apply(deleteEvidenceOp(evidence, attachments));
-  }
-
-  addResearchDocument(document: ResearchDocumentRecord): UndoRedoState {
-    return this.apply(addResearchDocumentOp(document));
-  }
-
-  updateResearchDocument(before: ResearchDocumentRecord, after: ResearchDocumentRecord): UndoRedoState {
-    return this.apply(updateResearchDocumentOp(before, after));
-  }
-
-  deleteResearchDocument(document: ResearchDocumentRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('research_document', document.id);
-    return this.apply(deleteResearchDocumentOp(document, attachments));
-  }
-
-  addResearchActivity(activity: ResearchActivityRecord): UndoRedoState {
-    return this.apply(addResearchActivityOp(activity));
-  }
-
-  updateResearchActivity(before: ResearchActivityRecord, after: ResearchActivityRecord): UndoRedoState {
-    return this.apply(updateResearchActivityOp(before, after));
-  }
-
-  deleteResearchActivity(activity: ResearchActivityRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('research_activity', activity.id);
-    return this.apply(deleteResearchActivityOp(activity, attachments));
-  }
-
-  addCensus(census: CensusRecord): UndoRedoState {
-    return this.apply(addCensusOp(census));
-  }
-
-  updateCensus(before: CensusRecord, after: CensusRecord): UndoRedoState {
-    return this.apply(updateCensusOp(before, after));
-  }
-
-  deleteCensus(census: CensusRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('census', census.id);
-    return this.apply(deleteCensusOp(census, attachments));
-  }
-
-  addDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {
-    return this.apply(addDuplicateOp(duplicate));
-  }
-
-  updateDuplicate(before: DuplicateCandidateRecord, after: DuplicateCandidateRecord): UndoRedoState {
-    return this.apply(updateDuplicateOp(before, after));
-  }
-
-  deleteDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {
-    return this.apply(deleteDuplicateOp(duplicate));
-  }
-
   addTitle(title: TitleRecord): UndoRedoState {
     return this.apply(addTitleOp(title));
+  }
+
+  listTitles(): TitleRecord[] {
+    return this.repo.listTitles();
   }
 
   updateTitle(before: TitleRecord, after: TitleRecord): UndoRedoState {
@@ -758,6 +751,7 @@ export class TreeService {
       targetType: op.change.targetType,
       targetId: op.change.targetId,
       kind,
+      user: this.changeUser,
       date: {
         quality: 'exact',
         component: {

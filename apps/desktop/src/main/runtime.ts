@@ -6,6 +6,7 @@ import {
   TreeStore,
   type ProjectSummary,
 } from '@doru/core';
+import { userInfo } from 'node:os';
 import { releaseBookmarkAccess } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
@@ -16,6 +17,15 @@ import { disposeUntitled } from './untitled';
 const fs = new NodeFileSystem();
 
 const opener = new ProjectOpener(fs, { open: (path) => TreeStore.open(path) }, log);
+
+/** The local account stamped into change-log rows; falls back to nothing when the OS hides it. */
+function localUser(): string | undefined {
+  try {
+    return userInfo().username || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function ensureRuntime(
   projectPath: string,
@@ -40,7 +50,7 @@ export async function ensureRuntime(
   const { summary, store } = await opener.open(projectPath);
   const repo = new SqliteTreeRepository(store.db);
   const queue = new StampedOpQueue(() => markSelfWrite(summary.path));
-  const runtime: ProjectRuntime = { store, service: new TreeService(repo, queue) };
+  const runtime: ProjectRuntime = { store, service: new TreeService(repo, queue, localUser()) };
   runtimes.set(summary.path, runtime);
   return { summary, runtime };
 }
@@ -69,7 +79,7 @@ export function openUntitledStore(projectKey: string, tempPath: string): Project
   const repo = new SqliteTreeRepository(store.db);
   const runtime: ProjectRuntime = {
     store,
-    service: new TreeService(repo, new OpQueue()),
+    service: new TreeService(repo, new OpQueue(), localUser()),
   };
   runtimes.set(projectKey, runtime);
   return runtime;

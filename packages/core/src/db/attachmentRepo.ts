@@ -32,6 +32,12 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM identifier WHERE id = ?').run(id).changes > 0;
   }
 
+  updateIdentifier(identifier: IdentifierRecord): void {
+    this.db
+      .prepare('UPDATE identifier SET target_type = ?, target_id = ?, namespace = ?, value = ? WHERE id = ?')
+      .run(identifier.targetType, identifier.targetId, identifier.namespace, identifier.value, identifier.id);
+  }
+
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
     const rows = this.db
       .prepare('SELECT id, target_type, target_id, namespace, value FROM identifier WHERE target_type = ? AND target_id = ? ORDER BY id')
@@ -63,6 +69,12 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM contact WHERE id = ?').run(id).changes > 0;
   }
 
+  updateContact(contact: ContactRecord): void {
+    this.db
+      .prepare('UPDATE contact SET target_type = ?, target_id = ?, kind = ?, value = ? WHERE id = ?')
+      .run(contact.targetType, contact.targetId, contact.kind, contact.value, contact.id);
+  }
+
   listContactsFor(targetType: string, targetId: string): ContactRecord[] {
     const rows = this.db
       .prepare('SELECT id, target_type, target_id, kind, value FROM contact WHERE target_type = ? AND target_id = ? ORDER BY id')
@@ -92,6 +104,12 @@ export class AttachmentRepo {
 
   deleteRestriction(id: string): boolean {
     return this.db.prepare('DELETE FROM restriction WHERE id = ?').run(id).changes > 0;
+  }
+
+  updateRestriction(restriction: RestrictionRecord): void {
+    this.db
+      .prepare('UPDATE restriction SET target_type = ?, target_id = ?, level = ? WHERE id = ?')
+      .run(restriction.targetType, restriction.targetId, restriction.level, restriction.id);
   }
 
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
@@ -163,6 +181,10 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
   }
 
+  updateTag(tag: TagRecord): void {
+    this.db.prepare('UPDATE tag SET name = ? WHERE id = ?').run(tag.name, tag.id);
+  }
+
   listTags(): TagRecord[] {
     const rows = this.db.prepare('SELECT id, name FROM tag ORDER BY name').all() as unknown as {
       id: string;
@@ -180,6 +202,13 @@ export class AttachmentRepo {
 
   deleteTagLink(id: string): boolean {
     return this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
+  }
+
+  updateTagLink(link: TagLinkRecord): void {
+    const dateId = link.date ? this.dates.upsert(link.date) : null;
+    this.db
+      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ?, date_id = ? WHERE id = ?')
+      .run(link.tagId, link.targetType, link.targetId, dateId, link.id);
   }
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
@@ -202,6 +231,26 @@ export class AttachmentRepo {
         targetId: row.target_id,
         date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
       },
+    }));
+  }
+
+  listTagLinksByTag(tagId: string): TagLinkRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE tag_id = ? ORDER BY id')
+      .all(tagId) as unknown as {
+      id: string;
+      tag_id: string;
+      target_type: string;
+      target_id: string;
+      date_id: string | null;
+    }[];
+    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    return rows.map((row) => ({
+      id: row.id,
+      tagId: row.tag_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
     }));
   }
 

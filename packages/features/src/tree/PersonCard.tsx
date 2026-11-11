@@ -23,7 +23,7 @@ import {
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { factOf } from '@doru/core/model';
 import { nls } from '../nls';
-import { displayName, years } from '../person/format';
+import { displayName, initials, years } from '../person/format';
 import type { PersonCounts } from './types';
 
 export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'delete';
@@ -55,22 +55,6 @@ export type PersonCardData = {
   /** Quick actions on the selected card (add/edit/delete relatives). */
   onAction?: (action: CardAction, personId: string) => void;
 };
-
-function initials(person: PersonRecord): string {
-  const name = person.names[0];
-  if (!name) {
-    return '?';
-  }
-  if (name.full) {
-    const words = name.full.replace(/\//g, '').trim().split(/\s+/).filter(Boolean);
-    return words.slice(0, 2).map((word) => word[0]?.toUpperCase() ?? '').join('');
-  }
-  const parts = [name.given, name.surname].filter((part) => part !== undefined) as string[];
-  if (parts.length === 0) {
-    return '?';
-  }
-  return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
-}
 
 /**
  * Person card. Size is fixed in CSS and mirrored by the layout options so

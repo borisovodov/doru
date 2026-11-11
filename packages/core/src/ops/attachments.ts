@@ -3,8 +3,6 @@ import type {
   AttachmentsSnapshot,
   CitationRecord,
   ContactRecord,
-  FactTypeRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   NoteLinkRecord,
@@ -118,7 +116,7 @@ export function updateSourceOp(before: SourceRecord, after: SourceRecord): Op {
   };
 }
 
-export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSnapshot): Op {
+export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSnapshot, citations: CitationRecord[]): Op {
   return op(
     crypto.randomUUID(),
     'source.delete',
@@ -126,6 +124,12 @@ export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSna
     (ctx) => {
       ctx.repo.insertSource(source);
       ctx.repo.restoreAttachments(attachments);
+      // Citations of the source cascade with the source row (FK) and are
+      // not part of the attachment snapshot (that one is keyed by target):
+      // re-insert them explicitly so one undo restores everything.
+      for (const citation of citations) {
+        ctx.repo.insertCitation(citation);
+      }
     },
   );
 }
@@ -199,6 +203,19 @@ export function deleteIdentifierOp(identifier: IdentifierRecord): Op {
   );
 }
 
+/** Changes an identifier's namespace or value. */
+export function updateIdentifierOp(before: IdentifierRecord, after: IdentifierRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'identifier.update',
+      (ctx) => ctx.repo.updateIdentifier(after),
+      (ctx) => ctx.repo.updateIdentifier(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
+}
+
 export function addContactOp(contact: ContactRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -215,6 +232,19 @@ export function deleteContactOp(contact: ContactRecord): Op {
     (ctx) => ctx.repo.deleteContact(contact.id),
     (ctx) => ctx.repo.insertContact(contact),
   );
+}
+
+/** Changes a contact's kind or value. */
+export function updateContactOp(before: ContactRecord, after: ContactRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'contact.update',
+      (ctx) => ctx.repo.updateContact(after),
+      (ctx) => ctx.repo.updateContact(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
 }
 
 export function addRestrictionOp(restriction: RestrictionRecord): Op {
@@ -235,6 +265,19 @@ export function deleteRestrictionOp(restriction: RestrictionRecord): Op {
   );
 }
 
+/** Changes a restriction's level. */
+export function updateRestrictionOp(before: RestrictionRecord, after: RestrictionRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'restriction.update',
+      (ctx) => ctx.repo.updateRestriction(after),
+      (ctx) => ctx.repo.updateRestriction(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
+}
+
 export function addTagOp(tag: TagRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -244,12 +287,31 @@ export function addTagOp(tag: TagRecord): Op {
   );
 }
 
-export function deleteTagOp(tag: TagRecord): Op {
+export function updateTagOp(before: TagRecord, after: TagRecord): Op {
+  return op(
+    crypto.randomUUID(),
+    'tag.update',
+    (ctx) => ctx.repo.updateTag(after),
+    (ctx) => ctx.repo.updateTag(before),
+  );
+}
+
+/**
+ * Deletes a tag together with its links (the FK cascade removes the
+ * tag_link rows); inverse restores the tag and every link — one undo
+ * step, no losses.
+ */
+export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
   return op(
     crypto.randomUUID(),
     'tag.delete',
     (ctx) => ctx.repo.deleteTag(tag.id),
-    (ctx) => ctx.repo.insertTag(tag),
+    (ctx) => {
+      ctx.repo.insertTag(tag);
+      for (const link of links) {
+        ctx.repo.insertTagLink(link);
+      }
+    },
   );
 }
 
@@ -269,6 +331,19 @@ export function detachTagOp(link: TagLinkRecord): Op {
     (ctx) => ctx.repo.deleteTagLink(link.id),
     (ctx) => ctx.repo.insertTagLink(link),
   );
+}
+
+/** Changes the attachment date of a tag link. */
+export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'tag_link.update',
+      (ctx) => ctx.repo.updateTagLink(after),
+      (ctx) => ctx.repo.updateTagLink(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
 }
 
 // --- registries: repositories, submitters, addresses, fact types, header -------
@@ -333,6 +408,31 @@ export function deleteSubmitterOp(submitter: SubmitterRecord, attachments: Attac
   );
 }
 
+/** Links a submitter as the contributor of a record (GEDCOM SUBM on INDI/FAM). */
+export function addRecordSubmitterOp(submitterId: string, targetType: string, targetId: string): Op {
+  const id = crypto.randomUUID();
+  return op(
+    id,
+    'record_submitter.add',
+    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+    (ctx) => ctx.repo.deleteRecordSubmitter(id),
+  );
+}
+
+export function deleteRecordSubmitterOp(
+  id: string,
+  submitterId: string,
+  targetType: string,
+  targetId: string,
+): Op {
+  return op(
+    crypto.randomUUID(),
+    'record_submitter.delete',
+    (ctx) => ctx.repo.deleteRecordSubmitter(id),
+    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+  );
+}
+
 export function addAddressOp(address: AddressRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -360,38 +460,3 @@ export function deleteAddressOp(address: AddressRecord): Op {
   );
 }
 
-export function addFactTypeOp(type: FactTypeRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'fact_type.add',
-    (ctx) => ctx.repo.insertFactType(type),
-    (ctx) => ctx.repo.deleteFactType(type.id),
-  );
-}
-
-export function updateFactTypeOp(before: FactTypeRecord, after: FactTypeRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'fact_type.update',
-    (ctx) => ctx.repo.updateFactType(after),
-    (ctx) => ctx.repo.updateFactType(before),
-  );
-}
-
-export function deleteFactTypeOp(type: FactTypeRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'fact_type.delete',
-    (ctx) => ctx.repo.deleteFactType(type.id),
-    (ctx) => ctx.repo.insertFactType(type),
-  );
-}
-
-export function saveHeaderOp(before: HeaderRecord, after: HeaderRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'header.save',
-    (ctx) => ctx.repo.saveHeader(after),
-    (ctx) => ctx.repo.saveHeader(before),
-  );
-}

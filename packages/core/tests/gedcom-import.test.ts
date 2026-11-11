@@ -177,4 +177,28 @@ describe('importGedcomDataset', () => {
       cleanupRepo(fixture);
     }
   });
+
+  it('does not create a submitter for a nameless SUBM record', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 SUBM @U1@',
+      '0 @U1@ SUBM',
+      '0 @U2@ SUBM',
+      '1 NAME Test Submitter',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      expect(fixture.repo.listSubmitters()).toEqual([expect.objectContaining({ name: 'Test Submitter' })]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });

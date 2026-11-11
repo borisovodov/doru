@@ -1,8 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { AssociationRecord, OrdinanceRecord } from '../model/types';
+import type { AssociationRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
 
-/** Relations between persons: associations, aliases and LDS ordinances. */
+/** Relations between persons: associations and aliases. */
 export class RelationRepo {
   constructor(
     private readonly db: DatabaseSync,
@@ -112,96 +112,20 @@ export class RelationRepo {
 
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }> {
     const rows = this.db
-      .prepare('SELECT id, alias_id FROM person_alias WHERE person_id = ? ORDER BY id')
-      .all(personId) as unknown as { id: string; alias_id: string }[];
-    return rows.map((row) => ({ id: row.id, aliasId: row.alias_id }));
-  }
-
-  // ordinances ------------------------------------------------------------------
-
-  insertOrdinance(ordinance: OrdinanceRecord): void {
-    this.db
       .prepare(
-        `INSERT INTO ordinance (id, kind, target_type, target_id, date_id, temple, place_id, status, status_date_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `SELECT id, person_id, alias_id FROM person_alias
+         WHERE person_id = ? OR alias_id = ?
+         ORDER BY id`,
       )
-      .run(...ordinanceParams(ordinance, this.dates));
-  }
-
-  updateOrdinance(ordinance: OrdinanceRecord): void {
-    this.db
-      .prepare(
-        `UPDATE ordinance SET kind = ?, target_type = ?, target_id = ?, date_id = ?, temple = ?,
-           place_id = ?, status = ?, status_date_id = ? WHERE id = ?`,
-      )
-      .run(...ordinanceParams(ordinance, this.dates).slice(1), ordinance.id);
-  }
-
-  deleteOrdinance(id: string): boolean {
-    const row = this.db
-      .prepare('SELECT date_id, status_date_id FROM ordinance WHERE id = ?')
-      .get(id) as { date_id: string | null; status_date_id: string | null } | undefined;
-    const result = this.db.prepare('DELETE FROM ordinance WHERE id = ?').run(id);
-    if (row) {
-      for (const dateId of [row.date_id, row.status_date_id]) {
-        if (dateId !== null) {
-          this.dates.delete(dateId);
-        }
-      }
-    }
-    return result.changes > 0;
-  }
-
-  listOrdinances(): OrdinanceRecord[] {
-    const rows = this.db
-      .prepare(
-        `SELECT id, kind, target_type, target_id, date_id, temple, place_id, status, status_date_id
-         FROM ordinance ORDER BY id`,
-      )
-      .all() as unknown as OrdinanceRow[];
-    return rows.map((row) => this.hydrateOrdinance(row));
-  }
-
-  listOrdinancesFor(targetType: string, targetId: string): OrdinanceRecord[] {
-    const rows = this.db
-      .prepare(
-        `SELECT id, kind, target_type, target_id, date_id, temple, place_id, status, status_date_id
-         FROM ordinance WHERE target_type = ? AND target_id = ? ORDER BY id`,
-      )
-      .all(targetType, targetId) as unknown as OrdinanceRow[];
-    return rows.map((row) => this.hydrateOrdinance(row));
-  }
-
-  deleteOrdinancesFor(targetType: string, targetId: string): void {
-    const rows = this.db
-      .prepare('SELECT id, date_id, status_date_id FROM ordinance WHERE target_type = ? AND target_id = ?')
-      .all(targetType, targetId) as unknown as { id: string; date_id: string | null; status_date_id: string | null }[];
-    this.db.prepare('DELETE FROM ordinance WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-    for (const row of rows) {
-      for (const dateId of [row.date_id, row.status_date_id]) {
-        if (dateId !== null) {
-          this.dates.delete(dateId);
-        }
-      }
-    }
-  }
-
-  private hydrateOrdinance(row: OrdinanceRow): OrdinanceRecord {
-    const datesById = this.dates.getMany(
-      [row.date_id, row.status_date_id].filter((id): id is string => id !== null),
-    );
-    return {
+      .all(personId, personId) as unknown as { id: string; person_id: string; alias_id: string }[];
+    return rows.map((row) => ({
       id: row.id,
-      kind: row.kind,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
-      temple: row.temple ?? undefined,
-      placeId: row.place_id ?? undefined,
-      status: row.status ?? undefined,
-      statusDate: row.status_date_id !== null ? datesById.get(row.status_date_id) : undefined,
-    };
+      // The link is symmetric for display: return the other person.
+      aliasId: row.person_id === personId ? row.alias_id : row.person_id,
+    }));
   }
+
+
 }
 
 interface AssociationRow {
@@ -218,17 +142,7 @@ interface AssociationRow {
   period_end_id: string | null;
 }
 
-interface OrdinanceRow {
-  id: string;
-  kind: string;
-  target_type: string;
-  target_id: string;
-  date_id: string | null;
-  temple: string | null;
-  place_id: string | null;
-  status: string | null;
-  status_date_id: string | null;
-}
+
 
 function associationParams(association: AssociationRecord, dates: DateRepo): Array<string | number | null> {
   return [
@@ -246,16 +160,4 @@ function associationParams(association: AssociationRecord, dates: DateRepo): Arr
   ];
 }
 
-function ordinanceParams(ordinance: OrdinanceRecord, dates: DateRepo): Array<string | number | null> {
-  return [
-    ordinance.id,
-    ordinance.kind,
-    ordinance.targetType,
-    ordinance.targetId,
-    ordinance.date ? dates.upsert(ordinance.date) : null,
-    ordinance.temple ?? null,
-    ordinance.placeId ?? null,
-    ordinance.status ?? null,
-    ordinance.statusDate ? dates.upsert(ordinance.statusDate) : null,
-  ];
-}
+

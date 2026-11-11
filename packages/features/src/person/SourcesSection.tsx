@@ -1,38 +1,45 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
-import type { SourceRecord } from '@doru/core';
+import { BookOpenText, Pencil, X } from 'lucide-react';
+import type { CitationRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
-import type { CitationInfo } from './types';
+import { CitationEditor } from './CitationEditor';
 import './SourcesSection.css';
 
 interface SourcesSectionProps {
-  personId: string;
+  targetType: string;
+  targetId: string;
   sources: SourceRecord[];
-  citations: CitationInfo[];
+  citations: CitationRecord[];
   refresh: () => Promise<void>;
-  onAddSource: (source: SourceRecord, targetId: string) => Promise<void>;
-  onAttachSource: (sourceId: string, targetId: string) => Promise<void>;
+  onAddSource: (source: SourceRecord, targetType: string, targetId: string) => Promise<void>;
+  onAttachSource: (sourceId: string, targetType: string, targetId: string) => Promise<void>;
   onDetachCitation: (citationId: string) => Promise<void>;
+  onUpdateCitation: (before: CitationRecord, after: CitationRecord) => Promise<void>;
+  onOpenSource: (sourceId: string) => void;
 }
 
 export function SourcesSection({
-  personId,
+  targetType,
+  targetId,
   sources,
   citations,
   refresh,
   onAddSource,
   onAttachSource,
   onDetachCitation,
+  onUpdateCitation,
+  onOpenSource,
 }: SourcesSectionProps) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const addNew = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
       return;
     }
-    await onAddSource({ id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined }, personId);
+    await onAddSource({ id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined }, targetType, targetId);
     setTitle('');
     setAuthor('');
     await refresh();
@@ -40,16 +47,26 @@ export function SourcesSection({
 
   const detach = async (citationId: string) => {
     await onDetachCitation(citationId);
+    if (expandedId === citationId) {
+      setExpandedId(null);
+    }
     await refresh();
   };
 
   const attach = async (sourceId: string) => {
-    await onAttachSource(sourceId, personId);
+    await onAttachSource(sourceId, targetType, targetId);
     await refresh();
   };
 
-  const citedIds = new Set(citations.map((citation) => citation.source.id));
+  const saveCitation = async (before: CitationRecord, after: CitationRecord) => {
+    await onUpdateCitation(before, after);
+    setExpandedId(null);
+    await refresh();
+  };
+
+  const citedIds = new Set(citations.map((citation) => citation.sourceId));
   const uncited = sources.filter((source) => !citedIds.has(source.id));
+  const sourceById = new Map(sources.map((source) => [source.id, source]));
 
   return (
     <div className="person-section">
@@ -60,10 +77,33 @@ export function SourcesSection({
       <ul className="source-list">
         {citations.map((citation) => (
           <li key={citation.id}>
-            <span>{citation.source.title}</span>
-            <button title={nls.t('features.tree.sources.detach')} onClick={() => void detach(citation.id)}>
-              <X size={12} aria-hidden="true" />
-            </button>
+            <div className="source-row">
+              <button
+                className="source-open"
+                title={nls.t('features.tree.citation.openSource')}
+                onClick={() => onOpenSource(citation.sourceId)}
+              >
+                <BookOpenText size={13} aria-hidden="true" />
+                <span className="source-title">{sourceById.get(citation.sourceId)?.title ?? citation.sourceId}</span>
+              </button>
+              <button
+                className="icon-button"
+                title={nls.t('features.tree.citation.edit')}
+                onClick={() => setExpandedId(expandedId === citation.id ? null : citation.id)}
+              >
+                <Pencil size={13} aria-hidden="true" />
+              </button>
+              <button className="icon-button" title={nls.t('features.tree.sources.detach')} onClick={() => void detach(citation.id)}>
+                <X size={13} aria-hidden="true" />
+              </button>
+            </div>
+            {expandedId === citation.id && (
+              <CitationEditor
+                citation={citation}
+                onSave={(after) => saveCitation(citation, after)}
+                onCancel={() => setExpandedId(null)}
+              />
+            )}
           </li>
         ))}
       </ul>
@@ -78,7 +118,7 @@ export function SourcesSection({
           value={author}
           onChange={(event) => setAuthor(event.target.value)}
         />
-        <button onClick={() => void addNew()}>{nls.t('features.tree.sources.add')}</button>
+        <button className="add-button" onClick={() => void addNew()}>{nls.t('features.tree.sources.add')}</button>
       </div>
       {uncited.length > 0 && (
         <div className="sources-attach">

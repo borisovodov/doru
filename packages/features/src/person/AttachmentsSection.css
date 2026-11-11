@@ -1,0 +1,211 @@
+/* ── Identifiers, contacts, restrictions, tags, history ────────────── */
+
+.attachment-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--doru-border);
+}
+
+.attachment-list li:last-child {
+  border-bottom: none;
+}
+
+.attachment-kind {
+  flex: none;
+  min-width: 56px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--doru-accent);
+}
+
+.attachment-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--doru-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.attachment-add input,
+.attachment-add select {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.attachment-add input:focus,
+.attachment-add select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.attachment-edit {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-edit input,
+.attachment-edit select {
+  flex: 1;
+  min-width: 0;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.attachment-edit input:focus,
+.attachment-edit select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.attachment-edit .attachment-edit-namespace {
+  flex: 0 0 auto;
+  width: 96px;
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.tag-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tag-chip-date {
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+}
+
+.tag-date-editor {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.tag-date-editor .date-editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.person-section .date-editor-row input,
+.person-section .date-editor-row select {
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.person-section .date-editor-row input:focus,
+.person-section .date-editor-row select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.person-section .date-editor > label {
+  display: block;
+  margin: 4px 0;
+  color: var(--doru-fg-muted);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 10px;
+  background: var(--doru-accent-alpha);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--doru-fg);
+}
+
+.tag-chip .icon-button {
+  width: auto;
+  height: auto;
+  padding: 0;
+}
+
+.tag-chip .icon-button:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.tag-chip-name {
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: text;
+}
+
+.tag-chip-name:hover {
+  text-decoration: underline;
+}
+
+.tag-rename-input {
+  width: 90px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.tag-rename-input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}

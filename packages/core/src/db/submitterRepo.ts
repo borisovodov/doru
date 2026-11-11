@@ -91,4 +91,8 @@ export class SubmitterRepo {
   deleteRecordSubmittersFor(targetType: string, targetId: string): void {
     this.db.prepare('DELETE FROM record_submitter WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }
+
+  deleteRecordSubmitter(id: string): boolean {
+    return this.db.prepare('DELETE FROM record_submitter WHERE id = ?').run(id).changes > 0;
+  }
 }

@@ -5,16 +5,21 @@ import {
   ChatPanel,
   ChatSetupPlaceholder,
   EmptyEditorPage,
-  FamilyView,
   NoticesView,
   SettingsView,
-  SourceView,
   TreeCanvas,
   WelcomePage,
 } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
+import { FamilyTab } from './components/FamilyTab';
 import { PersonTab } from './components/PersonTab';
+import { PlaceTab } from './components/PlaceTab';
+import { RepositoryTab } from './components/RepositoryTab';
+import { SourceTab } from './components/SourceTab';
+import { SubmitterTab } from './components/SubmitterTab';
+import { TaskTab } from './components/TaskTab';
+import { TitleTab } from './components/TitleTab';
 import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
@@ -26,8 +31,13 @@ import {
   FAMILY_TAB_PREFIX,
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
+  PLACE_TAB_PREFIX,
+  REPOSITORY_TAB_PREFIX,
   SETTINGS_TAB_ID,
   SOURCE_TAB_PREFIX,
+  SUBMITTER_TAB_PREFIX,
+  TASK_TAB_PREFIX,
+  TITLE_TAB_PREFIX,
   TREE_TAB_ID,
   useTabs,
 } from './hooks/useTabs';
@@ -46,7 +56,7 @@ export function App() {
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons, tree.families, tree.sources);
+  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters, tree.todos, tree.titles);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -305,8 +315,9 @@ export function App() {
         <PersonTab
           tabId={tab.id}
           persons={tree.persons}
-          api={tree.api}
+          api={{ ...tree.api, openSource: tabs.openSourceTab }}
           onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${PERSON_TAB_PREFIX}${realId}`)}
         />
       );
     }
@@ -317,32 +328,108 @@ export function App() {
         return <p className="person-missing">{nls.t('features.tree.familyNotFound')}</p>;
       }
       return (
-        <FamilyView
-          family={family}
+        <FamilyTab
+          tabId={tab.id}
+          families={tree.families}
+          api={tree.familyApi}
           persons={tree.persons}
-          facts={tree.facts}
           sources={tree.sources}
-          citations={tree.citations}
-          notes={tree.notes}
-          onOpenPerson={openPersonAndFocus}
+          onOpenSource={tabs.openSourceTab}
+          onClose={tabs.closeTab}
         />
       );
     }
     if (tab.id.startsWith(SOURCE_TAB_PREFIX)) {
       const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
       const source = tree.sources.find((entry) => entry.id === sourceId);
-      if (!source) {
+      if (!sourceId.startsWith('new:') && !source) {
         return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
       }
       return (
-        <SourceView
-          source={source}
+        <SourceTab
+          tabId={tab.id}
+          sources={tree.sources}
+          api={tree.sourceApi}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${SOURCE_TAB_PREFIX}${realId}`)}
           persons={tree.persons}
           families={tree.families}
           facts={tree.facts}
+          places={tree.places}
           citations={tree.citations}
           notes={tree.notes}
           onOpenPerson={openPersonAndFocus}
+          onOpenSource={tabs.openSourceTab}
+          onClose={tabs.closeTab}
+        />
+      );
+    }
+    if (tab.id.startsWith(PLACE_TAB_PREFIX)) {
+      return (
+        <PlaceTab
+          tabId={tab.id}
+          places={tree.places}
+          api={tree.placeApi}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${PLACE_TAB_PREFIX}${realId}`)}
+          persons={tree.persons}
+          families={tree.families}
+          facts={tree.facts}
+          sources={tree.sources}
+          onOpenPerson={openPersonAndFocus}
+          onOpenSource={tabs.openSourceTab}
+          onClose={tabs.closeTab}
+        />
+      );
+    }
+    if (tab.id.startsWith(REPOSITORY_TAB_PREFIX)) {
+      return (
+        <RepositoryTab
+          tabId={tab.id}
+          repositories={tree.repositories}
+          api={tree.registriesApi}
+          sources={tree.sources}
+          onOpenSource={tabs.openSourceTab}
+          onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${REPOSITORY_TAB_PREFIX}${realId}`)}
+        />
+      );
+    }
+    if (tab.id.startsWith(SUBMITTER_TAB_PREFIX)) {
+      return (
+        <SubmitterTab
+          tabId={tab.id}
+          submitters={tree.submitters}
+          api={tree.registriesApi}
+          sources={tree.sources}
+          onOpenSource={tabs.openSourceTab}
+          onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${SUBMITTER_TAB_PREFIX}${realId}`)}
+        />
+      );
+    }
+    if (tab.id.startsWith(TASK_TAB_PREFIX)) {
+      return (
+        <TaskTab
+          tabId={tab.id}
+          todos={tree.todos}
+          persons={tree.persons}
+          repositories={tree.repositories}
+          api={tree.todosApi}
+          onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${TASK_TAB_PREFIX}${realId}`)}
+        />
+      );
+    }
+    if (tab.id.startsWith(TITLE_TAB_PREFIX)) {
+      return (
+        <TitleTab
+          tabId={tab.id}
+          titles={tree.titles}
+          sources={tree.sources}
+          repositories={tree.repositories}
+          api={tree.titlesApi}
+          onClose={tabs.closeTab}
+          onOpenSource={tabs.openSourceTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${TITLE_TAB_PREFIX}${realId}`)}
         />
       );
     }
@@ -421,9 +508,26 @@ export function App() {
             sources={tree.sources}
             media={tree.media}
             citations={tree.citations}
+            places={tree.places}
+            repositories={tree.repositories}
+            submitters={tree.submitters}
+            titles={tree.titles}
+            todos={tree.todos}
             onOpenPerson={openPersonAndFocus}
             onOpenFamily={tabs.openFamilyTab}
             onOpenSource={tabs.openSourceTab}
+            onOpenPlace={tabs.openPlaceTab}
+            onOpenRepository={tabs.openRepositoryTab}
+            onOpenSubmitter={tabs.openSubmitterTab}
+            onOpenTitle={tabs.openTitleTab}
+            onNewTitle={tabs.openNewTitleTab}
+            onNewPerson={tabs.openNewPersonTab}
+            onNewPlace={tabs.openNewPlaceTab}
+            onNewSource={tabs.openNewSourceTab}
+            onNewRepository={tabs.openNewRepositoryTab}
+            onNewSubmitter={tabs.openNewSubmitterTab}
+            onOpenTask={tabs.openTaskTab}
+            onNewTask={tabs.openNewTaskTab}
           />
         }
         activeView={activeView}

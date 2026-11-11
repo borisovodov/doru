@@ -318,7 +318,7 @@ CREATE TABLE IF NOT EXISTS media_link (
   caption INTEGER NOT NULL DEFAULT 0
 );
 
--- Repositories, submitters, addresses, project header.
+-- Repositories, submitters, addresses.
 
 CREATE TABLE IF NOT EXISTS repository (
   id TEXT PRIMARY KEY,
@@ -357,21 +357,6 @@ CREATE TABLE IF NOT EXISTS address_line (
   address_id TEXT NOT NULL REFERENCES address(id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
   value TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS header (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  gedcom_version TEXT,
-  source_software TEXT, source_version TEXT, source_name TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  language TEXT,
-  place_form TEXT,
-  copyright TEXT,
-  file_name TEXT,
-  submitter_id TEXT REFERENCES submitter(id) ON DELETE SET NULL,
-  family_file TEXT, temple TEXT,
-  generations_ancestors INTEGER, generations_descendants INTEGER,
-  ordinance_process_flag TEXT
 );
 
 -- Universal attachments: the single polymorphic shape, one table per kind.
@@ -449,16 +434,6 @@ CREATE TABLE IF NOT EXISTS fact_flag (
   PRIMARY KEY (fact_id, flag)
 );
 
-CREATE TABLE IF NOT EXISTS fact_type (
-  id TEXT PRIMARY KEY,
-  code TEXT,
-  kind TEXT,                 -- event | attribute
-  title TEXT,
-  abbreviation TEXT,
-  sentence TEXT,
-  confidential INTEGER NOT NULL DEFAULT 0
-);
-
 -- Relations between persons, and the research layer.
 
 CREATE TABLE IF NOT EXISTS association (
@@ -480,18 +455,6 @@ CREATE TABLE IF NOT EXISTS person_alias (
   UNIQUE (person_id, alias_id)
 );
 
-CREATE TABLE IF NOT EXISTS ordinance (
-  id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL,                -- BAPL | CONL | ENDL | INIL | SLGC | SLGS
-  target_type TEXT NOT NULL,         -- person | family | family_child
-  target_id TEXT NOT NULL,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  temple TEXT,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
-  status TEXT,
-  status_date_id TEXT REFERENCES date(id) ON DELETE SET NULL
-);
-
 CREATE TABLE IF NOT EXISTS todo (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
@@ -502,82 +465,6 @@ CREATE TABLE IF NOT EXISTS todo (
   reminder_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   closed_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS evidence (
-  id TEXT PRIMARY KEY,
-  type TEXT, document_type TEXT, analysis TEXT
-);
-
-CREATE TABLE IF NOT EXISTS evidence_finding (
-  id TEXT PRIMARY KEY,
-  evidence_id TEXT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
-  type TEXT, value TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
-  age_bound TEXT, age_years INTEGER, age_months INTEGER, age_days INTEGER, age_phrase TEXT
-);
-
-CREATE TABLE IF NOT EXISTS evidence_link (
-  id TEXT PRIMARY KEY,
-  evidence_id TEXT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  confidence TEXT, used TEXT, quality TEXT
-);
-
-CREATE TABLE IF NOT EXISTS research_document (
-  id TEXT PRIMARY KEY,
-  title TEXT,
-  text TEXT NOT NULL,
-  author TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS research_document_subject (
-  id TEXT PRIMARY KEY,
-  research_document_id TEXT NOT NULL REFERENCES research_document(id) ON DELETE CASCADE,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS research_conclusion (
-  id TEXT PRIMARY KEY,
-  research_document_id TEXT NOT NULL REFERENCES research_document(id) ON DELETE CASCADE,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  text TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS research_activity (
-  id TEXT PRIMARY KEY,
-  type TEXT, purpose TEXT, target TEXT, venue TEXT, result TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  researcher TEXT
-);
-
-CREATE TABLE IF NOT EXISTS census (
-  id TEXT PRIMARY KEY,
-  schedule TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS census_entry (
-  id TEXT PRIMARY KEY,
-  census_id TEXT NOT NULL REFERENCES census(id) ON DELETE CASCADE,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  father_id TEXT REFERENCES person(id) ON DELETE SET NULL,
-  mother_id TEXT REFERENCES person(id) ON DELETE SET NULL,
-  sex TEXT,
-  age_value TEXT, marital_status TEXT, occupation TEXT,
-  birth_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  birth_place_text TEXT
-);
-
-CREATE TABLE IF NOT EXISTS duplicate_candidate (
-  id TEXT PRIMARY KEY,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  other_person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  caption TEXT, assessment TEXT, status TEXT
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -659,14 +546,5 @@ CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
-CREATE INDEX IF NOT EXISTS idx_ordinance_target ON ordinance(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_finding_evidence ON evidence_finding(evidence_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_link_evidence ON evidence_link(evidence_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_link_target ON evidence_link(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_research_subject_doc ON research_document_subject(research_document_id);
-CREATE INDEX IF NOT EXISTS idx_research_conclusion_doc ON research_conclusion(research_document_id);
-CREATE INDEX IF NOT EXISTS idx_census_entry_census ON census_entry(census_id);
-CREATE INDEX IF NOT EXISTS idx_census_entry_person ON census_entry(person_id);
-CREATE INDEX IF NOT EXISTS idx_duplicate_person ON duplicate_candidate(person_id);
 `;

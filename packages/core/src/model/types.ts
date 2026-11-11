@@ -200,16 +200,6 @@ export interface FactParticipant {
 }
 
 /** A user-defined fact type (custom event/attribute definitions). */
-export interface FactTypeRecord {
-  id: string;
-  code?: string | undefined;
-  kind?: string | undefined;
-  title?: string | undefined;
-  abbreviation?: string | undefined;
-  sentence?: string | undefined;
-  confidential?: boolean | undefined;
-}
-
 export interface PersonRecord {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
@@ -460,25 +450,6 @@ export interface SubmitterRecord {
   languages?: string[] | undefined;
 }
 
-/** The single-row project header (GEDCOM header/submission metadata). */
-export interface HeaderRecord {
-  gedcomVersion?: string | undefined;
-  sourceSoftware?: string | undefined;
-  sourceVersion?: string | undefined;
-  sourceName?: string | undefined;
-  date?: DateValue | undefined;
-  language?: string | undefined;
-  placeForm?: string | undefined;
-  copyright?: string | undefined;
-  fileName?: string | undefined;
-  submitterId?: string | undefined;
-  familyFile?: string | undefined;
-  temple?: string | undefined;
-  generationsAncestors?: number | undefined;
-  generationsDescendants?: number | undefined;
-  ordinanceProcessFlag?: string | undefined;
-}
-
 // ---------------------------------------------------------------------------
 // Attachments
 // ---------------------------------------------------------------------------
@@ -539,9 +510,7 @@ export interface AttachmentsSnapshot {
   restrictions: RestrictionRecord[];
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
-  ordinances: OrdinanceRecord[];
   todos: TodoRecord[];
-  evidenceLinks: EvidenceLinkRecord[];
   recordSubmitters: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
 }
 
@@ -555,9 +524,7 @@ export function emptyAttachments(): AttachmentsSnapshot {
     restrictions: [],
     changes: [],
     tagLinks: [],
-    ordinances: [],
     todos: [],
-    evidenceLinks: [],
     recordSubmitters: [],
   };
 }
@@ -581,19 +548,6 @@ export interface AssociationRecord {
   periodEnd?: DateValue | undefined;
 }
 
-/** An LDS ordinance attached to a person, family or family child link. */
-export interface OrdinanceRecord {
-  id: string;
-  kind: string;
-  targetType: string;
-  targetId: string;
-  date?: DateValue | undefined;
-  temple?: string | undefined;
-  placeId?: string | undefined;
-  status?: string | undefined;
-  statusDate?: DateValue | undefined;
-}
-
 /** A task, attached to some entity or free-standing. */
 export interface TodoRecord {
   id: string;
@@ -609,97 +563,6 @@ export interface TodoRecord {
   reminderDate?: DateValue | undefined;
   closedDate?: DateValue | undefined;
   repositoryId?: string | undefined;
-}
-
-/** One claim inside an evidence record. */
-export interface EvidenceFinding {
-  id: string;
-  type?: string | undefined;
-  value?: string | undefined;
-  date?: DateValue | undefined;
-  placeId?: string | undefined;
-  ageBound?: string | undefined;
-  ageYears?: number | undefined;
-  ageMonths?: number | undefined;
-  ageDays?: number | undefined;
-  agePhrase?: string | undefined;
-}
-
-/** A claim of an evidence record about some tree entity. */
-export interface EvidenceLinkRecord {
-  id: string;
-  evidenceId: string;
-  targetType: string;
-  targetId: string;
-  confidence?: string | undefined;
-  used?: string | undefined;
-  quality?: string | undefined;
-}
-
-export interface EvidenceRecord {
-  id: string;
-  type?: string | undefined;
-  documentType?: string | undefined;
-  analysis?: string | undefined;
-  findings: EvidenceFinding[];
-  links: EvidenceLinkRecord[];
-}
-
-export interface ResearchConclusion {
-  id: string;
-  personId: string;
-  text: string;
-}
-
-export interface ResearchDocumentRecord {
-  id: string;
-  title?: string | undefined;
-  text: string;
-  author?: string | undefined;
-  date?: DateValue | undefined;
-  subjectIds?: string[] | undefined;
-  conclusions?: ResearchConclusion[] | undefined;
-}
-
-export interface ResearchActivityRecord {
-  id: string;
-  type?: string | undefined;
-  purpose?: string | undefined;
-  target?: string | undefined;
-  venue?: string | undefined;
-  result?: string | undefined;
-  date?: DateValue | undefined;
-  researcher?: string | undefined;
-}
-
-export interface CensusEntry {
-  id: string;
-  personId: string;
-  fatherId?: string | undefined;
-  motherId?: string | undefined;
-  sex?: string | undefined;
-  ageValue?: string | undefined;
-  maritalStatus?: string | undefined;
-  occupation?: string | undefined;
-  birthDate?: DateValue | undefined;
-  birthPlace?: string | undefined;
-}
-
-export interface CensusRecord {
-  id: string;
-  schedule?: string | undefined;
-  date?: DateValue | undefined;
-  placeId?: string | undefined;
-  entries: CensusEntry[];
-}
-
-export interface DuplicateCandidateRecord {
-  id: string;
-  personId: string;
-  otherPersonId: string;
-  caption?: string | undefined;
-  assessment?: string | undefined;
-  status?: string | undefined;
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */
@@ -740,13 +603,8 @@ export const TARGET_TYPES = [
   'repository',
   'submitter',
   'association',
-  'ordinance',
-  'evidence',
   'todo',
-  'research_document',
-  'research_activity',
   'title',
-  'census',
 ] as const;
 
 export type TargetType = (typeof TARGET_TYPES)[number];

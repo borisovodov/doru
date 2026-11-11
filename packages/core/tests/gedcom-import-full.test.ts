@@ -121,9 +121,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(result.importedSources).toBe(1);
       expect(result.droppedStructures).toBe(0);
 
-      // Header and registries.
-      expect(repo.getHeader().gedcomVersion).toBe('7.0');
-      expect(repo.getHeader().language).toBe('ru');
+      // Registries.
       expect(repo.listSubmitters()).toEqual([expect.objectContaining({ name: 'Test Submitter' })]);
       expect(repo.listRepositories()).toEqual([expect.objectContaining({ name: 'State Archive' })]);
       expect(repo.listTitles()).toEqual([expect.objectContaining({ name: 'Parish books of Tver' })]);

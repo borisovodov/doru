@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type {
   AddressRecord,
   ContactRecord,
-  FactTypeRecord,
-  HeaderRecord,
   IdentifierRecord,
   MediaLinkRecord,
   NoteRecord,
@@ -105,13 +103,6 @@ const address = (overrides: Partial<AddressRecord> = {}): AddressRecord => ({
   ...overrides,
 });
 
-const factType = (overrides: Partial<FactTypeRecord> = {}): FactTypeRecord => ({
-  id: 'FT1',
-  code: 'MILT',
-  title: 'military service',
-  ...overrides,
-});
-
 describe('TreeService attachments', () => {
   it('adds, splits, updates and deletes notes with undo', () => {
     const { fixture, service } = makeService();
@@ -183,9 +174,10 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listAllCitations()).toHaveLength(0);
       service.undo();
       expect(fixture.repo.getSource('S1')?.author).toBe('Ivan Petrov');
-      // Undoing the delete restores the source; the citation cascaded with
-      // the source row and is not re-attached.
-      expect(fixture.repo.listAllCitations()).toHaveLength(0);
+      // Undoing the delete restores the source and its citations — one
+      // undo step, no losses.
+      expect(fixture.repo.listAllCitations().map((entry) => entry.sourceId)).toEqual(['S1']);
+      expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -243,6 +235,11 @@ describe('TreeService attachments', () => {
     try {
       service.addIdentifier(identifier());
       expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
+      const editedIdentifier = identifier({ value: 'xyz-999' });
+      service.updateIdentifier(identifier(), editedIdentifier);
+      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([editedIdentifier]);
+      service.undo();
+      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
       service.deleteIdentifier(identifier());
       expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([]);
       service.undo();
@@ -250,12 +247,22 @@ describe('TreeService attachments', () => {
 
       service.addContact(contact());
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
+      const editedContact = contact({ kind: 'phone', value: '+7 495 000-00-00' });
+      service.updateContact(contact(), editedContact);
+      expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([editedContact]);
+      service.undo();
+      expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
       service.deleteContact(contact());
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([]);
       service.undo();
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
 
       service.addRestriction(restriction());
+      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
+      const editedRestriction = restriction({ level: 'locked' });
+      service.updateRestriction(restriction(), editedRestriction);
+      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([editedRestriction]);
+      service.undo();
       expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
       service.deleteRestriction(restriction());
       expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([]);
@@ -280,16 +287,34 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
 
-      service.deleteTag(tag());
-      expect(fixture.repo.listTags()).toEqual([]);
+      const renamed = tag({ name: 'Verified' });
+      service.updateTag(tag(), renamed);
+      expect(fixture.repo.listTags()).toEqual([renamed]);
       service.undo();
       expect(fixture.repo.listTags()).toEqual([tag()]);
+
+      const datedLink = tagLink({ date: { quality: 'exact', component: { year: 2021 } } });
+      service.updateTagLink(tagLink(), datedLink);
+      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date?.component?.year).toBe(2021);
+      service.undo();
+      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date).toBeUndefined();
+      service.redo();
+      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date?.component?.year).toBe(2021);
+      service.undo();
+
+      service.deleteTag(tag());
+      expect(fixture.repo.listTags()).toEqual([]);
+      // The FK cascade removes the links; the undo restores them too.
+      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
+      service.undo();
+      expect(fixture.repo.listTags()).toEqual([tag()]);
+      expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('manages repositories, submitters, addresses and fact types', () => {
+  it('manages repositories, submitters and addresses', () => {
     const { fixture, service } = makeService();
     try {
       service.addRepository(repository());
@@ -314,6 +339,8 @@ describe('TreeService attachments', () => {
 
       service.addAddress(address());
       expect(fixture.repo.getAddress('AD1')).toEqual(address());
+      expect(fixture.repo.listAddresses()).toEqual([address()]);
+      expect(service.listAddresses()).toEqual([address()]);
       const afterAddress = address({ city: 'Berlin' });
       service.updateAddress(address(), afterAddress);
       expect(fixture.repo.getAddress('AD1')?.city).toBe('Berlin');
@@ -321,30 +348,25 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getAddress('AD1')).toBeUndefined();
       service.undo();
       expect(fixture.repo.getAddress('AD1')?.city).toBe('Berlin');
-
-      service.addFactType(factType());
-      expect(fixture.repo.listFactTypes()).toEqual([factType()]);
-      const afterType = factType({ title: 'army' });
-      service.updateFactType(factType(), afterType);
-      expect(fixture.repo.listFactTypes()).toEqual([afterType]);
-      service.deleteFactType(afterType);
-      expect(fixture.repo.listFactTypes()).toEqual([]);
-      service.undo();
-      expect(fixture.repo.listFactTypes()).toEqual([afterType]);
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('saves the project header with undo', () => {
+  it('links and unlinks record contributors with undo', () => {
     const { fixture, service } = makeService();
     try {
-      const header: HeaderRecord = { gedcomVersion: '7.0', sourceSoftware: 'Dóru' };
-      service.saveHeader(header);
-      expect(fixture.repo.getHeader()).toMatchObject(header);
+      service.addSubmitter(submitter());
+      service.addRecordSubmitter('SU1', 'person', 'P1');
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);
+      expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
+
+      const [link] = fixture.repo.listRecordSubmittersFor('person', 'P1')!;
+      service.deleteRecordSubmitter(link!.id, link!.submitterId, link!.targetType, link!.targetId);
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([]);
 
       service.undo();
-      expect(fixture.repo.getHeader()).toEqual({});
+      expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -363,6 +385,18 @@ describe('TreeService attachments', () => {
 
       service.undo();
       expect(fixture.repo.listChangesFor('note', 'N1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stamps the change user into the change-log rows', () => {
+    const fixture = makeRepo();
+    const service = new TreeService(fixture.repo, new OpQueue(), 'boris');
+    try {
+      service.addNote(note());
+      const changes = fixture.repo.listChangesFor('note', 'N1');
+      expect(changes[0]?.user).toBe('boris');
     } finally {
       cleanupRepo(fixture);
     }

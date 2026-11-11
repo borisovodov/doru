@@ -7,15 +7,35 @@
 }
 
 .event-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 0;
   border-bottom: 1px solid var(--doru-border);
 }
 
 .event-list li:last-child {
   border-bottom: none;
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+  border-radius: var(--doru-radius-sm);
+}
+
+.event-row:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.event-chevron {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--doru-fg-faint);
+}
+
+.event-row.expanded .event-chevron {
+  color: var(--doru-fg-muted);
 }
 
 .event-list button {
@@ -28,6 +48,12 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--doru-radius-sm);
+}
+
+.event-negation {
+  font-size: 11px;
+  color: var(--doru-danger);
+  white-space: nowrap;
 }
 
 .event-type {
@@ -75,5 +101,21 @@
 .family-events-label {
   font-size: 12px;
   color: var(--doru-fg-muted);
+}
+
+/* The marriage date editor inside the narrow family row: rows wrap and
+   the editor takes the remaining width instead of overflowing. */
+.family-events .date-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.family-events .date-editor-row {
+  flex-wrap: wrap;
+}
+
+.family-events .date-editor-row input:last-of-type {
+  flex: 1;
+  min-width: 80px;
 }
 

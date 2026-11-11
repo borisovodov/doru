@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord, PersonRecord } from '@doru/core';
-import { displayName, factOwnerName, familyLabel, formatDate, initials, lifeSpan, qualityMark, years } from '../src/person/format';
+import { displayName, factOwnerName, familyLabel, formatAddress, formatDate, initials, lifeSpan, qualityMark, years } from '../src/person/format';
 
 const person = (overrides: Partial<PersonRecord> = {}): PersonRecord => ({
   id: 'P1',
@@ -33,6 +33,25 @@ describe('displayName', () => {
   it('joins only the parts that are present', () => {
     expect(displayName(person({ names: [{ id: 'N1', given: 'Ivan' }] }))).toBe('Ivan');
   });
+
+  it('prefers the primary name over the first one', () => {
+    expect(
+      displayName(
+        person({
+          names: [
+            { id: 'N1', type: 'maiden', given: 'Maria', surname: 'Sidorova' },
+            { id: 'N2', type: 'married', primary: true, given: 'Maria', surname: 'Ivanova' },
+          ],
+        }),
+      ),
+    ).toBe('Maria Ivanova');
+  });
+
+  it('falls back to the first name when no name is primary', () => {
+    expect(
+      displayName(person({ names: [{ id: 'N1', given: 'Ivan' }, { id: 'N2', given: 'Vanya' }] })),
+    ).toBe('Ivan');
+  });
 });
 
 describe('initials', () => {
@@ -50,6 +69,19 @@ describe('initials', () => {
 
   it('returns an empty string when the full name has no words', () => {
     expect(initials(person({ names: [{ id: 'N1', full: '   ' }] }))).toBe('');
+  });
+
+  it('prefers the primary name for the initials', () => {
+    expect(
+      initials(
+        person({
+          names: [
+            { id: 'N1', type: 'maiden', given: 'Maria', surname: 'Sidorova' },
+            { id: 'N2', type: 'married', primary: true, given: 'Maria', surname: 'Ivanova' },
+          ],
+        }),
+      ),
+    ).toBe('MI');
   });
 });
 
@@ -212,5 +244,22 @@ describe('qualityMark', () => {
     expect(qualityMark('exact')).toBe('');
     expect(qualityMark('range')).toBe('');
     expect(qualityMark('unknown')).toBe('');
+  });
+});
+
+describe('formatAddress', () => {
+  it('joins the lines and the postal parts', () => {
+    expect(
+      formatAddress({ id: 'A1', lines: ['12 Archive Lane'], city: 'Moscow', state: 'MO', postalCode: '123456', country: 'RU' }),
+    ).toBe('12 Archive Lane, Moscow, MO, 123456, RU');
+  });
+
+  it('omits the missing parts', () => {
+    expect(formatAddress({ id: 'A1', lines: ['5 Main St'] })).toBe('5 Main St');
+    expect(formatAddress({ id: 'A1', lines: [] })).toBe('');
+  });
+
+  it('is empty for a missing address', () => {
+    expect(formatAddress(undefined)).toBe('');
   });
 });

@@ -1,5 +1,41 @@
 /* ── Sidebar entity lists: one card per entity ─────────────────────── */
 
+.sidebar-segments {
+  display: flex;
+  gap: 2px;
+  margin: 8px;
+  padding: 3px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.sidebar-segment {
+  flex: 1;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  background: transparent;
+  color: var(--doru-fg-muted);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sidebar-segment.active {
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  color: var(--doru-fg);
+}
+
+.side-registries-note {
+  margin: 0 12px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+
 .side-section-list {
   flex: 1;
   min-height: 0;

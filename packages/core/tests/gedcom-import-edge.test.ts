@@ -32,9 +32,6 @@ const GEDCOM = [
   '2 DATE 1 JAN 2026',
   '1 CREA',
   '2 DATE 2 JAN 2026',
-  '1 _EVREF @E1@',
-  '2 _CONF high',
-  '1 _EVREF @MISSING@',
   '1 SUBM @U1@',
   '1 _TAG @T1@',
   '1 _TAG @MISSINGTAG@',
@@ -56,12 +53,6 @@ const GEDCOM = [
   '2 ROLE WITNESS',
   '1 ASSO @VOID@',
   '1 ALIA @I2@',
-  '1 BAPL',
-  '2 DATE 1930',
-  '2 STAT COMPLETED',
-  '1 SLGC',
-  '2 FAMC @F1@',
-  '2 STAT BIC',
   '0 @I2@ INDI',
   '1 NAME Maria /Sidorova/',
   '1 RESN locked',
@@ -73,10 +64,6 @@ const GEDCOM = [
   '1 CHIL @I3@',
   '2 _PEDI adopted',
   '2 STAT proven',
-  '1 SLGS',
-  '2 STAT CANCELED',
-  '1 SLGC',
-  '2 DATE 1946',
   '0 @S1@ SOUR',
   '1 TITL The Book',
   '0 @N1@ SNOTE Shared note',
@@ -95,11 +82,6 @@ const GEDCOM = [
   '1 _TSTS open',
   '1 _UID todo-uid',
   '1 _CDATE 2026',
-  '0 @E1@ _EVID',
-  '1 _TYPE birth certificate',
-  '1 SOUR @S1@',
-  '1 NOTE evidence note',
-  '1 UID ev-uid',
   '0 @O1@ _OCUR',
   '1 TYPE death',
   '1 DATE 1990',
@@ -108,18 +90,6 @@ const GEDCOM = [
   '2 ROLE witness',
   '1 _PART @MISSING@',
   '0 @O2@ _OCUR',
-  '0 @C1@ _CENR',
-  '1 DATE 1901',
-  '1 PLAC Moscow, Russia',
-  '1 INDI @I1@',
-  '2 SEX M',
-  '2 AGE 17y',
-  '2 _MSTAT single',
-  '2 OCCU smith',
-  '2 BIRT',
-  '3 DATE 1884',
-  '3 PLAC Moscow',
-  '1 INDI @MISSING@',
   '0 @OB1@ OBJE',
   '0 @AL1@ _ALIA',
   '0 @PL1@ _PLAC Moscow, Russia',
@@ -127,12 +97,6 @@ const GEDCOM = [
   '0 @PB1@ _PUBLISH',
   '0 @MT1@ _MTTAG',
   '0 @MC1@ _MTCAT',
-  '0 @EV1@ _EVENT_DEFN MILT',
-  '1 TITL military service',
-  '1 TYPE I',
-  '1 ABBR mil',
-  '1 SENT {individual} served',
-  '1 _CONF_FLAG Y',
   '0 TRLR',
 ].join('\n');
 
@@ -185,17 +149,6 @@ const EDGE_GEDCOM = [
   '2 DATE 2026',
   '0 @T1@ _TAG',
   '1 NAME favorites',
-  '0 @C1@ _CENR',
-  '1 DATE 1901',
-  '1 PLAC Moscow, Russia',
-  '1 INDI @I1@',
-  '2 BIRT',
-  '3 DATE 1884',
-  '3 PLAC Moscow',
-  '1 INDI @I2@',
-  '2 BIRT',
-  '3 DATE 1885',
-  '3 PLAC Moscow',
   '0 TRLR',
 ].join('\n');
 
@@ -227,11 +180,10 @@ describe('importGedcomDataset edge coverage', () => {
       const factKinds = repo.listContactsFor('fact', birth.id).map((contact) => contact.kind).sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
 
-      // Restrictions, changes, submitter links, evidence links, tag links.
+      // Restrictions, changes, submitter links and tag links.
       expect(repo.listRestrictionsFor('person', ivan.id).map((entry) => entry.level)).toEqual(['confidential']);
       expect(repo.listChangesFor('person', ivan.id)).toHaveLength(2);
       expect(repo.listSubmittersFor('person', ivan.id)).toHaveLength(1);
-      expect(repo.listEvidenceLinksFor('person', ivan.id)).toHaveLength(1);
       expect(repo.listTagLinksFor('person', ivan.id)).toHaveLength(1);
 
       // The negated fact keeps its citations and notes.
@@ -241,17 +193,9 @@ describe('importGedcomDataset edge coverage', () => {
       // Name phonetic/romanized variants survive.
       expect(ivan.names[0]?.variants?.map((variant) => variant.kind)).toEqual(['phonetic', 'romanized']);
 
-      // Associations (the @VOID@ one is skipped), aliases and ordinances.
+      // Associations (the @VOID@ one is skipped) and aliases.
       expect(repo.listAssociationsFor(ivan.id)).toHaveLength(1);
       expect(repo.listAliasesFor(ivan.id)).toHaveLength(1);
-      const ordinances = repo.listOrdinancesFor('person', ivan.id).map((ordinance) => ordinance.kind);
-      expect(ordinances).toContain('BAPL');
-
-      // The family keeps its sealings; the SLGC with a FAMC targets the child link.
-      const families = repo.listFamilies();
-      const family = families[0]!;
-      const familyOrdinances = repo.listOrdinancesFor('family', family.id).map((ordinance) => ordinance.kind).sort();
-      expect(familyOrdinances).toEqual(['SLGC', 'SLGS']);
 
       // Submitter identifiers and notes.
       const submitter = repo.listSubmitters()[0]!;
@@ -260,11 +204,6 @@ describe('importGedcomDataset edge coverage', () => {
 
       // Tag without a name is skipped; the tag link to a missing tag is skipped.
       expect(repo.listTags()).toHaveLength(1);
-
-      // Evidence with citations, notes and uids.
-      const evidence = repo.listEvidence()[0]!;
-      expect(evidence).toBeDefined();
-      expect(repo.listIdentifiersFor('evidence', evidence.id).map((identifier) => identifier.value)).toEqual(['ev-uid']);
 
       // Free-standing todo with fields and uid.
       const todos = repo.listTodos();
@@ -275,14 +214,6 @@ describe('importGedcomDataset edge coverage', () => {
       // The occurrence became one fact per participant.
       const facts = repo.listAllFacts();
       expect(facts.filter((fact) => fact.type === 'death')).toHaveLength(1);
-
-      // The census imported only the entry with a known person.
-      const census = repo.listCensuses()[0]!;
-      expect(census.entries).toHaveLength(1);
-      expect(census.entries[0]).toMatchObject({ ageValue: '17', maritalStatus: 'single', occupation: 'smith' });
-
-      // The fact type record imported.
-      expect(repo.listFactTypes()[0]).toMatchObject({ code: 'MILT', title: 'military service' });
     } finally {
       cleanupRepo(fixture);
     }
@@ -331,12 +262,44 @@ describe('importGedcomDataset edge coverage', () => {
       const family = repo.listFamilies()[0]!;
       expect(repo.listTagLinksFor('family', family.id)).toHaveLength(1);
       expect(repo.listTodosFor('family', family.id)).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 
-      // The shared text place "Moscow" is one row reused by both census entries.
-      const census = repo.listCensuses()[0]!;
-      expect(census.entries).toHaveLength(2);
-      expect(census.entries[0]?.birthPlace).toBe('Moscow');
-      expect(census.entries[1]?.birthPlace).toBe('Moscow');
+  it('drops the evidence, research, census and event-definition records', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Ivan /Petrov/',
+      '0 @E1@ _EVID',
+      '1 _TYPE birth certificate',
+      '0 @D1@ _RDOC',
+      '1 TITL Notes',
+      '1 TEXT body',
+      '0 @A1@ _RACT',
+      '1 _TYPE visit',
+      '0 @C1@ _CENR',
+      '1 DATE 1901',
+      '1 PLAC Moscow',
+      '1 INDI @I1@',
+      '2 AGE 17y',
+      '0 @V1@ _EVENT_DEFN MILT',
+      '1 TITL military service',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      const summary = importGedcomDataset(result.value.dataset, fixture.repo);
+      // The five records are counted as deliberately dropped.
+      expect(summary.droppedStructures).toBe(5);
+      expect(fixture.repo.listAllPersons()).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }

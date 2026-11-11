@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PersonRecord } from '@doru/core';
 import {
   PersonEditor,
@@ -17,11 +17,13 @@ export function PersonTab({
   persons,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   persons: PersonRecord[];
   api: PersonEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const personId = tabId.slice(PERSON_TAB_PREFIX.length);
   const isNew = personId.startsWith('new:');
@@ -29,7 +31,7 @@ export function PersonTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.personNotFound')}</p>;
   }
-  return <PersonTabBody tabId={tabId} personId={personId} isNew={isNew} persons={persons} api={api} onClose={onClose} />;
+  return <PersonTabBody tabId={tabId} personId={personId} isNew={isNew} persons={persons} api={api} onClose={onClose} onCreated={onCreated} />;
 }
 
 function PersonTabBody({
@@ -39,6 +41,7 @@ function PersonTabBody({
   persons,
   api,
   onClose,
+  onCreated,
 }: {
   tabId: string;
   personId: string;
@@ -46,12 +49,17 @@ function PersonTabBody({
   persons: PersonRecord[];
   api: PersonEditorApi;
   onClose: (tabId: string) => void;
+  onCreated: (realId: string) => void;
 }) {
   const record = persons.find((person) => person.id === personId);
   const [draft, setDraft] = useState<PersonDraft>(() =>
     isNew ? newPersonDraft() : record ? personToDraft(record) : newPersonDraft(),
   );
+  const personRef = useRef(record);
 
+  // Reset the draft only when it still equals the previously stored person
+  // (no unsaved edits); unrelated tree reloads (a fact added elsewhere)
+  // must not clobber in-progress edits.
   useEffect(() => {
     if (isNew) {
       return;
@@ -60,22 +68,30 @@ function PersonTabBody({
     if (!person) {
       return;
     }
+    if (person === personRef.current) {
+      return;
+    }
+    const previous = personRef.current;
+    personRef.current = person;
     setDraft((current) =>
-      current && !current.isNew && personDraftMatches(current, person) ? current : personToDraft(person),
+      current && !current.isNew && previous !== undefined && personDraftMatches(current, previous)
+        ? current
+        : personToDraft(person),
     );
   }, [personId, persons, isNew]);
+
+  const [created, setCreated] = useState(false);
 
   const save = async () => {
     const before = persons.find((entry) => entry.id === draft.id);
     const next = draftToRecord(draft, before);
-    if (draft.isNew) {
+    if (before === undefined) {
       await api.addPerson(next);
-      onClose(tabId);
+      setCreated(true);
+      onCreated(next.id);
       return;
     }
-    if (before) {
-      await api.updatePerson(before, next);
-    }
+    await api.updatePerson(before, next);
   };
 
   return (
@@ -84,7 +100,7 @@ function PersonTabBody({
       persons={persons}
       onChange={setDraft}
       onSave={() => void save()}
-      onCancel={draft.isNew ? () => onClose(tabId) : undefined}
+      onCancel={draft.isNew && !created ? () => onClose(tabId) : undefined}
       api={api}
     />
   );
