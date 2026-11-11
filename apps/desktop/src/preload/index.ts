@@ -176,6 +176,30 @@ const api = {
     ipcRenderer.invoke('tree:factsForPlace', { projectPath, placeId }),
   addRepository: (projectPath: string, repository: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addRepository', { projectPath, repository }),
+  updateRepository: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateRepository', { projectPath, before, after }),
+  deleteRepository: (projectPath: string, repository: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteRepository', { projectPath, repository }),
+  getSubmitters: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:submitters', { projectPath }),
+  addSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addSubmitter', { projectPath, submitter }),
+  updateSubmitter: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateSubmitter', { projectPath, before, after }),
+  deleteSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteSubmitter', { projectPath, submitter }),
+  getHeader: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:header', { projectPath }),
+  saveHeader: (projectPath: string, header: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:saveHeader', { projectPath, header }),
+  addAddress: (projectPath: string, address: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addAddress', { projectPath, address }),
+  updateAddress: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateAddress', { projectPath, before, after }),
+  deleteAddress: (projectPath: string, address: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteAddress', { projectPath, address }),
+  getAddress: (projectPath: string, id: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:address', { projectPath, id }),
   attachSource: (projectPath: string, sourceId: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:attachSource', { projectPath, sourceId, targetType, targetId }),
   detachCitation: (projectPath: string, citationId: string): Promise<unknown> =>

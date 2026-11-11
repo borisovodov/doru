@@ -6,6 +6,7 @@ import {
   ChatSetupPlaceholder,
   EmptyEditorPage,
   NoticesView,
+  RegistriesView,
   SettingsView,
   TreeCanvas,
   WelcomePage,
@@ -28,6 +29,7 @@ import {
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   PLACE_TAB_PREFIX,
+  REGISTRIES_TAB_ID,
   SETTINGS_TAB_ID,
   SOURCE_TAB_PREFIX,
   TREE_TAB_ID,
@@ -126,6 +128,11 @@ export function App() {
       title: nls.t('workbench.settings'),
       handler: () => tabs.openSettingsTab(),
     });
+    const removeOpenRegistries = commands.register({
+      id: 'workbench.openRegistries',
+      title: nls.t('workbench.registries'),
+      handler: () => tabs.openRegistriesTab(),
+    });
     const removeNextTab = commands.register({
       id: 'workbench.nextTab',
       title: nls.t('workbench.nextTab'),
@@ -157,6 +164,7 @@ export function App() {
       removeCreate.dispose();
       removeExport.dispose();
       removeOpenSettings.dispose();
+      removeOpenRegistries.dispose();
       removeNextTab.dispose();
       removePrevTab.dispose();
       removeSwitchToTab.dispose();
@@ -170,6 +178,7 @@ export function App() {
     project.createProject,
     tabs.openExportTab,
     tabs.openSettingsTab,
+    tabs.openRegistriesTab,
     tabs.nextTab,
     tabs.prevTab,
     tabs.openTabAt,
@@ -206,6 +215,8 @@ export function App() {
       { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
       { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
       { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
+      { key: 'meta+shift+r', command: 'workbench.openRegistries' },
+      { key: 'ctrl+shift+r', command: 'workbench.openRegistries' },
       { key: 'meta+alt+b', command: 'workbench.toggleAgentChat' },
       { key: 'ctrl+alt+b', command: 'workbench.toggleAgentChat' },
       ...Array.from({ length: 9 }, (_, index) => [
@@ -301,6 +312,9 @@ export function App() {
     }
     if (tab.id === EXPORT_TAB_ID) {
       return <ExportView onExportGedcom={() => void project.exportGedcom()} />;
+    }
+    if (tab.id === REGISTRIES_TAB_ID) {
+      return <RegistriesView api={tree.registriesApi} />;
     }
     if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
       return (

@@ -1,10 +1,12 @@
 import type {
+  AddressRecord,
   AssociationRecord,
   ChangeRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
   FamilyRecord,
+  HeaderRecord,
   IdentifierRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -14,6 +16,7 @@ import type {
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
+  SubmitterRecord,
   TagLinkRecord,
   TagRecord,
 } from '@doru/core';
@@ -89,6 +92,24 @@ export interface PlaceEditorApi {
   getPlaces(): Promise<PlaceRecord[]>;
   updatePlace(before: PlaceRecord, after: PlaceRecord): Promise<void>;
   deletePlace(place: PlaceRecord): Promise<void>;
+}
+
+/** The service surface the registries view needs from its host application. */
+export interface RegistriesEditorApi {
+  getRepositories(): Promise<RepositoryRecord[]>;
+  addRepository(repository: RepositoryRecord): Promise<void>;
+  updateRepository(before: RepositoryRecord, after: RepositoryRecord): Promise<void>;
+  deleteRepository(repository: RepositoryRecord): Promise<void>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  addSubmitter(submitter: SubmitterRecord): Promise<void>;
+  updateSubmitter(before: SubmitterRecord, after: SubmitterRecord): Promise<void>;
+  deleteSubmitter(submitter: SubmitterRecord): Promise<void>;
+  getHeader(): Promise<HeaderRecord>;
+  saveHeader(header: HeaderRecord): Promise<void>;
+  addAddress(address: AddressRecord): Promise<void>;
+  updateAddress(before: AddressRecord, after: AddressRecord): Promise<void>;
+  deleteAddress(address: AddressRecord): Promise<void>;
+  getAddress(id: string): Promise<AddressRecord | undefined>;
 }
 
 /** The service surface the family tab needs from its host application. */

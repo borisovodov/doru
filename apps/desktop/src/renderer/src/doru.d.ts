@@ -1,10 +1,12 @@
 import type {
+  AddressRecord,
   AssociationRecord,
   ChangeRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
   FamilyRecord,
+  HeaderRecord,
   IdentifierRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -17,6 +19,7 @@ import type {
   RestrictionRecord,
   RepositoryRecord,
   SourceRecord,
+  SubmitterRecord,
   TagLinkRecord,
   TagRecord,
   TreeStats,
@@ -182,6 +185,30 @@ declare global {
       ): Promise<UndoRedoState>;
       getRepositories(projectPath: string): Promise<RepositoryRecord[]>;
       addRepository(projectPath: string, repository: RepositoryRecord): Promise<UndoRedoState>;
+      updateRepository(
+        projectPath: string,
+        before: RepositoryRecord,
+        after: RepositoryRecord,
+      ): Promise<UndoRedoState>;
+      deleteRepository(projectPath: string, repository: RepositoryRecord): Promise<UndoRedoState>;
+      getSubmitters(projectPath: string): Promise<SubmitterRecord[]>;
+      addSubmitter(projectPath: string, submitter: SubmitterRecord): Promise<UndoRedoState>;
+      updateSubmitter(
+        projectPath: string,
+        before: SubmitterRecord,
+        after: SubmitterRecord,
+      ): Promise<UndoRedoState>;
+      deleteSubmitter(projectPath: string, submitter: SubmitterRecord): Promise<UndoRedoState>;
+      getHeader(projectPath: string): Promise<HeaderRecord>;
+      saveHeader(projectPath: string, header: HeaderRecord): Promise<UndoRedoState>;
+      addAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
+      updateAddress(
+        projectPath: string,
+        before: AddressRecord,
+        after: AddressRecord,
+      ): Promise<UndoRedoState>;
+      deleteAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
+      getAddress(projectPath: string, id: string): Promise<AddressRecord | undefined>;
       getPlaces(projectPath: string): Promise<PlaceRecord[]>;
       addPlace(projectPath: string, place: PlaceRecord): Promise<UndoRedoState>;
       updatePlace(

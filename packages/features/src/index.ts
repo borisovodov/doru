@@ -8,7 +8,7 @@ export {
   personToDraft,
   type PersonDraft,
 } from './person/draft';
-export type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, SourceEditorApi } from './person/types';
+export type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from './person/types';
 export { PersonList, type PersonListProps } from './person/PersonList';
 export { displayName, familyLabel, lifeSpan } from './person/format';
 export { SidebarFamilies } from './sidebar/SidebarFamilies';
@@ -23,6 +23,7 @@ export { SourceEditor } from './source/SourceEditor';
 export { sourceDraftToRecord, sourceToDraft, emptySourceDraft, sourceDraftMatches, type SourceDraft } from './source/sourceDraft';
 export { FamilyEditor } from './family/FamilyEditor';
 export { familyDraftToRecord, familyToDraft, emptyFamilyDraft, familyDraftMatches, type FamilyDraft } from './family/familyDraft';
+export { RegistriesView } from './registries/RegistriesView';
 export { PlaceEditor } from './place/PlaceEditor';
 export { PlaceFactsList } from './place/PlaceFactsList';
 export { placeDraftToRecord, placeToDraft, emptyPlaceDraft, placeDraftMatches, type PlaceDraft } from './place/placeDraft';

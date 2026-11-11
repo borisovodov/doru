@@ -600,6 +600,14 @@ export class TreeService {
     return this.apply(addRepositoryOp(repository));
   }
 
+  listSubmitters(): SubmitterRecord[] {
+    return this.repo.listSubmitters();
+  }
+
+  getHeader(): HeaderRecord {
+    return this.repo.getHeader();
+  }
+
   updateRepository(before: RepositoryRecord, after: RepositoryRecord): UndoRedoState {
     return this.apply(updateRepositoryOp(before, after));
   }
@@ -624,6 +632,10 @@ export class TreeService {
 
   addAddress(address: AddressRecord): UndoRedoState {
     return this.apply(addAddressOp(address));
+  }
+
+  getAddress(id: string): AddressRecord | undefined {
+    return this.repo.getAddress(id);
   }
 
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {

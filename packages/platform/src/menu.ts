@@ -136,6 +136,14 @@ export const APP_MENU: readonly MenuGroup[] = [
       },
       {
         type: 'item',
+        id: 'file.registries',
+        labelKey: 'workbench.registries',
+        command: 'workbench.openRegistries',
+        accelerator: 'CmdOrCtrl+Shift+R',
+        hint: 'Ctrl+Shift+R',
+      },
+      {
+        type: 'item',
         id: 'file.settings',
         labelKey: 'workbench.settings',
         command: 'workbench.openSettings',

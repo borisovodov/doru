@@ -8,7 +8,7 @@ import type {
   PlaceRecord,
   SourceRecord,
 } from '@doru/core';
-import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, SourceEditorApi } from '@doru/features';
+import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
 
 /**
  * Tree state and every mutation/reload that goes through `window.doru`.
@@ -468,6 +468,67 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const registriesApi = useMemo<RegistriesEditorApi>(
+    () => ({
+      getRepositories: () =>
+        projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([]),
+      addRepository: async (repository) => {
+        if (!projectPath) return;
+        await window.doru.addRepository(projectPath, repository);
+        await refreshTree();
+      },
+      updateRepository: async (before, after) => {
+        if (!projectPath) return;
+        await window.doru.updateRepository(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteRepository: async (repository) => {
+        if (!projectPath) return;
+        await window.doru.deleteRepository(projectPath, repository);
+        await refreshTree();
+      },
+      getSubmitters: () =>
+        projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([]),
+      addSubmitter: async (submitter) => {
+        if (!projectPath) return;
+        await window.doru.addSubmitter(projectPath, submitter);
+        await refreshTree();
+      },
+      updateSubmitter: async (before, after) => {
+        if (!projectPath) return;
+        await window.doru.updateSubmitter(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteSubmitter: async (submitter) => {
+        if (!projectPath) return;
+        await window.doru.deleteSubmitter(projectPath, submitter);
+        await refreshTree();
+      },
+      getHeader: () =>
+        projectPath ? window.doru.getHeader(projectPath) : Promise.resolve({}),
+      saveHeader: async (header) => {
+        if (!projectPath) return;
+        await window.doru.saveHeader(projectPath, header);
+        await refreshTree();
+      },
+      addAddress: async (address) => {
+        if (!projectPath) return;
+        await window.doru.addAddress(projectPath, address);
+      },
+      updateAddress: async (before, after) => {
+        if (!projectPath) return;
+        await window.doru.updateAddress(projectPath, before, after);
+      },
+      deleteAddress: async (address) => {
+        if (!projectPath) return;
+        await window.doru.deleteAddress(projectPath, address);
+      },
+      getAddress: (id) =>
+        projectPath ? window.doru.getAddress(projectPath, id) : Promise.resolve(undefined),
+    }),
+    [projectPath, refreshTree],
+  );
+
   return {
     persons,
     families,
@@ -488,5 +549,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     sourceApi,
     placeApi,
     familyApi,
+    registriesApi,
   };
 }

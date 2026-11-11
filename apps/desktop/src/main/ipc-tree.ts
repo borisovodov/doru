@@ -1,10 +1,12 @@
 import { ipcMain } from 'electron';
 import type {
+  AddressRecord,
   AssociationRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
   FamilyRecord,
+  HeaderRecord,
   IdentifierRecord,
   MediaRecord,
   NoteRecord,
@@ -14,6 +16,7 @@ import type {
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
+  SubmitterRecord,
   TagLinkRecord,
   TagRecord,
 } from '@doru/core';
@@ -385,6 +388,87 @@ export function registerTreeIpc(): void {
       return runtime.service.addRepository(options.repository);
     },
   );
+
+  ipcMain.handle(
+    'tree:updateRepository',
+    async (_event, options: { projectPath: string; before: RepositoryRecord; after: RepositoryRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateRepository(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteRepository',
+    async (_event, options: { projectPath: string; repository: RepositoryRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteRepository(options.repository);
+    },
+  );
+
+  ipcMain.handle('tree:submitters', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listSubmitters();
+  });
+
+  ipcMain.handle(
+    'tree:addSubmitter',
+    async (_event, options: { projectPath: string; submitter: SubmitterRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addSubmitter(options.submitter);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:updateSubmitter',
+    async (_event, options: { projectPath: string; before: SubmitterRecord; after: SubmitterRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateSubmitter(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteSubmitter',
+    async (_event, options: { projectPath: string; submitter: SubmitterRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteSubmitter(options.submitter);
+    },
+  );
+
+  ipcMain.handle('tree:header', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.getHeader();
+  });
+
+  ipcMain.handle('tree:saveHeader', async (_event, options: { projectPath: string; header: HeaderRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.saveHeader(options.header);
+  });
+
+  ipcMain.handle('tree:addAddress', async (_event, options: { projectPath: string; address: AddressRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addAddress(options.address);
+  });
+
+  ipcMain.handle(
+    'tree:updateAddress',
+    async (_event, options: { projectPath: string; before: AddressRecord; after: AddressRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateAddress(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteAddress',
+    async (_event, options: { projectPath: string; address: AddressRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteAddress(options.address);
+    },
+  );
+
+  ipcMain.handle('tree:address', async (_event, options: { projectPath: string; id: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.getAddress(options.id);
+  });
 
   ipcMain.handle(
     'tree:attachSource',

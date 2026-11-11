@@ -1,0 +1,156 @@
+/* ── Registries view ───────────────────────────────────────────────── */
+
+.registries-view {
+  max-width: 560px;
+  padding: 8px 16px;
+}
+
+.registries-view label {
+  display: block;
+  margin: 10px 0;
+  color: var(--doru-fg-muted);
+}
+
+.registries-view input,
+.registries-view select {
+  width: 100%;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  margin-top: 4px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.registries-view input:focus,
+.registries-view select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.registry-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.registry-list li {
+  border-bottom: 1px solid var(--doru-border);
+}
+
+.registry-list li:last-child {
+  border-bottom: none;
+}
+
+.registry-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.registry-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.registry-row .icon-button {
+  flex: none;
+}
+
+.registry-editor {
+  margin: 6px 0 10px;
+  padding: 10px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.registry-editor label {
+  margin: 6px 0;
+}
+
+.registry-editor input {
+  margin-top: 4px;
+}
+
+.registry-address {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--doru-bg);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.registry-address h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doru-fg-muted);
+}
+
+.registry-address input {
+  margin-bottom: 6px;
+}
+
+.registry-address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+}
+
+.registry-address-grid > input,
+.registry-inline-label input {
+  margin-top: 4px;
+}
+
+.registry-inline-label {
+  margin: 6px 0 !important;
+}
+
+.registry-languages {
+  margin-top: 8px;
+}
+
+.registry-language-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.registry-language-row input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.registry-language-row .icon-button {
+  flex: none;
+}
+
+.registry-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.registry-meta {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+}
+
+.header-form .add-button {
+  display: inline-flex;
+}
