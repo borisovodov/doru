@@ -221,9 +221,9 @@ function SourcesSidebar({
         {(
           [
             ['sources', nls.t('workbench.activityBar.sources')],
+            ['titles', nls.t('workbench.activityBar.titles')],
             ['repositories', nls.t('workbench.activityBar.repositories')],
             ['submitters', nls.t('workbench.activityBar.submitters')],
-            ['titles', nls.t('workbench.activityBar.titles')],
           ] as const
         ).map(([id, label]) => (
           <button
