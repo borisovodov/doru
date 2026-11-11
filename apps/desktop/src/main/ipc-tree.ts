@@ -253,6 +253,14 @@ export function registerTreeIpc(): void {
   );
 
   ipcMain.handle(
+    'tree:updateIdentifier',
+    async (_event, options: { projectPath: string; before: IdentifierRecord; after: IdentifierRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateIdentifier(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle(
     'tree:contacts',
     async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
@@ -270,6 +278,14 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; contact: ContactRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.deleteContact(options.contact);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:updateContact',
+    async (_event, options: { projectPath: string; before: ContactRecord; after: ContactRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateContact(options.before, options.after);
     },
   );
 
@@ -294,6 +310,14 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; restriction: RestrictionRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.deleteRestriction(options.restriction);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:updateRestriction',
+    async (_event, options: { projectPath: string; before: RestrictionRecord; after: RestrictionRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateRestriction(options.before, options.after);
     },
   );
 

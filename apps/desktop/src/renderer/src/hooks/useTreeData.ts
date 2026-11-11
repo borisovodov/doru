@@ -345,6 +345,12 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.deleteIdentifier(projectPath, identifier);
       },
+      updateIdentifier: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateIdentifier(projectPath, before, after);
+      },
       getContacts: (personId) =>
         projectPath ? window.doru.getContacts(projectPath, 'person', personId) : Promise.resolve([]),
       addContact: async (contact) => {
@@ -359,6 +365,12 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.deleteContact(projectPath, contact);
       },
+      updateContact: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateContact(projectPath, before, after);
+      },
       getRestrictions: (personId) =>
         projectPath ? window.doru.getRestrictions(projectPath, 'person', personId) : Promise.resolve([]),
       addRestriction: async (restriction) => {
@@ -372,6 +384,12 @@ export function useTreeData(projectPath: string | null | undefined) {
           return;
         }
         await window.doru.deleteRestriction(projectPath, restriction);
+      },
+      updateRestriction: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateRestriction(projectPath, before, after);
       },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
       getAliases: (personId) =>
@@ -509,6 +527,11 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteIdentifier(projectPath, identifier);
         await refreshTree();
       },
+      updateIdentifier: async (before: IdentifierRecord, after: IdentifierRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateIdentifier(projectPath, before, after);
+        await refreshTree();
+      },
       getContacts: (targetType: string, targetId: string) =>
         projectPath ? window.doru.getContacts(projectPath, targetType, targetId) : Promise.resolve([] as ContactRecord[]),
       addContact: async (contact: ContactRecord) => {
@@ -521,6 +544,11 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteContact(projectPath, contact);
         await refreshTree();
       },
+      updateContact: async (before: ContactRecord, after: ContactRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateContact(projectPath, before, after);
+        await refreshTree();
+      },
       getRestrictions: (targetType: string, targetId: string) =>
         projectPath ? window.doru.getRestrictions(projectPath, targetType, targetId) : Promise.resolve([] as RestrictionRecord[]),
       addRestriction: async (restriction: RestrictionRecord) => {
@@ -531,6 +559,11 @@ export function useTreeData(projectPath: string | null | undefined) {
       deleteRestriction: async (restriction: RestrictionRecord) => {
         if (!projectPath) return;
         await window.doru.deleteRestriction(projectPath, restriction);
+        await refreshTree();
+      },
+      updateRestriction: async (before: RestrictionRecord, after: RestrictionRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateRestriction(projectPath, before, after);
         await refreshTree();
       },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([] as TagRecord[])),

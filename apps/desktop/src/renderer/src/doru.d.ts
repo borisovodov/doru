@@ -167,6 +167,11 @@ declare global {
       ): Promise<IdentifierRecord[]>;
       addIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
       deleteIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
+      updateIdentifier(
+        projectPath: string,
+        before: IdentifierRecord,
+        after: IdentifierRecord,
+      ): Promise<UndoRedoState>;
       getContacts(
         projectPath: string,
         targetType: string,
@@ -174,6 +179,7 @@ declare global {
       ): Promise<ContactRecord[]>;
       addContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       deleteContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
+      updateContact(projectPath: string, before: ContactRecord, after: ContactRecord): Promise<UndoRedoState>;
       getRestrictions(
         projectPath: string,
         targetType: string,
@@ -181,6 +187,11 @@ declare global {
       ): Promise<RestrictionRecord[]>;
       addRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
       deleteRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
+      updateRestriction(
+        projectPath: string,
+        before: RestrictionRecord,
+        after: RestrictionRecord,
+      ): Promise<UndoRedoState>;
       getTags(projectPath: string): Promise<TagRecord[]>;
       getTagLinks(
         projectPath: string,

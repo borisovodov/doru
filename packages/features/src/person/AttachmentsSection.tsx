@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { Pencil, X } from 'lucide-react';
 import type { ContactRecord, IdentifierRecord, RestrictionRecord } from '@doru/core';
 import { nls } from '../nls';
 import './AttachmentsSection.css';
@@ -32,22 +32,27 @@ function restrictionLevelLabel(level: string): string {
   return labels[level] ?? level;
 }
 
-/** External identifiers of the person (REFN, SOSA, …). */
+/** External identifiers of the person (REFN, SOSA, …), with inline editing. */
 export function IdentifiersSection({
   targetType,
   targetId,
   identifiers,
   onAdd,
+  onUpdate,
   onDelete,
 }: {
   targetType: string;
   targetId: string;
   identifiers: IdentifierRecord[];
   onAdd: (identifier: IdentifierRecord) => Promise<void>;
+  onUpdate: (before: IdentifierRecord, after: IdentifierRecord) => Promise<void>;
   onDelete: (identifier: IdentifierRecord) => Promise<void>;
 }) {
   const [namespace, setNamespace] = useState('');
   const [value, setValue] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editNamespace, setEditNamespace] = useState('');
+  const [editValue, setEditValue] = useState('');
 
   const add = async () => {
     const trimmedNamespace = namespace.trim();
@@ -66,6 +71,25 @@ export function IdentifiersSection({
     setValue('');
   };
 
+  const startEdit = (identifier: IdentifierRecord) => {
+    setEditingId(identifier.id);
+    setEditNamespace(identifier.namespace);
+    setEditValue(identifier.value);
+  };
+
+  const saveEdit = async (identifier: IdentifierRecord) => {
+    const trimmedNamespace = editNamespace.trim();
+    const trimmedValue = editValue.trim();
+    if (
+      trimmedNamespace !== '' &&
+      trimmedValue !== '' &&
+      (trimmedNamespace !== identifier.namespace || trimmedValue !== identifier.value)
+    ) {
+      await onUpdate(identifier, { ...identifier, namespace: trimmedNamespace, value: trimmedValue });
+    }
+    setEditingId(null);
+  };
+
   return (
     <div className="person-section">
       <h3>{nls.t('features.tree.identifiers.title')}</h3>
@@ -73,15 +97,47 @@ export function IdentifiersSection({
       <ul className="attachment-list">
         {identifiers.map((identifier) => (
           <li key={identifier.id}>
-            <span className="attachment-kind">{identifier.namespace}</span>
-            <span className="attachment-value">{identifier.value}</span>
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.identifiers.remove')}
-              onClick={() => void onDelete(identifier)}
-            >
-              <X size={13} aria-hidden="true" />
-            </button>
+            {editingId === identifier.id ? (
+              <div className="attachment-edit">
+                <input
+                  className="attachment-edit-namespace"
+                  value={editNamespace}
+                  placeholder={nls.t('features.tree.identifiers.namespace')}
+                  onChange={(event) => setEditNamespace(event.target.value)}
+                  autoFocus
+                />
+                <input
+                  value={editValue}
+                  placeholder={nls.t('features.tree.identifiers.value')}
+                  onChange={(event) => setEditValue(event.target.value)}
+                />
+                <button className="add-button small" onClick={() => void saveEdit(identifier)}>
+                  {nls.t('features.tree.save')}
+                </button>
+                <button className="plain-button small" onClick={() => setEditingId(null)}>
+                  {nls.t('features.tree.fact.cancel')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="attachment-kind">{identifier.namespace}</span>
+                <span className="attachment-value">{identifier.value}</span>
+                <button
+                  className="icon-button"
+                  title={nls.t('features.tree.identifiers.edit')}
+                  onClick={() => startEdit(identifier)}
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                </button>
+                <button
+                  className="icon-button"
+                  title={nls.t('features.tree.identifiers.remove')}
+                  onClick={() => void onDelete(identifier)}
+                >
+                  <X size={13} aria-hidden="true" />
+                </button>
+              </>
+            )}
           </li>
         ))}
       </ul>
@@ -110,36 +166,49 @@ export function IdentifiersSection({
   );
 }
 
-/** Contact details of the person (email, phone, …). */
+/** Contact details of the person (email, phone, …), with inline editing. */
 export function ContactsSection({
   targetType,
   targetId,
   contacts,
   onAdd,
+  onUpdate,
   onDelete,
 }: {
   targetType: string;
   targetId: string;
   contacts: ContactRecord[];
   onAdd: (contact: ContactRecord) => Promise<void>;
+  onUpdate: (before: ContactRecord, after: ContactRecord) => Promise<void>;
   onDelete: (contact: ContactRecord) => Promise<void>;
 }) {
   const [kind, setKind] = useState('email');
   const [value, setValue] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editKind, setEditKind] = useState('email');
+  const [editValue, setEditValue] = useState('');
 
   const add = async () => {
     const trimmedValue = value.trim();
     if (trimmedValue === '') {
       return;
     }
-    await onAdd({
-      id: crypto.randomUUID(),
-      targetType,
-      targetId,
-      kind,
-      value: trimmedValue,
-    });
+    await onAdd({ id: crypto.randomUUID(), targetType, targetId, kind, value: trimmedValue });
     setValue('');
+  };
+
+  const startEdit = (contact: ContactRecord) => {
+    setEditingId(contact.id);
+    setEditKind(contact.kind);
+    setEditValue(contact.value);
+  };
+
+  const saveEdit = async (contact: ContactRecord) => {
+    const trimmedValue = editValue.trim();
+    if (trimmedValue !== '' && (editKind !== contact.kind || trimmedValue !== contact.value)) {
+      await onUpdate(contact, { ...contact, kind: editKind, value: trimmedValue });
+    }
+    setEditingId(null);
   };
 
   return (
@@ -149,15 +218,48 @@ export function ContactsSection({
       <ul className="attachment-list">
         {contacts.map((contact) => (
           <li key={contact.id}>
-            <span className="attachment-kind">{contactKindLabel(contact.kind)}</span>
-            <span className="attachment-value">{contact.value}</span>
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.contacts.remove')}
-              onClick={() => void onDelete(contact)}
-            >
-              <X size={13} aria-hidden="true" />
-            </button>
+            {editingId === contact.id ? (
+              <div className="attachment-edit">
+                <select value={editKind} onChange={(event) => setEditKind(event.target.value)}>
+                  {CONTACT_KINDS.map((entry) => (
+                    <option key={entry} value={entry}>
+                      {nls.t(`features.tree.contacts.kind.${entry}`)}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={editValue}
+                  placeholder={nls.t('features.tree.contacts.value')}
+                  onChange={(event) => setEditValue(event.target.value)}
+                  autoFocus
+                />
+                <button className="add-button small" onClick={() => void saveEdit(contact)}>
+                  {nls.t('features.tree.save')}
+                </button>
+                <button className="plain-button small" onClick={() => setEditingId(null)}>
+                  {nls.t('features.tree.fact.cancel')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="attachment-kind">{contactKindLabel(contact.kind)}</span>
+                <span className="attachment-value">{contact.value}</span>
+                <button
+                  className="icon-button"
+                  title={nls.t('features.tree.contacts.edit')}
+                  onClick={() => startEdit(contact)}
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                </button>
+                <button
+                  className="icon-button"
+                  title={nls.t('features.tree.contacts.remove')}
+                  onClick={() => void onDelete(contact)}
+                >
+                  <X size={13} aria-hidden="true" />
+                </button>
+              </>
+            )}
           </li>
         ))}
       </ul>
@@ -182,24 +284,40 @@ export function ContactsSection({
   );
 }
 
-/** Privacy restrictions of the person. */
+/** Privacy restrictions of the person, with inline editing. */
 export function RestrictionsSection({
   targetType,
   targetId,
   restrictions,
   onAdd,
+  onUpdate,
   onDelete,
 }: {
   targetType: string;
   targetId: string;
   restrictions: RestrictionRecord[];
   onAdd: (restriction: RestrictionRecord) => Promise<void>;
+  onUpdate: (before: RestrictionRecord, after: RestrictionRecord) => Promise<void>;
   onDelete: (restriction: RestrictionRecord) => Promise<void>;
 }) {
   const [level, setLevel] = useState('privacy');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLevel, setEditLevel] = useState('privacy');
 
   const add = async () => {
     await onAdd({ id: crypto.randomUUID(), targetType, targetId, level });
+  };
+
+  const startEdit = (restriction: RestrictionRecord) => {
+    setEditingId(restriction.id);
+    setEditLevel(restriction.level);
+  };
+
+  const saveEdit = async (restriction: RestrictionRecord) => {
+    if (editLevel !== restriction.level) {
+      await onUpdate(restriction, { ...restriction, level: editLevel });
+    }
+    setEditingId(null);
   };
 
   return (
@@ -209,14 +327,41 @@ export function RestrictionsSection({
       <ul className="attachment-list">
         {restrictions.map((restriction) => (
           <li key={restriction.id}>
-            <span className="attachment-value">{restrictionLevelLabel(restriction.level)}</span>
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.restrictions.remove')}
-              onClick={() => void onDelete(restriction)}
-            >
-              <X size={13} aria-hidden="true" />
-            </button>
+            {editingId === restriction.id ? (
+              <div className="attachment-edit">
+                <select value={editLevel} onChange={(event) => setEditLevel(event.target.value)}>
+                  {RESTRICTION_LEVELS.map((entry) => (
+                    <option key={entry} value={entry}>
+                      {nls.t(`features.tree.restrictions.level.${entry}`)}
+                    </option>
+                  ))}
+                </select>
+                <button className="add-button small" onClick={() => void saveEdit(restriction)}>
+                  {nls.t('features.tree.save')}
+                </button>
+                <button className="plain-button small" onClick={() => setEditingId(null)}>
+                  {nls.t('features.tree.fact.cancel')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="attachment-value">{restrictionLevelLabel(restriction.level)}</span>
+                <button
+                  className="icon-button"
+                  title={nls.t('features.tree.restrictions.edit')}
+                  onClick={() => startEdit(restriction)}
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                </button>
+                <button
+                  className="icon-button"
+                  title={nls.t('features.tree.restrictions.remove')}
+                  onClick={() => void onDelete(restriction)}
+                >
+                  <X size={13} aria-hidden="true" />
+                </button>
+              </>
+            )}
           </li>
         ))}
       </ul>

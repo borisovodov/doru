@@ -130,14 +130,17 @@ export interface TreeRepository {
   deleteAddress(id: string): boolean;
   insertIdentifier(identifier: IdentifierRecord): void;
   deleteIdentifier(id: string): boolean;
+  updateIdentifier(identifier: IdentifierRecord): void;
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[];
   insertChange(change: ChangeRecord): void;
   listChangesFor(targetType: string, targetId: string): ChangeRecord[];
   insertContact(contact: ContactRecord): void;
   deleteContact(id: string): boolean;
+  updateContact(contact: ContactRecord): void;
   listContactsFor(targetType: string, targetId: string): ContactRecord[];
   insertRestriction(restriction: RestrictionRecord): void;
   deleteRestriction(id: string): boolean;
+  updateRestriction(restriction: RestrictionRecord): void;
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[];
   insertTag(tag: TagRecord): void;
   deleteTag(id: string): boolean;
@@ -623,6 +626,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.deleteIdentifier(id);
   }
 
+  updateIdentifier(identifier: IdentifierRecord): void {
+    this.attachments.updateIdentifier(identifier);
+  }
+
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
     return this.attachments.listIdentifiersFor(targetType, targetId);
   }
@@ -643,6 +650,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.deleteContact(id);
   }
 
+  updateContact(contact: ContactRecord): void {
+    this.attachments.updateContact(contact);
+  }
+
   listContactsFor(targetType: string, targetId: string): ContactRecord[] {
     return this.attachments.listContactsFor(targetType, targetId);
   }
@@ -653,6 +664,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteRestriction(id: string): boolean {
     return this.attachments.deleteRestriction(id);
+  }
+
+  updateRestriction(restriction: RestrictionRecord): void {
+    this.attachments.updateRestriction(restriction);
   }
 
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {

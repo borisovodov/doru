@@ -65,6 +65,40 @@
   outline: none;
 }
 
+.attachment-edit {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-edit input,
+.attachment-edit select {
+  flex: 1;
+  min-width: 0;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 8px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.attachment-edit input:focus,
+.attachment-edit select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
+.attachment-edit .attachment-edit-namespace {
+  flex: 0 0 auto;
+  width: 96px;
+}
+
 .tag-chips {
   display: flex;
   flex-wrap: wrap;

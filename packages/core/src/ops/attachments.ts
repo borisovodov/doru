@@ -203,6 +203,19 @@ export function deleteIdentifierOp(identifier: IdentifierRecord): Op {
   );
 }
 
+/** Changes an identifier's namespace or value. */
+export function updateIdentifierOp(before: IdentifierRecord, after: IdentifierRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'identifier.update',
+      (ctx) => ctx.repo.updateIdentifier(after),
+      (ctx) => ctx.repo.updateIdentifier(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
+}
+
 export function addContactOp(contact: ContactRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -221,6 +234,19 @@ export function deleteContactOp(contact: ContactRecord): Op {
   );
 }
 
+/** Changes a contact's kind or value. */
+export function updateContactOp(before: ContactRecord, after: ContactRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'contact.update',
+      (ctx) => ctx.repo.updateContact(after),
+      (ctx) => ctx.repo.updateContact(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
+}
+
 export function addRestrictionOp(restriction: RestrictionRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -237,6 +263,19 @@ export function deleteRestrictionOp(restriction: RestrictionRecord): Op {
     (ctx) => ctx.repo.deleteRestriction(restriction.id),
     (ctx) => ctx.repo.insertRestriction(restriction),
   );
+}
+
+/** Changes a restriction's level. */
+export function updateRestrictionOp(before: RestrictionRecord, after: RestrictionRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'restriction.update',
+      (ctx) => ctx.repo.updateRestriction(after),
+      (ctx) => ctx.repo.updateRestriction(before),
+    ),
+    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+  };
 }
 
 export function addTagOp(tag: TagRecord): Op {

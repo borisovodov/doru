@@ -51,15 +51,18 @@ import {
   deleteAliasOp,
   deleteAssociationOp,
   deleteContactOp,
+  updateContactOp,
   deleteFactOp,
   deleteFamilyOp,
   deleteIdentifierOp,
+  updateIdentifierOp,
   deleteMediaOp,
   deleteNoteOp,
   deletePersonOp,
   deletePlaceOp,
   deleteRepositoryOp,
   deleteRestrictionOp,
+  updateRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
   deleteRecordSubmitterOp,
@@ -511,6 +514,10 @@ export class TreeService {
     return this.apply(deleteIdentifierOp(identifier));
   }
 
+  updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): UndoRedoState {
+    return this.apply(updateIdentifierOp(before, after));
+  }
+
   listContactsFor(targetType: string, targetId: string): ContactRecord[] {
     return this.repo.listContactsFor(targetType, targetId);
   }
@@ -523,6 +530,10 @@ export class TreeService {
     return this.apply(deleteContactOp(contact));
   }
 
+  updateContact(before: ContactRecord, after: ContactRecord): UndoRedoState {
+    return this.apply(updateContactOp(before, after));
+  }
+
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
     return this.repo.listRestrictionsFor(targetType, targetId);
   }
@@ -533,6 +544,10 @@ export class TreeService {
 
   deleteRestriction(restriction: RestrictionRecord): UndoRedoState {
     return this.apply(deleteRestrictionOp(restriction));
+  }
+
+  updateRestriction(before: RestrictionRecord, after: RestrictionRecord): UndoRedoState {
+    return this.apply(updateRestrictionOp(before, after));
   }
 
   listTags(): TagRecord[] {

@@ -32,6 +32,12 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM identifier WHERE id = ?').run(id).changes > 0;
   }
 
+  updateIdentifier(identifier: IdentifierRecord): void {
+    this.db
+      .prepare('UPDATE identifier SET target_type = ?, target_id = ?, namespace = ?, value = ? WHERE id = ?')
+      .run(identifier.targetType, identifier.targetId, identifier.namespace, identifier.value, identifier.id);
+  }
+
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
     const rows = this.db
       .prepare('SELECT id, target_type, target_id, namespace, value FROM identifier WHERE target_type = ? AND target_id = ? ORDER BY id')
@@ -63,6 +69,12 @@ export class AttachmentRepo {
     return this.db.prepare('DELETE FROM contact WHERE id = ?').run(id).changes > 0;
   }
 
+  updateContact(contact: ContactRecord): void {
+    this.db
+      .prepare('UPDATE contact SET target_type = ?, target_id = ?, kind = ?, value = ? WHERE id = ?')
+      .run(contact.targetType, contact.targetId, contact.kind, contact.value, contact.id);
+  }
+
   listContactsFor(targetType: string, targetId: string): ContactRecord[] {
     const rows = this.db
       .prepare('SELECT id, target_type, target_id, kind, value FROM contact WHERE target_type = ? AND target_id = ? ORDER BY id')
@@ -92,6 +104,12 @@ export class AttachmentRepo {
 
   deleteRestriction(id: string): boolean {
     return this.db.prepare('DELETE FROM restriction WHERE id = ?').run(id).changes > 0;
+  }
+
+  updateRestriction(restriction: RestrictionRecord): void {
+    this.db
+      .prepare('UPDATE restriction SET target_type = ?, target_id = ?, level = ? WHERE id = ?')
+      .run(restriction.targetType, restriction.targetId, restriction.level, restriction.id);
   }
 
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {

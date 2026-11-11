@@ -131,18 +131,24 @@ const api = {
     ipcRenderer.invoke('tree:addIdentifier', { projectPath, identifier }),
   deleteIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteIdentifier', { projectPath, identifier }),
+  updateIdentifier: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateIdentifier', { projectPath, before, after }),
   getContacts: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:contacts', { projectPath, targetType, targetId }),
   addContact: (projectPath: string, contact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addContact', { projectPath, contact }),
   deleteContact: (projectPath: string, contact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteContact', { projectPath, contact }),
+  updateContact: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateContact', { projectPath, before, after }),
   getRestrictions: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:restrictions', { projectPath, targetType, targetId }),
   addRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addRestriction', { projectPath, restriction }),
   deleteRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteRestriction', { projectPath, restriction }),
+  updateRestriction: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateRestriction', { projectPath, before, after }),
   getTags: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tags', { projectPath }),
   getTagLinks: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:tagLinks', { projectPath, targetType, targetId }),

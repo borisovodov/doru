@@ -357,6 +357,10 @@ export function PersonEditor({
               await api.addIdentifier(identifier);
               await refreshAttachments();
             }}
+            onUpdate={async (before, after) => {
+              await api.updateIdentifier(before, after);
+              await refreshAttachments();
+            }}
             onDelete={async (identifier) => {
               await api.deleteIdentifier(identifier);
               await refreshAttachments();
@@ -370,6 +374,10 @@ export function PersonEditor({
               await api.addContact(contact);
               await refreshAttachments();
             }}
+            onUpdate={async (before, after) => {
+              await api.updateContact(before, after);
+              await refreshAttachments();
+            }}
             onDelete={async (contact) => {
               await api.deleteContact(contact);
               await refreshAttachments();
@@ -381,6 +389,10 @@ export function PersonEditor({
             restrictions={restrictions}
             onAdd={async (restriction) => {
               await api.addRestriction(restriction);
+              await refreshAttachments();
+            }}
+            onUpdate={async (before, after) => {
+              await api.updateRestriction(before, after);
               await refreshAttachments();
             }}
             onDelete={async (restriction) => {
