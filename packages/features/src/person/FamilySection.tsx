@@ -5,6 +5,7 @@ import { nls } from '../nls';
 import { DateEditor } from './DateEditor';
 import { emptyDate, fromDateDraft, type DateDraft } from './draft';
 import { displayName, formatDate } from './format';
+import { emptyChildLinkDraft, emptyPartnerLinkDraft, familyDraftToRecord, familyToDraft } from '../family/familyDraft';
 import './FamilySection.css';
 
 interface FamilySectionProps {
@@ -45,22 +46,21 @@ export function FamilySection({
   };
 
   const removeMember = async (family: FamilyRecord, memberId: string) => {
-    const after: FamilyRecord = {
-      ...family,
-      partners: family.partners.filter((id) => id !== memberId),
-      children: family.children.filter((id) => id !== memberId),
-    };
-    await onUpdateFamily(family, after);
+    const draft = familyToDraft(family);
+    draft.partnerLinks = draft.partnerLinks.filter((link) => link.personId !== memberId);
+    draft.childLinks = draft.childLinks.filter((link) => link.childId !== memberId);
+    await onUpdateFamily(family, familyDraftToRecord(draft));
     await refresh();
   };
 
   const addMember = async (family: FamilyRecord, role: 'parent' | 'child', memberId: string) => {
-    const after: FamilyRecord = {
-      ...family,
-      partners: role === 'parent' ? [...family.partners, memberId] : family.partners,
-      children: role === 'child' ? [...family.children, memberId] : family.children,
-    };
-    await onUpdateFamily(family, after);
+    const draft = familyToDraft(family);
+    if (role === 'parent') {
+      draft.partnerLinks.push(emptyPartnerLinkDraft(memberId));
+    } else {
+      draft.childLinks.push(emptyChildLinkDraft(memberId));
+    }
+    await onUpdateFamily(family, familyDraftToRecord(draft));
     await refresh();
   };
 
@@ -176,6 +176,13 @@ function FamilyCard({
         <PersonPicker
           persons={persons}
           exclude={[...family.partners, ...family.children]}
+          placeholder={nls.t('features.tree.families.addPartner')}
+          onPick={(memberId) => onAddMember('parent', memberId)}
+        />
+        <PersonPicker
+          persons={persons}
+          exclude={[...family.partners, ...family.children]}
+          placeholder={nls.t('features.tree.families.addChild')}
           onPick={(memberId) => onAddMember('child', memberId)}
         />
       </div>
@@ -203,10 +210,12 @@ function FamilyCard({
 function PersonPicker({
   persons,
   exclude,
+  placeholder,
   onPick,
 }: {
   persons: PersonRecord[];
   exclude: string[];
+  placeholder: string;
   onPick: (personId: string) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -221,7 +230,7 @@ function PersonPicker({
     <div className="person-picker">
       <input
         value={query}
-        placeholder={nls.t('features.tree.families.personSearch')}
+        placeholder={placeholder}
         onChange={(event) => {
           setQuery(event.target.value);
           setOpen(true);

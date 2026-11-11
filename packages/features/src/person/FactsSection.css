@@ -103,3 +103,19 @@
   color: var(--doru-fg-muted);
 }
 
+/* The marriage date editor inside the narrow family row: rows wrap and
+   the editor takes the remaining width instead of overflowing. */
+.family-events .date-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.family-events .date-editor-row {
+  flex-wrap: wrap;
+}
+
+.family-events .date-editor-row input:last-of-type {
+  flex: 1;
+  min-width: 80px;
+}
+

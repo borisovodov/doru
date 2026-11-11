@@ -61,7 +61,8 @@ export function FamilyEditor({
     return () => {
       cancelled = true;
     };
-  }, [draft.id, api]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.id, api, persons]);
 
   const refreshFacts = async () => {
     setFacts(await api.getFacts(undefined, draft.id));

@@ -17,7 +17,7 @@ export function DateEditor({
   const set = (patch: Partial<DateDraft>) => onChange({ ...value, ...patch });
   return (
     <div className="date-editor">
-      <label>{label}</label>
+      {label !== '' && <label>{label}</label>}
       <div className="date-editor-row">
         <input
           type="number"

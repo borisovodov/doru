@@ -114,7 +114,8 @@ function SourceTabBody({
     return () => {
       cancelled = true;
     };
-  }, [api]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, record]);
 
   const save = async () => {
     await api.updateSource(record, sourceDraftToRecord(draft));

@@ -111,7 +111,7 @@ export function PersonEditor({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.id, draft.isNew]);
+  }, [draft.id, draft.isNew, persons]);
 
   const refreshFamilies = async () => {
     setFamilies(await api.getFamilies());
