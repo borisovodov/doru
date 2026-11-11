@@ -10,13 +10,15 @@ import './NotesSection.css';
  * context link is passed through.
  */
 export function NotesSection({
-  personId,
+  targetType,
+  targetId,
   notes,
   onAdd,
   onUpdate,
   onDelete,
 }: {
-  personId: string;
+  targetType: string;
+  targetId: string;
   notes: NoteRecord[];
   onAdd: (text: string) => Promise<void>;
   onUpdate: (before: NoteRecord, after: NoteRecord, context: NoteLinkRecord) => Promise<void>;
@@ -44,8 +46,8 @@ export function NotesSection({
     const text = editText.trim();
     if (text !== '' && text !== note.text) {
       const link =
-        note.links?.find((entry) => entry.targetType === 'person' && entry.targetId === personId) ??
-        ({ id: crypto.randomUUID(), targetType: 'person', targetId: personId } as NoteLinkRecord);
+        note.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId) ??
+        ({ id: crypto.randomUUID(), targetType, targetId } as NoteLinkRecord);
       await onUpdate(note, { ...note, text }, link);
     }
     setEditingId(null);

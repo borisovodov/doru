@@ -10,7 +10,8 @@ import './AttachmentsSection.css';
  * tag from the whole tree, links included.
  */
 export function TagsSection({
-  personId,
+  targetType,
+  targetId,
   tags,
   tagLinks,
   onAddTag,
@@ -19,7 +20,8 @@ export function TagsSection({
   onAttachTag,
   onDetachTag,
 }: {
-  personId: string;
+  targetType: string;
+  targetId: string;
   tags: TagRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   onAddTag: (tag: TagRecord) => Promise<void>;
@@ -46,7 +48,7 @@ export function TagsSection({
       tag = { id: crypto.randomUUID(), name };
       await onAddTag(tag);
     }
-    await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType: 'person', targetId: personId });
+    await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType, targetId });
     setInput('');
   };
 

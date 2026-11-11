@@ -3,12 +3,18 @@ import type {
   CitationRecord,
   FactRecord,
   FamilyRecord,
+  ContactRecord,
+  IdentifierRecord,
+  NoteLinkRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
+  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
@@ -189,7 +195,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getNotes: (personId) =>
-        projectPath ? window.doru.listNotes(projectPath, personId) : Promise.resolve([]),
+        projectPath ? window.doru.listNotes(projectPath, 'person', personId) : Promise.resolve([]),
       addNote: async (personId, text) => {
         if (!projectPath) {
           return;
@@ -259,7 +265,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       getSources: () =>
         projectPath ? window.doru.getSources(projectPath) : Promise.resolve([]),
       getCitations: (personId) =>
-        projectPath ? window.doru.getCitations(projectPath, personId) : Promise.resolve([]),
+        projectPath ? window.doru.getCitations(projectPath, 'person', personId) : Promise.resolve([]),
       addSource: async (source, targetId) => {
         if (!projectPath) {
           return;
@@ -326,7 +332,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteMedia(projectPath, media);
       },
       getIdentifiers: (personId) =>
-        projectPath ? window.doru.getIdentifiers(projectPath, personId) : Promise.resolve([]),
+        projectPath ? window.doru.getIdentifiers(projectPath, 'person', personId) : Promise.resolve([]),
       addIdentifier: async (identifier) => {
         if (!projectPath) {
           return;
@@ -340,7 +346,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteIdentifier(projectPath, identifier);
       },
       getContacts: (personId) =>
-        projectPath ? window.doru.getContacts(projectPath, personId) : Promise.resolve([]),
+        projectPath ? window.doru.getContacts(projectPath, 'person', personId) : Promise.resolve([]),
       addContact: async (contact) => {
         if (!projectPath) {
           return;
@@ -354,7 +360,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteContact(projectPath, contact);
       },
       getRestrictions: (personId) =>
-        projectPath ? window.doru.getRestrictions(projectPath, personId) : Promise.resolve([]),
+        projectPath ? window.doru.getRestrictions(projectPath, 'person', personId) : Promise.resolve([]),
       addRestriction: async (restriction) => {
         if (!projectPath) {
           return;
@@ -403,7 +409,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getTagLinks: (personId) =>
-        projectPath ? window.doru.getTagLinks(projectPath, personId) : Promise.resolve([]),
+        projectPath ? window.doru.getTagLinks(projectPath, 'person', personId) : Promise.resolve([]),
       addTag: async (tag) => {
         if (!projectPath) {
           return;
@@ -442,16 +448,120 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
-  const sourceApi = useMemo<SourceEditorApi>(
+  /** The generic attachment CRUD shared by the family, source and place editors. */
+  const attachmentMethods = useMemo(
     () => ({
-      getSources: () => (projectPath ? window.doru.getSources(projectPath) : Promise.resolve([])),
-      addSource: async (source) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addSource(projectPath, source);
+      getNotes: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.listNotes(projectPath, targetType, targetId) : Promise.resolve([] as NoteRecord[]),
+      addNote: async (note: NoteRecord) => {
+        if (!projectPath) return;
+        await window.doru.addNote(projectPath, note);
         await refreshTree();
       },
+      updateNote: async (before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateNote(projectPath, before, after, context);
+        await refreshTree();
+      },
+      deleteNote: async (note: NoteRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteNote(projectPath, note);
+        await refreshTree();
+      },
+      getCitations: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getCitations(projectPath, targetType, targetId) : Promise.resolve([] as CitationRecord[]),
+      getSources: () => (projectPath ? window.doru.getSources(projectPath) : Promise.resolve([] as SourceRecord[])),
+      addSource: async (source: SourceRecord, targetType?: string, targetId?: string) => {
+        if (!projectPath) return;
+        await window.doru.addSource(projectPath, source, targetType, targetId);
+        await refreshTree();
+      },
+      attachSource: async (sourceId: string, targetType: string, targetId: string) => {
+        if (!projectPath) return;
+        await window.doru.attachSource(projectPath, sourceId, targetType, targetId);
+        await refreshTree();
+      },
+      detachCitation: async (citationId: string) => {
+        if (!projectPath) return;
+        await window.doru.detachCitation(projectPath, citationId);
+        await refreshTree();
+      },
+      updateCitation: async (before: CitationRecord, after: CitationRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateCitation(projectPath, before, after);
+        await refreshTree();
+      },
+      getIdentifiers: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getIdentifiers(projectPath, targetType, targetId) : Promise.resolve([] as IdentifierRecord[]),
+      addIdentifier: async (identifier: IdentifierRecord) => {
+        if (!projectPath) return;
+        await window.doru.addIdentifier(projectPath, identifier);
+        await refreshTree();
+      },
+      deleteIdentifier: async (identifier: IdentifierRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteIdentifier(projectPath, identifier);
+        await refreshTree();
+      },
+      getContacts: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getContacts(projectPath, targetType, targetId) : Promise.resolve([] as ContactRecord[]),
+      addContact: async (contact: ContactRecord) => {
+        if (!projectPath) return;
+        await window.doru.addContact(projectPath, contact);
+        await refreshTree();
+      },
+      deleteContact: async (contact: ContactRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteContact(projectPath, contact);
+        await refreshTree();
+      },
+      getRestrictions: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getRestrictions(projectPath, targetType, targetId) : Promise.resolve([] as RestrictionRecord[]),
+      addRestriction: async (restriction: RestrictionRecord) => {
+        if (!projectPath) return;
+        await window.doru.addRestriction(projectPath, restriction);
+        await refreshTree();
+      },
+      deleteRestriction: async (restriction: RestrictionRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteRestriction(projectPath, restriction);
+        await refreshTree();
+      },
+      getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([] as TagRecord[])),
+      getTagLinks: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getTagLinks(projectPath, targetType, targetId) : Promise.resolve([] as Array<{ tagId: string; link: TagLinkRecord }>),
+      addTag: async (tag: TagRecord) => {
+        if (!projectPath) return;
+        await window.doru.addTag(projectPath, tag);
+        await refreshTree();
+      },
+      updateTag: async (before: TagRecord, after: TagRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateTag(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteTag: async (tag: TagRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteTag(projectPath, tag);
+        await refreshTree();
+      },
+      attachTag: async (link: TagLinkRecord) => {
+        if (!projectPath) return;
+        await window.doru.attachTag(projectPath, link);
+        await refreshTree();
+      },
+      detachTag: async (link: TagLinkRecord) => {
+        if (!projectPath) return;
+        await window.doru.detachTag(projectPath, link);
+        await refreshTree();
+      },
+    }),
+    [projectPath, refreshTree],
+  );
+
+  const sourceApi = useMemo<SourceEditorApi>(
+    () => ({
+      ...attachmentMethods,
       updateSource: async (before, after) => {
         if (!projectPath) {
           return;
@@ -476,12 +586,28 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getTitles: () => (projectPath ? window.doru.getTitles(projectPath) : Promise.resolve([])),
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[])),
+      getRecordSubmitters: (targetType: string, targetId: string) =>
+        projectPath
+          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
+          : Promise.resolve([] as Array<{ id: string; submitterId: string; targetType: string; targetId: string }>),
+      addRecordSubmitter: async (submitterId: string, targetType: string, targetId: string) => {
+        if (!projectPath) return;
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await refreshTree();
+      },
+      deleteRecordSubmitter: async (id: string, submitterId: string, targetType: string, targetId: string) => {
+        if (!projectPath) return;
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await refreshTree();
+      },
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, attachmentMethods],
   );
 
   const placeApi = useMemo<PlaceEditorApi>(
     () => ({
+      ...attachmentMethods,
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
       addPlace: async (place) => {
         if (!projectPath) {
@@ -504,12 +630,28 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deletePlace(projectPath, place);
         await refreshTree();
       },
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[])),
+      getRecordSubmitters: (targetType: string, targetId: string) =>
+        projectPath
+          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
+          : Promise.resolve([] as Array<{ id: string; submitterId: string; targetType: string; targetId: string }>),
+      addRecordSubmitter: async (submitterId: string, targetType: string, targetId: string) => {
+        if (!projectPath) return;
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await refreshTree();
+      },
+      deleteRecordSubmitter: async (id: string, submitterId: string, targetType: string, targetId: string) => {
+        if (!projectPath) return;
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await refreshTree();
+      },
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, attachmentMethods],
   );
 
   const familyApi = useMemo<FamilyEditorApi>(
     () => ({
+      ...attachmentMethods,
       getFacts: (personId, familyId) =>
         projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
       addFact: async (fact) => {
@@ -568,7 +710,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, attachmentMethods],
   );
 
   const registriesApi = useMemo<RegistriesEditorApi>(

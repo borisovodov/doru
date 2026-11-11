@@ -127,7 +127,11 @@ declare global {
       onAiSettingsChanged(callback: (state: AiSettingsState) => void): () => void;
       /** Opens a link from a chat reply in the system browser (http/https only). */
       openExternal(url: string): Promise<boolean>;
-      listNotes(projectPath: string, personId?: string): Promise<NoteRecord[]>;
+      listNotes(
+        projectPath: string,
+        targetType?: string,
+        targetId?: string,
+      ): Promise<NoteRecord[]>;
       personCounts(
         projectPath: string,
         personIds: string[],
@@ -156,19 +160,32 @@ declare global {
         after: AssociationRecord,
       ): Promise<UndoRedoState>;
       deleteAssociation(projectPath: string, association: AssociationRecord): Promise<UndoRedoState>;
-      getIdentifiers(projectPath: string, personId: string): Promise<IdentifierRecord[]>;
+      getIdentifiers(
+        projectPath: string,
+        targetType: string,
+        targetId: string,
+      ): Promise<IdentifierRecord[]>;
       addIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
       deleteIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
-      getContacts(projectPath: string, personId: string): Promise<ContactRecord[]>;
+      getContacts(
+        projectPath: string,
+        targetType: string,
+        targetId: string,
+      ): Promise<ContactRecord[]>;
       addContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       deleteContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
-      getRestrictions(projectPath: string, personId: string): Promise<RestrictionRecord[]>;
+      getRestrictions(
+        projectPath: string,
+        targetType: string,
+        targetId: string,
+      ): Promise<RestrictionRecord[]>;
       addRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
       deleteRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
       getTags(projectPath: string): Promise<TagRecord[]>;
       getTagLinks(
         projectPath: string,
-        personId: string,
+        targetType: string,
+        targetId: string,
       ): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
       addTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       updateTag(projectPath: string, before: TagRecord, after: TagRecord): Promise<UndoRedoState>;
@@ -262,7 +279,8 @@ declare global {
       detachCitation(projectPath: string, citationId: string): Promise<UndoRedoState>;
       getCitations(
         projectPath: string,
-        personId: string,
+        targetType: string,
+        targetId: string,
       ): Promise<CitationRecord[]>;
       getAllCitations(projectPath: string): Promise<CitationRecord[]>;
       getFacts(

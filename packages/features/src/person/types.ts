@@ -26,6 +26,40 @@ export interface MediaWithPath extends MediaRecord {
 }
 
 /**
+ * The generic attachment CRUD shared by every entity editor: notes,
+ * citations/sources, identifiers, contacts, restrictions and tags, all
+ * addressed by a (targetType, targetId) pair.
+ */
+export interface AttachmentsApi {
+  getNotes(targetType: string, targetId: string): Promise<NoteRecord[]>;
+  addNote(note: NoteRecord): Promise<void>;
+  updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): Promise<void>;
+  deleteNote(note: NoteRecord): Promise<void>;
+  getCitations(targetType: string, targetId: string): Promise<CitationRecord[]>;
+  updateCitation(before: CitationRecord, after: CitationRecord): Promise<void>;
+  getSources(): Promise<SourceRecord[]>;
+  addSource(source: SourceRecord, targetType?: string, targetId?: string): Promise<void>;
+  attachSource(sourceId: string, targetType: string, targetId: string): Promise<void>;
+  detachCitation(citationId: string): Promise<void>;
+  getIdentifiers(targetType: string, targetId: string): Promise<IdentifierRecord[]>;
+  addIdentifier(identifier: IdentifierRecord): Promise<void>;
+  deleteIdentifier(identifier: IdentifierRecord): Promise<void>;
+  getContacts(targetType: string, targetId: string): Promise<ContactRecord[]>;
+  addContact(contact: ContactRecord): Promise<void>;
+  deleteContact(contact: ContactRecord): Promise<void>;
+  getRestrictions(targetType: string, targetId: string): Promise<RestrictionRecord[]>;
+  addRestriction(restriction: RestrictionRecord): Promise<void>;
+  deleteRestriction(restriction: RestrictionRecord): Promise<void>;
+  getTags(): Promise<TagRecord[]>;
+  getTagLinks(targetType: string, targetId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
+  addTag(tag: TagRecord): Promise<void>;
+  updateTag(before: TagRecord, after: TagRecord): Promise<void>;
+  deleteTag(tag: TagRecord): Promise<void>;
+  attachTag(link: TagLinkRecord): Promise<void>;
+  detachTag(link: TagLinkRecord): Promise<void>;
+}
+
+/**
  * The service surface the person editor needs from its host application.
  * Grouping the callbacks into one object keeps component props small and
  * makes the wiring explicit in the app layer.
@@ -91,22 +125,34 @@ export interface PersonEditorApi {
 }
 
 /** The service surface the source tab needs from its host application. */
-export interface SourceEditorApi {
-  getSources(): Promise<SourceRecord[]>;
-  addSource(source: SourceRecord): Promise<void>;
+export interface SourceEditorApi extends AttachmentsApi {
   updateSource(before: SourceRecord, after: SourceRecord): Promise<void>;
   deleteSource(source: SourceRecord): Promise<void>;
   getRepositories(): Promise<RepositoryRecord[]>;
   addRepository(repository: RepositoryRecord): Promise<void>;
   getTitles(): Promise<TitleRecord[]>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  getRecordSubmitters(
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
 }
 
 /** The service surface the place tab needs from its host application. */
-export interface PlaceEditorApi {
+export interface PlaceEditorApi extends AttachmentsApi {
   getPlaces(): Promise<PlaceRecord[]>;
   addPlace(place: PlaceRecord): Promise<void>;
   updatePlace(before: PlaceRecord, after: PlaceRecord): Promise<void>;
   deletePlace(place: PlaceRecord): Promise<void>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  getRecordSubmitters(
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
 }
 
 /** The service surface the registries view needs from its host application. */
@@ -126,7 +172,7 @@ export interface RegistriesEditorApi {
 }
 
 /** The service surface the family tab needs from its host application. */
-export interface FamilyEditorApi {
+export interface FamilyEditorApi extends AttachmentsApi {
   getFacts(personId?: string, familyId?: string): Promise<FactRecord[]>;
   addFact(fact: FactRecord): Promise<void>;
   updateFact(before: FactRecord, after: FactRecord): Promise<void>;

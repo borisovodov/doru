@@ -310,12 +310,17 @@ export function PersonEditor({
             onDeleteFact={api.deleteFact}
           />
           <SourcesSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             sources={sources}
             citations={citations}
             refresh={refreshCitations}
-            onAddSource={api.addSource}
-            onAttachSource={api.attachSource}
+            onAddSource={async (source, _targetType, targetId) => {
+              await api.addSource(source, targetId);
+            }}
+            onAttachSource={async (sourceId, _targetType, targetId) => {
+              await api.attachSource(sourceId, targetId);
+            }}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={(sourceId) => api.openSource?.(sourceId)}
@@ -328,7 +333,8 @@ export function PersonEditor({
             onDeleteMedia={api.deleteMedia}
           />
           <NotesSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             notes={notes}
             onAdd={async (text) => {
               await api.addNote(draft.id, text);
@@ -344,7 +350,8 @@ export function PersonEditor({
             }}
           />
           <IdentifiersSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             identifiers={identifiers}
             onAdd={async (identifier) => {
               await api.addIdentifier(identifier);
@@ -356,7 +363,8 @@ export function PersonEditor({
             }}
           />
           <ContactsSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             contacts={contacts}
             onAdd={async (contact) => {
               await api.addContact(contact);
@@ -368,7 +376,8 @@ export function PersonEditor({
             }}
           />
           <RestrictionsSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             restrictions={restrictions}
             onAdd={async (restriction) => {
               await api.addRestriction(restriction);
@@ -380,7 +389,8 @@ export function PersonEditor({
             }}
           />
           <TagsSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             tags={tags}
             tagLinks={tagLinks}
             onAddTag={api.addTag}

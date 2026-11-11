@@ -34,12 +34,14 @@ function restrictionLevelLabel(level: string): string {
 
 /** External identifiers of the person (REFN, SOSA, …). */
 export function IdentifiersSection({
-  personId,
+  targetType,
+  targetId,
   identifiers,
   onAdd,
   onDelete,
 }: {
-  personId: string;
+  targetType: string;
+  targetId: string;
   identifiers: IdentifierRecord[];
   onAdd: (identifier: IdentifierRecord) => Promise<void>;
   onDelete: (identifier: IdentifierRecord) => Promise<void>;
@@ -55,8 +57,8 @@ export function IdentifiersSection({
     }
     await onAdd({
       id: crypto.randomUUID(),
-      targetType: 'person',
-      targetId: personId,
+      targetType,
+      targetId,
       namespace: trimmedNamespace,
       value: trimmedValue,
     });
@@ -110,12 +112,14 @@ export function IdentifiersSection({
 
 /** Contact details of the person (email, phone, …). */
 export function ContactsSection({
-  personId,
+  targetType,
+  targetId,
   contacts,
   onAdd,
   onDelete,
 }: {
-  personId: string;
+  targetType: string;
+  targetId: string;
   contacts: ContactRecord[];
   onAdd: (contact: ContactRecord) => Promise<void>;
   onDelete: (contact: ContactRecord) => Promise<void>;
@@ -130,8 +134,8 @@ export function ContactsSection({
     }
     await onAdd({
       id: crypto.randomUUID(),
-      targetType: 'person',
-      targetId: personId,
+      targetType,
+      targetId,
       kind,
       value: trimmedValue,
     });
@@ -180,12 +184,14 @@ export function ContactsSection({
 
 /** Privacy restrictions of the person. */
 export function RestrictionsSection({
-  personId,
+  targetType,
+  targetId,
   restrictions,
   onAdd,
   onDelete,
 }: {
-  personId: string;
+  targetType: string;
+  targetId: string;
   restrictions: RestrictionRecord[];
   onAdd: (restriction: RestrictionRecord) => Promise<void>;
   onDelete: (restriction: RestrictionRecord) => Promise<void>;
@@ -193,7 +199,7 @@ export function RestrictionsSection({
   const [level, setLevel] = useState('privacy');
 
   const add = async () => {
-    await onAdd({ id: crypto.randomUUID(), targetType: 'person', targetId: personId, level });
+    await onAdd({ id: crypto.randomUUID(), targetType, targetId, level });
   };
 
   return (

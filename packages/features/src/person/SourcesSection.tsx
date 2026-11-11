@@ -6,19 +6,21 @@ import { CitationEditor } from './CitationEditor';
 import './SourcesSection.css';
 
 interface SourcesSectionProps {
-  personId: string;
+  targetType: string;
+  targetId: string;
   sources: SourceRecord[];
   citations: CitationRecord[];
   refresh: () => Promise<void>;
-  onAddSource: (source: SourceRecord, targetId: string) => Promise<void>;
-  onAttachSource: (sourceId: string, targetId: string) => Promise<void>;
+  onAddSource: (source: SourceRecord, targetType: string, targetId: string) => Promise<void>;
+  onAttachSource: (sourceId: string, targetType: string, targetId: string) => Promise<void>;
   onDetachCitation: (citationId: string) => Promise<void>;
   onUpdateCitation: (before: CitationRecord, after: CitationRecord) => Promise<void>;
   onOpenSource: (sourceId: string) => void;
 }
 
 export function SourcesSection({
-  personId,
+  targetType,
+  targetId,
   sources,
   citations,
   refresh,
@@ -37,7 +39,7 @@ export function SourcesSection({
     if (!trimmed) {
       return;
     }
-    await onAddSource({ id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined }, personId);
+    await onAddSource({ id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined }, targetType, targetId);
     setTitle('');
     setAuthor('');
     await refresh();
@@ -52,7 +54,7 @@ export function SourcesSection({
   };
 
   const attach = async (sourceId: string) => {
-    await onAttachSource(sourceId, personId);
+    await onAttachSource(sourceId, targetType, targetId);
     await refresh();
   };
 

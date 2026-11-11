@@ -334,8 +334,7 @@ export function App() {
           api={tree.familyApi}
           persons={tree.persons}
           sources={tree.sources}
-          citations={tree.citations}
-          notes={tree.notes}
+          onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
         />
       );
@@ -358,6 +357,7 @@ export function App() {
           citations={tree.citations}
           notes={tree.notes}
           onOpenPerson={openPersonAndFocus}
+          onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
         />
       );
@@ -372,7 +372,9 @@ export function App() {
           persons={tree.persons}
           families={tree.families}
           facts={tree.facts}
+          sources={tree.sources}
           onOpenPerson={openPersonAndFocus}
+          onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
         />
       );

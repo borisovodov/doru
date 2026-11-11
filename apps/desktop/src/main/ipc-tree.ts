@@ -135,12 +135,12 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:notes',
-    async (_event, options: { projectPath: string; personId?: string }) => {
+    async (_event, options: { projectPath: string; targetType?: string; targetId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      if (!options.personId) {
-        return runtime.service.listNotes();
+      if (options.targetType !== undefined && options.targetId !== undefined) {
+        return runtime.service.listNotesFor(options.targetType, options.targetId);
       }
-      return runtime.service.listNotesFor('person', options.personId);
+      return runtime.service.listNotes();
     },
   );
 
@@ -230,9 +230,9 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:identifiers',
-    async (_event, options: { projectPath: string; personId: string }) => {
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listIdentifiersFor('person', options.personId);
+      return runtime.service.listIdentifiersFor(options.targetType, options.targetId);
     },
   );
 
@@ -254,9 +254,9 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:contacts',
-    async (_event, options: { projectPath: string; personId: string }) => {
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listContactsFor('person', options.personId);
+      return runtime.service.listContactsFor(options.targetType, options.targetId);
     },
   );
 
@@ -275,9 +275,9 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:restrictions',
-    async (_event, options: { projectPath: string; personId: string }) => {
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listRestrictionsFor('person', options.personId);
+      return runtime.service.listRestrictionsFor(options.targetType, options.targetId);
     },
   );
 
@@ -304,9 +304,9 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:tagLinks',
-    async (_event, options: { projectPath: string; personId: string }) => {
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listTagLinksFor('person', options.personId);
+      return runtime.service.listTagLinksFor(options.targetType, options.targetId);
     },
   );
 
@@ -566,9 +566,9 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:citations',
-    async (_event, options: { projectPath: string; personId: string }) => {
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listCitationRecordsFor('person', options.personId);
+      return runtime.service.listCitationRecordsFor(options.targetType, options.targetId);
     },
   );
 

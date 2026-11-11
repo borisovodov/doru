@@ -99,8 +99,8 @@ const api = {
     return () => ipcRenderer.removeListener('menu:command', listener);
   },
   openExternal: (url: string): Promise<unknown> => ipcRenderer.invoke('shell:openExternal', url),
-  listNotes: (projectPath: string, personId?: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:notes', { projectPath, personId }),
+  listNotes: (projectPath: string, targetType?: string, targetId?: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:notes', { projectPath, targetType, targetId }),
   personCounts: (projectPath: string, personIds: string[]): Promise<unknown> =>
     ipcRenderer.invoke('tree:personCounts', { projectPath, personIds }),
   addNote: (projectPath: string, note: unknown): Promise<unknown> =>
@@ -125,27 +125,27 @@ const api = {
     ipcRenderer.invoke('tree:updateAssociation', { projectPath, before, after }),
   deleteAssociation: (projectPath: string, association: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteAssociation', { projectPath, association }),
-  getIdentifiers: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:identifiers', { projectPath, personId }),
+  getIdentifiers: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:identifiers', { projectPath, targetType, targetId }),
   addIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addIdentifier', { projectPath, identifier }),
   deleteIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteIdentifier', { projectPath, identifier }),
-  getContacts: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:contacts', { projectPath, personId }),
+  getContacts: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:contacts', { projectPath, targetType, targetId }),
   addContact: (projectPath: string, contact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addContact', { projectPath, contact }),
   deleteContact: (projectPath: string, contact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteContact', { projectPath, contact }),
-  getRestrictions: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:restrictions', { projectPath, personId }),
+  getRestrictions: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:restrictions', { projectPath, targetType, targetId }),
   addRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addRestriction', { projectPath, restriction }),
   deleteRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteRestriction', { projectPath, restriction }),
   getTags: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tags', { projectPath }),
-  getTagLinks: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:tagLinks', { projectPath, personId }),
+  getTagLinks: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:tagLinks', { projectPath, targetType, targetId }),
   addTag: (projectPath: string, tag: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addTag', { projectPath, tag }),
   updateTag: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
@@ -238,8 +238,8 @@ const api = {
     ipcRenderer.invoke('tree:attachSource', { projectPath, sourceId, targetType, targetId }),
   detachCitation: (projectPath: string, citationId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:detachCitation', { projectPath, citationId }),
-  getCitations: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:citations', { projectPath, personId }),
+  getCitations: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:citations', { projectPath, targetType, targetId }),
   getAllCitations: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:allCitations', { projectPath }),
   getFacts: (projectPath: string, personId?: string, familyId?: string): Promise<unknown> =>
