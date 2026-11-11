@@ -126,6 +126,13 @@ export function SidebarView({
           description={nls.t('features.tasks.placeholder')}
         />
       );
+    case 'registries':
+      return (
+        <PlaceholderView
+          title={nls.t('workbench.registries')}
+          description={nls.t('features.registries.placeholder')}
+        />
+      );
     case 'search':
       return (
         <SidebarSearch

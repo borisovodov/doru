@@ -233,8 +233,11 @@ export function App() {
       if (view === 'tree' && projectPath) {
         tabs.openTab({ id: TREE_TAB_ID, label: nls.t('features.tree.title') });
       }
+      if (view === 'registries' && projectPath) {
+        tabs.openRegistriesTab();
+      }
     },
-    [tabs.openTab, projectPath],
+    [tabs.openTab, tabs.openRegistriesTab, projectPath],
   );
 
   /** Opens the person editor and refocuses the tree canvas on that person. */

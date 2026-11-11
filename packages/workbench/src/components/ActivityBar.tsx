@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
 import {
+  Archive,
   Blend,
   BookOpenText,
   CalendarDays,
@@ -22,7 +23,8 @@ export type ActivityViewId =
   | 'places'
   | 'media'
   | 'sources'
-  | 'tasks';
+  | 'tasks'
+  | 'registries';
 
 export interface ActivityBarProps {
   activeView: ActivityViewId;
@@ -119,6 +121,11 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       id: 'tasks',
       title: nls.t('workbench.activityBar.tasks'),
       icon: <ListTodo size={ICON_SIZE} aria-hidden="true" />,
+    },
+    {
+      id: 'registries',
+      title: nls.t('workbench.activityBar.registries'),
+      icon: <Archive size={ICON_SIZE} aria-hidden="true" />,
     },
   ];
 
