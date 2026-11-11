@@ -1,12 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type {
-  DuplicateCandidateRecord,
   TitleRecord,
   TodoRecord,
 } from '../model/types';
 import type { DateRepo } from './dateRepo';
 
-/** The research layer: todos, duplicate candidates and titles. */
+/** The research layer: todos and titles. */
 export class ResearchRepo {
   constructor(
     private readonly db: DatabaseSync,
@@ -110,63 +109,6 @@ export class ResearchRepo {
       closedDate: row.closed_date_id !== null ? datesById.get(row.closed_date_id) : undefined,
       repositoryId: row.repository_id ?? undefined,
     };
-  }
-
-  // duplicate candidates -------------------------------------------------------------
-
-  insertDuplicate(duplicate: DuplicateCandidateRecord): void {
-    this.db
-      .prepare(
-        'INSERT INTO duplicate_candidate (id, person_id, other_person_id, caption, assessment, status) VALUES (?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        duplicate.id,
-        duplicate.personId,
-        duplicate.otherPersonId,
-        duplicate.caption ?? null,
-        duplicate.assessment ?? null,
-        duplicate.status ?? null,
-      );
-  }
-
-  updateDuplicate(duplicate: DuplicateCandidateRecord): void {
-    this.db
-      .prepare(
-        'UPDATE duplicate_candidate SET person_id = ?, other_person_id = ?, caption = ?, assessment = ?, status = ? WHERE id = ?',
-      )
-      .run(
-        duplicate.personId,
-        duplicate.otherPersonId,
-        duplicate.caption ?? null,
-        duplicate.assessment ?? null,
-        duplicate.status ?? null,
-        duplicate.id,
-      );
-  }
-
-  deleteDuplicate(id: string): boolean {
-    return this.db.prepare('DELETE FROM duplicate_candidate WHERE id = ?').run(id).changes > 0;
-  }
-
-  listDuplicates(): DuplicateCandidateRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, person_id, other_person_id, caption, assessment, status FROM duplicate_candidate ORDER BY id')
-      .all() as unknown as {
-      id: string;
-      person_id: string;
-      other_person_id: string;
-      caption: string | null;
-      assessment: string | null;
-      status: string | null;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      personId: row.person_id,
-      otherPersonId: row.other_person_id,
-      caption: row.caption ?? undefined,
-      assessment: row.assessment ?? undefined,
-      status: row.status ?? undefined,
-    }));
   }
 
   // titles ---------------------------------------------------------------------------

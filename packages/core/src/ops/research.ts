@@ -1,8 +1,6 @@
 import type {
   AssociationRecord,
   AttachmentsSnapshot,
-  DuplicateCandidateRecord,
-  OrdinanceRecord,
   TitleRecord,
   TodoRecord,
 } from '../model/types';
@@ -67,41 +65,6 @@ export function deleteAliasOp(id: string, personId: string, aliasId: string): Op
   );
 }
 
-export function addOrdinanceOp(ordinance: OrdinanceRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'ordinance.add',
-    (ctx) => ctx.repo.insertOrdinance(ordinance),
-    (ctx) => ctx.repo.deleteOrdinance(ordinance.id),
-    { targetType: 'ordinance', targetId: ordinance.id, kind: 'created' },
-  );
-}
-
-export function updateOrdinanceOp(before: OrdinanceRecord, after: OrdinanceRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'ordinance.update',
-    (ctx) => ctx.repo.updateOrdinance(after),
-    (ctx) => ctx.repo.updateOrdinance(before),
-    { targetType: 'ordinance', targetId: before.id, kind: 'changed' },
-  );
-}
-
-export function deleteOrdinanceOp(
-  ordinance: OrdinanceRecord,
-  attachments: AttachmentsSnapshot = emptyAttachments(),
-): Op {
-  return op(
-    crypto.randomUUID(),
-    'ordinance.delete',
-    (ctx) => ctx.repo.deleteOrdinance(ordinance.id),
-    (ctx) => {
-      ctx.repo.insertOrdinance(ordinance);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
-}
-
 export function addTodoOp(todo: TodoRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -131,35 +94,6 @@ export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot 
       ctx.repo.insertTodo(todo);
       ctx.repo.restoreAttachments(attachments);
     },
-  );
-}
-
-export function addDuplicateOp(duplicate: DuplicateCandidateRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'duplicate.add',
-    (ctx) => ctx.repo.insertDuplicate(duplicate),
-    (ctx) => ctx.repo.deleteDuplicate(duplicate.id),
-    { targetType: 'duplicate_candidate', targetId: duplicate.id, kind: 'created' },
-  );
-}
-
-export function updateDuplicateOp(before: DuplicateCandidateRecord, after: DuplicateCandidateRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'duplicate.update',
-    (ctx) => ctx.repo.updateDuplicate(after),
-    (ctx) => ctx.repo.updateDuplicate(before),
-    { targetType: 'duplicate_candidate', targetId: before.id, kind: 'changed' },
-  );
-}
-
-export function deleteDuplicateOp(duplicate: DuplicateCandidateRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'duplicate.delete',
-    (ctx) => ctx.repo.deleteDuplicate(duplicate.id),
-    (ctx) => ctx.repo.insertDuplicate(duplicate),
   );
 }
 

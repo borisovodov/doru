@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type {
   AssociationRecord,
-  DuplicateCandidateRecord,
-  OrdinanceRecord,
   TitleRecord,
   TodoRecord,
 } from '../src/model/types';
@@ -28,25 +26,10 @@ const association = (overrides: Partial<AssociationRecord> = {}): AssociationRec
   ...overrides,
 });
 
-const ordinance = (overrides: Partial<OrdinanceRecord> = {}): OrdinanceRecord => ({
-  id: 'O1',
-  kind: 'baptism',
-  targetType: 'person',
-  targetId: 'P1',
-  ...overrides,
-});
-
 const todo = (overrides: Partial<TodoRecord> = {}): TodoRecord => ({
   id: 'T1',
   text: 'Order the birth record',
   status: 'open',
-  ...overrides,
-});
-
-const duplicate = (overrides: Partial<DuplicateCandidateRecord> = {}): DuplicateCandidateRecord => ({
-  id: 'DU1',
-  personId: 'P1',
-  otherPersonId: 'P2',
   ...overrides,
 });
 
@@ -98,31 +81,6 @@ describe('TreeService research layer', () => {
     }
   });
 
-  it('adds, updates, deletes and restores an ordinance with its attachments', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addOrdinance(ordinance());
-      expect(fixture.repo.listOrdinances()).toEqual([ordinance()]);
-      expect(fixture.repo.listOrdinancesFor('person', 'P1')).toEqual([ordinance()]);
-      expect(fixture.repo.listOrdinancesFor('person', 'P9')).toEqual([]);
-
-      service.addNote({ id: 'N1', text: 'baptism entry', targetType: 'ordinance', targetId: 'O1' });
-      const after = ordinance({ status: 'completed' });
-      service.updateOrdinance(ordinance(), after);
-      expect(fixture.repo.listOrdinances()).toEqual([after]);
-
-      service.deleteOrdinance(after);
-      expect(fixture.repo.listOrdinances()).toEqual([]);
-      expect(fixture.repo.listNotesFor('ordinance', 'O1')).toEqual([]);
-
-      service.undo();
-      expect(fixture.repo.listOrdinances()).toEqual([after]);
-      expect(fixture.repo.listNotesFor('ordinance', 'O1').map((note) => note.id)).toEqual(['N1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('adds, updates, deletes and restores a todo with its attachments', () => {
     const { fixture, service } = makeService();
     try {
@@ -145,25 +103,6 @@ describe('TreeService research layer', () => {
       // Repo-level cascade helper.
       fixture.repo.deleteAttachmentsFor('person', 'P1');
       expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('adds, updates, deletes and restores a duplicate candidate', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addDuplicate(duplicate());
-      expect(fixture.repo.listDuplicates()).toEqual([duplicate()]);
-
-      const after = duplicate({ status: 'rejected', assessment: 'different lines' });
-      service.updateDuplicate(duplicate(), after);
-      expect(fixture.repo.listDuplicates()).toEqual([after]);
-
-      service.deleteDuplicate(after);
-      expect(fixture.repo.listDuplicates()).toEqual([]);
-      service.undo();
-      expect(fixture.repo.listDuplicates()).toEqual([after]);
     } finally {
       cleanupRepo(fixture);
     }

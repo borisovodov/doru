@@ -200,16 +200,6 @@ export interface FactParticipant {
 }
 
 /** A user-defined fact type (custom event/attribute definitions). */
-export interface FactTypeRecord {
-  id: string;
-  code?: string | undefined;
-  kind?: string | undefined;
-  title?: string | undefined;
-  abbreviation?: string | undefined;
-  sentence?: string | undefined;
-  confidential?: boolean | undefined;
-}
-
 export interface PersonRecord {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
@@ -520,7 +510,6 @@ export interface AttachmentsSnapshot {
   restrictions: RestrictionRecord[];
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
-  ordinances: OrdinanceRecord[];
   todos: TodoRecord[];
   recordSubmitters: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
 }
@@ -535,7 +524,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     restrictions: [],
     changes: [],
     tagLinks: [],
-    ordinances: [],
     todos: [],
     recordSubmitters: [],
   };
@@ -560,19 +548,6 @@ export interface AssociationRecord {
   periodEnd?: DateValue | undefined;
 }
 
-/** An LDS ordinance attached to a person, family or family child link. */
-export interface OrdinanceRecord {
-  id: string;
-  kind: string;
-  targetType: string;
-  targetId: string;
-  date?: DateValue | undefined;
-  temple?: string | undefined;
-  placeId?: string | undefined;
-  status?: string | undefined;
-  statusDate?: DateValue | undefined;
-}
-
 /** A task, attached to some entity or free-standing. */
 export interface TodoRecord {
   id: string;
@@ -588,15 +563,6 @@ export interface TodoRecord {
   reminderDate?: DateValue | undefined;
   closedDate?: DateValue | undefined;
   repositoryId?: string | undefined;
-}
-
-export interface DuplicateCandidateRecord {
-  id: string;
-  personId: string;
-  otherPersonId: string;
-  caption?: string | undefined;
-  assessment?: string | undefined;
-  status?: string | undefined;
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */
@@ -637,7 +603,6 @@ export const TARGET_TYPES = [
   'repository',
   'submitter',
   'association',
-  'ordinance',
   'todo',
   'title',
 ] as const;

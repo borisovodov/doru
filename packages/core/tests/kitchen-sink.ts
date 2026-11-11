@@ -230,27 +230,9 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertAssociation({ id: 'AS2', personId: 'P2', otherPersonId: 'P1', role: 'witness' });
   repo.insertAlias('AL1', 'P1', 'P3');
 
-  // Ordinances on persons and the family.
-  repo.insertOrdinance({
-    id: 'OR1',
-    kind: 'BAPL',
-    targetType: 'person',
-    targetId: 'P1',
-    date: { quality: 'exact', component: { year: 1930 } },
-    temple: 'Moscow',
-    placeId: 'PL1',
-    status: 'completed',
-    statusDate: { quality: 'exact', component: { year: 1931 } },
-  });
-  repo.insertOrdinance({ id: 'OR2', kind: 'SLGS', targetType: 'family', targetId: 'F1', status: 'CANCELED' });
-  repo.insertOrdinance({ id: 'OR3', kind: 'SLGC', targetType: 'family', targetId: 'F1', date: { quality: 'exact', component: { year: 1946 } } });
-
   // Todos: free-standing and attached.
   repo.insertTodo({ id: 'TD1', text: 'Order the birth record', category: 'records', locality: 'archive', priority: 'high', status: 'open', scheduledDate: { quality: 'exact', component: { year: 2026 } }, reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } }, closedDate: { quality: 'exact', component: { year: 2026, month: 3 } } });
   repo.insertTodo({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
-
-  // Fact types.
-  repo.insertFactType({ id: 'FT1', code: 'MILT', kind: 'event', title: 'military service', abbreviation: 'mil', sentence: '{individual} served', confidential: true });
 
   // Submitter links on a person.
   repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1');

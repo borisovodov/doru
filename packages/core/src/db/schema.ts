@@ -434,16 +434,6 @@ CREATE TABLE IF NOT EXISTS fact_flag (
   PRIMARY KEY (fact_id, flag)
 );
 
-CREATE TABLE IF NOT EXISTS fact_type (
-  id TEXT PRIMARY KEY,
-  code TEXT,
-  kind TEXT,                 -- event | attribute
-  title TEXT,
-  abbreviation TEXT,
-  sentence TEXT,
-  confidential INTEGER NOT NULL DEFAULT 0
-);
-
 -- Relations between persons, and the research layer.
 
 CREATE TABLE IF NOT EXISTS association (
@@ -465,18 +455,6 @@ CREATE TABLE IF NOT EXISTS person_alias (
   UNIQUE (person_id, alias_id)
 );
 
-CREATE TABLE IF NOT EXISTS ordinance (
-  id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL,                -- BAPL | CONL | ENDL | INIL | SLGC | SLGS
-  target_type TEXT NOT NULL,         -- person | family | family_child
-  target_id TEXT NOT NULL,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  temple TEXT,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
-  status TEXT,
-  status_date_id TEXT REFERENCES date(id) ON DELETE SET NULL
-);
-
 CREATE TABLE IF NOT EXISTS todo (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
@@ -487,13 +465,6 @@ CREATE TABLE IF NOT EXISTS todo (
   reminder_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   closed_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS duplicate_candidate (
-  id TEXT PRIMARY KEY,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  other_person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  caption TEXT, assessment TEXT, status TEXT
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -575,7 +546,5 @@ CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
-CREATE INDEX IF NOT EXISTS idx_ordinance_target ON ordinance(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_duplicate_person ON duplicate_candidate(person_id);
 `;

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type {
   AddressRecord,
   ContactRecord,
-  FactTypeRecord,
   IdentifierRecord,
   MediaLinkRecord,
   NoteRecord,
@@ -101,13 +100,6 @@ const address = (overrides: Partial<AddressRecord> = {}): AddressRecord => ({
   id: 'AD1',
   lines: ['12 Archive Lane'],
   city: 'Moscow',
-  ...overrides,
-});
-
-const factType = (overrides: Partial<FactTypeRecord> = {}): FactTypeRecord => ({
-  id: 'FT1',
-  code: 'MILT',
-  title: 'military service',
   ...overrides,
 });
 
@@ -298,7 +290,7 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('manages repositories, submitters, addresses and fact types', () => {
+  it('manages repositories, submitters and addresses', () => {
     const { fixture, service } = makeService();
     try {
       service.addRepository(repository());
@@ -330,16 +322,6 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getAddress('AD1')).toBeUndefined();
       service.undo();
       expect(fixture.repo.getAddress('AD1')?.city).toBe('Berlin');
-
-      service.addFactType(factType());
-      expect(fixture.repo.listFactTypes()).toEqual([factType()]);
-      const afterType = factType({ title: 'army' });
-      service.updateFactType(factType(), afterType);
-      expect(fixture.repo.listFactTypes()).toEqual([afterType]);
-      service.deleteFactType(afterType);
-      expect(fixture.repo.listFactTypes()).toEqual([]);
-      service.undo();
-      expect(fixture.repo.listFactTypes()).toEqual([afterType]);
     } finally {
       cleanupRepo(fixture);
     }

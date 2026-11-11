@@ -53,12 +53,6 @@ const GEDCOM = [
   '2 ROLE WITNESS',
   '1 ASSO @VOID@',
   '1 ALIA @I2@',
-  '1 BAPL',
-  '2 DATE 1930',
-  '2 STAT COMPLETED',
-  '1 SLGC',
-  '2 FAMC @F1@',
-  '2 STAT BIC',
   '0 @I2@ INDI',
   '1 NAME Maria /Sidorova/',
   '1 RESN locked',
@@ -70,10 +64,6 @@ const GEDCOM = [
   '1 CHIL @I3@',
   '2 _PEDI adopted',
   '2 STAT proven',
-  '1 SLGS',
-  '2 STAT CANCELED',
-  '1 SLGC',
-  '2 DATE 1946',
   '0 @S1@ SOUR',
   '1 TITL The Book',
   '0 @N1@ SNOTE Shared note',
@@ -107,12 +97,6 @@ const GEDCOM = [
   '0 @PB1@ _PUBLISH',
   '0 @MT1@ _MTTAG',
   '0 @MC1@ _MTCAT',
-  '0 @EV1@ _EVENT_DEFN MILT',
-  '1 TITL military service',
-  '1 TYPE I',
-  '1 ABBR mil',
-  '1 SENT {individual} served',
-  '1 _CONF_FLAG Y',
   '0 TRLR',
 ].join('\n');
 
@@ -209,17 +193,9 @@ describe('importGedcomDataset edge coverage', () => {
       // Name phonetic/romanized variants survive.
       expect(ivan.names[0]?.variants?.map((variant) => variant.kind)).toEqual(['phonetic', 'romanized']);
 
-      // Associations (the @VOID@ one is skipped), aliases and ordinances.
+      // Associations (the @VOID@ one is skipped) and aliases.
       expect(repo.listAssociationsFor(ivan.id)).toHaveLength(1);
       expect(repo.listAliasesFor(ivan.id)).toHaveLength(1);
-      const ordinances = repo.listOrdinancesFor('person', ivan.id).map((ordinance) => ordinance.kind);
-      expect(ordinances).toContain('BAPL');
-
-      // The family keeps its sealings; the SLGC with a FAMC targets the child link.
-      const families = repo.listFamilies();
-      const family = families[0]!;
-      const familyOrdinances = repo.listOrdinancesFor('family', family.id).map((ordinance) => ordinance.kind).sort();
-      expect(familyOrdinances).toEqual(['SLGC', 'SLGS']);
 
       // Submitter identifiers and notes.
       const submitter = repo.listSubmitters()[0]!;
@@ -238,9 +214,6 @@ describe('importGedcomDataset edge coverage', () => {
       // The occurrence became one fact per participant.
       const facts = repo.listAllFacts();
       expect(facts.filter((fact) => fact.type === 'death')).toHaveLength(1);
-
-      // The fact type record imported.
-      expect(repo.listFactTypes()[0]).toMatchObject({ code: 'MILT', title: 'military service' });
     } finally {
       cleanupRepo(fixture);
     }
@@ -294,7 +267,7 @@ describe('importGedcomDataset edge coverage', () => {
     }
   });
 
-  it('drops the evidence, research and census records', () => {
+  it('drops the evidence, research, census and event-definition records', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -313,6 +286,8 @@ describe('importGedcomDataset edge coverage', () => {
       '1 PLAC Moscow',
       '1 INDI @I1@',
       '2 AGE 17y',
+      '0 @V1@ _EVENT_DEFN MILT',
+      '1 TITL military service',
       '0 TRLR',
     ].join('\n');
     const result = parse(new TextEncoder().encode(gedcom));
@@ -322,8 +297,8 @@ describe('importGedcomDataset edge coverage', () => {
     const fixture = makeRepo();
     try {
       const summary = importGedcomDataset(result.value.dataset, fixture.repo);
-      // The four records are counted as deliberately dropped.
-      expect(summary.droppedStructures).toBe(4);
+      // The five records are counted as deliberately dropped.
+      expect(summary.droppedStructures).toBe(5);
       expect(fixture.repo.listAllPersons()).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);

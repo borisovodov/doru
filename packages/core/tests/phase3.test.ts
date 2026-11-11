@@ -41,7 +41,7 @@ describe('Phase 3: relations', () => {
     }
   });
 
-  it('round-trips aliases and ordinances', () => {
+  it('round-trips aliases', () => {
     const fixture = makeRepo();
     try {
       const svc = service(fixture);
@@ -51,19 +51,6 @@ describe('Phase 3: relations', () => {
 
       svc.addAlias('P1', 'P2');
       expect(repo.listAliasesFor('P1').map((alias) => alias.aliasId)).toEqual(['P2']);
-
-      svc.addOrdinance({
-        id: 'O1',
-        kind: 'BAPL',
-        targetType: 'person',
-        targetId: 'P1',
-        date: { quality: 'exact', component: { year: 1920 } },
-        temple: 'SALT',
-        status: 'COMPLETED',
-      });
-      expect(repo.listOrdinancesFor('person', 'P1')).toEqual([
-        expect.objectContaining({ id: 'O1', kind: 'BAPL', temple: 'SALT', status: 'COMPLETED' }),
-      ]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -94,17 +81,12 @@ describe('Phase 3: research layer', () => {
     }
   });
 
-  it('round-trips duplicates and titles', () => {
+  it('round-trips titles', () => {
     const fixture = makeRepo();
     try {
       const repo = fixture.repo;
       repo.insertPerson(person('P1'));
       repo.insertPerson(person('P2'));
-
-      repo.insertDuplicate({ id: 'D1', personId: 'P1', otherPersonId: 'P2', assessment: 'maybe' });
-      expect(repo.listDuplicates()).toEqual([
-        expect.objectContaining({ id: 'D1', personId: 'P1', otherPersonId: 'P2' }),
-      ]);
 
       repo.insertTitle({ id: 'T1', name: 'Parish books of Tver', publisher: 'Archive', callNumber: 'F-123' });
       expect(repo.listTitles()).toEqual([
@@ -115,7 +97,7 @@ describe('Phase 3: research layer', () => {
     }
   });
 
-  it('cascades ordinances, todos and record submitters with the person and restores them on undo', () => {
+  it('cascades todos and record submitters with the person and restores them on undo', () => {
     const fixture = makeRepo();
     try {
       const svc = service(fixture);
@@ -123,20 +105,17 @@ describe('Phase 3: research layer', () => {
       const p = person('P1');
       repo.insertPerson(p);
 
-      svc.addOrdinance({ id: 'O1', kind: 'BAPL', targetType: 'person', targetId: 'P1' });
       svc.addTodo({ id: 'T1', text: 'todo', targetType: 'person', targetId: 'P1' });
       repo.insertSubmitter({ id: 'S1', name: 'Sub' });
       repo.insertRecordSubmitter('RS1', 'S1', 'person', 'P1');
 
       svc.deletePerson(p);
-      expect(repo.listOrdinancesFor('person', 'P1')).toEqual([]);
       expect(repo.listTodosFor('person', 'P1')).toEqual([]);
       expect(repo.listSubmittersFor('person', 'P1')).toEqual([]);
       // The submitter survives; only the record link goes.
       expect(repo.getSubmitter('S1')).toBeDefined();
 
       svc.undo();
-      expect(repo.listOrdinancesFor('person', 'P1').map((entry) => entry.id)).toEqual(['O1']);
       expect(repo.listTodosFor('person', 'P1').map((entry) => entry.id)).toEqual(['T1']);
       expect(repo.listSubmittersFor('person', 'P1')).toEqual(['S1']);
     } finally {

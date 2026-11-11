@@ -22,7 +22,6 @@ import type {
   IndividualAttributeStructure,
   IndividualEventStructure,
   IndividualRecord,
-  LdsIndividualOrdinance,
   ListEnum,
   NameTranslation,
   NameTypeStructure,
@@ -47,7 +46,6 @@ import type {
   FactRecord,
   FamilyRecord,
   NoteRecord,
-  OrdinanceRecord,
   PersonName,
   PersonRecord,
   PlaceRecord,
@@ -102,7 +100,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const titles = repo.listTitles();
   const notes = repo.listNotes().filter((note): note is NoteRecord & { xref: string } => note.xref !== undefined);
   const todos = repo.listTodos().filter((todo) => todo.targetType === undefined && todo.targetId === undefined);
-  const factTypes = repo.listFactTypes();
   const tags = repo.listTags();
 
   for (const person of persons) {
@@ -139,10 +136,8 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
     ...todos.map((todo) => buildTodoRecord(todo)),
-    ...factTypes.map((type) => buildFactType(type)),
     ...tags.map((tag) => buildTagRecord(tag)),
     ...buildAssociations(repo, xrefs),
-    ...buildOrdinances(repo, xrefs),
   ];
   // The schema keeps no header table: the export synthesizes a fresh
   // GEDCOM header naming this app as the source.
@@ -207,7 +202,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withTodoStructures(repo, 'person', person.id),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
-    ...withPersonOrdinances(repo, person.id, xrefs),
     ...withChildFamilies(repo, person.id, xrefs),
     ...withSpouseFamilies(repo, person.id, xrefs),
   };
@@ -378,7 +372,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
   }
   const identifiers = withIdentifiers(repo, 'family', family.id);
   const restriction = repo.listRestrictionsFor('family', family.id).map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
-  const ordinances = repo.listOrdinancesFor('family', family.id);
   return {
     tag: 'FAM',
     xref: xrefs.of(family.id),
@@ -396,12 +389,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
     ...withTodoStructures(repo, 'family', family.id),
-    ...(ordinances.filter((ordinance) => ordinance.kind === 'SLGS').length > 0
-      ? { spouseSealings: ordinances.filter((ordinance) => ordinance.kind === 'SLGS').map((ordinance) => buildSpouseSealing(ordinance, repo, xrefs)) }
-      : {}),
-    ...(ordinances.filter((ordinance) => ordinance.kind === 'SLGC').length > 0
-      ? { childSealings: ordinances.filter((ordinance) => ordinance.kind === 'SLGC').map((ordinance) => buildChildSealing(ordinance, repo, xrefs)) }
-      : {}),
   };
 }
 
@@ -524,18 +511,6 @@ function buildTodoRecord(todo: TodoRecord): GedcomRecord {
   } as GedcomRecord;
 }
 
-function buildFactType(type: import('../model/types').FactTypeRecord): GedcomRecord {
-  return {
-    tag: '_EVENT_DEFN',
-    ...(type.code !== undefined ? { eventType: type.code } : {}),
-    ...(type.kind !== undefined ? { kind: type.kind } : {}),
-    ...(type.title !== undefined ? { title: type.title } : {}),
-    ...(type.abbreviation !== undefined ? { abbreviation: type.abbreviation } : {}),
-    ...(type.sentence !== undefined ? { sentence: type.sentence } : {}),
-    ...(type.confidential === true ? { confidentialFlag: true } : {}),
-  } as GedcomRecord;
-}
-
 function buildTagRecord(tag: TagRecord): GedcomRecord {
   return { tag: '_TAG', name: tag.name } as GedcomRecord;
 }
@@ -551,17 +526,6 @@ function buildAssociations(repo: TreeRepository, xrefs: Xrefs): GedcomRecord[] {
   void xrefs;
   return [];
 }
-
-function buildOrdinances(repo: TreeRepository, xrefs: Xrefs): GedcomRecord[] {
-  // Ordinances live under INDI/FAM; nothing to export at the top level.
-  void repo;
-  void xrefs;
-  return [];
-}
-
-// ---------------------------------------------------------------------------
-// Person-level relation helpers
-// ---------------------------------------------------------------------------
 
 function withAssociations(repo: TreeRepository, personId: string, xrefs: Xrefs): { associations?: import('@doru/gedcom').AssociationStructure[] } {
   const associations = repo
@@ -604,60 +568,6 @@ function withAliases(repo: TreeRepository, personId: string, xrefs: Xrefs): { al
     .listAliasesFor(personId)
     .map((alias) => ({ tag: 'ALIA' as const, individual: xrefs.of(alias.aliasId) }));
   return aliases.length > 0 ? { aliases } : {};
-}
-
-function withPersonOrdinances(repo: TreeRepository, personId: string, xrefs: Xrefs): { ordinances?: LdsIndividualOrdinance[] } {
-  const ordinances = repo
-    .listOrdinancesFor('person', personId)
-    .filter((ordinance) => ordinance.kind !== 'SLGC' && ordinance.kind !== 'SLGS')
-    .map((ordinance) => buildIndividualOrdinance(ordinance, repo, xrefs));
-  return ordinances.length > 0 ? { ordinances } : {};
-}
-
-function buildIndividualOrdinance(
-  ordinance: OrdinanceRecord,
-  repo: TreeRepository,
-  xrefs: Xrefs,
-): LdsIndividualOrdinance {
-  return {
-    tag: ordinance.kind as LdsIndividualOrdinance['tag'],
-    ...(buildOrdinanceDetail(ordinance, repo, xrefs) !== undefined
-      ? { detail: buildOrdinanceDetail(ordinance, repo, xrefs) }
-      : {}),
-  } as LdsIndividualOrdinance;
-}
-
-function buildSpouseSealing(ordinance: OrdinanceRecord, repo: TreeRepository, xrefs: Xrefs): import('@doru/gedcom').SpouseSealingOrdinance {
-  const detail = buildOrdinanceDetail(ordinance, repo, xrefs);
-  return { tag: 'SLGS', ...(detail !== undefined ? { detail } : {}) } as import('@doru/gedcom').SpouseSealingOrdinance;
-}
-
-function buildChildSealing(ordinance: OrdinanceRecord, repo: TreeRepository, xrefs: Xrefs): import('@doru/gedcom').ChildSealingOrdinance {
-  const detail = buildOrdinanceDetail(ordinance, repo, xrefs);
-  return { tag: 'SLGC', ...(detail !== undefined ? { detail } : {}) } as import('@doru/gedcom').ChildSealingOrdinance;
-}
-
-function buildOrdinanceDetail(
-  ordinance: OrdinanceRecord,
-  repo: TreeRepository,
-  xrefs: Xrefs,
-): import('@doru/gedcom').LdsOrdinanceDetail | undefined {
-  const date = buildDate(ordinance.date);
-  const place = ordinance.placeId !== undefined ? buildPlace(repo, ordinance.placeId) : undefined;
-  const statusDate = ordinance.statusDate !== undefined ? buildDateExactStructure(ordinance.statusDate) : undefined;
-  if (date === undefined && ordinance.temple === undefined && place === undefined && ordinance.status === undefined) {
-    return undefined;
-  }
-  return {
-    ...(date !== undefined ? { date } : {}),
-    ...(ordinance.temple !== undefined ? { temple: ordinance.temple } : {}),
-    ...(place !== undefined ? { place } : {}),
-    ...(ordinance.status !== undefined
-      ? { status: { payload: ordinance.status.toUpperCase() as import('@doru/gedcom').OrdinanceStatusEnum, ...(statusDate !== undefined ? { date: statusDate } : {}) } }
-      : {}),
-    ...withCitationList(repo, 'ordinance', ordinance.id, xrefs),
-    ...withNoteList(repo, 'ordinance', ordinance.id, xrefs),
-  };
 }
 
 function withChildFamilies(repo: TreeRepository, personId: string, xrefs: Xrefs): { childFamilies?: ChildFamilyLink[] } {

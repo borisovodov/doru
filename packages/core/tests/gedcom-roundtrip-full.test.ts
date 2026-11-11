@@ -43,14 +43,14 @@ describe('buildGedcomDataset kitchen sink', () => {
       expect(tags).toContain('TITL');
       expect(tags).toContain('SNOTE');
       expect(tags).toContain('_TODO');
-      expect(tags).toContain('_EVENT_DEFN');
       expect(tags).toContain('_TAG');
-      // The evidence/research and census records stay out of the tree:
-      // the export must not carry them.
+      // The evidence/research, census and event-definition records stay
+      // out of the tree: the export must not carry them.
       expect(tags).not.toContain('_EVID');
       expect(tags).not.toContain('_RDOC');
       expect(tags).not.toContain('_RACT');
       expect(tags).not.toContain('_CENR');
+      expect(tags).not.toContain('_EVENT_DEFN');
       // The SUBN record is asserted against the direct dataset in the
       // header test below — the parser folds the submission record away.
 
@@ -75,9 +75,7 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(target.repo.listTitles()).toHaveLength(1);
         expect(target.repo.listNotes()).toHaveLength(2);
         expect(target.repo.listTags()).toHaveLength(1);
-        expect(target.repo.listFactTypes()).toHaveLength(1);
         expect(target.repo.listAssociations().length).toBeGreaterThan(0);
-        expect(target.repo.listOrdinances().length).toBeGreaterThan(0);
       } finally {
         cleanupRepo(target);
       }

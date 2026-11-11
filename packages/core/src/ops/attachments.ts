@@ -3,7 +3,6 @@ import type {
   AttachmentsSnapshot,
   CitationRecord,
   ContactRecord,
-  FactTypeRecord,
   IdentifierRecord,
   MediaLinkRecord,
   NoteLinkRecord,
@@ -384,29 +383,3 @@ export function deleteAddressOp(address: AddressRecord): Op {
   );
 }
 
-export function addFactTypeOp(type: FactTypeRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'fact_type.add',
-    (ctx) => ctx.repo.insertFactType(type),
-    (ctx) => ctx.repo.deleteFactType(type.id),
-  );
-}
-
-export function updateFactTypeOp(before: FactTypeRecord, after: FactTypeRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'fact_type.update',
-    (ctx) => ctx.repo.updateFactType(after),
-    (ctx) => ctx.repo.updateFactType(before),
-  );
-}
-
-export function deleteFactTypeOp(type: FactTypeRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'fact_type.delete',
-    (ctx) => ctx.repo.deleteFactType(type.id),
-    (ctx) => ctx.repo.insertFactType(type),
-  );
-}

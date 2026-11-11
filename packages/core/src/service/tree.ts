@@ -4,16 +4,13 @@ import type {
   ChangeRecord,
   CitationRecord,
   ContactRecord,
-  DuplicateCandidateRecord,
   FactRecord,
-  FactTypeRecord,
   FamilyRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
-  OrdinanceRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
@@ -31,14 +28,11 @@ import {
   addAliasOp,
   addAssociationOp,
   addContactOp,
-  addDuplicateOp,
   addFactOp,
-  addFactTypeOp,
   addFamilyOp,
   addIdentifierOp,
   addMediaOp,
   addNoteOp,
-  addOrdinanceOp,
   addPersonOp,
   addPlaceOp,
   addRelativeOp,
@@ -56,14 +50,11 @@ import {
   deleteAliasOp,
   deleteAssociationOp,
   deleteContactOp,
-  deleteDuplicateOp,
   deleteFactOp,
-  deleteFactTypeOp,
   deleteFamilyOp,
   deleteIdentifierOp,
   deleteMediaOp,
   deleteNoteOp,
-  deleteOrdinanceOp,
   deletePersonOp,
   deletePlaceOp,
   deleteRepositoryOp,
@@ -81,12 +72,9 @@ import {
   updateAddressOp,
   updateAssociationOp,
   updateCitationOp,
-  updateDuplicateOp,
   updateFactOp,
-  updateFactTypeOp,
   updateFamilyOp,
   updateNoteOp,
-  updateOrdinanceOp,
   updatePersonOp,
   updatePlaceOp,
   updateRepositoryOp,
@@ -629,25 +617,6 @@ export class TreeService {
     return this.apply(deleteAddressOp(address));
   }
 
-  addFactType(type: FactTypeRecord): UndoRedoState {
-    return this.apply(addFactTypeOp(type));
-  }
-
-  updateFactType(before: FactTypeRecord, after: FactTypeRecord): UndoRedoState {
-    return this.apply(updateFactTypeOp(before, after));
-  }
-
-  deleteFactType(type: FactTypeRecord): UndoRedoState {
-    return this.apply(deleteFactTypeOp(type));
-  }
-
-  // --- relations and the research layer ----------------------------------------
-
-  /** Every non-family relation of the person (GEDCOM ASSO). */
-  listAssociationsFor(personId: string): AssociationRecord[] {
-    return this.repo.listAssociationsFor(personId);
-  }
-
   addAssociation(association: AssociationRecord): UndoRedoState {
     return this.apply(addAssociationOp(association));
   }
@@ -669,19 +638,6 @@ export class TreeService {
     return this.apply(deleteAliasOp(id, personId, aliasId));
   }
 
-  addOrdinance(ordinance: OrdinanceRecord): UndoRedoState {
-    return this.apply(addOrdinanceOp(ordinance));
-  }
-
-  updateOrdinance(before: OrdinanceRecord, after: OrdinanceRecord): UndoRedoState {
-    return this.apply(updateOrdinanceOp(before, after));
-  }
-
-  deleteOrdinance(ordinance: OrdinanceRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('ordinance', ordinance.id);
-    return this.apply(deleteOrdinanceOp(ordinance, attachments));
-  }
-
   addTodo(todo: TodoRecord): UndoRedoState {
     return this.apply(addTodoOp(todo));
   }
@@ -701,18 +657,6 @@ export class TreeService {
   deleteTodo(todo: TodoRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('todo', todo.id);
     return this.apply(deleteTodoOp(todo, attachments));
-  }
-
-  addDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {
-    return this.apply(addDuplicateOp(duplicate));
-  }
-
-  updateDuplicate(before: DuplicateCandidateRecord, after: DuplicateCandidateRecord): UndoRedoState {
-    return this.apply(updateDuplicateOp(before, after));
-  }
-
-  deleteDuplicate(duplicate: DuplicateCandidateRecord): UndoRedoState {
-    return this.apply(deleteDuplicateOp(duplicate));
   }
 
   addTitle(title: TitleRecord): UndoRedoState {

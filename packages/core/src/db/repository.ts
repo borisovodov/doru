@@ -6,16 +6,13 @@ import type {
   ChangeRecord,
   CitationRecord,
   ContactRecord,
-  DuplicateCandidateRecord,
   FactRecord,
-  FactTypeRecord,
   FamilyRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
-  OrdinanceRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
@@ -73,10 +70,6 @@ export interface TreeRepository {
   listAllFacts(): FactRecord[];
   /** Facts that happened at the given place. */
   listFactsForPlace(placeId: string): FactRecord[];
-  insertFactType(type: FactTypeRecord): void;
-  updateFactType(type: FactTypeRecord): void;
-  deleteFactType(id: string): boolean;
-  listFactTypes(): FactTypeRecord[];
   insertPlace(place: PlaceRecord): void;
   updatePlace(place: PlaceRecord): void;
   getPlace(id: string): PlaceRecord | undefined;
@@ -161,20 +154,11 @@ export interface TreeRepository {
   insertAlias(id: string, personId: string, aliasId: string): void;
   deleteAlias(id: string): boolean;
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }>;
-  insertOrdinance(ordinance: OrdinanceRecord): void;
-  updateOrdinance(ordinance: OrdinanceRecord): void;
-  deleteOrdinance(id: string): boolean;
-  listOrdinances(): OrdinanceRecord[];
-  listOrdinancesFor(targetType: string, targetId: string): OrdinanceRecord[];
   insertTodo(todo: TodoRecord): void;
   updateTodo(todo: TodoRecord): void;
   deleteTodo(id: string): boolean;
   listTodos(): TodoRecord[];
   listTodosFor(targetType: string, targetId: string): TodoRecord[];
-  insertDuplicate(duplicate: DuplicateCandidateRecord): void;
-  updateDuplicate(duplicate: DuplicateCandidateRecord): void;
-  deleteDuplicate(id: string): boolean;
-  listDuplicates(): DuplicateCandidateRecord[];
   insertTitle(title: TitleRecord): void;
   updateTitle(title: TitleRecord): void;
   deleteTitle(id: string): boolean;
@@ -391,22 +375,6 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listFactsForPlace(placeId: string): FactRecord[] {
     return this.facts.listFactsForPlace(placeId);
-  }
-
-  insertFactType(type: FactTypeRecord): void {
-    this.facts.insertFactType(type);
-  }
-
-  updateFactType(type: FactTypeRecord): void {
-    this.facts.updateFactType(type);
-  }
-
-  deleteFactType(id: string): boolean {
-    return this.facts.deleteFactType(id);
-  }
-
-  listFactTypes(): FactTypeRecord[] {
-    return this.facts.listFactTypes();
   }
 
   insertPlace(place: PlaceRecord): void {
@@ -752,29 +720,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.relations.listAliasesFor(personId);
   }
 
-  insertOrdinance(ordinance: OrdinanceRecord): void {
-    this.relations.insertOrdinance(ordinance);
-  }
-
-  updateOrdinance(ordinance: OrdinanceRecord): void {
-    this.relations.updateOrdinance(ordinance);
-  }
-
-  deleteOrdinance(id: string): boolean {
-    return this.transactions.run(() => {
-      this.deleteAttachmentsFor('ordinance', id);
-      return this.relations.deleteOrdinance(id);
-    });
-  }
-
-  listOrdinances(): OrdinanceRecord[] {
-    return this.relations.listOrdinances();
-  }
-
-  listOrdinancesFor(targetType: string, targetId: string): OrdinanceRecord[] {
-    return this.relations.listOrdinancesFor(targetType, targetId);
-  }
-
   insertTodo(todo: TodoRecord): void {
     this.research.insertTodo(todo);
   }
@@ -796,22 +741,6 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listTodosFor(targetType: string, targetId: string): TodoRecord[] {
     return this.research.listTodosFor(targetType, targetId);
-  }
-
-  insertDuplicate(duplicate: DuplicateCandidateRecord): void {
-    this.research.insertDuplicate(duplicate);
-  }
-
-  updateDuplicate(duplicate: DuplicateCandidateRecord): void {
-    this.research.updateDuplicate(duplicate);
-  }
-
-  deleteDuplicate(id: string): boolean {
-    return this.research.deleteDuplicate(id);
-  }
-
-  listDuplicates(): DuplicateCandidateRecord[] {
-    return this.research.listDuplicates();
   }
 
   insertTitle(title: TitleRecord): void {
@@ -843,7 +772,6 @@ export class SqliteTreeRepository implements TreeRepository {
       restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
       changes: this.attachments.listChangesFor(targetType, targetId),
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
-      ordinances: this.relations.listOrdinancesFor(targetType, targetId),
       todos: this.research.listTodosFor(targetType, targetId),
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
@@ -854,7 +782,6 @@ export class SqliteTreeRepository implements TreeRepository {
     this.sources.deleteCitationsFor(targetType, targetId);
     this.media.deleteLinksFor(targetType, targetId);
     this.attachments.deleteAllFor(targetType, targetId);
-    this.relations.deleteOrdinancesFor(targetType, targetId);
     this.research.deleteTodosFor(targetType, targetId);
     this.submitters.deleteRecordSubmittersFor(targetType, targetId);
   }
@@ -893,9 +820,6 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const entry of snapshot.tagLinks) {
       this.attachments.insertTagLink(entry.link);
-    }
-    for (const ordinance of snapshot.ordinances) {
-      this.relations.insertOrdinance(ordinance);
     }
     for (const todo of snapshot.todos) {
       this.research.insertTodo(todo);

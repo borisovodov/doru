@@ -31,7 +31,6 @@ import type {
 } from '@doru/gedcom';
 import { isFamilyRecord, isIndividualRecord } from '@doru/gedcom';
 import type {
-  EventDefinitionRecord as GedcomEventDefinitionRecord,
   OccurrenceRecord as GedcomOccurrenceRecord,
   TagLink as GedcomTagLink,
   TagRecord as GedcomTagRecord,
@@ -39,7 +38,6 @@ import type {
   TodoRecord as GedcomTodoRecord,
   TodoStructure,
 } from '@doru/gedcom';
-import type { LdsIndividualOrdinance, LdsOrdinanceDetail } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
 import type {
   AssociationRecord,
@@ -48,11 +46,9 @@ import type {
   DateComponent,
   DateValue,
   FactRecord,
-  FactTypeRecord,
   FamilyChildLink,
   FamilyPartnerLink,
   NamePart,
-  OrdinanceRecord,
   PersonName,
   RestrictionRecord,
   Sex,
@@ -69,10 +65,12 @@ import type {
  * - media (OBJE): the import policy is an open question — issue #172. File
  *   paths point at the exporting machine; nothing is imported until the
  *   policy lands. The media tables stay empty on import.
- * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`) and the
- *   MagiKey census record (`_CENR`): the parser keeps them, but the tree
- *   has no such layers — they are counted as dropped. Census data from
- *   real files arrives as CENS facts on persons.
+ * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`), the
+ *   MagiKey census record (`_CENR`), the Legacy custom event definitions
+ *   (`_EVENT_DEFN`) and the LDS ordinance structures (BAPL/CONL/ENDL/
+ *   INIL/SLGC/SLGS): the parser keeps them, but the tree has no such
+ *   layers — they are counted as dropped. Census data from real files
+ *   arrives as CENS facts on persons.
  * - vendor-only structures (§3.2 of the schema plan): GenoPro entity
  *   records, MyHeritage tree tags, published sites, groups, USM types,
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
@@ -103,8 +101,6 @@ interface ImportContext {
   tagIds: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
-  /** familyId → childId → family_child link row id (for SLGC resolution). */
-  childLinkIds: Map<string, Map<string, string>>;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
   spouseLinkDates: Map<string, Map<string, DateStructure | undefined>>;
   /** Person xref → family xref → the FAMC link details (pedigree, status, relations). */
@@ -141,7 +137,6 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     noteIds: new Map(),
     tagIds: new Map(),
     placeIds: new Map(),
-    childLinkIds: new Map(),
     spouseLinkDates: new Map(),
     childLinkDetails: new Map(),
     dropped: 0,
@@ -551,7 +546,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   for (const todo of record.todos ?? []) {
     importTodoStructure(todo, 'person', id, ctx);
   }
-  // Associations, aliases and ordinances need the other persons — deferred
+  // Associations and aliases need the other persons — deferred
   // to importPersonRelations, resolved after every person and family exists.
 }
 
@@ -782,19 +777,16 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     partnerLinks,
     childLinks,
   });
-  const childLinkIds = new Map<string, string>();
   const childrenByXref = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.children ?? []) {
     childrenByXref.set(link.child, link.notes);
   }
   for (const link of childLinks) {
-    childLinkIds.set(link.childId, link.id);
     const notes = [...childrenByXref.entries()].find(
       ([childXref]) => ctx.personIds.get(childXref) === link.childId,
     )?.[1];
     importNotes(notes, 'family_child', link.id, ctx);
   }
-  ctx.childLinkIds.set(id, childLinkIds);
 
   const factStructures = [...(record.events ?? []), ...(record.attributes ?? [])];
   const facts: FactRecord[] = [];
@@ -862,12 +854,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   for (const todo of record.todos ?? []) {
     importTodoStructure(todo, 'family', id, ctx);
   }
-  for (const sealing of record.spouseSealings ?? []) {
-    importOrdinance({ kind: 'SLGS', detail: sealing.detail }, 'family', id, ctx);
-  }
-  for (const sealing of record.childSealings ?? []) {
-    importOrdinance({ kind: 'SLGC', detail: sealing.detail }, 'family', id, ctx);
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -912,46 +898,7 @@ function importPersonRelations(records: GedcomRecord[], ctx: ImportContext): voi
         ctx.repo.insertAlias(crypto.randomUUID(), personId, aliasId);
       }
     }
-    for (const ordinance of record.ordinances ?? []) {
-      importIndividualOrdinance(ordinance, personId, ctx);
-    }
   }
-}
-
-function importIndividualOrdinance(ordinance: LdsIndividualOrdinance, personId: string, ctx: ImportContext): void {
-  if (ordinance.tag === 'SLGC') {
-    // The familyChild pointer names the family the child was sealed to:
-    // target the family_child link row when it resolves.
-    const familyId = ordinance.familyChild ? ctx.familyIds.get(ordinance.familyChild) : undefined;
-    const linkId = familyId ? ctx.childLinkIds.get(familyId)?.get(personId) : undefined;
-    if (linkId !== undefined) {
-      importOrdinance({ kind: 'SLGC', detail: ordinance.detail }, 'family_child', linkId, ctx);
-    }
-    return;
-  }
-  importOrdinance({ kind: ordinance.tag, detail: ordinance.detail }, 'person', personId, ctx);
-}
-
-function importOrdinance(
-  ordinance: { kind: string; detail?: LdsOrdinanceDetail | undefined },
-  targetType: string,
-  targetId: string,
-  ctx: ImportContext,
-): void {
-  const mapped: OrdinanceRecord = {
-    id: crypto.randomUUID(),
-    kind: ordinance.kind,
-    targetType,
-    targetId,
-    date: mapDate(ordinance.detail?.date),
-    temple: ordinance.detail?.temple,
-    placeId: ordinance.detail?.place ? importPlace(ordinance.detail.place, ctx) : undefined,
-    status: ordinance.detail?.status?.payload,
-    statusDate: mapDateExact(ordinance.detail?.status?.date),
-  };
-  ctx.repo.insertOrdinance(mapped);
-  importCitations(ordinance.detail?.citations, 'ordinance', mapped.id, ctx);
-  importNotes(ordinance.detail?.notes, 'ordinance', mapped.id, ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -976,7 +923,9 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
         importTodoRecord(record as GedcomTodoRecord, ctx);
         break;
       case '_EVENT_DEFN':
-        importFactType(record as GedcomEventDefinitionRecord, ctx);
+        // The Legacy custom event definitions stay in the @doru/gedcom
+        // model; the tree has no fact-type registry.
+        ctx.dropped += 1;
         break;
       case '_OCUR':
         importOccurrence(record as GedcomOccurrenceRecord, ctx);
@@ -1042,20 +991,6 @@ function importTodoStructure(todo: TodoStructure, targetType: string, targetId: 
   importNotes(todo.notes, 'todo', mapped.id, ctx);
 }
 
-function importFactType(record: GedcomEventDefinitionRecord, ctx: ImportContext): void {
-  const mapped: FactTypeRecord = {
-    id: crypto.randomUUID(),
-    code: record.eventType,
-    kind: record.kind,
-    title: record.title,
-    abbreviation: record.abbreviation,
-    sentence: record.sentence,
-    confidential: record.confidentialFlag,
-  };
-  ctx.repo.insertFactType(mapped);
-}
-
-/** One occurrence becomes a fact per participant, with every participant listed. */
 function importOccurrence(record: GedcomOccurrenceRecord, ctx: ImportContext): void {
   const participants = (record.participants ?? []).map((participant) => ({
     personId: ctx.personIds.get(participant.individual),

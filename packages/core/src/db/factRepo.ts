@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, FactAge, FactParticipant, FactRecord, FactTypeRecord } from '../model/types';
+import type { DateValue, FactAge, FactParticipant, FactRecord } from '../model/types';
 import { signedYear } from '../model/types';
 import type { DateRepo } from './dateRepo';
 
@@ -320,64 +320,7 @@ export class FactRepo {
 
   // --- fact types -----------------------------------------------------------
 
-  insertFactType(type: FactTypeRecord): void {
-    this.db
-      .prepare(
-        'INSERT INTO fact_type (id, code, kind, title, abbreviation, sentence, confidential) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        type.id,
-        type.code ?? null,
-        type.kind ?? null,
-        type.title ?? null,
-        type.abbreviation ?? null,
-        type.sentence ?? null,
-        type.confidential ? 1 : 0,
-      );
-  }
 
-  updateFactType(type: FactTypeRecord): void {
-    this.db
-      .prepare(
-        'UPDATE fact_type SET code = ?, kind = ?, title = ?, abbreviation = ?, sentence = ?, confidential = ? WHERE id = ?',
-      )
-      .run(
-        type.code ?? null,
-        type.kind ?? null,
-        type.title ?? null,
-        type.abbreviation ?? null,
-        type.sentence ?? null,
-        type.confidential ? 1 : 0,
-        type.id,
-      );
-  }
-
-  deleteFactType(id: string): boolean {
-    return this.db.prepare('DELETE FROM fact_type WHERE id = ?').run(id).changes > 0;
-  }
-
-  listFactTypes(): FactTypeRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, code, kind, title, abbreviation, sentence, confidential FROM fact_type ORDER BY code')
-      .all() as unknown as {
-      id: string;
-      code: string | null;
-      kind: string | null;
-      title: string | null;
-      abbreviation: string | null;
-      sentence: string | null;
-      confidential: number;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      code: row.code ?? undefined,
-      kind: row.kind ?? undefined,
-      title: row.title ?? undefined,
-      abbreviation: row.abbreviation ?? undefined,
-      sentence: row.sentence ?? undefined,
-      confidential: row.confidential === 1 ? true : undefined,
-    }));
-  }
 }
 
 function factValueParams(fact: FactRecord, dates: DateRepo): Array<string | number | null> {
