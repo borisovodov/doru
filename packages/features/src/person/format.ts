@@ -1,11 +1,11 @@
-import type { DateQuality, DateValue, FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
+import type { DateQuality, DateValue, FactRecord, FamilyRecord, PersonName, PersonRecord } from '@doru/core';
 import { factOf, factYear } from '@doru/core/model';
 
 export function displayName(person: PersonRecord | undefined): string {
   if (!person) {
     return '?';
   }
-  const name = person.names[0];
+  const name = primaryName(person);
   if (!name) {
     return person.id;
   }
@@ -21,8 +21,16 @@ export function displayName(person: PersonRecord | undefined): string {
   return filtered.length > 0 ? filtered.join(' ') : person.id;
 }
 
+/**
+ * The name shown for the person: the one carrying the primary flag, or the
+ * first name when no name is flagged (the common single-name case).
+ */
+export function primaryName(person: PersonRecord): PersonName | undefined {
+  return person.names.find((name) => name.primary === true) ?? person.names[0];
+}
+
 export function initials(person: PersonRecord): string {
-  const name = person.names[0];
+  const name = primaryName(person);
   if (!name) {
     return '?';
   }

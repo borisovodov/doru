@@ -155,9 +155,14 @@ export function nameDraftDisplay(name: NameDraft | NameVariantDraft | undefined)
     .join(' ');
 }
 
+/** The display name of the draft: the primary name, else the first one. */
+export function primaryNameDraft(draft: PersonDraft): NameDraft | undefined {
+  return draft.names.find((name) => name.primary) ?? draft.names[0];
+}
+
 /** The initials shown on the person view card, live from the draft. */
 export function draftInitials(draft: PersonDraft): string {
-  const name = draft.names[0];
+  const name = primaryNameDraft(draft);
   if (!name) {
     return '?';
   }

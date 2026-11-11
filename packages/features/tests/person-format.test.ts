@@ -33,6 +33,25 @@ describe('displayName', () => {
   it('joins only the parts that are present', () => {
     expect(displayName(person({ names: [{ id: 'N1', given: 'Ivan' }] }))).toBe('Ivan');
   });
+
+  it('prefers the primary name over the first one', () => {
+    expect(
+      displayName(
+        person({
+          names: [
+            { id: 'N1', type: 'maiden', given: 'Maria', surname: 'Sidorova' },
+            { id: 'N2', type: 'married', primary: true, given: 'Maria', surname: 'Ivanova' },
+          ],
+        }),
+      ),
+    ).toBe('Maria Ivanova');
+  });
+
+  it('falls back to the first name when no name is primary', () => {
+    expect(
+      displayName(person({ names: [{ id: 'N1', given: 'Ivan' }, { id: 'N2', given: 'Vanya' }] })),
+    ).toBe('Ivan');
+  });
 });
 
 describe('initials', () => {
@@ -50,6 +69,19 @@ describe('initials', () => {
 
   it('returns an empty string when the full name has no words', () => {
     expect(initials(person({ names: [{ id: 'N1', full: '   ' }] }))).toBe('');
+  });
+
+  it('prefers the primary name for the initials', () => {
+    expect(
+      initials(
+        person({
+          names: [
+            { id: 'N1', type: 'maiden', given: 'Maria', surname: 'Sidorova' },
+            { id: 'N2', type: 'married', primary: true, given: 'Maria', surname: 'Ivanova' },
+          ],
+        }),
+      ),
+    ).toBe('MI');
   });
 });
 

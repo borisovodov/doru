@@ -17,7 +17,7 @@ import { FamilySection } from './FamilySection';
 import { MediaSection } from './MediaSection';
 import { NamesSection } from './NamesSection';
 import { SourcesSection } from './SourcesSection';
-import { draftInitials, draftSpan, nameDraftDisplay, type PersonDraft } from './draft';
+import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from './draft';
 import type { CitationInfo, MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {
@@ -107,7 +107,7 @@ export function PersonEditor({
     setNotes(await api.getNotes(draft.id));
   };
 
-  const name = nameDraftDisplay(draft.names[0]);
+  const name = nameDraftDisplay(primaryNameDraft(draft));
   const span = draftSpan(draft);
   const deceased = draft.death.year !== '' || draft.death.text.trim() !== '';
   const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : HelpCircle;

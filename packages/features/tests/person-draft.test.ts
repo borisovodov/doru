@@ -134,6 +134,19 @@ describe('draftInitials', () => {
   it('ignores whitespace-only parts', () => {
     expect(draftInitials(draft({ names: [nameDraft({ parts: [part('given', '   '), part('surname', 'Petrov')] })] }))).toBe('P');
   });
+
+  it('prefers the primary name', () => {
+    expect(
+      draftInitials(
+        draft({
+          names: [
+            nameDraft({ id: 'N1', parts: [part('given', 'Maria'), part('surname', 'Sidorova')] }),
+            nameDraft({ id: 'N2', primary: true, parts: [part('given', 'Maria'), part('surname', 'Ivanova')] }),
+          ],
+        }),
+      ),
+    ).toBe('MI');
+  });
 });
 
 describe('draftSpan', () => {
