@@ -122,6 +122,8 @@ export class TreeService {
   constructor(
     private readonly repo: TreeRepository,
     private readonly queue: OpQueue,
+    /** The local user stamped into change-log rows (the OS account in the desktop app). */
+    private readonly changeUser?: string,
   ) {}
 
   // --- queries -------------------------------------------------------------
@@ -745,6 +747,7 @@ export class TreeService {
       targetType: op.change.targetType,
       targetId: op.change.targetId,
       kind,
+      user: this.changeUser,
       date: {
         quality: 'exact',
         component: {

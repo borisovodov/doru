@@ -363,4 +363,16 @@ describe('TreeService attachments', () => {
       cleanupRepo(fixture);
     }
   });
+
+  it('stamps the change user into the change-log rows', () => {
+    const fixture = makeRepo();
+    const service = new TreeService(fixture.repo, new OpQueue(), 'boris');
+    try {
+      service.addNote(note());
+      const changes = fixture.repo.listChangesFor('note', 'N1');
+      expect(changes[0]?.user).toBe('boris');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });
