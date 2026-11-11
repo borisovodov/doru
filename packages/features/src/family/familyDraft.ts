@@ -62,7 +62,11 @@ export function familyToDraft(family: FamilyRecord): FamilyDraft {
   // ids so draft comparisons against such families stay stable.
   const partnerLinks =
     family.partnerLinks ??
-    family.partners.map((personId) => ({ ...emptyPartnerLinkDraft(personId), id: `${family.id}#partner#${personId}` }));
+    family.partners.map((personId) => ({
+      ...emptyPartnerLinkDraft(personId),
+      id: `${family.id}#partner#${personId}`,
+      date: undefined,
+    }));
   const childLinks =
     family.childLinks ??
     family.children.map((childId) => ({ ...emptyChildLinkDraft(childId), id: `${family.id}#child#${childId}` }));
@@ -163,6 +167,15 @@ function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
     a.endDay === b.endDay &&
     a.text === b.text &&
     a.quality === b.quality &&
-    a.place === b.place
+    a.place === b.place &&
+    a.modifier === b.modifier &&
+    a.calendar === b.calendar &&
+    a.epoch === b.epoch &&
+    a.endCalendar === b.endCalendar &&
+    a.endEpoch === b.endEpoch &&
+    a.timeHour === b.timeHour &&
+    a.timeMinute === b.timeMinute &&
+    a.timeSecond === b.timeSecond &&
+    a.timeUtc === b.timeUtc
   );
 }

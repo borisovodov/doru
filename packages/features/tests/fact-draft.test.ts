@@ -155,7 +155,7 @@ describe('factToDraft / factDraftToRecord', () => {
     expect(record.placeId).toBe('PL1');
   });
 
-  it('carries the invisible date fields over when the visible ones change', () => {
+  it('round-trips the calendar, modifier and time when the visible fields change', () => {
     const source = fact({
       date: {
         id: 'D1',
@@ -173,7 +173,7 @@ describe('factToDraft / factDraftToRecord', () => {
       quality: 'about',
       modifier: 'ABT',
       component: { calendar: 'julian', year: 1901, month: 10, day: 5 },
-      time: { hour: 12 },
+      time: { hour: 12, minute: 0 },
     });
   });
 

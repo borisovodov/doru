@@ -8,6 +8,7 @@ import type {
   PersonName,
   PersonRecord,
   Sex,
+  TimeValue,
 } from '@doru/core';
 import { factOf } from '@doru/core/model';
 import { formatDate } from './format';
@@ -22,6 +23,19 @@ export interface DateDraft {
   text: string;
   quality: DateQuality;
   place: string;
+  /** The about-date refinement (ABT/CAL/EST); '' = none. */
+  modifier: string;
+  /** The main component's calendar; '' = Gregorian. */
+  calendar: string;
+  /** The main component's era; 'BCE' or ''. */
+  epoch: string;
+  endCalendar: string;
+  endEpoch: string;
+  /** The time of day, as typed; empty strings mean absent. */
+  timeHour: string;
+  timeMinute: string;
+  timeSecond: string;
+  timeUtc: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +108,15 @@ export function emptyDate(): DateDraft {
     text: '',
     quality: 'exact',
     place: '',
+    modifier: '',
+    calendar: '',
+    epoch: '',
+    endCalendar: '',
+    endEpoch: '',
+    timeHour: '',
+    timeMinute: '',
+    timeSecond: '',
+    timeUtc: false,
   };
 }
 
@@ -229,20 +252,58 @@ export function toDateDraft(date: DateValue | undefined, place = ''): DateDraft 
     text: date?.text ?? '',
     quality: date?.quality ?? 'exact',
     place,
+    modifier: date?.modifier ?? '',
+    calendar: date?.component?.calendar ?? '',
+    epoch: date?.component?.epoch ?? '',
+    endCalendar: date?.end?.calendar ?? '',
+    endEpoch: date?.end?.epoch ?? '',
+    timeHour: date?.time?.hour !== undefined ? String(date.time.hour) : '',
+    timeMinute: date?.time?.minute !== undefined ? String(date.time.minute) : '',
+    timeSecond: date?.time?.second !== undefined ? String(date.time.second) : '',
+    timeUtc: date?.time?.utc === true,
   };
 }
 
 export function fromDateDraft(draft: DateDraft): DateValue | undefined {
-  const component = componentOf(draft.year, draft.month, draft.day);
-  const end = componentOf(draft.endYear, draft.endMonth, draft.endDay);
+  const component = componentOf(draft.year, draft.month, draft.day, draft.calendar, draft.epoch);
+  const end = componentOf(draft.endYear, draft.endMonth, draft.endDay, draft.endCalendar, draft.endEpoch);
   const text = draft.text.trim() || undefined;
-  if (!component && !end && !text) {
+  const time = timeOf(draft.timeHour, draft.timeMinute, draft.timeSecond, draft.timeUtc);
+  if (!component && !end && !text && !time) {
     return undefined;
   }
   if (draft.quality === 'range') {
-    return { quality: 'range', component, end, text };
+    return {
+      quality: 'range',
+      ...(component !== undefined ? { component } : {}),
+      ...(end !== undefined ? { end } : {}),
+      ...(text !== undefined ? { text } : {}),
+      ...(time !== undefined ? { time } : {}),
+    };
   }
-  return { quality: draft.quality, component, text };
+  return {
+    quality: draft.quality,
+    ...(component !== undefined ? { component } : {}),
+    ...(text !== undefined ? { text } : {}),
+    ...(draft.quality === 'about' && draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {}),
+    ...(time !== undefined ? { time } : {}),
+  };
+}
+
+/** The time of day from the typed fields; absent when nothing is typed. */
+function timeOf(hour: string, minute: string, second: string, utc: boolean): TimeValue | undefined {
+  const h = parseInt(hour, 10);
+  const m = parseInt(minute, 10);
+  const s = parseInt(second, 10);
+  if (Number.isNaN(h) && Number.isNaN(m) && Number.isNaN(s)) {
+    return undefined;
+  }
+  return {
+    hour: Number.isNaN(h) ? 0 : h,
+    minute: Number.isNaN(m) ? 0 : m,
+    ...(!Number.isNaN(s) ? { second: s } : {}),
+    ...(utc ? { utc: true } : {}),
+  };
 }
 
 export function variantToDraft(variant: PersonName): NameVariantDraft {
@@ -515,41 +576,22 @@ function factFromDraft(
 
 /**
  * Rebuilds a date from the draft, carrying over what the draft cannot
- * express but the user did not touch: the date row id (citations may
- * target it), the time of day, the about-modifier, and the calendar and
- * epoch of each component. Shared by the person quick fields and the
- * fact editor.
+ * express: the date row id (citations may target it) and the fractional
+ * part of the time of day (the editor does not expose it). Shared by the
+ * person quick fields and the fact editor.
  */
 export function rebaseDate(next: DateValue | undefined, stored: DateValue | undefined): DateValue | undefined {
   if (next === undefined || stored === undefined) {
     return next;
   }
-  const component = mergeComponent(next.component, stored.component);
-  const end = mergeComponent(next.end, stored.end);
+  const time =
+    next.time !== undefined && stored.time?.fraction !== undefined
+      ? { ...next.time, fraction: stored.time.fraction }
+      : next.time;
   return {
     ...next,
     ...(stored.id !== undefined ? { id: stored.id } : {}),
-    ...(stored.time !== undefined ? { time: stored.time } : {}),
-    ...(next.quality === 'about' && stored.modifier !== undefined ? { modifier: stored.modifier } : {}),
-    ...(component !== undefined ? { component } : {}),
-    ...(end !== undefined ? { end } : {}),
-  };
-}
-
-function mergeComponent(
-  next: DateComponent | undefined,
-  stored: DateComponent | undefined,
-): DateComponent | undefined {
-  if (next === undefined) {
-    return undefined;
-  }
-  if (stored === undefined) {
-    return next;
-  }
-  return {
-    ...(stored.calendar !== undefined ? { calendar: stored.calendar } : {}),
-    ...(stored.epoch !== undefined ? { epoch: stored.epoch } : {}),
-    ...next,
+    ...(time !== undefined ? { time } : {}),
   };
 }
 
@@ -564,7 +606,16 @@ export function dateDraftsEqual(a: DateDraft, b: DateDraft): boolean {
     a.endDay === b.endDay &&
     a.text === b.text &&
     a.quality === b.quality &&
-    a.place === b.place
+    a.place === b.place &&
+    a.modifier === b.modifier &&
+    a.calendar === b.calendar &&
+    a.epoch === b.epoch &&
+    a.endCalendar === b.endCalendar &&
+    a.endEpoch === b.endEpoch &&
+    a.timeHour === b.timeHour &&
+    a.timeMinute === b.timeMinute &&
+    a.timeSecond === b.timeSecond &&
+    a.timeUtc === b.timeUtc
   );
 }
 
@@ -572,16 +623,28 @@ function dateDraftMatches(draft: DateDraft, fact: FactRecord | undefined): boole
   return dateDraftsEqual(draft, toDateDraft(fact?.date, fact?.place ?? ''));
 }
 
-function componentOf(year: string, month: string, day: string): DateComponent | undefined {
+function componentOf(
+  year: string,
+  month: string,
+  day: string,
+  calendar: string,
+  epoch: string,
+): DateComponent | undefined {
   const y = year !== '' ? Number(year) : undefined;
   const numeric = month !== '' ? Number(month) : undefined;
-  // Non-Gregorian month codes (e.g. 'VEND') round-trip as strings: the
-  // number inputs cannot produce them, so a non-numeric value is kept as
-  // the calendar's own month code.
+  // Non-Gregorian month codes (e.g. 'VEND', 'TSH') round-trip as strings:
+  // the number inputs cannot produce them, so a non-numeric value is kept
+  // as the calendar's own month code.
   const m = numeric !== undefined && !Number.isNaN(numeric) ? numeric : month || undefined;
   const d = day !== '' ? Number(day) : undefined;
-  if (y === undefined && m === undefined && d === undefined) {
+  if (y === undefined && m === undefined && d === undefined && calendar === '' && epoch === '') {
     return undefined;
   }
-  return { year: y, month: m, day: d };
+  return {
+    ...(y !== undefined ? { year: y } : {}),
+    ...(m !== undefined ? { month: m } : {}),
+    ...(d !== undefined ? { day: d } : {}),
+    ...(calendar !== '' ? { calendar } : {}),
+    ...(epoch === 'BCE' ? { epoch } : {}),
+  };
 }

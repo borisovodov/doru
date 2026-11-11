@@ -244,6 +244,22 @@
   white-space: nowrap;
 }
 
+.date-epoch-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+}
+
+.date-epoch-check input {
+  width: auto;
+  height: auto;
+  margin: 0;
+  accent-color: var(--doru-accent);
+}
+
 .date-text-input {
   width: 100%;
 }

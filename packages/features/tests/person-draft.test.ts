@@ -67,6 +67,15 @@ describe('emptyDate', () => {
       text: '',
       quality: 'exact',
       place: '',
+      modifier: '',
+      calendar: '',
+      epoch: '',
+      endCalendar: '',
+      endEpoch: '',
+      timeHour: '',
+      timeMinute: '',
+      timeSecond: '',
+      timeUtc: false,
     });
   });
 });
@@ -214,6 +223,7 @@ describe('toDateDraft', () => {
         text: 'winter',
       }),
     ).toEqual({
+      ...emptyDate(),
       year: '1920',
       month: '3',
       day: '4',
@@ -222,7 +232,6 @@ describe('toDateDraft', () => {
       endDay: '6',
       text: 'winter',
       quality: 'range',
-      place: '',
     });
   });
 });
@@ -537,14 +546,14 @@ describe('draftToRecord', () => {
     const record = draftToRecord(
       draft({
         names: [nameDraft({ id: 'N1', parts: [part('given', 'Vanya'), part('surname', 'Petrov')] })],
-        birth: dateDraft({ year: '1900', place: 'Moscow' }),
+        birth: personToDraft(existing).birth,
       }),
       existing,
     );
     expect(record.facts.find((fact) => fact.tag === 'BIRT')).toEqual(richBirth);
   });
 
-  it('keeps the invisible date fields when the visible ones change', () => {
+  it('round-trips the calendar and time when the visible fields change', () => {
     const existing = person({
       facts: [
         {
@@ -560,9 +569,10 @@ describe('draftToRecord', () => {
         },
       ],
     });
-    const record = draftToRecord(draft({ birth: dateDraft({ year: '1901', month: '10', day: '5' }) }), existing);
-    const birth = record.facts.find((fact) => fact.tag === 'BIRT');
-    expect(birth?.date).toEqual({
+    const birth = personToDraft(existing).birth;
+    birth.year = '1901';
+    const record = draftToRecord(draft({ birth }), existing);
+    expect(record.facts.find((fact) => fact.tag === 'BIRT')?.date).toEqual({
       id: 'D1',
       quality: 'exact',
       component: { calendar: 'julian', year: 1901, month: 10, day: 5 },
