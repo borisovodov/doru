@@ -44,6 +44,31 @@
   margin-top: 6px;
 }
 
+.notes-add {
+  display: flex;
+  gap: 8px;
+}
+
+.notes-add input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.notes-add input:focus {
+  border-color: var(--doru-focus);
+  outline: none;
+}
+
 .add-button.small,
 .plain-button.small {
   height: auto;

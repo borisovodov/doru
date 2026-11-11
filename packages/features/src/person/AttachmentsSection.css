@@ -48,6 +48,21 @@
   flex: 1;
   min-width: 0;
   margin-top: 0;
+  height: var(--doru-control-height);
+  box-sizing: border-box;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-fg);
+  padding: 0 10px;
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.attachment-add input:focus,
+.attachment-add select:focus {
+  border-color: var(--doru-focus);
+  outline: none;
 }
 
 .tag-chips {
