@@ -482,7 +482,7 @@ describe('draftToRecord', () => {
     expect(record.names[1]).toMatchObject({ id: 'N2', type: 'aka', given: 'Vanya' });
   });
 
-  it('rebuilds birth and death while preserving other facts', () => {
+  it('updates birth and death in place while preserving other facts', () => {
     const existing = person({
       names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }],
       facts: [
@@ -500,12 +500,86 @@ describe('draftToRecord', () => {
       }),
       existing,
     );
-    expect(record.facts.map((fact) => fact.tag)).toEqual(['OCCU', 'BIRT']);
+    expect(record.facts.map((fact) => fact.tag)).toEqual(['OCCU', 'BIRT', 'DEAT']);
     expect(record.facts.find((fact) => fact.tag === 'BIRT')).toMatchObject({
       id: 'E1',
       date: { quality: 'exact', component: { year: 1923 } },
       place: 'Moscow',
     });
+    // An emptied draft clears the stored date/place but keeps the fact:
+    // the quick editor must not delete data it cannot show.
+    expect(record.facts.find((fact) => fact.tag === 'DEAT')).toMatchObject({
+      id: 'E3',
+      date: undefined,
+      place: undefined,
+    });
+  });
+
+  it('keeps every field of an unchanged birth fact on an unrelated edit', () => {
+    const richBirth = {
+      id: 'E1',
+      personId: 'P1',
+      tag: 'BIRT',
+      date: { id: 'D1', quality: 'exact', component: { year: 1900 }, time: { hour: 12, minute: 30 } },
+      place: 'Moscow',
+      placeId: 'PL1',
+      addressId: 'A1',
+      sortDate: { quality: 'exact', component: { year: 1899 } },
+      cause: 'old age',
+      ages: [{ id: 'AG1', years: 80 }],
+      participants: [{ id: 'PR1', value: 'midwife', role: 'witness', position: 0 }],
+      flags: ['preferred'],
+    };
+    const existing = person({
+      names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }],
+      facts: [richBirth],
+    });
+    const record = draftToRecord(
+      draft({
+        names: [nameDraft({ id: 'N1', parts: [part('given', 'Vanya'), part('surname', 'Petrov')] })],
+        birth: dateDraft({ year: '1900', place: 'Moscow' }),
+      }),
+      existing,
+    );
+    expect(record.facts.find((fact) => fact.tag === 'BIRT')).toEqual(richBirth);
+  });
+
+  it('keeps the invisible date fields when the visible ones change', () => {
+    const existing = person({
+      facts: [
+        {
+          id: 'E1',
+          personId: 'P1',
+          tag: 'BIRT',
+          date: {
+            id: 'D1',
+            quality: 'exact',
+            component: { calendar: 'julian', year: 1900, month: 10, day: 5 },
+            time: { hour: 12, minute: 0, second: 0 },
+          },
+        },
+      ],
+    });
+    const record = draftToRecord(draft({ birth: dateDraft({ year: '1901', month: '10', day: '5' }) }), existing);
+    const birth = record.facts.find((fact) => fact.tag === 'BIRT');
+    expect(birth?.date).toEqual({
+      id: 'D1',
+      quality: 'exact',
+      component: { calendar: 'julian', year: 1901, month: 10, day: 5 },
+      time: { hour: 12, minute: 0, second: 0 },
+    });
+  });
+
+  it('drops the place link when the place text changes', () => {
+    const existing = person({
+      facts: [
+        { id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1900 } }, place: 'Moscow', placeId: 'PL1' },
+      ],
+    });
+    const record = draftToRecord(draft({ birth: dateDraft({ year: '1900', place: 'Kazan' }) }), existing);
+    const birth = record.facts.find((fact) => fact.tag === 'BIRT');
+    expect(birth).toMatchObject({ id: 'E1', place: 'Kazan' });
+    expect(birth?.placeId).toBeUndefined();
   });
 
   it('creates fresh birth/death facts when there is no existing person', () => {

@@ -407,9 +407,10 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
  * Builds the person record for a save. Every name of the draft is written
  * (empty ones are dropped); the person's other facts (residences,
  * occupations, …) are preserved from `existing`; the BIRT/DEAT facts are
- * rebuilt from the draft — inserted, updated in place, or dropped when the
- * draft is empty. Pass `existing` when updating a person so the save does
- * not clobber facts edited elsewhere.
+ * updated in place from the draft's date/place fields — their other
+ * columns (cause, ages, participants, flags, …) survive the save. Pass
+ * `existing` when updating a person so the save does not clobber facts
+ * edited elsewhere.
  */
 export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): PersonRecord {
   const names = draft.names.map(nameDraftToName).filter((name): name is PersonName => name !== undefined);
@@ -500,17 +501,72 @@ function factFromDraft(
   tag: string,
   value: DateDraft,
 ): FactRecord | undefined {
-  const date = fromDateDraft(value);
+  const stored = existing ? factOf(existing, tag) : undefined;
+  if (stored === undefined) {
+    // No stored fact: build a fresh one from the draft alone.
+    const date = fromDateDraft(value);
+    const place = value.place.trim() || undefined;
+    if (!date && !place) {
+      return undefined;
+    }
+    return { id: crypto.randomUUID(), personId: draft.id, tag, date, place };
+  }
+  if (dateDraftMatches(value, stored)) {
+    // The visible fields are unchanged: keep the stored fact verbatim —
+    // rebuilding it would drop what the draft cannot express (time,
+    // calendar, epoch, placeId, addressId, sortDate, cause, ages,
+    // participants, flags, …).
+    return stored;
+  }
+  // Update in place: the quick editor only edits the date and the place
+  // text; everything else on the fact must survive the save. A changed
+  // place text invalidates the placeId link.
+  const next: FactRecord = { ...stored, personId: draft.id, tag };
   const place = value.place.trim() || undefined;
-  if (!date && !place) {
+  if ((stored.place ?? '') !== (place ?? '')) {
+    delete next.placeId;
+  }
+  next.place = place;
+  next.date = rebaseDate(fromDateDraft(value), stored.date);
+  return next;
+}
+
+/**
+ * Rebuilds a date from the draft, carrying over what the draft cannot
+ * express but the user did not touch: the date row id (citations may
+ * target it), the time of day, the about-modifier, and the calendar and
+ * epoch of each component.
+ */
+function rebaseDate(next: DateValue | undefined, stored: DateValue | undefined): DateValue | undefined {
+  if (next === undefined || stored === undefined) {
+    return next;
+  }
+  const component = mergeComponent(next.component, stored.component);
+  const end = mergeComponent(next.end, stored.end);
+  return {
+    ...next,
+    ...(stored.id !== undefined ? { id: stored.id } : {}),
+    ...(stored.time !== undefined ? { time: stored.time } : {}),
+    ...(next.quality === 'about' && stored.modifier !== undefined ? { modifier: stored.modifier } : {}),
+    ...(component !== undefined ? { component } : {}),
+    ...(end !== undefined ? { end } : {}),
+  };
+}
+
+function mergeComponent(
+  next: DateComponent | undefined,
+  stored: DateComponent | undefined,
+): DateComponent | undefined {
+  if (next === undefined) {
     return undefined;
   }
+  if (stored === undefined) {
+    return next;
+  }
   return {
-    id: existing ? (factOf(existing, tag)?.id ?? crypto.randomUUID()) : crypto.randomUUID(),
-    personId: draft.id,
-    tag,
-    date,
-    place,
+    ...(stored.calendar !== undefined ? { calendar: stored.calendar } : {}),
+    ...(stored.epoch !== undefined ? { epoch: stored.epoch } : {}),
+    ...next,
   };
 }
 
