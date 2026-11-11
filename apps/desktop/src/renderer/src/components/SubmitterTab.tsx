@@ -84,7 +84,7 @@ function SubmitterTabBody({
             {addressText !== '' && <p className="entity-view-subtitle">{addressText}</p>}
           </div>
           <div className="person-view-actions">
-            <button className="primary" onClick={() => void save()}>
+            <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
             <button className="registry-delete-button" onClick={() => void remove()}>
