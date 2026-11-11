@@ -8,7 +8,6 @@ const TREE_TAB_ID = 'tree';
 const SETTINGS_TAB_ID = 'settings';
 const NOTICES_TAB_ID = 'notices';
 const EXPORT_TAB_ID = 'export';
-const REGISTRIES_TAB_ID = 'registries';
 const PERSON_TAB_PREFIX = 'person:';
 const FAMILY_TAB_PREFIX = 'family:';
 const SOURCE_TAB_PREFIX = 'source:';
@@ -196,10 +195,6 @@ export function useTabs(
     openTab({ id: EXPORT_TAB_ID, label: nls.t('workbench.exportGedcom') });
   }, [openTab]);
 
-  const openRegistriesTab = useCallback(() => {
-    openTab({ id: REGISTRIES_TAB_ID, label: nls.t('workbench.registries') });
-  }, [openTab]);
-
   const reorderTabs = useCallback((sourceId: string, dropIndex: number) => {
     setOpenTabs((current) => moveTab(current, sourceId, dropIndex));
   }, []);
@@ -229,7 +224,6 @@ export function useTabs(
     openSettingsTab,
     openNoticesTab,
     openExportTab,
-    openRegistriesTab,
     reorderTabs,
   };
 }
@@ -239,7 +233,6 @@ export {
   TREE_TAB_ID,
   NOTICES_TAB_ID,
   EXPORT_TAB_ID,
-  REGISTRIES_TAB_ID,
   PERSON_TAB_PREFIX,
   FAMILY_TAB_PREFIX,
   SOURCE_TAB_PREFIX,

@@ -6,7 +6,6 @@ import {
   ChatSetupPlaceholder,
   EmptyEditorPage,
   NoticesView,
-  RegistriesView,
   SettingsView,
   TreeCanvas,
   WelcomePage,
@@ -29,7 +28,6 @@ import {
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   PLACE_TAB_PREFIX,
-  REGISTRIES_TAB_ID,
   SETTINGS_TAB_ID,
   SOURCE_TAB_PREFIX,
   TREE_TAB_ID,
@@ -131,7 +129,7 @@ export function App() {
     const removeOpenRegistries = commands.register({
       id: 'workbench.openRegistries',
       title: nls.t('workbench.registries'),
-      handler: () => tabs.openRegistriesTab(),
+      handler: () => setActiveView('registries'),
     });
     const removeNextTab = commands.register({
       id: 'workbench.nextTab',
@@ -178,7 +176,6 @@ export function App() {
     project.createProject,
     tabs.openExportTab,
     tabs.openSettingsTab,
-    tabs.openRegistriesTab,
     tabs.nextTab,
     tabs.prevTab,
     tabs.openTabAt,
@@ -233,11 +230,8 @@ export function App() {
       if (view === 'tree' && projectPath) {
         tabs.openTab({ id: TREE_TAB_ID, label: nls.t('features.tree.title') });
       }
-      if (view === 'registries' && projectPath) {
-        tabs.openRegistriesTab();
-      }
     },
-    [tabs.openTab, tabs.openRegistriesTab, projectPath],
+    [tabs.openTab, projectPath],
   );
 
   /** Opens the person editor and refocuses the tree canvas on that person. */
@@ -315,9 +309,6 @@ export function App() {
     }
     if (tab.id === EXPORT_TAB_ID) {
       return <ExportView onExportGedcom={() => void project.exportGedcom()} />;
-    }
-    if (tab.id === REGISTRIES_TAB_ID) {
-      return <RegistriesView api={tree.registriesApi} />;
     }
     if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
       return (
@@ -459,6 +450,7 @@ export function App() {
             media={tree.media}
             citations={tree.citations}
             places={tree.places}
+            registriesApi={tree.registriesApi}
             onOpenPerson={openPersonAndFocus}
             onOpenFamily={tabs.openFamilyTab}
             onOpenSource={tabs.openSourceTab}

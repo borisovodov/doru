@@ -2,6 +2,7 @@ import type { CitationRecord, FactRecord, FamilyRecord, PersonRecord, PlaceRecor
 import {
   PersonList,
   PlaceholderView,
+  RegistriesView,
   SidebarFamilies,
   SidebarFacts,
   SidebarMedia,
@@ -10,6 +11,7 @@ import {
   SidebarSources,
   type SidebarMediaItem,
 } from '@doru/features';
+import type { RegistriesEditorApi } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
 /** Render cap for the People list on very large trees. */
@@ -24,6 +26,7 @@ export function SidebarView({
   media,
   citations,
   places,
+  registriesApi,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
@@ -37,6 +40,7 @@ export function SidebarView({
   media: SidebarMediaItem[];
   citations: CitationRecord[];
   places: PlaceRecord[];
+  registriesApi: RegistriesEditorApi;
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
@@ -127,12 +131,7 @@ export function SidebarView({
         />
       );
     case 'registries':
-      return (
-        <PlaceholderView
-          title={nls.t('workbench.registries')}
-          description={nls.t('features.registries.placeholder')}
-        />
-      );
+      return <RegistriesView api={registriesApi} sidebar />;
     case 'search':
       return (
         <SidebarSearch
