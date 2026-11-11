@@ -143,6 +143,8 @@
   "features.tree.events.title": "事件",
   "features.tree.events.typeField": "類型",
   "features.tree.exportGedcom": "匯出 GEDCOM…",
+  "features.tree.fact.addressLink": "地址",
+  "features.tree.fact.addressLink.none": "無",
   "features.tree.fact.agency": "機構",
   "features.tree.fact.ages.add": "新增年齡",
   "features.tree.fact.ages.days": "日",

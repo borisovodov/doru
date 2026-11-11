@@ -557,6 +557,14 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle(
+    'tree:addresses',
+    async (_event, options: { projectPath: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listAddresses();
+    },
+  );
+
   ipcMain.handle('tree:addAddress', async (_event, options: { projectPath: string; address: AddressRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.addAddress(options.address);

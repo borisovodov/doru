@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Users, X } from 'lucide-react';
-import type { FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
+import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
@@ -42,6 +42,7 @@ export function FamilyEditor({
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [contributors, setContributors] = useState<
     Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
@@ -67,6 +68,9 @@ export function FamilyEditor({
     });
     void api.getPlaces().then((loaded) => {
       if (!cancelled) setPlaces(loaded);
+    });
+    void api.getAddresses().then((loaded) => {
+      if (!cancelled) setAddresses(loaded);
     });
     void refreshContributors();
     return () => {
@@ -262,6 +266,7 @@ export function FamilyEditor({
         events={facts}
         persons={persons}
         places={places}
+        addresses={addresses}
         refresh={refreshFacts}
         onAddFact={api.addFact}
         onUpdateFact={api.updateFact}

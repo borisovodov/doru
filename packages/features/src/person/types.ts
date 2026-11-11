@@ -130,6 +130,7 @@ export interface PersonEditorApi {
   updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
   getChanges(personId: string): Promise<ChangeRecord[]>;
   getPlaces(): Promise<PlaceRecord[]>;
+  getAddresses(): Promise<AddressRecord[]>;
 }
 
 /** The service surface the source tab needs from its host application. */
@@ -186,6 +187,7 @@ export interface FamilyEditorApi extends AttachmentsApi {
   updateFact(before: FactRecord, after: FactRecord): Promise<void>;
   deleteFact(fact: FactRecord): Promise<void>;
   getPlaces(): Promise<PlaceRecord[]>;
+  getAddresses(): Promise<AddressRecord[]>;
   updateFamily(before: FamilyRecord, after: FamilyRecord): Promise<void>;
   deleteFamily(family: FamilyRecord): Promise<void>;
   getSubmitters(): Promise<SubmitterRecord[]>;

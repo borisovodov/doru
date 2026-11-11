@@ -467,6 +467,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       getChanges: (personId) =>
         projectPath ? window.doru.getChanges(projectPath, personId) : Promise.resolve([]),
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
+      getAddresses: () => (projectPath ? window.doru.listAddresses(projectPath) : Promise.resolve([])),
       getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
     }),
     [projectPath, refreshTree],
@@ -720,6 +721,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
+      getAddresses: () => (projectPath ? window.doru.listAddresses(projectPath) : Promise.resolve([])),
       updateFamily: async (before, after) => {
         if (!projectPath) {
           return;

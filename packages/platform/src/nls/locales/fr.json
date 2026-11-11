@@ -143,6 +143,8 @@
   "features.tree.events.title": "Événements",
   "features.tree.events.typeField": "Type",
   "features.tree.exportGedcom": "Exporter GEDCOM…",
+  "features.tree.fact.addressLink": "Adresse",
+  "features.tree.fact.addressLink.none": "Aucun",
   "features.tree.fact.agency": "Organisme",
   "features.tree.fact.ages.add": "Ajouter un âge",
   "features.tree.fact.ages.days": "Jours",

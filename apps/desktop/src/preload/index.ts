@@ -240,6 +240,8 @@ const api = {
     ipcRenderer.invoke('tree:updateAddress', { projectPath, before, after }),
   deleteAddress: (projectPath: string, address: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteAddress', { projectPath, address }),
+  listAddresses: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addresses', { projectPath }),
   getAddress: (projectPath: string, id: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:address', { projectPath, id }),
   attachSource: (projectPath: string, sourceId: string, targetType: string, targetId: string): Promise<unknown> =>

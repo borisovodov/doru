@@ -143,6 +143,8 @@
   "features.tree.events.title": "사건",
   "features.tree.events.typeField": "유형",
   "features.tree.exportGedcom": "GEDCOM 내보내기…",
+  "features.tree.fact.addressLink": "주소",
+  "features.tree.fact.addressLink.none": "없음",
   "features.tree.fact.agency": "기관",
   "features.tree.fact.ages.add": "나이 추가",
   "features.tree.fact.ages.days": "일",

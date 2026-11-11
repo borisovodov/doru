@@ -26,6 +26,19 @@ export class AddressRepo {
     return row ? this.hydrate(row) : undefined;
   }
 
+  listAddresses(): AddressRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, city, state, postal_code, country FROM address ORDER BY id')
+      .all() as unknown as {
+      id: string;
+      city: string | null;
+      state: string | null;
+      postal_code: string | null;
+      country: string | null;
+    }[];
+    return rows.map((row) => this.hydrate(row));
+  }
+
   deleteAddress(id: string): boolean {
     return this.db.prepare('DELETE FROM address WHERE id = ?').run(id).changes > 0;
   }

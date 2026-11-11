@@ -143,6 +143,8 @@
   "features.tree.events.title": "Събития",
   "features.tree.events.typeField": "Тип",
   "features.tree.exportGedcom": "Експортиране на GEDCOM…",
+  "features.tree.fact.addressLink": "Адрес",
+  "features.tree.fact.addressLink.none": "Няма",
   "features.tree.fact.agency": "Институция",
   "features.tree.fact.ages.add": "Добавяне на възраст",
   "features.tree.fact.ages.days": "Дни",

@@ -143,6 +143,8 @@
   "features.tree.events.title": "Olaylar",
   "features.tree.events.typeField": "Tür",
   "features.tree.exportGedcom": "GEDCOM dışa aktar…",
+  "features.tree.fact.addressLink": "Adres",
+  "features.tree.fact.addressLink.none": "Yok",
   "features.tree.fact.agency": "Kurum",
   "features.tree.fact.ages.add": "Yaş ekle",
   "features.tree.fact.ages.days": "Gün",

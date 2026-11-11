@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import type {
+  AddressRecord,
   AssociationRecord,
   ChangeRecord,
   CitationRecord,
@@ -73,6 +74,7 @@ export function PersonEditor({
   const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
   const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [contributors, setContributors] = useState<
     Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
@@ -99,6 +101,9 @@ export function PersonEditor({
       void refreshContributors();
       void api.getPlaces().then((loaded) => {
         if (!cancelled) setPlaces(loaded);
+      });
+      void api.getAddresses().then((loaded) => {
+        if (!cancelled) setAddresses(loaded);
       });
     } else {
       setNotes([]);
@@ -304,6 +309,7 @@ export function PersonEditor({
             events={facts}
             persons={persons}
             places={places}
+            addresses={addresses}
             refresh={refreshFacts}
             onAddFact={api.addFact}
             onUpdateFact={api.updateFact}

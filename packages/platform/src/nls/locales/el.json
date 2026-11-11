@@ -143,6 +143,8 @@
   "features.tree.events.title": "Γεγονότα",
   "features.tree.events.typeField": "Τύπος",
   "features.tree.exportGedcom": "Εξαγωγή GEDCOM…",
+  "features.tree.fact.addressLink": "Διεύθυνση",
+  "features.tree.fact.addressLink.none": "Καμία",
   "features.tree.fact.agency": "Φορέας",
   "features.tree.fact.ages.add": "Προσθήκη ηλικίας",
   "features.tree.fact.ages.days": "Ημέρες",

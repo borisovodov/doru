@@ -127,6 +127,7 @@ export interface TreeRepository {
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
   getAddress(id: string): AddressRecord | undefined;
+  listAddresses(): AddressRecord[];
   deleteAddress(id: string): boolean;
   insertIdentifier(identifier: IdentifierRecord): void;
   deleteIdentifier(id: string): boolean;
@@ -612,6 +613,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   getAddress(id: string): AddressRecord | undefined {
     return this.addresses.getAddress(id);
+  }
+
+  listAddresses(): AddressRecord[] {
+    return this.addresses.listAddresses();
   }
 
   deleteAddress(id: string): boolean {

@@ -277,6 +277,7 @@ declare global {
       ): Promise<UndoRedoState>;
       deleteAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
       getAddress(projectPath: string, id: string): Promise<AddressRecord | undefined>;
+      listAddresses(projectPath: string): Promise<AddressRecord[]>;
       getPlaces(projectPath: string): Promise<PlaceRecord[]>;
       addPlace(projectPath: string, place: PlaceRecord): Promise<UndoRedoState>;
       updatePlace(

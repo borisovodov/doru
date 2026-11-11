@@ -143,6 +143,8 @@
   "features.tree.events.title": "出来事",
   "features.tree.events.typeField": "種類",
   "features.tree.exportGedcom": "GEDCOM をエクスポート…",
+  "features.tree.fact.addressLink": "住所",
+  "features.tree.fact.addressLink.none": "なし",
   "features.tree.fact.agency": "機関",
   "features.tree.fact.ages.add": "年齢を追加",
   "features.tree.fact.ages.days": "日",

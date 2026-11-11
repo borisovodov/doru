@@ -143,6 +143,8 @@
   "features.tree.events.title": "Események",
   "features.tree.events.typeField": "Típus",
   "features.tree.exportGedcom": "GEDCOM exportálása…",
+  "features.tree.fact.addressLink": "Cím",
+  "features.tree.fact.addressLink.none": "Nincs",
   "features.tree.fact.agency": "Szerv",
   "features.tree.fact.ages.add": "Életkor hozzáadása",
   "features.tree.fact.ages.days": "Nap",

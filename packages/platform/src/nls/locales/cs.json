@@ -143,6 +143,8 @@
   "features.tree.events.title": "Události",
   "features.tree.events.typeField": "Typ",
   "features.tree.exportGedcom": "Exportovat GEDCOM…",
+  "features.tree.fact.addressLink": "Adresa",
+  "features.tree.fact.addressLink.none": "Žádná",
   "features.tree.fact.agency": "Instituce",
   "features.tree.fact.ages.add": "Přidat věk",
   "features.tree.fact.ages.days": "Dní",

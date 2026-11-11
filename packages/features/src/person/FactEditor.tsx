@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import type { FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
+import type { AddressRecord, FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import { DateEditor } from './DateEditor';
-import { displayName } from './format';
+import { displayName, formatAddress } from './format';
 import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from './factDraft';
 import './FactEditor.css';
 
@@ -19,6 +19,7 @@ export function FactEditor({
   fact,
   persons,
   places,
+  addresses,
   onSave,
   onCancel,
   onDelete,
@@ -26,6 +27,7 @@ export function FactEditor({
   fact: FactRecord;
   persons: PersonRecord[];
   places: PlaceRecord[];
+  addresses: AddressRecord[];
   onSave: (fact: FactRecord) => Promise<void>;
   onCancel: () => void;
   onDelete: (fact: FactRecord) => Promise<void>;
@@ -136,6 +138,20 @@ export function FactEditor({
           {places.map((place) => (
             <option key={place.id} value={place.id}>
               {placeName(place)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {nls.t('features.tree.fact.addressLink')}
+        <select
+          value={draft.addressId ?? ''}
+          onChange={(event) => set({ addressId: event.target.value === '' ? undefined : event.target.value })}
+        >
+          <option value="">{nls.t('features.tree.fact.addressLink.none')}</option>
+          {addresses.map((address) => (
+            <option key={address.id} value={address.id}>
+              {formatAddress(address)}
             </option>
           ))}
         </select>

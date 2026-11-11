@@ -649,6 +649,10 @@ export class TreeService {
     return this.repo.getAddress(id);
   }
 
+  listAddresses(): AddressRecord[] {
+    return this.repo.listAddresses();
+  }
+
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
     return this.apply(updateAddressOp(before, after));
   }
