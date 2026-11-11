@@ -239,11 +239,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       identifiers?: IdentifierStructure[];
       notes?: NoteStructure[];
     };
-    // A SUBM record without a NAME carries no genealogy data (some
-    // exporters emit bookkeeping-only records) — skip it.
-    if (submitter.name.trim() === '') {
-      continue;
-    }
     const id = crypto.randomUUID();
     if (submitter.xref !== undefined) {
       ctx.submitterIds.set(submitter.xref, id);

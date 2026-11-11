@@ -239,11 +239,11 @@ describe('the SCHMA-documented extension tag resolution (GEDCOM 7.0 §1.5 / §2.
     expect(parseOk70(ser70(dataset))).toEqual(dataset);
   });
 
-  test('a resolved record alias without a NAME synthesizes the empty name', () => {
+  test('a resolved record alias without a NAME is dropped as nameless', () => {
     // A documented record alias parses as the record it abbreviates; a
-    // SUBMITTER_RECORD without a NAME gets the empty name (the
-    // full-leniency container rule).
+    // SUBMITTER_RECORD without a NAME is dropped right in the parser
+    // (a bookkeeping-only record, see parseDocument).
     const dataset = parseOk70(doc('0 @S1@ _SUB'));
-    expect(dataset.records[0]).toEqual({ tag: 'SUBM', name: '', xref: '@S1@' });
+    expect(dataset.records).toEqual([]);
   });
 });

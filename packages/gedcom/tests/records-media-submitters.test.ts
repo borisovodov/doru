@@ -432,6 +432,30 @@ describe('submitter and submission records', () => {
     expect(sub?.address?.payload).toBe('a');
   });
 
+  test('a SUBM without a NAME is dropped as a bookkeeping-only record', () => {
+    const dataset = parse70(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '1 SUBM @U1@',
+        '0 @U1@ SUBM',
+        '1 _UID 6D7E370A1DC5DB4C9047087E1FBF17981F59',
+        '1 CHAN',
+        '2 DATE 27 AUG 2024',
+        '0 @U2@ SUBM',
+        '1 NAME Test Submitter',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const submitters = dataset.records.filter((record) => record.tag === 'SUBM');
+    expect(submitters).toHaveLength(1);
+    expect((submitters[0] as { xref?: string }).xref).toBe('@U2@');
+    // The header pointer at the dropped record is reset — a dangling
+    // pointer must not serialize back.
+    expect(dataset.header.submitter).toBeUndefined();
+  });
+
   test('SUBN parses all fields and validates ORDI', () => {
     const dataset = parse551(
       [

@@ -178,7 +178,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('skips submitters without a name', () => {
+  it('does not create a submitter for a nameless SUBM record', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',

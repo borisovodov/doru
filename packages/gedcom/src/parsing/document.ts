@@ -19,6 +19,7 @@ import type {
   GedcomRecord,
   Header,
   SubmissionRecord,
+  SubmitterRecord,
   Trailer,
 } from '../structures';
 import type {
@@ -216,6 +217,35 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
   if (trailer === undefined) {
     // A missing TRLR is tolerated (the full-leniency container rule).
     trailer = { tag: 'TRLR' };
+  }
+
+  // A SUBM record without a NAME carries no genealogy data: some
+  // exporters emit bookkeeping-only records (GEDKeeper writes a SUBM
+  // with just a _UID and a CHAN). Drop the record right here in the
+  // parser so no consumer ever sees an empty submitter; a header or
+  // submission pointer at a dropped record is reset too (a dangling
+  // pointer would serialize back).
+  const droppedSubmitters = new Set<string>();
+  for (let recordIndex = records.length - 1; recordIndex >= 0; recordIndex--) {
+    const record = records[recordIndex];
+    if (record === undefined || record.tag !== 'SUBM') {
+      continue;
+    }
+    const name = (record as SubmitterRecord).name;
+    if (typeof name !== 'string' || name.trim() !== '') {
+      // An extension SUBM (no typed name) or a named submitter stays.
+      continue;
+    }
+    records.splice(recordIndex, 1);
+    if (record.xref !== undefined) {
+      droppedSubmitters.add(record.xref);
+    }
+  }
+  if (header.submitter !== undefined && droppedSubmitters.has(header.submitter)) {
+    delete header.submitter;
+  }
+  if (submission?.submitter !== undefined && droppedSubmitters.has(submission.submitter)) {
+    delete submission.submitter;
   }
 
   linkPlacesByName(records, ctx);
