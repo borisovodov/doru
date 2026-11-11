@@ -40,6 +40,7 @@ function SubmitterTabBody({
   onClose: (tabId: string) => void;
 }) {
   const base: SubmitterRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const [lastSaved, setLastSaved] = useState<SubmitterRecord | undefined>(record);
   const [name, setName] = useState(base.name);
   const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
   const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
@@ -68,16 +69,17 @@ function SubmitterTabBody({
       languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
     };
     next.addressId = await saveAddress();
-    if (isNew) {
+    if (isNew && lastSaved === undefined) {
       await api.addSubmitter(next);
-      onClose(tabId);
-      return;
+    } else {
+      await api.updateSubmitter(lastSaved ?? base, next);
     }
-    await api.updateSubmitter(base, next);
+    setLastSaved(next);
   };
 
   const remove = async () => {
-    await api.deleteSubmitter(base);
+    const target = lastSaved ?? base;
+    await api.deleteSubmitter(target);
     onClose(tabId);
   };
 
@@ -96,7 +98,7 @@ function SubmitterTabBody({
             <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
-            {!isNew && (
+            {(!isNew || lastSaved !== undefined) && (
               <button className="registry-delete-button" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
               </button>

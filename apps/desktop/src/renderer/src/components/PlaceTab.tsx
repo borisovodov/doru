@@ -81,6 +81,7 @@ function PlaceTabBody({
   const [draft, setDraft] = useState<PlaceDraft>(() =>
     isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
   );
+  const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
   const recordRef = useRef(record);
 
   // Reset the draft only when it still equals the previous stored place —
@@ -99,24 +100,26 @@ function PlaceTabBody({
 
   const save = async () => {
     const next = placeDraftToRecord(draft);
-    if (isNew) {
+    if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
-      onClose(tabId);
-      return;
+    } else {
+      await api.updatePlace(lastSaved ?? record!, next);
     }
-    if (record) {
-      await api.updatePlace(record, next);
-    }
+    setLastSaved(next);
   };
 
   const remove = async () => {
-    if (record) {
-      await api.deletePlace(record);
+    const target = lastSaved ?? record;
+    if (target) {
+      await api.deletePlace(target);
     }
     onClose(tabId);
   };
 
-  const factsAtPlace = record !== undefined ? facts.filter((fact) => fact.placeId === record.id) : [];
+  const factsAtPlace =
+    lastSaved !== undefined || record !== undefined
+      ? facts.filter((fact) => fact.placeId === (lastSaved ?? record)!.id)
+      : [];
 
   return (
     <EntityTab>
@@ -125,9 +128,11 @@ function PlaceTabBody({
         onChange={setDraft}
         places={places}
         onSave={() => void save()}
-        onDelete={isNew ? undefined : () => void remove()}
+        onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
       />
-      {!isNew && <PlaceFactsList facts={factsAtPlace} persons={persons} families={families} onOpenPerson={onOpenPerson} />}
+      {(lastSaved !== undefined || record !== undefined) && (
+        <PlaceFactsList facts={factsAtPlace} persons={persons} families={families} onOpenPerson={onOpenPerson} />
+      )}
     </EntityTab>
   );
 }

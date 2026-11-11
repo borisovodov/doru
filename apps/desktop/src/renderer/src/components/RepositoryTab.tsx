@@ -40,6 +40,7 @@ function RepositoryTabBody({
   onClose: (tabId: string) => void;
 }) {
   const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
   const [name, setName] = useState(base.name);
   const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
   const [addressText, setAddressText] = useState('');
@@ -59,16 +60,17 @@ function RepositoryTabBody({
   const save = async () => {
     const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
     next.addressId = await saveAddress();
-    if (isNew) {
+    if (isNew && lastSaved === undefined) {
       await api.addRepository(next);
-      onClose(tabId);
-      return;
+    } else {
+      await api.updateRepository(lastSaved ?? base, next);
     }
-    await api.updateRepository(base, next);
+    setLastSaved(next);
   };
 
   const remove = async () => {
-    await api.deleteRepository(base);
+    const target = lastSaved ?? base;
+    await api.deleteRepository(target);
     onClose(tabId);
   };
 
@@ -87,7 +89,7 @@ function RepositoryTabBody({
             <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
-            {!isNew && (
+            {(!isNew || lastSaved !== undefined) && (
               <button className="registry-delete-button" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
               </button>

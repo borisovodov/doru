@@ -63,6 +63,7 @@ function TaskTabBody({
   onClose: (tabId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
+  const [lastSaved, setLastSaved] = useState<TodoRecord | undefined>(record);
   const [draft, setDraft] = useState<TodoDraft>(() => (isNew ? emptyTodoDraft() : todoToDraft(base)));
 
   const personById = new Map(persons.map((person) => [person.id, person]));
@@ -88,16 +89,17 @@ function TaskTabBody({
       return;
     }
     const after = todoDraftToRecord(base, draft);
-    if (isNew) {
+    if (isNew && lastSaved === undefined) {
       await api.addTodo(after);
-      onClose(tabId);
-      return;
+    } else {
+      await api.updateTodo(lastSaved ?? base, after);
     }
-    await api.updateTodo(base, after);
+    setLastSaved(after);
   };
 
   const remove = async () => {
-    await api.deleteTodo(base);
+    const target = lastSaved ?? base;
+    await api.deleteTodo(target);
     onClose(tabId);
   };
 
@@ -116,7 +118,7 @@ function TaskTabBody({
             <button className="primary" disabled={draft.text.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
-            {!isNew && (
+            {(!isNew || lastSaved !== undefined) && (
               <button className="registry-delete-button" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
               </button>

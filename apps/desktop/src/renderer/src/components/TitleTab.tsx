@@ -70,6 +70,7 @@ function TitleTabBody({
   onOpenSource: (sourceId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID() };
+  const [lastSaved, setLastSaved] = useState<TitleRecord | undefined>(record);
   const [name, setName] = useState(base.name ?? '');
   const [author, setAuthor] = useState(base.author ?? '');
   const [publisher, setPublisher] = useState(base.publisher ?? '');
@@ -101,16 +102,17 @@ function TitleTabBody({
       return;
     }
     const after = build();
-    if (isNew) {
+    if (isNew && lastSaved === undefined) {
       await api.addTitle(after);
-      onClose(tabId);
-      return;
+    } else {
+      await api.updateTitle(lastSaved ?? base, after);
     }
-    await api.updateTitle(base, after);
+    setLastSaved(after);
   };
 
   const remove = async () => {
-    await api.deleteTitle(base);
+    const target = lastSaved ?? base;
+    await api.deleteTitle(target);
     onClose(tabId);
   };
 
@@ -129,7 +131,7 @@ function TitleTabBody({
             <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </button>
-            {!isNew && (
+            {(!isNew || lastSaved !== undefined) && (
               <button className="registry-delete-button" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
               </button>

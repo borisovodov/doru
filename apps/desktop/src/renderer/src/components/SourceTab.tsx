@@ -97,6 +97,7 @@ function SourceTabBody({
   const [draft, setDraft] = useState<SourceDraft>(() =>
     isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
   );
+  const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
@@ -131,19 +132,18 @@ function SourceTabBody({
 
   const save = async () => {
     const next = sourceDraftToRecord(draft);
-    if (isNew) {
+    if (isNew && lastSaved === undefined) {
       await api.addSource(next);
-      onClose(tabId);
-      return;
+    } else {
+      await api.updateSource(lastSaved ?? record!, next);
     }
-    if (record) {
-      await api.updateSource(record, next);
-    }
+    setLastSaved(next);
   };
 
   const remove = async () => {
-    if (record) {
-      await api.deleteSource(record);
+    const target = lastSaved ?? record;
+    if (target) {
+      await api.deleteSource(target);
     }
     onClose(tabId);
   };
@@ -160,11 +160,11 @@ function SourceTabBody({
           setRepositories(await api.getRepositories());
         }}
         onSave={() => void save()}
-        onDelete={isNew ? undefined : () => void remove()}
+        onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
       />
-      {!isNew && record !== undefined && (
+      {(lastSaved !== undefined || record !== undefined) && (
         <SourceCitationsList
-          source={record}
+          source={lastSaved ?? record!}
         persons={persons}
         families={families}
         facts={facts}

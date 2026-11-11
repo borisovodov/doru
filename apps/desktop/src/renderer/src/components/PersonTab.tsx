@@ -76,17 +76,17 @@ function PersonTabBody({
     );
   }, [personId, persons, isNew]);
 
+  const [created, setCreated] = useState(false);
+
   const save = async () => {
     const before = persons.find((entry) => entry.id === draft.id);
     const next = draftToRecord(draft, before);
-    if (draft.isNew) {
+    if (before === undefined) {
       await api.addPerson(next);
-      onClose(tabId);
+      setCreated(true);
       return;
     }
-    if (before) {
-      await api.updatePerson(before, next);
-    }
+    await api.updatePerson(before, next);
   };
 
   return (
@@ -95,7 +95,7 @@ function PersonTabBody({
       persons={persons}
       onChange={setDraft}
       onSave={() => void save()}
-      onCancel={draft.isNew ? () => onClose(tabId) : undefined}
+      onCancel={draft.isNew && !created ? () => onClose(tabId) : undefined}
       api={api}
     />
   );
