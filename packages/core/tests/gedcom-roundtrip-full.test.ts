@@ -42,13 +42,15 @@ describe('buildGedcomDataset kitchen sink', () => {
       expect(tags).toContain('SUBM');
       expect(tags).toContain('TITL');
       expect(tags).toContain('SNOTE');
-      expect(tags).toContain('_EVID');
-      expect(tags).toContain('_RDOC');
-      expect(tags).toContain('_RACT');
       expect(tags).toContain('_CENR');
       expect(tags).toContain('_TODO');
       expect(tags).toContain('_EVENT_DEFN');
       expect(tags).toContain('_TAG');
+      // The evidence/research records stay out of the tree: the export
+      // must not carry them.
+      expect(tags).not.toContain('_EVID');
+      expect(tags).not.toContain('_RDOC');
+      expect(tags).not.toContain('_RACT');
       // The SUBN record is asserted against the direct dataset in the
       // header test below — the parser folds the submission record away.
 
@@ -75,9 +77,6 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(target.repo.listTags()).toHaveLength(1);
         expect(target.repo.listFactTypes()).toHaveLength(1);
         expect(target.repo.listCensuses().filter((census) => census.date !== undefined)).toHaveLength(1);
-        expect(target.repo.getEvidence('EV1') !== undefined || target.repo.listEvidence().length > 0).toBe(true);
-        expect(target.repo.listResearchDocuments().length).toBeGreaterThan(0);
-        expect(target.repo.listResearchActivities().length).toBeGreaterThan(0);
         expect(target.repo.listAssociations().length).toBeGreaterThan(0);
         expect(target.repo.listOrdinances().length).toBeGreaterThan(0);
       } finally {

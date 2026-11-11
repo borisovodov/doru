@@ -489,56 +489,6 @@ CREATE TABLE IF NOT EXISTS todo (
   repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS evidence (
-  id TEXT PRIMARY KEY,
-  type TEXT, document_type TEXT, analysis TEXT
-);
-
-CREATE TABLE IF NOT EXISTS evidence_finding (
-  id TEXT PRIMARY KEY,
-  evidence_id TEXT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
-  type TEXT, value TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
-  age_bound TEXT, age_years INTEGER, age_months INTEGER, age_days INTEGER, age_phrase TEXT
-);
-
-CREATE TABLE IF NOT EXISTS evidence_link (
-  id TEXT PRIMARY KEY,
-  evidence_id TEXT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  confidence TEXT, used TEXT, quality TEXT
-);
-
-CREATE TABLE IF NOT EXISTS research_document (
-  id TEXT PRIMARY KEY,
-  title TEXT,
-  text TEXT NOT NULL,
-  author TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS research_document_subject (
-  id TEXT PRIMARY KEY,
-  research_document_id TEXT NOT NULL REFERENCES research_document(id) ON DELETE CASCADE,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS research_conclusion (
-  id TEXT PRIMARY KEY,
-  research_document_id TEXT NOT NULL REFERENCES research_document(id) ON DELETE CASCADE,
-  person_id TEXT NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-  text TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS research_activity (
-  id TEXT PRIMARY KEY,
-  type TEXT, purpose TEXT, target TEXT, venue TEXT, result TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
-  researcher TEXT
-);
-
 CREATE TABLE IF NOT EXISTS census (
   id TEXT PRIMARY KEY,
   schedule TEXT,
@@ -646,11 +596,6 @@ CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
 CREATE INDEX IF NOT EXISTS idx_ordinance_target ON ordinance(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_finding_evidence ON evidence_finding(evidence_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_link_evidence ON evidence_link(evidence_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_link_target ON evidence_link(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_research_subject_doc ON research_document_subject(research_document_id);
-CREATE INDEX IF NOT EXISTS idx_research_conclusion_doc ON research_conclusion(research_document_id);
 CREATE INDEX IF NOT EXISTS idx_census_entry_census ON census_entry(census_id);
 CREATE INDEX IF NOT EXISTS idx_census_entry_person ON census_entry(person_id);
 CREATE INDEX IF NOT EXISTS idx_duplicate_person ON duplicate_candidate(person_id);

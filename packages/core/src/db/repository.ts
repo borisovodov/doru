@@ -8,8 +8,6 @@ import type {
   CitationRecord,
   ContactRecord,
   DuplicateCandidateRecord,
-  EvidenceLinkRecord,
-  EvidenceRecord,
   FactRecord,
   FactTypeRecord,
   FamilyRecord,
@@ -22,8 +20,6 @@ import type {
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
-  ResearchActivityRecord,
-  ResearchDocumentRecord,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
@@ -176,22 +172,6 @@ export interface TreeRepository {
   deleteTodo(id: string): boolean;
   listTodos(): TodoRecord[];
   listTodosFor(targetType: string, targetId: string): TodoRecord[];
-  insertEvidence(evidence: EvidenceRecord): void;
-  updateEvidence(evidence: EvidenceRecord): void;
-  deleteEvidence(id: string): boolean;
-  getEvidence(id: string): EvidenceRecord | undefined;
-  listEvidence(): EvidenceRecord[];
-  insertEvidenceLink(link: EvidenceLinkRecord): void;
-  listEvidenceLinksFor(targetType: string, targetId: string): EvidenceLinkRecord[];
-  insertResearchDocument(document: ResearchDocumentRecord): void;
-  updateResearchDocument(document: ResearchDocumentRecord): void;
-  deleteResearchDocument(id: string): boolean;
-  getResearchDocument(id: string): ResearchDocumentRecord | undefined;
-  listResearchDocuments(): ResearchDocumentRecord[];
-  insertResearchActivity(activity: ResearchActivityRecord): void;
-  updateResearchActivity(activity: ResearchActivityRecord): void;
-  deleteResearchActivity(id: string): boolean;
-  listResearchActivities(): ResearchActivityRecord[];
   insertCensus(census: CensusRecord): void;
   updateCensus(census: CensusRecord): void;
   deleteCensus(id: string): boolean;
@@ -824,79 +804,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.research.listTodosFor(targetType, targetId);
   }
 
-  insertEvidence(evidence: EvidenceRecord): void {
-    this.research.insertEvidence(evidence);
-  }
-
-  updateEvidence(evidence: EvidenceRecord): void {
-    this.research.updateEvidence(evidence);
-  }
-
-  deleteEvidence(id: string): boolean {
-    return this.transactions.run(() => {
-      this.deleteAttachmentsFor('evidence', id);
-      return this.research.deleteEvidence(id);
-    });
-  }
-
-  getEvidence(id: string): EvidenceRecord | undefined {
-    return this.research.getEvidence(id);
-  }
-
-  listEvidence(): EvidenceRecord[] {
-    return this.research.listEvidence();
-  }
-
-  insertEvidenceLink(link: EvidenceLinkRecord): void {
-    this.research.insertEvidenceLink(link);
-  }
-
-  listEvidenceLinksFor(targetType: string, targetId: string): EvidenceLinkRecord[] {
-    return this.research.listEvidenceLinksFor(targetType, targetId);
-  }
-
-  insertResearchDocument(document: ResearchDocumentRecord): void {
-    this.research.insertResearchDocument(document);
-  }
-
-  updateResearchDocument(document: ResearchDocumentRecord): void {
-    this.research.updateResearchDocument(document);
-  }
-
-  deleteResearchDocument(id: string): boolean {
-    return this.transactions.run(() => {
-      this.deleteAttachmentsFor('research_document', id);
-      return this.research.deleteResearchDocument(id);
-    });
-  }
-
-  getResearchDocument(id: string): ResearchDocumentRecord | undefined {
-    return this.research.getResearchDocument(id);
-  }
-
-  listResearchDocuments(): ResearchDocumentRecord[] {
-    return this.research.listResearchDocuments();
-  }
-
-  insertResearchActivity(activity: ResearchActivityRecord): void {
-    this.research.insertResearchActivity(activity);
-  }
-
-  updateResearchActivity(activity: ResearchActivityRecord): void {
-    this.research.updateResearchActivity(activity);
-  }
-
-  deleteResearchActivity(id: string): boolean {
-    return this.transactions.run(() => {
-      this.deleteAttachmentsFor('research_activity', id);
-      return this.research.deleteResearchActivity(id);
-    });
-  }
-
-  listResearchActivities(): ResearchActivityRecord[] {
-    return this.research.listResearchActivities();
-  }
-
   insertCensus(census: CensusRecord): void {
     this.research.insertCensus(census);
   }
@@ -967,7 +874,6 @@ export class SqliteTreeRepository implements TreeRepository {
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
       ordinances: this.relations.listOrdinancesFor(targetType, targetId),
       todos: this.research.listTodosFor(targetType, targetId),
-      evidenceLinks: this.research.listEvidenceLinksFor(targetType, targetId),
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
   }
@@ -979,7 +885,6 @@ export class SqliteTreeRepository implements TreeRepository {
     this.attachments.deleteAllFor(targetType, targetId);
     this.relations.deleteOrdinancesFor(targetType, targetId);
     this.research.deleteTodosFor(targetType, targetId);
-    this.research.deleteEvidenceLinksFor(targetType, targetId);
     this.submitters.deleteRecordSubmittersFor(targetType, targetId);
   }
 
@@ -1023,9 +928,6 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const todo of snapshot.todos) {
       this.research.insertTodo(todo);
-    }
-    for (const link of snapshot.evidenceLinks) {
-      this.research.insertEvidenceLink(link);
     }
     for (const entry of snapshot.recordSubmitters) {
       this.submitters.insertRecordSubmitter(entry.id, entry.submitterId, entry.targetType, entry.targetId);

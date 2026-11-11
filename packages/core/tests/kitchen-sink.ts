@@ -245,55 +245,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertOrdinance({ id: 'OR2', kind: 'SLGS', targetType: 'family', targetId: 'F1', status: 'CANCELED' });
   repo.insertOrdinance({ id: 'OR3', kind: 'SLGC', targetType: 'family', targetId: 'F1', date: { quality: 'exact', component: { year: 1946 } } });
 
-  // Evidence with findings and links.
-  repo.insertEvidence({
-    id: 'EV1',
-    type: 'birth certificate',
-    documentType: 'scan',
-    analysis: 'Line one.\nLine two.',
-    findings: [
-      {
-        id: 'EF1',
-        type: 'birth date',
-        value: '1923-03-12',
-        date: { quality: 'exact', component: { year: 1923, month: 3, day: 12 } },
-        placeId: 'PL1',
-        ageBound: '<',
-        ageYears: 1,
-        ageMonths: 2,
-        ageDays: 3,
-        agePhrase: 'an infant',
-      },
-      { id: 'EF2', value: 'a bare finding' },
-    ],
-    links: [{ id: 'EL1', evidenceId: 'EV1', targetType: 'person', targetId: 'P1', confidence: 'high', used: 'yes', quality: '3' }],
-  });
-
-  // Research documents and activities.
-  repo.insertResearchDocument({
-    id: 'RD1',
-    title: 'Petrov notes',
-    text: 'Notes about the Petrov family.',
-    author: 'Ivan',
-    date: { quality: 'exact', component: { year: 2025 } },
-    subjectIds: ['P1', 'P2'],
-    conclusions: [
-      { id: 'RC1', personId: 'P1', text: 'Born in 1923.' },
-      { id: 'RC2', personId: 'P2', text: '' },
-    ],
-  });
-  repo.insertResearchActivity({
-    id: 'RA1',
-    type: 'visit',
-    purpose: 'check the archive',
-    target: 'P1',
-    venue: 'State Archive',
-    result: 'found the entry',
-    date: { quality: 'exact', component: { year: 2025 } },
-    researcher: 'Ivan',
-  });
-  repo.insertResearchActivity({ id: 'RA2' });
-
   // Census with entries.
   repo.insertCensus({
     id: 'CN1',

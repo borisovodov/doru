@@ -522,7 +522,6 @@ export interface AttachmentsSnapshot {
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   ordinances: OrdinanceRecord[];
   todos: TodoRecord[];
-  evidenceLinks: EvidenceLinkRecord[];
   recordSubmitters: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
 }
 
@@ -538,7 +537,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     tagLinks: [],
     ordinances: [],
     todos: [],
-    evidenceLinks: [],
     recordSubmitters: [],
   };
 }
@@ -590,67 +588,6 @@ export interface TodoRecord {
   reminderDate?: DateValue | undefined;
   closedDate?: DateValue | undefined;
   repositoryId?: string | undefined;
-}
-
-/** One claim inside an evidence record. */
-export interface EvidenceFinding {
-  id: string;
-  type?: string | undefined;
-  value?: string | undefined;
-  date?: DateValue | undefined;
-  placeId?: string | undefined;
-  ageBound?: string | undefined;
-  ageYears?: number | undefined;
-  ageMonths?: number | undefined;
-  ageDays?: number | undefined;
-  agePhrase?: string | undefined;
-}
-
-/** A claim of an evidence record about some tree entity. */
-export interface EvidenceLinkRecord {
-  id: string;
-  evidenceId: string;
-  targetType: string;
-  targetId: string;
-  confidence?: string | undefined;
-  used?: string | undefined;
-  quality?: string | undefined;
-}
-
-export interface EvidenceRecord {
-  id: string;
-  type?: string | undefined;
-  documentType?: string | undefined;
-  analysis?: string | undefined;
-  findings: EvidenceFinding[];
-  links: EvidenceLinkRecord[];
-}
-
-export interface ResearchConclusion {
-  id: string;
-  personId: string;
-  text: string;
-}
-
-export interface ResearchDocumentRecord {
-  id: string;
-  title?: string | undefined;
-  text: string;
-  author?: string | undefined;
-  date?: DateValue | undefined;
-  subjectIds?: string[] | undefined;
-  conclusions?: ResearchConclusion[] | undefined;
-}
-
-export interface ResearchActivityRecord {
-  id: string;
-  type?: string | undefined;
-  purpose?: string | undefined;
-  target?: string | undefined;
-  venue?: string | undefined;
-  result?: string | undefined;
-  date?: DateValue | undefined;
-  researcher?: string | undefined;
 }
 
 export interface CensusEntry {
@@ -722,10 +659,7 @@ export const TARGET_TYPES = [
   'submitter',
   'association',
   'ordinance',
-  'evidence',
   'todo',
-  'research_document',
-  'research_activity',
   'title',
   'census',
 ] as const;

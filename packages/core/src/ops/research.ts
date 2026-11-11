@@ -3,10 +3,7 @@ import type {
   AttachmentsSnapshot,
   CensusRecord,
   DuplicateCandidateRecord,
-  EvidenceRecord,
   OrdinanceRecord,
-  ResearchActivityRecord,
-  ResearchDocumentRecord,
   TitleRecord,
   TodoRecord,
 } from '../model/types';
@@ -133,111 +130,6 @@ export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot 
     (ctx) => ctx.repo.deleteTodo(todo.id),
     (ctx) => {
       ctx.repo.insertTodo(todo);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
-}
-
-export function addEvidenceOp(evidence: EvidenceRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'evidence.add',
-    (ctx) => ctx.repo.insertEvidence(evidence),
-    (ctx) => ctx.repo.deleteEvidence(evidence.id),
-    { targetType: 'evidence', targetId: evidence.id, kind: 'created' },
-  );
-}
-
-export function updateEvidenceOp(before: EvidenceRecord, after: EvidenceRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'evidence.update',
-    (ctx) => ctx.repo.updateEvidence(after),
-    (ctx) => ctx.repo.updateEvidence(before),
-    { targetType: 'evidence', targetId: before.id, kind: 'changed' },
-  );
-}
-
-export function deleteEvidenceOp(
-  evidence: EvidenceRecord,
-  attachments: AttachmentsSnapshot = emptyAttachments(),
-): Op {
-  return op(
-    crypto.randomUUID(),
-    'evidence.delete',
-    (ctx) => ctx.repo.deleteEvidence(evidence.id),
-    (ctx) => {
-      ctx.repo.insertEvidence(evidence);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
-}
-
-export function addResearchDocumentOp(document: ResearchDocumentRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'research_document.add',
-    (ctx) => ctx.repo.insertResearchDocument(document),
-    (ctx) => ctx.repo.deleteResearchDocument(document.id),
-    { targetType: 'research_document', targetId: document.id, kind: 'created' },
-  );
-}
-
-export function updateResearchDocumentOp(before: ResearchDocumentRecord, after: ResearchDocumentRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'research_document.update',
-    (ctx) => ctx.repo.updateResearchDocument(after),
-    (ctx) => ctx.repo.updateResearchDocument(before),
-    { targetType: 'research_document', targetId: before.id, kind: 'changed' },
-  );
-}
-
-export function deleteResearchDocumentOp(
-  document: ResearchDocumentRecord,
-  attachments: AttachmentsSnapshot = emptyAttachments(),
-): Op {
-  return op(
-    crypto.randomUUID(),
-    'research_document.delete',
-    (ctx) => ctx.repo.deleteResearchDocument(document.id),
-    (ctx) => {
-      ctx.repo.insertResearchDocument(document);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
-}
-
-export function addResearchActivityOp(activity: ResearchActivityRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'research_activity.add',
-    (ctx) => ctx.repo.insertResearchActivity(activity),
-    (ctx) => ctx.repo.deleteResearchActivity(activity.id),
-    { targetType: 'research_activity', targetId: activity.id, kind: 'created' },
-  );
-}
-
-export function updateResearchActivityOp(before: ResearchActivityRecord, after: ResearchActivityRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'research_activity.update',
-    (ctx) => ctx.repo.updateResearchActivity(after),
-    (ctx) => ctx.repo.updateResearchActivity(before),
-    { targetType: 'research_activity', targetId: before.id, kind: 'changed' },
-  );
-}
-
-export function deleteResearchActivityOp(
-  activity: ResearchActivityRecord,
-  attachments: AttachmentsSnapshot = emptyAttachments(),
-): Op {
-  return op(
-    crypto.randomUUID(),
-    'research_activity.delete',
-    (ctx) => ctx.repo.deleteResearchActivity(activity.id),
-    (ctx) => {
-      ctx.repo.insertResearchActivity(activity);
       ctx.repo.restoreAttachments(attachments);
     },
   );

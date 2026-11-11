@@ -32,9 +32,6 @@ const GEDCOM = [
   '2 DATE 1 JAN 2026',
   '1 CREA',
   '2 DATE 2 JAN 2026',
-  '1 _EVREF @E1@',
-  '2 _CONF high',
-  '1 _EVREF @MISSING@',
   '1 SUBM @U1@',
   '1 _TAG @T1@',
   '1 _TAG @MISSINGTAG@',
@@ -95,11 +92,6 @@ const GEDCOM = [
   '1 _TSTS open',
   '1 _UID todo-uid',
   '1 _CDATE 2026',
-  '0 @E1@ _EVID',
-  '1 _TYPE birth certificate',
-  '1 SOUR @S1@',
-  '1 NOTE evidence note',
-  '1 UID ev-uid',
   '0 @O1@ _OCUR',
   '1 TYPE death',
   '1 DATE 1990',
@@ -227,11 +219,10 @@ describe('importGedcomDataset edge coverage', () => {
       const factKinds = repo.listContactsFor('fact', birth.id).map((contact) => contact.kind).sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
 
-      // Restrictions, changes, submitter links, evidence links, tag links.
+      // Restrictions, changes, submitter links and tag links.
       expect(repo.listRestrictionsFor('person', ivan.id).map((entry) => entry.level)).toEqual(['confidential']);
       expect(repo.listChangesFor('person', ivan.id)).toHaveLength(2);
       expect(repo.listSubmittersFor('person', ivan.id)).toHaveLength(1);
-      expect(repo.listEvidenceLinksFor('person', ivan.id)).toHaveLength(1);
       expect(repo.listTagLinksFor('person', ivan.id)).toHaveLength(1);
 
       // The negated fact keeps its citations and notes.
@@ -260,11 +251,6 @@ describe('importGedcomDataset edge coverage', () => {
 
       // Tag without a name is skipped; the tag link to a missing tag is skipped.
       expect(repo.listTags()).toHaveLength(1);
-
-      // Evidence with citations, notes and uids.
-      const evidence = repo.listEvidence()[0]!;
-      expect(evidence).toBeDefined();
-      expect(repo.listIdentifiersFor('evidence', evidence.id).map((identifier) => identifier.value)).toEqual(['ev-uid']);
 
       // Free-standing todo with fields and uid.
       const todos = repo.listTodos();
@@ -337,6 +323,37 @@ describe('importGedcomDataset edge coverage', () => {
       expect(census.entries).toHaveLength(2);
       expect(census.entries[0]?.birthPlace).toBe('Moscow');
       expect(census.entries[1]?.birthPlace).toBe('Moscow');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('drops the evidence and research records', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Ivan /Petrov/',
+      '0 @E1@ _EVID',
+      '1 _TYPE birth certificate',
+      '0 @D1@ _RDOC',
+      '1 TITL Notes',
+      '1 TEXT body',
+      '0 @A1@ _RACT',
+      '1 _TYPE visit',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      const summary = importGedcomDataset(result.value.dataset, fixture.repo);
+      // The three research records are counted as deliberately dropped.
+      expect(summary.droppedStructures).toBe(3);
+      expect(fixture.repo.listAllPersons()).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }

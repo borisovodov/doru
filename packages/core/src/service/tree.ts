@@ -6,7 +6,6 @@ import type {
   CitationRecord,
   ContactRecord,
   DuplicateCandidateRecord,
-  EvidenceRecord,
   FactRecord,
   FactTypeRecord,
   FamilyRecord,
@@ -19,8 +18,6 @@ import type {
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
-  ResearchActivityRecord,
-  ResearchDocumentRecord,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
@@ -37,7 +34,6 @@ import {
   addCensusOp,
   addContactOp,
   addDuplicateOp,
-  addEvidenceOp,
   addFactOp,
   addFactTypeOp,
   addFamilyOp,
@@ -49,8 +45,6 @@ import {
   addPlaceOp,
   addRelativeOp,
   addRepositoryOp,
-  addResearchActivityOp,
-  addResearchDocumentOp,
   addRestrictionOp,
   addSourceOp,
   addSubmitterOp,
@@ -66,7 +60,6 @@ import {
   deleteCensusOp,
   deleteContactOp,
   deleteDuplicateOp,
-  deleteEvidenceOp,
   deleteFactOp,
   deleteFactTypeOp,
   deleteFamilyOp,
@@ -77,8 +70,6 @@ import {
   deletePersonOp,
   deletePlaceOp,
   deleteRepositoryOp,
-  deleteResearchActivityOp,
-  deleteResearchDocumentOp,
   deleteRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
@@ -95,7 +86,6 @@ import {
   updateCensusOp,
   updateCitationOp,
   updateDuplicateOp,
-  updateEvidenceOp,
   updateFactOp,
   updateFactTypeOp,
   updateFamilyOp,
@@ -104,8 +94,6 @@ import {
   updatePersonOp,
   updatePlaceOp,
   updateRepositoryOp,
-  updateResearchActivityOp,
-  updateResearchDocumentOp,
   updateSourceOp,
   updateSubmitterOp,
   updateTagOp,
@@ -717,45 +705,6 @@ export class TreeService {
   deleteTodo(todo: TodoRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('todo', todo.id);
     return this.apply(deleteTodoOp(todo, attachments));
-  }
-
-  addEvidence(evidence: EvidenceRecord): UndoRedoState {
-    return this.apply(addEvidenceOp(evidence));
-  }
-
-  updateEvidence(before: EvidenceRecord, after: EvidenceRecord): UndoRedoState {
-    return this.apply(updateEvidenceOp(before, after));
-  }
-
-  deleteEvidence(evidence: EvidenceRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('evidence', evidence.id);
-    return this.apply(deleteEvidenceOp(evidence, attachments));
-  }
-
-  addResearchDocument(document: ResearchDocumentRecord): UndoRedoState {
-    return this.apply(addResearchDocumentOp(document));
-  }
-
-  updateResearchDocument(before: ResearchDocumentRecord, after: ResearchDocumentRecord): UndoRedoState {
-    return this.apply(updateResearchDocumentOp(before, after));
-  }
-
-  deleteResearchDocument(document: ResearchDocumentRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('research_document', document.id);
-    return this.apply(deleteResearchDocumentOp(document, attachments));
-  }
-
-  addResearchActivity(activity: ResearchActivityRecord): UndoRedoState {
-    return this.apply(addResearchActivityOp(activity));
-  }
-
-  updateResearchActivity(before: ResearchActivityRecord, after: ResearchActivityRecord): UndoRedoState {
-    return this.apply(updateResearchActivityOp(before, after));
-  }
-
-  deleteResearchActivity(activity: ResearchActivityRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('research_activity', activity.id);
-    return this.apply(deleteResearchActivityOp(activity, attachments));
   }
 
   addCensus(census: CensusRecord): UndoRedoState {

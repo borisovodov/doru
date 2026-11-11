@@ -33,11 +33,7 @@ import { isFamilyRecord, isIndividualRecord } from '@doru/gedcom';
 import type {
   CensusRecord as GedcomCensusRecord,
   EventDefinitionRecord as GedcomEventDefinitionRecord,
-  EvidenceRecord as GedcomEvidenceRecord,
-  EvidenceReference,
   OccurrenceRecord as GedcomOccurrenceRecord,
-  ResearchActivityRecord as GedcomResearchActivityRecord,
-  ResearchDocumentRecord as GedcomResearchDocumentRecord,
   TagLink as GedcomTagLink,
   TagRecord as GedcomTagRecord,
   TitleRecord as GedcomTitleRecord,
@@ -53,7 +49,6 @@ import type {
   ContactRecord,
   DateComponent,
   DateValue,
-  EvidenceRecord,
   FactRecord,
   FactTypeRecord,
   FamilyChildLink,
@@ -61,7 +56,6 @@ import type {
   NamePart,
   OrdinanceRecord,
   PersonName,
-  ResearchDocumentRecord,
   RestrictionRecord,
   Sex,
   TodoRecord,
@@ -77,6 +71,9 @@ import type {
  * - media (OBJE): the import policy is an open question — issue #172. File
  *   paths point at the exporting machine; nothing is imported until the
  *   policy lands. The media tables stay empty on import.
+ * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`): the parser
+ *   keeps them, but the tree has no evidence layer — they are counted as
+ *   dropped.
  * - vendor-only structures (§3.2 of the schema plan): GenoPro entity
  *   records, MyHeritage tree tags, published sites, groups, USM types,
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
@@ -105,7 +102,6 @@ interface ImportContext {
   titleIds: Map<string, string>;
   noteIds: Map<string, string>;
   tagIds: Map<string, string>;
-  evidenceIds: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
   /** familyId → childId → family_child link row id (for SLGC resolution). */
@@ -126,8 +122,6 @@ interface ImportContext {
       }
     >
   >;
-  /** Evidence references resolved after the evidence records are imported. */
-  pendingEvidenceRefs: Array<{ reference: EvidenceReference; targetType: string; targetId: string }>;
   dropped: number;
 }
 
@@ -147,12 +141,10 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     titleIds: new Map(),
     noteIds: new Map(),
     tagIds: new Map(),
-    evidenceIds: new Map(),
     placeIds: new Map(),
     childLinkIds: new Map(),
     spouseLinkDates: new Map(),
     childLinkDetails: new Map(),
-    pendingEvidenceRefs: [],
     dropped: 0,
   };
 
@@ -180,7 +172,6 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     }
     importPersonRelations(dataset.records, ctx);
     importResearchRecords(dataset.records, ctx);
-    resolvePendingEvidence(ctx);
   });
   return {
     importedPersons,
@@ -517,7 +508,6 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   for (const { structure, name } of structures) {
     importCitations(structure.citations, 'name', name.id, ctx);
     importNotes(structure.notes, 'name', name.id, ctx);
-    importEvidenceReferences(structure.evidence, 'name', name.id, ctx);
   }
   factStructures.forEach((structure, index) => {
     const fact = facts[index];
@@ -555,7 +545,6 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   ], ctx);
   importRestrictions(record.restriction, 'person', id, ctx);
   importChanges(record.changeDate, record.creationDate, 'person', id, ctx);
-  importEvidenceReferences(record.evidence, 'person', id, ctx);
   importSubmitterLinks(record.submitters, 'person', id, ctx);
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'person', id, ctx);
@@ -867,7 +856,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   importIdentifiers(record.identifiers, 'family', id, ctx);
   importRestrictions(record.restriction, 'family', id, ctx);
   importChanges(record.changeDate, undefined, 'family', id, ctx);
-  importEvidenceReferences(record.evidence, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'family', id, ctx);
@@ -975,13 +963,12 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
   for (const record of records) {
     switch (record.tag) {
       case '_EVID':
-        importEvidence(record as GedcomEvidenceRecord, ctx);
-        break;
       case '_RDOC':
-        importResearchDocument(record as GedcomResearchDocumentRecord, ctx);
-        break;
       case '_RACT':
-        importResearchActivity(record as GedcomResearchActivityRecord, ctx);
+        // The evidence/research records (the glamberson gedcom-evidence
+        // extension) stay in the @doru/gedcom model but are deliberately
+        // not carried into the tree.
+        ctx.dropped += 1;
         break;
       case '_CENR':
         importCensus(record as GedcomCensusRecord, ctx);
@@ -1021,81 +1008,6 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
         break;
     }
   }
-}
-
-function importEvidence(record: GedcomEvidenceRecord, ctx: ImportContext): void {
-  const id = crypto.randomUUID();
-  if (record.xref !== undefined) {
-    ctx.evidenceIds.set(record.xref, id);
-  }
-  const mapped: EvidenceRecord = {
-    id,
-    type: record.type,
-    documentType: record.documentType,
-    analysis: (record.analysis ?? []).join('\n') || undefined,
-    findings: (record.findings ?? []).map((finding) => ({
-      id: crypto.randomUUID(),
-      type: finding.type,
-      value: finding.payload,
-      date: mapDate(finding.date),
-      placeId: finding.place ? importPlace(finding.place, ctx) : undefined,
-      ageBound: finding.age?.payload?.bound,
-      ageYears: finding.age?.payload?.years,
-      ageMonths: finding.age?.payload?.months,
-      ageDays: finding.age?.payload?.days,
-      agePhrase: finding.age?.phrase ?? finding.age?.payload?.description,
-    })),
-    links: [],
-  };
-  ctx.repo.insertEvidence(mapped);
-  for (const citation of record.citations ?? []) {
-    importCitation(citation, 'evidence', id, ctx);
-  }
-  importNotes(record.notes, 'evidence', id, ctx);
-  for (const uid of record.uids ?? []) {
-    ctx.repo.insertIdentifier({ id: crypto.randomUUID(), targetType: 'evidence', targetId: id, namespace: 'uid', value: uid });
-  }
-  importChanges(record.changeDate, undefined, 'evidence', id, ctx);
-}
-
-function importResearchDocument(record: GedcomResearchDocumentRecord, ctx: ImportContext): void {
-  const id = crypto.randomUUID();
-  const mapped: ResearchDocumentRecord = {
-    id,
-    title: record.title,
-    text: record.text ?? '',
-    author: record.author,
-    date: mapDate(record.date),
-    subjectIds: (record.subjects ?? [])
-      .map((pointer) => ctx.personIds.get(pointer))
-      .filter((personId): personId is string => personId !== undefined),
-    conclusions: (record.conclusions ?? [])
-      .filter((conclusion) => conclusion.subject !== undefined && conclusion.text !== undefined)
-      .map((conclusion) => ({
-        id: crypto.randomUUID(),
-        personId: ctx.personIds.get(conclusion.subject!) ?? '',
-        text: conclusion.text!,
-      })),
-  };
-  ctx.repo.insertResearchDocument(mapped);
-  importNotes(record.notes, 'research_document', id, ctx);
-  importChanges(record.changeDate, undefined, 'research_document', id, ctx);
-}
-
-function importResearchActivity(record: GedcomResearchActivityRecord, ctx: ImportContext): void {
-  const id = crypto.randomUUID();
-  ctx.repo.insertResearchActivity({
-    id,
-    type: record.type,
-    purpose: record.purpose,
-    target: record.target,
-    venue: record.venue,
-    result: record.result,
-    date: mapDate(record.date),
-    researcher: record.researcher,
-  });
-  importNotes(record.notes, 'research_activity', id, ctx);
-  importChanges(record.changeDate, undefined, 'research_activity', id, ctx);
 }
 
 function importCensus(record: GedcomCensusRecord, ctx: ImportContext): void {
@@ -1210,24 +1122,6 @@ function importOccurrence(record: GedcomOccurrenceRecord, ctx: ImportContext): v
       })),
     };
     ctx.repo.insertFact(fact);
-  }
-}
-
-function resolvePendingEvidence(ctx: ImportContext): void {
-  for (const pending of ctx.pendingEvidenceRefs) {
-    const evidenceId = ctx.evidenceIds.get(pending.reference.evidence);
-    if (evidenceId === undefined) {
-      continue;
-    }
-    ctx.repo.insertEvidenceLink({
-      id: crypto.randomUUID(),
-      evidenceId,
-      targetType: pending.targetType,
-      targetId: pending.targetId,
-      confidence: pending.reference.confidence,
-      used: pending.reference.used,
-      quality: pending.reference.quality,
-    });
   }
 }
 
@@ -1402,18 +1296,6 @@ function importChanges(
       date: mapDateExact(changeDate.date),
       user: changeDate.user,
     });
-  }
-}
-
-function importEvidenceReferences(
-  references: EvidenceReference[] | undefined,
-  targetType: string,
-  targetId: string,
-  ctx: ImportContext,
-): void {
-  for (const reference of references ?? []) {
-    // Evidence records are imported in a later pass; resolve afterwards.
-    ctx.pendingEvidenceRefs.push({ reference, targetType, targetId });
   }
 }
 

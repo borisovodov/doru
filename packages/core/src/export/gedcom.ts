@@ -45,7 +45,6 @@ import type {
   AssociationRecord,
   DateComponent,
   DateValue,
-  EvidenceRecord,
   FactRecord,
   FamilyRecord,
   NoteRecord,
@@ -103,9 +102,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const submitters = repo.listSubmitters();
   const titles = repo.listTitles();
   const notes = repo.listNotes().filter((note): note is NoteRecord & { xref: string } => note.xref !== undefined);
-  const evidence = repo.listEvidence();
-  const documents = repo.listResearchDocuments();
-  const activities = repo.listResearchActivities();
   const censuses = repo.listCensuses();
   const todos = repo.listTodos().filter((todo) => todo.targetType === undefined && todo.targetId === undefined);
   const factTypes = repo.listFactTypes();
@@ -135,9 +131,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   for (const tag of tags) {
     xrefs.assign('TAG', tag.id, undefined);
   }
-  for (const record of evidence) {
-    xrefs.assign('E', record.id, undefined);
-  }
 
   const records: GedcomRecord[] = [
     ...submitters.map((submitter) => buildSubmitter(submitter, repo, xrefs)),
@@ -147,9 +140,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...notes.map((note) => buildSharedNote(note)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
-    ...evidence.map((record) => buildEvidence(record, repo, xrefs)),
-    ...documents.map((document) => buildResearchDocument(document, repo, xrefs)),
-    ...activities.map((activity) => buildResearchActivity(activity, repo, xrefs)),
     ...censuses
       .map((census) => buildCensus(census, repo, xrefs))
       .filter((record): record is GedcomRecord => record !== undefined),
@@ -217,7 +207,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...contacts,
     ...withCitationList(repo, 'person', person.id, xrefs),
     ...withNoteList(repo, 'person', person.id, xrefs),
-    ...withEvidenceList(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
     ...withTagLinks(repo, 'person', person.id, xrefs),
     ...withTodoStructures(repo, 'person', person.id),
@@ -409,7 +398,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withChanges(repo, 'family', family.id),
     ...withCitationList(repo, 'family', family.id, xrefs),
     ...withNoteList(repo, 'family', family.id, xrefs),
-    ...withEvidenceList(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
     ...withTodoStructures(repo, 'family', family.id),
@@ -527,67 +515,6 @@ function buildSharedNote(note: NoteRecord): GedcomRecord {
     ...(note.translations !== undefined && note.translations.length > 0
       ? { translations: note.translations.map((translation) => ({ tag: 'TRAN', payload: translation.text, ...(translation.mime !== undefined ? { mediaType: translation.mime } : {}), ...(translation.language !== undefined ? { language: translation.language } : {}) })) }
       : {}),
-  } as GedcomRecord;
-}
-
-function buildEvidence(record: EvidenceRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  const analysis = record.analysis !== undefined ? record.analysis.split('\n') : undefined;
-  return {
-    tag: '_EVID',
-    xref: xrefs.of(record.id),
-    ...(record.type !== undefined ? { type: record.type } : {}),
-    ...(record.documentType !== undefined ? { documentType: record.documentType } : {}),
-    ...(analysis !== undefined ? { analysis } : {}),
-    ...(record.findings.length > 0
-      ? {
-          findings: record.findings.map((finding) => ({
-            tag: '_FIND',
-            payload: finding.value ?? '',
-            ...(finding.type !== undefined ? { type: finding.type } : {}),
-            ...(finding.date !== undefined ? { date: buildDate(finding.date) } : {}),
-            ...(finding.placeId !== undefined ? { place: buildPlace(repo, finding.placeId) } : {}),
-            ...(finding.ageYears !== undefined || finding.ageBound !== undefined
-              ? { age: buildAge({ bound: finding.ageBound, years: finding.ageYears, months: finding.ageMonths, days: finding.ageDays, phrase: finding.agePhrase }) }
-              : {}),
-          })),
-        }
-      : {}),
-    ...withCitationList(repo, 'evidence', record.id, xrefs),
-    ...withNoteList(repo, 'evidence', record.id, xrefs),
-    ...withChanges(repo, 'evidence', record.id),
-  } as GedcomRecord;
-}
-
-function buildResearchDocument(document: import('../model/types').ResearchDocumentRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  return {
-    tag: '_RDOC',
-    ...(document.title !== undefined ? { title: document.title } : {}),
-    ...(document.text !== '' ? { text: document.text } : {}),
-    ...(document.subjectIds !== undefined && document.subjectIds.length > 0
-      ? { subjects: document.subjectIds.map((id) => xrefs.of(id)) }
-      : {}),
-    ...(document.conclusions !== undefined && document.conclusions.length > 0
-      ? { conclusions: document.conclusions.map((conclusion) => ({ tag: '_CONC', subject: xrefs.of(conclusion.personId), ...(conclusion.text !== '' ? { text: conclusion.text } : {}) })) }
-      : {}),
-    ...(document.author !== undefined ? { author: document.author } : {}),
-    ...(document.date !== undefined ? { date: buildDate(document.date) } : {}),
-    ...withNoteList(repo, 'research_document', document.id, xrefs),
-    ...withChanges(repo, 'research_document', document.id),
-  } as GedcomRecord;
-}
-
-function buildResearchActivity(activity: import('../model/types').ResearchActivityRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  return {
-    tag: '_RACT',
-    ...(activity.type !== undefined ? { type: activity.type } : {}),
-    ...(activity.purpose !== undefined ? { purpose: activity.purpose } : {}),
-    ...(activity.target !== undefined ? { target: activity.target } : {}),
-    ...(activity.venue !== undefined ? { venue: activity.venue } : {}),
-    ...(activity.result !== undefined ? { result: activity.result } : {}),
-    ...(activity.date !== undefined ? { date: buildDate(activity.date) } : { date: { value: { kind: 'unknown' } } }),
-    ...(activity.researcher !== undefined ? { researcher: activity.researcher } : {}),
-    ...withNoteList(repo, 'research_activity', activity.id, xrefs),
-    ...withChanges(repo, 'research_activity', activity.id),
   } as GedcomRecord;
 }
 
@@ -913,19 +840,6 @@ function withNoteList(repo: TreeRepository, targetType: string, targetId: string
           } as NoteStructure),
     );
   return { notes };
-}
-
-function withEvidenceList(repo: TreeRepository, targetType: string, targetId: string, xrefs: Xrefs): { evidence?: Array<{ tag: '_EVREF'; evidence: string; confidence?: string; used?: string; quality?: string }> } {
-  const links = repo
-    .listEvidenceLinksFor(targetType, targetId)
-    .map((link) => ({
-      tag: '_EVREF' as const,
-      evidence: xrefs.of(link.evidenceId),
-      ...(link.confidence !== undefined ? { confidence: link.confidence } : {}),
-      ...(link.used !== undefined ? { used: link.used } : {}),
-      ...(link.quality !== undefined ? { quality: link.quality } : {}),
-    }));
-  return links.length > 0 ? { evidence: links } : {};
 }
 
 function withSubmitterLinks(repo: TreeRepository, targetType: string, targetId: string, xrefs: Xrefs): { submitters?: string[] } {
