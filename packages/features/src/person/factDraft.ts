@@ -1,5 +1,12 @@
-import type { FactAge, FactParticipant, FactRecord } from '@doru/core';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from './draft';
+import type { DateValue, FactAge, FactParticipant, FactRecord } from '@doru/core';
+import {
+  dateDraftsEqual,
+  emptyDate,
+  fromDateDraft,
+  rebaseDate,
+  toDateDraft,
+  type DateDraft,
+} from './draft';
 
 /** The event/attribute tags the form suggests; the field stays free text. */
 export const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];
@@ -85,7 +92,9 @@ export function factToDraft(fact: FactRecord): FactDraft {
   };
 }
 
-export function factDraftToRecord(draft: FactDraft): FactRecord {
+export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): FactRecord {
+  const { date, place, placeId } = factDateToRecord(draft, existing);
+  const sortDate = factSortDateToRecord(draft, existing);
   return {
     id: draft.id,
     personId: draft.personId,
@@ -94,10 +103,10 @@ export function factDraftToRecord(draft: FactDraft): FactRecord {
     type: draft.type.trim() || undefined,
     value: draft.value.trim() || undefined,
     negation: draft.negation || undefined,
-    date: fromDateDraft(draft.date),
-    sortDate: fromDateDraft(draft.sortDate),
-    place: draft.date.place.trim() || undefined,
-    placeId: draft.placeId,
+    date,
+    sortDate,
+    place,
+    placeId,
     addressId: draft.addressId,
     agency: draft.agency.trim() || undefined,
     religiousAffiliation: draft.religiousAffiliation.trim() || undefined,
@@ -108,6 +117,35 @@ export function factDraftToRecord(draft: FactDraft): FactRecord {
     participants: draft.participants.length > 0 ? draft.participants : undefined,
     flags: draft.flags.length > 0 ? draft.flags : undefined,
   };
+}
+
+/**
+ * The fact's date and place: when the visible fields are unchanged, the
+ * stored values are kept verbatim; otherwise the date is rebuilt with the
+ * invisible fields carried over (see rebaseDate), and a changed place
+ * text invalidates the placeId link.
+ */
+function factDateToRecord(
+  draft: FactDraft,
+  existing: FactRecord | undefined,
+): { date: DateValue | undefined; place: string | undefined; placeId: string | undefined } {
+  const place = draft.date.place.trim() || undefined;
+  if (existing !== undefined && dateDraftsEqual(draft.date, toDateDraft(existing.date, existing.place ?? ''))) {
+    return { date: existing.date, place: existing.place, placeId: existing.placeId };
+  }
+  const placeChanged = existing !== undefined && (existing.place ?? '') !== (place ?? '');
+  return {
+    date: rebaseDate(fromDateDraft(draft.date), existing?.date),
+    place,
+    placeId: placeChanged ? undefined : draft.placeId,
+  };
+}
+
+function factSortDateToRecord(draft: FactDraft, existing: FactRecord | undefined): DateValue | undefined {
+  if (existing?.sortDate !== undefined && dateDraftsEqual(draft.sortDate, toDateDraft(existing.sortDate))) {
+    return existing.sortDate;
+  }
+  return rebaseDate(fromDateDraft(draft.sortDate), existing?.sortDate);
 }
 
 /** The display label of a fact's kind: the tag, refined by the subtype. */

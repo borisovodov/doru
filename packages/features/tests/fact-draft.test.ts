@@ -134,6 +134,57 @@ describe('factToDraft / factDraftToRecord', () => {
     const record = factDraftToRecord(factToDraft(source));
     expect(record.ages).toEqual(source.ages);
   });
+
+  it('keeps the invisible date fields of an unchanged fact on an unrelated edit', () => {
+    const source = fact({
+      date: {
+        id: 'D1',
+        quality: 'exact',
+        component: { calendar: 'julian', year: 1900, month: 10, day: 5 },
+        time: { hour: 12, minute: 30 },
+      },
+      place: 'Tula',
+      placeId: 'PL1',
+      sortDate: { quality: 'exact', component: { year: 1899 } },
+    });
+    const draft = factToDraft(source);
+    draft.value = 'edited elsewhere';
+    const record = factDraftToRecord(draft, source);
+    expect(record.date).toEqual(source.date);
+    expect(record.sortDate).toEqual(source.sortDate);
+    expect(record.placeId).toBe('PL1');
+  });
+
+  it('carries the invisible date fields over when the visible ones change', () => {
+    const source = fact({
+      date: {
+        id: 'D1',
+        quality: 'about',
+        modifier: 'ABT',
+        component: { calendar: 'julian', year: 1900, month: 10, day: 5 },
+        time: { hour: 12 },
+      },
+    });
+    const draft = factToDraft(source);
+    draft.date.year = '1901';
+    const record = factDraftToRecord(draft, source);
+    expect(record.date).toEqual({
+      id: 'D1',
+      quality: 'about',
+      modifier: 'ABT',
+      component: { calendar: 'julian', year: 1901, month: 10, day: 5 },
+      time: { hour: 12 },
+    });
+  });
+
+  it('drops the place link when the place text changes', () => {
+    const source = fact({ place: 'Tula', placeId: 'PL1' });
+    const draft = factToDraft(source);
+    draft.date.place = 'Kazan';
+    const record = factDraftToRecord(draft, source);
+    expect(record.place).toBe('Kazan');
+    expect(record.placeId).toBeUndefined();
+  });
 });
 
 describe('factKindLabel', () => {

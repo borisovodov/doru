@@ -535,9 +535,10 @@ function factFromDraft(
  * Rebuilds a date from the draft, carrying over what the draft cannot
  * express but the user did not touch: the date row id (citations may
  * target it), the time of day, the about-modifier, and the calendar and
- * epoch of each component.
+ * epoch of each component. Shared by the person quick fields and the
+ * fact editor.
  */
-function rebaseDate(next: DateValue | undefined, stored: DateValue | undefined): DateValue | undefined {
+export function rebaseDate(next: DateValue | undefined, stored: DateValue | undefined): DateValue | undefined {
   if (next === undefined || stored === undefined) {
     return next;
   }
@@ -570,19 +571,23 @@ function mergeComponent(
   };
 }
 
-function dateDraftMatches(draft: DateDraft, fact: FactRecord | undefined): boolean {
-  const other = toDateDraft(fact?.date, fact?.place ?? '');
+/** True when two drafts carry the same visible date/place fields. */
+export function dateDraftsEqual(a: DateDraft, b: DateDraft): boolean {
   return (
-    draft.year === other.year &&
-    draft.month === other.month &&
-    draft.day === other.day &&
-    draft.endYear === other.endYear &&
-    draft.endMonth === other.endMonth &&
-    draft.endDay === other.endDay &&
-    draft.text === other.text &&
-    draft.quality === other.quality &&
-    draft.place === other.place
+    a.year === b.year &&
+    a.month === b.month &&
+    a.day === b.day &&
+    a.endYear === b.endYear &&
+    a.endMonth === b.endMonth &&
+    a.endDay === b.endDay &&
+    a.text === b.text &&
+    a.quality === b.quality &&
+    a.place === b.place
   );
+}
+
+function dateDraftMatches(draft: DateDraft, fact: FactRecord | undefined): boolean {
+  return dateDraftsEqual(draft, toDateDraft(fact?.date, fact?.place ?? ''));
 }
 
 function componentOf(year: string, month: string, day: string): DateComponent | undefined {

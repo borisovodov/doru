@@ -38,7 +38,7 @@ export function FactEditor({
   const save = async () => {
     setSaving(true);
     try {
-      await onSave(factDraftToRecord(draft));
+      await onSave(factDraftToRecord(draft, fact));
     } finally {
       setSaving(false);
     }
