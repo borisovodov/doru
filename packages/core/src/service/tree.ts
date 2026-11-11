@@ -2,6 +2,7 @@ import type {
   AddressRecord,
   AssociationRecord,
   CensusRecord,
+  ChangeRecord,
   CitationRecord,
   ContactRecord,
   DuplicateCandidateRecord,
@@ -513,12 +514,20 @@ export class TreeService {
 
   // --- universal attachments --------------------------------------------------
 
+  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
+    return this.repo.listIdentifiersFor(targetType, targetId);
+  }
+
   addIdentifier(identifier: IdentifierRecord): UndoRedoState {
     return this.apply(addIdentifierOp(identifier));
   }
 
   deleteIdentifier(identifier: IdentifierRecord): UndoRedoState {
     return this.apply(deleteIdentifierOp(identifier));
+  }
+
+  listContactsFor(targetType: string, targetId: string): ContactRecord[] {
+    return this.repo.listContactsFor(targetType, targetId);
   }
 
   addContact(contact: ContactRecord): UndoRedoState {
@@ -529,12 +538,24 @@ export class TreeService {
     return this.apply(deleteContactOp(contact));
   }
 
+  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
+    return this.repo.listRestrictionsFor(targetType, targetId);
+  }
+
   addRestriction(restriction: RestrictionRecord): UndoRedoState {
     return this.apply(addRestrictionOp(restriction));
   }
 
   deleteRestriction(restriction: RestrictionRecord): UndoRedoState {
     return this.apply(deleteRestrictionOp(restriction));
+  }
+
+  listTags(): TagRecord[] {
+    return this.repo.listTags();
+  }
+
+  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
+    return this.repo.listTagLinksFor(targetType, targetId);
   }
 
   addTag(tag: TagRecord): UndoRedoState {
@@ -551,6 +572,11 @@ export class TreeService {
 
   detachTag(link: TagLinkRecord): UndoRedoState {
     return this.apply(detachTagOp(link));
+  }
+
+  /** The change-log rows of a target (created/changed history). */
+  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
+    return this.repo.listChangesFor(targetType, targetId);
   }
 
   // --- registries: repositories, submitters, addresses, fact types, header ------

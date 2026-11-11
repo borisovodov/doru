@@ -1,12 +1,17 @@
 import { ipcMain } from 'electron';
 import type {
   AssociationRecord,
+  ContactRecord,
   FactRecord,
   FamilyRecord,
+  IdentifierRecord,
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  RestrictionRecord,
   SourceRecord,
+  TagLinkRecord,
+  TagRecord,
 } from '@doru/core';
 import { addMediaToPerson, listAllMedia, listMediaForPerson, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
@@ -172,6 +177,111 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; association: AssociationRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.deleteAssociation(options.association);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:identifiers',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listIdentifiersFor('person', options.personId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addIdentifier',
+    async (_event, options: { projectPath: string; identifier: IdentifierRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addIdentifier(options.identifier);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteIdentifier',
+    async (_event, options: { projectPath: string; identifier: IdentifierRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteIdentifier(options.identifier);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:contacts',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listContactsFor('person', options.personId);
+    },
+  );
+
+  ipcMain.handle('tree:addContact', async (_event, options: { projectPath: string; contact: ContactRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addContact(options.contact);
+  });
+
+  ipcMain.handle(
+    'tree:deleteContact',
+    async (_event, options: { projectPath: string; contact: ContactRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteContact(options.contact);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:restrictions',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listRestrictionsFor('person', options.personId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addRestriction',
+    async (_event, options: { projectPath: string; restriction: RestrictionRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addRestriction(options.restriction);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:deleteRestriction',
+    async (_event, options: { projectPath: string; restriction: RestrictionRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.deleteRestriction(options.restriction);
+    },
+  );
+
+  ipcMain.handle('tree:tags', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listTags();
+  });
+
+  ipcMain.handle(
+    'tree:tagLinks',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listTagLinksFor('person', options.personId);
+    },
+  );
+
+  ipcMain.handle('tree:addTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addTag(options.tag);
+  });
+
+  ipcMain.handle('tree:attachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.attachTag(options.link);
+  });
+
+  ipcMain.handle('tree:detachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.detachTag(options.link);
+  });
+
+  ipcMain.handle(
+    'tree:changes',
+    async (_event, options: { projectPath: string; personId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listChangesFor('person', options.personId);
     },
   );
 

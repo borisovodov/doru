@@ -1,15 +1,21 @@
 import type {
   AssociationRecord,
+  ChangeRecord,
   CitationRecord,
+  ContactRecord,
   FactRecord,
   FamilyRecord,
+  IdentifierRecord,
   MediaRecord,
   NoteRecord,
   PersonRecord,
   ProjectBinding,
   ProjectSummary,
   RecentProject,
+  RestrictionRecord,
   SourceRecord,
+  TagLinkRecord,
+  TagRecord,
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
@@ -128,6 +134,24 @@ declare global {
         after: AssociationRecord,
       ): Promise<UndoRedoState>;
       deleteAssociation(projectPath: string, association: AssociationRecord): Promise<UndoRedoState>;
+      getIdentifiers(projectPath: string, personId: string): Promise<IdentifierRecord[]>;
+      addIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
+      deleteIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
+      getContacts(projectPath: string, personId: string): Promise<ContactRecord[]>;
+      addContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
+      deleteContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
+      getRestrictions(projectPath: string, personId: string): Promise<RestrictionRecord[]>;
+      addRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
+      deleteRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
+      getTags(projectPath: string): Promise<TagRecord[]>;
+      getTagLinks(
+        projectPath: string,
+        personId: string,
+      ): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
+      addTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
+      attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
+      detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
+      getChanges(projectPath: string, personId: string): Promise<ChangeRecord[]>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(
         projectPath: string,

@@ -1,11 +1,17 @@
 import type {
   AssociationRecord,
+  ChangeRecord,
+  ContactRecord,
   FactRecord,
   FamilyRecord,
+  IdentifierRecord,
   MediaRecord,
   NoteRecord,
   PersonRecord,
+  RestrictionRecord,
   SourceRecord,
+  TagLinkRecord,
+  TagRecord,
 } from '@doru/core';
 
 export interface MediaWithPath extends MediaRecord {
@@ -47,4 +53,19 @@ export interface PersonEditorApi {
   getMedia(personId: string): Promise<MediaWithPath[]>;
   addMedia(personId: string): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
+  getIdentifiers(personId: string): Promise<IdentifierRecord[]>;
+  addIdentifier(identifier: IdentifierRecord): Promise<void>;
+  deleteIdentifier(identifier: IdentifierRecord): Promise<void>;
+  getContacts(personId: string): Promise<ContactRecord[]>;
+  addContact(contact: ContactRecord): Promise<void>;
+  deleteContact(contact: ContactRecord): Promise<void>;
+  getRestrictions(personId: string): Promise<RestrictionRecord[]>;
+  addRestriction(restriction: RestrictionRecord): Promise<void>;
+  deleteRestriction(restriction: RestrictionRecord): Promise<void>;
+  getTags(): Promise<TagRecord[]>;
+  getTagLinks(personId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
+  addTag(tag: TagRecord): Promise<void>;
+  attachTag(link: TagLinkRecord): Promise<void>;
+  detachTag(link: TagLinkRecord): Promise<void>;
+  getChanges(personId: string): Promise<ChangeRecord[]>;
 }

@@ -2,23 +2,32 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import type {
   AssociationRecord,
+  ChangeRecord,
+  ContactRecord,
   FactRecord,
   FamilyRecord,
+  IdentifierRecord,
   NoteRecord,
   PersonRecord,
+  RestrictionRecord,
   Sex,
   SourceRecord,
+  TagLinkRecord,
+  TagRecord,
 } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './PersonEditor.css';
 import { AssociationsSection } from './AssociationsSection';
+import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
+import { ChangesSection } from './ChangesSection';
 import { DateEditor } from './DateEditor';
 import { EventsSection } from './EventsSection';
 import { FamilySection } from './FamilySection';
 import { MediaSection } from './MediaSection';
 import { NamesSection } from './NamesSection';
 import { SourcesSection } from './SourcesSection';
+import { TagsSection } from './TagsSection';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from './draft';
 import type { CitationInfo, MediaWithPath, PersonEditorApi } from './types';
 
@@ -51,6 +60,12 @@ export function PersonEditor({
   const [citations, setCitations] = useState<CitationInfo[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [media, setMedia] = useState<MediaWithPath[]>([]);
+  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
+  const [contacts, setContacts] = useState<ContactRecord[]>([]);
+  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
+  const [tags, setTags] = useState<TagRecord[]>([]);
+  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
+  const [changes, setChanges] = useState<ChangeRecord[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +84,7 @@ export function PersonEditor({
       void api.getMedia(draft.id).then((loaded) => {
         if (!cancelled) setMedia(loaded);
       });
+      void refreshAttachments();
     } else {
       setNotes([]);
       setFamilies([]);
@@ -77,6 +93,12 @@ export function PersonEditor({
       setCitations([]);
       setFacts([]);
       setMedia([]);
+      setIdentifiers([]);
+      setContacts([]);
+      setRestrictions([]);
+      setTags([]);
+      setTagLinks([]);
+      setChanges([]);
     }
     setNoteDraft('');
     return () => {
@@ -91,6 +113,25 @@ export function PersonEditor({
 
   const refreshAssociations = async () => {
     setAssociations(await api.getAssociations(draft.id));
+  };
+
+  /** Reloads every universal attachment list of the person. */
+  const refreshAttachments = async () => {
+    const [loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges] =
+      await Promise.all([
+        api.getIdentifiers(draft.id),
+        api.getContacts(draft.id),
+        api.getRestrictions(draft.id),
+        api.getTags(),
+        api.getTagLinks(draft.id),
+        api.getChanges(draft.id),
+      ]);
+    setIdentifiers(loadedIdentifiers);
+    setContacts(loadedContacts);
+    setRestrictions(loadedRestrictions);
+    setTags(loadedTags);
+    setTagLinks(loadedTagLinks);
+    setChanges(loadedChanges);
   };
 
   const refreshCitations = async () => {
@@ -282,6 +323,57 @@ export function PersonEditor({
               <button onClick={() => void addNote()}>{nls.t('features.tree.notes.add')}</button>
             </div>
           </div>
+          <IdentifiersSection
+            personId={draft.id}
+            identifiers={identifiers}
+            onAdd={async (identifier) => {
+              await api.addIdentifier(identifier);
+              await refreshAttachments();
+            }}
+            onDelete={async (identifier) => {
+              await api.deleteIdentifier(identifier);
+              await refreshAttachments();
+            }}
+          />
+          <ContactsSection
+            personId={draft.id}
+            contacts={contacts}
+            onAdd={async (contact) => {
+              await api.addContact(contact);
+              await refreshAttachments();
+            }}
+            onDelete={async (contact) => {
+              await api.deleteContact(contact);
+              await refreshAttachments();
+            }}
+          />
+          <RestrictionsSection
+            personId={draft.id}
+            restrictions={restrictions}
+            onAdd={async (restriction) => {
+              await api.addRestriction(restriction);
+              await refreshAttachments();
+            }}
+            onDelete={async (restriction) => {
+              await api.deleteRestriction(restriction);
+              await refreshAttachments();
+            }}
+          />
+          <TagsSection
+            personId={draft.id}
+            tags={tags}
+            tagLinks={tagLinks}
+            onAddTag={api.addTag}
+            onAttachTag={async (link) => {
+              await api.attachTag(link);
+              await refreshAttachments();
+            }}
+            onDetachTag={async (link) => {
+              await api.detachTag(link);
+              await refreshAttachments();
+            }}
+          />
+          <ChangesSection changes={changes} />
         </>
       )}
     </div>

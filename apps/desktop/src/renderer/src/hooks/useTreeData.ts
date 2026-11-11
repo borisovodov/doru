@@ -264,6 +264,71 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.deleteMedia(projectPath, media);
       },
+      getIdentifiers: (personId) =>
+        projectPath ? window.doru.getIdentifiers(projectPath, personId) : Promise.resolve([]),
+      addIdentifier: async (identifier) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addIdentifier(projectPath, identifier);
+      },
+      deleteIdentifier: async (identifier) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteIdentifier(projectPath, identifier);
+      },
+      getContacts: (personId) =>
+        projectPath ? window.doru.getContacts(projectPath, personId) : Promise.resolve([]),
+      addContact: async (contact) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addContact(projectPath, contact);
+      },
+      deleteContact: async (contact) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteContact(projectPath, contact);
+      },
+      getRestrictions: (personId) =>
+        projectPath ? window.doru.getRestrictions(projectPath, personId) : Promise.resolve([]),
+      addRestriction: async (restriction) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addRestriction(projectPath, restriction);
+      },
+      deleteRestriction: async (restriction) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteRestriction(projectPath, restriction);
+      },
+      getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
+      getTagLinks: (personId) =>
+        projectPath ? window.doru.getTagLinks(projectPath, personId) : Promise.resolve([]),
+      addTag: async (tag) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addTag(projectPath, tag);
+      },
+      attachTag: async (link) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachTag(projectPath, link);
+      },
+      detachTag: async (link) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.detachTag(projectPath, link);
+      },
+      getChanges: (personId) =>
+        projectPath ? window.doru.getChanges(projectPath, personId) : Promise.resolve([]),
     }),
     [projectPath, refreshTree],
   );

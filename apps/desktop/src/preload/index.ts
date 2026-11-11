@@ -115,6 +115,35 @@ const api = {
     ipcRenderer.invoke('tree:updateAssociation', { projectPath, before, after }),
   deleteAssociation: (projectPath: string, association: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteAssociation', { projectPath, association }),
+  getIdentifiers: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:identifiers', { projectPath, personId }),
+  addIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addIdentifier', { projectPath, identifier }),
+  deleteIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteIdentifier', { projectPath, identifier }),
+  getContacts: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:contacts', { projectPath, personId }),
+  addContact: (projectPath: string, contact: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addContact', { projectPath, contact }),
+  deleteContact: (projectPath: string, contact: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteContact', { projectPath, contact }),
+  getRestrictions: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:restrictions', { projectPath, personId }),
+  addRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addRestriction', { projectPath, restriction }),
+  deleteRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteRestriction', { projectPath, restriction }),
+  getTags: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tags', { projectPath }),
+  getTagLinks: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:tagLinks', { projectPath, personId }),
+  addTag: (projectPath: string, tag: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addTag', { projectPath, tag }),
+  attachTag: (projectPath: string, link: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:attachTag', { projectPath, link }),
+  detachTag: (projectPath: string, link: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:detachTag', { projectPath, link }),
+  getChanges: (projectPath: string, personId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:changes', { projectPath, personId }),
   getSources: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:sources', { projectPath }),
   addSource: (
