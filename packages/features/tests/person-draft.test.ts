@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DateDraft, NameDraft, PersonDraft } from '../src/person/draft';
 import {
+  rebaseDate,
   draftInitials,
   draftSpan,
   draftToRecord,
@@ -205,6 +206,83 @@ describe('newPersonDraft', () => {
     expect(created.names).toHaveLength(1);
     expect(created.names[0]?.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(nameDraftEmpty(created.names[0]!)).toBe(true);
+  });
+});
+
+describe('date refinements', () => {
+  it('round-trips the modifier, calendar, era and time', () => {
+    const date = toDateDraft({
+      quality: 'about',
+      modifier: 'EST',
+      component: { calendar: 'hebrew', year: 5780, epoch: 'BCE' },
+      time: { hour: 9, minute: 30, second: 5, utc: true },
+    });
+    expect(date.modifier).toBe('EST');
+    expect(date.calendar).toBe('hebrew');
+    expect(date.epoch).toBe('BCE');
+    expect(date.timeHour).toBe('9');
+    expect(fromDateDraft(date)).toEqual({
+      quality: 'about',
+      modifier: 'EST',
+      component: { calendar: 'hebrew', year: 5780, epoch: 'BCE' },
+      time: { hour: 9, minute: 30, second: 5, utc: true },
+    });
+  });
+
+  it('keeps non-Gregorian month codes through the round trip', () => {
+    const date = toDateDraft({ quality: 'exact', component: { calendar: 'french_republican', year: 12, month: 'VEND' } });
+    expect(date.month).toBe('VEND');
+    expect(fromDateDraft(date)?.component).toEqual({ calendar: 'french_republican', year: 12, month: 'VEND' });
+  });
+
+  it('defaults missing time parts to zero and keeps the UTC flag', () => {
+    expect(fromDateDraft(dateDraft({ timeHour: '9' }))?.time).toEqual({ hour: 9, minute: 0 });
+    expect(fromDateDraft(dateDraft({ timeHour: '9', timeMinute: '5', timeUtc: true }))?.time).toEqual({
+      hour: 9,
+      minute: 5,
+      utc: true,
+    });
+  });
+
+  it('writes a time-only date without a component', () => {
+    expect(fromDateDraft(dateDraft({ timeHour: '9', timeMinute: '30' }))).toEqual({
+      quality: 'exact',
+      time: { hour: 9, minute: 30 },
+    });
+  });
+
+  it('applies the modifier only to about dates', () => {
+    expect(fromDateDraft(dateDraft({ quality: 'about', year: '1900', modifier: 'CAL' }))).toEqual({
+      quality: 'about',
+      modifier: 'CAL',
+      component: { year: 1900 },
+    });
+    expect(fromDateDraft(dateDraft({ quality: 'exact', year: '1900', modifier: 'CAL' }))).toEqual({
+      quality: 'exact',
+      component: { year: 1900 },
+    });
+  });
+
+  it('carries the date row id and the fractional seconds through rebaseDate', () => {
+    const stored = {
+      id: 'D1',
+      quality: 'exact' as const,
+      component: { year: 1900 },
+      time: { hour: 12, minute: 0, fraction: '5' },
+    };
+    const next = { quality: 'exact' as const, component: { year: 1901 }, time: { hour: 9, minute: 0 } };
+    expect(rebaseDate(next, stored)).toEqual({
+      id: 'D1',
+      quality: 'exact',
+      component: { year: 1901 },
+      time: { hour: 9, minute: 0, fraction: '5' },
+    });
+  });
+
+  it('returns the next date when nothing is stored', () => {
+    const next = { quality: 'exact' as const, component: { year: 1901 } };
+    expect(rebaseDate(next, undefined)).toBe(next);
+    expect(rebaseDate(undefined, { quality: 'exact', component: { year: 1900 } })).toBeUndefined();
   });
 });
 

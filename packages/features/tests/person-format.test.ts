@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord, PersonRecord } from '@doru/core';
-import { displayName, factOwnerName, familyLabel, formatDate, initials, lifeSpan, qualityMark, years } from '../src/person/format';
+import { displayName, factOwnerName, familyLabel, formatAddress, formatDate, initials, lifeSpan, qualityMark, years } from '../src/person/format';
 
 const person = (overrides: Partial<PersonRecord> = {}): PersonRecord => ({
   id: 'P1',
@@ -244,5 +244,22 @@ describe('qualityMark', () => {
     expect(qualityMark('exact')).toBe('');
     expect(qualityMark('range')).toBe('');
     expect(qualityMark('unknown')).toBe('');
+  });
+});
+
+describe('formatAddress', () => {
+  it('joins the lines and the postal parts', () => {
+    expect(
+      formatAddress({ id: 'A1', lines: ['12 Archive Lane'], city: 'Moscow', state: 'MO', postalCode: '123456', country: 'RU' }),
+    ).toBe('12 Archive Lane, Moscow, MO, 123456, RU');
+  });
+
+  it('omits the missing parts', () => {
+    expect(formatAddress({ id: 'A1', lines: ['5 Main St'] })).toBe('5 Main St');
+    expect(formatAddress({ id: 'A1', lines: [] })).toBe('');
+  });
+
+  it('is empty for a missing address', () => {
+    expect(formatAddress(undefined)).toBe('');
   });
 });

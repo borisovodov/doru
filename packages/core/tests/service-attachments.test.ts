@@ -235,6 +235,11 @@ describe('TreeService attachments', () => {
     try {
       service.addIdentifier(identifier());
       expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
+      const editedIdentifier = identifier({ value: 'xyz-999' });
+      service.updateIdentifier(identifier(), editedIdentifier);
+      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([editedIdentifier]);
+      service.undo();
+      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
       service.deleteIdentifier(identifier());
       expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([]);
       service.undo();
@@ -242,12 +247,22 @@ describe('TreeService attachments', () => {
 
       service.addContact(contact());
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
+      const editedContact = contact({ kind: 'phone', value: '+7 495 000-00-00' });
+      service.updateContact(contact(), editedContact);
+      expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([editedContact]);
+      service.undo();
+      expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
       service.deleteContact(contact());
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([]);
       service.undo();
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
 
       service.addRestriction(restriction());
+      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
+      const editedRestriction = restriction({ level: 'locked' });
+      service.updateRestriction(restriction(), editedRestriction);
+      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([editedRestriction]);
+      service.undo();
       expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
       service.deleteRestriction(restriction());
       expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([]);
@@ -277,6 +292,15 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listTags()).toEqual([renamed]);
       service.undo();
       expect(fixture.repo.listTags()).toEqual([tag()]);
+
+      const datedLink = tagLink({ date: { quality: 'exact', component: { year: 2021 } } });
+      service.updateTagLink(tagLink(), datedLink);
+      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date?.component?.year).toBe(2021);
+      service.undo();
+      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date).toBeUndefined();
+      service.redo();
+      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date?.component?.year).toBe(2021);
+      service.undo();
 
       service.deleteTag(tag());
       expect(fixture.repo.listTags()).toEqual([]);
@@ -315,6 +339,8 @@ describe('TreeService attachments', () => {
 
       service.addAddress(address());
       expect(fixture.repo.getAddress('AD1')).toEqual(address());
+      expect(fixture.repo.listAddresses()).toEqual([address()]);
+      expect(service.listAddresses()).toEqual([address()]);
       const afterAddress = address({ city: 'Berlin' });
       service.updateAddress(address(), afterAddress);
       expect(fixture.repo.getAddress('AD1')?.city).toBe('Berlin');
