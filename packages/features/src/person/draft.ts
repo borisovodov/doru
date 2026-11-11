@@ -52,7 +52,7 @@ export interface NameVariantDraft {
   kind: NameVariantKind;
   language: string;
   parts: NamePart[];
-  date?: DateValue | undefined;
+  date?: DateDraft | undefined;
   variants: NameVariantDraft[];
 }
 
@@ -251,7 +251,7 @@ export function variantToDraft(variant: PersonName): NameVariantDraft {
     kind: variant.kind ?? 'translation',
     language: variant.language ?? '',
     parts: [...partsOfName(variant)],
-    date: variant.date,
+    date: variant.date !== undefined ? toDateDraft(variant.date) : undefined,
     variants: (variant.variants ?? []).map(variantToDraft),
   };
 }
@@ -319,7 +319,7 @@ function variantDraftMatches(a: NameVariantDraft, b: NameVariantDraft): boolean 
     a.kind === b.kind &&
     a.language === b.language &&
     partsEqual(a.parts, b.parts) &&
-    dateValueEqual(a.date, b.date) &&
+    nameDateMatches(a.date, b.date) &&
     a.variants.length === b.variants.length &&
     a.variants.every((variant, index) => variantDraftMatches(variant, b.variants[index]!))
   );
@@ -334,31 +334,6 @@ function partsEqual(a: NamePart[], b: NamePart[]): boolean {
       return part.id === other.id && part.kind === other.kind && part.value === other.value;
     })
   );
-}
-
-function dateValueEqual(a: DateValue | undefined, b: DateValue | undefined): boolean {
-  if (a === undefined || b === undefined) {
-    return a === b;
-  }
-  return (
-    a.quality === b.quality &&
-    a.modifier === b.modifier &&
-    componentEqual(a.component, b.component) &&
-    componentEqual(a.end, b.end) &&
-    a.text === b.text &&
-    a.time?.hour === b.time?.hour &&
-    a.time?.minute === b.time?.minute &&
-    a.time?.second === b.time?.second &&
-    a.time?.fraction === b.time?.fraction &&
-    a.time?.utc === b.time?.utc
-  );
-}
-
-function componentEqual(a: DateComponent | undefined, b: DateComponent | undefined): boolean {
-  if (a === undefined || b === undefined) {
-    return a === b;
-  }
-  return a.calendar === b.calendar && a.year === b.year && a.month === b.month && a.day === b.day && a.epoch === b.epoch;
 }
 
 /** True when the variant carries nothing to store (no text, no dated metadata). */
@@ -389,7 +364,7 @@ export function variantDraftToName(variant: NameVariantDraft): PersonName | unde
     language: variant.language.trim() || undefined,
     parts: normalizedParts(variant.parts),
     ...flatFromParts(variant.parts),
-    date: variant.date,
+    date: variant.date !== undefined ? fromDateDraft(variant.date) : undefined,
     variants: variant.variants.map(variantDraftToName).filter((entry): entry is PersonName => entry !== undefined),
   };
 }

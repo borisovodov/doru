@@ -70,6 +70,9 @@ export function NamesSection({
     patch(nameIndex, { variants: name.variants.filter((_, i) => i !== variantIndex) });
   };
 
+  const setVariantDate = (nameIndex: number, variantIndex: number, date: DateDraft) =>
+    patchVariant(nameIndex, variantIndex, { date: dateDraftBlank(date) ? undefined : date });
+
   return (
     <div className="names-section">
       {names.map((name, index) => (
@@ -179,6 +182,12 @@ export function NamesSection({
                     />
                   ))}
                 </div>
+                <DateEditor
+                  label={nls.t('features.tree.names.date')}
+                  value={variant.date ?? emptyDate()}
+                  onChange={(date) => setVariantDate(index, variantIndex, date)}
+                  hidePlace
+                />
               </div>
             ))}
             <button className="secondary-button" onClick={() => addVariant(index)}>
