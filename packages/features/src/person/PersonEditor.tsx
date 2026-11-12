@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
+import {
+  Avatar,
+  Badge,
+  Button,
+  EditorPage,
+  EntityViewCard,
+  SectionCard,
+} from '@doru/ui';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -196,50 +204,55 @@ export function PersonEditor({
       ];
 
   return (
-    <section className="person-editor" aria-label={nls.t('features.personEditor.title')}>
-      <section className="person-view-card">
-        <span className={`doru-avatar person-view-avatar sex-${draft.sex.toLowerCase()}`} aria-hidden="true">
-          {draftInitials(draft)}
-        </span>
-        <div className="person-view-body">
-          <h2 className="person-view-name">
+    <EditorPage label={nls.t('features.personEditor.title')} className="person-editor">
+      <EntityViewCard
+        media={
+          <Avatar
+            initials={draftInitials(draft)}
+            tone={draft.sex === 'M' ? 'male' : draft.sex === 'F' ? 'female' : 'neutral'}
+            size="lg"
+          />
+        }
+        title={
+          <>
             {name !== '' ? name : '—'}
             <span className="person-view-sex" title={sexTitle}>
               <SexIcon size={13} aria-hidden="true" />
             </span>
-          </h2>
-          <p className="person-view-dates">
+          </>
+        }
+        subtitle={
+          <>
             {deceased && <span className="person-view-cross">†</span>}
             {span}
-          </p>
-        </div>
-        <div className="person-view-badges">
-          {badges.map(({ icon: Icon, count, title }) =>
-            count > 0 ? (
-              <span key={title} className="person-view-badge" title={`${title}: ${count}`}>
-                <Icon size={12} aria-hidden="true" />
-                <span>{count}</span>
-              </span>
-            ) : null,
-          )}
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onCancel && (
-            <button onClick={onCancel}>{nls.t('features.tree.back')}</button>
-          )}
-        </div>
-      </section>
+          </>
+        }
+        badges={badges.map(({ icon: Icon, count, title }) =>
+          count > 0 ? (
+            <Badge key={title} icon={<Icon size={12} aria-hidden="true" />} title={`${title}: ${count}`}>
+              {count}
+            </Badge>
+          ) : null,
+        )}
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onCancel && (
+              <Button variant="secondary" size="sm" onClick={onCancel}>
+                {nls.t('features.tree.back')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.names.title')}</h3>
+      <SectionCard title={nls.t('features.tree.names.title')}>
         <NamesSection names={draft.names} onChange={(names) => set({ names })} />
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.details')}</h3>
+      <SectionCard title={nls.t('features.tree.details')}>
         <label>
           {nls.t('features.tree.field.sex')}
           <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
@@ -258,7 +271,7 @@ export function PersonEditor({
           value={draft.death}
           onChange={(death) => set({ death })}
         />
-      </section>
+      </SectionCard>
 
       {!draft.isNew && (
         <>
@@ -450,6 +463,6 @@ export function PersonEditor({
           <ChangesSection changes={changes} />
         </>
       )}
-    </section>
+    </EditorPage>
   );
 }

@@ -8,7 +8,7 @@
 
 .name-block {
   padding: 8px;
-  background: var(--doru-bg);
+  background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
 }

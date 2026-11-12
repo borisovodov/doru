@@ -1,0 +1,28 @@
+.section {
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--doru-bg-raised);
+  border-radius: var(--doru-radius-lg);
+  box-shadow: var(--doru-ring);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

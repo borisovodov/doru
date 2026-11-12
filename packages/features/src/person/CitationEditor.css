@@ -25,7 +25,7 @@
   width: 100%;
   box-sizing: border-box;
   margin-top: 4px;
-  background: var(--doru-bg);
+  background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
   color: var(--doru-fg);
@@ -64,7 +64,7 @@
 .citation-text-block {
   margin-bottom: 6px;
   padding: 6px;
-  background: var(--doru-bg);
+  background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
 }

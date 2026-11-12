@@ -27,4 +27,25 @@ export { Progress, type ProgressProps } from './atoms/feedback/Progress';
 export { InlineError, type InlineErrorProps } from './atoms/feedback/InlineError';
 export { Hint, type HintProps } from './atoms/feedback/Hint';
 export { EmptyText, type EmptyTextProps } from './atoms/feedback/EmptyText';
+export { SectionCard, type SectionCardProps } from './patterns/section-card/SectionCard';
+export { EntityViewCard, type EntityViewCardProps } from './patterns/entity-view-card/EntityViewCard';
+export { EntityCard, type EntityCardProps } from './patterns/entity-card/EntityCard';
+export { EditorPage, type EditorPageProps } from './patterns/editor-page/EditorPage';
+export { Subcard, type SubcardProps } from './patterns/subcard/Subcard';
+export { ActionBar, type ActionBarProps } from './patterns/action-bar/ActionBar';
+export {
+  AttachmentRow,
+  RowList,
+  type AttachmentRowProps,
+  type RowListProps,
+} from './patterns/row-list/RowList';
+export { SearchField, type SearchFieldProps } from './patterns/search-field/SearchField';
+export { Toolbar, type ToolbarProps } from './patterns/toolbar/Toolbar';
+export {
+  SegmentedControl,
+  type SegmentedControlProps,
+  type SegmentedOption,
+} from './patterns/segmented-control/SegmentedControl';
+export { Tooltip, type TooltipProps } from './patterns/tooltip/Tooltip';
+export { MediaTile, type MediaTileProps } from './patterns/media-tile/MediaTile';
 export { cx } from './lib/cx';

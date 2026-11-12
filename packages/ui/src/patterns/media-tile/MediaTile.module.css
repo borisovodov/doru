@@ -1,0 +1,26 @@
+.tile {
+  position: relative;
+  margin: 0;
+}
+
+.tile img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+}
+
+.remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+}
+
+.remove:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+}

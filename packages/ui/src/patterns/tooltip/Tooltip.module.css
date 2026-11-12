@@ -1,0 +1,21 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+  padding: 4px 10px;
+  background: var(--doru-bg-popover);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size-sm);
+  white-space: nowrap;
+}
