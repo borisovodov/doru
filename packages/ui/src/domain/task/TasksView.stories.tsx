@@ -30,6 +30,13 @@ const meta = {
     onNewTask: () => undefined,
     onOpenPerson: () => undefined,
   },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 260, padding: 12 }}>
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof TasksView>;
 
 export default meta;

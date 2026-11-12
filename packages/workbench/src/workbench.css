@@ -55,29 +55,6 @@
   -webkit-app-region: no-drag;
 }
 
-.title-bar-action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  padding: 0;
-  background: transparent;
-  border-radius: var(--doru-radius-sm);
-  color: var(--doru-fg-muted);
-  cursor: pointer;
-}
-
-.title-bar-action:hover {
-  background: var(--doru-overlay-hover);
-  color: var(--doru-fg);
-}
-
-.title-bar-action.active {
-  color: var(--doru-fg);
-}
-
 /* macOS: reserve space for the traffic lights on the left. */
 .title-bar-mac {
   padding-left: 78px;
@@ -508,7 +485,7 @@ body.tab-reordering * {
 
 /* Side bar note (e.g. truncated lists on large trees). */
 .side-bar-note {
-  margin: 8px 12px;
+  margin: 8px 0;
   font-size: 12px;
   color: var(--doru-fg-muted);
 }

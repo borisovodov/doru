@@ -156,7 +156,6 @@ export function Workbench({
         <div className="title-bar-actions">
           {titleActions}
           <IconButton
-            className="title-bar-action"
             size="md"
             variant={agentChatOpen ? 'active' : 'ghost'}
             label={nls.t('workbench.toggleAgentChat')}

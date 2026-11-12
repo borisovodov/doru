@@ -12,6 +12,13 @@ const meta = {
   title: 'Domain/PersonList',
   component: PersonList,
   args: { persons, onOpen: () => undefined },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 260, padding: 12 }}>
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof PersonList>;
 
 export default meta;

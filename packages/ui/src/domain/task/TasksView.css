@@ -1,15 +1,14 @@
 /* ── Tasks sidebar list and the shared task editor fields ──────────── */
 
 .tasks-view {
-  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .tasks-header {
   display: flex;
   justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 .task-list {

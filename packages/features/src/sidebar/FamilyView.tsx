@@ -1,6 +1,7 @@
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, NoteRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
+import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 /** The read-only information under the family editor: cited sources and notes. */
@@ -30,14 +31,12 @@ export function FamilyInfoList({
         ) : (
           <ul className="entity-section-list">
             {familySources.map((source) => (
-              <li key={source.id} className="entity-card">
-                <span className="entity-card-icon">
-                  <BookOpenText size={15} aria-hidden="true" />
-                </span>
-                <span className="entity-card-body">
-                  <span className="entity-card-title">{source.title}</span>
-                  {source.author !== undefined && <span className="entity-card-subtitle">{source.author}</span>}
-                </span>
+              <li key={source.id}>
+                <EntityCard
+                  icon={<BookOpenText size={15} aria-hidden="true" />}
+                  title={source.title}
+                  subtitle={source.author !== undefined ? source.author : null}
+                />
               </li>
             ))}
           </ul>

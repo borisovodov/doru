@@ -98,7 +98,6 @@ export function SidebarSearch({
         label={nls.t('features.search.field')}
         value={query}
         onChange={setQuery}
-        className="side-search-field"
       />
       {result !== null && (
         <ul className="side-section-list">

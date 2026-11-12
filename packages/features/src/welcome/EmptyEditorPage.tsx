@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Kbd } from '@doru/ui';
 import { nls } from '../nls';
 import './EmptyEditorPage.css';
 
@@ -79,7 +80,7 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
             <span className="empty-editor-shortcut-label">{shortcut.label}</span>
             <span className="empty-editor-keys">
               {shortcut.keys.map((key, index) => (
-                <kbd key={`${key}-${index}`}>{key}</kbd>
+                <Kbd key={`${key}-${index}`}>{key}</Kbd>
               ))}
             </span>
           </li>
