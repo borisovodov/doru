@@ -2,7 +2,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './IconButton.module.css';
 
-export type IconButtonSize = 'sm' | 'md' | 'nav';
+export type IconButtonSize = 'sm' | 'md' | 'lg' | 'nav';
 export type IconButtonVariant = 'ghost' | 'active' | 'primary' | 'danger';
 
 export interface IconButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'children'> {

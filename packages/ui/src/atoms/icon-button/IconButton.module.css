@@ -27,6 +27,12 @@
   border-radius: var(--doru-radius-sm);
 }
 
+.lg {
+  width: var(--doru-control-height-lg);
+  height: var(--doru-control-height-lg);
+  border-radius: var(--doru-radius-lg);
+}
+
 .nav {
   width: 36px;
   height: 36px;

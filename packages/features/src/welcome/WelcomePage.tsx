@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import type { RecentProject } from '@doru/core';
+import { Button } from '@doru/ui';
 import { nls } from '../nls';
 import './WelcomePage.css';
 
@@ -23,12 +24,12 @@ export function WelcomePage({
       <div className="welcome-hero">
         <h1 className="welcome-name">{nls.t('app.name')}</h1>
         <div className="welcome-actions">
-          <button className="welcome-primary" onClick={onCreateProject}>
+          <Button variant="primary" size="lg" onClick={onCreateProject}>
             {nls.t('workbench.welcome.createProject')}
-          </button>
-          <button className="welcome-secondary" onClick={onOpenProject}>
+          </Button>
+          <Button variant="secondary" size="lg" onClick={onOpenProject}>
             {nls.t('workbench.openProject')}
-          </button>
+          </Button>
         </div>
       </div>
       <section className="welcome-recent">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Plus, Send, Square, Trash2 } from 'lucide-react';
 import type { AgentStep, ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';
+import { IconButton, Select, Textarea } from '@doru/ui';
 import { nls } from '../nls';
 import { ChatMarkdown } from './ChatMarkdown';
 import './ChatPanel.css';
@@ -136,17 +137,19 @@ export function ChatPanel({
                   </div>
                   {message.content !== '' || message.error ? (
                     <div className="chat-message-actions">
-                      <button
+                      <IconButton
                         className="chat-copy"
-                        aria-label={copiedIndex === index ? nls.t('chat.copied') : nls.t('chat.copy')}
+                        size="sm"
+                        label={copiedIndex === index ? nls.t('chat.copied') : nls.t('chat.copy')}
+                        icon={
+                          copiedIndex === index ? (
+                            <Check size={13} aria-hidden="true" />
+                          ) : (
+                            <Copy size={13} aria-hidden="true" />
+                          )
+                        }
                         onClick={() => copyReply(index, message)}
-                      >
-                        {copiedIndex === index ? (
-                          <Check size={13} aria-hidden="true" />
-                        ) : (
-                          <Copy size={13} aria-hidden="true" />
-                        )}
-                      </button>
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -156,7 +159,7 @@ export function ChatPanel({
         })}
       </div>
       <div className="chat-input">
-        <textarea
+        <Textarea
           ref={inputRef}
           value={draft}
           placeholder={nls.t('chat.placeholder')}
@@ -173,19 +176,23 @@ export function ChatPanel({
             }
           }}
         />
-        <button
+        <IconButton
           className="chat-action"
+          size="lg"
+          variant="primary"
           disabled={busy}
-          aria-label={nls.t('chat.send')}
-          title={nls.t('chat.inputHint')}
+          label={nls.t('chat.send')}
+          icon={<Send size={16} aria-hidden="true" />}
           onClick={submit}
-        >
-          <Send size={16} aria-hidden="true" />
-        </button>
+        />
         {busy ? (
-          <button className="chat-action chat-stop" aria-label={nls.t('chat.stop')} onClick={stop}>
-            <Square size={14} fill="currentColor" aria-hidden="true" />
-          </button>
+          <IconButton
+            className="chat-action chat-stop"
+            size="lg"
+            label={nls.t('chat.stop')}
+            icon={<Square size={14} fill="currentColor" aria-hidden="true" />}
+            onClick={stop}
+          />
         ) : null}
       </div>
     </div>
@@ -212,7 +219,7 @@ function SessionsHeader({
 }: SessionsHeaderProps) {
   return (
     <div className="chat-sessions">
-      <select
+      <Select
         className="chat-session-select"
         value={activeSessionId ?? ''}
         disabled={busy || sessions.length === 0}
@@ -224,27 +231,25 @@ function SessionsHeader({
             {session.title !== '' ? session.title : nls.t('chat.sessions.untitled')}
           </option>
         ))}
-      </select>
-      <button
+      </Select>
+      <IconButton
         className="chat-action chat-session-action"
         disabled={busy}
-        aria-label={nls.t('chat.sessions.new')}
+        label={nls.t('chat.sessions.new')}
+        icon={<Plus size={16} aria-hidden="true" />}
         onClick={onNewSession}
-      >
-        <Plus size={16} aria-hidden="true" />
-      </button>
-      <button
+      />
+      <IconButton
         className="chat-action chat-session-action"
         disabled={busy || !activeSessionId}
-        aria-label={nls.t('chat.sessions.delete')}
+        label={nls.t('chat.sessions.delete')}
+        icon={<Trash2 size={14} aria-hidden="true" />}
         onClick={() => {
           if (activeSessionId) {
             onDeleteSession(activeSessionId);
           }
         }}
-      >
-        <Trash2 size={14} aria-hidden="true" />
-      </button>
+      />
     </div>
   );
 }
