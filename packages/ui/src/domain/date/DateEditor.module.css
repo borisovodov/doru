@@ -19,7 +19,7 @@
   min-width: 0;
 }
 
-.row input,
+.row input:not([type='checkbox']),
 .row select {
   width: auto;
   min-width: 0;
