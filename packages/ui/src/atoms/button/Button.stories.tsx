@@ -21,6 +21,26 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const Sizes: Story = {
+  render: () => (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {([
+        ['primary', 'Primary'],
+        ['secondary', 'Secondary'],
+        ['ghost', 'Ghost'],
+        ['danger', 'Danger'],
+        ['link', 'Link'],
+      ] as const).map(([variant, label]) => (
+        <div key={variant} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Button variant={variant} size="sm">{label} sm</Button>
+          <Button variant={variant} size="md">{label} md</Button>
+          <Button variant={variant} size="lg">{label} lg</Button>
+        </div>
+      ))}
+    </div>
+  ),
+};
+
 export const Primary: Story = {};
 
 export const Secondary: Story = {
@@ -37,16 +57,6 @@ export const Danger: Story = {
 
 export const Link: Story = {
   args: { variant: 'link', children: 'Open themes folder' },
-};
-
-export const Sizes: Story = {
-  render: () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <Button size="sm">Small</Button>
-      <Button size="md">Default</Button>
-      <Button size="lg">Large</Button>
-    </div>
-  ),
 };
 
 export const Disabled: Story = {

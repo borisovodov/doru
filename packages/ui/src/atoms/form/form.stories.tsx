@@ -11,6 +11,29 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const AllSizes: Story = {
+  render: () => (
+    <div style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
+      <Input controlSize="sm" placeholder="Input sm" />
+      <Input placeholder="Input md" />
+      <Input controlSize="lg" placeholder="Input lg" />
+      <Select controlSize="sm" defaultValue="a">
+        <option value="a">Select sm</option>
+      </Select>
+      <Select defaultValue="a">
+        <option value="a">Select md</option>
+      </Select>
+      <Select controlSize="lg" defaultValue="a">
+        <option value="a">Select lg</option>
+      </Select>
+      <Textarea controlSize="sm" placeholder="Textarea sm" rows={2} />
+      <Textarea placeholder="Textarea md" rows={3} />
+      <Textarea controlSize="lg" placeholder="Textarea lg" rows={4} />
+      <Checkbox label="Checkbox" defaultChecked />
+    </div>
+  ),
+};
+
 export const Inputs: Story = {
   render: () => (
     <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
@@ -26,9 +49,14 @@ export const Inputs: Story = {
 export const Selects: Story = {
   render: () => (
     <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
+      <Select controlSize="sm" defaultValue="a">
+        <option value="a">Small select</option>
+      </Select>
       <Select defaultValue="a">
-        <option value="a">Option A</option>
-        <option value="b">Option B</option>
+        <option value="a">Default select</option>
+      </Select>
+      <Select controlSize="lg" defaultValue="a">
+        <option value="a">Large select</option>
       </Select>
       <Select defaultValue="a" invalid>
         <option value="a">Invalid select</option>
@@ -40,8 +68,10 @@ export const Selects: Story = {
 export const Textareas: Story = {
   render: () => (
     <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
-      <Textarea placeholder="A note" rows={3} />
-      <Textarea invalid defaultValue="Invalid note" rows={3} />
+      <Textarea controlSize="sm" placeholder="Small note" rows={2} />
+      <Textarea placeholder="Default note" rows={3} />
+      <Textarea controlSize="lg" placeholder="Large note" rows={4} />
+      <Textarea invalid defaultValue="Invalid note" rows={2} />
     </div>
   ),
 };
