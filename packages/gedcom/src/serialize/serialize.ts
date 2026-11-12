@@ -13,29 +13,13 @@
  * file per structure group), `prepare.ts` (model-level 5.5.1 projection).
  */
 
-import type {
-  ParseResult,
-} from '../errors';
-import {
-  ok,
-  run,
-} from '../errors';
-import type {
-  GedcomDataset,
-} from '../structures';
-import {
-  emitDataset,
-} from './emitter/document';
-import {
-  prepareFor551,
-  prepareFor70,
-} from './prepare';
-import type {
-  Version,
-} from './writer';
-import {
-  Writer,
-} from './writer';
+import type { ParseResult } from '../errors';
+import { ok, run } from '../errors';
+import type { GedcomDataset } from '../structures';
+import { emitDataset } from './emitter/document';
+import { prepareFor551, prepareFor70 } from './prepare';
+import type { Version } from './writer';
+import { Writer } from './writer';
 
 function emit(version: Version, dataset: GedcomDataset): string {
   const prepared = version === '5.5.1' ? prepareFor551(dataset) : prepareFor70(dataset);

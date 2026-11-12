@@ -78,14 +78,18 @@ describe('header structure vendor fields', () => {
   });
 
   test('rejects an invalid _NAVM value', () => {
-    expect(parseFail70(['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 _NAVM 9', '1 SUBM @U1@', '0 @U1@ SUBM', '0 TRLR'].join('\n'))).toContain(
-      'must be 0, 1 or 2',
-    );
+    expect(
+      parseFail70(['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 _NAVM 9', '1 SUBM @U1@', '0 @U1@ SUBM', '0 TRLR'].join('\n')),
+    ).toContain('must be 0, 1 or 2');
   });
 
   test('rejects a malformed PRFX declaration', () => {
     expect(
-      parseFail70(['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 SCHMA', '2 PRFX broken', '1 SUBM @U1@', '0 @U1@ SUBM', '0 TRLR'].join('\n')),
+      parseFail70(
+        ['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 SCHMA', '2 PRFX broken', '1 SUBM @U1@', '0 @U1@ SUBM', '0 TRLR'].join(
+          '\n',
+        ),
+      ),
     ).toContain('must be "<tag> <uri>"');
   });
 
@@ -163,7 +167,19 @@ describe('header structure vendor fields', () => {
 
   test('rejects an unknown 5.5.1 charset', () => {
     const result = parseGedcom551(
-      enc(['0 HEAD', '1 SOUR T', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR KATAKANA', '0 @S1@ SUBM', '0 TRLR'].join('\n')),
+      enc(
+        [
+          '0 HEAD',
+          '1 SOUR T',
+          '1 SUBM @S1@',
+          '1 GEDC',
+          '2 VERS 5.5.1',
+          '2 FORM LINEAGE-LINKED',
+          '1 CHAR KATAKANA',
+          '0 @S1@ SUBM',
+          '0 TRLR',
+        ].join('\n'),
+      ),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {

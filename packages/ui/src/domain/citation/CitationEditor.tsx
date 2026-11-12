@@ -34,7 +34,8 @@ export function CitationEditor({
 
   const patchField = (index: number, values: Partial<TemplateFieldDraft>) =>
     set({ templateFields: draft.templateFields.map((field, i) => (i === index ? { ...field, ...values } : field)) });
-  const addField = () => set({ templateFields: [...draft.templateFields, { id: crypto.randomUUID(), name: '', value: '' }] });
+  const addField = () =>
+    set({ templateFields: [...draft.templateFields, { id: crypto.randomUUID(), name: '', value: '' }] });
   const removeField = (index: number) => set({ templateFields: draft.templateFields.filter((_, i) => i !== index) });
 
   const save = async () => {
@@ -101,9 +102,12 @@ export function CitationEditor({
                 value={text.mime}
                 onChange={(event) => patchText(index, { mime: event.target.value })}
               />
-              <IconButton size="sm" label={nls.t('features.tree.source.texts.remove')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removeText(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.source.texts.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removeText(index)}
+              />
             </div>
           </div>
         ))}
@@ -127,9 +131,12 @@ export function CitationEditor({
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
             />
-            <IconButton size="sm" label={nls.t('features.tree.source.templateFields.remove')} icon={<>
-              <X size={13} aria-hidden="true" />
-            </>} onClick={() => removeField(index)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.source.templateFields.remove')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => removeField(index)}
+            />
           </div>
         ))}
         <Button variant="primary" size="sm" onClick={addField}>

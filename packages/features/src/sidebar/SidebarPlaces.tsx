@@ -24,9 +24,7 @@ export function SidebarPlaces({
             icon={<MapPin size={15} aria-hidden="true" />}
             title={placeName(place)}
             meta={
-              place.latitude !== undefined && place.longitude !== undefined
-                ? nls.t('features.sidebar.geocoded')
-                : null
+              place.latitude !== undefined && place.longitude !== undefined ? nls.t('features.sidebar.geocoded') : null
             }
             onClick={() => onOpenPlace(place.id)}
           />

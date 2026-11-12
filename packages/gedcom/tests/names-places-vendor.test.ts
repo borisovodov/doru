@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom70 } from '../src/parsing/assemble';
 import type { GedcomDataset } from '../src/structures';
+import { isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -51,8 +52,8 @@ describe('name structure vendor fields', () => {
       '0 @M1@ OBJE',
       '0 TRLR',
     ]);
-    const individual = dataset.records.find((entry) => entry.tag === 'INDI');
-    const name = individual.names[0];
+    const individual = dataset.records.find(isIndividualRecord);
+    const name = individual?.names?.[0];
     expect(name).toMatchObject({
       middleName: 'Thomas',
       givenNameUsed: 'Esther',
@@ -106,13 +107,19 @@ describe('place structure vendor fields', () => {
       '0 @S1@ SOUR',
       '0 TRLR',
     ]);
-    const individual = dataset.records.find((entry) => entry.tag === 'INDI');
-    const place = individual.events[0].detail.place;
+    const individual = dataset.records.find(isIndividualRecord);
+    const place = individual?.events?.[0]?.detail?.place;
     expect(place).toMatchObject({
       payload: ['Moscow', 'Russia'],
       form: ['City', 'Country'],
       maidenhead: 'Moscow',
-      postalCodes: [{ code: '101000', date: expect.anything(), citations: expect.arrayContaining([expect.objectContaining({ tag: 'SOUR' })]) }],
+      postalCodes: [
+        {
+          code: '101000',
+          date: expect.anything(),
+          citations: expect.arrayContaining([expect.objectContaining({ tag: 'SOUR' })]),
+        },
+      ],
       translations: [{ payload: ['Москва'], language: 'ru' }],
       phonetic: [{ payload: ['moskva'], type: 'phonetic' }],
       romanized: [{ payload: ['moskva'], type: 'romanized' }],
@@ -132,7 +139,9 @@ describe('place structure vendor fields', () => {
 
   test('rejects an invalid MAP TYPE', () => {
     expect(
-      parseFail([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 MAP Moscow', '4 TYPE WRONG', '0 TRLR'].join('\n')),
+      parseFail(
+        [...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 MAP Moscow', '4 TYPE WRONG', '0 TRLR'].join('\n'),
+      ),
     ).toContain('must be MAIDENHEAD');
   });
 
@@ -141,13 +150,29 @@ describe('place structure vendor fields', () => {
       parseFail([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 _COR', '4 _LAM 1', '0 TRLR'].join('\n')),
     ).toContain('requires the _LAD substructure');
     expect(
-      parseFail([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 _COR', '4 _LAD x', '4 _LOD 1', '0 TRLR'].join('\n')),
+      parseFail(
+        [...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 _COR', '4 _LAD x', '4 _LOD 1', '0 TRLR'].join('\n'),
+      ),
     ).toContain('Invalid _LAD');
     expect(
-      parseFail([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 _COR', '4 _LAD 91', '4 _LOD 1', '0 TRLR'].join('\n')),
+      parseFail(
+        [...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 _COR', '4 _LAD 91', '4 _LOD 1', '0 TRLR'].join('\n'),
+      ),
     ).toContain('beyond 90 degrees');
     expect(
-      parseFail([...HEADER, '0 @I1@ INDI', '1 BIRT', '2 PLAC Moscow', '3 _COR', '4 _LAD 1', '4 _LAN X', '4 _LOD 1', '0 TRLR'].join('\n')),
+      parseFail(
+        [
+          ...HEADER,
+          '0 @I1@ INDI',
+          '1 BIRT',
+          '2 PLAC Moscow',
+          '3 _COR',
+          '4 _LAD 1',
+          '4 _LAN X',
+          '4 _LOD 1',
+          '0 TRLR',
+        ].join('\n'),
+      ),
     ).toContain('must be N, S, E or W');
   });
 });

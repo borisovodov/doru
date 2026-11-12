@@ -17,7 +17,20 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { EntityTab, SourceCitationsList, SourceEditor, type SourceEditorApi } from '@doru/features';
-import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, emptySourceDraft, sourceDraftMatches, sourceDraftToRecord, sourceToDraft, type SourceDraft } from '@doru/ui/domain';
+import {
+  ContactsSection,
+  ContributorsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  emptySourceDraft,
+  sourceDraftMatches,
+  sourceDraftToRecord,
+  sourceToDraft,
+  type SourceDraft,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { SOURCE_TAB_PREFIX } from '../hooks/useTabs';
 
@@ -129,24 +142,34 @@ function SourceTabBody({
   >([]);
   const recordRef = useRef(record);
 
-  const targetId = (lastSaved ?? record)?.id;
+  const currentSource = lastSaved ?? record;
+  const targetId = currentSource?.id;
 
   const refreshAttachments = async () => {
     if (targetId === undefined) {
       return;
     }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions, loadedSubmitters, loadedContributors] =
-      await Promise.all([
-        api.getNotes('source', targetId),
-        api.getCitations('source', targetId),
-        api.getTags(),
-        api.getTagLinks('source', targetId),
-        api.getIdentifiers('source', targetId),
-        api.getContacts('source', targetId),
-        api.getRestrictions('source', targetId),
-        api.getSubmitters(),
-        api.getRecordSubmitters('source', targetId),
-      ]);
+    const [
+      loadedNotes,
+      loadedCitations,
+      loadedTags,
+      loadedTagLinks,
+      loadedIdentifiers,
+      loadedContacts,
+      loadedRestrictions,
+      loadedSubmitters,
+      loadedContributors,
+    ] = await Promise.all([
+      api.getNotes('source', targetId),
+      api.getCitations('source', targetId),
+      api.getTags(),
+      api.getTagLinks('source', targetId),
+      api.getIdentifiers('source', targetId),
+      api.getContacts('source', targetId),
+      api.getRestrictions('source', targetId),
+      api.getSubmitters(),
+      api.getRecordSubmitters('source', targetId),
+    ]);
     setSourceNotes(loadedNotes);
     setSourceCitations(loadedCitations);
     setTags(loadedTags);
@@ -173,7 +196,7 @@ function SourceTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      current && previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
+      previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
     );
   }, [record, isNew]);
 
@@ -188,7 +211,6 @@ function SourceTabBody({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, record]);
 
   const save = async () => {
@@ -197,7 +219,11 @@ function SourceTabBody({
       await api.addSource(next);
       onCreated(next.id);
     } else {
-      await api.updateSource(lastSaved ?? record!, next);
+      const target = lastSaved ?? record;
+      if (target === undefined) {
+        return;
+      }
+      await api.updateSource(target, next);
     }
     setLastSaved(next);
   };
@@ -225,10 +251,10 @@ function SourceTabBody({
         onSave={() => void save()}
         onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
       />
-      {(lastSaved !== undefined || record !== undefined) && (
+      {currentSource !== undefined && (
         <>
           <SourceCitationsList
-            source={lastSaved ?? record!}
+            source={currentSource}
             persons={persons}
             families={families}
             facts={facts}

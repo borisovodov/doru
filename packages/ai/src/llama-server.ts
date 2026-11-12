@@ -47,8 +47,8 @@ function defaultSpawner(command: string, args: string[]): SpawnedProcess {
     kill: (signal) => child.kill(signal as NodeJS.Signals | undefined),
     onExit: (listener) => child.once('exit', listener),
     onOutput: (listener) => {
-      child.stdout?.on('data', (chunk: Buffer) => listener(chunk.toString()));
-      child.stderr?.on('data', (chunk: Buffer) => listener(chunk.toString()));
+      child.stdout.on('data', (chunk: Buffer) => listener(chunk.toString()));
+      child.stderr.on('data', (chunk: Buffer) => listener(chunk.toString()));
     },
   };
 }

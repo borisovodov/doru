@@ -124,7 +124,7 @@ describe('decodeDocument (5.5.1)', () => {
   test('appends a dangling non-spacing character without a base at the line end', () => {
     const bytes = new Uint8Array([...enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE caf'), 0xe2, ...enc('\n0 TRLR')]);
     const result = expectOk(decodeDocument(bytes, '5.5.1'));
-    expect(result.lines[2]?.text).toBe(`1 NOTE caf${'\u0301'}`);
+    expect(result.lines[2]?.text).toBe(`1 NOTE caf\u0301`);
   });
 
   test('decodes ANSEL spacing characters', () => {
@@ -170,21 +170,19 @@ describe('decodeDocument (5.5.1)', () => {
   });
 });
 
-  test('decodes the Agelong windows-1251-under-ANSEL dialect', () => {
-    // The GenWiki documents Agelong Tree exporting windows-1251 while
-    // declaring CHAR ANSEL; most high-byte lines fail the ANSEL set
-    // and the whole document decodes as CP1251.
-    const cyr = [0xc8, 0xe2, 0xe0, 0xed]; // Иван in windows-1251
-    const chunks: Array<number[] | Uint8Array> = [enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE '), cyr];
-    for (let i = 0; i < 10; i++) {
-      chunks.push(enc('\n2 CONT '), cyr);
-    }
-    chunks.push(enc('\n0 TRLR'));
-    const bytes = new Uint8Array(
-      chunks.flatMap((chunk) => (chunk instanceof Uint8Array ? [...chunk] : chunk)) as number[],
-    );
-    const result = expectOk(decodeDocument(bytes, '5.5.1'));
-    expect(result.lines[2]?.text).toBe('1 NOTE Иван');
-    expect(result.lines[3]?.text).toBe('2 CONT Иван');
-    expect(result.lines[12]?.text).toBe('2 CONT Иван');
-  });
+test('decodes the Agelong windows-1251-under-ANSEL dialect', () => {
+  // The GenWiki documents Agelong Tree exporting windows-1251 while
+  // declaring CHAR ANSEL; most high-byte lines fail the ANSEL set
+  // and the whole document decodes as CP1251.
+  const cyr = [0xc8, 0xe2, 0xe0, 0xed]; // Иван in windows-1251
+  const chunks: Array<number[] | Uint8Array> = [enc('0 HEAD\n1 CHAR ANSEL\n1 NOTE '), cyr];
+  for (let i = 0; i < 10; i++) {
+    chunks.push(enc('\n2 CONT '), cyr);
+  }
+  chunks.push(enc('\n0 TRLR'));
+  const bytes = new Uint8Array(chunks.flatMap((chunk) => (chunk instanceof Uint8Array ? [...chunk] : chunk)));
+  const result = expectOk(decodeDocument(bytes, '5.5.1'));
+  expect(result.lines[2]?.text).toBe('1 NOTE Иван');
+  expect(result.lines[3]?.text).toBe('2 CONT Иван');
+  expect(result.lines[12]?.text).toBe('2 CONT Иван');
+});

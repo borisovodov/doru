@@ -173,11 +173,17 @@ describe('importGedcomDataset edge coverage', () => {
       expect(identifierNamespaces).toEqual(['daboville', 'rin', 'sosa']);
 
       // INDI-level and fact-address contacts.
-      const contactKinds = repo.listContactsFor('person', ivan.id).map((contact) => contact.kind).sort();
+      const contactKinds = repo
+        .listContactsFor('person', ivan.id)
+        .map((contact) => contact.kind)
+        .sort();
       expect(contactKinds).toEqual(['email', 'phone', 'phone', 'url']);
 
       const birth = ivan.facts.find((fact) => fact.tag === 'BIRT')!;
-      const factKinds = repo.listContactsFor('fact', birth.id).map((contact) => contact.kind).sort();
+      const factKinds = repo
+        .listContactsFor('fact', birth.id)
+        .map((contact) => contact.kind)
+        .sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
 
       // Restrictions, changes, submitter links and tag links.
@@ -199,7 +205,9 @@ describe('importGedcomDataset edge coverage', () => {
 
       // Submitter identifiers and notes.
       const submitter = repo.listSubmitters()[0]!;
-      expect(repo.listIdentifiersFor('submitter', submitter.id).map((identifier) => identifier.namespace)).toEqual(['rin']);
+      expect(repo.listIdentifiersFor('submitter', submitter.id).map((identifier) => identifier.namespace)).toEqual([
+        'rin',
+      ]);
       expect(repo.listNotesFor('submitter', submitter.id)).toHaveLength(1);
 
       // Tag without a name is skipped; the tag link to a missing tag is skipped.
@@ -208,7 +216,13 @@ describe('importGedcomDataset edge coverage', () => {
       // Free-standing todo with fields and uid.
       const todos = repo.listTodos();
       expect(todos).toHaveLength(1);
-      expect(todos[0]).toMatchObject({ text: 'Order the record', category: 'records', locality: 'archive', priority: 'high', status: 'open' });
+      expect(todos[0]).toMatchObject({
+        text: 'Order the record',
+        category: 'records',
+        locality: 'archive',
+        priority: 'high',
+        status: 'open',
+      });
       expect(repo.listIdentifiersFor('todo', todos[0]!.id).map((identifier) => identifier.value)).toEqual(['todo-uid']);
 
       // The occurrence became one fact per participant.
@@ -247,9 +261,7 @@ describe('importGedcomDataset edge coverage', () => {
       });
 
       // The place carries its variants; the bare second PLAC dropped.
-      const birthPlace = repo.listPlaces().find((place) =>
-        place.names.some((name) => name.value === 'Moscow'),
-      )!;
+      const birthPlace = repo.listPlaces().find((place) => place.names.some((name) => name.value === 'Moscow'))!;
       expect(birthPlace.names.map((name) => name.kind)).toEqual(
         expect.arrayContaining(['official', 'translation', 'phonetic', 'romanized']),
       );

@@ -8,12 +8,8 @@
  * pages under https://armidalesoftware.com/issue/tags/).
  */
 
-import type {
-  SexEnum,
-} from '../enumerations';
-import {
-  fail,
-} from '../errors';
+import type { SexEnum } from '../enumerations';
+import { fail } from '../errors';
 import type {
   AgeStructure,
   CensusIndividual,
@@ -27,41 +23,14 @@ import type {
   EventDetail,
   RoleStructure,
 } from '../structures';
-import type {
-  Text,
-} from '../primitives';
-import type {
-  Ctx,
-} from './context';
-import {
-  addExtension,
-  dispatch,
-  noPayload,
-  reqDigits,
-  reqPtr,
-  reqText,
-  resolvePtr,
-  yFlag,
-} from './context';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parsePersonalNameStructure,
-} from './names-places';
-import {
-  eventDetailHandlers,
-  merge551DetailContacts,
-  SEX_551,
-} from './events';
-import {
-  parseAgeStructure,
-  parseChangeDate,
-  parseDateStructure,
-} from './substructures';
-import {
-  parseEnum,
-} from './types';
+import type { Text } from '../primitives';
+import type { Ctx } from './context';
+import { addExtension, dispatch, noPayload, reqDigits, reqPtr, reqText, resolvePtr, yFlag } from './context';
+import type { RawNode } from './lines';
+import { parsePersonalNameStructure } from './names-places';
+import { eventDetailHandlers, merge551DetailContacts, SEX_551 } from './events';
+import { parseAgeStructure, parseChangeDate, parseDateStructure } from './substructures';
+import { parseEnum } from './types';
 
 // MagiKey census record
 // ---------------------------------------------------------------------------
@@ -79,25 +48,25 @@ export function parseCensusRecord(node: RawNode, ctx: Ctx): CensusRecord {
     node,
     out,
     {
-      '_SCHD': (child) => {
+      _SCHD: (child) => {
         out.schedule = reqText(child);
       },
-      'SEX': (child) => {
+      SEX: (child) => {
         (out.sexes ??= []).push(parseCensusSex(child, ctx));
       },
-      'INDI': (child) => {
+      INDI: (child) => {
         (entries ??= []).push(parseCensusIndividual(child, ctx));
       },
-      'DATE': (child) => {
+      DATE: (child) => {
         date = parseDateStructure(child, ctx);
       },
-      'PLAC': (child) => {
+      PLAC: (child) => {
         place = reqText(child);
       },
-      'SOUR': (child) => {
+      SOUR: (child) => {
         out.source = parseCensusSource(child, ctx);
       },
-      'CHAN': (child) => {
+      CHAN: (child) => {
         out.changeDate = parseChangeDate(child, ctx);
       },
     },
@@ -165,7 +134,7 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
       MOTH: (child) => {
         out.mother = parseCensusRelative(child, ctx, 'MOTH');
       },
-      '_MSTAT': (child) => {
+      _MSTAT: (child) => {
         out.maritalStatus = reqText(child);
       },
       AGE: (child) => {
@@ -187,7 +156,7 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
         out.role = parseCensusRole(child, ctx);
       },
       SEX: (child) => {
-        out.sex = parseCensusSexValue(child, ctx);
+        out.sex = parseCensusSexValue(child);
       },
     },
     ctx,
@@ -202,11 +171,9 @@ function parseCensusIndividual(node: RawNode, ctx: Ctx): CensusIndividual {
  * the full value set, case-insensitive on input and canonicalized
  * (`m` → `male`).
  */
-function parseCensusSexValue(node: RawNode, _ctx: Ctx): SexEnum {
-  const table = SEX_551 as Readonly<
-    Record<'M' | 'F' | 'U' | 'X' | 'N', string>
-  >;
-  return parseEnum(reqText(node), table, node.position) as SexEnum;
+function parseCensusSexValue(node: RawNode): SexEnum {
+  const table = SEX_551 as Readonly<Record<'M' | 'F' | 'U' | 'X' | 'N', string>>;
+  return parseEnum<'M' | 'F' | 'U' | 'X' | 'N'>(reqText(node), table, node.position);
 }
 
 /**
@@ -223,7 +190,7 @@ function parseCensusRole(node: RawNode, ctx: Ctx): RoleStructure {
   const upper = raw.toUpperCase();
   const out: RoleStructure =
     upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU'
-      ? { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' }
+      ? { payload: upper }
       : raw.startsWith('(') && raw.endsWith(')')
         ? { payload: 'OTHER', phrase: raw.slice(1, -1) }
         : // The lenient bare-descriptor form of real MagiKey files (`Head`).
@@ -295,7 +262,11 @@ function parseCensusSource(node: RawNode, ctx: Ctx): CensusSourceReference {
   } else if (node.value.kind === 'text') {
     out.description = node.value.text;
   } else {
-    fail('structure.missing-payload', 'The SOUR line under _CENR requires a pointer or a source description', node.position);
+    fail(
+      'structure.missing-payload',
+      'The SOUR line under _CENR requires a pointer or a source description',
+      node.position,
+    );
   }
   dispatch(node, out, {}, ctx);
   return out;

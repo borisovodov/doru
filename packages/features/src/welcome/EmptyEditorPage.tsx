@@ -3,6 +3,8 @@ import { Kbd } from '@doru/ui';
 import { nls } from '../nls';
 import './EmptyEditorPage.css';
 
+/* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
+
 export interface EmptyEditorPageProps {
   platform?: string;
 }

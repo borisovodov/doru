@@ -8,21 +8,33 @@ export class AddressRepo {
   insertAddress(address: AddressRecord): void {
     this.db
       .prepare('INSERT INTO address (id, city, state, postal_code, country) VALUES (?, ?, ?, ?, ?)')
-      .run(address.id, address.city ?? null, address.state ?? null, address.postalCode ?? null, address.country ?? null);
+      .run(
+        address.id,
+        address.city ?? null,
+        address.state ?? null,
+        address.postalCode ?? null,
+        address.country ?? null,
+      );
     this.replaceLines(address);
   }
 
   updateAddress(address: AddressRecord): void {
     this.db
       .prepare('UPDATE address SET city = ?, state = ?, postal_code = ?, country = ? WHERE id = ?')
-      .run(address.city ?? null, address.state ?? null, address.postalCode ?? null, address.country ?? null, address.id);
+      .run(
+        address.city ?? null,
+        address.state ?? null,
+        address.postalCode ?? null,
+        address.country ?? null,
+        address.id,
+      );
     this.replaceLines(address);
   }
 
   getAddress(id: string): AddressRecord | undefined {
-    const row = this.db
-      .prepare('SELECT id, city, state, postal_code, country FROM address WHERE id = ?')
-      .get(id) as { id: string; city: string | null; state: string | null; postal_code: string | null; country: string | null } | undefined;
+    const row = this.db.prepare('SELECT id, city, state, postal_code, country FROM address WHERE id = ?').get(id) as
+      | { id: string; city: string | null; state: string | null; postal_code: string | null; country: string | null }
+      | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 

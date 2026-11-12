@@ -11,4 +11,4 @@ export const SYSTEM_PROMPT =
   'Add relatives (child, spouse or parent) with tree_add_relative — it creates the new person itself, no search needed. Add a standalone person with tree_edit (op kind "person.add"). ' +
   'Sources with sources_add, notes with notes_write. ' +
   'Do the work with tools; do not ask for confirmation. If a tool errors, fix and retry; never claim success after an error. When nothing is found, say so. ' +
-  'Omit optional arguments you do not know. Answer briefly, in the language of the user\'s message.';
+  "Omit optional arguments you do not know. Answer briefly, in the language of the user's message.";

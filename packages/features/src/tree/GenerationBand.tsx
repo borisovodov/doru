@@ -9,10 +9,6 @@ export type GenerationBandData = {
  * A horizontal band behind one card row (generation). Non-interactive; the
  * canvas renders it behind the cards.
  */
-export const GenerationBand = memo(function GenerationBand({
-  data,
-}: NodeProps<Node<GenerationBandData>>) {
-  return (
-    <div className={data.generation % 2 === 0 ? 'generation-band even' : 'generation-band odd'} />
-  );
+export const GenerationBand = memo(function GenerationBand({ data }: NodeProps<Node<GenerationBandData>>) {
+  return <div className={data.generation % 2 === 0 ? 'generation-band even' : 'generation-band odd'} />;
 });

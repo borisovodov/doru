@@ -145,7 +145,7 @@ describe('value formatting', () => {
     expect(calendarEscape551('JULIAN')).toBe('@#DJULIAN@ ');
     expect(calendarEscape551('FRENCH_R')).toBe('@#DFRENCH R@ ');
     expect(calendarEscape551('HEBREW')).toBe('@#DHEBREW@ ');
-    expect(calendarEscape551('_EXT' as never)).toBe('');
+    expect(calendarEscape551('_EXT')).toBe('');
   });
 
   test('epochSuffix', () => {
@@ -157,12 +157,16 @@ describe('value formatting', () => {
   test('formatDateFields', () => {
     expect(formatDateFields({ year: 1900 }, '7.0')).toBe('1900');
     expect(formatDateFields({ calendar: 'HEBREW', month: 'TSH', year: 5750 }, '7.0')).toBe('HEBREW TSH 5750');
-    expect(formatDateFields({ calendar: 'JULIAN', day: 5, month: 'OCT', year: 1582 }, '5.5.1')).toBe('@#DJULIAN@ 5 OCT 1582');
+    expect(formatDateFields({ calendar: 'JULIAN', day: 5, month: 'OCT', year: 1582 }, '5.5.1')).toBe(
+      '@#DJULIAN@ 5 OCT 1582',
+    );
     expect(formatDateFields({ calendar: 'JULIAN', year: 44, epoch: 'BCE' }, '5.5.1')).toBe('@#DJULIAN@ 44 B.C.');
     // The 5.5.1 DATE grammars allow `B.C.` only on the year-only form:
     // a month-bearing date with an epoch has no 5.5.1 spelling (the
     // caller falls back to the parenthesized date phrase).
-    expect(formatDateFields({ calendar: 'FRENCH_R', day: 5, month: 'VEND', year: 8, epoch: 'BCE' }, '5.5.1')).toBeUndefined();
+    expect(
+      formatDateFields({ calendar: 'FRENCH_R', day: 5, month: 'VEND', year: 8, epoch: 'BCE' }, '5.5.1'),
+    ).toBeUndefined();
     expect(formatDateFields({ day: 1, month: 'JAN', year: 1700, epoch: 'BCE' }, '5.5.1')).toBeUndefined();
     // 7.0 allows the epoch on any form (GEDCOM 7.0 §2.4 `[D epoch]`).
     expect(formatDateFields({ day: 1, month: 'JAN', year: 1700, epoch: 'BCE' }, '7.0')).toBe('1 JAN 1700 BCE');
@@ -171,12 +175,24 @@ describe('value formatting', () => {
   test('formatDateValue70 covers every variant', () => {
     expect(formatDateValue70({ kind: 'date', calendar: 'GREGORIAN', year: 1900 })).toBe('1900');
     expect(
-      formatDateValue70({ kind: 'range', start: { calendar: 'GREGORIAN', year: 1900 }, end: { calendar: 'GREGORIAN', year: 1910 } }),
+      formatDateValue70({
+        kind: 'range',
+        start: { calendar: 'GREGORIAN', year: 1900 },
+        end: { calendar: 'GREGORIAN', year: 1910 },
+      }),
     ).toBe('BET 1900 AND 1910');
-    expect(formatDateValue70({ kind: 'bound', modifier: 'AFT', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe('AFT 1900');
-    expect(formatDateValue70({ kind: 'approx', modifier: 'ABT', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe('ABT 1900');
+    expect(formatDateValue70({ kind: 'bound', modifier: 'AFT', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe(
+      'AFT 1900',
+    );
+    expect(formatDateValue70({ kind: 'approx', modifier: 'ABT', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe(
+      'ABT 1900',
+    );
     expect(
-      formatDateValue70({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 }, to: { calendar: 'GREGORIAN', year: 1910 } }),
+      formatDateValue70({
+        kind: 'period',
+        from: { calendar: 'GREGORIAN', year: 1900 },
+        to: { calendar: 'GREGORIAN', year: 1910 },
+      }),
     ).toBe('FROM 1900 TO 1910');
     expect(formatDateValue70({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 } })).toBe('FROM 1900');
     expect(formatDateValue70({ kind: 'period', to: { calendar: 'GREGORIAN', year: 1900 } })).toBe('TO 1900');
@@ -187,12 +203,24 @@ describe('value formatting', () => {
   test('formatDateValue551 covers every variant', () => {
     expect(formatDateValue551({ kind: 'date', calendar: 'JULIAN', year: 1582 })).toBe('@#DJULIAN@ 1582');
     expect(
-      formatDateValue551({ kind: 'range', start: { calendar: 'GREGORIAN', year: 1900 }, end: { calendar: 'GREGORIAN', year: 1910 } }),
+      formatDateValue551({
+        kind: 'range',
+        start: { calendar: 'GREGORIAN', year: 1900 },
+        end: { calendar: 'GREGORIAN', year: 1910 },
+      }),
     ).toBe('BET 1900 AND 1910');
-    expect(formatDateValue551({ kind: 'bound', modifier: 'BEF', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe('BEF 1900');
-    expect(formatDateValue551({ kind: 'approx', modifier: 'EST', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe('EST 1900');
+    expect(formatDateValue551({ kind: 'bound', modifier: 'BEF', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe(
+      'BEF 1900',
+    );
+    expect(formatDateValue551({ kind: 'approx', modifier: 'EST', date: { calendar: 'GREGORIAN', year: 1900 } })).toBe(
+      'EST 1900',
+    );
     expect(
-      formatDateValue551({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 }, to: { calendar: 'GREGORIAN', year: 1910 } }),
+      formatDateValue551({
+        kind: 'period',
+        from: { calendar: 'GREGORIAN', year: 1900 },
+        to: { calendar: 'GREGORIAN', year: 1910 },
+      }),
     ).toBe('FROM 1900 TO 1910');
     expect(formatDateValue551({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 } })).toBe('FROM 1900');
     expect(formatDateValue551({ kind: 'period', to: { calendar: 'GREGORIAN', year: 1900 } })).toBe('TO 1900');

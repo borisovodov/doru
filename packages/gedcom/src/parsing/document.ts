@@ -7,58 +7,19 @@
  * error naming the offending line.
  */
 
-import {
-  fail,
-} from '../errors';
-import type {
-  GedcomError,
-} from '../errors';
-import type {
-  ExtensionRecord,
-  GedcomDataset,
-  GedcomRecord,
-  Header,
-  SubmissionRecord,
-  SubmitterRecord,
-  Trailer,
-} from '../structures';
-import type {
-  Ctx,
-} from './context';
-import {
-  noPayload,
-  parseExtension,
-  tolerate,
-} from './context';
-import {
-  parseFamilyRecord,
-  parseIndividualRecord,
-} from './family-individual';
-import {
-  parseCensusRecord,
-} from './census';
-import {
-  parseHeader,
-} from './header';
-import type {
-  RawNode,
-} from './lines';
-import {
-  RECORD_TAGS_70,
-  resolveStandardTagByUri,
-} from './schema-tags';
-import {
-  GEDCOM_555_TAG_ALIASES,
-} from './gedcom-555';
-import {
-  parseMultimediaRecord,
-} from './media';
-import {
-  parseNoteRecord,
-  parseRepositoryRecord,
-  parseSharedNoteRecord,
-  parseSourceRecord,
-} from './sources';
+import { fail } from '../errors';
+import type { GedcomError } from '../errors';
+import type { ExtensionRecord, GedcomDataset, GedcomRecord, Header, SubmissionRecord, Trailer } from '../structures';
+import type { Ctx } from './context';
+import { noPayload, parseExtension, tolerate } from './context';
+import { parseFamilyRecord, parseIndividualRecord } from './family-individual';
+import { parseCensusRecord } from './census';
+import { parseHeader } from './header';
+import type { RawNode } from './lines';
+import { RECORD_TAGS_70, resolveStandardTagByUri } from './schema-tags';
+import { GEDCOM_555_TAG_ALIASES } from './gedcom-555';
+import { parseMultimediaRecord } from './media';
+import { parseNoteRecord, parseRepositoryRecord, parseSharedNoteRecord, parseSourceRecord } from './sources';
 import { linkPlacesByName, parsePlaceRecord } from './places';
 import { parseTodoRecord } from './todo';
 import { parseEventDefinitionRecord } from './event-definition';
@@ -79,26 +40,13 @@ import {
   parseResearchDocumentRecord,
   parseTagRecord,
 } from './evidence';
-import {
-  parseSubmissionRecord,
-  parseSubmitterRecord,
-} from './submitters';
+import { parseSubmissionRecord, parseSubmitterRecord } from './submitters';
 import type { DuplicateCandidateRecord } from '../structures';
 import type { PublishedSiteRecord } from '../structures';
-import {
-  parsePrivacyFlag,
-} from './sources-media';
-import {
-  dispatch,
-  reqPtr,
-  reqText,
-} from './context';
-import {
-  parseNoteStructure,
-} from './substructures';
-import {
-  parseSourceCitation,
-} from './sources-media';
+import { parsePrivacyFlag } from './sources-media';
+import { dispatch, reqPtr, reqText } from './context';
+import { parseNoteStructure } from './substructures';
+import { parseSourceCitation } from './sources-media';
 
 // Document
 // ---------------------------------------------------------------------------
@@ -143,9 +91,7 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
   // synthesized empty header — the full-leniency container rule;
   // parseHeader completes its GEDC). The first HEAD node in the stream
   // is parsed as the header; a later duplicate stays a generic record.
-  const headerIndex = nodes.findIndex(
-    (node) => node.tag === 'HEAD' || GEDCOM_555_TAG_ALIASES[node.tag] === 'HEAD',
-  );
+  const headerIndex = nodes.findIndex((node) => node.tag === 'HEAD' || GEDCOM_555_TAG_ALIASES[node.tag] === 'HEAD');
   let header: Header = { tag: 'HEAD', gedcom: { version: '5.5.1' } };
   if (headerIndex !== -1) {
     try {
@@ -167,7 +113,7 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
   const submissionIndex = headerIndex === -1 ? 0 : headerIndex + 1;
   if (nodes[submissionIndex]?.tag === 'SUBN') {
     try {
-      submission = parseSubmissionRecord(nodes[submissionIndex] as RawNode, ctx);
+      submission = parseSubmissionRecord(nodes[submissionIndex], ctx);
     } catch (error) {
       if (!tolerate(ctx, error)) {
         throw error;
@@ -197,10 +143,18 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
       if (node.tag === 'TRLR') {
         noPayload(node);
         if (node.children.length > 0) {
-          fail('structure.unexpected-payload', 'The TRLR line must not have substructures', (node.children[0] as RawNode).position);
+          fail(
+            'structure.unexpected-payload',
+            'The TRLR line must not have substructures',
+            (node.children[0] as RawNode).position,
+          );
         }
         if (node.xref !== undefined) {
-          fail('line.xref-on-substructure', 'The TRLR pseudo-structure must not have a cross-reference identifier', node.position);
+          fail(
+            'line.xref-on-substructure',
+            'The TRLR pseudo-structure must not have a cross-reference identifier',
+            node.position,
+          );
         }
         // The TRLR is tolerated anywhere (the full-leniency container
         // rule): the records after it still parse.
@@ -231,7 +185,7 @@ export function parseDocument(raw: { nodes: RawNode[] }, errors?: GedcomError[])
     if (record === undefined || record.tag !== 'SUBM') {
       continue;
     }
-    const name = (record as SubmitterRecord).name;
+    const name = record.name;
     if (typeof name !== 'string' || name.trim() !== '') {
       // An extension SUBM (no typed name) or a named submitter stays.
       continue;
@@ -377,17 +331,17 @@ function parseRecordStrict(node: RawNode, ctx: Ctx): GedcomRecord {
     case '_MTCAT':
       return parseTreeCategoryRecord(node, ctx);
     case 'Occupation':
-      return parseOccupationRecord(node, ctx) as unknown as GedcomRecord;
+      return parseOccupationRecord(node, ctx);
     case 'Education':
-      return parseEducationRecord(node, ctx) as unknown as GedcomRecord;
+      return parseEducationRecord(node, ctx);
     case 'Contact':
-      return parseContactRecord(node, ctx) as unknown as GedcomRecord;
+      return parseContactRecord(node, ctx);
     case 'Marriage':
-      return parseMarriageRecord(node, ctx) as unknown as GedcomRecord;
+      return parseMarriageRecord(node, ctx);
     case 'Twin':
-      return parseTwinRecord(node, ctx) as unknown as GedcomRecord;
+      return parseTwinRecord(node, ctx);
     case 'TITL':
-      return parseTitleRecord(node, ctx) as unknown as GedcomRecord;
+      return parseTitleRecord(node, ctx);
     default:
       // Full leniency (see the README's Known strict decisions): any
       // record tag the typed grammar has no slot for — an underscore

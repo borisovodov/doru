@@ -15,10 +15,7 @@ export interface ThemeEntry {
 }
 
 export type AiTestState =
-  | { status: 'idle' }
-  | { status: 'testing' }
-  | { status: 'ok' }
-  | { status: 'fail'; message: string };
+  { status: 'idle' } | { status: 'testing' } | { status: 'ok' } | { status: 'fail'; message: string };
 
 export interface AiSettingsSectionProps {
   settings: AiSettingsState;
@@ -37,7 +34,7 @@ export interface AiSettingsSectionProps {
   onSetAcpCommand: (command: string) => void;
   onSetAcpArgs: (args: string[]) => void;
   onTest: () => void;
-  onFetchModels: (baseUrl?: string | undefined) => void;
+  onFetchModels: (baseUrl?: string) => void;
   onDownloadDoruModel: () => void;
   onCancelDoruModelDownload: () => void;
   onDeleteDoruModel: () => void;
@@ -128,7 +125,7 @@ function ReasoningSelect(props: { value: string; levels: string[]; onChange: (le
 }
 
 function AiSettingsSection(props: AiSettingsSectionProps) {
-  const { settings, providers, test, fetchedModels, modelFetch } = props;
+  const { settings, providers, test, fetchedModels, modelFetch, onSetReasoning } = props;
   const provider = providers.find((entry) => entry.id === settings.provider);
   const [apiKeyDraft, setApiKeyDraft] = useState('');
   const [baseUrlDraft, setBaseUrlDraft] = useState<string | null>(null);
@@ -154,9 +151,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   // reasoning control at all.
   const reasoningAvailable =
     provider?.kind !== 'acp' &&
-    (hasCatalog
-      ? model?.reasoning === true || (model?.reasoningOptions?.length ?? 0) > 0
-      : settings.model !== '');
+    (hasCatalog ? model?.reasoning === true || (model?.reasoningOptions?.length ?? 0) > 0 : settings.model !== '');
   // A stored level the selected model does not offer (a model switch, or a
   // hand-edited settings.json) is reset to the provider default instead of
   // being sent to the wire. When the control is hidden the value stays: the
@@ -166,9 +161,9 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
       return;
     }
     if (!reasoningLevels.includes(settings.reasoning)) {
-      props.onSetReasoning('');
+      onSetReasoning('');
     }
-  }, [reasoningAvailable, reasoningLevels, settings.reasoning, props.onSetReasoning]);
+  }, [reasoningAvailable, reasoningLevels, settings.reasoning, onSetReasoning]);
   const modelOptions = [
     ...(provider?.models ?? []).map((entry) => entry.id),
     ...(!provider?.models.some((entry) => entry.id === settings.model) && settings.model !== ''
@@ -196,9 +191,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   return (
     <div className="settings-section">
       <h3>{nls.t('settings.ai.title')}</h3>
-      {!settings.configured && provider?.id !== 'doru' ? (
-        <Hint>{nls.t('settings.ai.notConfigured')}</Hint>
-      ) : null}
+      {!settings.configured && provider?.id !== 'doru' ? <Hint>{nls.t('settings.ai.notConfigured')}</Hint> : null}
 
       <Field label={nls.t('settings.ai.provider')}>
         <Select
@@ -276,7 +269,9 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                 <Input
                   type="password"
                   value={apiKeyDraft}
-                  placeholder={settings.hasKey ? nls.t('settings.ai.apiKeySaved') : nls.t('settings.ai.apiKeyPlaceholder')}
+                  placeholder={
+                    settings.hasKey ? nls.t('settings.ai.apiKeySaved') : nls.t('settings.ai.apiKeyPlaceholder')
+                  }
                   onChange={(event) => setApiKeyDraft(event.target.value)}
                 />
                 <Button
@@ -318,11 +313,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                 </Select>
               </Field>
               {reasoningAvailable ? (
-                <ReasoningSelect
-                  value={settings.reasoning}
-                  levels={reasoningLevels}
-                  onChange={props.onSetReasoning}
-                />
+                <ReasoningSelect value={settings.reasoning} levels={reasoningLevels} onChange={props.onSetReasoning} />
               ) : null}
               {settings.hasKey ? testRow : null}
             </>
@@ -339,9 +330,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                   >
                     {fetchLabel}
                   </Button>
-                  {modelFetch.status === 'error' ? (
-                    <Hint>{nls.t('settings.ai.modelFetchError')}</Hint>
-                  ) : null}
+                  {modelFetch.status === 'error' ? <Hint>{nls.t('settings.ai.modelFetchError')}</Hint> : null}
                 </>
               ) : (
                 <>
@@ -367,20 +356,12 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                   >
                     {fetchLabel}
                   </Button>
-                  {modelFetch.status === 'error' ? (
-                    <Hint>{nls.t('settings.ai.modelStale')}</Hint>
-                  ) : null}
+                  {modelFetch.status === 'error' ? <Hint>{nls.t('settings.ai.modelStale')}</Hint> : null}
                 </>
               )}
-              {modelFetch.status === 'empty' ? (
-                <Hint>{nls.t('settings.ai.modelEmpty')}</Hint>
-              ) : null}
+              {modelFetch.status === 'empty' ? <Hint>{nls.t('settings.ai.modelEmpty')}</Hint> : null}
               {reasoningAvailable ? (
-                <ReasoningSelect
-                  value={settings.reasoning}
-                  levels={reasoningLevels}
-                  onChange={props.onSetReasoning}
-                />
+                <ReasoningSelect value={settings.reasoning} levels={reasoningLevels} onChange={props.onSetReasoning} />
               ) : null}
               {settings.model !== '' ? testRow : null}
             </>
@@ -462,9 +443,7 @@ function DoruModelSection(props: {
       <Button variant="primary" disabled={tooWeak} onClick={props.onDownload}>
         {nls.t('settings.ai.doruModel.install')}
       </Button>
-      {tooWeak ? (
-        <Hint>{nls.t('settings.ai.doruModel.tooWeak', String(model.minRamGb))}</Hint>
-      ) : null}
+      {tooWeak ? <Hint>{nls.t('settings.ai.doruModel.tooWeak', String(model.minRamGb))}</Hint> : null}
     </>
   );
 }

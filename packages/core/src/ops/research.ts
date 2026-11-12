@@ -1,9 +1,4 @@
-import type {
-  AssociationRecord,
-  AttachmentsSnapshot,
-  TitleRecord,
-  TodoRecord,
-} from '../model/types';
+import type { AssociationRecord, AttachmentsSnapshot, TitleRecord, TodoRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
 

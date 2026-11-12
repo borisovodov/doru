@@ -56,7 +56,7 @@ describe('StampedOpQueue', () => {
 });
 
 describe('isSelfWriteEcho', () => {
-  it('ignores events shortly after the app\'s own write', () => {
+  it("ignores events shortly after the app's own write", () => {
     const path = '/tmp/doru-self-write.doru';
     const stamped = Date.now();
     markSelfWrite(path);

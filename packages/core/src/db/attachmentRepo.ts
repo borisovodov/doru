@@ -40,7 +40,9 @@ export class AttachmentRepo {
 
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
     const rows = this.db
-      .prepare('SELECT id, target_type, target_id, namespace, value FROM identifier WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        'SELECT id, target_type, target_id, namespace, value FROM identifier WHERE target_type = ? AND target_id = ? ORDER BY id',
+      )
       .all(targetType, targetId) as unknown as {
       id: string;
       target_type: string;
@@ -77,7 +79,9 @@ export class AttachmentRepo {
 
   listContactsFor(targetType: string, targetId: string): ContactRecord[] {
     const rows = this.db
-      .prepare('SELECT id, target_type, target_id, kind, value FROM contact WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        'SELECT id, target_type, target_id, kind, value FROM contact WHERE target_type = ? AND target_id = ? ORDER BY id',
+      )
       .all(targetType, targetId) as unknown as {
       id: string;
       target_type: string;
@@ -114,7 +118,9 @@ export class AttachmentRepo {
 
   listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
     const rows = this.db
-      .prepare('SELECT id, target_type, target_id, level FROM restriction WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        'SELECT id, target_type, target_id, level FROM restriction WHERE target_type = ? AND target_id = ? ORDER BY id',
+      )
       .all(targetType, targetId) as unknown as {
       id: string;
       target_type: string;
@@ -140,8 +146,7 @@ export class AttachmentRepo {
 
   deleteChange(id: string): boolean {
     const row = this.db.prepare('SELECT date_id FROM change WHERE id = ?').get(id) as
-      | { date_id: string | null }
-      | undefined;
+      { date_id: string | null } | undefined;
     const result = this.db.prepare('DELETE FROM change WHERE id = ?').run(id);
     if (row?.date_id !== null && row?.date_id !== undefined) {
       this.dates.delete(row.date_id);
@@ -151,7 +156,9 @@ export class AttachmentRepo {
 
   listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
     const rows = this.db
-      .prepare('SELECT id, target_type, target_id, kind, date_id, user FROM change WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        'SELECT id, target_type, target_id, kind, date_id, user FROM change WHERE target_type = ? AND target_id = ? ORDER BY id',
+      )
       .all(targetType, targetId) as unknown as {
       id: string;
       target_type: string;
@@ -213,7 +220,9 @@ export class AttachmentRepo {
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
     const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        'SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
+      )
       .all(targetType, targetId) as unknown as {
       id: string;
       tag_id: string;

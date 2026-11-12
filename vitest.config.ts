@@ -3,11 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: [
-      'packages/*/tests/**/*.test.ts',
-      'apps/*/tests/**/*.test.ts',
-      'scripts/tests/**/*.test.ts',
-    ],
+    include: ['packages/*/tests/**/*.test.ts', 'apps/*/tests/**/*.test.ts', 'scripts/tests/**/*.test.ts'],
     // SQLite-backed tests open a real database per test; slow CI runners
     // (Windows) take tens of seconds per test once the suite runs the
     // whole model through them. 90s keeps a loaded runner from flaking

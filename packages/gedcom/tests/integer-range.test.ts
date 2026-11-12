@@ -60,9 +60,13 @@ describe('integer range strictness', () => {
   });
 
   test('a year beyond the range is kept as the date phrase (7.0)', () => {
-    const result = parseGedcom70(enc(
-      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 DATE 5 JAN 9007199254740992', '0 TRLR'].join('\n'),
-    ));
+    const result = parseGedcom70(
+      enc(
+        ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 DATE 5 JAN 9007199254740992', '0 TRLR'].join(
+          '\n',
+        ),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result.error));
     }
@@ -72,9 +76,13 @@ describe('integer range strictness', () => {
   });
 
   test('the largest safe year is accepted exactly (7.0)', () => {
-    const result = parseGedcom70(enc(
-      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 DATE 5 JAN 9007199254740991', '0 TRLR'].join('\n'),
-    ));
+    const result = parseGedcom70(
+      enc(
+        ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 DATE 5 JAN 9007199254740991', '0 TRLR'].join(
+          '\n',
+        ),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result.error));
     }
@@ -101,16 +109,32 @@ describe('integer range strictness', () => {
   });
 
   test('an out-of-range child count is rejected', () => {
-    expect(err551(
-      ['0 HEAD', '1 SOUR X', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T', '0 @F1@ FAM', '1 NCHI 99999999999999999999', '0 TRLR'].join('\n'),
-    )).toBe('integer.out-of-range');
+    expect(
+      err551(
+        [
+          '0 HEAD',
+          '1 SOUR X',
+          '1 SUBM @S1@',
+          '1 GEDC',
+          '2 VERS 5.5.1',
+          '2 FORM LINEAGE-LINKED',
+          '1 CHAR UTF-8',
+          '0 @S1@ SUBM',
+          '1 NAME T',
+          '0 @F1@ FAM',
+          '1 NCHI 99999999999999999999',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    ).toBe('integer.out-of-range');
   });
 
   test('an out-of-range age component is rejected', () => {
     expect(err551(doc551('1 BIRT\n2 AGE 99999999999999999999y'))).toBe('integer.out-of-range');
-    expect(err70(
-      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 AGE 99999999999999999999y', '0 TRLR'].join('\n'),
-    )).toBe('integer.out-of-range');
+    expect(
+      err70(
+        ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 BIRT', '2 AGE 99999999999999999999y', '0 TRLR'].join('\n'),
+      ),
+    ).toBe('integer.out-of-range');
   });
 });

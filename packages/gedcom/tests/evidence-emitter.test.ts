@@ -58,14 +58,7 @@ describe('evidence emitters', () => {
       documents: ['@D1@'],
       notes: [{ tag: 'NOTE', payload: 'n' }],
     });
-    expect(lines(w)).toEqual([
-      '1 _EVREF @E1@',
-      '2 _CONF high',
-      '2 _USED yes',
-      '2 QUAY 3',
-      '2 _RDOC @D1@',
-      '2 NOTE n',
-    ]);
+    expect(lines(w)).toEqual(['1 _EVREF @E1@', '2 _CONF high', '2 _USED yes', '2 QUAY 3', '2 _RDOC @D1@', '2 NOTE n']);
   });
 
   test('emits evidence events with dates, citations, findings, confidence and notes', () => {
@@ -115,8 +108,19 @@ describe('evidence emitters', () => {
 
   test('emits tag records and tag links with dates and notes', () => {
     const w = new Writer('7.0');
-    emitTagRecord(w, '7.0', { tag: '_TAG', xref: '@T1@', name: 'favorites', color: 'red', attributes: [{ tag: '_ATTR', payload: 'k' }] });
-    emitTagLink(w, '7.0', 1, { tag: '_TAG', target: '@T1@', date: { value: { kind: 'date', year: 2026 } }, notes: [{ tag: 'NOTE', payload: 'n' }] });
+    emitTagRecord(w, '7.0', {
+      tag: '_TAG',
+      xref: '@T1@',
+      name: 'favorites',
+      color: 'red',
+      attributes: [{ tag: '_ATTR', payload: 'k' }],
+    });
+    emitTagLink(w, '7.0', 1, {
+      tag: '_TAG',
+      target: '@T1@',
+      date: { value: { kind: 'date', year: 2026 } },
+      notes: [{ tag: 'NOTE', payload: 'n' }],
+    });
     expect(lines(w)).toEqual([
       '0 @T1@ _TAG',
       '1 NAME favorites',
@@ -192,8 +196,12 @@ describe('evidence emitters', () => {
       notes: [{ tag: 'NOTE', payload: 'n' }],
       changeDate: { tag: 'CHAN', date: { value: { day: 1, month: 'JAN', year: 2026 } } },
     });
-    expect(lines(w).join('|')).toContain('0 @D1@ _RDOC|1 _TITL Notes|1 _TEXT Body|1 _SUBJ @I1@|1 _EVID @E1@|1 _CONC|2 _SUBJ @I1@|2 _TEXT Born in 1923.|1 AUTH Ivan|1 DATE 2025|1 NOTE n|1 CHAN');
-    expect(lines(w).join('|')).toContain('0 _RACT|1 _TYPE visit|1 _PURP check|1 _TARG P1|1 _VENU archive|1 _RSLT found|1 _FIND f|1 DATE 2025|1 _RSRCH Ivan|1 NOTE n|1 CHAN');
+    expect(lines(w).join('|')).toContain(
+      '0 @D1@ _RDOC|1 _TITL Notes|1 _TEXT Body|1 _SUBJ @I1@|1 _EVID @E1@|1 _CONC|2 _SUBJ @I1@|2 _TEXT Born in 1923.|1 AUTH Ivan|1 DATE 2025|1 NOTE n|1 CHAN',
+    );
+    expect(lines(w).join('|')).toContain(
+      '0 _RACT|1 _TYPE visit|1 _PURP check|1 _TARG P1|1 _VENU archive|1 _RSLT found|1 _FIND f|1 DATE 2025|1 _RSRCH Ivan|1 NOTE n|1 CHAN',
+    );
   });
 
   test('drops void references when targeting 5.5.1', () => {

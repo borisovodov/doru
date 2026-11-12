@@ -118,7 +118,12 @@ describe('TreeService families, persons and facts', () => {
       expect(service.listFactsFor('P1').map((fact) => fact.id)).toEqual(['F1']);
       expect(service.listFactsFor(undefined, 'F1').map((fact) => fact.id)).toEqual(['F2']);
       expect(service.listFactsFor()).toEqual([]);
-      expect(service.listAllFacts().map((fact) => fact.id).sort()).toEqual(['F1', 'F2']);
+      expect(
+        service
+          .listAllFacts()
+          .map((fact) => fact.id)
+          .sort(),
+      ).toEqual(['F1', 'F2']);
       expect(service.listFamiliesForPerson('P1').map((entry) => entry.id)).toEqual(['F1']);
     } finally {
       cleanupRepo(fixture);

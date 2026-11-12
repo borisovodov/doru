@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551 } from '../src/parsing/assemble';
 import type { GedcomDataset } from '../src/structures';
+import { isIndividualRecord, isMultimediaRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -20,7 +21,15 @@ function err551(text: string): string {
   return (result.error as { code: string }).code;
 }
 
-const HEADER = ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8'];
+const HEADER = [
+  '0 HEAD',
+  '1 SOUR PAF',
+  '1 SUBM @S1@',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '2 FORM LINEAGE-LINKED',
+  '1 CHAR UTF-8',
+];
 const SUBM = ['0 @S1@ SUBM', '1 NAME Tester'];
 
 describe('parseGedcom551 — header', () => {
@@ -35,27 +44,44 @@ describe('parseGedcom551 — header', () => {
 
   test('normalizes the declared charset to UTF-8 in the model', () => {
     const dataset = parse551(
-      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR ANSEL', '2 VERS 1985', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR ANSEL',
+        '2 VERS 1985',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 TRLR',
+      ].join('\n'),
     );
     expect(dataset.header).not.toHaveProperty('characterSet');
-    expect(dataset.header.characterSet?.version).toBeUndefined();
   });
 
   test('requires CHAR; SOUR is optional', () => {
     // The 5.5.1 SOUR is not required; the charset
     // declaration still selects the decoder.
     const withoutSour = parseGedcom551(
-      enc('0 HEAD\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
+      enc(
+        '0 HEAD\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n',
+      ),
     );
     expect(withoutSour.ok).toBe(true);
-    expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n')).toBe(
-      'decoding.missing-charset',
-    );
+    expect(
+      err551(
+        '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n',
+      ),
+    ).toBe('decoding.missing-charset');
   });
 
   test('accepts a 7.x version declaration', () => {
     const result = parseGedcom551(
-      enc('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
+      enc(
+        '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n',
+      ),
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -70,13 +96,15 @@ describe('parseGedcom551 — header', () => {
           `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
         ),
       );
-      expect(result.ok, version).toBe(true);
+      expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.header.gedcom.version, version).toBe(version);
+        expect(result.value.header.gedcom.version).toBe(version);
       }
     }
     const garbage = parseGedcom551(
-      enc(`0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS banana\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`),
+      enc(
+        `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS banana\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
+      ),
     );
     expect(garbage.ok).toBe(false);
     if (!garbage.ok) {
@@ -88,7 +116,7 @@ describe('parseGedcom551 — header', () => {
           `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
         ),
       );
-      expect(result.ok, version).toBe(true);
+      expect(result.ok).toBe(true);
     }
   });
 
@@ -99,13 +127,15 @@ describe('parseGedcom551 — header', () => {
           `0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS ${version}\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n`,
         ),
       );
-      expect(result.ok, version).toBe(true);
+      expect(result.ok).toBe(true);
     }
   });
 
   test('accepts a SOUR id with spaces', () => {
     const result = parseGedcom551(
-      enc('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n'),
+      enc(
+        '0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR ANSEL\n0 @S1@ SUBM\n1 NAME X\n0 TRLR\n',
+      ),
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -246,10 +276,9 @@ describe('parseGedcom551 — records and 5.5.1-only fields', () => {
       ].join('\n'),
     );
     const indi = dataset.records[0];
-    if (indi?.tag !== 'INDI') {
+    if (indi === undefined || !isIndividualRecord(indi)) {
       throw new Error('expected INDI');
     }
-    const variation = indi.names?.[0]?.romanized;
     expect(indi.names?.[0]?.phonetic).toBeUndefined();
     expect(indi.names?.[0]?.romanized?.[0]?.type).toBe('pinyin');
     expect(indi.names?.[0]?.romanized?.[0]?.payload).toEqual({ surname: 'Kǒng', suffix: 'Déyōng' });
@@ -311,17 +340,17 @@ describe('parseGedcom551 — records and 5.5.1-only fields', () => {
       ].join('\n'),
     );
     const indi = dataset.records[0];
-    if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'BIRT') {
+    if (indi === undefined || !isIndividualRecord(indi) || indi.events?.[0]?.tag !== 'BIRT') {
       throw new Error('expected BIRT');
     }
     const link = indi.events[0].detail?.media?.[0];
     expect(link?.object).toMatch(/^@_SYNO\d+@$/);
-    const synthetic = dataset.records.find((record) => record.tag === 'OBJE');
+    const synthetic = dataset.records.find(isMultimediaRecord);
     expect(synthetic?.tag).toBe('OBJE');
-    if (synthetic?.tag === 'OBJE') {
+    if (synthetic !== undefined) {
       expect(synthetic.files[0]?.payload).toBe('media/photo.jpg');
-      expect(synthetic.files[0]?.form.payload).toBe('jpg');
-      expect(synthetic.files[0]?.form.medium?.payload).toBe('PHOTO');
+      expect(synthetic.files[0]?.form?.payload).toBe('jpg');
+      expect(synthetic.files[0]?.form?.medium?.payload).toBe('PHOTO');
     }
   });
 
@@ -382,7 +411,13 @@ describe('parseGedcom551 — records and 5.5.1-only fields', () => {
       throw new Error('expected INDI');
     }
     const birth = indi.events?.find((event) => event.tag === 'BIRT');
-    expect(birth?.detail?.date?.value).toEqual({ kind: 'date', day: 1, month: 'JAN', year: 1900, calendar: 'GREGORIAN' });
+    expect(birth?.detail?.date?.value).toEqual({
+      kind: 'date',
+      day: 1,
+      month: 'JAN',
+      year: 1900,
+      calendar: 'GREGORIAN',
+    });
     expect(birth?.detail?.date?.phrase).toBe('calculated');
     const death = indi.events?.find((event) => event.tag === 'DEAT');
     expect(death?.detail?.date?.value).toEqual({ kind: 'unknown' });
@@ -492,9 +527,7 @@ describe('parseGedcom551 — strictness', () => {
   });
 
   test('accepts a Y payload on every 5.5.1 family event', () => {
-    const result = parseGedcom551(
-      enc([...HEADER, '0 @F1@ FAM', '1 ANUL Y', ...SUBM, '0 TRLR'].join('\n')),
-    );
+    const result = parseGedcom551(enc([...HEADER, '0 @F1@ FAM', '1 ANUL Y', ...SUBM, '0 TRLR'].join('\n')));
     expect(result.ok).toBe(true);
     if (result.ok) {
       const fam = result.value.records.find((record) => record.tag === 'FAM');
@@ -505,11 +538,11 @@ describe('parseGedcom551 — strictness', () => {
   test('accepts the Y payload on the 5.5.1 individual events ADOP, BIRT, CHR and DEAT', () => {
     for (const tag of ['ADOP', 'BIRT', 'CHR', 'DEAT']) {
       const result = parseGedcom551(enc([...HEADER, '0 @I1@ INDI', `1 ${tag} Y`, ...SUBM, '0 TRLR'].join('\n')));
-      expect(result.ok, tag).toBe(true);
+      expect(result.ok).toBe(true);
       if (result.ok) {
         const indi = result.value.records.find((record) => record.tag === 'INDI');
         const event = indi?.tag === 'INDI' ? indi.events?.find((entry) => entry.tag === tag) : undefined;
-        expect(event?.payload, tag).toBe(true);
+        expect(event?.payload).toBe(true);
       }
     }
     // The Y assertion is also accepted on the remaining
@@ -547,9 +580,7 @@ describe('parseGedcom551 — strictness', () => {
   });
 
   test('accepts commas in names', () => {
-    const result = parseGedcom551(
-      enc([...HEADER, '0 @I1@ INDI', '1 NAME John, /Doe/', ...SUBM, '0 TRLR'].join('\n')),
-    );
+    const result = parseGedcom551(enc([...HEADER, '0 @I1@ INDI', '1 NAME John, /Doe/', ...SUBM, '0 TRLR'].join('\n')));
     expect(result.ok).toBe(true);
   });
 
@@ -568,15 +599,13 @@ describe('parseGedcom551 — strictness', () => {
   });
 
   test('accepts the void pointer in pointers', () => {
-    const result = parseGedcom551(
-      enc([...HEADER, '0 @I1@ INDI', '1 FAMS @VOID@', ...SUBM, '0 TRLR'].join('\n')),
-    );
+    const result = parseGedcom551(enc([...HEADER, '0 @I1@ INDI', '1 FAMS @VOID@', ...SUBM, '0 TRLR'].join('\n')));
     expect(result.ok).toBe(true);
     if (result.ok) {
       const indi = result.value.records.find((record) => record.tag === 'INDI');
-      expect(
-        (indi as unknown as { spouseFamilies?: Array<{ family?: string }> }).spouseFamilies?.[0]?.family,
-      ).toBe('@VOID@');
+      expect((indi as unknown as { spouseFamilies?: Array<{ family?: string }> }).spouseFamilies?.[0]?.family).toBe(
+        '@VOID@',
+      );
     }
   });
 
@@ -659,7 +688,9 @@ describe('parseGedcom551 — spec coverage', () => {
 
   test('parses an inline OBJE whose FILE.FORM spells the medium MEDI (5.5.1 p.37)', () => {
     const dataset = parse551(
-      [...HEADER, '0 @I1@ INDI', '1 OBJE', '2 FILE photo.jpg', '3 FORM jpg', '4 MEDI photo', ...SUBM, '0 TRLR'].join('\n'),
+      [...HEADER, '0 @I1@ INDI', '1 OBJE', '2 FILE photo.jpg', '3 FORM jpg', '4 MEDI photo', ...SUBM, '0 TRLR'].join(
+        '\n',
+      ),
     );
     const indi = dataset.records[0];
     if (indi?.tag !== 'INDI') {
@@ -674,9 +705,7 @@ describe('parseGedcom551 — spec coverage', () => {
   });
 
   test('parses an AGE without a payload', () => {
-    const dataset = parse551(
-      [...HEADER, '0 @I1@ INDI', '1 DEAT Y', '2 AGE', ...SUBM, '0 TRLR'].join('\n'),
-    );
+    const dataset = parse551([...HEADER, '0 @I1@ INDI', '1 DEAT Y', '2 AGE', ...SUBM, '0 TRLR'].join('\n'));
     const indi = dataset.records[0];
     if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'DEAT') {
       throw new Error('expected DEAT');
@@ -702,11 +731,12 @@ describe('parseGedcom551 — spec coverage', () => {
         '0 TRLR',
       ].join('\n'),
     );
-    const indi = dataset.records.find((record) => record.tag === 'INDI');
-    if (indi?.tag !== 'INDI') {
+    const indi = dataset.records.find(isIndividualRecord);
+    if (indi === undefined) {
       throw new Error('expected INDI');
     }
-    expect(indi.notes?.[0]?.payload).toBe('first\tsecond');
+    const note = indi.notes?.[0];
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('first\tsecond');
   });
 });
 

@@ -42,11 +42,7 @@ export type PersonCardData = {
  * React Flow requires them to attach edges, but the pedigree edges draw
  * their own geometry from layout data.
  */
-export const PersonCard = memo(function PersonCard({
-  data,
-  selected,
-  dragging,
-}: NodeProps<Node<PersonCardData>>) {
+export const PersonCard = memo(function PersonCard({ data, selected, dragging }: NodeProps<Node<PersonCardData>>) {
   const {
     person,
     line,
@@ -87,11 +83,7 @@ export const PersonCard = memo(function PersonCard({
         isDropTarget={false}
         isEditing
         editingContent={
-          <PersonCardEditor
-            autoFocus
-            onSave={(next) => onDraftSave?.(next)}
-            onCancel={() => onDraftCancel?.()}
-          />
+          <PersonCardEditor autoFocus onSave={(next) => onDraftSave?.(next)} onCancel={() => onDraftCancel?.()} />
         }
       >
         <Handle type="target" position={Position.Top} className="person-card-handle" />

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
-import type { EventDefinitionRecord, FamilyRecord, GedcomDataset, IndividualRecord, SourceCitation } from '../src/structures';
+import type { EventDefinitionRecord, FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
 import legacyCustomTags from './fixtures/legacy/legacycustomtags.ged?raw';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
@@ -65,7 +65,9 @@ describe('the FTW marriage statuses _MSTAT/_MEND under FAM', () => {
     for (const parseOk of [parseOk551, parseOk70]) {
       const sample = parseOk === parseOk551 ? fam551 : fam70;
       const ser = parseOk === parseOk551 ? ser551 : ser70;
-      const dataset = parseOk(sample(['1 HUSB @I1@', '1 WIFE @I2@', '1 _MSTAT Friends', '1 _MEND Widowed', '0 @I1@ INDI', '0 @I2@ INDI']));
+      const dataset = parseOk(
+        sample(['1 HUSB @I1@', '1 WIFE @I2@', '1 _MSTAT Friends', '1 _MEND Widowed', '0 @I1@ INDI', '0 @I2@ INDI']),
+      );
       const fam = dataset.records.find((record): record is FamilyRecord => record.tag === 'FAM');
       expect(fam?.marriageBeginningStatus).toBe('Friends');
       expect(fam?.marriageEndingStatus).toBe('Widowed');
@@ -126,11 +128,11 @@ describe('the RootsMagic _SENT/_PPFX under event details', () => {
   test('7.0 input accepts the non-underscore spellings', () => {
     for (const tag of ['SENT', 'PPFX']) {
       const result = parseGedcom70(enc(indi70(['1 BIRT', `2 ${tag} x`])));
-      expect(result.ok, tag).toBe(true);
+      expect(result.ok).toBe(true);
       if (result.ok) {
         const indi = result.value.records.find((record) => record.tag === 'INDI');
-        const detail = (indi as { events?: Array<{ detail?: { sentence?: string; placePrefix?: string } }> }).events?.[0]
-          ?.detail;
+        const detail = (indi as { events?: Array<{ detail?: { sentence?: string; placePrefix?: string } }> })
+          .events?.[0]?.detail;
         expect(tag === 'SENT' ? detail?.sentence : detail?.placePrefix).toBe('x');
       }
     }
@@ -267,16 +269,23 @@ describe('the Legacy _EVENT_DEFN record', () => {
     expect(record?.includeNotes).toBe(true);
     expect(record?.sentences?.[0]).toBe('[HeShe] served in the military [Desc] [onDate] [inPlace].');
     expect(record?.sentences?.[7]).toBe('[HeShe] served in the military.');
-    expect(record?.witnessRoles).toEqual([{
-      tag: 'ROLE',
-      role: 'Witness',
-      sentences: [
-        '[FirstHeShe] witnessed the military service of [MainPerson].',
-        '', '', '', '', '', '',
-        '[FirstHeShe] witnessed the military service of [MainPerson] [onDate] [inPlace].',
-      ],
-      defaultRole: true,
-    }]);
+    expect(record?.witnessRoles).toEqual([
+      {
+        tag: 'ROLE',
+        role: 'Witness',
+        sentences: [
+          '[FirstHeShe] witnessed the military service of [MainPerson].',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '[FirstHeShe] witnessed the military service of [MainPerson] [onDate] [inPlace].',
+        ],
+        defaultRole: true,
+      },
+    ]);
     // The record round-trips in both versions.
     const out551 = lines(ser551(dataset));
     expect(out551).toContain('0 _EVENT_DEFN Military Service');

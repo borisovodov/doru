@@ -18,18 +18,20 @@ export class RepositoryRepo {
   }
 
   getRepository(id: string): RepositoryRecord | undefined {
-    const row = this.db
-      .prepare('SELECT id, xref, name, address_id FROM repository WHERE id = ?')
-      .get(id) as { id: string; xref: string | null; name: string; address_id: string | null } | undefined;
+    const row = this.db.prepare('SELECT id, xref, name, address_id FROM repository WHERE id = ?').get(id) as
+      { id: string; xref: string | null; name: string; address_id: string | null } | undefined;
     return row
       ? { id: row.id, xref: row.xref ?? undefined, name: row.name, addressId: row.address_id ?? undefined }
       : undefined;
   }
 
   listRepositories(): RepositoryRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, xref, name, address_id FROM repository ORDER BY id')
-      .all() as unknown as { id: string; xref: string | null; name: string; address_id: string | null }[];
+    const rows = this.db.prepare('SELECT id, xref, name, address_id FROM repository ORDER BY id').all() as unknown as {
+      id: string;
+      xref: string | null;
+      name: string;
+      address_id: string | null;
+    }[];
     return rows.map((row) => ({
       id: row.id,
       xref: row.xref ?? undefined,

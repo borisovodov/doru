@@ -15,28 +15,28 @@ export interface TooltipProps {
  */
 export function Tooltip({ label, children, delay = 600, className }: TooltipProps) {
   const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
-      if (timer.current !== null) {
-        clearTimeout(timer.current);
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
       }
     },
     [],
   );
 
   const show = () => {
-    if (timer.current !== null) {
-      clearTimeout(timer.current);
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
     }
-    timer.current = setTimeout(() => setOpen(true), delay);
+    timerRef.current = setTimeout(() => setOpen(true), delay);
   };
 
   const hide = () => {
-    if (timer.current !== null) {
-      clearTimeout(timer.current);
-      timer.current = null;
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
     setOpen(false);
   };

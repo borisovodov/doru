@@ -67,7 +67,7 @@ const GED_FILES: ReadonlyArray<readonly [string, string]> = [
 function parseOk70(text: string): GedcomDataset {
   const result = parseGedcom70(enc(text));
   if (!result.ok) {
-    throw new Error(`${JSON.stringify(result.error)}`);
+    throw new Error(JSON.stringify(result.error));
   }
   return result.value;
 }

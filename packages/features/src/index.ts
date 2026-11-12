@@ -1,7 +1,13 @@
 export { TreeCanvas, type TreeCanvasProps } from './tree/TreeCanvas';
 export { PersonCard, type PersonCardData } from './tree/PersonCard';
 export { PersonEditor, type PersonEditorProps } from './person/PersonEditor';
-export type { FamilyEditorApi, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from './person/types';
+export type {
+  FamilyEditorApi,
+  PersonEditorApi,
+  PlaceEditorApi,
+  RegistriesEditorApi,
+  SourceEditorApi,
+} from './person/types';
 export { SidebarFamilies } from './sidebar/SidebarFamilies';
 export { SidebarFacts } from './sidebar/SidebarFacts';
 export { SidebarPlaces } from './sidebar/SidebarPlaces';
@@ -15,7 +21,13 @@ export { SourceEditor } from './source/SourceEditor';
 export { FamilyEditor } from './family/FamilyEditor';
 export { PlaceEditor } from './place/PlaceEditor';
 export { PlaceFactsList } from './place/PlaceFactsList';
-export { placeDraftToRecord, placeToDraft, emptyPlaceDraft, placeDraftMatches, type PlaceDraft } from './place/placeDraft';
+export {
+  placeDraftToRecord,
+  placeToDraft,
+  emptyPlaceDraft,
+  placeDraftMatches,
+  type PlaceDraft,
+} from './place/placeDraft';
 export { SettingsView, type SettingsViewProps, type ThemeEntry, type AiTestState } from './settings/SettingsView';
 export type { AiCatalogModelInfo, AiProviderInfo, AiSettingsState, ModelFetchState } from './settings/types';
 export { NoticesView, type NoticesViewProps } from './notices/NoticesView';

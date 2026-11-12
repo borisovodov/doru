@@ -40,7 +40,7 @@ describe('APP_MENU', () => {
         if (entry.type !== 'item') {
           continue;
         }
-        expect(entry.command ?? entry.action ?? entry.role, entry.id).toBeDefined();
+        expect(entry.command ?? entry.action ?? entry.role).toBeDefined();
       }
     }
   });
@@ -56,9 +56,7 @@ describe('APP_MENU', () => {
 
   test('Quit lives only in the File menu on Windows/Linux (macOS has it in the app menu)', () => {
     const file = APP_MENU.find((group) => group.id === 'file');
-    const quit = file?.items.find(
-      (entry): entry is MenuItemEntry => entry.type === 'item' && entry.id === 'file.quit',
-    );
+    const quit = file?.items.find((entry): entry is MenuItemEntry => entry.type === 'item' && entry.id === 'file.quit');
     expect(quit).toBeDefined();
     expect(menuVisible(quit!, 'macos')).toBe(false);
     expect(menuVisible(quit!, 'windows')).toBe(true);
@@ -67,22 +65,18 @@ describe('APP_MENU', () => {
 
   test('keeps the id e2e tests address the agent chat toggle by', () => {
     const view = APP_MENU.find((group) => group.id === 'view');
-    expect(view?.items.some((entry) => entry.type === 'item' && entry.id === 'toggle-agent-chat')).toBe(
-      true,
-    );
+    expect(view?.items.some((entry) => entry.type === 'item' && entry.id === 'toggle-agent-chat')).toBe(true);
   });
 
   test('command items visible in the macOS menu always show an accelerator', () => {
     // Role groups (app, edit, window) render natively on macOS; only the
     // plain groups' items appear as command items.
-    for (const group of APP_MENU.filter(
-      (candidate) => menuVisible(candidate, 'macos') && !candidate.role,
-    )) {
+    for (const group of APP_MENU.filter((candidate) => menuVisible(candidate, 'macos') && !candidate.role)) {
       for (const entry of group.items) {
         if (entry.type !== 'item' || !entry.command || !menuVisible(entry, 'macos')) {
           continue;
         }
-        expect(entry.accelerator, entry.id).toBeDefined();
+        expect(entry.accelerator).toBeDefined();
       }
     }
   });

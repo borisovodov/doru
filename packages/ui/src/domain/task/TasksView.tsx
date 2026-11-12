@@ -69,13 +69,14 @@ export function TasksView({
                     )}
                     {todo.targetType === 'person' && todo.targetId !== undefined && personById.has(todo.targetId) && (
                       <button
+                        type="button"
                         className="task-chip task-chip-link"
                         onClick={(event) => {
                           event.stopPropagation();
                           onOpenPerson(todo.targetId as string);
                         }}
                       >
-                        {displayName(personById.get(todo.targetId as string))}
+                        {displayName(personById.get(todo.targetId))}
                       </button>
                     )}
                   </span>

@@ -1,9 +1,4 @@
-import type {
-  Xref,
-  ExtensionTag,
-  Tag,
-  Text,
-} from '../primitives';
+import type { Xref, ExtensionTag, Tag, Text } from '../primitives';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §1.5 Extensions

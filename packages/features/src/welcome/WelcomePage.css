@@ -8,6 +8,7 @@
   box-sizing: border-box;
   overflow: auto;
   padding: 72px 24px;
+
   /* Nothing on this page is selectable text. */
   user-select: none;
 }

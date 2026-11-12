@@ -1,12 +1,7 @@
-import {
-  type PersonName,
-  type PersonRecord,
-  TreeService,
-} from '@doru/core';
+import { type PersonName, type PersonRecord, TreeService } from '@doru/core';
 
 export type TreeEditOp =
-  | { kind: 'person.add'; person: PersonRecord }
-  | { kind: 'person.update'; before: PersonRecord; after: PersonRecord };
+  { kind: 'person.add'; person: PersonRecord } | { kind: 'person.update'; before: PersonRecord; after: PersonRecord };
 
 /**
  * The agent-facing tree surface: adapts the MCP/AI tool calls onto the
@@ -30,7 +25,7 @@ export class TreeMcpBackend {
       case 'tree_stats':
         return this.service.stats();
       case 'tree_edit':
-        return this.edit(args['op'] as TreeEditOp);
+        return this.edit(args['op']);
       case 'tree_add_relative':
         return this.addRelative(
           args['relation'] as 'child' | 'spouse' | 'parent',
@@ -61,12 +56,13 @@ export class TreeMcpBackend {
     return { found: true, person, families };
   }
 
-  private edit(op: TreeEditOp): unknown {
-    if (!op || typeof op !== 'object') {
+  private edit(op: unknown): unknown {
+    if (op === null || typeof op !== 'object') {
       throw new Error('tree_edit requires an "op" object');
     }
-    if (op.kind === 'person.add') {
-      const person = normalizePerson(op.person);
+    const record = op as Record<string, unknown>;
+    if (record['kind'] === 'person.add') {
+      const person = normalizePerson(record['person']);
       if (this.service.getPerson(person.id)) {
         throw new Error(
           `A person with id "${person.id}" already exists in the tree; the new person needs an unused id.`,
@@ -75,22 +71,18 @@ export class TreeMcpBackend {
       const state = this.service.addPerson(person);
       return { ok: true, canUndo: state.canUndo };
     }
-    if (op.kind === 'person.update') {
-      const state = this.service.updatePerson(normalizePerson(op.before), normalizePerson(op.after));
+    if (record['kind'] === 'person.update') {
+      const state = this.service.updatePerson(normalizePerson(record['before']), normalizePerson(record['after']));
       return { ok: true, canUndo: state.canUndo };
     }
-    throw new Error(`Unsupported op kind: ${(op as { kind?: string }).kind}`);
+    throw new Error(`Unsupported op kind: ${String(record['kind'])}`);
   }
 
   /**
    * Creates a person and links them to the anchor as a child, spouse or
    * parent — the service reuses the anchor's family or creates one.
    */
-  private addRelative(
-    relation: 'child' | 'spouse' | 'parent',
-    anchorId: string,
-    person: PersonRecord,
-  ): unknown {
+  private addRelative(relation: 'child' | 'spouse' | 'parent', anchorId: string, person: PersonRecord): unknown {
     const normalized = normalizePerson(person);
     if (this.service.getPerson(normalized.id)) {
       throw new Error(
@@ -142,27 +134,37 @@ export class TreeMcpBackend {
  * when the model omitted them (they exist for stable in-app addressing,
  * not for the model to invent), missing optional parts default to empty.
  */
-function normalizePerson(person: PersonRecord | undefined | null): PersonRecord {
-  if (!person || typeof person.id !== 'string' || person.id === '') {
+function normalizePerson(person: unknown): PersonRecord {
+  if (person === null || typeof person !== 'object') {
     throw new Error('a person payload with an "id" is required');
   }
-  const names: PersonName[] = (Array.isArray(person.names) ? person.names : []).map((name) => ({
-    id: typeof name.id === 'string' && name.id !== '' ? name.id : crypto.randomUUID(),
-    full: name.full,
-    given: name.given,
-    surname: name.surname,
-    surnamePrefix: name.surnamePrefix,
-    nickname: name.nickname,
-    prefix: name.prefix,
-    suffix: name.suffix,
-    type: name.type,
-  }));
+  const record = person as Record<string, unknown>;
+  const id = record['id'];
+  if (typeof id !== 'string' || id === '') {
+    throw new Error('a person payload with an "id" is required');
+  }
+  const rawNames: unknown[] = Array.isArray(record['names']) ? (record['names'] as unknown[]) : [];
+  const names: PersonName[] = rawNames.map((rawName: unknown) => {
+    const name = (typeof rawName === 'object' && rawName !== null ? rawName : {}) as Partial<PersonName>;
+    return {
+      id: typeof name.id === 'string' && name.id !== '' ? name.id : crypto.randomUUID(),
+      full: name.full,
+      given: name.given,
+      surname: name.surname,
+      surnamePrefix: name.surnamePrefix,
+      nickname: name.nickname,
+      prefix: name.prefix,
+      suffix: name.suffix,
+      type: name.type,
+    };
+  });
+  const sex = record['sex'];
   return {
-    id: person.id,
-    xref: person.xref,
-    sex: person.sex === 'M' || person.sex === 'F' || person.sex === 'X' || person.sex === 'U' ? person.sex : 'U',
+    id,
+    xref: typeof record['xref'] === 'string' ? record['xref'] : undefined,
+    sex: sex === 'M' || sex === 'F' || sex === 'X' || sex === 'U' ? sex : 'U',
     names,
-    facts: Array.isArray(person.facts) ? person.facts : [],
+    facts: Array.isArray(record['facts']) ? (record['facts'] as PersonRecord['facts']) : [],
   };
 }
 

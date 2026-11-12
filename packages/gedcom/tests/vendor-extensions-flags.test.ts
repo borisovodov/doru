@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551 } from '../src/parsing/assemble';
 import { serializeGedcom551 } from '../src/serialize/serialize';
 import type { FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
+import { isFamilyRecord, isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -61,7 +62,7 @@ const SAMPLE551 = [
 
 function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected INDI ${xref}`);
   }
   return record;
@@ -69,7 +70,7 @@ function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
 
 function fam(dataset: GedcomDataset, xref: string): FamilyRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'FAM') {
+  if (record === undefined || !isFamilyRecord(record)) {
     throw new Error(`expected FAM ${xref}`);
   }
   return record;
@@ -81,10 +82,7 @@ describe('Legacy workflow flags', () => {
     const john = indi(dataset, '@I1@');
 
     // _PREF: spouse link, child link, parent link.
-    expect(john.spouseFamilies).toEqual([
-      { family: '@F1@', preferred: true },
-      { family: '@F2@' },
-    ]);
+    expect(john.spouseFamilies).toEqual([{ family: '@F1@', preferred: true }, { family: '@F2@' }]);
     expect(john.childFamilies?.[0]?.preferred).toBe(true);
     expect(fam(dataset, '@F1@').children?.[0]?.preferred).toBe(true);
 

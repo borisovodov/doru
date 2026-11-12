@@ -76,8 +76,8 @@ export class ChatSessionsStore {
   }
 
   list(projectKey: string): ChatSessionMeta[] {
-    return this.readIndex(projectKey).sessions
-      .slice()
+    return this.readIndex(projectKey)
+      .sessions.slice()
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .map(({ id, title, createdAt, updatedAt }) => ({ id, title, createdAt, updatedAt }));
   }
@@ -136,11 +136,7 @@ export class ChatSessionsStore {
    * refreshes the session metadata. The first user message becomes the
    * session title.
    */
-  appendExchange(
-    projectKey: string,
-    id: string,
-    exchange: { user: string; assistant: ChatTranscriptMessage },
-  ): void {
+  appendExchange(projectKey: string, id: string, exchange: { user: string; assistant: ChatTranscriptMessage }): void {
     const file = this.sessionFile(projectKey, id);
     mkdirSync(this.projectDir(projectKey), { recursive: true });
     const user: TranscriptLine = { type: 'user', content: exchange.user };

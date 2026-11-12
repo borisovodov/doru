@@ -14,8 +14,26 @@ import type {
   TagLinkRecord,
   TagRecord,
 } from '@doru/core';
-import { EntityTab, PlaceEditor, PlaceFactsList, emptyPlaceDraft, placeDraftMatches, placeDraftToRecord, placeToDraft, type PlaceDraft, type PlaceEditorApi } from '@doru/features';
-import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection } from '@doru/ui/domain';
+import {
+  EntityTab,
+  PlaceEditor,
+  PlaceFactsList,
+  emptyPlaceDraft,
+  placeDraftMatches,
+  placeDraftToRecord,
+  placeToDraft,
+  type PlaceDraft,
+  type PlaceEditorApi,
+} from '@doru/features';
+import {
+  ContactsSection,
+  ContributorsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { PLACE_TAB_PREFIX } from '../hooks/useTabs';
 
@@ -121,18 +139,27 @@ function PlaceTabBody({
     if (targetId === undefined) {
       return;
     }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions, loadedSubmitters, loadedContributors] =
-      await Promise.all([
-        api.getNotes('place', targetId),
-        api.getCitations('place', targetId),
-        api.getTags(),
-        api.getTagLinks('place', targetId),
-        api.getIdentifiers('place', targetId),
-        api.getContacts('place', targetId),
-        api.getRestrictions('place', targetId),
-        api.getSubmitters(),
-        api.getRecordSubmitters('place', targetId),
-      ]);
+    const [
+      loadedNotes,
+      loadedCitations,
+      loadedTags,
+      loadedTagLinks,
+      loadedIdentifiers,
+      loadedContacts,
+      loadedRestrictions,
+      loadedSubmitters,
+      loadedContributors,
+    ] = await Promise.all([
+      api.getNotes('place', targetId),
+      api.getCitations('place', targetId),
+      api.getTags(),
+      api.getTagLinks('place', targetId),
+      api.getIdentifiers('place', targetId),
+      api.getContacts('place', targetId),
+      api.getRestrictions('place', targetId),
+      api.getSubmitters(),
+      api.getRecordSubmitters('place', targetId),
+    ]);
     setPlaceNotes(loadedNotes);
     setPlaceCitations(loadedCitations);
     setTags(loadedTags);
@@ -159,7 +186,7 @@ function PlaceTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      current && previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
+      previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
     );
   }, [record, isNew]);
 
@@ -169,7 +196,11 @@ function PlaceTabBody({
       await api.addPlace(next);
       onCreated(next.id);
     } else {
-      await api.updatePlace(lastSaved ?? record!, next);
+      const target = lastSaved ?? record;
+      if (target === undefined) {
+        return;
+      }
+      await api.updatePlace(target, next);
     }
     setLastSaved(next);
   };
@@ -182,10 +213,8 @@ function PlaceTabBody({
     onClose(tabId);
   };
 
-  const factsAtPlace =
-    lastSaved !== undefined || record !== undefined
-      ? facts.filter((fact) => fact.placeId === (lastSaved ?? record)!.id)
-      : [];
+  const currentPlace = lastSaved ?? record;
+  const factsAtPlace = currentPlace !== undefined ? facts.filter((fact) => fact.placeId === currentPlace.id) : [];
 
   return (
     <EntityTab>

@@ -13,9 +13,7 @@ import type {
   PersonalName,
   TimeValue,
 } from '../primitives';
-import type {
-  Version,
-} from './writer';
+import type { Version } from './writer';
 
 // ---------------------------------------------------------------------------
 // Value formatting
@@ -59,8 +57,8 @@ export function formatDateFields(
   }
   const calendar = fields.calendar ?? 'GREGORIAN';
   if (
-    version === '5.5.1'
-    && (calendar.startsWith('_') || fields.month?.startsWith('_') === true || fields.epoch?.startsWith('_') === true)
+    version === '5.5.1' &&
+    (calendar.startsWith('_') || fields.month?.startsWith('_') === true || fields.epoch?.startsWith('_') === true)
   ) {
     // 5.5.1 has no extension calendars, months or epochs; a date using
     // one cannot be spelled and is dropped, like the other 5.5.1-only
@@ -78,7 +76,12 @@ export function formatDateFields(
     return undefined;
   }
   const escape = version === '5.5.1' ? calendarEscape551(calendar) : calendar === 'GREGORIAN' ? '' : `${calendar} `;
-  const dayMonth = fields.day !== undefined && fields.month !== undefined ? `${fields.day} ${fields.month} ` : fields.month !== undefined ? `${fields.month} ` : '';
+  const dayMonth =
+    fields.day !== undefined && fields.month !== undefined
+      ? `${fields.day} ${fields.month} `
+      : fields.month !== undefined
+        ? `${fields.month} `
+        : '';
   return `${escape}${dayMonth}${fields.year}${epochSuffix(fields.epoch, version)}`;
 }
 

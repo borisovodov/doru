@@ -77,7 +77,8 @@ export function seedFixture(queue: OpQueue, repo: SqliteTreeRepository, seed: 'r
 
 // --- argument predicates ----------------------------------------------------
 
-function queryHasAny(words: string[]): (args: Record<string, unknown>) => string | null {  return (args) => {
+function queryHasAny(words: string[]): (args: Record<string, unknown>) => string | null {
+  return (args) => {
     const query = args['query'];
     if (typeof query !== 'string' || query.trim() === '') {
       return `tree_query called without a usable query (got ${JSON.stringify(query)})`;
@@ -90,11 +91,14 @@ function queryHasAny(words: string[]): (args: Record<string, unknown>) => string
 }
 
 function querySex(sex: 'M' | 'F'): (args: Record<string, unknown>) => string | null {
-  return (args) =>
-    args['sex'] === sex ? null : `tree_query sex is ${JSON.stringify(args['sex'])}, expected "${sex}"`;
+  return (args) => (args['sex'] === sex ? null : `tree_query sex is ${JSON.stringify(args['sex'])}, expected "${sex}"`);
 }
 
-function personAdd(given: string, surname: string, sex: 'M' | 'F' | 'U'): (args: Record<string, unknown>) => string | null {
+function personAdd(
+  given: string,
+  surname: string,
+  sex: 'M' | 'F' | 'U',
+): (args: Record<string, unknown>) => string | null {
   return (args) => {
     const op = args['op'] as Record<string, unknown> | undefined;
     const person = op?.['person'] as Record<string, unknown> | undefined;
@@ -105,11 +109,17 @@ function personAdd(given: string, surname: string, sex: 'M' | 'F' | 'U'): (args:
     if (!names?.some((name) => name['given'] === given && name['surname'] === surname)) {
       return `tree_edit person names do not include ${given} ${surname}: ${JSON.stringify(names)}`;
     }
-    return person?.['sex'] === sex ? null : `tree_edit person sex is ${JSON.stringify(person?.['sex'])}, expected "${sex}"`;
+    return person?.['sex'] === sex
+      ? null
+      : `tree_edit person sex is ${JSON.stringify(person?.['sex'])}, expected "${sex}"`;
   };
 }
 
-function relative(relation: 'child' | 'spouse' | 'parent', anchorId: string, sex: 'M' | 'F' | 'U'): (args: Record<string, unknown>) => string | null {
+function relative(
+  relation: 'child' | 'spouse' | 'parent',
+  anchorId: string,
+  sex: 'M' | 'F' | 'U',
+): (args: Record<string, unknown>) => string | null {
   return (args) => {
     const person = args['person'] as Record<string, unknown> | undefined;
     if (args['relation'] !== relation) {
@@ -156,7 +166,11 @@ function noteText(textPart: string, targetId: string): (args: Record<string, unk
  * alternative matches anything). Russian and English spellings can both be
  * listed, since the model is free to pick either.
  */
-function personNamed(repo: TreeRepository, givenAlts: string[], surnameAlts: string[] = ['']): PersonRecord | undefined {
+function personNamed(
+  repo: TreeRepository,
+  givenAlts: string[],
+  surnameAlts: string[] = [''],
+): PersonRecord | undefined {
   return repo.listAllPersons().find((person) =>
     person.names.some((name) => {
       const given = (name.given ?? '').toLowerCase();

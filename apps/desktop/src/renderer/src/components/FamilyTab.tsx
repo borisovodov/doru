@@ -13,7 +13,19 @@ import type {
   TagRecord,
 } from '@doru/core';
 import { EntityTab, FamilyEditor, type FamilyEditorApi } from '@doru/features';
-import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, familyDraftMatches, familyDraftToRecord, familyToDraft, type FamilyDraft } from '@doru/ui/domain';
+import {
+  ContactsSection,
+  ContributorsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  familyDraftMatches,
+  familyDraftToRecord,
+  familyToDraft,
+  type FamilyDraft,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { FAMILY_TAB_PREFIX } from '../hooks/useTabs';
 
@@ -130,9 +142,7 @@ function FamilyTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    setDraft((current) =>
-      current && familyDraftMatches(current, previous) ? familyToDraft(record) : current,
-    );
+    setDraft((current) => (familyDraftMatches(current, previous) ? familyToDraft(record) : current));
   }, [record]);
 
   const save = async () => {

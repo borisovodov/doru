@@ -1,4 +1,12 @@
-import type { AddressRecord, DateQuality, DateValue, FactRecord, FamilyRecord, PersonName, PersonRecord } from '@doru/core';
+import type {
+  AddressRecord,
+  DateQuality,
+  DateValue,
+  FactRecord,
+  FamilyRecord,
+  PersonName,
+  PersonRecord,
+} from '@doru/core';
 import { factOf, factYear } from '@doru/core/model';
 
 export function displayName(person: PersonRecord | undefined): string {
@@ -36,9 +44,12 @@ export function initials(person: PersonRecord): string {
   }
   if (name.full) {
     const words = name.full.replace(/\//g, '').trim().split(/\s+/).filter(Boolean);
-    return words.slice(0, 2).map((word) => word[0]?.toUpperCase() ?? '').join('');
+    return words
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? '')
+      .join('');
   }
-  const parts = [name.given, name.surname].filter((part) => part !== undefined) as string[];
+  const parts = [name.given, name.surname].filter((part): part is string => part !== undefined);
   if (parts.length === 0) {
     return '?';
   }
@@ -89,13 +100,11 @@ export function years(person: PersonRecord): string {
 
 /** The partners of a family as one label: "Ivan Petrov & Maria Sidorova". */
 export function familyLabel(family: FamilyRecord, personById: Map<string, PersonRecord>): string {
-  const names = family.partners
-    .map((id) => displayName(personById.get(id)))
-    .filter((name) => name !== '?');
+  const names = family.partners.map((id) => displayName(personById.get(id))).filter((name) => name !== '?');
   if (names.length === 0) {
     return family.children.length > 0
       ? `${displayName(personById.get(family.children[0] ?? ''))} …`
-      : family.xref ?? family.id;
+      : (family.xref ?? family.id);
   }
   return names.join(' & ');
 }

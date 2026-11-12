@@ -207,7 +207,9 @@ describe('evidence records and links', () => {
     ]);
     const family = dataset.records.find((entry) => entry.tag === 'FAM');
     expect(family).toMatchObject({
-      evidence: [{ tag: '_EVREF', evidence: '@E1@', confidence: 'high', used: 'yes', documents: ['@D1@'], quality: '3' }],
+      evidence: [
+        { tag: '_EVREF', evidence: '@E1@', confidence: 'high', used: 'yes', documents: ['@D1@'], quality: '3' },
+      ],
       occurrences: [
         {
           tag: '_OCREF',

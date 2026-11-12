@@ -69,13 +69,10 @@ export function registerTreeIpc(): void {
     return runtime.service.addPerson(options.person);
   });
 
-  ipcMain.handle(
-    'tree:aliases',
-    async (_event, options: { projectPath: string; personId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listAliasesFor(options.personId);
-    },
-  );
+  ipcMain.handle('tree:aliases', async (_event, options: { projectPath: string; personId: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAliasesFor(options.personId);
+  });
 
   ipcMain.handle(
     'tree:addAlias',
@@ -101,13 +98,10 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:deletePerson',
-    async (_event, options: { projectPath: string; person: PersonRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deletePerson(options.person);
-    },
-  );
+  ipcMain.handle('tree:deletePerson', async (_event, options: { projectPath: string; person: PersonRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deletePerson(options.person);
+  });
 
   ipcMain.handle(
     'tree:reparent',
@@ -144,13 +138,10 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:personCounts',
-    async (_event, options: { projectPath: string; personIds: string[] }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.personCounts(options.personIds);
-    },
-  );
+  ipcMain.handle('tree:personCounts', async (_event, options: { projectPath: string; personIds: string[] }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.personCounts(options.personIds);
+  });
 
   ipcMain.handle('tree:addNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
@@ -196,13 +187,10 @@ export function registerTreeIpc(): void {
     return runtime.service.deleteFamily(options.family);
   });
 
-  ipcMain.handle(
-    'tree:associations',
-    async (_event, options: { projectPath: string; personId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listAssociationsFor(options.personId);
-    },
-  );
+  ipcMain.handle('tree:associations', async (_event, options: { projectPath: string; personId: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAssociationsFor(options.personId);
+  });
 
   ipcMain.handle(
     'tree:addAssociation',
@@ -273,13 +261,10 @@ export function registerTreeIpc(): void {
     return runtime.service.addContact(options.contact);
   });
 
-  ipcMain.handle(
-    'tree:deleteContact',
-    async (_event, options: { projectPath: string; contact: ContactRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deleteContact(options.contact);
-    },
-  );
+  ipcMain.handle('tree:deleteContact', async (_event, options: { projectPath: string; contact: ContactRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteContact(options.contact);
+  });
 
   ipcMain.handle(
     'tree:updateContact',
@@ -370,13 +355,10 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:changes',
-    async (_event, options: { projectPath: string; personId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listChangesFor('person', options.personId);
-    },
-  );
+  ipcMain.handle('tree:changes', async (_event, options: { projectPath: string; personId: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listChangesFor('person', options.personId);
+  });
 
   ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
@@ -385,10 +367,7 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:addSource',
-    async (
-      _event,
-      options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string },
-    ) => {
+    async (_event, options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.addSource(options.source, options.targetType, options.targetId);
     },
@@ -443,13 +422,10 @@ export function registerTreeIpc(): void {
     return runtime.service.deletePlace(options.place);
   });
 
-  ipcMain.handle(
-    'tree:factsForPlace',
-    async (_event, options: { projectPath: string; placeId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listFactsForPlace(options.placeId);
-    },
-  );
+  ipcMain.handle('tree:factsForPlace', async (_event, options: { projectPath: string; placeId: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listFactsForPlace(options.placeId);
+  });
 
   ipcMain.handle(
     'tree:addRepository',
@@ -485,13 +461,10 @@ export function registerTreeIpc(): void {
     return runtime.service.listTitles();
   });
 
-  ipcMain.handle(
-    'tree:addTitle',
-    async (_event, options: { projectPath: string; title: TitleRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addTitle(options.title);
-    },
-  );
+  ipcMain.handle('tree:addTitle', async (_event, options: { projectPath: string; title: TitleRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addTitle(options.title);
+  });
 
   ipcMain.handle(
     'tree:updateTitle',
@@ -501,21 +474,15 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:deleteTitle',
-    async (_event, options: { projectPath: string; title: TitleRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deleteTitle(options.title);
-    },
-  );
+  ipcMain.handle('tree:deleteTitle', async (_event, options: { projectPath: string; title: TitleRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteTitle(options.title);
+  });
 
-  ipcMain.handle(
-    'tree:addSubmitter',
-    async (_event, options: { projectPath: string; submitter: SubmitterRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addSubmitter(options.submitter);
-    },
-  );
+  ipcMain.handle('tree:addSubmitter', async (_event, options: { projectPath: string; submitter: SubmitterRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addSubmitter(options.submitter);
+  });
 
   ipcMain.handle(
     'tree:updateSubmitter',
@@ -551,19 +518,24 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:deleteRecordSubmitter',
-    async (_event, options: { projectPath: string; id: string; submitterId: string; targetType: string; targetId: string }) => {
+    async (
+      _event,
+      options: { projectPath: string; id: string; submitterId: string; targetType: string; targetId: string },
+    ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deleteRecordSubmitter(options.id, options.submitterId, options.targetType, options.targetId);
+      return runtime.service.deleteRecordSubmitter(
+        options.id,
+        options.submitterId,
+        options.targetType,
+        options.targetId,
+      );
     },
   );
 
-  ipcMain.handle(
-    'tree:addresses',
-    async (_event, options: { projectPath: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listAddresses();
-    },
-  );
+  ipcMain.handle('tree:addresses', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAddresses();
+  });
 
   ipcMain.handle('tree:addAddress', async (_event, options: { projectPath: string; address: AddressRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
@@ -578,13 +550,10 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:deleteAddress',
-    async (_event, options: { projectPath: string; address: AddressRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deleteAddress(options.address);
-    },
-  );
+  ipcMain.handle('tree:deleteAddress', async (_event, options: { projectPath: string; address: AddressRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteAddress(options.address);
+  });
 
   ipcMain.handle('tree:address', async (_event, options: { projectPath: string; id: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);

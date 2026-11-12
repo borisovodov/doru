@@ -13,14 +13,7 @@ export interface EntityViewCardProps {
 }
 
 /** The header card shared by every entity editor. */
-export function EntityViewCard({
-  media,
-  title,
-  subtitle,
-  badges,
-  actions,
-  className,
-}: EntityViewCardProps) {
+export function EntityViewCard({ media, title, subtitle, badges, actions, className }: EntityViewCardProps) {
   return (
     <section className={cx(styles['card'], className)}>
       {media ? <div className={styles['media']}>{media}</div> : null}

@@ -36,8 +36,7 @@ import { acpClients, acpSessionOwner, projectWindows } from './state';
  */
 
 export type ChatEvent = { sessionId: string } & (
-  | { type: 'textDelta'; text: string }
-  | { type: 'step'; step: AgentStep }
+  { type: 'textDelta'; text: string } | { type: 'step'; step: AgentStep }
 );
 
 function doruMcpServerEntry(projectPath: string): AcpMcpServerEntry {
@@ -252,9 +251,7 @@ export async function sendChat(options: {
           result = {
             steps: agentResult.steps,
             finalText: agentResult.finalText,
-            ...(agentResult.error !== undefined
-              ? { error: userMessageFor(agentResult.errorCode ?? 'unknown') }
-              : {}),
+            ...(agentResult.error !== undefined ? { error: userMessageFor(agentResult.errorCode ?? 'unknown') } : {}),
           };
         } catch (error) {
           if (abort.signal.aborted) {

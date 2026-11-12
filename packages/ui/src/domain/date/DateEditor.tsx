@@ -158,9 +158,7 @@ export function DateEditor({
           {CALENDARS.map((calendar) => (
             <option key={calendar} value={calendar}>
               {nls.t(
-                calendar === ''
-                  ? 'features.tree.date.calendar.gregorian'
-                  : `features.tree.date.calendar.${calendar}`,
+                calendar === '' ? 'features.tree.date.calendar.gregorian' : `features.tree.date.calendar.${calendar}`,
               )}
             </option>
           ))}

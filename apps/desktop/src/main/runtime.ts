@@ -1,11 +1,4 @@
-import {
-  OpQueue,
-  ProjectOpener,
-  SqliteTreeRepository,
-  TreeService,
-  TreeStore,
-  type ProjectSummary,
-} from '@doru/core';
+import { OpQueue, ProjectOpener, SqliteTreeRepository, TreeService, TreeStore, type ProjectSummary } from '@doru/core';
 import { userInfo } from 'node:os';
 import { releaseBookmarkAccess } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
@@ -85,10 +78,7 @@ export function openUntitledStore(projectKey: string, tempPath: string): Project
   return runtime;
 }
 
-export function closeProjectRuntime(
-  projectPath: string,
-  options: { removeUntitledFiles?: boolean } = {},
-): void {
+export function closeProjectRuntime(projectPath: string, options: { removeUntitledFiles?: boolean } = {}): void {
   const runtime = runtimes.get(projectPath);
   if (runtime) {
     runtime.store.close();

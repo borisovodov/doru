@@ -1,8 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type {
-  TitleRecord,
-  TodoRecord,
-} from '../model/types';
+import type { TitleRecord, TodoRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
 
 /** The research layer: todos and titles. */
@@ -36,11 +33,14 @@ export class ResearchRepo {
 
   deleteTodo(id: string): boolean {
     const row = this.db
-      .prepare(
-        'SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?',
-      )
+      .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
       .get(id) as
-      | { created_date_id: string | null; scheduled_date_id: string | null; reminder_date_id: string | null; closed_date_id: string | null }
+      | {
+          created_date_id: string | null;
+          scheduled_date_id: string | null;
+          reminder_date_id: string | null;
+          closed_date_id: string | null;
+        }
       | undefined;
     const result = this.db.prepare('DELETE FROM todo WHERE id = ?').run(id);
     if (row) {

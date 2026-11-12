@@ -98,13 +98,13 @@ describe('line tokenization (7.0)', () => {
   test('banned characters: DEL and C0 are sanitized, C1 is tolerated', () => {
     // DEL and the C0 controls (except the tab) are dropped from the
     // value, the vertical tab becomes the newline; the line survives.
-    const del = raw70(`0 HEAD\n1 NOTE bad${'\u007f'}char\n0 TRLR\n`);
+    const del = raw70(`0 HEAD\n1 NOTE bad\u007fchar\n0 TRLR\n`);
     expect((del.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'badchar' });
-    const vt = raw70(`0 HEAD\n1 NOTE a${'\u000b'}b\n0 TRLR\n`);
+    const vt = raw70(`0 HEAD\n1 NOTE a\u000bb\n0 TRLR\n`);
     expect((vt.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
     // The 5.x rule does not check the C1 controls (the 7.0 rule does);
     // the lenient rule wins.
-    const { nodes } = raw70(`0 HEAD\n1 NOTE ${'\u0085'}\n0 TRLR\n`);
+    const { nodes } = raw70(`0 HEAD\n1 NOTE \u0085\n0 TRLR\n`);
     expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '\u0085' });
   });
 
@@ -132,7 +132,7 @@ describe('line tokenization (7.0)', () => {
   test('repairs a level jump by attaching to the nearest enclosing line', () => {
     const { nodes } = raw70('0 HEAD\n2 GEDC\n0 TRLR\n');
     expect(nodes[0]?.tag).toBe('HEAD');
-    expect((nodes[0]?.children[0] as RawNode | undefined)?.tag).toBe('GEDC');
+    expect(nodes[0]?.children[0]?.tag).toBe('GEDC');
   });
 
   test('merges CONT continuations preserving blank lines', () => {
@@ -183,7 +183,7 @@ describe('line tokenization (5.5.1)', () => {
 
   test('the 99 level limit is lifted; deep levels attach to the nearest enclosing line', () => {
     const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n100 NOTE x\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode | undefined)?.children[0]?.tag).toBe('NOTE');
+    expect(nodes[0]?.children[0]?.children[0]?.tag).toBe('NOTE');
     // A first line at a positive level still has no enclosing line.
     expect(expectErr(() => raw551('1 CHAR ANSEL\n0 TRLR\n'))).toBe('line.level-skip');
   });
@@ -220,11 +220,11 @@ describe('line tokenization (5.5.1)', () => {
   test('sanitizes the other control characters out of values', () => {
     // The C0 controls (except the tab) and DEL are dropped from the
     // value; the vertical tab becomes the newline; the line survives.
-    const a = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u0001'}b\n0 TRLR\n`);
+    const a = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a\u0001b\n0 TRLR\n`);
     expect((a.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
-    const b = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u000b'}b\n0 TRLR\n`);
+    const b = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a\u000bb\n0 TRLR\n`);
     expect((b.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
-    const c = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a${'\u007f'}b\n0 TRLR\n`);
+    const c = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a\u007fb\n0 TRLR\n`);
     expect((c.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 

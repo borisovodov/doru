@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
-import type { FamilyRecord, GedcomDataset, IndividualRecord, MultimediaRecord, TodoRecord } from '../src/structures';
+import type { FamilyRecord, GedcomDataset, IndividualRecord, TodoRecord } from '../src/structures';
+import { isFamilyRecord, isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -72,7 +73,7 @@ const SAMPLE551 = [
 
 function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected INDI ${xref}`);
   }
   return record;
@@ -80,7 +81,7 @@ function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
 
 function fam(dataset: GedcomDataset, xref: string): FamilyRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'FAM') {
+  if (record === undefined || !isFamilyRecord(record)) {
     throw new Error(`expected FAM ${xref}`);
   }
   return record;
@@ -101,7 +102,7 @@ describe('Legacy data tags on 5.5.1 input', () => {
     expect(fam(dataset, '@F1@').children?.[0]?.multiplicity).toBe('Twin');
 
     // _SOUND on the media record.
-    const media = dataset.records.find((r) => r.tag === 'OBJE') as MultimediaRecord | undefined;
+    const media = dataset.records.find((r) => r.tag === 'OBJE');
     expect(media?.soundFile).toBe('voice.wav');
 
     // _TODO records.

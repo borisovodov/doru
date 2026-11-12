@@ -4,11 +4,7 @@ import { FamilySection } from '../family/FamilySection';
 import { SourcesSection } from '../sources/SourcesSection';
 import { NotesSection } from '../notes/NotesSection';
 import { TagsSection } from '../tags/TagsSection';
-import {
-  ContactsSection,
-  IdentifiersSection,
-  RestrictionsSection,
-} from '../attachments/AttachmentsSection';
+import { ContactsSection, IdentifiersSection, RestrictionsSection } from '../attachments/AttachmentsSection';
 import { FactEditor } from '../fact/FactEditor';
 import { CitationEditor } from '../citation/CitationEditor';
 import { emptyFactDraft, factDraftToRecord } from '../fact/factDraft';
@@ -159,7 +155,15 @@ const fact = factDraftToRecord({ ...emptyFactDraft({ personId: 'P1' }), tag: 'BI
 
 export const FactForm: Story = {
   render: () => (
-    <FactEditor fact={fact} persons={[]} places={[]} addresses={[]} onSave={noop} onCancel={() => undefined} onDelete={noop} />
+    <FactEditor
+      fact={fact}
+      persons={[]}
+      places={[]}
+      addresses={[]}
+      onSave={noop}
+      onCancel={() => undefined}
+      onDelete={noop}
+    />
   ),
 };
 

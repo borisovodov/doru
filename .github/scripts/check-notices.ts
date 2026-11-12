@@ -16,9 +16,7 @@ const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 // Checkouts on Windows may normalize line endings; compare content only.
 const normalize = (text: string): string => text.replace(/\r\n/g, '\n');
 
-const committed = normalize(
-  readFileSync(join(root, 'packages', 'features', 'src', 'notices', 'generated.ts'), 'utf8'),
-);
+const committed = normalize(readFileSync(join(root, 'packages', 'features', 'src', 'notices', 'generated.ts'), 'utf8'));
 const generated = normalize(renderNotices(collectNotices(root)));
 
 if (committed !== generated) {

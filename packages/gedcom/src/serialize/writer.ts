@@ -5,7 +5,6 @@
  * Part of the serializer split; see serialize.ts for the public API.
  */
 
-
 export type Version = '7.0' | '5.5.1';
 
 /**

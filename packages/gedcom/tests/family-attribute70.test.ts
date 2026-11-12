@@ -21,14 +21,6 @@ function err70(text: string): string {
   return (result.error as { code: string }).code;
 }
 
-function err551(text: string): string {
-  const result = parseGedcom551(enc(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
 function ser70(dataset: GedcomDataset): string {
   const result = serializeGedcom70(dataset);
   if (!result.ok) {
@@ -46,7 +38,17 @@ function ser551(dataset: GedcomDataset): string {
 }
 
 const H70 = ['0 HEAD', '1 GEDC', '2 VERS 7.0'];
-const H551 = ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME Tester'];
+const H551 = [
+  '0 HEAD',
+  '1 SOUR PAF',
+  '1 SUBM @S1@',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '2 FORM LINEAGE-LINKED',
+  '1 CHAR UTF-8',
+  '0 @S1@ SUBM',
+  '1 NAME Tester',
+];
 
 // The FAMILY_ATTRIBUTE_STRUCTURE of GEDCOM 7.0 §3.2.3: NCHI/RESI/FACT
 // each with TYPE {0:1} and a FAMILY_EVENT_DETAIL (the partners' ages
@@ -98,22 +100,22 @@ describe('GEDCOM 7.0 FAMILY_ATTRIBUTE_STRUCTURE details', () => {
     expect(nchi?.payload).toBe(3);
     expect(nchi?.type).toBe('Children of record');
     expect(nchi?.detail?.husband?.age).toEqual({ payload: { years: 40 }, phrase: 'About' });
-    expect(nchi?.detail?.wife?.age?.payload).toEqual({ years: 38 });
+    expect(nchi?.detail?.wife?.age.payload).toEqual({ years: 38 });
     expect(nchi?.detail?.detail?.notes).toHaveLength(1);
 
     const resi = fam.attributes?.[1];
     expect(resi?.tag).toBe('RESI');
     expect(resi?.payload).toBe('Residence');
     expect(resi?.type).toBe('Family home');
-    expect(resi?.detail?.husband?.age?.payload).toEqual({ years: 42 });
-    expect(resi?.detail?.wife?.age?.payload).toEqual({ years: 40 });
+    expect(resi?.detail?.husband?.age.payload).toEqual({ years: 42 });
+    expect(resi?.detail?.wife?.age.payload).toEqual({ years: 40 });
     expect(resi?.detail?.detail?.date).toBeDefined();
 
     const fact = fam.attributes?.[2];
     expect(fact?.tag).toBe('FACT');
     expect(fact?.type).toBe('Family fact');
-    expect(fact?.detail?.husband?.age?.payload).toEqual({ years: 41 });
-    expect(fact?.detail?.wife?.age?.payload).toEqual({ years: 39 });
+    expect(fact?.detail?.husband?.age.payload).toEqual({ years: 41 });
+    expect(fact?.detail?.wife?.age.payload).toEqual({ years: 39 });
   });
 
   test('duplicate TYPE/HUSB keep the first occurrence; the AGE stays required', () => {
@@ -151,9 +153,7 @@ describe('GEDCOM 7.0 FAMILY_ATTRIBUTE_STRUCTURE details', () => {
   });
 
   test('NCHI with substructures parses in any file', () => {
-    const result = parseGedcom551(
-      enc([...H551, '0 @F1@ FAM', '1 NCHI 1', '2 TYPE A', '0 TRLR'].join('\n')),
-    );
+    const result = parseGedcom551(enc([...H551, '0 @F1@ FAM', '1 NCHI 1', '2 TYPE A', '0 TRLR'].join('\n')));
     expect(result.ok).toBe(true);
     if (result.ok) {
       const fam = result.value.records.find((record) => record.tag === 'FAM');

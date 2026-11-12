@@ -72,9 +72,15 @@ export const AllStates: Story = {
       <section>
         <h3 style={heading}>With icon</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Button variant="primary" icon={<Save size={14} />}>Save</Button>
-          <Button variant="secondary" icon={<Save size={14} />}>Save</Button>
-          <Button variant="danger" icon={<Trash2 size={14} />}>Delete</Button>
+          <Button variant="primary" icon={<Save size={14} />}>
+            Save
+          </Button>
+          <Button variant="secondary" icon={<Save size={14} />}>
+            Save
+          </Button>
+          <Button variant="danger" icon={<Trash2 size={14} />}>
+            Delete
+          </Button>
         </div>
       </section>
     </div>

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  AssociationRecord,
-  TitleRecord,
-  TodoRecord,
-} from '../src/model/types';
+import type { AssociationRecord, TitleRecord, TodoRecord } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
 import { TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
@@ -70,7 +66,7 @@ describe('TreeService research layer', () => {
       service.addAlias('P1', 'P2');
       expect(fixture.repo.listAliasesFor('P1')).toEqual([{ id: expect.any(String), aliasId: 'P2' }]);
 
-      const [alias] = fixture.repo.listAliasesFor('P1')!;
+      const [alias] = fixture.repo.listAliasesFor('P1');
       service.deleteAlias(alias!.id, 'P1', 'P2');
       expect(fixture.repo.listAliasesFor('P1')).toEqual([]);
 
@@ -89,7 +85,9 @@ describe('TreeService research layer', () => {
       expect(service.listTodos()).toEqual([todo()]);
       expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([]);
       service.addTodo(todo({ id: 'T2', targetType: 'person', targetId: 'P1' }));
-      expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([todo({ id: 'T2', targetType: 'person', targetId: 'P1' })]);
+      expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([
+        todo({ id: 'T2', targetType: 'person', targetId: 'P1' }),
+      ]);
 
       const after = todo({ status: 'done', closedDate: { quality: 'exact' as const, component: { year: 2026 } } });
       service.updateTodo(todo(), after);

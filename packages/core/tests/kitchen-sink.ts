@@ -19,9 +19,22 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
       { id: 'PN3', kind: 'translation', language: 'en', position: 0, value: 'Moscow' },
     ],
   });
-  repo.insertAddress({ id: 'AD1', lines: ['12 Archive Lane'], city: 'Moscow', state: 'Moscow Oblast', postalCode: '101000', country: 'Russia' });
+  repo.insertAddress({
+    id: 'AD1',
+    lines: ['12 Archive Lane'],
+    city: 'Moscow',
+    state: 'Moscow Oblast',
+    postalCode: '101000',
+    country: 'Russia',
+  });
 
-  repo.insertPerson({ id: 'P2', xref: '@I8@', sex: 'F', names: [{ id: 'N4', given: 'Maria', surname: 'Ivanova' }], facts: [] });
+  repo.insertPerson({
+    id: 'P2',
+    xref: '@I8@',
+    sex: 'F',
+    names: [{ id: 'N4', given: 'Maria', surname: 'Ivanova' }],
+    facts: [],
+  });
   repo.insertPerson({ id: 'P3', sex: 'U', names: [], facts: [] });
 
   // Persons with rich names and facts.
@@ -83,9 +96,19 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
       { id: 'E1', personId: 'P1', tag: 'EVEN', type: 'award', value: 'Order of Lenin' },
       { id: 'A1', personId: 'P1', tag: 'FACT', type: 'height', value: '180 cm' },
       { id: 'N1F', personId: 'P1', tag: 'MARR', negation: true, date: { quality: 'exact', component: { year: 1950 } } },
-      { id: 'R1', personId: 'P1', tag: 'RESI', date: { quality: 'range', component: { year: 1900 }, end: { year: 1905 } } },
+      {
+        id: 'R1',
+        personId: 'P1',
+        tag: 'RESI',
+        date: { quality: 'range', component: { year: 1900 }, end: { year: 1905 } },
+      },
       { id: 'T1', personId: 'P1', tag: 'BURI', date: { quality: 'unknown', text: 'after the war' } },
-      { id: 'J1', personId: 'P1', tag: 'CHR', date: { quality: 'about', modifier: 'CAL', component: { calendar: 'julian', year: 1826, month: 1, day: 3 } } },
+      {
+        id: 'J1',
+        personId: 'P1',
+        tag: 'CHR',
+        date: { quality: 'about', modifier: 'CAL', component: { calendar: 'julian', year: 1826, month: 1, day: 3 } },
+      },
       { id: 'B2', personId: 'P1', tag: 'DEAT', date: { quality: 'before', component: { year: 1990 } } },
     ],
   });
@@ -101,7 +124,15 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
       { id: 'FP2', personId: 'P2' },
     ],
     childLinks: [
-      { id: 'FC1', childId: 'P3', pedigree: 'adopted', pedigreePhrase: 'by decree', status: 'proven', fatherRelation: 'adoptive', motherRelation: 'birth' },
+      {
+        id: 'FC1',
+        childId: 'P3',
+        pedigree: 'adopted',
+        pedigreePhrase: 'by decree',
+        status: 'proven',
+        fatherRelation: 'adoptive',
+        motherRelation: 'birth',
+      },
     ],
   });
   repo.insertFact({
@@ -149,7 +180,15 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     agency: 'state',
     titleId: 'TL1',
     texts: [{ id: 'ST1', text: 'A note about the source', mime: 'text/plain', language: 'en' }],
-    dataEvents: [{ id: 'SE1', tag: 'RECO', value: 'recorded', date: { quality: 'exact', component: { year: 1920 } }, placeId: 'PL1' }],
+    dataEvents: [
+      {
+        id: 'SE1',
+        tag: 'RECO',
+        value: 'recorded',
+        date: { quality: 'exact', component: { year: 1920 } },
+        placeId: 'PL1',
+      },
+    ],
     repositories: [{ id: 'SR1', repositoryId: 'RP1', callNumbers: [{ id: 'SC1', value: 'VII-12', medium: 'book' }] }],
     templateFields: [
       { id: 'SF1', name: 'volume', value: '3' },
@@ -177,7 +216,14 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   });
 
   // Notes: inline and shared with translations.
-  repo.insertNote({ id: 'NN1', text: 'inline note', mime: 'text/plain', language: 'en', targetType: 'person', targetId: 'P1' });
+  repo.insertNote({
+    id: 'NN1',
+    text: 'inline note',
+    mime: 'text/plain',
+    language: 'en',
+    targetType: 'person',
+    targetId: 'P1',
+  });
   repo.insertNote({
     id: 'NN2',
     xref: '@N2@',
@@ -190,7 +236,14 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   });
 
   // Media.
-  repo.insertMedia({ id: 'M1', xref: '@M1@', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
+  repo.insertMedia({
+    id: 'M1',
+    xref: '@M1@',
+    path: 'media/photo.jpg',
+    title: 'Portrait',
+    targetType: 'person',
+    targetId: 'P1',
+  });
 
   // Identifiers, contacts, restrictions.
   repo.insertIdentifier({ id: 'I1', targetType: 'person', targetId: 'P1', namespace: 'uid', value: 'abc' });
@@ -206,12 +259,31 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertRestriction({ id: 'R2', targetType: 'family', targetId: 'F1', level: 'locked' });
 
   // Changes.
-  repo.insertChange({ id: 'CH1', targetType: 'person', targetId: 'P1', kind: 'created', date: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } } });
-  repo.insertChange({ id: 'CH2', targetType: 'person', targetId: 'P1', kind: 'changed', date: { quality: 'exact', component: { year: 2026, month: 3, day: 4 } }, user: 'ivan' });
+  repo.insertChange({
+    id: 'CH1',
+    targetType: 'person',
+    targetId: 'P1',
+    kind: 'created',
+    date: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } },
+  });
+  repo.insertChange({
+    id: 'CH2',
+    targetType: 'person',
+    targetId: 'P1',
+    kind: 'changed',
+    date: { quality: 'exact', component: { year: 2026, month: 3, day: 4 } },
+    user: 'ivan',
+  });
 
   // Tags and tag links.
   repo.insertTag({ id: 'TG1', name: 'favorites' });
-  repo.insertTagLink({ id: 'TL1', tagId: 'TG1', targetType: 'person', targetId: 'P1', date: { quality: 'exact', component: { year: 2026 } } });
+  repo.insertTagLink({
+    id: 'TL1',
+    tagId: 'TG1',
+    targetType: 'person',
+    targetId: 'P1',
+    date: { quality: 'exact', component: { year: 2026 } },
+  });
 
   // Associations and aliases.
   repo.insertAssociation({
@@ -231,7 +303,17 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertAlias('AL1', 'P1', 'P3');
 
   // Todos: free-standing and attached.
-  repo.insertTodo({ id: 'TD1', text: 'Order the birth record', category: 'records', locality: 'archive', priority: 'high', status: 'open', scheduledDate: { quality: 'exact', component: { year: 2026 } }, reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } }, closedDate: { quality: 'exact', component: { year: 2026, month: 3 } } });
+  repo.insertTodo({
+    id: 'TD1',
+    text: 'Order the birth record',
+    category: 'records',
+    locality: 'archive',
+    priority: 'high',
+    status: 'open',
+    scheduledDate: { quality: 'exact', component: { year: 2026 } },
+    reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } },
+    closedDate: { quality: 'exact', component: { year: 2026, month: 3 } },
+  });
   repo.insertTodo({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
 
   // Submitter links on a person.

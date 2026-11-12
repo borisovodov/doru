@@ -4,9 +4,27 @@ import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type {
-  CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RepositoryRecord, RestrictionRecord, SourceRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+  CitationRecord,
+  ContactRecord,
+  IdentifierRecord,
+  NoteRecord,
+  RepositoryRecord,
+  RestrictionRecord,
+  SourceRecord,
+  TagLinkRecord,
+  TagRecord,
+} from '@doru/core';
 import { EntityTab, type RegistriesEditorApi } from '@doru/features';
-import { AddressFields, ContactsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, addressLabel } from '@doru/ui/domain';
+import {
+  AddressFields,
+  ContactsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  addressLabel,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
@@ -88,16 +106,23 @@ function RepositoryTabBody({
     if (targetId === undefined) {
       return;
     }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions] =
-      await Promise.all([
-        api.getNotes('repository', targetId),
-        api.getCitations('repository', targetId),
-        api.getTags(),
-        api.getTagLinks('repository', targetId),
-        api.getIdentifiers('repository', targetId),
-        api.getContacts('repository', targetId),
-        api.getRestrictions('repository', targetId),
-      ]);
+    const [
+      loadedNotes,
+      loadedCitations,
+      loadedTags,
+      loadedTagLinks,
+      loadedIdentifiers,
+      loadedContacts,
+      loadedRestrictions,
+    ] = await Promise.all([
+      api.getNotes('repository', targetId),
+      api.getCitations('repository', targetId),
+      api.getTags(),
+      api.getTagLinks('repository', targetId),
+      api.getIdentifiers('repository', targetId),
+      api.getContacts('repository', targetId),
+      api.getRestrictions('repository', targetId),
+    ]);
     setRepositoryNotes(loadedNotes);
     setRepositoryCitations(loadedCitations);
     setTags(loadedTags);

@@ -1,15 +1,5 @@
-import type {
-  NameTypeEnum,
-} from '../enumerations';
-import type {
-  Language,
-  Latitude,
-  ListText,
-  Longitude,
-  PersonalName,
-  Pointer,
-  Text,
-} from '../primitives';
+import type { NameTypeEnum } from '../enumerations';
+import type { Language, Latitude, ListText, Longitude, PersonalName, Pointer, Text } from '../primitives';
 
 import type { CensusRecord } from './census-record';
 import type { CreationDate, DateStructure, ExternalIdentifierStructure, NoteStructure } from './common';

@@ -5,26 +5,12 @@
  * public API and the README for the layout).
  */
 
-import {
-  fail,
-} from '../errors';
-import type {
-  EventDefinitionRecord,
-  PafSentenceDefinitions,
-  WitnessRoleSentenceSet,
-} from '../structures';
-import type {
-  Ctx,
-} from './context';
-import {
-  addExtension,
-} from './context';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parsePrivacyFlag,
-} from './sources-media';
+import { fail } from '../errors';
+import type { EventDefinitionRecord, PafSentenceDefinitions, WitnessRoleSentenceSet } from '../structures';
+import type { Ctx } from './context';
+import { addExtension } from './context';
+import type { RawNode } from './lines';
+import { parsePrivacyFlag } from './sources-media';
 
 /** The standard event and attribute tags a definition may name (5.x
  *  event/attribute sets: the individual and family events, EVEN/FACT,
@@ -33,11 +19,51 @@ import {
  *  a payloaded `TITL` is the definition's display title — real Legacy
  *  files use the payloaded form. */
 const EVENT_DEFINITION_TYPE_TAGS: ReadonlySet<string> = new Set([
-  'ADOP', 'BAPM', 'BARM', 'BASM', 'BIRT', 'BLES', 'BURI', 'CENS', 'CHR', 'CHRA', 'CONF', 'CREM',
-  'DEAT', 'EMIG', 'FCOM', 'GRAD', 'IMMI', 'NATU', 'ORDN', 'PROB', 'RETI', 'WILL',
-  'ANUL', 'DIV', 'DIVF', 'ENGA', 'MARB', 'MARC', 'MARL', 'MARR', 'MARS',
-  'EVEN', 'FACT',
-  'CAST', 'DSCR', 'EDUC', 'IDNO', 'NATI', 'NCHI', 'NMR', 'OCCU', 'PROP', 'RELI', 'RESI', 'SSN',
+  'ADOP',
+  'BAPM',
+  'BARM',
+  'BASM',
+  'BIRT',
+  'BLES',
+  'BURI',
+  'CENS',
+  'CHR',
+  'CHRA',
+  'CONF',
+  'CREM',
+  'DEAT',
+  'EMIG',
+  'FCOM',
+  'GRAD',
+  'IMMI',
+  'NATU',
+  'ORDN',
+  'PROB',
+  'RETI',
+  'WILL',
+  'ANUL',
+  'DIV',
+  'DIVF',
+  'ENGA',
+  'MARB',
+  'MARC',
+  'MARL',
+  'MARR',
+  'MARS',
+  'EVEN',
+  'FACT',
+  'CAST',
+  'DSCR',
+  'EDUC',
+  'IDNO',
+  'NATI',
+  'NCHI',
+  'NMR',
+  'OCCU',
+  'PROP',
+  'RELI',
+  'RESI',
+  'SSN',
 ]);
 
 /** The PAF5 sentence tags and their fields (see PafSentenceDefinitions). */

@@ -32,9 +32,8 @@ export class RelationRepo {
   }
 
   deleteAssociation(id: string): boolean {
-    const row = this.db
-      .prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?')
-      .get(id) as { period_start_id: string | null; period_end_id: string | null } | undefined;
+    const row = this.db.prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?').get(id) as
+      { period_start_id: string | null; period_end_id: string | null } | undefined;
     const result = this.db.prepare('DELETE FROM association WHERE id = ?').run(id);
     if (row) {
       for (const dateId of [row.period_start_id, row.period_end_id]) {
@@ -101,9 +100,7 @@ export class RelationRepo {
   // aliases ---------------------------------------------------------------------
 
   insertAlias(id: string, personId: string, aliasId: string): void {
-    this.db
-      .prepare('INSERT INTO person_alias (id, person_id, alias_id) VALUES (?, ?, ?)')
-      .run(id, personId, aliasId);
+    this.db.prepare('INSERT INTO person_alias (id, person_id, alias_id) VALUES (?, ?, ?)').run(id, personId, aliasId);
   }
 
   deleteAlias(id: string): boolean {
@@ -124,8 +121,6 @@ export class RelationRepo {
       aliasId: row.person_id === personId ? row.alias_id : row.person_id,
     }));
   }
-
-
 }
 
 interface AssociationRow {
@@ -142,8 +137,6 @@ interface AssociationRow {
   period_end_id: string | null;
 }
 
-
-
 function associationParams(association: AssociationRecord, dates: DateRepo): Array<string | number | null> {
   return [
     association.id,
@@ -159,5 +152,3 @@ function associationParams(association: AssociationRecord, dates: DateRepo): Arr
     association.periodEnd ? dates.upsert(association.periodEnd) : null,
   ];
 }
-
-

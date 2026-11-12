@@ -122,7 +122,12 @@ describe('SNOTE coverage (GEDCOM 7.0)', () => {
       names?: Array<{ notes?: Array<{ tag: string; note?: string }> }>;
       spouseFamilies?: Array<{ notes?: Array<{ tag: string; note?: string }> }>;
       childFamilies?: Array<{ notes?: Array<{ tag: string; note?: string }> }>;
-      events?: Array<{ detail?: { place?: { notes?: Array<{ tag: string; note?: string }> }; notes?: Array<{ tag: string; note?: string }> } }>;
+      events?: Array<{
+        detail?: {
+          place?: { notes?: Array<{ tag: string; note?: string }> };
+          notes?: Array<{ tag: string; note?: string }>;
+        };
+      }>;
       nonEvents?: Array<{ notes?: Array<{ tag: string; note?: string }> }>;
       associations?: Array<{ notes?: Array<{ tag: string; note?: string }> }>;
       ordinances?: Array<{ detail?: { notes?: Array<{ tag: string; note?: string }> } }>;
@@ -141,14 +146,20 @@ describe('SNOTE coverage (GEDCOM 7.0)', () => {
     expect(indi.citations?.[0]?.notes?.[0]).toEqual({ tag: 'SNOTE', note: '@N1@' });
     expect(indi.changeDate?.notes?.[0]).toEqual({ tag: 'SNOTE', note: '@N1@' });
 
-    const media = dataset.records.find((record) => record.tag === 'OBJE') as { notes?: Array<{ tag: string; note?: string }> };
-    const repo = dataset.records.find((record) => record.tag === 'REPO') as { notes?: Array<{ tag: string; note?: string }> };
+    const media = dataset.records.find((record) => record.tag === 'OBJE') as {
+      notes?: Array<{ tag: string; note?: string }>;
+    };
+    const repo = dataset.records.find((record) => record.tag === 'REPO') as {
+      notes?: Array<{ tag: string; note?: string }>;
+    };
     const sour = dataset.records.find((record) => record.tag === 'SOUR') as {
       notes?: Array<{ tag: string; note?: string }>;
       data?: { notes?: Array<{ tag: string; note?: string }> };
       repositoryCitations?: Array<{ notes?: Array<{ tag: string; note?: string }> }>;
     };
-    const subm = dataset.records.find((record) => record.tag === 'SUBM') as { notes?: Array<{ tag: string; note?: string }> };
+    const subm = dataset.records.find((record) => record.tag === 'SUBM') as {
+      notes?: Array<{ tag: string; note?: string }>;
+    };
     expect(media.notes?.[0]).toEqual({ tag: 'SNOTE', note: '@N1@' });
     expect(repo.notes?.[0]).toEqual({ tag: 'SNOTE', note: '@N1@' });
     expect(sour.notes?.[0]).toEqual({ tag: 'SNOTE', note: '@N1@' });
@@ -159,17 +170,19 @@ describe('SNOTE coverage (GEDCOM 7.0)', () => {
   });
 
   test('keeps SNOTE substructures as extensions; dangling pointers are dropped', () => {
-    const dataset = parse70([...H70, '0 @N1@ SNOTE text', '0 @I1@ INDI', '1 SNOTE @N1@', '2 BOGUS x', '0 TRLR'].join('\n'));
+    const dataset = parse70(
+      [...H70, '0 @N1@ SNOTE text', '0 @I1@ INDI', '1 SNOTE @N1@', '2 BOGUS x', '0 TRLR'].join('\n'),
+    );
     const indi = dataset.records.find((record) => record.tag === 'INDI') as {
       notes?: Array<{ tag: string; note: string; extensions?: Array<{ tag: string }> }>;
     };
-    expect(indi?.notes?.[0]?.note).toBe('@N1@');
-    expect(indi?.notes?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    expect(indi.notes?.[0]?.note).toBe('@N1@');
+    expect(indi.notes?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
     const dangling = parse70([...H70, '0 @I1@ INDI', '1 SNOTE @NOPE@', '0 TRLR'].join('\n'));
     const indi2 = dangling.records.find((record) => record.tag === 'INDI') as {
       notes?: Array<{ tag: string; note: string }>;
     };
-    expect(indi2?.notes).toEqual([]);
+    expect(indi2.notes).toEqual([]);
   });
 
   test('keeps SNOTE on a 7.0 round trip', () => {

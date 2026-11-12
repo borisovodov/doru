@@ -6,23 +6,11 @@
  * section for what is translated and what is dropped.
  */
 
-import type {
-  MediaType,
-} from '../../primitives';
-import {
-  LANGUAGE_IDS_551,
-  MULTIMEDIA_FORMATS_551,
-} from '../../primitives';
-import {
-  LANGUAGE_TO_551,
-  MEDIA_TYPE_TO_551,
-} from '../tables';
-import type {
-  Version,
-} from '../writer';
-import {
-  Writer,
-} from '../writer';
+import type { MediaType } from '../../primitives';
+import { LANGUAGE_IDS_551, MULTIMEDIA_FORMATS_551 } from '../../primitives';
+import { LANGUAGE_TO_551, MEDIA_TYPE_TO_551 } from '../tables';
+import type { Version } from '../writer';
+import { Writer } from '../writer';
 
 export function ptr(w: Writer, version: Version, level: number, tag: string, pointer: string): void {
   if (pointer === '@VOID@' && version === '5.5.1') {
@@ -34,7 +22,7 @@ export function ptr(w: Writer, version: Version, level: number, tag: string, poi
   w.line(level, tag, { value: pointer, pointer: true });
 }
 
-export function restrictionList(_w: Writer, version: Version, values: Array<string | `_${string}`>): string {
+export function restrictionList(_w: Writer, version: Version, values: string[]): string {
   return values.map((value) => (version === '5.5.1' ? value.toLowerCase() : value)).join(', ');
 }
 
@@ -115,9 +103,7 @@ export function language(_w: Writer, version: Version, value: string): string | 
     return value;
   }
   // A 5.5.1 table name passes through verbatim.
-  const own = (LANGUAGE_IDS_551 as readonly string[]).find(
-    (id) => id.toLowerCase() === value.toLowerCase(),
-  );
+  const own = (LANGUAGE_IDS_551 as readonly string[]).find((id) => id.toLowerCase() === value.toLowerCase());
   if (own !== undefined) {
     return own;
   }

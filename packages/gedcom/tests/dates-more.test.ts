@@ -2,20 +2,19 @@ import { describe, expect, test } from 'vitest';
 import { convertCalendar, dateBounds, dateFieldsBounds, toJsDateTime } from '../src/dates';
 import type { DateFields } from '../src/primitives';
 
-const utc = (year: number, monthIndex: number, day: number): Date =>
-  new Date(Date.UTC(year, monthIndex, day));
+const utc = (year: number, monthIndex: number, day: number): Date => new Date(Date.UTC(year, monthIndex, day));
 
 describe('date edge cases', () => {
   test('a year-less Gregorian date is unbounded', () => {
-    expect(dateFieldsBounds({ kind: 'date', day: 1, month: 'JAN' })).toBeUndefined();
+    expect(dateFieldsBounds({ day: 1, month: 'JAN' })).toBeUndefined();
   });
 
   test('an unknown month spelling is unbounded', () => {
-    expect(dateFieldsBounds({ kind: 'date', day: 1, month: 'XXX' as never, year: 1900 })).toBeUndefined();
+    expect(dateFieldsBounds({ day: 1, month: 'XXX' as never, year: 1900 })).toBeUndefined();
   });
 
   test('an approx without a date is unbounded', () => {
-    expect(dateBounds({ kind: 'approx' })).toEqual({});
+    expect(dateBounds({ kind: 'approx', modifier: 'ABT', date: {} })).toEqual({});
   });
 
   test('a TO period bounds only the late side', () => {

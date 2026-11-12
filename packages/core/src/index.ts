@@ -45,21 +45,9 @@ export type {
 export { TARGET_TYPES, emptyAttachments, emptyDocument, factOf, factYear, placeName, signedYear } from './model/types';
 export { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './db/schema';
 export { TreeStore, type ITreeStore, type TreeStoreFactory } from './db/store';
-export {
-  SqliteTreeRepository,
-  type PersonQuery,
-  type TreeRepository,
-} from './db/repository';
-export {
-  MEDIA_DIR_NAME,
-  TREE_FILE_EXTENSION,
-} from './project/layout';
-export {
-  ProjectOpener,
-  type OpenedProject,
-  type ProjectLogger,
-  type ProjectSummary,
-} from './project/opener';
+export { SqliteTreeRepository, type PersonQuery, type TreeRepository } from './db/repository';
+export { MEDIA_DIR_NAME, TREE_FILE_EXTENSION } from './project/layout';
+export { ProjectOpener, type OpenedProject, type ProjectLogger, type ProjectSummary } from './project/opener';
 export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
 export {

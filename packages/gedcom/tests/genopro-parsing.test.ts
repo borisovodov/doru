@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom70 } from '../src/parsing/assemble';
 import type { GedcomDataset } from '../src/structures';
+import { isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -53,9 +54,9 @@ describe('GenoPro entity records', () => {
       dateStart: expect.anything(),
       dateEnd: expect.anything(),
     });
-    const individual = dataset.records.find((entry) => entry.tag === 'INDI');
-    expect(individual.occupations).toEqual(['@O1@', '@O2@', 'plain-member']);
-    expect(individual.educations).toEqual(['@E1@']);
+    const individual = dataset.records.find(isIndividualRecord);
+    expect(individual?.occupations).toEqual(['@O1@', '@O2@', 'plain-member']);
+    expect(individual?.educations).toEqual(['@E1@']);
   });
 
   test('tolerates a bare GenoPro container line', () => {

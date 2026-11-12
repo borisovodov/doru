@@ -50,9 +50,7 @@ describe('RecentProjects', () => {
     await fs.writeFile('/data/recent.json', '{not json');
     const recents = new RecentProjects(fs, '/data/recent.json');
     expect(await recents.list()).toEqual([]);
-    expect((await recents.touch('/projects/a')).map((item) => item.path)).toEqual([
-      '/projects/a',
-    ]);
+    expect((await recents.touch('/projects/a')).map((item) => item.path)).toEqual(['/projects/a']);
   });
 
   it('removes one project and keeps the rest in order', async () => {
@@ -65,10 +63,7 @@ describe('RecentProjects', () => {
 
     const after = await recents.remove('/projects/b');
     expect(after.map((item) => item.path)).toEqual(['/projects/c', '/projects/a']);
-    expect((await recents.list()).map((item) => item.path)).toEqual([
-      '/projects/c',
-      '/projects/a',
-    ]);
+    expect((await recents.list()).map((item) => item.path)).toEqual(['/projects/c', '/projects/a']);
   });
 
   it('removing an unknown path leaves the store untouched', async () => {

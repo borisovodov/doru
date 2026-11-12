@@ -35,13 +35,10 @@ export function readSettings(): Record<string, unknown> {
 
   const parseErrors: ParseError[] = [];
   const settings =
-    (parse(readFileSync(file, 'utf8'), parseErrors, PARSE_OPTIONS) as Record<string, unknown> | undefined) ??
-    {};
+    (parse(readFileSync(file, 'utf8'), parseErrors, PARSE_OPTIONS) as Record<string, unknown> | undefined) ?? {};
 
   if (parseErrors.length > 0) {
-    log.warn(
-      `settings.json is not valid JSONC (${parseErrors[0]?.error ?? 'syntax error'}) — replaced with defaults`,
-    );
+    log.warn(`settings.json is not valid JSONC (${parseErrors[0]?.error ?? 'syntax error'}) — replaced with defaults`);
     writeFileSync(file, DEFAULT_SETTINGS);
     return parse(DEFAULT_SETTINGS, [], PARSE_OPTIONS) as Record<string, unknown>;
   }

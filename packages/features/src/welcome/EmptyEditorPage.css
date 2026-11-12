@@ -9,12 +9,14 @@
   overflow: auto;
   padding: 72px 24px;
   text-align: center;
+
   /* Nothing on this page is selectable text. */
   user-select: none;
 }
 
 .empty-editor-name {
   margin: 0;
+
   /* The same display face as the website wordmark, self-hosted. */
   font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
   font-weight: 400;

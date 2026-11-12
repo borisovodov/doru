@@ -51,8 +51,7 @@ export class NoteRepo {
 
   removeNoteLink(id: string): boolean {
     const link = this.db.prepare('SELECT note_id FROM note_link WHERE id = ?').get(id) as
-      | { note_id: string }
-      | undefined;
+      { note_id: string } | undefined;
     const result = this.db.prepare('DELETE FROM note_link WHERE id = ?').run(id);
     if (result.changes > 0 && link) {
       const remaining = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(link.note_id) as {
@@ -67,27 +66,29 @@ export class NoteRepo {
 
   getNote(id: string): NoteRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(id) as
-      | NoteRow
-      | undefined;
+      NoteRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 
   /** Every note, projected to its first link. */
   listNotes(): NoteRecord[] {
-    const rows = this.db.prepare('SELECT id, xref, text, mime, language FROM note ORDER BY id').all() as unknown as NoteRow[];
+    const rows = this.db
+      .prepare('SELECT id, xref, text, mime, language FROM note ORDER BY id')
+      .all() as unknown as NoteRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
   /** Notes linked to the target, projected to that target. */
   listNotesFor(targetType: string, targetId: string): NoteRecord[] {
     const links = this.db
-      .prepare('SELECT id, note_id, target_type, target_id FROM note_link WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        'SELECT id, note_id, target_type, target_id FROM note_link WHERE target_type = ? AND target_id = ? ORDER BY id',
+      )
       .all(targetType, targetId) as unknown as LinkRow[];
     const notes: NoteRecord[] = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(link.note_id) as
-        | NoteRow
-        | undefined;
+        NoteRow | undefined;
       if (row) {
         notes.push({ ...this.hydrate(row), targetType, targetId });
       }
@@ -103,10 +104,12 @@ export class NoteRepo {
     const result: Array<{ note: NoteRecord; link: NoteLinkRecord }> = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(link.note_id) as
-        | NoteRow
-        | undefined;
+        NoteRow | undefined;
       if (row) {
-        result.push({ note: this.hydrate(row), link: { id: link.id, targetType: link.target_type, targetId: link.target_id } });
+        result.push({
+          note: this.hydrate(row),
+          link: { id: link.id, targetType: link.target_type, targetId: link.target_id },
+        });
       }
     }
     return result;

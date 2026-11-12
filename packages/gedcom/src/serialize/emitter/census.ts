@@ -14,13 +14,8 @@ import type {
   CensusRelocatedAttribute,
   CensusRelocatedEvent,
 } from '../../structures';
-import type {
-  Version,
-  Writer,
-} from '../writer';
-import {
-  emitPersonalName,
-} from './names-places';
+import type { Version, Writer } from '../writer';
+import { emitPersonalName } from './names-places';
 import {
   emitAge,
   emitDate,
@@ -30,10 +25,7 @@ import {
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
-import {
-  ptr,
-  sex,
-} from './values';
+import { ptr, sex } from './values';
 
 export function emitCensusRecord(w: Writer, version: Version, rec: CensusRecord): void {
   w.line(0, '_CENR', { xref: rec.xref });
@@ -156,7 +148,12 @@ function emitCensusRelocatedEvent(w: Writer, version: Version, event: CensusRelo
   emitExtensions(w, version, level, event);
 }
 
-function emitCensusRelocatedAttribute(w: Writer, version: Version, attr: CensusRelocatedAttribute, level: number): void {
+function emitCensusRelocatedAttribute(
+  w: Writer,
+  version: Version,
+  attr: CensusRelocatedAttribute,
+  level: number,
+): void {
   w.line(level, attr.tag, { value: attr.payload });
   if (attr.detail !== undefined) {
     emitEventDetail(w, version, level + 1, attr.detail);

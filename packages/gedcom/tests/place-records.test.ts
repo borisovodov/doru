@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset, IndividualRecord, PlaceRecord } from '../src/structures';
+import { isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -55,7 +56,7 @@ function places(dataset: GedcomDataset): PlaceRecord[] {
 
 function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected INDI ${xref}`);
   }
   return record;
@@ -307,7 +308,7 @@ describe('the unified policy on 7.0 input', () => {
     expect(burial?.detail?.place?.location).toBe('@L1@');
 
     const family = dataset.records.find((r) => r.tag === 'FAM');
-    if (family === undefined || family.tag !== 'FAM') {
+    if (family === undefined) {
       throw new Error('expected FAM');
     }
     expect(family.children?.[0]).toMatchObject({ fatherRelation: 'Natural', motherRelation: 'Adopted' });
@@ -417,12 +418,8 @@ describe('GEDCOM-L NAME abbreviations (ABBR {0:M})', () => {
     expect(text).toContain('3 TYPE railway');
     expect(text).toContain('2 ABBR Frankfurt/M.');
     const second = parseOk551(text);
-    expect(places(second)[0]?.names?.[0]?.abbreviations).toEqual(
-      places(first)[0]?.names?.[0]?.abbreviations,
-    );
+    expect(places(second)[0]?.names?.[0]?.abbreviations).toEqual(places(first)[0]?.names?.[0]?.abbreviations);
     const via70 = parseOk70(ser70(first));
-    expect(places(via70)[0]?.names?.[0]?.abbreviations).toEqual(
-      places(first)[0]?.names?.[0]?.abbreviations,
-    );
+    expect(places(via70)[0]?.names?.[0]?.abbreviations).toEqual(places(first)[0]?.names?.[0]?.abbreviations);
   });
 });

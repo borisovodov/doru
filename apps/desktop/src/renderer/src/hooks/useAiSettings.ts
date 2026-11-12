@@ -76,15 +76,16 @@ export function useAiSettings() {
           setModelFetch({ status: 'error' });
           return;
         }
-        const models = result.models ?? [];
+        const models = result.models;
         setFetchedModels(models);
         if (models.length === 0) {
           setModelFetch({ status: 'empty' });
           return;
         }
         setModelFetch({ status: 'ok' });
-        if (model === '' || !models.includes(model)) {
-          await update({ model: models[0]! });
+        const firstModel = models[0];
+        if (firstModel !== undefined && (model === '' || !models.includes(model))) {
+          await update({ model: firstModel });
         }
       } catch (error) {
         console.error('failed to fetch the model list', error);

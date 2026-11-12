@@ -54,8 +54,7 @@ export class FactRepo {
 
   updateFact(fact: FactRecord): void {
     const old = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
-      | { date_id: string | null; sort_date_id: string | null }
-      | undefined;
+      { date_id: string | null; sort_date_id: string | null } | undefined;
     this.db
       .prepare(
         `UPDATE fact SET person_id = ?, family_id = ?, tag = ?, type = ?, value = ?, negation = ?,
@@ -77,8 +76,7 @@ export class FactRepo {
 
   deleteFact(id: string): boolean {
     const row = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(id) as
-      | { date_id: string | null; sort_date_id: string | null }
-      | undefined;
+      { date_id: string | null; sort_date_id: string | null } | undefined;
     const result = this.db.prepare('DELETE FROM fact WHERE id = ?').run(id);
     if (row) {
       for (const dateId of [row.date_id, row.sort_date_id]) {
@@ -117,9 +115,10 @@ export class FactRepo {
   }
 
   private deleteFactsForOwner(column: 'person_id' | 'family_id', id: string): void {
-    const rows = this.db
-      .prepare(`SELECT date_id, sort_date_id FROM fact WHERE ${column} = ?`)
-      .all(id) as unknown as { date_id: string | null; sort_date_id: string | null }[];
+    const rows = this.db.prepare(`SELECT date_id, sort_date_id FROM fact WHERE ${column} = ?`).all(id) as unknown as {
+      date_id: string | null;
+      sort_date_id: string | null;
+    }[];
     this.db.prepare(`DELETE FROM fact WHERE ${column} = ?`).run(id);
     for (const row of rows) {
       for (const dateId of [row.date_id, row.sort_date_id]) {
@@ -166,9 +165,7 @@ export class FactRepo {
 
   /** Attaches each fact's dates and sub-rows and orders by sort year (unknown dates last, rowid as tiebreak). */
   private hydrate(rows: FactRow[]): FactRecord[] {
-    const dateIds = rows
-      .flatMap((row) => [row.date_id, row.sort_date_id])
-      .filter((id): id is string => id !== null);
+    const dateIds = rows.flatMap((row) => [row.date_id, row.sort_date_id]).filter((id): id is string => id !== null);
     const datesById = this.dates.getMany(dateIds);
     const factIds = rows.map((row) => row.id);
     const agesByFact = this.agesForFacts(factIds);
@@ -319,8 +316,6 @@ export class FactRepo {
   }
 
   // --- fact types -----------------------------------------------------------
-
-
 }
 
 function factValueParams(fact: FactRecord, dates: DateRepo): Array<string | number | null> {

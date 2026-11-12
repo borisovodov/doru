@@ -19,13 +19,7 @@ export function NoticesView({ onOpenLink }: NoticesViewProps) {
   );
 }
 
-function NoticeEntry({
-  entry,
-  onOpenLink,
-}: {
-  entry: ThirdPartyNotice;
-  onOpenLink: (url: string) => void;
-}) {
+function NoticeEntry({ entry, onOpenLink }: { entry: ThirdPartyNotice; onOpenLink: (url: string) => void }) {
   const url = entry.url;
   return (
     <article className="notices-entry" aria-label={entry.name}>

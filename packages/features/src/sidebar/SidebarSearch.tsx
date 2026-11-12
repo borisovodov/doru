@@ -41,11 +41,12 @@ export function SidebarSearch({
     if (needle === '') {
       return null;
     }
-    const matches = (text: string | undefined): boolean =>
-      text !== undefined && text.toLowerCase().includes(needle);
+    const matches = (text: string | undefined): boolean => text !== undefined && text.toLowerCase().includes(needle);
 
     const matchedPersons = persons.filter((person) =>
-      person.names.some((name) => matches(name.full) || matches(name.given) || matches(name.surname) || matches(name.nickname)),
+      person.names.some(
+        (name) => matches(name.full) || matches(name.given) || matches(name.surname) || matches(name.nickname),
+      ),
     );
 
     const matchedFamilies = families.filter((family) => {
@@ -94,11 +95,7 @@ export function SidebarSearch({
 
   return (
     <div className="side-search">
-      <SearchField
-        label={nls.t('features.search.field')}
-        value={query}
-        onChange={setQuery}
-      />
+      <SearchField label={nls.t('features.search.field')} value={query} onChange={setQuery} />
       {result !== null && (
         <ul className="side-section-list">
           {result.matchedPersons.length > 0 && group(nls.t('workbench.activityBar.people'))}
@@ -149,11 +146,9 @@ export function SidebarSearch({
                 <EntityCard
                   icon={<Chip variant="neutral">{fact.tag}</Chip>}
                   title={fact.value ?? fact.type ?? factOwner(fact)}
-                  subtitle={
-                    [fact.date ? formatDate(fact.date) : undefined, fact.place]
-                      .filter((part): part is string => part !== undefined)
-                      .join(' · ')
-                  }
+                  subtitle={[fact.date ? formatDate(fact.date) : undefined, fact.place]
+                    .filter((part): part is string => part !== undefined)
+                    .join(' · ')}
                   {...(ownerId !== undefined ? { onClick: () => onOpenPerson(ownerId) } : {})}
                 />
               </li>
@@ -162,11 +157,7 @@ export function SidebarSearch({
           {result.matchedPlaces.length > 0 && group(nls.t('workbench.activityBar.places'))}
           {result.matchedPlaces.slice(0, MAX_PER_GROUP).map(([place, count]) => (
             <li key={place}>
-              <EntityCard
-                icon={<MapPin size={15} aria-hidden="true" />}
-                title={place}
-                meta={count}
-              />
+              <EntityCard icon={<MapPin size={15} aria-hidden="true" />} title={place} meta={count} />
             </li>
           ))}
           {empty && <p className="side-search-empty">{nls.t('features.search.empty')}</p>}

@@ -114,7 +114,7 @@ export function findLicenseFile(dir: string, license: string | undefined): strin
       return path;
     }
   }
-  let listing: string[] = [];
+  let listing: string[];
   try {
     listing = readdirSync(dir);
   } catch {

@@ -39,7 +39,7 @@ export function FactsSection({
   onDeleteFact: (fact: FactRecord) => Promise<void>;
 }) {
   const [type, setType] = useState('');
-  const [date, setDate] = useState<DateDraft>(emptyDate());
+  const [date, setDate] = useState<DateDraft>(() => emptyDate());
   const [description, setDescription] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -99,7 +99,9 @@ export function FactsSection({
                   {fact.place ? ` — ${fact.place}` : ''}
                 </span>
                 {fact.value ? <span className="event-description">{fact.value}</span> : null}
-                {fact.negation === true && <span className="event-negation">{nls.t('features.tree.fact.negation')}</span>}
+                {fact.negation === true && (
+                  <span className="event-negation">{nls.t('features.tree.fact.negation')}</span>
+                )}
                 <IconButton
                   size="sm"
                   label={nls.t('features.tree.events.remove')}

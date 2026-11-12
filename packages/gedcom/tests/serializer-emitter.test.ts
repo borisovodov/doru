@@ -69,7 +69,10 @@ describe('prepareFor551 pointer stripping and the NO rule', () => {
       ],
       ordinances: [{ tag: 'SLGC', familyChild: '@MISS@' }],
       notes: [{ tag: 'NOTE', note: '@MISS@' }],
-      citations: [{ tag: 'SOUR', source: '@MISS@' }, { tag: 'SOUR', source: '@VOID@', description: 'kept' }],
+      citations: [
+        { tag: 'SOUR', source: '@MISS@' },
+        { tag: 'SOUR', source: '@VOID@', description: 'kept' },
+      ],
       media: [{ tag: 'OBJE', object: '@MISS@' }],
     } as never);
     dataset.records.push({
@@ -100,7 +103,20 @@ describe('prepareFor551 pointer stripping and the NO rule', () => {
 
   test('a void submission submitter is dropped', () => {
     const dataset = parse551(
-      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 SUBN @N1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @N1@ SUBN', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 SUBN @N1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @N1@ SUBN',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 TRLR',
+      ].join('\n'),
     );
     dataset.submission = { tag: 'SUBN', xref: '@N1@', submitter: '@VOID@' };
     const text = ser551(dataset);
@@ -110,7 +126,17 @@ describe('prepareFor551 pointer stripping and the NO rule', () => {
 
   test('the PEDI projection skips unmapped relations', () => {
     const dataset = parse551(
-      [...H551, '0 @F1@ FAM', '1 CHIL @I1@', '2 _FREL stepson', '2 _MREL stepson', '0 @I1@ INDI', '1 FAMC @F1@', ...SUBM, '0 TRLR'].join('\n'),
+      [
+        ...H551,
+        '0 @F1@ FAM',
+        '1 CHIL @I1@',
+        '2 _FREL stepson',
+        '2 _MREL stepson',
+        '0 @I1@ INDI',
+        '1 FAMC @F1@',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
     );
     const text = ser70(dataset);
     expect(text).not.toContain('PEDI');
@@ -140,8 +166,10 @@ describe('record emitters', () => {
   test('FAM restrictions, partner phrases, child phrases and submitters', () => {
     const dataset = parse70(
       H70.concat(
-        '0 @I1@ INDI', '1 NAME A /B/',
-        '0 @I2@ INDI', '1 NAME C /D/',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '0 @I2@ INDI',
+        '1 NAME C /D/',
         '0 @F1@ FAM',
         '1 RESN LOCKED',
         '1 HUSB @I1@',
@@ -158,8 +186,10 @@ describe('record emitters', () => {
         '3 PHRASE approx',
         '2 NOTE n',
         '2 SOUR @S2@',
-        '0 @S1@ SUBM', '1 NAME T',
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @S2@ SOUR',
+        '1 TITL S',
         '0 TRLR',
       ).join('\n'),
     );
@@ -178,15 +208,15 @@ describe('record emitters', () => {
   });
 
   test('5.5.1 FAM restrictions are lowercase', () => {
-    const dataset = parse551(
-      [...H551, '0 @F1@ FAM', '1 RESN privacy', ...SUBM, '0 TRLR'].join('\n'),
-    );
+    const dataset = parse551([...H551, '0 @F1@ FAM', '1 RESN privacy', ...SUBM, '0 TRLR'].join('\n'));
     expect(ser551(dataset)).toContain('1 RESN privacy');
   });
 
   test('7.0 FAM attributes: RESI and FACT', () => {
     const dataset = parse70(
-      H70.concat('0 @F1@ FAM', '1 RESI Somewhere', '2 TYPE home', '1 FACT something', '2 TYPE kind', '0 TRLR').join('\n'),
+      H70.concat('0 @F1@ FAM', '1 RESI Somewhere', '2 TYPE home', '1 FACT something', '2 TYPE kind', '0 TRLR').join(
+        '\n',
+      ),
     );
     const text = ser70(dataset);
     expect(text).toContain('1 RESI Somewhere');
@@ -197,7 +227,21 @@ describe('record emitters', () => {
 
   test('family partner ages round-trip', () => {
     const dataset = parse70(
-      H70.concat('0 @I1@ INDI', '1 NAME A /B/', '0 @I2@ INDI', '1 NAME C /D/', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@', '1 MARR', '2 HUSB', '3 AGE 30y', '2 WIFE', '3 AGE 28y', '0 TRLR').join('\n'),
+      H70.concat(
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '0 @I2@ INDI',
+        '1 NAME C /D/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 WIFE @I2@',
+        '1 MARR',
+        '2 HUSB',
+        '3 AGE 30y',
+        '2 WIFE',
+        '3 AGE 28y',
+        '0 TRLR',
+      ).join('\n'),
     );
     const text = ser70(dataset);
     expect(text).toContain('2 HUSB');
@@ -210,7 +254,8 @@ describe('record emitters', () => {
     const dataset = parse551(
       [
         ...H551,
-        '0 @F1@ FAM', '1 HUSB @I1@',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
         '0 @I1@ INDI',
         '1 FAMC @F1@',
         '2 _PRIMARY Y',
@@ -238,7 +283,8 @@ describe('record emitters', () => {
     const dataset = parse70(
       [
         ...H70,
-        '0 @F1@ FAM', '1 HUSB @I1@',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
         '0 @I1@ INDI',
         '1 FAMC @F1@',
         '2 PEDI BIRTH',
@@ -261,12 +307,20 @@ describe('record emitters', () => {
     );
     expect(ser70(dataset)).toContain('1 RESN LOCKED');
     const text551 = ser551(dataset);
-    void text551;
+    expect(text551).not.toContain('RESN');
   });
 
   test('REPO contact relocation', () => {
     const dataset = parse70(
-      H70.concat('0 @R1@ REPO', '1 NAME R', '1 PHON 1', '1 EMAIL a@example.com', '1 FAX 2', '1 WWW https://w.example', '0 TRLR').join('\n'),
+      H70.concat(
+        '0 @R1@ REPO',
+        '1 NAME R',
+        '1 PHON 1',
+        '1 EMAIL a@example.com',
+        '1 FAX 2',
+        '1 WWW https://w.example',
+        '0 TRLR',
+      ).join('\n'),
     );
     const text = ser70(dataset);
     expect(text).toContain('1 PHON 1');
@@ -277,7 +331,15 @@ describe('record emitters', () => {
 
   test('SNOTE record keeps translations', () => {
     const dataset = parse70(
-      H70.concat('0 @N1@ SNOTE text', '1 MIME text/plain', '1 LANG en', '1 TRAN de', '2 MIME text/plain', '2 LANG de', '0 TRLR').join('\n'),
+      H70.concat(
+        '0 @N1@ SNOTE text',
+        '1 MIME text/plain',
+        '1 LANG en',
+        '1 TRAN de',
+        '2 MIME text/plain',
+        '2 LANG de',
+        '0 TRLR',
+      ).join('\n'),
     );
     const text = ser70(dataset);
     expect(text).toContain('1 MIME text/plain');
@@ -330,7 +392,14 @@ describe('record emitters', () => {
 
   test('identifier TYPE lines', () => {
     const dataset = parse70(
-      H70.concat('0 @I1@ INDI', '1 REFN r1', '2 TYPE user', '1 EXID https://example.com/i', '2 TYPE https://example.com/t', '0 TRLR').join('\n'),
+      H70.concat(
+        '0 @I1@ INDI',
+        '1 REFN r1',
+        '2 TYPE user',
+        '1 EXID https://example.com/i',
+        '2 TYPE https://example.com/t',
+        '0 TRLR',
+      ).join('\n'),
     );
     const text = ser70(dataset);
     expect(text).toContain('1 REFN r1');
@@ -341,13 +410,21 @@ describe('record emitters', () => {
   test('submission change dates with notes', () => {
     const dataset = parse551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 SUBN @N1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 SUBN @N1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
         '0 @N1@ SUBN',
         '1 CHAN',
         '2 DATE 4 JAN 2001',
         '2 NOTE changed',
         '1 NOTE n',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 TRLR',
       ].join('\n'),
     );
@@ -381,7 +458,16 @@ describe('name and place translations across versions', () => {
 
   test('5.5.1 translates a place with a known method', () => {
     const dataset = parse70(
-      H70.concat('0 @I1@ INDI', '1 BIRT', '2 PLAC Berlin', '3 TRAN Berurin', '4 LANG ja-Kana', '3 TRAN Берлин', '4 LANG ja-Latn', '0 TRLR').join('\n'),
+      H70.concat(
+        '0 @I1@ INDI',
+        '1 BIRT',
+        '2 PLAC Berlin',
+        '3 TRAN Berurin',
+        '4 LANG ja-Kana',
+        '3 TRAN Берлин',
+        '4 LANG ja-Latn',
+        '0 TRLR',
+      ).join('\n'),
     );
     to551(dataset);
     const text = ser551(dataset);
@@ -402,9 +488,7 @@ describe('name and place translations across versions', () => {
   });
 
   test('5.5.1 drops a media file with an unmappable format', () => {
-    const dataset = parse70(
-      H70.concat('0 @O1@ OBJE', '1 FILE a.pdf', '2 FORM application/pdf', '0 TRLR').join('\n'),
-    );
+    const dataset = parse70(H70.concat('0 @O1@ OBJE', '1 FILE a.pdf', '2 FORM application/pdf', '0 TRLR').join('\n'));
     to551(dataset);
     const text = ser551(dataset);
     expect(text).not.toContain('FILE');
@@ -415,8 +499,10 @@ describe('place record emission', () => {
   const germanCard = (): GedcomDataset =>
     parse70(
       H70.concat(
-        '0 @S2@ SOUR', '1 TITL S',
-        '0 @L2@ _LOC', '1 NAME Parent',
+        '0 @S2@ SOUR',
+        '1 TITL S',
+        '0 @L2@ _LOC',
+        '1 NAME Parent',
         '0 @L1@ _LOC',
         '1 NAME Berlin',
         '2 ABBR B',
@@ -497,18 +583,14 @@ describe('place record emission', () => {
 
 describe('ordinance details', () => {
   test('SLGS with a date only', () => {
-    const dataset = parse70(
-      H70.concat('0 @F1@ FAM', '1 SLGS', '2 DATE 1 JAN 2000', '0 TRLR').join('\n'),
-    );
+    const dataset = parse70(H70.concat('0 @F1@ FAM', '1 SLGS', '2 DATE 1 JAN 2000', '0 TRLR').join('\n'));
     const text = ser70(dataset);
     expect(text).toContain('1 SLGS');
     expect(text).toContain('2 DATE 1 JAN 2000');
   });
 
   test('5.5.1 drops the Y assertion on non-MARR family events', () => {
-    const dataset = parse70(
-      H70.concat('0 @F1@ FAM', '1 DIVF Y', '0 TRLR').join('\n'),
-    );
+    const dataset = parse70(H70.concat('0 @F1@ FAM', '1 DIVF Y', '0 TRLR').join('\n'));
     to551(dataset);
     const text = ser551(dataset);
     expect(text).toContain('1 DIVF');
@@ -516,9 +598,7 @@ describe('ordinance details', () => {
   });
 
   test('7.0 keeps the Y assertion', () => {
-    const dataset = parse70(
-      H70.concat('0 @F1@ FAM', '1 DIVF Y', '0 TRLR').join('\n'),
-    );
+    const dataset = parse70(H70.concat('0 @F1@ FAM', '1 DIVF Y', '0 TRLR').join('\n'));
     expect(ser70(dataset)).toContain('1 DIVF Y');
   });
 });
@@ -537,7 +617,9 @@ describe('citation emission details', () => {
 
   test('7.0 place phonetic variations with known methods', () => {
     const dataset = parse551(
-      [...H551, '0 @I1@ INDI', '1 BIRT', '2 PLAC Berlin', '3 FONE Berurin', '4 TYPE kana', ...SUBM, '0 TRLR'].join('\n'),
+      [...H551, '0 @I1@ INDI', '1 BIRT', '2 PLAC Berlin', '3 FONE Berurin', '4 TYPE kana', ...SUBM, '0 TRLR'].join(
+        '\n',
+      ),
     );
     const text = ser70(dataset);
     expect(text).toContain('3 TRAN Berurin');
@@ -546,7 +628,15 @@ describe('citation emission details', () => {
 
   test('ADOP keeps its PHRASE', () => {
     const dataset = parse70(
-      H70.concat('0 @F1@ FAM', '0 @I1@ INDI', '1 ADOP', '2 FAMC @F1@', '3 ADOP BOTH', '4 PHRASE both parents', '0 TRLR').join('\n'),
+      H70.concat(
+        '0 @F1@ FAM',
+        '0 @I1@ INDI',
+        '1 ADOP',
+        '2 FAMC @F1@',
+        '3 ADOP BOTH',
+        '4 PHRASE both parents',
+        '0 TRLR',
+      ).join('\n'),
     );
     const text = ser70(dataset);
     expect(text).toContain('3 ADOP BOTH');
@@ -555,7 +645,15 @@ describe('citation emission details', () => {
 
   test('7.0 submitter falls back to the address contacts', () => {
     const dataset = parse551(
-      [...H551, '0 @S1@ SUBM', '1 NAME T', '1 ADDR x', '2 EMAIL a@@b.example', '2 WWW https://w.example', '0 TRLR'].join('\n'),
+      [
+        ...H551,
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '1 ADDR x',
+        '2 EMAIL a@@b.example',
+        '2 WWW https://w.example',
+        '0 TRLR',
+      ].join('\n'),
     );
     const text = ser70(dataset);
     expect(text).toContain('1 EMAIL a@b.example');
@@ -564,7 +662,17 @@ describe('citation emission details', () => {
 
   test('submitter media and 5.5.1 RFN', () => {
     const dataset = parse551(
-      [...H551, '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM jpg', '0 @S1@ SUBM', '1 NAME T', '1 OBJE @O1@', '1 RFN 99', '0 TRLR'].join('\n'),
+      [
+        ...H551,
+        '0 @O1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM jpg',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '1 OBJE @O1@',
+        '1 RFN 99',
+        '0 TRLR',
+      ].join('\n'),
     );
     const text = ser551(dataset);
     expect(text).toContain('1 OBJE @O1@');
@@ -574,7 +682,8 @@ describe('citation emission details', () => {
   test('citation data date, texts, ancestry pointers, reference and verified', () => {
     const dataset = parse70(
       H70.concat(
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
         '0 @I1@ INDI',
         '1 BIRT',
         '2 SOUR @S2@',
@@ -605,7 +714,8 @@ describe('citation emission details', () => {
   test('7.0 citation event roles with phrases', () => {
     const dataset = parse70(
       H70.concat(
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
         '0 @I1@ INDI',
         '1 BIRT',
         '2 SOUR @S2@',
@@ -626,7 +736,8 @@ describe('citation emission details', () => {
   test('5.5.1 citation event roles spell out the descriptor', () => {
     const dataset = parse70(
       H70.concat(
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
         '0 @I1@ INDI',
         '1 BIRT',
         '2 SOUR @S2@',
@@ -645,7 +756,9 @@ describe('citation emission details', () => {
     const dataset = parse551(
       [
         ...H551,
-        '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM jpg',
+        '0 @O1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM jpg',
         '0 @I1@ INDI',
         '1 BIRT',
         '2 SOUR free text',

@@ -197,7 +197,9 @@ async function chatTurn(baseUrl: string, options: ChatOptions): Promise<ChatTurn
         } catch {
           continue;
         }
-        const choice = (data as { choices?: Array<{ delta?: unknown; finish_reason?: string | null }> })['choices']?.[0];
+        const choice = (data as { choices?: Array<{ delta?: unknown; finish_reason?: string | null }> })[
+          'choices'
+        ]?.[0];
         if (choice === undefined) {
           continue;
         }
@@ -214,17 +216,19 @@ async function chatTurn(baseUrl: string, options: ChatOptions): Promise<ChatTurn
         if (delta === undefined) {
           continue;
         }
-        const hasContent = delta['content'] !== undefined && delta['content'] !== '';
-        const hasReasoning = delta['reasoning_content'] !== undefined && delta['reasoning_content'] !== '';
+        const contentDelta = delta['content'];
+        const reasoningDelta = delta['reasoning_content'];
+        const hasContent = contentDelta !== undefined && contentDelta !== '';
+        const hasReasoning = reasoningDelta !== undefined && reasoningDelta !== '';
         const toolParts = delta['tool_calls'] ?? [];
         if (hasContent) {
-          content += delta['content'];
+          content += contentDelta;
           if (firstTextMs === undefined) {
             firstTextMs = Date.now() - started;
           }
         }
         if (hasReasoning) {
-          reasoning += delta['reasoning_content'];
+          reasoning += reasoningDelta;
         }
         for (const part of toolParts) {
           const index = part['index'] ?? 0;
@@ -318,7 +322,9 @@ function checkMustCall(scenario: EvalScenario, calls: ScenarioCallRecord[]): str
     }
     if (!matched) {
       failures.push(
-        checkError === undefined ? `missing tool call "${expected.name}"` : `tool call "${expected.name}" failed: ${checkError}`,
+        checkError === undefined
+          ? `missing tool call "${expected.name}"`
+          : `tool call "${expected.name}" failed: ${checkError}`,
       );
     }
   }
@@ -385,7 +391,11 @@ async function runScenario(
         let resultText: string;
         try {
           const result: unknown = await backend.invoke(call.name, call.arguments);
-          resultText = JSON.stringify(result) ?? String(result);
+          const serialized: string | undefined = JSON.stringify(result);
+          // JSON.stringify(undefined) returns undefined at runtime even though
+          // the lib type says string.
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          resultText = serialized ?? String(result);
         } catch (error) {
           ok = false;
           const message = error instanceof Error ? error.message : String(error);
@@ -441,7 +451,9 @@ function printSummary(report: ModeReport): void {
     unique.set(key, entry);
   }
   const passed = results.filter((result) => result.ok).length;
-  const cleanCalls = results.filter((result) => result.calls.length > 0 && result.calls.every((call) => call.ok)).length;
+  const cleanCalls = results.filter(
+    (result) => result.calls.length > 0 && result.calls.every((call) => call.ok),
+  ).length;
   const mentionsOk = results.filter((result) => result.mentionsOk).length;
   const avg = (pick: (result: ScenarioResult) => number): number =>
     results.length === 0 ? 0 : results.reduce((sum, result) => sum + pick(result), 0) / results.length;
@@ -521,28 +533,32 @@ describe('Dóru AI local model eval', () => {
           }
         });
         for (const scenario of scenarios) {
-          it(scenario.id, async () => {
-            if (server === undefined) {
-              throw new Error('llama-server was not started');
-            }
-            const repeatFailures: string[] = [];
-            for (let repeat = 1; repeat <= repeats; repeat += 1) {
-              const result = await runScenario(server, config, mode, scenario);
-              report.results.push({
-                ...result,
-                scenario: repeats > 1 ? `${scenario.id}#${repeat}` : scenario.id,
-              });
-              if (!result.ok) {
-                const details = [...result.failures, ...result.toolErrors.map((error) => `tool error: ${error}`)];
-                repeatFailures.push(
-                  `repeat ${repeat}:\n  - ${details.join('\n  - ')}\nfinal text: ${result.finalText.slice(0, 300)}\nserver log tail:\n${server.tail().slice(-2000)}`,
-                );
+          it(
+            scenario.id,
+            async () => {
+              if (server === undefined) {
+                throw new Error('llama-server was not started');
               }
-            }
-            if (repeatFailures.length > 0) {
-              throw new Error(`failed in ${repeatFailures.length}/${repeats} repeats:\n${repeatFailures.join('\n')}`);
-            }
-          }, repeats * 900_000);
+              const repeatFailures: string[] = [];
+              for (let repeat = 1; repeat <= repeats; repeat += 1) {
+                const result = await runScenario(server, config, mode, scenario);
+                report.results.push({
+                  ...result,
+                  scenario: repeats > 1 ? `${scenario.id}#${repeat}` : scenario.id,
+                });
+                if (!result.ok) {
+                  const details = [...result.failures, ...result.toolErrors.map((error) => `tool error: ${error}`)];
+                  repeatFailures.push(
+                    `repeat ${repeat}:\n  - ${details.join('\n  - ')}\nfinal text: ${result.finalText.slice(0, 300)}\nserver log tail:\n${server.tail().slice(-2000)}`,
+                  );
+                }
+              }
+              if (repeatFailures.length > 0) {
+                throw new Error(`failed in ${repeatFailures.length}/${repeats} repeats:\n${repeatFailures.join('\n')}`);
+              }
+            },
+            repeats * 900_000,
+          );
         }
       });
     }

@@ -12,10 +12,12 @@
   position: relative;
   overflow: hidden;
   background: var(--doru-bg-canvas);
+
   /* Canvas interactions (pan, zoom, drag) come later; disable text
      selection and native scrolling gestures from the start. */
   user-select: none;
   touch-action: none;
+
   --doru-line-paternal: var(--doru-info);
   --doru-line-maternal: #c98ba0;
 }
@@ -24,11 +26,7 @@
 
 .tree-canvas .react-flow {
   --xy-background-color: transparent;
-  --xy-background-pattern-dots-color-default: color-mix(
-    in srgb,
-    var(--doru-border) 55%,
-    transparent
-  );
+  --xy-background-pattern-dots-color-default: color-mix(in srgb, var(--doru-border) 55%, transparent);
   --xy-edge-stroke-default: var(--doru-border-strong);
   --xy-edge-stroke-selected-default: var(--doru-accent);
   --xy-edge-stroke-width-default: 1.5px;
@@ -39,11 +37,7 @@
   --xy-node-boxshadow-hover-default: var(--doru-ring);
   --xy-node-boxshadow-selected-default: 0 0 0 2px var(--doru-accent);
   --xy-node-color-default: var(--doru-fg);
-  --xy-selection-background-color-default: color-mix(
-    in srgb,
-    var(--doru-accent) 12%,
-    transparent
-  );
+  --xy-selection-background-color-default: color-mix(in srgb, var(--doru-accent) 12%, transparent);
   --xy-selection-border-default: var(--doru-accent);
   --xy-controls-button-background-color-default: var(--doru-bg-raised);
   --xy-controls-button-background-color-hover-default: var(--doru-bg-chrome);

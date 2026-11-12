@@ -29,9 +29,7 @@ export class RecentProjects {
       }
       return parsed.filter(
         (item): item is RecentProject =>
-          typeof item === 'object' &&
-          item !== null &&
-          typeof (item as RecentProject).path === 'string',
+          typeof item === 'object' && item !== null && typeof (item as RecentProject).path === 'string',
       );
     } catch {
       return [];

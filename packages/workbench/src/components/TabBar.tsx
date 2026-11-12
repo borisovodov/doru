@@ -56,9 +56,11 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
 
   // Latest props for the event handlers, which only ever see their own tab id.
   const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
   const reorderRef = useRef(onReorder);
-  reorderRef.current = onReorder;
+  useLayoutEffect(() => {
+    tabsRef.current = tabs;
+    reorderRef.current = onReorder;
+  }, [tabs, onReorder]);
 
   const hideGhost = () => {
     ghostRef.current?.classList.remove('visible');
@@ -108,10 +110,10 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
       const style = getComputedStyle(label);
       const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}/${style.lineHeight} ${style.fontFamily}`;
       if (!context) {
-        return (label.textContent?.length ?? 0) * 8;
+        return label.textContent.length * 8;
       }
       context.font = font;
-      return context.measureText(label.textContent ?? '').width;
+      return context.measureText(label.textContent).width;
     };
     const updateFades = () => {
       const labels = bar.querySelectorAll<HTMLElement>('.tab-label');
@@ -119,12 +121,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
         const tab = label.closest<HTMLElement>('.tab');
         // On macOS the close action sits on the left, in the space the label
         // permanently yields, so only the right-side overlay reserves width.
-        const reserve =
-          !closeOnLeft &&
-          tab &&
-          (tab.classList.contains('active') || tab.matches(':hover'))
-            ? 22
-            : 0;
+        const reserve = !closeOnLeft && tab && (tab.classList.contains('active') || tab.matches(':hover')) ? 22 : 0;
         label.classList.toggle('fading', textWidth(label) > label.clientWidth - reserve);
       }
     };
@@ -214,7 +211,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
       showGhost(tabId, event.clientX, event.clientY, event.currentTarget);
     }
     const ghost = ghostRef.current;
-    if (ghost && state.started) {
+    if (ghost) {
       ghost.style.transform = `translate(${event.clientX - ghostGrabRef.current.offsetX}px, ${event.clientY - ghostGrabRef.current.offsetY}px)`;
     }
     const { hoverIndex, before } = computeHover(event.clientX);
@@ -247,14 +244,13 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
     >
       {tabs.map((tab, index) => {
         const isDragged = drag !== null && drag.draggedId === tab.id;
-        const isDropTarget =
-          drag !== null && drag.hoverIndex === index && index !== draggedIndex;
+        const isDropTarget = drag !== null && drag.hoverIndex === index && index !== draggedIndex;
         const className = [
           'tab',
           tab.id === activeId ? 'active' : '',
           tab.closable === false ? 'no-close' : '',
           isDragged ? 'dragging' : '',
-          isDropTarget ? (drag!.before ? 'drop-before' : 'drop-after') : '',
+          isDropTarget ? (drag.before ? 'drop-before' : 'drop-after') : '',
         ]
           .filter(Boolean)
           .join(' ');

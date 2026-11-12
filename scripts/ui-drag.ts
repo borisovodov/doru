@@ -44,8 +44,7 @@ await page.waitForSelector('.editor-pane.active');
 await page.reload();
 await page.waitForSelector('.editor-pane.active .tree-canvas');
 
-const labels = () =>
-  page.$$eval('.tab-bar .tab .tab-label', (els) => els.map((el) => el.textContent));
+const labels = () => page.$$eval('.tab-bar .tab .tab-label', (els) => els.map((el) => el.textContent));
 
 // Open two person tabs from the People sidebar (switching back to the tree
 // tab in between, since opening a person tab activates it and hides the
@@ -85,12 +84,12 @@ if (!lastBox) {
   throw new Error('last tab bounds missing');
 }
 const lastWidth = lastBox.width;
-await dragByMouse(1, await tabs.count() - 1, lastWidth - 6);
+await dragByMouse(1, (await tabs.count()) - 1, lastWidth - 6);
 
 console.log('after: ', await labels());
 
 // Drag the last tab back before the first tab.
-await dragByMouse(await tabs.count() - 1, 0, 2);
+await dragByMouse((await tabs.count()) - 1, 0, 2);
 console.log('back:  ', await labels());
 
 await app.close();

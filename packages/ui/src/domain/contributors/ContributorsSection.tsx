@@ -61,9 +61,7 @@ export function ContributorsSection({
         ) : null
       }
     >
-      {links.length === 0 && !adding ? (
-        <EmptyText>{nls.t('features.tree.contributors.empty')}</EmptyText>
-      ) : null}
+      {links.length === 0 && !adding ? <EmptyText>{nls.t('features.tree.contributors.empty')}</EmptyText> : null}
       {links.length > 0 ? (
         <div className={styles['chips']}>
           {links.map((link) => (

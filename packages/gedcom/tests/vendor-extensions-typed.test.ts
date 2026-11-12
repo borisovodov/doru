@@ -52,7 +52,7 @@ const H70 = ['0 HEAD', '1 GEDC', '2 VERS 7.0'];
 
 function indi(dataset: GedcomDataset): IndividualRecord {
   const record = dataset.records.find((entry) => entry.tag === 'INDI');
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined) {
     throw new Error('expected INDI');
   }
   return record;
@@ -60,17 +60,10 @@ function indi(dataset: GedcomDataset): IndividualRecord {
 
 describe('cross-reference identifiers on tagged extension structures', () => {
   test('an xref on a nested extension structure is kept and written back (5.5.1)', () => {
-    const text = [
-      ...H551,
-      '0 @I1@ INDI',
-      '1 _WRAP',
-      '2 @X1@ _INNER text',
-      ...SUBM,
-      '0 TRLR',
-    ].join('\n');
+    const text = [...H551, '0 @I1@ INDI', '1 _WRAP', '2 @X1@ _INNER text', ...SUBM, '0 TRLR'].join('\n');
     const dataset = parseOk551(text);
     const person = indi(dataset);
-    expect(person.extensions?.[0]?.children?.[0]?.xref).toBe('@X1@');
+    expect(person.extensions?.[0]?.children[0]?.xref).toBe('@X1@');
     const out = ser551(dataset);
     expect(lines(out)).toContain('2 @X1@ _INNER text');
     expect(parseOk551(out)).toEqual(dataset);
@@ -88,7 +81,7 @@ describe('cross-reference identifiers on tagged extension structures', () => {
     ].join('\n');
     const dataset = parseOk70(text);
     const person = indi(dataset);
-    expect(person.extensions?.[0]?.children?.[0]?.xref).toBe('@E1@');
+    expect(person.extensions?.[0]?.children[0]?.xref).toBe('@E1@');
     const out = ser70(dataset);
     // GEDCOM 7.0 §1.3: "A substructure or pseudo-structure must not
     // have a cross-reference identifier" — the lenient parser keeps
@@ -97,7 +90,7 @@ describe('cross-reference identifiers on tagged extension structures', () => {
     expect(lines(out)).not.toContain('2 @E1@ _INNER data');
     // The re-import differs only in the dropped xref.
     const reparsed = parseOk70(out);
-    expect(indi(reparsed).extensions?.[0]?.children?.[0]?.xref).toBeUndefined();
+    expect(indi(reparsed).extensions?.[0]?.children[0]?.xref).toBeUndefined();
   });
 });
 
@@ -200,7 +193,10 @@ describe('the USM6 (Der Stammbaum ≤ V6) tags', () => {
     expect(famc?.motherChildStatus).toBe('natural');
     const fam = dataset.records.find((entry) => entry.tag === 'FAM');
     expect(fam?.tag === 'FAM' ? fam.unionKind : undefined).toBe('2');
-    expect(fam?.tag === 'FAM' ? fam.attributes?.[0]?.childCountCertain : undefined).toBe(true);
+    const familyNchi = fam?.tag === 'FAM' ? fam.attributes?.find((entry) => entry.tag === 'NCHI') : undefined;
+    expect(
+      familyNchi !== undefined && 'childCountCertain' in familyNchi ? familyNchi.childCountCertain : undefined,
+    ).toBe(true);
     const citation = burial?.detail?.citations?.[0];
     expect(citation?.foundBy).toBe('J. Finder');
   });
@@ -232,7 +228,7 @@ describe('the USM6 (Der Stammbaum ≤ V6) tags', () => {
     const dataset = parseOk551(SAMPLE);
     const out = lines(ser70(dataset)).join('\n');
     for (const tag of ['SIGN', 'BTYP', 'POTM', 'SRCH', 'NOTRY', 'SURE', 'MTYP', 'UTYP', 'RINI', 'UGNM', 'NAME_']) {
-      expect(out, tag).not.toContain(tag);
+      expect(out).not.toContain(tag);
     }
     // The standard slots survive in their 7.0 spellings.
     expect(out).toContain('2 AGE 74y');
@@ -240,10 +236,24 @@ describe('the USM6 (Der Stammbaum ≤ V6) tags', () => {
     expect(out).toContain('2 _WIFE natural');
     // The non-underscore tags are accepted on 7.0 input
     // (typed where a rule applies, generic extensions otherwise).
-    for (const tag of ['SIGN', 'BTYP', 'MTYP', 'UTYP', 'SURE', 'POTM', 'SRCH', 'AGED', 'NOTRY', 'RINI', 'UGNM', 'NAME_', 'SECG']) {
+    for (const tag of [
+      'SIGN',
+      'BTYP',
+      'MTYP',
+      'UTYP',
+      'SURE',
+      'POTM',
+      'SRCH',
+      'AGED',
+      'NOTRY',
+      'RINI',
+      'UGNM',
+      'NAME_',
+      'SECG',
+    ]) {
       const result = parseGedcom70(enc([...H70, '0 @I1@ INDI', `1 ${tag} x`, '0 TRLR'].join('\n')));
       if (!result.ok) {
-        expect(result.error.code, tag).not.toBe('structure.unknown-tag');
+        expect(result.error.code).not.toBe('structure.unknown-tag');
       }
     }
   });
@@ -404,7 +414,9 @@ describe('the Family Historian tags', () => {
     expect(out).toContain('1 _TYPE Census');
     const parsed70 = parseOk70(ser70(dataset));
     const person = indi(parsed70);
-    expect(person.recordFlags).toEqual(dataset.records.find((entry) => entry.tag === 'INDI')?.tag === 'INDI' ? indi(dataset).recordFlags : undefined);
+    expect(person.recordFlags).toEqual(
+      dataset.records.find((entry) => entry.tag === 'INDI')?.tag === 'INDI' ? indi(dataset).recordFlags : undefined,
+    );
     const birth = person.events?.find((entry) => entry.tag === 'BIRT');
     expect(birth?.detail?.factFlags).toEqual(['PREFERRED', 'PRIVATE']);
     expect(birth?.detail?.email).toEqual(['me@example.com']);

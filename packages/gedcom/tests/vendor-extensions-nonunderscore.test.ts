@@ -1,14 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import {
-  LEGACY_FAMILY_TAGS,
-  LEGACY_GENERIC_TAGS,
-  LEGACY_INDIVIDUAL_TAGS,
-  NON_UNDERSCORE_VENDOR_TAGS,
-} from '../src/index';
+import { LEGACY_GENERIC_TAGS, LEGACY_INDIVIDUAL_TAGS, NON_UNDERSCORE_VENDOR_TAGS } from '../src/index';
 import type { LegacyIndividualRule } from '../src/index';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
-import type { ExtensionRecord, FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
+import type { FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -29,14 +24,6 @@ function parseOk70(text: string): GedcomDataset {
     throw new Error(JSON.stringify(result));
   }
   return result.value;
-}
-
-function err70(text: string): string {
-  const result = parseGedcom70(enc(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
 }
 
 function ser551(dataset: GedcomDataset): string {
@@ -88,65 +75,78 @@ function sampleValue(rule: LegacyIndividualRule): string | undefined {
 /** Asserts the typed normalization of one rule (text-payload path). */
 function expectTyped(dataset: GedcomDataset, tag: string, rule: LegacyIndividualRule, value: string | undefined): void {
   const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
-  expect(indi, tag).toBeDefined();
+  expect(indi).toBeDefined();
   const record = indi as IndividualRecord;
-  expect(record.extensions?.some((entry) => entry.tag === tag), `${tag}: must not stay generic`).toBeFalsy();
+  expect(
+    record.extensions?.some((entry) => entry.tag === tag),
+    `${tag}: must not stay generic`,
+  ).toBeFalsy();
   switch (rule.kind) {
     case 'name': {
       const name = record.names?.at(-1);
-      expect(name?.type?.payload, tag).toBe(rule.nameType);
-      expect(name?.payload.given, tag).toBe(value);
+      expect(name?.type?.payload).toBe(rule.nameType);
+      expect(name?.payload.given).toBe(value);
       return;
     }
     case 'nameOther': {
       const name = record.names?.at(-1);
-      expect(name?.type?.payload, tag).toBe('OTHER');
-      expect(name?.type?.phrase, tag).toBe(rule.phrase);
-      expect(name?.payload.given, tag).toBe(value);
+      expect(name?.type?.payload).toBe('OTHER');
+      expect(name?.type?.phrase).toBe(rule.phrase);
+      expect(name?.payload.given).toBe(value);
       return;
     }
     case 'standardEvent':
-      expect(record.events?.some((event) => event.tag === rule.tag), tag).toBe(true);
+      expect(record.events?.some((event) => event.tag === rule.tag)).toBe(true);
       return;
     case 'event': {
       const event = record.events?.find((entry) => entry.tag === 'EVEN' && entry.type === rule.type);
-      expect(event?.payload, tag).toBe(value);
+      expect(event?.payload).toBe(value);
       return;
     }
     case 'fact': {
       const attribute = record.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === rule.type);
-      expect(attribute?.payload, tag).toBe(value);
+      expect(attribute?.payload).toBe(value);
       return;
     }
     case 'educ': {
       const attribute = record.attributes?.find((entry) => entry.tag === 'EDUC' && entry.type === rule.type);
-      expect(attribute?.payload, tag).toBe(value);
+      expect(attribute?.payload).toBe(value);
       return;
     }
     case 'attribute':
-      expect(record.attributes?.some((entry) => entry.tag === rule.tag), tag).toBe(true);
+      expect(record.attributes?.some((entry) => entry.tag === rule.tag)).toBe(true);
       return;
     case 'note':
-      expect(record.notes?.some((entry) => entry.tag === 'NOTE' && 'payload' in entry && entry.payload === value), tag).toBe(true);
+      expect(record.notes?.some((entry) => entry.tag === 'NOTE' && 'payload' in entry && entry.payload === value)).toBe(
+        true,
+      );
       return;
     case 'privateNote':
-      expect(record.notes?.some((entry) => entry.tag === 'NOTE' && 'payload' in entry && entry.payload === value && entry.private === true), tag).toBe(true);
+      expect(
+        record.notes?.some(
+          (entry) => entry.tag === 'NOTE' && 'payload' in entry && entry.payload === value && entry.private === true,
+        ),
+      ).toBe(true);
       return;
     case 'negative':
-      expect(record.nonEvents?.map((entry) => entry.payload), tag).toContain(rule.event);
+      expect(record.nonEvents?.map((entry) => entry.payload)).toContain(rule.event);
       return;
     case 'url':
-      expect(record.url, tag).toBe(value);
+      expect(record.url).toBe(value);
       return;
     case 'refn':
-      expect(record.identifiers?.some((entry) => entry.tag === 'REFN' && entry.payload === value), tag).toBe(true);
+      expect(record.identifiers?.some((entry) => entry.tag === 'REFN' && entry.payload === value)).toBe(true);
       return;
     case 'association':
       // Text payload: FACT + TYPE (the pointer path is covered below).
-      expect(record.attributes?.some((entry) => entry.tag === 'FACT' && entry.type === rule.relationship && entry.payload === value), tag).toBe(true);
+      expect(
+        record.attributes?.some(
+          (entry) => entry.tag === 'FACT' && entry.type === rule.relationship && entry.payload === value,
+        ),
+      ).toBe(true);
       return;
     case 'fsftid':
-      expect(record.familySearchId, tag).toBe(value);
+      expect(record.familySearchId).toBe(value);
       return;
     case 'lds':
       return;
@@ -194,7 +194,7 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
       const dataset = parseOk551(indi551([`1 ${tag} x`]));
       const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
       const extension = (indi as IndividualRecord).extensions?.find((entry) => entry.tag === tag);
-      expect(extension?.payload, tag).toBe('x');
+      expect(extension?.payload).toBe('x');
     }
   });
 
@@ -230,14 +230,22 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
 
   test('a standard position still parses as the standard structure', () => {
     const dataset = parseOk551(
-      indi551(['1 NATI German', '1 SUBM @S1@', '1 IDNO 123', '2 TYPE Passport', '0 @F1@ FAM', '1 WIFE @I2@', '0 @I2@ INDI']),
+      indi551([
+        '1 NATI German',
+        '1 SUBM @S1@',
+        '1 IDNO 123',
+        '2 TYPE Passport',
+        '0 @F1@ FAM',
+        '1 WIFE @I2@',
+        '0 @I2@ INDI',
+      ]),
     );
     const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
     expect(indi?.attributes?.map((attribute) => attribute.tag)).toEqual(['NATI', 'IDNO']);
     expect(indi?.submitters).toEqual(['@S1@']);
     expect((indi as IndividualRecord).extensions).toBeUndefined();
     const fam = dataset.records.find((record) => record.tag === 'FAM');
-    expect(fam && 'wife' in fam && fam.wife?.partner).toBe('@I2@');
+    expect(fam && 'wife' in fam && fam.wife.partner).toBe('@I2@');
   });
 
   test('a pointer payload becomes an ASSO with the RELA descriptor', () => {
@@ -254,7 +262,16 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
 
   test('the FTM5 LDS wrapper parses its children as ordinances', () => {
     const dataset = parseOk551(
-      indi551(['1 LDS', '2 BAPL', '3 DATE 1 JAN 1900', '3 TEMP SLAKE', '2 ENDL', '2 SLGC', '3 FAMC @F1@', '0 @F1@ FAM']),
+      indi551([
+        '1 LDS',
+        '2 BAPL',
+        '3 DATE 1 JAN 1900',
+        '3 TEMP SLAKE',
+        '2 ENDL',
+        '2 SLGC',
+        '3 FAMC @F1@',
+        '0 @F1@ FAM',
+      ]),
     );
     const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
     expect((indi as IndividualRecord).ordinances?.map((ordinance) => ordinance.tag)).toEqual(['BAPL', 'ENDL', 'SLGC']);
@@ -265,7 +282,17 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
   });
 
   test('types the FAM-level rules', () => {
-    const text = [...H551, '0 @F1@ FAM', '1 CLAW', '2 DATE 1900', '1 SEPA', '1 FEMA 2', '1 MALE 3', ...SUBM, '0 TRLR'].join('\n');
+    const text = [
+      ...H551,
+      '0 @F1@ FAM',
+      '1 CLAW',
+      '2 DATE 1900',
+      '1 SEPA',
+      '1 FEMA 2',
+      '1 MALE 3',
+      ...SUBM,
+      '0 TRLR',
+    ].join('\n');
     const dataset = parseOk551(text);
     const fam = dataset.records.find((record): record is FamilyRecord => record.tag === 'FAM');
     expect(fam?.events).toEqual([
@@ -331,7 +358,7 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
       // typed rule does not accept may still fail, e.g. BLESS x).
       const result = parseGedcom70(enc(indi70([`1 ${tag} x`])));
       if (!result.ok) {
-        expect(result.error.code, tag).not.toBe('structure.unknown-tag');
+        expect(result.error.code).not.toBe('structure.unknown-tag');
       }
     }
   });
@@ -345,9 +372,9 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
   test('record-level tags become ExtensionRecords with their xref, dropped on export', () => {
     const text = [...H551, '0 @X1@ LDS', '1 CHIL @I1@', '0 @I1@ INDI', ...SUBM, '0 TRLR'].join('\n');
     const dataset = parseOk551(text);
-    const record = dataset.records.find((entry) => entry.tag === 'LDS');
+    const record = dataset.records.find((entry) => entry.xref === '@X1@');
     expect(record).toBeDefined();
-    expect((record as ExtensionRecord).xref).toBe('@X1@');
+    expect(record?.xref).toBe('@X1@');
     // A non-underscore extension record has no conformant spelling in
     // either target version and is dropped on export in both.
     expect(ser551(dataset)).not.toContain('@X1@ LDS');
@@ -378,9 +405,7 @@ describe('non-underscore vendor tags of GEDCOM 5.x (Legacy "Tags Not Specified i
   test('a TYPE child overrides the default fact type (ATTR)', () => {
     const dataset = parseOk551(indi551(['1 ATTR x', '2 TYPE Clergy']));
     const indi = dataset.records.find((record): record is IndividualRecord => record.tag === 'INDI');
-    expect((indi as IndividualRecord).attributes).toEqual([
-      { tag: 'FACT', payload: 'x', type: 'Clergy' },
-    ]);
+    expect((indi as IndividualRecord).attributes).toEqual([{ tag: 'FACT', payload: 'x', type: 'Clergy' }]);
   });
 
   test('legacy events keep their payload and accept DATE and AGE details', () => {

@@ -26,11 +26,7 @@ export function focusedWindow(): BrowserWindow | null {
 }
 
 export function windowById(id: number): BrowserWindow | null {
-  return (
-    BrowserWindow.getAllWindows().find(
-      (window) => !window.isDestroyed() && window.webContents.id === id,
-    ) ?? null
-  );
+  return BrowserWindow.getAllWindows().find((window) => !window.isDestroyed() && window.webContents.id === id) ?? null;
 }
 
 /**
@@ -57,49 +53,45 @@ export function installMenu(): void {
     Menu.setApplicationMenu(null);
     return;
   }
-  const template = APP_MENU.filter((group) => menuVisible(group, platform)).map(
-    (group): MenuItemConstructorOptions => {
-      if (group.role) {
-        // Pure native groups (app, edit, window) — macOS fills them in.
-        return { role: group.role };
-      }
-      return {
-        ...(group.labelKey ? { label: nls.t(group.labelKey) } : {}),
-        submenu: group.items
-          .filter((entry) => menuVisible(entry, platform))
-          .map((entry) => {
-            if (entry.type === 'separator') {
-              return { type: 'separator' as const };
-            }
-            if (entry.role && !entry.command) {
-              return {
-                id: entry.id,
-                role: entry.role,
-                ...(entry.labelKey ? { label: nls.t(entry.labelKey) } : {}),
-              };
-            }
+  const template = APP_MENU.filter((group) => menuVisible(group, platform)).map((group): MenuItemConstructorOptions => {
+    if (group.role) {
+      // Pure native groups (app, edit, window) — macOS fills them in.
+      return { role: group.role };
+    }
+    return {
+      ...(group.labelKey ? { label: nls.t(group.labelKey) } : {}),
+      submenu: group.items
+        .filter((entry) => menuVisible(entry, platform))
+        .map((entry) => {
+          if (entry.type === 'separator') {
+            return { type: 'separator' as const };
+          }
+          if (entry.role && !entry.command) {
             return {
               id: entry.id,
+              role: entry.role,
               ...(entry.labelKey ? { label: nls.t(entry.labelKey) } : {}),
-              // The accelerator is registered as a native key equivalent and
-              // shown in the menu item. AppKit consumes a matching key press
-              // before it reaches the DOM, so the renderer keybinding for the
-              // same combination never double-fires.
-              ...(entry.accelerator ? { accelerator: entry.accelerator } : {}),
-              // The click routes through the window the menu click reports;
-              // when none is focused (automation, no window focus), fall back
-              // to any live window rather than dropping the command.
-              click: (_item, window) => {
-                const target =
-                  window ??
-                  BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed());
-                sendMenuCommand(target, entry.command);
-              },
             };
-          }),
-      };
-    },
-  );
+          }
+          return {
+            id: entry.id,
+            ...(entry.labelKey ? { label: nls.t(entry.labelKey) } : {}),
+            // The accelerator is registered as a native key equivalent and
+            // shown in the menu item. AppKit consumes a matching key press
+            // before it reaches the DOM, so the renderer keybinding for the
+            // same combination never double-fires.
+            ...(entry.accelerator ? { accelerator: entry.accelerator } : {}),
+            // The click routes through the window the menu click reports;
+            // when none is focused (automation, no window focus), fall back
+            // to any live window rather than dropping the command.
+            click: (_item, window) => {
+              const target = window ?? BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed());
+              sendMenuCommand(target, entry.command);
+            },
+          };
+        }),
+    };
+  });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 

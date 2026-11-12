@@ -112,10 +112,7 @@ test('the Dóru AI step downloads, resumes, and removes the model', async () => 
     const progress = page.getByRole('progressbar');
     await expect(progress).toBeVisible();
     await expect
-      .poll(
-        async () => progress.evaluate((el) => (el as HTMLProgressElement).value),
-        { timeout: 10_000 },
-      )
+      .poll(async () => progress.evaluate((el) => (el as HTMLProgressElement).value), { timeout: 10_000 })
       .toBeGreaterThan(0);
     await page.getByRole('button', { name: 'Cancel download' }).click();
     await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();

@@ -55,11 +55,7 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await page.mouse.down();
   // Cross the 4px drag threshold first so the gesture reliably starts.
   await page.mouse.move(kbox!.x + kbox!.width / 2 + 20, kbox!.y + kbox!.height / 2);
-  await page.mouse.move(
-    k2box!.x + k2box!.width / 2,
-    k2box!.y + k2box!.height / 2,
-    { steps: 10 },
-  );
+  await page.mouse.move(k2box!.x + k2box!.width / 2, k2box!.y + k2box!.height / 2, { steps: 10 });
   await page.mouse.up();
   await page.waitForTimeout(900);
 
@@ -107,9 +103,7 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
   await peopleList.getByRole('button', { name: /Ivan Ivanov/ }).click();
 
   // The canvas (kept alive in the hidden pane) refocuses on Ivan.
-  await expect(page.getByRole('list', { name: 'Focus trail', includeHidden: true })).toHaveText(
-    /Ivan Ivanov/,
-  );
+  await expect(page.getByRole('list', { name: 'Focus trail', includeHidden: true })).toHaveText(/Ivan Ivanov/);
   await app.close();
 });
 
@@ -148,10 +142,7 @@ test('rename and delete with undo on the canvas', async () => {
   const peopleList = page.getByRole('complementary', { name: 'People' }).getByRole('list');
   await peopleList.getByRole('button', { name: /Maria Ivanova/ }).click();
   await page.getByRole('tab', { name: 'Family Tree' }).click();
-  await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toHaveAttribute(
-    'aria-current',
-    'true',
-  );
+  await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toHaveAttribute('aria-current', 'true');
   await page.waitForTimeout(400);
 
   // Delete the focused person (Maria) and undo the whole compound op.

@@ -5,11 +5,7 @@ export interface PedigreeNode {
   parents: PedigreeNode[];
 }
 
-export function computePedigree(
-  repo: TreeRepository,
-  personId: string,
-  generations = 5,
-): PedigreeNode | undefined {
+export function computePedigree(repo: TreeRepository, personId: string, generations = 5): PedigreeNode | undefined {
   if (!repo.getPerson(personId)) {
     return undefined;
   }

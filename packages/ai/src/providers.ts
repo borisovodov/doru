@@ -123,7 +123,11 @@ function cloudProvider(preset: CloudPreset): AiProvider {
 export const AI_PROVIDERS: AiProvider[] = [...CLOUD_PRESETS.map(cloudProvider), ...LOCAL_PRESETS];
 
 export function findProvider(id: string): AiProvider {
-  return AI_PROVIDERS.find((provider) => provider.id === id) ?? AI_PROVIDERS[0]!;
+  const fallback = AI_PROVIDERS[0];
+  if (fallback === undefined) {
+    throw new Error('AI provider registry is empty');
+  }
+  return AI_PROVIDERS.find((provider) => provider.id === id) ?? fallback;
 }
 
 export function wireDialect(provider: AiProvider): WireDialect {

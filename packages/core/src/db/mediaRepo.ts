@@ -53,7 +53,9 @@ export class MediaRepo {
   }
 
   updateMedia(media: MediaRecord): void {
-    this.db.prepare('UPDATE media SET xref = ?, title = ? WHERE id = ?').run(media.xref ?? null, media.title ?? null, media.id);
+    this.db
+      .prepare('UPDATE media SET xref = ?, title = ? WHERE id = ?')
+      .run(media.xref ?? null, media.title ?? null, media.id);
     this.replaceFiles(media);
   }
 
@@ -83,8 +85,7 @@ export class MediaRepo {
     const result: MediaRecord[] = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(link.media_id) as
-        | MediaRow
-        | undefined;
+        MediaRow | undefined;
       if (row) {
         result.push({ ...this.hydrate(row), targetType, targetId });
       }
@@ -104,8 +105,7 @@ export class MediaRepo {
     const result: Array<{ media: MediaRecord; link: MediaLinkRecord }> = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(link.media_id) as
-        | MediaRow
-        | undefined;
+        MediaRow | undefined;
       if (row) {
         result.push({ media: this.hydrate(row), link: rowToLink(link) });
       }
@@ -125,11 +125,12 @@ export class MediaRepo {
 
   removeMediaLink(id: string): boolean {
     const link = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
-      | { media_id: string }
-      | undefined;
+      { media_id: string } | undefined;
     const result = this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id);
     if (result.changes > 0 && link) {
-      const remaining = this.db.prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?').get(link.media_id) as {
+      const remaining = this.db
+        .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
+        .get(link.media_id) as {
         n: number;
       };
       if (remaining.n === 0) {
@@ -146,7 +147,9 @@ export class MediaRepo {
       .all(targetType, targetId) as unknown as { id: string; media_id: string }[];
     this.db.prepare('DELETE FROM media_link WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
     for (const link of links) {
-      const remaining = this.db.prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?').get(link.media_id) as {
+      const remaining = this.db
+        .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
+        .get(link.media_id) as {
         n: number;
       };
       if (remaining.n === 0) {
@@ -161,8 +164,7 @@ export class MediaRepo {
       'INSERT INTO media_file (id, media_id, path, title, position) VALUES (?, ?, ?, ?, ?)',
     );
     const files: MediaFile[] =
-      media.files ??
-      (media.path !== undefined ? [{ id: crypto.randomUUID(), path: media.path }] : []);
+      media.files ?? (media.path !== undefined ? [{ id: crypto.randomUUID(), path: media.path }] : []);
     files.forEach((file, position) => {
       insert.run(file.id, media.id, file.path, file.title ?? null, position);
     });

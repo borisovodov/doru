@@ -24,7 +24,17 @@ export function PersonTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tree.personNotFound')}</p>;
   }
-  return <PersonTabBody tabId={tabId} personId={personId} isNew={isNew} persons={persons} api={api} onClose={onClose} onCreated={onCreated} />;
+  return (
+    <PersonTabBody
+      tabId={tabId}
+      personId={personId}
+      isNew={isNew}
+      persons={persons}
+      api={api}
+      onClose={onClose}
+      onCreated={onCreated}
+    />
+  );
 }
 
 function PersonTabBody({
@@ -67,7 +77,7 @@ function PersonTabBody({
     const previous = personRef.current;
     personRef.current = person;
     setDraft((current) =>
-      current && !current.isNew && previous !== undefined && personDraftMatches(current, previous)
+      !current.isNew && previous !== undefined && personDraftMatches(current, previous)
         ? current
         : personToDraft(person),
     );

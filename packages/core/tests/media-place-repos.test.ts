@@ -43,13 +43,13 @@ describe('media repo edge cases', () => {
     try {
       const { repo } = fixture;
       repo.insertMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
-      const [first] = repo.listAttachmentsFor('person', 'P1').mediaLinks!;
+      const [first] = repo.listAttachmentsFor('person', 'P1').mediaLinks;
       repo.addMediaLink('M1', { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'P2' });
 
       repo.removeMediaLink(first!.link.id);
       expect(repo.getMedia('M1')).toBeDefined();
 
-      const [second] = repo.listAttachmentsFor('person', 'P2').mediaLinks!;
+      const [second] = repo.listAttachmentsFor('person', 'P2').mediaLinks;
       repo.removeMediaLink(second!.link.id);
       expect(repo.getMedia('M1')).toBeUndefined();
       expect(repo.removeMediaLink('missing')).toBe(false);

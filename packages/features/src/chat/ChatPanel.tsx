@@ -7,6 +7,8 @@ import { nls } from '../nls';
 import { ChatMarkdown } from './ChatMarkdown';
 import './ChatPanel.css';
 
+/* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
+
 export interface ChatPanelProps {
   messages: ChatTranscriptMessage[];
   busy: boolean;
@@ -39,7 +41,7 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const copyTimer = useRef<number | null>(null);
+  const copyTimerRef = useRef<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -84,10 +86,10 @@ export function ChatPanel({
     }
     onCopy(text);
     setCopiedIndex(index);
-    if (copyTimer.current !== null) {
-      window.clearTimeout(copyTimer.current);
+    if (copyTimerRef.current !== null) {
+      window.clearTimeout(copyTimerRef.current);
     }
-    copyTimer.current = window.setTimeout(() => setCopiedIndex(null), 1500);
+    copyTimerRef.current = window.setTimeout(() => setCopiedIndex(null), 1500);
   };
 
   return (
@@ -124,16 +126,15 @@ export function ChatPanel({
                 <div className="chat-assistant">
                   <div className="chat-bubble">
                     <div className="chat-text">
-                      <ChatMarkdown
-                        text={message.content}
-                        {...(onOpenLink ? { onOpenLink } : {})}
-                      />
+                      <ChatMarkdown text={message.content} {...(onOpenLink ? { onOpenLink } : {})} />
                     </div>
                     {message.steps?.map((step, stepIndex) => (
                       <ChatStep key={stepIndex} step={step} />
                     ))}
                     {message.error ? (
-                      <div className="chat-error" role="alert">{message.error}</div>
+                      <div className="chat-error" role="alert">
+                        {message.error}
+                      </div>
                     ) : null}
                   </div>
                   {message.content !== '' || message.error ? (
@@ -285,7 +286,11 @@ function ChatStep({ step }: { step: AgentStep }) {
         </div>
       );
     case 'toolError':
-      return <div className="chat-tool-error" role="alert">{step.message}</div>;
+      return (
+        <div className="chat-tool-error" role="alert">
+          {step.message}
+        </div>
+      );
     default:
       return null;
   }

@@ -57,13 +57,7 @@ export function SubmitterList({
 }
 
 /** The bibliographic-title list of the Sources sidebar; clicking opens the title tab. */
-export function TitleList({
-  titles,
-  onOpenTitle,
-}: {
-  titles: TitleRecord[];
-  onOpenTitle: (titleId: string) => void;
-}) {
+export function TitleList({ titles, onOpenTitle }: { titles: TitleRecord[]; onOpenTitle: (titleId: string) => void }) {
   if (titles.length === 0) {
     return <p className="side-registries-note">{nls.t('features.tree.title.empty')}</p>;
   }

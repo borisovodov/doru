@@ -57,7 +57,11 @@ export function FactEditor({
   const removeAge = (index: number) => set({ ages: draft.ages.filter((_, i) => i !== index) });
 
   const patchParticipant = (index: number, values: Partial<FactParticipant>) =>
-    set({ participants: draft.participants.map((participant, i) => (i === index ? { ...participant, ...values } : participant)) });
+    set({
+      participants: draft.participants.map((participant, i) =>
+        i === index ? { ...participant, ...values } : participant,
+      ),
+    });
   const addParticipant = () =>
     set({
       participants: [...draft.participants, { id: crypto.randomUUID(), position: draft.participants.length }],
@@ -207,7 +211,9 @@ export function FactEditor({
                 <option key={role} value={role}>
                   {role === ''
                     ? nls.t('features.tree.fact.ages.role.none')
-                    : nls.t(role === 'HUSB' ? 'features.tree.fact.ages.role.husband' : 'features.tree.fact.ages.role.wife')}
+                    : nls.t(
+                        role === 'HUSB' ? 'features.tree.fact.ages.role.husband' : 'features.tree.fact.ages.role.wife',
+                      )}
                 </option>
               ))}
             </Select>
@@ -230,9 +236,12 @@ export function FactEditor({
               value={age.phrase ?? ''}
               onChange={(event) => patchAge(index, { phrase: event.target.value || undefined })}
             />
-            <IconButton size="sm" label={nls.t('features.tree.fact.ages.remove')} icon={<>
-              <X size={13} aria-hidden="true" />
-            </>} onClick={() => removeAge(index)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.fact.ages.remove')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => removeAge(index)}
+            />
           </div>
         ))}
         <Button variant="primary" size="sm" onClick={addAge}>
@@ -268,9 +277,12 @@ export function FactEditor({
               value={participant.role ?? ''}
               onChange={(event) => patchParticipant(index, { role: event.target.value || undefined })}
             />
-            <IconButton size="sm" label={nls.t('features.tree.fact.participants.remove')} icon={<>
-              <X size={13} aria-hidden="true" />
-            </>} onClick={() => removeParticipant(index)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.fact.participants.remove')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => removeParticipant(index)}
+            />
           </div>
         ))}
         <Button variant="primary" size="sm" onClick={addParticipant}>

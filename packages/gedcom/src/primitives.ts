@@ -48,6 +48,7 @@ export type VoidPointer = '@VOID@';
  * pointers must match a corresponding unique xref_ID within the
  * transmission. (The 7.0 void pointer `@VOID@` does not exist in 5.5.1.)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-redundant-type-constituents -- the type parameter documents the pointed-to record; Xref already covers the @VOID@ string
 export type Pointer<_TRecord> = Xref | VoidPointer;
 
 /**
@@ -73,8 +74,9 @@ export type ExtensionTag = `_${string}`;
 
 /**
  * GEDCOM 7.0 §1.3 Lines, production `Tag` — a tag, either standard or extension.
+ * Both are strings; the extension form is a convention, not a distinct type.
  */
-export type Tag = StdTag | ExtensionTag;
+export type Tag = StdTag;
 
 /** GEDCOM dialect versions. The parsers know 7.0 and 5.5.1; a file
  * declaring GEDCOM 5.5.5 parses under the 5.5.1 rules, with the 5.5.5
@@ -129,7 +131,7 @@ export type StdEnum = StdTag | Integer;
  * element and requires all controlled values to be considered case
  * insensitive.
  */
-export type EnumValue = StdEnum | ExtensionTag;
+export type EnumValue = StdEnum;
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §2.4 Date
@@ -229,12 +231,7 @@ export type HebrewMonth = keyof typeof HEBREW_MONTHS;
  * the calendar of the enclosing date (GEDCOM 7.0 §6.1); extension calendars must use
  * extension month tags.
  */
-export type GedcomMonth =
-  | GregorianMonth
-  | JulianMonth
-  | FrenchRepublicanMonth
-  | HebrewMonth
-  | ExtensionTag;
+export type GedcomMonth = GregorianMonth | FrenchRepublicanMonth | HebrewMonth | ExtensionTag;
 
 /**
  * GEDCOM 7.0 §2.4 Date, production `epoch` — an epoch marker. Only the BCE epoch is
@@ -362,13 +359,7 @@ export interface EmptyDateValue {
  * dual years likewise move to `phrase`; the 5.5.1 syntax (calendar
  * escapes, trailing `B.C.`) is handled by the parser and serializer.
  */
-export type DateValue =
-  | PlainDate
-  | DateRange
-  | DateBound
-  | DateApprox
-  | DatePeriodValue
-  | EmptyDateValue;
+export type DateValue = PlainDate | DateRange | DateBound | DateApprox | DatePeriodValue | EmptyDateValue;
 
 /**
  * GEDCOM 7.0 §2.4 Date, production `DateExact` — a fully-known date: `day month year`
@@ -660,8 +651,23 @@ export type MultimediaFormat551 = (typeof MULTIMEDIA_FORMATS_551)[number];
  * set.
  */
 export const MULTIMEDIA_FORMATS_555 = [
-  'aac', 'avi', 'bmp', 'epub', 'flac', 'gif', 'jpeg', 'jpg', 'mkv',
-  'mobi', 'mp3', 'pcx', 'pdf', 'png', 'tif', 'tiff', 'wav',
+  'aac',
+  'avi',
+  'bmp',
+  'epub',
+  'flac',
+  'gif',
+  'jpeg',
+  'jpg',
+  'mkv',
+  'mobi',
+  'mp3',
+  'pcx',
+  'pdf',
+  'png',
+  'tif',
+  'tiff',
+  'wav',
 ] as const;
 
 /** A GEDCOM 5.5.5 `MULTIMEDIA_FORMAT` value. */
@@ -759,4 +765,3 @@ export interface Longitude {
 // ---------------------------------------------------------------------------
 // GEDCOM 5.5.1 Chapter 3 — character sets
 // ---------------------------------------------------------------------------
-

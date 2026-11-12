@@ -219,7 +219,9 @@ export function draftInitials(draft: PersonDraft): string {
       .map((word) => word[0]?.toUpperCase() ?? '')
       .join('');
   }
-  const parts = [partOf(name, 'given'), partOf(name, 'surname')].map((part) => part.trim()).filter((part) => part !== '');
+  const parts = [partOf(name, 'given'), partOf(name, 'surname')]
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
   if (parts.length === 0) {
     return '?';
   }
@@ -308,7 +310,9 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
     quality: draft.quality,
     ...(component !== undefined ? { component } : {}),
     ...(text !== undefined ? { text } : {}),
-    ...(draft.quality === 'about' && draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {}),
+    ...(draft.quality === 'about' && draft.modifier !== ''
+      ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' }
+      : {}),
     ...(time !== undefined ? { time } : {}),
   };
 }
@@ -370,7 +374,10 @@ export function personDraftMatches(draft: PersonDraft, person: PersonRecord): bo
   return (
     draft.sex === other.sex &&
     draft.names.length === other.names.length &&
-    draft.names.every((name, index) => nameDraftMatches(name, other.names[index]!)) &&
+    draft.names.every((name, index) => {
+      const otherName = other.names[index];
+      return otherName !== undefined && nameDraftMatches(name, otherName);
+    }) &&
     dateDraftMatches(draft.birth, factOf(person, 'BIRT')) &&
     dateDraftMatches(draft.death, factOf(person, 'DEAT'))
   );
@@ -385,7 +392,10 @@ function nameDraftMatches(a: NameDraft, b: NameDraft): boolean {
     partsEqual(a.parts, b.parts) &&
     nameDateMatches(a.date, b.date) &&
     a.variants.length === b.variants.length &&
-    a.variants.every((variant, index) => variantDraftMatches(variant, b.variants[index]!))
+    a.variants.every((variant, index) => {
+      const otherVariant = b.variants[index];
+      return otherVariant !== undefined && variantDraftMatches(variant, otherVariant);
+    })
   );
 }
 
@@ -405,7 +415,10 @@ function variantDraftMatches(a: NameVariantDraft, b: NameVariantDraft): boolean 
     partsEqual(a.parts, b.parts) &&
     nameDateMatches(a.date, b.date) &&
     a.variants.length === b.variants.length &&
-    a.variants.every((variant, index) => variantDraftMatches(variant, b.variants[index]!))
+    a.variants.every((variant, index) => {
+      const otherVariant = b.variants[index];
+      return otherVariant !== undefined && variantDraftMatches(variant, otherVariant);
+    })
   );
 }
 
@@ -414,8 +427,8 @@ function partsEqual(a: NamePart[], b: NamePart[]): boolean {
   return (
     a.length === b.length &&
     a.every((part, index) => {
-      const other = b[index]!;
-      return part.id === other.id && part.kind === other.kind && part.value === other.value;
+      const other = b[index];
+      return other !== undefined && part.id === other.id && part.kind === other.kind && part.value === other.value;
     })
   );
 }
@@ -525,7 +538,12 @@ function partsOfName(name: PersonName): NamePart[] {
     }
   });
   if (name.full !== undefined && name.full.trim() !== '') {
-    parts.push({ id: syntheticPartId(name.id, 'full', parts.length), kind: 'full', value: name.full.trim(), position: parts.length });
+    parts.push({
+      id: syntheticPartId(name.id, 'full', parts.length),
+      kind: 'full',
+      value: name.full.trim(),
+      position: parts.length,
+    });
   }
   return parts;
 }
@@ -545,10 +563,9 @@ function normalizedParts(parts: NamePart[]): NamePart[] {
 }
 
 /** The flat display pieces of a name, derived from its parts. */
-function flatFromParts(parts: NamePart[]): Pick<
-  PersonName,
-  'full' | 'given' | 'surname' | 'surnamePrefix' | 'nickname' | 'prefix' | 'suffix'
-> {
+function flatFromParts(
+  parts: NamePart[],
+): Pick<PersonName, 'full' | 'given' | 'surname' | 'surnamePrefix' | 'nickname' | 'prefix' | 'suffix'> {
   const first = (kind: NamePartKind): string | undefined => parts.find((part) => part.kind === kind)?.value;
   return {
     full: first('full'),

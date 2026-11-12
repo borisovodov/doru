@@ -4,7 +4,6 @@ import { buildGedcomDataset } from '../src/export/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import { cleanupRepo, makeRepo } from './helpers';
 import type { RepoFixture } from './helpers';
-import type { SqliteTreeRepository } from '../src/db/repository';
 import { buildKitchenSinkTree } from './kitchen-sink';
 
 function serializeAndParse(fixture: RepoFixture) {
@@ -24,10 +23,7 @@ function serializeAndParse(fixture: RepoFixture) {
 }
 
 describe('buildGedcomDataset kitchen sink', () => {
-  it(
-    'exports the full model and re-imports it without loss on the core entities',
-    { timeout: 240_000 },
-    () => {
+  it('exports the full model and re-imports it without loss on the core entities', { timeout: 240_000 }, () => {
     const fixture = makeRepo();
     try {
       buildKitchenSinkTree(fixture);
@@ -56,7 +52,7 @@ describe('buildGedcomDataset kitchen sink', () => {
 
       const target = makeRepo();
       try {
-        importGedcomDataset(dataset, target.repo as SqliteTreeRepository);
+        importGedcomDataset(dataset, target.repo);
 
         const persons = target.repo.listAllPersons();
         expect(persons).toHaveLength(3);
@@ -82,8 +78,7 @@ describe('buildGedcomDataset kitchen sink', () => {
     } finally {
       cleanupRepo(fixture);
     }
-    },
-  );
+  });
 
   it('exports a synthesized header naming the app as the source', () => {
     const fixture = makeRepo();
@@ -106,8 +101,18 @@ describe('buildGedcomDataset kitchen sink', () => {
         names: [],
         sex: 'U',
         facts: [
-          { id: 'F1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { calendar: 'french_republican', year: 3, month: 'VEND' } } },
-          { id: 'F2', personId: 'P1', tag: 'DEAT', date: { quality: 'exact', component: { calendar: 'hebrew', year: 5700 } } },
+          {
+            id: 'F1',
+            personId: 'P1',
+            tag: 'BIRT',
+            date: { quality: 'exact', component: { calendar: 'french_republican', year: 3, month: 'VEND' } },
+          },
+          {
+            id: 'F2',
+            personId: 'P1',
+            tag: 'DEAT',
+            date: { quality: 'exact', component: { calendar: 'hebrew', year: 5700 } },
+          },
           { id: 'F3', personId: 'P1', tag: 'BURI', date: { quality: 'range', end: { year: 1999 } } },
           { id: 'F4', personId: 'P1', tag: 'CHR', date: { quality: 'range', component: { year: 1900 } } },
           { id: 'F5', personId: 'P1', tag: 'OCCU', value: 'x', date: { quality: 'range' } },

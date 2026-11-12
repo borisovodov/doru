@@ -19,12 +19,8 @@ import type {
   SourceCitation,
   TagLink,
 } from '../../structures';
-import type {
-  Version,
-} from '../writer';
-import {
-  Writer,
-} from '../writer';
+import type { Version } from '../writer';
+import { Writer } from '../writer';
 import {
   emitFamily,
   emitIndividual,
@@ -46,9 +42,7 @@ import {
   emitGenoProRecord,
   emitTitleRecord,
 } from './records';
-import {
-  emitCensusRecord,
-} from './census';
+import { emitCensusRecord } from './census';
 import {
   emitEvidenceRecord,
   emitResearchActivityRecord,
@@ -56,12 +50,8 @@ import {
   emitTagLink,
   emitTagRecord,
 } from './evidence';
-import type {
-  PlaceRecord,
-} from '../../structures';
-import {
-  emitPlaceRecord,
-} from './names-places';
+import type { PlaceRecord } from '../../structures';
+import { emitPlaceRecord } from './names-places';
 import {
   emitAddress,
   emitDateExact,
@@ -72,10 +62,7 @@ import {
   emitSourceCitation,
   mergedAddress,
 } from './structures';
-import {
-  language,
-  ptr,
-} from './values';
+import { language, ptr } from './values';
 
 export function emitDataset(w: Writer, version: Version, dataset: GedcomDataset): void {
   emitHeader(w, version, dataset.header);
@@ -313,37 +300,41 @@ export function emitHeader(w: Writer, version: Version, header: Header): void {
   emitExtensions(w, version, 1, h);
 }
 
-export function emitHeaderSource(w: Writer, version: Version, source: {
-  payload: string;
-  version?: string;
-  name?: string;
-  corporation?: {
+export function emitHeaderSource(
+  w: Writer,
+  version: Version,
+  source: {
     payload: string;
-    address?: AddressStructure;
-    phone?: string[];
-    email?: string[];
-    fax?: string[];
-    www?: string[];
+    version?: string;
+    name?: string;
+    corporation?: {
+      payload: string;
+      address?: AddressStructure;
+      phone?: string[];
+      email?: string[];
+      fax?: string[];
+      www?: string[];
+      extensions?: ExtensionStructure[];
+    };
+    data?: {
+      payload: string;
+      date?: DateExactStructure;
+      copyright?: string;
+      extensions?: ExtensionStructure[];
+    };
+    rtlSave?: string;
+    www?: string;
+    tree?: {
+      tag: '_TREE';
+      id?: string;
+      note?: string;
+      rin?: string;
+      environment?: string;
+      extensions?: ExtensionStructure[];
+    };
     extensions?: ExtensionStructure[];
-  };
-  data?: {
-    payload: string;
-    date?: DateExactStructure;
-    copyright?: string;
-    extensions?: ExtensionStructure[];
-  };
-  rtlSave?: string;
-  www?: string;
-  tree?: {
-    tag: '_TREE';
-    id?: string;
-    note?: string;
-    rin?: string;
-    environment?: string;
-    extensions?: ExtensionStructure[];
-  };
-  extensions?: ExtensionStructure[];
-}): void {
+  },
+): void {
   w.line(1, 'SOUR', { value: source.payload });
   if (source.version !== undefined) {
     w.line(2, 'VERS', { value: source.version });
@@ -393,15 +384,19 @@ export function emitHeaderSource(w: Writer, version: Version, source: {
   emitExtensions(w, version, 2, source);
 }
 
-export function emitCorporation(w: Writer, version: Version, corp: {
-  payload: string;
-  address?: AddressStructure;
-  phone?: string[];
-  email?: string[];
-  fax?: string[];
-  www?: string[];
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitCorporation(
+  w: Writer,
+  version: Version,
+  corp: {
+    payload: string;
+    address?: AddressStructure;
+    phone?: string[];
+    email?: string[];
+    fax?: string[];
+    www?: string[];
+    extensions?: ExtensionStructure[];
+  },
+): void {
   w.line(2, 'CORP', { value: corp.payload });
   const address = mergedAddress(w, version, corp.address, corp);
   if (address !== undefined) {
@@ -511,10 +506,10 @@ export function emitRecord(w: Writer, version: Version, record: GedcomDataset['r
     case 'Contact':
     case 'Marriage':
     case 'Twin':
-      emitGenoProRecord(w, version, record as Parameters<typeof emitGenoProRecord>[2]);
+      emitGenoProRecord(w, version, record);
       return;
     case 'TITL':
-      emitTitleRecord(w, version, record as Parameters<typeof emitTitleRecord>[2]);
+      emitTitleRecord(w, version, record);
       return;
     case '_PLAC':
       emitPlaceRecord(w, version, record as PlaceRecord);
@@ -534,19 +529,24 @@ export function emitGdoSubmitters(w: Writer, version: Version, level: number, su
   }
 }
 
-export function commonRecordFields(w: Writer, version: Version, rec: {
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  notes?: NoteStructure[];
-  citations?: SourceCitation[];
-  media?: MultimediaLink[];
-  tagLinks?: TagLink[];
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  automatedRecordId?: string;
-  submitters?: string[];
-  importReference?: { record?: string; page?: string };
-  extensions?: ExtensionStructure[];
-}, level: number): void {
+export function commonRecordFields(
+  w: Writer,
+  version: Version,
+  rec: {
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    notes?: NoteStructure[];
+    citations?: SourceCitation[];
+    media?: MultimediaLink[];
+    tagLinks?: TagLink[];
+    changeDate?: ChangeDate;
+    creationDate?: CreationDate;
+    automatedRecordId?: string;
+    submitters?: string[];
+    importReference?: { record?: string; page?: string };
+    extensions?: ExtensionStructure[];
+  },
+  level: number,
+): void {
   for (const identifier of rec.identifiers ?? []) {
     if (identifier.tag === 'EXID' && version !== '7.0') {
       // 5.5.1 has no EXID; dropped.
@@ -616,29 +616,33 @@ export function commonRecordFields(w: Writer, version: Version, rec: {
   emitExtensions(w, version, level, rec);
 }
 
-export function emitSubmitter(w: Writer, version: Version, rec: {
-  tag: 'SUBM';
-  name: string;
-  address?: AddressStructure;
-  phone?: string[];
-  email?: string[];
-  fax?: string[];
-  www?: string[];
-  skypeId?: string;
-  jabberId?: string;
-  media?: MultimediaLink[];
-  languages?: string[];
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  notes?: NoteStructure[];
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  registeredRfn?: string;
-  automatedRecordId?: string;
-  geditcomId?: string;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitSubmitter(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'SUBM';
+    name: string;
+    address?: AddressStructure;
+    phone?: string[];
+    email?: string[];
+    fax?: string[];
+    www?: string[];
+    skypeId?: string;
+    jabberId?: string;
+    media?: MultimediaLink[];
+    languages?: string[];
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    notes?: NoteStructure[];
+    changeDate?: ChangeDate;
+    creationDate?: CreationDate;
+    registeredRfn?: string;
+    automatedRecordId?: string;
+    geditcomId?: string;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'SUBM', { xref: rec.xref });
   w.line(1, 'NAME', { value: rec.name });
   if (rec.geditcomId !== undefined) {
@@ -680,7 +684,7 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   }
   // Note: the media links are written by commonRecordFields below — the
   // SUBM emitter must not write them twice.
-  for (const languageId of (version === '5.5.1' ? (rec.languages ?? []).slice(0, 3) : (rec.languages ?? []))) {
+  for (const languageId of version === '5.5.1' ? (rec.languages ?? []).slice(0, 3) : (rec.languages ?? [])) {
     // The 5.5.1 SUBM LANG limit is {0:3} (GEDCOM 5.5.1 §2 p.28):
     // values beyond the third are dropped.
     const value = language(w, version, languageId);
@@ -703,22 +707,26 @@ export function emitSubmitter(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitSubmission(w: Writer, version: Version, rec: {
-  tag: 'SUBN';
-  submitter?: string;
-  familyFile?: string;
-  temple?: string;
-  generationsOfAncestors?: number;
-  generationsOfDescendants?: number;
-  ordinanceProcessFlag?: 'yes' | 'no';
-  notes?: NoteStructure[];
-  changeDate?: ChangeDate;
-  automatedRecordId?: string;
-  submitters?: string[];
-  importReference?: { record?: string; page?: string };
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitSubmission(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'SUBN';
+    submitter?: string;
+    familyFile?: string;
+    temple?: string;
+    generationsOfAncestors?: number;
+    generationsOfDescendants?: number;
+    ordinanceProcessFlag?: 'yes' | 'no';
+    notes?: NoteStructure[];
+    changeDate?: ChangeDate;
+    automatedRecordId?: string;
+    submitters?: string[];
+    importReference?: { record?: string; page?: string };
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'SUBN', { xref: rec.xref });
   if (rec.submitter !== undefined) {
     ptr(w, version, 1, 'SUBM', rec.submitter);
@@ -773,4 +781,3 @@ export function emitSubmission(w: Writer, version: Version, rec: {
 }
 
 // -- Substructures -----------------------------------------------------------
-

@@ -67,7 +67,7 @@ describe('downloadModel edge cases', () => {
     controller.abort();
 
     await expect(downloadModel(options(dir, { signal: controller.signal }))).rejects.toMatchObject<
-      ModelDownloadError
+      Pick<ModelDownloadError, 'code'>
     >({ code: 'aborted' });
   });
 
@@ -85,9 +85,9 @@ describe('downloadModel edge cases', () => {
     const port = address !== null && typeof address === 'object' ? address.port : 0;
 
     try {
-      await expect(
-        downloadModel(options(dir, { url: `http://127.0.0.1:${port}/model.gguf` })),
-      ).rejects.toMatchObject<ModelDownloadError>({ code: 'http' });
+      await expect(downloadModel(options(dir, { url: `http://127.0.0.1:${port}/model.gguf` }))).rejects.toMatchObject<
+        Pick<ModelDownloadError, 'code'>
+      >({ code: 'http' });
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
@@ -104,9 +104,9 @@ describe('downloadModel edge cases', () => {
     const port = address !== null && typeof address === 'object' ? address.port : 0;
 
     try {
-      await expect(
-        downloadModel(options(dir, { url: `http://127.0.0.1:${port}/model.gguf` })),
-      ).rejects.toMatchObject<ModelDownloadError>({ code: 'http' });
+      await expect(downloadModel(options(dir, { url: `http://127.0.0.1:${port}/model.gguf` }))).rejects.toMatchObject<
+        Pick<ModelDownloadError, 'code'>
+      >({ code: 'http' });
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

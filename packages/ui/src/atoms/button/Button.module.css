@@ -113,7 +113,7 @@
   width: 12px;
   height: 12px;
   box-sizing: border-box;
-  border: 1.5px solid currentColor;
+  border: 1.5px solid currentcolor;
   border-right-color: transparent;
   border-radius: 50%;
   animation: button-spin 0.7s linear infinite;

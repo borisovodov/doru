@@ -24,14 +24,6 @@ function parseOk70(text: string): GedcomDataset {
   return result.value;
 }
 
-function err70(text: string): string {
-  const result = parseGedcom70(enc(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
 function ser551(dataset: GedcomDataset): string {
   const result = serializeGedcom551(dataset);
   if (!result.ok) {
@@ -62,7 +54,7 @@ function indi70(lines: string[]): string {
 
 function indi(dataset: GedcomDataset): IndividualRecord {
   const record = dataset.records.find((entry) => entry.tag === 'INDI');
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined) {
     throw new Error('expected INDI');
   }
   return record;
@@ -105,10 +97,12 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     // …and the undocumented tail stays generic in the model. (MISE is
     // now typed — the Case006 long spelling of military service.)
     const extensionTags = (person.extensions ?? []).map((entry) => entry.tag);
-    expect(extensionTags).toEqual(
-      expect.arrayContaining(['DEED', 'MRCI', 'MRRE', 'PRIV', 'RECT']),
-    );
-    expect(person.events?.some((entry) => entry.tag === 'EVEN' && entry.type === 'Military service' && entry.payload === 'x')).toBe(true);
+    expect(extensionTags).toEqual(expect.arrayContaining(['DEED', 'MRCI', 'MRRE', 'PRIV', 'RECT']));
+    expect(
+      person.events?.some(
+        (entry) => entry.tag === 'EVEN' && entry.type === 'Military service' && entry.payload === 'x',
+      ),
+    ).toBe(true);
     // The children under a generic extension survive in the model too.
     const mrci = person.extensions?.find((entry) => entry.tag === 'MRCI');
     expect(mrci?.children).toEqual([{ tag: 'DATE', payload: '12 JUN 1910', children: [] }]);
@@ -122,19 +116,15 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
   });
 
   test('the FAM-level USM6 SURE under NCHI is typed too', () => {
-    const text = [
-      ...H551,
-      '0 @F1@ FAM',
-      '1 HUSB @I1@',
-      '1 NCHI 3',
-      '2 SURE 1',
-      '0 @I1@ INDI',
-      ...SUBM,
-      '0 TRLR',
-    ].join('\n');
+    const text = [...H551, '0 @F1@ FAM', '1 HUSB @I1@', '1 NCHI 3', '2 SURE 1', '0 @I1@ INDI', ...SUBM, '0 TRLR'].join(
+      '\n',
+    );
     const dataset = parseOk551(text);
     const fam = dataset.records.find((entry) => entry.tag === 'FAM');
-    expect(fam?.tag === 'FAM' ? fam.attributes?.[0]?.childCountCertain : undefined).toBe(true);
+    const familyNchi = fam?.tag === 'FAM' ? fam.attributes?.find((entry) => entry.tag === 'NCHI') : undefined;
+    expect(
+      familyNchi !== undefined && 'childCountCertain' in familyNchi ? familyNchi.childCountCertain : undefined,
+    ).toBe(true);
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
   });
 
@@ -171,14 +161,14 @@ describe('the Mac Family Tree 7/8, Der Stammbaum ≤V6 and RootsMagic non-unders
     const dataset = parseOk551(indi551(MFT_SAMPLE));
     const text = ser70(dataset);
     for (const tag of ['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT', 'BTYP', 'AGED', 'SURE', 'SECG', 'NAME_']) {
-      expect(text, tag).not.toContain(tag);
+      expect(text).not.toContain(tag);
     }
     // On 7.0 input the tags are typed where a rule applies and generic
     // extensions otherwise — never an unknown-tag error.
     for (const tag of ['DEED', 'MISE', 'MRCI', 'MRRE', 'PRIV', 'RECT', 'BTYP', 'AGED', 'SURE', 'SECG', 'NAME_']) {
       const result = parseGedcom70(enc(indi70([`1 ${tag} x`])));
       if (!result.ok) {
-        expect(result.error.code, tag).not.toBe('structure.unknown-tag');
+        expect(result.error.code).not.toBe('structure.unknown-tag');
       }
     }
   });
@@ -243,10 +233,10 @@ describe('the GenWiki twins of the typed vendor tags', () => {
     expect(birth?.detail?.eventNumber).toBe('12');
     expect(person.changeDate?.user).toBe('boris');
     const media = dataset.records.find((entry) => entry.tag === 'OBJE');
-    if (media === undefined || media.tag !== 'OBJE') {
+    if (media === undefined) {
       throw new Error('expected OBJE');
     }
-    expect(media.files?.[0]?.contentType).toBe('person');
+    expect(media.files[0]?.contentType).toBe('person');
     const fam = dataset.records.find((entry) => entry.tag === 'FAM');
     const mari = fam?.tag === 'FAM' ? fam.events?.find((entry) => entry.tag === 'EVEN') : undefined;
     expect(mari?.type).toBe('Marriage intention');
@@ -275,7 +265,9 @@ describe('the GenWiki twins of the typed vendor tags', () => {
   });
 
   test('7.0 keeps the twin values too', () => {
-    const parsed70 = parseOk70(ser70(parseOk551([...H551, '0 @I1@ INDI', ...TWIN_SAMPLE, ...SUBM, '0 TRLR'].join('\n'))));
+    const parsed70 = parseOk70(
+      ser70(parseOk551([...H551, '0 @I1@ INDI', ...TWIN_SAMPLE, ...SUBM, '0 TRLR'].join('\n'))),
+    );
     const person = indi(parsed70);
     expect(person.familySearchId).toBe('KWJ1-2B3');
     expect(person.sosaNumber).toBe('42');
@@ -294,7 +286,7 @@ describe('the GenWiki twins of the typed vendor tags', () => {
     expect(birth?.detail?.eventNumber).toBe('12');
     expect(person.changeDate?.user).toBe('boris');
     const media = parsed70.records.find((entry) => entry.tag === 'OBJE');
-    expect(media?.tag === 'OBJE' ? media.files?.[0]?.contentType : undefined).toBe('person');
+    expect(media?.tag === 'OBJE' ? media.files[0]?.contentType : undefined).toBe('person');
     // The 7.0-to-7.0 round trip is idempotent.
     expect(parseOk70(ser70(parsed70))).toEqual(parsed70);
   });

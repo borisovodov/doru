@@ -17,13 +17,7 @@
  */
 
 import type { Integer, Pointer, Text, Xref } from '../primitives';
-import type {
-  AgeStructure,
-  ChangeDate,
-  DateStructure,
-  EventDetail,
-  RoleStructure,
-} from './common';
+import type { AgeStructure, ChangeDate, DateStructure, EventDetail, RoleStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { SexEnum } from '../enumerations';
 import type { PersonalNameStructure } from './names-places';

@@ -38,7 +38,15 @@ function ser551(dataset: GedcomDataset): string {
 }
 
 const HEADER70 = ['0 HEAD', '1 GEDC', '2 VERS 7.0'];
-const HEADER551 = ['0 HEAD', '1 SOUR DORU', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8'];
+const HEADER551 = [
+  '0 HEAD',
+  '1 SOUR DORU',
+  '1 SUBM @S1@',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '2 FORM LINEAGE-LINKED',
+  '1 CHAR UTF-8',
+];
 const SUBM551 = ['0 @S1@ SUBM', '1 NAME Tester'];
 
 describe('the Ancestry publication details under SOUR.PUBL', () => {
@@ -193,8 +201,8 @@ describe('the MagiKey _CENR census record', () => {
       ].join('\n'),
     );
     const census = dataset.records.find((record): record is CensusRecord => record.tag === '_CENR');
-    expect(census?.sexes?.[0]?.age?.payload).toEqual({ years: 16 });
-    expect(census?.sexes?.[0]?.age?.ageRange).toBe('16-26');
+    expect(census?.sexes?.[0]?.age.payload).toEqual({ years: 16 });
+    expect(census?.sexes?.[0]?.age.ageRange).toBe('16-26');
     expect(census?.sexes?.[0]?.count).toBe(3);
     const text = ser70(dataset);
     expect(text).toContain('3 NCHI 3');
@@ -225,7 +233,11 @@ describe('the MagiKey _AGER age range', () => {
 
   test('rejects a malformed range', () => {
     const result = parseGedcom70(
-      enc([...HEADER70, '0 @I1@ INDI', '1 NAME John /Doe/', '1 BIRT', '2 AGE 20y', '3 _AGER sixteen', '0 TRLR'].join('\n')),
+      enc(
+        [...HEADER70, '0 @I1@ INDI', '1 NAME John /Doe/', '1 BIRT', '2 AGE 20y', '3 _AGER sixteen', '0 TRLR'].join(
+          '\n',
+        ),
+      ),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -237,7 +249,9 @@ describe('the MagiKey _AGER age range', () => {
 describe('the community _DATE under REPO', () => {
   test('parses and writes back (registry: _DATE.yaml)', () => {
     const dataset = parse70(
-      [...HEADER70, '0 @R1@ REPO', '1 NAME National Archives', '1 _DATE 2020', '2 PHRASE acquired', '0 TRLR'].join('\n'),
+      [...HEADER70, '0 @R1@ REPO', '1 NAME National Archives', '1 _DATE 2020', '2 PHRASE acquired', '0 TRLR'].join(
+        '\n',
+      ),
     );
     const repo = dataset.records[0] as RepositoryRecord;
     expect(repo.dates?.[0]?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 2020 });

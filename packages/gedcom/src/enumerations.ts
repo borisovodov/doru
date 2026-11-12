@@ -217,7 +217,8 @@ export const RESTRICTION_ENUM_VALUES = {
   /** Some systems may ignore changes to this data. */
   LOCKED: 'Some systems may ignore changes to this data.',
   /** This data is not to be shared outside of a trusted circle, generally because it contains information about living individuals. This definition is known to admit multiple interpretations, so use of the PRIVACY restriction notice is not recommended. */
-  PRIVACY: 'This data is not to be shared outside of a trusted circle, generally because it contains information about living individuals. This definition is known to admit multiple interpretations, so use of the PRIVACY restriction notice is not recommended.',
+  PRIVACY:
+    'This data is not to be shared outside of a trusted circle, generally because it contains information about living individuals. This definition is known to admit multiple interpretations, so use of the PRIVACY restriction notice is not recommended.',
 } as const;
 
 /** GEDCOM 7.0 §3.4 g7:enumset-RESN. */
@@ -251,7 +252,8 @@ export const ROLE_ENUM_VALUES = {
   /** Mother; implies PARENT. */
   MOTH: 'Mother; implies PARENT.',
   /** A sibling from the same pregnancy (twin, triplet, quadruplet, and so on). A PHRASE can be used to specify the kind of multiple birth. */
-  MULTIPLE: 'A sibling from the same pregnancy (twin, triplet, quadruplet, and so on). A PHRASE can be used to specify the kind of multiple birth.',
+  MULTIPLE:
+    'A sibling from the same pregnancy (twin, triplet, quadruplet, and so on). A PHRASE can be used to specify the kind of multiple birth.',
   /** Neighbor. */
   NGHBR: 'Neighbor.',
   /** Officiator of the event. */
@@ -299,7 +301,6 @@ export const SEX_ENUM_VALUES = {
 /** GEDCOM 7.0 §3.4 g7:enumset-SEX. */
 export type SexEnum = keyof typeof SEX_ENUM_VALUES | ExtensionTag;
 
-
 /**
  * GEDCOM 7.0 §3.4 g7:enumset-FAMC-STAT — the state or condition of a researcher's
  * belief in a family connection.
@@ -311,15 +312,14 @@ export const FAMILY_CHILD_STATUS_ENUM_VALUES = {
   /** Linking this child to this family is suspect, but the linkage has been neither proven nor disproven. */
   CHALLENGED: 'Linking this child to this family is suspect, but the linkage has been neither proven nor disproven.',
   /** There has been a claim by some that this child belongs to this family, but the linkage has been disproven. */
-  DISPROVEN: 'There has been a claim by some that this child belongs to this family, but the linkage has been disproven.',
+  DISPROVEN:
+    'There has been a claim by some that this child belongs to this family, but the linkage has been disproven.',
   /** Linking this child to this family has been proven. */
   PROVEN: 'Linking this child to this family has been proven.',
 } as const;
 
 /** GEDCOM 7.0 §3.4 g7:enumset-FAMC-STAT. */
-export type FamilyChildStatusEnum =
-  | keyof typeof FAMILY_CHILD_STATUS_ENUM_VALUES
-  | ExtensionTag;
+export type FamilyChildStatusEnum = keyof typeof FAMILY_CHILD_STATUS_ENUM_VALUES | ExtensionTag;
 
 /**
  * GEDCOM 7.0 §3.4 g7:enumset-ord-STAT — the state or condition of a Latter-day Saint
@@ -356,7 +356,8 @@ export const ORDINANCE_STATUS_ENUM_VALUES = {
   /** Died before less than 1 year old, baptism or endowment not required. Applies to: all but SLGC. Status: deprecated, use CHILD instead. */
   INFANT: 'Died before less than 1 year old, baptism or endowment not required.',
   /** Ordinance was likely completed because an ordinance for this person was converted from temple records of work completed before 1970. Applies to: all. Status: deprecated, use DATE BEF 1970 instead. */
-  PRE_1970: 'Ordinance was likely completed because an ordinance for this person was converted from temple records of work completed before 1970.',
+  PRE_1970:
+    'Ordinance was likely completed because an ordinance for this person was converted from temple records of work completed before 1970.',
   /** Born dead, so no ordinances are required. Applies to: all. Status: current. */
   STILLBORN: 'Born dead, so no ordinances are required.',
   /** Ordinance was previously submitted. Applies to: all. Status: deprecated. */
@@ -366,9 +367,7 @@ export const ORDINANCE_STATUS_ENUM_VALUES = {
 } as const;
 
 /** GEDCOM 7.0 §3.4 g7:enumset-ord-STAT. */
-export type OrdinanceStatusEnum =
-  | keyof typeof ORDINANCE_STATUS_ENUM_VALUES
-  | ExtensionTag;
+export type OrdinanceStatusEnum = keyof typeof ORDINANCE_STATUS_ENUM_VALUES | ExtensionTag;
 
 /**
  * GEDCOM 7.0 §3.4 g7:enumset-NAME-TYPE — the type of a name.

@@ -14,8 +14,12 @@ const meta = {
     badges: <Badge>3</Badge>,
     actions: (
       <>
-        <Button size="sm" variant="primary">Save</Button>
-        <Button size="sm" variant="secondary">Back</Button>
+        <Button size="sm" variant="primary">
+          Save
+        </Button>
+        <Button size="sm" variant="secondary">
+          Back
+        </Button>
       </>
     ),
   },

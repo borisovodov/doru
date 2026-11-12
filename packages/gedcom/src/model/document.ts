@@ -1,11 +1,4 @@
-import type {
-  Language,
-  ListText,
-  Pointer,
-  Special,
-  TagDefinitionValue,
-  Text,
-} from '../primitives';
+import type { Language, ListText, Pointer, Special, TagDefinitionValue, Text } from '../primitives';
 
 import type { AddressStructure } from './common';
 import type { DateExactStructure } from './common';
@@ -328,7 +321,8 @@ export interface DatasetStatistics extends GedcomStructureBase {
  * SOUR.VERS kept as NAME/VERS children. Documented in the GenWiki
  * "GEDCOM/_Nutzerdef-Tag" table; not part of any GEDCOM version.
  */
-export interface OriginalSourceStructure extends GedcomStructureBase {  tag: '_ORGSOUR';
+export interface OriginalSourceStructure extends GedcomStructureBase {
+  tag: '_ORGSOUR';
   /** NAME {0:1} — the original product's name (the foreign SOUR.NAME). */
   name?: Text;
   /** VERS {0:1} — the original product's version (the foreign SOUR.VERS). */

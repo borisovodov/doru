@@ -37,10 +37,7 @@ import type { SeeAlso } from './graph';
  * their own (typically the youngest generation). Falls back to any child,
  * then to the first person in list order.
  */
-export function suggestFocusPerson(
-  persons: PersonRecord[],
-  families: FamilyRecord[],
-): string | undefined {
+export function suggestFocusPerson(persons: PersonRecord[], families: FamilyRecord[]): string | undefined {
   if (persons.length === 0) {
     return undefined;
   }
@@ -72,11 +69,7 @@ export function suggestFocusPerson(
  * `personId` descends from `ancestorId`). Used to reject reparenting that
  * would create an ancestry cycle.
  */
-export function isDescendantOf(
-  families: FamilyRecord[],
-  ancestorId: string,
-  personId: string,
-): boolean {
+export function isDescendantOf(families: FamilyRecord[], ancestorId: string, personId: string): boolean {
   if (ancestorId === personId) {
     return true;
   }
@@ -119,9 +112,7 @@ function addSeeAlsoEdges(layout: EdgeHost, seeAlso: SeeAlso[]): void {
     const target = layout.cards
       .filter((card) => card.personId === link.personId)
       .sort(
-        (a, b) =>
-          Math.abs(a.generation - (owner?.generation ?? 0)) -
-          Math.abs(b.generation - (owner?.generation ?? 0)),
+        (a, b) => Math.abs(a.generation - (owner?.generation ?? 0)) - Math.abs(b.generation - (owner?.generation ?? 0)),
       )[0];
     if (!owner || !target || owner.key === target.key) {
       continue;
@@ -143,7 +134,7 @@ function addSeeAlsoEdges(layout: EdgeHost, seeAlso: SeeAlso[]): void {
 /**
  * Computes positions for the requested chart around `focusId`. Returns null
  * when the focus person is unknown.
- */export function layoutPedigree(
+ */ export function layoutPedigree(
   focusId: string,
   persons: PersonRecord[],
   families: FamilyRecord[],

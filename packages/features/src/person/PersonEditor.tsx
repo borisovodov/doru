@@ -2,7 +2,25 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
-import type { AddressRecord, AssociationRecord, ChangeRecord, CitationRecord, ContactRecord, FactRecord, FamilyRecord, IdentifierRecord, NoteRecord, PersonRecord, PlaceRecord, RestrictionRecord, Sex, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+import type {
+  AddressRecord,
+  AssociationRecord,
+  ChangeRecord,
+  CitationRecord,
+  ContactRecord,
+  FactRecord,
+  FamilyRecord,
+  IdentifierRecord,
+  NoteRecord,
+  PersonRecord,
+  PlaceRecord,
+  RestrictionRecord,
+  Sex,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+} from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import { AssociationsSection } from '@doru/ui/domain';
@@ -34,14 +52,7 @@ export interface PersonEditorProps {
  * The person tab: a person card (avatar, name, life span, badges) above the
  * identity form and the family/events/sources/media/notes sections.
  */
-export function PersonEditor({
-  draft,
-  persons,
-  onChange,
-  onSave,
-  onCancel,
-  api,
-}: PersonEditorProps) {
+export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
@@ -62,6 +73,52 @@ export function PersonEditor({
   const [contributors, setContributors] = useState<
     Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
   >([]);
+
+  const refreshFamilies = async () => {
+    setFamilies(await api.getFamilies());
+  };
+
+  const refreshAssociations = async () => {
+    setAssociations(await api.getAssociations(draft.id));
+    setAliases(await api.getAliases(draft.id));
+  };
+
+  const refreshContributors = async () => {
+    setSubmitters(await api.getSubmitters());
+    setContributors(await api.getRecordSubmitters('person', draft.id));
+  };
+
+  /** Reloads every universal attachment list of the person. */
+  const refreshAttachments = async () => {
+    const [loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges] =
+      await Promise.all([
+        api.getIdentifiers(draft.id),
+        api.getContacts(draft.id),
+        api.getRestrictions(draft.id),
+        api.getTags(),
+        api.getTagLinks(draft.id),
+        api.getChanges(draft.id),
+      ]);
+    setIdentifiers(loadedIdentifiers);
+    setContacts(loadedContacts);
+    setRestrictions(loadedRestrictions);
+    setTags(loadedTags);
+    setTagLinks(loadedTagLinks);
+    setChanges(loadedChanges);
+  };
+
+  const refreshCitations = async () => {
+    setCitations(await api.getCitations(draft.id));
+    setSources(await api.getSources());
+  };
+
+  const refreshFacts = async () => {
+    setFacts(await api.getFacts(draft.id));
+  };
+
+  const refreshMedia = async () => {
+    setMedia(await api.getMedia(draft.id));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -111,52 +168,6 @@ export function PersonEditor({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.id, draft.isNew, persons]);
-
-  const refreshFamilies = async () => {
-    setFamilies(await api.getFamilies());
-  };
-
-  const refreshAssociations = async () => {
-    setAssociations(await api.getAssociations(draft.id));
-    setAliases(await api.getAliases(draft.id));
-  };
-
-  const refreshContributors = async () => {
-    setSubmitters(await api.getSubmitters());
-    setContributors(await api.getRecordSubmitters('person', draft.id));
-  };
-
-  /** Reloads every universal attachment list of the person. */
-  const refreshAttachments = async () => {
-    const [loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges] =
-      await Promise.all([
-        api.getIdentifiers(draft.id),
-        api.getContacts(draft.id),
-        api.getRestrictions(draft.id),
-        api.getTags(),
-        api.getTagLinks(draft.id),
-        api.getChanges(draft.id),
-      ]);
-    setIdentifiers(loadedIdentifiers);
-    setContacts(loadedContacts);
-    setRestrictions(loadedRestrictions);
-    setTags(loadedTags);
-    setTagLinks(loadedTagLinks);
-    setChanges(loadedChanges);
-  };
-
-  const refreshCitations = async () => {
-    setCitations(await api.getCitations(draft.id));
-    setSources(await api.getSources());
-  };
-
-  const refreshFacts = async () => {
-    setFacts(await api.getFacts(draft.id));
-  };
-
-  const refreshMedia = async () => {
-    setMedia(await api.getMedia(draft.id));
-  };
 
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });
 

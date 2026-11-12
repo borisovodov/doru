@@ -11,24 +11,12 @@
  * interpret the lineage-linked semantics — the assemblers do that.
  */
 
-import type {
-  GedcomError,
-  SourcePosition,
-} from '../errors';
-import {
-  fail,
-} from '../errors';
-import type {
-  DecodedDocument,
-  DecodedLine,
-} from './decode';
-
+import type { GedcomError, SourcePosition } from '../errors';
+import { fail } from '../errors';
+import type { DecodedDocument, DecodedLine } from './decode';
 
 /** The payload of one raw line after continuation merging. */
-export type RawValue =
-  | { kind: 'absent' }
-  | { kind: 'text'; text: string }
-  | { kind: 'pointer'; pointer: string };
+export type RawValue = { kind: 'absent' } | { kind: 'text'; text: string } | { kind: 'pointer'; pointer: string };
 
 /** One raw structure node (a record or a substructure). */
 export interface RawNode {
@@ -59,9 +47,29 @@ const ALPHANUM_551 = /[A-Za-z0-9_]/;
  * tag position and the record tag in the value.
  */
 const RECORD_TAGS: ReadonlySet<string> = new Set([
-  'INDI', 'FAM', 'SOUR', 'REPO', 'NOTE', 'OBJE', 'SUBM', 'SUBN', 'SNOTE',
-  '_CENR', '_PLAC', '_PLACE', '_LOC', '_PLAC_DEFN', '_PLC',
-  '_TODO', '_TASK', '_EVENT_DEFN', '_EVDEF', '_ALIA', '_PUBLISH', '_GRP', '_OCUR',
+  'INDI',
+  'FAM',
+  'SOUR',
+  'REPO',
+  'NOTE',
+  'OBJE',
+  'SUBM',
+  'SUBN',
+  'SNOTE',
+  '_CENR',
+  '_PLAC',
+  '_PLACE',
+  '_LOC',
+  '_PLAC_DEFN',
+  '_PLC',
+  '_TODO',
+  '_TASK',
+  '_EVENT_DEFN',
+  '_EVDEF',
+  '_ALIA',
+  '_PUBLISH',
+  '_GRP',
+  '_OCUR',
 ]);
 
 /** The shape of a real GEDCOM tag: the upper-case alphabet, digits and
@@ -206,6 +214,7 @@ function parseValue(raw: string, rule: EscapeRule): RawValue {
     lead[0] === '@' &&
     !lead.startsWith('@@') &&
     !lead.startsWith('@#') &&
+    // eslint-disable-next-line no-control-regex -- GEDCOM pointers reject NUL and other C0 controls
     /^@([A-Za-z0-9_]|[^\u0000-\u007f])[^@]*@\s*$/.test(stripped)
   ) {
     return { kind: 'pointer', pointer: stripped.trim() };
@@ -232,6 +241,7 @@ function parseValue(raw: string, rule: EscapeRule): RawValue {
   // extension examples): the `#` comment annotates the line and is
   // dropped the same way. A blank must separate the pointer from the
   // comment — an at-sign-joined `@X@#tag` stays text.
+  // eslint-disable-next-line no-control-regex -- GEDCOM pointers reject NUL and other C0 controls
   const hashCommentedPointer = /^(@(?:[A-Za-z0-9_]|[^\u0000-\u007f])[^@]*@)[ \t]+#.*$/.exec(lead);
   if (hashCommentedPointer !== null) {
     return { kind: 'pointer', pointer: hashCommentedPointer[1] as string };
@@ -448,12 +458,7 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
   }
 
   const attach = (node: RawNode): void => {
-    if (
-      node.xref !== undefined &&
-      node.level > 0 &&
-      !node.tag.startsWith('_') &&
-      node.value.kind === 'absent'
-    ) {
+    if (node.xref !== undefined && node.level > 0 && !node.tag.startsWith('_') && node.value.kind === 'absent') {
       // The exporters write the pointer in the xref position
       // (`1 @I2@ HUSB`, the backend_family.ged exports): the xref
       // relocates into the value slot, where the tag expects it. The
@@ -461,8 +466,8 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       // line), so a relocation whose target does not exist stays a
       // dangling pointer — dropped silently by the resolve rules.
       const relocated = node.xref;
-      const { xref: _dropped, ...rest } = node;
-      void _dropped;
+      const rest = { ...node };
+      delete rest.xref;
       node = {
         ...rest,
         value: { kind: 'pointer', pointer: relocated },
@@ -496,7 +501,11 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
     }
     if (node.xref !== undefined) {
       if (node.level > 0 && !node.tag.startsWith('_')) {
-        fail('line.xref-on-substructure', 'A cross-reference identifier is only allowed on a record or on a tagged extension structure', node.position);
+        fail(
+          'line.xref-on-substructure',
+          'A cross-reference identifier is only allowed on a record or on a tagged extension structure',
+          node.position,
+        );
       }
       if (seenXrefs.has(node.xref)) {
         // A duplicate cross-reference identifier: the first occurrence
@@ -522,19 +531,13 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         // empty payload becomes the empty string and the continuation
         // merges into it.
         target.value = { kind: 'text', text: '' };
-      } else if (target.value.kind === 'pointer') {
+      } else {
         // A continuation under a pointer line cannot merge into the
         // pointer (the gedbas exports write note text under the FAMC
         // pointer): the caller attaches the line as a child of the
         // pointer slot instead, and the dispatch keeps it as a
         // generic extension — the text is kept, nothing is guessed.
         return false;
-      } else {
-        fail(
-          'line.continuation-no-payload',
-          `A ${continuation.tag} line has no text payload to continue`,
-          continuation.position,
-        );
       }
     }
     // A pointer-valued continuation (`1 CONC @NI156@`, the Ajmani
@@ -582,7 +585,10 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       return null;
     }
     try {
-      const inner = tokenizeLine({ text: node.value.text, line: node.position.line, offset: node.position.offset }, rule);
+      const inner = tokenizeLine(
+        { text: node.value.text, line: node.position.line, offset: node.position.offset },
+        rule,
+      );
       if (inner === null) {
         return null;
       }
@@ -630,7 +636,11 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
         ) {
           parent = candidate;
         } else {
-          fail('line.level-skip', `Level ${node.level} has no enclosing line at level ${node.level - 1}`, node.position);
+          fail(
+            'line.level-skip',
+            `Level ${node.level} has no enclosing line at level ${node.level - 1}`,
+            node.position,
+          );
         }
       }
       // The wrong-level repair: a continuation whose natural target
@@ -701,9 +711,7 @@ export function parseRawDocument(document: DecodedDocument, rule: EscapeRule, er
       const trimmed = line.text.replace(/^[ \t]+/, '');
       const anchor = stack[stack.length - 1];
       const anchorTakesText =
-        anchor !== undefined &&
-        (anchor.tag === 'NOTE' || anchor.tag === 'TEXT') &&
-        anchor.value.kind !== 'pointer';
+        anchor !== undefined && (anchor.tag === 'NOTE' || anchor.tag === 'TEXT') && anchor.value.kind !== 'pointer';
       const mergeIntoAnchor = (): void => {
         const target = anchor as RawNode;
         if (target.value.kind === 'absent') {

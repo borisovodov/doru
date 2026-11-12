@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset, MultimediaRecord } from '../src/structures';
+import { isEvidenceRecord, isOccurrenceRecord, isPlaceRecord, isResearchDocumentRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -107,7 +108,9 @@ describe('Ancestry.com Family Trees media-record block', () => {
     expect(rec.origin).toBe('acom');
     expect(rec.attachment).toBe(true);
     // CONC is merged into the value.
-    expect(rec.metadata).toBe('<metadataxml><acountry></acountry><branch></branch><cemetery></cemetery>n></metadataxml>');
+    expect(rec.metadata).toBe(
+      '<metadataxml><acountry></acountry><branch></branch><cemetery></cemetery>n></metadataxml>',
+    );
     // _DSCR types into the description slot.
     expect(rec.description).toBe('(Ancestry media: Description)');
     expect(rec.extensions?.some((ext) => ext.tag === '_DSCR') ?? false).toBe(false);
@@ -153,7 +156,9 @@ describe('Ancestry.com Family Trees media-record block', () => {
   });
 
   test('_MSER with unknown children keeps them as extensions', () => {
-    const rec = obje([HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _MSER', '2 _LKID abc', '2 _BOGUS x', '0 TRLR', ''].join('\n'));
+    const rec = obje(
+      [HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _MSER', '2 _LKID abc', '2 _BOGUS x', '0 TRLR', ''].join('\n'),
+    );
     expect(rec.master).toBe(true);
     expect(rec.masterLinkId).toBe('abc');
     expect(rec.extensions?.some((ext) => ext.tag === '_BOGUS')).toBe(true);
@@ -179,14 +184,20 @@ describe('Ancestry.com Family Trees media-record block', () => {
   test('_ATL N parses as false (and is not re-emitted)', () => {
     const rec = obje([HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _ATL N', '0 TRLR', ''].join('\n'));
     expect(rec.attachment).toBe(false);
-    const serialized = ser551(parseOk551([HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _ATL N', '0 TRLR', ''].join('\n')));
+    const serialized = ser551(
+      parseOk551([HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _ATL N', '0 TRLR', ''].join('\n')),
+    );
     expect(serialized).not.toContain('_ATL');
   });
 
   test('_ENCR 0 clears the flag; a bare _ENCR marks it', () => {
-    const cleared = obje([HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _USER abc', '2 _ENCR 0', '0 TRLR', ''].join('\n'));
+    const cleared = obje(
+      [HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _USER abc', '2 _ENCR 0', '0 TRLR', ''].join('\n'),
+    );
     expect(cleared.userEncrypted).toBe(false);
-    const bare = obje([HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _USER abc', '2 _ENCR', '0 TRLR', ''].join('\n'));
+    const bare = obje(
+      [HEAD551, '0 @O1@ OBJE', '1 FILE', '2 FORM jpg', '1 _USER abc', '2 _ENCR', '0 TRLR', ''].join('\n'),
+    );
     expect(bare.userEncrypted).toBe(true);
   });
 
@@ -256,7 +267,18 @@ describe('Ancestry.com Family Trees media-record block', () => {
 describe('RIN under events (Ancestry.com Family Trees)', () => {
   test('parses and round-trips in 5.5.1', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 DATE 7 JUL 1930', '2 RIN 789654123', '1 DEAT', '2 RIN 789654123', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 BIRT',
+        '2 DATE 7 JUL 1930',
+        '2 RIN 789654123',
+        '1 DEAT',
+        '2 RIN 789654123',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -270,9 +292,7 @@ describe('RIN under events (Ancestry.com Family Trees)', () => {
   });
 
   test('the record-level RIN and the event-level RIN are independent slots', () => {
-    const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 RIN 111', '1 BIRT', '2 RIN 222', '0 TRLR', ''].join('\n'),
-    );
+    const dataset = parseOk551([HEAD551, '0 @I1@ INDI', '1 RIN 111', '1 BIRT', '2 RIN 222', '0 TRLR', ''].join('\n'));
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -282,7 +302,9 @@ describe('RIN under events (Ancestry.com Family Trees)', () => {
   });
 
   test('parses in 7.0 and drops on the 7.0 export', () => {
-    const dataset = parseOk70([...H70, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 RIN 789654123', '0 TRLR', ''].join('\n'));
+    const dataset = parseOk70(
+      [...H70, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 RIN 789654123', '0 TRLR', ''].join('\n'),
+    );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -295,7 +317,9 @@ describe('RIN under events (Ancestry.com Family Trees)', () => {
 
 describe('_FIL under INDI (Heredis)', () => {
   test('types the filiation and round-trips in 5.5.1', () => {
-    const dataset = parseOk551([HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 SEX M', '1 _FIL LEGITIMATE_CHILD', '0 TRLR', ''].join('\n'));
+    const dataset = parseOk551(
+      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 SEX M', '1 _FIL LEGITIMATE_CHILD', '0 TRLR', ''].join('\n'),
+    );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -318,7 +342,9 @@ describe('_FIL under INDI (Heredis)', () => {
   });
 
   test('parses and round-trips in 7.0 too', () => {
-    const dataset = parseOk70([...H70, '0 @I1@ INDI', '1 NAME X /Y/', '1 _FIL LEGITIMATE_CHILD', '0 TRLR', ''].join('\n'));
+    const dataset = parseOk70(
+      [...H70, '0 @I1@ INDI', '1 NAME X /Y/', '1 _FIL LEGITIMATE_CHILD', '0 TRLR', ''].join('\n'),
+    );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -354,7 +380,9 @@ describe('pointer with a trailing C-style comment', () => {
   });
 
   test('a list of pointers and a stray @ stay text', () => {
-    const dataset = parseOk551([HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 NOTE @a@, @b@ and @c', '0 TRLR', ''].join('\n'));
+    const dataset = parseOk551(
+      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 NOTE @a@, @b@ and @c', '0 TRLR', ''].join('\n'),
+    );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -389,7 +417,20 @@ describe('_UST under FAM (Heredis union status)', () => {
 describe('WWW under HEAD.SOUR', () => {
   test('types the product web address and round-trips', () => {
     const dataset = parseOk551(
-      ['0 HEAD', '1 SOUR Family Echo', '2 WWW http://www.familyecho.com/', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR', ''].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR Family Echo',
+        '2 WWW http://www.familyecho.com/',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     expect(dataset.header.source?.www).toBe('http://www.familyecho.com/');
     const serialized = ser551(dataset);
@@ -401,7 +442,18 @@ describe('WWW under HEAD.SOUR', () => {
 describe('REFN and WWW under a source citation', () => {
   test('type into the citation and round-trip in 5.5.1', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 SOUR @S0@', '2 REFN blah blah', '2 WWW https://example.org/x', '0 @S0@ SOUR', '1 TITL S', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 SOUR @S0@',
+        '2 REFN blah blah',
+        '2 WWW https://example.org/x',
+        '0 @S0@ SOUR',
+        '1 TITL S',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -417,7 +469,18 @@ describe('REFN and WWW under a source citation', () => {
 
   test('WWW under the citation DATA types into the data slot', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 SOUR @S0@', '2 DATA', '3 WWW https://gw.geneanet.org/khreussner', '0 @S0@ SOUR', '1 TITL S', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 SOUR @S0@',
+        '2 DATA',
+        '3 WWW https://gw.geneanet.org/khreussner',
+        '0 @S0@ SOUR',
+        '1 TITL S',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -433,7 +496,22 @@ describe('REFN and WWW under a source citation', () => {
 describe('the _CROP block under a media link', () => {
   test('parses the underscore spellings into the crop slot', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 OBJE @M1@', '2 _CROP', '3 _LEFT 0', '3 _TOP 51', '3 _WDTH 186', '3 _HGHT 186', '0 @M1@ OBJE', '1 FILE', '2 FORM jpg', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 OBJE @M1@',
+        '2 _CROP',
+        '3 _LEFT 0',
+        '3 _TOP 51',
+        '3 _WDTH 186',
+        '3 _HGHT 186',
+        '0 @M1@ OBJE',
+        '1 FILE',
+        '2 FORM jpg',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -451,7 +529,22 @@ describe('the _CROP block under a media link', () => {
 
   test('writes the standard CROP block on the 7.0 export', () => {
     const dataset = parseOk70(
-      [...H70, '0 @I1@ INDI', '1 NAME X /Y/', '1 OBJE @M1@', '2 _CROP', '3 _LEFT 0', '3 _TOP 51', '3 _WDTH 186', '3 _HGHT 186', '0 @M1@ OBJE', '1 FILE', '2 FORM image/jpeg', '0 TRLR', ''].join('\n'),
+      [
+        ...H70,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 OBJE @M1@',
+        '2 _CROP',
+        '3 _LEFT 0',
+        '3 _TOP 51',
+        '3 _WDTH 186',
+        '3 _HGHT 186',
+        '0 @M1@ OBJE',
+        '1 FILE',
+        '2 FORM image/jpeg',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const serialized = ser70(dataset);
     expect(serialized).toContain('2 CROP');
@@ -509,10 +602,20 @@ describe('the MyHeritage _MTTAG/_MTCAT tree-tag records', () => {
 
   test('_VISI 0 and unknown children are kept', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '0 @T10@ _MTTAG', '1 NAME DNA Match', '1 _VISI 0', '1 _BOGUS x', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '0 @T10@ _MTTAG',
+        '1 NAME DNA Match',
+        '1 _VISI 0',
+        '1 _BOGUS x',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const tag = dataset.records.find((r) => r.tag === '_MTTAG');
-    if (tag?.tag !== '_MTTAG') {
+    if (tag === undefined || !('visible' in tag)) {
       throw new Error('expected _MTTAG');
     }
     expect(tag.visible).toBe(false);
@@ -556,12 +659,15 @@ describe('_PREF under FAM, MARR and the partner/child links', () => {
   });
 
   test('types the MARR-level preferred marriage', () => {
-    const dataset = parseOk551([HEAD551, '0 @F1@ FAM', '1 MARR', '2 _PREF Y', '2 DATE 1 JAN 1900', '0 TRLR', ''].join('\n'));
+    const dataset = parseOk551(
+      [HEAD551, '0 @F1@ FAM', '1 MARR', '2 _PREF Y', '2 DATE 1 JAN 1900', '0 TRLR', ''].join('\n'),
+    );
     const fam = dataset.records.find((r) => r.tag === 'FAM');
     if (fam?.tag !== 'FAM') {
       throw new Error('expected FAM');
     }
-    expect(fam.events?.[0]?.preferred).toBe(true);
+    const event = fam.events?.[0];
+    expect(event !== undefined && 'preferred' in event ? event.preferred : undefined).toBe(true);
     const serialized = ser551(dataset);
     expect(serialized).toContain('2 _PREF Y');
     expect(parseOk551(serialized)).toEqual(dataset);
@@ -636,7 +742,17 @@ describe('_WPID/_HPID and _FOOT under a citation', () => {
 
   test('REF under a citation normalizes into the www slot', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 SOUR @S0@', '2 REF http://search.findmypast.com/record?id=GBC/190', '0 @S0@ SOUR', '1 TITL S', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 SOUR @S0@',
+        '2 REF http://search.findmypast.com/record?id=GBC/190',
+        '0 @S0@ SOUR',
+        '1 TITL S',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -652,7 +768,17 @@ describe('_WPID/_HPID and _FOOT under a citation', () => {
 describe('_APID under SOUR and INDI records', () => {
   test('types the record-level Ancestry references and round-trips', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 _APID 1,7602::12345', '0 @S1@ SOUR', '1 TITL S', '1 _APID 1,2442::0', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 _APID 1,7602::12345',
+        '0 @S1@ SOUR',
+        '1 TITL S',
+        '1 _APID 1,2442::0',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -775,7 +901,9 @@ describe('the Swarm family-tree pack block (_FTSID, _PLINK under FAMC)', () => {
       familyTreeId: '4f5b3162-d212-5d21-af6c-4defaad66d9e',
     });
     expect(indi.childFamilies?.[0]?.profileLinks?.[0]?.pedigree?.payload).toBe('BIRTH');
-    expect(indi.childFamilies?.[0]?.profileLinks?.[0]?.citations?.[0]?.page?.payload).toBe('Marie Curie - Biographical');
+    expect(indi.childFamilies?.[0]?.profileLinks?.[0]?.citations?.[0]?.page?.payload).toBe(
+      'Marie Curie - Biographical',
+    );
     const sour = dataset.records.find((r) => r.tag === 'SOUR');
     if (sour?.tag !== 'SOUR') {
       throw new Error('expected SOUR');
@@ -794,7 +922,21 @@ describe('the Swarm family-tree pack block (_FTSID, _PLINK under FAMC)', () => {
 describe('the working-remainder sweep (TIME, _PRIM, QUOT, ADDR, _GCID, _WEBTAG)', () => {
   test('the event-level TIME attaches to the DATE; a 12-hour value converts; junk stays generic', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 DATE 1 JAN 1900', '2 TIME 10:30', '1 DEAT', '2 DATE 2 JAN 2000', '2 TIME 2:00pm', '1 BURI', '2 TIME banana', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 BIRT',
+        '2 DATE 1 JAN 1900',
+        '2 TIME 10:30',
+        '1 DEAT',
+        '2 DATE 2 JAN 2000',
+        '2 TIME 2:00pm',
+        '1 BURI',
+        '2 TIME banana',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -806,7 +948,9 @@ describe('the working-remainder sweep (TIME, _PRIM, QUOT, ADDR, _GCID, _WEBTAG)'
     // `banana` is not a time: the line stays a generic extension of
     // the detail (nothing is dropped at parse; the non-underscore TIME
     // extension is dropped on export — the extension rule).
-    expect(indi.events?.[2]?.detail?.extensions).toContainEqual(expect.objectContaining({ tag: 'TIME', payload: 'banana' }));
+    expect(indi.events?.[2]?.detail?.extensions).toContainEqual(
+      expect.objectContaining({ tag: 'TIME', payload: 'banana' }),
+    );
     const serialized = ser551(dataset);
     expect(serialized).toContain('3 TIME 10:30');
     expect(serialized).toContain('3 TIME 14:0');
@@ -830,7 +974,16 @@ describe('the working-remainder sweep (TIME, _PRIM, QUOT, ADDR, _GCID, _WEBTAG)'
 
   test('QUOT types into FACT + TYPE Quotation under INDI and FAM', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 QUOT "To be or not to be."', '0 @F1@ FAM', '1 QUOT "A family that quotes."', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 QUOT "To be or not to be."',
+        '0 @F1@ FAM',
+        '1 QUOT "A family that quotes."',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -849,7 +1002,16 @@ describe('the working-remainder sweep (TIME, _PRIM, QUOT, ADDR, _GCID, _WEBTAG)'
 
   test('the INDI-level ADDR types with its _NAME label', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 ADDR Main St', '2 _NAME Stephen Michael Mencik', '2 CITY Town', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 ADDR Main St',
+        '2 _NAME Stephen Michael Mencik',
+        '2 CITY Town',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -869,7 +1031,16 @@ describe('the working-remainder sweep (TIME, _PRIM, QUOT, ADDR, _GCID, _WEBTAG)'
 
   test('_GCID types into the record id on INDI and FAM', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 _GCID 04A344DF-82DE-4D17-97C9-067C3C21276D', '0 @F1@ FAM', '1 _GCID 3C0DEB23-6184-486F-A01C-EB698D03285B', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 _GCID 04A344DF-82DE-4D17-97C9-067C3C21276D',
+        '0 @F1@ FAM',
+        '1 _GCID 3C0DEB23-6184-486F-A01C-EB698D03285B',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     const fam = dataset.records.find((r) => r.tag === 'FAM');
@@ -885,7 +1056,16 @@ describe('the working-remainder sweep (TIME, _PRIM, QUOT, ADDR, _GCID, _WEBTAG)'
 
   test('_WEBTAG under a SOUR record types into the webTags slot', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @S1@ SOUR', '1 TITL S', '1 _WEBTAG', '2 NAME Source home', '2 URL https://example.org/s', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @S1@ SOUR',
+        '1 TITL S',
+        '1 _WEBTAG',
+        '2 NAME Source home',
+        '2 URL https://example.org/s',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const sour = dataset.records.find((r) => r.tag === 'SOUR');
     if (sour?.tag !== 'SOUR') {
@@ -955,13 +1135,23 @@ describe('QUOT under CHIL/ASSO and _GCID on other records', () => {
 describe('CHAN and CREA under an event', () => {
   test('the event-level change date types with its TIME', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 DEAT', '2 CHAN', '3 DATE 21 DEC 2007', '4 TIME 01:35', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 DEAT',
+        '2 CHAN',
+        '3 DATE 21 DEC 2007',
+        '4 TIME 01:35',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.events?.[0]?.detail?.changeDate?.date?.time).toEqual({ hour: 1, minute: 35 });
+    expect(indi.events?.[0]?.detail?.changeDate?.date.time).toEqual({ hour: 1, minute: 35 });
     const serialized = ser551(dataset);
     expect(serialized).toContain('2 CHAN');
     expect(serialized).toContain('4 TIME 1:35');
@@ -969,7 +1159,19 @@ describe('CHAN and CREA under an event', () => {
   });
 
   test('the event-level CREA types into the creation date', () => {
-    const dataset = parseOk70([...H70, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 CREA', '3 DATE 1 JAN 2020', '4 TIME 10:00:00', '0 TRLR', ''].join('\n'));
+    const dataset = parseOk70(
+      [
+        ...H70,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 BIRT',
+        '2 CREA',
+        '3 DATE 1 JAN 2020',
+        '4 TIME 10:00:00',
+        '0 TRLR',
+        '',
+      ].join('\n'),
+    );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -1021,7 +1223,16 @@ describe('the media flags, _PID under PLAC, RIN under citations and _MIDN', () =
 
   test('_PID under PLAC types into the place id', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 PLAC Kielce, Poland', '3 _PID curie-joliot-place-q102317', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 BIRT',
+        '2 PLAC Kielce, Poland',
+        '3 _PID curie-joliot-place-q102317',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1035,7 +1246,18 @@ describe('the media flags, _PID under PLAC, RIN under citations and _MIDN', () =
 
   test('RIN under a citation types and round-trips in 5.5.1', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 BIRT', '2 SOUR @S0@', '3 RIN MH:SC500011', '0 @S0@ SOUR', '1 TITL S', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 BIRT',
+        '2 SOUR @S0@',
+        '3 RIN MH:SC500011',
+        '0 @S0@ SOUR',
+        '1 TITL S',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1065,7 +1287,25 @@ describe('the media flags, _PID under PLAC, RIN under citations and _MIDN', () =
 describe('the header mid-stream, _TYPE under _CROP and _FNA under events', () => {
   test('a NOTE before the HEAD no longer orphans the header', () => {
     const dataset = parseOk551(
-      ['0 NOTE A preamble note', '0 HEAD', '1 SOUR Family Echo', '2 WWW http://www.familyecho.com/', '1 SUBM @S1@', '1 DATE 12 SEP 2022', '2 TIME 16:12:23', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 @I1@ INDI', '1 NAME X /Y/', '0 TRLR', ''].join('\n'),
+      [
+        '0 NOTE A preamble note',
+        '0 HEAD',
+        '1 SOUR Family Echo',
+        '2 WWW http://www.familyecho.com/',
+        '1 SUBM @S1@',
+        '1 DATE 12 SEP 2022',
+        '2 TIME 16:12:23',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     expect(dataset.header.source?.payload).toBe('Family Echo');
     expect(dataset.header.source?.www).toBe('http://www.familyecho.com/');
@@ -1078,7 +1318,23 @@ describe('the header mid-stream, _TYPE under _CROP and _FNA under events', () =>
 
   test('_TYPE under the crop block types into the crop variant', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 OBJE @M1@', '2 _CROP', '3 _LEFT 0', '3 _TOP 51', '3 _WDTH 186', '3 _HGHT 186', '3 _TYPE primary', '0 @M1@ OBJE', '1 FILE', '2 FORM jpg', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 OBJE @M1@',
+        '2 _CROP',
+        '3 _LEFT 0',
+        '3 _TOP 51',
+        '3 _WDTH 186',
+        '3 _HGHT 186',
+        '3 _TYPE primary',
+        '0 @M1@ OBJE',
+        '1 FILE',
+        '2 FORM jpg',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1135,9 +1391,9 @@ describe('the MFT _CRE blocks, FAM SLGC and APPT', () => {
     if (indi?.tag !== 'INDI' || fam?.tag !== 'FAM' || obje?.tag !== 'OBJE') {
       throw new Error('expected records');
     }
-    expect(indi.names?.[0]?.creationDate?.date?.time).toEqual({ hour: 10, minute: 0 });
-    expect(fam.creationDate?.date?.value).toBeDefined();
-    expect(obje.creationDate?.date?.value).toBeDefined();
+    expect(indi.names?.[0]?.creationDate?.date.time).toEqual({ hour: 10, minute: 0 });
+    expect(fam.creationDate?.date.value).toBeDefined();
+    expect(obje.creationDate?.date.value).toBeDefined();
     const serialized = ser551(dataset);
     // 5.5.1 writes the _CRE spelling.
     expect(serialized).toContain('2 _CRE');
@@ -1164,7 +1420,16 @@ describe('the MFT _CRE blocks, FAM SLGC and APPT', () => {
 
   test('APPT under INDI normalizes into EVEN + TYPE Application', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @I1@ INDI', '1 NAME X /Y/', '1 APPT', '2 DATE 27 Aug 2019', '2 PLAC Supplemental - MullinsP', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @I1@ INDI',
+        '1 NAME X /Y/',
+        '1 APPT',
+        '2 DATE 27 Aug 2019',
+        '2 PLAC Supplemental - MullinsP',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1210,7 +1475,11 @@ describe('the data clusters of the remainder sweep', () => {
     expect(indi.deceased).toBe(true);
     expect(indi.phone).toEqual(['336-874-7241']);
     expect(indi.media?.[0]?.object).toBe('@M1@');
-    expect(indi.webLinks?.[0]).toMatchObject({ tag: '_WLNK', title: 'Birth records, search Kolovec', url: 'http://www.portafontium.eu/searching' });
+    expect(indi.webLinks?.[0]).toMatchObject({
+      tag: '_WLNK',
+      title: 'Birth records, search Kolovec',
+      url: 'http://www.portafontium.eu/searching',
+    });
     expect(fam.unionStatus).toBe('Marriage');
     const serialized = ser551(dataset);
     expect(serialized).toContain('1 ISDEAD Y');
@@ -1316,10 +1585,10 @@ describe('the data clusters of the remainder sweep', () => {
     expect(indi.events?.[0]?.detail?.citations?.[0]?.description).toBe('');
     expect(indi.events?.[0]?.detail?.citations?.[0]?.page?.payload).toBe('NSW Registry of Births');
     // TYPE image becomes OTHER + phrase.
-    expect(obje.files?.[0]?.form?.medium?.payload).toBe('OTHER');
-    expect(obje.files?.[0]?.form?.medium?.phrase).toBe('image');
+    expect(obje.files[0]?.form?.medium?.payload).toBe('OTHER');
+    expect(obje.files[0]?.form?.medium?.phrase).toBe('image');
     // TITL with a pointer keeps the pointer string.
-    expect(obje.files?.[0]?.title).toBe('@R5@');
+    expect(obje.files[0]?.title).toBe('@R5@');
     const serialized = ser551(dataset);
     expect(parseOk551(serialized)).toEqual(dataset);
   });
@@ -1328,13 +1597,21 @@ describe('the data clusters of the remainder sweep', () => {
 describe('_TEXT under FILE and _COR under the place card', () => {
   test('_TEXT under the FILE line types into the file text', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @M3@ OBJE', '1 FILE C:\\FTM\\US_Presidents_20', '2 FORM bmp', '2 _TEXT Year: 1880; Census Place: District 14', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @M3@ OBJE',
+        '1 FILE C:\\FTM\\US_Presidents_20',
+        '2 FORM bmp',
+        '2 _TEXT Year: 1880; Census Place: District 14',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
     const obje = dataset.records.find((r) => r.tag === 'OBJE');
     if (obje?.tag !== 'OBJE') {
       throw new Error('expected OBJE');
     }
-    expect(obje.files?.[0]?.text).toBe('Year: 1880; Census Place: District 14');
+    expect(obje.files[0]?.text).toBe('Year: 1880; Census Place: District 14');
     const serialized = ser551(dataset);
     expect(serialized).toContain('2 _TEXT Year: 1880; Census Place: District 14');
     expect(parseOk551(serialized)).toEqual(dataset);
@@ -1342,10 +1619,24 @@ describe('_TEXT under FILE and _COR under the place card', () => {
 
   test('_COR under a _PLAC card types into the card map', () => {
     const dataset = parseOk551(
-      [HEAD551, '0 @P1@ _PLAC Somewhere', '1 _COR', '2 _LAD 41', '2 _LAM 38', '2 _LAS 26', '2 _LAN N', '2 _LOD 4', '2 _LOM 51', '2 _LOS 24', '2 _LON E', '0 TRLR', ''].join('\n'),
+      [
+        HEAD551,
+        '0 @P1@ _PLAC Somewhere',
+        '1 _COR',
+        '2 _LAD 41',
+        '2 _LAM 38',
+        '2 _LAS 26',
+        '2 _LAN N',
+        '2 _LOD 4',
+        '2 _LOM 51',
+        '2 _LOS 24',
+        '2 _LON E',
+        '0 TRLR',
+        '',
+      ].join('\n'),
     );
-    const plc = dataset.records.find((r) => r.tag === '_PLAC');
-    if (plc?.tag !== '_PLAC') {
+    const plc = dataset.records.find(isPlaceRecord);
+    if (plc === undefined) {
       throw new Error('expected _PLAC');
     }
     expect(plc.map?.latitude.direction).toBe('N');
@@ -1409,7 +1700,8 @@ describe('the GenoPro entity records', () => {
     expect(occu.industry).toBe('Construction');
     expect(occu.place?.placeCard).toBe('@p1@');
     expect(occu.dateStart?.value).toBeDefined();
-    expect(occu.notes?.[0]?.payload).toBe('Owner');
+    const note = occu.notes?.[0];
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('Owner');
     const marr = dataset.records.find((r) => r.tag === 'Marriage');
     if (marr?.tag !== 'Marriage') {
       throw new Error('expected Marriage');
@@ -1435,21 +1727,14 @@ describe('the GenoPro entity records', () => {
 describe('the corpus-remainder typings (round 6)', () => {
   test('ADDR.NOTE types into AddressStructure.notes and round-trips', () => {
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @R1@ REPO',
-        '1 NAME Muriel and Richard Brine',
-        '1 ADDR',
-        '2 NOTE x',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @R1@ REPO', '1 NAME Muriel and Richard Brine', '1 ADDR', '2 NOTE x', '0 TRLR', ''].join('\n'),
     );
     const repo = dataset.records.find((r) => r.tag === 'REPO');
     if (repo?.tag !== 'REPO') {
       throw new Error('expected REPO');
     }
-    expect(repo.address?.notes?.[0]?.payload).toBe('x');
+    const note = repo.address?.notes?.[0];
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('x');
     const text = ser551(dataset);
     expect(text).toContain('1 ADDR');
     expect(text).toContain('2 NOTE x');
@@ -1477,8 +1762,8 @@ describe('the corpus-remainder typings (round 6)', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.changeDate?.citations?.[0].source).toBe('@S1@');
-    expect(indi.changeDate?.citations?.[0].data?.texts?.[0]?.payload).toBe('Date of Import: 27 Jun 2005');
+    expect(indi.changeDate?.citations?.[0]?.source).toBe('@S1@');
+    expect(indi.changeDate?.citations?.[0]?.data?.texts?.[0]?.payload).toBe('Date of Import: 27 Jun 2005');
     const text = ser551(dataset);
     expect(text).toContain('2 SOUR @S1@');
     expect(text).toContain('4 TEXT Date of Import: 27 Jun 2005');
@@ -1509,8 +1794,8 @@ describe('the corpus-remainder typings (round 6)', () => {
       throw new Error('expected INDI');
     }
     const detail = indi.events?.[0]?.detail;
-    expect(detail?.date?.citations?.[0].source).toBe('@S307@');
-    expect(detail?.place?.citations?.[0].source).toBe('@S308@');
+    expect(detail?.date?.citations?.[0]?.source).toBe('@S307@');
+    expect(detail?.place?.citations?.[0]?.source).toBe('@S308@');
     const text = ser551(dataset);
     expect(text).toContain('2 DATE 1794');
     expect(text).toContain('3 SOUR @S307@');
@@ -1538,8 +1823,12 @@ describe('the corpus-remainder typings (round 6)', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.names?.[0].aliasLinks?.[0]).toEqual({ tag: 'ALIA', value: 'William/Pitt/', citations: [{ tag: 'SOUR', source: '@S111@' }] });
-    expect(indi.names?.[0].title).toBe('King');
+    expect(indi.names?.[0]?.aliasLinks?.[0]).toEqual({
+      tag: 'ALIA',
+      value: 'William/Pitt/',
+      citations: [{ tag: 'SOUR', source: '@S111@' }],
+    });
+    expect(indi.names?.[0]?.title).toBe('King');
     const text = ser551(dataset);
     expect(text).toContain('2 ALIA William/Pitt/');
     expect(text).toContain('3 SOUR @S111@');
@@ -1549,16 +1838,9 @@ describe('the corpus-remainder typings (round 6)', () => {
 
   test('NOTE DATE/PLAC type and round-trip', () => {
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @I1@ INDI',
-        '1 NAME A /B/',
-        '1 NOTE A note',
-        '2 DATE 1736',
-        '2 PLAC Kealakekua',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @I1@ INDI', '1 NAME A /B/', '1 NOTE A note', '2 DATE 1736', '2 PLAC Kealakekua', '0 TRLR', ''].join(
+        '\n',
+      ),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1566,7 +1848,7 @@ describe('the corpus-remainder typings (round 6)', () => {
     }
     const note = indi.notes?.[0];
     expect(note && 'payload' in note ? note.payload : undefined).toBe('A note');
-    expect(note && 'date' in note && note.date !== undefined).toBe(true);
+    expect(note && 'date' in note).toBe(true);
     expect(ser551(dataset)).toContain('2 DATE 1736');
     expect(ser551(dataset)).toContain('2 PLAC Kealakekua');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);
@@ -1739,14 +2021,7 @@ describe('the corpus-remainder typings (round 7)', () => {
 describe('the corpus-remainder typings (round 8)', () => {
   test('a text payload in the INDI ALIA pointer slot becomes a NAME with the AKA type', () => {
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @I1@ INDI',
-        '1 NAME Robert /Burnett/',
-        '1 ALIA /Becky/',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @I1@ INDI', '1 NAME Robert /Burnett/', '1 ALIA /Becky/', '0 TRLR', ''].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1821,16 +2096,7 @@ describe('the corpus-remainder typings (round 9)', () => {
     // The UoEMainLibrary archiveslib PhpGedView 3.3.8 export (euf1.ged):
     // `1 CHAN` + `2 DATE …` + `2 _PGVU admin` on every record.
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @I1@ INDI',
-        '1 NAME A /B/',
-        '1 CHAN',
-        '2 DATE 1 JAN 2005',
-        '2 _PGVU admin',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @I1@ INDI', '1 NAME A /B/', '1 CHAN', '2 DATE 1 JAN 2005', '2 _PGVU admin', '0 TRLR', ''].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -1846,16 +2112,7 @@ describe('the corpus-remainder typings (round 9)', () => {
   test('QUAY under the SOUR record types as its certainty assessment', () => {
     // Heredis writes the whole-source assessment at record level (the
     // alainamand / Dudouyt exports; webtrees registry, Heredis.php).
-    const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @S9@ SOUR',
-        '1 TITL t',
-        '1 QUAY 2',
-        '0 TRLR',
-        '',
-      ].join('\n'),
-    );
+    const dataset = parseOk551([HEAD551, '0 @S9@ SOUR', '1 TITL t', '1 QUAY 2', '0 TRLR', ''].join('\n'));
     const sour = dataset.records.find((r) => r.tag === 'SOUR');
     if (sour?.tag !== 'SOUR') {
       throw new Error('expected SOUR');
@@ -1876,14 +2133,7 @@ describe('the corpus-remainder typings (round 9)', () => {
     // MyHeritage.php; the ChatGPT-GEDCOM-processed MyHeritage exports
     // carry it on every SOUR record).
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @S9@ SOUR',
-        '1 TITL t',
-        '1 _UPD 4 JUN 2024 08:12:27 GMT -0500',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @S9@ SOUR', '1 TITL t', '1 _UPD 4 JUN 2024 08:12:27 GMT -0500', '0 TRLR', ''].join('\n'),
     );
     const sour = dataset.records.find((r) => r.tag === 'SOUR');
     if (sour?.tag !== 'SOUR') {
@@ -1925,15 +2175,7 @@ describe('the corpus-remainder typings (round 9)', () => {
     // Family Tree Builder spelling (webtrees registry,
     // FamilyTreeBuilder.php, OBJE:_PLACE).
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @M1@ OBJE',
-        '1 FILE a.jpg',
-        '2 FORM jpg',
-        '1 _PLACE Rotterdam',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @M1@ OBJE', '1 FILE a.jpg', '2 FORM jpg', '1 _PLACE Rotterdam', '0 TRLR', ''].join('\n'),
     );
     const obje = dataset.records.find((r) => r.tag === 'OBJE') as MultimediaRecord;
     expect(obje.place).toBe('Rotterdam');
@@ -2064,14 +2306,7 @@ describe('the corpus-remainder typings (round 9)', () => {
   test('_ELEC under INDI types as the Elected fact', () => {
     // FTM custom fact (webtrees registry, FamilyTreeMaker.php).
     const dataset = parseOk551(
-      [
-        HEAD551,
-        '0 @I1@ INDI',
-        '1 NAME A /B/',
-        '1 _ELEC Mayor of Springfield',
-        '0 TRLR',
-        '',
-      ].join('\n'),
+      [HEAD551, '0 @I1@ INDI', '1 NAME A /B/', '1 _ELEC Mayor of Springfield', '0 TRLR', ''].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {
@@ -2150,8 +2385,11 @@ describe('the glamberson documented extensions (round 10)', () => {
     // (specification.md v1).
     const dataset = parseOk70(
       [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
-        '0 @S1@ SOUR', '1 TITL 1850 Census',
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @S1@ SOUR',
+        '1 TITL 1850 Census',
         '0 @E1@ _EVID',
         '1 _TYPE Person',
         '1 _ID John Smith',
@@ -2177,11 +2415,12 @@ describe('the glamberson documented extensions (round 10)', () => {
         '1 DATE 20 JAN 2025',
         '1 _FIND No birth record',
         '2 _EVID @E1@',
-        '0 TRLR', '',
+        '0 TRLR',
+        '',
       ].join('\n'),
     );
-    const evid = dataset.records.find((r) => r.tag === '_EVID');
-    if (evid?.tag !== '_EVID') {
+    const evid = dataset.records.find(isEvidenceRecord);
+    if (evid === undefined) {
       throw new Error('expected _EVID');
     }
     expect(evid.type).toBe('Person');
@@ -2195,14 +2434,14 @@ describe('the glamberson documented extensions (round 10)', () => {
     expect(indi.evidence?.[0]?.tag).toBe('_EVREF');
     expect(indi.evidence?.[0]?.evidence).toBe('@E1@');
     expect(indi.evidence?.[0]?.confidence).toBe('5');
-    const rdoc = dataset.records.find((r) => r.tag === '_RDOC');
-    if (rdoc?.tag !== '_RDOC') {
+    const rdoc = dataset.records.find(isResearchDocumentRecord);
+    if (rdoc === undefined) {
       throw new Error('expected _RDOC');
     }
     expect(rdoc.title).toBe('Analysis');
     expect(rdoc.conclusions?.[0]).toEqual({ tag: '_CONC', subject: '@I1@', text: 'Definitely identified' });
     const ract = dataset.records.find((r) => r.tag === '_RACT');
-    if (ract?.tag !== '_RACT') {
+    if (ract === undefined || !('result' in ract)) {
       throw new Error('expected _RACT');
     }
     expect(ract.result).toBe('NotFound');
@@ -2225,8 +2464,11 @@ describe('the glamberson documented extensions (round 10)', () => {
     // _EVEN_EVID.yaml, _FIND.yaml) of the pattern1/pattern2 examples.
     const dataset = parseOk70(
       [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
-        '0 @S1@ SOUR', '1 TITL t',
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @S1@ SOUR',
+        '1 TITL t',
         '0 @E1@ _EVID',
         '1 _DTYPE Census',
         '1 DATE 7 JUN 1850',
@@ -2246,11 +2488,12 @@ describe('the glamberson documented extensions (round 10)', () => {
         '2 _FIND born 4 May 1823',
         '3 TYPE Birth Information',
         '2 _CONF Medium',
-        '0 TRLR', '',
+        '0 TRLR',
+        '',
       ].join('\n'),
     );
-    const evid = dataset.records.find((r) => r.tag === '_EVID');
-    if (evid?.tag !== '_EVID') {
+    const evid = dataset.records.find(isEvidenceRecord);
+    if (evid === undefined) {
       throw new Error('expected _EVID');
     }
     expect(evid.documentType).toBe('Census');
@@ -2260,7 +2503,13 @@ describe('the glamberson documented extensions (round 10)', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.evidence?.[0]).toMatchObject({ tag: '_EVREF', evidence: '@E1@', confidence: 'High', used: 'Name and age match', quality: '3' });
+    expect(indi.evidence?.[0]).toMatchObject({
+      tag: '_EVREF',
+      evidence: '@E1@',
+      confidence: 'High',
+      used: 'Name and age match',
+      quality: '3',
+    });
     expect(indi.evidenceEvents?.[0]?.type).toBe('Evidence Discovery');
     expect(indi.evidenceEvents?.[0]?.findings?.[0]?.type).toBe('Birth Information');
     expect(indi.evidenceEvents?.[0]?.confidence).toBe('Medium');
@@ -2272,7 +2521,9 @@ describe('the glamberson documented extensions (round 10)', () => {
   test('the gedcom-tags records and applications round-trip', () => {
     const dataset = parseOk70(
       [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
         '0 @T1@ _TAG',
         '1 NAME DNA Match',
         '1 _COLOR #00FF00',
@@ -2285,11 +2536,12 @@ describe('the glamberson documented extensions (round 10)', () => {
         '2 NOTE 3rd cousin match',
         '0 @N1@ NOTE A shared note',
         '1 _TAG @T1@',
-        '0 TRLR', '',
+        '0 TRLR',
+        '',
       ].join('\n'),
     );
     const tag = dataset.records.find((r) => r.tag === '_TAG');
-    if (tag?.tag !== '_TAG') {
+    if (tag === undefined || !('color' in tag)) {
       throw new Error('expected _TAG');
     }
     expect(tag.name).toBe('DNA Match');
@@ -2302,7 +2554,7 @@ describe('the glamberson documented extensions (round 10)', () => {
     expect(indi.tagLinks?.[0]?.target).toBe('@T1@');
     expect(indi.tagLinks?.[0]?.notes?.[0]).toMatchObject({ payload: '3rd cousin match' });
     const note = dataset.records.find((r) => r.tag === 'NOTE');
-    expect(note?.tag === 'NOTE' ? note.tagLinks?.[0]?.target : undefined).toBe('@T1@');
+    expect(note !== undefined && 'tagLinks' in note ? note.tagLinks[0]?.target : undefined).toBe('@T1@');
     for (const ser of [ser551(dataset), ser70(dataset)]) {
       expect(ser).toContain('0 @T1@ _TAG');
       expect(ser).toContain('1 _COLOR #00FF00');
@@ -2315,7 +2567,7 @@ describe('the glamberson documented extensions (round 10)', () => {
     const out70 = ser70(dataset);
     const reparsed70 = parseOk70(out70);
     const snote = reparsed70.records.find((r) => r.tag === 'SNOTE');
-    expect(snote?.tag === 'SNOTE' ? snote.tagLinks?.[0]?.target : undefined).toBe('@T1@');
+    expect(snote !== undefined && 'tagLinks' in snote ? snote.tagLinks[0]?.target : undefined).toBe('@T1@');
     expect(ser70(reparsed70)).toBe(out70);
     const out551 = ser551(dataset);
     expect(ser551(parseOk551(out551))).toBe(out551);
@@ -2325,7 +2577,9 @@ describe('the glamberson documented extensions (round 10)', () => {
     // The gedcom-extended-ASSO specification.md shapes.
     const dataset = parseOk70(
       [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
         '0 @I1@ INDI',
         '1 NAME A /B/',
         '1 ASSO @I2@',
@@ -2339,7 +2593,8 @@ describe('the glamberson documented extensions (round 10)', () => {
         '2 NOTE Spiritual guardian',
         '0 @I2@ INDI',
         '1 NAME C /D/',
-        '0 TRLR', '',
+        '0 TRLR',
+        '',
       ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI' && r.xref === '@I1@');
@@ -2364,7 +2619,9 @@ describe('the glamberson documented extensions (round 10)', () => {
   test('the occurrence v0.2.0 grammar: _OCREF data, FAM superstructure, event position, _OCUR extras', () => {
     const dataset = parseOk70(
       [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
         '0 @O1@ _OCUR',
         '1 TYPE Census',
         '1 AGNC NARA',
@@ -2386,11 +2643,12 @@ describe('the glamberson documented extensions (round 10)', () => {
         '2 _OCREF @O1@',
         '3 ROLE Head',
         '3 AGE 45y',
-        '0 TRLR', '',
+        '0 TRLR',
+        '',
       ].join('\n'),
     );
-    const ocur = dataset.records.find((r) => r.tag === '_OCUR');
-    if (ocur?.tag !== '_OCUR') {
+    const ocur = dataset.records.find(isOccurrenceRecord);
+    if (ocur === undefined) {
       throw new Error('expected _OCUR');
     }
     expect(ocur.agency).toBe('NARA');
@@ -2403,9 +2661,9 @@ describe('the glamberson documented extensions (round 10)', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    const cens = indi.events.find((e) => e.tag === 'CENS');
-    expect(cens?.detail.occurrences?.[0]?.occurrence).toBe('@O1@');
-    expect(cens?.detail.occurrences?.[0]?.role).toBe('Head');
+    const cens = indi.events?.find((e) => e.tag === 'CENS');
+    expect(cens?.detail?.occurrences?.[0]?.occurrence).toBe('@O1@');
+    expect(cens?.detail?.occurrences?.[0]?.role).toBe('Head');
     expect(parseOk70(ser70(dataset))).toEqual(dataset);
     const out551 = ser551(dataset);
     expect(ser551(parseOk551(out551))).toBe(out551);
@@ -2414,7 +2672,9 @@ describe('the glamberson documented extensions (round 10)', () => {
   test('the NAME-level evidence link of the gramps census example types', () => {
     const dataset = parseOk70(
       [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
         '0 @E1@ _EVID',
         '1 _ID John Smith (census)',
         '1 SOUR @S1@',
@@ -2425,7 +2685,8 @@ describe('the glamberson documented extensions (round 10)', () => {
         '2 TYPE Birth',
         '2 _EVID @E1@',
         '3 _CONF Medium',
-        '0 TRLR', '',
+        '0 TRLR',
+        '',
       ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');

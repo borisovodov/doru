@@ -24,20 +24,23 @@ describe('KeybindingService', () => {
     const service = new KeybindingService();
     service.register('meta+alt+b', 'workbench.toggleAgentChat');
     // macOS US layout reports Option+B as '∫'.
-    expect(
-      service.onKeydown(event({ key: '∫', code: 'KeyB', metaKey: true, altKey: true })),
-    ).toEqual({ command: 'workbench.toggleAgentChat', args: [] });
-    expect(
-      service.onKeydown(event({ key: 'b', code: 'KeyB', metaKey: true, altKey: true })),
-    ).toEqual({ command: 'workbench.toggleAgentChat', args: [] });
+    expect(service.onKeydown(event({ key: '∫', code: 'KeyB', metaKey: true, altKey: true }))).toEqual({
+      command: 'workbench.toggleAgentChat',
+      args: [],
+    });
+    expect(service.onKeydown(event({ key: 'b', code: 'KeyB', metaKey: true, altKey: true }))).toEqual({
+      command: 'workbench.toggleAgentChat',
+      args: [],
+    });
   });
 
   test('matches shift combos', () => {
     const service = new KeybindingService();
     service.register('meta+shift+z', 'tree.redo');
-    expect(
-      service.onKeydown(event({ key: 'Z', code: 'KeyZ', metaKey: true, shiftKey: true })),
-    ).toEqual({ command: 'tree.redo', args: [] });
+    expect(service.onKeydown(event({ key: 'Z', code: 'KeyZ', metaKey: true, shiftKey: true }))).toEqual({
+      command: 'tree.redo',
+      args: [],
+    });
   });
 
   test('matches digit keys via code when shift changes the character', () => {
@@ -53,9 +56,10 @@ describe('KeybindingService', () => {
     const service = new KeybindingService();
     service.register('meta+shift+]', 'workbench.nextTab');
     // US layouts report Shift+] as '}'.
-    expect(
-      service.onKeydown(event({ key: '}', code: 'BracketRight', metaKey: true, shiftKey: true })),
-    ).toEqual({ command: 'workbench.nextTab', args: [] });
+    expect(service.onKeydown(event({ key: '}', code: 'BracketRight', metaKey: true, shiftKey: true }))).toEqual({
+      command: 'workbench.nextTab',
+      args: [],
+    });
   });
 
   test('passes through registered args', () => {

@@ -10,6 +10,30 @@ import { streamText } from 'ai';
 import { runAgent, toModelMessages } from '../src/agent';
 
 const model = {} as LanguageModel;
+const streamTextMock = vi.mocked(streamText);
+
+interface FakeStreamOptions {
+  onChunk?: (event: { chunk: { type: string; text?: string } }) => void;
+  onStepEnd?: (event: { content: Array<Record<string, unknown>> }) => void;
+  onError?: (event: { error: unknown }) => void;
+  [key: string]: unknown;
+}
+
+function implementStreamText(implementation: (options: FakeStreamOptions) => { text: Promise<string> }): void {
+  streamTextMock.mockImplementation(implementation as unknown as typeof streamText);
+}
+
+function returnStreamText(text: string): void {
+  streamTextMock.mockReturnValue({ text: Promise.resolve(text) } as unknown as ReturnType<typeof streamText>);
+}
+
+function firstStreamTextOptions(): Record<string, unknown> {
+  const call = streamTextMock.mock.calls[0];
+  if (call === undefined) {
+    throw new Error('streamText was not called');
+  }
+  return call[0];
+}
 
 describe('toModelMessages', () => {
   it('drops system messages and converts plain roles', () => {
@@ -57,15 +81,15 @@ describe('toModelMessages', () => {
 
 describe('runAgent', () => {
   beforeEach(() => {
-    streamText.mockReset();
+    streamTextMock.mockReset();
   });
 
   it('streams deltas, collects steps and returns the final text', async () => {
-    streamText.mockImplementation((options: Record<string, unknown>) => {
-      options['onChunk']?.({ chunk: { type: 'text-delta', text: 'Hel' } });
-      options['onChunk']?.({ chunk: { type: 'text-delta', text: 'lo' } });
-      options['onChunk']?.({ chunk: { type: 'other' } });
-      options['onStepEnd']?.({
+    implementStreamText((options) => {
+      options.onChunk?.({ chunk: { type: 'text-delta', text: 'Hel' } });
+      options.onChunk?.({ chunk: { type: 'text-delta', text: 'lo' } });
+      options.onChunk?.({ chunk: { type: 'other' } });
+      options.onStepEnd?.({
         content: [
           { type: 'tool-call', toolName: 'tree_query', input: { query: 'Ivan' } },
           { type: 'tool-result', toolName: 'tree_query', output: [{ id: '@I1@' }] },
@@ -99,27 +123,27 @@ describe('runAgent', () => {
     ]);
     expect(steps).toEqual(result.steps);
 
-    const options = streamText.mock.calls[0]![0] as Record<string, unknown>;
+    const options = firstStreamTextOptions();
     expect(options['stopWhen']).toBe(3);
-    expect(options['system']).toBe('you are helpful');
+    expect(options['instructions']).toBe('you are helpful');
     expect(options['reasoning']).toBe('low');
     expect(options['tools']).toEqual({});
   });
 
   it('uses the default step count and omits absent options', async () => {
-    streamText.mockReturnValue({ text: Promise.resolve('done') });
+    returnStreamText('done');
     const result = await runAgent({ model, messages: [], tools: {} });
     expect(result.finalText).toBe('done');
-    const options = streamText.mock.calls[0]![0] as Record<string, unknown>;
+    const options = firstStreamTextOptions();
     expect(options['stopWhen']).toBe(8);
-    expect(options['system']).toBeUndefined();
+    expect(options['instructions']).toBeUndefined();
     expect(options['reasoning']).toBeUndefined();
     expect(options['abortSignal']).toBeUndefined();
   });
 
   it('carries stream errors with a classified code', async () => {
-    streamText.mockImplementation((options: Record<string, unknown>) => {
-      options['onError']?.({ error: new Error('provider 500') });
+    implementStreamText((options) => {
+      options.onError?.({ error: new Error('provider 500') });
       return { text: Promise.resolve('partial') };
     });
     const result = await runAgent({ model, messages: [], tools: {} });
@@ -129,9 +153,9 @@ describe('runAgent', () => {
   });
 
   it('repairs string tool inputs and refines tree_query inputs', async () => {
-    streamText.mockReturnValue({ text: Promise.resolve('ok') });
+    returnStreamText('ok');
     await runAgent({ model, messages: [], tools: {} });
-    const options = streamText.mock.calls[0]![0] as {
+    const options = firstStreamTextOptions() as unknown as {
       repairToolCall: (input: { toolCall: { input: unknown } }) => Promise<unknown>;
       experimental_refineToolInput: { tree_query: (input: unknown) => unknown };
     };

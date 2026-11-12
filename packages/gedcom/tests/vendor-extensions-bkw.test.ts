@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
+import { isFamilyRecord, isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -66,7 +67,7 @@ const SAMPLE551 = [
 
 function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected INDI ${xref}`);
   }
   return record;
@@ -74,13 +75,13 @@ function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
 
 function fam(dataset: GedcomDataset, xref: string): FamilyRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'FAM') {
+  if (record === undefined || !isFamilyRecord(record)) {
     throw new Error(`expected FAM ${xref}`);
   }
   return record;
 }
 
-describe('Brother\'s Keeper tags on 5.5.1 input', () => {
+describe("Brother's Keeper tags on 5.5.1 input", () => {
   test('projects the tags onto the standard structures', () => {
     const dataset = parseOk551(SAMPLE551);
     const john = indi(dataset, '@I1@');
@@ -102,7 +103,11 @@ describe('Brother\'s Keeper tags on 5.5.1 input', () => {
     const brit = john.events?.find((e) => e.type === 'Brit Mila');
     expect(brit?.tag).toBe('EVEN');
     expect(brit?.detail?.date?.value).toEqual({
-      kind: 'date', calendar: 'GREGORIAN', day: 1, month: 'JAN', year: 1900,
+      kind: 'date',
+      calendar: 'GREGORIAN',
+      day: 1,
+      month: 'JAN',
+      year: 1900,
     });
     for (const type of ['Funeral', 'Interred', 'Yahrzeit']) {
       expect(john.events?.find((e) => e.type === type)?.tag).toBe('EVEN');
@@ -112,7 +117,10 @@ describe('Brother\'s Keeper tags on 5.5.1 input', () => {
     expect(john.identifiers).toEqual([{ tag: 'REFN', payload: '12345' }]);
 
     // Negatives → NO structures.
-    expect(john.nonEvents).toEqual([{ tag: 'NO', payload: 'DEAT' }, { tag: 'NO', payload: 'MARR' }]);
+    expect(john.nonEvents).toEqual([
+      { tag: 'NO', payload: 'DEAT' },
+      { tag: 'NO', payload: 'MARR' },
+    ]);
 
     // Marriage-related → MARR / FAM.EVEN + TYPE.
     const family = fam(dataset, '@F1@');
@@ -130,7 +138,7 @@ describe('Brother\'s Keeper tags on 5.5.1 input', () => {
   });
 });
 
-describe('Brother\'s Keeper tags on output', () => {
+describe("Brother's Keeper tags on output", () => {
   test('5.5.1: standard projection and the vendor negatives', () => {
     const text = ser551(parseOk551(SAMPLE551));
     expect(text).toContain('2 TYPE birth');
@@ -165,18 +173,20 @@ describe('Brother\'s Keeper tags on output', () => {
   });
 
   test('a NO with substructures is still dropped on 5.5.1', () => {
-    const result = parseGedcom70(enc(
-      [
-        '0 HEAD',
-        '1 GEDC',
-        '2 VERS 7.0',
-        '0 @I1@ INDI',
-        '1 NAME John /Doe/',
-        '1 NO MARR',
-        '2 DATE TO 1880',
-        '0 TRLR',
-      ].join('\n'),
-    ));
+    const result = parseGedcom70(
+      enc(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @I1@ INDI',
+          '1 NAME John /Doe/',
+          '1 NO MARR',
+          '2 DATE TO 1880',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }

@@ -16,24 +16,11 @@ import type {
   PlaceRecord,
   PlaceStructure,
 } from '../../structures';
-import {
-  emitEvidenceReference,
-} from './evidence';
-import {
-  formatName551,
-  formatName70,
-} from '../format';
-import {
-  LANGUAGE_TO_METHOD_551,
-  METHOD_TO_LANGUAGE_70,
-  NAME_TYPE_TO_551,
-} from '../tables';
-import type {
-  Version,
-} from '../writer';
-import {
-  Writer,
-} from '../writer';
+import { emitEvidenceReference } from './evidence';
+import { formatName551, formatName70 } from '../format';
+import { LANGUAGE_TO_METHOD_551, METHOD_TO_LANGUAGE_70, NAME_TYPE_TO_551 } from '../tables';
+import type { Version } from '../writer';
+import { Writer } from '../writer';
 import { commonRecordFields } from './document';
 import {
   emitDate,
@@ -44,11 +31,7 @@ import {
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
-import {
-  medi551,
-  mediaType,
-  ptr,
-} from './values';
+import { medi551, mediaType, ptr } from './values';
 
 export function emitMediaFile(w: Writer, version: Version, level: number, file: MediaFile): void {
   if (file.form === undefined) {
@@ -197,7 +180,13 @@ export function emitMedia(w: Writer, version: Version, level: number, medium: Me
   emitExtensions(w, version, level + 1, medium);
 }
 
-export function emitPersonalName(w: Writer, version: Version, level: number, name: PersonalNameStructure, tag: 'NAME' | '_NAM' = 'NAME'): void {
+export function emitPersonalName(
+  w: Writer,
+  version: Version,
+  level: number,
+  name: PersonalNameStructure,
+  tag: 'NAME' | '_NAM' = 'NAME',
+): void {
   w.line(level, tag, { value: version === '7.0' ? formatName70(name.payload) : formatName551(name.payload) });
   if (name.type !== undefined) {
     emitNameType(w, version, level + 1, name.type);
@@ -421,7 +410,12 @@ export function emitNameType(w: Writer, version: Version, level: number, type: N
   emitExtensions(w, version, level + 1, type);
 }
 
-export function emitNamePieces(w: Writer, version: Version, level: number, pieces: PersonalNamePieces | undefined): void {
+export function emitNamePieces(
+  w: Writer,
+  version: Version,
+  level: number,
+  pieces: PersonalNamePieces | undefined,
+): void {
   if (pieces === undefined) {
     return;
   }
@@ -610,7 +604,13 @@ export function emitPlaceRecord(w: Writer, version: Version, record: PlaceRecord
   commonRecordFields(w, version, record, 1);
 }
 
-export function emitPlace(w: Writer, version: Version, level: number, place: PlaceStructure, tag: 'PLAC' | '_PLAC' = 'PLAC'): void {
+export function emitPlace(
+  w: Writer,
+  version: Version,
+  level: number,
+  place: PlaceStructure,
+  tag: 'PLAC' | '_PLAC' = 'PLAC',
+): void {
   w.line(level, tag, { value: place.payload.join(', ') });
   if (place.form !== undefined) {
     w.line(level + 1, 'FORM', { value: place.form.join(', ') });
@@ -736,4 +736,3 @@ export function emitPlace(w: Writer, version: Version, level: number, place: Pla
   }
   emitExtensions(w, version, level + 1, place);
 }
-

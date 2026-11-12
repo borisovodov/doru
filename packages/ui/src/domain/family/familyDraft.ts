@@ -133,8 +133,9 @@ export function familyDraftMatches(draft: FamilyDraft, family: FamilyRecord): bo
     draft.xref === other.xref &&
     draft.partnerLinks.length === other.partnerLinks.length &&
     draft.partnerLinks.every((link, index) => {
-      const entry = other.partnerLinks[index]!;
+      const entry = other.partnerLinks[index];
       return (
+        entry !== undefined &&
         link.id === entry.id &&
         link.personId === entry.personId &&
         link.preferred === entry.preferred &&
@@ -143,8 +144,9 @@ export function familyDraftMatches(draft: FamilyDraft, family: FamilyRecord): bo
     }) &&
     draft.childLinks.length === other.childLinks.length &&
     draft.childLinks.every((link, index) => {
-      const entry = other.childLinks[index]!;
+      const entry = other.childLinks[index];
       return (
+        entry !== undefined &&
         link.id === entry.id &&
         link.childId === entry.childId &&
         link.pedigree === entry.pedigree &&

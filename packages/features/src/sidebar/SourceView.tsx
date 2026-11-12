@@ -50,9 +50,7 @@ export function SourceCitationsList({
                     title={target.label}
                     subtitle={citation.page !== undefined ? citation.page : null}
                     meta={citation.quality !== undefined ? citation.quality : null}
-                    {...(target.personId !== undefined
-                      ? { onClick: () => onOpenPerson(target.personId ?? '') }
-                      : {})}
+                    {...(target.personId !== undefined ? { onClick: () => onOpenPerson(target.personId ?? '') } : {})}
                   />
                 </li>
               );

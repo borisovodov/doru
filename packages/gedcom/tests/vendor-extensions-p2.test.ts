@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
-import type { FamilyRecord, GedcomDataset, IndividualRecord, MultimediaRecord, SourceRecord } from '../src/structures';
+import type { FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
+import { isFamilyRecord, isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -90,7 +91,7 @@ const SAMPLE551 = [
 
 function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected INDI ${xref}`);
   }
   return record;
@@ -98,7 +99,7 @@ function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
 
 function fam(dataset: GedcomDataset, xref: string): FamilyRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'FAM') {
+  if (record === undefined || !isFamilyRecord(record)) {
     throw new Error(`expected FAM ${xref}`);
   }
   return record;
@@ -119,7 +120,11 @@ describe('P2 vendor tags on 5.5.1 input', () => {
     const death = john.events?.find((e) => e.tag === 'DEAT');
     expect(death?.detail?.cause).toBe('Heart attack');
     expect(death?.detail?.date?.value).toEqual({
-      kind: 'date', calendar: 'GREGORIAN', day: 1, month: 'JAN', year: 1990,
+      kind: 'date',
+      calendar: 'GREGORIAN',
+      day: 1,
+      month: 'JAN',
+      year: 1990,
     });
 
     expect(john.url).toBe('http://example.com/john');
@@ -137,9 +142,9 @@ describe('P2 vendor tags on 5.5.1 input', () => {
       role: { payload: 'OTHER', phrase: 'Witness' },
     });
 
-    const media = dataset.records.find((r) => r.tag === 'OBJE') as MultimediaRecord | undefined;
+    const media = dataset.records.find((r) => r.tag === 'OBJE');
     expect(media?.objectType).toBe('Photo');
-    const source = dataset.records.find((r) => r.tag === 'SOUR') as SourceRecord | undefined;
+    const source = dataset.records.find((r) => r.tag === 'SOUR');
     expect(source?.fullFootnote).toBe('Formatted footnote');
 
     const kid = indi(dataset, '@I3@');
@@ -302,16 +307,7 @@ describe('the FAM childless marker _NONE', () => {
   });
 
   test('accepts the _NONE Y form on 7.0 input too', () => {
-    const dataset = parseOk70(
-      [
-        '0 HEAD',
-        '1 GEDC',
-        '2 VERS 7.0',
-        '0 @F1@ FAM',
-        '1 _NONE Y',
-        '0 TRLR',
-      ].join('\n'),
-    );
+    const dataset = parseOk70(['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @F1@ FAM', '1 _NONE Y', '0 TRLR'].join('\n'));
     expect(fam(dataset, '@F1@').attributes).toEqual([{ tag: 'NCHI', payload: 0 }]);
   });
 

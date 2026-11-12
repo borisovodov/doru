@@ -27,13 +27,7 @@ describe('offeredReasoningLevels', () => {
   });
 
   test('falls back to the OpenAI enum for non-Anthropic providers', () => {
-    expect(offeredReasoningLevels(undefined, provider())).toEqual([
-      'none',
-      'minimal',
-      'low',
-      'medium',
-      'high',
-    ]);
+    expect(offeredReasoningLevels(undefined, provider())).toEqual(['none', 'minimal', 'low', 'medium', 'high']);
   });
 
   test('falls back to the full range for the Anthropic wire', () => {

@@ -20,9 +20,7 @@ describe('TreeMcpBackend', () => {
       fixture.repo.insertPerson(ivan);
 
       const results = (await backend.invoke('tree_query', { query: 'ivan' })) as PersonRecord[];
-      expect(results).toEqual([
-        expect.objectContaining({ id: '@I1@', sex: 'M' }),
-      ]);
+      expect(results).toEqual([expect.objectContaining({ id: '@I1@', sex: 'M' })]);
       expect(results[0]?.names[0]).toEqual(expect.objectContaining({ given: 'Ivan', surname: 'Ivanov' }));
       expect(await backend.invoke('tree_stats', {})).toEqual({ persons: 1, families: 0 });
 

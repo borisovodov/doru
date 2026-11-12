@@ -31,8 +31,28 @@ describe('projectLayout', () => {
     const { nodes, edges } = projectLayout(
       layout({
         cards: [
-          { key: 'focus', personId: 'P1', role: 'focus', familyId: null, generation: 1, line: null, hasSubtree: false, x: 0, y: 0 },
-          { key: 'anc', personId: 'P2', role: 'focus', familyId: null, generation: 0, line: 'paternal', hasSubtree: true, x: 0, y: -112 },
+          {
+            key: 'focus',
+            personId: 'P1',
+            role: 'focus',
+            familyId: null,
+            generation: 1,
+            line: null,
+            hasSubtree: false,
+            x: 0,
+            y: 0,
+          },
+          {
+            key: 'anc',
+            personId: 'P2',
+            role: 'focus',
+            familyId: null,
+            generation: 0,
+            line: 'paternal',
+            hasSubtree: true,
+            x: 0,
+            y: -112,
+          },
         ],
       }),
       [person('P1'), person('P2')],
@@ -58,7 +78,17 @@ describe('projectLayout', () => {
       layout({
         focusKey: 'focus',
         cards: [
-          { key: 'focus', personId: 'P1', role: 'focus', familyId: null, generation: 0, line: null, hasSubtree: true, x: 100, y: 200 },
+          {
+            key: 'focus',
+            personId: 'P1',
+            role: 'focus',
+            familyId: null,
+            generation: 0,
+            line: null,
+            hasSubtree: true,
+            x: 100,
+            y: 200,
+          },
         ],
       }),
       [person('P1')],
@@ -91,7 +121,17 @@ describe('projectLayout', () => {
     const { nodes } = projectLayout(
       layout({
         cards: [
-          { key: 'ghost', personId: 'MISSING', role: 'focus', familyId: null, generation: 0, line: null, hasSubtree: false, x: 0, y: 0 },
+          {
+            key: 'ghost',
+            personId: 'MISSING',
+            role: 'focus',
+            familyId: null,
+            generation: 0,
+            line: null,
+            hasSubtree: false,
+            x: 0,
+            y: 0,
+          },
         ],
       }),
       [],
@@ -115,8 +155,28 @@ describe('projectLayout', () => {
     const { nodes, edges } = projectLayout(
       layout({
         cards: [
-          { key: 'a', personId: 'P1', role: 'focus', familyId: null, generation: 0, line: null, hasSubtree: false, x: 0, y: 0 },
-          { key: 'b', personId: 'P2', role: 'spouse', familyId: 'F1', generation: 0, line: null, hasSubtree: false, x: 100, y: 0 },
+          {
+            key: 'a',
+            personId: 'P1',
+            role: 'focus',
+            familyId: null,
+            generation: 0,
+            line: null,
+            hasSubtree: false,
+            x: 0,
+            y: 0,
+          },
+          {
+            key: 'b',
+            personId: 'P2',
+            role: 'spouse',
+            familyId: 'F1',
+            generation: 0,
+            line: null,
+            hasSubtree: false,
+            x: 100,
+            y: 0,
+          },
         ],
         edges: [
           {

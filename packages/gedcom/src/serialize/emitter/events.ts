@@ -6,23 +6,11 @@
  * section for what is translated and what is dropped.
  */
 
-import type {
-  FamilyEventDetail,
-  IndividualEventDetail,
-  LdsOrdinanceDetail,
-} from '../../structures';
-import type {
-  ExtensionStructure,
-} from '../../structures';
-import type {
-  Version,
-} from '../writer';
-import {
-  Writer,
-} from '../writer';
-import {
-  emitPlace,
-} from './names-places';
+import type { FamilyEventDetail, IndividualEventDetail, LdsOrdinanceDetail } from '../../structures';
+import type { ExtensionStructure } from '../../structures';
+import type { Version } from '../writer';
+import { Writer } from '../writer';
+import { emitPlace } from './names-places';
 import {
   emitAge,
   emitDate,
@@ -32,12 +20,15 @@ import {
   emitNoteStructure,
   emitSourceCitation,
 } from './structures';
-import {
-  ordStat,
-  ptr,
-} from './values';
+import { ordStat, ptr } from './values';
 
-export function emitFamilyDetail(w: Writer, version: Version, level: number, detail: FamilyEventDetail | undefined, type: string | undefined): void {
+export function emitFamilyDetail(
+  w: Writer,
+  version: Version,
+  level: number,
+  detail: FamilyEventDetail | undefined,
+  type: string | undefined,
+): void {
   // In 7.0 TYPE is required on EVEN/FACT: an empty type (a 5.5.1 EVEN
   // written without a TYPE line) is emitted as the bare TYPE line,
   // whose empty payload is the empty-string ListText (GEDCOM 7.0 §1.3
@@ -65,17 +56,21 @@ export function emitFamilyDetail(w: Writer, version: Version, level: number, det
   }
 }
 
-export function emitFamilyEvent(w: Writer, version: Version, event: {
-  tag: string;
-  payload?: true | string;
-  type?: string;
-  detail?: FamilyEventDetail;
-  husbandLabel?: string;
-  wifeLabel?: string;
-  reportPhrases?: string[];
-  preferred?: boolean;
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitFamilyEvent(
+  w: Writer,
+  version: Version,
+  event: {
+    tag: string;
+    payload?: true | string;
+    type?: string;
+    detail?: FamilyEventDetail;
+    husbandLabel?: string;
+    wifeLabel?: string;
+    reportPhrases?: string[];
+    preferred?: boolean;
+    extensions?: ExtensionStructure[];
+  },
+): void {
   if (event.tag === 'EVEN') {
     if (version === '7.0') {
       w.line(1, 'EVEN', { value: event.payload as string });
@@ -92,9 +87,13 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
     return;
   }
   if (version === '7.0') {
-    w.line(1, event.tag, { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
+    w.line(1, event.tag, {
+      value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined,
+    });
   } else if (event.tag === 'MARR') {
-    w.line(1, 'MARR', { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
+    w.line(1, 'MARR', {
+      value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined,
+    });
   } else {
     // 5.5.1 cannot carry the Y assertion here; the value is dropped.
     w.line(1, event.tag);
@@ -123,7 +122,13 @@ export function emitFamilyEvent(w: Writer, version: Version, event: {
   emitExtensions(w, version, 2, event);
 }
 
-export function emitIndividualDetail(w: Writer, version: Version, level: number, detail: IndividualEventDetail | undefined, type: string | undefined): void {
+export function emitIndividualDetail(
+  w: Writer,
+  version: Version,
+  level: number,
+  detail: IndividualEventDetail | undefined,
+  type: string | undefined,
+): void {
   // The 5.5.1/7.0 TYPE emission rule is documented on emitFamilyDetail.
   if (type !== undefined && (version === '7.0' || type !== '')) {
     w.line(level, 'TYPE', { value: type === '' ? undefined : type });
@@ -137,17 +142,21 @@ export function emitIndividualDetail(w: Writer, version: Version, level: number,
   emitEventDetail(w, version, level, detail);
 }
 
-export function emitIndividualEvent(w: Writer, version: Version, event: {
-  tag: string;
-  payload?: true | string;
-  type?: string;
-  detail?: IndividualEventDetail;
-  familyChild?: string;
-  adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } };
-  birthType?: string;
-  texts?: string[];
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitIndividualEvent(
+  w: Writer,
+  version: Version,
+  event: {
+    tag: string;
+    payload?: true | string;
+    type?: string;
+    detail?: IndividualEventDetail;
+    familyChild?: string;
+    adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } };
+    birthType?: string;
+    texts?: string[];
+    extensions?: ExtensionStructure[];
+  },
+): void {
   if (event.tag === 'EVEN') {
     w.line(1, 'EVEN', { value: (event.payload as string) || undefined });
     emitIndividualDetail(w, version, 2, event.detail, event.type);
@@ -155,11 +164,15 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
     return;
   }
   if (version === '7.0') {
-    w.line(1, event.tag, { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
+    w.line(1, event.tag, {
+      value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined,
+    });
   } else if (event.tag === 'ADOP' || event.tag === 'BIRT' || event.tag === 'CHR' || event.tag === 'DEAT') {
     // GEDCOM 5.5.1 §2 (p.34): these four events take the `[Y|<NULL>]`
     // assertion payload; the others are bare.
-    w.line(1, event.tag, { value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined });
+    w.line(1, event.tag, {
+      value: event.payload === true ? 'Y' : typeof event.payload === 'string' ? event.payload : undefined,
+    });
   } else {
     // 5.5.1 cannot carry the Y assertion here; the value is dropped.
     w.line(1, event.tag);
@@ -193,7 +206,12 @@ export function emitIndividualEvent(w: Writer, version: Version, event: {
   emitExtensions(w, version, 2, event);
 }
 
-export function emitLdsDetail(w: Writer, version: Version, level: number, detail: LdsOrdinanceDetail | undefined, _ordinance: string): void {
+export function emitLdsDetail(
+  w: Writer,
+  version: Version,
+  level: number,
+  detail: LdsOrdinanceDetail | undefined,
+): void {
   if (detail === undefined) {
     return;
   }
@@ -224,4 +242,3 @@ export function emitLdsDetail(w: Writer, version: Version, level: number, detail
   }
   emitExtensions(w, version, level, detail);
 }
-

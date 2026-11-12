@@ -33,7 +33,12 @@ export * from './enumerations';
 export * from './structures';
 export * from './gedzip';
 export * from './errors';
-export { NON_UNDERSCORE_VENDOR_TAGS, LEGACY_INDIVIDUAL_TAGS, LEGACY_FAMILY_TAGS, LEGACY_GENERIC_TAGS } from './parsing/vendor-tags';
+export {
+  NON_UNDERSCORE_VENDOR_TAGS,
+  LEGACY_INDIVIDUAL_TAGS,
+  LEGACY_FAMILY_TAGS,
+  LEGACY_GENERIC_TAGS,
+} from './parsing/vendor-tags';
 export type { LegacyIndividualRule, LegacyFamilyRule } from './parsing/vendor-tags';
 export { parse, parseTolerant, type ParsedGedcom } from './detect';
 export { parseGedcom70, parseGedcom551 } from './parsing/assemble';

@@ -68,13 +68,9 @@ export function NotesSection({
     );
 
   const addTranslation = () =>
-    setEditTranslations((current) => [
-      ...current,
-      { id: crypto.randomUUID(), text: '', mime: '', language: '' },
-    ]);
+    setEditTranslations((current) => [...current, { id: crypto.randomUUID(), text: '', mime: '', language: '' }]);
 
-  const removeTranslation = (index: number) =>
-    setEditTranslations((current) => current.filter((_, i) => i !== index));
+  const removeTranslation = (index: number) => setEditTranslations((current) => current.filter((_, i) => i !== index));
 
   const saveEdit = async (note: NoteRecord) => {
     const text = editText.trim();
@@ -94,9 +90,11 @@ export function NotesSection({
       mime !== note.mime ||
       !translationsEqual(translations, note.translations ?? []);
     if (text !== '' && changed) {
-      const link =
-        note.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId) ??
-        ({ id: crypto.randomUUID(), targetType, targetId } as NoteLinkRecord);
+      const link = note.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId) ?? {
+        id: crypto.randomUUID(),
+        targetType,
+        targetId,
+      };
       await onUpdate(note, { ...note, text, mime, language, translations }, link);
     }
     setEditingId(null);
@@ -126,9 +124,7 @@ export function NotesSection({
                     />
                   </div>
                   <div className="notes-translations">
-                    <span className="notes-translations-title">
-                      {nls.t('features.tree.notes.translations.title')}
-                    </span>
+                    <span className="notes-translations-title">{nls.t('features.tree.notes.translations.title')}</span>
                     {editTranslations.map((translation, index) => (
                       <div className="translation-row" key={translation.id}>
                         <Input
@@ -147,9 +143,12 @@ export function NotesSection({
                           value={translation.mime}
                           onChange={(event) => patchTranslation(index, { mime: event.target.value })}
                         />
-                        <IconButton size="sm" label={nls.t('features.tree.notes.translations.remove')} icon={<>
-                          <X size={13} aria-hidden="true" />
-                        </>} onClick={() => removeTranslation(index)} />
+                        <IconButton
+                          size="sm"
+                          label={nls.t('features.tree.notes.translations.remove')}
+                          icon={<X size={13} aria-hidden="true" />}
+                          onClick={() => removeTranslation(index)}
+                        />
                       </div>
                     ))}
                     <Button variant="primary" size="sm" onClick={addTranslation}>
@@ -170,12 +169,18 @@ export function NotesSection({
                 <div className="notes-row">
                   <span className="notes-text">{note.text}</span>
                   {noteMeta(note) !== '' && <span className="notes-meta">{noteMeta(note)}</span>}
-                  <IconButton size="sm" label={nls.t('features.tree.notes.edit')} icon={<>
-                    <Pencil size={13} aria-hidden="true" />
-                  </>} onClick={() => startEdit(note)} />
-                  <IconButton size="sm" label={nls.t('features.tree.notes.remove')} icon={<>
-                    <X size={13} aria-hidden="true" />
-                  </>} onClick={() => void onDelete(note)} />
+                  <IconButton
+                    size="sm"
+                    label={nls.t('features.tree.notes.edit')}
+                    icon={<Pencil size={13} aria-hidden="true" />}
+                    onClick={() => startEdit(note)}
+                  />
+                  <IconButton
+                    size="sm"
+                    label={nls.t('features.tree.notes.remove')}
+                    icon={<X size={13} aria-hidden="true" />}
+                    onClick={() => void onDelete(note)}
+                  />
                 </div>
               )}
             </li>
@@ -205,8 +210,9 @@ function translationsEqual(a: NoteTranslation[], b: NoteTranslation[]): boolean 
   return (
     a.length === b.length &&
     a.every((translation, index) => {
-      const other = b[index]!;
+      const other = b[index];
       return (
+        other !== undefined &&
         translation.text === other.text &&
         translation.mime === other.mime &&
         translation.language === other.language

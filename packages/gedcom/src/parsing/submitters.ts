@@ -7,16 +7,9 @@
  * error naming the offending line.
  */
 
-import {
-  fail,
-} from '../errors';
-import type {
-  SubmissionRecord,
-  SubmitterRecord,
-} from '../structures';
-import type {
-  Ctx,
-} from './context';
+import { fail } from '../errors';
+import type { SubmissionRecord, SubmitterRecord } from '../structures';
+import type { Ctx } from './context';
 import {
   addExtension,
   dispatch,
@@ -29,15 +22,9 @@ import {
   reqPtr,
   reqText,
 } from './context';
-import {
-  parseLanguage,
-} from './header';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parseMultimediaLink,
-} from './sources-media';
+import { parseLanguage } from './header';
+import type { RawNode } from './lines';
+import { parseMultimediaLink } from './sources-media';
 import {
   parseAddressStructure,
   parseChangeDate,
@@ -63,22 +50,22 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     ADDR: (child) => {
       rec.address = parseAddressStructure(child, ctx);
     },
-    '_EMAIL': (child) => {
+    _EMAIL: (child) => {
       // FH (up to V6.2): the submitter e-mail — the vendor spelling of
       // the standard EMAIL slot (see SubmitterRecord.email).
       (rec.email ??= []).push(reqText(child));
     },
-    '_WEB': (child) => {
+    _WEB: (child) => {
       // FH (up to V6.2): the submitter web address — the vendor
       // spelling of the standard WWW slot.
       (rec.www ??= []).push(reqText(child));
     },
-    '_SUBM': (child) => {
+    _SUBM: (child) => {
       // GDO: a pointer to another submitter record (see
       // SubmitterRecord.submitters).
       (rec.submitters ??= []).push(reqPtr(child, ctx));
     },
-    '_IMPF': (child) => {
+    _IMPF: (child) => {
       // GDO: the import-file reference (see
       // SubmitterRecord.importReference).
       rec.importReference = parseImportReference(child, ctx);
@@ -86,10 +73,10 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     OBJE: (child) => {
       (rec.media ??= []).push(parseMultimediaLink(child, ctx));
     },
-    LANG: (_child) => {
+    LANG: () => {
       const languages = kids(node, 'LANG');
       if (languages.length > 0 && rec.languages === undefined) {
-        rec.languages = languages.map((lang) => parseLanguage(lang, ctx));
+        rec.languages = languages.map((lang) => parseLanguage(lang));
       }
     },
     NOTE: (child) => {
@@ -113,11 +100,11 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     WWW: (child) => {
       (rec.www ??= []).push(reqText(child));
     },
-    '_SKYPEID': (child) => {
+    _SKYPEID: (child) => {
       // The FOAF Skype id (see SubmitterRecord.skypeId).
       rec.skypeId = reqText(child);
     },
-    '_JABBERID': (child) => {
+    _JABBERID: (child) => {
       // The FOAF Jabber id (see SubmitterRecord.jabberId).
       rec.jabberId = reqText(child);
     },
@@ -132,7 +119,7 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
-    '_UID': (child) => {
+    _UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     EXID: (child) => {
@@ -144,7 +131,7 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
     RIN: (child) => {
       rec.automatedRecordId = reqText(child);
     },
-    '_GCID': (child) => {
+    _GCID: (child) => {
       // GEDitCOM II: the record's id (see
       // IndividualRecord.geditcomId).
       rec.geditcomId = reqText(child);
@@ -155,13 +142,7 @@ export function parseSubmitterRecord(node: RawNode, ctx: Ctx): SubmitterRecord {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     },
   };
-  dispatch(
-    node,
-    rec,
-    handlers,
-    ctx,
-    ['ADDR', 'CHAN', 'CREA', 'RFN', 'RIN'],
-  );
+  dispatch(node, rec, handlers, ctx, ['ADDR', 'CHAN', 'CREA', 'RFN', 'RIN']);
   merge551RecordContacts(rec);
   return rec;
 }

@@ -14,7 +14,19 @@ import type {
   TodoRecord,
 } from '@doru/core';
 import { PersonList, TasksView } from '@doru/ui/domain';
-import { PlaceholderView, RepositoryList, SidebarFamilies, SidebarFacts, SidebarMedia, SidebarPlaces, SidebarSearch, SidebarSources, SubmitterList, TitleList, type SidebarMediaItem } from '@doru/features';
+import {
+  PlaceholderView,
+  RepositoryList,
+  SidebarFamilies,
+  SidebarFacts,
+  SidebarMedia,
+  SidebarPlaces,
+  SidebarSearch,
+  SidebarSources,
+  SubmitterList,
+  TitleList,
+  type SidebarMediaItem,
+} from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
 /** Render cap for the People list on very large trees. */
@@ -90,15 +102,16 @@ export function SidebarView({
       return (
         <>
           <div className="tasks-header">
-            <IconButton size="sm" label={nls.t('features.tree.person.add')} icon={<>
-              <Plus size={14} aria-hidden="true" />
-            </>} onClick={onNewPerson} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.person.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewPerson}
+            />
           </div>
           <PersonList persons={persons.slice(0, PEOPLE_LIST_LIMIT)} onOpen={onOpenPerson} />
           {persons.length > PEOPLE_LIST_LIMIT && (
-            <p className="side-bar-note">
-              {nls.t('tree.people.listLimit', PEOPLE_LIST_LIMIT, persons.length)}
-            </p>
+            <p className="side-bar-note">{nls.t('tree.people.listLimit', PEOPLE_LIST_LIMIT, persons.length)}</p>
           )}
         </>
       );
@@ -111,14 +124,7 @@ export function SidebarView({
           />
         );
       }
-      return (
-        <SidebarFamilies
-          families={families}
-          persons={persons}
-          facts={facts}
-          onOpenFamily={onOpenFamily}
-        />
-      );
+      return <SidebarFamilies families={families} persons={persons} facts={facts} onOpenFamily={onOpenFamily} />;
     case 'events':
       if (facts.length === 0) {
         return (
@@ -133,9 +139,12 @@ export function SidebarView({
       return (
         <>
           <div className="tasks-header">
-            <IconButton size="sm" label={nls.t('features.tree.place.add')} icon={<>
-              <Plus size={14} aria-hidden="true" />
-            </>} onClick={onNewPlace} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.place.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewPlace}
+            />
           </div>
           {places.length === 0 ? (
             <PlaceholderView
@@ -247,6 +256,7 @@ function SourcesSidebar({
           ] as const
         ).map(([id, label]) => (
           <button
+            type="button"
             key={id}
             className={segment === id ? 'sidebar-segment active' : 'sidebar-segment'}
             onClick={() => setSegment(id)}
@@ -258,9 +268,12 @@ function SourcesSidebar({
       {segment === 'sources' && (
         <>
           <div className="tasks-header">
-            <IconButton size="sm" label={nls.t('features.tree.source.add')} icon={<>
-              <Plus size={14} aria-hidden="true" />
-            </>} onClick={onNewSource} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.source.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewSource}
+            />
           </div>
           {sources.length === 0 ? (
             <PlaceholderView
@@ -275,9 +288,12 @@ function SourcesSidebar({
       {segment === 'repositories' && (
         <>
           <div className="tasks-header">
-            <IconButton size="sm" label={nls.t('features.tree.repository.add')} icon={<>
-              <Plus size={14} aria-hidden="true" />
-            </>} onClick={onNewRepository} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.repository.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewRepository}
+            />
           </div>
           <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
         </>
@@ -285,9 +301,12 @@ function SourcesSidebar({
       {segment === 'submitters' && (
         <>
           <div className="tasks-header">
-            <IconButton size="sm" label={nls.t('features.tree.submitter.add')} icon={<>
-              <Plus size={14} aria-hidden="true" />
-            </>} onClick={onNewSubmitter} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.submitter.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewSubmitter}
+            />
           </div>
           <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />
         </>
@@ -295,9 +314,12 @@ function SourcesSidebar({
       {segment === 'titles' && (
         <>
           <div className="tasks-header">
-            <IconButton size="sm" label={nls.t('features.tree.title.add')} icon={<>
-              <Plus size={14} aria-hidden="true" />
-            </>} onClick={onNewTitle} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.title.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewTitle}
+            />
           </div>
           <TitleList titles={titles} onOpenTitle={onOpenTitle} />
         </>

@@ -43,13 +43,7 @@ export class PlaceRepo {
   insertPlace(place: PlaceRecord): void {
     this.db
       .prepare('INSERT INTO place (id, xref, latitude, longitude, verified) VALUES (?, ?, ?, ?, ?)')
-      .run(
-        place.id,
-        place.xref ?? null,
-        place.latitude ?? null,
-        place.longitude ?? null,
-        place.verified ? 1 : 0,
-      );
+      .run(place.id, place.xref ?? null, place.latitude ?? null, place.longitude ?? null, place.verified ? 1 : 0);
     this.replaceDetails(place);
   }
 
@@ -63,14 +57,15 @@ export class PlaceRepo {
 
   getPlace(id: string): PlaceRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, latitude, longitude, verified FROM place WHERE id = ?').get(id) as
-      | PlaceRow
-      | undefined;
+      PlaceRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 
   /** Every place, ordered by the joined name. */
   listPlaces(): PlaceRecord[] {
-    const rows = this.db.prepare('SELECT id, xref, latitude, longitude, verified FROM place ORDER BY id').all() as unknown as PlaceRow[];
+    const rows = this.db
+      .prepare('SELECT id, xref, latitude, longitude, verified FROM place ORDER BY id')
+      .all() as unknown as PlaceRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
@@ -87,14 +82,12 @@ export class PlaceRepo {
     const terms = search.split(/\s+/).filter((term) => term !== '');
     const conditions: string[] = [];
     const params: string[] = [];
-    if (terms.every((term) => [...term].length >= 3)) {
+    if (terms.every((term) => term.length >= 3)) {
       const matchQuery = terms.map((term) => `"${term.toLowerCase().replaceAll('"', '""')}"`).join(' AND ');
       conditions.push('p.id IN (SELECT place_id FROM place_name_fts WHERE place_name_fts MATCH ?)');
       params.push(matchQuery);
     } else {
-      conditions.push(
-        'p.id IN (SELECT place_id FROM place_name_fts fts WHERE instr(fts.name, ?) > 0)',
-      );
+      conditions.push('p.id IN (SELECT place_id FROM place_name_fts fts WHERE instr(fts.name, ?) > 0)');
       params.push(search.toLowerCase());
     }
     const rows = this.db
@@ -178,7 +171,7 @@ export class PlaceRepo {
       verified: row.verified === 1 ? true : undefined,
       names: names.map((name) => ({
         id: name.id,
-        kind: (name.kind ?? undefined) as PlaceName['kind'],
+        kind: name.kind as PlaceName['kind'],
         language: name.language ?? undefined,
         type: name.type ?? undefined,
         position: name.position,

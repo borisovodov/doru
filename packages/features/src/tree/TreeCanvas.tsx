@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Background, BackgroundVariant, Panel, ReactFlow, ReactFlowProvider, applyEdgeChanges, applyNodeChanges, useReactFlow, Position, type Edge, type EdgeChange, type NodeChange, } from '@xyflow/react';
+  Background,
+  BackgroundVariant,
+  Panel,
+  ReactFlow,
+  ReactFlowProvider,
+  applyEdgeChanges,
+  applyNodeChanges,
+  useReactFlow,
+  Position,
+  type Edge,
+  type EdgeChange,
+  type NodeChange,
+} from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
@@ -17,12 +29,7 @@ import type { FocusHistory, PersonCounts, RelativeRelation, TreeCanvasProps } fr
 import '@xyflow/react/dist/style.css';
 import './TreeCanvas.css';
 
-export type {
-  PersonCounts,
-  RelativeRelation,
-  TreeCanvasApi,
-  TreeCanvasProps,
-} from './types';
+export type { PersonCounts, RelativeRelation, TreeCanvasApi, TreeCanvasProps } from './types';
 
 const nodeTypes = { personCard: PersonCard, generationBand: GenerationBand };
 const edgeTypes = { pedigree: PedigreeEdge, marriage: MarriageEdge, seeAlso: SeeAlsoEdge };
@@ -83,7 +90,7 @@ export function TreeCanvas(props: TreeCanvasProps) {
 function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasProps) {
   const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
   const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -93,10 +100,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const focusId = history ? history.stack[history.index] : suggested;
   // Fall back to the suggested focus when the history points at a person
   // that no longer exists (deleted by an edit or an agent).
-  const effectiveFocus =
-    focusId !== undefined && persons.some((person) => person.id === focusId)
-      ? focusId
-      : suggested;
+  const effectiveFocus = focusId !== undefined && persons.some((person) => person.id === focusId) ? focusId : suggested;
 
   const layout = useMemo(() => {
     if (!effectiveFocus) {
@@ -216,13 +220,12 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     // person). Their ids are stable while typing, so React Flow keeps the
     // node mounted and the input state intact across re-projections.
     const draftNodes: CanvasNode[] = drafts.map((draft, index) => {
-      const anchor = draft.relation === 'new'
-        ? undefined
-        : base.nodes.find(
-            (node) =>
-              node.type === 'personCard' &&
-              (node.data as PersonCardData).person.id === draft.anchorId,
-          );
+      const anchor =
+        draft.relation === 'new'
+          ? undefined
+          : base.nodes.find(
+              (node) => node.type === 'personCard' && (node.data as PersonCardData).person.id === draft.anchorId,
+            );
       const cascade = index * 16;
       let position: { x: number; y: number };
       if (!anchor) {
@@ -263,18 +266,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     // Drafts come last so they paint above the real cards (React Flow stacks
     // nodes in DOM order); a draft must never end up hidden under a card.
     return { nodes: [...base.nodes, ...draftNodes], edges: base.edges };
-  }, [
-    isEmpty,
-    layout,
-    persons,
-    collapsed,
-    counts,
-    toggleCollapse,
-    handleAction,
-    drafts,
-    handleDraftSave,
-    handleDraftCancel,
-  ]);
+  }, [layout, persons, collapsed, counts, toggleCollapse, handleAction, drafts, handleDraftSave, handleDraftCancel]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
@@ -308,7 +300,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     setNodes((current) => applyNodeChanges(changes, current) as CanvasNode[]);
   }, []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((current) => applyEdgeChanges(changes, current) as Edge[]);
+    setEdges((current) => applyEdgeChanges(changes, current));
   }, []);
 
   // Fit the chart into the canvas. Deterministic: computed from the exact
@@ -346,25 +338,21 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   }, [fitChart]);
 
   // External focus requests (e.g. a click in the People sidebar).
-  const lastFocusRequest = useRef(0);
+  const lastFocusRequestRef = useRef(0);
   useEffect(() => {
-    if (focusRequest && focusRequest.nonce !== lastFocusRequest.current) {
-      lastFocusRequest.current = focusRequest.nonce;
+    if (focusRequest && focusRequest.nonce !== lastFocusRequestRef.current) {
+      lastFocusRequestRef.current = focusRequest.nonce;
       refocus(focusRequest.personId);
     }
   }, [focusRequest, refocus]);
 
   const goBack = useCallback(() => {
-    setHistory((current) =>
-      current && current.index > 0 ? { ...current, index: current.index - 1 } : current,
-    );
+    setHistory((current) => (current && current.index > 0 ? { ...current, index: current.index - 1 } : current));
   }, []);
 
   const goForward = useCallback(() => {
     setHistory((current) =>
-      current && current.index < current.stack.length - 1
-        ? { ...current, index: current.index + 1 }
-        : current,
+      current && current.index < current.stack.length - 1 ? { ...current, index: current.index + 1 } : current,
     );
   }, []);
 
@@ -388,9 +376,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const resolveDropTarget = useCallback(
     (node: CanvasNode): CanvasNode | undefined => {
       const data = node.data as PersonCardData;
-      if (!data.person) {
-        return undefined;
-      }
       const target = getIntersectingNodes(node).find(
         (candidate) => candidate.type === 'personCard' && candidate.id !== node.id,
       );
@@ -432,7 +417,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
       const target = resolveDropTarget(node);
       const data = node.data as PersonCardData;
-      if (data.person && target) {
+      if (target) {
         const targetPerson = (target.data as PersonCardData).person;
         void api.reparent(data.person.id, targetPerson.id);
       }
@@ -445,9 +430,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const handleNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: CanvasNode) => {
       const data = node.data as PersonCardData;
-      if (data.person) {
-        refocus(data.person.id);
-      }
+      refocus(data.person.id);
     },
     [refocus],
   );
@@ -457,9 +440,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const handleNodeClick = useCallback((event: React.MouseEvent, node: CanvasNode) => {
     const data = node.data as PersonCardData;
     if (data.isDraft && !data.isEditing && event.detail === 1) {
-      setDrafts((current) =>
-        current.map((draft) => (draft.id === node.id ? { ...draft, editing: true } : draft)),
-      );
+      setDrafts((current) => current.map((draft) => (draft.id === node.id ? { ...draft, editing: true } : draft)));
     }
   }, []);
 

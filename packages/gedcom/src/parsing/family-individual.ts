@@ -12,7 +12,6 @@ import type {
   EventDetail,
   ExtensionStructure,
   FamilyEventDetail,
-  FamilyEventStructure,
   FamilyPartnerLink,
   FamilyRecord,
   IndividualEventDetail,
@@ -27,19 +26,8 @@ import type {
   WebTagStructure,
   WebLinkStructure,
 } from '../structures';
-import type {
-  Ctx,
-} from './context';
-import {
-  dispatch,
-  addExtension,
-  noPayload,
-  one,
-  parseImportReference,
-  reqPtr,
-  reqText,
-  resolvePtr,
-} from './context';
+import type { Ctx } from './context';
+import { dispatch, addExtension, noPayload, one, parseImportReference, reqPtr, reqText, resolvePtr } from './context';
 import {
   SEX_551,
   eventDetailHandlers,
@@ -58,28 +46,12 @@ import {
   parseSpouseSealing,
   parseChildSealing,
 } from './events';
-import {
-  parseTodoStructure,
-} from './todo';
-import {
-  parseEvidenceEvent,
-  parseEvidenceReference,
-  parseOccurrenceReference,
-  parseTagLink,
-} from './evidence';
-import {
-  parseGenoproContainer,
-} from './genopro';
-import {
-  parseAddressStructure,
-} from './substructures';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parsePersonalNameStructure,
-  parsePlaceStructure,
-} from './names-places';
+import { parseTodoStructure } from './todo';
+import { parseEvidenceEvent, parseEvidenceReference, parseOccurrenceReference, parseTagLink } from './evidence';
+import { parseGenoproContainer } from './genopro';
+import { parseAddressStructure } from './substructures';
+import type { RawNode } from './lines';
+import { parsePersonalNameStructure, parsePlaceStructure } from './names-places';
 import {
   parseMultimediaLink,
   parsePrivacyFlag,
@@ -101,38 +73,68 @@ import {
   parseUniqueIdentifier,
   parseAgeStructure,
 } from './substructures';
-import {
-  USM_UNION_KINDS,
-} from './events';
-import {
-  parseEnum,
-  parsePersonalName,
-  parseRestrictionList,
-} from './types';
-import {
-  LEGACY_FAMILY_TAGS,
-  LEGACY_INDIVIDUAL_TAGS,
-} from './vendor-tags';
-import type {
-  EventEnum,
-  NameTypeEnum,
-} from '../enumerations';
-import {
-  fail,
-} from '../errors';
-import type {
-  Text,
-} from '../primitives';
+import { USM_UNION_KINDS } from './events';
+import { parseEnum, parsePersonalName, parseRestrictionList } from './types';
+import { LEGACY_FAMILY_TAGS, LEGACY_INDIVIDUAL_TAGS } from './vendor-tags';
+import type { EventEnum, NameTypeEnum } from '../enumerations';
+import { fail } from '../errors';
+import type { Text } from '../primitives';
 
 // ---------------------------------------------------------------------------
 
-export const FAMILY_EVENT_TAGS = ['ANUL', 'CENS', 'DIV', 'DIVF', 'ENGA', 'MARB', 'MARC', 'MARL', 'MARR', 'MARS', 'EVEN'];
+export const FAMILY_EVENT_TAGS = [
+  'ANUL',
+  'CENS',
+  'DIV',
+  'DIVF',
+  'ENGA',
+  'MARB',
+  'MARC',
+  'MARL',
+  'MARR',
+  'MARS',
+  'EVEN',
+];
 export const INDIVIDUAL_EVENT_TAGS = [
-  'ADOP', 'BAPM', 'BARM', 'BASM', 'BIRT', 'BLES', 'BURI', 'CENS', 'CHR', 'CHRA', 'CONF', 'CREM',
-  'DEAT', 'EMIG', 'FCOM', 'GRAD', 'IMMI', 'NATU', 'ORDN', 'PROB', 'RETI', 'WILL', 'EVEN',
+  'ADOP',
+  'BAPM',
+  'BARM',
+  'BASM',
+  'BIRT',
+  'BLES',
+  'BURI',
+  'CENS',
+  'CHR',
+  'CHRA',
+  'CONF',
+  'CREM',
+  'DEAT',
+  'EMIG',
+  'FCOM',
+  'GRAD',
+  'IMMI',
+  'NATU',
+  'ORDN',
+  'PROB',
+  'RETI',
+  'WILL',
+  'EVEN',
 ];
 export const INDIVIDUAL_ATTRIBUTE_TAGS = [
-  'CAST', 'DSCR', 'EDUC', 'IDNO', 'NATI', 'NCHI', 'NMR', 'OCCU', 'PROP', 'RELI', 'RESI', 'SSN', 'TITL', 'FACT',
+  'CAST',
+  'DSCR',
+  'EDUC',
+  'IDNO',
+  'NATI',
+  'NCHI',
+  'NMR',
+  'OCCU',
+  'PROP',
+  'RELI',
+  'RESI',
+  'SSN',
+  'TITL',
+  'FACT',
 ];
 
 export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
@@ -247,7 +249,11 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
         fail('structure.unexpected-payload', 'The _NONE line must not carry a pointer', child.position);
       }
       if (child.value.kind === 'text' && child.value.text.toUpperCase() !== 'Y') {
-        fail('enum.invalid-value', `The _NONE value must be Y or absent (the couple had no children), got "${child.value.text}"`, child.position);
+        fail(
+          'enum.invalid-value',
+          `The _NONE value must be Y or absent (the couple had no children), got "${child.value.text}"`,
+          child.position,
+        );
       }
       for (const grandchild of child.children) {
         // Full leniency: unexpected children stay generic extensions.
@@ -604,13 +610,7 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
     };
   }
   applyLegacyFamilyTags(rec, handlers, ctx);
-  dispatch(
-    node,
-    rec,
-    handlers,
-    ctx,
-    ['RESN', 'HUSB', 'WIFE', 'CHAN', '_MSTAT', '_MEND'],
-  );
+  dispatch(node, rec, handlers, ctx, ['RESN', 'HUSB', 'WIFE', 'CHAN', '_MSTAT', '_MEND']);
   return rec;
 }
 
@@ -618,10 +618,16 @@ export function parseFamilyRecord(node: RawNode, ctx: Ctx): FamilyRecord {
  * A vendor name tag (`_MARNM`, `_AKA`, …): normalized into a NAME with
  * the given type; see the JSDoc of PersonalNameStructure.
  */
-function pushVendorName(rec: IndividualRecord, node: RawNode, _ctx: Ctx, nameType: NameTypeEnum, phrase?: string): void {
+function pushVendorName(
+  rec: IndividualRecord,
+  node: RawNode,
+  _ctx: Ctx,
+  nameType: NameTypeEnum,
+  phrase?: string,
+): void {
   const type: NameTypeStructure = { payload: nameType };
   if (phrase !== undefined) {
-    type.phrase = phrase as Text;
+    type.phrase = phrase;
   }
   (rec.names ??= []).push({
     tag: 'NAME',
@@ -674,7 +680,7 @@ function pushVendorAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag
     tag,
     payload: raw,
     type,
-    ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+    ...(Object.keys(detail).length === 0 ? {} : { detail: detail }),
   });
 }
 
@@ -713,7 +719,13 @@ function pushLegacyIndividualEvent(rec: IndividualRecord, node: RawNode, ctx: Ct
 
 /** An INDI-level legacy attribute tag: FACT (or EDUC) with the TYPE; a
  *  TYPE child overrides the default. The payload text is kept. */
-function pushLegacyIndividualAttribute(rec: IndividualRecord, node: RawNode, ctx: Ctx, tag: 'FACT' | 'EDUC', type: string): void {
+function pushLegacyIndividualAttribute(
+  rec: IndividualRecord,
+  node: RawNode,
+  ctx: Ctx,
+  tag: 'FACT' | 'EDUC',
+  type: string,
+): void {
   const detail: EventDetail = {};
   const handlers = eventDetailHandlers(ctx, detail);
   let typeValue = type;
@@ -726,7 +738,7 @@ function pushLegacyIndividualAttribute(rec: IndividualRecord, node: RawNode, ctx
     tag,
     payload: raw,
     type: typeValue,
-    ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+    ...(Object.keys(detail).length === 0 ? {} : { detail: detail }),
   });
 }
 
@@ -838,11 +850,15 @@ function pushFtmFamilyFact(rec: FamilyRecord, node: RawNode, ctx: Ctx, n: number
   const familyDetail: FamilyEventDetail = {
     ...(Object.keys(detail).length === 0 ? {} : { detail }),
   };
-  (rec.events ??= []).push({ tag: 'EVEN', payload: raw, type, ...familyDetail } as FamilyEventStructure);
+  (rec.events ??= []).push({ tag: 'EVEN', payload: raw, type, ...familyDetail });
 }
 
 /** Applies the typed legacy INDI rules (see vendor-tags.ts) in any file. */
-function applyLegacyIndividualTags(rec: IndividualRecord, handlers: Record<string, (child: RawNode) => void>, ctx: Ctx): void {
+function applyLegacyIndividualTags(
+  rec: IndividualRecord,
+  handlers: Record<string, (child: RawNode) => void>,
+  ctx: Ctx,
+): void {
   for (const [tag, rule] of Object.entries(LEGACY_INDIVIDUAL_TAGS)) {
     handlers[tag] = (child) => {
       switch (rule.kind) {
@@ -937,9 +953,9 @@ function applyLegacyFamilyTags(rec: FamilyRecord, handlers: Record<string, (chil
       };
       const eventDetail = Object.keys(familyDetail).length === 0 ? {} : { detail: familyDetail };
       if (rule.kind === 'marriage') {
-        (rec.events ??= []).push({ tag: 'MARR', type: rule.type, ...eventDetail } as FamilyEventStructure);
+        (rec.events ??= []).push({ tag: 'MARR', type: rule.type, ...eventDetail });
       } else {
-        (rec.events ??= []).push({ tag: 'EVEN', payload: raw === 'Y' ? '' : raw, type: rule.type, ...eventDetail } as FamilyEventStructure);
+        (rec.events ??= []).push({ tag: 'EVEN', payload: raw === 'Y' ? '' : raw, type: rule.type, ...eventDetail });
       }
     };
   }
@@ -948,7 +964,6 @@ function applyLegacyFamilyTags(rec: FamilyRecord, handlers: Record<string, (chil
 /** A vendor family-level fact (_COML, _MBON, _SEPR): a MARR or FAM.EVEN with a TYPE. */
 /** A FAM-level vendor negative (`_MARR N` / `_NMR Y`): a bare NO MARR. */
 function pushFamNonEvent(rec: FamilyRecord, node: RawNode, ctx: Ctx, expected: 'N' | 'Y'): void {
-  void ctx;
   const value = reqText(node).toUpperCase();
   if (value !== expected) {
     fail('enum.invalid-value', `The ${node.tag} payload must be "${expected}"`, node.position);
@@ -970,9 +985,9 @@ function pushVendorFamilyEvent(rec: FamilyRecord, node: RawNode, ctx: Ctx, tag: 
   };
   const eventDetail = Object.keys(detail).length === 0 ? {} : { detail: familyDetail };
   if (tag === 'MARR') {
-    (rec.events ??= []).push({ tag: 'MARR', type, ...eventDetail } as FamilyEventStructure);
+    (rec.events ??= []).push({ tag: 'MARR', type, ...eventDetail });
   } else {
-    (rec.events ??= []).push({ tag: 'EVEN', payload: '', type, ...eventDetail } as FamilyEventStructure);
+    (rec.events ??= []).push({ tag: 'EVEN', payload: '', type, ...eventDetail });
   }
 }
 
@@ -996,7 +1011,7 @@ function parseVendorFact(node: RawNode, ctx: Ctx, type: string): IndividualEvent
     tag: 'EVEN',
     payload: '',
     type,
-    ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+    ...(Object.keys(detail).length === 0 ? {} : { detail: detail }),
   };
 }
 
@@ -1017,7 +1032,12 @@ function upsertDeathCause(rec: IndividualRecord, node: RawNode, ctx: Ctx): void 
 
 /** Sets the n-th tag mark, padding the gaps (see IndividualRecord.marks /
  *  FamilyRecord.marks). */
-function setMark(rec: { marks?: Text[]; extensions?: ExtensionStructure[] }, index: number, node: RawNode, ctx: Ctx): void {
+function setMark(
+  rec: { marks?: Text[]; extensions?: ExtensionStructure[] },
+  index: number,
+  node: RawNode,
+  ctx: Ctx,
+): void {
   if (node.value.kind === 'absent') {
     // A bare _TAG carries no value: the vendor's "tagged" marking of
     // the record, which stays a generic extension (like the
@@ -1530,7 +1550,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
         tag: 'FACT',
         payload: raw,
         type: 'Living',
-        ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+        ...(Object.keys(detail).length === 0 ? {} : { detail: detail }),
       });
     },
     _LEBENSORT: (child) => {
@@ -1597,7 +1617,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // directly under INDI (see IndividualRecord.phone).
       (rec.phone ??= []).push(reqText(child));
     },
-    '_PHON': (child) => {
+    _PHON: (child) => {
       // The underscore spelling of the INDI-level phone number.
       (rec.phone ??= []).push(reqText(child));
     },
@@ -1611,13 +1631,13 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // IndividualRecord.deceased).
       rec.deceased = parseYNFlag(child, 'ISDEAD');
     },
-    '_PHOTO': (child) => {
+    _PHOTO: (child) => {
       // MyHeritage: a pointer to the person's photo record — the same
       // wire semantics an OBJE media link carries (see
       // IndividualRecord.media).
       (rec.media ??= []).push({ tag: 'OBJE', object: reqPtr(child, ctx) });
     },
-    '_WLNK': (child) => {
+    _WLNK: (child) => {
       // The web-link block under INDI (see
       // IndividualRecord.webLinks): the TITL description and the NOTE
       // payload carrying the URL.
@@ -1670,7 +1690,9 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // Y assertion, GEDCOM 5.5.1 §2 p.34); the assertion is dropped
       // like the standard event payloads.
       const asserted = child.value.kind === 'text' && child.value.text === 'Y';
-      (rec.events ??= []).push(parseIndividualEvent(asserted ? { ...child, value: { kind: 'absent' } } : child, ctx, 'ORDN'));
+      (rec.events ??= []).push(
+        parseIndividualEvent(asserted ? { ...child, value: { kind: 'absent' } } : child, ctx, 'ORDN'),
+      );
     },
     _ORIG: (child) => {
       // Ancestry.com Family Trees: the person's origin, a FACT (same
@@ -1756,11 +1778,16 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       // the standard dispatch retry/drop rule (the Ancestry-derived
       // fixtures ship bare `2 SOUR` under SEX, like they do under
       // NAME).
-      dispatch(child, rec, {
-        SOUR: (grandchild) => {
-          (rec.sexCitations ??= []).push(parseSourceCitation(grandchild, ctx));
+      dispatch(
+        child,
+        rec,
+        {
+          SOUR: (grandchild) => {
+            (rec.sexCitations ??= []).push(parseSourceCitation(grandchild, ctx));
+          },
         },
-      }, ctx);
+        ctx,
+      );
     },
     _CORR: (child) => {
       // FO7: the correspondence entry block (see
@@ -1810,7 +1837,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
         tag: 'FACT',
         payload,
         type,
-        ...(Object.keys(detail).length === 0 ? {} : { detail: detail as IndividualEventDetail }),
+        ...(Object.keys(detail).length === 0 ? {} : { detail: detail }),
       });
     },
     FAMC: (child) => {
@@ -1984,7 +2011,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     // Heredis writes the person's signature (free text) under the
     // same tag — a payload that is not one of the flag spellings
     // stays a generic extension instead of failing the import.
-    const flag = parseUsmFlagLenient(child, 'SIGN');
+    const flag = parseUsmFlagLenient(child);
     if (flag === undefined) {
       addExtension(rec, child, ctx);
     } else {
@@ -1996,7 +2023,7 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
     // wire spelling is non-underscore; see IndividualRecord.canSign
     // for the export rule). Both spellings follow the same lenient
     // rule.
-    const flag = parseUsmFlagLenient(child, '_SIGN');
+    const flag = parseUsmFlagLenient(child);
     if (flag === undefined) {
       addExtension(rec, child, ctx);
     } else {
@@ -2051,12 +2078,6 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       (rec.attributes ??= []).push(parseIndividualAttribute(child, ctx, tag));
     };
   }
-  dispatch(
-    node,
-    rec,
-    handlers,
-    ctx,
-    ['RESN', 'SEX', 'CHAN', '_BKM', '_STP', '_FLGS'],
-  );
+  dispatch(node, rec, handlers, ctx, ['RESN', 'SEX', 'CHAN', '_BKM', '_STP', '_FLGS']);
   return rec;
 }

@@ -66,7 +66,14 @@ describe('importGedcomDataset', () => {
     try {
       const { repo } = fixture;
       const result = importGedcomDataset(parseDataset(), repo);
-      expect(result).toEqual({ importedPersons: 3, importedFamilies: 1, importedSources: 1, importedPlaces: 2, totalPersons: 3, droppedStructures: 0 });
+      expect(result).toEqual({
+        importedPersons: 3,
+        importedFamilies: 1,
+        importedSources: 1,
+        importedPlaces: 2,
+        totalPersons: 3,
+        droppedStructures: 0,
+      });
 
       const persons = repo.listAllPersons();
       expect(persons).toHaveLength(3);
@@ -74,9 +81,7 @@ describe('importGedcomDataset', () => {
 
       const ivan = byXref.get('@I1@');
       expect(ivan?.sex).toBe('M');
-      expect(ivan?.names).toEqual([
-        expect.objectContaining({ given: 'Ivan', surname: 'Petrov', full: 'Ivan Petrov' }),
-      ]);
+      expect(ivan?.names).toEqual([expect.objectContaining({ given: 'Ivan', surname: 'Petrov', full: 'Ivan Petrov' })]);
       const birth = ivan?.facts.find((fact) => fact.tag === 'BIRT');
       expect(birth?.date).toEqual({
         id: expect.any(String),
@@ -115,9 +120,7 @@ describe('importGedcomDataset', () => {
       expect(marriage?.place).toBe('Tomsk');
 
       const sources = repo.listSources();
-      expect(sources).toEqual([
-        expect.objectContaining({ xref: '@S1@', title: 'Parish register', author: 'Church' }),
-      ]);
+      expect(sources).toEqual([expect.objectContaining({ xref: '@S1@', title: 'Parish register', author: 'Church' })]);
 
       const birthCitations = repo.listCitationsFor('fact', birth?.id ?? '');
       expect(birthCitations).toHaveLength(1);

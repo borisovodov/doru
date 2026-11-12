@@ -5,14 +5,34 @@ import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type {
-  CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RestrictionRecord, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+  CitationRecord,
+  ContactRecord,
+  IdentifierRecord,
+  NoteRecord,
+  RestrictionRecord,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+} from '@doru/core';
 import { EntityTab, type RegistriesEditorApi } from '@doru/features';
-import { AddressFields, ContactsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, addressLabel } from '@doru/ui/domain';
+import {
+  AddressFields,
+  ContactsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  addressLabel,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
+
+/* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
 
 export function SubmitterTab({
   tabId,
@@ -90,16 +110,23 @@ function SubmitterTabBody({
     if (targetId === undefined) {
       return;
     }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions] =
-      await Promise.all([
-        api.getNotes('submitter', targetId),
-        api.getCitations('submitter', targetId),
-        api.getTags(),
-        api.getTagLinks('submitter', targetId),
-        api.getIdentifiers('submitter', targetId),
-        api.getContacts('submitter', targetId),
-        api.getRestrictions('submitter', targetId),
-      ]);
+    const [
+      loadedNotes,
+      loadedCitations,
+      loadedTags,
+      loadedTagLinks,
+      loadedIdentifiers,
+      loadedContacts,
+      loadedRestrictions,
+    ] = await Promise.all([
+      api.getNotes('submitter', targetId),
+      api.getCitations('submitter', targetId),
+      api.getTags(),
+      api.getTagLinks('submitter', targetId),
+      api.getIdentifiers('submitter', targetId),
+      api.getContacts('submitter', targetId),
+      api.getRestrictions('submitter', targetId),
+    ]);
     setSubmitterNotes(loadedNotes);
     setSubmitterCitations(loadedCitations);
     setTags(loadedTags);
@@ -184,9 +211,12 @@ function SubmitterTabBody({
                 value={language}
                 onChange={(event) => patchLanguage(index, event.target.value)}
               />
-              <IconButton size="sm" label={nls.t('features.tree.submitter.languages.remove')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => setLanguages(languages.filter((_, i) => i !== index))} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.submitter.languages.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => setLanguages(languages.filter((_, i) => i !== index))}
+              />
             </InlineForm>
           ))}
         </FieldGrid>

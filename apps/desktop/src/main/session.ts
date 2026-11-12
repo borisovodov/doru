@@ -13,7 +13,8 @@ export function readSession(): SessionData {
   const file = join(app.getPath('userData'), SESSION_FILE);
   try {
     const parsed = JSON.parse(readFileSync(file, 'utf8')) as SessionData;
-    if (!Array.isArray(parsed.paths) || (typeof parsed.activePath !== 'string' && parsed.activePath !== null)) {
+    const activePath: unknown = parsed.activePath;
+    if (!Array.isArray(parsed.paths) || (typeof activePath !== 'string' && activePath !== null)) {
       return { paths: [], activePath: null };
     }
     return parsed;

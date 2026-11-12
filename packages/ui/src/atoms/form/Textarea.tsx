@@ -12,7 +12,13 @@ export function Textarea({ controlSize = 'md', invalid = false, className, ...re
   return (
     <textarea
       {...rest}
-      className={cx(styles['control'], styles['textarea'], styles[controlSize], invalid && styles['invalid'], className)}
+      className={cx(
+        styles['control'],
+        styles['textarea'],
+        styles[controlSize],
+        invalid && styles['invalid'],
+        className,
+      )}
       aria-invalid={invalid || undefined}
     />
   );

@@ -26,13 +26,6 @@ function parseOk551(text: string): GedcomDataset {
   return result.value;
 }
 
-function expectErr(result: { ok: boolean; error?: unknown }): string {
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
 function ser70(dataset: GedcomDataset): string {
   const result = serializeGedcom70(dataset);
   if (!result.ok) {
@@ -60,11 +53,14 @@ describe('serializeGedcom70', () => {
     const text = ser70(dataset);
     expect(text).toContain('1 NOTE @@me and @I');
     // And the round trip restores the single at-sign.
-    expect(parseOk70(text).header.note?.payload).toBe('@me and @I');
+    const note = parseOk70(text).header.note;
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('@me and @I');
   });
 
   test('splits multiline payloads with CONT', () => {
-    const dataset = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 NOTE first\n2 CONT   second\n2 CONT\n2 CONT third\n0 TRLR\n');
+    const dataset = parseOk70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n1 NOTE first\n2 CONT   second\n2 CONT\n2 CONT third\n0 TRLR\n',
+    );
     const text = ser70(dataset);
     expect(text).toContain('1 NOTE first');
     expect(text).toContain('2 CONT   second');
@@ -75,7 +71,8 @@ describe('serializeGedcom70', () => {
   test('round-trips an empty payload line', () => {
     const dataset = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 NOTE a\n2 CONT\n0 TRLR\n');
     const text = ser70(dataset);
-    expect(parseOk70(text).header.note?.payload).toBe('a\n');
+    const note = parseOk70(text).header.note;
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('a\n');
   });
 
   test('serializes dates with calendars and epochs', () => {
@@ -173,7 +170,18 @@ describe('serializeGedcom70', () => {
 describe('serializeGedcom551', () => {
   const minimal551 = (): GedcomDataset =>
     parseOk551(
-      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 TRLR',
+      ].join('\n'),
     );
 
   test('emits a minimal 5.5.1 document', () => {
@@ -224,13 +232,12 @@ describe('serializeGedcom551', () => {
         '2 VERS 5.5.1',
         '2 FORM LINEAGE-LINKED',
         '1 CHAR UTF-8',
-        '0 @N1@ NOTE ' + 'x'.repeat(300),
+        '0 @N1@ NOTE ' + longText,
         '0 @S1@ SUBM',
         '1 NAME T',
         '0 TRLR',
       ].join('\n'),
     );
-    void longText;
     const text = ser551(dataset);
     const lines = text.split('\r\n');
     const noteLine = lines.find((line) => line.startsWith('0 @N1@ NOTE'));
@@ -255,9 +262,7 @@ describe('serializeGedcom551', () => {
   });
 
   test('maps media types to the 5.5.1 format set', () => {
-    const dataset = parseOk70(
-      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE x.jpg\n2 FORM image/jpeg\n0 TRLR\n',
-    );
+    const dataset = parseOk70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @O1@ OBJE\n1 FILE x.jpg\n2 FORM image/jpeg\n0 TRLR\n');
     const header = dataset.header;
     header.source = { payload: 'MyApp' };
     header.submitter = '@S1@';
@@ -323,7 +328,18 @@ describe('serializeGedcom551', () => {
 
   test('projects 7.0-only constructs onto 5.5.1', () => {
     const base = parseOk551(
-      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 TRLR',
+      ].join('\n'),
     );
     const seven = parseOk70(
       [
@@ -422,7 +438,18 @@ describe('serializeGedcom70Bytes / serializeGedcom551Bytes', () => {
 
   test('5.5.1 bytes declare CHAR UTF-8', () => {
     const dataset = parseOk551(
-      ['0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '0 @S1@ SUBM', '1 NAME T', '0 TRLR'].join('\n'),
+      [
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 TRLR',
+      ].join('\n'),
     );
     const bytes = ser551Bytes(dataset);
     expect(new TextDecoder().decode(bytes)).toContain('1 CHAR UTF-8');
@@ -430,15 +457,9 @@ describe('serializeGedcom70Bytes / serializeGedcom551Bytes', () => {
   });
 
   test('7.0 bytes round-trip through the parser with a non-ASCII name', () => {
-    const sample = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '0 @I1@ INDI',
-      '1 NAME Иван /Иванов/',
-      '1 SEX M',
-      '0 TRLR',
-    ].join('\n');
+    const sample = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 NAME Иван /Иванов/', '1 SEX M', '0 TRLR'].join(
+      '\n',
+    );
     const first = parseOk70(sample);
     const bytes = ser70Bytes(first);
     const result = parseGedcom70(bytes);
@@ -519,8 +540,15 @@ describe('the 5.5.1 user-defined EVENT values on 7.0 export', () => {
   test('an EVEN with only user-defined values is dropped entirely', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @S2@ SOUR',
         '1 DATA',
         "2 EVEN Ships' manifests",
@@ -540,13 +568,13 @@ describe('the 5.5.1 user-defined EVENT values on 7.0 export', () => {
   });
 
   test('7.0 input accepts non-extension values', () => {
-    const result = parseGedcom70(
-      enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 DATA\n2 EVEN BIRT, X\n0 TRLR\n'),
-    );
+    const result = parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 DATA\n2 EVEN BIRT, X\n0 TRLR\n'));
     expect(result.ok).toBe(true);
     if (result.ok) {
       const sour = result.value.records[0];
-      expect((sour as { data?: { events?: Array<{ userDefined?: string[] }> } }).data?.events?.[0]?.userDefined).toEqual(['X']);
+      expect(
+        (sour as { data?: { events?: Array<{ userDefined?: string[] }> } }).data?.events?.[0]?.userDefined,
+      ).toEqual(['X']);
     }
   });
 });
