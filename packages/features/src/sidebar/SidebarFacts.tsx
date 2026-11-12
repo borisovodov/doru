@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
-import { factOwnerName, formatDate } from '@doru/ui';
+import { Chip, EntityCard, factOwnerName, formatDate } from '@doru/ui';
 import './sidebar.css';
 
 /**
@@ -40,16 +40,13 @@ export function SidebarFacts({
           content === undefined ? owner : undefined,
         ].filter((part): part is string => part !== undefined);
         return (
-          <li
-            key={fact.id}
-            className={ownerId !== undefined ? 'entity-card clickable' : 'entity-card'}
-            onClick={ownerId !== undefined ? () => onOpenPerson(ownerId) : undefined}
-          >
-            <span className={`tag-chip ${content === undefined ? 'neutral' : ''}`}>{fact.tag}</span>
-            <span className="entity-card-body">
-              <span className="entity-card-title">{content ?? owner}</span>
-              {details.length > 0 && <span className="entity-card-subtitle">{details.join(' · ')}</span>}
-            </span>
+          <li key={fact.id}>
+            <EntityCard
+              icon={<Chip variant={content === undefined ? 'neutral' : 'accent'}>{fact.tag}</Chip>}
+              title={content ?? owner}
+              subtitle={details.length > 0 ? details.join(' · ') : null}
+              {...(ownerId !== undefined ? { onClick: () => onOpenPerson(ownerId) } : {})}
+            />
           </li>
         );
       })}

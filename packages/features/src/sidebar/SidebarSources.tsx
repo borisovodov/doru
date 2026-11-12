@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
-import { nls } from '../nls';
+import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 /**
@@ -32,17 +32,14 @@ export function SidebarSources({
         );
         const count = counts.get(source.id) ?? 0;
         return (
-          <li key={source.id} className="entity-card clickable" onClick={() => onOpenSource(source.id)}>
-            <span className="entity-card-icon">
-              <BookOpenText size={15} aria-hidden="true" />
-            </span>
-            <span className="entity-card-body">
-              <span className="entity-card-title">{source.title}</span>
-              {details.length > 0 && <span className="entity-card-subtitle">{details.join(' · ')}</span>}
-            </span>
-            <span className="entity-card-meta" title={nls.t('features.sidebar.citations', count)}>
-              {count > 0 ? count : ''}
-            </span>
+          <li key={source.id}>
+            <EntityCard
+              icon={<BookOpenText size={15} aria-hidden="true" />}
+              title={source.title}
+              subtitle={details.length > 0 ? details.join(' · ') : null}
+              meta={count > 0 ? count : null}
+              onClick={() => onOpenSource(source.id)}
+            />
           </li>
         );
       })}

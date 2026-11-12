@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
 import type { MediaRecord, PersonRecord } from '@doru/core';
-import { displayName } from '@doru/ui';
+import { EntityCard, displayName } from '@doru/ui';
 import './sidebar.css';
 
 export interface SidebarMediaItem extends MediaRecord {
@@ -46,34 +46,24 @@ export function SidebarMedia({
           item.targetType === 'person' && item.targetId !== undefined
             ? displayName(personById.get(item.targetId))
             : undefined;
+        const image = isImage(item.path ?? '');
         return (
-          <li
-            key={item.id}
-            className={
-              item.targetType === 'person' && item.targetId !== undefined ? 'entity-card clickable' : 'entity-card'
-            }
-            onClick={
-              item.targetType === 'person' && item.targetId !== undefined
-                ? () => onOpenPerson(item.targetId ?? '')
-                : undefined
-            }
-          >
-            {isImage(item.path ?? '') ? (
-              <img
-                className="entity-thumb"
-                src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
-                alt={item.title ?? ''}
-                loading="lazy"
-              />
-            ) : (
-              <span className="entity-card-icon">
-                <FileImage size={15} aria-hidden="true" />
-              </span>
-            )}
-            <span className="entity-card-body">
-              <span className="entity-card-title">{item.title ?? fileName(item.path ?? '')}</span>
-              {owner !== undefined && <span className="entity-card-subtitle">{owner}</span>}
-            </span>
+          <li key={item.id}>
+            <EntityCard
+              {...(image
+                ? {
+                    thumbnail: {
+                      src: `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`,
+                      alt: item.title ?? '',
+                    },
+                  }
+                : { icon: <FileImage size={15} aria-hidden="true" /> })}
+              title={item.title ?? fileName(item.path ?? '')}
+              subtitle={owner ?? null}
+              {...(item.targetType === 'person' && item.targetId !== undefined
+                ? { onClick: () => onOpenPerson(item.targetId ?? '') }
+                : {})}
+            />
           </li>
         );
       })}
