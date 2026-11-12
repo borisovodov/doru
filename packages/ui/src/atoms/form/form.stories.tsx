@@ -11,29 +11,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const AllSizes: Story = {
-  render: () => (
-    <div style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
-      <Input controlSize="sm" placeholder="Input sm" />
-      <Input placeholder="Input md" />
-      <Input controlSize="lg" placeholder="Input lg" />
-      <Select controlSize="sm" defaultValue="a">
-        <option value="a">Select sm</option>
-      </Select>
-      <Select defaultValue="a">
-        <option value="a">Select md</option>
-      </Select>
-      <Select controlSize="lg" defaultValue="a">
-        <option value="a">Select lg</option>
-      </Select>
-      <Textarea controlSize="sm" placeholder="Textarea sm" rows={2} />
-      <Textarea placeholder="Textarea md" rows={3} />
-      <Textarea controlSize="lg" placeholder="Textarea lg" rows={4} />
-      <Checkbox label="Checkbox" defaultChecked />
-    </div>
-  ),
-};
-
 export const Inputs: Story = {
   render: () => (
     <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
