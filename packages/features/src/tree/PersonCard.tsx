@@ -1,13 +1,8 @@
 import { memo, useState, type FormEvent, type MouseEvent } from 'react';
 import {
   Baby,
-  BookOpenText,
   Check,
-  ChevronDown,
-  ChevronRight,
-  Image as ImageIcon,
   Pencil,
-  StickyNote,
   Trash2,
   UserPlus,
   Users,
@@ -21,12 +16,10 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
-import { factOf } from '@doru/core/model';
 import { nls } from '../nls';
-import { displayName, initials, years } from '@doru/ui';
-import type { PersonCounts } from './types';
+import { PersonCardView, type CardAction, type PersonCounts } from '@doru/ui';
 
-export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'delete';
+export type { CardAction } from '@doru/ui';
 
 export type PersonCardData = {
   person: PersonRecord;
@@ -81,8 +74,6 @@ export const PersonCard = memo(function PersonCard({
     onDraftCancel,
     onAction,
   } = data;
-  const deceased = factOf(person, 'DEAT')?.date?.component?.year !== undefined;
-  const dates = years(person);
   const [given, setGiven] = useState('');
   const [surname, setSurname] = useState('');
   const classes = [
@@ -91,7 +82,6 @@ export const PersonCard = memo(function PersonCard({
     line === 'paternal' ? 'line-paternal' : line === 'maternal' ? 'line-maternal' : '',
     selected ? 'selected' : '',
     isFocus ? 'focus' : '',
-    deceased ? 'deceased' : '',
     dragging ? 'dragging' : '',
     isDropTarget ? 'drop-target' : '',
     isDraft ? 'draft' : '',
@@ -99,11 +89,6 @@ export const PersonCard = memo(function PersonCard({
   ]
     .filter(Boolean)
     .join(' ');
-
-  const handleCollapseClick = (event: MouseEvent) => {
-    event.stopPropagation();
-    data.onToggleCollapse?.(person.id);
-  };
 
   const action = (kind: CardAction) => (event: MouseEvent) => {
     event.stopPropagation();
@@ -138,12 +123,6 @@ export const PersonCard = memo(function PersonCard({
     { kind: 'edit', icon: Pencil, key: 'tree.canvas.edit' },
     { kind: 'delete', icon: Trash2, key: 'tree.canvas.deletePerson' },
   ] as const satisfies ReadonlyArray<{ kind: CardAction; icon: typeof Baby; key: string }>;
-
-  const BADGES = [
-    { icon: StickyNote, count: counts.notes, title: nls.t('features.tree.notes.title') },
-    { icon: BookOpenText, count: counts.sources, title: nls.t('features.tree.sources.title') },
-    { icon: ImageIcon, count: counts.media, title: nls.t('features.tree.media.title') },
-  ] as const;
 
   if (isEditing) {
     // The draft card turned editor: only the name is typed here; everything
@@ -197,58 +176,32 @@ export const PersonCard = memo(function PersonCard({
   }
 
   return (
-    <div
-      className={classes}
-      role="group"
-      aria-label={isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}
-      aria-current={isFocus ? 'true' : undefined}
+    <PersonCardView
+      person={person}
+      line={line}
+      isFocus={isFocus}
+      hasSubtree={hasSubtree}
+      collapsed={collapsed}
+      counts={counts}
+      isDropTarget={isDropTarget}
+      selected={selected}
+      dragging={dragging}
+      isDraft={isDraft}
+      onToggleCollapse={data.onToggleCollapse}
+      toolbar={
+        onAction && selected ? (
+          <NodeToolbar position={Position.Top} className="card-toolbar" offset={8}>
+            {ACTIONS.map(({ kind, icon: Icon, key }) => (
+              <button key={kind} type="button" title={nls.t(key)} aria-label={nls.t(key)} onClick={action(kind)}>
+                <Icon size={14} aria-hidden="true" />
+              </button>
+            ))}
+          </NodeToolbar>
+        ) : null
+      }
     >
       <Handle type="target" position={Position.Top} className="person-card-handle" />
       <Handle type="source" position={Position.Bottom} className="person-card-handle" />
-      <span className="person-card-avatar" aria-hidden="true">
-        {initials(person)}
-      </span>
-      <div className="person-card-body">
-        <span className="person-card-name">
-          {isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}
-        </span>
-        {!isDraft && dates !== '' && (
-          <span className="person-card-years">
-            {deceased ? '† ' : ''}
-            {dates}
-          </span>
-        )}
-      </div>
-      <div className="person-card-badges">
-        {BADGES.map(({ icon: Icon, count, title }) =>
-          count > 0 ? (
-            <span key={title} className="person-card-badge" title={`${title}: ${count}`}>
-              <Icon size={11} aria-hidden="true" />
-              <span>{count}</span>
-            </span>
-          ) : null,
-        )}
-      </div>
-      {hasSubtree && (
-        <button
-          type="button"
-          className="person-card-collapse"
-          title={collapsed ? nls.t('tree.canvas.expand') : nls.t('tree.canvas.collapse')}
-          aria-label={collapsed ? nls.t('tree.canvas.expand') : nls.t('tree.canvas.collapse')}
-          onClick={handleCollapseClick}
-        >
-          {collapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
-        </button>
-      )}
-      {onAction && selected && (
-        <NodeToolbar position={Position.Top} className="card-toolbar" offset={8}>
-          {ACTIONS.map(({ kind, icon: Icon, key }) => (
-            <button key={kind} type="button" title={nls.t(key)} aria-label={nls.t(key)} onClick={action(kind)}>
-              <Icon size={14} aria-hidden="true" />
-            </button>
-          ))}
-        </NodeToolbar>
-      )}
-    </div>
+    </PersonCardView>
   );
 });

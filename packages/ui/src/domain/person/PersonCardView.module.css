@@ -1,0 +1,106 @@
+.card {
+  position: relative;
+  width: 180px;
+  height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-left-width: 3px;
+  border-radius: var(--doru-radius-md);
+  box-shadow: var(--doru-ring);
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--doru-accent);
+}
+
+.selected,
+.focus {
+  border-color: var(--doru-accent);
+  box-shadow:
+    var(--doru-ring),
+    0 0 0 2px var(--doru-accent-alpha);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.name {
+  font-size: var(--doru-font-size);
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 16px;
+}
+
+.years {
+  font-size: var(--doru-font-size-sm);
+  color: var(--doru-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badges {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  display: flex;
+  gap: 5px;
+}
+
+.linePaternal {
+  border-left-color: var(--doru-line-paternal);
+}
+
+.lineMaternal {
+  border-left-color: var(--doru-line-maternal);
+}
+
+.deceased {
+  opacity: 0.75;
+}
+
+.deceased .name {
+  color: var(--doru-fg-muted);
+}
+
+.dragging {
+  opacity: 0.85;
+  border-color: var(--doru-accent);
+}
+
+.dropTarget {
+  outline: 2px dashed var(--doru-accent);
+  outline-offset: -3px;
+  border-color: var(--doru-accent);
+}
+
+.collapse {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: none;
+  background: var(--doru-bg-input);
+  color: var(--doru-fg-muted);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+}
+
+.card:hover .collapse {
+  display: inline-flex;
+}

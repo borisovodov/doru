@@ -63,6 +63,8 @@ export { MediaSection } from './domain/person/MediaSection';
 export { AliasesSection } from './domain/person/AliasesSection';
 export { AssociationsSection } from './domain/person/AssociationsSection';
 export { NamesSection } from './domain/person/NamesSection';
+export { PersonCardView } from './domain/person/PersonCardView';
+export type { CardAction, PersonCounts } from './domain/person/types';
 export { FactsSection } from './domain/fact/FactsSection';
 export { FactEditor } from './domain/fact/FactEditor';
 export { FamilySection } from './domain/family/FamilySection';
