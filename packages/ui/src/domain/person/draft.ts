@@ -120,6 +120,29 @@ export function emptyDate(): DateDraft {
   };
 }
 
+/** True when the date draft holds nothing the user typed. */
+export function dateDraftBlank(date: DateDraft): boolean {
+  return (
+    date.year === '' &&
+    date.month === '' &&
+    date.day === '' &&
+    date.endYear === '' &&
+    date.endMonth === '' &&
+    date.endDay === '' &&
+    date.text.trim() === '' &&
+    date.place.trim() === '' &&
+    date.calendar === '' &&
+    date.epoch === '' &&
+    date.endCalendar === '' &&
+    date.endEpoch === '' &&
+    date.modifier === '' &&
+    date.timeHour === '' &&
+    date.timeMinute === '' &&
+    date.timeSecond === '' &&
+    !date.timeUtc
+  );
+}
+
 export function emptyVariantDraft(): NameVariantDraft {
   return {
     id: crypto.randomUUID(),

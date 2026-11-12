@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DateDraft, NameDraft, PersonDraft } from '../src/domain/person/draft';
 import {
   rebaseDate,
+  dateDraftBlank,
   draftInitials,
   draftSpan,
   draftToRecord,
@@ -78,6 +79,26 @@ describe('emptyDate', () => {
       timeSecond: '',
       timeUtc: false,
     });
+  });
+});
+
+describe('dateDraftBlank', () => {
+  it('treats the empty draft as blank', () => {
+    expect(dateDraftBlank(emptyDate())).toBe(true);
+  });
+
+  it('keeps a draft with a date component', () => {
+    expect(dateDraftBlank(dateDraft({ year: '1923' }))).toBe(false);
+  });
+
+  it('keeps BCE, calendar, modifier and time flags', () => {
+    expect(dateDraftBlank(dateDraft({ epoch: 'BCE' }))).toBe(false);
+    expect(dateDraftBlank(dateDraft({ endEpoch: 'BCE' }))).toBe(false);
+    expect(dateDraftBlank(dateDraft({ calendar: 'julian' }))).toBe(false);
+    expect(dateDraftBlank(dateDraft({ endCalendar: 'hebrew' }))).toBe(false);
+    expect(dateDraftBlank(dateDraft({ modifier: 'ABT' }))).toBe(false);
+    expect(dateDraftBlank(dateDraft({ timeUtc: true }))).toBe(false);
+    expect(dateDraftBlank(dateDraft({ timeHour: '12' }))).toBe(false);
   });
 });
 

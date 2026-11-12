@@ -12,6 +12,7 @@ import {
   NAME_PART_FIELDS,
   NAME_TYPES,
   NAME_VARIANT_KINDS,
+  dateDraftBlank,
   emptyDate,
   emptyNameDraft,
   emptyVariantDraft,
@@ -237,19 +238,5 @@ function NamePartField({
     <Field label={nls.t(`features.tree.names.part.${field}`)}>
       <Input value={value} onChange={(event) => onChange(event.target.value)} />
     </Field>
-  );
-}
-
-/** True when the date draft holds nothing the user typed. */
-function dateDraftBlank(date: DateDraft): boolean {
-  return (
-    date.year === '' &&
-    date.month === '' &&
-    date.day === '' &&
-    date.endYear === '' &&
-    date.endMonth === '' &&
-    date.endDay === '' &&
-    date.text.trim() === '' &&
-    date.place.trim() === ''
   );
 }
