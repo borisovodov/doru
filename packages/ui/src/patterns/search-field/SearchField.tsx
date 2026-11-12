@@ -23,7 +23,6 @@ export function SearchField({ value, onChange, label, placeholder, className }: 
         aria-label={label}
         placeholder={placeholder ?? label}
         onChange={(event) => onChange(event.target.value)}
-        className={styles['input']}
       />
     </div>
   );

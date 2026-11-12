@@ -1,3 +1,5 @@
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState } from 'react';
 import { BookOpenText, Pencil, X } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
@@ -86,16 +88,12 @@ export function SourcesSection({
                 <BookOpenText size={13} aria-hidden="true" />
                 <span className="source-title">{sourceById.get(citation.sourceId)?.title ?? citation.sourceId}</span>
               </button>
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.citation.edit')}
-                onClick={() => setExpandedId(expandedId === citation.id ? null : citation.id)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.citation.edit')} icon={<>
                 <Pencil size={13} aria-hidden="true" />
-              </button>
-              <button className="icon-button" title={nls.t('features.tree.sources.detach')} onClick={() => void detach(citation.id)}>
+              </>} onClick={() => setExpandedId(expandedId === citation.id ? null : citation.id)} />
+              <IconButton size="sm" label={nls.t('features.tree.sources.detach')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => void detach(citation.id)} />
             </div>
             {expandedId === citation.id && (
               <CitationEditor
@@ -118,7 +116,7 @@ export function SourcesSection({
           value={author}
           onChange={(event) => setAuthor(event.target.value)}
         />
-        <button className="add-button" onClick={() => void addNew()}>{nls.t('features.tree.sources.add')}</button>
+        <Button variant="primary" onClick={() => void addNew()}>{nls.t('features.tree.sources.add')}</Button>
       </div>
       {uncited.length > 0 && (
         <div className="sources-attach">

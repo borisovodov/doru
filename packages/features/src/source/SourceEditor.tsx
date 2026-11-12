@@ -1,5 +1,7 @@
+import { IconButton } from '@doru/ui';
 import { useState } from 'react';
-import { Input, Select, Textarea } from '@doru/ui';
+import { Input } from '@doru/ui';
+import { Select, Textarea } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { BookOpenText, Plus, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
@@ -7,16 +9,10 @@ import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
-import { Button, DateEditor, EditorPage, EntityViewCard, emptyDate } from '@doru/ui';
-import {
-  emptySourceTextDraft,
-  type CallNumberDraft,
-  type SourceDataEventDraft,
-  type SourceDraft,
-  type SourceRepositoryDraft,
-  type SourceTextDraft,
-  type TemplateFieldDraft,
-} from '@doru/ui';
+import { DateEditor, emptyDate } from '@doru/ui/domain';
+import { Button } from '@doru/ui';
+import { EditorPage, EntityViewCard } from '@doru/ui';
+import { emptySourceTextDraft, type CallNumberDraft, type SourceDataEventDraft, type SourceDraft, type SourceRepositoryDraft, type SourceTextDraft, type TemplateFieldDraft } from '@doru/ui/domain';
 
 /**
  * The full source form: bibliographic details, publication, text extracts,
@@ -213,20 +209,16 @@ export function SourceEditor({
                 value={text.mime}
                 onChange={(event) => patchText(index, { mime: event.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.texts.remove')}
-                onClick={() => removeText(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.source.texts.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeText(index)} />
             </div>
           </div>
         ))}
-        <button className="add-button" onClick={addText}>
+        <Button variant="primary" onClick={addText}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.texts.add')}
-        </button>
+        </Button>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.source.dataEvents')}>
@@ -243,13 +235,9 @@ export function SourceEditor({
                 value={event.value}
                 onChange={(change) => patchEvent(index, { value: change.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.dataEvents.remove')}
-                onClick={() => removeEvent(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.source.dataEvents.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeEvent(index)} />
             </div>
             <DateEditor
               label={nls.t('features.tree.events.dateField')}
@@ -276,10 +264,10 @@ export function SourceEditor({
             </label>
           </div>
         ))}
-        <button className="add-button" onClick={addEvent}>
+        <Button variant="primary" onClick={addEvent}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.dataEvents.add')}
-        </button>
+        </Button>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.source.repositories')}>
@@ -297,13 +285,9 @@ export function SourceEditor({
                   </option>
                 ))}
               </Select>
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.repositories.remove')}
-                onClick={() => removeRepository(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.source.repositories.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeRepository(index)} />
             </div>
             {link.callNumbers.map((callNumber, callNumberIndex) => (
               <div className="source-sub-row source-call-number" key={callNumber.id}>
@@ -317,26 +301,22 @@ export function SourceEditor({
                   value={callNumber.medium}
                   onChange={(event) => patchCallNumber(index, callNumberIndex, { medium: event.target.value })}
                 />
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.source.repositories.callNumbers.remove')}
-                  onClick={() => removeCallNumber(index, callNumberIndex)}
-                >
+                <IconButton size="sm" label={nls.t('features.tree.source.repositories.callNumbers.remove')} icon={<>
                   <X size={13} aria-hidden="true" />
-                </button>
+                </>} onClick={() => removeCallNumber(index, callNumberIndex)} />
               </div>
             ))}
-            <button className="add-button small" onClick={() => addCallNumber(index)}>
+            <Button variant="primary" size="sm" onClick={() => addCallNumber(index)}>
               <Plus size={13} aria-hidden="true" />
               {nls.t('features.tree.source.repositories.callNumbers.add')}
-            </button>
+            </Button>
           </div>
         ))}
         <div className="source-actions">
-          <button className="add-button" onClick={addRepository}>
+          <Button variant="primary" onClick={addRepository}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.source.repositories.add')}
-          </button>
+          </Button>
           <NewRepositoryInput onAddRepository={onAddRepository} />
         </div>
       </SectionCard>
@@ -354,19 +334,15 @@ export function SourceEditor({
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.source.templateFields.remove')}
-              onClick={() => removeField(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.source.templateFields.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeField(index)} />
           </div>
         ))}
-        <button className="add-button" onClick={addField}>
+        <Button variant="primary" onClick={addField}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.templateFields.add')}
-        </button>
+        </Button>
       </SectionCard>
     </EditorPage>
   );
@@ -390,9 +366,9 @@ function NewRepositoryInput({ onAddRepository }: { onAddRepository: (repository:
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
-      <button className="plain-button" onClick={() => void create()}>
+      <Button variant="secondary" onClick={() => void create()}>
         {nls.t('features.tree.source.repositories.create')}
-      </button>
+      </Button>
     </div>
   );
 }

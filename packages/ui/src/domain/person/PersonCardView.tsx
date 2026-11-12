@@ -22,6 +22,9 @@ export interface PersonCardViewProps {
   selected?: boolean | undefined;
   dragging?: boolean | undefined;
   isDraft?: boolean | undefined;
+  isEditing?: boolean | undefined;
+  /** The in-card draft form shown while `isEditing` is true. */
+  editingContent?: ReactNode;
   onToggleCollapse?: ((personId: string) => void) | undefined;
   onAction?: ((action: CardAction, personId: string) => void) | undefined;
   /** React Flow handles, rendered inside the card root. */
@@ -48,12 +51,28 @@ export function PersonCardView({
   selected = false,
   dragging = false,
   isDraft = false,
+  isEditing = false,
+  editingContent,
   onToggleCollapse,
   children,
   toolbar,
 }: PersonCardViewProps) {
   const deceased = factOf(person, 'DEAT')?.date?.component?.year !== undefined;
   const dates = years(person);
+
+  if (isEditing) {
+    return (
+      <div
+        className={cx(styles['card'], styles['editing'])}
+        role="group"
+        aria-label={nls.t('tree.canvas.addFirstPerson')}
+        aria-current={isFocus ? 'true' : undefined}
+      >
+        {children}
+        {editingContent}
+      </div>
+    );
+  }
 
   return (
     <div

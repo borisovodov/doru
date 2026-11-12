@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PersonRecord } from '@doru/core';
-import {
-  PersonEditor,
-  draftToRecord,
-  newPersonDraft,
-  personDraftMatches,
-  personToDraft,
-  type PersonDraft,
-  type PersonEditorApi,
-} from '@doru/features';
+import { PersonEditor, type PersonEditorApi } from '@doru/features';
+import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { PERSON_TAB_PREFIX } from '../hooks/useTabs';
 

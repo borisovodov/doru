@@ -1,18 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Background,
-  BackgroundVariant,
-  Panel,
-  ReactFlow,
-  ReactFlowProvider,
-  applyEdgeChanges,
-  applyNodeChanges,
-  useReactFlow,
-  Position,
-  type Edge,
-  type EdgeChange,
-  type NodeChange,
-} from '@xyflow/react';
+  Background, BackgroundVariant, Panel, ReactFlow, ReactFlowProvider, applyEdgeChanges, applyNodeChanges, useReactFlow, Position, type Edge, type EdgeChange, type NodeChange, } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';

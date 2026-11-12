@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Plus, Send, Square, Trash2 } from 'lucide-react';
 import type { AgentStep, ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';
-import { IconButton, Select, Textarea } from '@doru/ui';
+import { IconButton } from '@doru/ui';
+import { Select, Textarea } from '@doru/ui';
 import { nls } from '../nls';
 import { ChatMarkdown } from './ChatMarkdown';
 import './ChatPanel.css';
@@ -138,7 +139,6 @@ export function ChatPanel({
                   {message.content !== '' || message.error ? (
                     <div className="chat-message-actions">
                       <IconButton
-                        className="chat-copy"
                         size="sm"
                         label={copiedIndex === index ? nls.t('chat.copied') : nls.t('chat.copy')}
                         icon={
@@ -177,7 +177,6 @@ export function ChatPanel({
           }}
         />
         <IconButton
-          className="chat-action"
           size="lg"
           variant="primary"
           disabled={busy}
@@ -187,7 +186,7 @@ export function ChatPanel({
         />
         {busy ? (
           <IconButton
-            className="chat-action chat-stop"
+            variant="secondary"
             size="lg"
             label={nls.t('chat.stop')}
             icon={<Square size={14} fill="currentColor" aria-hidden="true" />}
@@ -233,14 +232,14 @@ function SessionsHeader({
         ))}
       </Select>
       <IconButton
-        className="chat-action chat-session-action"
+        variant="secondary"
         disabled={busy}
         label={nls.t('chat.sessions.new')}
         icon={<Plus size={16} aria-hidden="true" />}
         onClick={onNewSession}
       />
       <IconButton
-        className="chat-action chat-session-action"
+        variant="secondary"
         disabled={busy || !activeSessionId}
         label={nls.t('chat.sessions.delete')}
         icon={<Trash2 size={14} aria-hidden="true" />}

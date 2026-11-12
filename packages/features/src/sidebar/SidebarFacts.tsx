@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
-import { Chip, EntityCard, factOwnerName, formatDate } from '@doru/ui';
+import { factOwnerName, formatDate } from '@doru/ui/domain';
+import { Chip } from '@doru/ui';
+import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 /**

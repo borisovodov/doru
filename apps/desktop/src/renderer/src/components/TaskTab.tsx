@@ -2,17 +2,11 @@ import { useState } from 'react';
 import { SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
-import {
-  EntityTab,
-  TaskEditorFields,
-  displayName,
-  emptyTodoDraft,
-  todoDraftToRecord,
-  todoToDraft,
-  type TodoDraft,
-} from '@doru/features';
+import { EntityTab } from '@doru/features';
+import { TaskEditorFields, displayName, emptyTodoDraft, todoDraftToRecord, todoToDraft, type TodoDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { Button, EntityViewCard } from '@doru/ui';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { TASK_TAB_PREFIX } from '../hooks/useTabs';
 
 export function TaskTab({

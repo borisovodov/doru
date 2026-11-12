@@ -1,32 +1,15 @@
+import { IconButton } from '@doru/ui';
 import { useEffect, useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type {
-  CitationRecord,
-  ContactRecord,
-  IdentifierRecord,
-  NoteRecord,
-  RestrictionRecord,
-  SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
-import {
-  AddressFields,
-  ContactsSection,
-  EntityTab,
-  IdentifiersSection,
-  NotesSection,
-  RestrictionsSection,
-  SourcesSection,
-  TagsSection,
-  addressLabel,
-  type RegistriesEditorApi,
-} from '@doru/features';
+  CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RestrictionRecord, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+import { EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { AddressFields, ContactsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, addressLabel } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { Button, EntityViewCard } from '@doru/ui';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -202,19 +185,15 @@ function SubmitterTabBody({
                   value={language}
                   onChange={(event) => patchLanguage(index, event.target.value)}
                 />
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.submitter.languages.remove')}
-                  onClick={() => setLanguages(languages.filter((_, i) => i !== index))}
-                >
+                <IconButton size="sm" label={nls.t('features.tree.submitter.languages.remove')} icon={<>
                   <X size={13} aria-hidden="true" />
-                </button>
+                </>} onClick={() => setLanguages(languages.filter((_, i) => i !== index))} />
               </div>
             ))}
-            <button className="add-button small" onClick={() => setLanguages([...languages, ''])}>
+            <Button variant="primary" size="sm" onClick={() => setLanguages([...languages, ''])}>
               <Plus size={13} aria-hidden="true" />
               {nls.t('features.tree.submitter.languages.add')}
-            </button>
+            </Button>
           </div>
           <AddressFields address={address} onChange={setAddress} />
         </SectionCard>

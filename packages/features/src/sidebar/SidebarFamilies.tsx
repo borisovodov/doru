@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { EntityCard, familyLabel, formatDate } from '@doru/ui';
+import { familyLabel, formatDate } from '@doru/ui/domain';
+import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 /**

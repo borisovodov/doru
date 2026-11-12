@@ -1,3 +1,5 @@
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState } from 'react';
 import { Pencil, X } from 'lucide-react';
 import type { ContactRecord, IdentifierRecord, RestrictionRecord } from '@doru/core';
@@ -111,31 +113,23 @@ export function IdentifiersSection({
                   placeholder={nls.t('features.tree.identifiers.value')}
                   onChange={(event) => setEditValue(event.target.value)}
                 />
-                <button className="add-button small" onClick={() => void saveEdit(identifier)}>
+                <Button variant="primary" size="sm" onClick={() => void saveEdit(identifier)}>
                   {nls.t('features.tree.save')}
-                </button>
-                <button className="plain-button small" onClick={() => setEditingId(null)}>
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>
                   {nls.t('features.tree.fact.cancel')}
-                </button>
+                </Button>
               </div>
             ) : (
               <>
                 <span className="attachment-kind">{identifier.namespace}</span>
                 <span className="attachment-value">{identifier.value}</span>
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.identifiers.edit')}
-                  onClick={() => startEdit(identifier)}
-                >
+                <IconButton size="sm" label={nls.t('features.tree.identifiers.edit')} icon={<>
                   <Pencil size={13} aria-hidden="true" />
-                </button>
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.identifiers.remove')}
-                  onClick={() => void onDelete(identifier)}
-                >
+                </>} onClick={() => startEdit(identifier)} />
+                <IconButton size="sm" label={nls.t('features.tree.identifiers.remove')} icon={<>
                   <X size={13} aria-hidden="true" />
-                </button>
+                </>} onClick={() => void onDelete(identifier)} />
               </>
             )}
           </li>
@@ -158,9 +152,9 @@ export function IdentifiersSection({
           value={value}
           onChange={(event) => setValue(event.target.value)}
         />
-        <button className="add-button" onClick={() => void add()}>
+        <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.identifiers.add')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -233,31 +227,23 @@ export function ContactsSection({
                   onChange={(event) => setEditValue(event.target.value)}
                   autoFocus
                 />
-                <button className="add-button small" onClick={() => void saveEdit(contact)}>
+                <Button variant="primary" size="sm" onClick={() => void saveEdit(contact)}>
                   {nls.t('features.tree.save')}
-                </button>
-                <button className="plain-button small" onClick={() => setEditingId(null)}>
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>
                   {nls.t('features.tree.fact.cancel')}
-                </button>
+                </Button>
               </div>
             ) : (
               <>
                 <span className="attachment-kind">{contactKindLabel(contact.kind)}</span>
                 <span className="attachment-value">{contact.value}</span>
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.contacts.edit')}
-                  onClick={() => startEdit(contact)}
-                >
+                <IconButton size="sm" label={nls.t('features.tree.contacts.edit')} icon={<>
                   <Pencil size={13} aria-hidden="true" />
-                </button>
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.contacts.remove')}
-                  onClick={() => void onDelete(contact)}
-                >
+                </>} onClick={() => startEdit(contact)} />
+                <IconButton size="sm" label={nls.t('features.tree.contacts.remove')} icon={<>
                   <X size={13} aria-hidden="true" />
-                </button>
+                </>} onClick={() => void onDelete(contact)} />
               </>
             )}
           </li>
@@ -276,9 +262,9 @@ export function ContactsSection({
           value={value}
           onChange={(event) => setValue(event.target.value)}
         />
-        <button className="add-button" onClick={() => void add()}>
+        <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.contacts.add')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -336,30 +322,22 @@ export function RestrictionsSection({
                     </option>
                   ))}
                 </select>
-                <button className="add-button small" onClick={() => void saveEdit(restriction)}>
+                <Button variant="primary" size="sm" onClick={() => void saveEdit(restriction)}>
                   {nls.t('features.tree.save')}
-                </button>
-                <button className="plain-button small" onClick={() => setEditingId(null)}>
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>
                   {nls.t('features.tree.fact.cancel')}
-                </button>
+                </Button>
               </div>
             ) : (
               <>
                 <span className="attachment-value">{restrictionLevelLabel(restriction.level)}</span>
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.restrictions.edit')}
-                  onClick={() => startEdit(restriction)}
-                >
+                <IconButton size="sm" label={nls.t('features.tree.restrictions.edit')} icon={<>
                   <Pencil size={13} aria-hidden="true" />
-                </button>
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.restrictions.remove')}
-                  onClick={() => void onDelete(restriction)}
-                >
+                </>} onClick={() => startEdit(restriction)} />
+                <IconButton size="sm" label={nls.t('features.tree.restrictions.remove')} icon={<>
                   <X size={13} aria-hidden="true" />
-                </button>
+                </>} onClick={() => void onDelete(restriction)} />
               </>
             )}
           </li>
@@ -373,9 +351,9 @@ export function RestrictionsSection({
             </option>
           ))}
         </select>
-        <button className="add-button" onClick={() => void add()}>
+        <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.restrictions.add')}
-        </button>
+        </Button>
       </div>
     </div>
   );

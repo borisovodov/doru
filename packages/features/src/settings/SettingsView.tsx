@@ -2,17 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import type { DoruModelError, DoruModelState } from '@doru/ai';
 import type { MessageKey } from '@doru/platform';
-import {
-  Button,
-  Field,
-  Hint,
-  IconButton,
-  InlineError,
-  InlineForm,
-  Input,
-  Progress,
-  Select,
-} from '@doru/ui';
+import { Button } from '@doru/ui';
+import { Field, Hint, IconButton, InlineError, InlineForm, Input, Progress, Select } from '@doru/ui';
 import { nls } from '../nls';
 import { offeredReasoningLevels, REASONING_LABELS } from './reasoning';
 import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';

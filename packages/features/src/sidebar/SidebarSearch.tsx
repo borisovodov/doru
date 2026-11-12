@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { BookOpenText, MapPin, Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import { Avatar, Chip, EntityCard, SearchField } from '@doru/ui';
+import { Avatar } from '@doru/ui';
+import { Chip, EntityCard, SearchField } from '@doru/ui';
 import { nls } from '../nls';
-import { displayName, familyLabel, formatDate, initials, lifeSpan } from '@doru/ui';
+import { displayName, familyLabel, formatDate, initials, lifeSpan } from '@doru/ui/domain';
 import './sidebar.css';
 
 const MAX_PER_GROUP = 6;

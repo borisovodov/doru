@@ -58,6 +58,16 @@
   background: var(--doru-accent-hover);
 }
 
+.secondary {
+  background: var(--doru-bg-raised);
+  color: var(--doru-fg);
+  border: 1px solid var(--doru-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
 .danger {
   color: var(--doru-danger);
 }

@@ -3,7 +3,7 @@ import { cx } from '../../lib/cx';
 import styles from './IconButton.module.css';
 
 export type IconButtonSize = 'sm' | 'md' | 'lg' | 'nav';
-export type IconButtonVariant = 'ghost' | 'active' | 'primary' | 'danger';
+export type IconButtonVariant = 'ghost' | 'active' | 'primary' | 'secondary' | 'danger';
 
 export interface IconButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'children'> {
   /** Required accessible name; icon-only controls must never be unnamed. */

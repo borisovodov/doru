@@ -1,5 +1,7 @@
+import { IconButton } from '@doru/ui';
 import { useMemo } from 'react';
-import { Input, Select } from '@doru/ui';
+import { Input } from '@doru/ui';
+import { Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
@@ -7,7 +9,9 @@ import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import '../sidebar/sidebar.css';
 import './PlaceEditor.css';
-import { Button, DateEditor, EditorPage, EntityViewCard, emptyDate } from '@doru/ui';
+import { DateEditor, emptyDate } from '@doru/ui/domain';
+import { Button } from '@doru/ui';
+import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,
@@ -128,19 +132,15 @@ export function PlaceEditor({
               value={name.value}
               onChange={(event) => patchName(index, { value: event.target.value })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.place.names.remove')}
-              onClick={() => removeName(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.place.names.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeName(index)} />
           </div>
         ))}
-        <button className="add-button" onClick={addName}>
+        <Button variant="primary" onClick={addName}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.names.add')}
-        </button>
+        </Button>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.place.coordinates')}>
@@ -169,13 +169,9 @@ export function PlaceEditor({
                 value={postal.code}
                 onChange={(event) => patchPostal(index, { code: event.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.place.postalCodes.remove')}
-                onClick={() => removePostal(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.place.postalCodes.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removePostal(index)} />
             </div>
             <DateEditor
               label={nls.t('features.tree.events.dateField')}
@@ -185,10 +181,10 @@ export function PlaceEditor({
             />
           </div>
         ))}
-        <button className="add-button" onClick={addPostal}>
+        <Button variant="primary" onClick={addPostal}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.postalCodes.add')}
-        </button>
+        </Button>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.place.hierarchy')}>
@@ -217,19 +213,15 @@ export function PlaceEditor({
                 </option>
               ))}
             </Select>
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.place.hierarchy.remove')}
-              onClick={() => removeHierarchy(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.place.hierarchy.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeHierarchy(index)} />
           </div>
         ))}
-        <button className="add-button" onClick={addHierarchy}>
+        <Button variant="primary" onClick={addHierarchy}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.hierarchy.add')}
-        </button>
+        </Button>
       </SectionCard>
     </EditorPage>
   );

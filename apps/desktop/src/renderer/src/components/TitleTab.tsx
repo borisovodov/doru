@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Input, Select } from '@doru/ui';
+import { Input } from '@doru/ui';
+import { Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { EntityTab } from '@doru/features';
 import { nls } from '@doru/workbench';
-import { Button, EntityViewCard } from '@doru/ui';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { TITLE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function TitleTab({

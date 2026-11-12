@@ -1,3 +1,5 @@
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { AddressRecord, FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
@@ -224,19 +226,15 @@ export function FactEditor({
               value={age.phrase ?? ''}
               onChange={(event) => patchAge(index, { phrase: event.target.value || undefined })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.fact.ages.remove')}
-              onClick={() => removeAge(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.fact.ages.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeAge(index)} />
           </div>
         ))}
-        <button className="add-button small" onClick={addAge}>
+        <Button variant="primary" size="sm" onClick={addAge}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.fact.ages.add')}
-        </button>
+        </Button>
       </div>
 
       <div className="fact-subsection">
@@ -266,19 +264,15 @@ export function FactEditor({
               value={participant.role ?? ''}
               onChange={(event) => patchParticipant(index, { role: event.target.value || undefined })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.fact.participants.remove')}
-              onClick={() => removeParticipant(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.fact.participants.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeParticipant(index)} />
           </div>
         ))}
-        <button className="add-button small" onClick={addParticipant}>
+        <Button variant="primary" size="sm" onClick={addParticipant}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.fact.participants.add')}
-        </button>
+        </Button>
       </div>
 
       <div className="fact-subsection">
@@ -294,15 +288,15 @@ export function FactEditor({
       </div>
 
       <div className="fact-editor-actions">
-        <button className="add-button" disabled={saving} onClick={() => void save()}>
+        <Button variant="primary" disabled={saving} onClick={() => void save()}>
           {nls.t('features.tree.save')}
-        </button>
-        <button className="plain-button" onClick={onCancel}>
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
           {nls.t('features.tree.fact.cancel')}
-        </button>
-        <button className="danger-button" onClick={() => void onDelete(fact)}>
+        </Button>
+        <Button variant="danger" onClick={() => void onDelete(fact)}>
           {nls.t('features.tree.fact.delete')}
-        </button>
+        </Button>
       </div>
     </div>
   );

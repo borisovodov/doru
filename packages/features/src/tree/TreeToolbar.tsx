@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search } from 'lucide-react';
 import type { ChartKind, PersonRecord } from '@doru/core';
-import { IconButton, SegmentedControl, displayName } from '@doru/ui';
+import { displayName } from '@doru/ui/domain';
+import { IconButton } from '@doru/ui';
+import { SegmentedControl } from '@doru/ui';
 import { nls } from '../nls';
 
 const CHART_KINDS = [

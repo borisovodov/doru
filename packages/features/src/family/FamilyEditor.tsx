@@ -1,22 +1,17 @@
+import { IconButton } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Input, Select } from '@doru/ui';
+import { Input } from '@doru/ui';
+import { Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
-import { ContributorsSection, Button, DateEditor, EditorPage, EntityViewCard, FactsSection, displayName } from '@doru/ui';
+import { ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
+import { Button, EditorPage, EntityViewCard } from '@doru/ui';
 import type { FamilyEditorApi } from '../person/types';
-import {
-  CHILD_STATUS_TYPES,
-  PEDIGREE_TYPES,
-  emptyChildLinkDraft,
-  emptyPartnerLinkDraft,
-  type ChildLinkDraft,
-  type FamilyDraft,
-  type PartnerLinkDraft,
-} from '@doru/ui';
+import { CHILD_STATUS_TYPES, PEDIGREE_TYPES, emptyChildLinkDraft, emptyPartnerLinkDraft, type ChildLinkDraft, type FamilyDraft, type PartnerLinkDraft } from '@doru/ui/domain';
 
 /**
  * The full family form: partner and child slots with their link details
@@ -144,13 +139,9 @@ export function FamilyEditor({
                 />
                 {nls.t('features.tree.family.preferred')}
               </label>
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.family.removeMember')}
-                onClick={() => removePartner(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removePartner(index)} />
             </div>
             <DateEditor
               label={nls.t('features.tree.family.partnerDate')}
@@ -169,10 +160,10 @@ export function FamilyEditor({
               </option>
             ))}
           </Select>
-          <button className="add-button" onClick={addPartner}>
+          <Button variant="primary" onClick={addPartner}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addPartner')}
-          </button>
+          </Button>
         </div>
       </SectionCard>
 
@@ -182,13 +173,9 @@ export function FamilyEditor({
           <div className="family-link-block" key={link.id}>
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.childId))}</span>
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.family.removeMember')}
-                onClick={() => removeChild(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeChild(index)} />
             </div>
             <div className="family-link-grid">
               <label>
@@ -249,10 +236,10 @@ export function FamilyEditor({
               </option>
             ))}
           </Select>
-          <button className="add-button" onClick={addChild}>
+          <Button variant="primary" onClick={addChild}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addChild')}
-          </button>
+          </Button>
         </div>
       </SectionCard>
 

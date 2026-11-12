@@ -1,6 +1,8 @@
 import { Plus } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
-import { Chip, IconButton, displayName, formatDate } from '@doru/ui';
+import { displayName, formatDate } from '@doru/ui/domain';
+import { Chip } from '@doru/ui';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 import './tasks.css';
 

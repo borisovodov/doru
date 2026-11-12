@@ -16,24 +16,8 @@ import type {
   TagRecord,
   TitleRecord,
 } from '@doru/core';
-import {
-  ContactsSection,
-  ContributorsSection,
-  EntityTab,
-  IdentifiersSection,
-  NotesSection,
-  RestrictionsSection,
-  SourceCitationsList,
-  SourceEditor,
-  SourcesSection,
-  TagsSection,
-  emptySourceDraft,
-  sourceDraftMatches,
-  sourceDraftToRecord,
-  sourceToDraft,
-  type SourceDraft,
-  type SourceEditorApi,
-} from '@doru/features';
+import { EntityTab, SourceCitationsList, SourceEditor, type SourceEditorApi } from '@doru/features';
+import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, emptySourceDraft, sourceDraftMatches, sourceDraftToRecord, sourceToDraft, type SourceDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { SOURCE_TAB_PREFIX } from '../hooks/useTabs';
 

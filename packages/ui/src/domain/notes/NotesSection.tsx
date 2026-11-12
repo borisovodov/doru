@@ -1,3 +1,5 @@
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState } from 'react';
 import { Pencil, Plus, X } from 'lucide-react';
 import type { NoteLinkRecord, NoteRecord, NoteTranslation } from '@doru/core';
@@ -142,43 +144,35 @@ export function NotesSection({
                           value={translation.mime}
                           onChange={(event) => patchTranslation(index, { mime: event.target.value })}
                         />
-                        <button
-                          className="icon-button"
-                          title={nls.t('features.tree.notes.translations.remove')}
-                          onClick={() => removeTranslation(index)}
-                        >
+                        <IconButton size="sm" label={nls.t('features.tree.notes.translations.remove')} icon={<>
                           <X size={13} aria-hidden="true" />
-                        </button>
+                        </>} onClick={() => removeTranslation(index)} />
                       </div>
                     ))}
-                    <button className="add-button small" onClick={addTranslation}>
+                    <Button variant="primary" size="sm" onClick={addTranslation}>
                       <Plus size={13} aria-hidden="true" />
                       {nls.t('features.tree.notes.translations.add')}
-                    </button>
+                    </Button>
                   </div>
                   <div className="notes-edit-actions">
-                    <button className="add-button small" onClick={() => void saveEdit(note)}>
+                    <Button variant="primary" size="sm" onClick={() => void saveEdit(note)}>
                       {nls.t('features.tree.save')}
-                    </button>
-                    <button className="plain-button small" onClick={() => setEditingId(null)}>
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>
                       {nls.t('features.tree.fact.cancel')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <div className="notes-row">
                   <span className="notes-text">{note.text}</span>
                   {noteMeta(note) !== '' && <span className="notes-meta">{noteMeta(note)}</span>}
-                  <button className="icon-button" title={nls.t('features.tree.notes.edit')} onClick={() => startEdit(note)}>
+                  <IconButton size="sm" label={nls.t('features.tree.notes.edit')} icon={<>
                     <Pencil size={13} aria-hidden="true" />
-                  </button>
-                  <button
-                    className="icon-button"
-                    title={nls.t('features.tree.notes.remove')}
-                    onClick={() => void onDelete(note)}
-                  >
+                  </>} onClick={() => startEdit(note)} />
+                  <IconButton size="sm" label={nls.t('features.tree.notes.remove')} icon={<>
                     <X size={13} aria-hidden="true" />
-                  </button>
+                  </>} onClick={() => void onDelete(note)} />
                 </div>
               )}
             </li>
@@ -196,9 +190,9 @@ export function NotesSection({
             }
           }}
         />
-        <button className="add-button" onClick={() => void add()}>
+        <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.notes.add')}
-        </button>
+        </Button>
       </div>
     </div>
   );

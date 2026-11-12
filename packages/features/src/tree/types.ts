@@ -1,7 +1,7 @@
 import type { FamilyRecord, PersonRecord } from '@doru/core';
-import type { PersonCounts } from '@doru/ui';
+import type { PersonCounts } from '@doru/ui/domain';
 
-export type { CardAction, PersonCounts } from '@doru/ui';
+export type { CardAction, PersonCounts } from '@doru/ui/domain';
 
 export type RelativeRelation = 'child' | 'spouse' | 'parent';
 

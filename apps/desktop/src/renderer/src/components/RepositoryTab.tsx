@@ -3,30 +3,12 @@ import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type {
-  CitationRecord,
-  ContactRecord,
-  IdentifierRecord,
-  NoteRecord,
-  RepositoryRecord,
-  RestrictionRecord,
-  SourceRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
-import {
-  AddressFields,
-  ContactsSection,
-  EntityTab,
-  IdentifiersSection,
-  NotesSection,
-  RestrictionsSection,
-  SourcesSection,
-  TagsSection,
-  addressLabel,
-  type RegistriesEditorApi,
-} from '@doru/features';
+  CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RepositoryRecord, RestrictionRecord, SourceRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+import { EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { AddressFields, ContactsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, addressLabel } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { Button, EntityViewCard } from '@doru/ui';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { REPOSITORY_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 

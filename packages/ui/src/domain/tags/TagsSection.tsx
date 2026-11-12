@@ -1,3 +1,5 @@
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useRef, useState } from 'react';
 import { CalendarDays, Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
@@ -130,28 +132,23 @@ export function TagsSection({
                 </button>
               )}
               {link.date !== undefined && <span className="tag-chip-date">{formatDate(link.date)}</span>}
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.tags.date.edit')}
-                onClick={() => startDateEdit(link)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.tags.date.edit')} icon={<>
                 <CalendarDays size={12} aria-hidden="true" />
-              </button>
-              <button className="icon-button" title={nls.t('features.tree.tags.detach')} onClick={() => void onDetachTag(link)}>
+              </>} onClick={() => startDateEdit(link)} />
+              <IconButton size="sm" label={nls.t('features.tree.tags.detach')} icon={<>
                 <X size={12} aria-hidden="true" />
-              </button>
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.tags.delete')}
+              </>} onClick={() => void onDetachTag(link)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.tags.delete')}
+                icon={<Trash2 size={12} aria-hidden="true" />}
                 onClick={() => {
                   const tag = byId.get(tagId);
                   if (tag !== undefined) {
                     void onDeleteTag(tag);
                   }
                 }}
-              >
-                <Trash2 size={12} aria-hidden="true" />
-              </button>
+              />
             </span>
             {editingDateId === link.id && (
               <span className="tag-date-editor">
@@ -161,12 +158,12 @@ export function TagsSection({
                   onChange={setDateDraft}
                   hidePlace
                 />
-                <button className="add-button small" onClick={() => void saveDateEdit(link)}>
+                <Button variant="primary" size="sm" onClick={() => void saveDateEdit(link)}>
                   {nls.t('features.tree.save')}
-                </button>
-                <button className="plain-button small" onClick={() => setEditingDateId(null)}>
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingDateId(null)}>
                   {nls.t('features.tree.fact.cancel')}
-                </button>
+                </Button>
               </span>
             )}
           </span>
@@ -184,9 +181,9 @@ export function TagsSection({
             <option key={tag.id} value={tag.name} />
           ))}
         </datalist>
-        <button className="add-button" onClick={() => void attach()}>
+        <Button variant="primary" onClick={() => void attach()}>
           {nls.t('features.tree.tags.attach')}
-        </button>
+        </Button>
       </div>
     </div>
   );

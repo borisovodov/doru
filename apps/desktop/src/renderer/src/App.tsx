@@ -2,15 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
 import { IconButton } from '@doru/ui';
-import {
-  ChatPanel,
-  ChatSetupPlaceholder,
-  EmptyEditorPage,
-  NoticesView,
-  SettingsView,
-  TreeCanvas,
-  WelcomePage,
-} from '@doru/features';
+import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, NoticesView, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { FamilyTab } from './components/FamilyTab';

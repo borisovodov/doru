@@ -1,0 +1,21 @@
+/* Shared domain section styles still used by the migrated entity editors.
+   New code should use SectionCard/Subcard; this layer keeps the remaining
+   section wrappers visually consistent until they are migrated. */
+
+.person-section {
+  margin-top: 14px;
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  border-radius: var(--doru-radius-lg);
+  padding: 12px;
+}
+
+.person-section h3 {
+  margin: 0 0 8px;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+}
+
+.notes-empty {
+  color: var(--doru-fg-muted);
+}

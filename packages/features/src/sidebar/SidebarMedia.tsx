@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
 import type { MediaRecord, PersonRecord } from '@doru/core';
-import { EntityCard, displayName } from '@doru/ui';
+import { displayName } from '@doru/ui/domain';
+import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 export interface SidebarMediaItem extends MediaRecord {

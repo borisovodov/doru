@@ -1,50 +1,24 @@
 import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
-import {
-  Avatar,
-  Badge,
-  Button,
-  EditorPage,
-  EntityViewCard,
-  Field,
-  SectionCard,
-  Select,
-} from '@doru/ui';
-import type {
-  AddressRecord,
-  AssociationRecord,
-  ChangeRecord,
-  CitationRecord,
-  ContactRecord,
-  FactRecord,
-  FamilyRecord,
-  IdentifierRecord,
-  NoteRecord,
-  PersonRecord,
-  PlaceRecord,
-  RestrictionRecord,
-  Sex,
-  SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
+import { Avatar } from '@doru/ui';
+import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
+import type { AddressRecord, AssociationRecord, ChangeRecord, CitationRecord, ContactRecord, FactRecord, FamilyRecord, IdentifierRecord, NoteRecord, PersonRecord, PlaceRecord, RestrictionRecord, Sex, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
-import { AssociationsSection } from '@doru/ui';
-import { AliasesSection } from '@doru/ui';
-import { ContactsSection, IdentifiersSection, RestrictionsSection } from '@doru/ui';
-import { ChangesSection } from '@doru/ui';
-import { ContributorsSection } from '@doru/ui';
-import { DateEditor } from '@doru/ui';
-import { FactsSection } from '@doru/ui';
-import { FamilySection } from '@doru/ui';
-import { MediaSection } from '@doru/ui';
-import { NotesSection } from '@doru/ui';
-import { NamesSection } from '@doru/ui';
-import { SourcesSection } from '@doru/ui';
-import { TagsSection } from '@doru/ui';
-import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui';
+import { AssociationsSection } from '@doru/ui/domain';
+import { AliasesSection } from '@doru/ui/domain';
+import { ContactsSection, IdentifiersSection, RestrictionsSection } from '@doru/ui/domain';
+import { ChangesSection } from '@doru/ui/domain';
+import { ContributorsSection } from '@doru/ui/domain';
+import { DateEditor } from '@doru/ui/domain';
+import { FactsSection } from '@doru/ui/domain';
+import { FamilySection } from '@doru/ui/domain';
+import { MediaSection } from '@doru/ui/domain';
+import { NotesSection } from '@doru/ui/domain';
+import { NamesSection } from '@doru/ui/domain';
+import { SourcesSection } from '@doru/ui/domain';
+import { TagsSection } from '@doru/ui/domain';
+import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
 import type { MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {

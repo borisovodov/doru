@@ -11,9 +11,18 @@ compose screens from it.
 - **Domain** — components that know the data model but never fetch it:
   date/fact/citation editors and the reusable attachment sections.
 
+The root entry point (`@doru/ui`) exports atoms, patterns and the style entry.
+Domain components, draft helpers and domain types live in `@doru/ui/domain`:
+
+```tsx
+import { Button, Field, Input } from '@doru/ui';
+import { DateEditor, displayName } from '@doru/ui/domain';
+```
+
 `@doru/ui` may import types and pure helpers from `@doru/core`, and NLS from
 `@doru/platform`. It must not import `@doru/features`, `@doru/workbench`,
-Electron APIs or services.
+Electron APIs or services. `@doru/features` exports screens only; it does not
+re-export the library.
 
 ## Styling rules
 

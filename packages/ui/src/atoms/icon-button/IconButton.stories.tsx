@@ -13,7 +13,7 @@ const meta = {
   },
   argTypes: {
     size: { control: 'select', options: ['sm', 'md', 'lg', 'nav'] },
-    variant: { control: 'select', options: ['ghost', 'active', 'primary', 'danger'] },
+    variant: { control: 'select', options: ['ghost', 'active', 'primary', 'secondary', 'danger'] },
   },
 } satisfies Meta<typeof IconButton>;
 

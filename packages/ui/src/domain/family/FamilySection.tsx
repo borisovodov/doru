@@ -1,3 +1,4 @@
+import { Button } from '../../atoms/button/Button';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
@@ -198,7 +199,7 @@ function FamilyCard({
           </span>
         ))}
         <DateEditor label="" value={marriageDate} onChange={setMarriageDate} />
-        <button className="add-button" onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</button>
+        <Button variant="primary" onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</Button>
       </div>
       <div className="family-actions">
         <button onClick={onDelete}>{nls.t('features.tree.families.delete')}</button>

@@ -1,3 +1,4 @@
+import { Button } from '../../atoms/button/Button';
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
@@ -140,9 +141,9 @@ export function FactsSection({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
-        <button className="add-button" onClick={() => void add()}>
+        <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.events.add')}
-        </button>
+        </Button>
       </div>
     </div>
   );

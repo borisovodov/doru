@@ -1,3 +1,5 @@
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { CitationRecord } from '@doru/core';
@@ -103,20 +105,16 @@ export function CitationEditor({
                 value={text.mime}
                 onChange={(event) => patchText(index, { mime: event.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.texts.remove')}
-                onClick={() => removeText(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.source.texts.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeText(index)} />
             </div>
           </div>
         ))}
-        <button className="add-button small" onClick={addText}>
+        <Button variant="primary" size="sm" onClick={addText}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.texts.add')}
-        </button>
+        </Button>
       </div>
 
       <div className="citation-subsection">
@@ -133,28 +131,24 @@ export function CitationEditor({
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.source.templateFields.remove')}
-              onClick={() => removeField(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.source.templateFields.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeField(index)} />
           </div>
         ))}
-        <button className="add-button small" onClick={addField}>
+        <Button variant="primary" size="sm" onClick={addField}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.templateFields.add')}
-        </button>
+        </Button>
       </div>
 
       <div className="citation-actions">
-        <button className="add-button" disabled={saving} onClick={() => void save()}>
+        <Button variant="primary" disabled={saving} onClick={() => void save()}>
           {nls.t('features.tree.save')}
-        </button>
-        <button className="plain-button" onClick={onCancel}>
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
           {nls.t('features.tree.fact.cancel')}
-        </button>
+        </Button>
       </div>
     </div>
   );
