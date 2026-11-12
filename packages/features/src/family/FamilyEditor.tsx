@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { SectionCard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -128,8 +129,7 @@ export function FamilyEditor({
         }
       />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.families.partners')}</h3>
+      <SectionCard title={nls.t('features.tree.families.partners')}>
         {draft.partnerLinks.length === 0 && <p className="notes-empty">{nls.t('features.tree.families.empty')}</p>}
         {draft.partnerLinks.map((link, index) => (
           <div className="family-link-block" key={link.id}>
@@ -173,10 +173,9 @@ export function FamilyEditor({
             {nls.t('features.tree.families.addPartner')}
           </button>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.families.children')}</h3>
+      <SectionCard title={nls.t('features.tree.families.children')}>
         {draft.childLinks.length === 0 && <p className="notes-empty">{nls.t('features.tree.families.empty')}</p>}
         {draft.childLinks.map((link, index) => (
           <div className="family-link-block" key={link.id}>
@@ -254,7 +253,7 @@ export function FamilyEditor({
             {nls.t('features.tree.families.addChild')}
           </button>
         </div>
-      </section>
+      </SectionCard>
 
       <FactsSection
         owner={{ familyId: draft.id }}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SectionCard } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { EntityTab } from '@doru/features';
@@ -144,8 +145,7 @@ function TitleTabBody({
           }
         />
 
-        <section className="person-section">
-          <h3>{nls.t('features.tree.details')}</h3>
+        <SectionCard title={nls.t('features.tree.details')}>
           <label>
             {nls.t('features.tree.title.name')}
             <input value={name} onChange={(event) => setName(event.target.value)} />
@@ -187,11 +187,10 @@ function TitleTabBody({
               ))}
             </select>
           </label>
-        </section>
+        </SectionCard>
 
         {!isNew && (
-          <section className="person-section">
-            <h3>{nls.t('features.tree.title.sources')}</h3>
+          <SectionCard title={nls.t('features.tree.title.sources')}>
             {citingSources.length === 0 ? (
               <p className="notes-empty">{nls.t('features.tree.title.sourcesEmpty')}</p>
             ) : (
@@ -205,7 +204,7 @@ function TitleTabBody({
                 ))}
               </ul>
             )}
-          </section>
+          </SectionCard>
         )}
       </div>
     </EntityTab>

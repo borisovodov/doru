@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SectionCard } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type {
   CitationRecord,
@@ -178,14 +179,13 @@ function RepositoryTabBody({
           }
         />
 
-        <section className="person-section">
-          <h3>{nls.t('features.tree.details')}</h3>
+        <SectionCard title={nls.t('features.tree.details')}>
           <label>
             {nls.t('features.tree.repository.name')}
             <input value={name} onChange={(event) => setName(event.target.value)} />
           </label>
           <AddressFields address={address} onChange={setAddress} />
-        </section>
+        </SectionCard>
       </div>
       {targetId !== undefined && (
         <>

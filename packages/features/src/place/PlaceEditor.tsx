@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { SectionCard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -95,8 +96,7 @@ export function PlaceEditor({
         }
       />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.names')}</h3>
+      <SectionCard title={nls.t('features.tree.place.names')}>
         {draft.names.length === 0 && <p className="notes-empty">{nls.t('features.tree.place.names.empty')}</p>}
         {draft.names.map((name, index) => (
           <div className="place-name-row" key={name.id}>
@@ -140,10 +140,9 @@ export function PlaceEditor({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.names.add')}
         </button>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.coordinates')}</h3>
+      <SectionCard title={nls.t('features.tree.place.coordinates')}>
         <div className="place-coordinates">
           <label>
             {nls.t('features.tree.place.latitude')}
@@ -158,10 +157,9 @@ export function PlaceEditor({
             {nls.t('features.tree.place.verified')}
           </label>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.postalCodes')}</h3>
+      <SectionCard title={nls.t('features.tree.place.postalCodes')}>
         {draft.postalCodes.map((postal, index) => (
           <div className="place-postal-block" key={postal.id}>
             <div className="place-sub-row">
@@ -190,10 +188,9 @@ export function PlaceEditor({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.postalCodes.add')}
         </button>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.hierarchy')}</h3>
+      <SectionCard title={nls.t('features.tree.place.hierarchy')}>
         {draft.hierarchy.map((link, index) => (
           <div className="place-sub-row" key={index}>
             <select
@@ -232,7 +229,7 @@ export function PlaceEditor({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.hierarchy.add')}
         </button>
-      </section>
+      </SectionCard>
     </EditorPage>
   );
 }

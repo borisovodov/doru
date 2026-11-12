@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SectionCard } from '@doru/ui';
 import { BookOpenText, Plus, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
 import { placeName } from '@doru/core/model';
@@ -113,8 +114,7 @@ export function SourceEditor({
         }
       />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.details')}</h3>
+      <SectionCard title={nls.t('features.tree.source.details')}>
         <label>
           {nls.t('features.tree.sources.titleField')}
           <input value={draft.title} onChange={(event) => set({ title: event.target.value })} />
@@ -191,10 +191,9 @@ export function SourceEditor({
             ))}
           </select>
         </label>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.texts')}</h3>
+      <SectionCard title={nls.t('features.tree.source.texts')}>
         {draft.texts.map((text, index) => (
           <div className="source-text-block" key={text.id}>
             <textarea
@@ -227,10 +226,9 @@ export function SourceEditor({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.texts.add')}
         </button>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.dataEvents')}</h3>
+      <SectionCard title={nls.t('features.tree.source.dataEvents')}>
         {draft.dataEvents.map((event, index) => (
           <div className="source-event-block" key={event.id}>
             <div className="source-sub-row">
@@ -281,10 +279,9 @@ export function SourceEditor({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.dataEvents.add')}
         </button>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.repositories')}</h3>
+      <SectionCard title={nls.t('features.tree.source.repositories')}>
         {draft.repositories.map((link, index) => (
           <div className="source-repository-block" key={link.id}>
             <div className="source-sub-row">
@@ -341,10 +338,9 @@ export function SourceEditor({
           </button>
           <NewRepositoryInput onAddRepository={onAddRepository} />
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.templateFields')}</h3>
+      <SectionCard title={nls.t('features.tree.source.templateFields')}>
         {draft.templateFields.map((field, index) => (
           <div className="source-sub-row" key={field.id}>
             <input
@@ -370,7 +366,7 @@ export function SourceEditor({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.templateFields.add')}
         </button>
-      </section>
+      </SectionCard>
     </EditorPage>
   );
 }

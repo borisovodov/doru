@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
 import {
@@ -135,12 +136,11 @@ function TaskTabBody({
           }
         />
 
-        <section className="person-section">
-          <h3>{nls.t('features.tree.details')}</h3>
+        <SectionCard title={nls.t('features.tree.details')}>
           <div className="task-editor">
             <TaskEditorFields edit={draft} persons={persons} repositories={repositories} onChange={patch} />
           </div>
-        </section>
+        </SectionCard>
       </div>
     </EntityTab>
   );
