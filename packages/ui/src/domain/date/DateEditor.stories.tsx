@@ -1,6 +1,12 @@
+import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DateEditor } from './DateEditor';
 import { emptyDate } from '../person/draft';
+
+function StatefulDateEditor(args: ComponentProps<typeof DateEditor>) {
+  const [value, setValue] = useState(args.value);
+  return <DateEditor {...args} value={value} onChange={setValue} />;
+}
 
 const meta = {
   title: 'Domain/DateEditor',
@@ -10,6 +16,7 @@ const meta = {
     value: emptyDate(),
     onChange: () => undefined,
   },
+  render: (args) => <StatefulDateEditor {...args} />,
 } satisfies Meta<typeof DateEditor>;
 
 export default meta;

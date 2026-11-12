@@ -1,6 +1,12 @@
+import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { NamesSection } from './NamesSection';
 import { emptyNameDraft } from './draft';
+
+function StatefulNamesSection(args: ComponentProps<typeof NamesSection>) {
+  const [names, setNames] = useState(args.names);
+  return <NamesSection {...args} names={names} onChange={setNames} />;
+}
 
 const meta = {
   title: 'Domain/NamesSection',
@@ -18,6 +24,7 @@ const meta = {
     ],
     onChange: () => undefined,
   },
+  render: (args) => <StatefulNamesSection {...args} />,
 } satisfies Meta<typeof NamesSection>;
 
 export default meta;
