@@ -134,11 +134,3 @@
   border-color: var(--doru-focus);
   outline: none;
 }
-
-.add-button.small,
-.plain-button.small {
-  height: auto;
-  padding: 3px 8px;
-  font-size: 12px;
-  border-radius: var(--doru-radius-sm);
-}

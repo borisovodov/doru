@@ -32,7 +32,6 @@ export function IconButton({
       type={type}
       className={cx(styles['iconButton'], styles[size], styles[variant], className)}
       aria-label={label}
-      title={label}
     >
       {icon}
     </button>

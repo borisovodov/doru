@@ -29,10 +29,12 @@ export function Field({ label, hint, error, required = false, className, childre
   const describedBy = [hintId, errorId].filter((value): value is string => value !== undefined).join(' ') || undefined;
 
   let control = children;
+  let controlId = id;
   if (isValidElement(children)) {
     const element = children as ReactElement<ControlProps>;
+    controlId = element.props.id ?? id;
     control = cloneElement(element, {
-      id: element.props.id ?? id,
+      id: controlId,
       ...(describedBy !== undefined ? { 'aria-describedby': describedBy } : {}),
       ...(error !== undefined ? { 'aria-invalid': true } : {}),
     });
@@ -40,7 +42,7 @@ export function Field({ label, hint, error, required = false, className, childre
 
   return (
     <div className={cx(styles['field'], className)}>
-      <label className={styles['label']} htmlFor={id}>
+      <label className={styles['label']} htmlFor={controlId}>
         {label}
         {required ? <span className={styles['required']} aria-hidden="true"> *</span> : null}
       </label>
