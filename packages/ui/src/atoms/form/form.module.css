@@ -77,10 +77,6 @@
   cursor: pointer;
 }
 
-.checkbox:hover:not(:disabled) {
-  border-color: var(--doru-accent);
-}
-
 .checkbox:checked {
   border-color: var(--doru-accent);
   background: var(--doru-accent);
@@ -98,4 +94,8 @@
 .checkbox:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.checkbox:hover:not(:disabled) {
+  border-color: var(--doru-accent);
 }

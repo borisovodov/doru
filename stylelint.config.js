@@ -18,7 +18,14 @@ export default {
     // These prefixes are required by Chromium for text gradients and masks.
     'property-no-vendor-prefix': [
       true,
-      { ignoreProperties: ['-webkit-mask-image', '-webkit-background-clip', '-webkit-text-fill-color'] },
+      {
+        ignoreProperties: [
+          '-webkit-appearance',
+          '-webkit-mask-image',
+          '-webkit-background-clip',
+          '-webkit-text-fill-color',
+        ],
+      },
     ],
   },
 };
