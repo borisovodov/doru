@@ -80,6 +80,21 @@ export default defineConfig(
     },
   },
   {
+    // Class-based services live here; the rule catches methods whose `this`
+    // would be lost when passed as callbacks. UI APIs are plain object
+    // functions, so they keep the rule off.
+    files: [
+      'packages/ai/src/**/*.ts',
+      'packages/core/src/**/*.ts',
+      'apps/desktop/src/main/**/*.ts',
+      'apps/desktop/src/preload/**/*.ts',
+    ],
+    plugins: { '@typescript-eslint': tseslint.plugin },
+    rules: {
+      '@typescript-eslint/unbound-method': 'error',
+    },
+  },
+  {
     files: [
       'apps/desktop/src/renderer/**/*.{ts,tsx}',
       'packages/{ui,features,workbench}/src/**/*.{ts,tsx}',
