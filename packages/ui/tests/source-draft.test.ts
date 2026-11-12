@@ -112,6 +112,26 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
     expect(record.repositories).toEqual([]);
     expect(record.templateFields).toEqual([]);
   });
+
+  it('keeps data events with only a value or a date', () => {
+    const draft = emptySourceDraft();
+    const record = sourceDraftToRecord({
+      ...draft,
+      dataEvents: [
+        { id: 'E1', tag: '', value: 'Ivan', date: emptyDate() },
+        { id: 'E2', tag: '', value: '', date: { ...emptyDate(), epoch: 'BCE' } },
+        { id: 'E3', tag: '', value: '', date: { ...emptyDate(), month: '5' } },
+        { id: 'E4', tag: '', value: '', date: { ...emptyDate(), timeHour: '9' } },
+        { id: 'E5', tag: '', value: '', date: emptyDate() },
+      ],
+    });
+    expect(record.dataEvents).toEqual([
+      { id: 'E1', tag: 'EVEN', value: 'Ivan' },
+      { id: 'E2', tag: 'EVEN', date: { quality: 'exact', component: { epoch: 'BCE' } } },
+      { id: 'E3', tag: 'EVEN', date: { quality: 'exact', component: { month: 5 } } },
+      { id: 'E4', tag: 'EVEN', date: { quality: 'exact', time: { hour: 9, minute: 0 } } },
+    ]);
+  });
 });
 
 describe('sourceDraftMatches', () => {

@@ -164,17 +164,19 @@ export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
         language: text.language.trim() || undefined,
       })),
     dataEvents: draft.dataEvents
-      .filter((event) => event.tag.trim() !== '' || event.date.year !== '' || event.date.text.trim() !== '')
       .map((event) => {
         const date = fromDateDraft(event.date);
-        return {
-          id: event.id,
-          tag: event.tag.trim() || 'EVEN',
-          ...(event.value.trim() !== '' ? { value: event.value.trim() } : {}),
-          ...(date !== undefined ? { date } : {}),
-          ...(event.placeId !== undefined ? { placeId: event.placeId } : {}),
-        };
-      }),
+        const value = event.value.trim();
+        return { event, date, value };
+      })
+      .filter(({ event, date, value }) => event.tag.trim() !== '' || value !== '' || date !== undefined)
+      .map(({ event, date, value }) => ({
+        id: event.id,
+        tag: event.tag.trim() || 'EVEN',
+        ...(value !== '' ? { value } : {}),
+        ...(date !== undefined ? { date } : {}),
+        ...(event.placeId !== undefined ? { placeId: event.placeId } : {}),
+      })),
     repositories: draft.repositories
       .filter((link) => link.repositoryId !== '')
       .map((link) => ({
