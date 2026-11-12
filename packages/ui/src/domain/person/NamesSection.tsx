@@ -1,6 +1,13 @@
 import { Plus, Star, X } from 'lucide-react';
-import { nls } from '../nls';
-import { DateEditor } from '@doru/ui';
+import { nls } from '../../nls';
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Field } from '../../atoms/field/Field';
+import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
+import { Input } from '../../atoms/form/Input';
+import { Select } from '../../atoms/form/Select';
+import { Subcard } from '../../patterns/subcard/Subcard';
+import { DateEditor } from '../date/DateEditor';
 import {
   NAME_PART_FIELDS,
   NAME_TYPES,
@@ -14,8 +21,8 @@ import {
   type DateDraft,
   type NameDraft,
   type NameVariantDraft,
-} from '@doru/ui';
-import './NamesSection.css';
+} from './draft';
+import styles from './NamesSection.module.css';
 
 /**
  * The editable list of a person's names: each name block carries its type,
@@ -74,39 +81,42 @@ export function NamesSection({
     patchVariant(nameIndex, variantIndex, { date: dateDraftBlank(date) ? undefined : date });
 
   return (
-    <div className="names-section">
+    <div className={styles['namesSection']}>
       {names.map((name, index) => (
-        <div className="name-block" key={name.id}>
-          <div className="name-block-head">
-            <span className="name-block-label">{nameDraftDisplay(name) || '—'}</span>
-            <button
-              className={`icon-button${name.primary ? ' is-primary' : ''}`}
-              title={nls.t('features.tree.names.primary')}
+        <Subcard key={name.id} className={styles['nameBlock'] ?? ''}>
+          <div className={styles['head']}>
+            <span className={styles['label']}>{nameDraftDisplay(name) || '—'}</span>
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.names.primary')}
+              icon={<Star size={14} fill={name.primary ? 'currentColor' : 'none'} aria-hidden="true" />}
               onClick={() => markPrimary(index)}
-            >
-              <Star size={14} fill={name.primary ? 'currentColor' : 'none'} aria-hidden="true" />
-            </button>
-            <button className="icon-button" title={nls.t('features.tree.names.remove')} onClick={() => removeName(index)}>
-              <X size={14} aria-hidden="true" />
-            </button>
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.names.remove')}
+              icon={<X size={14} aria-hidden="true" />}
+              onClick={() => removeName(index)}
+            />
           </div>
-          <div className="name-meta-row">
-            <label>
-              {nls.t('features.tree.names.type')}
-              <select value={name.type} onChange={(event) => patch(index, { type: event.target.value })}>
+          <FieldGrid columns={2}>
+            <Field label={nls.t('features.tree.names.type')}>
+              <Select value={name.type} onChange={(event) => patch(index, { type: event.target.value })}>
                 <option value="">{nls.t('features.tree.names.type.none')}</option>
                 {NAME_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {nls.t(`features.tree.names.type.${type}`)}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label>
-              {nls.t('features.tree.names.language')}
-              <input value={name.language} onChange={(event) => patch(index, { language: event.target.value })} />
-            </label>
-          </div>
+              </Select>
+            </Field>
+            <Field label={nls.t('features.tree.names.language')}>
+              <Input
+                value={name.language}
+                onChange={(event) => patch(index, { language: event.target.value })}
+              />
+            </Field>
+          </FieldGrid>
           <DateEditor
             label={nls.t('features.tree.names.date')}
             value={name.date ?? emptyDate()}
@@ -114,15 +124,14 @@ export function NamesSection({
             hidePlace
           />
           {partOf(name, 'full').trim() !== '' && (
-            <label>
-              {nls.t('features.tree.names.displayForm')}
-              <input
+            <Field label={nls.t('features.tree.names.displayForm')}>
+              <Input
                 value={partOf(name, 'full')}
                 onChange={(event) => patch(index, setPartValue(name, 'full', event.target.value))}
               />
-            </label>
+            </Field>
           )}
-          <div className="name-parts-grid">
+          <FieldGrid columns={3}>
             {NAME_PART_FIELDS.map((field) => (
               <NamePartField
                 key={field}
@@ -131,46 +140,48 @@ export function NamesSection({
                 onChange={(value) => patch(index, setPartValue(name, field, value))}
               />
             ))}
-          </div>
-          <div className="name-variants">
+          </FieldGrid>
+          <div className={styles['variants']}>
             {name.variants.map((variant, variantIndex) => (
-              <div className="variant-block" key={variant.id}>
-                <div className="variant-head">
-                  <select
+              <div className={styles['variant']} key={variant.id}>
+                <div className={styles['variantHead']}>
+                  <Select
+                    aria-label={nls.t('features.tree.names.variant.kind.translation')}
                     value={variant.kind}
-                    onChange={(event) => patchVariant(index, variantIndex, { kind: event.target.value as NameVariantDraft['kind'] })}
+                    onChange={(event) =>
+                      patchVariant(index, variantIndex, { kind: event.target.value as NameVariantDraft['kind'] })
+                    }
                   >
                     {NAME_VARIANT_KINDS.map((kind) => (
                       <option key={kind} value={kind}>
                         {nls.t(`features.tree.names.variant.kind.${kind}`)}
                       </option>
                     ))}
-                  </select>
-                  <input
+                  </Select>
+                  <Input
+                    aria-label={nls.t('features.tree.names.language')}
                     placeholder={nls.t('features.tree.names.language')}
                     value={variant.language}
                     onChange={(event) => patchVariant(index, variantIndex, { language: event.target.value })}
                   />
-                  <button
-                    className="icon-button"
-                    title={nls.t('features.tree.names.variant.remove')}
+                  <IconButton
+                    size="sm"
+                    label={nls.t('features.tree.names.variant.remove')}
+                    icon={<X size={14} aria-hidden="true" />}
                     onClick={() => removeVariant(index, variantIndex)}
-                  >
-                    <X size={14} aria-hidden="true" />
-                  </button>
+                  />
                 </div>
                 {partOf(variant, 'full').trim() !== '' && (
-                  <label>
-                    {nls.t('features.tree.names.displayForm')}
-                    <input
+                  <Field label={nls.t('features.tree.names.displayForm')}>
+                    <Input
                       value={partOf(variant, 'full')}
                       onChange={(event) =>
                         patchVariant(index, variantIndex, setPartValue(variant, 'full', event.target.value))
                       }
                     />
-                  </label>
+                  </Field>
                 )}
-                <div className="name-parts-grid">
+                <FieldGrid columns={3}>
                   {NAME_PART_FIELDS.map((field) => (
                     <NamePartField
                       key={field}
@@ -181,7 +192,7 @@ export function NamesSection({
                       }
                     />
                   ))}
-                </div>
+                </FieldGrid>
                 <DateEditor
                   label={nls.t('features.tree.names.date')}
                   value={variant.date ?? emptyDate()}
@@ -190,17 +201,25 @@ export function NamesSection({
                 />
               </div>
             ))}
-            <button className="secondary-button" onClick={() => addVariant(index)}>
-              <Plus size={13} aria-hidden="true" />
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Plus size={13} aria-hidden="true" />}
+              onClick={() => addVariant(index)}
+            >
               {nls.t('features.tree.names.variant.add')}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Subcard>
       ))}
-      <button className="secondary-button" onClick={addName}>
-        <Plus size={13} aria-hidden="true" />
+      <Button
+        size="sm"
+        variant="secondary"
+        icon={<Plus size={13} aria-hidden="true" />}
+        onClick={addName}
+      >
         {nls.t('features.tree.names.add')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -215,10 +234,9 @@ function NamePartField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label>
-      {nls.t(`features.tree.names.part.${field}`)}
-      <input value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
+    <Field label={nls.t(`features.tree.names.part.${field}`)}>
+      <Input value={value} onChange={(event) => onChange(event.target.value)} />
+    </Field>
   );
 }
 

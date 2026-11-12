@@ -40,7 +40,7 @@ import { FactsSection } from './FactsSection';
 import { FamilySection } from './FamilySection';
 import { MediaSection } from '@doru/ui';
 import { NotesSection } from './NotesSection';
-import { NamesSection } from './NamesSection';
+import { NamesSection } from '@doru/ui';
 import { SourcesSection } from './SourcesSection';
 import { TagsSection } from './TagsSection';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui';
