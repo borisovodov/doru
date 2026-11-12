@@ -1,7 +1,7 @@
 import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
 import { useMemo } from 'react';
-import { Checkbox, Input, Select, SectionCard } from '@doru/ui';
+import { Checkbox, Field, FieldGrid, Input, Select, SectionCard, Subcard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -81,7 +81,7 @@ export function PlaceEditor({
   const subtitle = [draft.latitude.trim(), draft.longitude.trim()].filter((part) => part !== '').join(', ');
 
   return (
-    <EditorPage label={nls.t('workbench.activityBar.places')} className="place-editor">
+    <EditorPage label={nls.t('workbench.activityBar.places')}>
       <EntityViewCard
         media={<MapPin size={20} aria-hidden="true" />}
         title={placeDraftName(draft) || '—'}
@@ -143,26 +143,24 @@ export function PlaceEditor({
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.place.coordinates')}>
-        <div className="place-coordinates">
-          <label>
-            {nls.t('features.tree.place.latitude')}
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.place.latitude')}>
             <Input value={draft.latitude} onChange={(event) => set({ latitude: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.place.longitude')}
+          </Field>
+          <Field label={nls.t('features.tree.place.longitude')}>
             <Input value={draft.longitude} onChange={(event) => set({ longitude: event.target.value })} />
-          </label>
+          </Field>
           <Checkbox
             label={nls.t('features.tree.place.verified')}
             checked={draft.verified}
             onChange={(event) => set({ verified: event.target.checked })}
           />
-        </div>
+        </FieldGrid>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.place.postalCodes')}>
         {draft.postalCodes.map((postal, index) => (
-          <div className="place-postal-block" key={postal.id}>
+          <Subcard key={postal.id}>
             <div className="place-sub-row">
               <Input
                 placeholder={nls.t('features.tree.place.postalCodes.code')}
@@ -179,7 +177,7 @@ export function PlaceEditor({
               onChange={(date) => patchPostal(index, { date })}
               hidePlace
             />
-          </div>
+          </Subcard>
         ))}
         <Button variant="primary" onClick={addPostal}>
           <Plus size={13} aria-hidden="true" />

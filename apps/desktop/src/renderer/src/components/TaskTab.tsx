@@ -106,36 +106,32 @@ function TaskTabBody({
 
   return (
     <EntityTab>
-      <div className="registry-editor">
-        <EntityViewCard
-          media={<ListTodo size={20} aria-hidden="true" />}
-          title={draft.text.trim() || '—'}
-          subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
-          actions={
-            <>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={draft.text.trim() === ''}
-                onClick={() => void save()}
-              >
-                {nls.t('features.tree.save')}
+      <EntityViewCard
+        media={<ListTodo size={20} aria-hidden="true" />}
+        title={draft.text.trim() || '—'}
+        subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
+        actions={
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={draft.text.trim() === ''}
+              onClick={() => void save()}
+            >
+              {nls.t('features.tree.save')}
+            </Button>
+            {(!isNew || lastSaved !== undefined) && (
+              <Button variant="danger" size="sm" onClick={() => void remove()}>
+                {nls.t('features.tree.fact.delete')}
               </Button>
-              {(!isNew || lastSaved !== undefined) && (
-                <Button variant="danger" size="sm" onClick={() => void remove()}>
-                  {nls.t('features.tree.fact.delete')}
-                </Button>
-              )}
-            </>
-          }
-        />
+            )}
+          </>
+        }
+      />
 
-        <SectionCard title={nls.t('features.tree.details')}>
-          <div className="task-editor">
-            <TaskEditorFields edit={draft} persons={persons} repositories={repositories} onChange={patch} />
-          </div>
-        </SectionCard>
-      </div>
+      <SectionCard title={nls.t('features.tree.details')}>
+        <TaskEditorFields edit={draft} persons={persons} repositories={repositories} onChange={patch} />
+      </SectionCard>
     </EntityTab>
   );
 }

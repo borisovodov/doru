@@ -2,7 +2,8 @@ import { IconButton } from '@doru/ui';
 import { useState } from 'react';
 import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
-import { SectionCard } from '@doru/ui';
+import { SectionCard, Subcard } from '@doru/ui';
+import { Field, FieldGrid } from '@doru/ui';
 import { BookOpenText, Plus, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
 import { placeName } from '@doru/core/model';
@@ -81,7 +82,7 @@ export function SourceEditor({
   const subtitle = [draft.author.trim(), draft.publication.trim()].filter((part) => part !== '').join(' · ');
 
   return (
-    <EditorPage label={nls.t('features.tree.sources.title')} className="source-editor">
+    <EditorPage label={nls.t('features.tree.sources.title')}>
       <EntityViewCard
         media={<BookOpenText size={20} aria-hidden="true" />}
         title={draft.title.trim() || '—'}
@@ -112,12 +113,10 @@ export function SourceEditor({
       />
 
       <SectionCard title={nls.t('features.tree.source.details')}>
-        <label>
-          {nls.t('features.tree.sources.titleField')}
+        <Field label={nls.t('features.tree.sources.titleField')}>
           <Input value={draft.title} onChange={(event) => set({ title: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.title.work')}
+        </Field>
+        <Field label={nls.t('features.tree.title.work')}>
           <Select
             value={draft.titleId ?? ''}
             onChange={(event) => set({ titleId: event.target.value === '' ? undefined : event.target.value })}
@@ -129,48 +128,39 @@ export function SourceEditor({
               </option>
             ))}
           </Select>
-        </label>
-        <div className="source-grid">
-          <label>
-            {nls.t('features.tree.sources.authorField')}
+        </Field>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.sources.authorField')}>
             <Input value={draft.author} onChange={(event) => set({ author: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.publication')}
+          </Field>
+          <Field label={nls.t('features.tree.source.publication')}>
             <Input value={draft.publication} onChange={(event) => set({ publication: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.abbreviation')}
+          </Field>
+          <Field label={nls.t('features.tree.source.abbreviation')}>
             <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.medium')}
+          </Field>
+          <Field label={nls.t('features.tree.source.medium')}>
             <Input value={draft.medium} onChange={(event) => set({ medium: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.url')}
+          </Field>
+          <Field label={nls.t('features.tree.source.url')}>
             <Input value={draft.url} onChange={(event) => set({ url: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.accessDate')}
+          </Field>
+          <Field label={nls.t('features.tree.source.accessDate')}>
             <Input value={draft.accessDate} onChange={(event) => set({ accessDate: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.confidence')}
+          </Field>
+          <Field label={nls.t('features.tree.source.confidence')}>
             <Input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.agency')}
+          </Field>
+          <Field label={nls.t('features.tree.source.agency')}>
             <Input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
-          </label>
-        </div>
+          </Field>
+        </FieldGrid>
         <DateEditor
           label={nls.t('features.tree.source.pubDate')}
           value={draft.pubDate}
           onChange={(pubDate) => set({ pubDate })}
         />
-        <label>
-          {nls.t('features.tree.fact.placeLink')}
+        <Field label={nls.t('features.tree.fact.placeLink')}>
           <Select
             value={places.find((place) => placeName(place) === draft.pubDate.place.trim())?.id ?? ''}
             onChange={(event) => {
@@ -187,12 +177,12 @@ export function SourceEditor({
               </option>
             ))}
           </Select>
-        </label>
+        </Field>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.source.texts')}>
         {draft.texts.map((text, index) => (
-          <div className="source-text-block" key={text.id}>
+          <Subcard key={text.id}>
             <Textarea
               value={text.text}
               placeholder={nls.t('features.tree.source.texts')}
@@ -213,7 +203,7 @@ export function SourceEditor({
                 <X size={13} aria-hidden="true" />
               </>} onClick={() => removeText(index)} />
             </div>
-          </div>
+          </Subcard>
         ))}
         <Button variant="primary" onClick={addText}>
           <Plus size={13} aria-hidden="true" />
@@ -223,7 +213,7 @@ export function SourceEditor({
 
       <SectionCard title={nls.t('features.tree.source.dataEvents')}>
         {draft.dataEvents.map((event, index) => (
-          <div className="source-event-block" key={event.id}>
+          <Subcard key={event.id}>
             <div className="source-sub-row">
               <Input
                 placeholder={nls.t('features.tree.source.dataEvents.tag')}
@@ -245,8 +235,7 @@ export function SourceEditor({
               onChange={(date) => patchEvent(index, { date })}
               hidePlace
             />
-            <label>
-              {nls.t('features.tree.fact.placeLink')}
+            <Field label={nls.t('features.tree.fact.placeLink')}>
               <Select
                 value={event.placeId ?? ''}
                 onChange={(change) => {
@@ -261,8 +250,8 @@ export function SourceEditor({
                   </option>
                 ))}
               </Select>
-            </label>
-          </div>
+            </Field>
+          </Subcard>
         ))}
         <Button variant="primary" onClick={addEvent}>
           <Plus size={13} aria-hidden="true" />
@@ -272,7 +261,7 @@ export function SourceEditor({
 
       <SectionCard title={nls.t('features.tree.source.repositories')}>
         {draft.repositories.map((link, index) => (
-          <div className="source-repository-block" key={link.id}>
+          <Subcard key={link.id}>
             <div className="source-sub-row">
               <Select
                 value={link.repositoryId}
@@ -310,7 +299,7 @@ export function SourceEditor({
               <Plus size={13} aria-hidden="true" />
               {nls.t('features.tree.source.repositories.callNumbers.add')}
             </Button>
-          </div>
+          </Subcard>
         ))}
         <div className="source-actions">
           <Button variant="primary" onClick={addRepository}>

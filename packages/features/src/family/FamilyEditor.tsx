@@ -1,7 +1,7 @@
 import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Checkbox, Input, Select, SectionCard } from '@doru/ui';
+import { Checkbox, Field, FieldGrid, InlineForm, Input, Select, SectionCard, Subcard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -105,7 +105,7 @@ export function FamilyEditor({
   const label = partnerNames.length > 0 ? partnerNames.join(' & ') : '—';
 
   return (
-    <EditorPage label={nls.t('features.tree.families.title')} className="family-editor">
+    <EditorPage label={nls.t('features.tree.families.title')}>
       <EntityViewCard
         media={<Users size={20} aria-hidden="true" />}
         title={label}
@@ -127,7 +127,7 @@ export function FamilyEditor({
       <SectionCard title={nls.t('features.tree.families.partners')}>
         {draft.partnerLinks.length === 0 && <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>}
         {draft.partnerLinks.map((link, index) => (
-          <div className="family-link-block" key={link.id}>
+          <Subcard key={link.id}>
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.personId))}</span>
               <Checkbox
@@ -145,9 +145,9 @@ export function FamilyEditor({
               onChange={(date) => patchPartner(index, { date })}
               hidePlace
             />
-          </div>
+          </Subcard>
         ))}
-        <div className="family-add-member">
+        <InlineForm>
           <Select value={newPartnerId} onChange={(event) => setNewPartnerId(event.target.value)}>
             <option value="">{nls.t('features.tree.family.addMember.none')}</option>
             {candidates.map((person) => (
@@ -160,22 +160,21 @@ export function FamilyEditor({
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addPartner')}
           </Button>
-        </div>
+        </InlineForm>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.families.children')}>
         {draft.childLinks.length === 0 && <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>}
         {draft.childLinks.map((link, index) => (
-          <div className="family-link-block" key={link.id}>
+          <Subcard key={link.id}>
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.childId))}</span>
               <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<>
                 <X size={13} aria-hidden="true" />
               </>} onClick={() => removeChild(index)} />
             </div>
-            <div className="family-link-grid">
-              <label>
-                {nls.t('features.tree.family.pedigree')}
+            <FieldGrid columns={2}>
+              <Field label={nls.t('features.tree.family.pedigree')}>
                 <Select
                   value={link.pedigree}
                   onChange={(event) => patchChild(index, { pedigree: event.target.value })}
@@ -187,9 +186,8 @@ export function FamilyEditor({
                     </option>
                   ))}
                 </Select>
-              </label>
-              <label>
-                {nls.t('features.tree.family.status')}
+              </Field>
+              <Field label={nls.t('features.tree.family.status')}>
                 <Select value={link.status} onChange={(event) => patchChild(index, { status: event.target.value })}>
                   <option value="">{nls.t('features.tree.family.status.none')}</option>
                   {CHILD_STATUS_TYPES.map((type) => (
@@ -198,32 +196,29 @@ export function FamilyEditor({
                     </option>
                   ))}
                 </Select>
-              </label>
-              <label>
-                {nls.t('features.tree.family.fatherRelation')}
+              </Field>
+              <Field label={nls.t('features.tree.family.fatherRelation')}>
                 <Input
                   value={link.fatherRelation}
                   onChange={(event) => patchChild(index, { fatherRelation: event.target.value })}
                 />
-              </label>
-              <label>
-                {nls.t('features.tree.family.motherRelation')}
+              </Field>
+              <Field label={nls.t('features.tree.family.motherRelation')}>
                 <Input
                   value={link.motherRelation}
                   onChange={(event) => patchChild(index, { motherRelation: event.target.value })}
                 />
-              </label>
-              <label>
-                {nls.t('features.tree.family.pedigreePhrase')}
+              </Field>
+              <Field label={nls.t('features.tree.family.pedigreePhrase')}>
                 <Input
                   value={link.pedigreePhrase}
                   onChange={(event) => patchChild(index, { pedigreePhrase: event.target.value })}
                 />
-              </label>
-            </div>
-          </div>
+              </Field>
+            </FieldGrid>
+          </Subcard>
         ))}
-        <div className="family-add-member">
+        <InlineForm>
           <Select value={newChildId} onChange={(event) => setNewChildId(event.target.value)}>
             <option value="">{nls.t('features.tree.family.addMember.none')}</option>
             {candidates.map((person) => (
@@ -236,7 +231,7 @@ export function FamilyEditor({
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addChild')}
           </Button>
-        </div>
+        </InlineForm>
       </SectionCard>
 
       <FactsSection

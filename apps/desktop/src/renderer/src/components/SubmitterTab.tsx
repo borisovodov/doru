@@ -2,6 +2,7 @@ import { IconButton } from '@doru/ui';
 import { useEffect, useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
+import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type {
   CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RestrictionRecord, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
@@ -153,51 +154,48 @@ function SubmitterTabBody({
 
   return (
     <EntityTab>
-      <div className="registry-editor">
-        <EntityViewCard
-          media={<User size={20} aria-hidden="true" />}
-          title={name.trim() || '—'}
-          subtitle={addressText !== '' ? addressText : null}
-          actions={
-            <>
-              <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
-                {nls.t('features.tree.save')}
-              </Button>
-              {(!isNew || lastSaved !== undefined) && (
-                <Button variant="danger" size="sm" onClick={() => void remove()}>
-                  {nls.t('features.tree.fact.delete')}
-                </Button>
-              )}
-            </>
-          }
-        />
-
-        <SectionCard title={nls.t('features.tree.details')}>
-          <label>
-            {nls.t('features.tree.submitter.name')}
-            <Input value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <div className="registry-languages">
-            {languages.map((language, index) => (
-              <div className="registry-language-row" key={index}>
-                <Input
-                  placeholder={nls.t('features.tree.submitter.languages.field')}
-                  value={language}
-                  onChange={(event) => patchLanguage(index, event.target.value)}
-                />
-                <IconButton size="sm" label={nls.t('features.tree.submitter.languages.remove')} icon={<>
-                  <X size={13} aria-hidden="true" />
-                </>} onClick={() => setLanguages(languages.filter((_, i) => i !== index))} />
-              </div>
-            ))}
-            <Button variant="primary" size="sm" onClick={() => setLanguages([...languages, ''])}>
-              <Plus size={13} aria-hidden="true" />
-              {nls.t('features.tree.submitter.languages.add')}
+      <EntityViewCard
+        media={<User size={20} aria-hidden="true" />}
+        title={name.trim() || '—'}
+        subtitle={addressText !== '' ? addressText : null}
+        actions={
+          <>
+            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
+              {nls.t('features.tree.save')}
             </Button>
-          </div>
-          <AddressFields address={address} onChange={setAddress} />
-        </SectionCard>
-      </div>
+            {(!isNew || lastSaved !== undefined) && (
+              <Button variant="danger" size="sm" onClick={() => void remove()}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <SectionCard title={nls.t('features.tree.details')}>
+        <Field label={nls.t('features.tree.submitter.name')}>
+          <Input value={name} onChange={(event) => setName(event.target.value)} />
+        </Field>
+        <FieldGrid columns={1}>
+          {languages.map((language, index) => (
+            <InlineForm key={index}>
+              <Input
+                placeholder={nls.t('features.tree.submitter.languages.field')}
+                value={language}
+                onChange={(event) => patchLanguage(index, event.target.value)}
+              />
+              <IconButton size="sm" label={nls.t('features.tree.submitter.languages.remove')} icon={<>
+                <X size={13} aria-hidden="true" />
+              </>} onClick={() => setLanguages(languages.filter((_, i) => i !== index))} />
+            </InlineForm>
+          ))}
+        </FieldGrid>
+        <Button variant="primary" size="sm" onClick={() => setLanguages([...languages, ''])}>
+          <Plus size={13} aria-hidden="true" />
+          {nls.t('features.tree.submitter.languages.add')}
+        </Button>
+        <AddressFields address={address} onChange={setAddress} />
+      </SectionCard>
       {targetId !== undefined && (
         <>
           <SourcesSection

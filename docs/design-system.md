@@ -40,6 +40,8 @@ re-export the library.
    their children with an 8px gap. Atoms and section bodies do not set their
    own outer margins; an empty list is hidden so it does not leave a phantom
    gap between its neighbours.
+7. Form fields use `Field` and `FieldGrid`; do not hand-write `<label>`
+   wrappers or per-editor label margins.
 
 ## Using a component
 

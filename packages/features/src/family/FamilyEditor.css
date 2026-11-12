@@ -1,24 +1,5 @@
 /* ── Family editor ─────────────────────────────────────────────────── */
 
-.family-editor {
-  max-width: 560px;
-  padding: 8px 16px;
-}
-
-.family-editor label {
-  display: block;
-  margin: 10px 0;
-  color: var(--doru-fg-muted);
-}
-
-.family-link-block {
-  margin-bottom: 8px;
-  padding: 8px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
 .family-link-head {
   display: flex;
   align-items: center;
@@ -34,32 +15,3 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.family-editor .family-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.family-link-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
-}
-
-.family-add-member {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.family-add-member select {
-  flex: 1;
-  min-width: 0;
-  margin-top: 0;
-}
-
