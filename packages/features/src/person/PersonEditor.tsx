@@ -6,7 +6,9 @@ import {
   Button,
   EditorPage,
   EntityViewCard,
+  Field,
   SectionCard,
+  Select,
 } from '@doru/ui';
 import type {
   AddressRecord,
@@ -29,7 +31,6 @@ import type {
 } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
-import './PersonEditor.css';
 import { AssociationsSection } from '@doru/ui';
 import { AliasesSection } from '@doru/ui';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from '@doru/ui';
@@ -253,14 +254,13 @@ export function PersonEditor({
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.details')}>
-        <label>
-          {nls.t('features.tree.field.sex')}
-          <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
+        <Field label={nls.t('features.tree.field.sex')}>
+          <Select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
             <option value="U">{nls.t('features.tree.sex.U')}</option>
             <option value="M">{nls.t('features.tree.sex.M')}</option>
             <option value="F">{nls.t('features.tree.sex.F')}</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
         <DateEditor
           label={nls.t('features.tree.field.birthDate')}
           value={draft.birth}
