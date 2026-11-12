@@ -2,11 +2,11 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Field } from './Field';
 import { Input } from '../form/Input';
 import { Select } from '../form/Select';
-import { Textarea } from '../form/Textarea';
 
 const meta = {
   title: 'Atoms/Field',
-} satisfies Meta;
+  component: Field,
+} satisfies Meta<typeof Field>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -21,55 +21,39 @@ const heading = {
 };
 
 export const AllStates: Story = {
+  args: { label: 'Field', children: null },
   render: () => (
-    <div style={{ display: 'grid', gap: 24, minWidth: 360 }}>
+    <div style={{ display: 'grid', gap: 24, width: 360 }}>
       <section>
-        <h3 style={heading}>Control sizes</h3>
-        <div style={{ display: 'grid', gap: 12 }}>
-          <Field label="Small input" hint={'controlSize="sm"'}>
-            <Input controlSize="sm" placeholder="Small" />
-          </Field>
-          <Field label="Default input">
-            <Input placeholder="Default" />
-          </Field>
-          <Field label="Large input">
-            <Input controlSize="lg" placeholder="Large" />
-          </Field>
-        </div>
+        <h3 style={heading}>Default</h3>
+        <Field label="Given name" hint="The name as it appears in the record.">
+          <Input defaultValue="Ivan" />
+        </Field>
       </section>
 
       <section>
-        <h3 style={heading}>States</h3>
-        <div style={{ display: 'grid', gap: 12 }}>
-          <Field label="Default field" hint="Helper text sits under the control.">
-            <Input defaultValue="Ivan" />
-          </Field>
-          <Field label="Required field" required>
-            <Input placeholder="Required value" />
-          </Field>
-          <Field label="Invalid field" error="This field cannot be empty.">
-            <Input invalid placeholder="Invalid value" />
-          </Field>
-          <Field label="Disabled field">
-            <Input disabled defaultValue="Read only" />
-          </Field>
-        </div>
+        <h3 style={heading}>Required</h3>
+        <Field label="Surname" required>
+          <Input defaultValue="Ivanov" />
+        </Field>
       </section>
 
       <section>
-        <h3 style={heading}>Other controls</h3>
-        <div style={{ display: 'grid', gap: 12 }}>
-          <Field label="Select field" hint="Works with Select too.">
-            <Select defaultValue="U">
-              <option value="U">Unknown</option>
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-            </Select>
-          </Field>
-          <Field label="Textarea field">
-            <Textarea placeholder="A longer note" rows={3} />
-          </Field>
-        </div>
+        <h3 style={heading}>With error</h3>
+        <Field label="Given name" error="This field cannot be empty.">
+          <Input invalid />
+        </Field>
+      </section>
+
+      <section>
+        <h3 style={heading}>With select</h3>
+        <Field label="Sex">
+          <Select defaultValue="U">
+            <option value="U">Unknown</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </Select>
+        </Field>
       </section>
     </div>
   ),
