@@ -24,6 +24,7 @@ import {
   type RegistriesEditorApi,
 } from '@doru/features';
 import { nls } from '@doru/workbench';
+import { Button, EntityViewCard } from '@doru/ui';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -168,25 +169,23 @@ function SubmitterTabBody({
   return (
     <EntityTab>
       <div className="registry-editor">
-        <section className="entity-view-card">
-          <span className="entity-card-icon entity-view-icon">
-            <User size={20} aria-hidden="true" />
-          </span>
-          <div className="entity-view-body">
-            <h2 className="entity-view-title">{name.trim() || '—'}</h2>
-            {addressText !== '' && <p className="entity-view-subtitle">{addressText}</p>}
-          </div>
-          <div className="person-view-actions">
-            <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
-            </button>
-            {(!isNew || lastSaved !== undefined) && (
-              <button className="registry-delete-button" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </button>
-            )}
-          </div>
-        </section>
+        <EntityViewCard
+          media={<User size={20} aria-hidden="true" />}
+          title={name.trim() || '—'}
+          subtitle={addressText !== '' ? addressText : null}
+          actions={
+            <>
+              <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
+                {nls.t('features.tree.save')}
+              </Button>
+              {(!isNew || lastSaved !== undefined) && (
+                <Button variant="danger" size="sm" onClick={() => void remove()}>
+                  {nls.t('features.tree.fact.delete')}
+                </Button>
+              )}
+            </>
+          }
+        />
 
         <section className="person-section">
           <h3>{nls.t('features.tree.details')}</h3>

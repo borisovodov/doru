@@ -5,8 +5,7 @@ import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
-import { DateEditor } from '@doru/ui';
-import { emptyDate } from '@doru/ui';
+import { Button, DateEditor, EditorPage, EntityViewCard, emptyDate } from '@doru/ui';
 import {
   emptySourceTextDraft,
   type CallNumberDraft,
@@ -84,28 +83,35 @@ export function SourceEditor({
   const subtitle = [draft.author.trim(), draft.publication.trim()].filter((part) => part !== '').join(' · ');
 
   return (
-    <div className="source-editor">
-      <section className="entity-view-card">
-        <span className="entity-card-icon entity-view-icon">
-          <BookOpenText size={20} aria-hidden="true" />
-        </span>
-        <div className="entity-view-body">
-          <h2 className="entity-view-title">{draft.title.trim() || '—'}</h2>
-          {subtitle !== '' && <p className="entity-view-subtitle">{subtitle}</p>}
-          {draft.abbreviation.trim() !== '' && <p className="entity-view-subtitle">{draft.abbreviation.trim()}</p>}
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onCancel && <button onClick={onCancel}>{nls.t('features.tree.back')}</button>}
-          {onDelete && (
-            <button className="source-delete-button" onClick={onDelete}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
-          )}
-        </div>
-      </section>
+    <EditorPage label={nls.t('features.tree.sources.title')} className="source-editor">
+      <EntityViewCard
+        media={<BookOpenText size={20} aria-hidden="true" />}
+        title={draft.title.trim() || '—'}
+        subtitle={
+          <>
+            {subtitle !== '' ? subtitle : null}
+            {subtitle !== '' && draft.abbreviation.trim() !== '' ? <br /> : null}
+            {draft.abbreviation.trim() !== '' ? draft.abbreviation.trim() : null}
+          </>
+        }
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onCancel && (
+              <Button variant="secondary" size="sm" onClick={onCancel}>
+                {nls.t('features.tree.back')}
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <section className="person-section">
         <h3>{nls.t('features.tree.source.details')}</h3>
@@ -365,7 +371,7 @@ export function SourceEditor({
           {nls.t('features.tree.source.templateFields.add')}
         </button>
       </section>
-    </div>
+    </EditorPage>
   );
 }
 

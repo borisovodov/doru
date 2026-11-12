@@ -4,10 +4,7 @@ import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRec
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
-import { ContributorsSection } from '@doru/ui';
-import { DateEditor } from '@doru/ui';
-import { FactsSection } from '@doru/ui';
-import { displayName } from '@doru/ui';
+import { ContributorsSection, Button, DateEditor, EditorPage, EntityViewCard, FactsSection, displayName } from '@doru/ui';
 import type { FamilyEditorApi } from '../person/types';
 import {
   CHILD_STATUS_TYPES,
@@ -112,26 +109,24 @@ export function FamilyEditor({
   const label = partnerNames.length > 0 ? partnerNames.join(' & ') : '—';
 
   return (
-    <div className="family-editor">
-      <section className="entity-view-card">
-        <span className="entity-card-icon entity-view-icon">
-          <Users size={20} aria-hidden="true" />
-        </span>
-        <div className="entity-view-body">
-          <h2 className="entity-view-title">{label}</h2>
-          <p className="entity-view-subtitle">{nls.t('features.sidebar.children', draft.childLinks.length)}</p>
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onDelete && (
-            <button className="family-delete-button" onClick={onDelete}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
-          )}
-        </div>
-      </section>
+    <EditorPage label={nls.t('features.tree.families.title')} className="family-editor">
+      <EntityViewCard
+        media={<Users size={20} aria-hidden="true" />}
+        title={label}
+        subtitle={nls.t('features.sidebar.children', draft.childLinks.length)}
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <section className="person-section">
         <h3>{nls.t('features.tree.families.partners')}</h3>
@@ -287,6 +282,6 @@ export function FamilyEditor({
           await refreshContributors();
         }}
       />
-    </div>
+    </EditorPage>
   );
 }

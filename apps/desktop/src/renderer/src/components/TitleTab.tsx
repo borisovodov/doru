@@ -3,6 +3,7 @@ import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { EntityTab } from '@doru/features';
 import { nls } from '@doru/workbench';
+import { Button, EntityViewCard } from '@doru/ui';
 import { TITLE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function TitleTab({
@@ -125,25 +126,23 @@ function TitleTabBody({
   return (
     <EntityTab>
       <div className="registry-editor">
-        <section className="entity-view-card">
-          <span className="entity-card-icon entity-view-icon">
-            <BookMarked size={20} aria-hidden="true" />
-          </span>
-          <div className="entity-view-body">
-            <h2 className="entity-view-title">{name.trim() || '—'}</h2>
-            {subtitle !== '' && <p className="entity-view-subtitle">{subtitle}</p>}
-          </div>
-          <div className="person-view-actions">
-            <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
-            </button>
-            {(!isNew || lastSaved !== undefined) && (
-              <button className="registry-delete-button" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </button>
-            )}
-          </div>
-        </section>
+        <EntityViewCard
+          media={<BookMarked size={20} aria-hidden="true" />}
+          title={name.trim() || '—'}
+          subtitle={subtitle !== '' ? subtitle : null}
+          actions={
+            <>
+              <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
+                {nls.t('features.tree.save')}
+              </Button>
+              {(!isNew || lastSaved !== undefined) && (
+                <Button variant="danger" size="sm" onClick={() => void remove()}>
+                  {nls.t('features.tree.fact.delete')}
+                </Button>
+              )}
+            </>
+          }
+        />
 
         <section className="person-section">
           <h3>{nls.t('features.tree.details')}</h3>

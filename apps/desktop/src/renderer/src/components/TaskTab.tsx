@@ -11,6 +11,7 @@ import {
   type TodoDraft,
 } from '@doru/features';
 import { nls } from '@doru/workbench';
+import { Button, EntityViewCard } from '@doru/ui';
 import { TASK_TAB_PREFIX } from '../hooks/useTabs';
 
 export function TaskTab({
@@ -111,25 +112,28 @@ function TaskTabBody({
   return (
     <EntityTab>
       <div className="registry-editor">
-        <section className="entity-view-card">
-          <span className="entity-card-icon entity-view-icon">
-            <ListTodo size={20} aria-hidden="true" />
-          </span>
-          <div className="entity-view-body">
-            <h2 className="entity-view-title">{draft.text.trim() || '—'}</h2>
-            {subtitleParts.length > 0 && <p className="entity-view-subtitle">{subtitleParts.join(' · ')}</p>}
-          </div>
-          <div className="person-view-actions">
-            <button className="primary" disabled={draft.text.trim() === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
-            </button>
-            {(!isNew || lastSaved !== undefined) && (
-              <button className="registry-delete-button" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </button>
-            )}
-          </div>
-        </section>
+        <EntityViewCard
+          media={<ListTodo size={20} aria-hidden="true" />}
+          title={draft.text.trim() || '—'}
+          subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
+          actions={
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={draft.text.trim() === ''}
+                onClick={() => void save()}
+              >
+                {nls.t('features.tree.save')}
+              </Button>
+              {(!isNew || lastSaved !== undefined) && (
+                <Button variant="danger" size="sm" onClick={() => void remove()}>
+                  {nls.t('features.tree.fact.delete')}
+                </Button>
+              )}
+            </>
+          }
+        />
 
         <section className="person-section">
           <h3>{nls.t('features.tree.details')}</h3>

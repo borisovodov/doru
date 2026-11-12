@@ -5,8 +5,7 @@ import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import '../sidebar/sidebar.css';
 import './PlaceEditor.css';
-import { DateEditor } from '@doru/ui';
-import { emptyDate } from '@doru/ui';
+import { Button, DateEditor, EditorPage, EntityViewCard, emptyDate } from '@doru/ui';
 import {
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,
@@ -77,26 +76,24 @@ export function PlaceEditor({
   const subtitle = [draft.latitude.trim(), draft.longitude.trim()].filter((part) => part !== '').join(', ');
 
   return (
-    <div className="place-editor">
-      <section className="entity-view-card">
-        <span className="entity-card-icon entity-view-icon">
-          <MapPin size={20} aria-hidden="true" />
-        </span>
-        <div className="entity-view-body">
-          <h2 className="entity-view-title">{placeDraftName(draft) || '—'}</h2>
-          {subtitle !== '' && <p className="entity-view-subtitle">{subtitle}</p>}
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onDelete && (
-            <button className="place-delete-button" onClick={onDelete}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
-          )}
-        </div>
-      </section>
+    <EditorPage label={nls.t('workbench.activityBar.places')} className="place-editor">
+      <EntityViewCard
+        media={<MapPin size={20} aria-hidden="true" />}
+        title={placeDraftName(draft) || '—'}
+        subtitle={subtitle !== '' ? subtitle : null}
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <section className="person-section">
         <h3>{nls.t('features.tree.place.names')}</h3>
@@ -236,6 +233,6 @@ export function PlaceEditor({
           {nls.t('features.tree.place.hierarchy.add')}
         </button>
       </section>
-    </div>
+    </EditorPage>
   );
 }

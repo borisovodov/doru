@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName, familyLabel } from '@doru/ui';
+import { displayName, familyLabel, EditorPage } from '@doru/ui';
 import './sidebar.css';
 
 /**
@@ -125,5 +125,5 @@ function citationTarget(
 
 /** Wraps a list in the entity-tab shell (used by the source tab). */
 export function EntityTab({ children }: { children: ReactNode }) {
-  return <div className="entity-tab">{children}</div>;
+  return <EditorPage>{children}</EditorPage>;
 }
