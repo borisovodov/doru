@@ -58,4 +58,7 @@ export * from './domain/task/todoDraft';
 export * from './domain/registries/address';
 export * from './domain/family/familyDraft';
 export { DateEditor } from './domain/date/DateEditor';
+export { ChangesSection } from './domain/person/ChangesSection';
+export { MediaSection } from './domain/person/MediaSection';
+export type { MediaWithPath } from './domain/person/types';
 export { cx } from './lib/cx';

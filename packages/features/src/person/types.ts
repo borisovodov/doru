@@ -1,3 +1,4 @@
+import type { MediaWithPath } from '@doru/ui';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -21,15 +22,8 @@ import type {
   TitleRecord,
 } from '@doru/core';
 
-export interface MediaWithPath extends MediaRecord {
-  absolutePath: string;
-}
+export type { MediaWithPath } from '@doru/ui';
 
-/**
- * The generic attachment CRUD shared by every entity editor: notes,
- * citations/sources, identifiers, contacts, restrictions and tags, all
- * addressed by a (targetType, targetId) pair.
- */
 export interface AttachmentsApi {
   getNotes(targetType: string, targetId: string): Promise<NoteRecord[]>;
   addNote(note: NoteRecord): Promise<void>;
