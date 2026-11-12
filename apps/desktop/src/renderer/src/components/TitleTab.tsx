@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EmptyText } from '@doru/ui';
 import { Input } from '@doru/ui';
 import { Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
@@ -195,7 +196,7 @@ function TitleTabBody({
         {!isNew && (
           <SectionCard title={nls.t('features.tree.title.sources')}>
             {citingSources.length === 0 ? (
-              <p className="notes-empty">{nls.t('features.tree.title.sourcesEmpty')}</p>
+              <EmptyText>{nls.t('features.tree.title.sourcesEmpty')}</EmptyText>
             ) : (
               <ul className="side-section-list">
                 {citingSources.map((source) => (

@@ -34,24 +34,7 @@
   background: var(--doru-bg-raised);
 }
 
-.family-chip button,
-.source-list button {
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 2px;
-  font-size: 13px;
-  border-radius: var(--doru-radius-sm);
-}
 
-.family-chip button:hover,
-.source-list button:hover {
-  background: var(--doru-overlay-hover);
-}
 
 .family-actions,
 .family-add {
@@ -60,37 +43,9 @@
   margin-top: 8px;
 }
 
-.family-actions button {
-  height: var(--doru-control-height);
-  padding: 0 11px;
-  border: none;
-  border-radius: var(--doru-radius-md);
-  background: transparent;
-  box-shadow: var(--doru-ring);
-  color: var(--doru-danger);
-  font-size: var(--doru-font-size);
-  cursor: pointer;
-}
 
-.family-actions button:hover {
-  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
-}
 
-.family-add button {
-  height: var(--doru-control-height);
-  padding: 0 11px;
-  border: none;
-  border-radius: var(--doru-radius-md);
-  background: var(--doru-bg-input);
-  box-shadow: var(--doru-ring);
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  cursor: pointer;
-}
 
-.family-add button:hover {
-  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
-}
 
 /* ── Person picker ─────────────────────────────────────────────────── */
 
@@ -100,11 +55,6 @@
   min-width: 140px;
 }
 
-.person-picker input {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 0;
-}
 
 .person-picker-list {
   position: absolute;
@@ -132,3 +82,16 @@
   background: var(--doru-overlay-hover);
 }
 
+
+.family-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.family-events-label {
+  font-size: var(--doru-font-size-sm);
+  color: var(--doru-fg-muted);
+}

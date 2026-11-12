@@ -1,4 +1,5 @@
 import { IconButton } from '@doru/ui';
+import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Input, Select, SectionCard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
@@ -124,7 +125,7 @@ export function FamilyEditor({
       />
 
       <SectionCard title={nls.t('features.tree.families.partners')}>
-        {draft.partnerLinks.length === 0 && <p className="notes-empty">{nls.t('features.tree.families.empty')}</p>}
+        {draft.partnerLinks.length === 0 && <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>}
         {draft.partnerLinks.map((link, index) => (
           <div className="family-link-block" key={link.id}>
             <div className="family-link-head">
@@ -163,7 +164,7 @@ export function FamilyEditor({
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.families.children')}>
-        {draft.childLinks.length === 0 && <p className="notes-empty">{nls.t('features.tree.families.empty')}</p>}
+        {draft.childLinks.length === 0 && <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>}
         {draft.childLinks.map((link, index) => (
           <div className="family-link-block" key={link.id}>
             <div className="family-link-head">

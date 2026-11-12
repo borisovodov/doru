@@ -29,10 +29,6 @@
   flex: 2;
 }
 
-.place-name-row .icon-button {
-  flex: none;
-}
-
 .place-coordinates {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -68,10 +64,3 @@
   margin-top: 0;
 }
 
-.place-sub-row .icon-button {
-  flex: none;
-}
-
-.place-editor .person-view-actions .place-delete-button {
-  color: var(--doru-danger);
-}

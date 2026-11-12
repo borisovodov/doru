@@ -50,10 +50,6 @@
   margin-top: 0;
 }
 
-.registry-language-row .icon-button {
-  flex: none;
-}
-
 .registry-actions {
   display: flex;
   gap: 8px;
@@ -61,6 +57,3 @@
   margin-top: 10px;
 }
 
-.registry-editor .person-view-actions .registry-delete-button {
-  color: var(--doru-danger);
-}

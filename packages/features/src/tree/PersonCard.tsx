@@ -177,6 +177,7 @@ export const PersonCard = memo(function PersonCard({
               <IconButton
                 key={kind}
                 size="sm"
+                variant={kind === 'delete' ? 'danger' : 'ghost'}
                 label={nls.t(key)}
                 icon={<Icon size={14} aria-hidden="true" />}
                 onClick={action(kind)}

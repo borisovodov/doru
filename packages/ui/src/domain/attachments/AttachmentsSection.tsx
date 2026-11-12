@@ -1,5 +1,9 @@
 import { Button } from '../../atoms/button/Button';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Input } from '../../atoms/form/Input';
+import { Select } from '../../atoms/form/Select';
+import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState } from 'react';
 import { Pencil, X } from 'lucide-react';
 import type { ContactRecord, IdentifierRecord, RestrictionRecord } from '@doru/core';
@@ -93,22 +97,21 @@ export function IdentifiersSection({
   };
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.identifiers.title')}</h3>
-      {identifiers.length === 0 && <p className="notes-empty">{nls.t('features.tree.identifiers.empty')}</p>}
+    <SectionCard title={nls.t('features.tree.identifiers.title')}>
+      {identifiers.length === 0 && <EmptyText>{nls.t('features.tree.identifiers.empty')}</EmptyText>}
       <ul className="attachment-list">
         {identifiers.map((identifier) => (
           <li key={identifier.id}>
             {editingId === identifier.id ? (
               <div className="attachment-edit">
-                <input
+                <Input
                   className="attachment-edit-namespace"
                   value={editNamespace}
                   placeholder={nls.t('features.tree.identifiers.namespace')}
                   onChange={(event) => setEditNamespace(event.target.value)}
                   autoFocus
                 />
-                <input
+                <Input
                   value={editValue}
                   placeholder={nls.t('features.tree.identifiers.value')}
                   onChange={(event) => setEditValue(event.target.value)}
@@ -136,7 +139,7 @@ export function IdentifiersSection({
         ))}
       </ul>
       <div className="attachment-add">
-        <input
+        <Input
           list="doru-id-namespaces"
           placeholder={nls.t('features.tree.identifiers.namespace')}
           value={namespace}
@@ -147,7 +150,7 @@ export function IdentifiersSection({
             <option key={entry} value={entry} />
           ))}
         </datalist>
-        <input
+        <Input
           placeholder={nls.t('features.tree.identifiers.value')}
           value={value}
           onChange={(event) => setValue(event.target.value)}
@@ -156,7 +159,7 @@ export function IdentifiersSection({
           {nls.t('features.tree.identifiers.add')}
         </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -206,22 +209,21 @@ export function ContactsSection({
   };
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.contacts.title')}</h3>
-      {contacts.length === 0 && <p className="notes-empty">{nls.t('features.tree.contacts.empty')}</p>}
+    <SectionCard title={nls.t('features.tree.contacts.title')}>
+      {contacts.length === 0 && <EmptyText>{nls.t('features.tree.contacts.empty')}</EmptyText>}
       <ul className="attachment-list">
         {contacts.map((contact) => (
           <li key={contact.id}>
             {editingId === contact.id ? (
               <div className="attachment-edit">
-                <select value={editKind} onChange={(event) => setEditKind(event.target.value)}>
+                <Select value={editKind} onChange={(event) => setEditKind(event.target.value)}>
                   {CONTACT_KINDS.map((entry) => (
                     <option key={entry} value={entry}>
                       {nls.t(`features.tree.contacts.kind.${entry}`)}
                     </option>
                   ))}
-                </select>
-                <input
+                </Select>
+                <Input
                   value={editValue}
                   placeholder={nls.t('features.tree.contacts.value')}
                   onChange={(event) => setEditValue(event.target.value)}
@@ -250,14 +252,14 @@ export function ContactsSection({
         ))}
       </ul>
       <div className="attachment-add">
-        <select value={kind} onChange={(event) => setKind(event.target.value)}>
+        <Select value={kind} onChange={(event) => setKind(event.target.value)}>
           {CONTACT_KINDS.map((entry) => (
             <option key={entry} value={entry}>
               {nls.t(`features.tree.contacts.kind.${entry}`)}
             </option>
           ))}
-        </select>
-        <input
+        </Select>
+        <Input
           placeholder={nls.t('features.tree.contacts.value')}
           value={value}
           onChange={(event) => setValue(event.target.value)}
@@ -266,7 +268,7 @@ export function ContactsSection({
           {nls.t('features.tree.contacts.add')}
         </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -307,21 +309,20 @@ export function RestrictionsSection({
   };
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.restrictions.title')}</h3>
-      {restrictions.length === 0 && <p className="notes-empty">{nls.t('features.tree.restrictions.empty')}</p>}
+    <SectionCard title={nls.t('features.tree.restrictions.title')}>
+      {restrictions.length === 0 && <EmptyText>{nls.t('features.tree.restrictions.empty')}</EmptyText>}
       <ul className="attachment-list">
         {restrictions.map((restriction) => (
           <li key={restriction.id}>
             {editingId === restriction.id ? (
               <div className="attachment-edit">
-                <select value={editLevel} onChange={(event) => setEditLevel(event.target.value)}>
+                <Select value={editLevel} onChange={(event) => setEditLevel(event.target.value)}>
                   {RESTRICTION_LEVELS.map((entry) => (
                     <option key={entry} value={entry}>
                       {nls.t(`features.tree.restrictions.level.${entry}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <Button variant="primary" size="sm" onClick={() => void saveEdit(restriction)}>
                   {nls.t('features.tree.save')}
                 </Button>
@@ -344,17 +345,17 @@ export function RestrictionsSection({
         ))}
       </ul>
       <div className="attachment-add">
-        <select value={level} onChange={(event) => setLevel(event.target.value)}>
+        <Select value={level} onChange={(event) => setLevel(event.target.value)}>
           {RESTRICTION_LEVELS.map((entry) => (
             <option key={entry} value={entry}>
               {nls.t(`features.tree.restrictions.level.${entry}`)}
             </option>
           ))}
-        </select>
+        </Select>
         <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.restrictions.add')}
         </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }

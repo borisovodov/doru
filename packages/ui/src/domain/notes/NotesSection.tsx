@@ -1,5 +1,8 @@
 import { Button } from '../../atoms/button/Button';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Input } from '../../atoms/form/Input';
+import { Textarea } from '../../atoms/form/Textarea';
 import { useState } from 'react';
 import { Pencil, Plus, X } from 'lucide-react';
 import type { NoteLinkRecord, NoteRecord, NoteTranslation } from '@doru/core';
@@ -102,21 +105,21 @@ export function NotesSection({
     <div className="person-notes">
       <h3>{nls.t('features.tree.notes.title')}</h3>
       {notes.length === 0 ? (
-        <p className="notes-empty">{nls.t('features.tree.notes.empty')}</p>
+        <EmptyText>{nls.t('features.tree.notes.empty')}</EmptyText>
       ) : (
         <ul>
           {notes.map((note) => (
             <li key={note.id}>
               {editingId === note.id ? (
                 <div className="notes-edit">
-                  <textarea value={editText} onChange={(event) => setEditText(event.target.value)} autoFocus />
+                  <Textarea value={editText} onChange={(event) => setEditText(event.target.value)} autoFocus />
                   <div className="notes-edit-fields">
-                    <input
+                    <Input
                       placeholder={nls.t('features.tree.notes.language')}
                       value={editLanguage}
                       onChange={(event) => setEditLanguage(event.target.value)}
                     />
-                    <input
+                    <Input
                       placeholder={nls.t('features.tree.notes.mime')}
                       value={editMime}
                       onChange={(event) => setEditMime(event.target.value)}
@@ -128,18 +131,18 @@ export function NotesSection({
                     </span>
                     {editTranslations.map((translation, index) => (
                       <div className="translation-row" key={translation.id}>
-                        <input
+                        <Input
                           className="translation-text"
                           placeholder={nls.t('features.tree.notes.translations.placeholder')}
                           value={translation.text}
                           onChange={(event) => patchTranslation(index, { text: event.target.value })}
                         />
-                        <input
+                        <Input
                           placeholder={nls.t('features.tree.notes.language')}
                           value={translation.language}
                           onChange={(event) => patchTranslation(index, { language: event.target.value })}
                         />
-                        <input
+                        <Input
                           placeholder={nls.t('features.tree.notes.mime')}
                           value={translation.mime}
                           onChange={(event) => patchTranslation(index, { mime: event.target.value })}
@@ -180,7 +183,7 @@ export function NotesSection({
         </ul>
       )}
       <div className="notes-add">
-        <input
+        <Input
           value={draft}
           placeholder={nls.t('features.tree.notes.placeholder')}
           onChange={(event) => setDraft(event.target.value)}

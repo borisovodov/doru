@@ -318,22 +318,6 @@ button.entity-card {
   border-color: var(--doru-focus);
 }
 
-.side-search-input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.side-search-input:focus {
-  outline: none;
-}
-
 .side-search-group {
   margin: 8px 8px 0;
   font-size: 11px;

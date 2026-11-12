@@ -1,5 +1,8 @@
 import { Button } from '../../atoms/button/Button';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Input } from '../../atoms/form/Input';
+import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useRef, useState } from 'react';
 import { CalendarDays, Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
@@ -100,15 +103,14 @@ export function TagsSection({
   };
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.tags.title')}</h3>
-      {tagLinks.length === 0 && <p className="notes-empty">{nls.t('features.tree.tags.empty')}</p>}
+    <SectionCard title={nls.t('features.tree.tags.title')}>
+      {tagLinks.length === 0 && <EmptyText>{nls.t('features.tree.tags.empty')}</EmptyText>}
       <div className="tag-chips">
         {tagLinks.map(({ tagId, link }) => (
           <span className="tag-link" key={link.id}>
             <span className="tag-chip">
               {editingId === tagId ? (
-                <input
+                <Input
                   className="tag-rename-input"
                   value={editValue}
                   autoFocus
@@ -170,7 +172,7 @@ export function TagsSection({
         ))}
       </div>
       <div className="attachment-add">
-        <input
+        <Input
           list="doru-tag-names"
           placeholder={nls.t('features.tree.tags.newTag')}
           value={input}
@@ -185,6 +187,6 @@ export function TagsSection({
           {nls.t('features.tree.tags.attach')}
         </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }

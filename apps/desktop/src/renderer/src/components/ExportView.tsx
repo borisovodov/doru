@@ -1,3 +1,4 @@
+import { Button } from '@doru/ui';
 import { PlaceholderView } from '@doru/features';
 import { nls } from '@doru/workbench';
 import './ExportView.css';
@@ -14,7 +15,7 @@ export function ExportView({ onExportGedcom }: { onExportGedcom: () => void }) {
         title={nls.t('workbench.exportGedcom')}
         description={nls.t('features.export.placeholder')}
       >
-        <button onClick={onExportGedcom}>{nls.t('features.tree.exportGedcom')}</button>
+        <Button variant="primary" onClick={onExportGedcom}>{nls.t('features.tree.exportGedcom')}</Button>
       </PlaceholderView>
     </div>
   );

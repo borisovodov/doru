@@ -1,5 +1,8 @@
 import { Button } from '../../atoms/button/Button';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Input } from '../../atoms/form/Input';
+import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState } from 'react';
 import { BookOpenText, Pencil, X } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
@@ -71,10 +74,9 @@ export function SourcesSection({
   const sourceById = new Map(sources.map((source) => [source.id, source]));
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.sources.title')}</h3>
+    <SectionCard title={nls.t('features.tree.sources.title')}>
       {citations.length === 0 && (
-        <p className="notes-empty">{nls.t('features.tree.sources.empty')}</p>
+        <EmptyText>{nls.t('features.tree.sources.empty')}</EmptyText>
       )}
       <ul className="source-list">
         {citations.map((citation) => (
@@ -106,12 +108,12 @@ export function SourcesSection({
         ))}
       </ul>
       <div className="sources-new">
-        <input
+        <Input
           placeholder={nls.t('features.tree.sources.titleField')}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
-        <input
+        <Input
           placeholder={nls.t('features.tree.sources.authorField')}
           value={author}
           onChange={(event) => setAuthor(event.target.value)}
@@ -121,12 +123,18 @@ export function SourcesSection({
       {uncited.length > 0 && (
         <div className="sources-attach">
           {uncited.map((source) => (
-            <button key={source.id} title={source.title} onClick={() => void attach(source.id)}>
+            <Button
+              key={source.id}
+              size="sm"
+              variant="secondary"
+              title={source.title}
+              onClick={() => void attach(source.id)}
+            >
               {nls.t('features.tree.sources.attach')}: {source.title}
-            </button>
+            </Button>
           ))}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

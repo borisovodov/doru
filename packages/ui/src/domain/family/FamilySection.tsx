@@ -1,9 +1,13 @@
 import { Button } from '../../atoms/button/Button';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { DateEditor } from '../date/DateEditor';
+import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Input } from '../../atoms/form/Input';
+import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { emptyDate, fromDateDraft, type DateDraft } from '../person/draft';
 import { displayName, formatDate } from '../format/format';
 import { emptyChildLinkDraft, emptyPartnerLinkDraft, familyDraftToRecord, familyToDraft } from './familyDraft';
@@ -83,10 +87,9 @@ export function FamilySection({
   });
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.families.title')}</h3>
+    <SectionCard title={nls.t('features.tree.families.title')}>
       {asChild.length === 0 && asParent.length === 0 && (
-        <p className="notes-empty">{nls.t('features.tree.families.empty')}</p>
+        <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>
       )}
       {asChild.map((family) => (
         <FamilyCard key={family.id} {...cardProps(family)} />
@@ -95,14 +98,14 @@ export function FamilySection({
         <FamilyCard key={family.id} {...cardProps(family)} />
       ))}
       <div className="family-add">
-        <button onClick={() => void addFamily('child')}>
+        <Button variant="secondary" onClick={() => void addFamily('child')}>
           {nls.t('features.tree.families.addParents')}
-        </button>
-        <button onClick={() => void addFamily('parent')}>
+        </Button>
+        <Button variant="secondary" onClick={() => void addFamily('parent')}>
           {nls.t('features.tree.families.addPartner')}
-        </button>
+        </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -161,17 +164,13 @@ function FamilyCard({
           .map((partnerId) => (
             <span key={partnerId} className="family-chip">
               {displayName(persons.find((person) => person.id === partnerId))}
-              <button title={nls.t('features.tree.family.removeMember')} onClick={() => onRemoveMember(partnerId)}>
-                <X size={12} aria-hidden="true" />
-              </button>
+              <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<X size={12} aria-hidden="true" />} onClick={() => onRemoveMember(partnerId)} />
             </span>
           ))}
         {family.children.map((childId) => (
           <span key={childId} className="family-chip child">
             {displayName(persons.find((person) => person.id === childId))}
-            <button title={nls.t('features.tree.family.removeMember')} onClick={() => onRemoveMember(childId)}>
-              <X size={12} aria-hidden="true" />
-            </button>
+            <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<X size={12} aria-hidden="true" />} onClick={() => onRemoveMember(childId)} />
           </span>
         ))}
         <PersonPicker
@@ -193,16 +192,14 @@ function FamilyCard({
           <span key={fact.id} className="family-chip event">
             {fact.date ? formatDate(fact.date) : ''}
             {fact.place ? ` — ${fact.place}` : ''}
-            <button title={nls.t('features.tree.events.remove')} onClick={() => void removeFact(fact)}>
-              <X size={12} aria-hidden="true" />
-            </button>
+            <IconButton size="sm" label={nls.t('features.tree.events.remove')} icon={<X size={12} aria-hidden="true" />} onClick={() => void removeFact(fact)} />
           </span>
         ))}
         <DateEditor label="" value={marriageDate} onChange={setMarriageDate} />
         <Button variant="primary" onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</Button>
       </div>
       <div className="family-actions">
-        <button onClick={onDelete}>{nls.t('features.tree.families.delete')}</button>
+        <Button variant="danger" size="sm" onClick={onDelete}>{nls.t('features.tree.families.delete')}</Button>
       </div>
     </div>
   );
@@ -229,7 +226,7 @@ function PersonPicker({
 
   return (
     <div className="person-picker">
-      <input
+      <Input
         value={query}
         placeholder={placeholder}
         onChange={(event) => {

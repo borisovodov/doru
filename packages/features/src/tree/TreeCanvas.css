@@ -256,29 +256,6 @@
   box-shadow: var(--doru-ring);
 }
 
-.card-toolbar button {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: transparent;
-  color: var(--doru-fg-muted);
-  border: none;
-  border-radius: var(--doru-radius-sm);
-  cursor: pointer;
-}
-
-.card-toolbar button:hover {
-  color: var(--doru-fg);
-  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
-}
-
-.card-toolbar button:last-child:hover {
-  color: var(--doru-danger);
-}
-
 /* ── In-card person creation ───────────────────────────────────────── */
 
 .person-card.editing {
@@ -429,47 +406,6 @@
   box-shadow: var(--doru-ring);
 }
 
-.tree-toolbar button {
-  height: 24px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  background: transparent;
-  color: var(--doru-fg);
-  border: none;
-  border-radius: var(--doru-radius-sm);
-  cursor: pointer;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.tree-toolbar button:hover:not(:disabled) {
-  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
-}
-
-.tree-toolbar button:active:not(:disabled) {
-  background-image: linear-gradient(var(--doru-overlay-pressed), var(--doru-overlay-pressed));
-}
-
-.tree-toolbar button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.tree-direction {
-  display: inline-flex;
-  padding: 2px;
-  background: var(--doru-bg-input);
-  border-radius: var(--doru-radius-sm);
-}
-
-.tree-direction button.active {
-  background: var(--doru-accent);
-  color: var(--doru-on-accent);
-}
-
 .tree-nav {
   display: inline-flex;
   gap: 2px;
@@ -529,31 +465,3 @@
   box-shadow: var(--xy-controls-box-shadow-default);
 }
 
-.tree-zoom button {
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  border-right: 1px solid var(--xy-controls-button-border-color-default);
-  background: var(--xy-controls-button-background-color-default);
-  color: var(--xy-controls-button-color-default);
-  cursor: pointer;
-  user-select: none;
-}
-
-.tree-zoom button:last-child {
-  border-right: none;
-}
-
-.tree-zoom button:hover {
-  background: var(--xy-controls-button-background-color-hover-default);
-  color: var(--xy-controls-button-color-hover-default);
-}
-
-.tree-zoom button:focus-visible {
-  outline: 2px solid var(--doru-accent);
-  outline-offset: -2px;
-}

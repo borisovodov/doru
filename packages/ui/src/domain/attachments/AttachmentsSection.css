@@ -44,25 +44,8 @@
 
 .attachment-add input,
 .attachment-add select {
-  width: auto;
   flex: 1;
   min-width: 0;
-  margin-top: 0;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.attachment-add input:focus,
-.attachment-add select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
 }
 
 .attachment-edit {
@@ -77,21 +60,6 @@
 .attachment-edit select {
   flex: 1;
   min-width: 0;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 8px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.attachment-edit input:focus,
-.attachment-edit select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
 }
 
 .attachment-edit .attachment-edit-namespace {
@@ -133,31 +101,6 @@
   min-width: 0;
 }
 
-.person-section .date-editor-row input,
-.person-section .date-editor-row select {
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 8px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.person-section .date-editor-row input:focus,
-.person-section .date-editor-row select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
-.person-section .date-editor > label {
-  display: block;
-  margin: 4px 0;
-  color: var(--doru-fg-muted);
-}
-
 .tag-chip {
   display: inline-flex;
   align-items: center;
@@ -167,16 +110,6 @@
   border-radius: 999px;
   font-size: 12px;
   color: var(--doru-fg);
-}
-
-.tag-chip .icon-button {
-  width: auto;
-  height: auto;
-  padding: 0;
-}
-
-.tag-chip .icon-button:hover {
-  background: var(--doru-overlay-hover);
 }
 
 .tag-chip-name {

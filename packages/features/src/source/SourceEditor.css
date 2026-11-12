@@ -31,10 +31,6 @@
   margin-top: 0;
 }
 
-.source-sub-row .icon-button {
-  flex: none;
-}
-
 .source-text-block {
   margin-bottom: 8px;
   padding: 8px;
@@ -73,30 +69,3 @@
   flex: 1;
 }
 
-.source-editor .person-view-actions .source-delete-button {
-  color: var(--doru-danger);
-}
-
-.source-editor .add-button.small {
-  height: auto;
-  padding: 3px 8px;
-  font-size: 12px;
-  border-radius: var(--doru-radius-sm);
-}
-
-.source-editor .plain-button {
-  height: var(--doru-control-height);
-  padding: 0 11px;
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  background: transparent;
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.source-editor .plain-button:hover {
-  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
-}

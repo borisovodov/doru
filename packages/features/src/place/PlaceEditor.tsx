@@ -1,4 +1,5 @@
 import { IconButton } from '@doru/ui';
+import { EmptyText } from '@doru/ui';
 import { useMemo } from 'react';
 import { Checkbox, Input, Select, SectionCard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
@@ -100,7 +101,7 @@ export function PlaceEditor({
       />
 
       <SectionCard title={nls.t('features.tree.place.names')}>
-        {draft.names.length === 0 && <p className="notes-empty">{nls.t('features.tree.place.names.empty')}</p>}
+        {draft.names.length === 0 && <EmptyText>{nls.t('features.tree.place.names.empty')}</EmptyText>}
         {draft.names.map((name, index) => (
           <div className="place-name-row" key={name.id}>
             <Select

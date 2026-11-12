@@ -35,10 +35,6 @@
   text-overflow: ellipsis;
 }
 
-.family-link-head .icon-button {
-  flex: none;
-}
-
 .family-editor .family-checkbox {
   display: flex;
   align-items: center;
@@ -67,6 +63,3 @@
   margin-top: 0;
 }
 
-.family-editor .person-view-actions .family-delete-button {
-  color: var(--doru-danger);
-}

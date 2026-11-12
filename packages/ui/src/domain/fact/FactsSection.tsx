@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../../nls';
@@ -80,7 +81,7 @@ export function FactsSection({
   return (
     <SectionCard title={nls.t('features.tree.events.title')}>
       {facts.length === 0 ? (
-        <p className="notes-empty">{nls.t('features.tree.events.empty')}</p>
+        <EmptyText>{nls.t('features.tree.events.empty')}</EmptyText>
       ) : (
         <ul className="event-list">
           {facts.map((fact) => (

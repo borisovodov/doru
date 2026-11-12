@@ -14,27 +14,8 @@
   overflow-wrap: anywhere;
 }
 
-.notes-row .icon-button {
-  flex: none;
-}
-
 .notes-edit textarea {
   width: 100%;
-  box-sizing: border-box;
-  min-height: 60px;
-  padding: 8px 10px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-  resize: vertical;
-}
-
-.notes-edit textarea:focus {
-  border-color: var(--doru-focus);
-  outline: none;
 }
 
 .notes-edit-fields {
@@ -47,22 +28,6 @@
 .notes-edit-fields input,
 .notes-translations input {
   width: 100%;
-  box-sizing: border-box;
-  height: var(--doru-control-height);
-  margin-top: 4px;
-  padding: 0 10px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.notes-edit-fields input:focus,
-.notes-translations input:focus {
-  border-color: var(--doru-focus);
-  outline: none;
 }
 
 .notes-translations {
@@ -93,10 +58,6 @@
   flex: 2;
 }
 
-.translation-row .icon-button {
-  flex: none;
-}
-
 .notes-meta {
   flex: none;
   font-size: 11px;
@@ -118,19 +79,5 @@
 .notes-add input {
   flex: 1;
   min-width: 0;
-  margin-top: 0;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
 }
 
-.notes-add input:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
