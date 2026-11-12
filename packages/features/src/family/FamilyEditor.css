@@ -11,27 +11,6 @@
   color: var(--doru-fg-muted);
 }
 
-.family-editor input,
-.family-editor select {
-  width: 100%;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  margin-top: 4px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.family-editor input:focus,
-.family-editor select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
 .family-link-block {
   margin-bottom: 8px;
   padding: 8px;
@@ -67,13 +46,6 @@
   margin: 0;
   font-size: 12px;
   white-space: nowrap;
-}
-
-.family-editor .family-checkbox input {
-  width: auto;
-  height: auto;
-  margin: 0;
-  accent-color: var(--doru-accent);
 }
 
 .family-link-grid {

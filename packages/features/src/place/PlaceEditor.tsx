@@ -1,8 +1,6 @@
 import { IconButton } from '@doru/ui';
 import { useMemo } from 'react';
-import { Input } from '@doru/ui';
-import { Select } from '@doru/ui';
-import { SectionCard } from '@doru/ui';
+import { Checkbox, Input, Select, SectionCard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -153,10 +151,11 @@ export function PlaceEditor({
             {nls.t('features.tree.place.longitude')}
             <Input value={draft.longitude} onChange={(event) => set({ longitude: event.target.value })} />
           </label>
-          <label className="place-verified">
-            <Input type="checkbox" checked={draft.verified} onChange={(event) => set({ verified: event.target.checked })} />
-            {nls.t('features.tree.place.verified')}
-          </label>
+          <Checkbox
+            label={nls.t('features.tree.place.verified')}
+            checked={draft.verified}
+            onChange={(event) => set({ verified: event.target.checked })}
+          />
         </div>
       </SectionCard>
 

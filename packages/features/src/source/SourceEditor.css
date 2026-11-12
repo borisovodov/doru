@@ -11,39 +11,6 @@
   color: var(--doru-fg-muted);
 }
 
-.source-editor input,
-.source-editor select,
-.source-editor textarea {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 4px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.source-editor input,
-.source-editor select {
-  height: var(--doru-control-height);
-}
-
-.source-editor textarea {
-  min-height: 72px;
-  padding: 8px 10px;
-  resize: vertical;
-}
-
-.source-editor input:focus,
-.source-editor select:focus,
-.source-editor textarea:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
 .source-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

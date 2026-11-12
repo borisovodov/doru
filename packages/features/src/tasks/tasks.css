@@ -89,25 +89,6 @@ button.task-chip-link:hover {
   padding: 8px;
 }
 
-.task-editor input,
-.task-editor select {
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  padding: 0 8px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.task-editor input:focus,
-.task-editor select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
 .task-editor-text {
   width: 100%;
 }
@@ -153,19 +134,6 @@ button.task-chip-link:hover {
   gap: 4px;
   align-items: center;
   flex-wrap: wrap;
-}
-
-.task-editor .date-editor-row input {
-  width: 44px;
-  min-width: 0;
-}
-
-.task-editor .date-editor-row select {
-  width: auto;
-}
-
-.task-editor .date-text-input {
-  width: 100%;
 }
 
 .task-editor-actions {

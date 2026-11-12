@@ -1,8 +1,6 @@
 import { IconButton } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Input } from '@doru/ui';
-import { Select } from '@doru/ui';
-import { SectionCard } from '@doru/ui';
+import { Checkbox, Input, Select, SectionCard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -131,14 +129,11 @@ export function FamilyEditor({
           <div className="family-link-block" key={link.id}>
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.personId))}</span>
-              <label className="family-checkbox">
-                <Input
-                  type="checkbox"
-                  checked={link.preferred}
-                  onChange={(event) => patchPartner(index, { preferred: event.target.checked })}
-                />
-                {nls.t('features.tree.family.preferred')}
-              </label>
+              <Checkbox
+                label={nls.t('features.tree.family.preferred')}
+                checked={link.preferred}
+                onChange={(event) => patchPartner(index, { preferred: event.target.checked })}
+              />
               <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<>
                 <X size={13} aria-hidden="true" />
               </>} onClick={() => removePartner(index)} />

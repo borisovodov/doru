@@ -6,27 +6,6 @@
   color: var(--doru-fg-muted);
 }
 
-.registry-editor input,
-.registry-editor select {
-  width: 100%;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  margin-top: 4px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.registry-editor input:focus,
-.registry-editor select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
 .registry-address {
   margin-top: 8px;
   padding: 8px;
