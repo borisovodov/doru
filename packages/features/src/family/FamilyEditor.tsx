@@ -76,11 +76,17 @@ export function FamilyEditor({
     void api.getAddresses().then((loaded) => {
       if (!cancelled) setAddresses(loaded);
     });
-    void refreshContributors();
+    void Promise.all([api.getSubmitters(), api.getRecordSubmitters('family', draft.id)]).then(
+      ([loadedSubmitters, loadedContributors]) => {
+        if (!cancelled) {
+          setSubmitters(loadedSubmitters);
+          setContributors(loadedContributors);
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.id, api, persons]);
 
   const refreshFacts = async () => {

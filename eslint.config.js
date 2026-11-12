@@ -92,13 +92,7 @@ export default defineConfig(
   {
     files: ['**/*.tsx'],
     extends: [eslintReact.configs['strict-type-checked'], reactHooks.configs.flat['recommended-latest']],
-    rules: {
-      ...eslintReactHookDuplicates,
-      // The app loads IPC-backed data into local state inside effects and
-      // keeps latest props in refs. Moving the data layer out of effects is
-      // a separate architectural change, not a lint fix.
-      'react-hooks/set-state-in-effect': 'off',
-    },
+    rules: eslintReactHookDuplicates,
   },
   {
     files: ['**/*.d.ts', 'scripts/capture-screenshots.ts'],

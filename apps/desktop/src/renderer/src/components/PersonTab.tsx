@@ -99,6 +99,7 @@ function PersonTabBody({
 
   return (
     <PersonEditor
+      key={draft.isNew ? `new:${draft.id}` : draft.id}
       draft={draft}
       persons={persons}
       onChange={setDraft}

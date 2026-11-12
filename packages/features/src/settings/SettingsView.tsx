@@ -68,7 +68,7 @@ export function SettingsView({
 }: SettingsViewProps) {
   return (
     <section className="settings-view" aria-label={nls.t('workbench.settings')}>
-      {ai ? <AiSettingsSection {...ai} /> : null}
+      {ai ? <AiSettingsSection key={ai.settings.provider} {...ai} /> : null}
       <div className="settings-section">
         <h3>{nls.t('settings.theme.title')}</h3>
         <Select
@@ -130,14 +130,6 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   const [apiKeyDraft, setApiKeyDraft] = useState('');
   const [baseUrlDraft, setBaseUrlDraft] = useState<string | null>(null);
   const [argsDraft, setArgsDraft] = useState<string | null>(null);
-
-  // Drafts never survive a provider switch: a key or URL typed for one
-  // provider must not leak into another's fields.
-  useEffect(() => {
-    setApiKeyDraft('');
-    setBaseUrlDraft(null);
-    setArgsDraft(null);
-  }, [settings.provider]);
 
   const model = provider?.models.find((entry) => entry.id === settings.model);
   const hasCatalog = (provider?.models.length ?? 0) > 0;

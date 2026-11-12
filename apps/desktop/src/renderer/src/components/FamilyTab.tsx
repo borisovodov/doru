@@ -1,17 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type {
-  CitationRecord,
-  ContactRecord,
-  FamilyRecord,
-  IdentifierRecord,
-  NoteRecord,
-  PersonRecord,
-  RestrictionRecord,
-  SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
+import type { FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { EntityTab, FamilyEditor, type FamilyEditorApi } from '@doru/features';
 import {
   ContactsSection,
@@ -27,6 +15,7 @@ import {
   type FamilyDraft,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
+import { useAttachments } from '../hooks/useAttachments';
 import { FAMILY_TAB_PREFIX } from '../hooks/useTabs';
 
 export function FamilyTab({
@@ -82,56 +71,19 @@ function FamilyTabBody({
   onClose: (tabId: string) => void;
 }) {
   const [draft, setDraft] = useState<FamilyDraft>(() => familyToDraft(record));
-  const [familyNotes, setFamilyNotes] = useState<NoteRecord[]>([]);
-  const [familyCitations, setFamilyCitations] = useState<CitationRecord[]>([]);
-  const [tags, setTags] = useState<TagRecord[]>([]);
-  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
-  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
-  const [contacts, setContacts] = useState<ContactRecord[]>([]);
-  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
-  const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<
-    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
-  >([]);
+  const {
+    notes: familyNotes,
+    citations: familyCitations,
+    tags,
+    tagLinks,
+    identifiers,
+    contacts,
+    restrictions,
+    submitters,
+    contributors,
+    refresh: refreshAttachments,
+  } = useAttachments('family', record.id, api, true);
   const recordRef = useRef(record);
-
-  const refreshAttachments = async () => {
-    const [
-      loadedNotes,
-      loadedCitations,
-      loadedTags,
-      loadedTagLinks,
-      loadedIdentifiers,
-      loadedContacts,
-      loadedRestrictions,
-      loadedSubmitters,
-      loadedContributors,
-    ] = await Promise.all([
-      api.getNotes('family', record.id),
-      api.getCitations('family', record.id),
-      api.getTags(),
-      api.getTagLinks('family', record.id),
-      api.getIdentifiers('family', record.id),
-      api.getContacts('family', record.id),
-      api.getRestrictions('family', record.id),
-      api.getSubmitters(),
-      api.getRecordSubmitters('family', record.id),
-    ]);
-    setFamilyNotes(loadedNotes);
-    setFamilyCitations(loadedCitations);
-    setTags(loadedTags);
-    setTagLinks(loadedTagLinks);
-    setIdentifiers(loadedIdentifiers);
-    setContacts(loadedContacts);
-    setRestrictions(loadedRestrictions);
-    setSubmitters(loadedSubmitters);
-    setContributors(loadedContributors);
-  };
-
-  useEffect(() => {
-    void refreshAttachments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [record.id]);
 
   // Reset the draft only when it still equals the previous stored family —
   // i.e. the user has no unsaved edits. Unrelated tree reloads (a fact

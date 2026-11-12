@@ -73,6 +73,15 @@ const DRAFT_LAYOUT: PedigreeLayout = {
   minY: -CARD_HEIGHT / 2,
 };
 
+const IDLE_NEW_DRAFT: DraftCard = {
+  id: DRAFT_CARD_ID,
+  relation: 'new',
+  anchorId: '',
+  editing: false,
+};
+
+const EMPTY_COUNTS: Record<string, PersonCounts> = {};
+
 /**
  * The tree tab: one full-size canvas. The graph is derived from the domain
  * model on every render (controlled mode) — React Flow never owns the data.
@@ -92,7 +101,10 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
-  const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
+  const [countResult, setCountResult] = useState<{
+    layout: PedigreeLayout;
+    counts: Record<string, PersonCounts>;
+  } | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { setViewport, zoomIn, zoomOut, getIntersectingNodes } = useReactFlow();
 
@@ -195,31 +207,31 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
 
   const isEmpty = persons.length === 0;
 
-  // Keep the first-person draft in sync with the tree: an empty tree always
-  // has one (idle) placeholder card, and as soon as a person exists the
-  // draft goes away. It reappears if the tree becomes empty again.
-  useEffect(() => {
-    setDrafts((current) => {
-      if (isEmpty) {
-        return current.some((draft) => draft.relation === 'new')
-          ? current
-          : [...current, { id: DRAFT_CARD_ID, relation: 'new', anchorId: '', editing: false }];
-      }
-      return current.filter((draft) => draft.relation !== 'new');
-    });
-  }, [isEmpty]);
+  // An empty tree always shows one idle placeholder card. It is derived here
+  // instead of stored in state, so no effect has to synchronize it with the
+  // person list; the editing copy is added to `drafts` on first interaction.
+  const visibleDrafts = useMemo(() => {
+    const relatives = drafts.filter((draft) => draft.relation !== 'new');
+    if (!isEmpty) {
+      return relatives;
+    }
+    const newDraft = drafts.find((draft) => draft.relation === 'new');
+    return [newDraft ?? IDLE_NEW_DRAFT, ...relatives];
+  }, [drafts, isEmpty]);
+
+  const activeCounts = layout !== null && countResult?.layout === layout ? countResult.counts : EMPTY_COUNTS;
 
   const projected = useMemo(() => {
     const base = !layout
       ? { nodes: [] as CanvasNode[], edges: [] as Edge[] }
-      : projectLayout(layout, persons, collapsed, counts, null, {
+      : projectLayout(layout, persons, collapsed, activeCounts, null, {
           onToggleCollapse: toggleCollapse,
           onAction: handleAction,
         });
     // Draft cards sit next to their anchor (or centered for the first
     // person). Their ids are stable while typing, so React Flow keeps the
     // node mounted and the input state intact across re-projections.
-    const draftNodes: CanvasNode[] = drafts.map((draft, index) => {
+    const draftNodes: CanvasNode[] = visibleDrafts.map((draft, index) => {
       const anchor =
         draft.relation === 'new'
           ? undefined
@@ -266,29 +278,43 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     // Drafts come last so they paint above the real cards (React Flow stacks
     // nodes in DOM order); a draft must never end up hidden under a card.
     return { nodes: [...base.nodes, ...draftNodes], edges: base.edges };
-  }, [layout, persons, collapsed, counts, toggleCollapse, handleAction, drafts, handleDraftSave, handleDraftCancel]);
+  }, [
+    layout,
+    persons,
+    collapsed,
+    activeCounts,
+    toggleCollapse,
+    handleAction,
+    visibleDrafts,
+    handleDraftSave,
+    handleDraftCancel,
+  ]);
 
   // React Flow is controlled through these two states: every projection
   // resets them, and UI-only changes (selection) are applied through the
   // standard change handlers.
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  // React Flow is a controlled external store: these two states mirror the
+  // domain projection and must reset whenever the projection changes. This is
+  // the one deliberate exception to the synchronous-setState-in-effect rule.
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- syncing the controlled React Flow store */
     setNodes(projected.nodes);
     setEdges(projected.edges);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [projected]);
 
   // Badge counts for the visible cards.
   useEffect(() => {
     if (!layout) {
-      setCounts({});
       return;
     }
     let cancelled = false;
     const ids = [...new Set(layout.cards.map((card) => card.personId))];
     void api.getPersonCounts(ids).then((result) => {
       if (!cancelled) {
-        setCounts(result);
+        setCountResult({ layout, counts: result });
       }
     });
     return () => {
@@ -440,7 +466,13 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const handleNodeClick = useCallback((event: React.MouseEvent, node: CanvasNode) => {
     const data = node.data as PersonCardData;
     if (data.isDraft && !data.isEditing && event.detail === 1) {
-      setDrafts((current) => current.map((draft) => (draft.id === node.id ? { ...draft, editing: true } : draft)));
+      setDrafts((current) => {
+        const existing = current.find((draft) => draft.id === node.id);
+        if (existing === undefined) {
+          return [...current, { id: node.id, relation: 'new', anchorId: '', editing: true }];
+        }
+        return current.map((draft) => (draft.id === node.id ? { ...draft, editing: true } : draft));
+      });
     }
   }, []);
 

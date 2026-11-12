@@ -121,48 +121,62 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
   };
 
   useEffect(() => {
-    let cancelled = false;
-    if (!draft.isNew) {
-      void api.getNotes(draft.id).then((loaded) => {
-        if (!cancelled) setNotes(loaded);
-      });
-      void refreshFamilies();
-      void refreshCitations();
-      void api.getAssociations(draft.id).then((loaded) => {
-        if (!cancelled) setAssociations(loaded);
-      });
-      void api.getFacts(draft.id).then((loaded) => {
-        if (!cancelled) setFacts(loaded);
-      });
-      void api.getMedia(draft.id).then((loaded) => {
-        if (!cancelled) setMedia(loaded);
-      });
-      void refreshAttachments();
-      void refreshContributors();
-      void api.getPlaces().then((loaded) => {
-        if (!cancelled) setPlaces(loaded);
-      });
-      void api.getAddresses().then((loaded) => {
-        if (!cancelled) setAddresses(loaded);
-      });
-    } else {
-      setNotes([]);
-      setFamilies([]);
-      setAssociations([]);
-      setSources([]);
-      setCitations([]);
-      setFacts([]);
-      setMedia([]);
-      setIdentifiers([]);
-      setContacts([]);
-      setRestrictions([]);
-      setTags([]);
-      setTagLinks([]);
-      setChanges([]);
-      setPlaces([]);
-      setSubmitters([]);
-      setContributors([]);
+    if (draft.isNew) {
+      return;
     }
+    let cancelled = false;
+    void api.getNotes(draft.id).then((loaded) => {
+      if (!cancelled) setNotes(loaded);
+    });
+    void api.getFamilies().then((loaded) => {
+      if (!cancelled) setFamilies(loaded);
+    });
+    void Promise.all([api.getCitations(draft.id), api.getSources()]).then(([loadedCitations, loadedSources]) => {
+      if (!cancelled) {
+        setCitations(loadedCitations);
+        setSources(loadedSources);
+      }
+    });
+    void api.getAssociations(draft.id).then((loaded) => {
+      if (!cancelled) setAssociations(loaded);
+    });
+    void api.getFacts(draft.id).then((loaded) => {
+      if (!cancelled) setFacts(loaded);
+    });
+    void api.getMedia(draft.id).then((loaded) => {
+      if (!cancelled) setMedia(loaded);
+    });
+    void Promise.all([
+      api.getIdentifiers(draft.id),
+      api.getContacts(draft.id),
+      api.getRestrictions(draft.id),
+      api.getTags(),
+      api.getTagLinks(draft.id),
+      api.getChanges(draft.id),
+    ]).then(([loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges]) => {
+      if (!cancelled) {
+        setIdentifiers(loadedIdentifiers);
+        setContacts(loadedContacts);
+        setRestrictions(loadedRestrictions);
+        setTags(loadedTags);
+        setTagLinks(loadedTagLinks);
+        setChanges(loadedChanges);
+      }
+    });
+    void Promise.all([api.getSubmitters(), api.getRecordSubmitters('person', draft.id)]).then(
+      ([loadedSubmitters, loadedContributors]) => {
+        if (!cancelled) {
+          setSubmitters(loadedSubmitters);
+          setContributors(loadedContributors);
+        }
+      },
+    );
+    void api.getPlaces().then((loaded) => {
+      if (!cancelled) setPlaces(loaded);
+    });
+    void api.getAddresses().then((loaded) => {
+      if (!cancelled) setAddresses(loaded);
+    });
     return () => {
       cancelled = true;
     };
