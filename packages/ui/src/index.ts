@@ -61,6 +61,7 @@ export { DateEditor } from './domain/date/DateEditor';
 export { ChangesSection } from './domain/person/ChangesSection';
 export { MediaSection } from './domain/person/MediaSection';
 export { AliasesSection } from './domain/person/AliasesSection';
+export { AssociationsSection } from './domain/person/AssociationsSection';
 export { NamesSection } from './domain/person/NamesSection';
 export { ContributorsSection } from './domain/contributors/ContributorsSection';
 export { TaskEditorFields } from './domain/task/TaskEditorFields';

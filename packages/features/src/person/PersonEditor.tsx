@@ -30,7 +30,7 @@ import type {
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './PersonEditor.css';
-import { AssociationsSection } from './AssociationsSection';
+import { AssociationsSection } from '@doru/ui';
 import { AliasesSection } from '@doru/ui';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
 import { ChangesSection } from '@doru/ui';
