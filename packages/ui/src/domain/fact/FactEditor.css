@@ -23,23 +23,6 @@
   text-transform: uppercase;
 }
 
-.person-editor .fact-negation {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: none !important;
-  padding-bottom: 8px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.person-editor .fact-negation input {
-  width: auto;
-  height: auto;
-  margin: 0;
-  accent-color: var(--doru-accent);
-}
-
 .fact-details-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -75,30 +58,10 @@
   margin-top: 0;
 }
 
-.fact-age-row .icon-button,
-.fact-participant-row .icon-button {
-  flex: none;
-}
-
 .fact-flags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
-}
-
-.person-editor .fact-flag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 !important;
-  font-size: 12px;
-}
-
-.person-editor .fact-flag input {
-  width: auto;
-  height: auto;
-  margin: 0;
-  accent-color: var(--doru-accent);
 }
 
 .fact-editor-actions {
@@ -108,7 +71,3 @@
   margin-top: 12px;
 }
 
-.fact-editor-actions .add-button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}

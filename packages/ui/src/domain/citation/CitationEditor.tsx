@@ -6,6 +6,10 @@ import type { CitationRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { citationDraftToRecord, citationToDraft, type CitationDraft } from './citationDraft';
 import { DateEditor } from '../date/DateEditor';
+import { Field } from '../../atoms/field/Field';
+import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
+import { Input } from '../../atoms/form/Input';
+import { Textarea } from '../../atoms/form/Textarea';
 import { emptySourceTextDraft, type SourceTextDraft, type TemplateFieldDraft } from '../source/sourceDraft';
 import './CitationEditor.css';
 
@@ -44,40 +48,32 @@ export function CitationEditor({
 
   return (
     <div className="citation-editor">
-      <div className="citation-grid">
-        <label>
-          {nls.t('features.tree.citation.page')}
-          <input value={draft.page} onChange={(event) => set({ page: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.quality')}
-          <input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.description')}
-          <input value={draft.description} onChange={(event) => set({ description: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.confidence')}
-          <input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.event')}
-          <input value={draft.event} onChange={(event) => set({ event: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.role')}
-          <input value={draft.role} onChange={(event) => set({ role: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.phrase')}
-          <input value={draft.phrase} onChange={(event) => set({ phrase: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.citation.www')}
-          <input value={draft.www} onChange={(event) => set({ www: event.target.value })} />
-        </label>
-      </div>
+      <FieldGrid columns={2}>
+        <Field label={nls.t('features.tree.citation.page')}>
+          <Input value={draft.page} onChange={(event) => set({ page: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.quality')}>
+          <Input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.description')}>
+          <Input value={draft.description} onChange={(event) => set({ description: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.confidence')}>
+          <Input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.event')}>
+          <Input value={draft.event} onChange={(event) => set({ event: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.role')}>
+          <Input value={draft.role} onChange={(event) => set({ role: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.phrase')}>
+          <Input value={draft.phrase} onChange={(event) => set({ phrase: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.www')}>
+          <Input value={draft.www} onChange={(event) => set({ www: event.target.value })} />
+        </Field>
+      </FieldGrid>
       <DateEditor
         label={nls.t('features.tree.citation.date')}
         value={draft.date}
@@ -89,18 +85,18 @@ export function CitationEditor({
         <h4>{nls.t('features.tree.citation.texts')}</h4>
         {draft.texts.map((text, index) => (
           <div className="citation-text-block" key={text.id}>
-            <textarea
+            <Textarea
               value={text.text}
               placeholder={nls.t('features.tree.citation.texts')}
               onChange={(event) => patchText(index, { text: event.target.value })}
             />
             <div className="citation-sub-row">
-              <input
+              <Input
                 placeholder={nls.t('features.tree.source.texts.language')}
                 value={text.language}
                 onChange={(event) => patchText(index, { language: event.target.value })}
               />
-              <input
+              <Input
                 placeholder={nls.t('features.tree.source.texts.mime')}
                 value={text.mime}
                 onChange={(event) => patchText(index, { mime: event.target.value })}
@@ -121,12 +117,12 @@ export function CitationEditor({
         <h4>{nls.t('features.tree.citation.templateFields')}</h4>
         {draft.templateFields.map((field, index) => (
           <div className="citation-sub-row" key={field.id}>
-            <input
+            <Input
               placeholder={nls.t('features.tree.source.templateFields.name')}
               value={field.name}
               onChange={(event) => patchField(index, { name: event.target.value })}
             />
-            <input
+            <Input
               placeholder={nls.t('features.tree.source.templateFields.value')}
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}

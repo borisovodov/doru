@@ -22,54 +22,56 @@ export function AddressFields({
 
   return (
     <Subcard>
-      <h4 className={styles['title']}>{nls.t('features.tree.address.title')}</h4>
-      {address.lines.map((line, index) => (
-        <Input
-          key={index}
-          aria-label={nls.t('features.tree.address.line')}
-          placeholder={nls.t('features.tree.address.line')}
-          value={line}
-          onChange={(event) => patchLine(index, event.target.value)}
-        />
-      ))}
-      <Button
-        size="sm"
-        variant="primary"
-        icon={<Plus size={13} aria-hidden="true" />}
-        onClick={() => set({ lines: [...address.lines, ''] })}
-      >
-        {nls.t('features.tree.address.addLine')}
-      </Button>
-      <FieldGrid columns={2}>
-        <Field label={nls.t('features.tree.address.city')}>
+      <div className={styles['fields']}>
+        <h4 className={styles['title']}>{nls.t('features.tree.address.title')}</h4>
+        {address.lines.map((line, index) => (
           <Input
-            placeholder={nls.t('features.tree.address.city')}
-            value={address.city}
-            onChange={(event) => set({ city: event.target.value })}
+            key={index}
+            aria-label={nls.t('features.tree.address.line')}
+            placeholder={nls.t('features.tree.address.line')}
+            value={line}
+            onChange={(event) => patchLine(index, event.target.value)}
           />
-        </Field>
-        <Field label={nls.t('features.tree.address.state')}>
-          <Input
-            placeholder={nls.t('features.tree.address.state')}
-            value={address.state}
-            onChange={(event) => set({ state: event.target.value })}
-          />
-        </Field>
-        <Field label={nls.t('features.tree.address.postalCode')}>
-          <Input
-            placeholder={nls.t('features.tree.address.postalCode')}
-            value={address.postalCode}
-            onChange={(event) => set({ postalCode: event.target.value })}
-          />
-        </Field>
-        <Field label={nls.t('features.tree.address.country')}>
-          <Input
-            placeholder={nls.t('features.tree.address.country')}
-            value={address.country}
-            onChange={(event) => set({ country: event.target.value })}
-          />
-        </Field>
-      </FieldGrid>
+        ))}
+        <Button
+          size="sm"
+          variant="primary"
+          icon={<Plus size={13} aria-hidden="true" />}
+          onClick={() => set({ lines: [...address.lines, ''] })}
+        >
+          {nls.t('features.tree.address.addLine')}
+        </Button>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.address.city')}>
+            <Input
+              placeholder={nls.t('features.tree.address.city')}
+              value={address.city}
+              onChange={(event) => set({ city: event.target.value })}
+            />
+          </Field>
+          <Field label={nls.t('features.tree.address.state')}>
+            <Input
+              placeholder={nls.t('features.tree.address.state')}
+              value={address.state}
+              onChange={(event) => set({ state: event.target.value })}
+            />
+          </Field>
+          <Field label={nls.t('features.tree.address.postalCode')}>
+            <Input
+              placeholder={nls.t('features.tree.address.postalCode')}
+              value={address.postalCode}
+              onChange={(event) => set({ postalCode: event.target.value })}
+            />
+          </Field>
+          <Field label={nls.t('features.tree.address.country')}>
+            <Input
+              placeholder={nls.t('features.tree.address.country')}
+              value={address.country}
+              onChange={(event) => set({ country: event.target.value })}
+            />
+          </Field>
+        </FieldGrid>
+      </div>
     </Subcard>
   );
 }

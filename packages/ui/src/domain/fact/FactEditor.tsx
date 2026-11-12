@@ -6,6 +6,9 @@ import type { AddressRecord, FactAge, FactParticipant, FactRecord, PersonRecord,
 import { nls } from '../../nls';
 import { placeName } from '@doru/core/model';
 import { DateEditor } from '../date/DateEditor';
+import { Checkbox } from '../../atoms/form/Checkbox';
+import { Input } from '../../atoms/form/Input';
+import { Select } from '../../atoms/form/Select';
 import { displayName, formatAddress } from '../format/format';
 import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from './factDraft';
 import './FactEditor.css';
@@ -82,7 +85,7 @@ export function FactEditor({
       <div className="fact-editor-row fact-kind-row">
         <label>
           {nls.t('features.tree.events.typeField')}
-          <input
+          <Input
             className="fact-tag-input"
             list="doru-event-types"
             value={draft.tag}
@@ -96,17 +99,18 @@ export function FactEditor({
         </datalist>
         <label>
           {nls.t('features.tree.fact.type')}
-          <input value={draft.type} onChange={(event) => set({ type: event.target.value })} />
+          <Input value={draft.type} onChange={(event) => set({ type: event.target.value })} />
         </label>
-        <label className="fact-negation">
-          <input type="checkbox" checked={draft.negation} onChange={(event) => set({ negation: event.target.checked })} />
-          {nls.t('features.tree.fact.negation')}
-        </label>
+        <Checkbox
+          label={nls.t('features.tree.fact.negation')}
+          checked={draft.negation}
+          onChange={(event) => set({ negation: event.target.checked })}
+        />
       </div>
 
       <label>
         {nls.t('features.tree.fact.value')}
-        <input value={draft.value} onChange={(event) => set({ value: event.target.value })} />
+        <Input value={draft.value} onChange={(event) => set({ value: event.target.value })} />
       </label>
 
       <DateEditor
@@ -125,7 +129,7 @@ export function FactEditor({
       />
       <label>
         {nls.t('features.tree.fact.placeLink')}
-        <select
+        <Select
           value={draft.placeId ?? ''}
           onChange={(event) => {
             const place = places.find((entry) => entry.id === event.target.value);
@@ -142,11 +146,11 @@ export function FactEditor({
               {placeName(place)}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <label>
         {nls.t('features.tree.fact.addressLink')}
-        <select
+        <Select
           value={draft.addressId ?? ''}
           onChange={(event) => set({ addressId: event.target.value === '' ? undefined : event.target.value })}
         >
@@ -156,7 +160,7 @@ export function FactEditor({
               {formatAddress(address)}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <DateEditor
         label={nls.t('features.tree.fact.sortDate')}
@@ -168,34 +172,34 @@ export function FactEditor({
       <div className="fact-details-grid">
         <label>
           {nls.t('features.tree.fact.cause')}
-          <input value={draft.cause} onChange={(event) => set({ cause: event.target.value })} />
+          <Input value={draft.cause} onChange={(event) => set({ cause: event.target.value })} />
         </label>
         <label>
           {nls.t('features.tree.fact.agency')}
-          <input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
+          <Input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
         </label>
         <label>
           {nls.t('features.tree.fact.religiousAffiliation')}
-          <input
+          <Input
             value={draft.religiousAffiliation}
             onChange={(event) => set({ religiousAffiliation: event.target.value })}
           />
         </label>
         <label>
           {nls.t('features.tree.fact.quality')}
-          <input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
+          <Input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
         </label>
       </div>
       <label>
         {nls.t('features.tree.fact.sentence')}
-        <input value={draft.sentence} onChange={(event) => set({ sentence: event.target.value })} />
+        <Input value={draft.sentence} onChange={(event) => set({ sentence: event.target.value })} />
       </label>
 
       <div className="fact-subsection">
         <h4>{nls.t('features.tree.fact.ages.title')}</h4>
         {draft.ages.map((age, index) => (
           <div className="fact-age-row" key={age.id}>
-            <select
+            <Select
               value={age.role ?? ''}
               onChange={(event) => patchAge(index, { role: event.target.value || undefined })}
             >
@@ -206,9 +210,9 @@ export function FactEditor({
                     : nls.t(role === 'HUSB' ? 'features.tree.fact.ages.role.husband' : 'features.tree.fact.ages.role.wife')}
                 </option>
               ))}
-            </select>
+            </Select>
             {AGE_NUMBER_FIELDS.map((field) => (
-              <input
+              <Input
                 key={field}
                 type="number"
                 min={0}
@@ -221,7 +225,7 @@ export function FactEditor({
                 }}
               />
             ))}
-            <input
+            <Input
               placeholder={nls.t('features.tree.fact.ages.phrase')}
               value={age.phrase ?? ''}
               onChange={(event) => patchAge(index, { phrase: event.target.value || undefined })}
@@ -241,7 +245,7 @@ export function FactEditor({
         <h4>{nls.t('features.tree.fact.participants.title')}</h4>
         {draft.participants.map((participant, index) => (
           <div className="fact-participant-row" key={participant.id}>
-            <select
+            <Select
               value={participant.personId ?? ''}
               onChange={(event) => pickParticipantPerson(index, event.target.value)}
             >
@@ -251,15 +255,15 @@ export function FactEditor({
                   {displayName(person)}
                 </option>
               ))}
-            </select>
+            </Select>
             {participant.personId === undefined && (
-              <input
+              <Input
                 placeholder={nls.t('features.tree.fact.participants.name')}
                 value={participant.value ?? ''}
                 onChange={(event) => patchParticipant(index, { value: event.target.value || undefined })}
               />
             )}
-            <input
+            <Input
               placeholder={nls.t('features.tree.fact.participants.role')}
               value={participant.role ?? ''}
               onChange={(event) => patchParticipant(index, { role: event.target.value || undefined })}
@@ -279,10 +283,12 @@ export function FactEditor({
         <h4>{nls.t('features.tree.fact.flags.title')}</h4>
         <div className="fact-flags">
           {FACT_FLAGS.map((flag) => (
-            <label key={flag} className="fact-flag">
-              <input type="checkbox" checked={draft.flags.includes(flag)} onChange={() => toggleFlag(flag)} />
-              {nls.t(`features.tree.fact.flags.${flag}`)}
-            </label>
+            <Checkbox
+              key={flag}
+              label={nls.t(`features.tree.fact.flags.${flag}`)}
+              checked={draft.flags.includes(flag)}
+              onChange={() => toggleFlag(flag)}
+            />
           ))}
         </div>
       </div>

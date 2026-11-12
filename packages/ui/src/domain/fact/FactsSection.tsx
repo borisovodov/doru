@@ -1,9 +1,12 @@
-import { Button } from '../../atoms/button/Button';
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { DateEditor } from '../date/DateEditor';
+import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
+import { Input } from '../../atoms/form/Input';
+import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { emptyDate, fromDateDraft, type DateDraft } from '../person/draft';
 import { EVENT_TYPES } from './factDraft';
 import { FactEditor } from './FactEditor';
@@ -75,8 +78,7 @@ export function FactsSection({
   };
 
   return (
-    <div className="person-section">
-      <h3>{nls.t('features.tree.events.title')}</h3>
+    <SectionCard title={nls.t('features.tree.events.title')}>
       {facts.length === 0 ? (
         <p className="notes-empty">{nls.t('features.tree.events.empty')}</p>
       ) : (
@@ -97,15 +99,15 @@ export function FactsSection({
                 </span>
                 {fact.value ? <span className="event-description">{fact.value}</span> : null}
                 {fact.negation === true && <span className="event-negation">{nls.t('features.tree.fact.negation')}</span>}
-                <button
-                  title={nls.t('features.tree.events.remove')}
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.events.remove')}
+                  icon={<X size={14} aria-hidden="true" />}
                   onClick={(event) => {
                     event.stopPropagation();
                     void remove(fact);
                   }}
-                >
-                  <X size={14} aria-hidden="true" />
-                </button>
+                />
               </div>
               {expandedId === fact.id && (
                 <FactEditor
@@ -123,7 +125,7 @@ export function FactsSection({
         </ul>
       )}
       <div className="events-add">
-        <input
+        <Input
           className="event-type-input"
           list="doru-event-types"
           placeholder={nls.t('features.tree.events.typeField')}
@@ -136,7 +138,7 @@ export function FactsSection({
           ))}
         </datalist>
         <DateEditor label={nls.t('features.tree.events.dateField')} value={date} onChange={setDate} />
-        <input
+        <Input
           placeholder={nls.t('features.tree.events.descriptionField')}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -145,6 +147,6 @@ export function FactsSection({
           {nls.t('features.tree.events.add')}
         </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }
