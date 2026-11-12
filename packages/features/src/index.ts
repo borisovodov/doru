@@ -14,7 +14,7 @@ export { displayName, familyLabel, lifeSpan } from '@doru/ui';
 export { NotesSection } from './person/NotesSection';
 export { SourcesSection } from './person/SourcesSection';
 export { TagsSection } from './person/TagsSection';
-export { ContributorsSection } from './person/ContributorsSection';
+export { ContributorsSection } from '@doru/ui';
 export { ContactsSection, IdentifiersSection, RestrictionsSection } from './person/AttachmentsSection';
 export { SidebarFamilies } from './sidebar/SidebarFamilies';
 export { SidebarFacts } from './sidebar/SidebarFacts';
@@ -29,7 +29,7 @@ export { SourceEditor } from './source/SourceEditor';
 export { sourceDraftToRecord, sourceToDraft, emptySourceDraft, sourceDraftMatches, type SourceDraft } from '@doru/ui';
 export { FamilyEditor } from './family/FamilyEditor';
 export { familyDraftToRecord, familyToDraft, emptyFamilyDraft, familyDraftMatches, type FamilyDraft } from '@doru/ui';
-export { AddressFields } from './registries/AddressFields';
+export { AddressFields } from '@doru/ui';
 export {
   addressDraftEmpty,
   addressDraftToRecord,
@@ -49,7 +49,7 @@ export { WelcomePage, type WelcomePageProps } from './welcome/WelcomePage';
 export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEditorPage';
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
 export { TasksView } from './tasks/TasksView';
-export { TaskEditorFields } from './tasks/TaskEditorFields';
+export { TaskEditorFields } from '@doru/ui';
 export { todoDraftToRecord, todoToDraft, emptyTodoDraft, type TodoDraft } from '@doru/ui';
 export { ChatPanel, type ChatPanelProps } from './chat/ChatPanel';
 export { ChatSetupPlaceholder, type ChatSetupPlaceholderProps } from './chat/ChatSetupPlaceholder';

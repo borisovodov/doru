@@ -1,0 +1,6 @@
+.title {
+  margin: 0 0 6px;
+  font-size: var(--doru-font-size-sm);
+  font-weight: 600;
+  color: var(--doru-fg-muted);
+}

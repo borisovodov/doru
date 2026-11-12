@@ -4,7 +4,7 @@ import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRec
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
-import { ContributorsSection } from '../person/ContributorsSection';
+import { ContributorsSection } from '@doru/ui';
 import { DateEditor } from '@doru/ui';
 import { FactsSection } from '../person/FactsSection';
 import { displayName } from '@doru/ui';
