@@ -238,7 +238,12 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
   const draggedIndex = drag ? tabs.findIndex((tab) => tab.id === drag.draggedId) : -1;
 
   return (
-    <div className={closeOnLeft ? 'tab-bar tab-bar-mac' : 'tab-bar'} ref={barRef}>
+    <div
+      className={closeOnLeft ? 'tab-bar tab-bar-mac' : 'tab-bar'}
+      ref={barRef}
+      role="tablist"
+      aria-label={nls.t('workbench.tabs')}
+    >
       {tabs.map((tab, index) => {
         const isDragged = drag !== null && drag.draggedId === tab.id;
         const isDropTarget =
@@ -256,12 +261,21 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
           <div
             key={tab.id}
             className={className}
+            role="tab"
+            aria-selected={tab.id === activeId}
+            tabIndex={tab.id === activeId ? 0 : -1}
             onClick={() => {
               if (suppressClickRef.current) {
                 suppressClickRef.current = false;
                 return;
               }
               onSelect(tab.id);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSelect(tab.id);
+              }
             }}
             onAuxClick={(event) => {
               // Middle-click closes the tab, like a browser tab.
@@ -280,6 +294,7 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
               <button
                 className="tab-close"
                 title={nls.t('workbench.tab.close')}
+                aria-label={`${nls.t('workbench.tab.close')}: ${tab.label}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose(tab.id);

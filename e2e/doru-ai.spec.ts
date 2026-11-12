@@ -5,18 +5,15 @@
 // hooks (see apps/desktop/src/main/local-model.ts) — the real 2.8 GB model
 // never enters CI. The installed state uses a sparse file of the manifest
 // size, so no real weights are needed either.
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer as createHttpServer, type Server } from 'node:http';
 import { mkdirSync, mkdtempSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { DORU_AI_MODEL } from '@doru/ai';
-
-const root = dirname(fileURLToPath(import.meta.url));
-const appDir = resolve(root, '../apps/desktop');
+import { launchApp, openProject } from './launch';
 
 interface ModelServer {
   port: number;
@@ -85,44 +82,38 @@ function startModelServer(chunkSize = 64 * 1024, delayMs = 120): Promise<ModelSe
   });
 }
 
-async function launchApp(userData: string, env: Record<string, string>) {
-  const args = ['.'];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData, ...env },
-  });
-  const page = await app.firstWindow();
-  await expect(page.locator('.welcome-page')).toBeVisible();
-  await page.locator('.activity-bar .activity-bar-bottom').click();
+async function openSettings(page: import('@playwright/test').Page): Promise<void> {
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByLabel('Provider')).toBeVisible();
-  return { app, page };
 }
 
 test('the Dóru AI step downloads, resumes, and removes the model', async () => {
   const model = await startModelServer();
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-model-'));
 
-  const { app, page } = await launchApp(userData, {
-    DORU_AI_DOWNLOAD_URL: `http://127.0.0.1:${model.port}/model.gguf`,
-    DORU_AI_MODEL_SHA256: model.sha256,
-    DORU_AI_MODEL_SIZE_BYTES: String(model.size),
+  const { app, page } = await launchApp({
+    userData,
+    env: {
+      DORU_AI_DOWNLOAD_URL: `http://127.0.0.1:${model.port}/model.gguf`,
+      DORU_AI_MODEL_SHA256: model.sha256,
+      DORU_AI_MODEL_SIZE_BYTES: String(model.size),
+    },
   });
 
   try {
+    await openSettings(page);
+
     // The fresh install lands on Dóru AI with the download button.
     await expect(page.getByLabel('Provider')).toHaveValue('doru');
     await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
 
     // Start the download and cancel it once the first bytes arrived.
     await page.getByRole('button', { name: 'Download' }).click();
-    await expect(page.locator('.settings-progress')).toBeVisible();
+    const progress = page.getByRole('progressbar');
+    await expect(progress).toBeVisible();
     await expect
       .poll(
-        async () => page.locator('.settings-progress').evaluate((el) => (el as HTMLProgressElement).value),
+        async () => progress.evaluate((el) => (el as HTMLProgressElement).value),
         { timeout: 10_000 },
       )
       .toBeGreaterThan(0);
@@ -156,8 +147,9 @@ test('an installed model flips the configured gate and survives a restart', asyn
   mkdirSync(join(userData, 'models'), { recursive: true });
   execFileSync('truncate', ['-s', String(DORU_AI_MODEL.sizeBytes), modelPath]);
 
-  const first = await launchApp(userData, {});
+  const first = await launchApp({ userData });
   try {
+    await openSettings(first.page);
     await expect(first.page.getByRole('button', { name: 'Remove model' })).toBeVisible();
     await expect(first.page.getByLabel('Provider')).toHaveValue('doru');
     const state = await first.page.evaluate(() => window.doru.getAiSettings());
@@ -167,8 +159,9 @@ test('an installed model flips the configured gate and survives a restart', asyn
   }
 
   // A restart still sees the model (state derives from the file, not memory).
-  const second = await launchApp(userData, {});
+  const second = await launchApp({ userData });
   try {
+    await openSettings(second.page);
     await expect(second.page.getByRole('button', { name: 'Remove model' })).toBeVisible();
   } finally {
     await second.app.close();
@@ -183,13 +176,18 @@ test('an older manifest model shows the update nudge and updates in place', asyn
   mkdirSync(join(userData, 'models'), { recursive: true });
   execFileSync('truncate', ['-s', String(DORU_AI_MODEL.sizeBytes - 1), modelPath]);
 
-  const { app, page } = await launchApp(userData, {
-    DORU_AI_DOWNLOAD_URL: `http://127.0.0.1:${model.port}/model.gguf`,
-    DORU_AI_MODEL_SHA256: model.sha256,
-    DORU_AI_MODEL_SIZE_BYTES: String(model.size),
+  const { app, page } = await launchApp({
+    userData,
+    env: {
+      DORU_AI_DOWNLOAD_URL: `http://127.0.0.1:${model.port}/model.gguf`,
+      DORU_AI_MODEL_SHA256: model.sha256,
+      DORU_AI_MODEL_SIZE_BYTES: String(model.size),
+    },
   });
 
   try {
+    await openSettings(page);
+
     // The stale file is not the current model: quiet nudge plus Update.
     await expect(page.getByText('An updated model is available.')).toBeVisible();
     const update = page.getByRole('button', { name: 'Update' });
@@ -209,18 +207,13 @@ test('an older manifest model shows the update nudge and updates in place', asyn
 test('the chat stays gated until the model exists', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-chat-gate-'));
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-chat-')), 'family.doru');
-  const { app, page } = await launchApp(userData, {});
+  const { app, page } = await launchApp({ userData });
   try {
+    await openProject(page, project);
     // Without the model the provider is not configured, so the chat shows
     // the setup placeholder instead of the input.
-    await page.evaluate(
-      async ({ path }) => {
-        await window.doru.openProjectPath(path);
-      },
-      { path: project },
-    );
-    await expect(page.locator('.chat-setup')).toBeVisible();
-    await expect(page.locator('.chat-input')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Set up the AI agent' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message' })).toHaveCount(0);
   } finally {
     await app.close();
   }

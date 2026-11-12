@@ -22,7 +22,7 @@ export function EditorArea({
   platform,
 }: EditorAreaProps) {
   return (
-    <div className="editor-area">
+    <main className="editor-area">
       {tabs && tabs.length > 0 && (
         <TabBar
           tabs={tabs}
@@ -34,6 +34,6 @@ export function EditorArea({
         />
       )}
       <div className="editor-content">{children}</div>
-    </div>
+    </main>
   );
 }

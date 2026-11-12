@@ -479,7 +479,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
 
   return (
     <div className="tree-view">
-      <div className="tree-canvas" ref={canvasRef}>
+      <div className="tree-canvas" ref={canvasRef} role="region" aria-label={nls.t('workbench.activityBar.tree')}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

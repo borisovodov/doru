@@ -1,10 +1,8 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '../apps/desktop');
+import { join } from 'node:path';
+import { launchApp } from './launch';
 
 const palette = {
   'bg-canvas': '#123456',
@@ -41,13 +39,8 @@ test('a user theme with a bundled id overrides it', async () => {
     JSON.stringify({ name: 'My Dóru', dark: palette, light: palette }, null, 2),
   );
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await page.locator('.workbench').waitFor({ state: 'visible', timeout: 30_000 });
+  const { app, page } = await launchApp({ userData });
+  await expect(page.getByRole('main')).toBeVisible();
   await page.waitForFunction(
     () =>
       getComputedStyle(document.documentElement).getPropertyValue('--doru-accent').trim() ===

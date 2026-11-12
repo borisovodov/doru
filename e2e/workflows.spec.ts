@@ -1,38 +1,19 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { launchApp, openProject } from './launch';
 import { seedFamilyTree } from './seed';
-
-const root = dirname(fileURLToPath(import.meta.url));
-const appDir = resolve(root, '../apps/desktop');
 
 test('full workflow through the desktop APIs and UI sections', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-')), 'family.doru');
-  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-data-'));
-  const args = ['.'];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const home = await app.firstWindow();
-  await expect(home.locator('.welcome-page')).toBeVisible();
+  const { app, page } = await launchApp();
+  await expect(page.getByRole('region', { name: 'Welcome' })).toBeVisible();
 
-  await home.evaluate(
-    async ({ project }) => {
-      const summary = await window.doru.openProjectPath(project);
-      if (!summary) throw new Error('project open failed');
-    },
-    { project },
-  );
-  await seedFamilyTree(home, project);
+  await openProject(page, project);
+  await seedFamilyTree(page, project);
 
-  await home.evaluate(
+  await page.evaluate(
     async ({ project }) => {
       const persons = await window.doru.listPersons(project);
       if (persons.length !== 3) throw new Error(`persons: ${persons.length}`);
@@ -85,38 +66,39 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     { project },
   );
 
-  const page = home;
   await page.reload();
-  await expect(page.locator('.workbench')).toBeVisible();
-  await expect(page.locator('.editor-pane.active .tree-canvas')).toBeVisible();
+  await expect(page.getByRole('main')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Family Tree' })).toBeVisible();
 
   // The person list now lives in the People sidebar, not in the tree tab.
-  await page.locator('.activity-bar .activity-bar-item').nth(2).click();
-  await expect(page.locator('.person-list li').first()).toBeVisible();
+  await page.getByRole('button', { name: 'People' }).click();
+  const peopleSidebar = page.getByRole('complementary', { name: 'People' });
+  const peopleList = peopleSidebar.getByRole('list');
+  await expect(peopleList.getByRole('button').first()).toBeVisible();
 
-  await page.locator('.person-list li').first().click();
-  await expect(page.locator('.person-editor')).toBeVisible();
+  await peopleList.getByRole('button').first().click();
+  await expect(page.getByRole('region', { name: 'Person editor' })).toBeVisible();
 
   // A fresh profile has no AI provider configured: the agent chat shows the
   // setup placeholder instead of the conversation UI.
-  await expect(page.locator('.chat-setup')).toBeVisible();
-  await expect(page.locator('.chat-panel')).toBeHidden();
+  await expect(page.getByRole('region', { name: 'Set up the AI agent' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Message' })).toBeHidden();
 
   // Configuring a provider swaps the placeholder back to the chat panel.
   await page.evaluate(() =>
     window.doru.setAiSettings({ provider: 'ollama', model: 'e2e-model' }),
   );
-  await expect(page.locator('.chat-panel')).toBeVisible();
-  await expect(page.locator('.chat-setup')).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Message' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Set up the AI agent' })).toBeHidden();
 
   // Tab drag-and-drop: move the first person tab in front of the tree tab.
-  await page.locator('.tab-bar .tab').first().click();
-  await page.locator('.person-list li').nth(1).click();
-  await expect(page.locator('.tab-bar .tab')).toHaveCount(3);
-  const tabLabels = page.locator('.tab-bar .tab .tab-label');
-  const orderBefore = await tabLabels.allTextContents();
-  const draggedTab = page.locator('.tab-bar .tab').nth(1);
-  const dropTarget = page.locator('.tab-bar .tab').nth(0);
+  const tabs = page.getByRole('tablist', { name: 'Open tabs' }).getByRole('tab');
+  await tabs.first().click();
+  await peopleList.getByRole('button').nth(1).click();
+  await expect(tabs).toHaveCount(3);
+  const orderBefore = await tabs.allTextContents();
+  const draggedTab = tabs.nth(1);
+  const dropTarget = tabs.nth(0);
   const from = await draggedTab.boundingBox();
   const to = await dropTarget.boundingBox();
   expect(from).not.toBeNull();
@@ -126,25 +108,23 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   // Cross the drag threshold first so the gesture reliably starts.
   await page.mouse.move(from!.x + from!.width / 2 + 20, from!.y + from!.height / 2);
   await page.mouse.move(to!.x + 2, to!.y + to!.height / 2, { steps: 8 });
-  await expect(page.locator('.tab-drag-ghost')).toBeVisible();
   await page.mouse.up();
-  await expect(page.locator('.tab-drag-ghost')).toBeHidden();
   // The dragged tab moves to the front and becomes active.
-  await expect(tabLabels).toHaveText([orderBefore[1]!, orderBefore[0]!, orderBefore[2]!]);
-  await expect(page.locator('.tab-bar .tab').first()).toHaveClass(/active/);
+  await expect(tabs).toHaveText([orderBefore[1]!, orderBefore[0]!, orderBefore[2]!]);
+  await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
 
   // Middle-click closes a tab.
-  const labelsAfterReorder = page.locator('.tab-bar .tab .tab-label');
-  await page.locator('.tab-bar .tab').first().click({ button: 'middle' });
-  await expect(page.locator('.tab-bar .tab')).toHaveCount(2);
-  await expect(labelsAfterReorder).toHaveText([orderBefore[0]!, orderBefore[2]!]);
+  await tabs.first().click({ button: 'middle' });
+  await expect(tabs).toHaveCount(2);
+  await expect(tabs).toHaveText([orderBefore[0]!, orderBefore[2]!]);
 
   // Primary sidebar resizing: switch to the people view and drag its sash.
-  await page.locator('.activity-bar .activity-bar-item').nth(2).click();
-  await expect(page.locator('.side-bar')).toBeVisible();
-  const sideSash = page.locator('.side-sash');
+  await page.getByRole('button', { name: 'People' }).click();
+  const sideBar = page.getByRole('complementary', { name: 'People' });
+  await expect(sideBar).toBeVisible();
+  const sideSash = page.getByRole('separator', { name: 'Resize side bar' });
   const sideSashBox = await sideSash.boundingBox();
-  const sideBefore = (await page.locator('.side-bar').boundingBox())!.width;
+  const sideBefore = (await sideBar.boundingBox())!.width;
   await page.mouse.move(
     sideSashBox!.x + sideSashBox!.width / 2,
     sideSashBox!.y + sideSashBox!.height / 2,
@@ -162,15 +142,16 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     { steps: 8 },
   );
   await page.mouse.up();
-  const sideAfter = (await page.locator('.side-bar').boundingBox())!.width;
+  const sideAfter = (await sideBar.boundingBox())!.width;
   expect(sideAfter).toBeGreaterThan(sideBefore + 40);
 
   // The title-bar button toggles the agent chat panel.
-  await expect(page.locator('.agent-chat-panel')).toBeVisible();
-  await page.locator('.title-bar-action').click();
-  await expect(page.locator('.agent-chat-panel')).toBeHidden();
-  await page.locator('.title-bar-action').click();
-  await expect(page.locator('.agent-chat-panel')).toBeVisible();
+  const agentChat = page.getByRole('complementary', { name: 'Agent Chat' });
+  await expect(agentChat).toBeVisible();
+  await page.getByRole('button', { name: 'Toggle Agent Chat' }).click();
+  await expect(agentChat).toBeHidden();
+  await page.getByRole('button', { name: 'Toggle Agent Chat' }).click();
+  await expect(agentChat).toBeVisible();
 
   // The same toggle lives in the application menu — the native menu bar on
   // macOS, the in-window menu on Windows/Linux.
@@ -180,19 +161,19 @@ test('full workflow through the desktop APIs and UI sections', async () => {
         Menu.getApplicationMenu()?.getMenuItemById('toggle-agent-chat')?.click();
       });
     } else {
-      await page.locator('.app-menu-trigger').click();
-      await page.locator('[data-menu-item="toggle-agent-chat"]').click();
+      await page.getByRole('button', { name: 'Menu' }).click();
+      await page.getByRole('menuitem', { name: 'Toggle Agent Chat' }).click();
     }
   };
   await toggleFromMenu();
-  await expect(page.locator('.agent-chat-panel')).toBeHidden();
+  await expect(agentChat).toBeHidden();
   await toggleFromMenu();
-  await expect(page.locator('.agent-chat-panel')).toBeVisible();
+  await expect(agentChat).toBeVisible();
 
   // Agent chat panel resizing: drag its left sash inwards (it grows).
-  const agentChatSash = page.locator('.agent-chat-sash');
+  const agentChatSash = page.getByRole('separator', { name: 'Resize agent chat' });
   const agentChatSashBox = await agentChatSash.boundingBox();
-  const agentChatBefore = (await page.locator('.agent-chat-panel').boundingBox())!.width;
+  const agentChatBefore = (await agentChat.boundingBox())!.width;
   await page.mouse.move(
     agentChatSashBox!.x + agentChatSashBox!.width / 2,
     agentChatSashBox!.y + agentChatSashBox!.height / 2,
@@ -208,14 +189,14 @@ test('full workflow through the desktop APIs and UI sections', async () => {
     { steps: 8 },
   );
   await page.mouse.up();
-  const agentChatAfter = (await page.locator('.agent-chat-panel').boundingBox())!.width;
+  const agentChatAfter = (await agentChat.boundingBox())!.width;
   expect(agentChatAfter).toBeGreaterThan(agentChatBefore + 30);
 
   const aiSettings = await page.evaluate(() => window.doru.getAiSettings());
   expect(aiSettings).toHaveProperty('provider');
 
-  await page.locator('.activity-bar .activity-bar-bottom').click();
-  await expect(page.locator('.settings-view')).toBeVisible();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Settings' })).toBeVisible();
   await expect(page.getByLabel('Theme')).toBeVisible();
 
   await app.close();

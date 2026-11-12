@@ -59,6 +59,14 @@
   border-radius: var(--doru-radius-md);
 }
 
+button.entity-card {
+  width: 100%;
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
 .entity-card.clickable {
   cursor: pointer;
 }

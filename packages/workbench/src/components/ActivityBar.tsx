@@ -123,7 +123,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
   ];
 
   return (
-    <div className="activity-bar">
+    <nav className="activity-bar" aria-label={nls.t('workbench.activityBar.label')}>
       {views.map((view) => (
         <button
           key={view.id}
@@ -148,6 +148,6 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
           {tooltip.label}
         </div>
       )}
-    </div>
+    </nav>
   );
 }

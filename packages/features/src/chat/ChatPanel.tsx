@@ -98,7 +98,7 @@ export function ChatPanel({
         onNewSession={onNewSession}
         onDeleteSession={onDeleteSession}
       />
-      <div className="chat-messages" ref={scrollRef}>
+      <div className="chat-messages" ref={scrollRef} role="log" aria-label={nls.t('chat.title')}>
         {messages.map((message, index) => {
           const isLastUser = message.role === 'user' && busy && index === lastUserIndex(messages);
           const isEmptyAssistant =
@@ -107,7 +107,12 @@ export function ChatPanel({
             (message.steps?.length ?? 0) === 0 &&
             !message.error;
           return (
-            <div key={index} className={`chat-message ${message.role}`}>
+            <div
+              key={index}
+              className={`chat-message ${message.role}`}
+              role="article"
+              aria-label={message.role === 'user' ? nls.t('chat.role.user') : nls.t('chat.role.assistant')}
+            >
               {message.role === 'user' ? (
                 <>
                   <div className="chat-bubble">{message.content}</div>
@@ -126,7 +131,7 @@ export function ChatPanel({
                       <ChatStep key={stepIndex} step={step} />
                     ))}
                     {message.error ? (
-                      <div className="chat-error">{message.error}</div>
+                      <div className="chat-error" role="alert">{message.error}</div>
                     ) : null}
                   </div>
                   {message.content !== '' || message.error ? (
@@ -155,6 +160,7 @@ export function ChatPanel({
           ref={inputRef}
           value={draft}
           placeholder={nls.t('chat.placeholder')}
+          aria-label={nls.t('chat.inputLabel')}
           rows={1}
           disabled={busy}
           onChange={(event) => setDraft(event.target.value)}
@@ -275,7 +281,7 @@ function ChatStep({ step }: { step: AgentStep }) {
         </div>
       );
     case 'toolError':
-      return <div className="chat-tool-error">{step.message}</div>;
+      return <div className="chat-tool-error" role="alert">{step.message}</div>;
     default:
       return null;
   }

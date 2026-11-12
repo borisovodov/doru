@@ -69,11 +69,13 @@ export function TreeToolbar({
 
   return (
     <div className="tree-toolbar">
-      <div className="tree-direction" role="group">
+      <div className="tree-direction" role="tablist">
         {CHART_KINDS.map((entry) => (
           <button
             key={entry.kind}
             type="button"
+            role="tab"
+            aria-selected={kind === entry.kind}
             className={kind === entry.kind ? 'active' : undefined}
             onClick={() => onKindChange(entry.kind)}
           >
@@ -118,7 +120,7 @@ export function TreeToolbar({
         </button>
       </div>
       {breadcrumbs.length > 0 && (
-        <ol className="tree-breadcrumbs">
+        <ol className="tree-breadcrumbs" aria-label={nls.t('tree.canvas.focusTrail')}>
           {breadcrumbs.map((personId, index) => (
             <li key={personId}>
               <button
@@ -140,6 +142,7 @@ export function TreeToolbar({
         <input
           value={searchQuery}
           placeholder={nls.t('tree.canvas.search.placeholder')}
+          aria-label={nls.t('tree.canvas.search.placeholder')}
           onChange={(event) => onSearchQueryChange(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
@@ -148,7 +151,7 @@ export function TreeToolbar({
           }}
         />
         {searchResults.length > 0 && (
-          <ul className="tree-search-results">
+          <ul className="tree-search-results" role="list" aria-label={nls.t('tree.canvas.search.results')}>
             {searchResults.map((entry) => (
               <li key={entry.id}>
                 <button type="button" onClick={() => onSearchSelect(entry.id)}>

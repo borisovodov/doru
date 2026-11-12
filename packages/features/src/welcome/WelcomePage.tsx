@@ -19,7 +19,7 @@ export function WelcomePage({
   onRemoveRecent,
 }: WelcomePageProps) {
   return (
-    <div className="welcome-page">
+    <section className="welcome-page" aria-label={nls.t('workbench.welcome.title')}>
       <div className="welcome-hero">
         <h1 className="welcome-name">{nls.t('app.name')}</h1>
         <div className="welcome-actions">
@@ -60,7 +60,7 @@ export function WelcomePage({
           </ul>
         )}
       </section>
-    </div>
+    </section>
   );
 }
 

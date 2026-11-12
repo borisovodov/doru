@@ -70,7 +70,7 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
   const shortcuts = useMemo(() => sample(allShortcuts, SHOWN_SHORTCUTS), [allShortcuts]);
 
   return (
-    <div className="empty-editor-page">
+    <section className="empty-editor-page" aria-label={nls.t('workbench.keyboardShortcuts')}>
       <h1 className="empty-editor-name">{nls.t('app.name')}</h1>
       <h2 className="empty-editor-shortcuts-title">{nls.t('workbench.keyboardShortcuts')}</h2>
       <ul className="empty-editor-shortcuts">
@@ -85,6 +85,6 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }

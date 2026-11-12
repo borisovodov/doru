@@ -196,7 +196,7 @@ export function PersonEditor({
       ];
 
   return (
-    <div className="person-editor">
+    <section className="person-editor" aria-label={nls.t('features.personEditor.title')}>
       <section className="person-view-card">
         <span className={`doru-avatar person-view-avatar sex-${draft.sex.toLowerCase()}`} aria-hidden="true">
           {draftInitials(draft)}
@@ -450,6 +450,6 @@ export function PersonEditor({
           <ChangesSection changes={changes} />
         </>
       )}
-    </div>
+    </section>
   );
 }

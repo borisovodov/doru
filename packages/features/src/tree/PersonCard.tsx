@@ -149,10 +149,15 @@ export const PersonCard = memo(function PersonCard({
     // The draft card turned editor: only the name is typed here; everything
     // else lives in the person tab after the person exists.
     return (
-      <div className={classes}>
+      <div
+        className={classes}
+        role="group"
+        aria-label={nls.t('tree.canvas.addFirstPerson')}
+        aria-current={isFocus ? 'true' : undefined}
+      >
         <Handle type="target" position={Position.Top} className="person-card-handle" />
         <Handle type="source" position={Position.Bottom} className="person-card-handle" />
-        <form className="person-card-edit" onSubmit={saveDraft}>
+        <form className="person-card-edit" onSubmit={saveDraft} aria-label={nls.t('tree.canvas.addFirstPerson')}>
           <div className="person-card-edit-fields">
             <input
               value={given}
@@ -192,7 +197,12 @@ export const PersonCard = memo(function PersonCard({
   }
 
   return (
-    <div className={classes}>
+    <div
+      className={classes}
+      role="group"
+      aria-label={isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}
+      aria-current={isFocus ? 'true' : undefined}
+    >
       <Handle type="target" position={Position.Top} className="person-card-handle" />
       <Handle type="source" position={Position.Bottom} className="person-card-handle" />
       <span className="person-card-avatar" aria-hidden="true">

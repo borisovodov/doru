@@ -67,7 +67,7 @@ export function SettingsView({
   ai,
 }: SettingsViewProps) {
   return (
-    <div className="settings-view">
+    <section className="settings-view" aria-label={nls.t('workbench.settings')}>
       {ai ? <AiSettingsSection {...ai} /> : null}
       <div className="settings-section">
         <h3>{nls.t('settings.theme.title')}</h3>
@@ -99,7 +99,7 @@ export function SettingsView({
           {nls.t('settings.about.notices')}
         </button>
       </div>
-    </div>
+    </section>
   );
 }
 
