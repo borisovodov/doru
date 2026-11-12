@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Input, Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
@@ -148,44 +149,44 @@ function TitleTabBody({
         <SectionCard title={nls.t('features.tree.details')}>
           <label>
             {nls.t('features.tree.title.name')}
-            <input value={name} onChange={(event) => setName(event.target.value)} />
+            <Input value={name} onChange={(event) => setName(event.target.value)} />
           </label>
           <div className="registry-grid">
             <label>
               {nls.t('features.tree.title.author')}
-              <input value={author} onChange={(event) => setAuthor(event.target.value)} />
+              <Input value={author} onChange={(event) => setAuthor(event.target.value)} />
             </label>
             <label>
               {nls.t('features.tree.title.publisher')}
-              <input value={publisher} onChange={(event) => setPublisher(event.target.value)} />
+              <Input value={publisher} onChange={(event) => setPublisher(event.target.value)} />
             </label>
             <label>
               {nls.t('features.tree.title.series')}
-              <input value={series} onChange={(event) => setSeries(event.target.value)} />
+              <Input value={series} onChange={(event) => setSeries(event.target.value)} />
             </label>
             <label>
               {nls.t('features.tree.title.abbreviation')}
-              <input value={abbreviation} onChange={(event) => setAbbreviation(event.target.value)} />
+              <Input value={abbreviation} onChange={(event) => setAbbreviation(event.target.value)} />
             </label>
             <label>
               {nls.t('features.tree.title.callNumber')}
-              <input value={callNumber} onChange={(event) => setCallNumber(event.target.value)} />
+              <Input value={callNumber} onChange={(event) => setCallNumber(event.target.value)} />
             </label>
             <label>
               {nls.t('features.tree.title.sequence')}
-              <input type="number" value={sequence} onChange={(event) => setSequence(event.target.value)} />
+              <Input type="number" value={sequence} onChange={(event) => setSequence(event.target.value)} />
             </label>
           </div>
           <label>
             {nls.t('features.tree.title.repository')}
-            <select value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
+            <Select value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
               <option value="">{nls.t('features.tree.title.none')}</option>
               {repositories.map((repository) => (
                 <option key={repository.id} value={repository.id}>
                   {repository.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         </SectionCard>
 

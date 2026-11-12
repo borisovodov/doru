@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Input, Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
@@ -136,7 +137,7 @@ export function FamilyEditor({
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.personId))}</span>
               <label className="family-checkbox">
-                <input
+                <Input
                   type="checkbox"
                   checked={link.preferred}
                   onChange={(event) => patchPartner(index, { preferred: event.target.checked })}
@@ -160,14 +161,14 @@ export function FamilyEditor({
           </div>
         ))}
         <div className="family-add-member">
-          <select value={newPartnerId} onChange={(event) => setNewPartnerId(event.target.value)}>
+          <Select value={newPartnerId} onChange={(event) => setNewPartnerId(event.target.value)}>
             <option value="">{nls.t('features.tree.family.addMember.none')}</option>
             {candidates.map((person) => (
               <option key={person.id} value={person.id}>
                 {displayName(person)}
               </option>
             ))}
-          </select>
+          </Select>
           <button className="add-button" onClick={addPartner}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addPartner')}
@@ -192,7 +193,7 @@ export function FamilyEditor({
             <div className="family-link-grid">
               <label>
                 {nls.t('features.tree.family.pedigree')}
-                <select
+                <Select
                   value={link.pedigree}
                   onChange={(event) => patchChild(index, { pedigree: event.target.value })}
                 >
@@ -202,36 +203,36 @@ export function FamilyEditor({
                       {nls.t(`features.tree.family.pedigree.${type}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label>
                 {nls.t('features.tree.family.status')}
-                <select value={link.status} onChange={(event) => patchChild(index, { status: event.target.value })}>
+                <Select value={link.status} onChange={(event) => patchChild(index, { status: event.target.value })}>
                   <option value="">{nls.t('features.tree.family.status.none')}</option>
                   {CHILD_STATUS_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {nls.t(`features.tree.family.status.${type}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label>
                 {nls.t('features.tree.family.fatherRelation')}
-                <input
+                <Input
                   value={link.fatherRelation}
                   onChange={(event) => patchChild(index, { fatherRelation: event.target.value })}
                 />
               </label>
               <label>
                 {nls.t('features.tree.family.motherRelation')}
-                <input
+                <Input
                   value={link.motherRelation}
                   onChange={(event) => patchChild(index, { motherRelation: event.target.value })}
                 />
               </label>
               <label>
                 {nls.t('features.tree.family.pedigreePhrase')}
-                <input
+                <Input
                   value={link.pedigreePhrase}
                   onChange={(event) => patchChild(index, { pedigreePhrase: event.target.value })}
                 />
@@ -240,14 +241,14 @@ export function FamilyEditor({
           </div>
         ))}
         <div className="family-add-member">
-          <select value={newChildId} onChange={(event) => setNewChildId(event.target.value)}>
+          <Select value={newChildId} onChange={(event) => setNewChildId(event.target.value)}>
             <option value="">{nls.t('features.tree.family.addMember.none')}</option>
             {candidates.map((person) => (
               <option key={person.id} value={person.id}>
                 {displayName(person)}
               </option>
             ))}
-          </select>
+          </Select>
           <button className="add-button" onClick={addChild}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addChild')}

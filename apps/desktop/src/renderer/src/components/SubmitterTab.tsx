@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type {
@@ -191,12 +192,12 @@ function SubmitterTabBody({
         <SectionCard title={nls.t('features.tree.details')}>
           <label>
             {nls.t('features.tree.submitter.name')}
-            <input value={name} onChange={(event) => setName(event.target.value)} />
+            <Input value={name} onChange={(event) => setName(event.target.value)} />
           </label>
           <div className="registry-languages">
             {languages.map((language, index) => (
               <div className="registry-language-row" key={index}>
-                <input
+                <Input
                   placeholder={nls.t('features.tree.submitter.languages.field')}
                   value={language}
                   onChange={(event) => patchLanguage(index, event.target.value)}

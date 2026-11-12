@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Input, Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
@@ -100,7 +101,7 @@ export function PlaceEditor({
         {draft.names.length === 0 && <p className="notes-empty">{nls.t('features.tree.place.names.empty')}</p>}
         {draft.names.map((name, index) => (
           <div className="place-name-row" key={name.id}>
-            <select
+            <Select
               value={name.kind}
               onChange={(event) => patchName(index, { kind: event.target.value })}
               title={nls.t('features.tree.place.names.kind')}
@@ -110,18 +111,18 @@ export function PlaceEditor({
                   {nls.t(`features.tree.place.names.kind.${kind}`)}
                 </option>
               ))}
-            </select>
-            <input
+            </Select>
+            <Input
               placeholder={nls.t('features.tree.names.language')}
               value={name.language}
               onChange={(event) => patchName(index, { language: event.target.value })}
             />
-            <input
+            <Input
               placeholder={nls.t('features.tree.place.names.type')}
               value={name.type}
               onChange={(event) => patchName(index, { type: event.target.value })}
             />
-            <input
+            <Input
               className="place-name-value"
               placeholder={nls.t('features.tree.place.names.value')}
               value={name.value}
@@ -146,14 +147,14 @@ export function PlaceEditor({
         <div className="place-coordinates">
           <label>
             {nls.t('features.tree.place.latitude')}
-            <input value={draft.latitude} onChange={(event) => set({ latitude: event.target.value })} />
+            <Input value={draft.latitude} onChange={(event) => set({ latitude: event.target.value })} />
           </label>
           <label>
             {nls.t('features.tree.place.longitude')}
-            <input value={draft.longitude} onChange={(event) => set({ longitude: event.target.value })} />
+            <Input value={draft.longitude} onChange={(event) => set({ longitude: event.target.value })} />
           </label>
           <label className="place-verified">
-            <input type="checkbox" checked={draft.verified} onChange={(event) => set({ verified: event.target.checked })} />
+            <Input type="checkbox" checked={draft.verified} onChange={(event) => set({ verified: event.target.checked })} />
             {nls.t('features.tree.place.verified')}
           </label>
         </div>
@@ -163,7 +164,7 @@ export function PlaceEditor({
         {draft.postalCodes.map((postal, index) => (
           <div className="place-postal-block" key={postal.id}>
             <div className="place-sub-row">
-              <input
+              <Input
                 placeholder={nls.t('features.tree.place.postalCodes.code')}
                 value={postal.code}
                 onChange={(event) => patchPostal(index, { code: event.target.value })}
@@ -193,7 +194,7 @@ export function PlaceEditor({
       <SectionCard title={nls.t('features.tree.place.hierarchy')}>
         {draft.hierarchy.map((link, index) => (
           <div className="place-sub-row" key={index}>
-            <select
+            <Select
               value={link.parentId}
               onChange={(event) => patchHierarchy(index, { parentId: event.target.value })}
             >
@@ -203,8 +204,8 @@ export function PlaceEditor({
                   {placeName(place)}
                 </option>
               ))}
-            </select>
-            <select
+            </Select>
+            <Select
               value={link.type}
               onChange={(event) => patchHierarchy(index, { type: event.target.value })}
               title={nls.t('features.tree.place.hierarchy.type')}
@@ -215,7 +216,7 @@ export function PlaceEditor({
                   {nls.t(`features.tree.place.hierarchy.type.${type}`)}
                 </option>
               ))}
-            </select>
+            </Select>
             <button
               className="icon-button"
               title={nls.t('features.tree.place.hierarchy.remove')}

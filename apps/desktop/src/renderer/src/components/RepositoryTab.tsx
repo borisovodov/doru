@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type {
@@ -182,7 +183,7 @@ function RepositoryTabBody({
         <SectionCard title={nls.t('features.tree.details')}>
           <label>
             {nls.t('features.tree.repository.name')}
-            <input value={name} onChange={(event) => setName(event.target.value)} />
+            <Input value={name} onChange={(event) => setName(event.target.value)} />
           </label>
           <AddressFields address={address} onChange={setAddress} />
         </SectionCard>
