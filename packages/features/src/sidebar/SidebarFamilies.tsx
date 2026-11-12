@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { familyLabel, formatDate } from '@doru/ui';
+import { EntityCard, familyLabel, formatDate } from '@doru/ui';
 import './sidebar.css';
 
 /**
@@ -31,17 +31,14 @@ export function SidebarFamilies({
           marriage?.date ? `⚭ ${formatDate(marriage.date)}` : undefined,
         ].filter((part): part is string => part !== undefined);
         return (
-          <li key={family.id} className="entity-card clickable" onClick={() => onOpenFamily(family.id)}>
-            <span className="entity-card-icon">
-              <Users size={15} aria-hidden="true" />
-            </span>
-            <span className="entity-card-body">
-              <span className="entity-card-title">{familyLabel(family, personById)}</span>
-              {details.length > 0 && <span className="entity-card-subtitle">{details.join(' · ')}</span>}
-            </span>
-            {family.children.length > 0 && (
-              <span className="entity-card-meta highlight">{family.children.length}</span>
-            )}
+          <li key={family.id}>
+            <EntityCard
+              icon={<Users size={15} aria-hidden="true" />}
+              title={familyLabel(family, personById)}
+              subtitle={details.length > 0 ? details.join(' · ') : null}
+              meta={family.children.length > 0 ? family.children.length : null}
+              onClick={() => onOpenFamily(family.id)}
+            />
           </li>
         );
       })}

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
+import { Chip, IconButton, displayName, formatDate } from '@doru/ui';
 import { nls } from '../nls';
-import { displayName, formatDate } from '@doru/ui';
 import './tasks.css';
 
 /**
@@ -31,9 +31,11 @@ export function TasksView({
   return (
     <div className="tasks-view">
       <div className="tasks-header">
-        <button className="icon-button" title={nls.t('features.tasks.add')} onClick={onNewTask}>
-          <Plus size={14} aria-hidden="true" />
-        </button>
+        <IconButton
+          label={nls.t('features.tasks.add')}
+          icon={<Plus size={14} aria-hidden="true" />}
+          onClick={onNewTask}
+        />
       </div>
       {sorted.length === 0 ? (
         <p className="side-registries-note">{nls.t('features.tasks.empty')}</p>
@@ -46,7 +48,7 @@ export function TasksView({
                   <span className={isClosed(todo) ? 'task-row-text closed' : 'task-row-text'}>{todo.text}</span>
                   <span className="task-row-meta">
                     {todo.priority !== undefined && (
-                      <span className="task-chip">
+                      <Chip variant="neutral">
                         {todo.priority === 'low'
                           ? nls.t('features.tasks.priorityLow')
                           : todo.priority === 'medium'
@@ -54,12 +56,14 @@ export function TasksView({
                             : todo.priority === 'high'
                               ? nls.t('features.tasks.priorityHigh')
                               : todo.priority}
-                      </span>
+                      </Chip>
                     )}
-                    {todo.category !== undefined && <span className="task-chip">{todo.category}</span>}
-                    {todo.scheduledDate !== undefined && <span className="task-chip">{formatDate(todo.scheduledDate)}</span>}
+                    {todo.category !== undefined && <Chip variant="neutral">{todo.category}</Chip>}
+                    {todo.scheduledDate !== undefined && (
+                      <Chip variant="neutral">{formatDate(todo.scheduledDate)}</Chip>
+                    )}
                     {todo.repositoryId !== undefined && repositoryById.has(todo.repositoryId) && (
-                      <span className="task-chip">{repositoryById.get(todo.repositoryId)?.name}</span>
+                      <Chip variant="neutral">{repositoryById.get(todo.repositoryId)?.name}</Chip>
                     )}
                     {todo.targetType === 'person' && todo.targetId !== undefined && personById.has(todo.targetId) && (
                       <button

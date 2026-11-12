@@ -1,5 +1,6 @@
 import { Archive, BookMarked, User } from 'lucide-react';
 import type { RepositoryRecord, SubmitterRecord, TitleRecord } from '@doru/core';
+import { EntityCard } from '@doru/ui';
 import { nls } from '../nls';
 import './sidebar.css';
 
@@ -17,13 +18,12 @@ export function RepositoryList({
   return (
     <ul className="side-section-list">
       {repositories.map((repository) => (
-        <li key={repository.id} className="entity-card clickable" onClick={() => onOpenRepository(repository.id)}>
-          <span className="entity-card-icon">
-            <Archive size={15} aria-hidden="true" />
-          </span>
-          <span className="entity-card-body">
-            <span className="entity-card-title">{repository.name || '—'}</span>
-          </span>
+        <li key={repository.id}>
+          <EntityCard
+            icon={<Archive size={15} aria-hidden="true" />}
+            title={repository.name || '—'}
+            onClick={() => onOpenRepository(repository.id)}
+          />
         </li>
       ))}
     </ul>
@@ -44,13 +44,12 @@ export function SubmitterList({
   return (
     <ul className="side-section-list">
       {submitters.map((submitter) => (
-        <li key={submitter.id} className="entity-card clickable" onClick={() => onOpenSubmitter(submitter.id)}>
-          <span className="entity-card-icon">
-            <User size={15} aria-hidden="true" />
-          </span>
-          <span className="entity-card-body">
-            <span className="entity-card-title">{submitter.name || '—'}</span>
-          </span>
+        <li key={submitter.id}>
+          <EntityCard
+            icon={<User size={15} aria-hidden="true" />}
+            title={submitter.name || '—'}
+            onClick={() => onOpenSubmitter(submitter.id)}
+          />
         </li>
       ))}
     </ul>
@@ -71,14 +70,13 @@ export function TitleList({
   return (
     <ul className="side-section-list">
       {titles.map((title) => (
-        <li key={title.id} className="entity-card clickable" onClick={() => onOpenTitle(title.id)}>
-          <span className="entity-card-icon">
-            <BookMarked size={15} aria-hidden="true" />
-          </span>
-          <span className="entity-card-body">
-            <span className="entity-card-title">{title.name || '—'}</span>
-            {title.author !== undefined && <span className="entity-card-subtitle">{title.author}</span>}
-          </span>
+        <li key={title.id}>
+          <EntityCard
+            icon={<BookMarked size={15} aria-hidden="true" />}
+            title={title.name || '—'}
+            subtitle={title.author !== undefined ? title.author : null}
+            onClick={() => onOpenTitle(title.id)}
+          />
         </li>
       ))}
     </ul>
