@@ -2,6 +2,8 @@ import { useRef, type PointerEvent } from 'react';
 
 export interface SashProps {
   className?: string;
+  /** Accessible name, e.g. "Resize side bar". */
+  label: string;
   /** Fires once when a resize gesture starts, so the owner can capture the current size. */
   onDragStart: () => void;
   /** Fires on every move with the horizontal delta since the gesture start (positive = right). */
@@ -13,7 +15,7 @@ export interface SashProps {
  * session), so the cursor and the gesture are fully controlled, like the tab
  * reordering in the tab bar.
  */
-export function Sash({ className, onDragStart, onResize }: SashProps) {
+export function Sash({ className, label, onDragStart, onResize }: SashProps) {
   const startXRef = useRef<number | null>(null);
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -46,6 +48,9 @@ export function Sash({ className, onDragStart, onResize }: SashProps) {
   return (
     <div
       className={className ? `sash ${className}` : 'sash'}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={label}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}

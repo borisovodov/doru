@@ -1,0 +1,82 @@
+/* ── Fact editor ───────────────────────────────────────────────────── */
+
+.fact-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 10px;
+  padding: 10px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.fact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fact-kind-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0 12px;
+}
+
+.fact-kind-row .fact-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.fact-kind-row .fact-tag-input {
+  text-transform: uppercase;
+}
+
+.fact-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+}
+
+.fact-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fact-subsection h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doru-fg-muted);
+}
+
+.fact-age-row,
+.fact-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fact-age-row input,
+.fact-age-row select,
+.fact-participant-row input,
+.fact-participant-row select {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.fact-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.fact-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+

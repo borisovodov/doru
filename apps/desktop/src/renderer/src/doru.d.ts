@@ -33,11 +33,8 @@ import type {
   ChatTranscriptMessage,
   DoruModelState,
 } from '@doru/ai';
-import type {
-  AiProviderInfo,
-  AiSettingsState,
-  MediaWithPath,
-} from '@doru/features';
+import type { AiProviderInfo, AiSettingsState } from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 
 declare global {
   interface Window {

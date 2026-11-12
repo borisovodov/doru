@@ -1,41 +1,24 @@
 import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
-import type {
-  AddressRecord,
-  AssociationRecord,
-  ChangeRecord,
-  CitationRecord,
-  ContactRecord,
-  FactRecord,
-  FamilyRecord,
-  IdentifierRecord,
-  NoteRecord,
-  PersonRecord,
-  PlaceRecord,
-  RestrictionRecord,
-  Sex,
-  SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
+import { Avatar } from '@doru/ui';
+import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
+import type { AddressRecord, AssociationRecord, ChangeRecord, CitationRecord, ContactRecord, FactRecord, FamilyRecord, IdentifierRecord, NoteRecord, PersonRecord, PlaceRecord, RestrictionRecord, Sex, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
-import './PersonEditor.css';
-import { AssociationsSection } from './AssociationsSection';
-import { AliasesSection } from './AliasesSection';
-import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
-import { ChangesSection } from './ChangesSection';
-import { ContributorsSection } from './ContributorsSection';
-import { DateEditor } from './DateEditor';
-import { FactsSection } from './FactsSection';
-import { FamilySection } from './FamilySection';
-import { MediaSection } from './MediaSection';
-import { NotesSection } from './NotesSection';
-import { NamesSection } from './NamesSection';
-import { SourcesSection } from './SourcesSection';
-import { TagsSection } from './TagsSection';
-import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from './draft';
+import { AssociationsSection } from '@doru/ui/domain';
+import { AliasesSection } from '@doru/ui/domain';
+import { ContactsSection, IdentifiersSection, RestrictionsSection } from '@doru/ui/domain';
+import { ChangesSection } from '@doru/ui/domain';
+import { ContributorsSection } from '@doru/ui/domain';
+import { DateEditor } from '@doru/ui/domain';
+import { FactsSection } from '@doru/ui/domain';
+import { FamilySection } from '@doru/ui/domain';
+import { MediaSection } from '@doru/ui/domain';
+import { NotesSection } from '@doru/ui/domain';
+import { NamesSection } from '@doru/ui/domain';
+import { SourcesSection } from '@doru/ui/domain';
+import { TagsSection } from '@doru/ui/domain';
+import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
 import type { MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {
@@ -196,58 +179,62 @@ export function PersonEditor({
       ];
 
   return (
-    <div className="person-editor">
-      <section className="person-view-card">
-        <span className={`doru-avatar person-view-avatar sex-${draft.sex.toLowerCase()}`} aria-hidden="true">
-          {draftInitials(draft)}
-        </span>
-        <div className="person-view-body">
-          <h2 className="person-view-name">
+    <EditorPage label={nls.t('features.personEditor.title')} className="person-editor">
+      <EntityViewCard
+        media={
+          <Avatar
+            initials={draftInitials(draft)}
+            tone={draft.sex === 'M' ? 'male' : draft.sex === 'F' ? 'female' : 'neutral'}
+            size="lg"
+          />
+        }
+        title={
+          <>
             {name !== '' ? name : '—'}
             <span className="person-view-sex" title={sexTitle}>
               <SexIcon size={13} aria-hidden="true" />
             </span>
-          </h2>
-          <p className="person-view-dates">
+          </>
+        }
+        subtitle={
+          <>
             {deceased && <span className="person-view-cross">†</span>}
             {span}
-          </p>
-        </div>
-        <div className="person-view-badges">
-          {badges.map(({ icon: Icon, count, title }) =>
-            count > 0 ? (
-              <span key={title} className="person-view-badge" title={`${title}: ${count}`}>
-                <Icon size={12} aria-hidden="true" />
-                <span>{count}</span>
-              </span>
-            ) : null,
-          )}
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onCancel && (
-            <button onClick={onCancel}>{nls.t('features.tree.back')}</button>
-          )}
-        </div>
-      </section>
+          </>
+        }
+        badges={badges.map(({ icon: Icon, count, title }) =>
+          count > 0 ? (
+            <Badge key={title} icon={<Icon size={12} aria-hidden="true" />} title={`${title}: ${count}`}>
+              {count}
+            </Badge>
+          ) : null,
+        )}
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onCancel && (
+              <Button variant="secondary" size="sm" onClick={onCancel}>
+                {nls.t('features.tree.back')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.names.title')}</h3>
+      <SectionCard title={nls.t('features.tree.names.title')}>
         <NamesSection names={draft.names} onChange={(names) => set({ names })} />
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.details')}</h3>
-        <label>
-          {nls.t('features.tree.field.sex')}
-          <select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
+      <SectionCard title={nls.t('features.tree.details')}>
+        <Field label={nls.t('features.tree.field.sex')}>
+          <Select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
             <option value="U">{nls.t('features.tree.sex.U')}</option>
             <option value="M">{nls.t('features.tree.sex.M')}</option>
             <option value="F">{nls.t('features.tree.sex.F')}</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
         <DateEditor
           label={nls.t('features.tree.field.birthDate')}
           value={draft.birth}
@@ -258,7 +245,7 @@ export function PersonEditor({
           value={draft.death}
           onChange={(death) => set({ death })}
         />
-      </section>
+      </SectionCard>
 
       {!draft.isNew && (
         <>
@@ -450,6 +437,6 @@ export function PersonEditor({
           <ChangesSection changes={changes} />
         </>
       )}
-    </div>
+    </EditorPage>
   );
 }

@@ -93,6 +93,13 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   the drag region on macOS), and always reset `padding: 0` on icon-only
   buttons — the UA button padding collapses flex child SVGs. See the
   "Interaction conventions" bullet in docs/architecture.md.
+- **The UI comes from `@doru/ui`.** Atoms, shared patterns and reusable
+  domain components live in `packages/ui`; feature code composes them and
+  keeps only layout CSS. Component styles are CSS Modules; tokens and base
+  styles live in `@doru/ui/styles.css`. Every shared component has a
+  Storybook story (`npm run ui`), and Playwright tests select by role and
+  accessible name, never by CSS class or `data-testid`. See
+  docs/design-system.md.
 - **The AI model catalog ships as the `@opencode-ai/models` dependency.** Model lists, pricing, limits, capabilities and reasoning options come from its offline `./snapshot` export (models.dev data, MIT) via `packages/ai/src/catalog.ts`; the app never fetches model data at runtime. Refreshing the catalog at release time is a version bump of that package — no other step.
 - **The agent runtime is the Vercel AI SDK.** `packages/ai` wraps `streamText`
   (tools, step-count stop); Anthropic goes through `@ai-sdk/anthropic`,

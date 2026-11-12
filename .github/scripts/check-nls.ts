@@ -22,6 +22,7 @@ const uiDirs = [
   join(root, 'apps', 'desktop', 'src', 'renderer'),
   join(root, 'packages', 'workbench', 'src'),
   join(root, 'packages', 'features', 'src'),
+  join(root, 'packages', 'ui', 'src'),
 ];
 
 interface Finding {
@@ -137,6 +138,8 @@ const files = [
           !file.endsWith('.d.ts') &&
           !file.includes('.test.') &&
           !file.includes('.spec.') &&
+          !file.includes('.stories.') &&
+          !file.includes(join('src', 'storybook')) &&
           !file.endsWith(join('src', 'nls.ts')),
       ),
     ),

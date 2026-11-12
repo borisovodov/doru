@@ -1,12 +1,16 @@
+import { IconButton } from '@doru/ui';
+import { EmptyText } from '@doru/ui';
 import { useMemo } from 'react';
+import { Checkbox, Field, FieldGrid, Input, Select, SectionCard, Subcard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import '../sidebar/sidebar.css';
 import './PlaceEditor.css';
-import { DateEditor } from '../person/DateEditor';
-import { emptyDate } from '../person/draft';
+import { DateEditor, emptyDate } from '@doru/ui/domain';
+import { Button } from '@doru/ui';
+import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,
@@ -77,33 +81,30 @@ export function PlaceEditor({
   const subtitle = [draft.latitude.trim(), draft.longitude.trim()].filter((part) => part !== '').join(', ');
 
   return (
-    <div className="place-editor">
-      <section className="entity-view-card">
-        <span className="entity-card-icon entity-view-icon">
-          <MapPin size={20} aria-hidden="true" />
-        </span>
-        <div className="entity-view-body">
-          <h2 className="entity-view-title">{placeDraftName(draft) || '—'}</h2>
-          {subtitle !== '' && <p className="entity-view-subtitle">{subtitle}</p>}
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onDelete && (
-            <button className="place-delete-button" onClick={onDelete}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
-          )}
-        </div>
-      </section>
+    <EditorPage label={nls.t('workbench.activityBar.places')}>
+      <EntityViewCard
+        media={<MapPin size={20} aria-hidden="true" />}
+        title={placeDraftName(draft) || '—'}
+        subtitle={subtitle !== '' ? subtitle : null}
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.names')}</h3>
-        {draft.names.length === 0 && <p className="notes-empty">{nls.t('features.tree.place.names.empty')}</p>}
+      <SectionCard title={nls.t('features.tree.place.names')}>
+        {draft.names.length === 0 && <EmptyText>{nls.t('features.tree.place.names.empty')}</EmptyText>}
         {draft.names.map((name, index) => (
           <div className="place-name-row" key={name.id}>
-            <select
+            <Select
               value={name.kind}
               onChange={(event) => patchName(index, { kind: event.target.value })}
               title={nls.t('features.tree.place.names.kind')}
@@ -113,73 +114,62 @@ export function PlaceEditor({
                   {nls.t(`features.tree.place.names.kind.${kind}`)}
                 </option>
               ))}
-            </select>
-            <input
+            </Select>
+            <Input
               placeholder={nls.t('features.tree.names.language')}
               value={name.language}
               onChange={(event) => patchName(index, { language: event.target.value })}
             />
-            <input
+            <Input
               placeholder={nls.t('features.tree.place.names.type')}
               value={name.type}
               onChange={(event) => patchName(index, { type: event.target.value })}
             />
-            <input
+            <Input
               className="place-name-value"
               placeholder={nls.t('features.tree.place.names.value')}
               value={name.value}
               onChange={(event) => patchName(index, { value: event.target.value })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.place.names.remove')}
-              onClick={() => removeName(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.place.names.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeName(index)} />
           </div>
         ))}
-        <button className="add-button" onClick={addName}>
+        <Button variant="primary" onClick={addName}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.names.add')}
-        </button>
-      </section>
+        </Button>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.coordinates')}</h3>
-        <div className="place-coordinates">
-          <label>
-            {nls.t('features.tree.place.latitude')}
-            <input value={draft.latitude} onChange={(event) => set({ latitude: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.place.longitude')}
-            <input value={draft.longitude} onChange={(event) => set({ longitude: event.target.value })} />
-          </label>
-          <label className="place-verified">
-            <input type="checkbox" checked={draft.verified} onChange={(event) => set({ verified: event.target.checked })} />
-            {nls.t('features.tree.place.verified')}
-          </label>
-        </div>
-      </section>
+      <SectionCard title={nls.t('features.tree.place.coordinates')}>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.place.latitude')}>
+            <Input value={draft.latitude} onChange={(event) => set({ latitude: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.longitude')}>
+            <Input value={draft.longitude} onChange={(event) => set({ longitude: event.target.value })} />
+          </Field>
+          <Checkbox
+            label={nls.t('features.tree.place.verified')}
+            checked={draft.verified}
+            onChange={(event) => set({ verified: event.target.checked })}
+          />
+        </FieldGrid>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.postalCodes')}</h3>
+      <SectionCard title={nls.t('features.tree.place.postalCodes')}>
         {draft.postalCodes.map((postal, index) => (
-          <div className="place-postal-block" key={postal.id}>
+          <Subcard key={postal.id}>
             <div className="place-sub-row">
-              <input
+              <Input
                 placeholder={nls.t('features.tree.place.postalCodes.code')}
                 value={postal.code}
                 onChange={(event) => patchPostal(index, { code: event.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.place.postalCodes.remove')}
-                onClick={() => removePostal(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.place.postalCodes.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removePostal(index)} />
             </div>
             <DateEditor
               label={nls.t('features.tree.events.dateField')}
@@ -187,19 +177,18 @@ export function PlaceEditor({
               onChange={(date) => patchPostal(index, { date })}
               hidePlace
             />
-          </div>
+          </Subcard>
         ))}
-        <button className="add-button" onClick={addPostal}>
+        <Button variant="primary" onClick={addPostal}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.postalCodes.add')}
-        </button>
-      </section>
+        </Button>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.place.hierarchy')}</h3>
+      <SectionCard title={nls.t('features.tree.place.hierarchy')}>
         {draft.hierarchy.map((link, index) => (
           <div className="place-sub-row" key={index}>
-            <select
+            <Select
               value={link.parentId}
               onChange={(event) => patchHierarchy(index, { parentId: event.target.value })}
             >
@@ -209,8 +198,8 @@ export function PlaceEditor({
                   {placeName(place)}
                 </option>
               ))}
-            </select>
-            <select
+            </Select>
+            <Select
               value={link.type}
               onChange={(event) => patchHierarchy(index, { type: event.target.value })}
               title={nls.t('features.tree.place.hierarchy.type')}
@@ -221,21 +210,17 @@ export function PlaceEditor({
                   {nls.t(`features.tree.place.hierarchy.type.${type}`)}
                 </option>
               ))}
-            </select>
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.place.hierarchy.remove')}
-              onClick={() => removeHierarchy(index)}
-            >
+            </Select>
+            <IconButton size="sm" label={nls.t('features.tree.place.hierarchy.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeHierarchy(index)} />
           </div>
         ))}
-        <button className="add-button" onClick={addHierarchy}>
+        <Button variant="primary" onClick={addHierarchy}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.hierarchy.add')}
-        </button>
-      </section>
-    </div>
+        </Button>
+      </SectionCard>
+    </EditorPage>
   );
 }

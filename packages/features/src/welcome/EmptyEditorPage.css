@@ -67,19 +67,3 @@
   gap: 4px;
   flex-shrink: 0;
 }
-
-.empty-editor-keys kbd {
-  min-width: 24px;
-  height: 24px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 7px;
-  border-radius: var(--doru-radius-sm);
-  background: var(--doru-bg-raised);
-  color: var(--doru-fg);
-  font-size: 12px;
-  font-family: inherit;
-  box-shadow: var(--doru-ring);
-}

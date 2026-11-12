@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/inter';
 import '@fontsource/berkshire-swash';
+import '@doru/ui/styles.css';
 import { App } from './App';
 
 const container = document.getElementById('root');

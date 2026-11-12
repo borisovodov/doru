@@ -27,6 +27,7 @@
     "@doru/features": "*",
     "@doru/gedcom": "*",
     "@doru/platform": "*",
+    "@doru/ui": "*",
     "@doru/workbench": "*",
     "electron-log": "5.4.4",
     "jsonc-parser": "3.3.1",

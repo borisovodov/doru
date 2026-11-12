@@ -2,7 +2,8 @@ import { useMemo, type ReactNode } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName, familyLabel } from '../person/format';
+import { displayName, familyLabel } from '@doru/ui/domain';
+import { EditorPage, EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 /**
@@ -43,23 +44,16 @@ export function SourceCitationsList({
             {citing.map((citation) => {
               const target = citationTarget(citation, personById, familyById, facts, persons);
               return (
-                <li
-                  key={citation.id}
-                  className={target.personId !== undefined ? 'entity-card clickable' : 'entity-card'}
-                  onClick={target.personId !== undefined ? () => onOpenPerson(target.personId ?? '') : undefined}
-                >
-                  <span className="entity-card-icon">
-                    <BookOpenText size={15} aria-hidden="true" />
-                  </span>
-                  <span className="entity-card-body">
-                    <span className="entity-card-title">{target.label}</span>
-                    {citation.page !== undefined && (
-                      <span className="entity-card-subtitle">{citation.page}</span>
-                    )}
-                  </span>
-                  {citation.quality !== undefined && (
-                    <span className="entity-card-meta">{citation.quality}</span>
-                  )}
+                <li key={citation.id}>
+                  <EntityCard
+                    icon={<BookOpenText size={15} aria-hidden="true" />}
+                    title={target.label}
+                    subtitle={citation.page !== undefined ? citation.page : null}
+                    meta={citation.quality !== undefined ? citation.quality : null}
+                    {...(target.personId !== undefined
+                      ? { onClick: () => onOpenPerson(target.personId ?? '') }
+                      : {})}
+                  />
                 </li>
               );
             })}
@@ -123,7 +117,7 @@ function citationTarget(
   return { label: citation.targetId };
 }
 
-/** Wraps a list in the entity-tab shell (used by the source tab). */
+/** Wraps a list in the editor page shell (used by the source tab). */
 export function EntityTab({ children }: { children: ReactNode }) {
-  return <div className="entity-tab">{children}</div>;
+  return <EditorPage>{children}</EditorPage>;
 }

@@ -1,3 +1,4 @@
+import { IconButton } from '@doru/ui';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type {
@@ -12,21 +13,8 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import {
-  PersonList,
-  PlaceholderView,
-  RepositoryList,
-  SidebarFamilies,
-  SidebarFacts,
-  SidebarMedia,
-  SidebarPlaces,
-  SidebarSearch,
-  SidebarSources,
-  SubmitterList,
-  TasksView,
-  TitleList,
-  type SidebarMediaItem,
-} from '@doru/features';
+import { PersonList, TasksView } from '@doru/ui/domain';
+import { PlaceholderView, RepositoryList, SidebarFamilies, SidebarFacts, SidebarMedia, SidebarPlaces, SidebarSearch, SidebarSources, SubmitterList, TitleList, type SidebarMediaItem } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
 /** Render cap for the People list on very large trees. */
@@ -102,9 +90,9 @@ export function SidebarView({
       return (
         <>
           <div className="tasks-header">
-            <button className="icon-button" title={nls.t('features.tree.person.add')} onClick={onNewPerson}>
+            <IconButton size="sm" label={nls.t('features.tree.person.add')} icon={<>
               <Plus size={14} aria-hidden="true" />
-            </button>
+            </>} onClick={onNewPerson} />
           </div>
           <PersonList persons={persons.slice(0, PEOPLE_LIST_LIMIT)} onOpen={onOpenPerson} />
           {persons.length > PEOPLE_LIST_LIMIT && (
@@ -145,9 +133,9 @@ export function SidebarView({
       return (
         <>
           <div className="tasks-header">
-            <button className="icon-button" title={nls.t('features.tree.place.add')} onClick={onNewPlace}>
+            <IconButton size="sm" label={nls.t('features.tree.place.add')} icon={<>
               <Plus size={14} aria-hidden="true" />
-            </button>
+            </>} onClick={onNewPlace} />
           </div>
           {places.length === 0 ? (
             <PlaceholderView
@@ -270,9 +258,9 @@ function SourcesSidebar({
       {segment === 'sources' && (
         <>
           <div className="tasks-header">
-            <button className="icon-button" title={nls.t('features.tree.source.add')} onClick={onNewSource}>
+            <IconButton size="sm" label={nls.t('features.tree.source.add')} icon={<>
               <Plus size={14} aria-hidden="true" />
-            </button>
+            </>} onClick={onNewSource} />
           </div>
           {sources.length === 0 ? (
             <PlaceholderView
@@ -287,9 +275,9 @@ function SourcesSidebar({
       {segment === 'repositories' && (
         <>
           <div className="tasks-header">
-            <button className="icon-button" title={nls.t('features.tree.repository.add')} onClick={onNewRepository}>
+            <IconButton size="sm" label={nls.t('features.tree.repository.add')} icon={<>
               <Plus size={14} aria-hidden="true" />
-            </button>
+            </>} onClick={onNewRepository} />
           </div>
           <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
         </>
@@ -297,9 +285,9 @@ function SourcesSidebar({
       {segment === 'submitters' && (
         <>
           <div className="tasks-header">
-            <button className="icon-button" title={nls.t('features.tree.submitter.add')} onClick={onNewSubmitter}>
+            <IconButton size="sm" label={nls.t('features.tree.submitter.add')} icon={<>
               <Plus size={14} aria-hidden="true" />
-            </button>
+            </>} onClick={onNewSubmitter} />
           </div>
           <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />
         </>
@@ -307,9 +295,9 @@ function SourcesSidebar({
       {segment === 'titles' && (
         <>
           <div className="tasks-header">
-            <button className="icon-button" title={nls.t('features.tree.title.add')} onClick={onNewTitle}>
+            <IconButton size="sm" label={nls.t('features.tree.title.add')} icon={<>
               <Plus size={14} aria-hidden="true" />
-            </button>
+            </>} onClick={onNewTitle} />
           </div>
           <TitleList titles={titles} onOpenTitle={onOpenTitle} />
         </>

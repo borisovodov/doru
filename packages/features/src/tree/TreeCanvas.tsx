@@ -1,26 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Background,
-  BackgroundVariant,
-  Panel,
-  ReactFlow,
-  ReactFlowProvider,
-  applyEdgeChanges,
-  applyNodeChanges,
-  useReactFlow,
-  Position,
-  type Edge,
-  type EdgeChange,
-  type NodeChange,
-} from '@xyflow/react';
+  Background, BackgroundVariant, Panel, ReactFlow, ReactFlowProvider, applyEdgeChanges, applyNodeChanges, useReactFlow, Position, type Edge, type EdgeChange, type NodeChange, } from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 import { GenerationBand } from './GenerationBand';
 import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
 import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
-import { TreeToolbar } from './TreeToolbar';
+import { TreeToolbar } from '@doru/ui/domain';
 import { computeFit } from './fit';
 import { projectLayout, type CanvasNode } from './project';
 import { CARD_HEIGHT, CARD_WIDTH } from './sizes';
@@ -96,7 +85,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { setViewport, zoomIn, zoomOut, getIntersectingNodes } = useReactFlow();
@@ -479,7 +467,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
 
   return (
     <div className="tree-view">
-      <div className="tree-canvas" ref={canvasRef}>
+      <div className="tree-canvas" ref={canvasRef} role="region" aria-label={nls.t('workbench.activityBar.tree')}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -505,30 +493,24 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
           <Panel position="bottom-left" className="tree-zoom">
-            <button
-              type="button"
-              title={nls.t('tree.canvas.zoomOut')}
-              aria-label={nls.t('tree.canvas.zoomOut')}
+            <IconButton
+              size="sm"
+              label={nls.t('tree.canvas.zoomOut')}
+              icon={<Minus size={16} aria-hidden="true" />}
               onClick={() => void zoomOut({ duration: 150 })}
-            >
-              <Minus size={16} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              title={nls.t('tree.canvas.zoomIn')}
-              aria-label={nls.t('tree.canvas.zoomIn')}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('tree.canvas.zoomIn')}
+              icon={<Plus size={16} aria-hidden="true" />}
               onClick={() => void zoomIn({ duration: 150 })}
-            >
-              <Plus size={16} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              title={nls.t('tree.canvas.fit')}
-              aria-label={nls.t('tree.canvas.fit')}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('tree.canvas.fit')}
+              icon={<Scan size={16} aria-hidden="true" />}
               onClick={fitChart}
-            >
-              <Scan size={16} aria-hidden="true" />
-            </button>
+            />
           </Panel>
           <Panel position="top-left" className="tree-toolbar-panel">
             <TreeToolbar
@@ -544,12 +526,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
               focusPersonId={effectiveFocus}
               persons={persons}
               onJump={jumpTo}
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              onSearchSelect={(personId) => {
-                refocus(personId);
-                setSearchQuery('');
-              }}
             />
           </Panel>
         </ReactFlow>

@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { factOwnerName, formatDate } from '../person/format';
+import { factOwnerName, formatDate } from '@doru/ui/domain';
+import { EntityCard } from '@doru/ui';
 import '../sidebar/sidebar.css';
 
 /** The read-only list of facts that happened at the place. */
@@ -38,21 +39,18 @@ export function PlaceFactsList({
           {facts.map((fact) => {
             const personId = ownerPerson(fact);
             return (
-              <li
-                key={fact.id}
-                className={personId !== undefined ? 'entity-card clickable' : 'entity-card'}
-                onClick={personId !== undefined ? () => onOpenPerson(personId) : undefined}
-              >
-                <span className="entity-card-icon">
-                  <BookOpenText size={15} aria-hidden="true" />
-                </span>
-                <span className="entity-card-body">
-                  <span className="entity-card-title">{factOwnerName(fact, personById, familyById)}</span>
-                  <span className="entity-card-subtitle">
-                    {fact.type ? `${fact.tag} · ${fact.type}` : fact.tag}
-                    {fact.date !== undefined ? ` — ${formatDate(fact.date)}` : ''}
-                  </span>
-                </span>
+              <li key={fact.id}>
+                <EntityCard
+                  icon={<BookOpenText size={15} aria-hidden="true" />}
+                  title={factOwnerName(fact, personById, familyById)}
+                  subtitle={
+                    <>
+                      {fact.type ? `${fact.tag} · ${fact.type}` : fact.tag}
+                      {fact.date !== undefined ? ` — ${formatDate(fact.date)}` : ''}
+                    </>
+                  }
+                  {...(personId !== undefined ? { onClick: () => onOpenPerson(personId) } : {})}
+                />
               </li>
             );
           })}

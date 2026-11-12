@@ -4,4 +4,10 @@
 
 // The specs pull in renderer source (via the preload typing); declare the
 // Vite-handled side-effect imports for this program.
+// Ambient declarations for assets bundled by Vite.
+declare module '*.module.css' {
+  const classes: Record<string, string>;
+  export default classes;
+}
 declare module '*.css' {}
+

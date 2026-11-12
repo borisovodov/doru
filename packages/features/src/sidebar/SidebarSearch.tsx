@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
-import { BookOpenText, MapPin, Search, Users } from 'lucide-react';
+import { BookOpenText, MapPin, Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
+import { Avatar } from '@doru/ui';
+import { Chip, EntityCard, SearchField } from '@doru/ui';
 import { nls } from '../nls';
-import { displayName, familyLabel, formatDate, initials, lifeSpan } from '../person/format';
+import { displayName, familyLabel, formatDate, initials, lifeSpan } from '@doru/ui/domain';
 import './sidebar.css';
 
 const MAX_PER_GROUP = 6;
@@ -92,84 +94,79 @@ export function SidebarSearch({
 
   return (
     <div className="side-search">
-      <div className="side-search-field">
-        <Search size={14} aria-hidden="true" />
-        <input
-          className="side-search-input"
-          value={query}
-          placeholder={nls.t('features.search.field')}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
+      <SearchField
+        label={nls.t('features.search.field')}
+        value={query}
+        onChange={setQuery}
+      />
       {result !== null && (
         <ul className="side-section-list">
           {result.matchedPersons.length > 0 && group(nls.t('workbench.activityBar.people'))}
           {result.matchedPersons.slice(0, MAX_PER_GROUP).map((person) => (
-              <li key={person.id} className="entity-card clickable" onClick={() => onOpenPerson(person.id)}>
-                <span className={`doru-avatar sex-${person.sex.toLowerCase()}`}>{initials(person)}</span>
-                <span className="entity-card-body">
-                  <span className="entity-card-title">{displayName(person)}</span>
-                  {lifeSpan(person) !== '' && <span className="entity-card-subtitle">{lifeSpan(person)}</span>}
-                </span>
-              </li>
-            ))}
+            <li key={person.id}>
+              <EntityCard
+                icon={
+                  <Avatar
+                    initials={initials(person)}
+                    tone={person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : 'neutral'}
+                    size="sm"
+                    shape="circle"
+                  />
+                }
+                title={displayName(person)}
+                subtitle={lifeSpan(person) !== '' ? lifeSpan(person) : null}
+                onClick={() => onOpenPerson(person.id)}
+              />
+            </li>
+          ))}
           {result.matchedFamilies.length > 0 && group(nls.t('workbench.activityBar.families'))}
           {result.matchedFamilies.slice(0, MAX_PER_GROUP).map((family) => (
-            <li key={family.id} className="entity-card clickable" onClick={() => onOpenFamily(family.id)}>
-              <span className="entity-card-icon">
-                <Users size={15} aria-hidden="true" />
-              </span>
-              <span className="entity-card-body">
-                <span className="entity-card-title">{familyLabel(family, personById)}</span>
-                <span className="entity-card-subtitle">
-                  {nls.t('features.sidebar.children', family.children.length)}
-                </span>
-              </span>
+            <li key={family.id}>
+              <EntityCard
+                icon={<Users size={15} aria-hidden="true" />}
+                title={familyLabel(family, personById)}
+                subtitle={nls.t('features.sidebar.children', family.children.length)}
+                onClick={() => onOpenFamily(family.id)}
+              />
             </li>
           ))}
           {result.matchedSources.length > 0 && group(nls.t('workbench.activityBar.sources'))}
           {result.matchedSources.slice(0, MAX_PER_GROUP).map((source) => (
-            <li key={source.id} className="entity-card clickable" onClick={() => onOpenSource(source.id)}>
-              <span className="entity-card-icon">
-                <BookOpenText size={15} aria-hidden="true" />
-              </span>
-              <span className="entity-card-body">
-                <span className="entity-card-title">{source.title}</span>
-                {source.author !== undefined && <span className="entity-card-subtitle">{source.author}</span>}
-              </span>
+            <li key={source.id}>
+              <EntityCard
+                icon={<BookOpenText size={15} aria-hidden="true" />}
+                title={source.title}
+                subtitle={source.author !== undefined ? source.author : null}
+                onClick={() => onOpenSource(source.id)}
+              />
             </li>
           ))}
           {result.matchedFacts.length > 0 && group(nls.t('workbench.activityBar.events'))}
           {result.matchedFacts.slice(0, MAX_PER_GROUP).map((fact) => {
             const ownerId = ownerOf(fact);
             return (
-              <li
-                key={fact.id}
-                className={ownerId !== undefined ? 'entity-card clickable' : 'entity-card'}
-                onClick={ownerId !== undefined ? () => onOpenPerson(ownerId) : undefined}
-              >
-                <span className="tag-chip neutral">{fact.tag}</span>
-                <span className="entity-card-body">
-                  <span className="entity-card-title">{fact.value ?? fact.type ?? factOwner(fact)}</span>
-                  <span className="entity-card-subtitle">
-                    {[fact.date ? formatDate(fact.date) : undefined, fact.place]
+              <li key={fact.id}>
+                <EntityCard
+                  icon={<Chip variant="neutral">{fact.tag}</Chip>}
+                  title={fact.value ?? fact.type ?? factOwner(fact)}
+                  subtitle={
+                    [fact.date ? formatDate(fact.date) : undefined, fact.place]
                       .filter((part): part is string => part !== undefined)
-                      .join(' · ')}
-                  </span>
-                </span>
+                      .join(' · ')
+                  }
+                  {...(ownerId !== undefined ? { onClick: () => onOpenPerson(ownerId) } : {})}
+                />
               </li>
             );
           })}
           {result.matchedPlaces.length > 0 && group(nls.t('workbench.activityBar.places'))}
           {result.matchedPlaces.slice(0, MAX_PER_GROUP).map(([place, count]) => (
-            <li key={place} className="entity-card">
-              <span className="entity-card-icon">
-                <MapPin size={15} aria-hidden="true" />
-              </span>
-              <span className="entity-card-body">
-                <span className="entity-card-title">{place}</span>
-              </span>
-              <span className="entity-card-meta highlight">{count}</span>
+            <li key={place}>
+              <EntityCard
+                icon={<MapPin size={15} aria-hidden="true" />}
+                title={place}
+                meta={count}
+              />
             </li>
           ))}
           {empty && <p className="side-search-empty">{nls.t('features.search.empty')}</p>}

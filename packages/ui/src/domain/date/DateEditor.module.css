@@ -1,0 +1,36 @@
+.dateEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  margin: 0;
+  color: var(--doru-fg-muted);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.row input,
+.row select {
+  width: auto;
+  min-width: 0;
+}
+
+.rangeLabel {
+  color: var(--doru-fg-muted);
+  font-size: var(--doru-font-size-sm);
+  white-space: nowrap;
+}
+
+.textInput {
+  width: 100%;
+}

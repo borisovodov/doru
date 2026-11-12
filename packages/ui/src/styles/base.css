@@ -1,0 +1,31 @@
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* The html canvas mirrors the body so nothing white peeks through during
+   live window resizes. */
+html {
+  background: var(--doru-bg-canvas);
+}
+
+body {
+  margin: 0;
+  /* Inter comes from @fontsource-variable/inter (bundled via import, version
+     pinned in the desktop package.json); unicode-range subsets cover Latin,
+     Cyrillic and Greek. CJK locales (ja, ko, zh-cn, zh-tw) fall through to
+     the system fonts below. */
+  font-family:
+    'Inter Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu,
+    Cantarell, 'Helvetica Neue', sans-serif;
+  font-size: var(--doru-font-size);
+  color: var(--doru-fg);
+  background: var(--doru-bg-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--doru-focus);
+  outline-offset: 1px;
+}

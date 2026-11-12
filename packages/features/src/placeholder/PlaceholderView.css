@@ -10,29 +10,9 @@
   color: var(--doru-fg-muted);
 }
 
-.placeholder-view button {
-  height: var(--doru-control-height);
-  background: var(--doru-accent);
-  color: var(--doru-on-accent);
-  border: none;
-  border-radius: var(--doru-radius-md);
-  padding: 0 13px;
-  cursor: pointer;
-  font-size: var(--doru-font-size);
-}
 
-.placeholder-view button:hover {
-  background: var(--doru-accent-hover);
-}
 
-.placeholder-view button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
 
-.placeholder-view button:disabled:hover {
-  background: var(--doru-accent);
-}
 
 .person-missing {
   margin: 16px;

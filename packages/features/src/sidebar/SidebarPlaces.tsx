@@ -1,7 +1,8 @@
 import { MapPin } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
-import { nls } from '../nls';
+import { EntityCard } from '@doru/ui';
 import { placeName } from '@doru/core/model';
+import { nls } from '../nls';
 import './sidebar.css';
 
 /**
@@ -18,16 +19,17 @@ export function SidebarPlaces({
   return (
     <ul className="side-section-list">
       {places.map((place) => (
-        <li key={place.id} className="entity-card clickable" onClick={() => onOpenPlace(place.id)}>
-          <span className="entity-card-icon">
-            <MapPin size={15} aria-hidden="true" />
-          </span>
-          <span className="entity-card-body">
-            <span className="entity-card-title">{placeName(place)}</span>
-          </span>
-          {place.latitude !== undefined && place.longitude !== undefined && (
-            <span className="entity-card-meta">{nls.t('features.sidebar.geocoded')}</span>
-          )}
+        <li key={place.id}>
+          <EntityCard
+            icon={<MapPin size={15} aria-hidden="true" />}
+            title={placeName(place)}
+            meta={
+              place.latitude !== undefined && place.longitude !== undefined
+                ? nls.t('features.sidebar.geocoded')
+                : null
+            }
+            onClick={() => onOpenPlace(place.id)}
+          />
         </li>
       ))}
     </ul>

@@ -14,24 +14,8 @@ import type {
   TagLinkRecord,
   TagRecord,
 } from '@doru/core';
-import {
-  ContactsSection,
-  ContributorsSection,
-  EntityTab,
-  IdentifiersSection,
-  NotesSection,
-  PlaceEditor,
-  PlaceFactsList,
-  RestrictionsSection,
-  SourcesSection,
-  TagsSection,
-  emptyPlaceDraft,
-  placeDraftMatches,
-  placeDraftToRecord,
-  placeToDraft,
-  type PlaceDraft,
-  type PlaceEditorApi,
-} from '@doru/features';
+import { EntityTab, PlaceEditor, PlaceFactsList, emptyPlaceDraft, placeDraftMatches, placeDraftToRecord, placeToDraft, type PlaceDraft, type PlaceEditorApi } from '@doru/features';
+import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { PLACE_TAB_PREFIX } from '../hooks/useTabs';
 

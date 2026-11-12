@@ -1,86 +1,5 @@
-:root {
-  /* Surfaces: canvas (editor) < chrome (bars) < raised < popover */
-  --doru-bg-canvas: #0f1311;
-  --doru-bg-chrome: #161a17;
-  --doru-bg-chrome-active: rgba(255, 255, 255, 0.07);
-  --doru-bg-raised: #1b201c;
-  --doru-bg-popover: #202621;
-  --doru-bg-input: #1b201c;
-
-  /* Text */
-  --doru-fg: #c7cdc8;
-  --doru-fg-muted: #8d958f;
-  --doru-fg-faint: #5d655f;
-
-  /* Borders — alpha hairlines */
-  --doru-border: rgba(255, 255, 255, 0.08);
-  --doru-border-strong: rgba(255, 255, 255, 0.16);
-
-  /* Accent — forest / sage from the Dóru icon */
-  --doru-accent: #63a37f;
-  --doru-accent-hover: #78b894;
-  --doru-accent-active: #518b68;
-  --doru-on-accent: #0c1510;
-  --doru-accent-alpha: rgba(99, 163, 127, 0.14);
-  --doru-focus: var(--doru-accent);
-
-  /* Overlays for hover / pressed states */
-  --doru-overlay-hover: rgba(255, 255, 255, 0.06);
-  --doru-overlay-pressed: rgba(255, 255, 255, 0.1);
-
-  /* States */
-  --doru-success: #7fc690;
-  --doru-warning: #d9b45c;
-  --doru-danger: #e0745f;
-  --doru-info: #7fb3c9;
-
-  /* Geometry */
-  --doru-radius-sm: 4px;
-  --doru-radius-md: 6px;
-  --doru-radius-lg: 8px;
-  --doru-control-height: 28px;
-  --doru-font-size: 13px;
-
-  /* Floating panels: gutter between the cards and the window edge,
-     and the shared card corner radius. */
-  --doru-panel-gutter: 4px;
-  --doru-panel-radius: var(--doru-radius-lg);
-
-  /* Rings — 0.5px hairline "border" via box-shadow */
-  --doru-ring: 0 0 0 0.5px rgba(255, 255, 255, 0.14);
-}
-
-html,
-body,
-#root {
-  height: 100%;
-}
-
-/* The html canvas mirrors the body so nothing white peeks through during
-   live window resizes. */
-html {
-  background: var(--doru-bg-canvas);
-}
-
-body {
-  margin: 0;
-  /* Inter comes from @fontsource-variable/inter (bundled via import, version
-     pinned in the desktop package.json); unicode-range subsets cover Latin,
-     Cyrillic and Greek. CJK locales (ja, ko, zh-cn, zh-tw) fall through to
-     the system fonts below. */
-  font-family:
-    'Inter Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu,
-    Cantarell, 'Helvetica Neue', sans-serif;
-  font-size: var(--doru-font-size);
-  color: var(--doru-fg);
-  background: var(--doru-bg-canvas);
-  -webkit-font-smoothing: antialiased;
-}
-
-:focus-visible {
-  outline: 2px solid var(--doru-focus);
-  outline-offset: 1px;
-}
+/* Workbench shell layout. Design tokens and the global base styles live in
+   @doru/ui/styles.css and are imported by the app entry point. */
 
 .workbench {
   position: relative;
@@ -134,29 +53,6 @@ body {
   align-items: center;
   gap: 6px;
   -webkit-app-region: no-drag;
-}
-
-.title-bar-action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  padding: 0;
-  background: transparent;
-  border-radius: var(--doru-radius-sm);
-  color: var(--doru-fg-muted);
-  cursor: pointer;
-}
-
-.title-bar-action:hover {
-  background: var(--doru-overlay-hover);
-  color: var(--doru-fg);
-}
-
-.title-bar-action.active {
-  color: var(--doru-fg);
 }
 
 /* macOS: reserve space for the traffic lights on the left. */
@@ -589,7 +485,7 @@ body.tab-reordering * {
 
 /* Side bar note (e.g. truncated lists on large trees). */
 .side-bar-note {
-  margin: 8px 12px;
+  margin: 8px 0;
   font-size: 12px;
   color: var(--doru-fg-muted);
 }

@@ -9,10 +9,10 @@ export interface PlaceholderViewProps {
 
 export function PlaceholderView({ title, description, children }: PlaceholderViewProps) {
   return (
-    <div className="placeholder-view">
+    <section className="placeholder-view" aria-label={title}>
       <h3>{title}</h3>
       {description && <p>{description}</p>}
       {children}
-    </div>
+    </section>
   );
 }

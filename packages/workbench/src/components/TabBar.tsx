@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { X } from 'lucide-react';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 import { dropIndexForTabs } from '../tabReorder';
 
@@ -238,7 +239,12 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
   const draggedIndex = drag ? tabs.findIndex((tab) => tab.id === drag.draggedId) : -1;
 
   return (
-    <div className={closeOnLeft ? 'tab-bar tab-bar-mac' : 'tab-bar'} ref={barRef}>
+    <div
+      className={closeOnLeft ? 'tab-bar tab-bar-mac' : 'tab-bar'}
+      ref={barRef}
+      role="tablist"
+      aria-label={nls.t('workbench.tabs')}
+    >
       {tabs.map((tab, index) => {
         const isDragged = drag !== null && drag.draggedId === tab.id;
         const isDropTarget =
@@ -256,12 +262,21 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
           <div
             key={tab.id}
             className={className}
+            role="tab"
+            aria-selected={tab.id === activeId}
+            tabIndex={tab.id === activeId ? 0 : -1}
             onClick={() => {
               if (suppressClickRef.current) {
                 suppressClickRef.current = false;
                 return;
               }
               onSelect(tab.id);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSelect(tab.id);
+              }
             }}
             onAuxClick={(event) => {
               // Middle-click closes the tab, like a browser tab.
@@ -277,16 +292,16 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
           >
             <span className="tab-label">{tab.label}</span>
             {tab.closable !== false && (
-              <button
+              <IconButton
                 className="tab-close"
-                title={nls.t('workbench.tab.close')}
+                size="sm"
+                label={`${nls.t('workbench.tab.close')}: ${tab.label}`}
+                icon={<X size={14} strokeWidth={1.5} aria-hidden="true" />}
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose(tab.id);
                 }}
-              >
-                <X size={14} strokeWidth={1.5} aria-hidden="true" />
-              </button>
+              />
             )}
           </div>
         );

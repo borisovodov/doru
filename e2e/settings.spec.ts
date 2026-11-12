@@ -1,10 +1,8 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '../apps/desktop');
+import { join } from 'node:path';
+import { launchApp } from './launch';
 
 const palette = {
   'bg-canvas': '#123456',
@@ -21,15 +19,10 @@ test('the theme dropdown lists valid themes, hides broken ones, and persists the
   // Invalid palette: "dark" must be an object of CSS values, not a string.
   writeFileSync(join(userData, 'themes', 'broken.json'), '{ "dark": "nope" }\n');
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await expect(page.locator('.welcome-page')).toBeVisible();
+  const { app, page } = await launchApp({ userData });
+  await expect(page.getByRole('region', { name: 'Welcome' })).toBeVisible();
 
-  await page.locator('.activity-bar .activity-bar-bottom').click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const themeSelect = page.getByLabel('Theme');
   await expect(themeSelect).toBeVisible();
 

@@ -1,3 +1,4 @@
+import { Button } from '@doru/ui';
 import { nls } from '../nls';
 import { PlaceholderView } from '../placeholder/PlaceholderView';
 import './ChatPanel.css';
@@ -14,7 +15,7 @@ export function ChatSetupPlaceholder({ onOpenSettings }: ChatSetupPlaceholderPro
         title={nls.t('chat.setup.title')}
         description={nls.t('chat.setup.description')}
       >
-        <button onClick={onOpenSettings}>{nls.t('chat.setup.openSettings')}</button>
+        <Button variant="primary" onClick={onOpenSettings}>{nls.t('chat.setup.openSettings')}</Button>
       </PlaceholderView>
     </div>
   );

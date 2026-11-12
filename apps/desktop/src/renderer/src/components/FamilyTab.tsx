@@ -12,22 +12,8 @@ import type {
   TagLinkRecord,
   TagRecord,
 } from '@doru/core';
-import {
-  ContactsSection,
-  ContributorsSection,
-  EntityTab,
-  FamilyEditor,
-  IdentifiersSection,
-  NotesSection,
-  RestrictionsSection,
-  SourcesSection,
-  TagsSection,
-  familyDraftMatches,
-  familyDraftToRecord,
-  familyToDraft,
-  type FamilyDraft,
-  type FamilyEditorApi,
-} from '@doru/features';
+import { EntityTab, FamilyEditor, type FamilyEditorApi } from '@doru/features';
+import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, familyDraftMatches, familyDraftToRecord, familyToDraft, type FamilyDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { FAMILY_TAB_PREFIX } from '../hooks/useTabs';
 

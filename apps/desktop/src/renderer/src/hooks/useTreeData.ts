@@ -18,7 +18,8 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
+import type { FamilyEditorApi, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 
 /**
  * Tree state and every mutation/reload that goes through `window.doru`.

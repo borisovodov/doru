@@ -10,12 +10,12 @@ export interface NoticesViewProps {
 
 export function NoticesView({ onOpenLink }: NoticesViewProps) {
   return (
-    <div className="notices-view">
+    <section className="notices-view" aria-label={nls.t('notices.title')}>
       <p className="notices-intro">{nls.t('notices.description')}</p>
       {thirdPartyNotices.map((entry) => (
         <NoticeEntry key={entry.name} entry={entry} onOpenLink={onOpenLink} />
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -28,7 +28,7 @@ function NoticeEntry({
 }) {
   const url = entry.url;
   return (
-    <section className="notices-entry">
+    <article className="notices-entry" aria-label={entry.name}>
       {url !== undefined ? (
         <a
           className="notices-name"
@@ -49,6 +49,6 @@ function NoticeEntry({
           <pre>{entry.text}</pre>
         </details>
       ) : null}
-    </section>
+    </article>
   );
 }

@@ -1,35 +1,27 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { seedFamilyTree } from './seed';
 import { startMockProvider } from './mock-provider';
+import { launchApp, openProject } from './launch';
 
-const root = dirname(fileURLToPath(import.meta.url));
-const appDir = resolve(root, '../apps/desktop');
+async function launchWithFamily(project: string, userData: string) {
+  const launched = await launchApp({ userData });
+  await openProject(launched.page, project);
+  await seedFamilyTree(launched.page, project);
+  return launched;
+}
 
-async function launchApp(project: string, userData: string) {
-  const args = ['.'];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await expect(page.locator('.welcome-page')).toBeVisible();
-  await page.evaluate(
-    async ({ path }) => {
-      const summary = await window.doru.openProjectPath(path);
-      if (!summary) throw new Error('project open failed');
-    },
-    { path: project },
-  );
-  await seedFamilyTree(page, project);
-  return { app, page };
+function chatLocators(page: Page) {
+  const log = page.getByRole('log', { name: 'Agent Chat' });
+  return {
+    log,
+    input: page.getByRole('textbox', { name: 'Message' }),
+    userMessages: log.getByRole('article', { name: 'You' }),
+    assistantMessages: log.getByRole('article', { name: 'Assistant' }),
+    sessionSelect: page.getByRole('combobox', { name: 'Chat session' }),
+  };
 }
 
 test('AI chat works end-to-end against a real HTTP provider', async () => {
@@ -38,7 +30,7 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
 
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-ai-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-ai-data-'));
-  const { app, page } = await launchApp(project, userData);
+  const { app, page } = await launchWithFamily(project, userData);
 
   try {
     // Configure the mock provider (the ollama preset needs no API key, so the
@@ -63,27 +55,28 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
     const fetched = await page.evaluate(() => window.doru.fetchAiModels());
     expect(fetched.models).toEqual(['mock-model']);
 
+    const chat = chatLocators(page);
+
     // Open the chat panel and send a message.
-    await expect(page.locator('.agent-chat-panel')).toBeVisible();
-    await page.locator('.chat-input textarea').fill('Find Ivan');
+    await expect(page.getByRole('complementary', { name: 'Agent Chat' })).toBeVisible();
+    await chat.input.fill('Find Ivan');
     await page.getByRole('button', { name: 'Send' }).click();
 
     // The mock calls tree_query, then tree_edit — tools run without a
     // permission prompt, so the final reply streams straight in.
-    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.', {
-      timeout: 15_000,
-    });
+    const assistant = chat.assistantMessages.last();
+    await expect(assistant.getByText('Done.')).toBeVisible({ timeout: 15_000 });
 
     // Tool activity is visible as steps, and the tree edit was applied.
-    await expect(page.locator('.chat-message.assistant .chat-tool')).toHaveCount(2);
-    await expect(page.locator('.chat-message.assistant .chat-tool-result')).toHaveCount(2);
+    await expect(assistant.getByText('Tool: tree_query')).toBeVisible();
+    await expect(assistant.getByText('Tool: tree_edit')).toBeVisible();
     const persons = await page.evaluate(({ projectPath }) => window.doru.listPersons(projectPath), {
       projectPath: project,
     });
     expect(persons.some((person) => person.id === 'E2EM1')).toBe(true);
 
     // The chat is idle again.
-    await expect(page.locator('.chat-input textarea')).toBeEnabled();
+    await expect(chat.input).toBeEnabled();
 
     // The copy button puts the reply's markdown on the system clipboard.
     await page.getByRole('button', { name: 'Copy reply' }).click();
@@ -92,22 +85,21 @@ test('AI chat works end-to-end against a real HTTP provider', async () => {
     expect(copied).toBe('Done.');
 
     // The exchange persisted into a session with an auto-generated title.
-    const sessionSelect = page.locator('.chat-session-select');
-    await expect(sessionSelect).toHaveCount(1);
-    await expect(sessionSelect.locator('option')).toHaveText(['Find Ivan']);
+    await expect(chat.sessionSelect).toHaveCount(1);
+    await expect(chat.sessionSelect.locator('option')).toHaveText(['Find Ivan']);
 
     // A new chat starts empty; switching back restores the transcript.
     await page.getByRole('button', { name: 'New chat' }).click();
-    await expect(page.locator('.chat-message')).toHaveCount(0);
-    await expect(sessionSelect.locator('option')).toHaveCount(2);
-    await sessionSelect.selectOption({ label: 'Find Ivan' });
-    await expect(page.locator('.chat-message.user .chat-bubble')).toHaveText('Find Ivan');
-    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.');
+    await expect(chat.log.getByRole('article')).toHaveCount(0);
+    await expect(chat.sessionSelect.locator('option')).toHaveCount(2);
+    await chat.sessionSelect.selectOption({ label: 'Find Ivan' });
+    await expect(chat.userMessages.getByText('Find Ivan')).toBeVisible();
+    await expect(chat.assistantMessages.getByText('Done.')).toBeVisible();
 
     // The second chat can be deleted; the first one survives.
-    await sessionSelect.selectOption({ label: 'Untitled chat' });
+    await chat.sessionSelect.selectOption({ label: 'Untitled chat' });
     await page.getByRole('button', { name: 'Delete chat' }).click();
-    await expect(sessionSelect.locator('option')).toHaveCount(1);
+    await expect(chat.sessionSelect.locator('option')).toHaveCount(1);
   } finally {
     await app.close();
     await new Promise<void>((resolve) => mock.server.close(() => resolve()));
@@ -121,22 +113,21 @@ test('chat sessions persist across app restarts', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-persist-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-persist-data-'));
 
-  const configureAndChat = async (page: import('@playwright/test').Page) => {
+  const configureAndChat = async (page: Page) => {
     await page.evaluate(
       async ({ baseUrl }) => {
         await window.doru.setAiSettings({ provider: 'ollama', baseUrl, model: 'mock-model' });
       },
       { baseUrl: mock.url() },
     );
-    await expect(page.locator('.agent-chat-panel')).toBeVisible();
-    await page.locator('.chat-input textarea').fill('Hello tree');
+    const chat = chatLocators(page);
+    await expect(page.getByRole('complementary', { name: 'Agent Chat' })).toBeVisible();
+    await chat.input.fill('Hello tree');
     await page.getByRole('button', { name: 'Send' }).click();
-    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.', {
-      timeout: 15_000,
-    });
+    await expect(chat.assistantMessages.getByText('Done.')).toBeVisible({ timeout: 15_000 });
   };
 
-  const first = await launchApp(project, userData);
+  const first = await launchWithFamily(project, userData);
   try {
     await configureAndChat(first.page);
   } finally {
@@ -145,30 +136,16 @@ test('chat sessions persist across app restarts', async () => {
 
   // Relaunch with the same userData (no re-seeding): the session and its
   // transcript come back from the JSONL store.
-  const args = ['.'];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await expect(page.locator('.welcome-page')).toBeVisible();
-  await page.evaluate(
-    async ({ path }) => {
-      await window.doru.openProjectPath(path);
-    },
-    { path: project },
-  );
+  const second = await launchApp({ userData });
   try {
-    const sessionSelect = page.locator('.chat-session-select');
-    await expect(sessionSelect.locator('option')).toHaveText(['Hello tree']);
-    await expect(page.locator('.chat-message.user .chat-bubble')).toHaveText('Hello tree');
-    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Done.');
+    await expect(second.page.getByRole('region', { name: 'Welcome' })).toBeVisible();
+    await openProject(second.page, project);
+    const chat = chatLocators(second.page);
+    await expect(chat.sessionSelect.locator('option')).toHaveText(['Hello tree']);
+    await expect(chat.userMessages.getByText('Hello tree')).toBeVisible();
+    await expect(chat.assistantMessages.getByText('Done.')).toBeVisible();
   } finally {
-    await app.close();
+    await second.app.close();
     await new Promise<void>((resolve) => mock.server.close(() => resolve()));
   }
 });
@@ -180,7 +157,7 @@ test('the Stop button cancels the run and returns the message to the input', asy
 
   const project = join(mkdtempSync(join(tmpdir(), 'doru-e2e-stop-')), 'family.doru');
   const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-stop-data-'));
-  const { app, page } = await launchApp(project, userData);
+  const { app, page } = await launchWithFamily(project, userData);
 
   try {
     await page.evaluate(
@@ -194,25 +171,24 @@ test('the Stop button cancels the run and returns the message to the input', asy
       { baseUrl: mock.url() },
     );
 
-    await expect(page.locator('.agent-chat-panel')).toBeVisible();
-    await page.locator('.chat-input textarea').fill('Hello');
+    const chat = chatLocators(page);
+    await expect(page.getByRole('complementary', { name: 'Agent Chat' })).toBeVisible();
+    await chat.input.fill('Hello');
     // Shift+Enter inserts a newline instead of sending; Enter sends.
-    await page.locator('.chat-input textarea').press('Shift+Enter');
-    await expect(page.locator('.chat-input textarea')).toHaveValue('Hello\n');
-    await page.locator('.chat-input textarea').press('Enter');
+    await chat.input.press('Shift+Enter');
+    await expect(chat.input).toHaveValue('Hello\n');
+    await chat.input.press('Enter');
 
     // The first chunk arrives, then the provider stalls.
-    await expect(page.locator('.chat-message.assistant .chat-text')).toHaveText('Slow ', {
-      timeout: 15_000,
-    });
+    await expect(chat.assistantMessages.getByText('Slow')).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Stop' }).click();
 
     // Stop reclaims the send: the message leaves the transcript, its text
     // returns to the input for editing, and no error card appears.
-    await expect(page.locator('.chat-input textarea')).toHaveValue('Hello', { timeout: 15_000 });
-    await expect(page.locator('.chat-message.user')).toHaveCount(0);
-    await expect(page.locator('.chat-message.assistant')).toHaveCount(0);
-    await expect(page.locator('.chat-error')).toHaveCount(0);
+    await expect(chat.input).toHaveValue('Hello', { timeout: 15_000 });
+    await expect(chat.userMessages).toHaveCount(0);
+    await expect(chat.assistantMessages).toHaveCount(0);
+    await expect(chat.log.getByRole('alert')).toHaveCount(0);
   } finally {
     await app.close();
     await new Promise<void>((resolve) => mock.server.close(() => resolve()));

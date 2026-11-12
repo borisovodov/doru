@@ -1,35 +1,8 @@
-import type {
-  AddressRecord,
-  AssociationRecord,
-  ChangeRecord,
-  CitationRecord,
-  ContactRecord,
-  FactRecord,
-  FamilyRecord,
-  IdentifierRecord,
-  MediaRecord,
-  NoteLinkRecord,
-  NoteRecord,
-  PersonRecord,
-  PlaceRecord,
-  RepositoryRecord,
-  RestrictionRecord,
-  SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
-  TitleRecord,
-} from '@doru/core';
+import type { MediaWithPath } from '@doru/ui/domain';
+import type { AddressRecord, AssociationRecord, ChangeRecord, CitationRecord, ContactRecord, FactRecord, FamilyRecord, IdentifierRecord, MediaRecord, NoteLinkRecord, NoteRecord, PersonRecord, PlaceRecord, RepositoryRecord, RestrictionRecord, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, TitleRecord, } from '@doru/core';
 
-export interface MediaWithPath extends MediaRecord {
-  absolutePath: string;
-}
+export type { MediaWithPath } from '@doru/ui/domain';
 
-/**
- * The generic attachment CRUD shared by every entity editor: notes,
- * citations/sources, identifiers, contacts, restrictions and tags, all
- * addressed by a (targetType, targetId) pair.
- */
 export interface AttachmentsApi {
   getNotes(targetType: string, targetId: string): Promise<NoteRecord[]>;
   addNote(note: NoteRecord): Promise<void>;

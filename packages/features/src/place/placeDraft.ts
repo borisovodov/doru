@@ -1,5 +1,5 @@
 import type { PlaceRecord } from '@doru/core';
-import { fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
+import { fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
 
 /** The name kinds of a place row. Official rows carry 'official' explicitly. */
 export const PLACE_NAME_KINDS = ['official', 'translation', 'phonetic', 'romanized'] as const;

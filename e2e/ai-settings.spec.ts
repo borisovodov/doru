@@ -1,32 +1,15 @@
-import { test, expect, _electron as electron } from '@playwright/test';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { test, expect } from '@playwright/test';
+import { launchApp } from './launch';
 import { startMockProvider } from './mock-provider';
-
-const root = dirname(fileURLToPath(import.meta.url));
-const appDir = resolve(root, '../apps/desktop');
 
 test('the AI settings section configures and tests a provider', async () => {
   const mock = startMockProvider();
   await new Promise<void>((resolve) => mock.server.listen(0, '127.0.0.1', resolve));
 
-  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-ai-settings-'));
-  const args = ['.'];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await expect(page.locator('.welcome-page')).toBeVisible();
+  const { app, page } = await launchApp();
 
   try {
-    await page.locator('.activity-bar .activity-bar-bottom').click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByLabel('Provider')).toBeVisible();
 
     // Cloud presets are unlisted for now; Dóru AI leads the local set and is
@@ -96,21 +79,10 @@ test('the AI settings section configures and tests a provider', async () => {
 test('the API key field saves and clears the key', async () => {
   // The key lives in secrets.json (mode 0600) in the app data directory —
   // no OS keychain involved, so this runs on every platform.
-  const userData = mkdtempSync(join(tmpdir(), 'doru-e2e-ai-key-'));
-  const args = ['.'];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await expect(page.locator('.welcome-page')).toBeVisible();
+  const { app, page } = await launchApp();
 
   try {
-    await page.locator('.activity-bar .activity-bar-bottom').click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByLabel('Provider')).toBeVisible();
 
     await page.getByLabel('Provider').selectOption('custom');

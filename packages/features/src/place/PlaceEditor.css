@@ -1,105 +1,29 @@
 /* ── Place editor ──────────────────────────────────────────────────── */
 
-.place-editor {
-  max-width: 560px;
-  padding: 8px 16px;
-}
-
-.place-editor label {
-  display: block;
-  margin: 10px 0;
-  color: var(--doru-fg-muted);
-}
-
-.place-editor input,
-.place-editor select {
-  width: 100%;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  margin-top: 4px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
-  font-family: inherit;
-}
-
-.place-editor input:focus,
-.place-editor select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
 .place-name-row {
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 6px 0;
 }
 
 .place-name-row input,
 .place-name-row select {
   flex: 1;
   min-width: 0;
-  margin-top: 0;
 }
 
 .place-name-row .place-name-value {
   flex: 2;
 }
 
-.place-name-row .icon-button {
-  flex: none;
-}
-
-.place-coordinates {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
-}
-
-.place-editor .place-verified {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.place-editor .place-verified input {
-  width: auto;
-  height: auto;
-  margin: 0;
-  accent-color: var(--doru-accent);
-}
-
-.place-postal-block {
-  margin-bottom: 8px;
-  padding: 8px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
 .place-sub-row {
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 6px 0;
 }
 
 .place-sub-row input,
 .place-sub-row select {
   flex: 1;
   min-width: 0;
-  margin-top: 0;
-}
-
-.place-sub-row .icon-button {
-  flex: none;
-}
-
-.place-editor .person-view-actions .place-delete-button {
-  color: var(--doru-danger);
 }

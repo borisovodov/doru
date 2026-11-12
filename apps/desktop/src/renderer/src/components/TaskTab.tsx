@@ -1,16 +1,12 @@
 import { useState } from 'react';
+import { SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
-import {
-  EntityTab,
-  TaskEditorFields,
-  displayName,
-  emptyTodoDraft,
-  todoDraftToRecord,
-  todoToDraft,
-  type TodoDraft,
-} from '@doru/features';
+import { EntityTab } from '@doru/features';
+import { TaskEditorFields, displayName, emptyTodoDraft, todoDraftToRecord, todoToDraft, type TodoDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { TASK_TAB_PREFIX } from '../hooks/useTabs';
 
 export function TaskTab({
@@ -110,34 +106,32 @@ function TaskTabBody({
 
   return (
     <EntityTab>
-      <div className="registry-editor">
-        <section className="entity-view-card">
-          <span className="entity-card-icon entity-view-icon">
-            <ListTodo size={20} aria-hidden="true" />
-          </span>
-          <div className="entity-view-body">
-            <h2 className="entity-view-title">{draft.text.trim() || '—'}</h2>
-            {subtitleParts.length > 0 && <p className="entity-view-subtitle">{subtitleParts.join(' · ')}</p>}
-          </div>
-          <div className="person-view-actions">
-            <button className="primary" disabled={draft.text.trim() === ''} onClick={() => void save()}>
+      <EntityViewCard
+        media={<ListTodo size={20} aria-hidden="true" />}
+        title={draft.text.trim() || '—'}
+        subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
+        actions={
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={draft.text.trim() === ''}
+              onClick={() => void save()}
+            >
               {nls.t('features.tree.save')}
-            </button>
+            </Button>
             {(!isNew || lastSaved !== undefined) && (
-              <button className="registry-delete-button" onClick={() => void remove()}>
+              <Button variant="danger" size="sm" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
-              </button>
+              </Button>
             )}
-          </div>
-        </section>
+          </>
+        }
+      />
 
-        <section className="person-section">
-          <h3>{nls.t('features.tree.details')}</h3>
-          <div className="task-editor">
-            <TaskEditorFields edit={draft} persons={persons} repositories={repositories} onChange={patch} />
-          </div>
-        </section>
-      </div>
+      <SectionCard title={nls.t('features.tree.details')}>
+        <TaskEditorFields edit={draft} persons={persons} repositories={repositories} onChange={patch} />
+      </SectionCard>
     </EntityTab>
   );
 }

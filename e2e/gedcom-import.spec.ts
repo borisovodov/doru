@@ -1,11 +1,8 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const root = dirname(fileURLToPath(import.meta.url));
-const appDir = resolve(root, '../apps/desktop');
+import { join } from 'node:path';
+import { launchApp } from './launch';
 
 const GEDCOM = [
   '0 HEAD',
@@ -21,21 +18,10 @@ test('opening a GEDCOM file opens a not-yet-saved project', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'doru-ged-e2e-'));
   const gedPath = join(dir, 'Ivanov family.ged');
   writeFileSync(gedPath, GEDCOM, 'utf8');
-  const userData = mkdtempSync(join(tmpdir(), 'doru-ged-e2e-data-'));
-  const args = ['.', gedPath];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await page.waitForSelector('.workbench', { timeout: 20_000 });
+  const { app, page } = await launchApp({ project: gedPath });
 
   // The window is bound to a not-yet-saved project carrying the file name.
-  await expect(page.locator('.title-bar-title')).toHaveText('Ivanov family.ged •');
+  await expect(page.getByRole('banner')).toContainText('Ivanov family.ged •');
   const state = await page.evaluate(async () => {
     const binding = await window.doru.getCurrentProject();
     return binding;
@@ -70,7 +56,7 @@ test('opening a GEDCOM file opens a not-yet-saved project', async () => {
   );
 
   // The save action is offered for unsaved projects.
-  await expect(page.locator('.title-bar-action[aria-label]').first()).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Save' })).toBeVisible();
 
   await app.close();
 });

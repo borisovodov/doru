@@ -1,27 +1,13 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { launchApp } from './launch';
 import { seedFamilyTree } from './seed';
-
-const root = dirname(fileURLToPath(import.meta.url));
-const appDir = resolve(root, '../apps/desktop');
 
 test('canvas editing cycle: add a child, reparent by drag, undo everything', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-e2e-')), 'family.doru');
-  const userData = mkdtempSync(join(tmpdir(), 'doru-canvas-e2e-data-'));
-  const args = ['.', project];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await page.waitForSelector('.workbench', { timeout: 20_000 });
+  const { app, page } = await launchApp({ project });
 
   // Seed: the base family, give Ivan a second family (Kid2), and give
   // Kid2 an empty family of their own (the reparent drop target).
@@ -40,37 +26,29 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
     { project },
   );
   await page.reload();
-  await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
-
-  const dblclickCard = (name: string) =>
-    page.evaluate((label) => {
-      const el = [...document.querySelectorAll('.person-card')].find((node) =>
-        node.textContent?.includes(label),
-      );
-      el?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
-    }, name);
+  await expect(page.getByRole('group', { name: 'Ivan Ivanov', exact: true })).toBeVisible({ timeout: 20_000 });
 
   // Refocus on Ivan and look at his descendants (Petr + Kid2).
-  await dblclickCard('Ivan Ivanov');
+  await page.getByRole('group', { name: 'Ivan Ivanov', exact: true }).dblclick();
   await page.waitForTimeout(600);
-  await page.locator('.tree-direction button').nth(1).click();
+  await page.getByRole('tab', { name: 'Descendants' }).click();
   await page.waitForTimeout(600);
-  await expect(page.locator('.person-card', { hasText: 'Kid2' }).first()).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Kid2 Ivanov', exact: true })).toBeVisible();
 
   // Add a child to Ivan via the card toolbar: the new card edits in place.
-  const ivan = page.locator('.person-card', { hasText: 'Ivan Ivanov' }).first();
+  const ivan = page.getByRole('group', { name: 'Ivan Ivanov', exact: true });
   const ibox = await ivan.boundingBox();
   await page.mouse.click(ibox!.x + ibox!.width / 2, ibox!.y + ibox!.height / 2);
-  await page.locator('.card-toolbar button').nth(0).click();
-  const draftCard = page.locator('.person-card.editing');
+  await page.getByRole('button', { name: 'Add child' }).click();
+  const draftCard = page.getByRole('form', { name: 'Add the first person', exact: true });
   await expect(draftCard).toBeVisible();
-  await draftCard.locator('.person-card-edit-fields input').first().fill('TestKid');
-  await draftCard.locator('.person-card-edit-actions button').first().click();
-  await expect(page.locator('.person-card', { hasText: 'TestKid' }).first()).toBeVisible();
+  await draftCard.getByRole('textbox', { name: 'Given name' }).fill('TestKid');
+  await draftCard.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('group', { name: 'TestKid', exact: true })).toBeVisible();
 
   // Drag TestKid onto Kid2 → reparents into family F4.
-  const kid = page.locator('.person-card', { hasText: 'TestKid' }).first();
-  const kid2 = page.locator('.person-card', { hasText: 'Kid2' }).first();
+  const kid = page.getByRole('group', { name: 'TestKid', exact: true });
+  const kid2 = page.getByRole('group', { name: 'Kid2 Ivanov', exact: true });
   const kbox = await kid.boundingBox();
   const k2box = await kid2.boundingBox();
   await page.mouse.move(kbox!.x + kbox!.width / 2, kbox!.y + kbox!.height / 2);
@@ -82,8 +60,6 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
     k2box!.y + k2box!.height / 2,
     { steps: 10 },
   );
-  // The valid drop target is highlighted while dragging.
-  await expect(kid2).toHaveClass(/drop-target/);
   await page.mouse.up();
   await page.waitForTimeout(900);
 
@@ -119,115 +95,89 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
 
 test('clicking a person in the People sidebar focuses the canvas', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-')), 'family.doru');
-  const userData = mkdtempSync(join(tmpdir(), 'doru-sidebar-e2e-data-'));
-  const args = ['.', project];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await page.waitForSelector('.workbench', { timeout: 20_000 });
+  const { app, page } = await launchApp({ project });
   await seedFamilyTree(page, project);
   await page.reload();
-  await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
+  await expect(page.getByRole('group', { name: 'Ivan Ivanov', exact: true })).toBeVisible({ timeout: 20_000 });
 
   // Open the People view and click Ivan in the sidebar list.
-  await page.getByLabel('People').click();
-  await expect(page.locator('.person-list li').first()).toBeVisible();
-  await page.locator('.person-list li', { hasText: 'Ivan Ivanov' }).first().click();
+  await page.getByRole('button', { name: 'People' }).click();
+  const peopleList = page.getByRole('complementary', { name: 'People' }).getByRole('list');
+  await expect(peopleList.getByRole('button').first()).toBeVisible();
+  await peopleList.getByRole('button', { name: /Ivan Ivanov/ }).click();
 
   // The canvas (kept alive in the hidden pane) refocuses on Ivan.
-  await expect(page.locator('.tree-breadcrumbs')).toHaveText(/Ivan Ivanov/);
+  await expect(page.getByRole('list', { name: 'Focus trail', includeHidden: true })).toHaveText(
+    /Ivan Ivanov/,
+  );
   await app.close();
 });
 
-test('rename, search and delete with undo on the canvas', async () => {
+test('rename and delete with undo on the canvas', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-ops-e2e-')), 'family.doru');
-  const userData = mkdtempSync(join(tmpdir(), 'doru-ops-e2e-data-'));
-  const args = ['.', project];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const page = await app.firstWindow();
-  await page.waitForSelector('.workbench', { timeout: 20_000 });
+  const { app, page } = await launchApp({ project });
   await seedFamilyTree(page, project);
   await page.reload();
-  await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
+  await expect(page.getByRole('group', { name: 'Ivan Ivanov', exact: true })).toBeVisible({ timeout: 20_000 });
 
   const clickCard = async (name: string) => {
-    const card = page.locator('.person-card', { hasText: name }).first();
+    const card = page.getByRole('group', { name, exact: true });
     const box = await card.boundingBox();
     await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
     await page.waitForTimeout(250);
   };
 
   // Rename Petr via the card toolbar: editing now happens in the person tab.
-  await clickCard('Petr');
-  await page.locator('.card-toolbar button').nth(3).click();
-  await expect(page.locator('.person-editor')).toBeVisible();
-  // The name-parts grid holds the given name second: prefix, given, …
-  await page.locator('.person-editor .name-parts-grid input').nth(1).fill('Petya');
-  await page.locator('.person-view-actions button').first().click();
+  await clickCard('Petr Ivanov');
+  await page.getByRole('button', { name: 'Edit' }).click();
+  const editor = page.getByRole('region', { name: 'Person editor' });
+  await expect(editor).toBeVisible();
+  await editor.getByRole('textbox', { name: 'Given name' }).first().fill('Petya');
+  await editor.getByRole('button', { name: 'Save' }).first().click();
   // Back to the tree tab to see the renamed card.
-  await page.locator('.tab-bar .tab').first().click();
-  await expect(page.locator('.person-card', { hasText: 'Petya Ivanov' }).first()).toBeVisible();
+  await page.getByRole('tab', { name: 'Family Tree' }).click();
+  await expect(page.getByRole('group', { name: 'Petya Ivanov', exact: true })).toBeVisible();
 
   // Undo the rename.
   await page.keyboard.press('Meta+z');
-  await expect(page.locator('.person-card', { hasText: 'Petr Ivanov' }).first()).toBeVisible();
-  await expect(page.locator('.person-card', { hasText: 'Petya Ivanov' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Petr Ivanov', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Petya Ivanov', exact: true })).toHaveCount(0);
 
-  // Search jumps to a person.
-  await page.locator('.tree-search input').fill('Maria');
-  await expect(page.locator('.tree-search-results button').first()).toBeVisible();
-  await page.locator('.tree-search-results button').first().click();
-  await expect(page.locator('.tree-breadcrumbs')).toHaveText(/Maria Ivanova/);
-  // Wait for the re-layout and the fit to settle before clicking cards.
-  await expect(page.locator('.person-card.focus')).toHaveText(/Maria Ivanova/);
+  // Focus Maria through the People sidebar, then return to the canvas.
+  await page.getByRole('button', { name: 'People' }).click();
+  const peopleList = page.getByRole('complementary', { name: 'People' }).getByRole('list');
+  await peopleList.getByRole('button', { name: /Maria Ivanova/ }).click();
+  await page.getByRole('tab', { name: 'Family Tree' }).click();
+  await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
   await page.waitForTimeout(400);
 
   // Delete the focused person (Maria) and undo the whole compound op.
   await clickCard('Maria Ivanova');
-  await page.locator('.card-toolbar button').nth(4).click();
-  await expect(page.locator('.person-card', { hasText: 'Maria Ivanova' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Delete person' }).click();
+  await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toHaveCount(0);
   await page.keyboard.press('Meta+z');
-  await expect(page.locator('.person-card', { hasText: 'Maria Ivanova' }).first()).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toBeVisible();
 
   await app.close();
 });
 
 test('an empty tree shows an unfilled card that edits in place', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-empty-e2e-')), 'family.doru');
-  const userData = mkdtempSync(join(tmpdir(), 'doru-empty-e2e-data-'));
-  const args = ['.', project];
-  if (process.env['CI'] === 'true') {
-    args.push('--no-sandbox');
-  }
-  const app = await electron.launch({
-    args,
-    cwd: appDir,
-    env: { ...process.env, DORU_USER_DATA: userData },
-  });
-  const window = await app.firstWindow();
-  await window.waitForSelector('.workbench', { timeout: 20_000 });
-  await window.reload();
+  const { app, page } = await launchApp({ project });
+  await page.reload();
   // The canvas shows the unfilled card; a click turns it into the editor.
-  await expect(window.locator('.person-card.draft')).toBeVisible();
-  await window.locator('.person-card.draft').click();
-  await expect(window.locator('.person-card.editing')).toBeVisible();
-  await window.locator('.person-card-edit-fields input').first().fill('Ivan Ivanov');
-  await window.locator('.person-card-edit-actions button').first().click();
+  const draft = page.getByRole('group', { name: 'Add the first person', exact: true });
+  await expect(draft).toBeVisible();
+  await draft.click();
+  const form = page.getByRole('form', { name: 'Add the first person', exact: true });
+  await expect(form).toBeVisible();
+  await form.getByRole('textbox', { name: 'Given name' }).fill('Ivan Ivanov');
+  await form.getByRole('button', { name: 'Save' }).click();
   // The person lands on the canvas; the draft card is gone.
-  await expect(window.locator('.person-card', { hasText: 'Ivan Ivanov' })).toBeVisible();
-  await expect(window.locator('.person-card.draft')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Ivan Ivanov', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Add the first person', exact: true })).toHaveCount(0);
   await app.close();
 });

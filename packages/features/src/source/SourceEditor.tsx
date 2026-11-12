@@ -1,21 +1,19 @@
+import { IconButton } from '@doru/ui';
 import { useState } from 'react';
+import { Input } from '@doru/ui';
+import { Select, Textarea } from '@doru/ui';
+import { SectionCard, Subcard } from '@doru/ui';
+import { Field, FieldGrid } from '@doru/ui';
 import { BookOpenText, Plus, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
 import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
-import { DateEditor } from '../person/DateEditor';
-import { emptyDate } from '../person/draft';
-import {
-  emptySourceTextDraft,
-  type CallNumberDraft,
-  type SourceDataEventDraft,
-  type SourceDraft,
-  type SourceRepositoryDraft,
-  type SourceTextDraft,
-  type TemplateFieldDraft,
-} from './sourceDraft';
+import { DateEditor, emptyDate } from '@doru/ui/domain';
+import { Button } from '@doru/ui';
+import { EditorPage, EntityViewCard } from '@doru/ui';
+import { emptySourceTextDraft, type CallNumberDraft, type SourceDataEventDraft, type SourceDraft, type SourceRepositoryDraft, type SourceTextDraft, type TemplateFieldDraft } from '@doru/ui/domain';
 
 /**
  * The full source form: bibliographic details, publication, text extracts,
@@ -84,38 +82,42 @@ export function SourceEditor({
   const subtitle = [draft.author.trim(), draft.publication.trim()].filter((part) => part !== '').join(' · ');
 
   return (
-    <div className="source-editor">
-      <section className="entity-view-card">
-        <span className="entity-card-icon entity-view-icon">
-          <BookOpenText size={20} aria-hidden="true" />
-        </span>
-        <div className="entity-view-body">
-          <h2 className="entity-view-title">{draft.title.trim() || '—'}</h2>
-          {subtitle !== '' && <p className="entity-view-subtitle">{subtitle}</p>}
-          {draft.abbreviation.trim() !== '' && <p className="entity-view-subtitle">{draft.abbreviation.trim()}</p>}
-        </div>
-        <div className="person-view-actions">
-          <button className="primary" onClick={onSave}>
-            {nls.t('features.tree.save')}
-          </button>
-          {onCancel && <button onClick={onCancel}>{nls.t('features.tree.back')}</button>}
-          {onDelete && (
-            <button className="source-delete-button" onClick={onDelete}>
-              {nls.t('features.tree.fact.delete')}
-            </button>
-          )}
-        </div>
-      </section>
+    <EditorPage label={nls.t('features.tree.sources.title')}>
+      <EntityViewCard
+        media={<BookOpenText size={20} aria-hidden="true" />}
+        title={draft.title.trim() || '—'}
+        subtitle={
+          <>
+            {subtitle !== '' ? subtitle : null}
+            {subtitle !== '' && draft.abbreviation.trim() !== '' ? <br /> : null}
+            {draft.abbreviation.trim() !== '' ? draft.abbreviation.trim() : null}
+          </>
+        }
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={onSave}>
+              {nls.t('features.tree.save')}
+            </Button>
+            {onCancel && (
+              <Button variant="secondary" size="sm" onClick={onCancel}>
+                {nls.t('features.tree.back')}
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.details')}</h3>
-        <label>
-          {nls.t('features.tree.sources.titleField')}
-          <input value={draft.title} onChange={(event) => set({ title: event.target.value })} />
-        </label>
-        <label>
-          {nls.t('features.tree.title.work')}
-          <select
+      <SectionCard title={nls.t('features.tree.source.details')}>
+        <Field label={nls.t('features.tree.sources.titleField')}>
+          <Input value={draft.title} onChange={(event) => set({ title: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.title.work')}>
+          <Select
             value={draft.titleId ?? ''}
             onChange={(event) => set({ titleId: event.target.value === '' ? undefined : event.target.value })}
           >
@@ -125,50 +127,41 @@ export function SourceEditor({
                 {title.name ?? title.id}
               </option>
             ))}
-          </select>
-        </label>
-        <div className="source-grid">
-          <label>
-            {nls.t('features.tree.sources.authorField')}
-            <input value={draft.author} onChange={(event) => set({ author: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.publication')}
-            <input value={draft.publication} onChange={(event) => set({ publication: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.abbreviation')}
-            <input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.medium')}
-            <input value={draft.medium} onChange={(event) => set({ medium: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.url')}
-            <input value={draft.url} onChange={(event) => set({ url: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.accessDate')}
-            <input value={draft.accessDate} onChange={(event) => set({ accessDate: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.confidence')}
-            <input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
-          </label>
-          <label>
-            {nls.t('features.tree.source.agency')}
-            <input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
-          </label>
-        </div>
+          </Select>
+        </Field>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.sources.authorField')}>
+            <Input value={draft.author} onChange={(event) => set({ author: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.publication')}>
+            <Input value={draft.publication} onChange={(event) => set({ publication: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.abbreviation')}>
+            <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.medium')}>
+            <Input value={draft.medium} onChange={(event) => set({ medium: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.url')}>
+            <Input value={draft.url} onChange={(event) => set({ url: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.accessDate')}>
+            <Input value={draft.accessDate} onChange={(event) => set({ accessDate: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.confidence')}>
+            <Input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.agency')}>
+            <Input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
+          </Field>
+        </FieldGrid>
         <DateEditor
           label={nls.t('features.tree.source.pubDate')}
           value={draft.pubDate}
           onChange={(pubDate) => set({ pubDate })}
         />
-        <label>
-          {nls.t('features.tree.fact.placeLink')}
-          <select
+        <Field label={nls.t('features.tree.fact.placeLink')}>
+          <Select
             value={places.find((place) => placeName(place) === draft.pubDate.place.trim())?.id ?? ''}
             onChange={(event) => {
               const place = places.find((entry) => entry.id === event.target.value);
@@ -183,68 +176,58 @@ export function SourceEditor({
                 {placeName(place)}
               </option>
             ))}
-          </select>
-        </label>
-      </section>
+          </Select>
+        </Field>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.texts')}</h3>
+      <SectionCard title={nls.t('features.tree.source.texts')}>
         {draft.texts.map((text, index) => (
-          <div className="source-text-block" key={text.id}>
-            <textarea
+          <Subcard key={text.id}>
+            <Textarea
               value={text.text}
               placeholder={nls.t('features.tree.source.texts')}
               onChange={(event) => patchText(index, { text: event.target.value })}
             />
             <div className="source-sub-row">
-              <input
+              <Input
                 placeholder={nls.t('features.tree.source.texts.language')}
                 value={text.language}
                 onChange={(event) => patchText(index, { language: event.target.value })}
               />
-              <input
+              <Input
                 placeholder={nls.t('features.tree.source.texts.mime')}
                 value={text.mime}
                 onChange={(event) => patchText(index, { mime: event.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.texts.remove')}
-                onClick={() => removeText(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.source.texts.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeText(index)} />
             </div>
-          </div>
+          </Subcard>
         ))}
-        <button className="add-button" onClick={addText}>
+        <Button variant="primary" onClick={addText}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.texts.add')}
-        </button>
-      </section>
+        </Button>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.dataEvents')}</h3>
+      <SectionCard title={nls.t('features.tree.source.dataEvents')}>
         {draft.dataEvents.map((event, index) => (
-          <div className="source-event-block" key={event.id}>
+          <Subcard key={event.id}>
             <div className="source-sub-row">
-              <input
+              <Input
                 placeholder={nls.t('features.tree.source.dataEvents.tag')}
                 value={event.tag}
                 onChange={(change) => patchEvent(index, { tag: change.target.value.toUpperCase() })}
               />
-              <input
+              <Input
                 placeholder={nls.t('features.tree.source.dataEvents.value')}
                 value={event.value}
                 onChange={(change) => patchEvent(index, { value: change.target.value })}
               />
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.dataEvents.remove')}
-                onClick={() => removeEvent(index)}
-              >
+              <IconButton size="sm" label={nls.t('features.tree.source.dataEvents.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeEvent(index)} />
             </div>
             <DateEditor
               label={nls.t('features.tree.events.dateField')}
@@ -252,9 +235,8 @@ export function SourceEditor({
               onChange={(date) => patchEvent(index, { date })}
               hidePlace
             />
-            <label>
-              {nls.t('features.tree.fact.placeLink')}
-              <select
+            <Field label={nls.t('features.tree.fact.placeLink')}>
+              <Select
                 value={event.placeId ?? ''}
                 onChange={(change) => {
                   const place = places.find((entry) => entry.id === change.target.value);
@@ -267,22 +249,21 @@ export function SourceEditor({
                     {placeName(place)}
                   </option>
                 ))}
-              </select>
-            </label>
-          </div>
+              </Select>
+            </Field>
+          </Subcard>
         ))}
-        <button className="add-button" onClick={addEvent}>
+        <Button variant="primary" onClick={addEvent}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.dataEvents.add')}
-        </button>
-      </section>
+        </Button>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.repositories')}</h3>
+      <SectionCard title={nls.t('features.tree.source.repositories')}>
         {draft.repositories.map((link, index) => (
-          <div className="source-repository-block" key={link.id}>
+          <Subcard key={link.id}>
             <div className="source-sub-row">
-              <select
+              <Select
                 value={link.repositoryId}
                 onChange={(event) => patchRepository(index, { repositoryId: event.target.value })}
               >
@@ -292,80 +273,67 @@ export function SourceEditor({
                     {repository.name}
                   </option>
                 ))}
-              </select>
-              <button
-                className="icon-button"
-                title={nls.t('features.tree.source.repositories.remove')}
-                onClick={() => removeRepository(index)}
-              >
+              </Select>
+              <IconButton size="sm" label={nls.t('features.tree.source.repositories.remove')} icon={<>
                 <X size={13} aria-hidden="true" />
-              </button>
+              </>} onClick={() => removeRepository(index)} />
             </div>
             {link.callNumbers.map((callNumber, callNumberIndex) => (
               <div className="source-sub-row source-call-number" key={callNumber.id}>
-                <input
+                <Input
                   placeholder={nls.t('features.tree.source.repositories.callNumbers.value')}
                   value={callNumber.value}
                   onChange={(event) => patchCallNumber(index, callNumberIndex, { value: event.target.value })}
                 />
-                <input
+                <Input
                   placeholder={nls.t('features.tree.source.repositories.callNumbers.medium')}
                   value={callNumber.medium}
                   onChange={(event) => patchCallNumber(index, callNumberIndex, { medium: event.target.value })}
                 />
-                <button
-                  className="icon-button"
-                  title={nls.t('features.tree.source.repositories.callNumbers.remove')}
-                  onClick={() => removeCallNumber(index, callNumberIndex)}
-                >
+                <IconButton size="sm" label={nls.t('features.tree.source.repositories.callNumbers.remove')} icon={<>
                   <X size={13} aria-hidden="true" />
-                </button>
+                </>} onClick={() => removeCallNumber(index, callNumberIndex)} />
               </div>
             ))}
-            <button className="add-button small" onClick={() => addCallNumber(index)}>
+            <Button variant="primary" size="sm" onClick={() => addCallNumber(index)}>
               <Plus size={13} aria-hidden="true" />
               {nls.t('features.tree.source.repositories.callNumbers.add')}
-            </button>
-          </div>
+            </Button>
+          </Subcard>
         ))}
         <div className="source-actions">
-          <button className="add-button" onClick={addRepository}>
+          <Button variant="primary" onClick={addRepository}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.source.repositories.add')}
-          </button>
+          </Button>
           <NewRepositoryInput onAddRepository={onAddRepository} />
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="person-section">
-        <h3>{nls.t('features.tree.source.templateFields')}</h3>
+      <SectionCard title={nls.t('features.tree.source.templateFields')}>
         {draft.templateFields.map((field, index) => (
           <div className="source-sub-row" key={field.id}>
-            <input
+            <Input
               placeholder={nls.t('features.tree.source.templateFields.name')}
               value={field.name}
               onChange={(event) => patchField(index, { name: event.target.value })}
             />
-            <input
+            <Input
               placeholder={nls.t('features.tree.source.templateFields.value')}
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
             />
-            <button
-              className="icon-button"
-              title={nls.t('features.tree.source.templateFields.remove')}
-              onClick={() => removeField(index)}
-            >
+            <IconButton size="sm" label={nls.t('features.tree.source.templateFields.remove')} icon={<>
               <X size={13} aria-hidden="true" />
-            </button>
+            </>} onClick={() => removeField(index)} />
           </div>
         ))}
-        <button className="add-button" onClick={addField}>
+        <Button variant="primary" onClick={addField}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.templateFields.add')}
-        </button>
-      </section>
-    </div>
+        </Button>
+      </SectionCard>
+    </EditorPage>
   );
 }
 
@@ -382,14 +350,14 @@ function NewRepositoryInput({ onAddRepository }: { onAddRepository: (repository:
   };
   return (
     <div className="source-sub-row new-repository">
-      <input
+      <Input
         placeholder={nls.t('features.tree.source.repositories.new')}
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
-      <button className="plain-button" onClick={() => void create()}>
+      <Button variant="secondary" onClick={() => void create()}>
         {nls.t('features.tree.source.repositories.create')}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PanelRight } from 'lucide-react';
 import { CommandService, KeybindingService } from '@doru/platform';
+import { IconButton } from '@doru/ui';
 import { nls } from './nls';
 import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
 import { AgentChatPanel } from './components/AgentChatPanel';
@@ -149,28 +150,28 @@ export function Workbench({
 
   return (
     <div className={layoutClasses.join(' ')} style={layoutStyle}>
-      <div className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
+      <header className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
         <div className="title-bar-leading">{titleMenu}</div>
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions">
           {titleActions}
-          <button
-            className={agentChatOpen ? 'title-bar-action active' : 'title-bar-action'}
-            title={nls.t('workbench.toggleAgentChat')}
+          <IconButton
+            size="md"
+            variant={agentChatOpen ? 'active' : 'ghost'}
+            label={nls.t('workbench.toggleAgentChat')}
+            icon={<PanelRight size={16} aria-hidden="true" />}
             aria-pressed={agentChatOpen}
             onClick={() => setAgentChatOpen((open) => !open)}
-          >
-            <PanelRight size={16} aria-hidden="true" />
-          </button>
+          />
         </div>
-      </div>
+      </header>
       <div className="side-cluster">
         <ActivityBar
           activeView={activeView}
           onSelectView={onSelectView}
           onOpenSettings={onOpenSettings ?? (() => {})}
         />
-        {activeView !== 'tree' && <SideBar>{sidebar}</SideBar>}
+        {activeView !== 'tree' && <SideBar label={nls.t(sideBarLabelKey(activeView))}>{sidebar}</SideBar>}
       </div>
       <EditorArea
         tabs={tabs}
@@ -182,12 +183,13 @@ export function Workbench({
       >
         {editor}
       </EditorArea>
-      {agentChatOpen && <AgentChatPanel>{agentChat}</AgentChatPanel>}
+      {agentChatOpen && <AgentChatPanel label={nls.t('chat.title')}>{agentChat}</AgentChatPanel>}
       {/* The sashes live in the gutters between the floating cards, so they
           are children of the workbench, not of the cards. */}
       {activeView !== 'tree' && (
         <Sash
           className="side-sash"
+          label={nls.t('workbench.resizeSideBar')}
           onDragStart={onSideSashStart}
           onResize={onSideSashResize}
         />
@@ -195,10 +197,34 @@ export function Workbench({
       {agentChatOpen && (
         <Sash
           className="agent-chat-sash"
+          label={nls.t('workbench.resizeAgentChat')}
           onDragStart={onAgentChatSashStart}
           onResize={onAgentChatSashResize}
         />
       )}
     </div>
   );
+}
+
+function sideBarLabelKey(view: ActivityViewId): Parameters<typeof nls.t>[0] {
+  switch (view) {
+    case 'search':
+      return 'workbench.activityBar.search';
+    case 'people':
+      return 'workbench.activityBar.people';
+    case 'families':
+      return 'workbench.activityBar.families';
+    case 'events':
+      return 'workbench.activityBar.events';
+    case 'places':
+      return 'workbench.activityBar.places';
+    case 'media':
+      return 'workbench.activityBar.media';
+    case 'sources':
+      return 'workbench.activityBar.sources';
+    case 'tasks':
+      return 'workbench.activityBar.tasks';
+    default:
+      return 'workbench.activityBar.tree';
+  }
 }

@@ -1,0 +1,65 @@
+.menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.trigger {
+  /* The trigger is an IconButton; the class keeps the title-bar slot stable. */
+}
+
+.popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  min-width: 240px;
+  max-height: calc(100vh - 56px);
+  overflow: auto;
+  padding: 4px;
+  background: var(--doru-bg-popover);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.groupLabel {
+  padding: 6px 10px 2px;
+  font-size: var(--doru-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--doru-fg-faint);
+  user-select: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  border: none;
+  padding: 6px 10px;
+  background: transparent;
+  border-radius: var(--doru-radius-sm);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.item:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.itemHint {
+  font-size: var(--doru-font-size-sm);
+  color: var(--doru-fg-faint);
+}
+
+.separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--doru-border);
+}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Plus, Send, Square, Trash2 } from 'lucide-react';
 import type { AgentStep, ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';
+import { IconButton } from '@doru/ui';
+import { Select, Textarea } from '@doru/ui';
 import { nls } from '../nls';
 import { ChatMarkdown } from './ChatMarkdown';
 import './ChatPanel.css';
@@ -98,7 +100,7 @@ export function ChatPanel({
         onNewSession={onNewSession}
         onDeleteSession={onDeleteSession}
       />
-      <div className="chat-messages" ref={scrollRef}>
+      <div className="chat-messages" ref={scrollRef} role="log" aria-label={nls.t('chat.title')}>
         {messages.map((message, index) => {
           const isLastUser = message.role === 'user' && busy && index === lastUserIndex(messages);
           const isEmptyAssistant =
@@ -107,7 +109,12 @@ export function ChatPanel({
             (message.steps?.length ?? 0) === 0 &&
             !message.error;
           return (
-            <div key={index} className={`chat-message ${message.role}`}>
+            <div
+              key={index}
+              className={`chat-message ${message.role}`}
+              role="article"
+              aria-label={message.role === 'user' ? nls.t('chat.role.user') : nls.t('chat.role.assistant')}
+            >
               {message.role === 'user' ? (
                 <>
                   <div className="chat-bubble">{message.content}</div>
@@ -126,22 +133,23 @@ export function ChatPanel({
                       <ChatStep key={stepIndex} step={step} />
                     ))}
                     {message.error ? (
-                      <div className="chat-error">{message.error}</div>
+                      <div className="chat-error" role="alert">{message.error}</div>
                     ) : null}
                   </div>
                   {message.content !== '' || message.error ? (
                     <div className="chat-message-actions">
-                      <button
-                        className="chat-copy"
-                        aria-label={copiedIndex === index ? nls.t('chat.copied') : nls.t('chat.copy')}
+                      <IconButton
+                        size="sm"
+                        label={copiedIndex === index ? nls.t('chat.copied') : nls.t('chat.copy')}
+                        icon={
+                          copiedIndex === index ? (
+                            <Check size={13} aria-hidden="true" />
+                          ) : (
+                            <Copy size={13} aria-hidden="true" />
+                          )
+                        }
                         onClick={() => copyReply(index, message)}
-                      >
-                        {copiedIndex === index ? (
-                          <Check size={13} aria-hidden="true" />
-                        ) : (
-                          <Copy size={13} aria-hidden="true" />
-                        )}
-                      </button>
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -151,10 +159,11 @@ export function ChatPanel({
         })}
       </div>
       <div className="chat-input">
-        <textarea
+        <Textarea
           ref={inputRef}
           value={draft}
           placeholder={nls.t('chat.placeholder')}
+          aria-label={nls.t('chat.inputLabel')}
           rows={1}
           disabled={busy}
           onChange={(event) => setDraft(event.target.value)}
@@ -167,19 +176,22 @@ export function ChatPanel({
             }
           }}
         />
-        <button
-          className="chat-action"
+        <IconButton
+          size="lg"
+          variant="primary"
           disabled={busy}
-          aria-label={nls.t('chat.send')}
-          title={nls.t('chat.inputHint')}
+          label={nls.t('chat.send')}
+          icon={<Send size={16} aria-hidden="true" />}
           onClick={submit}
-        >
-          <Send size={16} aria-hidden="true" />
-        </button>
+        />
         {busy ? (
-          <button className="chat-action chat-stop" aria-label={nls.t('chat.stop')} onClick={stop}>
-            <Square size={14} fill="currentColor" aria-hidden="true" />
-          </button>
+          <IconButton
+            variant="secondary"
+            size="lg"
+            label={nls.t('chat.stop')}
+            icon={<Square size={14} fill="currentColor" aria-hidden="true" />}
+            onClick={stop}
+          />
         ) : null}
       </div>
     </div>
@@ -206,7 +218,7 @@ function SessionsHeader({
 }: SessionsHeaderProps) {
   return (
     <div className="chat-sessions">
-      <select
+      <Select
         className="chat-session-select"
         value={activeSessionId ?? ''}
         disabled={busy || sessions.length === 0}
@@ -218,27 +230,25 @@ function SessionsHeader({
             {session.title !== '' ? session.title : nls.t('chat.sessions.untitled')}
           </option>
         ))}
-      </select>
-      <button
-        className="chat-action chat-session-action"
+      </Select>
+      <IconButton
+        variant="secondary"
         disabled={busy}
-        aria-label={nls.t('chat.sessions.new')}
+        label={nls.t('chat.sessions.new')}
+        icon={<Plus size={16} aria-hidden="true" />}
         onClick={onNewSession}
-      >
-        <Plus size={16} aria-hidden="true" />
-      </button>
-      <button
-        className="chat-action chat-session-action"
+      />
+      <IconButton
+        variant="secondary"
         disabled={busy || !activeSessionId}
-        aria-label={nls.t('chat.sessions.delete')}
+        label={nls.t('chat.sessions.delete')}
+        icon={<Trash2 size={14} aria-hidden="true" />}
         onClick={() => {
           if (activeSessionId) {
             onDeleteSession(activeSessionId);
           }
         }}
-      >
-        <Trash2 size={14} aria-hidden="true" />
-      </button>
+      />
     </div>
   );
 }
@@ -275,7 +285,7 @@ function ChatStep({ step }: { step: AgentStep }) {
         </div>
       );
     case 'toolError':
-      return <div className="chat-tool-error">{step.message}</div>;
+      return <div className="chat-tool-error" role="alert">{step.message}</div>;
     default:
       return null;
   }

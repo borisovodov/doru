@@ -1,0 +1,97 @@
+/* ── Notes section ─────────────────────────────────────────────────── */
+
+.notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.notes-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.notes-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-edit textarea {
+  width: 100%;
+}
+
+.notes-edit-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+}
+
+.notes-edit-fields input,
+.notes-translations input {
+  width: 100%;
+}
+
+.notes-translations {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-translations-title {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doru-fg-muted);
+}
+
+.translation-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.translation-row input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.translation-row .translation-text {
+  flex: 2;
+}
+
+.notes-meta {
+  flex: none;
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+}
+
+.notes-edit-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.notes-add {
+  display: flex;
+  gap: 8px;
+}
+
+.notes-add input {
+  flex: 1;
+  min-width: 0;
+}
+

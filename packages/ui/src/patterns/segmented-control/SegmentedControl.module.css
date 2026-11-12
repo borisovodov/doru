@@ -1,0 +1,31 @@
+.control {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.segment {
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  background: transparent;
+  color: var(--doru-fg-muted);
+  font-family: inherit;
+  font-size: var(--doru-font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segment:hover {
+  color: var(--doru-fg);
+}
+
+.segmentActive {
+  background: var(--doru-bg-raised);
+  box-shadow: var(--doru-ring);
+  color: var(--doru-fg);
+}

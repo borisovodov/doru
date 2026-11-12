@@ -130,5 +130,26 @@ npm test             # unit tests (vitest)
 npm run typecheck    # strict TypeScript across all workspaces
 npm run build        # production build (electron-vite)
 npm run e2e          # Playwright smoke test against the built app
+npm run ui           # Storybook for the shared UI library
+npm run ui:build     # static Storybook build
 npm run site:dev     # the VitePress website
 ```
+
+### Storybook
+
+`npm run ui` starts the component gallery at
+[http://localhost:6006](http://localhost:6006). Stories live next to their
+components in `packages/ui/src`: atoms, patterns, and domain components. Every
+shared component should have a story that shows its relevant sizes, variants,
+and states.
+
+The Storybook toolbar switches between bundled themes, dark/light mode, and
+all 17 UI locales. To preview themes from a running app profile as well, point
+`DORU_USER_DATA` at that profile:
+
+```sh
+DORU_USER_DATA="<app user-data directory>" npm run ui
+```
+
+`npm run ui:build` produces the static gallery in
+`packages/ui/storybook-static`; CI runs it to catch broken stories.

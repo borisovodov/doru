@@ -10,7 +10,7 @@ import type {
   TodoRecord,
 } from '@doru/core';
 import { placeName } from '@doru/core/model';
-import { displayName, familyLabel } from '@doru/features';
+import { displayName, familyLabel } from '@doru/ui/domain';
 import { moveTab, nls, type TabInfo } from '@doru/workbench';
 
 const TREE_TAB_ID = 'tree';

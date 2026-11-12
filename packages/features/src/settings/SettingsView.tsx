@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import type { DoruModelError, DoruModelState } from '@doru/ai';
 import type { MessageKey } from '@doru/platform';
+import { Button } from '@doru/ui';
+import { Field, Hint, IconButton, InlineError, InlineForm, Input, Progress, Select } from '@doru/ui';
 import { nls } from '../nls';
 import { offeredReasoningLevels, REASONING_LABELS } from './reasoning';
 import type { AiProviderInfo, AiSettingsState, ModelFetchState } from './types';
@@ -67,11 +70,11 @@ export function SettingsView({
   ai,
 }: SettingsViewProps) {
   return (
-    <div className="settings-view">
+    <section className="settings-view" aria-label={nls.t('workbench.settings')}>
       {ai ? <AiSettingsSection {...ai} /> : null}
       <div className="settings-section">
         <h3>{nls.t('settings.theme.title')}</h3>
-        <select
+        <Select
           value={theme}
           onChange={(event) => onThemeChange(event.target.value)}
           aria-label={nls.t('settings.theme.title')}
@@ -81,25 +84,25 @@ export function SettingsView({
               {entry.name}
             </option>
           ))}
-        </select>
-        <button className="settings-link" onClick={onOpenThemesFolder}>
+        </Select>
+        <Button variant="link" onClick={onOpenThemesFolder}>
           {nls.t('settings.theme.openThemesFolder')}
-        </button>
+        </Button>
       </div>
       <div className="settings-section">
         <h3>{nls.t('settings.diagnostics.title')}</h3>
-        <button className="settings-link" onClick={onOpenLogs}>
+        <Button variant="link" onClick={onOpenLogs}>
           {nls.t('settings.diagnostics.openLog')}
-        </button>
+        </Button>
       </div>
       <div className="settings-section">
         <h3>{nls.t('settings.about.title')}</h3>
-        <p className="settings-note">{nls.t('settings.about.version', version)}</p>
-        <button className="settings-link" onClick={onOpenNotices}>
+        <Hint>{nls.t('settings.about.version', version)}</Hint>
+        <Button variant="link" onClick={onOpenNotices}>
           {nls.t('settings.about.notices')}
-        </button>
+        </Button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -107,9 +110,8 @@ const REASONING_DEFAULT_LABEL = 'settings.ai.reasoning.default';
 
 function ReasoningSelect(props: { value: string; levels: string[]; onChange: (level: string) => void }) {
   return (
-    <label className="settings-field">
-      <span>{nls.t('settings.ai.reasoning')}</span>
-      <select
+    <Field label={nls.t('settings.ai.reasoning')}>
+      <Select
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
         aria-label={nls.t('settings.ai.reasoning')}
@@ -120,8 +122,8 @@ function ReasoningSelect(props: { value: string; levels: string[]; onChange: (le
             {nls.t(REASONING_LABELS[level] ?? REASONING_DEFAULT_LABEL)}
           </option>
         ))}
-      </select>
-    </label>
+      </Select>
+    </Field>
   );
 }
 
@@ -182,14 +184,12 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
   const fetching = modelFetch.status === 'loading';
   const fetchLabel = fetching ? nls.t('settings.ai.modelFetching') : nls.t('settings.ai.modelRefresh');
   const testRow = (
-    <div className="settings-inline">
-      <button onClick={props.onTest} disabled={test.status === 'testing'}>
+    <div className="settings-test-row">
+      <Button variant="secondary" onClick={props.onTest} disabled={test.status === 'testing'}>
         {test.status === 'testing' ? nls.t('settings.ai.testing') : nls.t('settings.ai.test')}
-      </button>
-      {test.status === 'ok' ? <span className="settings-note">{nls.t('settings.ai.test.ok')}</span> : null}
-      {test.status === 'fail' ? (
-        <span className="settings-error">{test.message}</span>
-      ) : null}
+      </Button>
+      {test.status === 'ok' ? <Hint>{nls.t('settings.ai.test.ok')}</Hint> : null}
+      {test.status === 'fail' ? <InlineError>{test.message}</InlineError> : null}
     </div>
   );
 
@@ -197,12 +197,11 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
     <div className="settings-section">
       <h3>{nls.t('settings.ai.title')}</h3>
       {!settings.configured && provider?.id !== 'doru' ? (
-        <p className="settings-note">{nls.t('settings.ai.notConfigured')}</p>
+        <Hint>{nls.t('settings.ai.notConfigured')}</Hint>
       ) : null}
 
-      <label className="settings-field">
-        <span>{nls.t('settings.ai.provider')}</span>
-        <select
+      <Field label={nls.t('settings.ai.provider')}>
+        <Select
           value={settings.provider}
           onChange={(event) => props.onSetProvider(event.target.value)}
           aria-label={nls.t('settings.ai.provider')}
@@ -212,8 +211,8 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
               {entry.label}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </Field>
 
       {provider?.id === 'doru' ? (
         <DoruModelSection
@@ -224,21 +223,19 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
         />
       ) : provider?.kind === 'acp' ? (
         <>
-          <label className="settings-field">
-            <span>{nls.t('settings.ai.acp.command')}</span>
-            <input
+          <Field label={nls.t('settings.ai.acp.command')}>
+            <Input
               value={settings.acpCommand}
               onChange={(event) => props.onSetAcpCommand(event.target.value)}
               // nls-ignore: machine-facing command example, not translatable
               placeholder="npx @some/agent"
             />
-          </label>
+          </Field>
           {settings.acpCommand !== '' ? (
-            <label className="settings-field">
-              <span>{nls.t('settings.ai.acp.args')}</span>
+            <Field label={nls.t('settings.ai.acp.args')}>
               {/* A draft while typing: splitting on every keystroke would
                   swallow the space that separates the next argument. */}
-              <input
+              <Input
                 value={argsDraft ?? settings.acpArgs.join(' ')}
                 placeholder={nls.t('settings.ai.acp.argsHint')}
                 onChange={(event) => setArgsDraft(event.target.value)}
@@ -250,7 +247,7 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                   setArgsDraft(null);
                 }}
               />
-            </label>
+            </Field>
           ) : null}
         </>
       ) : (
@@ -259,9 +256,8 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
               is fetched from them. Cloud presets keep their public default
               endpoint hidden until the key is saved. */}
           {(!hasCatalog || settings.hasKey) && (
-            <label className="settings-field">
-              <span>{nls.t('settings.ai.baseUrl')}</span>
-              <input
+            <Field label={nls.t('settings.ai.baseUrl')}>
+              <Input
                 value={baseUrlDraft ?? settings.baseUrl}
                 onChange={(event) => setBaseUrlDraft(event.target.value)}
                 onBlur={() => {
@@ -271,19 +267,20 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                   setBaseUrlDraft(null);
                 }}
               />
-            </label>
+            </Field>
           )}
           {provider?.requiresKey || provider?.allowKey ? (
             <div className="settings-field">
               <span>{nls.t('settings.ai.apiKey')}</span>
-              <div className="settings-inline">
-                <input
+              <InlineForm>
+                <Input
                   type="password"
                   value={apiKeyDraft}
                   placeholder={settings.hasKey ? nls.t('settings.ai.apiKeySaved') : nls.t('settings.ai.apiKeyPlaceholder')}
                   onChange={(event) => setApiKeyDraft(event.target.value)}
                 />
-                <button
+                <Button
+                  variant="secondary"
                   disabled={apiKeyDraft === ''}
                   onClick={() => {
                     props.onSetApiKey(apiKeyDraft);
@@ -291,19 +288,20 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                   }}
                 >
                   {nls.t('settings.ai.apiKeySave')}
-                </button>
+                </Button>
                 {settings.hasKey ? (
-                  <button onClick={props.onClearApiKey}>{nls.t('settings.ai.apiKeyClear')}</button>
+                  <Button variant="secondary" onClick={props.onClearApiKey}>
+                    {nls.t('settings.ai.apiKeyClear')}
+                  </Button>
                 ) : null}
-              </div>
+              </InlineForm>
             </div>
           ) : null}
 
           {hasCatalog ? (
             <>
-              <label className="settings-field">
-                <span>{nls.t('settings.ai.model')}</span>
-                <select
+              <Field label={nls.t('settings.ai.model')}>
+                <Select
                   value={settings.model}
                   onChange={(event) => props.onSetModel(event.target.value)}
                   aria-label={nls.t('settings.ai.model')}
@@ -317,8 +315,8 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                       </option>
                     );
                   })}
-                </select>
-              </label>
+                </Select>
+              </Field>
               {reasoningAvailable ? (
                 <ReasoningSelect
                   value={settings.reasoning}
@@ -334,23 +332,22 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                 <>
                   {/* Wizard step: no model chosen yet — the only task is to
                       reach the provider and pick from its list. */}
-                  <button
-                    className="settings-action"
+                  <Button
+                    variant="primary"
                     disabled={fetching}
                     onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
                   >
                     {fetchLabel}
-                  </button>
+                  </Button>
                   {modelFetch.status === 'error' ? (
-                    <p className="settings-note">{nls.t('settings.ai.modelFetchError')}</p>
+                    <Hint>{nls.t('settings.ai.modelFetchError')}</Hint>
                   ) : null}
                 </>
               ) : (
                 <>
                   {modelFetch.status !== 'empty' ? (
-                    <label className="settings-field">
-                      <span>{nls.t('settings.ai.model')}</span>
-                      <select
+                    <Field label={nls.t('settings.ai.model')}>
+                      <Select
                         value={settings.model}
                         onChange={(event) => props.onSetModel(event.target.value)}
                         aria-label={nls.t('settings.ai.model')}
@@ -360,23 +357,23 @@ function AiSettingsSection(props: AiSettingsSectionProps) {
                             {id}
                           </option>
                         ))}
-                      </select>
-                    </label>
+                      </Select>
+                    </Field>
                   ) : null}
-                  <button
-                    className="settings-link"
+                  <Button
+                    variant="link"
                     disabled={fetching}
                     onClick={() => props.onFetchModels(baseUrlDraft ?? settings.baseUrl)}
                   >
                     {fetchLabel}
-                  </button>
+                  </Button>
                   {modelFetch.status === 'error' ? (
-                    <p className="settings-note">{nls.t('settings.ai.modelStale')}</p>
+                    <Hint>{nls.t('settings.ai.modelStale')}</Hint>
                   ) : null}
                 </>
               )}
               {modelFetch.status === 'empty' ? (
-                <p className="settings-note">{nls.t('settings.ai.modelEmpty')}</p>
+                <Hint>{nls.t('settings.ai.modelEmpty')}</Hint>
               ) : null}
               {reasoningAvailable ? (
                 <ReasoningSelect
@@ -423,29 +420,26 @@ function DoruModelSection(props: {
 }) {
   const model = props.model;
   if (model === null) {
-    return <p className="settings-note">{nls.t('settings.ai.modelFetching')}</p>;
+    return <Hint>{nls.t('settings.ai.modelFetching')}</Hint>;
   }
   if (model.downloading) {
     return (
       <div className="settings-doru-progress">
-        <progress className="settings-progress" value={model.bytes ?? 0} max={model.totalBytes} />
-        <button
-          className="settings-doru-progress-cancel"
+        <Progress value={model.bytes ?? 0} max={model.totalBytes} />
+        <IconButton
+          size="sm"
+          label={nls.t('settings.ai.doruModel.cancel')}
+          icon={<X size={12} aria-hidden="true" />}
           onClick={props.onCancel}
-          aria-label={nls.t('settings.ai.doruModel.cancel')}
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-            <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        </button>
+        />
       </div>
     );
   }
   if (model.installed) {
     return (
-      <button className="settings-link" onClick={props.onDelete}>
+      <Button variant="link" onClick={props.onDelete}>
         {nls.t('settings.ai.doruModel.delete')}
-      </button>
+      </Button>
     );
   }
   if (model.outdated) {
@@ -453,10 +447,10 @@ function DoruModelSection(props: {
     // nudged toward the current one without any forced re-download.
     return (
       <>
-        <p className="settings-note">{nls.t('settings.ai.doruModel.updateAvailable')}</p>
-        <button className="settings-action" onClick={props.onDownload}>
+        <Hint>{nls.t('settings.ai.doruModel.updateAvailable')}</Hint>
+        <Button variant="primary" onClick={props.onDownload}>
           {nls.t('settings.ai.doruModel.update')}
-        </button>
+        </Button>
       </>
     );
   }
@@ -464,12 +458,12 @@ function DoruModelSection(props: {
   const errorKey = doruModelErrorKey(model.error);
   return (
     <>
-      {errorKey !== null ? <p className="settings-error">{nls.t(errorKey)}</p> : null}
-      <button className="settings-action" disabled={tooWeak} onClick={props.onDownload}>
+      {errorKey !== null ? <InlineError>{nls.t(errorKey)}</InlineError> : null}
+      <Button variant="primary" disabled={tooWeak} onClick={props.onDownload}>
         {nls.t('settings.ai.doruModel.install')}
-      </button>
+      </Button>
       {tooWeak ? (
-        <p className="settings-note">{nls.t('settings.ai.doruModel.tooWeak', String(model.minRamGb))}</p>
+        <Hint>{nls.t('settings.ai.doruModel.tooWeak', String(model.minRamGb))}</Hint>
       ) : null}
     </>
   );

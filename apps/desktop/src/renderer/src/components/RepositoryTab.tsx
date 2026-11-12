@@ -1,29 +1,15 @@
 import { useEffect, useState } from 'react';
+import { Input } from '@doru/ui';
+import { SectionCard } from '@doru/ui';
+import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type {
-  CitationRecord,
-  ContactRecord,
-  IdentifierRecord,
-  NoteRecord,
-  RepositoryRecord,
-  RestrictionRecord,
-  SourceRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
-import {
-  AddressFields,
-  ContactsSection,
-  EntityTab,
-  IdentifiersSection,
-  NotesSection,
-  RestrictionsSection,
-  SourcesSection,
-  TagsSection,
-  addressLabel,
-  type RegistriesEditorApi,
-} from '@doru/features';
+  CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RepositoryRecord, RestrictionRecord, SourceRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+import { EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { AddressFields, ContactsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, addressLabel } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { REPOSITORY_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -158,36 +144,30 @@ function RepositoryTabBody({
 
   return (
     <EntityTab>
-      <div className="registry-editor">
-        <section className="entity-view-card">
-          <span className="entity-card-icon entity-view-icon">
-            <Archive size={20} aria-hidden="true" />
-          </span>
-          <div className="entity-view-body">
-            <h2 className="entity-view-title">{name.trim() || '—'}</h2>
-            {addressText !== '' && <p className="entity-view-subtitle">{addressText}</p>}
-          </div>
-          <div className="person-view-actions">
-            <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
+      <EntityViewCard
+        media={<Archive size={20} aria-hidden="true" />}
+        title={name.trim() || '—'}
+        subtitle={addressText !== '' ? addressText : null}
+        actions={
+          <>
+            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
-            </button>
+            </Button>
             {(!isNew || lastSaved !== undefined) && (
-              <button className="registry-delete-button" onClick={() => void remove()}>
+              <Button variant="danger" size="sm" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
-              </button>
+              </Button>
             )}
-          </div>
-        </section>
+          </>
+        }
+      />
 
-        <section className="person-section">
-          <h3>{nls.t('features.tree.details')}</h3>
-          <label>
-            {nls.t('features.tree.repository.name')}
-            <input value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <AddressFields address={address} onChange={setAddress} />
-        </section>
-      </div>
+      <SectionCard title={nls.t('features.tree.details')}>
+        <Field label={nls.t('features.tree.repository.name')}>
+          <Input value={name} onChange={(event) => setName(event.target.value)} />
+        </Field>
+        <AddressFields address={address} onChange={setAddress} />
+      </SectionCard>
       {targetId !== undefined && (
         <>
           <SourcesSection

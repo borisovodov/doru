@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Kbd } from '@doru/ui';
 import { nls } from '../nls';
 import './EmptyEditorPage.css';
 
@@ -70,7 +71,7 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
   const shortcuts = useMemo(() => sample(allShortcuts, SHOWN_SHORTCUTS), [allShortcuts]);
 
   return (
-    <div className="empty-editor-page">
+    <section className="empty-editor-page" aria-label={nls.t('workbench.keyboardShortcuts')}>
       <h1 className="empty-editor-name">{nls.t('app.name')}</h1>
       <h2 className="empty-editor-shortcuts-title">{nls.t('workbench.keyboardShortcuts')}</h2>
       <ul className="empty-editor-shortcuts">
@@ -79,12 +80,12 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
             <span className="empty-editor-shortcut-label">{shortcut.label}</span>
             <span className="empty-editor-keys">
               {shortcut.keys.map((key, index) => (
-                <kbd key={`${key}-${index}`}>{key}</kbd>
+                <Kbd key={`${key}-${index}`}>{key}</Kbd>
               ))}
             </span>
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }

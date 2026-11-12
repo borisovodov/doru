@@ -1,12 +1,9 @@
 import type { FamilyRecord, PersonRecord } from '@doru/core';
+import type { PersonCounts } from '@doru/ui/domain';
+
+export type { CardAction, PersonCounts } from '@doru/ui/domain';
 
 export type RelativeRelation = 'child' | 'spouse' | 'parent';
-
-export interface PersonCounts {
-  notes: number;
-  sources: number;
-  media: number;
-}
 
 export interface TreeCanvasApi {
   /** Creates a person (used to add the first person of an empty tree). */

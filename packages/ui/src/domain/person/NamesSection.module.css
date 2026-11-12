@@ -1,0 +1,41 @@
+.namesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--doru-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.variants {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.variant {
+  align-self: stretch;
+  margin-left: 12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--doru-border);
+}
+
+.variantHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

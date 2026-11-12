@@ -1,8 +1,16 @@
 import { useState } from 'react';
+import { EmptyText } from '@doru/ui';
+import { Input } from '@doru/ui';
+import { Select } from '@doru/ui';
+import { SectionCard } from '@doru/ui';
+import { Field, FieldGrid } from '@doru/ui';
+import { AttachmentRow, RowList } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { EntityTab } from '@doru/features';
 import { nls } from '@doru/workbench';
+import { Button } from '@doru/ui';
+import { EntityViewCard } from '@doru/ui';
 import { TITLE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function TitleTab({
@@ -124,91 +132,80 @@ function TitleTabBody({
 
   return (
     <EntityTab>
-      <div className="registry-editor">
-        <section className="entity-view-card">
-          <span className="entity-card-icon entity-view-icon">
-            <BookMarked size={20} aria-hidden="true" />
-          </span>
-          <div className="entity-view-body">
-            <h2 className="entity-view-title">{name.trim() || '—'}</h2>
-            {subtitle !== '' && <p className="entity-view-subtitle">{subtitle}</p>}
-          </div>
-          <div className="person-view-actions">
-            <button className="primary" disabled={name.trim() === ''} onClick={() => void save()}>
+      <EntityViewCard
+        media={<BookMarked size={20} aria-hidden="true" />}
+        title={name.trim() || '—'}
+        subtitle={subtitle !== '' ? subtitle : null}
+        actions={
+          <>
+            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
-            </button>
+            </Button>
             {(!isNew || lastSaved !== undefined) && (
-              <button className="registry-delete-button" onClick={() => void remove()}>
+              <Button variant="danger" size="sm" onClick={() => void remove()}>
                 {nls.t('features.tree.fact.delete')}
-              </button>
+              </Button>
             )}
-          </div>
-        </section>
+          </>
+        }
+      />
 
-        <section className="person-section">
-          <h3>{nls.t('features.tree.details')}</h3>
-          <label>
-            {nls.t('features.tree.title.name')}
-            <input value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <div className="registry-grid">
-            <label>
-              {nls.t('features.tree.title.author')}
-              <input value={author} onChange={(event) => setAuthor(event.target.value)} />
-            </label>
-            <label>
-              {nls.t('features.tree.title.publisher')}
-              <input value={publisher} onChange={(event) => setPublisher(event.target.value)} />
-            </label>
-            <label>
-              {nls.t('features.tree.title.series')}
-              <input value={series} onChange={(event) => setSeries(event.target.value)} />
-            </label>
-            <label>
-              {nls.t('features.tree.title.abbreviation')}
-              <input value={abbreviation} onChange={(event) => setAbbreviation(event.target.value)} />
-            </label>
-            <label>
-              {nls.t('features.tree.title.callNumber')}
-              <input value={callNumber} onChange={(event) => setCallNumber(event.target.value)} />
-            </label>
-            <label>
-              {nls.t('features.tree.title.sequence')}
-              <input type="number" value={sequence} onChange={(event) => setSequence(event.target.value)} />
-            </label>
-          </div>
-          <label>
-            {nls.t('features.tree.title.repository')}
-            <select value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
-              <option value="">{nls.t('features.tree.title.none')}</option>
-              {repositories.map((repository) => (
-                <option key={repository.id} value={repository.id}>
-                  {repository.name}
-                </option>
+      <SectionCard title={nls.t('features.tree.details')}>
+        <Field label={nls.t('features.tree.title.name')}>
+          <Input value={name} onChange={(event) => setName(event.target.value)} />
+        </Field>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.title.author')}>
+            <Input value={author} onChange={(event) => setAuthor(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.title.publisher')}>
+            <Input value={publisher} onChange={(event) => setPublisher(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.title.series')}>
+            <Input value={series} onChange={(event) => setSeries(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.title.abbreviation')}>
+            <Input value={abbreviation} onChange={(event) => setAbbreviation(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.title.callNumber')}>
+            <Input value={callNumber} onChange={(event) => setCallNumber(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.title.sequence')}>
+            <Input type="number" value={sequence} onChange={(event) => setSequence(event.target.value)} />
+          </Field>
+        </FieldGrid>
+        <Field label={nls.t('features.tree.title.repository')}>
+          <Select value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
+            <option value="">{nls.t('features.tree.title.none')}</option>
+            {repositories.map((repository) => (
+              <option key={repository.id} value={repository.id}>
+                {repository.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </SectionCard>
+
+      {!isNew && (
+        <SectionCard title={nls.t('features.tree.title.sources')}>
+          {citingSources.length === 0 ? (
+            <EmptyText>{nls.t('features.tree.title.sourcesEmpty')}</EmptyText>
+          ) : (
+            <RowList>
+              {citingSources.map((source) => (
+                <AttachmentRow
+                  key={source.id}
+                  value={
+                    <Button variant="link" onClick={() => onOpenSource(source.id)}>
+                      {source.title || '—'}
+                    </Button>
+                  }
+                />
               ))}
-            </select>
-          </label>
-        </section>
-
-        {!isNew && (
-          <section className="person-section">
-            <h3>{nls.t('features.tree.title.sources')}</h3>
-            {citingSources.length === 0 ? (
-              <p className="notes-empty">{nls.t('features.tree.title.sourcesEmpty')}</p>
-            ) : (
-              <ul className="side-section-list">
-                {citingSources.map((source) => (
-                  <li key={source.id} className="entity-card clickable" onClick={() => onOpenSource(source.id)}>
-                    <span className="entity-card-body">
-                      <span className="entity-card-title">{source.title || '—'}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
-      </div>
+            </RowList>
+          )}
+        </SectionCard>
+      )}
     </EntityTab>
   );
 }

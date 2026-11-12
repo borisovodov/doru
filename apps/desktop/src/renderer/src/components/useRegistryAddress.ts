@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { AddressRecord } from '@doru/core';
 import type { RegistriesEditorApi } from '@doru/features';
-import { addressDraftEmpty, addressDraftToRecord, addressToDraft, emptyAddressDraft, type AddressDraft } from '@doru/features';
+import { addressDraftEmpty, addressDraftToRecord, addressToDraft, emptyAddressDraft, type AddressDraft } from '@doru/ui/domain';
 
 /**
  * The address sub-form state shared by the repository and submitter tabs:

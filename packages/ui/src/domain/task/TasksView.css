@@ -1,0 +1,80 @@
+/* ── Tasks sidebar list and the shared task editor fields ──────────── */
+
+.tasks-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.tasks-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-item {
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.task-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.task-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.task-row-text {
+  font-size: 12px;
+  color: var(--doru-fg);
+  overflow-wrap: anywhere;
+}
+
+.task-row-text.closed {
+  text-decoration: line-through;
+  color: var(--doru-fg-muted);
+}
+
+.task-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.task-chip {
+  display: inline-block;
+  padding: 0 6px;
+  background: var(--doru-accent-alpha);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+  border: none;
+  font-family: inherit;
+  line-height: 16px;
+}
+
+button.task-chip-link {
+  cursor: pointer;
+}
+
+button.task-chip-link:hover {
+  background: var(--doru-accent-hover);
+  color: var(--doru-fg);
+}
