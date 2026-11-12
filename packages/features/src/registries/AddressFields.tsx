@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { nls } from '../nls';
-import type { AddressDraft } from './address';
+import type { AddressDraft } from '@doru/ui';
 import './registries.css';
 
 /** The address sub-form shared by the repository and submitter editors. */

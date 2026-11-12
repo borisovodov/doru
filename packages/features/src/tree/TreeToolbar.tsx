@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search } from 'lucide-react';
 import type { ChartKind, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName } from '../person/format';
+import { displayName } from '@doru/ui';
 
 const CHART_KINDS = [
   { kind: 'ancestors', key: 'tree.canvas.view.ancestors' },

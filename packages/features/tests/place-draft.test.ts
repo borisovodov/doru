@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRecord } from '@doru/core';
-import { emptyDate } from '../src/person/draft';
+import { emptyDate } from '@doru/ui';
 import {
   emptyPlaceDraft,
   placeDraftMatches,

@@ -5,8 +5,8 @@ import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
-import { DateEditor } from '../person/DateEditor';
-import { emptyDate } from '../person/draft';
+import { DateEditor } from '@doru/ui';
+import { emptyDate } from '@doru/ui';
 import {
   emptySourceTextDraft,
   type CallNumberDraft,
@@ -15,7 +15,7 @@ import {
   type SourceRepositoryDraft,
   type SourceTextDraft,
   type TemplateFieldDraft,
-} from './sourceDraft';
+} from '@doru/ui';
 
 /**
  * The full source form: bibliographic details, publication, text extracts,

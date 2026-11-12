@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "无",
   "features.tree.date.monthCodePlaceholder": "月份代码",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "精确度",
   "features.tree.date.range": "范围",
   "features.tree.date.time": "时间",
   "features.tree.date.timeHour": "时",

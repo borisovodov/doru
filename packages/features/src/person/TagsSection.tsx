@@ -2,9 +2,9 @@ import { useRef, useState } from 'react';
 import { CalendarDays, Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
 import { nls } from '../nls';
-import { DateEditor } from './DateEditor';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from './draft';
-import { formatDate } from './format';
+import { DateEditor } from '@doru/ui';
+import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui';
+import { formatDate } from '@doru/ui';
 import './AttachmentsSection.css';
 
 /**

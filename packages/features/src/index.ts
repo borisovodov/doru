@@ -7,10 +7,10 @@ export {
   personDraftMatches,
   personToDraft,
   type PersonDraft,
-} from './person/draft';
+} from '@doru/ui';
 export type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from './person/types';
 export { PersonList, type PersonListProps } from './person/PersonList';
-export { displayName, familyLabel, lifeSpan } from './person/format';
+export { displayName, familyLabel, lifeSpan } from '@doru/ui';
 export { NotesSection } from './person/NotesSection';
 export { SourcesSection } from './person/SourcesSection';
 export { TagsSection } from './person/TagsSection';
@@ -26,9 +26,9 @@ export { RepositoryList, SubmitterList, TitleList } from './sidebar/RegistryList
 export { FamilyInfoList } from './sidebar/FamilyView';
 export { SourceCitationsList, EntityTab } from './sidebar/SourceView';
 export { SourceEditor } from './source/SourceEditor';
-export { sourceDraftToRecord, sourceToDraft, emptySourceDraft, sourceDraftMatches, type SourceDraft } from './source/sourceDraft';
+export { sourceDraftToRecord, sourceToDraft, emptySourceDraft, sourceDraftMatches, type SourceDraft } from '@doru/ui';
 export { FamilyEditor } from './family/FamilyEditor';
-export { familyDraftToRecord, familyToDraft, emptyFamilyDraft, familyDraftMatches, type FamilyDraft } from './family/familyDraft';
+export { familyDraftToRecord, familyToDraft, emptyFamilyDraft, familyDraftMatches, type FamilyDraft } from '@doru/ui';
 export { AddressFields } from './registries/AddressFields';
 export {
   addressDraftEmpty,
@@ -37,7 +37,7 @@ export {
   addressToDraft,
   emptyAddressDraft,
   type AddressDraft,
-} from './registries/address';
+} from '@doru/ui';
 export { PlaceEditor } from './place/PlaceEditor';
 export { PlaceFactsList } from './place/PlaceFactsList';
 export { placeDraftToRecord, placeToDraft, emptyPlaceDraft, placeDraftMatches, type PlaceDraft } from './place/placeDraft';
@@ -50,7 +50,7 @@ export { EmptyEditorPage, type EmptyEditorPageProps } from './welcome/EmptyEdito
 export { PlaceholderView, type PlaceholderViewProps } from './placeholder/PlaceholderView';
 export { TasksView } from './tasks/TasksView';
 export { TaskEditorFields } from './tasks/TaskEditorFields';
-export { todoDraftToRecord, todoToDraft, emptyTodoDraft, type TodoDraft } from './tasks/todoDraft';
+export { todoDraftToRecord, todoToDraft, emptyTodoDraft, type TodoDraft } from '@doru/ui';
 export { ChatPanel, type ChatPanelProps } from './chat/ChatPanel';
 export { ChatSetupPlaceholder, type ChatSetupPlaceholderProps } from './chat/ChatSetupPlaceholder';
 export type { ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';

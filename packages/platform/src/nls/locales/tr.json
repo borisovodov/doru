@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Yok",
   "features.tree.date.monthCodePlaceholder": "Ay kodu",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Kesinlik",
   "features.tree.date.range": "Aralık",
   "features.tree.date.time": "Saat",
   "features.tree.date.timeHour": "SS",

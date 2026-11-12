@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName, familyLabel } from '../person/format';
+import { displayName, familyLabel } from '@doru/ui';
 import './sidebar.css';
 
 /**

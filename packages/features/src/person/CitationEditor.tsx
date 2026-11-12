@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { CitationRecord } from '@doru/core';
 import { nls } from '../nls';
-import { citationDraftToRecord, citationToDraft, type CitationDraft } from './citationDraft';
-import { DateEditor } from './DateEditor';
-import { emptySourceTextDraft, type SourceTextDraft, type TemplateFieldDraft } from '../source/sourceDraft';
+import { citationDraftToRecord, citationToDraft, type CitationDraft } from '@doru/ui';
+import { DateEditor } from '@doru/ui';
+import { emptySourceTextDraft, type SourceTextDraft, type TemplateFieldDraft } from '@doru/ui';
 import './CitationEditor.css';
 
 /** The full citation form, shown inline under a cited source in the person's sources section. */

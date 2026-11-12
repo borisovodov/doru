@@ -11,7 +11,7 @@ import type {
   TimeValue,
 } from '@doru/core';
 import { factOf } from '@doru/core/model';
-import { formatDate } from './format';
+import { formatDate } from '../format/format';
 
 export interface DateDraft {
   year: string;

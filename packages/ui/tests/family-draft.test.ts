@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord } from '@doru/core';
-import { emptyDate } from '../src/person/draft';
+import { emptyDate } from '../src/domain/person/draft';
 import {
   emptyFamilyDraft,
   familyDraftMatches,
   familyDraftToRecord,
   familyToDraft,
-} from '../src/family/familyDraft';
+} from '../src/domain/family/familyDraft';
 
 const family = (overrides: Partial<FamilyRecord> = {}): FamilyRecord => ({
   id: 'F1',

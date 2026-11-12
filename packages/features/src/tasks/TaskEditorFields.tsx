@@ -1,8 +1,8 @@
 import type { PersonRecord, RepositoryRecord } from '@doru/core';
 import { nls } from '../nls';
-import { DateEditor } from '../person/DateEditor';
-import { displayName } from '../person/format';
-import type { TodoDraft } from './todoDraft';
+import { DateEditor } from '@doru/ui';
+import { displayName } from '@doru/ui';
+import type { TodoDraft } from '@doru/ui';
 
 /**
  * The editable fields of a todo, shared by the task tab editor: the text,

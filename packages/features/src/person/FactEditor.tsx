@@ -3,9 +3,9 @@ import { Plus, X } from 'lucide-react';
 import type { AddressRecord, FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
-import { DateEditor } from './DateEditor';
-import { displayName, formatAddress } from './format';
-import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from './factDraft';
+import { DateEditor } from '@doru/ui';
+import { displayName, formatAddress } from '@doru/ui';
+import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from '@doru/ui';
 import './FactEditor.css';
 
 const AGE_NUMBER_FIELDS = ['years', 'months', 'weeks', 'days'] as const;

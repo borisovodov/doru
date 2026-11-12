@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "なし",
   "features.tree.date.monthCodePlaceholder": "月コード",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "精度",
   "features.tree.date.range": "範囲",
   "features.tree.date.time": "時刻",
   "features.tree.date.timeHour": "時",

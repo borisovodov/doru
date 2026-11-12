@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Pencil, Plus, X } from 'lucide-react';
 import type { AssociationRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { associationDraftToRecord, associationToDraft, emptyAssociationDraft, type AssociationDraft } from './associationDraft';
-import { DateEditor } from './DateEditor';
-import { displayName } from './format';
+import { associationDraftToRecord, associationToDraft, emptyAssociationDraft, type AssociationDraft } from '@doru/ui';
+import { DateEditor } from '@doru/ui';
+import { displayName } from '@doru/ui';
 import './AssociationsSection.css';
 
 /**

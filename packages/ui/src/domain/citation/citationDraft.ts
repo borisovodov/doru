@@ -1,5 +1,5 @@
 import type { CitationRecord } from '@doru/core';
-import { fromDateDraft, toDateDraft, type DateDraft } from './draft';
+import { fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 import type { SourceTextDraft, TemplateFieldDraft } from '../source/sourceDraft';
 
 /**

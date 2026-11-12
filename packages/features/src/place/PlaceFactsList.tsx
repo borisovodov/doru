@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { factOwnerName, formatDate } from '../person/format';
+import { factOwnerName, formatDate } from '@doru/ui';
 import '../sidebar/sidebar.css';
 
 /** The read-only list of facts that happened at the place. */

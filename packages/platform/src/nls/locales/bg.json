@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Няма",
   "features.tree.date.monthCodePlaceholder": "Код на месеца",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Точност",
   "features.tree.date.range": "Диапазон",
   "features.tree.date.time": "Време",
   "features.tree.date.timeHour": "ЧЧ",

@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Κανένα",
   "features.tree.date.monthCodePlaceholder": "Κωδικός μήνα",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Ακρίβεια",
   "features.tree.date.range": "Εύρος",
   "features.tree.date.time": "Ώρα",
   "features.tree.date.timeHour": "ΩΩ",

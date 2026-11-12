@@ -1,6 +1,6 @@
 import type { ChangeRecord } from '@doru/core';
 import { nls } from '../nls';
-import { formatDate } from './format';
+import { formatDate } from '@doru/ui';
 import './AttachmentsSection.css';
 
 /** The read-only change log of the person (created/changed rows). */

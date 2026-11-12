@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CitationRecord } from '@doru/core';
-import { emptyDate } from '../src/person/draft';
-import { citationDraftToRecord, citationToDraft } from '../src/person/citationDraft';
+import { emptyDate } from '../src/domain/person/draft';
+import { citationDraftToRecord, citationToDraft } from '../src/domain/citation/citationDraft';
 
 const citation = (overrides: Partial<CitationRecord> = {}): CitationRecord => ({
   id: 'C1',

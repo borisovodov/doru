@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { BookOpenText, MapPin, Search, Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName, familyLabel, formatDate, initials, lifeSpan } from '../person/format';
+import { displayName, familyLabel, formatDate, initials, lifeSpan } from '@doru/ui';
 import './sidebar.css';
 
 const MAX_PER_GROUP = 6;

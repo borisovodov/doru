@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Нет",
   "features.tree.date.monthCodePlaceholder": "Код месяца",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Точность",
   "features.tree.date.range": "Диапазон",
   "features.tree.date.time": "Время",
   "features.tree.date.timeHour": "ЧЧ",

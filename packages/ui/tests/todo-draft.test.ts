@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TodoRecord } from '@doru/core';
-import { emptyTodoDraft, todoDraftToRecord, todoToDraft } from '../src/tasks/todoDraft';
+import { emptyTodoDraft, todoDraftToRecord, todoToDraft } from '../src/domain/task/todoDraft';
 
 const todo = (overrides: Partial<TodoRecord> = {}): TodoRecord => ({
   id: 'T1',

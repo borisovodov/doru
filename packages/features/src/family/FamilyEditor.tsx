@@ -5,9 +5,9 @@ import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
 import { ContributorsSection } from '../person/ContributorsSection';
-import { DateEditor } from '../person/DateEditor';
+import { DateEditor } from '@doru/ui';
 import { FactsSection } from '../person/FactsSection';
-import { displayName } from '../person/format';
+import { displayName } from '@doru/ui';
 import type { FamilyEditorApi } from '../person/types';
 import {
   CHILD_STATUS_TYPES,
@@ -17,7 +17,7 @@ import {
   type ChildLinkDraft,
   type FamilyDraft,
   type PartnerLinkDraft,
-} from './familyDraft';
+} from '@doru/ui';
 
 /**
  * The full family form: partner and child slots with their link details

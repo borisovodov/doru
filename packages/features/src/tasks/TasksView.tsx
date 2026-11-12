@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName, formatDate } from '../person/format';
+import { displayName, formatDate } from '@doru/ui';
 import './tasks.css';
 
 /**

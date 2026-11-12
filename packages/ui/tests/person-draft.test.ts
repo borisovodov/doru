@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DateDraft, NameDraft, PersonDraft } from '../src/person/draft';
+import type { DateDraft, NameDraft, PersonDraft } from '../src/domain/person/draft';
 import {
   rebaseDate,
   draftInitials,
@@ -20,7 +20,7 @@ import {
   setPartValue,
   toDateDraft,
   variantDraftEmpty,
-} from '../src/person/draft';
+} from '../src/domain/person/draft';
 import type { NamePart, PersonName, PersonRecord } from '@doru/core';
 
 const part = (kind: NamePart['kind'], value: string, id = `${kind}-${value}`): NamePart => ({

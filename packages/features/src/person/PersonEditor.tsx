@@ -35,7 +35,7 @@ import { AliasesSection } from './AliasesSection';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
 import { ChangesSection } from './ChangesSection';
 import { ContributorsSection } from './ContributorsSection';
-import { DateEditor } from './DateEditor';
+import { DateEditor } from '@doru/ui';
 import { FactsSection } from './FactsSection';
 import { FamilySection } from './FamilySection';
 import { MediaSection } from './MediaSection';
@@ -43,7 +43,7 @@ import { NotesSection } from './NotesSection';
 import { NamesSection } from './NamesSection';
 import { SourcesSection } from './SourcesSection';
 import { TagsSection } from './TagsSection';
-import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from './draft';
+import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui';
 import type { MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {

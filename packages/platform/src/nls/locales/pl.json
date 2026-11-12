@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Brak",
   "features.tree.date.monthCodePlaceholder": "Kod miesiąca",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Dokładność",
   "features.tree.date.range": "Zakres",
   "features.tree.date.time": "Czas",
   "features.tree.date.timeHour": "GG",

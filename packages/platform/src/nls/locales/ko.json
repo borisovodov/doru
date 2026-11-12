@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "없음",
   "features.tree.date.monthCodePlaceholder": "월 코드",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "정확도",
   "features.tree.date.range": "범위",
   "features.tree.date.time": "시간",
   "features.tree.date.timeHour": "시",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FactRecord } from '@doru/core';
-import { emptyDate } from '../src/person/draft';
-import { emptyFactDraft, factDraftToRecord, factKindLabel, factToDraft } from '../src/person/factDraft';
+import { emptyDate } from '../src/domain/person/draft';
+import { emptyFactDraft, factDraftToRecord, factKindLabel, factToDraft } from '../src/domain/fact/factDraft';
 
 const fact = (overrides: Partial<FactRecord> = {}): FactRecord => ({
   id: 'F1',

@@ -5,8 +5,8 @@ import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import '../sidebar/sidebar.css';
 import './PlaceEditor.css';
-import { DateEditor } from '../person/DateEditor';
-import { emptyDate } from '../person/draft';
+import { DateEditor } from '@doru/ui';
+import { emptyDate } from '@doru/ui';
 import {
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,

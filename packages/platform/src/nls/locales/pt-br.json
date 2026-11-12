@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Nenhum",
   "features.tree.date.monthCodePlaceholder": "Código do mês",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Precisão",
   "features.tree.date.range": "Intervalo",
   "features.tree.date.time": "Hora",
   "features.tree.date.timeHour": "HH",

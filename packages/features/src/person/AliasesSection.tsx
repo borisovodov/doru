@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName } from './format';
+import { displayName } from '@doru/ui';
 import './AssociationsSection.css';
 
 /**

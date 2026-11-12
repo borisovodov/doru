@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { AssociationRecord } from '@doru/core';
-import { emptyDate } from '../src/person/draft';
+import { emptyDate } from '../src/domain/person/draft';
 import {
   associationDraftEmpty,
   associationDraftToRecord,
   associationToDraft,
   emptyAssociationDraft,
-} from '../src/person/associationDraft';
+} from '../src/domain/person/associationDraft';
 
 describe('emptyAssociationDraft', () => {
   it('builds an empty draft bound to the person', () => {

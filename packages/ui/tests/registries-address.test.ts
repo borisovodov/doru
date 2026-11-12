@@ -5,7 +5,7 @@ import {
   addressLabel,
   addressToDraft,
   emptyAddressDraft,
-} from '../src/registries/address';
+} from '../src/domain/registries/address';
 
 describe('address draft helpers', () => {
   it('round-trips an address record', () => {

@@ -23,7 +23,7 @@ import {
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { factOf } from '@doru/core/model';
 import { nls } from '../nls';
-import { displayName, initials, years } from '../person/format';
+import { displayName, initials, years } from '@doru/ui';
 import type { PersonCounts } from './types';
 
 export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'delete';

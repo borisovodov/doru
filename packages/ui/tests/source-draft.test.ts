@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { SourceRecord } from '@doru/core';
-import { emptyDate } from '../src/person/draft';
+import { emptyDate } from '../src/domain/person/draft';
 import {
   emptySourceDraft,
   sourceDraftMatches,
   sourceDraftToRecord,
   sourceToDraft,
-} from '../src/source/sourceDraft';
+} from '../src/domain/source/sourceDraft';
 
 const source = (overrides: Partial<SourceRecord> = {}): SourceRecord => ({
   id: 'S1',

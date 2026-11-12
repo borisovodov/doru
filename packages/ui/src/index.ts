@@ -48,4 +48,14 @@ export {
 } from './patterns/segmented-control/SegmentedControl';
 export { Tooltip, type TooltipProps } from './patterns/tooltip/Tooltip';
 export { MediaTile, type MediaTileProps } from './patterns/media-tile/MediaTile';
+export * from './domain/format/format';
+export * from './domain/person/draft';
+export * from './domain/person/associationDraft';
+export * from './domain/fact/factDraft';
+export * from './domain/citation/citationDraft';
+export * from './domain/source/sourceDraft';
+export * from './domain/task/todoDraft';
+export * from './domain/registries/address';
+export * from './domain/family/familyDraft';
+export { DateEditor } from './domain/date/DateEditor';
 export { cx } from './lib/cx';

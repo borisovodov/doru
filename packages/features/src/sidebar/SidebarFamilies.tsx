@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { familyLabel, formatDate } from '../person/format';
+import { familyLabel, formatDate } from '@doru/ui';
 import './sidebar.css';
 
 /**

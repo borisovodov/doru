@@ -6,7 +6,7 @@ import {
   rebaseDate,
   toDateDraft,
   type DateDraft,
-} from './draft';
+} from '../person/draft';
 
 /** The event/attribute tags the form suggests; the field stays free text. */
 export const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];

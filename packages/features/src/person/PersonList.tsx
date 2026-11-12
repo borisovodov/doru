@@ -1,6 +1,6 @@
 import type { PersonRecord } from '@doru/core';
 import '../sidebar/sidebar.css';
-import { displayName, initials, lifeSpan } from './format';
+import { displayName, initials, lifeSpan } from '@doru/ui';
 
 export interface PersonListProps {
   persons: PersonRecord[];

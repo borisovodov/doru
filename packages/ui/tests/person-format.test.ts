@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord, PersonRecord } from '@doru/core';
-import { displayName, factOwnerName, familyLabel, formatAddress, formatDate, initials, lifeSpan, qualityMark, years } from '../src/person/format';
+import { displayName, factOwnerName, familyLabel, formatAddress, formatDate, initials, lifeSpan, qualityMark, years } from '../src/domain/format/format';
 
 const person = (overrides: Partial<PersonRecord> = {}): PersonRecord => ({
   id: 'P1',

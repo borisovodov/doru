@@ -1,6 +1,6 @@
 import { Plus, Star, X } from 'lucide-react';
 import { nls } from '../nls';
-import { DateEditor } from './DateEditor';
+import { DateEditor } from '@doru/ui';
 import {
   NAME_PART_FIELDS,
   NAME_TYPES,
@@ -14,7 +14,7 @@ import {
   type DateDraft,
   type NameDraft,
   type NameVariantDraft,
-} from './draft';
+} from '@doru/ui';
 import './NamesSection.css';
 
 /**

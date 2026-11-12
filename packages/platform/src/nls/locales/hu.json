@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Nincs",
   "features.tree.date.monthCodePlaceholder": "Hónapkód",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Pontosság",
   "features.tree.date.range": "Tartomány",
   "features.tree.date.time": "Idő",
   "features.tree.date.timeHour": "ÓÓ",

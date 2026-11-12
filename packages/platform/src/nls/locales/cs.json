@@ -148,6 +148,7 @@
   "features.tree.date.modifier.none": "Žádné",
   "features.tree.date.monthCodePlaceholder": "Kód měsíce",
   "features.tree.date.monthPlaceholder": "MM",
+  "features.tree.date.quality": "Přesnost",
   "features.tree.date.range": "Rozsah",
   "features.tree.date.time": "Čas",
   "features.tree.date.timeHour": "HH",
