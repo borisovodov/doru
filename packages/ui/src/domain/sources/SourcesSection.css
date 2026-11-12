@@ -2,8 +2,12 @@
 
 .source-list {
   list-style: none;
-  margin: 0 0 8px;
+  margin: 0;
   padding: 0;
+}
+
+.source-list:empty {
+  display: none;
 }
 
 .source-list li {
@@ -21,34 +25,6 @@
   padding: 3px 0;
 }
 
-.source-open {
-  flex: 1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--doru-fg);
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.source-open .source-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.source-open:hover .source-title {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 .sources-new {
   display: flex;
   gap: 6px;
@@ -64,7 +40,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
 }
 
 .sources-attach button {

@@ -1,6 +1,9 @@
 /* ── Citation editor ───────────────────────────────────────────────── */
 
 .citation-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 6px 0 10px;
   padding: 10px;
   background: var(--doru-bg-input);
@@ -9,18 +12,22 @@
 }
 
 .citation-subsection {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .citation-subsection h4 {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
   color: var(--doru-fg-muted);
 }
 
 .citation-text-block {
-  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding: 6px;
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
@@ -35,7 +42,6 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 4px 0;
 }
 
 .citation-sub-row input {
@@ -49,5 +55,4 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 10px;
 }

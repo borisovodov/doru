@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button } from '../../atoms/button/Button';
+import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { SectionCard } from './SectionCard';
 
 const meta = {
@@ -18,4 +19,18 @@ export const Default: Story = {};
 
 export const WithActions: Story = {
   args: { actions: <Button size="sm" variant="primary">Add</Button> },
+};
+
+export const EmptyWithAction: Story = {
+  args: {
+    title: 'Associations',
+    children: (
+      <>
+        <EmptyText>No associations yet.</EmptyText>
+        <Button variant="primary" size="sm">
+          Add association
+        </Button>
+      </>
+    ),
+  },
 };

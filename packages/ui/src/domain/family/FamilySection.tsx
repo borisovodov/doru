@@ -8,6 +8,7 @@ import { DateEditor } from '../date/DateEditor';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
+import { Subcard } from '../../patterns/subcard/Subcard';
 import { emptyDate, fromDateDraft, type DateDraft } from '../person/draft';
 import { displayName, formatDate } from '../format/format';
 import { emptyChildLinkDraft, emptyPartnerLinkDraft, familyDraftToRecord, familyToDraft } from './familyDraft';
@@ -157,7 +158,7 @@ function FamilyCard({
   };
 
   return (
-    <div className="family-row">
+    <Subcard>
       <div className="family-members">
         {family.partners
           .filter((id) => id !== personId)
@@ -201,7 +202,7 @@ function FamilyCard({
       <div className="family-actions">
         <Button variant="danger" size="sm" onClick={onDelete}>{nls.t('features.tree.families.delete')}</Button>
       </div>
-    </div>
+    </Subcard>
   );
 }
 

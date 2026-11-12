@@ -107,7 +107,7 @@ export function NotesSection({
       {notes.length === 0 ? (
         <EmptyText>{nls.t('features.tree.notes.empty')}</EmptyText>
       ) : (
-        <ul>
+        <ul className="notes-list">
           {notes.map((note) => (
             <li key={note.id}>
               {editingId === note.id ? (

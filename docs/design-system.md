@@ -36,6 +36,10 @@ re-export the library.
    classes for restyling.
 5. Theme values come from `--doru-*` custom properties. Do not hardcode colors
    in component styles.
+6. Vertical rhythm belongs to containers: `SectionCard` and `Subcard` stack
+   their children with an 8px gap. Atoms and section bodies do not set their
+   own outer margins; an empty list is hidden so it does not leave a phantom
+   gap between its neighbours.
 
 ## Using a component
 

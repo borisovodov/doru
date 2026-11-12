@@ -83,7 +83,7 @@ export function NamesSection({
   return (
     <div className={styles['namesSection']}>
       {names.map((name, index) => (
-        <Subcard key={name.id} className={styles['nameBlock'] ?? ''}>
+        <Subcard key={name.id}>
           <div className={styles['head']}>
             <span className={styles['label']}>{nameDraftDisplay(name) || '—'}</span>
             <IconButton

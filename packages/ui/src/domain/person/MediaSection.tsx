@@ -5,6 +5,7 @@ import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { MediaTile } from '../../patterns/media-tile/MediaTile';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import type { MediaWithPath } from './types';
+import styles from './MediaSection.module.css';
 
 export function MediaSection({
   personId,
@@ -34,7 +35,7 @@ export function MediaSection({
       {media.length === 0 ? (
         <EmptyText>{nls.t('features.tree.media.empty')}</EmptyText>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '8px 0' }}>
+        <div className={styles['grid']}>
           {media.map((item) => (
             <MediaTile
               key={item.id}

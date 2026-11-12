@@ -1,13 +1,5 @@
 /* ── Families ──────────────────────────────────────────────────────── */
 
-.family-row {
-  margin-bottom: 10px;
-  padding: 10px;
-  background: var(--doru-bg-input);
-  box-shadow: var(--doru-ring);
-  border-radius: var(--doru-radius-md);
-}
-
 .family-members {
   display: flex;
   flex-wrap: wrap;
@@ -40,7 +32,6 @@
 .family-add {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
 }
 
 
@@ -88,7 +79,6 @@
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  margin-top: 8px;
 }
 
 .family-events-label {

@@ -83,7 +83,7 @@ export function FactEditor({
   return (
     <div className="fact-editor">
       <div className="fact-editor-row fact-kind-row">
-        <label>
+        <label className="fact-field">
           {nls.t('features.tree.events.typeField')}
           <Input
             className="fact-tag-input"
@@ -97,7 +97,7 @@ export function FactEditor({
             <option key={eventType} value={eventType} />
           ))}
         </datalist>
-        <label>
+        <label className="fact-field">
           {nls.t('features.tree.fact.type')}
           <Input value={draft.type} onChange={(event) => set({ type: event.target.value })} />
         </label>
@@ -108,7 +108,7 @@ export function FactEditor({
         />
       </div>
 
-      <label>
+      <label className="fact-field">
         {nls.t('features.tree.fact.value')}
         <Input value={draft.value} onChange={(event) => set({ value: event.target.value })} />
       </label>
@@ -127,7 +127,7 @@ export function FactEditor({
           }
         }}
       />
-      <label>
+      <label className="fact-field">
         {nls.t('features.tree.fact.placeLink')}
         <Select
           value={draft.placeId ?? ''}
@@ -148,7 +148,7 @@ export function FactEditor({
           ))}
         </Select>
       </label>
-      <label>
+      <label className="fact-field">
         {nls.t('features.tree.fact.addressLink')}
         <Select
           value={draft.addressId ?? ''}
@@ -170,27 +170,27 @@ export function FactEditor({
       />
 
       <div className="fact-details-grid">
-        <label>
+        <label className="fact-field">
           {nls.t('features.tree.fact.cause')}
           <Input value={draft.cause} onChange={(event) => set({ cause: event.target.value })} />
         </label>
-        <label>
+        <label className="fact-field">
           {nls.t('features.tree.fact.agency')}
           <Input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
         </label>
-        <label>
+        <label className="fact-field">
           {nls.t('features.tree.fact.religiousAffiliation')}
           <Input
             value={draft.religiousAffiliation}
             onChange={(event) => set({ religiousAffiliation: event.target.value })}
           />
         </label>
-        <label>
+        <label className="fact-field">
           {nls.t('features.tree.fact.quality')}
           <Input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
         </label>
       </div>
-      <label>
+      <label className="fact-field">
         {nls.t('features.tree.fact.sentence')}
         <Input value={draft.sentence} onChange={(event) => set({ sentence: event.target.value })} />
       </label>

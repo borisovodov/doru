@@ -4,17 +4,10 @@
   gap: 8px;
 }
 
-.nameBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .head {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 2px;
 }
 
 .label {
@@ -28,11 +21,15 @@
 }
 
 .variants {
-  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .variant {
-  margin: 4px 0 6px 12px;
+  align-self: stretch;
+  margin-left: 12px;
   padding-left: 10px;
   border-left: 2px solid var(--doru-border);
 }

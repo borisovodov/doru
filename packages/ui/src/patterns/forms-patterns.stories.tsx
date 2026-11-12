@@ -18,6 +18,13 @@ export const Subcards: Story = {
       <Field label="Cause">
         <Input defaultValue="Pneumonia" />
       </Field>
+      <Field label="Agency">
+        <Input defaultValue="City hospital" />
+      </Field>
+      <ActionBar>
+        <Button variant="primary">Save</Button>
+        <Button variant="secondary">Cancel</Button>
+      </ActionBar>
     </Subcard>
   ),
 };

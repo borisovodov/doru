@@ -2,8 +2,12 @@
 
 .attachment-list {
   list-style: none;
-  margin: 0 0 8px;
+  margin: 0;
   padding: 0;
+}
+
+.attachment-list:empty {
+  display: none;
 }
 
 .attachment-list li {
@@ -71,7 +75,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+}
+
+.tag-chips:empty {
+  display: none;
 }
 
 .tag-link {
