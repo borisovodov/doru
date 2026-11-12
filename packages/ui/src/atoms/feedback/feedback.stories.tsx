@@ -13,7 +13,7 @@ type Story = StoryObj<typeof meta>;
 
 export const ProgressBars: Story = {
   render: () => (
-    <div style={{ display: 'grid', gap: 10, maxWidth: 280 }}>
+    <div style={{ display: 'grid', gap: 10, width: 280 }}>
       <Progress value={35} max={100} label="Download progress" />
       <Progress value={100} max={100} label="Complete" />
     </div>
