@@ -1,0 +1,11 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.row > :first-child {
+  flex: 1;
+  min-width: 0;
+}

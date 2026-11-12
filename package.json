@@ -19,6 +19,8 @@
     "e2e": "playwright test",
     "site:dev": "npm run dev --workspace @doru/website",
     "site:build": "npm run build --workspace @doru/website",
+    "ui": "npm run storybook --workspace @doru/ui",
+    "ui:build": "npm run build-storybook --workspace @doru/ui",
     "postinstall": "node node_modules/electron/install.js"
   },
   "devDependencies": {

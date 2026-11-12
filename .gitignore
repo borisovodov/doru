@@ -15,5 +15,6 @@ apps/website/public/icon.png
 apps/website/.vitepress/cache/
 apps/website/.vitepress/dist/
 .ui-shots/
+packages/ui/storybook-static/
 
 apps/desktop/build/llama/

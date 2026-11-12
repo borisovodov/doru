@@ -1,0 +1,61 @@
+.iconButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  color: var(--doru-fg-muted);
+  border: none;
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sm {
+  width: var(--doru-control-height-sm);
+  height: var(--doru-control-height-sm);
+  border-radius: var(--doru-radius-sm);
+}
+
+.md {
+  width: var(--doru-control-height);
+  height: var(--doru-control-height);
+  border-radius: var(--doru-radius-sm);
+}
+
+.nav {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--doru-radius-md);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--doru-overlay-hover);
+  color: var(--doru-fg);
+}
+
+.active {
+  background: var(--doru-bg-chrome-active);
+  color: var(--doru-fg);
+}
+
+.primary {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--doru-accent-hover);
+}
+
+.danger {
+  color: var(--doru-danger);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--doru-overlay-hover);
+}

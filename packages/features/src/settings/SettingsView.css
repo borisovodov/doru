@@ -16,173 +16,24 @@
   color: var(--doru-fg);
 }
 
-.settings-section select {
-  width: auto;
-  min-width: 200px;
-  height: var(--doru-control-height);
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 0 10px;
-  font-size: var(--doru-font-size);
+/* Form fields and inline rows fill the settings column; plain buttons and
+   links keep their intrinsic width. */
+.settings-section > div {
+  width: 100%;
+  max-width: 360px;
 }
 
-.settings-section select:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
-/* Secondary actions on the settings page render as quiet text links. */
-.settings-link {
-  display: block;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--doru-accent);
-  font-size: var(--doru-font-size);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.settings-link:hover {
-  color: var(--doru-accent-hover);
-}
-
-.settings-link:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-/* The primary action of the AI settings wizard (fetch the model list). */
-.settings-action {
-  display: inline-flex;
-  align-items: center;
-  height: var(--doru-control-height);
-  padding: 0 14px;
-  margin-top: 8px;
-  border: none;
-  border-radius: var(--doru-radius-md);
-  background: var(--doru-accent);
-  color: var(--doru-on-accent);
-  font-size: var(--doru-font-size);
-  cursor: pointer;
-}
-
-.settings-action:hover:not(:disabled) {
-  background: var(--doru-accent-hover);
-}
-
-.settings-action:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.settings-section select + .settings-link {
-  margin-top: 8px;
-}
-
-/* The fetch-models link right below the model text field. */
-.settings-field + .settings-link {
-  margin-top: 8px;
-}
-
-.settings-note {
-  margin: 4px 0;
-  font-size: 12px;
-  color: var(--doru-fg-muted);
-}
-
-/* Labeled form fields in the AI settings section. */
 .settings-field {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 12px;
+  width: 100%;
 }
 
 .settings-field > span {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
+  font-size: var(--doru-font-size-sm);
   color: var(--doru-fg-muted);
-}
-
-.settings-field > input,
-.settings-field > textarea,
-.settings-field > select {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.settings-section input,
-.settings-section textarea {
-  min-height: var(--doru-control-height);
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  padding: 4px 10px;
-  font-size: var(--doru-font-size);
-}
-
-.settings-section input:focus,
-.settings-section textarea:focus {
-  border-color: var(--doru-focus);
-  outline: none;
-}
-
-.settings-inline {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-/* The API key row nests inside .settings-field: the label span already
-   provides the 4px field spacing, so the standalone-row margin must not
-   collapse into it. */
-.settings-field > .settings-inline {
-  margin-top: 0;
-}
-
-.settings-inline input {
-  flex: 1;
-  min-width: 0;
-}
-
-.settings-inline button {
-  height: var(--doru-control-height);
-  padding: 0 14px;
-  box-sizing: border-box;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-fg);
-  font-size: var(--doru-font-size);
-  cursor: pointer;
-}
-
-.settings-inline button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.settings-inline button:not(:disabled):hover {
-  border-color: var(--doru-accent);
-}
-
-.settings-error {
-  margin: 0;
-  font-size: 12px;
-  color: var(--doru-danger, #e5484d);
-}
-
-/* An error directly after a form field (the Dóru AI download errors) gets
-   the same breathing room as the fields themselves. */
-.settings-field + .settings-error {
-  margin-top: 8px;
 }
 
 .settings-doru-progress {
@@ -192,43 +43,9 @@
   margin: 8px 0;
 }
 
-.settings-progress {
-  flex: 1;
-  height: 6px;
-  appearance: none;
-  border: none;
-  border-radius: 3px;
-  overflow: hidden;
-  background: var(--doru-bg-input, #1b201c);
-}
-
-.settings-progress::-webkit-progress-bar {
-  border-radius: 3px;
-  background: var(--doru-bg-input, #1b201c);
-}
-
-.settings-progress::-webkit-progress-value {
-  border-radius: 3px;
-  background: var(--doru-accent, #63a37f);
-  transition: width 0.25s ease;
-}
-
-.settings-doru-progress-cancel {
-  display: inline-flex;
+.settings-test-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--doru-fg-muted, #8d958f);
-  cursor: pointer;
-}
-
-.settings-doru-progress-cancel:hover {
-  color: var(--doru-fg, #c7cdc8);
-  background: var(--doru-bg-input, #1b201c);
+  gap: 8px;
+  margin-top: 8px;
 }

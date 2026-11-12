@@ -1,0 +1,28 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  color: var(--doru-fg-muted);
+  font-size: var(--doru-font-size-sm);
+}
+
+.required {
+  color: var(--doru-danger);
+}
+
+.hint {
+  margin: 0;
+  color: var(--doru-fg-muted);
+  font-size: var(--doru-font-size-xs);
+}
+
+.error {
+  margin: 0;
+  color: var(--doru-danger);
+  font-size: var(--doru-font-size-sm);
+}

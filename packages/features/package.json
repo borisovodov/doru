@@ -13,6 +13,7 @@
     "@doru/ai": "*",
     "@doru/core": "*",
     "@doru/platform": "*",
+    "@doru/ui": "*",
     "@opencode-ai/models": "0.0.111",
     "@xyflow/react": "12.12.0",
     "lucide-react": "1.57.0",

@@ -1,0 +1,126 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sm {
+  height: var(--doru-control-height-sm);
+  padding: 0 8px;
+  border-radius: var(--doru-radius-sm);
+  font-size: var(--doru-font-size-sm);
+}
+
+.md {
+  height: var(--doru-control-height);
+  padding: 0 12px;
+  border-radius: var(--doru-radius-md);
+  font-size: var(--doru-font-size);
+}
+
+.lg {
+  height: var(--doru-control-height-lg);
+  padding: 0 14px;
+  border-radius: var(--doru-radius-lg);
+  font-size: var(--doru-font-size);
+}
+
+.primary {
+  background: var(--doru-accent);
+  color: var(--doru-on-accent);
+  border-color: transparent;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--doru-accent-hover);
+}
+
+.primary:active:not(:disabled) {
+  background: var(--doru-accent-active);
+}
+
+.secondary {
+  background: var(--doru-bg-input);
+  color: var(--doru-fg);
+  border-color: var(--doru-border);
+  box-shadow: var(--doru-ring);
+}
+
+.secondary:hover:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.secondary:active:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-pressed), var(--doru-overlay-pressed));
+}
+
+.ghost {
+  background: transparent;
+  color: var(--doru-fg);
+  border-color: transparent;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--doru-overlay-hover);
+}
+
+.ghost:active:not(:disabled) {
+  background: var(--doru-overlay-pressed);
+}
+
+.danger {
+  background: transparent;
+  color: var(--doru-danger);
+  border-color: transparent;
+  box-shadow: var(--doru-ring);
+}
+
+.danger:hover:not(:disabled) {
+  background-image: linear-gradient(var(--doru-overlay-hover), var(--doru-overlay-hover));
+}
+
+.link {
+  height: auto;
+  padding: 0;
+  background: transparent;
+  color: var(--doru-accent);
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover:not(:disabled) {
+  color: var(--doru-accent-hover);
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spin 0.7s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
