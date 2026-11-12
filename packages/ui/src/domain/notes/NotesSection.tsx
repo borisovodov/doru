@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, X } from 'lucide-react';
 import type { NoteLinkRecord, NoteRecord, NoteTranslation } from '@doru/core';
-import { nls } from '../nls';
+import { nls } from '../../nls';
 import './NotesSection.css';
 
 /**

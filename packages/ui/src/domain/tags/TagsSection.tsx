@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { CalendarDays, Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
-import { nls } from '../nls';
-import { DateEditor } from '@doru/ui';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui';
-import { formatDate } from '@doru/ui';
-import './AttachmentsSection.css';
+import { nls } from '../../nls';
+import { DateEditor } from '../date/DateEditor';
+import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
+import { formatDate } from '../format/format';
+import '../attachments/AttachmentsSection.css';
 
 /**
  * The tags attached to the person, with create-and-attach. A tag name

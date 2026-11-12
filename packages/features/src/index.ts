@@ -11,11 +11,11 @@ export {
 export type { FamilyEditorApi, MediaWithPath, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from './person/types';
 export { PersonList, type PersonListProps } from './person/PersonList';
 export { displayName, familyLabel, lifeSpan } from '@doru/ui';
-export { NotesSection } from './person/NotesSection';
-export { SourcesSection } from './person/SourcesSection';
-export { TagsSection } from './person/TagsSection';
+export { NotesSection } from '@doru/ui';
+export { SourcesSection } from '@doru/ui';
+export { TagsSection } from '@doru/ui';
 export { ContributorsSection } from '@doru/ui';
-export { ContactsSection, IdentifiersSection, RestrictionsSection } from './person/AttachmentsSection';
+export { ContactsSection, IdentifiersSection, RestrictionsSection } from '@doru/ui';
 export { SidebarFamilies } from './sidebar/SidebarFamilies';
 export { SidebarFacts } from './sidebar/SidebarFacts';
 export { SidebarPlaces } from './sidebar/SidebarPlaces';

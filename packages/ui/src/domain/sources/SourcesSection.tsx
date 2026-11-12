@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { BookOpenText, Pencil, X } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
-import { nls } from '../nls';
-import { CitationEditor } from './CitationEditor';
+import { nls } from '../../nls';
+import { CitationEditor } from '../citation/CitationEditor';
 import './SourcesSection.css';
 
 interface SourcesSectionProps {

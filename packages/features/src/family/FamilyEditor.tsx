@@ -6,7 +6,7 @@ import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
 import { ContributorsSection } from '@doru/ui';
 import { DateEditor } from '@doru/ui';
-import { FactsSection } from '../person/FactsSection';
+import { FactsSection } from '@doru/ui';
 import { displayName } from '@doru/ui';
 import type { FamilyEditorApi } from '../person/types';
 import {

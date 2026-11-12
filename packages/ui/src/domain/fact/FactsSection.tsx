@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
-import { nls } from '../nls';
-import { DateEditor } from '@doru/ui';
-import { emptyDate, fromDateDraft, type DateDraft } from '@doru/ui';
-import { EVENT_TYPES } from '@doru/ui';
+import { nls } from '../../nls';
+import { DateEditor } from '../date/DateEditor';
+import { emptyDate, fromDateDraft, type DateDraft } from '../person/draft';
+import { EVENT_TYPES } from './factDraft';
 import { FactEditor } from './FactEditor';
-import { formatDate } from '@doru/ui';
+import { formatDate } from '../format/format';
 import './FactsSection.css';
 
 /** The owner of the facts edited here: a person or a family. */

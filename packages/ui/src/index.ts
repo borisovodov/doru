@@ -63,6 +63,18 @@ export { MediaSection } from './domain/person/MediaSection';
 export { AliasesSection } from './domain/person/AliasesSection';
 export { AssociationsSection } from './domain/person/AssociationsSection';
 export { NamesSection } from './domain/person/NamesSection';
+export { FactsSection } from './domain/fact/FactsSection';
+export { FactEditor } from './domain/fact/FactEditor';
+export { FamilySection } from './domain/family/FamilySection';
+export { SourcesSection } from './domain/sources/SourcesSection';
+export { CitationEditor } from './domain/citation/CitationEditor';
+export { NotesSection } from './domain/notes/NotesSection';
+export { TagsSection } from './domain/tags/TagsSection';
+export {
+  ContactsSection,
+  IdentifiersSection,
+  RestrictionsSection,
+} from './domain/attachments/AttachmentsSection';
 export { ContributorsSection } from './domain/contributors/ContributorsSection';
 export { TaskEditorFields } from './domain/task/TaskEditorFields';
 export { AddressFields } from './domain/registries/AddressFields';

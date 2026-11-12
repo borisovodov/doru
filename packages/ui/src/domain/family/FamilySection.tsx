@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
-import { nls } from '../nls';
-import { DateEditor } from '@doru/ui';
-import { emptyDate, fromDateDraft, type DateDraft } from '@doru/ui';
-import { displayName, formatDate } from '@doru/ui';
-import { emptyChildLinkDraft, emptyPartnerLinkDraft, familyDraftToRecord, familyToDraft } from '@doru/ui';
+import { nls } from '../../nls';
+import { DateEditor } from '../date/DateEditor';
+import { emptyDate, fromDateDraft, type DateDraft } from '../person/draft';
+import { displayName, formatDate } from '../format/format';
+import { emptyChildLinkDraft, emptyPartnerLinkDraft, familyDraftToRecord, familyToDraft } from './familyDraft';
 import './FamilySection.css';
 
 interface FamilySectionProps {

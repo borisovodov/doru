@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pencil, X } from 'lucide-react';
 import type { ContactRecord, IdentifierRecord, RestrictionRecord } from '@doru/core';
-import { nls } from '../nls';
+import { nls } from '../../nls';
 import './AttachmentsSection.css';
 
 const ID_NAMESPACES = ['uid', 'exid', 'refn', 'rin', 'sosa', 'daboville'];
