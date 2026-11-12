@@ -26,3 +26,10 @@
   align-items: center;
   gap: 6px;
 }
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}

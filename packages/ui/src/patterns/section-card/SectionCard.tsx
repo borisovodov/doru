@@ -17,7 +17,7 @@ export function SectionCard({ title, actions, className, children }: SectionCard
         <h3 className={styles['title']}>{title}</h3>
         {actions ? <div className={styles['actions']}>{actions}</div> : null}
       </header>
-      {children}
+      <div className={styles['content']}>{children}</div>
     </section>
   );
 }

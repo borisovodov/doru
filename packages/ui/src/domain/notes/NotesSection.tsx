@@ -3,6 +3,7 @@ import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { Textarea } from '../../atoms/form/Textarea';
+import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState } from 'react';
 import { Pencil, Plus, X } from 'lucide-react';
 import type { NoteLinkRecord, NoteRecord, NoteTranslation } from '@doru/core';
@@ -102,8 +103,7 @@ export function NotesSection({
   };
 
   return (
-    <div className="person-notes">
-      <h3>{nls.t('features.tree.notes.title')}</h3>
+    <SectionCard title={nls.t('features.tree.notes.title')}>
       {notes.length === 0 ? (
         <EmptyText>{nls.t('features.tree.notes.empty')}</EmptyText>
       ) : (
@@ -197,7 +197,7 @@ export function NotesSection({
           {nls.t('features.tree.notes.add')}
         </Button>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
