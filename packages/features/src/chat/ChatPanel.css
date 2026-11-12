@@ -271,8 +271,32 @@
 }
 
 .chat-text li > input[type='checkbox'] {
-  margin-right: 6px;
-  accent-color: var(--doru-accent);
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 13px;
+  height: 13px;
+  box-sizing: border-box;
+  margin: 0 6px 0 0;
+  vertical-align: -2px;
+  border: 1px solid var(--doru-border-strong);
+  border-radius: var(--doru-radius-sm);
+  background: transparent;
+}
+
+.chat-text li > input[type='checkbox']:checked {
+  border-color: var(--doru-accent);
+  background: var(--doru-accent);
+}
+
+.chat-text li > input[type='checkbox']:checked::after {
+  content: '';
+  width: 7px;
+  height: 4px;
+  border-left: 1.5px solid var(--doru-on-accent);
+  border-bottom: 1.5px solid var(--doru-on-accent);
+  transform: translateY(-1px) rotate(-45deg);
 }
 
 .chat-text blockquote {
