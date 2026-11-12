@@ -11,6 +11,7 @@ import {
   TreeDeciduous,
   User,
 } from 'lucide-react';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 
 export type ActivityViewId =
@@ -125,24 +126,24 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
   return (
     <nav className="activity-bar" aria-label={nls.t('workbench.activityBar.label')}>
       {views.map((view) => (
-        <button
+        <IconButton
           key={view.id}
-          className={view.id === activeView ? 'activity-bar-item active' : 'activity-bar-item'}
-          aria-label={view.title}
+          size="nav"
+          variant={view.id === activeView ? 'active' : 'ghost'}
+          label={view.title}
+          icon={view.icon}
           onClick={() => onSelectView(view.id)}
           {...tooltipHandlers(view.title)}
-        >
-          {view.icon}
-        </button>
+        />
       ))}
-      <button
-        className="activity-bar-item activity-bar-bottom"
-        aria-label={nls.t('workbench.activityBar.settings')}
+      <IconButton
+        className="activity-bar-bottom"
+        size="nav"
+        label={nls.t('workbench.activityBar.settings')}
+        icon={<Settings size={ICON_SIZE} aria-hidden="true" />}
         onClick={onOpenSettings}
         {...tooltipHandlers(nls.t('workbench.activityBar.settings'))}
-      >
-        <Settings size={ICON_SIZE} aria-hidden="true" />
-      </button>
+      />
       {tooltip && (
         <div className="activity-tooltip" style={{ top: tooltip.top }} role="tooltip">
           {tooltip.label}

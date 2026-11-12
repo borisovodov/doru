@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
+import { IconButton } from '@doru/ui';
 import {
   ChatPanel,
   ChatSetupPlaceholder,
@@ -489,14 +490,13 @@ export function App() {
         }
         titleActions={
           projectUntitled ? (
-            <button
+            <IconButton
               className="title-bar-action"
-              title={nls.t('workbench.saveProject')}
-              aria-label={nls.t('workbench.saveProject')}
+              size="md"
+              label={nls.t('workbench.saveProject')}
+              icon={<Save size={16} aria-hidden="true" />}
               onClick={() => void project.saveProject()}
-            >
-              <Save size={16} aria-hidden="true" />
-            </button>
+            />
           ) : undefined
         }
         sidebar={

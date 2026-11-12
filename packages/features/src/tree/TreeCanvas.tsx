@@ -16,6 +16,7 @@ import {
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 import { GenerationBand } from './GenerationBand';
 import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
@@ -505,30 +506,24 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
           <Panel position="bottom-left" className="tree-zoom">
-            <button
-              type="button"
-              title={nls.t('tree.canvas.zoomOut')}
-              aria-label={nls.t('tree.canvas.zoomOut')}
+            <IconButton
+              size="sm"
+              label={nls.t('tree.canvas.zoomOut')}
+              icon={<Minus size={16} aria-hidden="true" />}
               onClick={() => void zoomOut({ duration: 150 })}
-            >
-              <Minus size={16} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              title={nls.t('tree.canvas.zoomIn')}
-              aria-label={nls.t('tree.canvas.zoomIn')}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('tree.canvas.zoomIn')}
+              icon={<Plus size={16} aria-hidden="true" />}
               onClick={() => void zoomIn({ duration: 150 })}
-            >
-              <Plus size={16} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              title={nls.t('tree.canvas.fit')}
-              aria-label={nls.t('tree.canvas.fit')}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('tree.canvas.fit')}
+              icon={<Scan size={16} aria-hidden="true" />}
               onClick={fitChart}
-            >
-              <Scan size={16} aria-hidden="true" />
-            </button>
+            />
           </Panel>
           <Panel position="top-left" className="tree-toolbar-panel">
             <TreeToolbar

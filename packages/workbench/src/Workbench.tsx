@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PanelRight } from 'lucide-react';
 import { CommandService, KeybindingService } from '@doru/platform';
+import { IconButton } from '@doru/ui';
 import { nls } from './nls';
 import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
 import { AgentChatPanel } from './components/AgentChatPanel';
@@ -154,15 +155,15 @@ export function Workbench({
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions">
           {titleActions}
-          <button
-            className={agentChatOpen ? 'title-bar-action active' : 'title-bar-action'}
-            title={nls.t('workbench.toggleAgentChat')}
-            aria-label={nls.t('workbench.toggleAgentChat')}
+          <IconButton
+            className="title-bar-action"
+            size="md"
+            variant={agentChatOpen ? 'active' : 'ghost'}
+            label={nls.t('workbench.toggleAgentChat')}
+            icon={<PanelRight size={16} aria-hidden="true" />}
             aria-pressed={agentChatOpen}
             onClick={() => setAgentChatOpen((open) => !open)}
-          >
-            <PanelRight size={16} aria-hidden="true" />
-          </button>
+          />
         </div>
       </header>
       <div className="side-cluster">

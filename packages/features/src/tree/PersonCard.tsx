@@ -17,7 +17,7 @@ import {
 } from '@xyflow/react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { nls } from '../nls';
-import { PersonCardView, type CardAction, type PersonCounts } from '@doru/ui';
+import { IconButton, PersonCardView, type CardAction, type PersonCounts } from '@doru/ui';
 
 export type { CardAction } from '@doru/ui';
 
@@ -192,9 +192,13 @@ export const PersonCard = memo(function PersonCard({
         onAction && selected ? (
           <NodeToolbar position={Position.Top} className="card-toolbar" offset={8}>
             {ACTIONS.map(({ kind, icon: Icon, key }) => (
-              <button key={kind} type="button" title={nls.t(key)} aria-label={nls.t(key)} onClick={action(kind)}>
-                <Icon size={14} aria-hidden="true" />
-              </button>
+              <IconButton
+                key={kind}
+                size="sm"
+                label={nls.t(key)}
+                icon={<Icon size={14} aria-hidden="true" />}
+                onClick={action(kind)}
+              />
             ))}
           </NodeToolbar>
         ) : null

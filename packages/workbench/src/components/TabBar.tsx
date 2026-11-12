@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { X } from 'lucide-react';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 import { dropIndexForTabs } from '../tabReorder';
 
@@ -291,17 +292,16 @@ export function TabBar({ tabs, activeId, onSelect, onClose, onReorder, platform 
           >
             <span className="tab-label">{tab.label}</span>
             {tab.closable !== false && (
-              <button
+              <IconButton
                 className="tab-close"
-                title={nls.t('workbench.tab.close')}
-                aria-label={`${nls.t('workbench.tab.close')}: ${tab.label}`}
+                size="sm"
+                label={`${nls.t('workbench.tab.close')}: ${tab.label}`}
+                icon={<X size={14} strokeWidth={1.5} aria-hidden="true" />}
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose(tab.id);
                 }}
-              >
-                <X size={14} strokeWidth={1.5} aria-hidden="true" />
-              </button>
+              />
             )}
           </div>
         );

@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search } from 'lucide-react';
 import type { ChartKind, PersonRecord } from '@doru/core';
+import { IconButton, SegmentedControl, displayName } from '@doru/ui';
 import { nls } from '../nls';
-import { displayName } from '@doru/ui';
 
 const CHART_KINDS = [
   { kind: 'ancestors', key: 'tree.canvas.view.ancestors' },
@@ -69,55 +69,39 @@ export function TreeToolbar({
 
   return (
     <div className="tree-toolbar">
-      <div className="tree-direction" role="tablist">
-        {CHART_KINDS.map((entry) => (
-          <button
-            key={entry.kind}
-            type="button"
-            role="tab"
-            aria-selected={kind === entry.kind}
-            className={kind === entry.kind ? 'active' : undefined}
-            onClick={() => onKindChange(entry.kind)}
-          >
-            {nls.t(entry.key)}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label={nls.t('workbench.activityBar.tree')}
+        value={kind}
+        onChange={onKindChange}
+        options={CHART_KINDS.map((entry) => ({ value: entry.kind, label: nls.t(entry.key) }))}
+      />
       <div className="tree-nav">
-        <button
-          type="button"
-          title={nls.t('tree.canvas.back')}
-          aria-label={nls.t('tree.canvas.back')}
+        <IconButton
+          size="sm"
+          label={nls.t('tree.canvas.back')}
+          icon={<ChevronLeft size={16} aria-hidden="true" />}
           disabled={!canGoBack}
           onClick={onBack}
-        >
-          <ChevronLeft size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          title={nls.t('tree.canvas.forward')}
-          aria-label={nls.t('tree.canvas.forward')}
+        />
+        <IconButton
+          size="sm"
+          label={nls.t('tree.canvas.forward')}
+          icon={<ChevronRight size={16} aria-hidden="true" />}
           disabled={!canGoForward}
           onClick={onForward}
-        >
-          <ChevronRight size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          title={nls.t('tree.canvas.collapseAll')}
-          aria-label={nls.t('tree.canvas.collapseAll')}
+        />
+        <IconButton
+          size="sm"
+          label={nls.t('tree.canvas.collapseAll')}
+          icon={<ChevronsDownUp size={16} aria-hidden="true" />}
           onClick={onCollapseAll}
-        >
-          <ChevronsDownUp size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          title={nls.t('tree.canvas.expandAll')}
-          aria-label={nls.t('tree.canvas.expandAll')}
+        />
+        <IconButton
+          size="sm"
+          label={nls.t('tree.canvas.expandAll')}
+          icon={<ChevronsUpDown size={16} aria-hidden="true" />}
           onClick={onExpandAll}
-        >
-          <ChevronsUpDown size={16} aria-hidden="true" />
-        </button>
+        />
       </div>
       {breadcrumbs.length > 0 && (
         <ol className="tree-breadcrumbs" aria-label={nls.t('tree.canvas.focusTrail')}>
