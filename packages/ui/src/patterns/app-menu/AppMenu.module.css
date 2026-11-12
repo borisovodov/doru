@@ -1,30 +1,14 @@
-.app-menu {
+.menu {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.app-menu-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  padding: 0;
-  background: transparent;
-  border-radius: var(--doru-radius-sm);
-  color: var(--doru-fg-muted);
-  cursor: pointer;
+.trigger {
+  /* The trigger is an IconButton; the class keeps the title-bar slot stable. */
 }
 
-.app-menu-trigger:hover,
-.app-menu-trigger.open {
-  background: var(--doru-overlay-hover);
-  color: var(--doru-fg);
-}
-
-.app-menu-popup {
+.popup {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -39,16 +23,16 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.app-menu-group-label {
+.groupLabel {
   padding: 6px 10px 2px;
-  font-size: 11px;
+  font-size: var(--doru-font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--doru-fg-faint);
   user-select: none;
 }
 
-.app-menu-item {
+.item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -65,16 +49,16 @@
   white-space: nowrap;
 }
 
-.app-menu-item:hover {
+.item:hover {
   background: var(--doru-overlay-hover);
 }
 
-.app-menu-item-hint {
-  font-size: 12px;
+.itemHint {
+  font-size: var(--doru-font-size-sm);
   color: var(--doru-fg-faint);
 }
 
-.app-menu-separator {
+.separator {
   height: 1px;
   margin: 4px 6px;
   background: var(--doru-border);

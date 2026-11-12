@@ -48,4 +48,9 @@ export {
 } from './patterns/segmented-control/SegmentedControl';
 export { Tooltip, type TooltipProps } from './patterns/tooltip/Tooltip';
 export { MediaTile, type MediaTileProps } from './patterns/media-tile/MediaTile';
+export { AppMenu, type AppMenuProps } from './patterns/app-menu/AppMenu';
+export {
+  RecentProjectsList,
+  type RecentProjectsListProps,
+} from './patterns/recent-projects/RecentProjectsList';
 export { cx } from './lib/cx';

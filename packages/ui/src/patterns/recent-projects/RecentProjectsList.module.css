@@ -1,0 +1,69 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--doru-radius-md);
+}
+
+.list li:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 9px 38px 9px 12px;
+  border-radius: var(--doru-radius-md);
+  cursor: pointer;
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size);
+  font-family: inherit;
+}
+
+.name {
+  font-weight: 500;
+}
+
+.path {
+  color: var(--doru-fg-muted);
+  font-size: var(--doru-font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.remove {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms ease;
+}
+
+.list li:hover .remove,
+.list li:focus-within .remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.empty {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--doru-fg-muted);
+}

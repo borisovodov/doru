@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import type { ChartKind, PersonRecord } from '@doru/core';
-import { displayName } from '@doru/ui/domain';
-import { IconButton } from '@doru/ui';
-import { SegmentedControl } from '@doru/ui';
-import { nls } from '../nls';
+import { displayName } from '../format/format';
+import { IconButton } from '../../atoms/icon-button/IconButton';
+import { SegmentedControl } from '../../patterns/segmented-control/SegmentedControl';
+import { nls } from '../../nls';
+import styles from './TreeToolbar.module.css';
 
 const CHART_KINDS = [
   { kind: 'ancestors', key: 'tree.canvas.view.ancestors' },
@@ -27,14 +28,11 @@ export interface TreeToolbarProps {
   focusPersonId: string | undefined;
   persons: PersonRecord[];
   onJump(index: number): void;
-  searchQuery: string;
-  onSearchQueryChange(query: string): void;
-  onSearchSelect(personId: string): void;
 }
 
 /**
- * The canvas toolbar: chart kind switch, focus history, collapse controls
- * and the person search box.
+ * The canvas toolbar: chart kind switch, focus history and collapse controls.
+ * Search lives outside the canvas for now.
  */
 export function TreeToolbar({
   kind,
@@ -49,35 +47,21 @@ export function TreeToolbar({
   focusPersonId,
   persons,
   onJump,
-  searchQuery,
-  onSearchQueryChange,
-  onSearchSelect,
 }: TreeToolbarProps) {
   const personName = useMemo(() => {
     const byId = new Map(persons.map((person) => [person.id, person]));
     return (id: string | undefined) => displayName(id === undefined ? undefined : byId.get(id));
   }, [persons]);
 
-  const searchResults = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (query === '') {
-      return [];
-    }
-    return persons
-      .map((person) => ({ id: person.id, name: displayName(person) }))
-      .filter((entry) => entry.name.toLowerCase().includes(query))
-      .slice(0, 8);
-  }, [searchQuery, persons]);
-
   return (
-    <div className="tree-toolbar">
+    <div className={styles['toolbar']}>
       <SegmentedControl
         label={nls.t('workbench.activityBar.tree')}
         value={kind}
         onChange={onKindChange}
         options={CHART_KINDS.map((entry) => ({ value: entry.kind, label: nls.t(entry.key) }))}
       />
-      <div className="tree-nav">
+      <div className={styles['nav']}>
         <IconButton
           size="sm"
           label={nls.t('tree.canvas.back')}
@@ -106,12 +90,12 @@ export function TreeToolbar({
         />
       </div>
       {breadcrumbs.length > 0 && (
-        <ol className="tree-breadcrumbs" aria-label={nls.t('tree.canvas.focusTrail')}>
+        <ol className={styles['breadcrumbs']} aria-label={nls.t('tree.canvas.focusTrail')}>
           {breadcrumbs.map((personId, index) => (
             <li key={personId}>
               <button
                 type="button"
-                className={index === breadcrumbs.length - 1 ? 'current' : undefined}
+                className={index === breadcrumbs.length - 1 ? styles['breadcrumbCurrent'] : styles['breadcrumb']}
                 onClick={() => onJump(index)}
               >
                 {personName(personId)}
@@ -121,33 +105,8 @@ export function TreeToolbar({
         </ol>
       )}
       {breadcrumbs.length === 0 && focusPersonId !== undefined && (
-        <span className="tree-breadcrumbs-current">{personName(focusPersonId)}</span>
+        <span className={styles['breadcrumbsCurrent']}>{personName(focusPersonId)}</span>
       )}
-      <div className="tree-search">
-        <Search size={14} aria-hidden="true" />
-        <input
-          value={searchQuery}
-          placeholder={nls.t('tree.canvas.search.placeholder')}
-          aria-label={nls.t('tree.canvas.search.placeholder')}
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              onSearchQueryChange('');
-            }
-          }}
-        />
-        {searchResults.length > 0 && (
-          <ul className="tree-search-results" role="list" aria-label={nls.t('tree.canvas.search.results')}>
-            {searchResults.map((entry) => (
-              <li key={entry.id}>
-                <button type="button" onClick={() => onSearchSelect(entry.id)}>
-                  {entry.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }

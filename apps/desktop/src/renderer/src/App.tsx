@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
-import { IconButton } from '@doru/ui';
+import { AppMenu, IconButton } from '@doru/ui';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, NoticesView, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
-import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
-import type { ProjectBinding } from '@doru/core';
+import { Workbench, nls, type ActivityViewId } from '@doru/workbench';import type { ProjectBinding } from '@doru/core';
 import { FamilyTab } from './components/FamilyTab';
 import { PersonTab } from './components/PersonTab';
 import { PlaceTab } from './components/PlaceTab';
@@ -13,7 +12,6 @@ import { SourceTab } from './components/SourceTab';
 import { SubmitterTab } from './components/SubmitterTab';
 import { TaskTab } from './components/TaskTab';
 import { TitleTab } from './components/TitleTab';
-import { AppMenu } from './components/AppMenu';
 import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
@@ -477,7 +475,11 @@ export function App() {
         platform={window.doru.platform}
         titleMenu={
           window.doru.platform === 'darwin' ? undefined : (
-            <AppMenu commands={commands} platform={window.doru.platform} />
+            <AppMenu
+              commands={commands}
+              platform={window.doru.platform}
+              onMenuAction={(action) => void window.doru.menuAction(action)}
+            />
           )
         }
         titleActions={

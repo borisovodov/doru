@@ -1,10 +1,10 @@
 import { Plus } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
-import { displayName, formatDate } from '@doru/ui/domain';
-import { Chip } from '@doru/ui';
-import { IconButton } from '@doru/ui';
-import { nls } from '../nls';
-import './tasks.css';
+import { displayName, formatDate } from '../format/format';
+import { Chip } from '../../atoms/display/Chip';
+import { IconButton } from '../../atoms/icon-button/IconButton';
+import { nls } from '../../nls';
+import './TasksView.css';
 
 /**
  * The Tasks sidebar view: the read-only task list. A click opens the task

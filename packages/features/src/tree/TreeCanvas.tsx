@@ -9,7 +9,7 @@ import { nls } from '../nls';
 import { GenerationBand } from './GenerationBand';
 import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
 import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
-import { TreeToolbar } from './TreeToolbar';
+import { TreeToolbar } from '@doru/ui/domain';
 import { computeFit } from './fit';
 import { projectLayout, type CanvasNode } from './project';
 import { CARD_HEIGHT, CARD_WIDTH } from './sizes';
@@ -85,7 +85,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set<string>());
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [counts, setCounts] = useState<Record<string, PersonCounts>>({});
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const { setViewport, zoomIn, zoomOut, getIntersectingNodes } = useReactFlow();
@@ -527,12 +526,6 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
               focusPersonId={effectiveFocus}
               persons={persons}
               onJump={jumpTo}
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              onSearchSelect={(personId) => {
-                refocus(personId);
-                setSearchQuery('');
-              }}
             />
           </Panel>
         </ReactFlow>

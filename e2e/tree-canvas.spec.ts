@@ -113,7 +113,7 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
   await app.close();
 });
 
-test('rename, search and delete with undo on the canvas', async () => {
+test('rename and delete with undo on the canvas', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-ops-e2e-')), 'family.doru');
   const { app, page } = await launchApp({ project });
   await seedFamilyTree(page, project);
@@ -143,13 +143,11 @@ test('rename, search and delete with undo on the canvas', async () => {
   await expect(page.getByRole('group', { name: 'Petr Ivanov', exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Petya Ivanov', exact: true })).toHaveCount(0);
 
-  // Search jumps to a person.
-  await page.getByRole('textbox', { name: 'Find a person…' }).fill('Maria');
-  const results = page.getByRole('list', { name: 'Search results' });
-  await expect(results.getByRole('button').first()).toBeVisible();
-  await results.getByRole('button').first().click();
-  await expect(page.getByRole('list', { name: 'Focus trail' })).toHaveText(/Maria Ivanova/);
-  // Wait for the re-layout and the fit to settle before clicking cards.
+  // Focus Maria through the People sidebar, then return to the canvas.
+  await page.getByRole('button', { name: 'People' }).click();
+  const peopleList = page.getByRole('complementary', { name: 'People' }).getByRole('list');
+  await peopleList.getByRole('button', { name: /Maria Ivanova/ }).click();
+  await page.getByRole('tab', { name: 'Family Tree' }).click();
   await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toHaveAttribute(
     'aria-current',
     'true',

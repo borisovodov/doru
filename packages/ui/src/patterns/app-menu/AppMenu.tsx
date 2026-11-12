@@ -1,28 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu as MenuIcon } from 'lucide-react';
 import {
   APP_MENU,
   menuPlatformOf,
   menuVisible,
   type CommandService,
+  type MenuAction,
   type MenuEntry,
   type MenuPlatform,
 } from '@doru/platform';
-import { nls } from '@doru/workbench';
-import './AppMenu.css';
+import { IconButton } from '../../atoms/icon-button/IconButton';
+import { nls } from '../../nls';
+import styles from './AppMenu.module.css';
 
-interface AppMenuProps {
+export interface AppMenuProps {
   commands: CommandService;
   platform: string;
+  /** Runs a main-process window action (for example `app.quit`). */
+  onMenuAction: (action: MenuAction) => void;
 }
 
 /**
  * The in-window application menu for Windows/Linux, rendered from the same
  * `APP_MENU` model the native macOS menu bar uses. Commands run through the
- * CommandService; window-level entries go to the main process over the
- * `menu:action` IPC. macOS has the native menu bar and never renders this.
+ * CommandService; window-level entries go to the host through
+ * `onMenuAction`. macOS has the native menu bar and never renders this.
  */
-export function AppMenu({ commands, platform }: AppMenuProps) {
+export function AppMenu({ commands, platform, onMenuAction }: AppMenuProps) {
   const menuPlatform: MenuPlatform = menuPlatformOf(platform);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -61,7 +65,7 @@ export function AppMenu({ commands, platform }: AppMenuProps) {
     if (entry.command) {
       void commands.execute(entry.command).catch(() => undefined);
     } else if (entry.action) {
-      void window.doru.menuAction(entry.action);
+      onMenuAction(entry.action);
     }
   };
 
@@ -73,44 +77,43 @@ export function AppMenu({ commands, platform }: AppMenuProps) {
   );
 
   return (
-    <div className="app-menu" ref={rootRef}>
-      <button
+    <div className={styles['menu']} ref={rootRef}>
+      <IconButton
         ref={triggerRef}
-        type="button"
-        className={open ? 'app-menu-trigger open' : 'app-menu-trigger'}
-        title={nls.t('menu.open')}
-        aria-label={nls.t('menu.open')}
+        className={styles['trigger']}
+        size="md"
+        variant={open ? 'active' : 'ghost'}
+        label={nls.t('menu.open')}
+        icon={<MenuIcon size={16} aria-hidden="true" />}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-      >
-        <Menu size={16} aria-hidden="true" />
-      </button>
+      />
       {open && (
-        <div className="app-menu-popup" role="menu">
+        <div className={styles['popup']} role="menu">
           {groups.map(({ group, entries }) => (
-            <div key={group.id} className="app-menu-group">
+            <div key={group.id} className={styles['group']}>
               {group.labelKey && (
-                <div className="app-menu-group-label" role="presentation">
+                <div className={styles['groupLabel']} role="presentation">
                   {nls.t(group.labelKey)}
                 </div>
               )}
               {entries.map((entry, index) =>
                 entry.type === 'separator' ? (
-                  <div key={`separator-${index}`} className="app-menu-separator" role="separator" />
+                  <div key={`separator-${index}`} className={styles['separator']} role="separator" />
                 ) : (
                   <button
                     key={entry.id}
                     type="button"
                     role="menuitem"
-                    className="app-menu-item"
+                    className={styles['item']}
                     data-menu-item={entry.id}
                     onClick={() => runEntry(entry)}
                   >
-                    <span className="app-menu-item-label">
+                    <span className={styles['itemLabel']}>
                       {entry.labelKey ? nls.t(entry.labelKey) : entry.id}
                     </span>
-                    {entry.hint && <span className="app-menu-item-hint">{entry.hint}</span>}
+                    {entry.hint && <span className={styles['itemHint']}>{entry.hint}</span>}
                   </button>
                 ),
               )}

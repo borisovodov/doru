@@ -1,12 +1,10 @@
-import { memo, useState, type FormEvent, type MouseEvent } from 'react';
-import {
-  Baby, Check, Pencil, Trash2, UserPlus, Users, X, } from 'lucide-react';
-import {
-  Handle, NodeToolbar, Position, type Node, type NodeProps, } from '@xyflow/react';
+import { memo, type MouseEvent } from 'react';
+import { Baby, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
+import { Handle, NodeToolbar, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
-import { nls } from '../nls';
-import { PersonCardView, type CardAction, type PersonCounts } from '@doru/ui/domain';
 import { IconButton } from '@doru/ui';
+import { PersonCardEditor, PersonCardView, type CardAction, type PersonCounts } from '@doru/ui/domain';
+import { nls } from '../nls';
 
 export type { CardAction } from '@doru/ui/domain';
 
@@ -63,33 +61,10 @@ export const PersonCard = memo(function PersonCard({
     onDraftCancel,
     onAction,
   } = data;
-  const [given, setGiven] = useState('');
-  const [surname, setSurname] = useState('');
 
   const action = (kind: CardAction) => (event: MouseEvent) => {
     event.stopPropagation();
     onAction?.(kind, person.id);
-  };
-
-  const saveDraft = (event: FormEvent) => {
-    event.preventDefault();
-    const trimmedGiven = given.trim();
-    const trimmedSurname = surname.trim();
-    if (!trimmedGiven && !trimmedSurname) {
-      return;
-    }
-    onDraftSave?.({
-      id: crypto.randomUUID(),
-      names: [
-        {
-          id: crypto.randomUUID(),
-          ...(trimmedGiven !== '' ? { given: trimmedGiven } : {}),
-          ...(trimmedSurname !== '' ? { surname: trimmedSurname } : {}),
-        },
-      ],
-      sex: 'U',
-      facts: [],
-    });
   };
 
   const ACTIONS = [
@@ -101,8 +76,6 @@ export const PersonCard = memo(function PersonCard({
   ] as const satisfies ReadonlyArray<{ kind: CardAction; icon: typeof Baby; key: string }>;
 
   if (isEditing) {
-    // The draft card turned editor: only the name is typed here; everything
-    // else lives in the person tab after the person exists.
     return (
       <PersonCardView
         person={person}
@@ -114,41 +87,11 @@ export const PersonCard = memo(function PersonCard({
         isDropTarget={false}
         isEditing
         editingContent={
-          <form className="person-card-edit" onSubmit={saveDraft} aria-label={nls.t('tree.canvas.addFirstPerson')}>
-            <div className="person-card-edit-fields">
-              <input
-                value={given}
-                placeholder={nls.t('features.tree.field.given')}
-                aria-label={nls.t('features.tree.field.given')}
-                onChange={(event) => setGiven(event.target.value)}
-                autoFocus
-              />
-              <input
-                value={surname}
-                placeholder={nls.t('features.tree.field.surname')}
-                aria-label={nls.t('features.tree.field.surname')}
-                onChange={(event) => setSurname(event.target.value)}
-              />
-            </div>
-            <div className="person-card-edit-actions">
-              <button
-                type="submit"
-                title={nls.t('features.tree.save')}
-                aria-label={nls.t('features.tree.save')}
-                disabled={!given.trim() && !surname.trim()}
-              >
-                <Check size={14} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                title={nls.t('tree.canvas.cancel')}
-                aria-label={nls.t('tree.canvas.cancel')}
-                onClick={() => onDraftCancel?.()}
-              >
-                <X size={14} aria-hidden="true" />
-              </button>
-            </div>
-          </form>
+          <PersonCardEditor
+            autoFocus
+            onSave={(next) => onDraftSave?.(next)}
+            onCancel={() => onDraftCancel?.()}
+          />
         }
       >
         <Handle type="target" position={Position.Top} className="person-card-handle" />

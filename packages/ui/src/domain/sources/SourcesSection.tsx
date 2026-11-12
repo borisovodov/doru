@@ -3,8 +3,9 @@ import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
+import { SourceLink } from './SourceLink';
 import { useState } from 'react';
-import { BookOpenText, Pencil, X } from 'lucide-react';
+import { Pencil, X } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { CitationEditor } from '../citation/CitationEditor';
@@ -82,14 +83,10 @@ export function SourcesSection({
         {citations.map((citation) => (
           <li key={citation.id}>
             <div className="source-row">
-              <button
-                className="source-open"
-                title={nls.t('features.tree.citation.openSource')}
+              <SourceLink
+                title={sourceById.get(citation.sourceId)?.title ?? citation.sourceId}
                 onClick={() => onOpenSource(citation.sourceId)}
-              >
-                <BookOpenText size={13} aria-hidden="true" />
-                <span className="source-title">{sourceById.get(citation.sourceId)?.title ?? citation.sourceId}</span>
-              </button>
+              />
               <IconButton size="sm" label={nls.t('features.tree.citation.edit')} icon={<>
                 <Pencil size={13} aria-hidden="true" />
               </>} onClick={() => setExpandedId(expandedId === citation.id ? null : citation.id)} />

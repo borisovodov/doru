@@ -13,7 +13,8 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import { PersonList, PlaceholderView, RepositoryList, SidebarFamilies, SidebarFacts, SidebarMedia, SidebarPlaces, SidebarSearch, SidebarSources, SubmitterList, TasksView, TitleList, type SidebarMediaItem } from '@doru/features';
+import { PersonList, TasksView } from '@doru/ui/domain';
+import { PlaceholderView, RepositoryList, SidebarFamilies, SidebarFacts, SidebarMedia, SidebarPlaces, SidebarSearch, SidebarSources, SubmitterList, TitleList, type SidebarMediaItem } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
 
 /** Render cap for the People list on very large trees. */

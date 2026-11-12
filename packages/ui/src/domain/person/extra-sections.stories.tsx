@@ -102,6 +102,28 @@ export const Tags: Story = {
   ),
 };
 
+export const Tagged: Story = {
+  render: () => (
+    <TagsSection
+      targetType="person"
+      targetId="P1"
+      tags={[{ id: 'T1', name: 'Ivanovka' }]}
+      tagLinks={[
+        {
+          tagId: 'T1',
+          link: { id: 'L1', tagId: 'T1', targetType: 'person', targetId: 'P1' },
+        },
+      ]}
+      onAddTag={noop}
+      onUpdateTag={async () => undefined}
+      onDeleteTag={async () => undefined}
+      onAttachTag={async () => undefined}
+      onDetachTag={async () => undefined}
+      onUpdateTagLink={async () => undefined}
+    />
+  ),
+};
+
 export const Attachments: Story = {
   render: () => (
     <>
