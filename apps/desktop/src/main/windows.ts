@@ -196,6 +196,13 @@ export function createWindow(projectKey: string | null): BrowserWindow {
     void window.loadFile(join(fileURLToPath(new URL('..', import.meta.url)), 'renderer/index.html'));
   }
 
+  // Packaged macOS builds start as LSUIElement, so a window opened during
+  // startup does not automatically bring the app forward. Focus the app
+  // whenever a window appears; no-op when it is already frontmost.
+  if (process.platform === 'darwin') {
+    app.focus({ steal: true });
+  }
+
   window.on('closed', () => {
     const boundProject = windowProject.get(webContentsId);
     windowProject.delete(webContentsId);

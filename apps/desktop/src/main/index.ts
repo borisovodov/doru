@@ -49,6 +49,15 @@ function parseMcpServerArg(argv: string[]): string | null {
 // instance instead of letting them die in the helper.
 const mcpProject = parseMcpServerArg(process.argv);
 
+// Packaged builds are LSUIElement (see electron-builder.yml): macOS never
+// registers a Dock icon before the main process knows which mode it is in.
+// Dev builds still run inside Electron's regular bundle, so the helper hides
+// its icon as early as possible — `whenReady` is late enough for the icon to
+// appear for a few frames.
+if (mcpProject) {
+  app.dock?.hide();
+}
+
 // The helper serves the tree over stdio only, so the GUI's userData holds
 // nothing it needs — and sharing it has a real cost: Chromium profile files
 // (the Local Storage leveldb lock, Network Persistent State, Trust Tokens)
@@ -302,7 +311,7 @@ async function startApp(): Promise<void> {
   if (mcpProject) {
     // Headless helper: open the tree, serve the shared toolset over stdio,
     // and stay out of everything GUI (no menu, no dock icon, no windows).
-    app.dock?.hide();
+    // The dock icon is already hidden above, before `whenReady`.
     // LaunchServices (Dock icon, Launchpad, `open`, Finder file opens)
     // routes a user's launch to an already-running instance of the bundle —
     // which can be this headless helper. Forward activations, file opens
@@ -332,6 +341,14 @@ async function startApp(): Promise<void> {
     await server.connect(new StdioServerTransport());
     log.info(`Dóru MCP server started for ${mcpProject}`);
     return;
+  }
+
+  // The packaged bundle is LSUIElement, so macOS starts every launch without
+  // a Dock icon. A GUI launch restores the regular app policy; an MCP helper
+  // stays an accessory app and never flashes in the Dock.
+  if (process.platform === 'darwin') {
+    app.setActivationPolicy('regular');
+    void app.dock?.show();
   }
 
   ensureUserThemesDir();
