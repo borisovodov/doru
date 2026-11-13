@@ -299,10 +299,10 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   // domain projection and must reset whenever the projection changes. This is
   // the one deliberate exception to the synchronous-setState-in-effect rule.
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- syncing the controlled React Flow store */
+    /* oxlint-disable react/set-state-in-effect -- syncing the controlled React Flow store */
     setNodes(projected.nodes);
     setEdges(projected.edges);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    /* oxlint-enable react/set-state-in-effect */
   }, [projected]);
 
   // Badge counts for the visible cards.

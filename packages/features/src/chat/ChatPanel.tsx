@@ -7,7 +7,7 @@ import { nls } from '../nls';
 import { ChatMarkdown } from './ChatMarkdown';
 import './ChatPanel.css';
 
-/* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
+/* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
 
 export interface ChatPanelProps {
   messages: ChatTranscriptMessage[];

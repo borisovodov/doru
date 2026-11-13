@@ -51,7 +51,8 @@ export class NoteRepo {
 
   removeNoteLink(id: string): boolean {
     const link = this.db.prepare('SELECT note_id FROM note_link WHERE id = ?').get(id) as
-      { note_id: string } | undefined;
+      | { note_id: string }
+      | undefined;
     const result = this.db.prepare('DELETE FROM note_link WHERE id = ?').run(id);
     if (result.changes > 0 && link) {
       const remaining = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(link.note_id) as {
@@ -66,7 +67,8 @@ export class NoteRepo {
 
   getNote(id: string): NoteRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(id) as
-      NoteRow | undefined;
+      | NoteRow
+      | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 
@@ -88,7 +90,8 @@ export class NoteRepo {
     const notes: NoteRecord[] = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(link.note_id) as
-        NoteRow | undefined;
+        | NoteRow
+        | undefined;
       if (row) {
         notes.push({ ...this.hydrate(row), targetType, targetId });
       }
@@ -104,7 +107,8 @@ export class NoteRepo {
     const result: Array<{ note: NoteRecord; link: NoteLinkRecord }> = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(link.note_id) as
-        NoteRow | undefined;
+        | NoteRow
+        | undefined;
       if (row) {
         result.push({
           note: this.hydrate(row),

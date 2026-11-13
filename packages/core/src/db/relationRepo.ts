@@ -33,7 +33,8 @@ export class RelationRepo {
 
   deleteAssociation(id: string): boolean {
     const row = this.db.prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?').get(id) as
-      { period_start_id: string | null; period_end_id: string | null } | undefined;
+      | { period_start_id: string | null; period_end_id: string | null }
+      | undefined;
     const result = this.db.prepare('DELETE FROM association WHERE id = ?').run(id);
     if (row) {
       for (const dateId of [row.period_start_id, row.period_end_id]) {

@@ -48,7 +48,7 @@ export type VoidPointer = '@VOID@';
  * pointers must match a corresponding unique xref_ID within the
  * transmission. (The 7.0 void pointer `@VOID@` does not exist in 5.5.1.)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-redundant-type-constituents -- the type parameter documents the pointed-to record; Xref already covers the @VOID@ string
+// oxlint-disable-next-line typescript/no-redundant-type-constituents -- the type parameter documents the pointed-to record; Xref already covers the @VOID@ string
 export type Pointer<_TRecord> = Xref | VoidPointer;
 
 /**

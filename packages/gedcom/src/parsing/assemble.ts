@@ -59,7 +59,7 @@ function declaredEscapeRule(document: DecodedDocument): EscapeRule {
 function parseGedcom(input: Uint8Array, version: '7.0' | '5.5.1', errors?: GedcomError[]): GedcomDataset {
   const decoded = decodeDocument(input, version, errors);
   if (!decoded.ok) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- GEDCOM errors are typed plain objects, not Error instances
+    // oxlint-disable-next-line typescript/only-throw-error -- GEDCOM errors are typed plain objects, not Error instances
     throw decoded.error;
   }
   const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value), errors);
@@ -76,7 +76,7 @@ export function parseAny(input: Uint8Array, errors?: GedcomError[]): ParseResult
   return run(() => {
     const decoded = decodeSniffed(input, errors);
     if (!decoded.ok) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- GEDCOM errors are typed plain objects, not Error instances
+      // oxlint-disable-next-line typescript/only-throw-error -- GEDCOM errors are typed plain objects, not Error instances
       throw decoded.error;
     }
     const raw = parseRawDocument(decoded.value, declaredEscapeRule(decoded.value), errors);

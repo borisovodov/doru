@@ -394,7 +394,7 @@ async function runScenario(
           const serialized: string | undefined = JSON.stringify(result);
           // JSON.stringify(undefined) returns undefined at runtime even though
           // the lib type says string.
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           resultText = serialized ?? String(result);
         } catch (error) {
           ok = false;

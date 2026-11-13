@@ -15,7 +15,10 @@ export interface ThemeEntry {
 }
 
 export type AiTestState =
-  { status: 'idle' } | { status: 'testing' } | { status: 'ok' } | { status: 'fail'; message: string };
+  | { status: 'idle' }
+  | { status: 'testing' }
+  | { status: 'ok' }
+  | { status: 'fail'; message: string };
 
 export interface AiSettingsSectionProps {
   settings: AiSettingsState;

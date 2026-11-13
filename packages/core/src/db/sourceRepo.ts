@@ -69,7 +69,8 @@ export class SourceRepo {
 
   deleteSource(id: string): boolean {
     const row = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(id) as
-      { pub_date_id: string | null } | undefined;
+      | { pub_date_id: string | null }
+      | undefined;
     // Citation rows cascade with the source; their date rows must go too.
     const citationDateIds = this.db
       .prepare('SELECT date_id FROM citation WHERE source_id = ? AND date_id IS NOT NULL')
@@ -122,7 +123,8 @@ export class SourceRepo {
 
   deleteCitation(id: string): boolean {
     const row = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(id) as
-      { date_id: string | null } | undefined;
+      | { date_id: string | null }
+      | undefined;
     const result = this.db.prepare('DELETE FROM citation WHERE id = ?').run(id);
     if (row?.date_id !== null && row?.date_id !== undefined) {
       this.dates.delete(row.date_id);

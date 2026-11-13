@@ -175,18 +175,17 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
   dev helper scripts. Every workspace `tsconfig.json` includes its `tests/`
   directory, including `packages/ui/.storybook`).
-- **Lint, format and CSS checks:** `npm run lint` (ESLint 10 with
-  `typescript-eslint` `strictTypeChecked`, zero warnings), `npm run
-  format:check` (Prettier) and `npm run lint:css` (Stylelint). The fix
+- **Lint, format and CSS checks:** `npm run lint` (Oxlint with type-aware
+  rules from `.oxlintrc.json`, zero warnings), `npm run format:check` (Oxfmt,
+  configured by `.oxfmtrc.json`) and `npm run lint:css` (Stylelint). The fix
   counterparts are `npm run lint:fix`, `npm run format` and `npm run
   lint:css:fix`. CI runs all three in the `lint` job.
-- **TypeScript 7 uses the TS 6 API for tooling.** The root devDependencies
-  alias `typescript` to `@typescript/typescript6` (the JS compiler API that
-  typescript-eslint needs) and `@typescript/native` to `typescript@7` (the
-  native `tsc` binary). This is Microsoft's documented side-by-side setup and
-  mirrors OpenCode desktop v2; `npm run typecheck` therefore stays on TS 7
-  while ESLint sees TS 6. Remove the alias only after typescript-eslint ships
-  native TS 7.1 API support (typescript-eslint#10940).
+- **TypeScript 7 is the only compiler.** `typescript` is pinned to 7.x and
+  `node_modules/.bin/tsc` is the native binary; `oxlint-tsgolint` provides
+  type-aware linting on the same TypeScript 7 toolchain. Do not add a classic
+  JavaScript compiler API alias: nothing in the repository needs it. Storybook's
+  default `react-docgen` does not need it either; only an opt-in
+  `react-docgen-typescript` setup would.
 - Dev helper scripts (`scripts/*.ts`, `apps/*/scripts/*.ts`) are TypeScript
   run directly by Node's built-in type stripping (Node ≥ 24): `node
   scripts/ui-check.ts`. They must therefore use only erasable syntax — no

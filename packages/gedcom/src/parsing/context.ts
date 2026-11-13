@@ -262,7 +262,6 @@ function extensionOf(node: RawNode): ExtensionStructure {
   return out;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- extension nodes carry no context-dependent values
 export function parseExtension(node: RawNode, _ctx: Ctx): ExtensionStructure {
   // An iterative depth-first build: a hand-made file can nest
   // thousands of levels (the vscode-gedcom "numbered list" fixture

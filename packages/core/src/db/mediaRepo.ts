@@ -85,7 +85,8 @@ export class MediaRepo {
     const result: MediaRecord[] = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(link.media_id) as
-        MediaRow | undefined;
+        | MediaRow
+        | undefined;
       if (row) {
         result.push({ ...this.hydrate(row), targetType, targetId });
       }
@@ -105,7 +106,8 @@ export class MediaRepo {
     const result: Array<{ media: MediaRecord; link: MediaLinkRecord }> = [];
     for (const link of links) {
       const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(link.media_id) as
-        MediaRow | undefined;
+        | MediaRow
+        | undefined;
       if (row) {
         result.push({ media: this.hydrate(row), link: rowToLink(link) });
       }
@@ -125,7 +127,8 @@ export class MediaRepo {
 
   removeMediaLink(id: string): boolean {
     const link = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
-      { media_id: string } | undefined;
+      | { media_id: string }
+      | undefined;
     const result = this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id);
     if (result.changes > 0 && link) {
       const remaining = this.db

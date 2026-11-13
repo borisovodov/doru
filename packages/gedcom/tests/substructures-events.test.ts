@@ -1164,10 +1164,10 @@ describe('payload readers and document structure', () => {
     expect(header.source?.corporation?.address).toBeDefined();
     // The contacts are typed into the address block (the canonical
     // position).
-    expect((header.source?.corporation?.address as { phone?: string[] }).phone).toEqual(['+49 1']);
-    expect((header.source?.corporation?.address as { email?: string[] }).email).toEqual(['a@example.com']);
-    expect((header.source?.corporation?.address as { fax?: string[] }).fax).toEqual(['+49 2']);
-    expect((header.source?.corporation?.address as { www?: string[] }).www).toEqual(['https://example.com']);
+    expect((header.source!.corporation!.address as { phone?: string[] }).phone).toEqual(['+49 1']);
+    expect((header.source!.corporation!.address as { email?: string[] }).email).toEqual(['a@example.com']);
+    expect((header.source!.corporation!.address as { fax?: string[] }).fax).toEqual(['+49 2']);
+    expect((header.source!.corporation!.address as { www?: string[] }).www).toEqual(['https://example.com']);
     expect(header.source?.data?.payload).toBe('the data');
     expect(header.source?.data?.date?.value).toEqual({ day: 1, month: 'JAN', year: 2000 });
     expect(header.source?.data?.copyright).toBe('(c) 2000');

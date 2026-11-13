@@ -180,7 +180,7 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
   }, [draft.id, draft.isNew, persons]);
 
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });

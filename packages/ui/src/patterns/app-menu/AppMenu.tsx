@@ -99,7 +99,7 @@ export function AppMenu({ commands, platform, onMenuAction }: AppMenuProps) {
               {entries.map((entry, index) =>
                 entry.type === 'separator' ? (
                   // The menu model is static, so separator positions are stable.
-                  // eslint-disable-next-line @eslint-react/no-array-index-key
+                  // oxlint-disable-next-line react/no-array-index-key
                   <div key={`separator-${index}`} className={styles['separator']} role="separator" />
                 ) : (
                   <button

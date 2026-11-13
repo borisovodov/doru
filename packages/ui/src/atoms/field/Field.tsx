@@ -35,7 +35,7 @@ export function Field({ label, hint, error, required = false, className, childre
     controlId = element.props.id ?? id;
     // Field forwards the generated id and the aria attributes into the
     // caller's control while preserving its element type and own props.
-    // eslint-disable-next-line @eslint-react/no-clone-element
+    // oxlint-disable-next-line react/no-clone-element
     control = cloneElement(element, {
       id: controlId,
       ...(describedBy !== undefined ? { 'aria-describedby': describedBy } : {}),

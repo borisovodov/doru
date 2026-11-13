@@ -30,7 +30,8 @@ export class SubmitterRepo {
 
   getSubmitter(id: string): SubmitterRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, name, address_id FROM submitter WHERE id = ?').get(id) as
-      { id: string; xref: string | null; name: string; address_id: string | null } | undefined;
+      | { id: string; xref: string | null; name: string; address_id: string | null }
+      | undefined;
     if (!row) {
       return undefined;
     }

@@ -42,13 +42,13 @@ describe('line tokenization (7.0)', () => {
 
   test('parses pointers and the void pointer', () => {
     const { nodes } = raw70('0 @F1@ FAM\n1 HUSB @I1@\n1 NOTE @VOID@\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@I1@' });
-    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@VOID@' });
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@I1@' });
+    expect((nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@VOID@' });
   });
 
   test('unescapes a doubled leading at-sign', () => {
     const { nodes } = raw70('0 HEAD\n1 NOTE @@me and @I are social\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({
       kind: 'text',
       text: '@me and @I are social',
     });
@@ -92,30 +92,30 @@ describe('line tokenization (7.0)', () => {
 
   test('keeps a single leading at-sign in a value as text', () => {
     const { nodes } = raw70('0 HEAD\n1 NOTE @foo\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '@foo' });
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'text', text: '@foo' });
   });
 
   test('banned characters: DEL and C0 are sanitized, C1 is tolerated', () => {
     // DEL and the C0 controls (except the tab) are dropped from the
     // value, the vertical tab becomes the newline; the line survives.
     const del = raw70(`0 HEAD\n1 NOTE bad\u007fchar\n0 TRLR\n`);
-    expect((del.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'badchar' });
+    expect((del.nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'badchar' });
     const vt = raw70(`0 HEAD\n1 NOTE a\u000bb\n0 TRLR\n`);
-    expect((vt.nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
+    expect((vt.nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
     // The 5.x rule does not check the C1 controls (the 7.0 rule does);
     // the lenient rule wins.
     const { nodes } = raw70(`0 HEAD\n1 NOTE \u0085\n0 TRLR\n`);
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: '\u0085' });
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'text', text: '\u0085' });
   });
 
   test('allows tabs inside values', () => {
     const { nodes } = raw70('0 HEAD\n1 NOTE a\tb\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
   });
 
   test('relocates an xref on a substructure into the value slot', () => {
     const { nodes } = raw70('0 HEAD\n1 @X@ GEDC\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@X@' });
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'pointer', pointer: '@X@' });
   });
 
   test('errors on an xref on a substructure that also has a value', () => {
@@ -144,7 +144,7 @@ describe('line tokenization (7.0)', () => {
 
   test('merges CONC (the 7.0 reservation is lifted)', () => {
     const { nodes } = raw70('0 HEAD\n1 NOTE a\n2 CONC b\n0 TRLR\n');
-    expect((nodes[0]?.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
+    expect((nodes[0]!.children[0] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
   test('merges a continuation that follows other substructures', () => {
@@ -190,7 +190,7 @@ describe('line tokenization (5.5.1)', () => {
 
   test('doubles at-signs in values', () => {
     const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a@@b\n0 TRLR\n');
-    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a@b' });
+    expect((nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a@b' });
   });
 
   test('tolerates a lone at-sign anywhere in a value', () => {
@@ -204,33 +204,33 @@ describe('line tokenization (5.5.1)', () => {
 
   test('keeps escape sequences in values', () => {
     const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @#DHEBREW@ text\n0 TRLR\n');
-    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW@ text' });
+    expect((nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW@ text' });
   });
 
   test('keeps an unterminated escape literal', () => {
     const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE @#DHEBREW text\n0 TRLR\n');
-    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW text' });
+    expect((nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: '@#DHEBREW text' });
   });
 
   test('allows tabs in values (5.5.5 legalized them)', () => {
     const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE a\tb\n0 TRLR\n');
-    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
+    expect((nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\tb' });
   });
 
   test('sanitizes the other control characters out of values', () => {
     // The C0 controls (except the tab) and DEL are dropped from the
     // value; the vertical tab becomes the newline; the line survives.
     const a = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a\u0001b\n0 TRLR\n`);
-    expect((a.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
+    expect((a.nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
     const b = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a\u000bb\n0 TRLR\n`);
-    expect((b.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
+    expect((b.nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'a\nb' });
     const c = raw551(`0 HEAD\n1 CHAR ANSEL\n1 NOTE a\u007fb\n0 TRLR\n`);
-    expect((c.nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
+    expect((c.nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'ab' });
   });
 
   test('merges CONC without a line break', () => {
     const { nodes } = raw551('0 HEAD\n1 CHAR ANSEL\n1 NOTE lon\n2 CONC g\n0 TRLR\n');
-    expect((nodes[0]?.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'long' });
+    expect((nodes[0]!.children[1] as RawNode).value).toEqual({ kind: 'text', text: 'long' });
   });
 
   test('parses 5.5.1 pointers', () => {

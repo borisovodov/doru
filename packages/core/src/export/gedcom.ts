@@ -245,7 +245,8 @@ type MappedPersonFact =
   | { kind: 'attribute'; structure: IndividualAttributeStructure };
 
 type MappedFamilyFact =
-  { kind: 'event'; structure: FamilyEventStructure } | { kind: 'attribute'; structure: FamilyAttributeStructure };
+  | { kind: 'event'; structure: FamilyEventStructure }
+  | { kind: 'attribute'; structure: FamilyAttributeStructure };
 
 /**
  * A fact becomes the typed event/attribute of its tag; unknown tags (vendor
