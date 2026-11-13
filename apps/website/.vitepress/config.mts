@@ -163,7 +163,6 @@ function themeConfig(nav: string, docs: string, relnotes: string, footer: string
       ],
     },
     footer: { message: footer },
-    search: { provider: 'local' },
   };
 }
 
@@ -254,6 +253,11 @@ export default defineConfig({
   // fails the build instead of silently regressing.
   ignoreDeadLinks: false,
   appearance: 'force-auto',
+  // VitePress resolves build-time flags (including local search) from the
+  // top-level theme config, not from locales.root.themeConfig.
+  themeConfig: {
+    search: { provider: 'local' },
+  },
   transformHead: openGraphHead,
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/icon.png' }],
