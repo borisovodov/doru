@@ -28,7 +28,7 @@ export function AddressFields({
           <Input
             // Address lines are plain strings with no identity of their own and
             // are only appended and edited in place, so the index is stable.
-            // eslint-disable-next-line @eslint-react/no-array-index-key
+            // oxlint-disable-next-line react/no-array-index-key
             key={index}
             aria-label={nls.t('features.tree.address.line')}
             placeholder={nls.t('features.tree.address.line')}

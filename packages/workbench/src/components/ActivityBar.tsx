@@ -68,14 +68,12 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
     setTooltip(null);
   };
 
-  /* eslint-disable react-hooks/refs -- these handlers read the timer ref only from DOM events, never during render */
   const tooltipHandlers = (label: string) => ({
     onMouseEnter: (event: MouseEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget),
     onMouseLeave: hideTooltip,
     onFocus: (event: FocusEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget),
     onBlur: hideTooltip,
   });
-  /* eslint-enable react-hooks/refs */
 
   const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode }> = [
     {

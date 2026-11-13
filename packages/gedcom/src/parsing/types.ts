@@ -1439,7 +1439,6 @@ export function parseRestrictionList(text: string, position: SourcePosition): Ar
 }
 
 /** Parses a Personal Name payload (slash-delimited). */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- position is part of the parser API signature for callers
 export function parsePersonalName(text: string, _position: SourcePosition): PersonalName {
   const parts = text.split('/');
   if (parts.length === 1) {
@@ -1576,7 +1575,7 @@ export function parseTagDefinition(text: string, position: SourcePosition): TagD
   if (!/^_[A-Z0-9_]+$/.test(tag)) {
     fail('tagdef.invalid', `Invalid extension tag "${tag}" in a tag definition`, position);
   }
-  // eslint-disable-next-line no-control-regex -- URIs must reject control characters
+  // oxlint-disable-next-line no-control-regex -- URIs must reject control characters
   if (uri === '' || /[\s\u0000-\u001f\u007f]/.test(uri)) {
     fail('uri.invalid', `Invalid URI "${uri}" in a tag definition`, position);
   }

@@ -12,7 +12,7 @@ import { DateEditor, emptyDate } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
-  /* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
+  /* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,
   emptyPlaceNameDraft,

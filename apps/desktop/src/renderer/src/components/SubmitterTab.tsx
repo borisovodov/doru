@@ -23,7 +23,7 @@ import { useAttachments } from '../hooks/useAttachments';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
-/* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
+/* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
 
 export function SubmitterTab({
   tabId,

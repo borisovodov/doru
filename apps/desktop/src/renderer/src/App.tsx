@@ -83,7 +83,7 @@ export function App() {
       ai.refreshModelsOnSettingsOpen();
     }
     settingsWasOpenRef.current = isSettings;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable callbacks; the hook object changes every render
+    // oxlint-disable-next-line react/exhaustive-deps -- stable callbacks; the hook object changes every render
   }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
 
   const commands = useMemo(() => new CommandService(), []);
@@ -95,7 +95,7 @@ export function App() {
       setUntitledName(info.untitled ? info.name : null);
       tabs.resetToTree();
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the tabs hook object changes every render
+    // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.resetToTree],
   );
 
@@ -180,7 +180,7 @@ export function App() {
       removeUndo.dispose();
       removeRedo.dispose();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers are stable; including the hook objects would rebind every render
+    // oxlint-disable-next-line react/exhaustive-deps -- handlers are stable; including the hook objects would rebind every render
   }, [
     commands,
     project.openProject,
@@ -241,7 +241,7 @@ export function App() {
         tabs.openTab({ id: TREE_TAB_ID, label: nls.t('features.tree.title') });
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the tabs hook object changes every render
+    // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.openTab, projectPath],
   );
 
@@ -251,7 +251,7 @@ export function App() {
       tabs.openPersonTab(personId);
       setCanvasFocus((current) => ({ personId, nonce: (current?.nonce ?? 0) + 1 }));
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the tabs hook object changes every render
+    // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.openPersonTab],
   );
 

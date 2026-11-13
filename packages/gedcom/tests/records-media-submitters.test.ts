@@ -109,7 +109,7 @@ describe('multimedia records', () => {
     expect(rec.changeDate).toBeDefined();
     expect(rec.creationDate).toBeDefined();
     expect(rec.identifiers?.map((id) => id.tag)).toEqual(['UID', 'UID', 'EXID', 'REFN']);
-    expect((rec.identifiers?.[2] as { type?: string }).type).toBe('https://example.com/type');
+    expect((rec.identifiers![2] as { type?: string }).type).toBe('https://example.com/type');
   });
 
   test('5.5.1 OBJE parses RIN and _UID with a fixed media format', () => {

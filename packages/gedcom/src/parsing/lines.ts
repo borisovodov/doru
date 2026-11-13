@@ -214,7 +214,7 @@ function parseValue(raw: string, rule: EscapeRule): RawValue {
     lead[0] === '@' &&
     !lead.startsWith('@@') &&
     !lead.startsWith('@#') &&
-    // eslint-disable-next-line no-control-regex -- GEDCOM pointers reject NUL and other C0 controls
+    // oxlint-disable-next-line no-control-regex -- GEDCOM pointers reject NUL and other C0 controls
     /^@([A-Za-z0-9_]|[^\u0000-\u007f])[^@]*@\s*$/.test(stripped)
   ) {
     return { kind: 'pointer', pointer: stripped.trim() };
@@ -241,7 +241,7 @@ function parseValue(raw: string, rule: EscapeRule): RawValue {
   // extension examples): the `#` comment annotates the line and is
   // dropped the same way. A blank must separate the pointer from the
   // comment — an at-sign-joined `@X@#tag` stays text.
-  // eslint-disable-next-line no-control-regex -- GEDCOM pointers reject NUL and other C0 controls
+  // oxlint-disable-next-line no-control-regex -- GEDCOM pointers reject NUL and other C0 controls
   const hashCommentedPointer = /^(@(?:[A-Za-z0-9_]|[^\u0000-\u007f])[^@]*@)[ \t]+#.*$/.exec(lead);
   if (hashCommentedPointer !== null) {
     return { kind: 'pointer', pointer: hashCommentedPointer[1] as string };

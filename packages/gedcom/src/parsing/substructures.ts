@@ -726,7 +726,7 @@ export function parseExternalIdentifier(node: RawNode, ctx: Ctx): ExternalIdenti
     {
       TYPE: (child) => {
         const text = reqText(child);
-        // eslint-disable-next-line no-control-regex -- URIs must reject control characters
+        // oxlint-disable-next-line no-control-regex -- URIs must reject control characters
         if (text === '' || /[\s\u0000-\u001f\u007f]/.test(text)) {
           fail('uri.invalid', `Invalid URI "${text}"`, child.position);
         }

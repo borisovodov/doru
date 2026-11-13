@@ -115,7 +115,7 @@ export function ok<T>(value: T): ParseResult<T> {
  */
 export function fail(code: GedcomErrorCode, message: string, position?: SourcePosition): never {
   const error: GedcomError = position === undefined ? { code, message } : { code, message, position };
-  // eslint-disable-next-line @typescript-eslint/only-throw-error -- GEDCOM errors are typed plain objects by design
+  // oxlint-disable-next-line typescript/only-throw-error -- GEDCOM errors are typed plain objects by design
   throw error;
 }
 
