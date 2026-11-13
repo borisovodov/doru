@@ -72,6 +72,13 @@ mac:
   extendInfo:
     CFBundleDisplayName: Dóru
     CFBundleDevelopmentRegion: en
+    # Start as a UI element: a launch must not register a Dock icon before the
+    # main process knows whether it is the GUI or a headless `--mcp-server`
+    # helper. Hiding the icon after `whenReady` is too late — the icon is
+    # already on screen for a few hundred milliseconds, so every MCP client
+    # launch (ACP agents, OpenCode, …) flashes one or more Dóru icons in the
+    # Dock. The GUI switches back to a regular app in src/main/index.ts.
+    LSUIElement: true
   # Capitalized bundle name (Doru.app) on macOS; the lowercase global
   # executableName stays for Windows and Linux, where it is conventional.
   executableName: Doru
