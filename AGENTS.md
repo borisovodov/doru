@@ -182,10 +182,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   lint:css:fix`. CI runs all three in the `lint` job.
 - **TypeScript 7 is the only compiler.** `typescript` is pinned to 7.x and
   `node_modules/.bin/tsc` is the native binary; `oxlint-tsgolint` provides
-  type-aware linting on the same TypeScript 7 toolchain. Do not reintroduce
-  the old TS 6 API alias: typescript-eslint was its only consumer and is gone.
-  Storybook's default `react-docgen` does not need the classic compiler API;
-  only an opt-in `react-docgen-typescript` setup would.
+  type-aware linting on the same TypeScript 7 toolchain. Do not add a classic
+  JavaScript compiler API alias: nothing in the repository needs it. Storybook's
+  default `react-docgen` does not need it either; only an opt-in
+  `react-docgen-typescript` setup would.
 - Dev helper scripts (`scripts/*.ts`, `apps/*/scripts/*.ts`) are TypeScript
   run directly by Node's built-in type stripping (Node ≥ 24): `node
   scripts/ui-check.ts`. They must therefore use only erasable syntax — no
