@@ -1,0 +1,4 @@
+# Formatting-only commits that git blame should skip.
+
+# Replace Prettier output with Oxfmt.
+f1a64bd9cce00bce61cc4edee76a781bbc126100
