@@ -14,7 +14,8 @@ import type { GedcomDataset } from './structures';
 
 /** The result of `parse`: the container and the parsed contents. */
 export type ParsedGedcom =
-  { kind: 'dataset'; version: '7.0' | '5.5.1'; dataset: GedcomDataset } | { kind: 'gedzip'; archive: GedzipArchive };
+  | { kind: 'dataset'; version: '7.0' | '5.5.1'; dataset: GedcomDataset }
+  | { kind: 'gedzip'; archive: GedzipArchive };
 
 /**
  * Parses GEDCOM bytes of any supported form: a GEDCOM 7.0 or 5.5.1

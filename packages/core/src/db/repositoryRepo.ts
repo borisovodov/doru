@@ -19,7 +19,8 @@ export class RepositoryRepo {
 
   getRepository(id: string): RepositoryRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, name, address_id FROM repository WHERE id = ?').get(id) as
-      { id: string; xref: string | null; name: string; address_id: string | null } | undefined;
+      | { id: string; xref: string | null; name: string; address_id: string | null }
+      | undefined;
     return row
       ? { id: row.id, xref: row.xref ?? undefined, name: row.name, addressId: row.address_id ?? undefined }
       : undefined;

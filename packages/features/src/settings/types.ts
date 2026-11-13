@@ -49,4 +49,8 @@ export interface AiSettingsState {
 
 /** Fetch state of the provider's model list (catalog-less providers). */
 export type ModelFetchState =
-  { status: 'idle' } | { status: 'loading' } | { status: 'ok' } | { status: 'empty' } | { status: 'error' };
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ok' }
+  | { status: 'empty' }
+  | { status: 'error' };

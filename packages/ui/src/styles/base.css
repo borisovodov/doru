@@ -18,14 +18,7 @@ body {
      Cyrillic and Greek. CJK locales (ja, ko, zh-cn, zh-tw) fall through to
      the system fonts below. */
   font-family:
-    'Inter Variable',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Ubuntu,
-    Cantarell,
-    'Helvetica Neue',
+    'Inter Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu, Cantarell, 'Helvetica Neue',
     sans-serif;
   font-size: var(--doru-font-size);
   color: var(--doru-fg);

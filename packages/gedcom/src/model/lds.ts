@@ -85,7 +85,11 @@ export interface ChildSealingOrdinance extends LdsOrdinanceBase<'SLGC'> {
 
 /** GEDCOM 7.0 §3.2.3 LDS_INDIVIDUAL_ORDINANCE — the union of individual ordinances. */
 export type LdsIndividualOrdinance =
-  BaptismOrdinance | ConfirmationOrdinance | EndowmentOrdinance | InitiatoryOrdinance | ChildSealingOrdinance;
+  | BaptismOrdinance
+  | ConfirmationOrdinance
+  | EndowmentOrdinance
+  | InitiatoryOrdinance
+  | ChildSealingOrdinance;
 
 /**
  * GEDCOM 7.0 §3.2.3 LDS_SPOUSE_SEALING — g7:SLGS: sealing of spouses. GEDCOM 7.0 §3.3.3.

@@ -57,7 +57,8 @@ export class PlaceRepo {
 
   getPlace(id: string): PlaceRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, latitude, longitude, verified FROM place WHERE id = ?').get(id) as
-      PlaceRow | undefined;
+      | PlaceRow
+      | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 

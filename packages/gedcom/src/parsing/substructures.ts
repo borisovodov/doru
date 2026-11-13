@@ -476,7 +476,18 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
       value: {
         day: value.day,
         month: value.month as
-          'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
+          | 'JAN'
+          | 'FEB'
+          | 'MAR'
+          | 'APR'
+          | 'MAY'
+          | 'JUN'
+          | 'JUL'
+          | 'AUG'
+          | 'SEP'
+          | 'OCT'
+          | 'NOV'
+          | 'DEC',
         year: value.year,
         ...(value.epoch === undefined ? {} : { epoch: value.epoch }),
       },
@@ -499,7 +510,18 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
       ...(value.kind === 'date' && value.month !== undefined
         ? {
             month: value.month as
-              'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
+              | 'JAN'
+              | 'FEB'
+              | 'MAR'
+              | 'APR'
+              | 'MAY'
+              | 'JUN'
+              | 'JUL'
+              | 'AUG'
+              | 'SEP'
+              | 'OCT'
+              | 'NOV'
+              | 'DEC',
           }
         : {}),
       ...(value.kind === 'date' && value.day !== undefined ? { day: value.day } : {}),

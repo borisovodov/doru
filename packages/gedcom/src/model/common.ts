@@ -899,7 +899,9 @@ export interface ExternalIdentifierStructure extends GedcomStructureBase {
  * structures.
  */
 export type IdentifierStructure =
-  ReferenceIdentifierStructure | UniqueIdentifierStructure | ExternalIdentifierStructure;
+  | ReferenceIdentifierStructure
+  | UniqueIdentifierStructure
+  | ExternalIdentifierStructure;
 
 /**
  * GEDCOM 7.0 §3.2.3 NON_EVENT_STRUCTURE — g7:NO: indicates that a specific type of

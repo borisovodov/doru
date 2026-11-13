@@ -54,7 +54,8 @@ export class FactRepo {
 
   updateFact(fact: FactRecord): void {
     const old = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
-      { date_id: string | null; sort_date_id: string | null } | undefined;
+      | { date_id: string | null; sort_date_id: string | null }
+      | undefined;
     this.db
       .prepare(
         `UPDATE fact SET person_id = ?, family_id = ?, tag = ?, type = ?, value = ?, negation = ?,
@@ -76,7 +77,8 @@ export class FactRepo {
 
   deleteFact(id: string): boolean {
     const row = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(id) as
-      { date_id: string | null; sort_date_id: string | null } | undefined;
+      | { date_id: string | null; sort_date_id: string | null }
+      | undefined;
     const result = this.db.prepare('DELETE FROM fact WHERE id = ?').run(id);
     if (row) {
       for (const dateId of [row.date_id, row.sort_date_id]) {

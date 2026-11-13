@@ -15,7 +15,15 @@ import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 
 export type ActivityViewId =
-  'tree' | 'search' | 'people' | 'families' | 'events' | 'places' | 'media' | 'sources' | 'tasks';
+  | 'tree'
+  | 'search'
+  | 'people'
+  | 'families'
+  | 'events'
+  | 'places'
+  | 'media'
+  | 'sources'
+  | 'tasks';
 
 export interface ActivityBarProps {
   activeView: ActivityViewId;

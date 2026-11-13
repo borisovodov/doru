@@ -1,7 +1,8 @@
 import { type PersonName, type PersonRecord, TreeService } from '@doru/core';
 
 export type TreeEditOp =
-  { kind: 'person.add'; person: PersonRecord } | { kind: 'person.update'; before: PersonRecord; after: PersonRecord };
+  | { kind: 'person.add'; person: PersonRecord }
+  | { kind: 'person.update'; before: PersonRecord; after: PersonRecord };
 
 /**
  * The agent-facing tree surface: adapts the MCP/AI tool calls onto the

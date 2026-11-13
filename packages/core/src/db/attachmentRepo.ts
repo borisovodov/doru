@@ -146,7 +146,8 @@ export class AttachmentRepo {
 
   deleteChange(id: string): boolean {
     const row = this.db.prepare('SELECT date_id FROM change WHERE id = ?').get(id) as
-      { date_id: string | null } | undefined;
+      | { date_id: string | null }
+      | undefined;
     const result = this.db.prepare('DELETE FROM change WHERE id = ?').run(id);
     if (row?.date_id !== null && row?.date_id !== undefined) {
       this.dates.delete(row.date_id);
