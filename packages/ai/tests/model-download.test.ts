@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { createReadStream, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer as createHttpServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -17,7 +17,7 @@ interface TestServer {
   /** Set to true to make the server ignore Range headers (200 fallback). */
   ignoreRange: boolean;
   /** Truncate the served body to this many bytes when set. */
-  truncate?: number;
+  truncate: number | undefined;
   close: () => Promise<void>;
 }
 
@@ -54,8 +54,6 @@ async function startServer(): Promise<TestServer> {
       res.end(PAYLOAD.subarray(0, length));
     });
     http.listen(0, '127.0.0.1', () => {
-      const address = http.address();
-      const port = address !== null && typeof address === 'object' ? address.port : 0;
       resolve(http);
     });
   });
@@ -151,7 +149,7 @@ describe('downloadModel', () => {
 
     await expect(
       downloadModel(options(dir, { url: server.baseUrl, expectedSha256: '0'.repeat(64) })),
-    ).rejects.toMatchObject<ModelDownloadError>({ code: 'sha256-mismatch' });
+    ).rejects.toMatchObject<Pick<ModelDownloadError, 'code'>>({ code: 'sha256-mismatch' });
     expect(existsSync(join(dir, 'model.gguf'))).toBe(false);
     expect(existsSync(join(dir, 'model.gguf.part'))).toBe(false);
   });
@@ -162,7 +160,9 @@ describe('downloadModel', () => {
     servers.push(server);
     const dir = await makeDir();
 
-    await expect(downloadModel(options(dir, { url: server.baseUrl }))).rejects.toMatchObject<ModelDownloadError>({
+    await expect(downloadModel(options(dir, { url: server.baseUrl }))).rejects.toMatchObject<
+      Pick<ModelDownloadError, 'code'>
+    >({
       code: 'size-mismatch',
     });
     expect(existsSync(join(dir, 'model.gguf.part'))).toBe(true);
@@ -184,7 +184,7 @@ describe('downloadModel', () => {
         signal: controller.signal,
       }),
     );
-    await expect(first).rejects.toMatchObject<ModelDownloadError>({ code: 'aborted' });
+    await expect(first).rejects.toMatchObject<Pick<ModelDownloadError, 'code'>>({ code: 'aborted' });
     expect(existsSync(join(dir, 'model.gguf.part'))).toBe(true);
 
     await downloadModel(options(dir, { url: server.baseUrl }));

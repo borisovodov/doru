@@ -28,7 +28,7 @@ export interface TitleRecord extends GedcomStructureBase {
   /** CHAN {0:1} — the change date of the title record. */
   changeDate?: ChangeDate;
   /** AUTH {0:1} — a pointer to the author's INDI record, or free text. */
-  author?: Pointer<IndividualRecord> | Text;
+  author?: Pointer<IndividualRecord>;
   /** PUBL {0:1} — the publication details. */
   publisher?: Text;
   /** SERS {0:1} — the series the title belongs to. */

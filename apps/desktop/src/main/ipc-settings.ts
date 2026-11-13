@@ -2,11 +2,7 @@ import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron';
 import { generateText } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { AI_PROVIDERS, buildLanguageModel, wireDialect } from '@doru/ai';
-import {
-  aiSettingsPayload,
-  settingsWithOverrides,
-  loadAiSettings,
-} from './ai-settings';
+import { aiSettingsPayload, settingsWithOverrides, loadAiSettings } from './ai-settings';
 import { userErrorMessage } from './ai-errors';
 import { ensureLogFile, log, logFilePath } from './log';
 import { nls } from './nls';
@@ -32,7 +28,7 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('app:about', () => ({ version: app.getVersion() }));
 
   ipcMain.handle('clipboard:writeText', (_event, text: string) => {
-    clipboard.writeText(typeof text === 'string' ? text : String(text));
+    void clipboard.writeText(typeof text === 'string' ? text : String(text));
   });
 
   ipcMain.handle('logs:open', () => {
@@ -86,16 +82,19 @@ export function registerSettingsIpc(): void {
 
   ipcMain.handle(
     'settings:ai:set',
-    (_event, options: {
-      provider?: string;
-      baseUrl?: string;
-      model?: string;
-      reasoning?: string;
-      apiKey?: string;
-      clearKey?: boolean;
-      acpCommand?: string;
-      acpArgs?: string[];
-    }) => {
+    (
+      _event,
+      options: {
+        provider?: string;
+        baseUrl?: string;
+        model?: string;
+        reasoning?: string;
+        apiKey?: string;
+        clearKey?: boolean;
+        acpCommand?: string;
+        acpArgs?: string[];
+      },
+    ) => {
       const edits: Array<{ path: (string | number)[]; value?: unknown }> = [];
       if (options.provider !== undefined) {
         edits.push({ path: ['ai', 'provider'], value: options.provider });
@@ -129,9 +128,7 @@ export function registerSettingsIpc(): void {
         saveAiApiKey(providerId, options.apiKey);
       }
       const changed =
-        edits.length > 0 ||
-        options.clearKey === true ||
-        (options.apiKey !== undefined && options.apiKey !== '');
+        edits.length > 0 || options.clearKey === true || (options.apiKey !== undefined && options.apiKey !== '');
       if (edits.length > 0) {
         writeSettingsEdits(edits);
       }
@@ -205,7 +202,11 @@ export function registerSettingsIpc(): void {
       } = {},
     ) => {
       const settings = settingsWithOverrides(options);
-      if (settings.provider.kind === 'acp' || !settings.baseUrl || (settings.provider.requiresKey && !settings.apiKey)) {
+      if (
+        settings.provider.kind === 'acp' ||
+        !settings.baseUrl ||
+        (settings.provider.requiresKey && !settings.apiKey)
+      ) {
         return { models: [] as string[], error: 'Provider is not configured' };
       }
       try {

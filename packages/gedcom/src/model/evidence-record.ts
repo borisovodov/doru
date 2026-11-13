@@ -29,12 +29,7 @@
  * (extension records are valid in 5.5.1 and 7.0 alike).
  */
 import type { Pointer, Special, Text, Xref } from '../primitives';
-import type {
-  AgeStructure,
-  ChangeDate,
-  DateStructure,
-  NoteStructure,
-} from './common';
+import type { AgeStructure, ChangeDate, DateStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { IndividualRecord, MultimediaRecord } from './records';
 import type { PlaceStructure } from './names-places';

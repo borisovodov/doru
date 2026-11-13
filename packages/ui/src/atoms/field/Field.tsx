@@ -33,6 +33,9 @@ export function Field({ label, hint, error, required = false, className, childre
   if (isValidElement(children)) {
     const element = children as ReactElement<ControlProps>;
     controlId = element.props.id ?? id;
+    // Field forwards the generated id and the aria attributes into the
+    // caller's control while preserving its element type and own props.
+    // eslint-disable-next-line @eslint-react/no-clone-element
     control = cloneElement(element, {
       id: controlId,
       ...(describedBy !== undefined ? { 'aria-describedby': describedBy } : {}),
@@ -44,7 +47,12 @@ export function Field({ label, hint, error, required = false, className, childre
     <div className={cx(styles['field'], className)}>
       <label className={styles['label']} htmlFor={controlId}>
         {label}
-        {required ? <span className={styles['required']} aria-hidden="true"> *</span> : null}
+        {required ? (
+          <span className={styles['required']} aria-hidden="true">
+            {' '}
+            *
+          </span>
+        ) : null}
       </label>
       {control}
       {hint ? (

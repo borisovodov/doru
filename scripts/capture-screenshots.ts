@@ -45,9 +45,12 @@ async function main() {
   try {
     const welcomePage = await welcomeApp.firstWindow();
     await welcomePage.waitForSelector('.welcome-page', { timeout: 30_000 });
-    await welcomeApp.evaluate(({ BrowserWindow }, size) => {
-      BrowserWindow.getAllWindows()[0]?.setSize(size.width, size.height);
-    }, { width: WIDTH, height: HEIGHT });
+    await welcomeApp.evaluate(
+      ({ BrowserWindow }, size) => {
+        BrowserWindow.getAllWindows()[0]?.setSize(size.width, size.height);
+      },
+      { width: WIDTH, height: HEIGHT },
+    );
     await welcomePage.waitForTimeout(500);
     await welcomePage.screenshot({ path: join(outDir, 'welcome.png') });
   } finally {
@@ -117,9 +120,12 @@ async function captureTreeScreenshots(app: ElectronApplication, project: string)
   await page.reload();
   await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
 
-  await app.evaluate(({ BrowserWindow }, size) => {
-    BrowserWindow.getAllWindows()[0]?.setSize(size.width, size.height);
-  }, { width: WIDTH, height: HEIGHT });
+  await app.evaluate(
+    ({ BrowserWindow }, size) => {
+      BrowserWindow.getAllWindows()[0]?.setSize(size.width, size.height);
+    },
+    { width: WIDTH, height: HEIGHT },
+  );
   await page.waitForTimeout(500);
 
   // Tree canvas.
@@ -138,7 +144,7 @@ async function captureTreeScreenshots(app: ElectronApplication, project: string)
   await page.screenshot({ path: join(outDir, 'person.png') });
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
 });

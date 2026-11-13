@@ -54,9 +54,10 @@ export function orderChildren(ids: string[], personById: Map<string, PersonRecor
   });
 }
 
-export function indexFamilies(
-  families: FamilyRecord[],
-): { byChild: Map<string, FamilyRecord[]>; byParent: Map<string, FamilyRecord[]> } {
+export function indexFamilies(families: FamilyRecord[]): {
+  byChild: Map<string, FamilyRecord[]>;
+  byParent: Map<string, FamilyRecord[]>;
+} {
   const sortedFamilies = [...families].sort((a, b) => a.id.localeCompare(b.id));
   const byChild = new Map<string, FamilyRecord[]>();
   const byParent = new Map<string, FamilyRecord[]>();
@@ -125,8 +126,7 @@ export function buildDirectionalGraph(
       return item;
     }
     const nextPath = new Set(path).add(id);
-    const familiesToVisit =
-      direction === 'ancestors' ? byChild.get(id) ?? [] : byParent.get(id) ?? [];
+    const familiesToVisit = direction === 'ancestors' ? (byChild.get(id) ?? []) : (byParent.get(id) ?? []);
 
     for (const family of familiesToVisit) {
       const memberIds = orderMembers(family.partners, personById).filter(
@@ -189,15 +189,7 @@ export function buildDirectionalGraph(
         for (const childId of orderChildren(family.children, personById)) {
           if (personById.has(childId) && !nextPath.has(childId)) {
             couple.children.push(
-              buildPerson(
-                childId,
-                `person:${childId}@child:${family.id}`,
-                'child',
-                family.id,
-                row + 1,
-                null,
-                nextPath,
-              ),
+              buildPerson(childId, `person:${childId}@child:${family.id}`, 'child', family.id, row + 1, null, nextPath),
             );
           } else if (nextPath.has(childId)) {
             seeAlso.push({ ownerKey: key, personId: childId });
@@ -212,4 +204,3 @@ export function buildDirectionalGraph(
   const root = buildPerson(focusId, `person:${focusId}@focus`, 'focus', null, 0, null, new Set());
   return { root, cards, seeAlso };
 }
-

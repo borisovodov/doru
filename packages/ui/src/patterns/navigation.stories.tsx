@@ -11,18 +11,24 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function SearchStory() {
+  const [value, setValue] = useState('');
+  return <SearchField label="Search persons" value={value} onChange={setValue} />;
+}
+
 export const Search: Story = {
-  render: () => {
-    const [value, setValue] = useState('');
-    return <SearchField label="Search persons" value={value} onChange={setValue} />;
-  },
+  render: () => <SearchStory />,
 };
 
 export const Toolbars: Story = {
   render: () => (
     <Toolbar label="Canvas actions">
-      <Button size="sm" variant="secondary">Ancestors</Button>
-      <Button size="sm" variant="ghost">Descendants</Button>
+      <Button size="sm" variant="secondary">
+        Ancestors
+      </Button>
+      <Button size="sm" variant="ghost">
+        Descendants
+      </Button>
     </Toolbar>
   ),
 };

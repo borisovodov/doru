@@ -10,12 +10,5 @@ export interface ProgressProps {
 
 /** The shared determinate progress bar. */
 export function Progress({ value, max, label, className }: ProgressProps) {
-  return (
-    <progress
-      className={cx(styles['progress'], className)}
-      value={value}
-      max={max}
-      aria-label={label}
-    />
-  );
+  return <progress className={cx(styles['progress'], className)} value={value} max={max} aria-label={label} />;
 }

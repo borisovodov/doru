@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord, PersonRecord } from '@doru/core';
-import { displayName, factOwnerName, familyLabel, formatAddress, formatDate, initials, lifeSpan, qualityMark, years } from '../src/domain/format/format';
+import {
+  displayName,
+  factOwnerName,
+  familyLabel,
+  formatAddress,
+  formatDate,
+  initials,
+  lifeSpan,
+  qualityMark,
+  years,
+} from '../src/domain/format/format';
 
 const person = (overrides: Partial<PersonRecord> = {}): PersonRecord => ({
   id: 'P1',
@@ -25,9 +35,7 @@ describe('displayName', () => {
 
   it('falls back to given and surname when the full name is empty', () => {
     expect(displayName(person({ names: [{ id: 'N1', full: '///' }] }))).toBe('P1');
-    expect(
-      displayName(person({ names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }] })),
-    ).toBe('Ivan Petrov');
+    expect(displayName(person({ names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }] }))).toBe('Ivan Petrov');
   });
 
   it('joins only the parts that are present', () => {
@@ -49,7 +57,14 @@ describe('displayName', () => {
 
   it('falls back to the first name when no name is primary', () => {
     expect(
-      displayName(person({ names: [{ id: 'N1', given: 'Ivan' }, { id: 'N2', given: 'Vanya' }] })),
+      displayName(
+        person({
+          names: [
+            { id: 'N1', given: 'Ivan' },
+            { id: 'N2', given: 'Vanya' },
+          ],
+        }),
+      ),
     ).toBe('Ivan');
   });
 });
@@ -124,19 +139,14 @@ describe('lifeSpan', () => {
 
   it('appends the age for approximate dates but not for text dates', () => {
     expect(
-      lifeSpan(
-        withFacts(
-          { ...birth(1923), date: { quality: 'about', component: { year: 1923 } } },
-          death(1990),
-        ),
-      ),
+      lifeSpan(withFacts({ ...birth(1923), date: { quality: 'about', component: { year: 1923 } } }, death(1990))),
     ).toBe('~1923 – 1990 (67)');
     expect(
       lifeSpan(
-        withFacts(
-          birth(1923),
-          { ...death(1990), date: { quality: 'exact', component: { year: 1990 }, text: 'summer' } },
-        ),
+        withFacts(birth(1923), {
+          ...death(1990),
+          date: { quality: 'exact', component: { year: 1990 }, text: 'summer' },
+        }),
       ),
     ).toBe('1923 – 1990 summer');
   });
@@ -164,14 +174,18 @@ describe('years', () => {
 });
 
 describe('familyLabel', () => {
-  const byId = (entries: PersonRecord[]): Map<string, PersonRecord> => new Map(entries.map((entry) => [entry.id, entry]));
+  const byId = (entries: PersonRecord[]): Map<string, PersonRecord> =>
+    new Map(entries.map((entry) => [entry.id, entry]));
 
   it('joins partner names with "&"', () => {
     const family: FamilyRecord = { id: 'F1', partners: ['P1', 'P2'], children: [] };
     expect(
       familyLabel(
         family,
-        byId([person({ id: 'P1', names: [{ id: 'N1', given: 'Ivan' }] }), person({ id: 'P2', names: [{ id: 'N2', given: 'Maria' }] })]),
+        byId([
+          person({ id: 'P1', names: [{ id: 'N1', given: 'Ivan' }] }),
+          person({ id: 'P2', names: [{ id: 'N2', given: 'Maria' }] }),
+        ]),
       ),
     ).toBe('Ivan & Maria');
   });
@@ -179,10 +193,7 @@ describe('familyLabel', () => {
   it('falls back to the first child when there are no partners', () => {
     const family: FamilyRecord = { id: 'F1', partners: [], children: ['K1', 'K2'] };
     expect(
-      familyLabel(
-        family,
-        byId([person({ id: 'K1', names: [{ id: 'N1', given: 'Kolya' }] }), person({ id: 'K2' })]),
-      ),
+      familyLabel(family, byId([person({ id: 'K1', names: [{ id: 'N1', given: 'Kolya' }] }), person({ id: 'K2' })])),
     ).toBe('Kolya …');
   });
 
@@ -193,7 +204,8 @@ describe('familyLabel', () => {
 });
 
 describe('factOwnerName', () => {
-  const byId = (entries: PersonRecord[]): Map<string, PersonRecord> => new Map(entries.map((entry) => [entry.id, entry]));
+  const byId = (entries: PersonRecord[]): Map<string, PersonRecord> =>
+    new Map(entries.map((entry) => [entry.id, entry]));
 
   it('names the owner person', () => {
     const fact = { id: 'E1', personId: 'P1', tag: 'BIRT' };
@@ -203,7 +215,9 @@ describe('factOwnerName', () => {
   it('names the owner family or returns "?"', () => {
     const fact = { id: 'E1', familyId: 'F1', tag: 'MARR' };
     const family: FamilyRecord = { id: 'F1', partners: ['P1'], children: [] };
-    expect(factOwnerName(fact, byId([person({ names: [{ id: 'N1', given: 'Ivan' }] })]), new Map([['F1', family]]))).toBe('Ivan');
+    expect(
+      factOwnerName(fact, byId([person({ names: [{ id: 'N1', given: 'Ivan' }] })]), new Map([['F1', family]])),
+    ).toBe('Ivan');
     expect(factOwnerName(fact, byId([]), new Map())).toBe('?');
   });
 
@@ -226,9 +240,7 @@ describe('formatDate', () => {
   });
 
   it('appends the range end year', () => {
-    expect(
-      formatDate({ quality: 'range', component: { year: 1920 }, end: { year: 1930 } }),
-    ).toBe('1920 — 1930');
+    expect(formatDate({ quality: 'range', component: { year: 1920 }, end: { year: 1930 } })).toBe('1920 — 1930');
   });
 
   it('appends the free text', () => {
@@ -250,7 +262,14 @@ describe('qualityMark', () => {
 describe('formatAddress', () => {
   it('joins the lines and the postal parts', () => {
     expect(
-      formatAddress({ id: 'A1', lines: ['12 Archive Lane'], city: 'Moscow', state: 'MO', postalCode: '123456', country: 'RU' }),
+      formatAddress({
+        id: 'A1',
+        lines: ['12 Archive Lane'],
+        city: 'Moscow',
+        state: 'MO',
+        postalCode: '123456',
+        country: 'RU',
+      }),
     ).toBe('12 Archive Lane, Moscow, MO, 123456, RU');
   });
 

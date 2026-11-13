@@ -240,13 +240,20 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     dateDraftsMatch(draft.pubDate, other.pubDate) &&
     draft.texts.length === other.texts.length &&
     draft.texts.every((text, index) => {
-      const entry = other.texts[index]!;
-      return text.id === entry.id && text.text === entry.text && text.mime === entry.mime && text.language === entry.language;
+      const entry = other.texts[index];
+      return (
+        entry !== undefined &&
+        text.id === entry.id &&
+        text.text === entry.text &&
+        text.mime === entry.mime &&
+        text.language === entry.language
+      );
     }) &&
     draft.dataEvents.length === other.dataEvents.length &&
     draft.dataEvents.every((event, index) => {
-      const entry = other.dataEvents[index]!;
+      const entry = other.dataEvents[index];
       return (
+        entry !== undefined &&
         event.id === entry.id &&
         event.tag === entry.tag &&
         event.value === entry.value &&
@@ -256,14 +263,16 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     }) &&
     draft.repositories.length === other.repositories.length &&
     draft.repositories.every((link, index) => {
-      const entry = other.repositories[index]!;
+      const entry = other.repositories[index];
       return (
+        entry !== undefined &&
         link.id === entry.id &&
         link.repositoryId === entry.repositoryId &&
         link.callNumbers.length === entry.callNumbers.length &&
         link.callNumbers.every((callNumber, callIndex) => {
-          const callEntry = entry.callNumbers[callIndex]!;
+          const callEntry = entry.callNumbers[callIndex];
           return (
+            callEntry !== undefined &&
             callNumber.id === callEntry.id &&
             callNumber.value === callEntry.value &&
             callNumber.medium === callEntry.medium
@@ -273,8 +282,8 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     }) &&
     draft.templateFields.length === other.templateFields.length &&
     draft.templateFields.every((field, index) => {
-      const entry = other.templateFields[index]!;
-      return field.id === entry.id && field.name === entry.name && field.value === entry.value;
+      const entry = other.templateFields[index];
+      return entry !== undefined && field.id === entry.id && field.name === entry.name && field.value === entry.value;
     })
   );
 }

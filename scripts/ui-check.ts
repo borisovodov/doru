@@ -62,9 +62,12 @@ console.log(JSON.stringify(report, null, 2));
 
 // Open a project so the people view (with sidebar) is reachable
 const project = join(mkdtempSync(join(tmpdir(), 'doru-check-project-')), 'family.doru');
-await page.evaluate(async ({ project }) => {
-  await window.doru.openProjectPath(project);
-}, { project });
+await page.evaluate(
+  async ({ project }) => {
+    await window.doru.openProjectPath(project);
+  },
+  { project },
+);
 await seedFamily(page, project);
 await page.waitForSelector('.editor-pane.active');
 await page.evaluate(() => {

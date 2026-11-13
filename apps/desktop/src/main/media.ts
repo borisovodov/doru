@@ -33,9 +33,7 @@ export async function listMediaForPerson(
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
-export async function listAllMedia(
-  projectPath: string,
-): Promise<Array<MediaRecord & { absolutePath: string }>> {
+export async function listAllMedia(projectPath: string): Promise<Array<MediaRecord & { absolutePath: string }>> {
   const { runtime } = await ensureRuntime(projectPath);
   const base = dirname(runtimeFilePath(projectPath));
   return runtime.service.listAllMedia().map((media) => ({ ...media, absolutePath: join(base, media.path ?? '') }));

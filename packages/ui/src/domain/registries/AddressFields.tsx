@@ -26,6 +26,9 @@ export function AddressFields({
         <h4 className={styles['title']}>{nls.t('features.tree.address.title')}</h4>
         {address.lines.map((line, index) => (
           <Input
+            // Address lines are plain strings with no identity of their own and
+            // are only appended and edited in place, so the index is stable.
+            // eslint-disable-next-line @eslint-react/no-array-index-key
             key={index}
             aria-label={nls.t('features.tree.address.line')}
             placeholder={nls.t('features.tree.address.line')}

@@ -34,12 +34,7 @@ export function layoutFamilyView(
     from: { x: parent.x, y: parent.y + nodeHeight / 2 },
     to: { x: child.x, y: child.y - nodeHeight / 2 },
   });
-  const addEdge = (
-    source: LaidOutCard,
-    target: LaidOutCard,
-    kind: PedigreeEdgeKind,
-    familyId: string | null,
-  ) => {
+  const addEdge = (source: LaidOutCard, target: LaidOutCard, kind: PedigreeEdgeKind, familyId: string | null) => {
     const geometry = kind === 'marriage' ? horizontal(source, target) : vertical(source, target);
     edges.push({
       id: `${kind}:family:${familyId ?? ''}:${source.key}:${target.key}`,
@@ -91,16 +86,17 @@ export function layoutFamilyView(
   }
   const spouseByKey = new Map<string, LaidOutCard>();
   const spouseSpacing = nodeWidth + merged.coupleGap;
-  if (spouseEntries.length === 1) {
+  const [spouseEntry] = spouseEntries;
+  if (spouseEntries.length === 1 && spouseEntry !== undefined) {
     // One spouse: the couple is centered on the focus, fathers left.
-    const spouse = personById.get(spouseEntries[0]!.spouseId);
+    const spouse = personById.get(spouseEntry.spouseId);
     const left = spouse?.sex === 'M' && personById.get(focusId)?.sex !== 'M';
     focusCard.x = left ? halfPair : -halfPair;
     const card: LaidOutCard = {
-      key: spouseEntries[0]!.key,
-      personId: spouseEntries[0]!.spouseId,
+      key: spouseEntry.key,
+      personId: spouseEntry.spouseId,
       role: 'spouse',
-      familyId: spouseEntries[0]!.familyId,
+      familyId: spouseEntry.familyId,
       generation: 0,
       line: null,
       hasSubtree: false,
@@ -166,8 +162,7 @@ export function layoutFamilyView(
   }
   const blockWidth = (block: ParentBlock) => (block.members.length > 1 ? coupleWidth : nodeWidth);
   const totalWidth =
-    blocks.reduce((sum, block) => sum + blockWidth(block), 0) +
-    merged.columnGap * Math.max(0, blocks.length - 1);
+    blocks.reduce((sum, block) => sum + blockWidth(block), 0) + merged.columnGap * Math.max(0, blocks.length - 1);
   let cursor = -totalWidth / 2;
   for (const block of blocks) {
     const width = blockWidth(block);
@@ -188,8 +183,9 @@ export function layoutFamilyView(
       cards.push(card);
       memberCards.push(card);
     });
-    if (memberCards.length === 2) {
-      addEdge(memberCards[0]!, memberCards[1]!, 'marriage', block.familyId);
+    const [firstMember, secondMember] = memberCards;
+    if (firstMember !== undefined && secondMember !== undefined) {
+      addEdge(firstMember, secondMember, 'marriage', block.familyId);
     }
     const ownerCard = cardByKeySafe(cards, block.ownerKey);
     if (ownerCard) {

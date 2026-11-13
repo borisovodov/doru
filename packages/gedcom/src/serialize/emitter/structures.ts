@@ -6,9 +6,7 @@
  * section for what is translated and what is dropped.
  */
 
-import type {
-  TimeValue,
-} from '../../primitives';
+import type { TimeValue } from '../../primitives';
 import type {
   AddressStructure,
   AgeStructure,
@@ -19,8 +17,6 @@ import type {
   ExtensionStructure,
   GedcomStructureBase,
   MultimediaLink,
-  Note,
-  NoteReference,
   NoteStructure,
   SourceCitation,
 } from '../../structures';
@@ -32,26 +28,12 @@ import {
   formatDateValue70,
   formatTime,
 } from '../format';
-import {
-  AGE_KEYWORD_TO_70,
-  ROLE_TO_RELA_551,
-} from '../tables';
-import type {
-  Version,
-} from '../writer';
-import {
-  Writer,
-} from '../writer';
-import {
-  emitOccurrenceReference,
-} from './evidence';
-import {
-  emitPlace,
-} from './names-places';
-import {
-  ptr,
-  restrictionList,
-} from './values';
+import { AGE_KEYWORD_TO_70, ROLE_TO_RELA_551 } from '../tables';
+import type { Version } from '../writer';
+import { Writer } from '../writer';
+import { emitOccurrenceReference } from './evidence';
+import { emitPlace } from './names-places';
+import { ptr, restrictionList } from './values';
 
 export function emitAddress(w: Writer, version: Version, level: number, address: AddressStructure): void {
   const payload = address.payload ?? '';
@@ -157,7 +139,9 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
  * there. Contacts without an address block have no 5.5.1 slot at all
  * (the contact substructures only exist inside the ADDRESS_STRUCTURE,
  * GEDCOM 5.5.1 §2 p.31) and are dropped on 5.5.1 output. */
-export function mergedAddress(_w: Writer, version: Version, 
+export function mergedAddress(
+  _w: Writer,
+  version: Version,
   address: AddressStructure | undefined,
   contacts: { phone?: string[]; email?: string[]; fax?: string[]; www?: string[] },
 ): AddressStructure | undefined {
@@ -173,7 +157,13 @@ export function mergedAddress(_w: Writer, version: Version,
   };
 }
 
-export function emitAssociation(w: Writer, version: Version, level: number, association: AssociationStructure, tag: 'ASSO' | '_ASSO' = 'ASSO'): void {
+export function emitAssociation(
+  w: Writer,
+  version: Version,
+  level: number,
+  association: AssociationStructure,
+  tag: 'ASSO' | '_ASSO' = 'ASSO',
+): void {
   if (version === '5.5.1') {
     let relationship = association.relationship;
     if (relationship === undefined) {
@@ -352,7 +342,14 @@ export function emitDate(w: Writer, version: Version, level: number, tag: string
   emitTrailer();
 }
 
-export function emitDateExact(w: Writer, version: Version, level: number, tag: string, date: DateExactStructure, time?: TimeValue): void {
+export function emitDateExact(
+  w: Writer,
+  version: Version,
+  level: number,
+  tag: string,
+  date: DateExactStructure,
+  time?: TimeValue,
+): void {
   const raw = formatDateExact(date.value, version);
   if (raw === undefined) {
     // A partial (year-only) or BCE-epoch DateExact has no conformant
@@ -393,7 +390,7 @@ export function emitAge(w: Writer, version: Version, level: number, age: AgeStru
     if (payload.description !== undefined) {
       // The 5.5.1 keyword is projected onto the closest numeric bound;
       // the keyword itself is preserved in the PHRASE.
-      value = AGE_KEYWORD_TO_70[payload.description] ?? '< 1y';
+      value = AGE_KEYWORD_TO_70[payload.description];
       phrase = phrase ?? payload.description;
     } else {
       value = formatAge70(payload);
@@ -562,9 +559,10 @@ export function emitEventDetail(w: Writer, version: Version, level: number, deta
         w.line(level + 1, '_PRIM', { value: 'Y' });
       }
       if (association.role !== undefined) {
-        const descriptor = association.role.payload === 'OTHER'
-          ? association.role.phrase
-          : ROLE_TO_RELA_551.get(association.role.payload);
+        const descriptor =
+          association.role.payload === 'OTHER'
+            ? association.role.phrase
+            : ROLE_TO_RELA_551.get(association.role.payload);
         if (descriptor !== undefined) {
           w.line(level + 1, '_ROLE', { value: descriptor });
         }
@@ -681,20 +679,20 @@ export function emitNoteStructure(w: Writer, version: Version, level: number, no
     ptr(w, version, level, version === '7.0' ? 'SNOTE' : 'NOTE', note.note);
     return;
   }
-  if (note.tag === 'NOTE' && 'note' in note) {
+  if ('note' in note) {
     // 7.0 spells the 5.5.1 note-record pointer SNOTE.
-    ptr(w, version, level, version === '7.0' ? 'SNOTE' : 'NOTE', (note as NoteReference).note);
+    ptr(w, version, level, version === '7.0' ? 'SNOTE' : 'NOTE', note.note);
     if (version === '5.5.1') {
       // The 5.5.1 pointer form may carry bare SOUR pointers beneath it
       // (GEDCOM 5.5.1 §2 p.37); the 7.0 SNOTE pointer has no
       // substructure slot, so they are dropped there.
-      for (const citation of (note as NoteReference).citations ?? []) {
+      for (const citation of note.citations ?? []) {
         emitSourceCitation(w, version, level + 1, citation);
       }
     }
     return;
   }
-  const inline = note as Note;
+  const inline = note;
   w.line(level, 'NOTE', { value: inline.payload });
   if (inline.private === true) {
     // The note privacy flag (WinFamily's NOTP normalizes into this;
@@ -744,7 +742,13 @@ export function emitRelocatedCitation(w: Writer, version: Version, level: number
   emitCitation(w, version, level, citation, '_SOUR');
 }
 
-function emitCitation(w: Writer, version: Version, level: number, citation: SourceCitation, tag: 'SOUR' | '_SOUR'): void {
+function emitCitation(
+  w: Writer,
+  version: Version,
+  level: number,
+  citation: SourceCitation,
+  tag: 'SOUR' | '_SOUR',
+): void {
   if (version === '7.0') {
     // The 5.5.1 free-text description becomes the PAGE (see
     // emitCitationCommon); a void SOUR pointer is legal in 7.0.
@@ -824,7 +828,7 @@ function emitCitation(w: Writer, version: Version, level: number, citation: Sour
       // SourceCitation.links).
       w.line(level + 1, '_LINK', { value: link });
     }
-    if (version === '5.5.1' && citation.foundBy !== undefined) {
+    if (citation.foundBy !== undefined) {
       // USM6: who found the source information (see
       // SourceCitation.foundBy).
       w.line(level + 1, '_RINI', { value: citation.foundBy });
@@ -1193,4 +1197,3 @@ export function emitExtensions(w: Writer, version: Version, level: number, struc
 }
 
 // -- Value spellings ---------------------------------------------------------
-

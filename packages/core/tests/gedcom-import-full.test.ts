@@ -153,13 +153,16 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(name.parts?.map((part) => part.kind)).toEqual(['given', 'nickname', 'surname', 'full']);
 
       // Identifiers and contacts.
-      expect(repo.listIdentifiersFor('person', ivan.id).map((entry) => entry.namespace).sort()).toEqual(['refn', 'rin', 'uid']);
+      expect(
+        repo
+          .listIdentifiersFor('person', ivan.id)
+          .map((entry) => entry.namespace)
+          .sort(),
+      ).toEqual(['refn', 'rin', 'uid']);
       expect(repo.listContactsFor('person', ivan.id)).toEqual([
         expect.objectContaining({ kind: 'email', value: 'ivan@example.org' }),
       ]);
-      expect(repo.listRestrictionsFor('person', ivan.id)).toEqual([
-        expect.objectContaining({ level: 'confidential' }),
-      ]);
+      expect(repo.listRestrictionsFor('person', ivan.id)).toEqual([expect.objectContaining({ level: 'confidential' })]);
 
       // Birth fact with the full detail set.
       const birth = repo.listFactsForPerson(ivan.id).find((fact) => fact.tag === 'BIRT')!;
@@ -183,9 +186,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(citations).toHaveLength(1);
       expect(citations[0]?.source.title).toBe('Parish register 1897');
       const records = repo.listCitationRecordsFor('fact', birth.id);
-      expect(records[0]).toEqual(
-        expect.objectContaining({ page: 'p. 12', quality: '2', event: 'BIRT', role: 'WITN' }),
-      );
+      expect(records[0]).toEqual(expect.objectContaining({ page: 'p. 12', quality: '2', event: 'BIRT', role: 'WITN' }));
 
       // Notes: inline + shared.
       const notes = repo.listNotesFor('person', ivan.id).map((note) => note.text);
@@ -216,7 +217,10 @@ describe('importGedcomDataset (phase 4)', () => {
       );
       expect(family.partnerLinks?.[0]?.date).toEqual(expect.objectContaining({ quality: 'exact' }));
       const marriage = repo.listFactsForFamily(family.id).find((fact) => fact.tag === 'MARR')!;
-      expect(marriage.ages?.map((age) => [age.role, age.years])).toEqual([['HUSB', 23], ['WIFE', 21]]);
+      expect(marriage.ages?.map((age) => [age.role, age.years])).toEqual([
+        ['HUSB', 23],
+        ['WIFE', 21],
+      ]);
       expect(marriage.place).toBe('Tomsk');
       expect(repo.listNotesFor('family', family.id).map((note) => note.text)).toEqual(['family note']);
     } finally {
@@ -293,7 +297,10 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(family.children).toHaveLength(1);
       expect(family.childLinks?.[0]?.pedigree).toBe('adopted');
       const marriage = second.repo.listFactsForFamily(family.id).find((fact) => fact.tag === 'MARR')!;
-      expect(marriage.ages?.map((age) => [age.role, age.years])).toEqual([['HUSB', 23], ['WIFE', 21]]);
+      expect(marriage.ages?.map((age) => [age.role, age.years])).toEqual([
+        ['HUSB', 23],
+        ['WIFE', 21],
+      ]);
     } finally {
       cleanupRepo(first);
       cleanupRepo(second);

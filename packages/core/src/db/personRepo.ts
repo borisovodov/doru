@@ -43,7 +43,9 @@ export class PersonRepo {
 
   updatePerson(person: PersonRow): void {
     this.transactions.run(() => {
-      this.db.prepare('UPDATE person SET xref = ?, sex = ? WHERE id = ?').run(person.xref ?? null, person.sex, person.id);
+      this.db
+        .prepare('UPDATE person SET xref = ?, sex = ? WHERE id = ?')
+        .run(person.xref ?? null, person.sex, person.id);
     });
   }
 
@@ -71,16 +73,12 @@ export class PersonRepo {
     if (search) {
       const terms = search.split(/\s+/).filter((term) => term !== '');
       if (terms.length > 0) {
-        if (terms.every((term) => [...term].length >= 3)) {
+        if (terms.every((term) => term.length >= 3)) {
           const matchQuery = terms.map((term) => `"${term.toLowerCase().replaceAll('"', '""')}"`).join(' AND ');
-          conditions.push(
-            'p.id IN (SELECT person_id FROM person_name_fts WHERE person_name_fts MATCH ?)',
-          );
+          conditions.push('p.id IN (SELECT person_id FROM person_name_fts WHERE person_name_fts MATCH ?)');
           params.push(matchQuery);
         } else {
-          conditions.push(
-            'p.id IN (SELECT person_id FROM person_name_fts fts WHERE instr(fts.name, ?) > 0)',
-          );
+          conditions.push('p.id IN (SELECT person_id FROM person_name_fts fts WHERE instr(fts.name, ?) > 0)');
           params.push(search.toLowerCase());
         }
       }

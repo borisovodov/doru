@@ -60,7 +60,8 @@ describe('TreeMcpBackend coverage', () => {
       });
       const person = fixture.repo.getPerson('@I1@');
       expect(person?.sex).toBe('M');
-      expect(person?.names[0]).toMatchObject({ given: 'Ivan', id: expect.any(String) });
+      expect(person?.names[0]).toMatchObject({ given: 'Ivan' });
+      expect(typeof person?.names[0]?.id).toBe('string');
       expect(person?.facts).toEqual([]);
     } finally {
       cleanupAiFixture(fixture);
@@ -93,9 +94,7 @@ describe('TreeMcpBackend coverage', () => {
         anchorId: '@K@',
         person: { id: '@F@', names: [], sex: 'U' },
       });
-      const parentFamily = fixture.repo
-        .listFamilies()
-        .find((entry) => entry.partners.includes('@F@'));
+      const parentFamily = fixture.repo.listFamilies().find((entry) => entry.partners.includes('@F@'));
       expect(parentFamily?.children).toEqual(['@K@']);
 
       expect(

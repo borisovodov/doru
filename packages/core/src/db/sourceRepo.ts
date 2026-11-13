@@ -69,8 +69,7 @@ export class SourceRepo {
 
   deleteSource(id: string): boolean {
     const row = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(id) as
-      | { pub_date_id: string | null }
-      | undefined;
+      { pub_date_id: string | null } | undefined;
     // Citation rows cascade with the source; their date rows must go too.
     const citationDateIds = this.db
       .prepare('SELECT date_id FROM citation WHERE source_id = ? AND date_id IS NOT NULL')
@@ -123,8 +122,7 @@ export class SourceRepo {
 
   deleteCitation(id: string): boolean {
     const row = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(id) as
-      | { date_id: string | null }
-      | undefined;
+      { date_id: string | null } | undefined;
     const result = this.db.prepare('DELETE FROM citation WHERE id = ?').run(id);
     if (row?.date_id !== null && row?.date_id !== undefined) {
       this.dates.delete(row.date_id);
@@ -145,7 +143,10 @@ export class SourceRepo {
          WHERE c.target_type = ? AND c.target_id = ? ORDER BY c.id`,
       )
       .all(targetType, targetId) as unknown as { id: string; source_id: string }[];
-    return rows.map((row) => ({ id: row.id, source: this.getSource(row.source_id)! }));
+    return rows.flatMap((row) => {
+      const source = this.getSource(row.source_id);
+      return source === undefined ? [] : [{ id: row.id, source }];
+    });
   }
 
   /** The full citation rows for a target, including page and quality. */
@@ -239,14 +240,20 @@ export class SourceRepo {
 
   private hydrate(row: SourceRow): SourceRecord {
     const datesById = this.dates.getMany(
-      [row.pub_date_id, ...(this.listSourceEventDateIds(row.id) ?? [])].filter((id): id is string => id !== null),
+      [row.pub_date_id, ...this.listSourceEventDateIds(row.id)].filter((id): id is string => id !== null),
     );
     const texts = this.db
       .prepare('SELECT id, text, mime, language FROM source_text WHERE source_id = ? ORDER BY id')
       .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
     const events = this.db
       .prepare('SELECT id, tag, value, date_id, place_id FROM source_data_event WHERE source_id = ? ORDER BY id')
-      .all(row.id) as unknown as { id: string; tag: string; value: string | null; date_id: string | null; place_id: string | null }[];
+      .all(row.id) as unknown as {
+      id: string;
+      tag: string;
+      value: string | null;
+      date_id: string | null;
+      place_id: string | null;
+    }[];
     const repositories = this.db
       .prepare('SELECT id, repository_id FROM source_repository WHERE source_id = ? ORDER BY id')
       .all(row.id) as unknown as { id: string; repository_id: string }[];

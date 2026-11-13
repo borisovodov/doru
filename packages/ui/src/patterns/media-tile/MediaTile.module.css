@@ -16,11 +16,11 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #ffffff;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
 }
 
 .remove:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.75);
-  color: #ffffff;
+  background: rgb(0 0 0 / 75%);
+  color: #fff;
 }

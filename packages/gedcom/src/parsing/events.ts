@@ -7,9 +7,7 @@
  * error naming the offending line.
  */
 
-import type {
-  OrdinanceStatusEnum,
-} from '../enumerations';
+import type { OrdinanceStatusEnum } from '../enumerations';
 import {
   ADOPTION_ENUM_VALUES,
   FAMILY_CHILD_STATUS_ENUM_VALUES,
@@ -17,9 +15,7 @@ import {
   PEDIGREE_ENUM_VALUES,
   QUALITY_ENUM_VALUES,
 } from '../enumerations';
-import {
-  fail,
-} from '../errors';
+import { fail } from '../errors';
 import type {
   AdoptionFamilyLink,
   AdoptionStructure,
@@ -54,23 +50,9 @@ import type {
   SpouseSealingOrdinance,
   UsmBirthType,
 } from '../structures';
-import type {
-  Ctx,
-} from './context';
-import {
-  addExtension,
-  dispatch,
-  noPayload,
-  one,
-  req,
-  reqDigits,
-  reqPtr,
-  reqText,
-  yFlag,
-} from './context';
-import type {
-  RawNode,
-} from './lines';
+import type { Ctx } from './context';
+import { addExtension, dispatch, noPayload, one, req, reqDigits, reqPtr, reqText, yFlag } from './context';
+import type { RawNode } from './lines';
 import {
   parseMapCoordinates,
   parseMftCoordinates,
@@ -100,20 +82,10 @@ import {
   parseSortDate551,
   parseSortDateStructure,
 } from './substructures';
-import {
-  parseEnum,
-  parseRestrictionList,
-} from './types';
-import {
-  parseOccurrenceReference,
-} from './evidence';
-import {
-  parseAge551,
-  parseTime551,
-} from './types';
-import type {
-  TimeValue,
-} from '../primitives';
+import { parseEnum, parseRestrictionList } from './types';
+import { parseOccurrenceReference } from './evidence';
+import { parseAge551, parseTime551 } from './types';
+import type { TimeValue } from '../primitives';
 
 // Family/individual links, events, attributes, ordinances
 // ---------------------------------------------------------------------------
@@ -129,7 +101,7 @@ export const USM_BIRTH_TYPES = ['1', '2', '3', '4'] as const;
  * Text payloads), so the bare `2 TYPE` round-trips a 5.5.1 TYPE-less
  * EVEN. A bare TYPE line is the empty type in any file.
  */
-function parseEventType(node: RawNode, _ctx: Ctx): string {
+function parseEventType(node: RawNode): string {
   if (node.value.kind === 'absent') {
     return '';
   }
@@ -157,21 +129,21 @@ export function parseFamilyPartnerLink(node: RawNode, ctx: Ctx): FamilyPartnerLi
       PHRASE: (child) => {
         out.phrase = reqText(child);
       },
-      '_PREF': (child) => {
+      _PREF: (child) => {
         out.preferred = parseYNFlag(child, '_PREF');
       },
-      '_NAM': (child) => {
+      _NAM: (child) => {
         // GES2000: the married name of this partner ("Ehenamen des
         // Mannes oder der Frau"), used like INDI.NAME (see
         // FamilyPartnerLink.name).
         out.name = parsePersonalNameStructure(child, ctx);
       },
-      '_ZVST': (child) => {
+      _ZVST: (child) => {
         // GES2000: the partner's civil status at the time of the
         // marriage (see FamilyPartnerLink.civilStatus).
         out.civilStatus = reqText(child);
       },
-      '_NR': (child) => {
+      _NR: (child) => {
         // GES2000: the ordinal number of the marriage for this partner
         // (see FamilyPartnerLink.marriageNumber).
         out.marriageNumber = reqDigits(child);
@@ -245,38 +217,38 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
     STAT: (child) => {
       out.status = parseFamilyChildStatus(child, ctx);
     },
-    '_PRIMARY': (child) => {
+    _PRIMARY: (child) => {
       out.primary = parseYNFlag(child, '_PRIMARY');
     },
-    '_PREF': (child) => {
+    _PREF: (child) => {
       out.preferred = parseYNFlag(child, '_PREF');
     },
-    '_FREL': (child) => {
+    _FREL: (child) => {
       // The AGES! position of the relation tags (under INDI.FAMC;
       // under FAM.CHIL they are typed on FamilyChildLink).
       out.fatherRelation = reqText(child);
     },
-    '_MREL': (child) => {
+    _MREL: (child) => {
       out.motherRelation = reqText(child);
     },
-    '_HUSB': (child) => {
+    _HUSB: (child) => {
       // AQ: the child's status within the family on the father's side
       // (see ChildFamilyLink.fatherChildStatus).
       out.fatherChildStatus = reqText(child);
     },
-    '_WIFE': (child) => {
+    _WIFE: (child) => {
       // AQ: the child's status within the family on the mother's side
       // (see ChildFamilyLink.motherChildStatus).
       out.motherChildStatus = reqText(child);
     },
-    '_PEDI': (child) => {
+    _PEDI: (child) => {
       // Family Historian: the pedigree on an additional parent-family
       // link, the vendor spelling of the standard PEDI (the FHUG
       // "GEDCOM Extension List":
       // https://www.fhug.org.uk/kb/kb-article/gedcom-extension-list/).
       out.pedigree = parsePedigree(child, ctx);
     },
-    '_PLINK': (child) => {
+    _PLINK: (child) => {
       // The Swarm family-tree packs: a FamilySearch profile link
       // attached to the FAMC link (see ProfileLink).
       const link: ProfileLink = {
@@ -287,7 +259,7 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
         child,
         link,
         {
-          '_FTSID': (grandchild) => {
+          _FTSID: (grandchild) => {
             link.familyTreeId = reqText(grandchild);
           },
           PEDI: (grandchild) => {
@@ -328,7 +300,19 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
     // spellings are recognized).
     out.parentalRelationKind = parseUsmCode(child, '_MTYP', USM_PARENTAL_RELATION_KINDS);
   };
-  dispatch(node, out, handlers, ctx, ['PEDI', '_PEDI', 'STAT', '_PRIMARY', '_PREF', '_FREL', '_MREL', '_HUSB', '_WIFE', 'MTYP', '_MTYP']);
+  dispatch(node, out, handlers, ctx, [
+    'PEDI',
+    '_PEDI',
+    'STAT',
+    '_PRIMARY',
+    '_PREF',
+    '_FREL',
+    '_MREL',
+    '_HUSB',
+    '_WIFE',
+    'MTYP',
+    '_MTYP',
+  ]);
   return out;
 }
 
@@ -340,20 +324,24 @@ export function parseChildFamilyLink(node: RawNode, ctx: Ctx): ChildFamilyLink {
  * serializer drops X and N.
  */
 export const SEX_551: Record<'M' | 'F' | 'U' | 'X' | 'N', string> = {
-  M: 'male', F: 'female', U: 'undetermined', X: 'intersex', N: 'not recorded',
+  M: 'male',
+  F: 'female',
+  U: 'undetermined',
+  X: 'intersex',
+  N: 'not recorded',
 };
 
 export function parsePedigree(node: RawNode, ctx: Ctx): PedigreeStructure {
   const raw = reqText(node);
   const upper = raw.toUpperCase();
-  const known = (Object.keys(PEDIGREE_ENUM_VALUES) as string[]).some((key) => key.toUpperCase() === upper);
+  const known = Object.keys(PEDIGREE_ENUM_VALUES).some((key) => key.toUpperCase() === upper);
   const out: PedigreeStructure = {
     ...(known
       ? { payload: parseEnum(raw, PEDIGREE_ENUM_VALUES, node.position) }
       : // A descriptive value ("Adopted (father)") is kept as the
         // OTHER pedigree with the phrase (the full-leniency container
         // rule — nothing is dropped).
-        { payload: 'OTHER' as PedigreeStructure['payload'], phrase: raw }),
+        { payload: 'OTHER', phrase: raw }),
   };
   dispatch(
     node,
@@ -396,7 +384,7 @@ export function parseSpouseFamilyLink(node: RawNode, ctx: Ctx): SpouseFamilyLink
       // `2 DATE` under FAMS — see SpouseFamilyLink.date).
       out.date = parseDateStructure(child, ctx);
     },
-    '_PREF': (child) => {
+    _PREF: (child) => {
       out.preferred = parseYNFlag(child, '_PREF');
     },
     // The 7.0 INDI.FAMS link carries <<NOTE_STRUCTURE>> {0:M} (GEDCOM
@@ -495,22 +483,22 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
       }
       addExtension(detail, child, ctx);
     },
-    '_PRIM': (child) => {
+    _PRIM: (child) => {
       // Legacy: the primary event mark — the `_PRIM` spelling of the
       // `_PRI` slot (see EventDetail.primary).
       detail.primary = parseYNFlag(child, '_PRIM');
     },
-    '_DATE2': (child) => {
+    _DATE2: (child) => {
       // The vendor end date ("bis-Datum"); same value grammar as DATE.
       detail.endDate = parseDateStructure(child, ctx);
     },
     PLAC: (child) => {
       detail.place = parsePlaceStructure(child, ctx);
     },
-    '_GODP': (child) => {
+    _GODP: (child) => {
       (detail.godparents ??= []).push(reqText(child));
     },
-    '_WITN': (child) => {
+    _WITN: (child) => {
       (detail.witnesses ??= []).push(reqText(child));
     },
     ADDR: (child) => {
@@ -546,18 +534,18 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
         detail.creationDate = created;
       }
     },
-    '_FNA': (child) => {
+    _FNA: (child) => {
       // Heredis: the event flag (see EventDetail.fna).
       detail.fna = parseYNFlag(child, '_FNA');
     },
-    '_COR': (child) => {
+    _COR: (child) => {
       // MFT7: the event's coordinates (see EventDetail.map).
       const map = parseMftCoordinates(child, ctx, detail);
       if (map !== undefined) {
         detail.map = map;
       }
     },
-    '_DESCRIPTION': (child) => {
+    _DESCRIPTION: (child) => {
       // MyHeritage: the event's description-aware flag (see
       // EventDetail.descriptionAware).
       detail.descriptionAware = parseYNFlag(child, '_DESCRIPTION');
@@ -570,24 +558,24 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
         detail.map = map;
       }
     },
-    '_SENT': (child) => {
+    _SENT: (child) => {
       // RootsMagic: the event sentence (report wording).
       detail.sentence = reqText(child);
     },
-    '_OVER': (child) => {
+    _OVER: (child) => {
       // Legacy Family Tree: the event sentence override — the same slot
       // RootsMagic spells _SENT (see EventDetail.sentence).
       detail.sentence = reqText(child);
     },
-    '_PPFX': (child) => {
+    _PPFX: (child) => {
       // RootsMagic: the place prefix (report wording).
       detail.placePrefix = reqText(child);
     },
-    '_PRI': (child) => {
+    _PRI: (child) => {
       // AGES!: the primary event flag (see EventDetail.primary).
       detail.primary = parsePrivacyFlag(child, '_PRI');
     },
-    '_EVN': (child) => {
+    _EVN: (child) => {
       // BKW6+: the event number, referenced by witness ASSO links (see
       // EventDetail.eventNumber).
       detail.eventNumber = reqText(child);
@@ -604,7 +592,7 @@ export function eventDetailHandlers(ctx: Ctx, detail: EventDetail): Record<strin
     OBJE: (child) => {
       (detail.media ??= []).push(parseMultimediaLink(child, ctx));
     },
-    '_WT_OBJE_SORT': (child) => {
+    _WT_OBJE_SORT: (child) => {
       (detail.media ??= []).push(parseMultimediaLink(child, ctx));
     },
     RIN: (child) => {
@@ -874,13 +862,13 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
   const familyDetail: FamilyEventDetail = {};
   const event: EventShape = { tag };
   const handlers = eventDetailHandlers(ctx, detail);
-  handlers["TYPE"] = (child) => {
-    event.type = parseEventType(child, ctx);
+  handlers['TYPE'] = (child) => {
+    event.type = parseEventType(child);
   };
-  handlers["HUSB"] = (child) => {
+  handlers['HUSB'] = (child) => {
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
   };
-  handlers["WIFE"] = (child) => {
+  handlers['WIFE'] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
   };
   handlers['_PREF'] = (child) => {
@@ -911,7 +899,7 @@ export function parseFamilyEvent(node: RawNode, ctx: Ctx, tag: string): FamilyEv
     // The TYPE is optional (the 5.5.1 rule; 7.0
     // requires it) and the bare TYPE line the empty type.
     const typeNode = one(node, 'TYPE');
-    event.type = typeNode === undefined ? '' : parseEventType(typeNode, ctx);
+    event.type = typeNode === undefined ? '' : parseEventType(typeNode);
   } else {
     // The Y assertion is accepted on every family event
     // (the 7.0 rule; 5.5.1 restricts it to MARR) and the bare form
@@ -939,7 +927,7 @@ export function parseFamilyChildCount(node: RawNode, ctx: Ctx): FamilyChildCount
   const familyDetail: FamilyEventDetail = {};
   const handlers = eventDetailHandlers(ctx, detail);
   handlers['TYPE'] = (child) => {
-    out.type = parseEventType(child, ctx);
+    out.type = parseEventType(child);
   };
   handlers['HUSB'] = (child) => {
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
@@ -981,14 +969,14 @@ export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAt
     ...(node.value.kind === 'absent' ? {} : { payload: reqText(node) }),
   };
   const handlers = eventDetailHandlers(ctx, detail);
-  handlers["TYPE"] = (child) => {
-    out.type = parseEventType(child, ctx);
+  handlers['TYPE'] = (child) => {
+    out.type = parseEventType(child);
   };
-  handlers["HUSB"] = (child) => {
+  handlers['HUSB'] = (child) => {
     // The FAMILY_EVENT_DETAIL under FAM.RESI: the husband's age.
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
   };
-  handlers["WIFE"] = (child) => {
+  handlers['WIFE'] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
   };
   dispatch(node, out, handlers, ctx, ['TYPE', 'HUSB', 'WIFE']);
@@ -1005,14 +993,14 @@ export function parseFamilyResidence(node: RawNode, ctx: Ctx): FamilyResidenceAt
 export function parseFamilyFact(node: RawNode, ctx: Ctx): FamilyGenericAttribute {
   const detail: EventDetail = {};
   const familyDetail: FamilyEventDetail = {};
-  const out: FamilyGenericAttribute = { tag: 'FACT', payload: reqText(node), type: parseEventType(req(node, 'TYPE'), ctx) };
+  const out: FamilyGenericAttribute = { tag: 'FACT', payload: reqText(node), type: parseEventType(req(node, 'TYPE')) };
   const handlers = eventDetailHandlers(ctx, detail);
-  handlers["TYPE"] = () => undefined;
-  handlers["HUSB"] = (child) => {
+  handlers['TYPE'] = () => undefined;
+  handlers['HUSB'] = (child) => {
     // The 7.0 FAMILY_EVENT_DETAIL under FAM.FACT: the husband's age.
     familyDetail.husband = parseFamilyPartnerEventDetail(child, ctx);
   };
-  handlers["WIFE"] = (child) => {
+  handlers['WIFE'] = (child) => {
     familyDetail.wife = parseFamilyPartnerEventDetail(child, ctx);
   };
   dispatch(node, out, handlers, ctx, ['HUSB', 'WIFE']);
@@ -1031,13 +1019,13 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
   let aldfaerNode: RawNode | undefined;
   let aldfaerTime: TimeValue | undefined;
   const handlers = eventDetailHandlers(ctx, detail);
-  handlers["TYPE"] = (child) => {
-    event.type = parseEventType(child, ctx);
+  handlers['TYPE'] = (child) => {
+    event.type = parseEventType(child);
   };
-  handlers["AGE"] = (child) => {
+  handlers['AGE'] = (child) => {
     detail.age = parseAgeStructure(child, ctx);
   };
-  handlers["TEXT"] = (child) => {
+  handlers['TEXT'] = (child) => {
     // The testament text under the WILL event (see WillEvent.texts);
     // a TEXT under any other event stays generic.
     if (tag === 'WILL') {
@@ -1046,7 +1034,7 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
       addExtension(event, child, ctx);
     }
   };
-  handlers["FAMC"] = (child) => {
+  handlers['FAMC'] = (child) => {
     if (tag === 'ADOP') {
       event.adoptionFamily = parseAdoptionFamilyLink(child, ctx);
     } else if (tag === 'BIRT' || tag === 'CHR') {
@@ -1116,7 +1104,7 @@ export function parseIndividualEvent(node: RawNode, ctx: Ctx, tag: string): Indi
     // The TYPE is optional (the 5.5.1 rule; 7.0
     // requires it) and the bare TYPE line the empty type.
     const typeNode = one(node, 'TYPE');
-    event.type = typeNode === undefined ? '' : parseEventType(typeNode, ctx);
+    event.type = typeNode === undefined ? '' : parseEventType(typeNode);
   } else {
     // The Y assertion is accepted on every individual
     // event (the 7.0 rule; 5.5.1 restricts it to ADOP/BIRT/CHR/DEAT)
@@ -1195,10 +1183,10 @@ export function parseIndividualAttribute(node: RawNode, ctx: Ctx, tag: string): 
     event.payload = reqText(node);
   }
   const handlers = eventDetailHandlers(ctx, detail);
-  handlers["TYPE"] = (child) => {
-    event.type = parseEventType(child, ctx);
+  handlers['TYPE'] = (child) => {
+    event.type = parseEventType(child);
   };
-  handlers["AGE"] = (child) => {
+  handlers['AGE'] = (child) => {
     detail.age = parseAgeStructure(child, ctx);
   };
   if (tag === 'NCHI') {
@@ -1286,11 +1274,63 @@ export function parseIndividualOrdinance(node: RawNode, ctx: Ctx, tag: string): 
 
 /** The 5.5.1 per-ordinance status value sets (canonical 7.0 spellings). */
 export const LDS_STATUS_551: Record<string, Record<string, string>> = {
-  BAPL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  CONL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  ENDL: { CHILD: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  SLGC: { BIC: '', CLEARED: '', COMPLETED: '', EXCLUDED: '', DNS: '', 'PRE-1970': 'PRE_1970', QUALIFIED: '', STILLBORN: '', SUBMITTED: '', UNCLEARED: '' },
-  SLGS: { CANCELED: '', CLEARED: '', COMPLETED: '', DNS: '', EXCLUDED: '', 'DNS/CAN': 'DNS_CAN', 'PRE-1970': 'PRE_1970', QUALIFIED: '', SUBMITTED: '', UNCLEARED: '' },
+  BAPL: {
+    CHILD: '',
+    CLEARED: '',
+    COMPLETED: '',
+    EXCLUDED: '',
+    'PRE-1970': 'PRE_1970',
+    QUALIFIED: '',
+    STILLBORN: '',
+    SUBMITTED: '',
+    UNCLEARED: '',
+  },
+  CONL: {
+    CHILD: '',
+    CLEARED: '',
+    COMPLETED: '',
+    EXCLUDED: '',
+    'PRE-1970': 'PRE_1970',
+    QUALIFIED: '',
+    STILLBORN: '',
+    SUBMITTED: '',
+    UNCLEARED: '',
+  },
+  ENDL: {
+    CHILD: '',
+    CLEARED: '',
+    COMPLETED: '',
+    EXCLUDED: '',
+    'PRE-1970': 'PRE_1970',
+    QUALIFIED: '',
+    STILLBORN: '',
+    SUBMITTED: '',
+    UNCLEARED: '',
+  },
+  SLGC: {
+    BIC: '',
+    CLEARED: '',
+    COMPLETED: '',
+    EXCLUDED: '',
+    DNS: '',
+    'PRE-1970': 'PRE_1970',
+    QUALIFIED: '',
+    STILLBORN: '',
+    SUBMITTED: '',
+    UNCLEARED: '',
+  },
+  SLGS: {
+    CANCELED: '',
+    CLEARED: '',
+    COMPLETED: '',
+    DNS: '',
+    EXCLUDED: '',
+    'DNS/CAN': 'DNS_CAN',
+    'PRE-1970': 'PRE_1970',
+    QUALIFIED: '',
+    SUBMITTED: '',
+    UNCLEARED: '',
+  },
 };
 
 export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string): OrdinanceStatusStructure {
@@ -1300,9 +1340,7 @@ export function parseOrdinanceStatus(node: RawNode, ctx: Ctx, ordinance: string)
   // (canonical 7.0 spellings returned; a 5.5.1-only value like
   // CANCELED is kept verbatim). Both are accepted in any file.
   let payload: OrdinanceStatusEnum;
-  const known = Object.keys(ORDINANCE_STATUS_ENUM_VALUES).find(
-    (value) => value.toLowerCase() === raw.toLowerCase(),
-  );
+  const known = Object.keys(ORDINANCE_STATUS_ENUM_VALUES).find((value) => value.toLowerCase() === raw.toLowerCase());
   if (known !== undefined || raw.startsWith('_')) {
     payload = parseEnum(raw, ORDINANCE_STATUS_ENUM_VALUES, node.position);
   } else {

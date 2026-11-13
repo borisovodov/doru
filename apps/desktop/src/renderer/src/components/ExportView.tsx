@@ -11,11 +11,10 @@ import './ExportView.css';
 export function ExportView({ onExportGedcom }: { onExportGedcom: () => void }) {
   return (
     <div className="export-view">
-      <PlaceholderView
-        title={nls.t('workbench.exportGedcom')}
-        description={nls.t('features.export.placeholder')}
-      >
-        <Button variant="primary" onClick={onExportGedcom}>{nls.t('features.tree.exportGedcom')}</Button>
+      <PlaceholderView title={nls.t('workbench.exportGedcom')} description={nls.t('features.export.placeholder')}>
+        <Button variant="primary" onClick={onExportGedcom}>
+          {nls.t('features.tree.exportGedcom')}
+        </Button>
       </PlaceholderView>
     </div>
   );

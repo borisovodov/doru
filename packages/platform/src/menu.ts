@@ -285,10 +285,7 @@ export const APP_MENU: readonly MenuGroup[] = [
 ];
 
 /** A group or entry is visible on `platform` unless it limits itself to others. */
-export function menuVisible(
-  entry: { readonly platforms?: readonly MenuPlatform[] },
-  platform: MenuPlatform,
-): boolean {
+export function menuVisible(entry: { readonly platforms?: readonly MenuPlatform[] }, platform: MenuPlatform): boolean {
   return !entry.platforms || entry.platforms.includes(platform);
 }
 

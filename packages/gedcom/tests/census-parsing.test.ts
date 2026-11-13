@@ -66,7 +66,12 @@ describe('census record parsing', () => {
         {
           tag: 'INDI',
           individual: '@I1@',
-          father: { tag: 'FATH', age: expect.anything(), fact: expect.objectContaining({ payload: 'a fact' }), occupation: expect.objectContaining({ tag: 'OCCU' }) },
+          father: {
+            tag: 'FATH',
+            age: expect.anything(),
+            fact: expect.objectContaining({ payload: 'a fact' }),
+            occupation: expect.objectContaining({ tag: 'OCCU' }),
+          },
           mother: { tag: 'MOTH' },
           role: { payload: 'OTHER', phrase: 'Head' },
         },
@@ -77,12 +82,12 @@ describe('census record parsing', () => {
   });
 
   test('requires DATE, PLAC and entries on _CENR', () => {
-    expect(parseFail([...HEADER, '0 @C1@ _CENR', '1 PLAC Moscow', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR'].join('\n'))).toContain(
-      'requires a DATE',
-    );
-    expect(parseFail([...HEADER, '0 @C1@ _CENR', '1 DATE 1901', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR'].join('\n'))).toContain(
-      'requires a PLAC',
-    );
+    expect(
+      parseFail([...HEADER, '0 @C1@ _CENR', '1 PLAC Moscow', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR'].join('\n')),
+    ).toContain('requires a DATE');
+    expect(
+      parseFail([...HEADER, '0 @C1@ _CENR', '1 DATE 1901', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR'].join('\n')),
+    ).toContain('requires a PLAC');
     expect(parseFail([...HEADER, '0 @C1@ _CENR', '1 DATE 1901', '1 PLAC Moscow', '0 TRLR'].join('\n'))).toContain(
       'requires at least one INDI',
     );
@@ -90,7 +95,18 @@ describe('census record parsing', () => {
 
   test('requires an AGE under the census SEX', () => {
     expect(
-      parseFail([...HEADER, '0 @C1@ _CENR', '1 DATE 1901', '1 PLAC Moscow', '1 SEX M', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR'].join('\n')),
+      parseFail(
+        [
+          ...HEADER,
+          '0 @C1@ _CENR',
+          '1 DATE 1901',
+          '1 PLAC Moscow',
+          '1 SEX M',
+          '1 INDI @I1@',
+          '0 @I1@ INDI',
+          '0 TRLR',
+        ].join('\n'),
+      ),
     ).toContain('requires an AGE');
   });
 
@@ -98,6 +114,8 @@ describe('census record parsing', () => {
     // A bare SOUR is tolerated (the full-leniency container rule keeps it
     // as an extension), so only the accepted forms are asserted here via
     // the round-trip above.
-    expect(parseOk([...HEADER, '0 @C1@ _CENR', '1 DATE 1901', '1 PLAC Moscow', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR'])).toBeDefined();
+    expect(
+      parseOk([...HEADER, '0 @C1@ _CENR', '1 DATE 1901', '1 PLAC Moscow', '1 INDI @I1@', '0 @I1@ INDI', '0 TRLR']),
+    ).toBeDefined();
   });
 });

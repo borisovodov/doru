@@ -47,7 +47,7 @@ electronLog.initialize();
 
 // Console transport → stderr: stdout carries the MCP protocol in server mode.
 electronLog.transports.console.writeFn = ({ message }) => {
-  console.error(...message.data);
+  console.error(...(message.data as unknown[]));
 };
 
 electronLog.transports.file.resolvePathFn = () => {

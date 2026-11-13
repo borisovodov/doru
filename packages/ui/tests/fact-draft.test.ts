@@ -162,7 +162,7 @@ describe('factToDraft / factDraftToRecord', () => {
         quality: 'about',
         modifier: 'ABT',
         component: { calendar: 'julian', year: 1900, month: 10, day: 5 },
-        time: { hour: 12 },
+        time: { hour: 12, minute: 0 },
       },
     });
     const draft = factToDraft(source);

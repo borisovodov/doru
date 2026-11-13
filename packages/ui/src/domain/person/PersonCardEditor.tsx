@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { Check, X } from 'lucide-react';
 import type { PersonRecord } from '@doru/core';
 import { IconButton } from '../../atoms/icon-button/IconButton';
@@ -17,7 +17,7 @@ export function PersonCardEditor({ onSave, onCancel, autoFocus = false }: Person
   const [given, setGiven] = useState('');
   const [surname, setSurname] = useState('');
 
-  const save = (event: FormEvent) => {
+  const save = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedGiven = given.trim();
     const trimmedSurname = surname.trim();

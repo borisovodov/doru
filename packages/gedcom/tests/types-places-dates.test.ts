@@ -52,10 +52,12 @@ describe('date value parsers (7.0)', () => {
     expect(parseDateValue70('BET 1900 AND 1910', pos).kind).toBe('range');
     expect(parseDateValue70('FROM 1900 TO 1910', pos).kind).toBe('period');
     expect(parseDateValue70('TO 1910', pos)).toEqual({
-      kind: 'period', to: { calendar: 'GREGORIAN', year: 1910 },
+      kind: 'period',
+      to: { calendar: 'GREGORIAN', year: 1910 },
     });
     expect(parseDateValue70('FROM 1900', pos)).toEqual({
-      kind: 'period', from: { calendar: 'GREGORIAN', year: 1900 },
+      kind: 'period',
+      from: { calendar: 'GREGORIAN', year: 1900 },
     });
     expect(parseDateValue70('AFT 1900', pos).kind).toBe('bound');
     expect(parseDateValue70('BEF 1900', pos).kind).toBe('bound');
@@ -66,10 +68,16 @@ describe('date value parsers (7.0)', () => {
 
   test('extension calendars and months', () => {
     expect(parseDateValue70('_CAL _MON 1900', pos)).toEqual({
-      kind: 'date', calendar: '_CAL', month: '_MON', year: 1900,
+      kind: 'date',
+      calendar: '_CAL',
+      month: '_MON',
+      year: 1900,
     });
     expect(parseDateValue70('_CAL 1900 _EXT', pos)).toEqual({
-      kind: 'date', calendar: '_CAL', year: 1900, epoch: '_EXT',
+      kind: 'date',
+      calendar: '_CAL',
+      year: 1900,
+      epoch: '_EXT',
     });
   });
 
@@ -95,10 +103,30 @@ describe('date value parsers (7.0)', () => {
     // anyway (the official FamilySearch test file date.ged exercises
     // `23 COMP`).
     expect(parseDateValue70('FRENCH_R 7 COMP 8', pos)).toMatchObject({ kind: 'date', day: 7, month: 'COMP', year: 8 });
-    expect(parseDateValue70('FRENCH_R 31 COMP 8', pos)).toMatchObject({ kind: 'date', day: 31, month: 'COMP', year: 8 });
-    expect(parseDateValue70('HEBREW 31 TSH 5750', pos)).toMatchObject({ kind: 'date', day: 31, month: 'TSH', year: 5750 });
-    expect(parseDateValue70('_CAL 37 _MON 1900', pos)).toMatchObject({ kind: 'date', day: 37, month: '_MON', year: 1900 });
-    expect(parseDateValue70('HEBREW 1 TSH 5750', pos)).toMatchObject({ kind: 'date', day: 1, month: 'TSH', year: 5750 });
+    expect(parseDateValue70('FRENCH_R 31 COMP 8', pos)).toMatchObject({
+      kind: 'date',
+      day: 31,
+      month: 'COMP',
+      year: 8,
+    });
+    expect(parseDateValue70('HEBREW 31 TSH 5750', pos)).toMatchObject({
+      kind: 'date',
+      day: 31,
+      month: 'TSH',
+      year: 5750,
+    });
+    expect(parseDateValue70('_CAL 37 _MON 1900', pos)).toMatchObject({
+      kind: 'date',
+      day: 37,
+      month: '_MON',
+      year: 1900,
+    });
+    expect(parseDateValue70('HEBREW 1 TSH 5750', pos)).toMatchObject({
+      kind: 'date',
+      day: 1,
+      month: 'TSH',
+      year: 5750,
+    });
   });
 
   test('year errors', () => {
@@ -128,10 +156,14 @@ describe('exact and period dates (7.0)', () => {
 describe('5.5.1 date values', () => {
   test('phrase-only and INT forms', () => {
     expect(parseDateValue551('(sometime)', pos)).toEqual({
-      value: { kind: 'unknown' }, dualYear: false, phrase: 'sometime',
+      value: { kind: 'unknown' },
+      dualYear: false,
+      phrase: 'sometime',
     });
     expect(parseDateValue551('INT 1 JAN 1900 (computed)', pos)).toMatchObject({
-      value: { kind: 'date', year: 1900 }, dualYear: false, phrase: 'computed',
+      value: { kind: 'date', year: 1900 },
+      dualYear: false,
+      phrase: 'computed',
     });
   });
 
@@ -176,7 +208,7 @@ describe('time parsers', () => {
     expect(parseTime70('10:30', pos)).toEqual({ hour: 10, minute: 30 });
     expect(parseTime70('10:30:05', pos)).toEqual({ hour: 10, minute: 30, second: 5 });
     expect(parseTime70('10:30:05.25', pos)).toEqual({ hour: 10, minute: 30, second: 5, fraction: '25' });
-    expect(parseTime70('10:30:05.25Z', pos)).toEqual({ hour: 10, minute:30, second: 5, fraction: '25', utc: true });
+    expect(parseTime70('10:30:05.25Z', pos)).toEqual({ hour: 10, minute: 30, second: 5, fraction: '25', utc: true });
     expect(codeOf(() => parseTime70('10:30:05.25+01', pos))).toBe('time.invalid');
     expect(codeOf(() => parseTime70('24:00', pos))).toBe('time.invalid');
     expect(codeOf(() => parseTime70('10:60', pos))).toBe('time.invalid');
@@ -258,8 +290,8 @@ describe('names, coordinates and tag definitions', () => {
     expect(codeOf(() => parseLongitude('E181', pos))).toBe('longitude.invalid');
     // The DMS spelling (the gedcom4j samples): the direction defaults
     // from the sign.
-    expect(parseLatitude("+50° 3' 1.49\"", pos)).toEqual({ direction: 'N', degrees: 50 + 3 / 60 + 1.49 / 3600 });
-    expect(parseLongitude("+19° 56' 21.48\"", pos)).toEqual({ direction: 'E', degrees: 19 + 56 / 60 + 21.48 / 3600 });
+    expect(parseLatitude('+50° 3\' 1.49"', pos)).toEqual({ direction: 'N', degrees: 50 + 3 / 60 + 1.49 / 3600 });
+    expect(parseLongitude('+19° 56\' 21.48"', pos)).toEqual({ direction: 'E', degrees: 19 + 56 / 60 + 21.48 / 3600 });
     // The colon-separated DMS of the webtrees exports (double or
     // single colons, optional trailing quote).
     expect(parseLatitude('N46::3::19"', pos)).toEqual({ direction: 'N', degrees: 46 + 3 / 60 + 19 / 3600 });
@@ -267,7 +299,10 @@ describe('names, coordinates and tag definitions', () => {
   });
 
   test('tag definitions', () => {
-    expect(parseTagDefinition('_CUST https://example.com/c', pos)).toEqual({ tag: '_CUST', uri: 'https://example.com/c' });
+    expect(parseTagDefinition('_CUST https://example.com/c', pos)).toEqual({
+      tag: '_CUST',
+      uri: 'https://example.com/c',
+    });
     expect(codeOf(() => parseTagDefinition('_CUST', pos))).toBe('tagdef.invalid');
     expect(codeOf(() => parseTagDefinition('CUST https://example.com/c', pos))).toBe('tagdef.invalid');
     expect(codeOf(() => parseTagDefinition('_CUST bad uri', pos))).toBe('uri.invalid');
@@ -307,7 +342,10 @@ describe('calendar conversions and bounds', () => {
   });
 
   test('toJsDateTime places a time with a fraction', () => {
-    const date = toJsDateTime({ calendar: 'GREGORIAN', year: 1900, month: 'JAN', day: 1 }, { hour: 10, minute: 30, second: 5, fraction: '25' });
+    const date = toJsDateTime(
+      { calendar: 'GREGORIAN', year: 1900, month: 'JAN', day: 1 },
+      { hour: 10, minute: 30, second: 5, fraction: '25' },
+    );
     expect(date?.getUTCHours()).toBe(10);
     expect(date?.getUTCMinutes()).toBe(30);
     expect(date?.getUTCSeconds()).toBe(5);
@@ -318,17 +356,33 @@ describe('calendar conversions and bounds', () => {
 
   test('convertCalendar failures and cross-calendar paths', () => {
     expect(convertCalendar({ calendar: 'GREGORIAN', year: 1900 }, 'HEBREW')).toBeUndefined();
-    expect(convertCalendar({ calendar: 'GREGORIAN', year: 4000, epoch: 'BCE', month: 'JAN', day: 1 }, 'HEBREW')).toBeUndefined();
+    expect(
+      convertCalendar({ calendar: 'GREGORIAN', year: 4000, epoch: 'BCE', month: 'JAN', day: 1 }, 'HEBREW'),
+    ).toBeUndefined();
     expect(convertCalendar({ calendar: 'HEBREW', year: 5785, month: 'TSH', day: 1 }, 'FRENCH_R')).toBeUndefined();
-    expect(convertCalendar({ calendar: 'GREGORIAN', year: 1792, month: 'SEP', day: 22 }, 'FRENCH_R')).toMatchObject({ calendar: 'FRENCH_R', year: 1, month: 'VEND', day: 1 });
-    expect(convertCalendar({ calendar: 'GREGORIAN', year: 2024, month: 'OCT', day: 3 }, 'HEBREW')).toMatchObject({ calendar: 'HEBREW', year: 5785, month: 'TSH', day: 1 });
+    expect(convertCalendar({ calendar: 'GREGORIAN', year: 1792, month: 'SEP', day: 22 }, 'FRENCH_R')).toMatchObject({
+      calendar: 'FRENCH_R',
+      year: 1,
+      month: 'VEND',
+      day: 1,
+    });
+    expect(convertCalendar({ calendar: 'GREGORIAN', year: 2024, month: 'OCT', day: 3 }, 'HEBREW')).toMatchObject({
+      calendar: 'HEBREW',
+      year: 5785,
+      month: 'TSH',
+      day: 1,
+    });
     expect(convertCalendar({ calendar: 'GREGORIAN', year: 1900, month: 'JAN', day: 1 }, '_EXT')).toBeUndefined();
   });
 });
 
 describe('names and places edge cases', () => {
   test('name pieces keep substructures as extensions', () => {
-    const result = parseGedcom70(new TextEncoder().encode('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 GIVN John\n3 BOGUS x\n0 TRLR\n'));
+    const result = parseGedcom70(
+      new TextEncoder().encode(
+        '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 GIVN John\n3 BOGUS x\n0 TRLR\n',
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
@@ -337,27 +391,47 @@ describe('names and places edge cases', () => {
   });
 
   test('5.5.1 name pieces with commas and a custom TYPE', () => {
-    const result = parseGedcom551(new TextEncoder().encode(
-      [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @I1@ INDI',
-        '1 NAME John /Doe/',
-        '2 NPFX Dr., Prof.',
-        '2 GIVN John, Jonathan',
-        '2 NICK Johnny, Jack',
-        '2 SPFX van, von',
-        '2 SURN Doe, Smith',
-        '2 NSFX Jr., Sr.',
-        '2 TYPE custom label',
-        '0 @S1@ SUBM', '1 NAME T',
-        '0 TRLR',
-      ].join('\n'),
-    ));
+    const result = parseGedcom551(
+      new TextEncoder().encode(
+        [
+          '0 HEAD',
+          '1 SOUR PAF',
+          '1 SUBM @S1@',
+          '1 GEDC',
+          '2 VERS 5.5.1',
+          '2 FORM LINEAGE-LINKED',
+          '1 CHAR UTF-8',
+          '0 @I1@ INDI',
+          '1 NAME John /Doe/',
+          '2 NPFX Dr., Prof.',
+          '2 GIVN John, Jonathan',
+          '2 NICK Johnny, Jack',
+          '2 SPFX van, von',
+          '2 SURN Doe, Smith',
+          '2 NSFX Jr., Sr.',
+          '2 TYPE custom label',
+          '0 @S1@ SUBM',
+          '1 NAME T',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
     const rec = result.value.records[0] as {
-      names?: Array<{ payload: unknown; pieces?: { namePrefixes?: string[]; givenNames?: string[]; nicknames?: string[]; surnamePrefixes?: string[]; surnames?: string[]; nameSuffixes?: string[] }; type?: { payload: string; phrase?: string } }>;
+      names?: Array<{
+        payload: unknown;
+        pieces?: {
+          namePrefixes?: string[];
+          givenNames?: string[];
+          nicknames?: string[];
+          surnamePrefixes?: string[];
+          surnames?: string[];
+          nameSuffixes?: string[];
+        };
+        type?: { payload: string; phrase?: string };
+      }>;
     };
     expect(rec.names?.[0]?.pieces?.namePrefixes).toEqual(['Dr.', 'Prof.']);
     expect(rec.names?.[0]?.pieces?.givenNames).toEqual(['John', 'Jonathan']);
@@ -370,74 +444,111 @@ describe('names and places edge cases', () => {
 
   test('7.0 name TYPE with a PHRASE and 5.5.1 TYPE keeps substructures as extensions', () => {
     expect(
-      parseGedcom70(new TextEncoder().encode(
-        '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE BIRTH\n3 PHRASE at birth\n0 TRLR\n',
-      )).ok,
+      parseGedcom70(
+        new TextEncoder().encode(
+          '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE BIRTH\n3 PHRASE at birth\n0 TRLR\n',
+        ),
+      ).ok,
     ).toBe(true);
-    const result = parseGedcom551(new TextEncoder().encode('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE maiden\n3 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n'));
+    const result = parseGedcom551(
+      new TextEncoder().encode(
+        '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 NAME John /Doe/\n2 TYPE maiden\n3 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n',
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
-    const rec = result.value.records[0] as { names?: Array<{ type?: { payload: string; extensions?: Array<{ tag: string }> } }> };
+    const rec = result.value.records[0] as {
+      names?: Array<{ type?: { payload: string; extensions?: Array<{ tag: string }> } }>;
+    };
     expect(rec.names?.[0]?.type?.payload).toBe('MAIDEN');
     expect(rec.names?.[0]?.type?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('name translations and 5.5.1 variations keep pieces', () => {
-    const result = parseGedcom551(new TextEncoder().encode(
-      [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @I1@ INDI',
-        '1 NAME John /Doe/',
-        '2 FONE Jo-han /Do-e/',
-        '3 TYPE kana',
-        '3 GIVN Jo-han',
-        '2 ROMN Dzon /Doe/',
-        '3 TYPE cyrillic',
-        '3 SURN Doe',
-        '0 @S1@ SUBM', '1 NAME T',
-        '0 TRLR',
-      ].join('\n'),
-    ));
+    const result = parseGedcom551(
+      new TextEncoder().encode(
+        [
+          '0 HEAD',
+          '1 SOUR PAF',
+          '1 SUBM @S1@',
+          '1 GEDC',
+          '2 VERS 5.5.1',
+          '2 FORM LINEAGE-LINKED',
+          '1 CHAR UTF-8',
+          '0 @I1@ INDI',
+          '1 NAME John /Doe/',
+          '2 FONE Jo-han /Do-e/',
+          '3 TYPE kana',
+          '3 GIVN Jo-han',
+          '2 ROMN Dzon /Doe/',
+          '3 TYPE cyrillic',
+          '3 SURN Doe',
+          '0 @S1@ SUBM',
+          '1 NAME T',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
     const rec = result.value.records[0] as {
-      names?: Array<{ phonetic?: Array<{ pieces?: { givenNames?: string[] } }>; romanized?: Array<{ pieces?: { surnames?: string[] } }> }>;
+      names?: Array<{
+        phonetic?: Array<{ pieces?: { givenNames?: string[] } }>;
+        romanized?: Array<{ pieces?: { surnames?: string[] } }>;
+      }>;
     };
     expect(rec.names?.[0]?.phonetic?.[0]?.pieces?.givenNames).toEqual(['Jo-han']);
     expect(rec.names?.[0]?.romanized?.[0]?.pieces?.surnames).toEqual(['Doe']);
   });
 
   test('place phonetic variations keep non-TYPE substructures as extensions', () => {
-    const result = parseGedcom551(new TextEncoder().encode('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 BIRT\n2 PLAC Berlin\n3 FONE Berurin\n4 TYPE kana\n4 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n'));
+    const result = parseGedcom551(
+      new TextEncoder().encode(
+        '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @I1@ INDI\n1 BIRT\n2 PLAC Berlin\n3 FONE Berurin\n4 TYPE kana\n4 BOGUS x\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n',
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
-    const rec = result.value.records[0] as { events?: Array<{ detail?: { place?: { phonetic?: Array<{ type: string; extensions?: Array<{ tag: string }> }> } } }> };
+    const rec = result.value.records[0] as {
+      events?: Array<{
+        detail?: { place?: { phonetic?: Array<{ type: string; extensions?: Array<{ tag: string }> }> } };
+      }>;
+    };
     expect(rec.events?.[0]?.detail?.place?.phonetic?.[0]?.type).toBe('kana');
-    expect(rec.events?.[0]?.detail?.place?.phonetic?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    expect(
+      rec.events?.[0]?.detail?.place?.phonetic?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS'),
+    ).toBe(true);
   });
 
   test('_POST with DATE and SOUR under a place', () => {
-    const result = parseGedcom70(new TextEncoder().encode(
-      [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
-        '0 @S2@ SOUR', '1 TITL S',
-        '0 @I1@ INDI',
-        '1 BIRT',
-        '2 PLAC Berlin',
-        '3 _POST 10115',
-        '4 DATE 1900',
-        '4 SOUR @S2@',
-        '0 TRLR',
-      ].join('\n'),
-    ));
+    const result = parseGedcom70(
+      new TextEncoder().encode(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @S2@ SOUR',
+          '1 TITL S',
+          '0 @I1@ INDI',
+          '1 BIRT',
+          '2 PLAC Berlin',
+          '3 _POST 10115',
+          '4 DATE 1900',
+          '4 SOUR @S2@',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
     const rec = result.value.records[1] as {
-      events?: Array<{ detail?: { place?: { postalCodes?: Array<{ code: string; date?: unknown; citations?: unknown[] }> } } }>;
+      events?: Array<{
+        detail?: { place?: { postalCodes?: Array<{ code: string; date?: unknown; citations?: unknown[] }> } };
+      }>;
     };
     expect(rec.events?.[0]?.detail?.place?.postalCodes?.[0]?.code).toBe('10115');
     expect(rec.events?.[0]?.detail?.place?.postalCodes?.[0]?.date).toBeDefined();
@@ -450,7 +561,9 @@ describe('place records', () => {
     // The GEDCOM-L place record requires NAME; a _LOC without one is
     // an extension record with extension-defined contents (the
     // FamilySearch 7.0 test files exercise this form), not an error.
-    const withPayload = parseGedcom70(new TextEncoder().encode('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC payload\n0 TRLR\n'));
+    const withPayload = parseGedcom70(
+      new TextEncoder().encode('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC payload\n0 TRLR\n'),
+    );
     if (!withPayload.ok) {
       throw new Error(JSON.stringify(withPayload.error));
     }
@@ -463,83 +576,99 @@ describe('place records', () => {
   });
 
   test('_LOC names, abbreviation types and hierarchy links', () => {
-    const result = parseGedcom70(new TextEncoder().encode(
-      [
-        '0 HEAD', '1 GEDC', '2 VERS 7.0',
-        '0 @S2@ SOUR', '1 TITL S',
-        '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM image/jpeg',
-        '0 @L1@ _LOC',
-        '1 NAME Berlin',
-        '2 ABBR B',
-        '3 TYPE short',
-        '2 ABBR BLN',
-        '2 LANG de',
-        '2 DATE 1900',
-        '2 SOUR @S2@',
-        '1 NAME Berlin, Deutschland',
-        '1 TYPE City',
-        '2 _GOVTYPE 44',
-        '2 DATE 1901',
-        '2 SOUR @S2@',
-        '1 _GOV 11000000',
-        '1 _MAIDENHEAD JO62',
-        '1 _POST 10115',
-        '2 DATE 1900',
-        '2 SOUR @S2@',
-        '1 _AIDN 123',
-        '2 TYPE amtlich',
-        '2 DATE 1900',
-        '2 SOUR @S2@',
-        '1 _DMGD 3.5m',
-        '2 TYPE population',
-        '2 DATE 1900',
-        '2 SOUR @S2@',
-        '1 RELI Catholic',
-        '1 EVEN founded',
-        '2 DATE 1237',
-        '1 EVEN',
-        '1 _LOC @L2@',
-        '2 TYPE POLI',
-        '2 DATE 1900',
-        '2 SOUR @S2@',
-        '1 ABBR B',
-        '1 MAP',
-        '2 LATI N52.52',
-        '2 LONG E13.40',
-        '1 NOTE a note',
-        '1 SOUR @S2@',
-        '1 OBJE @O1@',
-        '1 REFN r1',
-        '1 _UID u1',
-        '1 CHAN',
-        '2 DATE 4 JAN 2001',
-        '0 @L2@ _LOC',
-        '1 NAME Parent',
-        '0 TRLR',
-      ].join('\n'),
-    ));
+    const result = parseGedcom70(
+      new TextEncoder().encode(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @S2@ SOUR',
+          '1 TITL S',
+          '0 @O1@ OBJE',
+          '1 FILE a.jpg',
+          '2 FORM image/jpeg',
+          '0 @L1@ _LOC',
+          '1 NAME Berlin',
+          '2 ABBR B',
+          '3 TYPE short',
+          '2 ABBR BLN',
+          '2 LANG de',
+          '2 DATE 1900',
+          '2 SOUR @S2@',
+          '1 NAME Berlin, Deutschland',
+          '1 TYPE City',
+          '2 _GOVTYPE 44',
+          '2 DATE 1901',
+          '2 SOUR @S2@',
+          '1 _GOV 11000000',
+          '1 _MAIDENHEAD JO62',
+          '1 _POST 10115',
+          '2 DATE 1900',
+          '2 SOUR @S2@',
+          '1 _AIDN 123',
+          '2 TYPE amtlich',
+          '2 DATE 1900',
+          '2 SOUR @S2@',
+          '1 _DMGD 3.5m',
+          '2 TYPE population',
+          '2 DATE 1900',
+          '2 SOUR @S2@',
+          '1 RELI Catholic',
+          '1 EVEN founded',
+          '2 DATE 1237',
+          '1 EVEN',
+          '1 _LOC @L2@',
+          '2 TYPE POLI',
+          '2 DATE 1900',
+          '2 SOUR @S2@',
+          '1 ABBR B',
+          '1 MAP',
+          '2 LATI N52.52',
+          '2 LONG E13.40',
+          '1 NOTE a note',
+          '1 SOUR @S2@',
+          '1 OBJE @O1@',
+          '1 REFN r1',
+          '1 _UID u1',
+          '1 CHAN',
+          '2 DATE 4 JAN 2001',
+          '0 @L2@ _LOC',
+          '1 NAME Parent',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result));
     }
     const card = result.value.records[2] as {
       payload: string;
-      names?: Array<{ name: string; abbreviations?: Array<{ abbreviation: string; type?: string }>; language?: string; date?: unknown; citations?: unknown[] }>;
+      names?: Array<{
+        name: string;
+        abbreviations?: Array<{ abbreviation: string; type?: string }>;
+        language?: string;
+        date?: unknown;
+        citations?: unknown[];
+      }>;
       types?: Array<{ type: string; govTypeId?: string; date?: unknown; citations?: unknown[] }>;
-      govId?: string; maidenhead?: string;
+      govId?: string;
+      maidenhead?: string;
       postalCodes?: Array<{ code: string; date?: unknown; citations?: unknown[] }>;
       administrativeIds?: Array<{ identifier: string; type: string; date?: unknown; citations?: unknown[] }>;
       demographicData?: Array<{ data: string; type: string; date?: unknown; citations?: unknown[] }>;
       denomination?: string;
       events?: Array<{ tag: string; payload?: string; detail?: { date?: unknown } }>;
       parents?: Array<{ parent: string; type?: string; date?: unknown; citations?: unknown[] }>;
-      abbreviation?: string; map?: unknown; notes?: unknown[]; citations?: unknown[]; media?: unknown[];
-      identifiers?: Array<{ tag: string }>; changeDate?: unknown;
+      abbreviation?: string;
+      map?: unknown;
+      notes?: unknown[];
+      citations?: unknown[];
+      media?: unknown[];
+      identifiers?: Array<{ tag: string }>;
+      changeDate?: unknown;
     };
     expect(card.payload).toBe('Berlin');
-    expect(card.names?.[0]?.abbreviations).toEqual([
-      { abbreviation: 'B', type: 'short' },
-      { abbreviation: 'BLN' },
-    ]);
+    expect(card.names?.[0]?.abbreviations).toEqual([{ abbreviation: 'B', type: 'short' }, { abbreviation: 'BLN' }]);
     expect(card.names?.[0]?.language).toBe('de');
     expect(card.names?.[0]?.date).toBeDefined();
     expect(card.names?.[0]?.citations).toHaveLength(1);
@@ -576,7 +705,9 @@ describe('place records', () => {
 
   test('hierarchy TYPE validates its value set', () => {
     expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC\n1 NAME A\n1 _LOC @L2@\n2 TYPE WRONG\n0 @L2@ _LOC\n1 NAME B\n0 TRLR\n'),
+      err70(
+        '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @L1@ _LOC\n1 NAME A\n1 _LOC @L2@\n2 TYPE WRONG\n0 @L2@ _LOC\n1 NAME B\n0 TRLR\n',
+      ),
     ).toBe('enum.invalid-value');
   });
 });

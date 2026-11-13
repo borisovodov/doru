@@ -6,17 +6,7 @@ import type {
   RestrictionEnum,
   SexEnum,
 } from '../enumerations';
-import type {
-  Xref,
-  FilePath,
-  Integer,
-  Language,
-  ListEnum,
-  MediaType,
-  Pointer,
-  Special,
-  Text,
-} from '../primitives';
+import type { Xref, FilePath, Integer, Language, ListEnum, MediaType, Pointer, Special, Text } from '../primitives';
 
 import type { AddressStructure } from './common';
 import type { AssociationStructure } from './common';
@@ -25,13 +15,7 @@ import type { CensusRecord } from './census-record';
 import type { CreationDate } from './common';
 import type { GroupRecord } from './group-record';
 import type { OccurrenceRecord } from './occurrence-record';
-import type {
-  ContactRecord,
-  EducationRecord,
-  MarriageRecord,
-  OccupationRecord,
-  TwinRecord,
-} from './genopro-entity';
+import type { ContactRecord, EducationRecord, MarriageRecord, OccupationRecord, TwinRecord } from './genopro-entity';
 import type { TitleRecord } from './title-record';
 import type {
   EvidenceEvent,
@@ -1699,7 +1683,8 @@ export interface SourceFileStructure extends GedcomStructureBase {
   payload: FilePath;
 }
 
-export interface MediaFile extends GedcomStructureBase {  /** The FILE payload, {1:1} FilePath — the media file path. A bare FILE line (no payload) is tolerated as the empty path: Ancestry.com Family Trees writes it with FORM/TITL substructures and no file name; it is written back as the bare FILE line. */
+export interface MediaFile extends GedcomStructureBase {
+  /** The FILE payload, {1:1} FilePath — the media file path. A bare FILE line (no payload) is tolerated as the empty path: Ancestry.com Family Trees writes it with FORM/TITL substructures and no file name; it is written back as the bare FILE line. */
   payload: FilePath;
   /** FORM {0:1}, g7:FORM — the media type of the file. Missing FORM is tolerated (the full-leniency container rule). */
   form?: MediaFormatStructure;

@@ -18,7 +18,13 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const WithActions: Story = {
-  args: { actions: <Button size="sm" variant="primary">Add</Button> },
+  args: {
+    actions: (
+      <Button size="sm" variant="primary">
+        Add
+      </Button>
+    ),
+  },
 };
 
 export const EmptyWithAction: Story = {

@@ -5,9 +5,10 @@ import {
   offeredReasoningLevels,
   OPENAI_WIRE_LEVELS,
   REASONING_LEVELS,
+  type ReasoningLevel,
 } from '../src/reasoning';
 
-const OPENAI_FALLBACK: readonly string[] = OPENAI_WIRE_LEVELS;
+const OPENAI_FALLBACK: readonly ReasoningLevel[] = OPENAI_WIRE_LEVELS;
 
 describe('offeredReasoningLevels', () => {
   test('uses the effort values a catalog model declares', () => {

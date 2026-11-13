@@ -62,9 +62,7 @@ describe('place ops', () => {
       fixture.repo.insertPlace(moscow);
       fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [fact] });
 
-      const detach = deletePlaceOp(moscow, [
-        { before: fact, after: { ...fact, placeId: undefined } },
-      ]);
+      const detach = deletePlaceOp(moscow, [{ before: fact, after: { ...fact, placeId: undefined } }]);
       detach.apply(ctx);
       expect(fixture.repo.listFactsForPlace('PL1')).toEqual([]);
 

@@ -18,7 +18,13 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import type { FamilyEditorApi, PersonEditorApi, PlaceEditorApi, RegistriesEditorApi, SourceEditorApi } from '@doru/features';
+import type {
+  FamilyEditorApi,
+  PersonEditorApi,
+  PlaceEditorApi,
+  RegistriesEditorApi,
+  SourceEditorApi,
+} from '@doru/features';
 import type { MediaWithPath } from '@doru/ui/domain';
 
 /**
@@ -40,20 +46,31 @@ export function useTreeData(projectPath: string | null | undefined) {
   const [titles, setTitles] = useState<TitleRecord[]>([]);
 
   const reloadTree = useCallback(async (path: string) => {
-    const [data, allFacts, allSources, allMedia, allCitations, allNotes, allPlaces, allRepositories, allSubmitters, allTodos, allTitles] =
-      await Promise.all([
-        window.doru.all(path),
-        window.doru.getAllFacts(path),
-        window.doru.getSources(path),
-        window.doru.getAllMedia(path),
-        window.doru.getAllCitations(path),
-        window.doru.listNotes(path),
-        window.doru.getPlaces(path),
-        window.doru.getRepositories(path),
-        window.doru.getSubmitters(path),
-        window.doru.getTodos(path),
-        window.doru.getTitles(path),
-      ]);
+    const [
+      data,
+      allFacts,
+      allSources,
+      allMedia,
+      allCitations,
+      allNotes,
+      allPlaces,
+      allRepositories,
+      allSubmitters,
+      allTodos,
+      allTitles,
+    ] = await Promise.all([
+      window.doru.all(path),
+      window.doru.getAllFacts(path),
+      window.doru.getSources(path),
+      window.doru.getAllMedia(path),
+      window.doru.getAllCitations(path),
+      window.doru.listNotes(path),
+      window.doru.getPlaces(path),
+      window.doru.getRepositories(path),
+      window.doru.getSubmitters(path),
+      window.doru.getTodos(path),
+      window.doru.getTitles(path),
+    ]);
     setPersons(data.persons);
     setFamilies(data.families);
     setFacts(allFacts);
@@ -223,8 +240,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteNote(projectPath, note);
         await refreshTree();
       },
-      getFamilies: () =>
-        projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([]),
+      getFamilies: () => (projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([])),
       addFamily: async (family) => {
         if (!projectPath) {
           return;
@@ -263,8 +279,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.deleteAssociation(projectPath, association);
       },
-      getSources: () =>
-        projectPath ? window.doru.getSources(projectPath) : Promise.resolve([]),
+      getSources: () => (projectPath ? window.doru.getSources(projectPath) : Promise.resolve([])),
       getCitations: (personId) =>
         projectPath ? window.doru.getCitations(projectPath, 'person', personId) : Promise.resolve([]),
       addSource: async (source, targetId) => {
@@ -318,8 +333,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteFact(projectPath, fact);
         await refreshTree();
       },
-      getMedia: (personId) =>
-        projectPath ? window.doru.getMedia(projectPath, personId) : Promise.resolve([]),
+      getMedia: (personId) => (projectPath ? window.doru.getMedia(projectPath, personId) : Promise.resolve([])),
       addMedia: async (personId) => {
         if (!projectPath) {
           return;
@@ -393,8 +407,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.updateRestriction(projectPath, before, after);
       },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
-      getAliases: (personId) =>
-        projectPath ? window.doru.getAliases(projectPath, personId) : Promise.resolve([]),
+      getAliases: (personId) => (projectPath ? window.doru.getAliases(projectPath, personId) : Promise.resolve([])),
       addAlias: async (personId, aliasId) => {
         if (!projectPath) {
           return;
@@ -410,9 +423,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getRecordSubmitters: (targetType, targetId) =>
-        projectPath
-          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
-          : Promise.resolve([]),
+        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
       addRecordSubmitter: async (submitterId, targetType, targetId) => {
         if (!projectPath) {
           return;
@@ -465,8 +476,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         }
         await window.doru.deleteTag(projectPath, tag);
       },
-      getChanges: (personId) =>
-        projectPath ? window.doru.getChanges(projectPath, personId) : Promise.resolve([]),
+      getChanges: (personId) => (projectPath ? window.doru.getChanges(projectPath, personId) : Promise.resolve([])),
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
       getAddresses: () => (projectPath ? window.doru.listAddresses(projectPath) : Promise.resolve([])),
       getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
@@ -495,7 +505,9 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getCitations: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getCitations(projectPath, targetType, targetId) : Promise.resolve([] as CitationRecord[]),
+        projectPath
+          ? window.doru.getCitations(projectPath, targetType, targetId)
+          : Promise.resolve([] as CitationRecord[]),
       getSources: () => (projectPath ? window.doru.getSources(projectPath) : Promise.resolve([] as SourceRecord[])),
       addSource: async (source: SourceRecord, targetType?: string, targetId?: string) => {
         if (!projectPath) return;
@@ -518,7 +530,9 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getIdentifiers: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getIdentifiers(projectPath, targetType, targetId) : Promise.resolve([] as IdentifierRecord[]),
+        projectPath
+          ? window.doru.getIdentifiers(projectPath, targetType, targetId)
+          : Promise.resolve([] as IdentifierRecord[]),
       addIdentifier: async (identifier: IdentifierRecord) => {
         if (!projectPath) return;
         await window.doru.addIdentifier(projectPath, identifier);
@@ -535,7 +549,9 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getContacts: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getContacts(projectPath, targetType, targetId) : Promise.resolve([] as ContactRecord[]),
+        projectPath
+          ? window.doru.getContacts(projectPath, targetType, targetId)
+          : Promise.resolve([] as ContactRecord[]),
       addContact: async (contact: ContactRecord) => {
         if (!projectPath) return;
         await window.doru.addContact(projectPath, contact);
@@ -552,7 +568,9 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getRestrictions: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getRestrictions(projectPath, targetType, targetId) : Promise.resolve([] as RestrictionRecord[]),
+        projectPath
+          ? window.doru.getRestrictions(projectPath, targetType, targetId)
+          : Promise.resolve([] as RestrictionRecord[]),
       addRestriction: async (restriction: RestrictionRecord) => {
         if (!projectPath) return;
         await window.doru.addRestriction(projectPath, restriction);
@@ -570,7 +588,9 @@ export function useTreeData(projectPath: string | null | undefined) {
       },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([] as TagRecord[])),
       getTagLinks: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getTagLinks(projectPath, targetType, targetId) : Promise.resolve([] as Array<{ tagId: string; link: TagLinkRecord }>),
+        projectPath
+          ? window.doru.getTagLinks(projectPath, targetType, targetId)
+          : Promise.resolve([] as Array<{ tagId: string; link: TagLinkRecord }>),
       addTag: async (tag: TagRecord) => {
         if (!projectPath) return;
         await window.doru.addTag(projectPath, tag);
@@ -622,8 +642,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteSource(projectPath, source);
         await refreshTree();
       },
-      getRepositories: () =>
-        projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([]),
+      getRepositories: () => (projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([])),
       addRepository: async (repository) => {
         if (!projectPath) {
           return;
@@ -632,7 +651,8 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
       getTitles: () => (projectPath ? window.doru.getTitles(projectPath) : Promise.resolve([])),
-      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[])),
+      getSubmitters: () =>
+        projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[]),
       getRecordSubmitters: (targetType: string, targetId: string) =>
         projectPath
           ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
@@ -676,7 +696,8 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deletePlace(projectPath, place);
         await refreshTree();
       },
-      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[])),
+      getSubmitters: () =>
+        projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[]),
       getRecordSubmitters: (targetType: string, targetId: string) =>
         projectPath
           ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
@@ -739,9 +760,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       },
       getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
       getRecordSubmitters: (targetType, targetId) =>
-        projectPath
-          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
-          : Promise.resolve([]),
+        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
       addRecordSubmitter: async (submitterId, targetType, targetId) => {
         if (!projectPath) {
           return;
@@ -763,8 +782,7 @@ export function useTreeData(projectPath: string | null | undefined) {
   const registriesApi = useMemo<RegistriesEditorApi>(
     () => ({
       ...attachmentMethods,
-      getRepositories: () =>
-        projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([]),
+      getRepositories: () => (projectPath ? window.doru.getRepositories(projectPath) : Promise.resolve([])),
       addRepository: async (repository) => {
         if (!projectPath) return;
         await window.doru.addRepository(projectPath, repository);
@@ -780,8 +798,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteRepository(projectPath, repository);
         await refreshTree();
       },
-      getSubmitters: () =>
-        projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([]),
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
       addSubmitter: async (submitter) => {
         if (!projectPath) return;
         await window.doru.addSubmitter(projectPath, submitter);
@@ -809,8 +826,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         if (!projectPath) return;
         await window.doru.deleteAddress(projectPath, address);
       },
-      getAddress: (id) =>
-        projectPath ? window.doru.getAddress(projectPath, id) : Promise.resolve(undefined),
+      getAddress: (id) => (projectPath ? window.doru.getAddress(projectPath, id) : Promise.resolve(undefined)),
     }),
     [projectPath, refreshTree, attachmentMethods],
   );

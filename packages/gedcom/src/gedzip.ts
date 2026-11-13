@@ -93,11 +93,16 @@ export function parseGedzip(bytes: Uint8Array, errors?: GedcomError[]): ParseRes
       if (fallback === undefined) {
         fail('gedzip.missing-dataset', `The archive has no ${GEDZIP_DATASET_ENTRY} entry`);
       }
-      datasetEntryName = fallback as string;
-      datasetBytes = entries[fallback as string] as Uint8Array;
+      const fallbackBytes = entries[fallback];
+      if (fallbackBytes === undefined) {
+        fail('gedzip.missing-dataset', `The archive has no ${GEDZIP_DATASET_ENTRY} entry`);
+      }
+      datasetEntryName = fallback;
+      datasetBytes = fallbackBytes;
     }
     const dataset = parseAny(datasetBytes, errors);
     if (!dataset.ok) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- GEDCOM errors are typed plain objects, not Error instances
       throw dataset.error;
     }
     const mediaFiles: GedzipMediaEntry[] = [];
@@ -119,6 +124,7 @@ export function serializeGedzip(archive: GedzipArchive): ParseResult<Uint8Array>
   return run<Uint8Array>(() => {
     const datasetBytes = serializeGedcom70Bytes(archive.dataset);
     if (!datasetBytes.ok) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- GEDCOM errors are typed plain objects, not Error instances
       throw datasetBytes.error;
     }
     const entries: Record<string, Uint8Array> = { [GEDZIP_DATASET_ENTRY]: datasetBytes.value };

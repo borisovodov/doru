@@ -4,12 +4,16 @@
 .workbench {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr 0px;
+
+  /* Columns are overridden by .agent-chat-open below. */
+  /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
+  grid-template-columns: auto 1fr 0;
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'titlebar titlebar titlebar'
     'sidecluster editor agent-chat';
   height: 100%;
+
   /* The shell backdrop visible through the gutters between the floating panels. */
   background: var(--doru-bg-chrome);
 }
@@ -93,6 +97,7 @@
   flex-direction: column;
   align-items: center;
   padding-top: 6px;
+
   /* The vertical gap matches the 6px side inset of the 36px buttons in the
      48px rail, so spacing reads uniform around every button. */
   gap: 6px;
@@ -142,7 +147,7 @@
   padding: 4px 10px;
   font-size: 12px;
   color: var(--doru-fg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
   white-space: nowrap;
 }
 
@@ -150,6 +155,7 @@
   flex: 0 0 var(--doru-sidebar-width, 260px);
   width: var(--doru-sidebar-width, 260px);
   box-sizing: border-box;
+
   /* The leading hairline is the seam that splits the shared card in two. */
   border-left: 1px solid var(--doru-border);
   overflow: auto;
@@ -191,6 +197,7 @@
   transform: translate(-50%, -50%);
   width: 4px;
   height: 22px;
+
   /* Three barely-visible dots that always hint at the drag affordance. */
   background-image:
     radial-gradient(circle, var(--doru-fg-faint) 1px, transparent 1px),
@@ -216,12 +223,14 @@
   transform: translateX(-50%);
   background: var(--doru-accent);
   opacity: 0;
+
   /* Fades out immediately so quick passes never flash. */
   transition: opacity 0.12s ease;
 }
 
 .sash:hover::after {
   opacity: 0.5;
+
   /* Appears only after a short hover, so sweeping the cursor across the
      window does not flicker the line. */
   transition-delay: 0.2s;
@@ -235,6 +244,7 @@
 
 .sash.dragging::after {
   opacity: 1;
+
   /* An actual resize shows the line right away. */
   transition-delay: 0s;
 }
@@ -265,6 +275,7 @@ body.sash-resizing * {
   display: flex;
   flex-direction: column;
   background: var(--doru-bg-canvas);
+
   /* The editor floats as its own card: rounded, framed, clipping the tab bar. */
   margin: 0 0 var(--doru-panel-gutter) var(--doru-panel-gutter);
   border: 1px solid var(--doru-border);
@@ -302,6 +313,7 @@ body.sash-resizing * {
 .tab-bar {
   display: flex;
   align-items: center;
+
   /* The tab strip takes the editor background, so the tabs
      float on it as pills; 35px strip with 24px pills, no bottom border.
      Tabs shrink with labels fading out instead of scrolling. */
@@ -318,11 +330,13 @@ body.sash-resizing * {
   display: flex;
   align-items: center;
   height: 24px;
+
   /* Browser-like sizing: equal widths capped at a common maximum; shrink to
      fit the editor width with fading labels. */
   flex: 1 1 0;
   min-width: 40px;
   max-width: 160px;
+
   /* 2px on each side + the strip's own padding: 4px between pill fills. */
   margin: 0 2px;
   padding: 0 8px 0 6px;
@@ -340,6 +354,7 @@ body.sash-resizing * {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+
   /* Clipped labels dissolve on the right edge; ellipses never appear. */
   text-overflow: clip;
 }
@@ -387,13 +402,9 @@ body.sash-resizing * {
   align-items: center;
   justify-content: center;
   border-radius: var(--doru-radius-sm);
+
   /* The close action is hidden until hover or activation. */
   opacity: 0;
-}
-
-.tab:hover .tab-close,
-.tab.active .tab-close {
-  opacity: 1;
 }
 
 .tab-close:hover {
@@ -407,6 +418,11 @@ body.sash-resizing * {
 .tab-bar-mac .tab-close {
   right: auto;
   left: 6px;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  opacity: 1;
 }
 
 .tab-bar-mac .tab:not(.no-close) .tab-label {
@@ -470,7 +486,7 @@ body.tab-reordering * {
   border-radius: var(--doru-radius-sm);
   background: var(--doru-bg-raised);
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 4px 12px rgb(0 0 0 / 25%),
     var(--doru-ring);
   color: var(--doru-fg);
   font-size: var(--doru-font-size);

@@ -248,18 +248,16 @@ export class TreeService {
    * step restores everything, attachments included.
    */
   deletePerson(person: PersonRecord): UndoRedoState {
-    const links = this.repo
-      .listFamiliesForPerson(person.id)
-      .map((family) => ({
-        before: family,
-        after: {
-          ...family,
-          partners: family.partners.filter((id) => id !== person.id),
-          children: family.children.filter((id) => id !== person.id),
-          partnerLinks: family.partnerLinks?.filter((link) => link.personId !== person.id),
-          childLinks: family.childLinks?.filter((link) => link.childId !== person.id),
-        },
-      }));
+    const links = this.repo.listFamiliesForPerson(person.id).map((family) => ({
+      before: family,
+      after: {
+        ...family,
+        partners: family.partners.filter((id) => id !== person.id),
+        children: family.children.filter((id) => id !== person.id),
+        partnerLinks: family.partnerLinks?.filter((link) => link.personId !== person.id),
+        childLinks: family.childLinks?.filter((link) => link.childId !== person.id),
+      },
+    }));
     const attachments = this.repo.listAttachmentsFor('person', person.id);
     return this.apply(deletePersonOp(person, links, attachments));
   }
@@ -280,9 +278,7 @@ export class TreeService {
         },
       });
     }
-    const target = this.repo
-      .listFamiliesForPerson(newParentId)
-      .find((entry) => entry.partners.includes(newParentId));
+    const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
     if (target) {
       links.push({
         before: target,
@@ -293,9 +289,7 @@ export class TreeService {
         },
       });
     }
-    const created = target
-      ? undefined
-      : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
+    const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
     return this.apply(reparentOp(links, created, childId));
   }
 
@@ -311,9 +305,7 @@ export class TreeService {
     if (relation === 'parent') {
       created = { id: crypto.randomUUID(), partners: [person.id], children: [anchorId] };
     } else {
-      const target = this.repo
-        .listFamiliesForPerson(anchorId)
-        .find((entry) => entry.partners.includes(anchorId));
+      const target = this.repo.listFamiliesForPerson(anchorId).find((entry) => entry.partners.includes(anchorId));
       if (target) {
         const after =
           relation === 'child'

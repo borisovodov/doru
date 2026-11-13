@@ -11,11 +11,10 @@ export interface ChatSetupPlaceholderProps {
 export function ChatSetupPlaceholder({ onOpenSettings }: ChatSetupPlaceholderProps) {
   return (
     <div className="chat-setup">
-      <PlaceholderView
-        title={nls.t('chat.setup.title')}
-        description={nls.t('chat.setup.description')}
-      >
-        <Button variant="primary" onClick={onOpenSettings}>{nls.t('chat.setup.openSettings')}</Button>
+      <PlaceholderView title={nls.t('chat.setup.title')} description={nls.t('chat.setup.description')}>
+        <Button variant="primary" onClick={onOpenSettings}>
+          {nls.t('chat.setup.openSettings')}
+        </Button>
       </PlaceholderView>
     </div>
   );

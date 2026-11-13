@@ -26,9 +26,7 @@ export interface ThemeInfo {
 /** Bundled themes shipped in the app resources (or the repo `themes/` in
  *  development). Read-only for users of a packaged build. */
 export function builtinThemesDir(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'themes')
-    : resolve(app.getAppPath(), '..', '..', 'themes');
+  return app.isPackaged ? join(process.resourcesPath, 'themes') : resolve(app.getAppPath(), '..', '..', 'themes');
 }
 
 /** User themes: `<userData>/themes`, the place where users drop their own
@@ -73,7 +71,7 @@ function themesIn(dir: string): ThemeInfo[] {
         // Malformed files and files that fail schema validation are skipped —
         // they must not appear in the theme list (and cannot be selected).
         const definition = readTheme(dir, id);
-        return definition ? ({ id, name: definition.name ?? id } as ThemeInfo) : null;
+        return definition ? { id, name: definition.name ?? id } : null;
       })
       .filter((theme): theme is ThemeInfo => theme !== null);
   } catch {

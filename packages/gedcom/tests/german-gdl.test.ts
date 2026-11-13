@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset, PlaceRecord } from '../src/structures';
+import { isPlaceRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -93,7 +94,7 @@ const SAMPLE = [
 
 function record(dataset: GedcomDataset, xref: string): PlaceRecord {
   const found = dataset.records.find((r) => r.xref === xref);
-  if (found === undefined || found.tag !== '_PLAC') {
+  if (found === undefined || !isPlaceRecord(found)) {
     throw new Error(`expected _PLAC ${xref}`);
   }
   return found;
@@ -110,7 +111,10 @@ describe('the GEDCOM-L German extension on 5.5.1 input', () => {
     const birth = indi.events?.find((e) => e.tag === 'BIRT');
     expect(birth?.detail?.place?.govId).toBe('WEIHEN_W6051');
     expect(birth?.detail?.place?.postalCodes).toEqual([
-      { code: '63110', date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', day: 1, month: 'JUL', year: 1993 } } } },
+      {
+        code: '63110',
+        date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', day: 1, month: 'JUL', year: 1993 } } },
+      },
     ]);
     expect(birth?.detail?.place?.location).toBe('@P1@');
     const christening = indi.events?.find((e) => e.tag === 'CHR');
@@ -129,26 +133,46 @@ describe('the GEDCOM-L German extension on 5.5.1 input', () => {
       { name: 'Weiskirchen (alt)', date: { value: { kind: 'period', to: { calendar: 'GREGORIAN', year: 1993 } } } },
     ]);
     expect(card.types).toEqual([
-      { type: 'Ortsteil', govTypeId: '123', date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', year: 1938 } } } },
+      {
+        type: 'Ortsteil',
+        govTypeId: '123',
+        date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', year: 1938 } } },
+      },
     ]);
     expect(card.govId).toBe('WEIHEN_W6051');
     expect(card.postalCodes).toEqual([
-      { code: '63110', date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', day: 1, month: 'JUL', year: 1993 } } } },
-      { code: 'W6051', date: { value: { kind: 'period', to: { calendar: 'GREGORIAN', day: 30, month: 'JUN', year: 1993 } } } },
+      {
+        code: '63110',
+        date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', day: 1, month: 'JUL', year: 1993 } } },
+      },
+      {
+        code: 'W6051',
+        date: { value: { kind: 'period', to: { calendar: 'GREGORIAN', day: 30, month: 'JUN', year: 1993 } } },
+      },
     ]);
-    expect(card.administrativeIds).toEqual([
-      { identifier: '06438011', type: 'Gemeindekennzahl' },
-    ]);
+    expect(card.administrativeIds).toEqual([{ identifier: '06438011', type: 'Gemeindekennzahl' }]);
     expect(card.demographicData).toEqual([
-      { data: '1234 Einwohner', type: 'Einwohnerzahl', date: { value: { kind: 'date', calendar: 'GREGORIAN', year: 1990 } } },
+      {
+        data: '1234 Einwohner',
+        type: 'Einwohnerzahl',
+        date: { value: { kind: 'date', calendar: 'GREGORIAN', year: 1990 } },
+      },
     ]);
     expect(card.maidenhead).toBe('JO40KB');
     expect(card.denomination).toBe('ev');
     expect(card.events).toEqual([
-      { tag: 'EVEN', payload: 'Stadtrecht', detail: { date: { value: { kind: 'date', calendar: 'GREGORIAN', year: 1232 } } } },
+      {
+        tag: 'EVEN',
+        payload: 'Stadtrecht',
+        detail: { date: { value: { kind: 'date', calendar: 'GREGORIAN', year: 1232 } } },
+      },
     ]);
     expect(card.parents).toEqual([
-      { parent: '@P2@', type: 'POLI', date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', year: 1938 } } } },
+      {
+        parent: '@P2@',
+        type: 'POLI',
+        date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', year: 1938 } } },
+      },
     ]);
     expect(card.map?.latitude.degrees).toBe(50.05);
   });
@@ -160,25 +184,25 @@ describe('the GEDCOM-L German extension on 5.5.1 input', () => {
   });
 });
 
-
 describe('the FAM negatives and cohabitation', () => {
-  const famDoc = (body: string): string => [
-    '0 HEAD',
-    '1 SOUR X',
-    '1 SUBM @S1@',
-    '1 GEDC',
-    '2 VERS 5.5.1',
-    '2 FORM LINEAGE-LINKED',
-    '1 CHAR UTF-8',
-    '0 @S1@ SUBM',
-    '1 NAME T',
-    '0 @I1@ INDI',
-    '1 NAME John /Doe/',
-    '0 @F1@ FAM',
-    '1 HUSB @I1@',
-    ...body.split('\n'),
-    '0 TRLR',
-  ].join('\n');
+  const famDoc = (body: string): string =>
+    [
+      '0 HEAD',
+      '1 SOUR X',
+      '1 SUBM @S1@',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '2 FORM LINEAGE-LINKED',
+      '1 CHAR UTF-8',
+      '0 @S1@ SUBM',
+      '1 NAME T',
+      '0 @I1@ INDI',
+      '1 NAME John /Doe/',
+      '0 @F1@ FAM',
+      '1 HUSB @I1@',
+      ...body.split('\n'),
+      '0 TRLR',
+    ].join('\n');
 
   test('_MARR N normalizes into a FAM NO MARR', () => {
     const dataset = parseOk551(famDoc('1 _MARR N'));
@@ -219,9 +243,21 @@ describe('the FAM negatives and cohabitation', () => {
   });
 
   test('a FAM NO MARR with a date is still dropped on 5.5.1', () => {
-    const result = parseGedcom70(enc(
-      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '0 @F1@ FAM', '1 HUSB @I1@', '1 NO MARR', '2 DATE TO 1880', '0 TRLR'].join('\n'),
-    ));
+    const result = parseGedcom70(
+      enc(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @I1@ INDI',
+          '0 @F1@ FAM',
+          '1 HUSB @I1@',
+          '1 NO MARR',
+          '2 DATE TO 1880',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     if (!result.ok) {
       throw new Error(JSON.stringify(result.error));
     }
@@ -243,7 +279,6 @@ describe('the FAM negatives and cohabitation', () => {
     expect(parseOk551(text)).toEqual(dataset);
   });
 });
-
 
 describe('the GEDCOM-L _ASSO associations', () => {
   test('_ASSO under FAM and under events', () => {
@@ -357,7 +392,10 @@ describe('the FAM _TYPE strictness', () => {
     if (withOther.ok) {
       const fam = withOther.value.records.find((r) => r.tag === 'FAM');
       expect((fam as { sameSexUnion?: true } | undefined)?.sameSexUnion).toBeUndefined();
-      expect((fam as { extensions?: { tag: string; payload?: string }[] }).extensions?.[0]).toMatchObject({ tag: '_TYPE', payload: 'sonstiges' });
+      expect((fam as { extensions?: { tag: string; payload?: string }[] }).extensions?.[0]).toMatchObject({
+        tag: '_TYPE',
+        payload: 'sonstiges',
+      });
     }
   });
 });
@@ -430,7 +468,7 @@ describe('the GEDCOM-L German extension on output', () => {
     expect(second.value).toEqual(first.value);
     // The German data survived the 7.0 projection.
     const card = second.value.records.find((r) => r.xref === '@P1@');
-    if (card === undefined || card.tag !== '_PLAC') {
+    if (card === undefined || !isPlaceRecord(card)) {
       throw new Error('expected the _LOC card in the 7.0 output');
     }
     expect(card.govId).toBe('WEIHEN_W6051');

@@ -33,13 +33,9 @@ test('the theme dropdown lists valid themes, hides broken ones, and persists the
   await themeSelect.selectOption('custom');
 
   // The choice is persisted into settings.json…
-  await expect
-    .poll(() => readFileSync(join(userData, 'settings.json'), 'utf8'))
-    .toContain('"theme": "custom"');
+  await expect.poll(() => readFileSync(join(userData, 'settings.json'), 'utf8')).toContain('"theme": "custom"');
   // …and the app applies it.
-  await expect
-    .poll(async () => (await page.evaluate(() => window.doru.getThemeState())).theme)
-    .toBe('custom');
+  await expect.poll(async () => (await page.evaluate(() => window.doru.getThemeState())).theme).toBe('custom');
 
   await app.close();
 });

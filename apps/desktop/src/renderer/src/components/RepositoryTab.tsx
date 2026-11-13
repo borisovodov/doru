@@ -3,13 +3,22 @@ import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
-import type {
-  CitationRecord, ContactRecord, IdentifierRecord, NoteRecord, RepositoryRecord, RestrictionRecord, SourceRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+import type { RepositoryRecord, SourceRecord } from '@doru/core';
 import { EntityTab, type RegistriesEditorApi } from '@doru/features';
-import { AddressFields, ContactsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, addressLabel } from '@doru/ui/domain';
+import {
+  AddressFields,
+  ContactsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  addressLabel,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
+import { useAttachments } from '../hooks/useAttachments';
 import { REPOSITORY_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -74,43 +83,17 @@ function RepositoryTabBody({
   const [name, setName] = useState(base.name);
   const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
   const [addressText, setAddressText] = useState('');
-  const [repositoryNotes, setRepositoryNotes] = useState<NoteRecord[]>([]);
-  const [repositoryCitations, setRepositoryCitations] = useState<CitationRecord[]>([]);
-  const [tags, setTags] = useState<TagRecord[]>([]);
-  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
-  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
-  const [contacts, setContacts] = useState<ContactRecord[]>([]);
-  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
-
   const targetId = (lastSaved ?? record)?.id;
-
-  const refreshAttachments = async () => {
-    if (targetId === undefined) {
-      return;
-    }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions] =
-      await Promise.all([
-        api.getNotes('repository', targetId),
-        api.getCitations('repository', targetId),
-        api.getTags(),
-        api.getTagLinks('repository', targetId),
-        api.getIdentifiers('repository', targetId),
-        api.getContacts('repository', targetId),
-        api.getRestrictions('repository', targetId),
-      ]);
-    setRepositoryNotes(loadedNotes);
-    setRepositoryCitations(loadedCitations);
-    setTags(loadedTags);
-    setTagLinks(loadedTagLinks);
-    setIdentifiers(loadedIdentifiers);
-    setContacts(loadedContacts);
-    setRestrictions(loadedRestrictions);
-  };
-
-  useEffect(() => {
-    void refreshAttachments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetId]);
+  const {
+    notes: repositoryNotes,
+    citations: repositoryCitations,
+    tags,
+    tagLinks,
+    identifiers,
+    contacts,
+    restrictions,
+    refresh: refreshAttachments,
+  } = useAttachments('repository', targetId, api);
 
   useEffect(() => {
     let cancelled = false;

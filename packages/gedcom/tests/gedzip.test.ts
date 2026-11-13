@@ -164,15 +164,7 @@ describe('the tolerant GEDZIP parse', () => {
     // The geditcom TestGED.zip shape: the bundled stream is a torture
     // file with recorded errors — the container must not fail as a
     // whole when the caller parses tolerantly.
-    const broken = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '0 @I1@ INDI',
-      '1 NAME A /B/',
-      '1 SEX Z',
-      '0 TRLR',
-    ].join('\n');
+    const broken = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 NAME A /B/', '1 SEX Z', '0 TRLR'].join('\n');
     const bytes = zipSync({ 'gedcom.ged': enc(broken), 'media/photo.jpg': enc('JPEG-BYTES') });
     const strict = parseGedzip(bytes);
     expect(strict.ok).toBe(false);

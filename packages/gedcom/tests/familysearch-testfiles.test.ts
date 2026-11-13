@@ -39,7 +39,7 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
 
     // The SCHMA block: every declared tag is typed.
     expect(dataset.header.schema?.tagDefinitions).toHaveLength(14);
-    expect(dataset.header.schema?.tagDefinitions?.[3]).toEqual({
+    expect(dataset.header.schema?.tagDefinitions[3]).toEqual({
       payload: { tag: '_CALENDAR', uri: 'http://example.com/calendar' },
     });
 
@@ -60,7 +60,11 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
         // Pointer-shaped payloads inside extensions are marked (see
         // ExtensionStructure.payloadKind) but not resolved.
         { tag: 'SUBM', payload: '@U2@', payloadKind: 'pointer', children: [] },
-        { tag: 'DATE', payload: 'TO 1880', children: [{ tag: 'PHRASE', payload: 'Dissolved in the 1870s', children: [] }] },
+        {
+          tag: 'DATE',
+          payload: 'TO 1880',
+          children: [{ tag: 'PHRASE', payload: 'Dissolved in the 1870s', children: [] }],
+        },
       ],
     });
 
@@ -123,7 +127,11 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
     expect(noxref.associations?.[0]?.role?.payload).toBe('_CHILD');
     // A documented extension record with a shared tag.
     const party = dataset.records.find((entry) => entry.xref === '@P1@');
-    expect(party).toEqual({ tag: '_PARTY', xref: '@P1@', children: [{ tag: 'NAME', payload: 'Spring Fling', children: [] }] });
+    expect(party).toEqual({
+      tag: '_PARTY',
+      xref: '@P1@',
+      children: [{ tag: 'NAME', payload: 'Spring Fling', children: [] }],
+    });
     // Standard and relocated enumerations under SOUR.DATA.EVEN.
     const source = dataset.records.find((entry) => entry.tag === 'SOUR');
     expect(source?.tag === 'SOUR' ? source.data?.events?.[0]?.payload : undefined).toEqual(['DEAT', '_CHILD']);
@@ -151,7 +159,13 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
       names: [
         {
           name: 'Town',
-          date: { value: { kind: 'period', from: { calendar: 'GREGORIAN', year: 1800 }, to: { calendar: 'GREGORIAN', year: 1900 } } },
+          date: {
+            value: {
+              kind: 'period',
+              from: { calendar: 'GREGORIAN', year: 1800 },
+              to: { calendar: 'GREGORIAN', year: 1900 },
+            },
+          },
         },
       ],
       parents: [{ parent: '@LOC2@' }],
@@ -170,27 +184,33 @@ describe('the FamilySearch GEDCOM 7.0 test files (gedcom.io/testfiles/gedcom70/)
 });
 
 describe('the SCHMA-documented extension tag resolution (GEDCOM 7.0 §1.5 / §2.14)', () => {
-  const doc = (body: string): string => [
-    '0 HEAD',
-    '1 GEDC',
-    '2 VERS 7.0',
-    '1 SCHMA',
-    '2 TAG _PERSON https://gedcom.io/terms/v7/record-INDI',
-    '2 TAG _WHO https://gedcom.io/terms/v7/SUBM',
-    '2 TAG _SN https://gedcom.io/terms/v7/record-SNORE',
-    '2 TAG _SUB https://gedcom.io/terms/v7/record-SUBM',
-    '2 TAG _NOTE https://gedcom.io/terms/v7/NOTE',
-    '2 TAG _WHEN https://gedcom.io/terms/v7/DATE',
-    '2 TAG _CHILD https://gedcom.io/terms/v7/enum-CHIL',
-    '2 TAG _X http://example.com/x',
-    ...body.split('\n'),
-    '0 TRLR',
-  ].join('\n');
+  const doc = (body: string): string =>
+    [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '1 SCHMA',
+      '2 TAG _PERSON https://gedcom.io/terms/v7/record-INDI',
+      '2 TAG _WHO https://gedcom.io/terms/v7/SUBM',
+      '2 TAG _SN https://gedcom.io/terms/v7/record-SNORE',
+      '2 TAG _SUB https://gedcom.io/terms/v7/record-SUBM',
+      '2 TAG _NOTE https://gedcom.io/terms/v7/NOTE',
+      '2 TAG _WHEN https://gedcom.io/terms/v7/DATE',
+      '2 TAG _CHILD https://gedcom.io/terms/v7/enum-CHIL',
+      '2 TAG _X http://example.com/x',
+      ...body.split('\n'),
+      '0 TRLR',
+    ].join('\n');
 
   test('a documented record alias parses as the standard record and is written standard-first', () => {
     const dataset = parseOk70(doc('0 @I1@ _PERSON\n1 NAME John /Doe/\n1 SEX M'));
     const record = dataset.records[0];
-    expect(record).toEqual({ tag: 'INDI', xref: '@I1@', names: [{ tag: 'NAME', payload: { given: 'John', surname: 'Doe' } }], sex: 'M' });
+    expect(record).toEqual({
+      tag: 'INDI',
+      xref: '@I1@',
+      names: [{ tag: 'NAME', payload: { given: 'John', surname: 'Doe' } }],
+      sex: 'M',
+    });
     const text = ser70(dataset);
     expect(text).toContain('0 @I1@ INDI');
     expect(parseOk70(text)).toEqual(dataset);
@@ -223,7 +243,9 @@ describe('the SCHMA-documented extension tag resolution (GEDCOM 7.0 §1.5 / §2.
     // may place the standard meaning where the standard cannot).
     const dataset = parseOk70(doc('0 @I1@ INDI\n1 NAME John /Doe/\n1 _WHEN 1900'));
     const indi = dataset.records.find((entry) => entry.tag === 'INDI');
-    expect(indi?.tag === 'INDI' ? indi.extensions : undefined).toEqual([{ tag: '_WHEN', payload: '1900', children: [] }]);
+    expect(indi?.tag === 'INDI' ? indi.extensions : undefined).toEqual([
+      { tag: '_WHEN', payload: '1900', children: [] },
+    ]);
     expect(parseOk70(ser70(dataset))).toEqual(dataset);
   });
 
@@ -235,7 +257,12 @@ describe('the SCHMA-documented extension tag resolution (GEDCOM 7.0 §1.5 / §2.
 
   test('a non-g7: URI stays generic', () => {
     const dataset = parseOk70(doc('0 @X1@ _X whatever\n1 _CHILD y'));
-    expect(dataset.records[0]).toEqual({ tag: '_X', xref: '@X1@', payload: 'whatever', children: [{ tag: '_CHILD', payload: 'y', children: [] }] });
+    expect(dataset.records[0]).toEqual({
+      tag: '_X',
+      xref: '@X1@',
+      payload: 'whatever',
+      children: [{ tag: '_CHILD', payload: 'y', children: [] }],
+    });
     expect(parseOk70(ser70(dataset))).toEqual(dataset);
   });
 

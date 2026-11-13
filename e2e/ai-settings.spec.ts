@@ -42,14 +42,7 @@ test('the AI settings section configures and tests a provider', async () => {
     // reasoning control: provider default plus the OpenAI-shaped levels.
     const reasoning = page.getByLabel('Reasoning');
     await expect(reasoning).toBeVisible();
-    await expect(reasoning.locator('option')).toHaveText([
-      'Default',
-      'None',
-      'Minimal',
-      'Low',
-      'Medium',
-      'High',
-    ]);
+    await expect(reasoning.locator('option')).toHaveText(['Default', 'None', 'Minimal', 'Low', 'Medium', 'High']);
     await reasoning.selectOption('high');
 
     // The connection test runs against the configured endpoint.

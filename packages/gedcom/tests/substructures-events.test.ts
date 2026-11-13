@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset } from '../src/structures';
+import { isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -70,15 +71,28 @@ describe('associations and roles', () => {
         '2 PHRASE witness',
         '2 NOTE a note',
         '2 SOUR @S2@',
-        '0 @I2@ INDI', '1 NAME Jane /Roe/',
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @I2@ INDI',
+        '1 NAME Jane /Roe/',
+        '0 @S2@ SOUR',
+        '1 TITL S',
       ]),
     );
-    const rec = dataset.records[0] as { associations?: Array<{ individual: string; role?: { payload: string; phrase?: string }; phrase?: string; notes?: unknown[]; citations?: unknown[] }> };
+    const rec = dataset.records[0] as {
+      associations?: Array<{
+        individual: string;
+        role?: { payload: string; phrase?: string };
+        phrase?: string;
+        notes?: unknown[];
+        citations?: unknown[];
+      }>;
+    };
     expect(rec.associations?.[0]).toEqual({
-      tag: 'ASSO', individual: '@I2@',
+      tag: 'ASSO',
+      individual: '@I2@',
       role: { payload: 'FRIEND', phrase: 'close friend' },
-      phrase: 'witness', notes: [{ tag: 'NOTE', payload: 'a note' }], citations: [{ tag: 'SOUR', source: '@S2@' }],
+      phrase: 'witness',
+      notes: [{ tag: 'NOTE', payload: 'a note' }],
+      citations: [{ tag: 'SOUR', source: '@S2@' }],
     });
   });
 
@@ -92,15 +106,19 @@ describe('associations and roles', () => {
   test('5.5.1 ROLE spells the six keywords and parenthesized descriptors', () => {
     const dataset = parse551(
       indi551([
-        '0 @I2@ INDI', '1 NAME X',
+        '0 @I2@ INDI',
+        '1 NAME X',
         '1 ASSO @I2@',
         '2 RELA Godfather',
         '1 ASSO @I3@',
         '2 ROLE (Witness)',
-        '0 @I3@ INDI', '1 NAME Y',
+        '0 @I3@ INDI',
+        '1 NAME Y',
       ]),
     );
-    const rec = dataset.records[1] as { associations?: Array<{ individual: string; role?: { payload: string; phrase?: string } }> };
+    const rec = dataset.records[1] as {
+      associations?: Array<{ individual: string; role?: { payload: string; phrase?: string } }>;
+    };
     expect(rec.associations?.[0]?.role).toEqual({ payload: 'OTHER', phrase: 'Godfather' });
     expect(rec.associations?.[1]?.role).toEqual({ payload: 'OTHER', phrase: 'Witness' });
   });
@@ -110,13 +128,15 @@ describe('associations and roles', () => {
     // descriptor becomes OTHER + phrase.
     const dataset = parse551(
       indi551([
-        '0 @I2@ INDI', '1 NAME X',
+        '0 @I2@ INDI',
+        '1 NAME X',
         '1 ASSO @I2@',
         '2 ROLE (W)',
         '3 PHRASE x',
         '1 ASSO @I3@',
         '2 ROLE nope',
-        '0 @I3@ INDI', '1 NAME Y',
+        '0 @I3@ INDI',
+        '1 NAME Y',
       ]),
     );
     const rec = dataset.records[1] as { associations?: Array<{ role?: { payload: string; phrase?: string } }> };
@@ -132,10 +152,15 @@ describe('associations and roles', () => {
         '3 EVEN BIRT',
         '4 ROLE WITN',
         '5 PHRASE the witness',
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
       ]),
     );
-    const rec = dataset.records[0] as { events?: Array<{ detail?: { citations?: Array<{ event?: { payload: string; role?: { payload: string; phrase?: string } } }> } }> };
+    const rec = dataset.records[0] as {
+      events?: Array<{
+        detail?: { citations?: Array<{ event?: { payload: string; role?: { payload: string; phrase?: string } } }> };
+      }>;
+    };
     expect(rec.events?.[0]?.detail?.citations?.[0]?.event?.role).toEqual({ payload: 'WITN', phrase: 'the witness' });
   });
 });
@@ -155,11 +180,21 @@ describe('change dates, creation dates and sort dates', () => {
 
   test('7.0 SDATE with value, TIME and PHRASE; _SDATE is the 5.5.1 spelling', () => {
     const dataset = parse70(indi70(['1 BIRT', '2 SDATE 1900', '3 TIME 10:30', '3 PHRASE computed']));
-    const rec = dataset.records[0] as { events?: Array<{ detail?: { sortDate?: { value?: { kind: string; year: number }; time?: { hour: number }; phrase?: string } } }> };
-    expect(rec.events?.[0]?.detail?.sortDate).toEqual({ value: { kind: 'date', calendar: 'GREGORIAN', year: 1900 }, time: { hour: 10, minute: 30 }, phrase: 'computed' });
+    const rec = dataset.records[0] as {
+      events?: Array<{
+        detail?: { sortDate?: { value?: { kind: string; year: number }; time?: { hour: number }; phrase?: string } };
+      }>;
+    };
+    expect(rec.events?.[0]?.detail?.sortDate).toEqual({
+      value: { kind: 'date', calendar: 'GREGORIAN', year: 1900 },
+      time: { hour: 10, minute: 30 },
+      phrase: 'computed',
+    });
 
     const dataset551 = parse551(indi551(['1 BIRT', '2 _SDATE 1900']));
-    const rec551 = dataset551.records[0] as { events?: Array<{ detail?: { sortDate?: { value?: { kind: string; year: number } } } }> };
+    const rec551 = dataset551.records[0] as {
+      events?: Array<{ detail?: { sortDate?: { value?: { kind: string; year: number } } } }>;
+    };
     expect(rec551.events?.[0]?.detail?.sortDate?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1900 });
   });
 
@@ -168,7 +203,9 @@ describe('change dates, creation dates and sort dates', () => {
     const rec = dataset.records[0] as { events?: Array<{ detail?: { sortDate?: { phrase?: string } } }> };
     expect(rec.events?.[0]?.detail?.sortDate?.phrase).toBe('sometime');
     const withChild = parse551(indi551(['1 BIRT', '2 _SDATE 1900', '3 BOGUS x']));
-    const rec2 = withChild.records[0] as { events?: Array<{ detail?: { sortDate?: { extensions?: Array<{ tag: string }> } } }> };
+    const rec2 = withChild.records[0] as {
+      events?: Array<{ detail?: { sortDate?: { extensions?: Array<{ tag: string }> } } }>;
+    };
     expect(rec2.events?.[0]?.detail?.sortDate?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
@@ -176,7 +213,9 @@ describe('change dates, creation dates and sort dates', () => {
     const bare = parseGedcom551(enc(indi551(['1 BIRT', '2 DATE'])));
     expect(bare.ok).toBe(true);
     const withChild = parse551(indi551(['1 BIRT', '2 DATE 1900', '3 BOGUS x']));
-    const rec = withChild.records[0] as { events?: Array<{ detail?: { date?: { extensions?: Array<{ tag: string }> } } }> };
+    const rec = withChild.records[0] as {
+      events?: Array<{ detail?: { date?: { extensions?: Array<{ tag: string }> } } }>;
+    };
     expect(rec.events?.[0]?.detail?.date?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
@@ -193,14 +232,18 @@ describe('change dates, creation dates and sort dates', () => {
     expect(err551(indi551(['1 CHAN', '2 DATE (sometime)']))).toBe('date.invalid');
     // TIME is allowed on the exact date.
     const dataset = parse551(indi551(['1 CHAN', '2 DATE 1 JAN 1900', '3 TIME 10:30:15.5']));
-    const rec = dataset.records[0] as { changeDate?: { date: { value: unknown; time?: { second: number; fraction?: string } } } };
+    const rec = dataset.records[0] as {
+      changeDate?: { date: { value: unknown; time?: { second: number; fraction?: string } } };
+    };
     expect(rec.changeDate?.date.time?.second).toBe(15);
     expect(rec.changeDate?.date.time?.fraction).toBe('5');
   });
 
   test('AGE accepts a PHRASE', () => {
     const dataset = parse70(indi70(['1 BIRT', '2 AGE > 50y', '3 PHRASE about fifty']));
-    const rec = dataset.records[0] as { events?: Array<{ detail?: { age?: { payload: { bound: string; years: number }; phrase: string } } }> };
+    const rec = dataset.records[0] as {
+      events?: Array<{ detail?: { age?: { payload: { bound: string; years: number }; phrase: string } } }>;
+    };
     expect(rec.events?.[0]?.detail?.age).toEqual({ payload: { bound: '>', years: 50 }, phrase: 'about fifty' });
   });
 
@@ -211,10 +254,13 @@ describe('change dates, creation dates and sort dates', () => {
         '2 DATE FROM 1900 TO 1910',
         '2 NOTE never happened',
         '2 SOUR @S2@',
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
       ]),
     );
-    const rec = dataset.records[0] as { nonEvents?: Array<{ payload: string; date?: { value: unknown }; notes?: unknown[]; citations?: unknown[] }> };
+    const rec = dataset.records[0] as {
+      nonEvents?: Array<{ payload: string; date?: { value: unknown }; notes?: unknown[]; citations?: unknown[] }>;
+    };
     expect(rec.nonEvents?.[0]?.payload).toBe('DEAT');
     expect(rec.nonEvents?.[0]?.date?.value).toBeDefined();
     expect(rec.nonEvents?.[0]?.notes).toHaveLength(1);
@@ -228,7 +274,7 @@ describe('note structures', () => {
     const snote = dataset.records.find((record) => record.tag === 'SNOTE') as {
       extensions?: Array<{ tag: string; payload?: string; payloadKind?: string; children?: Array<{ tag: string }> }>;
     };
-    const reference = snote?.extensions?.find((extension) => extension.tag === 'SNOTE');
+    const reference = snote.extensions?.find((extension) => extension.tag === 'SNOTE');
     expect(reference?.payload).toBe('@N1@');
     expect(reference?.payloadKind).toBe('pointer');
     expect(reference?.children?.some((child) => child.tag === 'BOGUS')).toBe(true);
@@ -251,11 +297,15 @@ describe('note structures', () => {
         '2 SOUR @S2@',
         '2 SOUR @S3@',
         '0 @N1@ NOTE text',
-        '0 @S2@ SOUR', '1 TITL Two',
-        '0 @S3@ SOUR', '1 TITL Three',
+        '0 @S2@ SOUR',
+        '1 TITL Two',
+        '0 @S3@ SOUR',
+        '1 TITL Three',
       ]),
     );
-    const rec = dataset.records[0] as { notes?: Array<{ tag: string; note: string; citations?: Array<{ tag: string; source: string }> }> };
+    const rec = dataset.records[0] as {
+      notes?: Array<{ tag: string; note: string; citations?: Array<{ tag: string; source: string }> }>;
+    };
     expect(rec.notes?.[0]).toEqual({
       tag: 'NOTE',
       note: '@N1@',
@@ -281,14 +331,7 @@ describe('note structures', () => {
   });
 
   test('NOTE pointer citations: 5.5.1 writes them back, 7.0 drops them', () => {
-    const dataset = parse551(
-      indi551([
-        '1 NOTE @N1@',
-        '2 SOUR @S2@',
-        '0 @N1@ NOTE text',
-        '0 @S2@ SOUR', '1 TITL Two',
-      ]),
-    );
+    const dataset = parse551(indi551(['1 NOTE @N1@', '2 SOUR @S2@', '0 @N1@ NOTE text', '0 @S2@ SOUR', '1 TITL Two']));
     const out551 = ser551(dataset);
     expect(out551).toContain('1 NOTE @N1@');
     expect(out551).toContain('2 SOUR @S2@');
@@ -308,12 +351,24 @@ describe('note structures', () => {
         '3 MIME text/plain',
         '3 LANG de',
         '2 SOUR @S2@',
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
       ]),
     );
-    const rec = dataset.records[0] as { notes?: Array<{ payload: string; mediaType?: string; language?: string; translations?: Array<{ payload: string; mediaType?: string; language?: string }>; citations?: unknown[] }> };
+    const rec = dataset.records[0] as {
+      notes?: Array<{
+        payload: string;
+        mediaType?: string;
+        language?: string;
+        translations?: Array<{ payload: string; mediaType?: string; language?: string }>;
+        citations?: unknown[];
+      }>;
+    };
     expect(rec.notes?.[0]).toEqual({
-      tag: 'NOTE', payload: 'the text', mediaType: 'text/plain', language: 'en',
+      tag: 'NOTE',
+      payload: 'the text',
+      mediaType: 'text/plain',
+      language: 'en',
       translations: [{ payload: 'de', mediaType: 'text/plain', language: 'de' }],
       citations: [{ tag: 'SOUR', source: '@S2@' }],
     });
@@ -326,7 +381,7 @@ describe('note structures', () => {
       throw new Error('expected INDI');
     }
     const note = indi.notes?.[0];
-    expect(note && 'translations' in note ? note.translations?.[0] : undefined).toEqual({ payload: 'de' });
+    expect(note && 'translations' in note ? note.translations[0] : undefined).toEqual({ payload: 'de' });
   });
 
   test('UID keeps substructures as extensions', () => {
@@ -377,19 +432,17 @@ describe('source citations and media links', () => {
         '3 _APID 123',
         '3 _CREF c',
         '3 _VERI Y',
-        '0 @S2@ SOUR', '1 TITL S',
-        '0 @O1@ OBJE', '1 FILE a.jpg', '2 FORM image/jpeg',
+        '0 @S2@ SOUR',
+        '1 TITL S',
+        '0 @O1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM image/jpeg',
       ]),
     );
-    const rec = dataset.records[0] as {
-      events?: Array<{ detail?: { citations?: Array<{
-        source: string; page?: string;
-        data?: { date?: { value?: unknown }; texts?: Array<{ payload: string; mediaType?: string }> };
-        event?: { payload: string; role?: { payload: string } }; quality?: string;
-        media?: Array<{ object: string; crop?: { top: number; left: number; height: number; width: number }; title?: string }>;
-        notes?: unknown[]; ancestryPointers?: string[]; reference?: string; verified?: boolean;
-      }> } }>;
-    };
+    const rec = dataset.records[0];
+    if (rec === undefined || !isIndividualRecord(rec)) {
+      throw new Error('expected INDI');
+    }
     const citation = rec.events?.[0]?.detail?.citations?.[0];
     expect(citation?.page?.payload).toBe('p.12');
     expect(citation?.data?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1900 });
@@ -415,17 +468,22 @@ describe('source citations and media links', () => {
         '2 SOUR some free text',
         '3 TEXT the transcript',
         '3 QUAY 3',
-        '0 @S2@ SOUR', '1 TITL S',
+        '0 @S2@ SOUR',
+        '1 TITL S',
       ]),
     );
-    const rec = dataset.records[0] as { events?: Array<{ detail?: { citations?: Array<{ source: string; description?: string; page?: string; quality?: string; verified?: boolean; data?: { texts?: Array<{ payload: string }> } }> } }> };
-    expect(rec.events?.[0]?.detail?.citations?.[0]?.source).toBe('@S2@');
-    expect(rec.events?.[0]?.detail?.citations?.[0]?.page?.payload).toBe('p.1');
-    expect(rec.events?.[0]?.detail?.citations?.[0]?.quality).toBe('2');
-    expect(rec.events?.[0]?.detail?.citations?.[0]?.verified).toBe(false);
-    expect(rec.events?.[0]?.detail?.citations?.[1]?.source).toBe('@VOID@');
-    expect(rec.events?.[0]?.detail?.citations?.[1]?.description).toBe('some free text');
-    expect(rec.events?.[0]?.detail?.citations?.[1]?.data?.texts?.[0]?.payload).toBe('the transcript');
+    const rec = dataset.records[0];
+    if (rec === undefined || !isIndividualRecord(rec)) {
+      throw new Error('expected INDI');
+    }
+    const citations = rec.events?.[0]?.detail?.citations;
+    expect(citations?.[0]?.source).toBe('@S2@');
+    expect(citations?.[0]?.page?.payload).toBe('p.1');
+    expect(citations?.[0]?.quality).toBe('2');
+    expect(citations?.[0]?.verified).toBe(false);
+    expect(citations?.[1]?.source).toBe('@VOID@');
+    expect(citations?.[1]?.description).toBe('some free text');
+    expect(citations?.[1]?.data?.texts?.[0]?.payload).toBe('the transcript');
   });
 
   test('5.5.1 bare SOUR citation line is kept as an empty description', () => {
@@ -449,13 +507,19 @@ describe('source citations and media links', () => {
         '2 _DATE 1900',
       ]),
     );
-    const rec = dataset.records[0] as { media?: Array<{ object: string; primary?: boolean; scrapbook?: boolean; slideshow?: boolean }> };
+    const rec = dataset.records[0] as {
+      media?: Array<{ object: string; primary?: boolean; scrapbook?: boolean; slideshow?: boolean }>;
+    };
     expect(rec.media?.[0]?.object).toBe('@_SYNO0@');
     expect(rec.media?.[0]?.primary).toBe(true);
     expect(rec.media?.[0]?.scrapbook).toBe(false);
     expect(rec.media?.[0]?.slideshow).toBe(true);
     const synthetic = dataset.records[dataset.records.length - 1] as {
-      tag: 'OBJE'; files: Array<{ payload: string; form: { payload: string }; title?: string }>; objectType?: string; soundFile?: string; date?: unknown;
+      tag: 'OBJE';
+      files: Array<{ payload: string; form: { payload: string }; title?: string }>;
+      objectType?: string;
+      soundFile?: string;
+      date?: unknown;
     };
     expect(synthetic.tag).toBe('OBJE');
     expect(synthetic.files[0]?.title).toBe('the title');
@@ -463,8 +527,10 @@ describe('source citations and media links', () => {
     expect(synthetic.soundFile).toBe('s.wav');
     expect(synthetic.date).toBeDefined();
     const withBogus = parse551(indi551(['1 OBJE', '2 FILE b.jpg', '3 FORM jpg', '2 BOGUS']));
-    const synthetic2 = withBogus.records.find((record) => record.tag === 'OBJE') as { extensions?: Array<{ tag: string }> };
-    expect(synthetic2?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    const synthetic2 = withBogus.records.find((record) => record.tag === 'OBJE') as {
+      extensions?: Array<{ tag: string }>;
+    };
+    expect(synthetic2.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('5.5.1 inline OBJE without a FILE still synthesizes an empty record', () => {
@@ -472,13 +538,14 @@ describe('source citations and media links', () => {
     const rec = dataset.records[0] as { media?: Array<{ object: string }> };
     expect(rec.media?.[0]?.object).toBe('@_SYNO0@');
     const synthetic = dataset.records.find((record) => record.tag === 'OBJE') as { files: unknown[] };
-    expect(synthetic?.files).toEqual([]);
+    expect(synthetic.files).toEqual([]);
   });
 
   test('_PRIV flag semantics', () => {
-    const dataset = parse70(indi70(['1 BIRT', '2 ADDR x', '3 _PRIV', '2 ADDR y', '3 _PRIV N', '2 ADDR z', '3 _PRIV Y']));
-    const rec = dataset.records[0] as { events?: Array<{ detail?: { address?: { private?: boolean } } }> };
-    void rec;
+    const dataset = parse70(
+      indi70(['1 BIRT', '2 ADDR x', '3 _PRIV', '2 ADDR y', '3 _PRIV N', '2 ADDR z', '3 _PRIV Y']),
+    );
+    expect(dataset.records[0]?.tag).toBe('INDI');
     expect(err70(indi70(['1 BIRT', '2 ADDR x', '3 _PRIV X']))).toBe('enum.invalid-value');
   });
 
@@ -490,7 +557,22 @@ describe('source citations and media links', () => {
 describe('event details', () => {
   test('FAM HUSB/WIFE partner ages', () => {
     const dataset = parse70(
-      [...H70, '0 @I1@ INDI', '1 NAME A /B/', '0 @I2@ INDI', '1 NAME C /D/', '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@', '1 MARR', '2 HUSB', '3 AGE 30y', '2 WIFE', '3 AGE 28y', '0 TRLR'].join('\n'),
+      [
+        ...H70,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '0 @I2@ INDI',
+        '1 NAME C /D/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 WIFE @I2@',
+        '1 MARR',
+        '2 HUSB',
+        '3 AGE 30y',
+        '2 WIFE',
+        '3 AGE 28y',
+        '0 TRLR',
+      ].join('\n'),
     );
     const fam = dataset.records[2] as {
       events?: Array<{
@@ -500,13 +582,15 @@ describe('event details', () => {
         };
       }>;
     };
-    expect(fam.events?.[0]?.detail?.husband?.age?.payload).toEqual({ years: 30 });
-    expect(fam.events?.[0]?.detail?.wife?.age?.payload).toEqual({ years: 28 });
+    expect(fam.events?.[0]?.detail?.husband?.age.payload).toEqual({ years: 30 });
+    expect(fam.events?.[0]?.detail?.wife?.age.payload).toEqual({ years: 28 });
   });
 
   test('FAM MARR HUSB without AGE fails', () => {
     expect(
-      err70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '0 @F1@ FAM', '1 HUSB @I1@', '1 MARR', '2 HUSB', '0 TRLR'].join('\n')),
+      err70(
+        [...H70, '0 @I1@ INDI', '1 NAME A /B/', '0 @F1@ FAM', '1 HUSB @I1@', '1 MARR', '2 HUSB', '0 TRLR'].join('\n'),
+      ),
     ).toBe('structure.missing-required');
   });
 
@@ -523,7 +607,8 @@ describe('event details', () => {
   test('7.0 event detail contacts, SDATE, ASSO and UID', () => {
     const dataset = parse70(
       indi70([
-        '0 @I2@ INDI', '1 NAME X',
+        '0 @I2@ INDI',
+        '1 NAME X',
         '1 BIRT',
         '2 PHON +49 1',
         '2 EMAIL a@example.com',
@@ -543,12 +628,23 @@ describe('event details', () => {
       ]),
     );
     const rec = dataset.records[1] as {
-      events?: Array<{ detail?: {
-        phone?: string[]; email?: string[]; fax?: string[]; www?: string[];
-        sortDate?: { value?: unknown }; associations?: unknown[]; uniqueIds?: string[];
-        additionalPlaces?: unknown[]; godparents?: string[]; witnesses?: string[];
-        agency?: string; religiousAffiliation?: string; cause?: string;
-      } }>;
+      events?: Array<{
+        detail?: {
+          phone?: string[];
+          email?: string[];
+          fax?: string[];
+          www?: string[];
+          sortDate?: { value?: unknown };
+          associations?: unknown[];
+          uniqueIds?: string[];
+          additionalPlaces?: unknown[];
+          godparents?: string[];
+          witnesses?: string[];
+          agency?: string;
+          religiousAffiliation?: string;
+          cause?: string;
+        };
+      }>;
     };
     const detail = rec.events?.[0]?.detail;
     expect(detail?.phone).toEqual(['+49 1']);
@@ -568,20 +664,29 @@ describe('event details', () => {
 
   test('INDI FAMC outside ADOP, BIRT and CHR falls back to extensions', () => {
     const deat = parse70(indi70(['1 DEAT', '2 FAMC @F1@', '0 @F1@ FAM']));
-    const rec = deat.records[0] as { events?: Array<{ tag: string; extensions?: Array<{ tag: string; payload?: string; payloadKind?: string }> }> };
+    const rec = deat.records[0] as {
+      events?: Array<{ tag: string; extensions?: Array<{ tag: string; payload?: string; payloadKind?: string }> }>;
+    };
     const famc = rec.events?.[0]?.extensions?.find((extension) => extension.tag === 'FAMC');
     expect(famc?.payload).toBe('@F1@');
     expect(famc?.payloadKind).toBe('pointer');
     const birt = parse70(indi70(['1 BIRT', '2 FAMC @F1@', '3 BOGUS x', '0 @F1@ FAM']));
-    const birtRec = birt.records[0] as { events?: Array<{ familyChild?: string; extensions?: Array<{ tag: string }> }> };
+    const birtRec = birt.records[0] as {
+      events?: Array<{ familyChild?: string; extensions?: Array<{ tag: string }> }>;
+    };
     expect(birtRec.events?.[0]?.familyChild).toBe('@F1@');
     expect(birtRec.events?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('ADOP FAMC with ADOP detail', () => {
     const dataset = parse70(indi70(['1 ADOP', '2 FAMC @F1@', '3 ADOP BOTH', '4 PHRASE both parents', '0 @F1@ FAM']));
-    const rec = dataset.records[0] as { events?: Array<{ adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } } }> };
-    expect(rec.events?.[0]?.adoptionFamily).toEqual({ family: '@F1@', adoption: { payload: 'BOTH', phrase: 'both parents' } });
+    const rec = dataset.records[0] as {
+      events?: Array<{ adoptionFamily?: { family: string; adoption?: { payload: string; phrase?: string } } }>;
+    };
+    expect(rec.events?.[0]?.adoptionFamily).toEqual({
+      family: '@F1@',
+      adoption: { payload: 'BOTH', phrase: 'both parents' },
+    });
   });
 
   test('NCHI keeps substructures as extensions; NMR requires digits', () => {
@@ -602,7 +707,17 @@ describe('event details', () => {
   });
 
   test('individual ordinances type FAMC only under SLGC and extend it elsewhere', () => {
-    const dataset = parse70(indi70(['1 SLGC', '2 FAMC @F1@', '2 STAT COMPLETED', '3 DATE 1 JAN 2000', '2 TEMP SLAKE', '2 PLAC Salt Lake', '0 @F1@ FAM']));
+    const dataset = parse70(
+      indi70([
+        '1 SLGC',
+        '2 FAMC @F1@',
+        '2 STAT COMPLETED',
+        '3 DATE 1 JAN 2000',
+        '2 TEMP SLAKE',
+        '2 PLAC Salt Lake',
+        '0 @F1@ FAM',
+      ]),
+    );
     const rec = dataset.records[0] as {
       ordinances?: Array<{
         tag: string;
@@ -619,38 +734,72 @@ describe('event details', () => {
     expect(rec.ordinances?.[0]?.detail?.temple).toBe('SLAKE');
     expect(rec.ordinances?.[0]?.detail?.place?.payload).toEqual(['Salt Lake']);
     const bapl = parse70(indi70(['1 BAPL', '2 FAMC @F1@', '0 @F1@ FAM']));
-    const baplRec = bapl.records[0] as { ordinances?: Array<{ tag: string; extensions?: Array<{ tag: string; payload?: string; payloadKind?: string }> }> };
+    const baplRec = bapl.records[0] as {
+      ordinances?: Array<{ tag: string; extensions?: Array<{ tag: string; payload?: string; payloadKind?: string }> }>;
+    };
     const famc = baplRec.ordinances?.[0]?.extensions?.find((extension) => extension.tag === 'FAMC');
     expect(famc?.payload).toBe('@F1@');
     expect(famc?.payloadKind).toBe('pointer');
   });
 
   test('5.5.1 ordinance status table; a STAT without DATE parses', () => {
-    const dataset = parse551(
-      indi551(['1 BAPL', '2 STAT PRE-1970', '3 DATE 1 JAN 2000']),
-    );
-    const rec = dataset.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; date: { value: unknown } } } }> };
+    const dataset = parse551(indi551(['1 BAPL', '2 STAT PRE-1970', '3 DATE 1 JAN 2000']));
+    const rec = dataset.records[0] as {
+      ordinances?: Array<{ detail?: { status?: { payload: string; date: { value: unknown } } } }>;
+    };
     expect(rec.ordinances?.[0]?.detail?.status?.payload).toBe('PRE_1970');
     expect(err551(indi551(['1 BAPL', '2 STAT NOPE', '3 DATE 1 JAN 2000']))).toBe('enum.invalid-value');
     const withChild = parse551(indi551(['1 BAPL', '2 STAT COMPLETED', '3 DATE 1 JAN 2000', '3 BOGUS x']));
-    const rec2 = withChild.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; extensions?: Array<{ tag: string }> } } }> };
+    const rec2 = withChild.records[0] as {
+      ordinances?: Array<{ detail?: { status?: { payload: string; extensions?: Array<{ tag: string }> } } }>;
+    };
     expect(rec2.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
     expect(rec2.ordinances?.[0]?.detail?.status?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
     const undated551 = parse551(indi551(['1 BAPL', '2 STAT COMPLETED']));
-    const undatedRec551 = undated551.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; date?: unknown } } }> };
+    const undatedRec551 = undated551.records[0] as {
+      ordinances?: Array<{ detail?: { status?: { payload: string; date?: unknown } } }>;
+    };
     expect(undatedRec551.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
     expect(undatedRec551.ordinances?.[0]?.detail?.status?.date).toBeUndefined();
     const undated70 = parse70(indi70(['1 BAPL', '2 STAT COMPLETED']));
-    const undatedRec70 = undated70.records[0] as { ordinances?: Array<{ detail?: { status?: { payload: string; date?: unknown } } }> };
+    const undatedRec70 = undated70.records[0] as {
+      ordinances?: Array<{ detail?: { status?: { payload: string; date?: unknown } } }>;
+    };
     expect(undatedRec70.ordinances?.[0]?.detail?.status?.payload).toBe('COMPLETED');
     expect(undatedRec70.ordinances?.[0]?.detail?.status?.date).toBeUndefined();
   });
 
   test('SLGS spouse sealing', () => {
     const dataset = parse70(
-      [...H70, '0 @F1@ FAM', '1 SLGS', '2 DATE 1 JAN 2000', '2 TEMP SLAKE', '2 PLAC Salt Lake', '2 STAT COMPLETED', '3 DATE 1 JAN 2000', '2 NOTE n', '2 SOUR @S2@', '0 @S2@ SOUR', '1 TITL S', '0 TRLR'].join('\n'),
+      [
+        ...H70,
+        '0 @F1@ FAM',
+        '1 SLGS',
+        '2 DATE 1 JAN 2000',
+        '2 TEMP SLAKE',
+        '2 PLAC Salt Lake',
+        '2 STAT COMPLETED',
+        '3 DATE 1 JAN 2000',
+        '2 NOTE n',
+        '2 SOUR @S2@',
+        '0 @S2@ SOUR',
+        '1 TITL S',
+        '0 TRLR',
+      ].join('\n'),
     );
-    const fam = dataset.records[0] as { spouseSealings?: Array<{ tag: string; detail?: { date?: unknown; temple?: string; place?: { payload: string[] }; status?: { payload: string }; notes?: unknown[]; citations?: unknown[] } }> };
+    const fam = dataset.records[0] as {
+      spouseSealings?: Array<{
+        tag: string;
+        detail?: {
+          date?: unknown;
+          temple?: string;
+          place?: { payload: string[] };
+          status?: { payload: string };
+          notes?: unknown[];
+          citations?: unknown[];
+        };
+      }>;
+    };
     expect(fam.spouseSealings?.[0]?.detail?.temple).toBe('SLAKE');
     expect(fam.spouseSealings?.[0]?.detail?.place?.payload).toEqual(['Salt Lake']);
     expect(fam.spouseSealings?.[0]?.detail?.status?.payload).toBe('COMPLETED');
@@ -664,7 +813,8 @@ describe('family and individual records', () => {
     const dataset = parse70(
       [
         ...H70,
-        '0 @I1@ INDI', '1 NAME A /B/',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
         '0 @F1@ FAM',
         '1 NCHI 3',
         '1 RESI Somewhere',
@@ -684,8 +834,10 @@ describe('family and individual records', () => {
     );
     const fam = dataset.records[1] as {
       attributes?: Array<{ tag: string; payload?: string | number; type?: string }>;
-      nonEvents?: Array<{ payload: string }>; associations?: unknown[];
-      creationDate?: unknown; identifiers?: Array<{ tag: string }>;
+      nonEvents?: Array<{ payload: string }>;
+      associations?: unknown[];
+      creationDate?: unknown;
+      identifiers?: Array<{ tag: string }>;
     };
     expect(fam.attributes?.[0]).toMatchObject({ tag: 'NCHI', payload: 3 });
     expect(fam.attributes?.[1]).toMatchObject({ tag: 'RESI', payload: 'Somewhere', type: 'home' });
@@ -714,22 +866,28 @@ describe('family and individual records', () => {
         '1 _MBON',
         '1 _SEPR',
         '1 RIN 9',
-        '0 @I1@ INDI', '1 NAME A /B/',
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
         ...SUBM,
         '0 TRLR',
       ].join('\n'),
     );
     const fam = dataset.records[0] as {
       attributes?: Array<{ tag: string; payload: number }>;
-      marriageStatuses?: Array<{ payload: string }>; sameSexUnion?: boolean;
+      marriageStatuses?: Array<{ payload: string }>;
+      sameSexUnion?: boolean;
       nonEvents?: Array<{ payload: string }>;
       events?: Array<{ tag: string; type?: string; detail?: { date?: unknown } }>;
-      associations?: unknown[]; automatedRecordId?: string;
+      associations?: unknown[];
+      automatedRecordId?: string;
     };
     expect(fam.attributes?.[0]).toMatchObject({ tag: 'NCHI', payload: 0 });
     expect(fam.marriageStatuses).toEqual([{ payload: 'married' }]);
     expect(fam.sameSexUnion).toBe(true);
-    expect(fam.nonEvents).toEqual([{ tag: 'NO', payload: 'MARR' }, { tag: 'NO', payload: 'MARR' }]);
+    expect(fam.nonEvents).toEqual([
+      { tag: 'NO', payload: 'MARR' },
+      { tag: 'NO', payload: 'MARR' },
+    ]);
     expect(fam.events?.[0]).toMatchObject({ tag: 'EVEN', type: 'Cohabitation' });
     expect(fam.events?.[1]).toMatchObject({ tag: 'MARR', type: 'Common law marriage' });
     expect(fam.events?.[2]).toMatchObject({ tag: 'EVEN', type: 'Marriage bond' });
@@ -775,7 +933,9 @@ describe('family and individual records', () => {
     );
     const rec = dataset.records[0] as {
       names?: Array<{ payload: { given?: string }; type?: { payload: string; phrase?: string } }>;
-      updatedAt?: string; url?: string; marks?: string[];
+      updatedAt?: string;
+      url?: string;
+      marks?: string[];
       attributes?: Array<{ tag: string; type: string; payload: string }>;
       events?: Array<{ tag: string; type?: string; detail?: { cause?: string } }>;
       identifiers?: Array<{ tag: string; payload: string }>;
@@ -792,7 +952,10 @@ describe('family and individual records', () => {
     expect(rec.events?.[0]).toMatchObject({ tag: 'EVEN', type: 'Brit Mila' });
     expect(rec.identifiers?.[0]).toMatchObject({ tag: 'REFN', payload: '123' });
     expect(rec.identifiers?.[1]).toMatchObject({ tag: 'UID', payload: '550e' });
-    expect(rec.nonEvents).toEqual([{ tag: 'NO', payload: 'DEAT' }, { tag: 'NO', payload: 'MARR' }]);
+    expect(rec.nonEvents).toEqual([
+      { tag: 'NO', payload: 'DEAT' },
+      { tag: 'NO', payload: 'MARR' },
+    ]);
     // _DCAUSE merged into the death event that _NLIV did not create.
     const death = rec.events?.find((event) => event.tag === 'DEAT');
     expect(death?.detail?.cause).toBe('old age');
@@ -800,9 +963,24 @@ describe('family and individual records', () => {
 
   test('7.0 INDI ordinances and identifiers', () => {
     const dataset = parse70(
-      indi70(['1 BAPL', '2 DATE 1 JAN 2000', '1 CONL', '1 ENDL', '1 INIL', '1 CREA', '2 DATE 5 JAN 2001', '1 UID u', '1 _UID u2', '1 EXID https://x.example/i1']),
+      indi70([
+        '1 BAPL',
+        '2 DATE 1 JAN 2000',
+        '1 CONL',
+        '1 ENDL',
+        '1 INIL',
+        '1 CREA',
+        '2 DATE 5 JAN 2001',
+        '1 UID u',
+        '1 _UID u2',
+        '1 EXID https://x.example/i1',
+      ]),
     );
-    const rec = dataset.records[0] as { ordinances?: Array<{ tag: string }>; creationDate?: unknown; identifiers?: Array<{ tag: string }> };
+    const rec = dataset.records[0] as {
+      ordinances?: Array<{ tag: string }>;
+      creationDate?: unknown;
+      identifiers?: Array<{ tag: string }>;
+    };
     expect(rec.ordinances?.map((o) => o.tag)).toEqual(['BAPL', 'CONL', 'ENDL', 'INIL']);
     expect(rec.creationDate).toBeDefined();
     expect(rec.identifiers?.map((id) => id.tag)).toEqual(['UID', 'UID', 'EXID']);
@@ -810,7 +988,11 @@ describe('family and individual records', () => {
 
   test('5.5.1 INDI parses RIN, RFN and AFN', () => {
     const dataset = parse551(indi551(['1 RIN 42', '1 RFN 99', '1 AFN 1234']));
-    const rec = dataset.records[0] as { automatedRecordId?: string; recordFileNumber?: string; ancestralFileNumber?: string };
+    const rec = dataset.records[0] as {
+      automatedRecordId?: string;
+      recordFileNumber?: string;
+      ancestralFileNumber?: string;
+    };
     expect(rec.automatedRecordId).toBe('42');
     expect(rec.recordFileNumber).toBe('99');
     expect(rec.ancestralFileNumber).toBe('1234');
@@ -899,12 +1081,19 @@ describe('payload readers and document structure', () => {
   });
 
   test('extension records keep pointer payloads', () => {
-    const dataset = parse70([...H70, '0 @X1@ _CUSTOM @I1@', '1 _CHILD value', '0 @I1@ INDI', '1 NAME A /B/', '0 TRLR'].join('\n'));
-    const ext = dataset.records[0] as { tag: string; xref?: string; payload: string; children: Array<{ tag: string; payload: string }> };
+    const dataset = parse70(
+      [...H70, '0 @X1@ _CUSTOM @I1@', '1 _CHILD value', '0 @I1@ INDI', '1 NAME A /B/', '0 TRLR'].join('\n'),
+    );
+    const ext = dataset.records[0] as {
+      tag: string;
+      xref?: string;
+      payload: string;
+      children: Array<{ tag: string; payload: string }>;
+    };
     expect(ext.tag).toBe('_CUSTOM');
     expect(ext.xref).toBe('@X1@');
     expect(ext.payload).toBe('@I1@');
-    expect(ext.children?.[0]).toEqual({ tag: '_CHILD', payload: 'value', children: [] });
+    expect(ext.children[0]).toEqual({ tag: '_CHILD', payload: 'value', children: [] });
   });
 
   test('header edge cases', () => {
@@ -914,10 +1103,22 @@ describe('payload readers and document structure', () => {
     expect(repeated.header.gedcom.version).toBe('7.0');
     // The FORM under GEDC is accepted in any file.
     expect(parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n2 FORM LINEAGE-LINKED\n0 TRLR\n')).ok).toBe(true);
-    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 SCHMA\n2 TAG _X x\n3 BOGUS y\n0 TRLR\n')).toBe('structure.unexpected-payload');
+    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 SCHMA\n2 TAG _X x\n3 BOGUS y\n0 TRLR\n')).toBe(
+      'structure.unexpected-payload',
+    );
     // A SOUR id with spaces is accepted in any file.
-    expect(parseGedcom551(enc('0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).ok).toBe(true);
-    expect(err551('0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR KOI8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n')).toBe('decoding.unknown-charset');
+    expect(
+      parseGedcom551(
+        enc(
+          '0 HEAD\n1 SOUR My App\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR UTF-8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n',
+        ),
+      ).ok,
+    ).toBe(true);
+    expect(
+      err551(
+        '0 HEAD\n1 SOUR PAF\n1 SUBM @S1@\n1 GEDC\n2 VERS 5.5.1\n2 FORM LINEAGE-LINKED\n1 CHAR KOI8\n0 @S1@ SUBM\n1 NAME T\n0 TRLR\n',
+      ),
+    ).toBe('decoding.unknown-charset');
   });
 
   test('header source corporation and data', () => {
@@ -942,7 +1143,20 @@ describe('payload readers and document structure', () => {
       ].join('\n'),
     );
     const header = dataset.header as {
-      source?: { payload: string; version?: string; name?: string; corporation?: { payload: string; address?: unknown; phone?: string[]; email?: string[]; fax?: string[]; www?: string[] }; data?: { payload: string; date?: { value: unknown }; copyright?: string } };
+      source?: {
+        payload: string;
+        version?: string;
+        name?: string;
+        corporation?: {
+          payload: string;
+          address?: unknown;
+          phone?: string[];
+          email?: string[];
+          fax?: string[];
+          www?: string[];
+        };
+        data?: { payload: string; date?: { value: unknown }; copyright?: string };
+      };
     };
     expect(header.source?.version).toBe('1.0');
     expect(header.source?.name).toBe('My Application');

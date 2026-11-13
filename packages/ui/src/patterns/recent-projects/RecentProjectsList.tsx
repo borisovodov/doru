@@ -19,12 +19,7 @@ export function RecentProjectsList({ recent, onOpen, onRemove }: RecentProjectsL
     <ul className={styles['list']}>
       {recent.map((project) => (
         <li key={project.path}>
-          <button
-            type="button"
-            className={styles['item']}
-            title={project.path}
-            onClick={() => onOpen(project.path)}
-          >
+          <button type="button" className={styles['item']} title={project.path} onClick={() => onOpen(project.path)}>
             <span className={styles['name']}>{projectName(project.path)}</span>
             <span className={styles['path']}>{project.path}</span>
           </button>

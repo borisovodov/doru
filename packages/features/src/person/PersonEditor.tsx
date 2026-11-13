@@ -2,7 +2,25 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
-import type { AddressRecord, AssociationRecord, ChangeRecord, CitationRecord, ContactRecord, FactRecord, FamilyRecord, IdentifierRecord, NoteRecord, PersonRecord, PlaceRecord, RestrictionRecord, Sex, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, } from '@doru/core';
+import type {
+  AddressRecord,
+  AssociationRecord,
+  ChangeRecord,
+  CitationRecord,
+  ContactRecord,
+  FactRecord,
+  FamilyRecord,
+  IdentifierRecord,
+  NoteRecord,
+  PersonRecord,
+  PlaceRecord,
+  RestrictionRecord,
+  Sex,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+} from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import { AssociationsSection } from '@doru/ui/domain';
@@ -34,14 +52,7 @@ export interface PersonEditorProps {
  * The person tab: a person card (avatar, name, life span, badges) above the
  * identity form and the family/events/sources/media/notes sections.
  */
-export function PersonEditor({
-  draft,
-  persons,
-  onChange,
-  onSave,
-  onCancel,
-  api,
-}: PersonEditorProps) {
+export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
@@ -62,55 +73,6 @@ export function PersonEditor({
   const [contributors, setContributors] = useState<
     Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
   >([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!draft.isNew) {
-      void api.getNotes(draft.id).then((loaded) => {
-        if (!cancelled) setNotes(loaded);
-      });
-      void refreshFamilies();
-      void refreshCitations();
-      void api.getAssociations(draft.id).then((loaded) => {
-        if (!cancelled) setAssociations(loaded);
-      });
-      void api.getFacts(draft.id).then((loaded) => {
-        if (!cancelled) setFacts(loaded);
-      });
-      void api.getMedia(draft.id).then((loaded) => {
-        if (!cancelled) setMedia(loaded);
-      });
-      void refreshAttachments();
-      void refreshContributors();
-      void api.getPlaces().then((loaded) => {
-        if (!cancelled) setPlaces(loaded);
-      });
-      void api.getAddresses().then((loaded) => {
-        if (!cancelled) setAddresses(loaded);
-      });
-    } else {
-      setNotes([]);
-      setFamilies([]);
-      setAssociations([]);
-      setSources([]);
-      setCitations([]);
-      setFacts([]);
-      setMedia([]);
-      setIdentifiers([]);
-      setContacts([]);
-      setRestrictions([]);
-      setTags([]);
-      setTagLinks([]);
-      setChanges([]);
-      setPlaces([]);
-      setSubmitters([]);
-      setContributors([]);
-    }
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.id, draft.isNew, persons]);
 
   const refreshFamilies = async () => {
     setFamilies(await api.getFamilies());
@@ -157,6 +119,69 @@ export function PersonEditor({
   const refreshMedia = async () => {
     setMedia(await api.getMedia(draft.id));
   };
+
+  useEffect(() => {
+    if (draft.isNew) {
+      return;
+    }
+    let cancelled = false;
+    void api.getNotes(draft.id).then((loaded) => {
+      if (!cancelled) setNotes(loaded);
+    });
+    void api.getFamilies().then((loaded) => {
+      if (!cancelled) setFamilies(loaded);
+    });
+    void Promise.all([api.getCitations(draft.id), api.getSources()]).then(([loadedCitations, loadedSources]) => {
+      if (!cancelled) {
+        setCitations(loadedCitations);
+        setSources(loadedSources);
+      }
+    });
+    void api.getAssociations(draft.id).then((loaded) => {
+      if (!cancelled) setAssociations(loaded);
+    });
+    void api.getFacts(draft.id).then((loaded) => {
+      if (!cancelled) setFacts(loaded);
+    });
+    void api.getMedia(draft.id).then((loaded) => {
+      if (!cancelled) setMedia(loaded);
+    });
+    void Promise.all([
+      api.getIdentifiers(draft.id),
+      api.getContacts(draft.id),
+      api.getRestrictions(draft.id),
+      api.getTags(),
+      api.getTagLinks(draft.id),
+      api.getChanges(draft.id),
+    ]).then(([loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges]) => {
+      if (!cancelled) {
+        setIdentifiers(loadedIdentifiers);
+        setContacts(loadedContacts);
+        setRestrictions(loadedRestrictions);
+        setTags(loadedTags);
+        setTagLinks(loadedTagLinks);
+        setChanges(loadedChanges);
+      }
+    });
+    void Promise.all([api.getSubmitters(), api.getRecordSubmitters('person', draft.id)]).then(
+      ([loadedSubmitters, loadedContributors]) => {
+        if (!cancelled) {
+          setSubmitters(loadedSubmitters);
+          setContributors(loadedContributors);
+        }
+      },
+    );
+    void api.getPlaces().then((loaded) => {
+      if (!cancelled) setPlaces(loaded);
+    });
+    void api.getAddresses().then((loaded) => {
+      if (!cancelled) setAddresses(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.id, draft.isNew, persons]);
 
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });
 

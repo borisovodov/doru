@@ -1,6 +1,5 @@
 import type { PedigreeLayout, PersonRecord } from '@doru/core';
 import { Position, type Edge, type Node } from '@xyflow/react';
-import type { CanvasEdgeData } from './PedigreeEdges';
 import type { PersonCardData } from './PersonCard';
 import type { GenerationBandData } from './GenerationBand';
 import type { CardAction } from './PersonCard';
@@ -83,7 +82,7 @@ export function projectLayout(
     type: edge.kind,
     source: edge.source,
     target: edge.target,
-    data: edge.geometry as CanvasEdgeData,
+    data: edge.geometry,
   }));
 
   return { nodes: [...bandNodes, ...cardNodes], edges: flowEdges };

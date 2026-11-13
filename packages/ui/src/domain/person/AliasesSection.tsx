@@ -50,15 +50,18 @@ export function AliasesSection({
       title={nls.t('features.tree.aliases.title')}
       actions={
         !adding ? (
-          <Button size="sm" variant="primary" icon={<Plus size={13} aria-hidden="true" />} onClick={() => setAdding(true)}>
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<Plus size={13} aria-hidden="true" />}
+            onClick={() => setAdding(true)}
+          >
             {nls.t('features.tree.aliases.add')}
           </Button>
         ) : null
       }
     >
-      {aliases.length === 0 && !adding ? (
-        <EmptyText>{nls.t('features.tree.aliases.empty')}</EmptyText>
-      ) : null}
+      {aliases.length === 0 && !adding ? <EmptyText>{nls.t('features.tree.aliases.empty')}</EmptyText> : null}
       {aliases.length > 0 ? (
         <RowList>
           {aliases.map((alias) => {

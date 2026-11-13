@@ -42,9 +42,7 @@ test('a user theme with a bundled id overrides it', async () => {
   const { app, page } = await launchApp({ userData });
   await expect(page.getByRole('main')).toBeVisible();
   await page.waitForFunction(
-    () =>
-      getComputedStyle(document.documentElement).getPropertyValue('--doru-accent').trim() ===
-      '#ff0000',
+    () => getComputedStyle(document.documentElement).getPropertyValue('--doru-accent').trim() === '#ff0000',
     undefined,
     { timeout: 10_000 },
   );

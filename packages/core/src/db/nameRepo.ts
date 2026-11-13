@@ -218,12 +218,10 @@ export class NameRepo {
 }
 
 /** The flat display pieces of a name, derived from its parts. */
-export function flatFromParts(parts: NamePart[]): Pick<
-  PersonName,
-  'full' | 'given' | 'surname' | 'surnamePrefix' | 'nickname' | 'prefix' | 'suffix'
-> {
-  const first = (kind: NamePart['kind']): string | undefined =>
-    parts.find((part) => part.kind === kind)?.value;
+export function flatFromParts(
+  parts: NamePart[],
+): Pick<PersonName, 'full' | 'given' | 'surname' | 'surnamePrefix' | 'nickname' | 'prefix' | 'suffix'> {
+  const first = (kind: NamePart['kind']): string | undefined => parts.find((part) => part.kind === kind)?.value;
   return {
     full: first('full'),
     given: first('given'),

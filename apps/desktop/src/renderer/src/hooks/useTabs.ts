@@ -153,9 +153,7 @@ export function useTabs(
 
   const openTab = useCallback((tab: { id: string; label: string }) => {
     setOpenTabs((current) =>
-      current.some((entry) => entry.id === tab.id)
-        ? current
-        : [...current, { ...tab, closable: true }],
+      current.some((entry) => entry.id === tab.id) ? current : [...current, { ...tab, closable: true }],
     );
     setActiveTabId(tab.id);
   }, []);
@@ -311,11 +309,17 @@ export function useTabs(
   }, [openTab]);
 
   const openNewRepositoryTab = useCallback(() => {
-    openTab({ id: `${REPOSITORY_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.repository.newRepository') });
+    openTab({
+      id: `${REPOSITORY_TAB_PREFIX}new:${crypto.randomUUID()}`,
+      label: nls.t('features.tree.repository.newRepository'),
+    });
   }, [openTab]);
 
   const openNewSubmitterTab = useCallback(() => {
-    openTab({ id: `${SUBMITTER_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tree.submitter.newSubmitter') });
+    openTab({
+      id: `${SUBMITTER_TAB_PREFIX}new:${crypto.randomUUID()}`,
+      label: nls.t('features.tree.submitter.newSubmitter'),
+    });
   }, [openTab]);
 
   const openSettingsTab = useCallback(() => {

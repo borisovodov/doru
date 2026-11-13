@@ -4,13 +4,8 @@
  * produces the model value; every deviation is a typed error.
  */
 
-import type {
-  SourcePosition,
-} from '../errors';
-import {
-  DOCUMENT_START,
-  fail,
-} from '../errors';
+import type { SourcePosition } from '../errors';
+import { DOCUMENT_START, fail } from '../errors';
 import type {
   AgeBound,
   AgeValue,
@@ -43,12 +38,8 @@ import {
   MULTIMEDIA_FORMATS_551,
   MULTIMEDIA_FORMATS_555,
 } from '../primitives';
-import {
-  RESTRICTION_ENUM_VALUES,
-} from '../enumerations';
-import type {
-  RestrictionEnum,
-} from '../enumerations';
+import { RESTRICTION_ENUM_VALUES } from '../enumerations';
+import type { RestrictionEnum } from '../enumerations';
 
 const CALENDAR_NAMES: ReadonlyMap<string, Calendar> = new Map([
   ['GREGORIAN', 'GREGORIAN'],
@@ -119,9 +110,7 @@ function resolvedCalendar(calendar: Calendar, resolve: TagResolver | undefined):
     return calendar;
   }
   const name = (candidates[0] as string).slice(CALENDAR_URI_PREFIX.length);
-  return name === 'GREGORIAN' || name === 'JULIAN' || name === 'FRENCH_R' || name === 'HEBREW'
-    ? name
-    : calendar;
+  return name === 'GREGORIAN' || name === 'JULIAN' || name === 'FRENCH_R' || name === 'HEBREW' ? name : calendar;
 }
 
 /**
@@ -154,11 +143,7 @@ function monthOf(calendar: Calendar, token: string, position: SourcePosition, re
     // Extension months require an extension calendar.
     return token as GedcomMonth;
   }
-  fail(
-    'date.bad-month',
-    `"${token}" is not a month of the ${calendar} calendar`,
-    position,
-  );
+  fail('date.bad-month', `"${token}" is not a month of the ${calendar} calendar`, position);
 }
 
 /** Looks up a month token without failing: returns undefined for
@@ -173,7 +158,8 @@ function tryMonth(calendar: Calendar, token: string, resolve?: TagResolver): Ged
 }
 
 /** Validates an epoch token for the calendar. */
-function epochOf(calendar: Calendar, token: string, position: SourcePosition): Epoch {  if (token === 'BCE') {
+function epochOf(calendar: Calendar, token: string, position: SourcePosition): Epoch {
+  if (token === 'BCE') {
     if (calendar === 'GREGORIAN' || calendar === 'JULIAN') {
       return 'BCE';
     }
@@ -189,7 +175,14 @@ function epochOf(calendar: Calendar, token: string, position: SourcePosition): E
 }
 
 /** Validates the day against the calendar and month. */
-function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: number, year: number, epoch: Epoch | undefined, position: SourcePosition): void {
+function checkDay(
+  calendar: Calendar,
+  month: GedcomMonth | undefined,
+  day: number,
+  year: number,
+  epoch: Epoch | undefined,
+  position: SourcePosition,
+): void {
   if (!Number.isInteger(day) || day < 1) {
     fail('date.bad-day', `Invalid day ${day}`, position);
   }
@@ -203,7 +196,8 @@ function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: numbe
       // The astronomical year (1 BCE is year 0); monthOf guarantees a
       // GREGORIAN/JULIAN month here, so the epoch is BCE or absent.
       const astro = epoch === 'BCE' ? 1 - year : year;
-      const leap = calendar === 'JULIAN' ? astro % 4 === 0 : astro % 4 === 0 && (astro % 100 !== 0 || astro % 400 === 0);
+      const leap =
+        calendar === 'JULIAN' ? astro % 4 === 0 : astro % 4 === 0 && (astro % 100 !== 0 || astro % 400 === 0);
       max = leap ? 29 : 28;
     }
   } else if (calendar === 'FRENCH_R') {
@@ -221,15 +215,29 @@ function checkDay(calendar: Calendar, month: GedcomMonth | undefined, day: numbe
     max = 36;
   }
   if (day > max) {
-    fail('date.bad-day', `Day ${day} exceeds the maximum of ${max} for ${month ?? 'this month'} in the ${calendar} calendar`, position);
+    fail(
+      'date.bad-day',
+      `Day ${day} exceeds the maximum of ${max} for ${month ?? 'this month'} in the ${calendar} calendar`,
+      position,
+    );
   }
 }
 
 /** The maximum day of each Gregorian month; FEB is 29 because the
  * year-less GEDCOM 5.5.5 date form has no year to decide the leap. */
 const GREGORIAN_DAY_MAX: Readonly<Record<GregorianMonth, number>> = {
-  JAN: 31, FEB: 29, MAR: 31, APR: 30, MAY: 31, JUN: 30,
-  JUL: 31, AUG: 31, SEP: 30, OCT: 31, NOV: 30, DEC: 31,
+  JAN: 31,
+  FEB: 29,
+  MAR: 31,
+  APR: 30,
+  MAY: 31,
+  JUN: 30,
+  JUL: 31,
+  AUG: 31,
+  SEP: 30,
+  OCT: 31,
+  NOV: 30,
+  DEC: 31,
 };
 
 /** Converts a validated digit token to a number, rejecting values Number cannot hold exactly. */
@@ -271,7 +279,13 @@ function makeFields(
 }
 
 /** Parses the `[calendar] [[day] month] year [epoch]` production. */
-function parseDateFields(tokens: string[], calendar: Calendar, version: '7.0' | '5.5.1', position: SourcePosition, resolve?: TagResolver): DateFields {
+function parseDateFields(
+  tokens: string[],
+  calendar: Calendar,
+  version: '7.0' | '5.5.1',
+  position: SourcePosition,
+  resolve?: TagResolver,
+): DateFields {
   let rest = tokens;
   if (rest.length === 0) {
     fail('date.invalid', 'A date must have a year', position);
@@ -369,12 +383,24 @@ export function normalizeDateText(text: string): string {
     return trimmed;
   }
   const lower = trimmed.toLowerCase();
-  if (lower === 'unknown' || lower === 'inconnu' || lower === 'unbekannt' || lower === 'unbek' || lower === 'n/a' || trimmed === '?' || trimmed === '—' || trimmed === '-' || lower === 'y') {
+  if (
+    lower === 'unknown' ||
+    lower === 'inconnu' ||
+    lower === 'unbekannt' ||
+    lower === 'unbek' ||
+    lower === 'n/a' ||
+    trimmed === '?' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    lower === 'y'
+  ) {
     return '';
   }
   const iso = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(trimmed);
   if (iso !== null) {
-    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(iso[2]) - 1];
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][
+      Number(iso[2]) - 1
+    ];
     if (month !== undefined && Number(iso[3]) >= 1 && Number(iso[3]) <= 31) {
       return `${Number(iso[3])} ${month} ${iso[1]}`;
     }
@@ -387,7 +413,9 @@ export function normalizeDateText(text: string): string {
   const european = /^(\d{1,2})([-./])(\d{1,2})\2(\d{4})$/.exec(trimmed);
   if (european !== null) {
     const day = Number(european[1]);
-    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(european[3]) - 1];
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][
+      Number(european[3]) - 1
+    ];
     if (month !== undefined && day >= 1 && day <= 31) {
       return `${day} ${month} ${european[4]}`;
     }
@@ -396,8 +424,8 @@ export function normalizeDateText(text: string): string {
   // two-digit year is the 20th-century one.
   const dashedNamed = /^(\d{1,2})-([A-Za-z]{3,9})-(\d{2})$/.exec(trimmed);
   if (dashedNamed !== null) {
-    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find(
-      (m) => m.startsWith((dashedNamed[2] as string).toUpperCase().slice(0, 3)),
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find((m) =>
+      m.startsWith((dashedNamed[2] as string).toUpperCase().slice(0, 3)),
     );
     const day = Number(dashedNamed[1]);
     if (month !== undefined && day >= 1 && day <= 31) {
@@ -409,8 +437,8 @@ export function normalizeDateText(text: string): string {
   // the GEDCOM day-first order.
   const american = /^([A-Za-z]{3,9})\s+(\d{1,2})\s+(\d{4})$/.exec(trimmed);
   if (american !== null) {
-    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find(
-      (m) => m.startsWith((american[1] as string).toUpperCase().slice(0, 3)),
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].find((m) =>
+      m.startsWith((american[1] as string).toUpperCase().slice(0, 3)),
     );
     const day = Number(american[2]);
     if (month !== undefined && day >= 1 && day <= 31) {
@@ -422,7 +450,9 @@ export function normalizeDateText(text: string): string {
   const numeric = /^(\d{1,2})\s+(\d{1,2})\s+(\d{4})$/.exec(trimmed);
   if (numeric !== null) {
     const day = Number(numeric[1]);
-    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(numeric[2]) - 1];
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][
+      Number(numeric[2]) - 1
+    ];
     if (month !== undefined && day >= 1 && day <= 31) {
       return `${day} ${month} ${numeric[3]}`;
     }
@@ -447,9 +477,14 @@ export function normalizeDateText(text: string): string {
   // royal-family exports) names no data the date grammar carries.
   const withoutWeekday = trimmed.replace(/^(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)[\s,]+/i, '');
   let out = withoutWeekday.replace(/^(ABT\.|ABOUT|CIRCA|CA\.|CA|AFT\.|BEFORE)\s+/i, (prefix) =>
-    prefix.toUpperCase().startsWith('ABT') || prefix.toUpperCase().startsWith('CIRCA') || prefix.toUpperCase().startsWith('CA') || prefix.toUpperCase().startsWith('ABOUT')
+    prefix.toUpperCase().startsWith('ABT') ||
+    prefix.toUpperCase().startsWith('CIRCA') ||
+    prefix.toUpperCase().startsWith('CA') ||
+    prefix.toUpperCase().startsWith('ABOUT')
       ? 'ABT '
-      : prefix.toUpperCase().startsWith('AFT') ? 'AFT ' : 'BEF ',
+      : prefix.toUpperCase().startsWith('AFT')
+        ? 'AFT '
+        : 'BEF ',
   );
   // Ordinal day suffixes (20th → 20).
   out = out.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
@@ -488,7 +523,7 @@ export function normalizeTimeText(text: string): string {
     if (hour >= 1 && hour <= 12) {
       const isPm = /^p/i.test(twelveHour[3] as string);
       const hour24 = hour === 12 ? (isPm ? 12 : 0) : isPm ? hour + 12 : hour;
-      const minutes = twelveHour[2] === undefined ? '00' : (twelveHour[2] as string).padStart(2, '0');
+      const minutes = twelveHour[2] === undefined ? '00' : twelveHour[2].padStart(2, '0');
       return `${String(hour24).padStart(2, '0')}:${minutes}`;
     }
   }
@@ -526,11 +561,11 @@ export function parseDateValue70(text: string, position: SourcePosition, resolve
   }
   if (firstUpper === 'AFT' || firstUpper === 'BEF') {
     const date = parseDate70(tokens.slice(1), position, resolve);
-    return { kind: 'bound', modifier: firstUpper as 'AFT' | 'BEF', date: plainFields(date) } satisfies DateBound;
+    return { kind: 'bound', modifier: firstUpper, date: plainFields(date) } satisfies DateBound;
   }
   if (firstUpper === 'ABT' || firstUpper === 'CAL' || firstUpper === 'EST') {
     const date = parseDate70(tokens.slice(1), position, resolve);
-    return { kind: 'approx', modifier: firstUpper as 'ABT' | 'CAL' | 'EST', date: plainFields(date) } satisfies DateApprox;
+    return { kind: 'approx', modifier: firstUpper, date: plainFields(date) } satisfies DateApprox;
   }
   return parseDate70(tokens, position, resolve);
 }
@@ -652,7 +687,11 @@ export function parseDateExact70(text: string, position: SourcePosition): DateEx
   const month = monthOf('GREGORIAN', tokens[1] as string, position);
   const year = parseYear(tokens[2] as string, position);
   checkDay('GREGORIAN', month, day, year, undefined, position);
-  return { day, month: month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC', year };
+  return {
+    day,
+    month: month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
+    year,
+  };
 }
 
 /**
@@ -799,14 +838,14 @@ function parseDateBody(
   if (first === 'AFT' || first === 'BEF') {
     const part = parseDate(tokens.slice(1));
     return {
-      value: { kind: 'bound', modifier: first as 'AFT' | 'BEF', date: part.fields },
+      value: { kind: 'bound', modifier: first, date: part.fields },
       dualYear: part.dualYear,
     };
   }
   if (first === 'ABT' || first === 'CAL' || first === 'EST') {
     const part = parseDate(tokens.slice(1));
     return {
-      value: { kind: 'approx', modifier: first as 'ABT' | 'CAL' | 'EST', date: part.fields },
+      value: { kind: 'approx', modifier: first, date: part.fields },
       dualYear: part.dualYear,
     };
   }
@@ -815,10 +854,7 @@ function parseDateBody(
 }
 
 /** Parses one 5.5.1 `<DATE>` (a single date, per calendar escape). */
-function parseDate551(
-  tokens: string[],
-  position: SourcePosition,
-): { fields: DateFields; dualYear: boolean } {
+function parseDate551(tokens: string[], position: SourcePosition): { fields: DateFields; dualYear: boolean } {
   return parseDateCore(tokens, position, undefined, false);
 }
 
@@ -852,7 +888,11 @@ function parseDateCore(
       calendar = mapped;
       rest = tokens.slice(1);
     } else if (first === '@#DROMAN@' || first === '@#DUNKNOWN@') {
-      fail('date.reserved-calendar', `The ${first} calendar is reserved in GEDCOM 5.5.1 and has no defined months`, position);
+      fail(
+        'date.reserved-calendar',
+        `The ${first} calendar is reserved in GEDCOM 5.5.1 and has no defined months`,
+        position,
+      );
     } else {
       fail('line.bad-escape', `Unknown calendar escape ${first}`, position);
     }
@@ -948,7 +988,7 @@ function parseDateCore(
     day = Number(rest[0]);
     month = monthOf(calendar, rest[1] as string, position, resolve);
     const max = month === 'FEB' ? 29 : GREGORIAN_DAY_MAX[month as GregorianMonth];
-    if (max === undefined || day < 1 || day > max) {
+    if (day < 1 || day > max) {
       fail('date.bad-day', `Day ${day} is invalid for the month ${month as string}`, position);
     }
   } else if (rest.length === 2) {
@@ -1048,7 +1088,11 @@ function parseAgeParts(text: string, order: readonly string[], expected: string,
     }
     const kind = match[2] as string;
     if (order.indexOf(kind) <= order.indexOf(lastKind)) {
-      fail('age.invalid', `Age components must appear in the order ${order.map((k) => KIND_NAMES[k] as string).join(', ')}; got "${part}" after "${lastKind}"`, position);
+      fail(
+        'age.invalid',
+        `Age components must appear in the order ${order.map((k) => KIND_NAMES[k] as string).join(', ')}; got "${part}" after "${lastKind}"`,
+        position,
+      );
     }
     lastKind = kind;
     const count = safeInteger(match[1] as string, position, 'integer.out-of-range');
@@ -1081,7 +1125,11 @@ export function parseAge70(text: string, position: SourcePosition): AgeValue {
  * `5w` (the 7.0 spelling) stays an error in a 5.x file.
  */
 const AGE_UNIT_LETTERS: ReadonlyMap<string, 'y' | 'm' | 'd'> = new Map([
-  ['Y', 'y'], ['J', 'y'], ['M', 'm'], ['D', 'd'], ['T', 'd'],
+  ['Y', 'y'],
+  ['J', 'y'],
+  ['M', 'm'],
+  ['D', 'd'],
+  ['T', 'd'],
 ]);
 
 /**
@@ -1091,10 +1139,33 @@ const AGE_UNIT_LETTERS: ReadonlyMap<string, 'y' | 'm' | 'd'> = new Map([
  * forms, and the abbreviations yr/mo/da.
  */
 const AGE_UNIT_WORDS: ReadonlyMap<string, 'y' | 'm' | 'd' | 'w'> = new Map([
-  ['Y', 'y'], ['J', 'y'], ['YR', 'y'], ['YEAR', 'y'], ['YEARS', 'y'], ['JAHR', 'y'], ['JAHRE', 'y'],
-  ['M', 'm'], ['MO', 'm'], ['MON', 'm'], ['MONTH', 'm'], ['MONTHS', 'm'], ['MONAT', 'm'], ['MONATE', 'm'],
-  ['D', 'd'], ['T', 'd'], ['DA', 'd'], ['DAY', 'd'], ['DAYS', 'd'], ['TAG', 'd'], ['TAGE', 'd'],
-  ['W', 'w'], ['WK', 'w'], ['WEEK', 'w'], ['WEEKS', 'w'], ['WOCHE', 'w'], ['WOCHEN', 'w'],
+  ['Y', 'y'],
+  ['J', 'y'],
+  ['YR', 'y'],
+  ['YEAR', 'y'],
+  ['YEARS', 'y'],
+  ['JAHR', 'y'],
+  ['JAHRE', 'y'],
+  ['M', 'm'],
+  ['MO', 'm'],
+  ['MON', 'm'],
+  ['MONTH', 'm'],
+  ['MONTHS', 'm'],
+  ['MONAT', 'm'],
+  ['MONATE', 'm'],
+  ['D', 'd'],
+  ['T', 'd'],
+  ['DA', 'd'],
+  ['DAY', 'd'],
+  ['DAYS', 'd'],
+  ['TAG', 'd'],
+  ['TAGE', 'd'],
+  ['W', 'w'],
+  ['WK', 'w'],
+  ['WEEK', 'w'],
+  ['WEEKS', 'w'],
+  ['WOCHE', 'w'],
+  ['WOCHEN', 'w'],
 ]);
 
 /**
@@ -1136,7 +1207,7 @@ function correctAge551(text: string, position: SourcePosition): string {
   }
   const approx = /^(?:ABT|ABOUT)\b\s*/i.exec(rest) ?? (rest.startsWith('~') ? ['~'] : null);
   if (approx !== null) {
-    rest = rest.slice((approx[0] as string).length).trim();
+    rest = rest.slice(approx[0].length).trim();
   }
   if (/^\d+$/.test(rest)) {
     return `${bound}${rest}y`;
@@ -1177,7 +1248,11 @@ function correctAge551(text: string, position: SourcePosition): string {
   // exactly three groups are offered.
   if (parts.every((part) => part.unit === undefined)) {
     if (parts.length !== 3) {
-      fail('age.invalid', `A bare-number age must have exactly three groups (years months days), got "${rest}"`, position);
+      fail(
+        'age.invalid',
+        `A bare-number age must have exactly three groups (years months days), got "${rest}"`,
+        position,
+      );
     }
     (parts[0] as { unit?: 'y' | 'm' | 'd' | 'w' }).unit = 'y';
     (parts[1] as { unit?: 'y' | 'm' | 'd' | 'w' }).unit = 'm';
@@ -1194,7 +1269,11 @@ function correctAge551(text: string, position: SourcePosition): string {
   const seen = new Set<'y' | 'm' | 'd'>();
   for (const part of parts) {
     if (part.unit === undefined) {
-      fail('age.invalid', `Invalid age component "${part.value}"; a bare number needs a unit or two more groups`, position);
+      fail(
+        'age.invalid',
+        `Invalid age component "${part.value}"; a bare number needs a unit or two more groups`,
+        position,
+      );
     }
     if (part.unit === 'y') {
       years = part.value;
@@ -1351,10 +1430,7 @@ export function parseListEnum<K extends string>(
  * and lists like `RESN NONE, LOCKED` — the none parts are filtered
  * before the enum validation (the full-leniency container rule).
  */
-export function parseRestrictionList(
-  text: string,
-  position: SourcePosition,
-): Array<RestrictionEnum | ExtensionTag> {
+export function parseRestrictionList(text: string, position: SourcePosition): Array<RestrictionEnum | ExtensionTag> {
   return text
     .split(',')
     .map((item) => item.trim())
@@ -1363,6 +1439,7 @@ export function parseRestrictionList(
 }
 
 /** Parses a Personal Name payload (slash-delimited). */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- position is part of the parser API signature for callers
 export function parsePersonalName(text: string, _position: SourcePosition): PersonalName {
   const parts = text.split('/');
   if (parts.length === 1) {
@@ -1417,7 +1494,10 @@ export function parseLatitude(text: string, position: SourcePosition): Latitude 
   if (dms !== null) {
     const degrees = Number(dms[2]) + Number(dms[3]) / 60 + Number(dms[4]) / 3600;
     if (degrees <= 90) {
-      return { direction: (dms[1] as 'N' | 'S' | undefined) ?? (Number(dms[2]) < 0 ? 'S' : 'N'), degrees: Math.abs(degrees) };
+      return {
+        direction: (dms[1] as 'N' | 'S' | undefined) ?? (Number(dms[2]) < 0 ? 'S' : 'N'),
+        degrees: Math.abs(degrees),
+      };
     }
   }
   // The colon-separated DMS of the webtrees exports (`N46::3::19"`):
@@ -1431,7 +1511,11 @@ export function parseLatitude(text: string, position: SourcePosition): Latitude 
       return { direction: colon[1] as 'N' | 'S', degrees };
     }
   }
-  fail('latitude.invalid', `Invalid latitude "${trimmed}"; expected "N" or "S" followed by decimal degrees 0–90`, position);
+  fail(
+    'latitude.invalid',
+    `Invalid latitude "${trimmed}"; expected "N" or "S" followed by decimal degrees 0–90`,
+    position,
+  );
 }
 
 /** Parses a Longitude payload (E/W + decimal degrees). The lenient
@@ -1458,7 +1542,10 @@ export function parseLongitude(text: string, position: SourcePosition): Longitud
   if (dms !== null) {
     const degrees = Number(dms[2]) + Number(dms[3]) / 60 + Number(dms[4]) / 3600;
     if (degrees <= 180) {
-      return { direction: (dms[1] as 'E' | 'W' | undefined) ?? (Number(dms[2]) < 0 ? 'W' : 'E'), degrees: Math.abs(degrees) };
+      return {
+        direction: (dms[1] as 'E' | 'W' | undefined) ?? (Number(dms[2]) < 0 ? 'W' : 'E'),
+        degrees: Math.abs(degrees),
+      };
     }
   }
   // The colon-separated DMS of the webtrees exports (`E14::30::52"`):
@@ -1471,7 +1558,11 @@ export function parseLongitude(text: string, position: SourcePosition): Longitud
       return { direction: colon[1] as 'E' | 'W', degrees };
     }
   }
-  fail('longitude.invalid', `Invalid longitude "${trimmed}"; expected "E" or "W" followed by decimal degrees 0–180`, position);
+  fail(
+    'longitude.invalid',
+    `Invalid longitude "${trimmed}"; expected "E" or "W" followed by decimal degrees 0–180`,
+    position,
+  );
 }
 
 /** Parses a 7.0 Tag Definition payload (`_TAG URI`). */
@@ -1485,6 +1576,7 @@ export function parseTagDefinition(text: string, position: SourcePosition): TagD
   if (!/^_[A-Z0-9_]+$/.test(tag)) {
     fail('tagdef.invalid', `Invalid extension tag "${tag}" in a tag definition`, position);
   }
+  // eslint-disable-next-line no-control-regex -- URIs must reject control characters
   if (uri === '' || /[\s\u0000-\u001f\u007f]/.test(uri)) {
     fail('uri.invalid', `Invalid URI "${uri}" in a tag definition`, position);
   }

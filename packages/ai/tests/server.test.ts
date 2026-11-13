@@ -5,6 +5,30 @@ import { DoruMcpServer } from '../src/server';
 import { TreeMcpBackend } from '../src/backend';
 import { cleanupAiFixture, makeAiFixture } from './helpers';
 
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+function firstTextContent(result: Awaited<ReturnType<Client['callTool']>>): TextContent | undefined {
+  const content: unknown = result.content;
+  if (!Array.isArray(content)) {
+    return undefined;
+  }
+  const first: unknown = content[0];
+  if (
+    typeof first !== 'object' ||
+    first === null ||
+    !('type' in first) ||
+    first['type'] !== 'text' ||
+    !('text' in first) ||
+    typeof first['text'] !== 'string'
+  ) {
+    return undefined;
+  }
+  return { type: 'text', text: first['text'] };
+}
+
 describe('DoruMcpServer', () => {
   it('serves tools over an MCP transport', { timeout: 60000 }, async () => {
     const fixture = makeAiFixture();
@@ -17,14 +41,14 @@ describe('DoruMcpServer', () => {
       await client.connect(clientTransport);
 
       const stats = await client.callTool({ name: 'tree_stats', arguments: {} });
-      const text = stats.content[0];
+      const text = firstTextContent(stats);
       expect(text?.type).toBe('text');
-      if (text?.type === 'text') {
+      if (text !== undefined) {
         expect(JSON.parse(text.text)).toEqual({ persons: 0, families: 0 });
       }
 
       const missing = await client.callTool({ name: 'tree_get', arguments: { personId: 'nope' } });
-      expect(missing.content[0]).toMatchObject({ type: 'text' });
+      expect(firstTextContent(missing)?.type).toBe('text');
 
       await client.close();
       await server.close();

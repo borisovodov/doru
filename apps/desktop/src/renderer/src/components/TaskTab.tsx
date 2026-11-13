@@ -3,7 +3,14 @@ import { SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type { PersonRecord, RepositoryRecord, TodoRecord } from '@doru/core';
 import { EntityTab } from '@doru/features';
-import { TaskEditorFields, displayName, emptyTodoDraft, todoDraftToRecord, todoToDraft, type TodoDraft } from '@doru/ui/domain';
+import {
+  TaskEditorFields,
+  displayName,
+  emptyTodoDraft,
+  todoDraftToRecord,
+  todoToDraft,
+  type TodoDraft,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
@@ -36,7 +43,18 @@ export function TaskTab({
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tasks.notFound')}</p>;
   }
-  return <TaskTabBody tabId={tabId} record={record} isNew={isNew} persons={persons} repositories={repositories} api={api} onClose={onClose} onCreated={onCreated} />;
+  return (
+    <TaskTabBody
+      tabId={tabId}
+      record={record}
+      isNew={isNew}
+      persons={persons}
+      repositories={repositories}
+      api={api}
+      onClose={onClose}
+      onCreated={onCreated}
+    />
+  );
 }
 
 function TaskTabBody({
@@ -112,12 +130,7 @@ function TaskTabBody({
         subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
         actions={
           <>
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={draft.text.trim() === ''}
-              onClick={() => void save()}
-            >
+            <Button variant="primary" size="sm" disabled={draft.text.trim() === ''} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </Button>
             {(!isNew || lastSaved !== undefined) && (

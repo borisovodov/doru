@@ -72,9 +72,7 @@ export function AppMenu({ commands, platform, onMenuAction }: AppMenuProps) {
   const groups = APP_MENU.map((group) => ({
     group,
     entries: group.items.filter((entry) => menuVisible(entry, menuPlatform)),
-  })).filter(
-    ({ group, entries }) => menuVisible(group, menuPlatform) && group.items.length > 0 && entries.length > 0,
-  );
+  })).filter(({ group, entries }) => menuVisible(group, menuPlatform) && group.items.length > 0 && entries.length > 0);
 
   return (
     <div className={styles['menu']} ref={rootRef}>
@@ -100,6 +98,8 @@ export function AppMenu({ commands, platform, onMenuAction }: AppMenuProps) {
               )}
               {entries.map((entry, index) =>
                 entry.type === 'separator' ? (
+                  // The menu model is static, so separator positions are stable.
+                  // eslint-disable-next-line @eslint-react/no-array-index-key
                   <div key={`separator-${index}`} className={styles['separator']} role="separator" />
                 ) : (
                   <button
@@ -110,9 +110,7 @@ export function AppMenu({ commands, platform, onMenuAction }: AppMenuProps) {
                     data-menu-item={entry.id}
                     onClick={() => runEntry(entry)}
                   >
-                    <span className={styles['itemLabel']}>
-                      {entry.labelKey ? nls.t(entry.labelKey) : entry.id}
-                    </span>
+                    <span className={styles['itemLabel']}>{entry.labelKey ? nls.t(entry.labelKey) : entry.id}</span>
                     {entry.hint && <span className={styles['itemHint']}>{entry.hint}</span>}
                   </button>
                 ),

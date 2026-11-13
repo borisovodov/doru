@@ -80,10 +80,9 @@ describe('AcpAgentClient edge cases', () => {
   });
 
   it('wraps a session-level RequestError as acp-agent-error', async () => {
-    const app = agent({ name: 'error-agent' })
-      .onRequest('session/new', async () => {
-        throw new RequestError(-32603, 'agent-side JSON-RPC failure');
-      });
+    const app = agent({ name: 'error-agent' }).onRequest('session/new', async () => {
+      throw new RequestError(-32603, 'agent-side JSON-RPC failure');
+    });
 
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
     const error: unknown = await client.startWithAgent(app).catch((err: unknown) => err);

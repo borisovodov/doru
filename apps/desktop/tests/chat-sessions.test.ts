@@ -21,7 +21,11 @@ describe('ChatSessionsStore', () => {
 
       store.appendExchange('p1', created.id, {
         user: 'Find everyone born in Pskov before 1850',
-        assistant: { role: 'assistant', content: 'Done.', steps: [{ type: 'toolCall', name: 'tree_query', arguments: {} }] },
+        assistant: {
+          role: 'assistant',
+          content: 'Done.',
+          steps: [{ type: 'toolCall', name: 'tree_query', arguments: {} }],
+        },
       });
       const sessions = store.list('p1');
       expect(sessions).toHaveLength(1);
@@ -36,8 +40,14 @@ describe('ChatSessionsStore', () => {
     const { store, dir } = makeStore();
     try {
       const created = store.create('p1');
-      store.appendExchange('p1', created.id, { user: 'First question', assistant: { role: 'assistant', content: 'A' } });
-      store.appendExchange('p1', created.id, { user: 'Second question', assistant: { role: 'assistant', content: 'B' } });
+      store.appendExchange('p1', created.id, {
+        user: 'First question',
+        assistant: { role: 'assistant', content: 'A' },
+      });
+      store.appendExchange('p1', created.id, {
+        user: 'Second question',
+        assistant: { role: 'assistant', content: 'B' },
+      });
       expect(store.list('p1')[0]?.title).toBe('First question');
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -50,7 +60,11 @@ describe('ChatSessionsStore', () => {
       const created = store.create('p1');
       store.appendExchange('p1', created.id, {
         user: 'hello',
-        assistant: { role: 'assistant', content: 'hi', steps: [{ type: 'toolResult', name: 'tree_stats', result: { persons: 2 } }] },
+        assistant: {
+          role: 'assistant',
+          content: 'hi',
+          steps: [{ type: 'toolResult', name: 'tree_stats', result: { persons: 2 } }],
+        },
       });
       store.appendExchange('p1', created.id, {
         user: 'again',
@@ -58,7 +72,11 @@ describe('ChatSessionsStore', () => {
       });
       expect(store.transcript('p1', created.id)).toEqual([
         { role: 'user', content: 'hello' },
-        { role: 'assistant', content: 'hi', steps: [{ type: 'toolResult', name: 'tree_stats', result: { persons: 2 } }] },
+        {
+          role: 'assistant',
+          content: 'hi',
+          steps: [{ type: 'toolResult', name: 'tree_stats', result: { persons: 2 } }],
+        },
         { role: 'user', content: 'again' },
         { role: 'assistant', content: '', error: 'boom' },
       ]);

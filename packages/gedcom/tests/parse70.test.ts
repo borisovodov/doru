@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom70 } from '../src/parsing/assemble';
 import type { GedcomDataset } from '../src/structures';
+import { isIndividualRecord, isMultimediaRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -17,7 +18,7 @@ function err70(text: string): { code: string; message: string } {
   if (result.ok) {
     throw new Error('expected an error');
   }
-  return result.error as { code: string; message: string };
+  return result.error;
 }
 
 describe('parseGedcom70 — document level', () => {
@@ -79,9 +80,7 @@ describe('parseGedcom70 — header', () => {
   });
 
   test('rejects a bad tag definition', () => {
-    expect(
-      err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 SCHMA\n2 TAG SKYPEID http://x\n0 TRLR\n').code,
-    ).toBe('tagdef.invalid');
+    expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 SCHMA\n2 TAG SKYPEID http://x\n0 TRLR\n').code).toBe('tagdef.invalid');
   });
 
   test('parses SOUR with CORP, address and data', () => {
@@ -172,7 +171,13 @@ describe('parseGedcom70 — records', () => {
       throw new Error('expected BIRT');
     }
     expect(birth.payload).toBe(true);
-    expect(birth.detail?.date?.value).toEqual({ kind: 'date', day: 1, month: 'JAN', year: 1900, calendar: 'GREGORIAN' });
+    expect(birth.detail?.date?.value).toEqual({
+      kind: 'date',
+      day: 1,
+      month: 'JAN',
+      year: 1900,
+      calendar: 'GREGORIAN',
+    });
     expect(birth.detail?.place?.payload).toEqual(['Cove', 'Cache', 'Utah', 'USA']);
     expect(birth.detail?.age?.payload).toEqual({ years: 32, months: 2 });
     const occupation = indi.attributes?.[0];
@@ -276,12 +281,12 @@ describe('parseGedcom70 — records', () => {
     expect(snote.payload).toBe('Shared text');
     expect(snote.mediaType).toBe('text/plain');
     const obje = dataset.records[3];
-    if (obje?.tag !== 'OBJE') {
+    if (obje === undefined || !isMultimediaRecord(obje)) {
       throw new Error('expected OBJE');
     }
     expect(obje.files[0]?.payload).toBe('media/photo.jpg');
-    expect(obje.files[0]?.form.payload).toBe('image/jpeg');
-    expect(obje.files[0]?.form.medium?.payload).toBe('PHOTO');
+    expect(obje.files[0]?.form?.payload).toBe('image/jpeg');
+    expect(obje.files[0]?.form?.medium?.payload).toBe('PHOTO');
     expect(obje.files[0]?.title).toBe('Portrait');
   });
 });
@@ -289,9 +294,15 @@ describe('parseGedcom70 — records', () => {
 describe('parseGedcom70 — dates and payloads', () => {
   test('parses all DateValue forms', () => {
     const cases: Array<[string, unknown]> = [
-      ['FROM 1900 TO 1910', { kind: 'period', from: { year: 1900, calendar: 'GREGORIAN' }, to: { year: 1910, calendar: 'GREGORIAN' } }],
+      [
+        'FROM 1900 TO 1910',
+        { kind: 'period', from: { year: 1900, calendar: 'GREGORIAN' }, to: { year: 1910, calendar: 'GREGORIAN' } },
+      ],
       ['TO 1800', { kind: 'period', to: { year: 1800, calendar: 'GREGORIAN' } }],
-      ['BET 1900 AND 1910', { kind: 'range', start: { year: 1900, calendar: 'GREGORIAN' }, end: { year: 1910, calendar: 'GREGORIAN' } }],
+      [
+        'BET 1900 AND 1910',
+        { kind: 'range', start: { year: 1900, calendar: 'GREGORIAN' }, end: { year: 1910, calendar: 'GREGORIAN' } },
+      ],
       ['AFT 1800', { kind: 'bound', modifier: 'AFT', date: { year: 1800, calendar: 'GREGORIAN' } }],
       ['BEF 1800', { kind: 'bound', modifier: 'BEF', date: { year: 1800, calendar: 'GREGORIAN' } }],
       ['ABT 1800', { kind: 'approx', modifier: 'ABT', date: { year: 1800, calendar: 'GREGORIAN' } }],
@@ -304,14 +315,12 @@ describe('parseGedcom70 — dates and payloads', () => {
       ['44 BCE', { kind: 'date', year: 44, epoch: 'BCE', calendar: 'GREGORIAN' }],
     ];
     for (const [text, expected] of cases) {
-      const dataset = parse70(
-        `0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE ${text}\n0 TRLR\n`,
-      );
+      const dataset = parse70(`0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE ${text}\n0 TRLR\n`);
       const indi = dataset.records[0];
       if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'BIRT') {
         throw new Error('expected BIRT');
       }
-      expect(indi.events[0].detail?.date?.value, text).toEqual(expected);
+      expect(indi.events[0].detail?.date?.value).toEqual(expected);
     }
   });
 
@@ -328,16 +337,21 @@ describe('parseGedcom70 — dates and payloads', () => {
   });
 
   test('keeps unparseable dates as the phrase with an unknown value', () => {
-    const cases = ['32 JAN 1900', 'XYZ 1900', 'BET 1900', 'FRENCH_R 1 JAN 1900', 'HEBREW 1 TSH 5750 BCE', '29 FEB 1900'];
+    const cases = [
+      '32 JAN 1900',
+      'XYZ 1900',
+      'BET 1900',
+      'FRENCH_R 1 JAN 1900',
+      'HEBREW 1 TSH 5750 BCE',
+      '29 FEB 1900',
+    ];
     for (const text of cases) {
-      const dataset = parse70(
-        `0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE ${text}\n0 TRLR\n`,
-      );
+      const dataset = parse70(`0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE ${text}\n0 TRLR\n`);
       const indi = dataset.records[0];
       if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'BIRT') {
         throw new Error('expected BIRT');
       }
-      expect(indi.events[0].detail?.date, text).toEqual({ value: { kind: 'unknown' }, phrase: text });
+      expect(indi.events[0].detail?.date).toEqual({ value: { kind: 'unknown' }, phrase: text });
     }
     const leap = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 29 FEB 2000\n0 TRLR\n');
     expect(leap.records[0]?.tag).toBe('INDI');
@@ -362,7 +376,9 @@ describe('parseGedcom70 — dates and payloads', () => {
   test('rejects invalid enums and times; unparseable ages become empty', () => {
     expect(err70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 SEX Z\n0 TRLR\n').code).toBe('enum.invalid-value');
     // A repeated unit makes the age unparseable: the empty age form.
-    const duplicateUnits = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1900\n2 AGE 3y 2y\n0 TRLR\n');
+    const duplicateUnits = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 BIRT\n2 DATE 1900\n2 AGE 3y 2y\n0 TRLR\n',
+    );
     expect(
       (duplicateUnits.records[0] as { events?: Array<{ detail?: { age?: unknown } }> }).events?.[0]?.detail?.age,
     ).toEqual({});
@@ -390,7 +406,9 @@ describe('parseGedcom70 — strictness', () => {
   });
 
   test('accepts extension tags anywhere', () => {
-    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n1 _CUSTOM value\n0 @I1@ INDI\n1 _FLAG yes\n2 _DEEP x\n0 TRLR\n');
+    const dataset = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n1 _CUSTOM value\n0 @I1@ INDI\n1 _FLAG yes\n2 _DEEP x\n0 TRLR\n',
+    );
     expect(dataset.header.extensions?.[0]?.tag).toBe('_CUSTOM');
     expect(dataset.header.extensions?.[0]?.payload).toBe('value');
     const indi = dataset.records[0];
@@ -418,7 +436,9 @@ describe('parseGedcom70 — strictness', () => {
   });
 
   test('accepts the void pointer in 7.0', () => {
-    const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 ASSO @VOID@\n2 PHRASE Mr Stockdale\n2 ROLE OTHER\n3 PHRASE Teacher\n0 TRLR\n');
+    const dataset = parse70(
+      '0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 ASSO @VOID@\n2 PHRASE Mr Stockdale\n2 ROLE OTHER\n3 PHRASE Teacher\n0 TRLR\n',
+    );
     const indi = dataset.records[0];
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -432,9 +452,7 @@ describe('parseGedcom70 — strictness', () => {
     // the 5.5.1 grammar does not; the lenient rule wins.
     const even = parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 EVEN\n0 TRLR\n'));
     expect(even.ok).toBe(true);
-    const asso = parseGedcom70(
-      enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 ASSO @I2@\n0 @I2@ INDI\n0 TRLR\n'),
-    );
+    const asso = parseGedcom70(enc('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @I1@ INDI\n1 ASSO @I2@\n0 @I2@ INDI\n0 TRLR\n'));
     expect(asso.ok).toBe(true);
   });
 
@@ -493,16 +511,17 @@ describe('parseGedcom70 — strictness', () => {
       ].join('\n'),
     );
     const indi = dataset.records[0];
-    if (indi?.tag !== 'INDI') {
+    if (indi === undefined || !isIndividualRecord(indi)) {
       throw new Error('expected INDI');
     }
     const ordinance = indi.ordinances?.[0];
     expect(ordinance?.tag).toBe('BAPL');
     expect(ordinance?.detail?.temple).toBe('Salt Lake Temple');
     expect(ordinance?.detail?.status?.payload).toBe('COMPLETED');
-    expect(ordinance?.detail?.status?.date.value).toEqual({ day: 2, month: 'JAN', year: 2020 });
-    expect(ordinance?.detail?.status?.date.time).toEqual({ hour: 12, minute: 0, utc: true });
-    expect(indi.ordinances?.[1]?.familyChild).toBe('@F1@');
+    expect(ordinance?.detail?.status?.date?.value).toEqual({ day: 2, month: 'JAN', year: 2020 });
+    expect(ordinance?.detail?.status?.date?.time).toEqual({ hour: 12, minute: 0, utc: true });
+    const sealing = indi.ordinances?.[1];
+    expect(sealing !== undefined && 'familyChild' in sealing ? sealing.familyChild : undefined).toBe('@F1@');
   });
 
   test('parses source citations with data and events', () => {
@@ -533,7 +552,13 @@ describe('parseGedcom70 — strictness', () => {
     const citation = indi.names?.[0]?.citations?.[0];
     expect(citation?.source).toBe('@S1@');
     expect(citation?.page?.payload).toBe('Film: 1, Frame: 2');
-    expect(citation?.data?.date?.value).toEqual({ kind: 'date', day: 12, month: 'MAR', year: 1900, calendar: 'GREGORIAN' });
+    expect(citation?.data?.date?.value).toEqual({
+      kind: 'date',
+      day: 12,
+      month: 'MAR',
+      year: 1900,
+      calendar: 'GREGORIAN',
+    });
     expect(citation?.data?.texts?.[0]?.payload).toBe('Birth entry');
     expect(citation?.event?.payload).toBe('BIRT');
     expect(citation?.event?.role?.payload).toBe('MOTH');
@@ -579,16 +604,7 @@ describe('parseGedcom70 — strictness', () => {
 describe('parseGedcom70 — empty AGE payload', () => {
   test('parses an AGE with no payload and a PHRASE', () => {
     const dataset = parse70(
-      [
-        '0 HEAD',
-        '1 GEDC',
-        '2 VERS 7.0',
-        '0 @I1@ INDI',
-        '1 DEAT Y',
-        '2 AGE',
-        '3 PHRASE very old',
-        '0 TRLR',
-      ].join('\n'),
+      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 DEAT Y', '2 AGE', '3 PHRASE very old', '0 TRLR'].join('\n'),
     );
     const indi = dataset.records[0];
     if (indi?.tag !== 'INDI' || indi.events?.[0]?.tag !== 'DEAT') {
@@ -624,15 +640,7 @@ describe('parseGedcom70 — payload-less RESI attributes', () => {
 
   test('parses a FAM.RESI without a payload', () => {
     const dataset = parse70(
-      [
-        '0 HEAD',
-        '1 GEDC',
-        '2 VERS 7.0',
-        '0 @F1@ FAM',
-        '1 RESI',
-        '2 PLAC Paris, France',
-        '0 TRLR',
-      ].join('\n'),
+      ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @F1@ FAM', '1 RESI', '2 PLAC Paris, France', '0 TRLR'].join('\n'),
     );
     const fam = dataset.records[0];
     if (fam?.tag !== 'FAM') {

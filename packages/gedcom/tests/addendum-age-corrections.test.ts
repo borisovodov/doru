@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset, IndividualRecord } from '../src/structures';
+import { isCensusRecord } from '../src/structures';
 import { parseAge551 } from '../src/parsing/types';
 import type { SourcePosition } from '../src/errors';
 
@@ -46,7 +47,7 @@ const H70 = ['0 HEAD', '1 GEDC', '2 VERS 7.0'];
 
 function indi(dataset: GedcomDataset): IndividualRecord {
   const record = dataset.records.find((entry) => entry.tag === 'INDI');
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined) {
     throw new Error('expected INDI');
   }
   return record;
@@ -104,9 +105,9 @@ describe('the GEDCOM-L Addendum §8.2 AGE corrections', () => {
   });
 
   test('the strict order rule still applies (the corrections do not reorder)', () => {
-    expect(() => parseAge551('5d 5y', pos)).toThrowError('Age components must appear in the order');
-    expect(() => parseAge551('5w', pos)).toThrowError('Invalid age component');
-    expect(() => parseAge551('65 10', pos)).toThrowError('bare-number age must have exactly three groups');
+    expect(() => parseAge551('5d 5y', pos)).toThrow('Age components must appear in the order');
+    expect(() => parseAge551('5w', pos)).toThrow('Invalid age component');
+    expect(() => parseAge551('65 10', pos)).toThrow('bare-number age must have exactly three groups');
   });
 
   test('the valid standard spellings are unchanged', () => {
@@ -126,7 +127,9 @@ describe('the GEDCOM-L Addendum §8.2 AGE corrections', () => {
   });
 
   test('a level-1 AGE attaches to an existing DEAT event', () => {
-    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 DEAT', '2 DATE 1900', '1 AGE 65', ...SUBM, '0 TRLR'].join('\n'));
+    const dataset = parseOk551(
+      [...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 DEAT', '2 DATE 1900', '1 AGE 65', ...SUBM, '0 TRLR'].join('\n'),
+    );
     const death = indi(dataset).events?.find((entry) => entry.tag === 'DEAT');
     expect(death?.detail?.age?.payload).toEqual({ years: 65 });
     expect(death?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1900 });
@@ -135,13 +138,17 @@ describe('the GEDCOM-L Addendum §8.2 AGE corrections', () => {
 
 describe('the Hebrew AM year prefix (GEDCOM 5.5.5 p.84)', () => {
   test('@#DHEBREW@ AM 5670 parses as the year 5670', () => {
-    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM 5670', ...SUBM, '0 TRLR'].join('\n'));
+    const dataset = parseOk551(
+      [...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM 5670', ...SUBM, '0 TRLR'].join('\n'),
+    );
     const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
     expect(birth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'HEBREW', year: 5670 });
   });
 
   test('the AM prefix combines with a month and an epoch', () => {
-    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM TSH 5670', ...SUBM, '0 TRLR'].join('\n'));
+    const dataset = parseOk551(
+      [...H551, '0 @I1@ INDI', '1 BIRT', '2 DATE @#DHEBREW@ AM TSH 5670', ...SUBM, '0 TRLR'].join('\n'),
+    );
     const birth = indi(dataset).events?.find((entry) => entry.tag === 'BIRT');
     expect(birth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'HEBREW', month: 'TSH', year: 5670 });
     // The BCE epoch is not permitted in the Hebrew calendar; the
@@ -161,17 +168,43 @@ describe('the Hebrew AM year prefix (GEDCOM 5.5.5 p.84)', () => {
 
 describe('the census SEX and ROLE typing (MagiKey_CENR_INDI.yaml)', () => {
   test('SEX canonicalizes through the version enum and ROLE types the descriptors', () => {
-    const dataset = parseOk551([...H551, '0 @C1@ _CENR', '1 DATE 2 APR 1911', '1 PLAC Rathmines', '1 INDI @I1@', '2 SEX m', '2 ROLE CHIL', '0 @I1@ INDI', '1 NAME John /Doe/', ...SUBM, '0 TRLR'].join('\n'));
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @C1@ _CENR',
+        '1 DATE 2 APR 1911',
+        '1 PLAC Rathmines',
+        '1 INDI @I1@',
+        '2 SEX m',
+        '2 ROLE CHIL',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
     const census = dataset.records.find((r) => r.tag === '_CENR');
-    const entry = census?.tag === '_CENR' ? census.entries[0] : undefined;
+    const entry = census !== undefined && isCensusRecord(census) ? census.entries[0] : undefined;
     expect(entry?.sex).toBe('M');
     expect(entry?.role).toEqual({ payload: 'CHIL' });
   });
 
   test('a bare census role descriptor normalizes to OTHER + phrase and writes back parenthesized', () => {
-    const dataset = parseOk70([...H70, '0 @C1@ _CENR', '1 DATE 2 APR 1911', '1 PLAC Rathmines', '1 INDI @I1@', '2 ROLE Head', '0 @I1@ INDI', '1 NAME John /Doe/', '0 TRLR'].join('\n'));
+    const dataset = parseOk70(
+      [
+        ...H70,
+        '0 @C1@ _CENR',
+        '1 DATE 2 APR 1911',
+        '1 PLAC Rathmines',
+        '1 INDI @I1@',
+        '2 ROLE Head',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '0 TRLR',
+      ].join('\n'),
+    );
     const census = dataset.records.find((r) => r.tag === '_CENR');
-    const entry = census?.tag === '_CENR' ? census.entries[0] : undefined;
+    const entry = census !== undefined && isCensusRecord(census) ? census.entries[0] : undefined;
     expect(entry?.role).toEqual({ payload: 'OTHER', phrase: 'Head' });
     const out70 = (() => {
       const result = serializeGedcom70(dataset);
@@ -185,22 +218,46 @@ describe('the census SEX and ROLE typing (MagiKey_CENR_INDI.yaml)', () => {
   });
 
   test('an invalid census SEX is a strict error', () => {
-    expect(err70([...H70, '0 @C1@ _CENR', '1 DATE 2 APR 1911', '1 PLAC P', '1 INDI @I1@', '2 SEX Q', '0 @I1@ INDI', '1 NAME A /B/', '0 TRLR'].join('\n'))).toBe('enum.invalid-value');
+    expect(
+      err70(
+        [
+          ...H70,
+          '0 @C1@ _CENR',
+          '1 DATE 2 APR 1911',
+          '1 PLAC P',
+          '1 INDI @I1@',
+          '2 SEX Q',
+          '0 @I1@ INDI',
+          '1 NAME A /B/',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    ).toBe('enum.invalid-value');
   });
 });
 
 describe('the MagiKey _AGER bound order (MagiKey-AgeRange.yaml)', () => {
   test('the first bound must be lower than the second', () => {
-    expect(err70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 AGE 20y', '3 _AGER 26-16', '0 TRLR'].join('\n'))).toBe('age.invalid');
-    expect(err70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 AGE 20y', '3 _AGER 16-16', '0 TRLR'].join('\n'))).toBe('age.invalid');
+    expect(
+      err70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 AGE 20y', '3 _AGER 26-16', '0 TRLR'].join('\n')),
+    ).toBe('age.invalid');
+    expect(
+      err70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 AGE 20y', '3 _AGER 16-16', '0 TRLR'].join('\n')),
+    ).toBe('age.invalid');
     // The valid range still parses.
-    expect(parseOk70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 AGE 20y', '3 _AGER 16-26', '0 TRLR'].join('\n'))).toBeTruthy();
+    expect(
+      parseOk70([...H70, '0 @I1@ INDI', '1 NAME A /B/', '1 BIRT', '2 AGE 20y', '3 _AGER 16-26', '0 TRLR'].join('\n')),
+    ).toBeTruthy();
   });
 });
 
 describe('the 5.5.1 export of the corrected ages', () => {
   test('a corrected AGE exports in the canonical spelling', () => {
-    const dataset = parseOk551([...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 DEAT', '2 AGE 65 years 10 months 25 days', ...SUBM, '0 TRLR'].join('\n'));
+    const dataset = parseOk551(
+      [...H551, '0 @I1@ INDI', '1 NAME A /B/', '1 DEAT', '2 AGE 65 years 10 months 25 days', ...SUBM, '0 TRLR'].join(
+        '\n',
+      ),
+    );
     const out = lines(ser551(dataset));
     expect(out).toContain('2 AGE 65y 10m 25d');
     expect(parseOk551(ser551(dataset))).toEqual(dataset);

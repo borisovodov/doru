@@ -14,16 +14,16 @@ export interface AvatarProps {
 }
 
 /** Initials on a sex-tinted tile, the shared identity avatar of the app. */
-export function Avatar({
-  initials,
-  tone = 'neutral',
-  size = 'md',
-  shape = 'rounded',
-  className,
-}: AvatarProps) {
+export function Avatar({ initials, tone = 'neutral', size = 'md', shape = 'rounded', className }: AvatarProps) {
   return (
     <span
-      className={cx(styles['avatar'], styles[`avatar-${size}`], styles[`avatar-${shape}`], styles[`avatar-${tone}`], className)}
+      className={cx(
+        styles['avatar'],
+        styles[`avatar-${size}`],
+        styles[`avatar-${shape}`],
+        styles[`avatar-${tone}`],
+        className,
+      )}
       aria-hidden="true"
     >
       {initials}

@@ -99,9 +99,7 @@ describe('normalizeUrl / repositoryUrl', () => {
   });
 
   it('reads repository objects and strings', () => {
-    expect(repositoryUrl({ type: 'git', url: 'git+https://github.com/x/y.git' })).toBe(
-      'https://github.com/x/y',
-    );
+    expect(repositoryUrl({ type: 'git', url: 'git+https://github.com/x/y.git' })).toBe('https://github.com/x/y');
     expect(repositoryUrl('https://github.com/x/y')).toBe('https://github.com/x/y');
     expect(repositoryUrl(['not', 'a', 'repo'])).toBeUndefined();
   });
@@ -112,10 +110,7 @@ describe('collectNotices with a fixture checkout', () => {
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'doru-notices-'));
-    writeFileSync(
-      join(root, 'package.json'),
-      JSON.stringify({ workspaces: ['apps/*', 'packages/*'] }),
-    );
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ workspaces: ['apps/*', 'packages/*'] }));
     mkdirSync(join(root, 'apps', 'a'), { recursive: true });
     mkdirSync(join(root, 'packages', 'b'), { recursive: true });
     writeFileSync(
@@ -193,9 +188,7 @@ describe('collectNotices with a fixture checkout', () => {
 
 describe('renderNotices', () => {
   it('emits a committed-style module with the notices payload', () => {
-    const rendered = renderNotices([
-      { name: 'dep-a', license: 'MIT', text: 'mit text' },
-    ]);
+    const rendered = renderNotices([{ name: 'dep-a', license: 'MIT', text: 'mit text' }]);
     expect(rendered).toContain('// nls-ignore-file');
     expect(rendered).toContain("import type { ThirdPartyNotice } from './types';");
     expect(rendered).toContain('"name": "dep-a"');

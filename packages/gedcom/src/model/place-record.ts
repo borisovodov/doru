@@ -55,13 +55,7 @@
  * `_LOC` pointer kept on its referencing places.
  */
 import type { Language, Pointer, Text, Xref } from '../primitives';
-import type {
-  ChangeDate,
-  DateStructure,
-  EventDetail,
-  IdentifierStructure,
-  NoteStructure,
-} from './common';
+import type { ChangeDate, DateStructure, EventDetail, IdentifierStructure, NoteStructure } from './common';
 import type { MapCoordinates, PostalCodeStructure } from './names-places';
 import type { MultimediaLink, SourceCitation } from './sources-media';
 import type { GedcomStructureBase } from './extensions';

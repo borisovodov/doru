@@ -1,5 +1,26 @@
 import type { MediaWithPath } from '@doru/ui/domain';
-import type { AddressRecord, AssociationRecord, ChangeRecord, CitationRecord, ContactRecord, FactRecord, FamilyRecord, IdentifierRecord, MediaRecord, NoteLinkRecord, NoteRecord, PersonRecord, PlaceRecord, RepositoryRecord, RestrictionRecord, SourceRecord, SubmitterRecord, TagLinkRecord, TagRecord, TitleRecord, } from '@doru/core';
+import type {
+  AddressRecord,
+  AssociationRecord,
+  ChangeRecord,
+  CitationRecord,
+  ContactRecord,
+  FactRecord,
+  FamilyRecord,
+  IdentifierRecord,
+  MediaRecord,
+  NoteLinkRecord,
+  NoteRecord,
+  PersonRecord,
+  PlaceRecord,
+  RepositoryRecord,
+  RestrictionRecord,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+  TitleRecord,
+} from '@doru/core';
 
 export type { MediaWithPath } from '@doru/ui/domain';
 

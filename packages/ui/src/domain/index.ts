@@ -25,11 +25,7 @@ export { SourceLink, type SourceLinkProps } from './sources/SourceLink';
 export { CitationEditor } from './citation/CitationEditor';
 export { NotesSection } from './notes/NotesSection';
 export { TagsSection } from './tags/TagsSection';
-export {
-  ContactsSection,
-  IdentifiersSection,
-  RestrictionsSection,
-} from './attachments/AttachmentsSection';
+export { ContactsSection, IdentifiersSection, RestrictionsSection } from './attachments/AttachmentsSection';
 export { ContributorsSection } from './contributors/ContributorsSection';
 export { TaskEditorFields } from './task/TaskEditorFields';
 export { TasksView } from './task/TasksView';

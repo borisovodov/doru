@@ -23,13 +23,7 @@
  * dropped inline in the emitter.
  */
 
-import type {
-  GedcomDataset,
-  GedcomRecord,
-  IndividualRecord,
-  PlaceRecord,
-  SubmitterRecord,
-} from '../structures';
+import type { GedcomDataset, GedcomRecord, IndividualRecord, PlaceRecord, SubmitterRecord } from '../structures';
 import {
   isDuplicateCandidateRecord,
   isCensusRecord,
@@ -168,9 +162,7 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
   if (isCensusRecord(record)) {
     // The census entries point at INDI records, which the NO rule can
     // drop; a dangling census pointer would be invalid output.
-    record.entries = (record.entries ?? []).filter(
-      (entry) => entry.individual === undefined || valid.has(entry.individual),
-    );
+    record.entries = record.entries.filter((entry) => valid.has(entry.individual));
     return;
   }
   if (isDuplicateCandidateRecord(record)) {
@@ -201,9 +193,7 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
     // The `_RDOC` links of an evidence record may point at OBJE
     // records (the gramps census example links the census image),
     // which the embedded-media rule can drop.
-    const documents = (record.documents ?? []).filter(
-      (pointer) => pointer === '@VOID@' || valid.has(pointer),
-    );
+    const documents = (record.documents ?? []).filter((pointer) => pointer === '@VOID@' || valid.has(pointer));
     if (documents.length === 0) {
       delete record.documents;
     } else {
@@ -214,20 +204,14 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
   if (isResearchDocumentRecord(record)) {
     // The `_SUBJ` pointers name INDI records, which the NO rule can
     // drop; a conclusion keeps its text without the subject.
-    const subjects = (record.subjects ?? []).filter(
-      (pointer) => pointer === '@VOID@' || valid.has(pointer),
-    );
+    const subjects = (record.subjects ?? []).filter((pointer) => pointer === '@VOID@' || valid.has(pointer));
     if (subjects.length === 0) {
       delete record.subjects;
     } else {
       record.subjects = subjects;
     }
     for (const conclusion of record.conclusions ?? []) {
-      if (
-        conclusion.subject !== undefined &&
-        conclusion.subject !== '@VOID@' &&
-        !valid.has(conclusion.subject)
-      ) {
+      if (conclusion.subject !== undefined && conclusion.subject !== '@VOID@' && !valid.has(conclusion.subject)) {
         delete conclusion.subject;
       }
     }
@@ -244,14 +228,11 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
   rec.submitters = (rec.submitters ?? []).filter((pointer) => valid.has(pointer));
   rec.associations = (rec.associations ?? []).filter((link) => valid.has(link.individual));
   rec.notes = (rec.notes ?? []).filter((note) => {
-    if (note.tag !== 'NOTE' && note.tag !== 'SNOTE') {
-      return true;
-    }
     if (!('note' in note)) {
       // An inline note carries its text directly; nothing dangles.
       return true;
     }
-    return note.note !== undefined && valid.has(note.note);
+    return valid.has(note.note);
   });
   rec.citations = (rec.citations ?? []).filter((citation) => {
     if (citation.source === '@VOID@') {
@@ -280,11 +261,7 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
       // record the NO rule dropped leaves the entry without its
       // subject; the pedigree value itself survives.
       for (const pedigree of link.pedigrees ?? []) {
-        if (
-          pedigree.parent !== undefined &&
-          pedigree.parent !== '@VOID@' &&
-          !valid.has(pedigree.parent)
-        ) {
+        if (pedigree.parent !== undefined && pedigree.parent !== '@VOID@' && !valid.has(pedigree.parent)) {
           delete pedigree.parent;
         }
       }
@@ -313,15 +290,21 @@ function stripPointers(record: GedcomRecord, valid: Set<string>): void {
   for (const key of cleanup) {
     const value = rec[key];
     if (Array.isArray(value) && value.length === 0) {
-      delete rec[key];
+      Reflect.deleteProperty(rec, key);
     }
   }
   if (isIndividualRecord(rec)) {
-    const indiKeys = ['aliases', 'ancestorInterests', 'descendantInterests', 'spouseFamilies', 'childFamilies'] as const;
+    const indiKeys = [
+      'aliases',
+      'ancestorInterests',
+      'descendantInterests',
+      'spouseFamilies',
+      'childFamilies',
+    ] as const;
     for (const key of indiKeys) {
       const value = rec[key];
       if (Array.isArray(value) && value.length === 0) {
-        delete rec[key];
+        Reflect.deleteProperty(rec, key);
       }
     }
   }
@@ -339,9 +322,7 @@ function fill551Header(dataset: GedcomDataset): void {
   if (header.source === undefined) {
     header.source = { payload: DEFAULT_SYSTEM_ID_551 };
   }
-  const live = new Set(
-    dataset.records.map((record) => record.xref).filter((x): x is string => x !== undefined),
-  );
+  const live = new Set(dataset.records.map((record) => record.xref).filter((x): x is string => x !== undefined));
   if (header.submitter === undefined || header.submitter === '@VOID@' || !live.has(header.submitter)) {
     const existing = dataset.records.find((record) => record.tag === 'SUBM' && record.xref !== undefined);
     if (existing !== undefined) {
@@ -390,7 +371,7 @@ function collectExtensionPointerTargets(root: unknown): Set<string> {
     }
     const obj = value as Record<string, unknown>;
     if (obj['payloadKind'] === 'pointer' && typeof obj['payload'] === 'string') {
-      out.add(obj['payload'] as string);
+      out.add(obj['payload']);
     }
     for (const key of Object.keys(obj)) {
       stack.push(obj[key]);
@@ -406,26 +387,28 @@ function collectExtensionPointerTargets(root: unknown): Set<string> {
  * record.
  */
 function hasGermanPlaceFields(card: PlaceRecord): boolean {
-  return card.govId !== undefined
-    || card.maidenhead !== undefined
-    || card.preposition !== undefined
-    || card.elMaps !== undefined
-    || card.types !== undefined
-    || card.postalCodes !== undefined
-    || card.administrativeIds !== undefined
-    || card.demographicData !== undefined
-    || card.denomination !== undefined
-    || card.events !== undefined
-    || card.parents !== undefined
-    || (card.names ?? []).some(
+  return (
+    card.govId !== undefined ||
+    card.maidenhead !== undefined ||
+    card.preposition !== undefined ||
+    card.elMaps !== undefined ||
+    card.types !== undefined ||
+    card.postalCodes !== undefined ||
+    card.administrativeIds !== undefined ||
+    card.demographicData !== undefined ||
+    card.denomination !== undefined ||
+    card.events !== undefined ||
+    card.parents !== undefined ||
+    (card.names ?? []).some(
       (name) =>
-        name.date !== undefined
-        || (name.abbreviations ?? []).length > 0
-        || name.language !== undefined
-        || name.citations !== undefined
-        || name.addition !== undefined
-    )
-    || (card.names ?? []).length > 1;
+        name.date !== undefined ||
+        (name.abbreviations ?? []).length > 0 ||
+        name.language !== undefined ||
+        name.citations !== undefined ||
+        name.addition !== undefined,
+    ) ||
+    (card.names ?? []).length > 1
+  );
 }
 
 /**
@@ -533,9 +516,7 @@ function preservePlaceRecords70(dataset: GedcomDataset, pinned: ReadonlySet<stri
       return true;
     }
     return (
-      record.payload !== ''
-      || (record.names?.length ?? 0) > 0
-      || (record.xref !== undefined && pinned.has(record.xref))
+      record.payload !== '' || (record.names?.length ?? 0) > 0 || (record.xref !== undefined && pinned.has(record.xref))
     );
   });
 }
@@ -611,8 +592,11 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
     const rec = record;
     if (rec.nonEvents !== undefined) {
       const kept = rec.nonEvents.filter(
-        (nonEvent) => nonEvent.date === undefined && nonEvent.notes === undefined && nonEvent.citations === undefined
-          && (nonEvent.payload === 'MARR' || (isIndividualRecord(rec) && nonEvent.payload === 'DEAT')),
+        (nonEvent) =>
+          nonEvent.date === undefined &&
+          nonEvent.notes === undefined &&
+          nonEvent.citations === undefined &&
+          (nonEvent.payload === 'MARR' || (isIndividualRecord(rec) && nonEvent.payload === 'DEAT')),
       );
       const droppedAny = kept.length < rec.nonEvents.length;
       if (droppedAny && rec.xref !== undefined) {
@@ -632,9 +616,7 @@ export function prepareFor551(dataset: GedcomDataset): GedcomDataset {
   //    referenced by an extension pointer payload are never dropped —
   //    their target must stay valid output.
   for (let round = 0; round < 100; round++) {
-    const valid = new Set(
-      out.records.map((record) => record.xref).filter((x): x is string => x !== undefined),
-    );
+    const valid = new Set(out.records.map((record) => record.xref).filter((x): x is string => x !== undefined));
     for (const record of out.records) {
       stripPointers(record, valid);
     }
@@ -722,9 +704,7 @@ export function prepareFor70(dataset: GedcomDataset): GedcomDataset {
         }
       }
       if (isEvidenceRecord(record)) {
-        const keptDocuments = (record.documents ?? []).filter(
-          (pointer) => pointer === '@VOID@' || valid.has(pointer),
-        );
+        const keptDocuments = (record.documents ?? []).filter((pointer) => pointer === '@VOID@' || valid.has(pointer));
         if (keptDocuments.length === 0) {
           delete record.documents;
         } else {

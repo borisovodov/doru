@@ -56,8 +56,7 @@ export function saveAiApiKey(providerId: string, key: string): void {
 
 export function clearAiApiKey(providerId: string): void {
   const secrets = readSecrets();
-  const apiKeys = { ...(secrets['apiKeys'] ?? {}) };
-  delete apiKeys[providerId];
+  const apiKeys = Object.fromEntries(Object.entries(secrets['apiKeys'] ?? {}).filter(([id]) => id !== providerId));
   if (Object.keys(apiKeys).length === 0) {
     rmSync(secretsFilePath(), { force: true });
   } else {

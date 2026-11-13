@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { RecentProject } from '@doru/core';
 
-export function useProject(
-  projectPath: string | null | undefined,
-  ensureTreeTab: () => void,
-) {
+export function useProject(projectPath: string | null | undefined, ensureTreeTab: () => void) {
   const [recent, setRecent] = useState<RecentProject[]>([]);
 
   const refreshRecent = useCallback(async () => {

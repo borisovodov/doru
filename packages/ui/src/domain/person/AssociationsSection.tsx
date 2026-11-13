@@ -49,9 +49,7 @@ export function AssociationsSection({
 
   return (
     <SectionCard title={nls.t('features.tree.associations.title')}>
-      {associations.length === 0 && !adding ? (
-        <EmptyText>{nls.t('features.tree.associations.empty')}</EmptyText>
-      ) : null}
+      {associations.length === 0 && !adding ? <EmptyText>{nls.t('features.tree.associations.empty')}</EmptyText> : null}
       {associations.length > 0 ? (
         <RowList>
           {associations.map((association) => (
@@ -204,25 +202,16 @@ function AssociationFields({
       </Field>
       <FieldGrid columns={2}>
         <Field label={nls.t('features.tree.associations.relationship')}>
-          <Input
-            value={draft.relationship}
-            onChange={(event) => set({ relationship: event.target.value })}
-          />
+          <Input value={draft.relationship} onChange={(event) => set({ relationship: event.target.value })} />
         </Field>
         <Field label={nls.t('features.tree.associations.role')}>
           <Input value={draft.role} onChange={(event) => set({ role: event.target.value })} />
         </Field>
         <Field label={nls.t('features.tree.associations.specificType')}>
-          <Input
-            value={draft.specificType}
-            onChange={(event) => set({ specificType: event.target.value })}
-          />
+          <Input value={draft.specificType} onChange={(event) => set({ specificType: event.target.value })} />
         </Field>
         <Field label={nls.t('features.tree.associations.confidence')}>
-          <Input
-            value={draft.confidence}
-            onChange={(event) => set({ confidence: event.target.value })}
-          />
+          <Input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
         </Field>
       </FieldGrid>
       <Field label={nls.t('features.tree.associations.phrase')}>

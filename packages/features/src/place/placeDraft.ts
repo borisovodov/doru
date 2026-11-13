@@ -68,7 +68,7 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
     latitude: place.latitude !== undefined ? String(place.latitude) : '',
     longitude: place.longitude !== undefined ? String(place.longitude) : '',
     verified: place.verified === true,
-    names: (place.names ?? []).map((name) => ({
+    names: place.names.map((name) => ({
       id: name.id,
       kind: name.kind ?? 'official',
       language: name.language ?? '',
@@ -145,7 +145,10 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
     draft.verified === other.verified &&
     draft.names.length === other.names.length &&
     draft.names.every((name, index) => {
-      const entry = other.names[index]!;
+      const entry = other.names[index];
+      if (entry === undefined) {
+        return false;
+      }
       return (
         name.id === entry.id &&
         name.kind === entry.kind &&
@@ -157,17 +160,16 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
     }) &&
     draft.postalCodes.length === other.postalCodes.length &&
     draft.postalCodes.every((postal, index) => {
-      const entry = other.postalCodes[index]!;
-      return (
-        postal.id === entry.id &&
-        postal.code === entry.code &&
-        dateDraftsMatch(postal.date, entry.date)
-      );
+      const entry = other.postalCodes[index];
+      if (entry === undefined) {
+        return false;
+      }
+      return postal.id === entry.id && postal.code === entry.code && dateDraftsMatch(postal.date, entry.date);
     }) &&
     draft.hierarchy.length === other.hierarchy.length &&
     draft.hierarchy.every((link, index) => {
-      const entry = other.hierarchy[index]!;
-      return link.parentId === entry.parentId && link.type === entry.type;
+      const entry = other.hierarchy[index];
+      return entry !== undefined && link.parentId === entry.parentId && link.type === entry.type;
     })
   );
 }

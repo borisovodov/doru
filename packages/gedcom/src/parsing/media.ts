@@ -15,33 +15,13 @@ import type {
   MediaStructure,
   MultimediaRecord,
 } from '../structures';
-import {
-  MEDIA_ENUM_VALUES,
-} from '../enumerations';
-import {
-  fail,
-} from '../errors';
-import type {
-  Ctx,
-} from './context';
-import {
-  addExtension,
-  dispatch,
-  noPayload,
-  parseImportReference,
-  reqDigits,
-  reqPtr,
-  reqText,
-} from './context';
+import { MEDIA_ENUM_VALUES } from '../enumerations';
+import { fail } from '../errors';
+import type { Ctx } from './context';
+import { addExtension, dispatch, noPayload, parseImportReference, reqDigits, reqPtr, reqText } from './context';
 import { parseTagLink } from './evidence';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parseSourceCitation,
-  parseVendorFlag,
-  parseYNFlag,
-} from './sources-media';
+import type { RawNode } from './lines';
+import { parseSourceCitation, parseVendorFlag, parseYNFlag } from './sources-media';
 import {
   parseChangeDate,
   parseCreationDateLenient,
@@ -51,11 +31,7 @@ import {
   parseReferenceIdentifier,
   parseUniqueIdentifier,
 } from './substructures';
-import {
-  parseEnum,
-  parseMediaFormat,
-  parseRestrictionList,
-} from './types';
+import { parseEnum, parseMediaFormat, parseRestrictionList } from './types';
 
 export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord {
   noPayload(node);
@@ -67,26 +43,26 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     FILE: (child) => {
       rec.files.push(parseMediaFile(child, ctx));
     },
-    '_FILESIZE': (child) => {
+    _FILESIZE: (child) => {
       // Family Tree Builder / MyHeritage: the media file size (see
       // MediaFile.fileSize).
       fileSize = reqDigits(child);
     },
-    '_ALBUM': (child) => {
+    _ALBUM: (child) => {
       // Family Tree Builder / MyHeritage: the album XREF (see
       // MediaFile.album; the wire form is xref-shaped, kept verbatim
       // and unresolved — real exports dangle).
       album = child.value.kind === 'pointer' ? child.value.pointer : reqText(child);
     },
-    '_PHOTO_RIN': (child) => {
+    _PHOTO_RIN: (child) => {
       // Family Tree Builder / MyHeritage: the photo's record id (see
       // MediaFile.recordId).
       photoRecordId = reqText(child);
     },
-    '_DATE': (child) => {
+    _DATE: (child) => {
       rec.date = parseDateStructure(child, ctx);
     },
-    '_PLAC': (child) => {
+    _PLAC: (child) => {
       // Ancestry.com Family Trees writes the place of the media object
       // with the standard PLAC tag (see MultimediaRecord.place); the
       // underscore spelling is accepted into the same slot, as is the
@@ -96,45 +72,45 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/FamilyTreeBuilder.php).
       rec.place = reqText(child);
     },
-    '_PLACE': (child) => {
+    _PLACE: (child) => {
       // Family Tree Builder / MyHeritage: the place name of the media
       // object (see the `_PLAC` handler above).
       rec.place = reqText(child);
     },
-    '_PRIM': (child) => {
+    _PRIM: (child) => {
       // Legacy/AQ/FO/PAF: the record-level "preferred media" mark (see
       // MultimediaRecord.primary).
       rec.primary = parseVendorFlag(child, '_PRIM');
     },
-    '_SCBK': (child) => {
+    _SCBK: (child) => {
       // Legacy/AQ: the record-level scrapbook mark (see
       // MultimediaRecord.scrapbook).
       rec.scrapbook = parseVendorFlag(child, '_SCBK');
     },
-    '_SSHOW': (child) => {
+    _SSHOW: (child) => {
       // AQ/PAF: the record-level slide-show mark (see
       // MultimediaRecord.slideshow).
       rec.slideshow = parseVendorFlag(child, '_SSHOW');
     },
-    '_TYPE': (child) => {
+    _TYPE: (child) => {
       rec.objectType = reqText(child);
     },
-    '_SOUND': (child) => {
+    _SOUND: (child) => {
       rec.soundFile = reqText(child);
     },
-    '_KEYS': (child) => {
+    _KEYS: (child) => {
       // FH: the media object's keywords (see MultimediaRecord.keywords).
       rec.keywords = reqText(child);
     },
-    '_FILE': (child) => {
+    _FILE: (child) => {
       // FH: the path of the media file (see MultimediaRecord.filePath).
       rec.filePath = reqText(child);
     },
-    '_NOTE': (child) => {
+    _NOTE: (child) => {
       // FH: a media note (see MultimediaRecord.mediaNote).
       rec.mediaNote = reqText(child);
     },
-    '_NOTA': (child) => {
+    _NOTA: (child) => {
       // Family Historian spells the note attached to a media record
       // `_NOTA` (the FHUG "GEDCOM Extension List":
       // https://www.fhug.org.uk/kb/topic/gedcom-files/) — a full note
@@ -142,7 +118,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // the standard NOTE shape.
       (rec.notes ??= []).push(parseNoteStructure({ ...child, tag: 'NOTE' }, ctx));
     },
-    '_TEXT': (child) => {
+    _TEXT: (child) => {
       // The ged4web exports write the media object's comment text
       // with the TEXT tag under the OBJE record — the same slot the
       // FH `_NOTE` carries (see MultimediaRecord.mediaNote).
@@ -152,31 +128,31 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // The standard spelling of the media comment text.
       rec.mediaNote = reqText(child);
     },
-    '_CREA': (child) => {
+    _CREA: (child) => {
       // Ancestry.com Family Trees: the date the media object was
       // created (see MultimediaRecord.createdAt).
       rec.createdAt = reqText(child);
     },
-    '_CUTOUT': (child) => {
+    _CUTOUT: (child) => {
       // MyHeritage: the cutout flag (see MultimediaRecord.cutout).
       rec.cutout = parseYNFlag(child, '_CUTOUT');
     },
-    '_PRIM_CUTOUT': (child) => {
+    _PRIM_CUTOUT: (child) => {
       // MyHeritage: the primary cutout mark (see
       // MultimediaRecord.primaryCutout).
       rec.primaryCutout = parseYNFlag(child, '_PRIM_CUTOUT');
     },
-    '_PARENTPHOTO': (child) => {
+    _PARENTPHOTO: (child) => {
       // MyHeritage: the parent-photo flag (see
       // MultimediaRecord.parentPhoto).
       rec.parentPhoto = parseYNFlag(child, '_PARENTPHOTO');
     },
-    '_PERSONALPHOTO': (child) => {
+    _PERSONALPHOTO: (child) => {
       // MyHeritage: the personal-photo flag (see
       // MultimediaRecord.personalPhoto).
       rec.personalPhoto = parseYNFlag(child, '_PERSONALPHOTO');
     },
-    '_PARENTRIN': (child) => {
+    _PARENTRIN: (child) => {
       // MyHeritage: the parent's record id (see
       // MultimediaRecord.parentRecordId).
       rec.parentRecordId = reqText(child);
@@ -186,12 +162,12 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // MultimediaRecord.author).
       rec.author = reqText(child);
     },
-    '_OID': (child) => {
+    _OID: (child) => {
       // Ancestry.com Family Trees: the media object's identifier, a
       // UUID (see MultimediaRecord.objectId).
       rec.objectId = reqText(child);
     },
-    '_USER': (child) => {
+    _USER: (child) => {
       // Ancestry.com Family Trees: the user token of the media
       // object's creator, with the `_ENCR` encrypted flag beneath
       // (see MultimediaRecord.user / userEncrypted).
@@ -204,28 +180,28 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
         }
       }
     },
-    '_ORIG': (child) => {
+    _ORIG: (child) => {
       // Ancestry.com Family Trees: the origin of the media object —
       // `acom` (ancestry.com), `u` (user upload), `newspapers`,
       // `fold3`, … (see MultimediaRecord.origin).
       rec.origin = reqText(child);
     },
-    '_ATL': (child) => {
+    _ATL: (child) => {
       // Ancestry.com Family Trees: the attachment flag Y/N (see
       // MultimediaRecord.attachment).
       rec.attachment = parseYNFlag(child, '_ATL');
     },
-    '_META': (child) => {
+    _META: (child) => {
       // Ancestry.com Family Trees: the media metadata XML block (see
       // MultimediaRecord.metadata).
       rec.metadata = reqText(child);
     },
-    '_DSCR': (child) => {
+    _DSCR: (child) => {
       // Ancestry.com Family Trees: the media object's description (see
       // MultimediaRecord.description).
       rec.description = reqText(child);
     },
-    '_MSER': (child) => {
+    _MSER: (child) => {
       // Ancestry.com Family Trees: the master (original) media object
       // mark, with the _LKID link id beneath (see
       // MultimediaRecord.master / masterLinkId).
@@ -239,7 +215,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
         }
       }
     },
-    '_CLON': (child) => {
+    _CLON: (child) => {
       // Ancestry.com Family Trees: a clone of this media object in
       // another tree/person (see AncestryClone).
       noPayload(child);
@@ -275,12 +251,12 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       }
       (rec.clones ??= []).push(clone);
     },
-    '_SUBM': (child) => {
+    _SUBM: (child) => {
       // GDO: a pointer to the submitter record of this media object
       // (see MultimediaRecord.submitters).
       (rec.submitters ??= []).push(reqPtr(child, ctx));
     },
-    '_IMPF': (child) => {
+    _IMPF: (child) => {
       // GDO: the import-file reference (see
       // MultimediaRecord.importReference).
       rec.importReference = parseImportReference(child, ctx);
@@ -308,7 +284,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
         rec.creationDate = created;
       }
     },
-    '_CRE': (child) => {
+    _CRE: (child) => {
       // MFT7: the record creation — the structured form (a bare line
       // with the DATE child) or the free text the `_CREA` slot carries.
       if (child.value.kind === 'absent') {
@@ -325,7 +301,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
     UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
-    '_UID': (child) => {
+    _UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     EXID: (child) => {
@@ -400,7 +376,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       // webtrees per-vendor custom-tag registry, Geneatique.php).
       addExtension(rec, child, ctx);
     },
-    '_TAG': (child) => {
+    _TAG: (child) => {
       // The gedcom-tags application link (see
       // MultimediaRecord.tagLinks).
       if (child.value.kind === 'pointer') {
@@ -410,13 +386,7 @@ export function parseMultimediaRecord(node: RawNode, ctx: Ctx): MultimediaRecord
       }
     },
   };
-  dispatch(
-    node,
-    rec,
-    handlers,
-    ctx,
-    ['RESN', 'CHAN', 'CREA', 'RIN'],
-  );
+  dispatch(node, rec, handlers, ctx, ['RESN', 'CHAN', 'CREA', 'RIN']);
   if (fileSize !== undefined) {
     (rec.files[0] as MediaFile).fileSize = fileSize;
   }
@@ -453,7 +423,7 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
       TITL: (child) => {
         file.title = reqText(child);
       },
-      '_TEXT': (child) => {
+      _TEXT: (child) => {
         // FTM: the file's transcription text under the FILE line (the
         // embedded-media shape; see MediaFile.text).
         file.text = reqText(child);
@@ -462,7 +432,7 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
         // The standard spelling of the file's transcription text.
         file.text = reqText(child);
       },
-      '_DATE': (child) => {
+      _DATE: (child) => {
         // FTM: the file's modification timestamp (see MediaFile.date).
         file.date = reqText(child);
       },
@@ -490,7 +460,7 @@ export function parseMediaFile(node: RawNode, ctx: Ctx): MediaFile {
   if (form === undefined) {
     // A FILE without FORM is tolerated (the full-leniency container
     // rule): the media type is unknown, not an error.
-    return file as MediaFile;
+    return file;
   }
   return { ...file, form };
 }
@@ -517,27 +487,27 @@ export function parseMediaFormatStructure(node: RawNode, ctx: Ctx): MediaFormatS
     {
       TYPE: setMedium,
       MEDI: setMedium,
-      '_MTYPE': (child) => {
+      _MTYPE: (child) => {
         // Ancestry.com Family Trees: the display kind of the media
         // (see MediaFormatStructure.kind).
         format.kind = reqText(child);
       },
-      '_STYPE': (child) => {
+      _STYPE: (child) => {
         // Ancestry.com Family Trees: the stored encoding of the file
         // (see MediaFormatStructure.storageType).
         format.storageType = reqText(child);
       },
-      '_SIZE': (child) => {
+      _SIZE: (child) => {
         // Ancestry.com Family Trees: the file size in bytes (see
         // MediaFormatStructure.size).
         format.size = reqDigits(child);
       },
-      '_WDTH': (child) => {
+      _WDTH: (child) => {
         // Ancestry.com Family Trees: the picture width in pixels (see
         // MediaFormatStructure.width).
         format.width = reqDigits(child);
       },
-      '_HGHT': (child) => {
+      _HGHT: (child) => {
         // Ancestry.com Family Trees: the picture height in pixels (see
         // MediaFormatStructure.height).
         format.height = reqDigits(child);
@@ -557,7 +527,7 @@ export function parseMediaStructure(node: RawNode, ctx: Ctx): MediaStructure {
   // wild write `TYPE image`, `TYPE story`, `MEDI Article`, …) is kept
   // as OTHER with the phrase (the full-leniency container rule —
   // nothing is dropped).
-  const known = (Object.keys(MEDIA_ENUM_VALUES) as string[]).some((key) => key.toUpperCase() === raw.toUpperCase());
+  const known = Object.keys(MEDIA_ENUM_VALUES).some((key) => key.toUpperCase() === raw.toUpperCase());
   const out: MediaStructure = known
     ? { payload: parseEnum(raw, MEDIA_ENUM_VALUES, node.position) }
     : { payload: 'OTHER', phrase: raw };

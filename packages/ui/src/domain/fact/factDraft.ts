@@ -1,12 +1,5 @@
 import type { DateValue, FactAge, FactParticipant, FactRecord } from '@doru/core';
-import {
-  dateDraftsEqual,
-  emptyDate,
-  fromDateDraft,
-  rebaseDate,
-  toDateDraft,
-  type DateDraft,
-} from '../person/draft';
+import { dateDraftsEqual, emptyDate, fromDateDraft, rebaseDate, toDateDraft, type DateDraft } from '../person/draft';
 
 /** The event/attribute tags the form suggests; the field stays free text. */
 export const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];

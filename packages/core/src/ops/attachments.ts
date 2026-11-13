@@ -82,10 +82,7 @@ export function deleteNoteOp(note: NoteRecord, attachments: AttachmentsSnapshot)
 
 // --- sources -----------------------------------------------------------------
 
-export function addSourceOp(
-  source: SourceRecord,
-  citation?: { targetType: string; targetId: string },
-): Op {
+export function addSourceOp(source: SourceRecord, citation?: { targetType: string; targetId: string }): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -116,7 +113,11 @@ export function updateSourceOp(before: SourceRecord, after: SourceRecord): Op {
   };
 }
 
-export function deleteSourceOp(source: SourceRecord, attachments: AttachmentsSnapshot, citations: CitationRecord[]): Op {
+export function deleteSourceOp(
+  source: SourceRecord,
+  attachments: AttachmentsSnapshot,
+  citations: CitationRecord[],
+): Op {
   return op(
     crypto.randomUUID(),
     'source.delete',
@@ -419,12 +420,7 @@ export function addRecordSubmitterOp(submitterId: string, targetType: string, ta
   );
 }
 
-export function deleteRecordSubmitterOp(
-  id: string,
-  submitterId: string,
-  targetType: string,
-  targetId: string,
-): Op {
+export function deleteRecordSubmitterOp(id: string, submitterId: string, targetType: string, targetId: string): Op {
   return op(
     crypto.randomUUID(),
     'record_submitter.delete',
@@ -459,4 +455,3 @@ export function deleteAddressOp(address: AddressRecord): Op {
     (ctx) => ctx.repo.insertAddress(address),
   );
 }
-

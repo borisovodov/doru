@@ -106,7 +106,12 @@ describe('placeDraftMatches', () => {
     const stored = place();
     const base = placeToDraft(stored);
     expect(placeDraftMatches({ ...base, latitude: '54.2' }, stored)).toBe(false);
-    expect(placeDraftMatches({ ...base, names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: 'Kaluga' }] }, stored)).toBe(false);
+    expect(
+      placeDraftMatches(
+        { ...base, names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: 'Kaluga' }] },
+        stored,
+      ),
+    ).toBe(false);
     expect(placeDraftMatches({ ...base, hierarchy: [{ parentId: 'PL2', type: '' }] }, stored)).toBe(false);
   });
 });

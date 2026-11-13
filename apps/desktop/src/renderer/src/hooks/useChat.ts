@@ -7,10 +7,7 @@ import type { ChatSessionMeta, ChatTranscriptMessage } from '@doru/ai';
  * the JSONL store); the renderer only mirrors what it is told and streams
  * deltas of the active session into the transcript.
  */
-export function useChat(
-  projectPath: string | null | undefined,
-  refreshTree: () => Promise<void>,
-) {
+export function useChat(projectPath: string | null | undefined, refreshTree: () => Promise<void>) {
   const [sessions, setSessions] = useState<ChatSessionMeta[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatTranscriptMessage[]>([]);
@@ -21,14 +18,11 @@ export function useChat(
   // already-finalized transcript ("Done.Done.").
   const runFinalized = useRef(true);
 
-  const loadTranscript = useCallback(
-    async (path: string, id: string) => {
-      const transcript = await window.doru.getChatTranscript(path, id);
-      runFinalized.current = true;
-      setChatMessages(transcript);
-    },
-    [],
-  );
+  const loadTranscript = useCallback(async (path: string, id: string) => {
+    const transcript = await window.doru.getChatTranscript(path, id);
+    runFinalized.current = true;
+    setChatMessages(transcript);
+  }, []);
 
   const refreshSessions = useCallback(async (path: string): Promise<ChatSessionMeta[]> => {
     const list = await window.doru.listChatSessions(path);

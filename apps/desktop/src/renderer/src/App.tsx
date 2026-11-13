@@ -2,8 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Save } from 'lucide-react';
 import { CommandService } from '@doru/platform';
 import { AppMenu, IconButton } from '@doru/ui';
-import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, NoticesView, SettingsView, TreeCanvas, WelcomePage } from '@doru/features';
-import { Workbench, nls, type ActivityViewId } from '@doru/workbench';import type { ProjectBinding } from '@doru/core';
+import {
+  ChatPanel,
+  ChatSetupPlaceholder,
+  EmptyEditorPage,
+  NoticesView,
+  SettingsView,
+  TreeCanvas,
+  WelcomePage,
+} from '@doru/features';
+import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
+import type { ProjectBinding } from '@doru/core';
 import { FamilyTab } from './components/FamilyTab';
 import { PersonTab } from './components/PersonTab';
 import { PlaceTab } from './components/PlaceTab';
@@ -40,14 +49,21 @@ export function App() {
   const [projectUntitled, setProjectUntitled] = useState(false);
   const [untitledName, setUntitledName] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
-  const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(
-    null,
-  );
+  const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
 
   const tree = useTreeData(projectPath);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
-  const tabs = useTabs(tree.persons, tree.families, tree.sources, tree.places, tree.repositories, tree.submitters, tree.todos, tree.titles);
+  const tabs = useTabs(
+    tree.persons,
+    tree.families,
+    tree.sources,
+    tree.places,
+    tree.repositories,
+    tree.submitters,
+    tree.todos,
+    tree.titles,
+  );
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const [version, setVersion] = useState('');
@@ -59,14 +75,15 @@ export function App() {
   // Re-read the theme list whenever the Settings tab opens: user themes are
   // plain files in <userData>/themes and may appear/change at any time.
   // A configured local provider also quietly refreshes its model list.
-  const settingsWasOpen = useRef(false);
+  const settingsWasOpenRef = useRef(false);
   useEffect(() => {
     const isSettings = tabs.activeTabId === SETTINGS_TAB_ID;
-    if (isSettings && !settingsWasOpen.current) {
+    if (isSettings && !settingsWasOpenRef.current) {
       void theme.refreshThemes();
       ai.refreshModelsOnSettingsOpen();
     }
-    settingsWasOpen.current = isSettings;
+    settingsWasOpenRef.current = isSettings;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable callbacks; the hook object changes every render
   }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
 
   const commands = useMemo(() => new CommandService(), []);
@@ -78,6 +95,7 @@ export function App() {
       setUntitledName(info.untitled ? info.name : null);
       tabs.resetToTree();
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the tabs hook object changes every render
     [tabs.resetToTree],
   );
 
@@ -162,6 +180,7 @@ export function App() {
       removeUndo.dispose();
       removeRedo.dispose();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers are stable; including the hook objects would rebind every render
   }, [
     commands,
     project.openProject,
@@ -222,6 +241,7 @@ export function App() {
         tabs.openTab({ id: TREE_TAB_ID, label: nls.t('features.tree.title') });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the tabs hook object changes every render
     [tabs.openTab, projectPath],
   );
 
@@ -231,6 +251,7 @@ export function App() {
       tabs.openPersonTab(personId);
       setCanvasFocus((current) => ({ personId, nonce: (current?.nonce ?? 0) + 1 }));
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the tabs hook object changes every render
     [tabs.openPersonTab],
   );
 
@@ -284,8 +305,7 @@ export function App() {
                   onSetAcpCommand: ai.setAcpCommand,
                   onSetAcpArgs: ai.setAcpArgs,
                   onTest: () => void ai.runTest(),
-                  onFetchModels: (baseUrl) =>
-                    void ai.fetchModels(baseUrl !== undefined ? { baseUrl } : undefined),
+                  onFetchModels: (baseUrl) => void ai.fetchModels(baseUrl !== undefined ? { baseUrl } : undefined),
                   onDownloadDoruModel: () => void ai.downloadDoruModel(),
                   onCancelDoruModelDownload: () => void ai.cancelDoruModelDownload(),
                   onDeleteDoruModel: () => void ai.deleteDoruModel(),
@@ -445,10 +465,7 @@ export function App() {
     ) : (
       <div className="editor-stack">
         {tabs.openTabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={tab.id === tabs.activeTabId ? 'editor-pane active' : 'editor-pane'}
-          >
+          <div key={tab.id} className={tab.id === tabs.activeTabId ? 'editor-pane active' : 'editor-pane'}>
             {renderTabContent(tab)}
           </div>
         ))}

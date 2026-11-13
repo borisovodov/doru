@@ -31,13 +31,7 @@ import styles from './NamesSection.module.css';
  * display form; name variants (translations, phonetic and romanized forms)
  * nest inside their base name.
  */
-export function NamesSection({
-  names,
-  onChange,
-}: {
-  names: NameDraft[];
-  onChange: (names: NameDraft[]) => void;
-}) {
+export function NamesSection({ names, onChange }: { names: NameDraft[]; onChange: (names: NameDraft[]) => void }) {
   const patch = (index: number, values: Partial<NameDraft>) =>
     onChange(names.map((name, i) => (i === index ? { ...name, ...values } : name)));
 
@@ -50,13 +44,20 @@ export function NamesSection({
    * of the list, the position the display name is read from.
    */
   const markPrimary = (index: number) => {
-    const target: NameDraft = { ...names[index]!, primary: true };
+    const current = names[index];
+    if (current === undefined) {
+      return;
+    }
+    const target: NameDraft = { ...current, primary: true };
     const others = names.map((name, i) => (i === index ? target : { ...name, primary: false }));
     onChange([target, ...others.filter((name) => name.id !== target.id)]);
   };
 
   const patchVariant = (nameIndex: number, variantIndex: number, values: Partial<NameVariantDraft>) => {
-    const name = names[nameIndex]!;
+    const name = names[nameIndex];
+    if (name === undefined) {
+      return;
+    }
     patch(nameIndex, {
       variants: name.variants.map((variant, i) => (i === variantIndex ? { ...variant, ...values } : variant)),
     });
@@ -69,12 +70,18 @@ export function NamesSection({
   };
 
   const addVariant = (nameIndex: number) => {
-    const name = names[nameIndex]!;
+    const name = names[nameIndex];
+    if (name === undefined) {
+      return;
+    }
     patch(nameIndex, { variants: [...name.variants, emptyVariantDraft()] });
   };
 
   const removeVariant = (nameIndex: number, variantIndex: number) => {
-    const name = names[nameIndex]!;
+    const name = names[nameIndex];
+    if (name === undefined) {
+      return;
+    }
     patch(nameIndex, { variants: name.variants.filter((_, i) => i !== variantIndex) });
   };
 
@@ -112,10 +119,7 @@ export function NamesSection({
               </Select>
             </Field>
             <Field label={nls.t('features.tree.names.language')}>
-              <Input
-                value={name.language}
-                onChange={(event) => patch(index, { language: event.target.value })}
-              />
+              <Input value={name.language} onChange={(event) => patch(index, { language: event.target.value })} />
             </Field>
           </FieldGrid>
           <DateEditor
@@ -188,9 +192,7 @@ export function NamesSection({
                       key={field}
                       field={field}
                       value={partOf(variant, field)}
-                      onChange={(value) =>
-                        patchVariant(index, variantIndex, setPartValue(variant, field, value))
-                      }
+                      onChange={(value) => patchVariant(index, variantIndex, setPartValue(variant, field, value))}
                     />
                   ))}
                 </FieldGrid>
@@ -213,12 +215,7 @@ export function NamesSection({
           </div>
         </Subcard>
       ))}
-      <Button
-        size="sm"
-        variant="secondary"
-        icon={<Plus size={13} aria-hidden="true" />}
-        onClick={addName}
-      >
+      <Button size="sm" variant="secondary" icon={<Plus size={13} aria-hidden="true" />} onClick={addName}>
         {nls.t('features.tree.names.add')}
       </Button>
     </div>

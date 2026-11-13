@@ -85,9 +85,7 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   await expect(page.getByRole('textbox', { name: 'Message' })).toBeHidden();
 
   // Configuring a provider swaps the placeholder back to the chat panel.
-  await page.evaluate(() =>
-    window.doru.setAiSettings({ provider: 'ollama', model: 'e2e-model' }),
-  );
+  await page.evaluate(() => window.doru.setAiSettings({ provider: 'ollama', model: 'e2e-model' }));
   await expect(page.getByRole('textbox', { name: 'Message' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Set up the AI agent' })).toBeHidden();
 
@@ -125,22 +123,14 @@ test('full workflow through the desktop APIs and UI sections', async () => {
   const sideSash = page.getByRole('separator', { name: 'Resize side bar' });
   const sideSashBox = await sideSash.boundingBox();
   const sideBefore = (await sideBar.boundingBox())!.width;
-  await page.mouse.move(
-    sideSashBox!.x + sideSashBox!.width / 2,
-    sideSashBox!.y + sideSashBox!.height / 2,
-  );
+  await page.mouse.move(sideSashBox!.x + sideSashBox!.width / 2, sideSashBox!.y + sideSashBox!.height / 2);
   await page.mouse.down();
   // Make the first step explicit, then drag with more steps, so the gesture
   // reliably registers every move.
-  await page.mouse.move(
-    sideSashBox!.x + sideSashBox!.width / 2 + 12,
-    sideSashBox!.y + sideSashBox!.height / 2,
-  );
-  await page.mouse.move(
-    sideSashBox!.x + sideSashBox!.width / 2 + 60,
-    sideSashBox!.y + sideSashBox!.height / 2,
-    { steps: 8 },
-  );
+  await page.mouse.move(sideSashBox!.x + sideSashBox!.width / 2 + 12, sideSashBox!.y + sideSashBox!.height / 2);
+  await page.mouse.move(sideSashBox!.x + sideSashBox!.width / 2 + 60, sideSashBox!.y + sideSashBox!.height / 2, {
+    steps: 8,
+  });
   await page.mouse.up();
   const sideAfter = (await sideBar.boundingBox())!.width;
   expect(sideAfter).toBeGreaterThan(sideBefore + 40);

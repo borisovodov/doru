@@ -165,12 +165,7 @@ describe('the pointer and coordinate repairs', () => {
 
 describe('the not-GEDCOM detection', () => {
   test('a document without a single level-0 line fails once in tolerant mode', () => {
-    const text = [
-      'if (LEFT(ADDRESS(), 6) ~= "GOLDED") then',
-      "  address 'GOLDED.1'",
-      'exit',
-      '',
-    ].join('\n');
+    const text = ['if (LEFT(ADDRESS(), 6) ~= "GOLDED") then', "  address 'GOLDED.1'", 'exit', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(value).toBeUndefined();
     expect(errors.map((error) => error.code)).toEqual(['document.not-gedcom']);
@@ -280,15 +275,7 @@ describe('the unleveled-continuation merge', () => {
   test('bare text after TRLR keeps the error (no text anchor)', () => {
     // The gprime imp-sample shape: the trailing prose after the
     // trailer has no principled home.
-    const text = [
-      ...HEAD70,
-      '0 @I1@ INDI',
-      '1 NAME A /B/',
-      '0 TRLR',
-      '',
-      'The end',
-      '',
-    ].join('\n');
+    const text = [...HEAD70, '0 @I1@ INDI', '1 NAME A /B/', '0 TRLR', '', 'The end', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors.map((error) => error.code)).toEqual(['line.bad-level']);
     expect(value?.kind).toBe('dataset');
@@ -346,15 +333,9 @@ describe('the unleveled-continuation merge', () => {
   });
 
   test('the merge applies in the strict parse too', () => {
-    const text = [
-      ...HEAD70,
-      '0 @I1@ INDI',
-      '1 NAME A /B/',
-      '1 NOTE A note',
-      'its continuation',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = [...HEAD70, '0 @I1@ INDI', '1 NAME A /B/', '1 NOTE A note', 'its continuation', '0 TRLR', ''].join(
+      '\n',
+    );
     const result = parseGedcom70(enc(text));
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -470,20 +451,12 @@ describe('the enum leniencies', () => {
   });
 
   test('_CONF_FLAG 1 marks the confidential flag', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '0 @E1@ _EVENT_DEFN',
-      '1 _CONF_FLAG 1',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @E1@ _EVENT_DEFN', '1 _CONF_FLAG 1', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const def = dataset?.records[0];
-    expect(def?.tag === '_EVENT_DEFN' ? def.confidentialFlag : undefined).toBe(true);
+    expect(def !== undefined && 'confidentialFlag' in def ? def.confidentialFlag : undefined).toBe(true);
   });
 });
 
@@ -530,7 +503,7 @@ describe('the ISO-8601 exact date', () => {
       throw new Error('expected INDI');
     }
     const note = indi.notes?.[0];
-    expect(note && 'translations' in note ? note.translations?.[0] : undefined).toEqual({ payload: 'British English' });
+    expect(note && 'translations' in note ? note.translations[0] : undefined).toEqual({ payload: 'British English' });
   });
 });
 
@@ -564,17 +537,10 @@ describe('the numbered-list markers', () => {
   });
 
   test('a numbered-list marker without a NOTE anchor keeps the bad-tag error', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '0 @I1@ INDI',
-      '1 NAME A /B/',
-      '1. Jaume I',
-      '0 TRLR',
-      '',
-    ].join('\n');
-    const { value, errors } = parseTolerant(enc(text));
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 NAME A /B/', '1. Jaume I', '0 TRLR', ''].join(
+      '\n',
+    );
+    const { errors } = parseTolerant(enc(text));
     expect(errors.map((error) => error.code)).toEqual(['line.bad-tag']);
   });
 });
@@ -695,14 +661,7 @@ describe('the date leniencies', () => {
 
 describe('the European date spellings', () => {
   test('the dotted, dashed and month-named European dates parse', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '1 DATE 23.8.2024',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 DATE 23.8.2024', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
@@ -710,14 +669,7 @@ describe('the European date spellings', () => {
   });
 
   test('the two-digit-year dash spelling maps to the 20th century', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '1 DATE 23-Apr-98',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 DATE 23-Apr-98', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
@@ -744,8 +696,8 @@ describe('the European date spellings', () => {
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     expect(dataset?.header.date?.value).toEqual({ day: 4, month: 'DEC', year: 2023 });
     const indi = dataset?.records[0];
-    const birth = indi?.tag === 'INDI' ? indi.events.find((event) => event.tag === 'BIRT') : undefined;
-    expect(birth?.detail.date?.value).toMatchObject({ day: 4, month: 'DEC', year: 2023 });
+    const birth = indi?.tag === 'INDI' ? indi.events?.find((event) => event.tag === 'BIRT') : undefined;
+    expect(birth?.detail?.date?.value).toMatchObject({ day: 4, month: 'DEC', year: 2023 });
   });
 });
 
@@ -766,8 +718,8 @@ describe('the empty date parts', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
-    const death = individual?.events.find((event) => event.tag === 'DEAT');
-    expect(death?.detail.date.phrase).toBe('Aft');
+    const death = individual?.events?.find((event) => event.tag === 'DEAT');
+    expect(death?.detail?.date?.phrase).toBe('Aft');
   });
 
   test('a BET with an empty start and a FROM with an empty from parse as phrases', () => {
@@ -788,10 +740,10 @@ describe('the empty date parts', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
-    const birth = individual?.events.find((event) => event.tag === 'BIRT');
-    const death = individual?.events.find((event) => event.tag === 'DEAT');
-    expect(birth?.detail.date.phrase).toBe('BET  AND 1907');
-    expect(death?.detail.date.phrase).toBe('From  to 1947');
+    const birth = individual?.events?.find((event) => event.tag === 'BIRT');
+    const death = individual?.events?.find((event) => event.tag === 'DEAT');
+    expect(birth?.detail?.date?.phrase).toBe('BET  AND 1907');
+    expect(death?.detail?.date?.phrase).toBe('From  to 1947');
   });
 });
 
@@ -818,14 +770,7 @@ describe('the deep nesting', () => {
 
 describe('the American month-first date spelling', () => {
   test('FEB 13 2026 swaps to the day-first order', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '1 DATE FEB 13 2026',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 DATE FEB 13 2026', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
@@ -850,8 +795,8 @@ describe('the calendar escape leniencies', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
-    const birth = individual?.events.find((event) => event.tag === 'BIRT');
-    expect(birth?.detail.date.value).toEqual({ kind: 'date', calendar: 'JULIAN', year: 1491, day: 28, month: 'JUN' });
+    const birth = individual?.events?.find((event) => event.tag === 'BIRT');
+    expect(birth?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'JULIAN', year: 1491, day: 28, month: 'JUN' });
   });
 
   test('a lone @# in free text stays literal', () => {
@@ -869,7 +814,10 @@ describe('the calendar escape leniencies', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
-    expect(individual?.notes?.[0]?.payload).toBe('This note includes special characters: @#$%&*');
+    const note = individual?.notes?.[0];
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe(
+      'This note includes special characters: @#$%&*',
+    );
   });
 });
 
@@ -896,33 +844,18 @@ describe('the pointer-slot continuations', () => {
   });
 
   test('a pointer-valued continuation keeps the pointer string as the text', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '0 @N1@ NOTE',
-      '1 CONC @NI124@',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @N1@ NOTE', '1 CONC @NI124@', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const note = dataset?.records.find((record) => record.tag === 'NOTE');
-    expect(note?.tag === 'NOTE' ? note.payload : undefined).toBe('@NI124@');
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('@NI124@');
   });
 });
 
 describe('the numeric and dotted month spellings', () => {
   test('an all-numeric European date maps to the day-first order', () => {
-    const text = [
-      '0 HEAD',
-      '1 GEDC',
-      '2 VERS 7.0',
-      '1 DATE 20 10 1996',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '1 DATE 20 10 1996', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
@@ -945,8 +878,8 @@ describe('the numeric and dotted month spellings', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const individual = dataset?.records[0]?.tag === 'INDI' ? dataset.records[0] : undefined;
-    const birth = individual?.events.find((event) => event.tag === 'BIRT');
-    expect(birth?.detail.date.value).toMatchObject({ month: 'JAN', year: 2015 });
+    const birth = individual?.events?.find((event) => event.tag === 'BIRT');
+    expect(birth?.detail?.date?.value).toMatchObject({ month: 'JAN', year: 2015 });
   });
 });
 
@@ -1009,12 +942,13 @@ describe('the GEDCOM 5.5.5 draft spellings', () => {
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
-    const genomap = dataset?.records.find((record) => record.tag === 'GENOMAP');
+    const genomap = dataset?.records.find((record) => record.xref === '@G1@');
     expect(genomap).toBeDefined();
     // The GenoPro PEDIGREELINK children keep their own INDIVIDUAL/FAMILY
     // tags — the 5.5.5 alias must not rename them (see gedcom-555.ts).
-    const link = genomap?.extensions?.[0] ?? (genomap as { children?: { tag: string }[] }).children?.[0];
-    const children = (link as { children?: { tag: string }[] }).children;
+    const link =
+      genomap !== undefined && 'children' in genomap && genomap.tag !== 'FAM' ? genomap.children[0] : undefined;
+    const children = link?.children;
     expect(children?.map((child) => child.tag)).toEqual(['INDIVIDUAL', 'FAMILY']);
   });
 
@@ -1043,11 +977,11 @@ describe('the GEDCOM 5.5.5 draft spellings', () => {
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
-    expect(dataset?.header.schema53?.entries?.[0]).toEqual({
+    expect(dataset?.header.schema53?.entries[0]).toEqual({
       context: ['INDIVIDUAL', '_FACT1'],
       label: 'Fact 1',
     });
-    expect(dataset?.header.schema53?.entries?.[1]?.label).toBe('Fact 2');
+    expect(dataset?.header.schema53?.entries[1]?.label).toBe('Fact 2');
   });
 });
 
@@ -1127,8 +1061,8 @@ describe('the short name and the Familio place id', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const individual = dataset?.records[0];
-    const birth = individual?.tag === 'INDI' ? individual.events.find((event) => event.tag === 'BIRT') : undefined;
-    expect(birth?.detail.place?.familioId).toBe('b18382fe-f188-45a4-96cf-65274665e66b');
+    const birth = individual?.tag === 'INDI' ? individual.events?.find((event) => event.tag === 'BIRT') : undefined;
+    expect(birth?.detail?.place?.familioId).toBe('b18382fe-f188-45a4-96cf-65274665e66b');
     if (value?.kind === 'dataset') {
       const out = serializeGedcom551(value.dataset);
       expect(out.ok && out.value.includes('_FAMILIO_GUID b18382fe-f188-45a4-96cf-65274665e66b')).toBe(true);
@@ -1159,8 +1093,8 @@ describe('the glued and wrapped line leniencies', () => {
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
     }
-    expect(indi.changeDate?.date?.value).toEqual({ day: 28, month: 'DEC', year: 2019 });
-    expect(indi.changeDate?.date?.time).toEqual({ hour: 21, minute: 14, second: 21 });
+    expect(indi.changeDate?.date.value).toEqual({ day: 28, month: 'DEC', year: 2019 });
+    expect(indi.changeDate?.date.time).toEqual({ hour: 21, minute: 14, second: 21 });
   });
 
   test('a continuation-wrapped line unwraps (the FTM Mac exports)', () => {
@@ -1200,8 +1134,10 @@ describe('the glued and wrapped line leniencies', () => {
     expect(indi.sexCitations?.[0]?.source).toBe('@S2@');
     const unwrapped = serializeGedcom551(dataset);
     expect(unwrapped.ok && unwrapped.value.includes('1 SEX M\r\n1 SOUR @S2@')).toBe(true);
-    const birth = indi.events.find((e) => e.tag === 'BIRT');
-    expect(birth?.detail.citations?.[0]?.page?.payload).toBe('Database online. Year: 1910; West Virginia; Roll: T624_1679.');
+    const birth = indi.events?.find((e) => e.tag === 'BIRT');
+    expect(birth?.detail?.citations?.[0]?.page?.payload).toBe(
+      'Database online. Year: 1910; West Virginia; Roll: T624_1679.',
+    );
   });
 
   test('a NOTE payload that quotes a GEDCOM line stays text', () => {
@@ -1251,15 +1187,7 @@ describe('the glued and wrapped line leniencies', () => {
   test('pointer values tolerate leading blanks and non-Latin identifiers', () => {
     // The CS555 double-space exports (`1 WIFE  @I5@`, the PAF
     // genealogy_test sample) and the unicode_xref-nonlatin fixture.
-    const text = [
-      ...HEAD,
-      '0 @F1@ FAM',
-      '1 WIFE  @人物1@',
-      '0 @人物1@ INDI',
-      '1 NAME A /B/',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = [...HEAD, '0 @F1@ FAM', '1 WIFE  @人物1@', '0 @人物1@ INDI', '1 NAME A /B/', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
@@ -1269,13 +1197,7 @@ describe('the glued and wrapped line leniencies', () => {
 
   test('extra spaces between the level and the xref parse', () => {
     // The PAF genealogy_test sample (`0              @1A@ INDI`).
-    const text = [
-      ...HEAD,
-      '0              @1A@ INDI',
-      '1 NAME   Robert Eugene/Williams/',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = [...HEAD, '0              @1A@ INDI', '1 NAME   Robert Eugene/Williams/', '0 TRLR', ''].join('\n');
     const { value, errors } = parseTolerant(enc(text));
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
@@ -1360,8 +1282,8 @@ describe('the digit-leading note-run merge', () => {
       'Leeftijd:\n1 jaar en 3 mnde Vries\n26 jaar\n28-05-1857',
     );
     // The real line after the run still parses as the death event …
-    const death = indi.events.find((e) => e.tag === 'DEAT');
-    expect(death?.detail.date?.value).toMatchObject({ day: 4, month: 'JUN', year: 1820 });
+    const death = indi.events?.find((e) => e.tag === 'DEAT');
+    expect(death?.detail?.date?.value).toMatchObject({ day: 4, month: 'JUN', year: 1820 });
     // … and the level-0 mixed-case entity record starts its own record.
     expect(dataset?.records.some((r) => r.tag === 'Education' && r.xref === '@edu1@')).toBe(true);
   });
@@ -1390,8 +1312,8 @@ describe('the digit-leading note-run merge', () => {
     expect(errors).toEqual([]);
     const dataset = value?.kind === 'dataset' ? value.dataset : undefined;
     const indi = dataset?.records.find((r) => r.tag === 'INDI');
-    const birth = indi?.tag === 'INDI' ? indi.events.find((e) => e.tag === 'BIRT') : undefined;
-    const citation = birth?.detail.citations?.[0];
+    const birth = indi?.tag === 'INDI' ? indi.events?.find((e) => e.tag === 'BIRT') : undefined;
+    const citation = birth?.detail?.citations?.[0];
     const dataText = citation?.data?.texts?.[0];
     const ext = (dataText as unknown as { extensions?: Array<{ tag: string }> } | undefined)?.extensions;
     expect(ext?.some((e) => e.tag === 'BOGUS')).toBe(true);

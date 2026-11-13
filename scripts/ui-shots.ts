@@ -82,7 +82,7 @@ await shot('06-person-light.png');
 
 // 7. Settings
 await page.evaluate(() => {
-  (document.querySelector('.activity-bar .activity-bar-bottom') as HTMLElement | null)?.click();
+  document.querySelector<HTMLElement>('.activity-bar .activity-bar-bottom')?.click();
 });
 await page.waitForTimeout(500);
 await shot('07-settings-light.png');

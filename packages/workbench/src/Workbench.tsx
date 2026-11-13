@@ -42,10 +42,11 @@ const MIN_AGENT_CHAT_WIDTH = 220;
 const MAX_AGENT_CHAT_WIDTH = 560;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
+const EMPTY_KEYBINDINGS: [] = [];
 
 export function Workbench({
   commands,
-  keybindings: externalKeybindings = [],
+  keybindings: externalKeybindings = EMPTY_KEYBINDINGS,
   title,
   titleActions,
   titleMenu,
@@ -143,9 +144,7 @@ export function Workbench({
     agentChatStartRef.current = agentChatWidth;
   };
   const onAgentChatSashResize = (delta: number) => {
-    setAgentChatWidth(
-      clamp(agentChatStartRef.current - delta, MIN_AGENT_CHAT_WIDTH, MAX_AGENT_CHAT_WIDTH),
-    );
+    setAgentChatWidth(clamp(agentChatStartRef.current - delta, MIN_AGENT_CHAT_WIDTH, MAX_AGENT_CHAT_WIDTH));
   };
 
   return (

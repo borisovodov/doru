@@ -1,4 +1,4 @@
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { defineConfig } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 
 /**
@@ -9,23 +9,21 @@ import react from '@vitejs/plugin-react';
  * workspace sources explicitly (both the real path and the node_modules
  * symlink form; the symlink resolution differs between builds).
  */
-const MAIN_WATCH_INCLUDE = [
-  'src/main/**',
-  '../../packages/*/src/**',
-  'node_modules/@doru/*/src/**',
-];
+const MAIN_WATCH_INCLUDE = ['src/main/**', '../../packages/*/src/**', 'node_modules/@doru/*/src/**'];
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@doru/core', '@doru/platform', '@doru/ai', '@doru/gedcom'] })],
     build: {
+      externalizeDeps: { exclude: ['@doru/core', '@doru/platform', '@doru/ai', '@doru/gedcom'] },
       watch: {
         include: MAIN_WATCH_INCLUDE,
       },
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    build: {
+      externalizeDeps: true,
+    },
   },
   renderer: {
     plugins: [react()],

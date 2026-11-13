@@ -150,7 +150,10 @@ function href(): string {
   font-size: 14px;
   border-radius: 20px;
   text-decoration: none;
-  transition: color 0.25s, border-color 0.25s, background-color 0.25s;
+  transition:
+    color 0.25s,
+    border-color 0.25s,
+    background-color 0.25s;
 }
 .doru-button.brand {
   border-color: var(--vp-button-brand-border);

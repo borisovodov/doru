@@ -1,14 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { parse } from '../src/detect';
 import { parseGedcom551 } from '../src/parsing/assemble';
-import {
-  serializeGedcom551,
-  serializeGedcom70,
-} from '../src/serialize/serialize';
-import type {
-  GedcomDataset,
-  IndividualRecord,
-} from '../src/structures';
+import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
+import type { GedcomDataset, IndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -20,18 +14,26 @@ function parse551(text: string): GedcomDataset {
   return result.value;
 }
 
-function err551(text: string): string {
-  const result = parseGedcom551(enc(text));
-  if (result.ok) {
-    throw new Error('expected an error');
-  }
-  return (result.error as { code: string }).code;
-}
-
 // The 5.5.5 vocabulary is accepted in any 5.x file, regardless of the
 // declared GEDC.VERS; the container stays the 5.5.1 pipeline.
-const HEADER551 = ['0 HEAD', '1 SOUR DORU', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8'];
-const HEADER555 = ['0 HEAD', '1 SOUR DORU', '1 GEDC', '2 VERS 5.5.5', '2 FORM LINEAGE-LINKED', '3 VERS 5.5.5', '1 CHAR UTF-8'];
+const HEADER551 = [
+  '0 HEAD',
+  '1 SOUR DORU',
+  '1 SUBM @S1@',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '2 FORM LINEAGE-LINKED',
+  '1 CHAR UTF-8',
+];
+const HEADER555 = [
+  '0 HEAD',
+  '1 SOUR DORU',
+  '1 GEDC',
+  '2 VERS 5.5.5',
+  '2 FORM LINEAGE-LINKED',
+  '3 VERS 5.5.5',
+  '1 CHAR UTF-8',
+];
 const SUBM = ['0 @S1@ SUBM', '1 NAME Tester'];
 
 describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
@@ -74,7 +76,17 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
 
   test('the BCE and BC epoch spellings are accepted on year-only dates (GEDCOM 5.5.5 p.77)', () => {
     const dataset = parse551(
-      [...HEADER551, '0 @I1@ INDI', '1 NAME Test /One/', '1 BIRT', '2 DATE 100 BCE', '1 DEAT', '2 DATE 50 BC', ...SUBM, '0 TRLR'].join('\n'),
+      [
+        ...HEADER551,
+        '0 @I1@ INDI',
+        '1 NAME Test /One/',
+        '1 BIRT',
+        '2 DATE 100 BCE',
+        '1 DEAT',
+        '2 DATE 50 BC',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
     );
     const individual = dataset.records[0] as IndividualRecord;
     expect(individual.events?.[0]?.detail?.date?.value).toEqual({
@@ -92,7 +104,9 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
   });
 
   test('the BCE suffix is accepted on every date form', () => {
-    const result = parse551([...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE 1 JAN 100 BCE', ...SUBM, '0 TRLR'].join('\n'));
+    const result = parse551(
+      [...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE 1 JAN 100 BCE', ...SUBM, '0 TRLR'].join('\n'),
+    );
     const indi = result.records[0];
     if (indi?.tag !== 'INDI') {
       throw new Error('expected INDI');
@@ -115,7 +129,11 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
 
   test('a year-less date outside the Gregorian calendar is kept as the date phrase', () => {
     const result = parseGedcom551(
-      enc([...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE @#DJULIAN@ 25 DEC', ...SUBM, '0 TRLR'].join('\n')),
+      enc(
+        [...HEADER551, '0 @I1@ INDI', '1 NAME T /X/', '1 BIRT', '2 DATE @#DJULIAN@ 25 DEC', ...SUBM, '0 TRLR'].join(
+          '\n',
+        ),
+      ),
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -191,7 +209,9 @@ describe('the 5.5.5 vocabulary over the 5.5.1 pipeline', () => {
     // FORM payload: the 7.0 MIME form).
     const exe = parse551([...HEADER551, '0 @O13@ OBJE', '1 FILE x.exe', '2 FORM exe', ...SUBM, '0 TRLR'].join('\n'));
     const obj = exe.records.find((record) => record.tag === 'OBJE');
-    expect((obj as unknown as { files?: Array<{ form?: { payload?: string } }> }).files?.[0]?.form?.payload).toBe('exe');
+    expect((obj as unknown as { files?: Array<{ form?: { payload?: string } }> }).files?.[0]?.form?.payload).toBe(
+      'exe',
+    );
   });
 
   test('GEDC.FORM.VERS is tolerated and discarded (GEDCOM 5.5.5 §1 p.49)', () => {

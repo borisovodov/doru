@@ -31,7 +31,11 @@ describe('Phase 2: notes', () => {
       repo.insertNote(shared);
 
       // Editing from P1's context must not rewrite the shared text.
-      svc.updateNote(repo.getNote('N1')!, { id: 'N1', text: 'only for P1' }, { id: 'L1', targetType: 'person', targetId: 'P1' });
+      svc.updateNote(
+        repo.getNote('N1')!,
+        { id: 'N1', text: 'only for P1' },
+        { id: 'L1', targetType: 'person', targetId: 'P1' },
+      );
 
       const p1Notes = repo.listNotesFor('person', 'P1');
       const p2Notes = repo.listNotesFor('person', 'P2');
@@ -57,7 +61,11 @@ describe('Phase 2: notes', () => {
       repo.insertPerson(person('P1'));
       repo.insertNote({ id: 'N1', text: 'old', targetType: 'person', targetId: 'P1' });
 
-      svc.updateNote(repo.getNote('N1')!, { id: 'N1', text: 'new' }, { id: 'L1', targetType: 'person', targetId: 'P1' });
+      svc.updateNote(
+        repo.getNote('N1')!,
+        { id: 'N1', text: 'new' },
+        { id: 'L1', targetType: 'person', targetId: 'P1' },
+      );
       expect(repo.getNote('N1')?.text).toBe('new');
       expect(repo.listNotes()).toHaveLength(1);
     } finally {
@@ -72,7 +80,12 @@ describe('Phase 2: attachments cascade and undo', () => {
     try {
       const svc = service(fixture);
       const repo = fixture.repo;
-      const ivan: PersonRecord = { id: 'P1', sex: 'M', names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }], facts: [] };
+      const ivan: PersonRecord = {
+        id: 'P1',
+        sex: 'M',
+        names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
+        facts: [],
+      };
       repo.insertPerson(ivan);
       repo.insertSource({ id: 'S1', title: 'Parish register' });
       svc.attachSource('S1', 'person', 'P1');
@@ -117,7 +130,12 @@ describe('Phase 2: change log', () => {
       expect(repo.listChangesFor('person', 'P1').map((change) => change.kind)).toEqual(['created']);
 
       svc.updatePerson(p, { ...p, names: [{ id: 'N1', given: 'Ivan' }] });
-      expect(repo.listChangesFor('person', 'P1').map((change) => change.kind).sort()).toEqual(['changed', 'created']);
+      expect(
+        repo
+          .listChangesFor('person', 'P1')
+          .map((change) => change.kind)
+          .sort(),
+      ).toEqual(['changed', 'created']);
 
       // Deleting the person removes its history; undo restores it.
       const before = repo.listChangesFor('person', 'P1');
@@ -127,10 +145,12 @@ describe('Phase 2: change log', () => {
       svc.undo();
       // Undo restores the entity and its old history, then records its own
       // 'changed' row — the history is honest.
-      expect(repo.listChangesFor('person', 'P1').map((change) => change.kind).sort()).toEqual([
-        'changed',
-        ...before.map((change) => change.kind),
-      ].sort());
+      expect(
+        repo
+          .listChangesFor('person', 'P1')
+          .map((change) => change.kind)
+          .sort(),
+      ).toEqual(['changed', ...before.map((change) => change.kind)].sort());
     } finally {
       cleanupRepo(fixture);
     }
@@ -165,7 +185,12 @@ describe('Phase 2: fact details', () => {
       expect(fact.flags).toEqual(['preferred']);
 
       // Facts without details hydrate without the fields.
-      repo.updatePerson({ id: 'P1', sex: 'F', names: [], facts: [{ id: 'F2', personId: 'P1', tag: 'OCCU', value: 'Nurse' }] });
+      repo.updatePerson({
+        id: 'P1',
+        sex: 'F',
+        names: [],
+        facts: [{ id: 'F2', personId: 'P1', tag: 'OCCU', value: 'Nurse' }],
+      });
       expect(repo.listFactsForPerson('P1')[0]).toEqual(
         expect.objectContaining({ id: 'F2', tag: 'OCCU', value: 'Nurse' }),
       );

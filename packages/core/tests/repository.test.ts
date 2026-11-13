@@ -273,7 +273,12 @@ describe('SqliteTreeRepository', () => {
         names: [],
         sex: 'U',
         facts: [
-          { id: 'F1', personId: 'P1', tag: 'RESI', date: { quality: 'range', component: { year: 1900 }, end: { year: 1905 } } },
+          {
+            id: 'F1',
+            personId: 'P1',
+            tag: 'RESI',
+            date: { quality: 'range', component: { year: 1900 }, end: { year: 1905 } },
+          },
           { id: 'F2', personId: 'P1', tag: 'BIRT', date: { quality: 'before', component: { year: 1850 } } },
           { id: 'F3', personId: 'P1', tag: 'OCCU', value: 'Merchant' },
           { id: 'F4', personId: 'P1', tag: 'DEAT', date: { quality: 'unknown', text: 'after the war' } },
@@ -284,7 +289,11 @@ describe('SqliteTreeRepository', () => {
 
       const facts = repo.listFactsForPerson('P1');
       expect(facts.map((f) => f.id)).toEqual(['F5', 'F2', 'F1', 'F3', 'F4']);
-      expect(facts[0]?.date).toEqual({ id: expect.any(String), quality: 'exact', component: { year: 10, epoch: 'BCE' } });
+      expect(facts[0]?.date).toEqual({
+        id: expect.any(String),
+        quality: 'exact',
+        component: { year: 10, epoch: 'BCE' },
+      });
       expect(facts[4]?.date).toEqual({ id: expect.any(String), quality: 'unknown', text: 'after the war' });
     } finally {
       cleanupRepo(fixture);
@@ -297,9 +306,7 @@ describe('SqliteTreeRepository', () => {
       const { repo } = fixture;
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       expect(() => repo.insertFact({ id: 'F1', tag: 'BIRT' })).toThrow();
-      expect(() =>
-        repo.insertFact({ id: 'F2', tag: 'BIRT', personId: 'P1', familyId: 'missing' }),
-      ).toThrow();
+      expect(() => repo.insertFact({ id: 'F2', tag: 'BIRT', personId: 'P1', familyId: 'missing' })).toThrow();
     } finally {
       cleanupRepo(fixture);
     }
@@ -339,9 +346,7 @@ describe('SqliteTreeRepository', () => {
               { id: 'SP1', kind: 'surnamePrefix', value: 'van', position: 2 },
               { id: 'S1', kind: 'surname', value: 'Ivanov', position: 3 },
             ],
-            variants: [
-              { id: 'V1', kind: 'phonetic', language: 'ru-Latn', given: 'Ivan', surname: 'Ivanov' },
-            ],
+            variants: [{ id: 'V1', kind: 'phonetic', language: 'ru-Latn', given: 'Ivan', surname: 'Ivanov' }],
           },
         ],
         facts: [],

@@ -5,9 +5,7 @@ import { doruTools } from './tools';
 
 function asText(value: unknown): { content: Array<{ type: 'text'; text: string }> } {
   return {
-    content: [
-      { type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) },
-    ],
+    content: [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }],
   };
 }
 
@@ -20,10 +18,7 @@ function asText(value: unknown): { content: Array<{ type: 'text'; text: string }
 export class DoruMcpServer {
   readonly server: McpServer;
 
-  constructor(
-    backend: TreeMcpBackend,
-    version: string,
-  ) {
+  constructor(backend: TreeMcpBackend, version: string) {
     this.server = new McpServer({ name: 'doru', version });
 
     for (const definition of doruTools) {
@@ -34,8 +29,7 @@ export class DoruMcpServer {
           // The MCP SDK takes the zod raw shape directly.
           inputSchema: definition.inputSchema,
         },
-        async (args) =>
-          asText(await backend.invoke(definition.name, (args ?? {}) as Record<string, unknown>)),
+        async (args) => asText(await backend.invoke(definition.name, args)),
       );
     }
   }

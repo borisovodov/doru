@@ -26,36 +26,13 @@ import type {
   TodoStructure,
   VendorAttribute,
 } from '../../structures';
-import {
-  formatDateValue551,
-  formatDateValue70,
-} from '../format';
-import type {
-  Version,
-} from '../writer';
-import {
-  Writer,
-} from '../writer';
-import {
-  commonRecordFields,
-  emitGdoSubmitters,
-} from './document';
-import {
-  emitFamilyDetail,
-  emitFamilyEvent,
-  emitIndividualDetail,
-  emitIndividualEvent,
-  emitLdsDetail,
-} from './events';
-import {
-  emitMedia,
-  emitMediaFile,
-  emitPersonalName,
-  emitPlace,
-} from './names-places';
-import type {
-  PublishedSiteRecord,
-} from '../../structures';
+import { formatDateValue551, formatDateValue70 } from '../format';
+import type { Version } from '../writer';
+import { Writer } from '../writer';
+import { commonRecordFields, emitGdoSubmitters } from './document';
+import { emitFamilyDetail, emitFamilyEvent, emitIndividualDetail, emitIndividualEvent, emitLdsDetail } from './events';
+import { emitMedia, emitMediaFile, emitPersonalName, emitPlace } from './names-places';
+import type { PublishedSiteRecord } from '../../structures';
 import {
   emitAddress,
   emitAssociation,
@@ -68,23 +45,10 @@ import {
   emitSourceCitation,
   mergedAddress,
 } from './structures';
-import {
-  famcStat,
-  pedigree,
-  ptr,
-  restrictionList,
-  sex,
-} from './values';
-import type {
-  DateStructure,
-  SourcePublicationDetails,
-} from '../../structures';
-import type {
-  AgeStructure,
-} from '../../structures';
-import {
-  emitAge,
-} from './structures';
+import { famcStat, pedigree, ptr, restrictionList, sex } from './values';
+import type { DateStructure, SourcePublicationDetails } from '../../structures';
+import type { AgeStructure } from '../../structures';
+import { emitAge } from './structures';
 import {
   emitChangeBlock,
   emitEvidenceEvent,
@@ -230,7 +194,7 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
         // GEDCOM-L addendum gives it an optional residence descriptor
         // (see FamilyResidenceAttribute.payload), which is written back
         // when present.
-        w.line(1, 'RESI', attribute.payload === undefined ? {} : { value: String(attribute.payload) });
+        w.line(1, 'RESI', attribute.payload === undefined ? {} : { value: attribute.payload });
         emitFamilyDetail(w, version, 2, attribute.detail, attribute.type);
       }
       emitExtensions(w, version, 2, attribute);
@@ -240,10 +204,8 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
     if (version !== '7.0') {
       continue;
     }
-    w.line(1, 'FACT', { value: attribute.payload ?? '' });
-    if (attribute.type !== undefined) {
-      w.line(2, 'TYPE', { value: attribute.type });
-    }
+    w.line(1, 'FACT', { value: attribute.payload });
+    w.line(2, 'TYPE', { value: attribute.type });
     emitFamilyDetail(w, version, 2, attribute.detail, undefined);
     emitExtensions(w, version, 2, attribute);
   }
@@ -371,7 +333,7 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
       // The child's sealing under the CHIL link (see
       // FamilyChildLink.sealings).
       w.line(2, 'SLGC');
-      emitLdsDetail(w, version, 3, sealing.detail, 'SLGC');
+      emitLdsDetail(w, version, 3, sealing.detail);
       emitExtensions(w, version, 3, sealing);
     }
     emitExtensions(w, version, 2, child);
@@ -389,14 +351,14 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
   }
   for (const sealing of rec.spouseSealings ?? []) {
     w.line(1, 'SLGS');
-    emitLdsDetail(w, version, 2, sealing.detail, 'SLGS');
+    emitLdsDetail(w, version, 2, sealing.detail);
     emitExtensions(w, version, 2, sealing);
   }
   for (const sealing of rec.childSealings ?? []) {
     // The child sealing under the FAM record (see
     // ChildSealingOrdinance).
     w.line(1, 'SLGC');
-    emitLdsDetail(w, version, 2, sealing.detail, 'SLGC');
+    emitLdsDetail(w, version, 2, sealing.detail);
     emitExtensions(w, version, 2, sealing);
   }
   commonRecordFields(w, version, rec, 1);
@@ -722,7 +684,7 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     } else {
       w.line(1, ordinance.tag);
     }
-    emitLdsDetail(w, version, 2, ordinance.detail, ordinance.tag);
+    emitLdsDetail(w, version, 2, ordinance.detail);
     if (ordinance.tag === 'SLGC' && ordinance.familyChild !== undefined) {
       ptr(w, version, 2, 'FAMC', ordinance.familyChild);
     }
@@ -856,23 +818,27 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
 }
 
 /** Emits the Legacy `_TODO` record (see TodoRecord). */
-export function emitTodoRecord(w: Writer, _version: Version, rec: {
-  tag: '_TODO';
-  payload: string;
-  category?: string;
-  closedDate?: string;
-  locality?: string;
-  reminderDate?: string;
-  title?: string;
-  status?: string;
-  priority?: string;
-  scheduledDate?: string;
-  createdDate?: string;
-  uids?: string[];
-  changed?: ChangeDate;
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitTodoRecord(
+  w: Writer,
+  _version: Version,
+  rec: {
+    tag: '_TODO';
+    payload: string;
+    category?: string;
+    closedDate?: string;
+    locality?: string;
+    reminderDate?: string;
+    title?: string;
+    status?: string;
+    priority?: string;
+    scheduledDate?: string;
+    createdDate?: string;
+    uids?: string[];
+    changed?: ChangeDate;
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, '_TODO', { xref: rec.xref, value: rec.payload });
   if (rec.category !== undefined) {
     w.line(1, '_CAT', { value: rec.category });
@@ -926,38 +892,48 @@ export function emitTodoRecord(w: Writer, _version: Version, rec: {
 }
 
 /** Emits the Legacy `_EVENT_DEFN` record (see EventDefinitionRecord). */
-export function emitEventDefinition(w: Writer, version: Version, rec: {
-  tag: '_EVENT_DEFN';
-  eventType?: string;
-  kind?: string;
-  title?: string;
-  witnessRoles?: Array<{ role: string; sentences?: string[]; sentence?: string; defaultRole?: boolean; extensions?: ExtensionStructure[] }>;
-  includeNotes?: boolean;
-  confidentialFlag?: boolean;
-  dateType?: string;
-  descriptionFlag?: string;
-  placeType?: string;
-  potentialProblemsExcluded?: string;
-  abbreviation?: string;
-  sentence?: string;
-  sentences?: string[];
-  pafSentences?: {
-    male?: string;
-    female?: string;
-    unknown?: string;
-    maleDateOnly?: string;
-    malePlaceOnly?: string;
-    maleDateAndPlace?: string;
-    femaleDateOnly?: string;
-    femalePlaceOnly?: string;
-    femaleDateAndPlace?: string;
-    unknownDateOnly?: string;
-    unknownPlaceOnly?: string;
-    unknownDateAndPlace?: string;
-  };
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitEventDefinition(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: '_EVENT_DEFN';
+    eventType?: string;
+    kind?: string;
+    title?: string;
+    witnessRoles?: Array<{
+      role: string;
+      sentences?: string[];
+      sentence?: string;
+      defaultRole?: boolean;
+      extensions?: ExtensionStructure[];
+    }>;
+    includeNotes?: boolean;
+    confidentialFlag?: boolean;
+    dateType?: string;
+    descriptionFlag?: string;
+    placeType?: string;
+    potentialProblemsExcluded?: string;
+    abbreviation?: string;
+    sentence?: string;
+    sentences?: string[];
+    pafSentences?: {
+      male?: string;
+      female?: string;
+      unknown?: string;
+      maleDateOnly?: string;
+      malePlaceOnly?: string;
+      maleDateAndPlace?: string;
+      femaleDateOnly?: string;
+      femalePlaceOnly?: string;
+      femaleDateAndPlace?: string;
+      unknownDateOnly?: string;
+      unknownPlaceOnly?: string;
+      unknownDateAndPlace?: string;
+    };
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, '_EVENT_DEFN', { xref: rec.xref, value: rec.eventType });
   if (rec.kind !== undefined) {
     // The event kind code (see EventDefinitionRecord.kind).
@@ -1068,16 +1044,21 @@ export function emitPublishedSiteRecord(w: Writer, version: Version, rec: Publis
 
 /** Emits the GDO `_ALIA` duplicate-candidate record (see
  *  DuplicateCandidateRecord). */
-export function emitDuplicateCandidateRecord(w: Writer, version: Version, rec: {  tag: '_ALIA';
-  xref?: string;
-  caption?: string;
-  individual?: string;
-  assessment?: string;
-  status?: string;
-  notes?: NoteStructure[];
-  citations?: SourceCitation[];
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitDuplicateCandidateRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: '_ALIA';
+    xref?: string;
+    caption?: string;
+    individual?: string;
+    assessment?: string;
+    status?: string;
+    notes?: NoteStructure[];
+    citations?: SourceCitation[];
+    extensions?: ExtensionStructure[];
+  },
+): void {
   w.line(0, '_ALIA', { xref: rec.xref });
   if (rec.caption !== undefined) {
     w.line(1, '_CPT', { value: rec.caption });
@@ -1154,48 +1135,52 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
   emitExtensions(w, version, level + 1, rec);
 }
 
-export function emitMultimedia(w: Writer, version: Version, rec: {
-  tag: 'OBJE';
-  restriction?: Array<string | `_${string}`>;
-  files: MediaFile[];
-  date?: DateStructure;
-  place?: string;
-  primary?: boolean;
-  scrapbook?: boolean;
-  slideshow?: boolean;
-  objectType?: string;
-  soundFile?: string;
-  createdAt?: string;
-  keywords?: string;
-  filePath?: string;
-  mediaNote?: string;
-  objectId?: string;
-  user?: string;
-  userEncrypted?: boolean;
-  origin?: string;
-  attachment?: boolean;
-  metadata?: string;
-  description?: string;
-  master?: boolean;
-  masterLinkId?: string;
-  cutout?: boolean;
-  primaryCutout?: boolean;
-  parentPhoto?: boolean;
-  personalPhoto?: boolean;
-  parentRecordId?: string;
-  author?: string;
-  title?: string;
-  clones?: AncestryClone[];
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  notes?: NoteStructure[];
-  citations?: SourceCitation[];
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  automatedRecordId?: string;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitMultimedia(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'OBJE';
+    restriction?: string[];
+    files: MediaFile[];
+    date?: DateStructure;
+    place?: string;
+    primary?: boolean;
+    scrapbook?: boolean;
+    slideshow?: boolean;
+    objectType?: string;
+    soundFile?: string;
+    createdAt?: string;
+    keywords?: string;
+    filePath?: string;
+    mediaNote?: string;
+    objectId?: string;
+    user?: string;
+    userEncrypted?: boolean;
+    origin?: string;
+    attachment?: boolean;
+    metadata?: string;
+    description?: string;
+    master?: boolean;
+    masterLinkId?: string;
+    cutout?: boolean;
+    primaryCutout?: boolean;
+    parentPhoto?: boolean;
+    personalPhoto?: boolean;
+    parentRecordId?: string;
+    author?: string;
+    title?: string;
+    clones?: AncestryClone[];
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    notes?: NoteStructure[];
+    citations?: SourceCitation[];
+    changeDate?: ChangeDate;
+    creationDate?: CreationDate;
+    automatedRecordId?: string;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'OBJE', { xref: rec.xref });
   if (rec.restriction !== undefined && version === '7.0') {
     w.line(1, 'RESN', { value: restrictionList(w, version, rec.restriction) });
@@ -1351,24 +1336,28 @@ export function emitMultimedia(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitRepository(w: Writer, version: Version, rec: {
-  tag: 'REPO';
-  name: string;
-  address?: AddressStructure;
-  phone?: string[];
-  email?: string[];
-  fax?: string[];
-  www?: string[];
-  notes?: NoteStructure[];
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  dates?: DateStructure[];
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  automatedRecordId?: string;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitRepository(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'REPO';
+    name: string;
+    address?: AddressStructure;
+    phone?: string[];
+    email?: string[];
+    fax?: string[];
+    www?: string[];
+    notes?: NoteStructure[];
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    dates?: DateStructure[];
+    changeDate?: ChangeDate;
+    creationDate?: CreationDate;
+    automatedRecordId?: string;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'REPO', { xref: rec.xref });
   w.line(1, 'NAME', { value: rec.name });
   for (const date of rec.dates ?? []) {
@@ -1410,20 +1399,24 @@ export function emitRepository(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitSharedNote(w: Writer, version: Version, rec: {
-  tag: 'SNOTE';
-  payload: string;
-  mediaType?: string;
-  language?: string;
-  translations?: NoteTranslation[];
-  citations?: SourceCitation[];
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitSharedNote(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'SNOTE';
+    payload: string;
+    mediaType?: string;
+    language?: string;
+    translations?: NoteTranslation[];
+    citations?: SourceCitation[];
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    changeDate?: ChangeDate;
+    creationDate?: CreationDate;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'SNOTE', { xref: rec.xref, value: rec.payload });
   if (rec.mediaType !== undefined) {
     w.line(1, 'MIME', { value: rec.mediaType });
@@ -1445,18 +1438,22 @@ export function emitSharedNote(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitNoteRecord(w: Writer, version: Version, rec: {
-  tag: 'NOTE';
-  payload: string;
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  citations?: SourceCitation[];
-  changeDate?: ChangeDate;
-  automatedRecordId?: string;
-  geditcomId?: string;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitNoteRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'NOTE';
+    payload: string;
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    citations?: SourceCitation[];
+    changeDate?: ChangeDate;
+    automatedRecordId?: string;
+    geditcomId?: string;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
   if (rec.geditcomId !== undefined) {
     // GEDitCOM II: the record's id (see NoteRecord.geditcomId).
@@ -1468,16 +1465,20 @@ export function emitNoteRecord(w: Writer, version: Version, rec: {
 
 /** A SNOTE record projected onto 5.5.1: a NOTE record (MIME/LANG/TRAN, UID, EXID and CREA are dropped). */
 
-export function emitSharedNoteAs551(w: Writer, version: Version, rec: {
-  tag: 'SNOTE';
-  payload: string;
-  citations?: SourceCitation[];
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  changeDate?: ChangeDate;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitSharedNoteAs551(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'SNOTE';
+    payload: string;
+    citations?: SourceCitation[];
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    changeDate?: ChangeDate;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'NOTE', { xref: rec.xref, value: rec.payload });
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
@@ -1485,78 +1486,96 @@ export function emitSharedNoteAs551(w: Writer, version: Version, rec: {
 
 /** A 5.5.1 NOTE record projected onto 7.0: a SNOTE record (RIN is dropped). */
 
-export function emitNoteRecordAs70(w: Writer, version: Version, rec: {
-  tag: 'NOTE';
-  payload: string;
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  citations?: SourceCitation[];
-  changeDate?: ChangeDate;
-  submitters?: string[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitNoteRecordAs70(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'NOTE';
+    payload: string;
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
+    citations?: SourceCitation[];
+    changeDate?: ChangeDate;
+    submitters?: string[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, 'SNOTE', { xref: rec.xref, value: rec.payload });
   emitGdoSubmitters(w, version, 1, rec.submitters);
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitSource(w: Writer, version: Version, rec: {
-  tag: 'SOUR';
-  data?: {
-    events?: Array<{ payload: Array<string | `_${string}`>; userDefined?: string[]; date?: DatePeriodStructure; place?: PlaceStructure; extensions?: ExtensionStructure[] }>;
-    agency?: string;
+export function emitSource(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'SOUR';
+    data?: {
+      events?: Array<{
+        payload: string[];
+        userDefined?: string[];
+        date?: DatePeriodStructure;
+        place?: PlaceStructure;
+        extensions?: ExtensionStructure[];
+      }>;
+      agency?: string;
+      notes?: NoteStructure[];
+      extensions?: ExtensionStructure[];
+    };
+    author?: string;
+    authorExtensions?: ExtensionStructure[];
+    title?: string;
+    titlRef?: string;
+    titleExtensions?: ExtensionStructure[];
+    date?: DateStructure;
+    place?: PlaceStructure;
+    abbreviation?: string;
+    abbreviationExtensions?: ExtensionStructure[];
+    publication?: string;
+    publicationDetails?: SourcePublicationDetails;
+    text?: SourceText;
+    repositoryCitations?: Array<{ repository: string; notes?: NoteStructure[]; callNumbers?: CallNumberStructure[] }>;
+    identifiers?: Array<{ tag: string; payload: string; type?: string }>;
     notes?: NoteStructure[];
+    media?: MultimediaLink[];
+    changeDate?: ChangeDate;
+    creationDate?: CreationDate;
+    automatedRecordId?: string;
+    template?: {
+      templateId?: string;
+      fields: Array<{ name: string; value?: string }>;
+      extensions?: ExtensionStructure[];
+    };
+    fullFootnote?: string;
+    subsequentCitationFormat?: string;
+    bibliography?: string;
+    medium?: string;
+    titleItalic?: boolean;
+    publicationParenthesized?: boolean;
+    titleQuoted?: boolean;
+    sourceType?: string;
+    masterListing?: boolean;
+    citationDetailIncluded?: boolean;
+    citationIncluded?: boolean;
+    citationDetailTextIncluded?: boolean;
+    citationDetailNotesIncluded?: boolean;
+    quality?: { source?: string; information?: string; evidence?: string; extensions?: ExtensionStructure[] };
+    url?: string;
+    confidence?: string;
+    accessDate?: string;
+    updatedAt?: string;
+    ancestryPointers?: string[];
+    familyTreeSystemId?: string;
+    webTags?: Array<{ name?: string; url?: string; extensions?: ExtensionStructure[] }>;
+    files?: Array<{ tag: 'FILE'; payload: string; extensions?: ExtensionStructure[] }>;
+    evidenceAvailable?: boolean;
+    volumeYear?: string;
+    submitters?: string[];
+    relocatedCitations?: SourceCitation[];
     extensions?: ExtensionStructure[];
-  };
-  author?: string;
-  authorExtensions?: ExtensionStructure[];
-  title?: string;
-  titlRef?: string;
-  titleExtensions?: ExtensionStructure[];
-  date?: DateStructure;
-  place?: PlaceStructure;
-  abbreviation?: string;
-  abbreviationExtensions?: ExtensionStructure[];
-  publication?: string;
-  publicationDetails?: SourcePublicationDetails;
-  text?: SourceText;
-  repositoryCitations?: Array<{ repository: string; notes?: NoteStructure[]; callNumbers?: CallNumberStructure[] }>;
-  identifiers?: Array<{ tag: string; payload: string; type?: string }>;
-  notes?: NoteStructure[];
-  media?: MultimediaLink[];
-  changeDate?: ChangeDate;
-  creationDate?: CreationDate;
-  automatedRecordId?: string;
-  template?: { templateId?: string; fields: Array<{ name: string; value?: string }>; extensions?: ExtensionStructure[] };
-  fullFootnote?: string;
-  subsequentCitationFormat?: string;
-  bibliography?: string;
-  medium?: string;
-  titleItalic?: boolean;
-  publicationParenthesized?: boolean;
-  titleQuoted?: boolean;
-  sourceType?: string;
-  masterListing?: boolean;
-  citationDetailIncluded?: boolean;
-  citationIncluded?: boolean;
-  citationDetailTextIncluded?: boolean;
-  citationDetailNotesIncluded?: boolean;
-  quality?: { source?: string; information?: string; evidence?: string; extensions?: ExtensionStructure[] };
-  url?: string;
-  confidence?: string;
-  accessDate?: string;
-  updatedAt?: string;
-  ancestryPointers?: string[];
-  familyTreeSystemId?: string;
-  webTags?: Array<{ name?: string; url?: string; extensions?: ExtensionStructure[] }>;
-  files?: Array<{ tag: 'FILE'; payload: string; extensions?: ExtensionStructure[] }>;
-  evidenceAvailable?: boolean;
-  volumeYear?: string;
-  submitters?: string[];
-  relocatedCitations?: SourceCitation[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+    xref?: string;
+  },
+): void {
   w.line(0, 'SOUR', { xref: rec.xref });
   if (rec.data !== undefined) {
     w.line(1, 'DATA');
@@ -1812,12 +1831,17 @@ export function emitSource(w: Writer, version: Version, rec: {
   commonRecordFields(w, version, rec, 1);
 }
 
-export function emitRepositoryCitation(w: Writer, version: Version, level: number, citation: {
-  repository: string;
-  notes?: NoteStructure[];
-  callNumbers?: CallNumberStructure[];
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitRepositoryCitation(
+  w: Writer,
+  version: Version,
+  level: number,
+  citation: {
+    repository: string;
+    notes?: NoteStructure[];
+    callNumbers?: CallNumberStructure[];
+    extensions?: ExtensionStructure[];
+  },
+): void {
   if (version === '7.0') {
     ptr(w, version, level, 'REPO', citation.repository);
   } else if (citation.repository === '@VOID@') {
@@ -1838,15 +1862,18 @@ export function emitRepositoryCitation(w: Writer, version: Version, level: numbe
   emitExtensions(w, version, level + 1, citation);
 }
 
-
 /** Emits the GEDKeeper `_GRP` record (see GroupRecord). */
-export function emitGroupRecord(w: Writer, version: Version, rec: {
-  tag: '_GRP';
-  name?: string;
-  notes?: NoteStructure[];
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitGroupRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: '_GRP';
+    name?: string;
+    notes?: NoteStructure[];
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, '_GRP', { xref: rec.xref });
   if (rec.name !== undefined) {
     w.line(1, 'NAME', { value: rec.name });
@@ -1858,15 +1885,19 @@ export function emitGroupRecord(w: Writer, version: Version, rec: {
 }
 
 /** Emits the MyHeritage `_MTTAG` tree-tag record (see TreeTagRecord). */
-export function emitTreeTagRecord(w: Writer, version: Version, rec: {
-  tag: '_MTTAG';
-  name?: string;
-  automatedRecordId?: string;
-  visible?: boolean;
-  category?: string;
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitTreeTagRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: '_MTTAG';
+    name?: string;
+    automatedRecordId?: string;
+    visible?: boolean;
+    category?: string;
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, '_MTTAG', { xref: rec.xref });
   if (rec.name !== undefined) {
     w.line(1, 'NAME', { value: rec.name });
@@ -1884,13 +1915,17 @@ export function emitTreeTagRecord(w: Writer, version: Version, rec: {
 }
 
 /** Emits the MyHeritage `_MTCAT` tree-category record (see TreeCategoryRecord). */
-export function emitTreeCategoryRecord(w: Writer, version: Version, rec: {
-  tag: '_MTCAT';
-  name?: string;
-  automatedRecordId?: string;
-  extensions?: ExtensionStructure[];
-  xref?: string;
-}): void {
+export function emitTreeCategoryRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: '_MTCAT';
+    name?: string;
+    automatedRecordId?: string;
+    extensions?: ExtensionStructure[];
+    xref?: string;
+  },
+): void {
   w.line(0, '_MTCAT', { xref: rec.xref });
   if (rec.name !== undefined) {
     w.line(1, 'NAME', { value: rec.name });
@@ -1934,17 +1969,21 @@ function emitGenoProEntityFields(w: Writer, version: Version, rec: GenoProEntity
 
 /** Emits the GenoPro entity records (Occupation/Education/Contact/
  *  Marriage/Twin). */
-export function emitGenoProRecord(w: Writer, version: Version, rec: GenoProEntityShape & {
-  company?: string;
-  industry?: string;
-  title?: string;
-  duration?: string;
-  institution?: string;
-  type?: string;
-  date?: DateStructure;
-  kind?: string;
-  family?: string;
-}): void {
+export function emitGenoProRecord(
+  w: Writer,
+  version: Version,
+  rec: GenoProEntityShape & {
+    company?: string;
+    industry?: string;
+    title?: string;
+    duration?: string;
+    institution?: string;
+    type?: string;
+    date?: DateStructure;
+    kind?: string;
+    family?: string;
+  },
+): void {
   w.line(0, rec.tag, { xref: rec.xref });
   if (rec.company !== undefined) {
     w.line(1, 'COMPANY', { value: rec.company });
@@ -1978,20 +2017,24 @@ export function emitGenoProRecord(w: Writer, version: Version, rec: GenoProEntit
 }
 
 /** Emits the Ancestris `TITL` record (see TitleRecord). */
-export function emitTitleRecord(w: Writer, version: Version, rec: {
-  tag: 'TITL';
-  xref?: string;
-  payload?: string;
-  changeDate?: ChangeDate;
-  author?: string;
-  publisher?: string;
-  series?: string;
-  abbreviation?: string;
-  repository?: string;
-  sequenceNumber?: string;
-  callNumber?: string;
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitTitleRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: 'TITL';
+    xref?: string;
+    payload?: string;
+    changeDate?: ChangeDate;
+    author?: string;
+    publisher?: string;
+    series?: string;
+    abbreviation?: string;
+    repository?: string;
+    sequenceNumber?: string;
+    callNumber?: string;
+    extensions?: ExtensionStructure[];
+  },
+): void {
   w.line(0, 'TITL', { xref: rec.xref, value: rec.payload });
   if (rec.changeDate !== undefined) {
     w.line(1, 'CHAN');
@@ -2034,24 +2077,36 @@ export function emitTitleRecord(w: Writer, version: Version, rec: {
 }
 
 /** Emits the `_OCUR` occurrence record (see OccurrenceRecord). */
-export function emitOccurrenceRecord(w: Writer, version: Version, rec: {
-  tag: '_OCUR';
-  xref?: string;
-  type?: string;
-  date?: DateStructure;
-  place?: PlaceStructure;
-  cause?: string;
-  agency?: string;
-  religion?: string;
-  participants?: Array<{ tag: '_PART'; individual: string; role?: string; age?: AgeStructure; notes?: NoteStructure[]; citations?: SourceCitation[]; extensions?: ExtensionStructure[] }>;
-  attributes?: VendorAttribute[];
-  notes?: NoteStructure[];
-  citations?: SourceCitation[];
-  media?: MultimediaLink[];
-  uids?: string[];
-  changeDate?: ChangeDate;
-  extensions?: ExtensionStructure[];
-}): void {
+export function emitOccurrenceRecord(
+  w: Writer,
+  version: Version,
+  rec: {
+    tag: '_OCUR';
+    xref?: string;
+    type?: string;
+    date?: DateStructure;
+    place?: PlaceStructure;
+    cause?: string;
+    agency?: string;
+    religion?: string;
+    participants?: Array<{
+      tag: '_PART';
+      individual: string;
+      role?: string;
+      age?: AgeStructure;
+      notes?: NoteStructure[];
+      citations?: SourceCitation[];
+      extensions?: ExtensionStructure[];
+    }>;
+    attributes?: VendorAttribute[];
+    notes?: NoteStructure[];
+    citations?: SourceCitation[];
+    media?: MultimediaLink[];
+    uids?: string[];
+    changeDate?: ChangeDate;
+    extensions?: ExtensionStructure[];
+  },
+): void {
   w.line(0, '_OCUR', { xref: rec.xref });
   if (rec.type !== undefined) {
     w.line(1, 'TYPE', { value: rec.type });

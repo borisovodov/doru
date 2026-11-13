@@ -48,7 +48,13 @@ describe('db cleanup paths', () => {
         targetId: 'P1',
         date: { quality: 'exact', component: { year: 2025 } },
       });
-      repo.insertCitation({ id: 'C2', sourceId: 'S1', targetType: 'person', targetId: 'P2', date: { quality: 'exact', component: { year: 2026 } } });
+      repo.insertCitation({
+        id: 'C2',
+        sourceId: 'S1',
+        targetType: 'person',
+        targetId: 'P2',
+        date: { quality: 'exact', component: { year: 2026 } },
+      });
 
       // Cascade over a target deletes its citations with their dates.
       repo.deleteAttachmentsFor('person', 'P2');

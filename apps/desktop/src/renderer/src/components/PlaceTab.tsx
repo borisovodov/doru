@@ -1,22 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import type {
-  CitationRecord,
-  ContactRecord,
-  FactRecord,
-  FamilyRecord,
-  IdentifierRecord,
-  NoteRecord,
-  PersonRecord,
-  PlaceRecord,
-  RestrictionRecord,
-  SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '@doru/core';
-import { EntityTab, PlaceEditor, PlaceFactsList, emptyPlaceDraft, placeDraftMatches, placeDraftToRecord, placeToDraft, type PlaceDraft, type PlaceEditorApi } from '@doru/features';
-import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection } from '@doru/ui/domain';
+import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
+import {
+  EntityTab,
+  PlaceEditor,
+  PlaceFactsList,
+  emptyPlaceDraft,
+  placeDraftMatches,
+  placeDraftToRecord,
+  placeToDraft,
+  type PlaceDraft,
+  type PlaceEditorApi,
+} from '@doru/features';
+import {
+  ContactsSection,
+  ContributorsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
+import { useAttachments } from '../hooks/useAttachments';
 import { PLACE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function PlaceTab({
@@ -102,52 +107,21 @@ function PlaceTabBody({
     isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
-  const [placeNotes, setPlaceNotes] = useState<NoteRecord[]>([]);
-  const [placeCitations, setPlaceCitations] = useState<CitationRecord[]>([]);
-  const [tags, setTags] = useState<TagRecord[]>([]);
-  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
-  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
-  const [contacts, setContacts] = useState<ContactRecord[]>([]);
-  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
-  const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<
-    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
-  >([]);
   const recordRef = useRef(record);
 
   const targetId = (lastSaved ?? record)?.id;
-
-  const refreshAttachments = async () => {
-    if (targetId === undefined) {
-      return;
-    }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions, loadedSubmitters, loadedContributors] =
-      await Promise.all([
-        api.getNotes('place', targetId),
-        api.getCitations('place', targetId),
-        api.getTags(),
-        api.getTagLinks('place', targetId),
-        api.getIdentifiers('place', targetId),
-        api.getContacts('place', targetId),
-        api.getRestrictions('place', targetId),
-        api.getSubmitters(),
-        api.getRecordSubmitters('place', targetId),
-      ]);
-    setPlaceNotes(loadedNotes);
-    setPlaceCitations(loadedCitations);
-    setTags(loadedTags);
-    setTagLinks(loadedTagLinks);
-    setIdentifiers(loadedIdentifiers);
-    setContacts(loadedContacts);
-    setRestrictions(loadedRestrictions);
-    setSubmitters(loadedSubmitters);
-    setContributors(loadedContributors);
-  };
-
-  useEffect(() => {
-    void refreshAttachments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetId]);
+  const {
+    notes: placeNotes,
+    citations: placeCitations,
+    tags,
+    tagLinks,
+    identifiers,
+    contacts,
+    restrictions,
+    submitters,
+    contributors,
+    refresh: refreshAttachments,
+  } = useAttachments('place', targetId, api, true);
 
   // Reset the draft only when it still equals the previous stored place —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
@@ -159,7 +133,7 @@ function PlaceTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      current && previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
+      previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
     );
   }, [record, isNew]);
 
@@ -169,7 +143,11 @@ function PlaceTabBody({
       await api.addPlace(next);
       onCreated(next.id);
     } else {
-      await api.updatePlace(lastSaved ?? record!, next);
+      const target = lastSaved ?? record;
+      if (target === undefined) {
+        return;
+      }
+      await api.updatePlace(target, next);
     }
     setLastSaved(next);
   };
@@ -182,10 +160,8 @@ function PlaceTabBody({
     onClose(tabId);
   };
 
-  const factsAtPlace =
-    lastSaved !== undefined || record !== undefined
-      ? facts.filter((fact) => fact.placeId === (lastSaved ?? record)!.id)
-      : [];
+  const currentPlace = lastSaved ?? record;
+  const factsAtPlace = currentPlace !== undefined ? facts.filter((fact) => fact.placeId === currentPlace.id) : [];
 
   return (
     <EntityTab>

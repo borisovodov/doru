@@ -47,4 +47,9 @@ export {
   type DoruModelError,
   type DoruModelState,
 } from './local-models';
-export { ModelDownloadError, downloadModel, type ModelDownloadErrorCode, type ModelDownloadOptions } from './model-download';
+export {
+  ModelDownloadError,
+  downloadModel,
+  type ModelDownloadErrorCode,
+  type ModelDownloadOptions,
+} from './model-download';

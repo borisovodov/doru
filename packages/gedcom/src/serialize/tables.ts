@@ -163,4 +163,3 @@ export const ROLE_TO_RELA_551 = new Map<string, string>([
   ['WITN', 'Witness'],
   ['OTHER', 'Other'],
 ]);
-

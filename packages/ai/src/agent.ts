@@ -58,7 +58,7 @@ export interface AgentEvents {
 export interface RunAgentOptions {
   model: LanguageModel;
   messages: ChatMessage[];
-  /** System prompt; passed via the AI SDK `system` option (v7 rejects system messages in `messages`). */
+  /** System prompt; passed via the AI SDK `instructions` option (v7 rejects system messages in `messages`). */
   system?: string;
   tools: ToolSet;
   /** Maximum number of model/tool iterations. Defaults to 8. */
@@ -91,7 +91,7 @@ export function repairToolInput(raw: string): string | null {
   let inString = false;
   let escaped = false;
   for (let i = start; i < raw.length; i += 1) {
-    const char = raw[i]!;
+    const char = raw.charAt(i);
     if (inString) {
       if (escaped) {
         escaped = false;
@@ -139,9 +139,10 @@ export function refineTreeQueryInput(input: unknown): unknown {
   if (!match) {
     return input;
   }
-  const value = match[1]!.toLowerCase();
+  const value = match[1]?.toLowerCase() ?? '';
   const sex = value === 'male' || value === 'm' ? 'M' : value === 'female' || value === 'f' ? 'F' : 'U';
-  const { query: _removed, ...rest } = record;
+  const rest: Record<string, unknown> = { ...record };
+  delete rest['query'];
   return { ...rest, sex };
 }
 
@@ -155,7 +156,7 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRunResult
     messages: toModelMessages(options.messages),
     tools: options.tools,
     stopWhen: stepCountIs(options.maxSteps ?? 8),
-    ...(options.system !== undefined ? { system: options.system } : {}),
+    ...(options.system !== undefined ? { instructions: options.system } : {}),
     ...(options.signal !== undefined ? { abortSignal: options.signal } : {}),
     ...(options.reasoning !== undefined ? { reasoning: options.reasoning } : {}),
     ...(options.providerOptions !== undefined ? { providerOptions: options.providerOptions } : {}),
@@ -227,7 +228,7 @@ export function toModelMessages(messages: ChatMessage[]): ModelMessage[] {
   for (const message of messages) {
     if (message.role === 'system') {
       // v7 rejects system messages in `messages`; the system prompt travels
-      // via the `system` option instead.
+      // via the `instructions` option instead.
       continue;
     }
     if (message.role === 'assistant') {

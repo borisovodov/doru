@@ -13,7 +13,15 @@ import './SourceEditor.css';
 import { DateEditor, emptyDate } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
-import { emptySourceTextDraft, type CallNumberDraft, type SourceDataEventDraft, type SourceDraft, type SourceRepositoryDraft, type SourceTextDraft, type TemplateFieldDraft } from '@doru/ui/domain';
+import {
+  emptySourceTextDraft,
+  type CallNumberDraft,
+  type SourceDataEventDraft,
+  type SourceDraft,
+  type SourceRepositoryDraft,
+  type SourceTextDraft,
+  type TemplateFieldDraft,
+} from '@doru/ui/domain';
 
 /**
  * The full source form: bibliographic details, publication, text extracts,
@@ -51,32 +59,50 @@ export function SourceEditor({
 
   const patchEvent = (index: number, values: Partial<SourceDataEventDraft>) =>
     set({ dataEvents: draft.dataEvents.map((event, i) => (i === index ? { ...event, ...values } : event)) });
-  const addEvent = () => set({ dataEvents: [...draft.dataEvents, { id: crypto.randomUUID(), tag: '', value: '', date: emptyDate() }] });
+  const addEvent = () =>
+    set({ dataEvents: [...draft.dataEvents, { id: crypto.randomUUID(), tag: '', value: '', date: emptyDate() }] });
   const removeEvent = (index: number) => set({ dataEvents: draft.dataEvents.filter((_, i) => i !== index) });
 
   const patchRepository = (index: number, values: Partial<SourceRepositoryDraft>) =>
     set({ repositories: draft.repositories.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const addRepository = () => set({ repositories: [...draft.repositories, { id: crypto.randomUUID(), repositoryId: '', callNumbers: [] }] });
+  const addRepository = () =>
+    set({ repositories: [...draft.repositories, { id: crypto.randomUUID(), repositoryId: '', callNumbers: [] }] });
   const removeRepository = (index: number) => set({ repositories: draft.repositories.filter((_, i) => i !== index) });
 
-  const patchCallNumber = (repositoryIndex: number, callNumberIndex: number, values: Partial<CallNumberDraft>) =>
+  const patchCallNumber = (repositoryIndex: number, callNumberIndex: number, values: Partial<CallNumberDraft>) => {
+    const repository = draft.repositories[repositoryIndex];
+    if (repository === undefined) {
+      return;
+    }
     patchRepository(repositoryIndex, {
-      callNumbers: draft.repositories[repositoryIndex]!.callNumbers.map((callNumber, i) =>
+      callNumbers: repository.callNumbers.map((callNumber, i) =>
         i === callNumberIndex ? { ...callNumber, ...values } : callNumber,
       ),
     });
-  const addCallNumber = (repositoryIndex: number) =>
+  };
+  const addCallNumber = (repositoryIndex: number) => {
+    const repository = draft.repositories[repositoryIndex];
+    if (repository === undefined) {
+      return;
+    }
     patchRepository(repositoryIndex, {
-      callNumbers: [...draft.repositories[repositoryIndex]!.callNumbers, { id: crypto.randomUUID(), value: '', medium: '' }],
+      callNumbers: [...repository.callNumbers, { id: crypto.randomUUID(), value: '', medium: '' }],
     });
-  const removeCallNumber = (repositoryIndex: number, callNumberIndex: number) =>
+  };
+  const removeCallNumber = (repositoryIndex: number, callNumberIndex: number) => {
+    const repository = draft.repositories[repositoryIndex];
+    if (repository === undefined) {
+      return;
+    }
     patchRepository(repositoryIndex, {
-      callNumbers: draft.repositories[repositoryIndex]!.callNumbers.filter((_, i) => i !== callNumberIndex),
+      callNumbers: repository.callNumbers.filter((_, i) => i !== callNumberIndex),
     });
+  };
 
   const patchField = (index: number, values: Partial<TemplateFieldDraft>) =>
     set({ templateFields: draft.templateFields.map((field, i) => (i === index ? { ...field, ...values } : field)) });
-  const addField = () => set({ templateFields: [...draft.templateFields, { id: crypto.randomUUID(), name: '', value: '' }] });
+  const addField = () =>
+    set({ templateFields: [...draft.templateFields, { id: crypto.randomUUID(), name: '', value: '' }] });
   const removeField = (index: number) => set({ templateFields: draft.templateFields.filter((_, i) => i !== index) });
 
   const subtitle = [draft.author.trim(), draft.publication.trim()].filter((part) => part !== '').join(' · ');
@@ -199,9 +225,12 @@ export function SourceEditor({
                 value={text.mime}
                 onChange={(event) => patchText(index, { mime: event.target.value })}
               />
-              <IconButton size="sm" label={nls.t('features.tree.source.texts.remove')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removeText(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.source.texts.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removeText(index)}
+              />
             </div>
           </Subcard>
         ))}
@@ -225,9 +254,12 @@ export function SourceEditor({
                 value={event.value}
                 onChange={(change) => patchEvent(index, { value: change.target.value })}
               />
-              <IconButton size="sm" label={nls.t('features.tree.source.dataEvents.remove')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removeEvent(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.source.dataEvents.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removeEvent(index)}
+              />
             </div>
             <DateEditor
               label={nls.t('features.tree.events.dateField')}
@@ -274,9 +306,12 @@ export function SourceEditor({
                   </option>
                 ))}
               </Select>
-              <IconButton size="sm" label={nls.t('features.tree.source.repositories.remove')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removeRepository(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.source.repositories.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removeRepository(index)}
+              />
             </div>
             {link.callNumbers.map((callNumber, callNumberIndex) => (
               <div className="source-sub-row source-call-number" key={callNumber.id}>
@@ -290,9 +325,12 @@ export function SourceEditor({
                   value={callNumber.medium}
                   onChange={(event) => patchCallNumber(index, callNumberIndex, { medium: event.target.value })}
                 />
-                <IconButton size="sm" label={nls.t('features.tree.source.repositories.callNumbers.remove')} icon={<>
-                  <X size={13} aria-hidden="true" />
-                </>} onClick={() => removeCallNumber(index, callNumberIndex)} />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.source.repositories.callNumbers.remove')}
+                  icon={<X size={13} aria-hidden="true" />}
+                  onClick={() => removeCallNumber(index, callNumberIndex)}
+                />
               </div>
             ))}
             <Button variant="primary" size="sm" onClick={() => addCallNumber(index)}>
@@ -323,9 +361,12 @@ export function SourceEditor({
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
             />
-            <IconButton size="sm" label={nls.t('features.tree.source.templateFields.remove')} icon={<>
-              <X size={13} aria-hidden="true" />
-            </>} onClick={() => removeField(index)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.source.templateFields.remove')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => removeField(index)}
+            />
           </div>
         ))}
         <Button variant="primary" onClick={addField}>

@@ -9,20 +9,22 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function DefaultStory() {
+  const [value, setValue] = useState<'sources' | 'titles' | 'repositories'>('sources');
+  return (
+    <SegmentedControl
+      label="Registry kind"
+      value={value}
+      onChange={setValue}
+      options={[
+        { value: 'sources', label: 'Sources' },
+        { value: 'titles', label: 'Titles' },
+        { value: 'repositories', label: 'Repositories' },
+      ]}
+    />
+  );
+}
+
 export const Default: Story = {
-  render: () => {
-    const [value, setValue] = useState<'sources' | 'titles' | 'repositories'>('sources');
-    return (
-      <SegmentedControl
-        label="Registry kind"
-        value={value}
-        onChange={setValue}
-        options={[
-          { value: 'sources', label: 'Sources' },
-          { value: 'titles', label: 'Titles' },
-          { value: 'repositories', label: 'Repositories' },
-        ]}
-      />
-    );
-  },
+  render: () => <DefaultStory />,
 };

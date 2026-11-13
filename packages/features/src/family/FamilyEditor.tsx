@@ -10,7 +10,15 @@ import './FamilyEditor.css';
 import { ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
 import { Button, EditorPage, EntityViewCard } from '@doru/ui';
 import type { FamilyEditorApi } from '../person/types';
-import { CHILD_STATUS_TYPES, PEDIGREE_TYPES, emptyChildLinkDraft, emptyPartnerLinkDraft, type ChildLinkDraft, type FamilyDraft, type PartnerLinkDraft } from '@doru/ui/domain';
+import {
+  CHILD_STATUS_TYPES,
+  PEDIGREE_TYPES,
+  emptyChildLinkDraft,
+  emptyPartnerLinkDraft,
+  type ChildLinkDraft,
+  type FamilyDraft,
+  type PartnerLinkDraft,
+} from '@doru/ui/domain';
 
 /**
  * The full family form: partner and child slots with their link details
@@ -46,7 +54,10 @@ export function FamilyEditor({
   const set = (patch: Partial<FamilyDraft>) => onChange({ ...draft, ...patch });
 
   const personById = useMemo(() => new Map(persons.map((person) => [person.id, person])), [persons]);
-  const memberIds = new Set([...draft.partnerLinks.map((link) => link.personId), ...draft.childLinks.map((link) => link.childId)]);
+  const memberIds = new Set([
+    ...draft.partnerLinks.map((link) => link.personId),
+    ...draft.childLinks.map((link) => link.childId),
+  ]);
   const candidates = persons.filter((person) => !memberIds.has(person.id));
 
   const refreshContributors = async () => {
@@ -65,11 +76,17 @@ export function FamilyEditor({
     void api.getAddresses().then((loaded) => {
       if (!cancelled) setAddresses(loaded);
     });
-    void refreshContributors();
+    void Promise.all([api.getSubmitters(), api.getRecordSubmitters('family', draft.id)]).then(
+      ([loadedSubmitters, loadedContributors]) => {
+        if (!cancelled) {
+          setSubmitters(loadedSubmitters);
+          setContributors(loadedContributors);
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.id, api, persons]);
 
   const refreshFacts = async () => {
@@ -78,8 +95,7 @@ export function FamilyEditor({
 
   const patchPartner = (index: number, values: Partial<PartnerLinkDraft>) =>
     set({ partnerLinks: draft.partnerLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const removePartner = (index: number) =>
-    set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
+  const removePartner = (index: number) => set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
   const addPartner = () => {
     if (newPartnerId === '') {
       return;
@@ -135,9 +151,12 @@ export function FamilyEditor({
                 checked={link.preferred}
                 onChange={(event) => patchPartner(index, { preferred: event.target.checked })}
               />
-              <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removePartner(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.family.removeMember')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removePartner(index)}
+              />
             </div>
             <DateEditor
               label={nls.t('features.tree.family.partnerDate')}
@@ -169,16 +188,16 @@ export function FamilyEditor({
           <Subcard key={link.id}>
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.childId))}</span>
-              <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removeChild(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.family.removeMember')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removeChild(index)}
+              />
             </div>
             <FieldGrid columns={2}>
               <Field label={nls.t('features.tree.family.pedigree')}>
-                <Select
-                  value={link.pedigree}
-                  onChange={(event) => patchChild(index, { pedigree: event.target.value })}
-                >
+                <Select value={link.pedigree} onChange={(event) => patchChild(index, { pedigree: event.target.value })}>
                   <option value="">{nls.t('features.tree.family.pedigree.none')}</option>
                   {PEDIGREE_TYPES.map((type) => (
                     <option key={type} value={type}>

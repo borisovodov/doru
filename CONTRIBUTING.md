@@ -26,10 +26,13 @@ npm run dev        # run the desktop app in dev mode
 Run all of these before opening a pull request:
 
 ```sh
-npm test           # unit tests (vitest)
-npm run typecheck  # strict TypeScript across all workspaces
-npm run build      # production build (electron-vite)
-npm run e2e        # Playwright smoke test against the built app
+npm test            # unit tests (vitest)
+npm run typecheck   # strict TypeScript across all workspaces, including tests
+npm run lint        # ESLint with strict type-aware rules (zero warnings)
+npm run format:check # Prettier formatting check
+npm run lint:css    # Stylelint for the renderer and website styles
+npm run build       # production build (electron-vite)
+npm run e2e         # Playwright smoke test against the built app
 ```
 
 ## Repository layout

@@ -23,7 +23,13 @@ import { parseProtocolUrl } from './protocol-url';
 import { closeAllRuntimes, ensureRuntime } from './runtime';
 import { readSession } from './session';
 import { pendingExternalPaths, projectWindows, recents } from './state';
-import { ensureUserThemesDir, themeState, updateTitleBarOverlays, updateWindowBackgrounds, watchUserThemes } from './themes';
+import {
+  ensureUserThemesDir,
+  themeState,
+  updateTitleBarOverlays,
+  updateWindowBackgrounds,
+  watchUserThemes,
+} from './themes';
 import { createWindow, iconPath, installMenu } from './windows';
 
 function parseMcpServerArg(argv: string[]): string | null {
@@ -132,9 +138,7 @@ registerLocalModelIpc();
 registerThemeIpc();
 registerMenuIpc();
 
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'doru-media', privileges: { secure: true, stream: true } },
-]);
+protocol.registerSchemesAsPrivileged([{ scheme: 'doru-media', privileges: { secure: true, stream: true } }]);
 
 function handleProtocolUrl(url: string): void {
   const projectPath = parseProtocolUrl(url);
@@ -174,8 +178,7 @@ function prepareLinuxProtocolRegistration(): void {
     mkdirSync(dirname(desktopFile), { recursive: true });
     // In dev the executable is the Electron binary itself and needs the app
     // directory as an argument to launch anything.
-    const devArg =
-      process.defaultApp && process.argv[1] ? ` "${process.argv[1].replace(/"/g, '\\"')}"` : '';
+    const devArg = process.defaultApp && process.argv[1] ? ` "${process.argv[1].replace(/"/g, '\\"')}"` : '';
     writeFileSync(
       desktopFile,
       [
@@ -274,10 +277,13 @@ if (gotLock) {
   // A failed startup must not leave a zombie process: an MCP helper that
   // rejects here would otherwise hang forever (never serving stdio) and the
   // client would wait out its whole startup timeout.
-  void app.whenReady().then(startApp).catch((error: unknown) => {
-    log.error('startup failed', error);
-    app.exit(1);
-  });
+  void app
+    .whenReady()
+    .then(startApp)
+    .catch((error: unknown) => {
+      log.error('startup failed', error);
+      app.exit(1);
+    });
 
   app.on('will-quit', () => {
     closeAllRuntimes();

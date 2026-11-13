@@ -57,7 +57,12 @@ async function sha256File(path: string): Promise<string> {
 }
 
 /** Verifies an existing (partial) file and renames it into place if complete. */
-async function verifyExisting(part: string, destination: string, expectedSize: number, expectedSha256: string): Promise<boolean> {
+async function verifyExisting(
+  part: string,
+  destination: string,
+  expectedSize: number,
+  expectedSha256: string,
+): Promise<boolean> {
   if ((await fileSize(part)) !== expectedSize) {
     return false;
   }
@@ -75,7 +80,7 @@ export async function downloadModel(options: ModelDownloadOptions): Promise<void
   const part = `${destination}.part`;
 
   // A completed previous attempt (or a finished file renamed in flight).
-  if (await fileSize(destination) === expectedSize) {
+  if ((await fileSize(destination)) === expectedSize) {
     return;
   }
 

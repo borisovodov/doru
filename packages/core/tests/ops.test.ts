@@ -90,12 +90,7 @@ describe('OpQueue', () => {
       const family = { id: 'F1', partners: ['P1', 'P2'], children: [] };
       fixture.repo.insertFamily(family);
 
-      queue.apply(
-        deletePersonOp(person, [
-          { before: family, after: { ...family, partners: ['P2'] } },
-        ]),
-        ctx,
-      );
+      queue.apply(deletePersonOp(person, [{ before: family, after: { ...family, partners: ['P2'] } }]), ctx);
       expect(fixture.repo.getPerson('P1')).toBeUndefined();
       expect(fixture.repo.getFamily('F1')?.partners).toEqual(['P2']);
 
@@ -167,10 +162,14 @@ describe('OpQueue', () => {
       fixture.repo.insertFamily(to);
 
       queue.apply(
-        reparentOp([
-          { before: from, after: { ...from, children: [] } },
-          { before: to, after: { ...to, children: ['K'] } },
-        ], undefined, 'K'),
+        reparentOp(
+          [
+            { before: from, after: { ...from, children: [] } },
+            { before: to, after: { ...to, children: ['K'] } },
+          ],
+          undefined,
+          'K',
+        ),
         ctx,
       );
       expect(fixture.repo.getFamily('F1')?.children).toEqual([]);
@@ -196,10 +195,7 @@ describe('OpQueue', () => {
       fixture.repo.insertFamily(from);
       const created = { id: 'F2', partners: ['B'], children: ['K'] };
 
-      queue.apply(
-        reparentOp([{ before: from, after: { ...from, children: [] } }], created, 'K'),
-        ctx,
-      );
+      queue.apply(reparentOp([{ before: from, after: { ...from, children: [] } }], created, 'K'), ctx);
       expect(fixture.repo.getFamily('F1')?.children).toEqual([]);
       expect(fixture.repo.getFamily('F2')?.children).toEqual(['K']);
 

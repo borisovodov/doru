@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
-import type { FamilyRecord, GedcomDataset, IndividualRecord, SourceCitation } from '../src/structures';
+import type { FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
+import { isFamilyRecord, isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -93,7 +94,7 @@ const SAMPLE551 = [
 
 function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected INDI ${xref}`);
   }
   return record;
@@ -101,7 +102,7 @@ function indi(dataset: GedcomDataset, xref: string): IndividualRecord {
 
 function fam(dataset: GedcomDataset, xref: string): FamilyRecord {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'FAM') {
+  if (record === undefined || !isFamilyRecord(record)) {
     throw new Error(`expected FAM ${xref}`);
   }
   return record;
@@ -147,7 +148,7 @@ describe('vendor extensions on 5.5.1 input', () => {
     });
 
     // _APID under the citation.
-    const citation = marr?.detail?.detail?.citations?.[0] as SourceCitation | undefined;
+    const citation = marr?.detail?.detail?.citations?.[0];
     expect(citation?.ancestryPointers).toEqual(['1,7602::2771226']);
 
     // The unknown underscore tag stays a generic extension.
@@ -275,21 +276,28 @@ describe('the additionally typed vendor tags', () => {
     if (record === undefined) {
       throw new Error('expected INDI');
     }
-    return record as IndividualRecord;
+    return record;
   };
   const fam = (dataset: GedcomDataset): FamilyRecord => {
     const record = dataset.records.find((r) => r.tag === 'FAM');
     if (record === undefined) {
       throw new Error('expected FAM');
     }
-    return record as FamilyRecord;
+    return record;
   };
 
   test('_FSFTID under INDI', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @I1@ INDI',
         '1 NAME John /Doe/',
         '1 _FSFTID KWJ1-2B3',
@@ -305,8 +313,15 @@ describe('the additionally typed vendor tags', () => {
   test('_TODO under INDI and FAM with DESC/PRTY/STAT/DATE/NOTE', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @I1@ INDI',
         '1 NAME John /Doe/',
         '1 _TODO Find the will',
@@ -327,7 +342,8 @@ describe('the additionally typed vendor tags', () => {
     expect(person.todos?.[0]?.priority).toBe('high');
     expect(person.todos?.[0]?.status).toBe('open');
     expect(person.todos?.[0]?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 2026 });
-    expect(person.todos?.[0]?.notes?.[0]?.payload).toBe('Start in the county archive');
+    const note = person.todos?.[0]?.notes?.[0];
+    expect(note !== undefined && 'payload' in note ? note.payload : undefined).toBe('Start in the county archive');
     expect(fam(dataset).todos?.[0]?.payload).toBeUndefined();
     expect(fam(dataset).todos?.[0]?.description).toBe('Order the marriage record');
 
@@ -344,10 +360,19 @@ describe('the additionally typed vendor tags', () => {
   test('_PREF under FAM.HUSB and FAM.WIFE', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
-        '0 @I1@ INDI', '1 NAME John /Doe/',
-        '0 @I2@ INDI', '1 NAME Jane /Roe/',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '0 @I2@ INDI',
+        '1 NAME Jane /Roe/',
         '0 @F1@ FAM',
         '1 HUSB @I1@',
         '2 _PREF Y',
@@ -366,8 +391,15 @@ describe('the additionally typed vendor tags', () => {
   test('_FREL/_MREL under INDI.FAMC round-trip in 5.5.1 and project onto PEDI in 7.0', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @I1@ INDI',
         '1 NAME Kid /Doe/',
         '1 FAMC @F1@',
@@ -398,8 +430,15 @@ describe('the additionally typed vendor tags', () => {
   test('_APID under events, attributes and names', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @I1@ INDI',
         '1 NAME John /Doe/',
         '2 _APID 1,7602::2771226',
@@ -429,14 +468,21 @@ describe('_DATE2 and the FTM201x facts', () => {
     if (record === undefined) {
       throw new Error('expected INDI');
     }
-    return record as IndividualRecord;
+    return record;
   };
 
   test('_DATE2 parses as the end date and round-trips in both versions', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @I1@ INDI',
         '1 NAME John /Doe/',
         '1 RESI',
@@ -446,24 +492,38 @@ describe('_DATE2 and the FTM201x facts', () => {
       ].join('\n'),
     );
     const person = indi(dataset);
-    expect(person.attributes?.[0]?.detail?.date?.value).toEqual({ kind: 'period', from: { calendar: 'GREGORIAN', year: 1950 } });
-    expect(person.attributes?.[0]?.detail?.endDate?.value).toEqual({ kind: 'period', to: { calendar: 'GREGORIAN', year: 1960 } });
+    expect(person.attributes?.[0]?.detail?.date?.value).toEqual({
+      kind: 'period',
+      from: { calendar: 'GREGORIAN', year: 1950 },
+    });
+    expect(person.attributes?.[0]?.detail?.endDate?.value).toEqual({
+      kind: 'period',
+      to: { calendar: 'GREGORIAN', year: 1960 },
+    });
 
     const text551 = ser551(dataset);
     expect(text551).toContain('2 _DATE2 TO 1960');
     expect(parseOk551(text551)).toEqual(dataset);
     expect(ser70(dataset)).toContain('2 _DATE2 TO 1960');
     const via70 = parseOk70(ser70(dataset));
-    expect(indi(via70).attributes?.[0]?.detail?.endDate?.value).toEqual(
-      { kind: 'period', to: { calendar: 'GREGORIAN', year: 1960 } },
-    );
+    expect(indi(via70).attributes?.[0]?.detail?.endDate?.value).toEqual({
+      kind: 'period',
+      to: { calendar: 'GREGORIAN', year: 1960 },
+    });
   });
 
   test('the FTM201x facts normalize like the older FTM set', () => {
     const dataset = parseOk551(
       [
-        '0 HEAD', '1 SOUR PAF', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8',
-        '0 @S1@ SUBM', '1 NAME T',
+        '0 HEAD',
+        '1 SOUR PAF',
+        '1 SUBM @S1@',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '2 FORM LINEAGE-LINKED',
+        '1 CHAR UTF-8',
+        '0 @S1@ SUBM',
+        '1 NAME T',
         '0 @I1@ INDI',
         '1 NAME John /Doe/',
         '1 _CIRC',
@@ -478,7 +538,11 @@ describe('_DATE2 and the FTM201x facts', () => {
       ].join('\n'),
     );
     const person = indi(dataset);
-    expect(person.events?.find((e) => e.tag === 'EVEN' && e.type === 'Circumcision')?.detail?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', year: 1910 });
+    expect(person.events?.find((e) => e.tag === 'EVEN' && e.type === 'Circumcision')?.detail?.date?.value).toEqual({
+      kind: 'date',
+      calendar: 'GREGORIAN',
+      year: 1910,
+    });
     expect(person.events?.some((e) => e.tag === 'EVEN' && e.type === 'Funeral')).toBe(true);
     expect(person.attributes?.find((a) => a.tag === 'EDUC')?.payload).toBe('B.A.');
     expect(person.attributes?.find((a) => a.tag === 'EDUC')?.type).toBe('Degree');

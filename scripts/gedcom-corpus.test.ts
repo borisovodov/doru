@@ -28,7 +28,13 @@
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { expect, test } from 'vitest';
-import { LEGACY_GENERIC_TAGS, parseTolerant, serializeGedcom551, serializeGedcom70, serializeGedzip } from '@doru/gedcom';
+import {
+  LEGACY_GENERIC_TAGS,
+  parseTolerant,
+  serializeGedcom551,
+  serializeGedcom70,
+  serializeGedzip,
+} from '@doru/gedcom';
 import type { GedcomDataset, GedcomError } from '@doru/gedcom';
 
 const CORPUS_DIR =
@@ -45,10 +51,34 @@ const SKIP_FILES = new Set(['manifest.jsonl', 'MANUAL-SOURCES.md', 'MANUAL-GEDBA
  * vendor tags, see vendor-tags.ts).
  */
 const TYPED_RECORD_TAGS = new Set([
-  'FAM', 'INDI', 'OBJE', 'REPO', 'SNOTE', 'NOTE', 'SOUR', 'SUBM', 'SUBN',
-  '_CENR', '_PLAC', '_TODO', '_EVENT_DEFN', '_ALIA', '_PUBLISH', '_GRP', '_OCUR',
-  '_MTTAG', '_MTCAT', '_EVID', '_RDOC', '_RACT', '_TAG',
-  'Occupation', 'Education', 'Contact', 'Marriage', 'Twin',
+  'FAM',
+  'INDI',
+  'OBJE',
+  'REPO',
+  'SNOTE',
+  'NOTE',
+  'SOUR',
+  'SUBM',
+  'SUBN',
+  '_CENR',
+  '_PLAC',
+  '_TODO',
+  '_EVENT_DEFN',
+  '_ALIA',
+  '_PUBLISH',
+  '_GRP',
+  '_OCUR',
+  '_MTTAG',
+  '_MTCAT',
+  '_EVID',
+  '_RDOC',
+  '_RACT',
+  '_TAG',
+  'Occupation',
+  'Education',
+  'Contact',
+  'Marriage',
+  'Twin',
   'TITL',
 ]);
 
@@ -70,9 +100,10 @@ interface TagStat {
 }
 
 function bump(stats: Map<string, TagStat>, tag: string, ctx: string): void {
-  const stat = stats.get(tag) ?? { occurrences: 0, contexts: new Map() };
+  const stat: TagStat = stats.get(tag) ?? { occurrences: 0, contexts: new Map<string, number>() };
   stat.occurrences += 1;
-  stat.contexts.set(ctx, (stat.contexts.get(ctx) ?? 0) + 1);
+  const contextCount = stat.contexts.get(ctx) ?? 0;
+  stat.contexts.set(ctx, contextCount + 1);
   stats.set(tag, stat);
 }
 
@@ -81,11 +112,16 @@ function bump(stats: Map<string, TagStat>, tag: string, ctx: string): void {
  * into its children. `chain` is the path of enclosing typed tags; a
  * top-level record gets the `(record)` context.
  */
-function recordExtension(node: Record<string, unknown>, chain: string[], stats: Map<string, TagStat>, depth: number): void {
+function recordExtension(
+  node: Record<string, unknown>,
+  chain: string[],
+  stats: Map<string, TagStat>,
+  depth: number,
+): void {
   if (depth > 64) {
     return;
   }
-  const tag = typeof node['tag'] === 'string' ? (node['tag'] as string) : '?';
+  const tag = typeof node['tag'] === 'string' ? node['tag'] : '?';
   bump(stats, tag, chain.length > 0 ? chain.join('.') : '(record)');
   const children = node['children'];
   if (Array.isArray(children)) {
@@ -116,7 +152,7 @@ function walk(value: unknown, chain: string[], stats: Map<string, TagStat>, dept
     return;
   }
   const node = value as Record<string, unknown>;
-  const tag = typeof node['tag'] === 'string' ? (node['tag'] as string) : undefined;
+  const tag = typeof node['tag'] === 'string' ? node['tag'] : undefined;
   // The enclosing structure's own tag is part of the context of its
   // extension substructures (BIRT._DATI lives under INDI.BIRT).
   const next = tag === undefined ? chain : [...chain, tag];
@@ -147,7 +183,7 @@ function collectGenericTags(dataset: GedcomDataset): Map<string, TagStat> {
     if (tag !== '' && !TYPED_RECORD_TAGS.has(tag)) {
       recordExtension(record as unknown as Record<string, unknown>, [], stats, 0);
     } else {
-      walk(record as unknown as Record<string, unknown>, [], stats, 0);
+      walk(record, [], stats, 0);
     }
   }
   return stats;
@@ -182,7 +218,7 @@ interface CorpusRow {
 function formatErrors(errors: GedcomError[]): string {
   const MAX = 40;
   const parts = errors.slice(0, MAX).map((error) => {
-    const code = String(error.code ?? 'untyped');
+    const code = error.code;
     const line = error.position === undefined ? '' : `@${error.position.line}`;
     return `${code}${line}`;
   });
@@ -194,11 +230,11 @@ function formatErrors(errors: GedcomError[]): string {
 
 function describeError(error: GedcomError): { code: string; message: string; pos: string } {
   const pos = error.position === undefined ? '' : `line ${error.position.line}, col ${error.position.column}`;
-  const message = typeof error.message === 'string' && error.message !== '' ? error.message : String(error);
+  const message = error.message;
   // The package's run() wrapper returns every thrown value as a
   // GedcomError, so a genuine RangeError (e.g. a stack overflow on a
   // deeply nested input) can arrive without the typed `code` field.
-  let code = String(error.code ?? '');
+  let code: string = error.code;
   if (code === '') {
     code = message.includes('call stack') ? 'parse.stack-overflow' : 'runner.thrown';
   }
@@ -258,7 +294,8 @@ function runFile(relpath: string): { row: CorpusRow; stats: Map<string, TagStat>
   if (value === undefined) {
     // Even the tolerant parse could not produce a dataset.
     const first = parsed.errors[0];
-    const described = first === undefined ? { code: 'runner.thrown', message: 'no dataset', pos: '' } : describeError(first);
+    const described =
+      first === undefined ? { code: 'runner.thrown', message: 'no dataset', pos: '' } : describeError(first);
     row.importCode = described.code;
     row.importError = described.message;
     row.importPos = described.pos;
@@ -423,7 +460,7 @@ function writeReports(
   // Export failures, by code.
   md = `# Export failures\n\n${exportFailures.length} of ${rows.length} corpus files failed the same-version export.\n\n`;
   const byExportCode = [...groupBy(exportFailures, (r) => r.exportCode).entries()].sort((a, b) =>
-    (a[0] ?? '').localeCompare(b[0] ?? ''),
+    a[0].localeCompare(b[0]),
   );
   md += '| code | file | message |\n|---|---|---|\n';
   for (const [code, items] of byExportCode) {
@@ -450,12 +487,13 @@ function writeReports(
   let totalOccurrences = 0;
   for (const { stats } of fileStats) {
     for (const [tag, stat] of stats) {
-      const g = global.get(tag) ?? { files: 0, occurrences: 0, contexts: new Map() };
+      const g = global.get(tag) ?? { files: 0, occurrences: 0, contexts: new Map<string, number>() };
       g.files += 1;
       g.occurrences += stat.occurrences;
       totalOccurrences += stat.occurrences;
       for (const [ctx, n] of stat.contexts) {
-        g.contexts.set(ctx, (g.contexts.get(ctx) ?? 0) + n);
+        const contextCount = g.contexts.get(ctx) ?? 0;
+        g.contexts.set(ctx, contextCount + n);
       }
       global.set(tag, g);
     }
@@ -479,7 +517,10 @@ function writeReports(
   summary += `- skipped (import failed): ${rows.length - importOk - partial}\n\n`;
   summary += `| code | files | examples |\n|---|---|---|\n`;
   for (const [code, items] of byExportCode) {
-    const examples = items.slice(0, MAX_EXAMPLES_PER_CODE).map((r) => `\`${r.relpath}\``).join(', ');
+    const examples = items
+      .slice(0, MAX_EXAMPLES_PER_CODE)
+      .map((r) => `\`${r.relpath}\``)
+      .join(', ');
     summary += `| ${mdCell(code)} | ${items.length} | ${mdCell(examples)} |\n`;
   }
   summary += `\n## Generic tags (the ExtensionStructure / ExtensionRecord pile)\n\n`;
@@ -556,8 +597,12 @@ test('the GEDCOM corpus run', () => {
   const exportFailures = rows.filter((r) => r.export === 'fail');
   const withTags = rows.filter((r) => r.tagOccurrences > 0);
   console.log(`\n[corpus] done: ${rows.length} files (${skipped} skipped)`);
-  console.log(`[corpus] import: ${rows.length - importFailures.length - partial.length} clean, ${partial.length} partial, ${importFailures.length} failed`);
-  console.log(`[corpus] export: ${rows.length - importFailures.length - exportFailures.length} ok, ${exportFailures.length} failed`);
+  console.log(
+    `[corpus] import: ${rows.length - importFailures.length - partial.length} clean, ${partial.length} partial, ${importFailures.length} failed`,
+  );
+  console.log(
+    `[corpus] export: ${rows.length - importFailures.length - exportFailures.length} ok, ${exportFailures.length} failed`,
+  );
   console.log(`[corpus] generic tags: ${withTags.length} files carry them`);
   console.log(`[corpus] reports written to ${OUT_DIR}`);
   expect(rows.length).toBeGreaterThan(0);

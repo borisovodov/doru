@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
-import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
+import { serializeGedcom551 } from '../src/serialize/serialize';
 import type { GedcomDataset } from '../src/structures';
+import { isDuplicateCandidateRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -29,15 +30,15 @@ function ser551(dataset: GedcomDataset): string {
   return result.value;
 }
 
-function ser70(dataset: GedcomDataset): string {
-  const result = serializeGedcom70(dataset);
-  if (!result.ok) {
-    throw new Error(JSON.stringify(result.error));
-  }
-  return result.value;
-}
-
-const H551 = ['0 HEAD', '1 SOUR DORU', '1 SUBM @S1@', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8'];
+const H551 = [
+  '0 HEAD',
+  '1 SOUR DORU',
+  '1 SUBM @S1@',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '2 FORM LINEAGE-LINKED',
+  '1 CHAR UTF-8',
+];
 const SUBM551 = ['0 @S1@ SUBM', '1 NAME T'];
 const H70 = ['0 HEAD', '1 GEDC', '2 VERS 7.0'];
 
@@ -48,10 +49,26 @@ function indi551(body: string[]): string {
 describe('the GES2000 family and individual tags', () => {
   test('the FAM.HUSB/WIFE _NAM/_ZVST/_NR details and the _GODT witnesses', () => {
     const dataset = parseOk551(
-      [...H551, '0 @I1@ INDI', '1 NAME John /Doe/', '0 @I2@ INDI', '1 NAME Jane /Doe/', '0 @F1@ FAM', '1 HUSB @I1@', '2 _NAM Hans /Muster/', '2 _ZVST ledig', '2 _NR 2', '1 WIFE @I2@', '1 _MARRNAME Jane /Doe/', '1 _GODT Pate X', ...SUBM551, '0 TRLR'].join('\n'),
+      [
+        ...H551,
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '0 @I2@ INDI',
+        '1 NAME Jane /Doe/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '2 _NAM Hans /Muster/',
+        '2 _ZVST ledig',
+        '2 _NR 2',
+        '1 WIFE @I2@',
+        '1 _MARRNAME Jane /Doe/',
+        '1 _GODT Pate X',
+        ...SUBM551,
+        '0 TRLR',
+      ].join('\n'),
     );
     const fam = dataset.records.find((r) => r.tag === 'FAM');
-    if (fam === undefined || fam.tag !== 'FAM') {
+    if (fam === undefined) {
       throw new Error('expected FAM');
     }
     expect(fam.husband?.name?.payload).toEqual({ given: 'Hans', surname: 'Muster' });
@@ -77,7 +94,10 @@ describe('the GES2000 family and individual tags', () => {
       throw new Error('expected INDI');
     }
     expect(indi.attributes?.map((a) => [a.tag, a.type])).toEqual([
-      ['FACT', 'Child status'], ['FACT', 'Birth order'], ['FACT', 'Heimatort'], ['FACT', 'Lebensort'],
+      ['FACT', 'Child status'],
+      ['FACT', 'Birth order'],
+      ['FACT', 'Heimatort'],
+      ['FACT', 'Lebensort'],
     ]);
     expect(indi.names?.some((n) => n.type?.payload === 'OTHER' && n.type.phrase === 'Clan name')).toBe(true);
     const text = ser551(dataset);
@@ -91,7 +111,9 @@ describe('the GES2000 family and individual tags', () => {
 
 describe('the Ahnenblatt/GEDitCOM header start person and search block', () => {
   test('_HOME/_HME/_NAVI/_NAVM parse and write back', () => {
-    const dataset = parseOk551([...H551, '1 _HOME @I1@', '1 _NAVM 2', '0 @I1@ INDI', '1 NAME John /Doe/', ...SUBM551, '0 TRLR'].join('\n'));
+    const dataset = parseOk551(
+      [...H551, '1 _HOME @I1@', '1 _NAVM 2', '0 @I1@ INDI', '1 NAME John /Doe/', ...SUBM551, '0 TRLR'].join('\n'),
+    );
     expect(dataset.header.startPerson).toBe('@I1@');
     expect(dataset.header.startPersonMode).toBe('2');
     const text = ser551(dataset);
@@ -104,14 +126,25 @@ describe('the Ahnenblatt/GEDitCOM header start person and search block', () => {
     const dataset = parseOk551(
       [
         ...H551,
-        '0 @M1@ OBJE', '1 FILE a.jpg', '2 FORM jpg', '2 _ALTPATH C:/pics',
-        '0 @I1@ INDI', '1 NAME John /Doe/',
-        '1 _INET', '2 _MHRM 1', '2 _SDATE 2020',
-        ...SUBM551, '0 TRLR',
+        '0 @M1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM jpg',
+        '2 _ALTPATH C:/pics',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _INET',
+        '2 _MHRM 1',
+        '2 _SDATE 2020',
+        ...SUBM551,
+        '0 TRLR',
       ].join('\n'),
     );
     const indi = dataset.records.find((r) => r.tag === 'INDI');
-    expect(indi?.tag === 'INDI' ? indi.internetSearch : undefined).toEqual({ tag: '_INET', mhrm: '1', searchDate: '2020' });
+    expect(indi?.tag === 'INDI' ? indi.internetSearch : undefined).toEqual({
+      tag: '_INET',
+      mhrm: '1',
+      searchDate: '2020',
+    });
     const obje = dataset.records.find((r) => r.tag === 'OBJE');
     expect(obje?.tag === 'OBJE' ? obje.files[0]?.alternatePath : undefined).toBe('C:/pics');
     const text = ser551(dataset);
@@ -134,14 +167,21 @@ describe('the GDO duplicate record, import references and submitter pointers', (
         '1 _STAT open',
         '1 NOTE n',
         '1 SOUR @S2@',
-        '0 @S2@ SOUR', '1 TITL S', '1 _SUBM @S1@', '1 _IMPF @S2@', '2 PAGE file-7',
-        '0 @I1@ INDI', '1 NAME John /Doe/', '1 _IMPF @I1@', '2 PAGE file-3',
+        '0 @S2@ SOUR',
+        '1 TITL S',
+        '1 _SUBM @S1@',
+        '1 _IMPF @S2@',
+        '2 PAGE file-7',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 _IMPF @I1@',
+        '2 PAGE file-3',
         ...SUBM551,
         '0 TRLR',
       ].join('\n'),
     );
     const alias = dataset.records.find((r) => r.tag === '_ALIA');
-    if (alias === undefined || alias.tag !== '_ALIA') {
+    if (alias === undefined || !isDuplicateCandidateRecord(alias)) {
       throw new Error('expected _ALIA record');
     }
     expect(alias.caption).toBe('possible duplicate');
@@ -150,7 +190,11 @@ describe('the GDO duplicate record, import references and submitter pointers', (
     expect(alias.status).toBe('open');
     const sour = dataset.records.find((r) => r.tag === 'SOUR');
     expect(sour?.tag === 'SOUR' ? sour.submitters : undefined).toEqual(['@S1@']);
-    expect(sour?.tag === 'SOUR' ? sour.importReference : undefined).toEqual({ tag: '_IMPF', record: '@S2@', page: 'file-7' });
+    expect(sour?.tag === 'SOUR' ? sour.importReference : undefined).toEqual({
+      tag: '_IMPF',
+      record: '@S2@',
+      page: 'file-7',
+    });
     const text = ser551(dataset);
     expect(text).toContain('0 @A1@ _ALIA');
     expect(text).toContain('1 _CPT possible duplicate');
@@ -166,10 +210,12 @@ describe('the GDO duplicate record, import references and submitter pointers', (
 describe('the PC-AHNEN, GenPlus, MFT7, FTB and TMG tags', () => {
   test('_URKU, _JAG and _KTIT under SOUR', () => {
     const dataset = parseOk551(
-      [...H551, '0 @S2@ SOUR', '1 TITL Book', '1 _URKU', '1 _JAG 1920', '1 _KTIT The Book', ...SUBM551, '0 TRLR'].join('\n'),
+      [...H551, '0 @S2@ SOUR', '1 TITL Book', '1 _URKU', '1 _JAG 1920', '1 _KTIT The Book', ...SUBM551, '0 TRLR'].join(
+        '\n',
+      ),
     );
     const sour = dataset.records.find((r) => r.tag === 'SOUR');
-    if (sour === undefined || sour.tag !== 'SOUR') {
+    if (sour === undefined) {
       throw new Error('expected SOUR');
     }
     expect(sour.evidenceAvailable).toBe(true);
@@ -186,7 +232,8 @@ describe('the PC-AHNEN, GenPlus, MFT7, FTB and TMG tags', () => {
     const dataset = parseOk551(
       [
         ...H551,
-        '0 @I1@ INDI', '1 NAME John /Doe/',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
         '1 BIRT',
         '2 PLAC Aix',
         '3 _COR',
@@ -221,9 +268,14 @@ describe('the PC-AHNEN, GenPlus, MFT7, FTB and TMG tags', () => {
     const dataset = parseOk551(
       [
         ...H551,
-        '0 @M1@ OBJE', '1 FILE a.jpg', '2 FORM jpg',
-        '0 @I2@ INDI', '1 NAME X /Y/',
-        '0 @F1@ FAM', '1 HUSB @I1@', '1 WIFE @I2@',
+        '0 @M1@ OBJE',
+        '1 FILE a.jpg',
+        '2 FORM jpg',
+        '0 @I2@ INDI',
+        '1 NAME X /Y/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 WIFE @I2@',
         '1 MARR',
         '2 _SHAR @I2@',
         '3 _ROLE witness',
@@ -261,7 +313,9 @@ describe('the PC-AHNEN, GenPlus, MFT7, FTB and TMG tags', () => {
 describe('the 5.5.1 export validity fixes', () => {
   test('the DATE phrase uses the INT parenthesized form', () => {
     const dataset = parseOk70(
-      [...H70, '0 @I1@ INDI', '1 NAME John /Doe/', '1 BIRT', '2 DATE 1 JAN 1900', '3 PHRASE calculated', '0 TRLR'].join('\n'),
+      [...H70, '0 @I1@ INDI', '1 NAME John /Doe/', '1 BIRT', '2 DATE 1 JAN 1900', '3 PHRASE calculated', '0 TRLR'].join(
+        '\n',
+      ),
     );
     dataset.header.source = { payload: 'MyApp' };
     dataset.header.submitter = '@S1@';
@@ -281,12 +335,29 @@ describe('the 5.5.1 export validity fixes', () => {
   });
 
   test('7.0 input keeps a PHRASE directly under FAMC as an extension', () => {
-    const result = parseGedcom70(enc([...H70, '0 @F1@ FAM', '1 HUSB @I1@', '0 @I1@ INDI', '1 NAME John /Doe/', '1 FAMC @F1@', '2 PHRASE x', '0 TRLR'].join('\n')));
+    const result = parseGedcom70(
+      enc(
+        [
+          ...H70,
+          '0 @F1@ FAM',
+          '1 HUSB @I1@',
+          '0 @I1@ INDI',
+          '1 NAME John /Doe/',
+          '1 FAMC @F1@',
+          '2 PHRASE x',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
     expect(result.ok).toBe(true);
     if (result.ok) {
       const indi = result.value.records.find((record) => record.tag === 'INDI' && record.xref === '@I1@');
       expect(indi?.tag === 'INDI' ? indi.childFamilies?.[0]?.family : undefined).toBe('@F1@');
-      expect(indi?.tag === 'INDI' ? indi.childFamilies?.[0]?.extensions?.some((extension) => extension.tag === 'PHRASE') : undefined).toBe(true);
+      expect(
+        indi?.tag === 'INDI'
+          ? indi.childFamilies?.[0]?.extensions?.some((extension) => extension.tag === 'PHRASE')
+          : undefined,
+      ).toBe(true);
     }
   });
 
@@ -294,18 +365,40 @@ describe('the 5.5.1 export validity fixes', () => {
     const dataset = parseOk70(
       [
         ...H70,
-        '0 @I2@ INDI', '1 NAME Jane /Doe/',
-        '0 @F1@ FAM', '1 HUSB @I1@', '2 PHRASE husband phrase', '1 CHIL @I2@', '2 PHRASE child phrase',
-        '0 @I1@ INDI', '1 NAME John /Doe/', '1 FAMS @F1@', '2 NOTE n',
-        '1 BIRT', '2 DATE 1 JAN 1900', '3 PHRASE birth phrase',
-        '1 ASSO @I2@', '2 PHRASE at the baptism', '2 ROLE GODP',
+        '0 @I2@ INDI',
+        '1 NAME Jane /Doe/',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '2 PHRASE husband phrase',
+        '1 CHIL @I2@',
+        '2 PHRASE child phrase',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 FAMS @F1@',
+        '2 NOTE n',
+        '1 BIRT',
+        '2 DATE 1 JAN 1900',
+        '3 PHRASE birth phrase',
+        '1 ASSO @I2@',
+        '2 PHRASE at the baptism',
+        '2 ROLE GODP',
         '0 TRLR',
       ].join('\n'),
     );
     const text = ser551(dataset);
     expect(text).not.toContain('PHRASE');
     const dataset2 = parseOk70(
-      [...H70, '0 @F1@ FAM', '1 HUSB @I1@', '0 @I1@ INDI', '1 NAME John /Doe/', '1 FAMC @F1@', '2 PEDI BIRTH', '3 PHRASE pedi phrase', '0 TRLR'].join('\n'),
+      [
+        ...H70,
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '0 @I1@ INDI',
+        '1 NAME John /Doe/',
+        '1 FAMC @F1@',
+        '2 PEDI BIRTH',
+        '3 PHRASE pedi phrase',
+        '0 TRLR',
+      ].join('\n'),
     );
     expect(ser551(dataset2)).not.toContain('PHRASE');
   });
@@ -313,7 +406,19 @@ describe('the 5.5.1 export validity fixes', () => {
   test('the 5.5.1 version gate accepts any 5.x version', () => {
     for (const bad of ['5.5.2', '5.5.9', '5.5.0', '5.3', '5.4', '5.50', '5.01']) {
       const result = parseGedcom551(
-        enc(['0 HEAD', '1 SOUR DORU', '1 SUBM @S1@', '1 GEDC', `2 VERS ${bad}`, '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', ...SUBM551, '0 TRLR'].join('\n')),
+        enc(
+          [
+            '0 HEAD',
+            '1 SOUR DORU',
+            '1 SUBM @S1@',
+            '1 GEDC',
+            `2 VERS ${bad}`,
+            '2 FORM LINEAGE-LINKED',
+            '1 CHAR UTF-8',
+            ...SUBM551,
+            '0 TRLR',
+          ].join('\n'),
+        ),
       );
       expect(result.ok).toBe(true);
     }

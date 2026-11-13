@@ -127,12 +127,18 @@ export function IdentifiersSection({
               <>
                 <span className="attachment-kind">{identifier.namespace}</span>
                 <span className="attachment-value">{identifier.value}</span>
-                <IconButton size="sm" label={nls.t('features.tree.identifiers.edit')} icon={<>
-                  <Pencil size={13} aria-hidden="true" />
-                </>} onClick={() => startEdit(identifier)} />
-                <IconButton size="sm" label={nls.t('features.tree.identifiers.remove')} icon={<>
-                  <X size={13} aria-hidden="true" />
-                </>} onClick={() => void onDelete(identifier)} />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.identifiers.edit')}
+                  icon={<Pencil size={13} aria-hidden="true" />}
+                  onClick={() => startEdit(identifier)}
+                />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.identifiers.remove')}
+                  icon={<X size={13} aria-hidden="true" />}
+                  onClick={() => void onDelete(identifier)}
+                />
               </>
             )}
           </li>
@@ -240,12 +246,18 @@ export function ContactsSection({
               <>
                 <span className="attachment-kind">{contactKindLabel(contact.kind)}</span>
                 <span className="attachment-value">{contact.value}</span>
-                <IconButton size="sm" label={nls.t('features.tree.contacts.edit')} icon={<>
-                  <Pencil size={13} aria-hidden="true" />
-                </>} onClick={() => startEdit(contact)} />
-                <IconButton size="sm" label={nls.t('features.tree.contacts.remove')} icon={<>
-                  <X size={13} aria-hidden="true" />
-                </>} onClick={() => void onDelete(contact)} />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.contacts.edit')}
+                  icon={<Pencil size={13} aria-hidden="true" />}
+                  onClick={() => startEdit(contact)}
+                />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.contacts.remove')}
+                  icon={<X size={13} aria-hidden="true" />}
+                  onClick={() => void onDelete(contact)}
+                />
               </>
             )}
           </li>
@@ -333,12 +345,18 @@ export function RestrictionsSection({
             ) : (
               <>
                 <span className="attachment-value">{restrictionLevelLabel(restriction.level)}</span>
-                <IconButton size="sm" label={nls.t('features.tree.restrictions.edit')} icon={<>
-                  <Pencil size={13} aria-hidden="true" />
-                </>} onClick={() => startEdit(restriction)} />
-                <IconButton size="sm" label={nls.t('features.tree.restrictions.remove')} icon={<>
-                  <X size={13} aria-hidden="true" />
-                </>} onClick={() => void onDelete(restriction)} />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.restrictions.edit')}
+                  icon={<Pencil size={13} aria-hidden="true" />}
+                  onClick={() => startEdit(restriction)}
+                />
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.restrictions.remove')}
+                  icon={<X size={13} aria-hidden="true" />}
+                  onClick={() => void onDelete(restriction)}
+                />
               </>
             )}
           </li>

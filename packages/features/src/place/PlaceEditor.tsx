@@ -12,6 +12,7 @@ import { DateEditor, emptyDate } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
+  /* eslint-disable @eslint-react/no-array-index-key -- lists without stable ids use their position as identity */
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,
   emptyPlaceNameDraft,
@@ -131,9 +132,12 @@ export function PlaceEditor({
               value={name.value}
               onChange={(event) => patchName(index, { value: event.target.value })}
             />
-            <IconButton size="sm" label={nls.t('features.tree.place.names.remove')} icon={<>
-              <X size={13} aria-hidden="true" />
-            </>} onClick={() => removeName(index)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.place.names.remove')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => removeName(index)}
+            />
           </div>
         ))}
         <Button variant="primary" onClick={addName}>
@@ -167,9 +171,12 @@ export function PlaceEditor({
                 value={postal.code}
                 onChange={(event) => patchPostal(index, { code: event.target.value })}
               />
-              <IconButton size="sm" label={nls.t('features.tree.place.postalCodes.remove')} icon={<>
-                <X size={13} aria-hidden="true" />
-              </>} onClick={() => removePostal(index)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.place.postalCodes.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removePostal(index)}
+              />
             </div>
             <DateEditor
               label={nls.t('features.tree.events.dateField')}
@@ -188,10 +195,7 @@ export function PlaceEditor({
       <SectionCard title={nls.t('features.tree.place.hierarchy')}>
         {draft.hierarchy.map((link, index) => (
           <div className="place-sub-row" key={index}>
-            <Select
-              value={link.parentId}
-              onChange={(event) => patchHierarchy(index, { parentId: event.target.value })}
-            >
+            <Select value={link.parentId} onChange={(event) => patchHierarchy(index, { parentId: event.target.value })}>
               <option value="">{nls.t('features.tree.place.hierarchy.parent.none')}</option>
               {parentOptions.map((place) => (
                 <option key={place.id} value={place.id}>
@@ -211,9 +215,12 @@ export function PlaceEditor({
                 </option>
               ))}
             </Select>
-            <IconButton size="sm" label={nls.t('features.tree.place.hierarchy.remove')} icon={<>
-              <X size={13} aria-hidden="true" />
-            </>} onClick={() => removeHierarchy(index)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.place.hierarchy.remove')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => removeHierarchy(index)}
+            />
           </div>
         ))}
         <Button variant="primary" onClick={addHierarchy}>

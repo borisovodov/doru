@@ -21,14 +21,7 @@ export function layoutDirectional(
   direction: 'ancestors' | 'descendants',
   merged: Required<PedigreeLayoutOptions>,
 ): DirectionalLayout | null {
-  const built = buildDirectionalGraph(
-    focusId,
-    persons,
-    families,
-    direction,
-    merged.maxGenerations,
-    merged.collapsed,
-  );
+  const built = buildDirectionalGraph(focusId, persons, families, direction, merged.maxGenerations, merged.collapsed);
   if (!built) {
     return null;
   }
@@ -41,9 +34,7 @@ export function layoutDirectional(
   const halfPair = (merged.nodeWidth + merged.coupleGap) / 2;
   const sign = direction === 'ancestors' ? -1 : 1;
 
-  const personByCardKey = new Map(
-    built.cards.map((card) => [card.key, personById.get(card.personId)]),
-  );
+  const personByCardKey = new Map(built.cards.map((card) => [card.key, personById.get(card.personId)]));
   const rowY = (row: number): number => (row === 0 ? 0 : sign * row * rowHeight);
 
   const root = hierarchy<TreeItem>(built.root, (node) => node.children);
@@ -78,9 +69,7 @@ export function layoutDirectional(
     if (laid.data.kind !== 'couple') {
       continue;
     }
-    const memberKeys = laid.data.memberIds.map(
-      (memberId) => `person:${memberId}@spouse:${laid.data.familyId ?? ''}`,
-    );
+    const memberKeys = laid.data.memberIds.map((memberId) => `person:${memberId}@spouse:${laid.data.familyId ?? ''}`);
     const memberRow = direction === 'ancestors' ? laid.data.row + 0.5 : laid.data.row - 0.5;
     if (memberKeys.length === 0) {
       continue;
@@ -93,7 +82,7 @@ export function layoutDirectional(
       if (memberKeys[1]) {
         cardX.set(memberKeys[1], laid.x + offset);
       }
-    } else if (direction === 'descendants') {
+    } else {
       const ownerKey = laid.data.ownerKey ?? '';
       const ownerList = couplesByOwner.get(ownerKey) ?? [];
       const owner = ownerKey ? personByCardKey.get(ownerKey) : undefined;
@@ -142,12 +131,7 @@ export function layoutDirectional(
     from: { x: parent.x, y: parent.y + merged.nodeHeight / 2 },
     to: { x: child.x, y: child.y - merged.nodeHeight / 2 },
   });
-  const addEdge = (
-    source: LaidOutCard,
-    target: LaidOutCard,
-    kind: PedigreeEdgeKind,
-    familyId: string | null,
-  ) => {
+  const addEdge = (source: LaidOutCard, target: LaidOutCard, kind: PedigreeEdgeKind, familyId: string | null) => {
     const geometry = kind === 'marriage' ? horizontal(source, target) : vertical(source, target);
     edges.push({
       id: `${kind}:${direction}:${familyId ?? ''}:${source.key}:${target.key}`,
@@ -163,9 +147,7 @@ export function layoutDirectional(
     if (laid.data.kind !== 'couple') {
       continue;
     }
-    const memberKeys = laid.data.memberIds.map(
-      (memberId) => `person:${memberId}@spouse:${laid.data.familyId ?? ''}`,
-    );
+    const memberKeys = laid.data.memberIds.map((memberId) => `person:${memberId}@spouse:${laid.data.familyId ?? ''}`);
     const memberCards = memberKeys
       .map((key) => cardByKey.get(key))
       .filter((card): card is LaidOutCard => card !== undefined);
@@ -173,8 +155,9 @@ export function layoutDirectional(
     const familyId = laid.data.familyId;
 
     if (direction === 'ancestors') {
-      if (memberCards.length === 2) {
-        addEdge(memberCards[0]!, memberCards[1]!, 'marriage', familyId);
+      const [firstMember, secondMember] = memberCards;
+      if (firstMember !== undefined && secondMember !== undefined) {
+        addEdge(firstMember, secondMember, 'marriage', familyId);
       }
       for (const memberCard of memberCards) {
         if (ownerCard) {
@@ -191,9 +174,7 @@ export function layoutDirectional(
     const childCards = laid.data.children
       .map((child) => (child.kind === 'person' ? cardByKey.get(child.key) : undefined))
       .filter((card): card is LaidOutCard => card !== undefined);
-    const parentCards = [ownerCard, ...memberCards].filter(
-      (card): card is LaidOutCard => card !== undefined,
-    );
+    const parentCards = [ownerCard, ...memberCards].filter((card): card is LaidOutCard => card !== undefined);
     for (const parentCard of parentCards) {
       for (const childCard of childCards) {
         addEdge(parentCard, childCard, 'pedigree', familyId);
@@ -203,4 +184,3 @@ export function layoutDirectional(
 
   return { cards, edges, focusKey: built.root.key, seeAlso: built.seeAlso };
 }
-

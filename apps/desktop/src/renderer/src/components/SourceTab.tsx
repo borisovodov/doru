@@ -1,24 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
   CitationRecord,
-  ContactRecord,
   FactRecord,
   FamilyRecord,
-  IdentifierRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
-  RestrictionRecord,
   SourceRecord,
-  SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TitleRecord,
 } from '@doru/core';
 import { EntityTab, SourceCitationsList, SourceEditor, type SourceEditorApi } from '@doru/features';
-import { ContactsSection, ContributorsSection, IdentifiersSection, NotesSection, RestrictionsSection, SourcesSection, TagsSection, emptySourceDraft, sourceDraftMatches, sourceDraftToRecord, sourceToDraft, type SourceDraft } from '@doru/ui/domain';
+import {
+  ContactsSection,
+  ContributorsSection,
+  IdentifiersSection,
+  NotesSection,
+  RestrictionsSection,
+  SourcesSection,
+  TagsSection,
+  emptySourceDraft,
+  sourceDraftMatches,
+  sourceDraftToRecord,
+  sourceToDraft,
+  type SourceDraft,
+} from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
+import { useAttachments } from '../hooks/useAttachments';
 import { SOURCE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function SourceTab({
@@ -116,52 +124,22 @@ function SourceTabBody({
   const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
-  const [sourceNotes, setSourceNotes] = useState<NoteRecord[]>([]);
-  const [sourceCitations, setSourceCitations] = useState<CitationRecord[]>([]);
-  const [tags, setTags] = useState<TagRecord[]>([]);
-  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
-  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
-  const [contacts, setContacts] = useState<ContactRecord[]>([]);
-  const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
-  const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<
-    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
-  >([]);
   const recordRef = useRef(record);
 
-  const targetId = (lastSaved ?? record)?.id;
-
-  const refreshAttachments = async () => {
-    if (targetId === undefined) {
-      return;
-    }
-    const [loadedNotes, loadedCitations, loadedTags, loadedTagLinks, loadedIdentifiers, loadedContacts, loadedRestrictions, loadedSubmitters, loadedContributors] =
-      await Promise.all([
-        api.getNotes('source', targetId),
-        api.getCitations('source', targetId),
-        api.getTags(),
-        api.getTagLinks('source', targetId),
-        api.getIdentifiers('source', targetId),
-        api.getContacts('source', targetId),
-        api.getRestrictions('source', targetId),
-        api.getSubmitters(),
-        api.getRecordSubmitters('source', targetId),
-      ]);
-    setSourceNotes(loadedNotes);
-    setSourceCitations(loadedCitations);
-    setTags(loadedTags);
-    setTagLinks(loadedTagLinks);
-    setIdentifiers(loadedIdentifiers);
-    setContacts(loadedContacts);
-    setRestrictions(loadedRestrictions);
-    setSubmitters(loadedSubmitters);
-    setContributors(loadedContributors);
-  };
-
-  useEffect(() => {
-    void refreshAttachments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetId]);
+  const currentSource = lastSaved ?? record;
+  const targetId = currentSource?.id;
+  const {
+    notes: sourceNotes,
+    citations: sourceCitations,
+    tags,
+    tagLinks,
+    identifiers,
+    contacts,
+    restrictions,
+    submitters,
+    contributors,
+    refresh: refreshAttachments,
+  } = useAttachments('source', targetId, api, true);
 
   // Reset the draft only when it still equals the previous stored source —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
@@ -173,7 +151,7 @@ function SourceTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      current && previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
+      previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
     );
   }, [record, isNew]);
 
@@ -188,7 +166,6 @@ function SourceTabBody({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, record]);
 
   const save = async () => {
@@ -197,7 +174,11 @@ function SourceTabBody({
       await api.addSource(next);
       onCreated(next.id);
     } else {
-      await api.updateSource(lastSaved ?? record!, next);
+      const target = lastSaved ?? record;
+      if (target === undefined) {
+        return;
+      }
+      await api.updateSource(target, next);
     }
     setLastSaved(next);
   };
@@ -225,10 +206,10 @@ function SourceTabBody({
         onSave={() => void save()}
         onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
       />
-      {(lastSaved !== undefined || record !== undefined) && (
+      {currentSource !== undefined && (
         <>
           <SourceCitationsList
-            source={lastSaved ?? record!}
+            source={currentSource}
             persons={persons}
             families={families}
             facts={facts}

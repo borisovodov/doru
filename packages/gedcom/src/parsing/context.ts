@@ -7,27 +7,12 @@
  * error naming the offending line.
  */
 
-import {
-  fail,
-} from '../errors';
-import type {
-  ExtensionStructure,
-  GedcomStructureBase,
-  ImportFileReference,
-  MultimediaRecord,
-} from '../structures';
-import type {
-  GedcomError,
-} from '../errors';
-import type {
-  RawNode,
-} from './lines';
-import {
-  resolveStandardTagByUri,
-} from './schema-tags';
-import {
-  GEDCOM_555_TAG_ALIASES,
-} from './gedcom-555';
+import { fail } from '../errors';
+import type { ExtensionStructure, GedcomStructureBase, ImportFileReference, MultimediaRecord } from '../structures';
+import type { GedcomError } from '../errors';
+import type { RawNode } from './lines';
+import { resolveStandardTagByUri } from './schema-tags';
+import { GEDCOM_555_TAG_ALIASES } from './gedcom-555';
 
 /** The shared state of one parse: the known xrefs, the synthetic
  *  multimedia records synthesized from inline 5.5.1 OBJE links, and
@@ -161,7 +146,11 @@ export function yFlag(node: RawNode): true | string | undefined {
 export function reqDigits(node: RawNode): number {
   const text = reqText(node);
   if (!/^\d+$/.test(text)) {
-    fail('structure.unexpected-payload', `The ${node.tag} payload must be a non-negative integer, got "${text}"`, node.position);
+    fail(
+      'structure.unexpected-payload',
+      `The ${node.tag} payload must be a non-negative integer, got "${text}"`,
+      node.position,
+    );
   }
   const value = Number(text);
   if (!Number.isSafeInteger(value)) {
@@ -180,9 +169,7 @@ export function kids(node: RawNode, tag: string): RawNode[] {
 
 /** At most one occurrence; a second is a cardinality error. */
 export function one(node: RawNode, tag: string): RawNode | undefined {
-  const list = node.children.filter(
-    (child) => child.tag === tag || GEDCOM_555_TAG_ALIASES[child.tag] === tag,
-  );
+  const list = node.children.filter((child) => child.tag === tag || GEDCOM_555_TAG_ALIASES[child.tag] === tag);
   if (list.length > 1) {
     // First occurrence wins (the full-leniency container rule).
     return list[0];
@@ -275,8 +262,8 @@ function extensionOf(node: RawNode): ExtensionStructure {
   return out;
 }
 
-export function parseExtension(node: RawNode, ctx: Ctx): ExtensionStructure {
-  void ctx;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- extension nodes carry no context-dependent values
+export function parseExtension(node: RawNode, _ctx: Ctx): ExtensionStructure {
   // An iterative depth-first build: a hand-made file can nest
   // thousands of levels (the vscode-gedcom "numbered list" fixture
   // nests 9000), and a recursive build would blow the JS stack.
@@ -311,7 +298,9 @@ export function parseImportReference(node: RawNode, ctx: Ctx): ImportFileReferen
     tag: '_IMPF',
     ...(node.value.kind === 'text'
       ? { record: node.value.text }
-      : node.value.kind === 'pointer' ? { record: node.value.pointer } : {}),
+      : node.value.kind === 'pointer'
+        ? { record: node.value.pointer }
+        : {}),
   };
   dispatch(
     node,
@@ -437,7 +426,10 @@ export function dispatch(
         // and the error is recorded.
         const coerced: RawNode = {
           ...resolved,
-          value: resolved.value.kind === 'pointer' ? { kind: 'text', text: resolved.value.pointer } : { kind: 'text', text: '' },
+          value:
+            resolved.value.kind === 'pointer'
+              ? { kind: 'text', text: resolved.value.pointer }
+              : { kind: 'text', text: '' },
           valueColumn: 0,
         };
         try {

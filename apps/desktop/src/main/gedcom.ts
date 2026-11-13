@@ -26,10 +26,7 @@ const fs = new NodeFileSystem();
  * log; the import proceeds with what parsed. Only when the container
  * itself cannot be read does the import fail with a dialog.
  */
-export async function openGedcomAsProject(
-  filePath: string,
-  senderId?: number,
-): Promise<ProjectBinding | null> {
+export async function openGedcomAsProject(filePath: string, senderId?: number): Promise<ProjectBinding | null> {
   const { key, info } = createUntitledProject(basename(filePath));
   let result: GedcomImportResult;
   try {
@@ -75,9 +72,7 @@ export async function exportGedcom(projectPath: string): Promise<{ path: string 
       throw new Error(result.error.message);
     }
     const untitled = untitledProjects.get(projectPath);
-    const stem = untitled
-      ? untitled.name.replace(/\.(ged|gdz)$/i, '')
-      : basename(projectPath, '.doru');
+    const stem = untitled ? untitled.name.replace(/\.(ged|gdz)$/i, '') : basename(projectPath, '.doru');
     const window = projectWindows.get(projectPath);
     const options: Electron.SaveDialogOptions = {
       title: 'Export GEDCOM',

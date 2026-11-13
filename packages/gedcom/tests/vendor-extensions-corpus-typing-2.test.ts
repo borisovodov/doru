@@ -257,14 +257,7 @@ describe('the ELF schema declarations', () => {
 
 describe('the standard DATE under NAME and the FAM events under INDI', () => {
   test('DATE under NAME types into the name date slot', () => {
-    const text = [
-      HEAD551,
-      '0 @I1@ INDI',
-      '1 NAME Jane /Doe/',
-      '2 DATE FROM 1900 TO 1920',
-      '0 TRLR',
-      '',
-    ].join('\n');
+    const text = [HEAD551, '0 @I1@ INDI', '1 NAME Jane /Doe/', '2 DATE FROM 1900 TO 1920', '0 TRLR', ''].join('\n');
     const dataset = parseOk551(text);
     const indi = dataset.records.find((r) => r.tag === 'INDI');
     if (indi?.tag !== 'INDI') {

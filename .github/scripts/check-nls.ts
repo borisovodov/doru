@@ -148,8 +148,7 @@ const files = [
 
 // A finding is cancelled by `nls-ignore` on the same line or the line before.
 const isIgnored = (lines: string[], index: number): boolean =>
-  lines[index]?.includes('nls-ignore') === true ||
-  lines[index - 1]?.includes('nls-ignore') === true;
+  lines[index]?.includes('nls-ignore') === true || lines[index - 1]?.includes('nls-ignore') === true;
 
 for (const file of files) {
   const content = readFileSync(file, 'utf8');

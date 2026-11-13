@@ -43,22 +43,68 @@ import type {
 
 /** GEDCOM 7.0 §2.4 `month` order, January first. */
 const GREGORIAN_ORDER: readonly GregorianMonth[] = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
 ];
 
 /** GEDCOM 7.0 §6.1 FRENCH_R month order, Vendémiaire first, the complementary days last. */
 const FRENCH_ORDER: readonly FrenchRepublicanMonth[] = [
-  'VEND', 'BRUM', 'FRIM', 'NIVO', 'PLUV', 'VENT', 'GERM', 'FLOR', 'PRAI', 'MESS', 'THER', 'FRUC', 'COMP',
+  'VEND',
+  'BRUM',
+  'FRIM',
+  'NIVO',
+  'PLUV',
+  'VENT',
+  'GERM',
+  'FLOR',
+  'PRAI',
+  'MESS',
+  'THER',
+  'FRUC',
+  'COMP',
 ];
 
 /** GEDCOM 7.0 §6.1 HEBREW month order, Tishri first: common years (no ADR). */
 const HEBREW_COMMON_ORDER: readonly HebrewMonth[] = [
-  'TSH', 'CSH', 'KSL', 'TVT', 'SHV', 'ADS', 'NSN', 'IYR', 'SVN', 'TMZ', 'AAV', 'ELL',
+  'TSH',
+  'CSH',
+  'KSL',
+  'TVT',
+  'SHV',
+  'ADS',
+  'NSN',
+  'IYR',
+  'SVN',
+  'TMZ',
+  'AAV',
+  'ELL',
 ];
 
 /** GEDCOM 7.0 §6.1 HEBREW month order, Tishri first: leap years (ADR then ADS). */
 const HEBREW_LEAP_ORDER: readonly HebrewMonth[] = [
-  'TSH', 'CSH', 'KSL', 'TVT', 'SHV', 'ADR', 'ADS', 'NSN', 'IYR', 'SVN', 'TMZ', 'AAV', 'ELL',
+  'TSH',
+  'CSH',
+  'KSL',
+  'TVT',
+  'SHV',
+  'ADR',
+  'ADS',
+  'NSN',
+  'IYR',
+  'SVN',
+  'TMZ',
+  'AAV',
+  'ELL',
 ];
 
 // ---------------------------------------------------------------------------
@@ -73,13 +119,15 @@ function gregorianToJdn(year: number, month: number, day: number): number {
   const a = Math.floor((14 - month) / 12);
   const y = year + 4800 - a;
   const m = month + 12 * a - 3;
-  return day
-    + Math.floor((153 * m + 2) / 5)
-    + 365 * y
-    + Math.floor(y / 4)
-    - Math.floor(y / 100)
-    + Math.floor(y / 400)
-    - 32045;
+  return (
+    day +
+    Math.floor((153 * m + 2) / 5) +
+    365 * y +
+    Math.floor(y / 4) -
+    Math.floor(y / 100) +
+    Math.floor(y / 400) -
+    32045
+  );
 }
 
 /** Converts a JDN to a proleptic Gregorian date (astronomical year). */
@@ -87,15 +135,15 @@ function jdnToGregorian(jdn: number): { year: number; month: number; day: number
   const j = jdn + 32044;
   const g = Math.floor(j / 146097);
   const dg = j % 146097;
-  const c = Math.floor((Math.floor(dg / 36524) + 1) * 3 / 4);
+  const c = Math.floor(((Math.floor(dg / 36524) + 1) * 3) / 4);
   const dc = dg - c * 36524;
   const b = Math.floor(dc / 1461);
   const db = dc % 1461;
-  const a = Math.floor((Math.floor(db / 365) + 1) * 3 / 4);
+  const a = Math.floor(((Math.floor(db / 365) + 1) * 3) / 4);
   const da = db - a * 365;
   const y = g * 400 + c * 100 + b * 4 + a;
   const m = Math.floor((da * 5 + 308) / 153) - 2;
-  const d = da - Math.floor((m + 4) * 153 / 5) + 122;
+  const d = da - Math.floor(((m + 4) * 153) / 5) + 122;
   return {
     year: y - 4800 + Math.floor((m + 2) / 12),
     month: ((m + 2) % 12) + 1,
@@ -231,9 +279,7 @@ function jdnToHebrew(jdn: number): { year: number; position: number; day: number
 // ---------------------------------------------------------------------------
 
 /** The September start day of each French Republican year An I–An XIV (Paris equinox). */
-const FRENCH_START_SEPTEMBER: readonly number[] = [
-  22, 22, 22, 23, 22, 22, 22, 23, 23, 23, 23, 24, 23, 23,
-];
+const FRENCH_START_SEPTEMBER: readonly number[] = [22, 22, 22, 23, 22, 22, 22, 23, 23, 23, 23, 24, 23, 23];
 
 /** The JDN of 1 Vendémiaire of French Republican `year`, or undefined outside I–XIV. */
 function frenchYearStartJdn(year: number): number | undefined {
@@ -418,7 +464,7 @@ export function dateBounds(value: DateValue): DateBounds {
       return out;
     }
     case 'approx':
-      return value.date !== undefined ? dateFieldsBounds(value.date) ?? {} : {};
+      return dateFieldsBounds(value.date) ?? {};
     case 'period': {
       const out: DateBounds = {};
       if (value.from !== undefined) {
@@ -481,9 +527,9 @@ export function toJsDateTime(fields: DateFields, time?: TimeValue): Date | undef
 /** The GEDCOM year (with the BCE epoch when needed) of an astronomical year. */
 function gedcomYear(astronomical: number): { year: Integer; epoch?: Epoch } {
   if (astronomical <= 0) {
-    return { year: (1 - astronomical) as Integer, epoch: 'BCE' };
+    return { year: 1 - astronomical, epoch: 'BCE' };
   }
-  return { year: astronomical as Integer };
+  return { year: astronomical };
 }
 
 /** Decomposes a JDN into the target calendar's fields. */
@@ -492,7 +538,7 @@ function jdnToFields(jdn: number, target: Calendar): DateFields | undefined {
     const date = target === 'GREGORIAN' ? jdnToGregorian(jdn) : jdnToJulian(jdn);
     const year = gedcomYear(date.year);
     const month = GREGORIAN_ORDER[date.month - 1] as GregorianMonth;
-    const day = date.day as Integer;
+    const day = date.day;
     return target === 'JULIAN' ? { ...year, calendar: 'JULIAN', month, day } : { ...year, month, day };
   }
   if (target === 'FRENCH_R') {
@@ -502,22 +548,22 @@ function jdnToFields(jdn: number, target: Calendar): DateFields | undefined {
     }
     return {
       calendar: 'FRENCH_R',
-      year: french.year as Integer,
+      year: french.year,
       month: FRENCH_ORDER[french.monthIndex] as FrenchRepublicanMonth,
-      day: french.day as Integer,
+      day: french.day,
     };
   }
   if (target === 'HEBREW') {
     const hebrew = jdnToHebrew(jdn);
-    if (hebrew === undefined || hebrew.year < 1) {
+    if (hebrew.year < 1) {
       return undefined;
     }
     const order = hebrewIsLeap(hebrew.year) ? HEBREW_LEAP_ORDER : HEBREW_COMMON_ORDER;
     return {
       calendar: 'HEBREW',
-      year: hebrew.year as Integer,
+      year: hebrew.year,
       month: order[hebrew.position - 1] as HebrewMonth,
-      day: hebrew.day as Integer,
+      day: hebrew.day,
     };
   }
   return undefined;

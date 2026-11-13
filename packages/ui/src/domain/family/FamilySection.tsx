@@ -89,9 +89,7 @@ export function FamilySection({
 
   return (
     <SectionCard title={nls.t('features.tree.families.title')}>
-      {asChild.length === 0 && asParent.length === 0 && (
-        <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>
-      )}
+      {asChild.length === 0 && asParent.length === 0 && <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>}
       {asChild.map((family) => (
         <FamilyCard key={family.id} {...cardProps(family)} />
       ))}
@@ -132,7 +130,7 @@ function FamilyCard({
   onDeleteFact: (fact: FactRecord) => Promise<void>;
 }) {
   const [familyFacts, setFamilyFacts] = useState<FactRecord[]>([]);
-  const [marriageDate, setMarriageDate] = useState<DateDraft>(emptyDate());
+  const [marriageDate, setMarriageDate] = useState<DateDraft>(() => emptyDate());
 
   useEffect(() => {
     let cancelled = false;
@@ -165,13 +163,23 @@ function FamilyCard({
           .map((partnerId) => (
             <span key={partnerId} className="family-chip">
               {displayName(persons.find((person) => person.id === partnerId))}
-              <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<X size={12} aria-hidden="true" />} onClick={() => onRemoveMember(partnerId)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.family.removeMember')}
+                icon={<X size={12} aria-hidden="true" />}
+                onClick={() => onRemoveMember(partnerId)}
+              />
             </span>
           ))}
         {family.children.map((childId) => (
           <span key={childId} className="family-chip child">
             {displayName(persons.find((person) => person.id === childId))}
-            <IconButton size="sm" label={nls.t('features.tree.family.removeMember')} icon={<X size={12} aria-hidden="true" />} onClick={() => onRemoveMember(childId)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.family.removeMember')}
+              icon={<X size={12} aria-hidden="true" />}
+              onClick={() => onRemoveMember(childId)}
+            />
           </span>
         ))}
         <PersonPicker
@@ -193,14 +201,23 @@ function FamilyCard({
           <span key={fact.id} className="family-chip event">
             {fact.date ? formatDate(fact.date) : ''}
             {fact.place ? ` — ${fact.place}` : ''}
-            <IconButton size="sm" label={nls.t('features.tree.events.remove')} icon={<X size={12} aria-hidden="true" />} onClick={() => void removeFact(fact)} />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.events.remove')}
+              icon={<X size={12} aria-hidden="true" />}
+              onClick={() => void removeFact(fact)}
+            />
           </span>
         ))}
         <DateEditor label="" value={marriageDate} onChange={setMarriageDate} />
-        <Button variant="primary" onClick={() => void addMarriage()}>{nls.t('features.tree.events.add')}</Button>
+        <Button variant="primary" onClick={() => void addMarriage()}>
+          {nls.t('features.tree.events.add')}
+        </Button>
       </div>
       <div className="family-actions">
-        <Button variant="danger" size="sm" onClick={onDelete}>{nls.t('features.tree.families.delete')}</Button>
+        <Button variant="danger" size="sm" onClick={onDelete}>
+          {nls.t('features.tree.families.delete')}
+        </Button>
       </div>
     </Subcard>
   );

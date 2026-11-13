@@ -13,14 +13,15 @@ describe('buildLanguageModel', () => {
         apiKey: '',
         model: 'some-model',
       });
+      if (typeof model === 'string') {
+        throw new Error('expected a provider-backed language model');
+      }
       expect(model.provider).toBe('doru.chat');
       expect(model.modelId).toBe('some-model');
     }
   });
 
   it('rejects ACP providers, which have no language model', () => {
-    expect(() =>
-      buildLanguageModel({ providerId: 'acp', baseUrl: '', apiKey: '', model: '' }),
-    ).toThrow(/ACP agent/);
+    expect(() => buildLanguageModel({ providerId: 'acp', baseUrl: '', apiKey: '', model: '' })).toThrow(/ACP agent/);
   });
 });

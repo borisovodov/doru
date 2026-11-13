@@ -7,13 +7,8 @@
  * error naming the offending line.
  */
 
-import {
-  EVENT_ENUM_VALUES,
-  ROLE_ENUM_VALUES,
-} from '../enumerations';
-import {
-  fail,
-} from '../errors';
+import { EVENT_ENUM_VALUES, ROLE_ENUM_VALUES } from '../enumerations';
+import { fail } from '../errors';
 import type {
   AddressStructure,
   AgeStructure,
@@ -37,41 +32,13 @@ import type {
   SourceCitation,
   UniqueIdentifierStructure,
 } from '../structures';
-import type {
-  DateValue,
-} from '../primitives';
-import type {
-  Ctx,
-} from './context';
-import {
-  addExtension,
-  dispatch,
-  noPayload,
-  one,
-  reqPtr,
-  reqText,
-  resolvePtr,
-} from './context';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parsePrivacyFlag,
-  parseSourceCitation,
-  parseVendorFlag,
-  parseYNFlag,
-} from './sources-media';
-import {
-  parsePlaceStructure,
-} from './names-places';
-import {
-  parseAge,
-  parseDatePeriod70,
-  parseDateValue,
-  parseEnum,
-  parseTime70,
-  type TagResolver,
-} from './types';
+import type { DateValue } from '../primitives';
+import type { Ctx } from './context';
+import { addExtension, dispatch, noPayload, one, reqPtr, reqText, resolvePtr } from './context';
+import type { RawNode } from './lines';
+import { parsePrivacyFlag, parseSourceCitation, parseVendorFlag, parseYNFlag } from './sources-media';
+import { parsePlaceStructure } from './names-places';
+import { parseAge, parseDatePeriod70, parseDateValue, parseEnum, parseTime70, type TagResolver } from './types';
 
 // Substructures
 // ---------------------------------------------------------------------------
@@ -81,8 +48,7 @@ export function parseAddressStructure(node: RawNode, ctx: Ctx): AddressStructure
   // lines) and forbidden in 5.5.5 ("must not have a line value", the
   // structured ADR1–CTRY form) — both parse; the payload is absent in
   // the 5.5.5 form.
-  const out: AddressStructure =
-    node.value.kind === 'text' ? { payload: node.value.text } : {};
+  const out: AddressStructure = node.value.kind === 'text' ? { payload: node.value.text } : {};
   const handlers: Record<string, (child: RawNode) => void> = {
     _EMAIL: (child) => {
       (out.email ??= []).push(reqText(child));
@@ -188,7 +154,7 @@ export function parseAssociation(node: RawNode, ctx: Ctx): AssociationStructure 
     RELA: (child) => {
       out.role = { payload: 'OTHER', phrase: reqText(child) };
     },
-    '_ROLE': setRole,
+    _ROLE: setRole,
     // The Gramps `TYPE INDI` marker carries no model data.
     TYPE: () => undefined,
     NOTE: (child) => {
@@ -271,8 +237,15 @@ export function parseRole(node: RawNode, ctx: Ctx): RoleStructure {
     );
     return out;
   }
-  if (upper === 'CHIL' || upper === 'HUSB' || upper === 'WIFE' || upper === 'MOTH' || upper === 'FATH' || upper === 'SPOU') {
-    const out: RoleStructure = { payload: upper as 'CHIL' | 'HUSB' | 'WIFE' | 'MOTH' | 'FATH' | 'SPOU' };
+  if (
+    upper === 'CHIL' ||
+    upper === 'HUSB' ||
+    upper === 'WIFE' ||
+    upper === 'MOTH' ||
+    upper === 'FATH' ||
+    upper === 'SPOU'
+  ) {
+    const out: RoleStructure = { payload: upper };
     for (const child of node.children) {
       // Full leniency: unexpected children stay generic extensions.
       addExtension(out, child, ctx);
@@ -313,12 +286,12 @@ export function parseChangeDate(node: RawNode, ctx: Ctx): ChangeDate {
       // Citations under the CHAN block (see ChangeDate.citations).
       (base.citations ??= []).push(parseSourceCitation(child, ctx));
     },
-    '_WT_USER': (child) => {
+    _WT_USER: (child) => {
       // webtrees: the user name of the user who made the change (see
       // ChangeDate.user).
       base.user = reqText(child);
     },
-    '_PGVU': (child) => {
+    _PGVU: (child) => {
       // phpGedView: the same slot webtrees spells `_WT_USER` (the
       // webtrees per-vendor custom-tag registry, PhpGedView.php; see
       // ChangeDate.user).
@@ -462,16 +435,21 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
   // through to the normal parser, which reports them.
   const iso = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?(Z)?$/.exec(raw.trim());
   if (iso !== null) {
-    const month = (['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const)[Number(iso[2]) - 1];
+    const month = (['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const)[
+      Number(iso[2]) - 1
+    ];
     const day = Number(iso[3]);
     const hour = Number(iso[4]);
     const minute = Number(iso[5]);
     const second = iso[6] === undefined ? undefined : Number(iso[6]);
     if (
       month !== undefined &&
-      day >= 1 && day <= 31 &&
-      hour >= 0 && hour <= 23 &&
-      minute >= 0 && minute <= 59 &&
+      day >= 1 &&
+      day <= 31 &&
+      hour >= 0 &&
+      hour <= 23 &&
+      minute >= 0 &&
+      minute <= 59 &&
       (second === undefined || (second >= 0 && second <= 59))
     ) {
       const out: DateExactStructure = {
@@ -497,7 +475,8 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
     const out: DateExactStructure = {
       value: {
         day: value.day,
-        month: value.month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
+        month: value.month as
+          'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
         year: value.year,
         ...(value.epoch === undefined ? {} : { epoch: value.epoch }),
       },
@@ -518,7 +497,10 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
     value: {
       ...(value.kind === 'date' && value.year !== undefined ? { year: value.year } : {}),
       ...(value.kind === 'date' && value.month !== undefined
-        ? { month: value.month as 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC' }
+        ? {
+            month: value.month as
+              'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN' | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC',
+          }
         : {}),
       ...(value.kind === 'date' && value.day !== undefined ? { day: value.day } : {}),
       ...(value.kind === 'date' && value.epoch !== undefined ? { epoch: value.epoch } : {}),
@@ -533,7 +515,9 @@ export function parseDateExactStructure(node: RawNode, ctx: Ctx): DateExactStruc
 
 export function parseDatePeriodStructure(node: RawNode, ctx: Ctx): DatePeriodStructure {
   const raw = node.value.kind === 'text' ? node.value.text : undefined;
-  const out: DatePeriodStructure = { value: raw === undefined ? { kind: 'period' } : parseDatePeriod70(raw, node.position, tagResolver(ctx)) };
+  const out: DatePeriodStructure = {
+    value: raw === undefined ? { kind: 'period' } : parseDatePeriod70(raw, node.position, tagResolver(ctx)),
+  };
   dispatch(
     node,
     out,
@@ -596,7 +580,7 @@ export function parseAgeStructure(
             return { payload: { years: Number(range[1]) }, ageRange: `${range[1]}-${range[2]}` };
           }
           const bare = /^(\d+)([A-Za-z])?$/.exec(trimmed);
-          if (bare !== null && (bare[2] === undefined || !'ymwd'.includes((bare[2] as string).toLowerCase()))) {
+          if (bare !== null && (bare[2] === undefined || !'ymwd'.includes(bare[2].toLowerCase()))) {
             return { payload: { years: Number(bare[1]) } };
           }
           try {
@@ -615,7 +599,7 @@ export function parseAgeStructure(
       PHRASE: (child) => {
         out.phrase = reqText(child);
       },
-      '_AGER': (child) => {
+      _AGER: (child) => {
         // The MagiKey age range "Integer-Integer" (MagiKey_AGER.yaml):
         // at least the first bound, less than the second.
         const text = reqText(child);
@@ -624,7 +608,11 @@ export function parseAgeStructure(
         }
         const [low, high] = text.split('-').map((part) => Number(part)) as [number, number];
         if (low >= high) {
-          fail('age.invalid', `Invalid age range "${text}"; the range is at least the first bound and less than the second, so the first bound must be lower`, child.position);
+          fail(
+            'age.invalid',
+            `Invalid age range "${text}"; the range is at least the first bound and less than the second, so the first bound must be lower`,
+            child.position,
+          );
         }
         out.ageRange = text;
       },
@@ -685,9 +673,9 @@ export function parseSharedParticipant(node: RawNode, ctx: Ctx): AssociationStru
     node,
     out,
     {
-      '_ROLE': setRole,
+      _ROLE: setRole,
       ROLE: setRole,
-      '_PRIM': (child) => {
+      _PRIM: (child) => {
         // TMG: the "Primary Indicator Tag" under a shared event — the
         // event is primary for this co-participant (see
         // AssociationStructure.primary).
@@ -716,6 +704,7 @@ export function parseExternalIdentifier(node: RawNode, ctx: Ctx): ExternalIdenti
     {
       TYPE: (child) => {
         const text = reqText(child);
+        // eslint-disable-next-line no-control-regex -- URIs must reject control characters
         if (text === '' || /[\s\u0000-\u001f\u007f]/.test(text)) {
           fail('uri.invalid', `Invalid URI "${text}"`, child.position);
         }
@@ -814,7 +803,7 @@ export function parseNoteStructure(node: RawNode, ctx: Ctx): NoteStructure {
       TRAN: (child) => {
         (out.translations ??= []).push(parseNoteTranslation(child, ctx));
       },
-      '_PRIV': (child) => {
+      _PRIV: (child) => {
         // The note privacy flag: WinFamily's NOTP normalizes into this
         // (see Note.private); the wire spelling under a note is _PRIV.
         out.private = parsePrivacyFlag(child, '_PRIV');

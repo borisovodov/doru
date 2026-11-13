@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { FamilyRecord, GedcomDataset, IndividualRecord } from '../src/structures';
+import { isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -54,7 +55,7 @@ function indi70(body: string[]): string {
 
 function indi(dataset: GedcomDataset): IndividualRecord {
   const record = dataset.records.find((entry) => entry.xref === '@I1@');
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error('expected INDI @I1@');
   }
   return record;
@@ -84,7 +85,13 @@ describe('the GEDCOM-L FAM F7 _STAT structure', () => {
     const dataset = parseOk551(SAMPLE);
     const fam = dataset.records.find((record): record is FamilyRecord => record.tag === 'FAM');
     expect(fam?.marriageStatuses?.[0]?.payload).toBe('NOT MARRIED');
-    expect(fam?.marriageStatuses?.[0]?.date?.value).toEqual({ kind: 'date', calendar: 'GREGORIAN', day: 18, month: 'AUG', year: 1888 });
+    expect(fam?.marriageStatuses?.[0]?.date?.value).toEqual({
+      kind: 'date',
+      calendar: 'GREGORIAN',
+      day: 18,
+      month: 'AUG',
+      year: 1888,
+    });
     expect(fam?.marriageStatuses?.[0]?.place?.payload).toEqual(['Musterort']);
     expect(fam?.marriageStatuses?.[0]?.notes?.[0]).toMatchObject({ tag: 'NOTE', payload: 'checked' });
     expect(fam?.marriageStatuses?.[0]?.citations?.[0]?.source).toBe('@S2@');
@@ -109,7 +116,13 @@ describe('the GEDCOM-L FAM F7 _STAT structure', () => {
     const reparsed = parseOk70(text);
     const fam = reparsed.records.find((record): record is FamilyRecord => record.tag === 'FAM');
     expect(fam?.marriageStatuses).toEqual([
-      { payload: 'NOT MARRIED', date: { value: { kind: 'date', calendar: 'GREGORIAN', day: 18, month: 'AUG', year: 1888 } }, place: { tag: 'PLAC', payload: ['Musterort'] }, notes: [{ tag: 'NOTE', payload: 'checked' }], citations: [{ tag: 'SOUR', source: '@S2@' }] },
+      {
+        payload: 'NOT MARRIED',
+        date: { value: { kind: 'date', calendar: 'GREGORIAN', day: 18, month: 'AUG', year: 1888 } },
+        place: { tag: 'PLAC', payload: ['Musterort'] },
+        notes: [{ tag: 'NOTE', payload: 'checked' }],
+        citations: [{ tag: 'SOUR', source: '@S2@' }],
+      },
       { payload: 'NEVER MARRIED' },
     ]);
   });
@@ -143,7 +156,11 @@ describe('the GEDCOM-L N5 _SCHEMA block with _DEFN leaves', () => {
   test('parses the _DEFN leaves like the FTM DEFN spelling', () => {
     const dataset = parseOk551(SAMPLE);
     expect(dataset.header.schema53?.entries).toEqual([
-      { context: ['INDI', 'NAME', '_RUFNAME'], definition: 'In case of multiple given names, German documents often highlight one of them as "Rufname" by underlining it' },
+      {
+        context: ['INDI', 'NAME', '_RUFNAME'],
+        definition:
+          'In case of multiple given names, German documents often highlight one of them as "Rufname" by underlining it',
+      },
       { context: ['PLAC', '_GOV'], definition: 'Identifier of a place in GOV (Genealogisches Ortsverzeichnis)' },
     ]);
   });
@@ -278,7 +295,9 @@ describe('the further typed vendor tags on 5.5.1 input', () => {
 
     expect(john.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === 'Hobby')?.payload).toBe('Singing');
     expect(john.events?.find((entry) => entry.tag === 'EVEN' && entry.type === 'Military')?.detail?.date).toBeDefined();
-    expect(john.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === 'Holocaust')?.payload).toBe('Yad Vashem');
+    expect(john.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === 'Holocaust')?.payload).toBe(
+      'Yad Vashem',
+    );
     expect(john.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === 'Elected')?.payload).toBe('Mayor');
     expect(john.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === 'Eye color')?.payload).toBe('blue');
     expect(john.attributes?.find((entry) => entry.tag === 'FACT' && entry.type === 'Bürgerort')?.payload).toBe('Bern');

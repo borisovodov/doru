@@ -10,6 +10,8 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset } from '../src/structures';
+import { isFamilyRecord, isIndividualRecord } from '../src/structures';
+import { isPlaceRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -47,7 +49,7 @@ function ser70(dataset: GedcomDataset): string {
 
 function indiOf(dataset: GedcomDataset, xref: string) {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'INDI') {
+  if (record === undefined || !isIndividualRecord(record)) {
     throw new Error(`expected ${xref} INDI`);
   }
   return record;
@@ -55,7 +57,7 @@ function indiOf(dataset: GedcomDataset, xref: string) {
 
 function famOf(dataset: GedcomDataset, xref: string) {
   const record = dataset.records.find((r) => r.xref === xref);
-  if (record === undefined || record.tag !== 'FAM') {
+  if (record === undefined || !isFamilyRecord(record)) {
     throw new Error(`expected ${xref} FAM`);
   }
   return record;
@@ -96,7 +98,7 @@ describe('the name-level married-name and also-known-as tags', () => {
     expect(parseOk551(serialized)).toEqual(dataset);
   });
 
-  test('_MARN (the Brother\'s Keeper spelling) normalizes into the same slot', () => {
+  test("_MARN (the Brother's Keeper spelling) normalizes into the same slot", () => {
     const text = SAMPLE.replace('2 _MARNM Smith', '2 _MARN Smith');
     const dataset = parseOk551(text);
     expect(indiOf(dataset, '@I1@').names?.[0]?.marriedName).toBe('Smith');
@@ -385,7 +387,7 @@ describe('the GEDKeeper _GRP and _PLC records', () => {
     const dataset = parseOk551(SAMPLE);
     const place = dataset.records.find((r) => r.xref === '@0@');
     expect(place?.tag).toBe('_PLAC');
-    if (place?.tag !== '_PLAC') {
+    if (place === undefined || !isPlaceRecord(place)) {
       return;
     }
     expect(place.payload).toBe('Tving');

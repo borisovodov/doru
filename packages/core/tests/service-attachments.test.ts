@@ -191,7 +191,7 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);
       expect(fixture.repo.listCitationRecordsFor('person', 'P1').map((entry) => entry.id)).toHaveLength(1);
 
-      const [created] = fixture.repo.listCitationRecordsFor('person', 'P1')!;
+      const [created] = fixture.repo.listCitationRecordsFor('person', 'P1');
       const after = { ...created!, targetId: 'P2' };
       service.updateCitation(created!, after);
       expect(fixture.repo.listCitationRecordsFor('person', 'P2')).toEqual([after]);
@@ -219,7 +219,13 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(2);
 
-      service.deleteMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
+      service.deleteMedia({
+        id: 'M1',
+        path: 'media/photo.jpg',
+        title: 'Portrait',
+        targetType: 'person',
+        targetId: 'P1',
+      });
       expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
       service.undo();
       // The media row comes back with its own target link; the extra link
@@ -361,7 +367,7 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);
       expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
 
-      const [link] = fixture.repo.listRecordSubmittersFor('person', 'P1')!;
+      const [link] = fixture.repo.listRecordSubmittersFor('person', 'P1');
       service.deleteRecordSubmitter(link!.id, link!.submitterId, link!.targetType, link!.targetId);
       expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([]);
 

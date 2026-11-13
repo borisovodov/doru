@@ -121,8 +121,8 @@ describe('parse (unified entry point)', () => {
     ].join('\n');
     const result = parse(enc(withoutForm));
     expect(result.ok).toBe(true);
-    if (result.ok && result.kind === 'dataset') {
-      expect(result.version).toBe('5.5.1');
+    if (result.ok && result.value.kind === 'dataset') {
+      expect(result.value.version).toBe('5.5.1');
     }
   });
 
@@ -141,8 +141,8 @@ describe('parse (unified entry point)', () => {
     ].join('\n');
     const result = parse(enc(ancient));
     expect(result.ok).toBe(true);
-    if (result.ok && result.kind === 'dataset') {
-      expect(result.dataset.header.gedcom.version).toBe('3.0');
+    if (result.ok && result.value.kind === 'dataset') {
+      expect(result.value.dataset.header.gedcom.version).toBe('3.0');
     }
   });
 

@@ -56,9 +56,7 @@ describe('settings schema', () => {
     // Reasoning levels are free-form strings: levels the running version
     // does not know fall back to the provider default at runtime, so no
     // value can invalidate a settings file.
-    expect(
-      SettingsFileSchema.safeParse({ ai: { providers: { ollama: { reasoning: 'high' } } } }).success,
-    ).toBe(true);
+    expect(SettingsFileSchema.safeParse({ ai: { providers: { ollama: { reasoning: 'high' } } } }).success).toBe(true);
     expect(
       SettingsFileSchema.safeParse({ ai: { providers: { ollama: { reasoning: 'some-future-level' } } } }).success,
     ).toBe(true);

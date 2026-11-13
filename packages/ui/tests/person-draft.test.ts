@@ -22,7 +22,7 @@ import {
   toDateDraft,
   variantDraftEmpty,
 } from '../src/domain/person/draft';
-import type { NamePart, PersonName, PersonRecord } from '@doru/core';
+import type { FactRecord, NamePart, PersonName, PersonRecord } from '@doru/core';
 
 const part = (kind: NamePart['kind'], value: string, id = `${kind}-${value}`): NamePart => ({
   id,
@@ -113,7 +113,10 @@ describe('partOf / setPartValue', () => {
       parts: [part('given', 'Anna', 'G1'), part('given', 'Maria', 'G2'), part('surname', 'Schmidt')],
     });
     const updated = setPartValue(withTwoGiven, 'given', 'Anna Maria');
-    expect(updated.parts).toEqual([part('surname', 'Schmidt'), { id: 'G1', kind: 'given', value: 'Anna Maria', position: 1 }]);
+    expect(updated.parts).toEqual([
+      part('surname', 'Schmidt'),
+      { id: 'G1', kind: 'given', value: 'Anna Maria', position: 1 },
+    ]);
   });
 
   it('drops the kind when the value is emptied', () => {
@@ -134,7 +137,9 @@ describe('nameDraftDisplay', () => {
   });
 
   it('prefers the verbatim display form, stripping GEDCOM slashes', () => {
-    expect(nameDraftDisplay(nameDraft({ parts: [part('full', '/Ivan Petrov/'), part('given', 'Ivan')] }))).toBe('Ivan Petrov');
+    expect(nameDraftDisplay(nameDraft({ parts: [part('full', '/Ivan Petrov/'), part('given', 'Ivan')] }))).toBe(
+      'Ivan Petrov',
+    );
   });
 
   it('falls back to given + surname', () => {
@@ -163,7 +168,9 @@ describe('draftInitials', () => {
   });
 
   it('ignores whitespace-only parts', () => {
-    expect(draftInitials(draft({ names: [nameDraft({ parts: [part('given', '   '), part('surname', 'Petrov')] })] }))).toBe('P');
+    expect(
+      draftInitials(draft({ names: [nameDraft({ parts: [part('given', '   '), part('surname', 'Petrov')] })] })),
+    ).toBe('P');
   });
 
   it('prefers the primary name', () => {
@@ -197,24 +204,20 @@ describe('draftSpan', () => {
   });
 
   it('skips the age for negative or implausible spans', () => {
-    expect(
-      draftSpan(draft({ birth: dateDraft({ year: '1990' }), death: dateDraft({ year: '1923' }) })),
-    ).toBe('1990 – 1923');
-    expect(
-      draftSpan(draft({ birth: dateDraft({ year: '1800' }), death: dateDraft({ year: '1990' }) })),
-    ).toBe('1800 – 1990');
+    expect(draftSpan(draft({ birth: dateDraft({ year: '1990' }), death: dateDraft({ year: '1923' }) }))).toBe(
+      '1990 – 1923',
+    );
+    expect(draftSpan(draft({ birth: dateDraft({ year: '1800' }), death: dateDraft({ year: '1990' }) }))).toBe(
+      '1800 – 1990',
+    );
   });
 
   it('appends the age for approximate dates but not for text dates', () => {
     expect(
-      draftSpan(
-        draft({ birth: dateDraft({ year: '1923', quality: 'about' }), death: dateDraft({ year: '1990' }) }),
-      ),
+      draftSpan(draft({ birth: dateDraft({ year: '1923', quality: 'about' }), death: dateDraft({ year: '1990' }) })),
     ).toBe('~1923 – 1990 (67)');
     expect(
-      draftSpan(
-        draft({ birth: dateDraft({ year: '1923' }), death: dateDraft({ year: '1990', text: 'summer' }) }),
-      ),
+      draftSpan(draft({ birth: dateDraft({ year: '1923' }), death: dateDraft({ year: '1990', text: 'summer' }) })),
     ).toBe('1923 – 1990 summer');
   });
 });
@@ -251,7 +254,10 @@ describe('date refinements', () => {
   });
 
   it('keeps non-Gregorian month codes through the round trip', () => {
-    const date = toDateDraft({ quality: 'exact', component: { calendar: 'french_republican', year: 12, month: 'VEND' } });
+    const date = toDateDraft({
+      quality: 'exact',
+      component: { calendar: 'french_republican', year: 12, month: 'VEND' },
+    });
     expect(date.month).toBe('VEND');
     expect(fromDateDraft(date)?.component).toEqual({ calendar: 'french_republican', year: 12, month: 'VEND' });
   });
@@ -478,7 +484,10 @@ describe('empty name detection', () => {
     expect(nameDraftEmpty(nameDraft({ parts: [], variants: [emptyVariantDraft()] }))).toBe(true);
     expect(
       nameDraftEmpty(
-        nameDraft({ parts: [], variants: [emptyVariantDraft(), { ...emptyVariantDraft(), parts: [part('given', 'John')] }] }),
+        nameDraft({
+          parts: [],
+          variants: [emptyVariantDraft(), { ...emptyVariantDraft(), parts: [part('given', 'John')] }],
+        }),
       ),
     ).toBe(false);
     expect(variantDraftEmpty(emptyVariantDraft())).toBe(true);
@@ -496,7 +505,13 @@ describe('personToDraft', () => {
         { id: 'N2', given: 'Vanya', type: 'aka' },
       ],
       facts: [
-        { id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } }, place: 'Moscow' },
+        {
+          id: 'E1',
+          personId: 'P1',
+          tag: 'BIRT',
+          date: { quality: 'exact', component: { year: 1923 } },
+          place: 'Moscow',
+        },
         { id: 'E2', personId: 'P1', tag: 'OCCU', value: 'smith' },
       ],
     });
@@ -519,7 +534,9 @@ describe('personDraftMatches', () => {
   const source = person({
     names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }],
     sex: 'M',
-    facts: [{ id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } }, place: 'Moscow' }],
+    facts: [
+      { id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } }, place: 'Moscow' },
+    ],
   });
 
   it('matches a draft built from the person', () => {
@@ -536,7 +553,9 @@ describe('personDraftMatches', () => {
 
   it('detects added, removed and reordered names', () => {
     const base = personToDraft(source);
-    expect(personDraftMatches({ ...base, names: [...base.names, nameDraft({ parts: [part('given', 'Vanya')] })] }, source)).toBe(false);
+    expect(
+      personDraftMatches({ ...base, names: [...base.names, nameDraft({ parts: [part('given', 'Vanya')] })] }, source),
+    ).toBe(false);
     expect(personDraftMatches({ ...base, names: [] }, source)).toBe(false);
     const twoNames = person({
       names: [
@@ -544,9 +563,9 @@ describe('personDraftMatches', () => {
         { id: 'N2', given: 'Vanya' },
       ],
     });
-    expect(personDraftMatches({ ...personToDraft(twoNames), names: [...personToDraft(twoNames).names].reverse() }, twoNames)).toBe(
-      false,
-    );
+    expect(
+      personDraftMatches({ ...personToDraft(twoNames), names: [...personToDraft(twoNames).names].reverse() }, twoNames),
+    ).toBe(false);
   });
 });
 
@@ -571,7 +590,13 @@ describe('draftToRecord', () => {
             id: 'N1',
             primary: true,
             variants: [
-              { ...emptyVariantDraft(), id: 'V1', kind: 'romanized', language: 'en', parts: [part('given', 'Ivan'), part('surname', 'Petrov')] },
+              {
+                ...emptyVariantDraft(),
+                id: 'V1',
+                kind: 'romanized',
+                language: 'en',
+                parts: [part('given', 'Ivan'), part('surname', 'Petrov')],
+              },
             ],
           }),
           nameDraft({ id: 'N2', parts: [part('given', 'Vanya')], type: 'aka' }),
@@ -624,7 +649,7 @@ describe('draftToRecord', () => {
   });
 
   it('keeps every field of an unchanged birth fact on an unrelated edit', () => {
-    const richBirth = {
+    const richBirth: FactRecord = {
       id: 'E1',
       personId: 'P1',
       tag: 'BIRT',
@@ -682,7 +707,14 @@ describe('draftToRecord', () => {
   it('drops the place link when the place text changes', () => {
     const existing = person({
       facts: [
-        { id: 'E1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1900 } }, place: 'Moscow', placeId: 'PL1' },
+        {
+          id: 'E1',
+          personId: 'P1',
+          tag: 'BIRT',
+          date: { quality: 'exact', component: { year: 1900 } },
+          place: 'Moscow',
+          placeId: 'PL1',
+        },
       ],
     });
     const record = draftToRecord(draft({ birth: dateDraft({ year: '1900', place: 'Kazan' }) }), existing);
@@ -695,7 +727,7 @@ describe('draftToRecord', () => {
     const record = draftToRecord(draft({ birth: dateDraft({ year: '1923' }) }));
     expect(record.facts).toEqual([
       {
-        id: expect.any(String),
+        id: expect.any(String) as string,
         personId: 'P1',
         tag: 'BIRT',
         date: { quality: 'exact', component: { year: 1923 } },

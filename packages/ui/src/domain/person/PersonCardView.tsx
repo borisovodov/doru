@@ -8,7 +8,7 @@ import { Badge } from '../../atoms/display/Badge';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { nls } from '../../nls';
 import { displayName, initials, years } from '../format/format';
-import type { CardAction, PersonCounts } from './types';
+import type { PersonCounts } from './types';
 import styles from './PersonCardView.module.css';
 
 export interface PersonCardViewProps {
@@ -26,7 +26,6 @@ export interface PersonCardViewProps {
   /** The in-card draft form shown while `isEditing` is true. */
   editingContent?: ReactNode;
   onToggleCollapse?: ((personId: string) => void) | undefined;
-  onAction?: ((action: CardAction, personId: string) => void) | undefined;
   /** React Flow handles, rendered inside the card root. */
   children?: ReactNode;
   /** The selected-card toolbar, rendered by the caller. */
@@ -99,9 +98,7 @@ export function PersonCardView({
         shape="circle"
       />
       <div className={styles['body']}>
-        <span className={styles['name']}>
-          {isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}
-        </span>
+        <span className={styles['name']}>{isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}</span>
         {!isDraft && dates !== '' ? (
           <span className={styles['years']}>
             {deceased ? '† ' : ''}
@@ -124,11 +121,7 @@ export function PersonCardView({
           size="sm"
           label={collapsed ? nls.t('tree.canvas.expand') : nls.t('tree.canvas.collapse')}
           icon={
-            collapsed ? (
-              <ChevronRight size={14} aria-hidden="true" />
-            ) : (
-              <ChevronDown size={14} aria-hidden="true" />
-            )
+            collapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />
           }
           onClick={(event) => {
             event.stopPropagation();

@@ -45,10 +45,10 @@ export function TagsSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
-  const [dateDraft, setDateDraft] = useState<DateDraft>(emptyDate());
+  const [dateDraft, setDateDraft] = useState<DateDraft>(() => emptyDate());
   // Guards the rename against double commits (Enter followed by the
   // input's blur, or Escape followed by the unmount blur).
-  const renameDone = useRef(false);
+  const renameDoneRef = useRef(false);
   const byId = new Map(tags.map((tag) => [tag.id, tag]));
 
   const attach = async () => {
@@ -66,16 +66,16 @@ export function TagsSection({
   };
 
   const startRename = (tag: TagRecord) => {
-    renameDone.current = false;
+    renameDoneRef.current = false;
     setEditingId(tag.id);
     setEditValue(tag.name);
   };
 
   const commitRename = async (tagId: string) => {
-    if (renameDone.current) {
+    if (renameDoneRef.current) {
       return;
     }
-    renameDone.current = true;
+    renameDoneRef.current = true;
     const tag = byId.get(tagId);
     const name = editValue.trim();
     if (tag !== undefined && name !== '' && name !== tag.name) {
@@ -85,7 +85,7 @@ export function TagsSection({
   };
 
   const cancelRename = () => {
-    renameDone.current = true;
+    renameDoneRef.current = true;
     setEditingId(null);
   };
 
@@ -126,6 +126,7 @@ export function TagsSection({
                 />
               ) : (
                 <button
+                  type="button"
                   className="tag-chip-name"
                   title={nls.t('features.tree.tags.rename')}
                   onClick={() => startRename(byId.get(tagId) ?? { id: tagId, name: tagId })}
@@ -134,12 +135,18 @@ export function TagsSection({
                 </button>
               )}
               {link.date !== undefined && <span className="tag-chip-date">{formatDate(link.date)}</span>}
-              <IconButton size="sm" label={nls.t('features.tree.tags.date.edit')} icon={<>
-                <CalendarDays size={12} aria-hidden="true" />
-              </>} onClick={() => startDateEdit(link)} />
-              <IconButton size="sm" label={nls.t('features.tree.tags.detach')} icon={<>
-                <X size={12} aria-hidden="true" />
-              </>} onClick={() => void onDetachTag(link)} />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.tags.date.edit')}
+                icon={<CalendarDays size={12} aria-hidden="true" />}
+                onClick={() => startDateEdit(link)}
+              />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.tags.detach')}
+                icon={<X size={12} aria-hidden="true" />}
+                onClick={() => void onDetachTag(link)}
+              />
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.tags.delete')}

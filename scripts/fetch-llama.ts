@@ -11,7 +11,16 @@
 //        node scripts/fetch-llama.ts --all      (every platform)
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -126,9 +135,7 @@ async function fetchEntry(entry: BinaryEntry): Promise<void> {
 }
 
 const all = process.argv.includes('--all');
-const entries = BINARIES.filter(
-  (entry) => all || entry.platform === process.platform,
-);
+const entries = BINARIES.filter((entry) => all || entry.platform === process.platform);
 if (entries.length === 0) {
   throw new Error(`no binaries for platform ${process.platform}`);
 }

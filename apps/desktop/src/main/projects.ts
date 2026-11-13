@@ -1,27 +1,22 @@
 import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { dirname, join } from 'node:path';
-import {
-  MEDIA_DIR_NAME,
-  TREE_FILE_EXTENSION,
-  type ProjectBinding,
-  type ProjectSummary,
-} from '@doru/core';
+import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
 import { log } from './log';
 import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
-import {
-  activeBookmarks,
-  isUntitledKey,
-  projectWindows,
-  recents,
-  runtimes,
-  untitledProjects,
-} from './state';
+import { activeBookmarks, isUntitledKey, projectWindows, recents, runtimes, untitledProjects } from './state';
 import { startTreeWatcher } from './tree-watcher';
-import { bindingOf, bindWindowToProject, createWindow, focusedWindow, openProjectInWindow, windowById } from './windows';
+import {
+  bindingOf,
+  bindWindowToProject,
+  createWindow,
+  focusedWindow,
+  openProjectInWindow,
+  windowById,
+} from './windows';
 
 const fs = new NodeFileSystem();
 
@@ -71,9 +66,7 @@ export async function openProject(
     };
     const parent = focusedWindow();
     const result =
-      parent !== null
-        ? await dialog.showOpenDialog(parent, dialogOptions)
-        : await dialog.showOpenDialog(dialogOptions);
+      parent !== null ? await dialog.showOpenDialog(parent, dialogOptions) : await dialog.showOpenDialog(dialogOptions);
     if (result.canceled || result.filePaths[0] === undefined) {
       return null;
     }
@@ -153,21 +146,15 @@ export function openFileAsProject(
  * A single filter entry keeps every extension selectable on macOS, where a
  * multi-filter panel greys out files outside the active filter.
  */
-export async function openAnyProjectDialog(
-  senderId?: number,
-): Promise<ProjectSummary | ProjectBinding | null> {
+export async function openAnyProjectDialog(senderId?: number): Promise<ProjectSummary | ProjectBinding | null> {
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile'],
-    filters: [
-      { name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] },
-    ],
+    filters: [{ name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] }],
     title: 'Open or Import GEDCOM',
   };
   const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
   const result =
-    parent !== null
-      ? await dialog.showOpenDialog(parent, dialogOptions)
-      : await dialog.showOpenDialog(dialogOptions);
+    parent !== null ? await dialog.showOpenDialog(parent, dialogOptions) : await dialog.showOpenDialog(dialogOptions);
   if (result.canceled || result.filePaths[0] === undefined) {
     return null;
   }
@@ -233,9 +220,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
   };
   const result =
-    parent !== null
-      ? await dialog.showSaveDialog(parent, dialogOptions)
-      : await dialog.showSaveDialog(dialogOptions);
+    parent !== null ? await dialog.showSaveDialog(parent, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
   if (result.canceled || !result.filePath) {
     return null;
   }

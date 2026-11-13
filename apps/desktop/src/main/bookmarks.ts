@@ -31,17 +31,17 @@ async function bookmarkFfi(): Promise<BookmarkFfi | null> {
   }
   const koffi = (await import('koffi')).default;
   const cf = koffi.load('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation');
-  const CFStringCreateWithCString = cf.func('CFStringCreateWithCString', 'void *', [
-    'void *',
-    'string',
-    'uint32',
-  ]);
+  const CFStringCreateWithCString = cf.func('CFStringCreateWithCString', 'void *', ['void *', 'string', 'uint32']) as (
+    allocator: unknown,
+    value: string,
+    encoding: number,
+  ) => unknown;
   const CFURLCreateWithFileSystemPath = cf.func('CFURLCreateWithFileSystemPath', 'void *', [
     'void *',
     'void *',
     'int',
     'bool',
-  ]);
+  ]) as (allocator: unknown, value: unknown, style: number, isDirectory: boolean) => unknown;
   const CFURLCreateBookmarkData = cf.func('CFURLCreateBookmarkData', 'void *', [
     'void *',
     'void *',
@@ -49,9 +49,16 @@ async function bookmarkFfi(): Promise<BookmarkFfi | null> {
     'void *',
     'void *',
     'void *',
-  ]);
-  const CFDataGetLength = cf.func('CFDataGetLength', 'int64', ['void *']);
-  const CFDataGetBytePtr = cf.func('CFDataGetBytePtr', 'void *', ['void *']);
+  ]) as (
+    allocator: unknown,
+    url: unknown,
+    options: number,
+    resourceProperties: unknown,
+    relativeToURL: unknown,
+    error: unknown,
+  ) => unknown;
+  const CFDataGetLength = cf.func('CFDataGetLength', 'int64', ['void *']) as (data: unknown) => number | bigint;
+  const CFDataGetBytePtr = cf.func('CFDataGetBytePtr', 'void *', ['void *']) as (data: unknown) => unknown;
 
   const kCFStringEncodingUTF8 = 0x08000100;
   const kCFURLBookmarkCreationWithSecurityScope = 1 << 11;
@@ -66,19 +73,12 @@ async function bookmarkFfi(): Promise<BookmarkFfi | null> {
       if (!url) {
         return null;
       }
-      const data = CFURLCreateBookmarkData(
-        null,
-        url,
-        kCFURLBookmarkCreationWithSecurityScope,
-        null,
-        null,
-        null,
-      );
+      const data = CFURLCreateBookmarkData(null, url, kCFURLBookmarkCreationWithSecurityScope, null, null, null);
       if (!data) {
         return null;
       }
       const length = Number(CFDataGetLength(data));
-      const bytes = koffi.decode(CFDataGetBytePtr(data), koffi.array('uint8', length));
+      const bytes = koffi.decode(CFDataGetBytePtr(data), koffi.array('uint8', length)) as Uint8Array;
       return Buffer.from(bytes).toString('base64');
     },
   };

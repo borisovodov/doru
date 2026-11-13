@@ -27,7 +27,7 @@ export function parseTreeTagRecord(node: RawNode, ctx: Ctx): TreeTagRecord {
         out.automatedRecordId = reqText(child);
       },
       _VISI: (child) => {
-        const flag = parseUsmFlagLenient(child, '_VISI');
+        const flag = parseUsmFlagLenient(child);
         if (flag === undefined) {
           addExtension(out, child, ctx);
         } else {

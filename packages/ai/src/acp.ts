@@ -109,7 +109,7 @@ export class AcpAgentClient {
    */
   private async withStartGuard(attach: Promise<void>): Promise<void> {
     const timeoutMs = this.options.startTimeoutMs ?? DEFAULT_START_TIMEOUT_MS;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         void (async () => {
@@ -144,9 +144,7 @@ export class AcpAgentClient {
     try {
       await Promise.race([guardedAttach, timeout, this.spawnFailed ?? new Promise<never>(() => {})]);
     } finally {
-      if (timer) {
-        clearTimeout(timer);
-      }
+      clearTimeout(timer);
     }
   }
 
@@ -154,10 +152,7 @@ export class AcpAgentClient {
     const command = [this.options.command, ...this.options.args].join(' ');
     const stdout = this.stdoutTail.trim();
     const stderr = this.stderrTail.trim();
-    const outputs = [
-      ...(stdout === '' ? [] : [`stdout: ${stdout}`]),
-      ...(stderr === '' ? [] : [`stderr: ${stderr}`]),
-    ];
+    const outputs = [...(stdout === '' ? [] : [`stdout: ${stdout}`]), ...(stderr === '' ? [] : [`stderr: ${stderr}`])];
     const suffix = outputs.length === 0 ? '' : ` Last output: ${outputs.join('; ')}`;
     return `The ACP agent command ('${command}') ${detail}.${suffix}`;
   }
@@ -201,9 +196,7 @@ export class AcpAgentClient {
     this.child = child;
     this.captureStdout = true;
     this.spawnFailed = new Promise<never>((_, reject) => {
-      child.on('error', (error: Error) =>
-        reject(new AcpError('acp-spawn-failed', error.message)),
-      );
+      child.on('error', (error: Error) => reject(new AcpError('acp-spawn-failed', error.message)));
     });
     // Keep the agent's diagnostics on the dev console (stderr was inherited
     // before) while remembering the tail for handshake error messages.

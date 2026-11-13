@@ -1,7 +1,4 @@
-import type {
-  Integer,
-  Text,
-} from '../primitives';
+import type { Integer, Text } from '../primitives';
 
 import type { FamilyEventDetail } from './common';
 import type { GedcomStructureBase } from './extensions';
@@ -112,10 +109,7 @@ export interface FamilyGenericAttribute extends GedcomStructureBase {
 }
 
 /** GEDCOM 7.0 §3.2.3 FAMILY_ATTRIBUTE_STRUCTURE — the union of family attributes. */
-export type FamilyAttributeStructure =
-  | FamilyChildCountAttribute
-  | FamilyResidenceAttribute
-  | FamilyGenericAttribute;
+export type FamilyAttributeStructure = FamilyChildCountAttribute | FamilyResidenceAttribute | FamilyGenericAttribute;
 
 /** Base of the family event structures of GEDCOM 7.0 §3.2.3.
  *
@@ -127,7 +121,7 @@ export type FamilyAttributeStructure =
 interface FamilyEventBase<Tag extends string> extends GedcomStructureBase {
   tag: Tag;
   /** {1:1} — `[Y|<NULL>]`: the optional `Y` payload asserting the event occurred (GEDCOM 7.0 §3.3.1); a non-`Y` text payload of files in the wild is kept verbatim (the full-leniency container rule). */
-  payload?: EventAssertion | Text;
+  payload?: Text;
   /** TYPE {0:1}, g7:TYPE — a descriptive word or phrase further classifying the event. */
   type?: Text;
   /** <<FAMILY_EVENT_DETAIL>> {0:1}. */

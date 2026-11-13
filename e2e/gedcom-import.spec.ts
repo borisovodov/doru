@@ -4,15 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { launchApp } from './launch';
 
-const GEDCOM = [
-  '0 HEAD',
-  '1 GEDC',
-  '2 VERS 7.0',
-  '0 @I1@ INDI',
-  '1 NAME Ivan /Ivanov/',
-  '1 SEX M',
-  '0 TRLR',
-].join('\n');
+const GEDCOM = ['0 HEAD', '1 GEDC', '2 VERS 7.0', '0 @I1@ INDI', '1 NAME Ivan /Ivanov/', '1 SEX M', '0 TRLR'].join(
+  '\n',
+);
 
 test('opening a GEDCOM file opens a not-yet-saved project', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'doru-ged-e2e-'));
@@ -40,7 +34,7 @@ test('opening a GEDCOM file opens a not-yet-saved project', async () => {
       const imported = await window.doru.listPersons(projectPath);
       if (imported.length !== 1) throw new Error(`expected 1 imported person, got ${imported.length}`);
       const [ivan] = imported;
-      if (ivan?.names[0]?.given !== 'Ivan' || ivan?.sex !== 'M') {
+      if (ivan?.names[0]?.given !== 'Ivan' || ivan.sex !== 'M') {
         throw new Error(`unexpected imported person: ${JSON.stringify(imported)}`);
       }
       await window.doru.addPerson(projectPath, {

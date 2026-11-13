@@ -7,16 +7,9 @@
  * error naming the offending line.
  */
 
-import {
-  EVENT_ATTRIBUTE_ENUM_VALUES,
-  QUALITY_ENUM_VALUES,
-} from '../enumerations';
-import type {
-  EventAttributeEnum,
-} from '../enumerations';
-import {
-  fail,
-} from '../errors';
+import { EVENT_ATTRIBUTE_ENUM_VALUES, QUALITY_ENUM_VALUES } from '../enumerations';
+import type { EventAttributeEnum } from '../enumerations';
+import { fail } from '../errors';
 import type {
   EvidenceTemplate,
   EvidenceTemplateField,
@@ -33,9 +26,7 @@ import type {
   SourceText,
   WebTagStructure,
 } from '../structures';
-import type {
-  Ctx,
-} from './context';
+import type { Ctx } from './context';
 import {
   addExtension,
   dispatch,
@@ -46,18 +37,10 @@ import {
   reqPtr,
   reqText,
 } from './context';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parseEnum,
-} from './types';
-import {
-  parseTagLink,
-} from './evidence';
-import {
-  parsePlaceStructure,
-} from './names-places';
+import type { RawNode } from './lines';
+import { parseEnum } from './types';
+import { parseTagLink } from './evidence';
+import { parsePlaceStructure } from './names-places';
 import {
   parseMultimediaLink,
   parsePrivacyFlag,
@@ -104,21 +87,21 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     NOTE: (child) => {
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     },
-    '_DATE': (child) => {
+    _DATE: (child) => {
       // The community _DATE extension under REPO (registry: _DATE.yaml).
       (rec.dates ??= []).push(parseDateStructure(child, ctx));
     },
-    '_EMAIL': (child) => {
+    _EMAIL: (child) => {
       // FH (up to V6.2): the repository e-mail — the vendor spelling of
       // the standard EMAIL slot (see RepositoryRecord.email).
       (rec.email ??= []).push(reqText(child));
     },
-    '_WEB': (child) => {
+    _WEB: (child) => {
       // FH (up to V6.2): the repository web address — the vendor
       // spelling of the standard WWW slot.
       (rec.www ??= []).push(reqText(child));
     },
-    '_TAG': (child) => {
+    _TAG: (child) => {
       // The gedcom-tags application link (see RepositoryRecord.tagLinks).
       if (child.value.kind === 'pointer') {
         (rec.tagLinks ??= []).push(parseTagLink(child, ctx));
@@ -126,12 +109,12 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
         addExtension(rec, child, ctx);
       }
     },
-    '_SUBM': (child) => {
+    _SUBM: (child) => {
       // GDO: a pointer to the submitter record of this repository (see
       // RepositoryRecord.submitters).
       (rec.submitters ??= []).push(reqPtr(child, ctx));
     },
-    '_IMPF': (child) => {
+    _IMPF: (child) => {
       // GDO: the import-file reference (see
       // RepositoryRecord.importReference).
       rec.importReference = parseImportReference(child, ctx);
@@ -165,7 +148,7 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
     UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
-    '_UID': (child) => {
+    _UID: (child) => {
       (rec.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     EXID: (child) => {
@@ -180,19 +163,17 @@ export function parseRepositoryRecord(node: RawNode, ctx: Ctx): RepositoryRecord
       (rec.notes ??= []).push(parseNoteStructure(child, ctx));
     },
   };
-  dispatch(
-    node,
-    rec,
-    handlers,
-    ctx,
-    ['ADDR', 'CHAN', 'CREA', 'RIN'],
-  );
+  dispatch(node, rec, handlers, ctx, ['ADDR', 'CHAN', 'CREA', 'RIN']);
   merge551RecordContacts(rec);
   return rec;
 }
 
 export function parseSharedNoteRecord(node: RawNode, ctx: Ctx): SharedNoteRecord {
-  const rec: SharedNoteRecord = { tag: 'SNOTE', payload: reqText(node), ...(node.xref === undefined ? {} : { xref: node.xref }) };
+  const rec: SharedNoteRecord = {
+    tag: 'SNOTE',
+    payload: reqText(node),
+    ...(node.xref === undefined ? {} : { xref: node.xref }),
+  };
   dispatch(
     node,
     rec,
@@ -288,7 +269,7 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
           rec.creationDate = created;
         }
       },
-      '_CRE': (child) => {
+      _CRE: (child) => {
         // MFT7: the structured creation (a bare line with the DATE
         // child).
         const created = parseCreationDateLenient(child, ctx);
@@ -304,7 +285,7 @@ export function parseNoteRecord(node: RawNode, ctx: Ctx): NoteRecord {
       RIN: (child) => {
         rec.automatedRecordId = reqText(child);
       },
-      '_GCID': (child) => {
+      _GCID: (child) => {
         // GEDitCOM II: the record's id (see NoteRecord.geditcomId).
         rec.geditcomId = reqText(child);
       },
@@ -374,12 +355,12 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
         rec.abbreviationExtensions = base.extensions;
       }
     },
-    '_APID': (child) => {
+    _APID: (child) => {
       // Ancestry: the record-level Ancestry reference (see
       // SourceRecord.ancestryPointers).
       (rec.ancestryPointers ??= []).push(reqText(child));
     },
-    '_FTSID': (child) => {
+    _FTSID: (child) => {
       // The Swarm family-tree packs: the source's FamilySearch tree
       // id (see SourceRecord.familyTreeSystemId).
       rec.familyTreeSystemId = reqText(child);
@@ -567,7 +548,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       // SourceRecord.submitters).
       (rec.submitters ??= []).push(reqPtr(child, ctx));
     },
-    '_MEDI': (child) => {
+    _MEDI: (child) => {
       // Legacy writes the media type of the source with the standard
       // MEDI tag (see SourceRecord.medium); the underscore spelling is
       // recognized in both versions and is the write-back spelling.
@@ -670,13 +651,26 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     // see SourceRecord.medium for the export rule).
     rec.medium = reqText(child);
   };
-  dispatch(
-    node,
-    rec,
-    handlers,
-    ctx,
-    ['DATA', 'AUTH', 'TITL', 'ABBR', 'PUBL', 'TEXT', 'CHAN', 'CREA', 'RIN', 'DATE', 'PLAC', '_TAG', '_TAG2', '_TAG3', '_TAG4', '_TYPE', '_MASTER', '_QUAL'],
-  );
+  dispatch(node, rec, handlers, ctx, [
+    'DATA',
+    'AUTH',
+    'TITL',
+    'ABBR',
+    'PUBL',
+    'TEXT',
+    'CHAN',
+    'CREA',
+    'RIN',
+    'DATE',
+    'PLAC',
+    '_TAG',
+    '_TAG2',
+    '_TAG3',
+    '_TAG4',
+    '_TYPE',
+    '_MASTER',
+    '_QUAL',
+  ]);
   return rec;
 }
 
@@ -800,15 +794,13 @@ export function parseSourceDataEvent(node: RawNode, ctx: Ctx): SourceDataEvent {
   // way.
   const out: SourceDataEvent = { payload: [] };
   for (const item of raw.split(',').map((part) => part.trim())) {
-    const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find(
-      (value) => value.toLowerCase() === item.toLowerCase(),
-    );
+    const key = Object.keys(EVENT_ATTRIBUTE_ENUM_VALUES).find((value) => value.toLowerCase() === item.toLowerCase());
     if (key !== undefined) {
-      (out.payload as EventAttributeEnum[]).push(key as EventAttributeEnum);
+      out.payload.push(key as EventAttributeEnum);
     } else if (item.startsWith('_')) {
       // The 7.0 extension values go to the payload (like the citation
       // EVEN form).
-      (out.payload as EventAttributeEnum[]).push(item as EventAttributeEnum);
+      out.payload.push(item as EventAttributeEnum);
     } else {
       (out.userDefined ??= []).push(item);
     }

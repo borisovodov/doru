@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { AI_PROVIDERS, findProvider, wireDialect } from '../src/providers';
+import { AI_PROVIDERS, findProvider, wireDialect, type AiProvider } from '../src/providers';
 
 describe('AI_PROVIDERS', () => {
   it('lists only the local and ACP presets while cloud presets are unlisted', () => {
-    expect(AI_PROVIDERS.map((provider) => provider.id)).toEqual([
-      'doru',
-      'ollama',
-      'lmstudio',
-      'custom',
-      'acp',
-    ]);
+    expect(AI_PROVIDERS.map((provider) => provider.id)).toEqual(['doru', 'ollama', 'lmstudio', 'custom', 'acp']);
   });
 
   it('keeps the local and ACP presets static', () => {
@@ -54,26 +48,26 @@ describe('AI_PROVIDERS', () => {
   });
 
   it('routes anthropic-served catalogs to the anthropic dialect', () => {
-    const anthropicProvider = {
+    const anthropicProvider: AiProvider = {
       id: 'x',
       label: 'X',
       kind: 'cloud',
       defaultBaseUrl: '',
       defaultModels: [],
       requiresKey: true,
-      catalog: { npm: '@ai-sdk/anthropic' },
-    } as Parameters<typeof wireDialect>[0];
+      catalog: { id: 'x', name: 'X', npm: '@ai-sdk/anthropic', models: [] },
+    };
     expect(wireDialect(anthropicProvider)).toBe('anthropic');
 
-    const openaiProvider = {
+    const openaiProvider: AiProvider = {
       id: 'y',
       label: 'Y',
       kind: 'cloud',
       defaultBaseUrl: '',
       defaultModels: [],
       requiresKey: true,
-      catalog: { npm: '@ai-sdk/openai' },
-    } as Parameters<typeof wireDialect>[0];
+      catalog: { id: 'y', name: 'Y', npm: '@ai-sdk/openai', models: [] },
+    };
     expect(wireDialect(openaiProvider)).toBe('openai');
   });
 });

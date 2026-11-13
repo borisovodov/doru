@@ -86,14 +86,7 @@ export function signedYear(component: DateComponent | undefined): number | undef
  * special kind holding the display form verbatim when it cannot be derived
  * from the pieces.
  */
-export type NamePartKind =
-  | 'full'
-  | 'prefix'
-  | 'given'
-  | 'nickname'
-  | 'surnamePrefix'
-  | 'surname'
-  | 'suffix';
+export type NamePartKind = 'full' | 'prefix' | 'given' | 'nickname' | 'surnamePrefix' | 'surname' | 'suffix';
 
 export interface NamePart {
   id: string;
@@ -323,7 +316,9 @@ export interface SourceRecord {
   titleId?: string | undefined;
   texts?: SourceText[] | undefined;
   dataEvents?: Array<{ id: string; tag: string; value?: string; date?: DateValue; placeId?: string }> | undefined;
-  repositories?: Array<{ id: string; repositoryId: string; callNumbers?: Array<{ id: string; value: string; medium?: string }> }> | undefined;
+  repositories?:
+    | Array<{ id: string; repositoryId: string; callNumbers?: Array<{ id: string; value: string; medium?: string }> }>
+    | undefined;
   templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
 

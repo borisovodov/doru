@@ -22,6 +22,10 @@
   max-width: 260px;
 }
 
+.chat-text p {
+  margin: 6px 0;
+}
+
 .chat-setup .placeholder-view p {
   margin-bottom: 14px;
 }
@@ -98,7 +102,7 @@
   background: transparent;
   border: none;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .chat-message.user .chat-bubble {
@@ -209,6 +213,7 @@
     opacity: 0.25;
     transform: scale(0.8);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.1);
@@ -227,10 +232,6 @@
 
 .chat-text > :last-child {
   margin-bottom: 0;
-}
-
-.chat-text p {
-  margin: 6px 0;
 }
 
 .chat-text h1,

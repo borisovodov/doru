@@ -35,7 +35,6 @@
   min-width: 0;
 }
 
-
 .sources-attach {
   display: flex;
   flex-wrap: wrap;
@@ -47,5 +46,3 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-

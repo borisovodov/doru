@@ -75,7 +75,9 @@ describe('AcpAgentClient', () => {
 
     const controller = new AbortController();
     controller.abort();
-    await expect(client.prompt([{ type: 'text', text: 'Inspect my tree' }], {}, controller.signal)).rejects.toMatchObject({
+    await expect(
+      client.prompt([{ type: 'text', text: 'Inspect my tree' }], {}, controller.signal),
+    ).rejects.toMatchObject({
       name: 'AbortError',
     });
   });
@@ -140,7 +142,11 @@ describe('AcpAgentClient', () => {
 
     const deltas: string[] = [];
     const controller = new AbortController();
-    const pending = client.prompt([{ type: 'text', text: 'Go' }], { onTextDelta: (delta) => deltas.push(delta) }, controller.signal);
+    const pending = client.prompt(
+      [{ type: 'text', text: 'Go' }],
+      { onTextDelta: (delta) => deltas.push(delta) },
+      controller.signal,
+    );
 
     // Wait for the first chunk, then abort mid-turn.
     await vi.waitFor(() => {
@@ -232,7 +238,10 @@ describe('AcpAgentClient', () => {
 
     const client = new AcpAgentClient({ command: 'unused', args: [], cwd: '/tmp', mcpServers: [] });
     await client.startWithAgent(capturing);
-    await client.prompt([{ type: 'text', text: 'You are a genealogy assistant.' }, { type: 'text', text: 'list my ancestors' }]);
+    await client.prompt([
+      { type: 'text', text: 'You are a genealogy assistant.' },
+      { type: 'text', text: 'list my ancestors' },
+    ]);
 
     expect(received).toEqual([
       { type: 'text', text: 'You are a genealogy assistant.' },

@@ -67,13 +67,11 @@ function toCatalogModel(model: Model): CatalogModel {
   if (model.temperature) trimmed['temperature'] = true;
   if (model.attachment) trimmed['attachment'] = true;
   const limit = model.limit;
-  if (limit.context !== undefined || limit.input !== undefined || limit.output !== undefined) {
-    trimmed['limit'] = {
-      ...(limit.context !== undefined ? { context: limit.context } : {}),
-      ...(limit.input !== undefined ? { input: limit.input } : {}),
-      ...(limit.output !== undefined ? { output: limit.output } : {}),
-    };
-  }
+  trimmed['limit'] = {
+    context: limit.context,
+    output: limit.output,
+    ...(limit.input !== undefined ? { input: limit.input } : {}),
+  };
   const cost = model.cost;
   if (cost) {
     trimmed['cost'] = {

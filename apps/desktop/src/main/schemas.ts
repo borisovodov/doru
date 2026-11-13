@@ -21,14 +21,8 @@ export const ProviderSettingsSchema = z
       .describe(
         'Reasoning level for models that support it, translated to each provider\'s native mechanism (reasoning_effort on OpenAI-style APIs, Anthropic thinking controls). Any string is accepted: levels the running version does not know, or the selected model does not offer, fall back to the provider default. Absent means the provider default. Ignored for provider "acp".',
       ),
-    command: z
-      .string()
-      .optional()
-      .describe('For provider "acp" only: the agent binary to spawn.'),
-    args: z
-      .array(z.string())
-      .optional()
-      .describe('For provider "acp" only: arguments for the agent command.'),
+    command: z.string().optional().describe('For provider "acp" only: the agent binary to spawn.'),
+    args: z.array(z.string()).optional().describe('For provider "acp" only: arguments for the agent command.'),
   })
   .describe('Settings of one AI provider. Keys are provider ids.');
 
@@ -66,7 +60,7 @@ export const SettingsFileSchema = z
       ),
   })
   .describe(
-    'Settings for the Dóru desktop app (settings.json in the app\'s data directory). The file is JSONC — comments are allowed and changes are picked up live while the app is running. Defaults live in the app; the file only records explicit overrides, which the app writes when settings change.',
+    "Settings for the Dóru desktop app (settings.json in the app's data directory). The file is JSONC — comments are allowed and changes are picked up live while the app is running. Defaults live in the app; the file only records explicit overrides, which the app writes when settings change.",
   );
 
 /** Every key becomes a `--doru-<key>` CSS custom property. */
@@ -96,9 +90,7 @@ export const ThemeFileSchema = z
 export function settingsJsonSchema(): Record<string, unknown> {
   const schema = z.toJSONSchema(SettingsFileSchema) as Record<string, unknown>;
   const properties = schema['properties'] as Record<string, Record<string, unknown>>;
-  const aiProperties = properties['ai']?.['properties'] as
-    | Record<string, Record<string, unknown>>
-    | undefined;
+  const aiProperties = properties['ai']?.['properties'] as Record<string, Record<string, unknown>> | undefined;
   const provider = aiProperties?.['provider'];
   if (provider) {
     provider['default'] = 'doru';

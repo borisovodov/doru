@@ -3,9 +3,8 @@ import { cancelChat, sendChat } from './chat';
 import { chatSessions } from './chat-sessions';
 
 export function registerChatIpc(): void {
-  ipcMain.handle(
-    'chat:send',
-    (_event, options: { projectPath: string; sessionId: string; text: string }) => sendChat(options),
+  ipcMain.handle('chat:send', (_event, options: { projectPath: string; sessionId: string; text: string }) =>
+    sendChat(options),
   );
 
   ipcMain.on('chat:cancel', (_event, options: { projectPath: string; sessionId: string }) => {

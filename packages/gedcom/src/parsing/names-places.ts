@@ -7,9 +7,7 @@
  * error naming the offending line.
  */
 
-import {
-  fail,
-} from '../errors';
+import { fail } from '../errors';
 import type {
   AliasTextLink,
   GedcomStructureBase,
@@ -26,29 +24,11 @@ import type {
   RomanizedNameVariation,
   RomanizedPlaceVariation,
 } from '../structures';
-import {
-  addExtension,
-  dispatch,
-  noPayload,
-  one,
-  reqPtr,
-  reqText,
-} from './context';
-import {
-  parseEvidenceReference,
-} from './evidence';
-import type {
-  Ctx,
-} from './context';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parseMultimediaLink,
-  parsePrivacyFlag,
-  parseSourceCitation,
-  parseYNFlag,
-} from './sources-media';
+import { addExtension, dispatch, noPayload, one, reqPtr, reqText } from './context';
+import { parseEvidenceReference } from './evidence';
+import type { Ctx } from './context';
+import type { RawNode } from './lines';
+import { parseMultimediaLink, parsePrivacyFlag, parseSourceCitation, parseYNFlag } from './sources-media';
 import {
   datedSourceHandlers,
   parseCreationDateLenient,
@@ -56,12 +36,7 @@ import {
   parseExternalIdentifier,
   parseNoteStructure,
 } from './substructures';
-import {
-  parseLatitude,
-  parseListText,
-  parseLongitude,
-  parsePersonalName,
-} from './types';
+import { parseLatitude, parseListText, parseLongitude, parsePersonalName } from './types';
 
 // Names and places
 // ---------------------------------------------------------------------------
@@ -122,7 +97,10 @@ export function pieces551(out: PersonalNamePieces, tag: string, child: RawNode, 
     // Full leniency: unexpected children stay generic extensions.
     addExtension(out, grandchild, ctx);
   }
-  const parts = reqText(child).split(',').map((part) => part.trim()).filter((part) => part !== '');
+  const parts = reqText(child)
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
   switch (tag) {
     case 'NPFX':
       out.namePrefixes = [...(out.namePrefixes ?? []), ...parts];
@@ -157,25 +135,25 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
     TYPE: (child) => {
       out.type = parseNameType(child, ctx);
     },
-    '_RUFNAME': (child) => {
+    _RUFNAME: (child) => {
       out.callName = reqText(child);
     },
-    '_KB_NAME': (child) => {
+    _KB_NAME: (child) => {
       // OFB-Werkstatt: the name in the church book's spelling (see
       // PersonalNameStructure.nameAsRecorded).
       out.nameAsRecorded = reqText(child);
     },
-    '_SHON': (child) => {
+    _SHON: (child) => {
       // Brother's Keeper 6: the short name (see
       // PersonalNameStructure.shortName).
       out.shortName = reqText(child);
     },
-    '_PRIM': (child) => {
+    _PRIM: (child) => {
       // Legacy: the primary name mark (see
       // PersonalNameStructure.primary).
       out.primary = parseYNFlag(child, '_PRIM');
     },
-    '_MIDN': (child) => {
+    _MIDN: (child) => {
       // ged4web: the middle name under NAME (see
       // PersonalNameStructure.middleName).
       out.middleName = reqText(child);
@@ -185,13 +163,13 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // trees write `2 MIDDLE Thomas` under NAME).
       out.middleName = reqText(child);
     },
-    '_PGVN': (child) => {
+    _PGVN: (child) => {
       // ged4web: the preferred given name (`2 _PGVN Esther` under
       // NAME) — the same slot the FH `_USED` carries (see
       // PersonalNameStructure.givenNameUsed).
       out.givenNameUsed = reqText(child);
     },
-    '_PATN': (child) => {
+    _PATN: (child) => {
       // The patronymic under NAME (see
       // PersonalNameStructure.patronymic).
       out.patronymic = reqText(child);
@@ -206,7 +184,7 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
         out.creationDate = created;
       }
     },
-    '_CRE': (child) => {
+    _CRE: (child) => {
       // MFT7: the `_CRE` spelling of the name creation (see
       // PersonalNameStructure.creationDate).
       const created = parseCreationDateLenient(child, ctx);
@@ -216,23 +194,23 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
         out.creationDate = created;
       }
     },
-    '_USED': (child) => {
+    _USED: (child) => {
       // FH: the given name used (see
       // PersonalNameStructure.givenNameUsed).
       out.givenNameUsed = reqText(child);
     },
-    '_CENR': (child) => {
+    _CENR: (child) => {
       // The MagiKey census link (registry: MagiKey_CENR.yaml,
       // superstructure INDI-NAME): a pointer to the shared census
       // record the name was recorded in. The pointer must resolve.
       (out.censusLinks ??= []).push(reqPtr(child, ctx));
     },
-    '_EVREF': (child) => {
+    _EVREF: (child) => {
       // The gedcom-evidence reference for this name (see
       // PersonalNameStructure.evidence).
       (out.evidence ??= []).push(parseEvidenceReference(child, ctx));
     },
-    '_EVID': (child) => {
+    _EVID: (child) => {
       // The gedcom-evidence v1 link spelling (the gramps census
       // example writes it under NAME); a text payload is a different,
       // undocumented convention and stays generic.
@@ -242,18 +220,18 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
         addExtension(out, child, ctx);
       }
     },
-    '_DATE': (child) => {
+    _DATE: (child) => {
       // TMG: a date associated with the name (see
       // PersonalNameStructure.date).
       out.date = parseDateStructure(child, ctx);
     },
-    'DATE': (child) => {
+    DATE: (child) => {
       // A standard DATE under the NAME — the name's period of use,
       // spelled with the standard tag instead of the TMG `_DATE`
       // (the same slot; written back as `_DATE`).
       out.date = parseDateStructure(child, ctx);
     },
-    '_ALIA': (child) => {
+    _ALIA: (child) => {
       // PRO-GEN: an alias of the name, as pure text (see
       // PersonalNameStructure.aliases).
       (out.aliases ??= []).push(reqText(child));
@@ -280,24 +258,24 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // PersonalNameStructure.title).
       out.title = reqText(child);
     },
-    '_MARNM': (child) => {
+    _MARNM: (child) => {
       // The married name (see PersonalNameStructure.marriedName).
       out.marriedName = reqText(child);
     },
-    '_MARN': (child) => {
+    _MARN: (child) => {
       // The Brother's Keeper spelling of the married name.
       out.marriedName = reqText(child);
     },
-    '_AKA': (child) => {
+    _AKA: (child) => {
       // An "also known as" name variant (see
       // PersonalNameStructure.alsoKnownAs).
       (out.alsoKnownAs ??= []).push(reqText(child));
     },
-    '_AKAN': (child) => {
+    _AKAN: (child) => {
       // The BKW6/PAF5 spelling of _AKA.
       (out.alsoKnownAs ??= []).push(reqText(child));
     },
-    '_APID': (child) => {
+    _APID: (child) => {
       // The Ancestry record reference attached to names (see
       // PersonalNameStructure.ancestryPointers).
       (out.ancestryPointers ??= []).push(reqText(child));
@@ -308,7 +286,7 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       // T2G writes for validators.
       (out.media ??= []).push(parseMultimediaLink(child, ctx));
     },
-    '_OBJE': (child) => {
+    _OBJE: (child) => {
       (out.media ??= []).push(parseMultimediaLink(child, ctx));
     },
   };
@@ -323,30 +301,30 @@ export function parsePersonalNameStructure(node: RawNode, ctx: Ctx): PersonalNam
       }
     };
   }
-  handlers["TRAN"] = (child) => {
+  handlers['TRAN'] = (child) => {
     (out.translations ??= []).push(parseNameTranslation(child, ctx));
   };
-  handlers["NOTE"] = (child) => {
+  handlers['NOTE'] = (child) => {
     (out.notes ??= []).push(parseNoteStructure(child, ctx));
   };
-  handlers["SOUR"] = (child) => {
+  handlers['SOUR'] = (child) => {
     (out.citations ??= []).push(parseSourceCitation(child, ctx));
   };
   // The 7.0 SNOTE spelling and the 5.5.1 FONE/ROMN and the
   // non-underscore vendor spellings (UGNM, NAME_, SECG) are all
   // accepted in any file.
-  handlers["SNOTE"] = (child) => {
+  handlers['SNOTE'] = (child) => {
     // The 7.0 PERSONAL_NAME_STRUCTURE carries <<NOTE_STRUCTURE>>
     // {0:M} (GEDCOM 7.0 §3.2.3); accepted in any file.
     (out.notes ??= []).push(parseNoteStructure(child, ctx));
   };
-  handlers["TRAN"] = (child) => {
+  handlers['TRAN'] = (child) => {
     (out.translations ??= []).push(parseNameTranslation(child, ctx));
   };
-  handlers["FONE"] = (child) => {
+  handlers['FONE'] = (child) => {
     (out.phonetic ??= []).push(parsePhoneticNameVariation(child, ctx));
   };
-  handlers["ROMN"] = (child) => {
+  handlers['ROMN'] = (child) => {
     (out.romanized ??= []).push(parseRomanizedNameVariation(child, ctx));
   };
   handlers['UGNM'] = (child) => {
@@ -524,7 +502,11 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
             addExtension(out, grandchild, ctx);
           }
           if (reqText(typeNode).toUpperCase() !== 'MAIDENHEAD') {
-            fail('enum.invalid-value', `The MAP TYPE must be MAIDENHEAD, got "${reqText(typeNode)}"`, typeNode.position);
+            fail(
+              'enum.invalid-value',
+              `The MAP TYPE must be MAIDENHEAD, got "${reqText(typeNode)}"`,
+              typeNode.position,
+            );
           }
         }
         out.maidenhead = child.value.text;
@@ -543,49 +525,49 @@ export function parsePlaceStructure(node: RawNode, ctx: Ctx): PlaceStructure {
       // PlaceStructure.citations).
       (out.citations ??= []).push(parseSourceCitation(child, ctx));
     },
-    '_LOC': (child) => {
+    _LOC: (child) => {
       out.location = reqPtr(child, ctx);
     },
-    '_VERI': (child) => {
+    _VERI: (child) => {
       out.verified = parsePrivacyFlag(child, '_VERI');
     },
-    '_GOV': (child) => {
+    _GOV: (child) => {
       out.govId = reqText(child);
     },
-    '_AON': (child) => {
+    _AON: (child) => {
       // GenPlus: an alternative place name (see
       // PlaceStructure.alternativeNames).
       (out.alternativeNames ??= []).push(reqText(child));
     },
-    '_POST': (child) => {
+    _POST: (child) => {
       const entry: PostalCodeStructure = { code: reqText(child) };
       (out.postalCodes ??= []).push(entry);
       dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
     },
-    '_MAIDENHEAD': (child) => {
+    _MAIDENHEAD: (child) => {
       out.maidenhead = reqText(child);
     },
-    '_HEB': (child) => {
+    _HEB: (child) => {
       // phpGedView: the place name in Hebrew script (see
       // PlaceStructure.hebrewName).
       out.hebrewName = reqText(child);
     },
-    '_PID': (child) => {
+    _PID: (child) => {
       // The Swarm family-tree packs: the place's id (see
       // PlaceStructure.placeId).
       out.placeId = reqText(child);
     },
-    '_FAMILIO_GUID': (child) => {
+    _FAMILIO_GUID: (child) => {
       // Familio: the place's identifier on familio.org (see
       // PlaceStructure.familioId).
       out.familioId = reqText(child);
     },
-    '_XREF': (child) => {
+    _XREF: (child) => {
       // GenoPro: a pointer to the place's card record (see
       // PlaceStructure.placeCard) — kept verbatim, unresolved.
       out.placeCard = child.value.kind === 'pointer' ? child.value.pointer : reqText(child);
     },
-    '_COR': (child) => {
+    _COR: (child) => {
       // MFT7: the place coordinates, split into degrees/minutes/seconds
       // plus the direction: _LAD/_LAM/_LAS/_LAN for the latitude,
       // _LOD/_LOM/_LOS/_LON for the longitude (the GenWiki
@@ -752,14 +734,23 @@ export function parseMftCoordinates(node: RawNode, ctx: Ctx, target: GedcomStruc
       directionNode === undefined || directionNode.value.kind === 'absent'
         ? undefined
         : reqText(directionNode).toUpperCase();
-    let direction = rawDirection === undefined || rawDirection === ''
-      ? (kind === 'latitude' ? 'N' : 'E')
-      : rawDirection === 'O' ? 'E' : rawDirection;
+    let direction =
+      rawDirection === undefined || rawDirection === ''
+        ? kind === 'latitude'
+          ? 'N'
+          : 'E'
+        : rawDirection === 'O'
+          ? 'E'
+          : rawDirection;
     if (direction !== 'N' && direction !== 'S' && direction !== 'E' && direction !== 'W') {
       if (/^\d+$/.test(rawDirection as string)) {
         direction = kind === 'latitude' ? 'N' : 'E';
       } else {
-        fail('enum.invalid-value', `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`, (directionNode as RawNode).position);
+        fail(
+          'enum.invalid-value',
+          `The ${directionTag} value must be N, S, E or W (or O for Ost), not "${rawDirection as string}"`,
+          (directionNode as RawNode).position,
+        );
       }
     }
     const total = degrees + minutes / 60 + seconds / 3600;

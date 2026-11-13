@@ -6,7 +6,7 @@ export interface ToolDefinition {
   name: string;
   description: string;
   /** Zod raw shape — the single source of truth for both surfaces. */
-  inputSchema: Record<string, z.ZodTypeAny>;
+  inputSchema: Record<string, z.ZodType>;
 }
 
 /**
@@ -52,9 +52,7 @@ export const doruTools: ToolDefinition[] = [
           z.object({
             kind: z.literal('person.add'),
             person: z.object({
-              id: z
-                .string()
-                .describe('Id of the NEW person — must not exist in the tree yet; invent a fresh UUID'),
+              id: z.string().describe('Id of the NEW person — must not exist in the tree yet; invent a fresh UUID'),
               names: z.array(
                 z.object({
                   given: z.string().optional(),
@@ -79,14 +77,10 @@ export const doruTools: ToolDefinition[] = [
     description:
       'Add a new relative to an existing person. anchorId is the person already in the tree; person is the new person. relation: "child" — the new person is the anchor\'s child; "spouse" — the new person is married to the anchor; "parent" — the new person is the anchor\'s parent. Creates the person and the family link in one step — do not search for the new person first.',
     inputSchema: {
-      relation: z
-        .enum(['child', 'spouse', 'parent'])
-        .describe('How the new person relates to the anchor person'),
+      relation: z.enum(['child', 'spouse', 'parent']).describe('How the new person relates to the anchor person'),
       anchorId: z.string().describe('Id of the existing person, from a search result'),
       person: z.object({
-        id: z
-          .string()
-          .describe('Id of the NEW person — must not exist in the tree yet; invent a fresh UUID'),
+        id: z.string().describe('Id of the NEW person — must not exist in the tree yet; invent a fresh UUID'),
         names: z.array(
           z.object({
             given: z.string().optional(),
@@ -126,11 +120,8 @@ export function doruToolSet(backend: TreeMcpBackend): ToolSet {
       definition.name,
       tool({
         description: definition.description,
-        inputSchema: jsonSchema(
-          z.toJSONSchema(z.object(definition.inputSchema)) as unknown as JSONSchema7,
-        ),
-        execute: async (args) =>
-          backend.invoke(definition.name, (args as Record<string, unknown> | undefined) ?? {}),
+        inputSchema: jsonSchema(z.toJSONSchema(z.object(definition.inputSchema)) as unknown as JSONSchema7),
+        execute: async (args) => backend.invoke(definition.name, (args as Record<string, unknown> | undefined) ?? {}),
       }),
     ]),
   );

@@ -95,7 +95,14 @@ describe('PlaceRepo', () => {
         sex: 'U',
         names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
         facts: [
-          { id: 'F1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } }, placeId: 'PL1', place: 'Moscow, Russia' },
+          {
+            id: 'F1',
+            personId: 'P1',
+            tag: 'BIRT',
+            date: { quality: 'exact', component: { year: 1923 } },
+            placeId: 'PL1',
+            place: 'Moscow, Russia',
+          },
         ],
       });
 

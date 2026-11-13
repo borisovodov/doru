@@ -94,7 +94,11 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
     ['_TDSC', '_TTIL', '_TSTS', '_TPTY', '_TSDT', '_TCDT', '_TRDT', '_CAT', '_CDATE', '_LOCL', '_RDATE', 'CHAN'],
   );
   if (out.payload === '') {
-    fail('structure.missing-payload', 'The task record requires a description (the record payload or the _TDSC child)', node.position);
+    fail(
+      'structure.missing-payload',
+      'The task record requires a description (the record payload or the _TDSC child)',
+      node.position,
+    );
   }
   return out;
 }

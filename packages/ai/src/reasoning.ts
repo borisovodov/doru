@@ -54,10 +54,7 @@ export function offeredReasoningLevels(
  * `offered` as undefined for "no restrictions" — ACP has no reasoning
  * control at all, so its callers pass no level in the first place.
  */
-export function normalizeReasoning(
-  value: string,
-  offered: readonly string[] | undefined,
-): ReasoningLevel | '' {
+export function normalizeReasoning(value: string, offered: readonly string[] | undefined): ReasoningLevel | '' {
   if (value === '' || !(REASONING_LEVELS as readonly string[]).includes(value)) {
     return '';
   }

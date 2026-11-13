@@ -47,7 +47,7 @@ function resolveSettings(providerId: string): ResolvedAiSettings {
   const ai = (parsed['ai'] ?? {}) as AiSettingsJson;
   const stored = ai.providers?.[providerId] ?? {};
 
-  const baseUrl = stored.baseUrl ?? provider.defaultBaseUrl ?? '';
+  const baseUrl = stored.baseUrl ?? provider.defaultBaseUrl;
   const model = stored.model ?? provider.defaultModels[0] ?? '';
   // A stored level survives only when the selected model actually offers it
   // (its catalog effort values, or the fallback of its wire dialect). ACP

@@ -7,12 +7,8 @@
  * error naming the offending line.
  */
 
-import {
-  fail,
-} from '../errors';
-import {
-  GEDCOM_555_TAG_ALIASES,
-} from './gedcom-555';
+import { fail } from '../errors';
+import { GEDCOM_555_TAG_ALIASES } from './gedcom-555';
 import type {
   AncestryTreeStructure,
   Corporation,
@@ -31,36 +27,13 @@ import type {
   SchemaPrefix,
   TagDefinitionStructure,
 } from '../structures';
-import type {
-  Ctx,
-} from './context';
-import {
-  addExtension,
-  dispatch,
-  merge551RecordContacts,
-  noPayload,
-  one,
-  reqPtr,
-  reqText,
-} from './context';
-import type {
-  RawNode,
-} from './lines';
-import {
-  parseAddressStructure,
-  parseDateExactStructure,
-  parseNoteStructure,
-} from './substructures';
-import {
-  parseVendorFlag,
-} from './sources-media';
-import {
-  normalizeCharset551,
-} from './decode';
-import {
-  parseListText,
-  parseTagDefinition,
-} from './types';
+import type { Ctx } from './context';
+import { addExtension, dispatch, merge551RecordContacts, noPayload, one, reqPtr, reqText } from './context';
+import type { RawNode } from './lines';
+import { parseAddressStructure, parseDateExactStructure, parseNoteStructure } from './substructures';
+import { parseVendorFlag } from './sources-media';
+import { normalizeCharset551 } from './decode';
+import { parseListText, parseTagDefinition } from './types';
 
 // Header
 // ---------------------------------------------------------------------------
@@ -68,7 +41,11 @@ import {
 export function parseHeader(node: RawNode, ctx: Ctx): Header {
   noPayload(node);
   if (node.xref !== undefined) {
-    fail('line.xref-on-substructure', 'The HEAD pseudo-structure must not have a cross-reference identifier', node.position);
+    fail(
+      'line.xref-on-substructure',
+      'The HEAD pseudo-structure must not have a cross-reference identifier',
+      node.position,
+    );
   }
   const header: Omit<Header, 'gedcom'> = { tag: 'HEAD' };
   let gedcom: Gedcom | undefined;
@@ -118,9 +95,10 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         // MyHeritage `_TIMEZONE` child (see Header.timezone) is typed
         // separately, so it is stripped before the date parse.
         const timezone = child.children.find((grandchild) => grandchild.tag === '_TIMEZONE');
-        const dateNode = timezone === undefined
-          ? child
-          : { ...child, children: child.children.filter((grandchild) => grandchild.tag !== '_TIMEZONE') };
+        const dateNode =
+          timezone === undefined
+            ? child
+            : { ...child, children: child.children.filter((grandchild) => grandchild.tag !== '_TIMEZONE') };
         header.date = parseDateExactStructure(dateNode, ctx);
         if (timezone !== undefined) {
           header.timezone = reqText(timezone);
@@ -155,7 +133,7 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
         header.copyright = reqText(child);
       },
       LANG: (child) => {
-        header.language = parseLanguage(child, ctx);
+        header.language = parseLanguage(child);
       },
       PLAC: (child) => {
         header.place = parseHeaderPlace(child, ctx);
@@ -215,7 +193,8 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       _STS: (child) => {
         // My Family Tree: the dataset statistics block (see
         // Header.statistics): one count line per record type.
-        noPayload(child);        const stats: DatasetStatistics = { tag: '_STS' };
+        noPayload(child);
+        const stats: DatasetStatistics = { tag: '_STS' };
         dispatch(
           child,
           stats,
@@ -296,7 +275,22 @@ export function parseHeader(node: RawNode, ctx: Ctx): Header {
       },
     },
     ctx,
-    ['SCHMA', 'SOUR', 'DEST', 'DATE', 'SUBM', 'SUBN', 'FILE', 'COPR', 'LANG', 'PLAC', 'NOTE', 'CHAR', 'SCHEMA', '_ORGSOUR'],
+    [
+      'SCHMA',
+      'SOUR',
+      'DEST',
+      'DATE',
+      'SUBM',
+      'SUBN',
+      'FILE',
+      'COPR',
+      'LANG',
+      'PLAC',
+      'NOTE',
+      'CHAR',
+      'SCHEMA',
+      '_ORGSOUR',
+    ],
   );
   if (gedcom === undefined) {
     // A header without GEDC is tolerated (the full-leniency container
@@ -337,7 +331,11 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
   // in Gedcom.version.
   const declared = gedcom.version.replace(/^GEDCOM\s+/i, '').trim();
   if (!/^\d+(\.\d+)*/.test(declared)) {
-    fail('document.wrong-version', `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (a 7.x version or any 5.x version)`, node.position);
+    fail(
+      'document.wrong-version',
+      `GEDC.VERS "${gedcom.version}" is not a supported GEDCOM version (a 7.x version or any 5.x version)`,
+      node.position,
+    );
   }
   // The GEDCOM-L addendum declarations under GEDC.VERS (see
   // Gedcom.addenda) — the only documented children of the VERS line;
@@ -367,7 +365,7 @@ export function parseGedc(node: RawNode, ctx: Ctx): Gedcom {
     // neither of which has the slot — so the line is accepted and
     // discarded (its cardinality is still checked).
     one(formNode, 'VERS');
-    dispatch(formNode, { }, { VERS: () => undefined }, ctx);
+    dispatch(formNode, {}, { VERS: () => undefined }, ctx);
   }
   dispatch(node, gedcom, { VERS: () => undefined, FORM: () => undefined }, ctx);
   return gedcom;
@@ -469,7 +467,11 @@ export function parseSchema(node: RawNode, ctx: Ctx): Schema {
 
 export function parseTagDefinitionStructure(node: RawNode): TagDefinitionStructure {
   if (node.children.length > 0) {
-    fail('structure.unexpected-payload', 'A TAG definition must not have substructures', (node.children[0] as RawNode).position);
+    fail(
+      'structure.unexpected-payload',
+      'A TAG definition must not have substructures',
+      (node.children[0] as RawNode).position,
+    );
   }
   return { payload: parseTagDefinition(reqText(node), node.position) };
 }
@@ -602,14 +604,13 @@ export function parseHeaderPlace(node: RawNode, ctx: Ctx): HeaderPlace {
 export function parseCharacterSetStructure(node: RawNode, ctx: Ctx): void {
   const text = reqText(node);
   if (normalizeCharset551(text) === undefined) {
-    fail('charset.invalid', `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, or MACINTOSH`, node.position);
+    fail(
+      'charset.invalid',
+      `Unknown character set "${text}"; expected ANSEL, UTF-8, UNICODE, ASCII, CP1252, CP850, or MACINTOSH`,
+      node.position,
+    );
   }
-  dispatch(
-    node,
-    { },
-    { VERS: () => undefined },
-    ctx,
-  );
+  dispatch(node, {}, { VERS: () => undefined }, ctx);
 }
 
 /**
@@ -692,7 +693,7 @@ function collectSchemaEntry(node: RawNode, context: string[], entries: FtmSchema
   }
 }
 
-export function parseLanguage(node: RawNode, _ctx: Ctx): string {
+export function parseLanguage(node: RawNode): string {
   // The language is kept as free text (the 7.0 rule; the 5.5.1
   // LANGUAGE_ID table is a closed list the import no longer
   // validates — the serializer maps onto it on export).

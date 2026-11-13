@@ -68,15 +68,30 @@ const persons: Record<string, PersonSeed> = {
 };
 // fam: [parents, children]
 const families: Record<string, [string[], string[]]> = {
-  F1: [['N1', 'N2'], ['P1', 'P3']],
+  F1: [
+    ['N1', 'N2'],
+    ['P1', 'P3'],
+  ],
   F2: [['N3', 'N4'], ['P2']],
-  F3: [['P1', 'P2'], ['P9', 'P5', 'P7']],
+  F3: [
+    ['P1', 'P2'],
+    ['P9', 'P5', 'P7'],
+  ],
   F4: [['P3', 'P4'], ['P9']],
   F5: [['P5', 'P6'], ['P20']],
-  F6: [['P7', 'P8'], ['P17', 'P19']],
-  F7: [['P9', 'P10'], ['P12', 'P14']],
+  F6: [
+    ['P7', 'P8'],
+    ['P17', 'P19'],
+  ],
+  F7: [
+    ['P9', 'P10'],
+    ['P12', 'P14'],
+  ],
   F8: [['P9', 'P11'], ['P15']],
-  F9: [['P12', 'P13'], ['P21', 'P22']],
+  F9: [
+    ['P12', 'P13'],
+    ['P21', 'P22'],
+  ],
   F10: [['P15', 'P16'], ['P23']],
   F11: [['P17', 'P18'], ['P24']],
 };
@@ -90,14 +105,12 @@ await page.evaluate(
         continue;
       }
       const person: PersonRecord = { id, names: [{ id: `N-${id}`, given, surname }], sex, facts: [] };
-      if (birthYear !== undefined) {
-        person.facts.push({
-          id: `B-${id}`,
-          personId: id,
-          tag: 'BIRT',
-          date: { quality: 'exact', component: { year: birthYear } },
-        });
-      }
+      person.facts.push({
+        id: `B-${id}`,
+        personId: id,
+        tag: 'BIRT',
+        date: { quality: 'exact', component: { year: birthYear } },
+      });
       if (deathYear !== undefined) {
         person.facts.push({
           id: `D-${id}`,
@@ -129,12 +142,7 @@ await page.evaluate(
         'person',
         'P9',
       );
-      await window.doru.addSource(
-        project,
-        { id: 'DEMOSRC2', title: 'The Ivanov family archive' },
-        'person',
-        'P1',
-      );
+      await window.doru.addSource(project, { id: 'DEMOSRC2', title: 'The Ivanov family archive' }, 'person', 'P1');
     }
   },
   { project, persons, families },

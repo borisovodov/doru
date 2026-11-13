@@ -1,14 +1,5 @@
-import type {
-  EventAttributeEnum,
-  MediaEnum,
-  QualityEnum,
-} from '../enumerations';
-import type {
-  Integer,
-  Pointer,
-  Special,
-  Text,
-} from '../primitives';
+import type { EventAttributeEnum, MediaEnum, QualityEnum } from '../enumerations';
+import type { Integer, Pointer, Special, Text } from '../primitives';
 
 import type { GedcomStructureBase } from './extensions';
 import type { EvidenceTemplate } from './records';

@@ -68,71 +68,86 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
     NAME: (child) => {
       const entry: PlaceNameStructure = { name: reqText(child) };
       (out.names ??= []).push(entry);
-      dispatch(child, entry, {
-        ...datedSourceHandlers(ctx, entry),
-        ABBR: (grandchild) => {
-          // GEDCOM-L L1: ABBR {0:M} — a name carries several
-          // abbreviations of different kinds, each optionally
-          // qualified by one TYPE (L3, e.g. "ISO 3166").
-          const abbr: PlaceAbbreviation = { abbreviation: reqText(grandchild) };
-          (entry.abbreviations ??= []).push(abbr);
-          let sawType = false;
-          dispatch(grandchild, abbr, {
-            TYPE: (greatGrandchild) => {
-              if (sawType) {
-                // First occurrence wins.
-                return;
-              }
-              sawType = true;
-              abbr.type = reqText(greatGrandchild);
-            },
-          }, ctx);
+      dispatch(
+        child,
+        entry,
+        {
+          ...datedSourceHandlers(ctx, entry),
+          ABBR: (grandchild) => {
+            // GEDCOM-L L1: ABBR {0:M} — a name carries several
+            // abbreviations of different kinds, each optionally
+            // qualified by one TYPE (L3, e.g. "ISO 3166").
+            const abbr: PlaceAbbreviation = { abbreviation: reqText(grandchild) };
+            (entry.abbreviations ??= []).push(abbr);
+            let sawType = false;
+            dispatch(
+              grandchild,
+              abbr,
+              {
+                TYPE: (greatGrandchild) => {
+                  if (sawType) {
+                    // First occurrence wins.
+                    return;
+                  }
+                  sawType = true;
+                  abbr.type = reqText(greatGrandchild);
+                },
+              },
+              ctx,
+            );
+          },
+          LANG: (grandchild) => {
+            entry.language = reqText(grandchild);
+          },
+          _LANG: (grandchild) => {
+            // The historical GEDCOM 5.5EL spelling of the name language
+            // (superseded by the GEDCOM-L LANG child; see the English
+            // GenWiki article "Gedcom 5.5EL":
+            // http://wiki-en.genealogy.net/Gedcom_5.5EL). Both spellings
+            // normalize into PlaceNameStructure.language; the write-back
+            // uses LANG.
+            entry.language = reqText(grandchild);
+          },
+          NAMC: (grandchild) => {
+            // GEDCOM 5.5EL gives the `_LOC` name an optional NAMC child,
+            // an addition to the place name (the GEDCOM 5.5EL spec, e.g.
+            // the English GenWiki page "Gedcom 5.5EL":
+            // http://wiki-en.genealogy.net/Gedcom_5.5EL). GEDCOM-L's
+            // successor slot is ABBR (L1/L3); NAMC survives for 5.5EL
+            // files and is written back as NAMC.
+            entry.addition = reqText(grandchild);
+          },
         },
-        LANG: (grandchild) => {
-          entry.language = reqText(grandchild);
-        },
-        _LANG: (grandchild) => {
-          // The historical GEDCOM 5.5EL spelling of the name language
-          // (superseded by the GEDCOM-L LANG child; see the English
-          // GenWiki article "Gedcom 5.5EL":
-          // http://wiki-en.genealogy.net/Gedcom_5.5EL). Both spellings
-          // normalize into PlaceNameStructure.language; the write-back
-          // uses LANG.
-          entry.language = reqText(grandchild);
-        },
-        NAMC: (grandchild) => {
-          // GEDCOM 5.5EL gives the `_LOC` name an optional NAMC child,
-          // an addition to the place name (the GEDCOM 5.5EL spec, e.g.
-          // the English GenWiki page "Gedcom 5.5EL":
-          // http://wiki-en.genealogy.net/Gedcom_5.5EL). GEDCOM-L's
-          // successor slot is ABBR (L1/L3); NAMC survives for 5.5EL
-          // files and is written back as NAMC.
-          entry.addition = reqText(grandchild);
-        },
-      }, ctx);
+        ctx,
+      );
     },
     TYPE: (child) => {
       const entry: PlaceTypeStructure = { type: reqText(child) };
       (out.types ??= []).push(entry);
-      dispatch(child, entry, {
-        ...datedSourceHandlers(ctx, entry),
-        '_GOVTYPE': (grandchild) => {
-          entry.govTypeId = reqText(grandchild);
+      dispatch(
+        child,
+        entry,
+        {
+          ...datedSourceHandlers(ctx, entry),
+          _GOVTYPE: (grandchild) => {
+            entry.govTypeId = reqText(grandchild);
+          },
         },
-      }, ctx);
+        ctx,
+      );
     },
-    '_GOV': (child) => {
+    _GOV: (child) => {
       out.govId = reqText(child);
     },
-    '_MAIDENHEAD': (child) => {
+    _MAIDENHEAD: (child) => {
       out.maidenhead = reqText(child);
     },
-    '_POST': (child) => {
+    _POST: (child) => {
       const entry: PostalCodeStructure = { code: reqText(child) };
       (out.postalCodes ??= []).push(entry);
       dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
     },
-    'POST': (child) => {
+    POST: (child) => {
       // The historical GEDCOM 5.5EL spelling of the postal code under
       // the _LOC record (superseded by the GEDCOM-L `_POST` spelling,
       // which normalizes into the same PlaceRecord.postalCodes slot).
@@ -141,7 +156,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       (out.postalCodes ??= []).push(entry);
       dispatch(child, entry, datedSourceHandlers(ctx, entry), ctx);
     },
-    '_AIDN': (child) => {
+    _AIDN: (child) => {
       const entry: AdministrativeIdStructure = {
         identifier: reqText(child),
         type: reqText(req(child, 'TYPE')),
@@ -149,7 +164,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       (out.administrativeIds ??= []).push(entry);
       dispatch(child, entry, { ...datedSourceHandlers(ctx, entry), TYPE: () => undefined }, ctx);
     },
-    '_DMGD': (child) => {
+    _DMGD: (child) => {
       const entry: DemographicDataStructure = {
         data: reqText(child),
         type: reqText(req(child, 'TYPE')),
@@ -181,22 +196,31 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         event.detail = detail;
       }
     },
-    '_LOC': (child) => {
+    _LOC: (child) => {
       const entry: PlaceHierarchyLink = { parent: reqPtr(child, ctx) };
       (out.parents ??= []).push(entry);
-      dispatch(child, entry, {
-        ...datedSourceHandlers(ctx, entry),
-        TYPE: (grandchild) => {
-          const value = reqText(grandchild).toUpperCase();
-          if (value === 'POLI' || value === 'RELI' || value === 'GEOG' || value === 'CULT') {
-            entry.type = value;
-          } else {
-            fail('enum.invalid-value', `The _LOC hierarchy TYPE "${value}" must be POLI, RELI, GEOG, or CULT`, grandchild.position);
-          }
+      dispatch(
+        child,
+        entry,
+        {
+          ...datedSourceHandlers(ctx, entry),
+          TYPE: (grandchild) => {
+            const value = reqText(grandchild).toUpperCase();
+            if (value === 'POLI' || value === 'RELI' || value === 'GEOG' || value === 'CULT') {
+              entry.type = value;
+            } else {
+              fail(
+                'enum.invalid-value',
+                `The _LOC hierarchy TYPE "${value}" must be POLI, RELI, GEOG, or CULT`,
+                grandchild.position,
+              );
+            }
+          },
         },
-      }, ctx);
+        ctx,
+      );
     },
-    '_PLP': (child) => {
+    _PLP: (child) => {
       // GEDKeeper: the parent place of the `_PLC` record — the same
       // slot `_LOC @parent@` carries (see PlaceRecord.parents).
       const entry: PlaceHierarchyLink = { parent: reqPtr(child, ctx) };
@@ -213,7 +237,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
       // PlaceRecord.automatedRecordId).
       out.automatedRecordId = reqText(child);
     },
-    '_GCID': (child) => {
+    _GCID: (child) => {
       // GEDitCOM II: the record's id (see
       // IndividualRecord.geditcomId).
       out.geditcomId = reqText(child);
@@ -221,7 +245,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
     ABBR: (child) => {
       out.abbreviation = reqText(child);
     },
-    '_PREP': (child) => {
+    _PREP: (child) => {
       // Legacy: the location preposition of the place card (see
       // PlaceRecord.preposition).
       out.preposition = reqText(child);
@@ -246,7 +270,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
         out.map = map;
       }
     },
-    '_COR': (child) => {
+    _COR: (child) => {
       // MFT7: the place card's coordinates, the DMS block at the
       // record level (see PlaceRecord.map).
       const map = parseMftCoordinates(child, ctx, out);
@@ -266,7 +290,7 @@ export function parsePlaceRecord(node: RawNode, ctx: Ctx): PlaceRecord {
     REFN: (child) => {
       (out.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
     },
-    '_UID': (child) => {
+    _UID: (child) => {
       (out.identifiers ??= []).push(parseUniqueIdentifier(child, ctx));
     },
     CHAN: (child) => {

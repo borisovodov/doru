@@ -38,7 +38,6 @@
   color: var(--doru-fg-muted);
 }
 
-
 .event-negation {
   font-size: 11px;
   color: var(--doru-danger);
@@ -71,15 +70,9 @@
 }
 
 .events-add input,
-
 .event-type-input {
   max-width: 140px;
 }
 
-
-
 /* The marriage date editor inside the narrow family row: rows wrap and
    the editor takes the remaining width instead of overflowing. */
-
-
-

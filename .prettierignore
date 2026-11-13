@@ -1,0 +1,28 @@
+# Generated data: formatted by its own generator and byte-compared in CI.
+package-lock.json
+apps/website/docs/
+apps/website/public/settings.json
+apps/website/public/theme.json
+packages/features/src/notices/generated.ts
+apps/desktop/build/Icon.icon/
+apps/desktop/build/llama/
+
+# Test fixtures keep their exact bytes.
+**/fixtures/
+
+# Build output.
+dist/
+out/
+release/
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+corpus-run/
+.vite/
+apps/website/.vitepress/cache/
+apps/website/.vitepress/dist/
+
+# Markdown is hand-wrapped; Prettier reflows long inline code spans and
+# breaks list continuations in AGENTS.md and the guides.
+*.md

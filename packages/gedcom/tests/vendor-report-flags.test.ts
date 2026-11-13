@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { parseGedcom551, parseGedcom70 } from '../src/parsing/assemble';
 import { serializeGedcom551, serializeGedcom70 } from '../src/serialize/serialize';
 import type { GedcomDataset } from '../src/structures';
+import { isIndividualRecord } from '../src/structures';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -72,24 +73,21 @@ describe('Legacy report-formatting flags', () => {
       ].join('\n'),
     );
     const sour = dataset.records.find((record) => record.tag === 'SOUR') as {
-      titleItalic?: boolean; publicationParenthesized?: boolean; titleQuoted?: boolean;
+      titleItalic?: boolean;
+      publicationParenthesized?: boolean;
+      titleQuoted?: boolean;
     };
     expect(sour.titleItalic).toBe(true);
     expect(sour.publicationParenthesized).toBe(true);
     expect(sour.titleQuoted).toBe(true);
 
     const cleared = parse551(
-      [
-        ...H551,
-        '0 @S2@ SOUR',
-        '1 _ITALIC N',
-        '1 _PAREN NO',
-        '1 _QUOTED N',
-        '0 TRLR',
-      ].join('\n'),
+      [...H551, '0 @S2@ SOUR', '1 _ITALIC N', '1 _PAREN NO', '1 _QUOTED N', '0 TRLR'].join('\n'),
     );
     const sour2 = cleared.records.find((record) => record.tag === 'SOUR') as {
-      titleItalic?: boolean; publicationParenthesized?: boolean; titleQuoted?: boolean;
+      titleItalic?: boolean;
+      publicationParenthesized?: boolean;
+      titleQuoted?: boolean;
     };
     expect(sour2.titleItalic).toBe(false);
     expect(sour2.publicationParenthesized).toBe(false);
@@ -102,15 +100,7 @@ describe('Legacy report-formatting flags', () => {
 
   test('writes the flags back in both versions', () => {
     const dataset = parse551(
-      [
-        ...H551,
-        '0 @S2@ SOUR',
-        '1 TITL A Title',
-        '1 _ITALIC Y',
-        '1 _PAREN Y',
-        '1 _QUOTED Y',
-        '0 TRLR',
-      ].join('\n'),
+      [...H551, '0 @S2@ SOUR', '1 TITL A Title', '1 _ITALIC Y', '1 _PAREN Y', '1 _QUOTED Y', '0 TRLR'].join('\n'),
     );
     expect(ser551(dataset)).toContain('1 _ITALIC Y');
     expect(ser551(dataset)).toContain('1 _PAREN Y');
@@ -134,15 +124,8 @@ describe('Legacy report-formatting flags', () => {
         '0 TRLR',
       ].join('\n'),
     );
-    const indi = dataset.records.find((record) => record.tag === 'INDI') as {
-      attributes?: Array<{ detail?: { address?: Record<string, unknown> } }>;
-    };
-    const addr = indi.attributes?.[0]?.detail?.address as {
-      sortName?: string;
-      newsletterList?: boolean;
-      familyAssociationList?: boolean;
-      birthdayList?: boolean;
-    };
+    const indi = dataset.records.find(isIndividualRecord);
+    const addr = indi?.attributes?.find((attribute) => attribute.tag === 'RESI')?.detail?.address;
     expect(addr?.sortName).toBe('Doe, John');
     expect(addr?.newsletterList).toBe(true);
     expect(addr?.familyAssociationList).toBe(true);
@@ -176,14 +159,7 @@ describe('Legacy report-formatting flags', () => {
 
   test('types Legacy _OVER as the event sentence (written back as _SENT)', () => {
     const dataset = parse551(
-      [
-        ...H551,
-        '0 @F1@ FAM',
-        '1 MARR',
-        '2 DATE 1900',
-        '2 _OVER Married in haste',
-        '0 TRLR',
-      ].join('\n'),
+      [...H551, '0 @F1@ FAM', '1 MARR', '2 DATE 1900', '2 _OVER Married in haste', '0 TRLR'].join('\n'),
     );
     const fam = dataset.records.find((record) => record.tag === 'FAM') as {
       events?: Array<{ detail?: { detail?: { sentence?: string } } }>;
@@ -194,14 +170,7 @@ describe('Legacy report-formatting flags', () => {
 
   test('types Legacy _PREP on a _PLAC_DEFN record and keeps it on both outputs', () => {
     const dataset = parse551(
-      [
-        ...H551,
-        '0 @P1@ _PLAC_DEFN',
-        '1 PLAC Paris',
-        '1 ABBR PAR',
-        '1 _PREP in',
-        '0 TRLR',
-      ].join('\n'),
+      [...H551, '0 @P1@ _PLAC_DEFN', '1 PLAC Paris', '1 ABBR PAR', '1 _PREP in', '0 TRLR'].join('\n'),
     );
     const card = dataset.records.find((record) => record.tag === '_PLAC') as { tag: string; preposition?: string };
     expect(card.tag).toBe('_PLAC');
@@ -212,15 +181,7 @@ describe('Legacy report-formatting flags', () => {
   });
 
   test('types PAF5 _MEDC as a FACT with TYPE "Medical condition"', () => {
-    const dataset = parse551(
-      [
-        ...H551,
-        '0 @I1@ INDI',
-        '1 NAME John /Doe/',
-        '1 _MEDC Asthma',
-        '0 TRLR',
-      ].join('\n'),
-    );
+    const dataset = parse551([...H551, '0 @I1@ INDI', '1 NAME John /Doe/', '1 _MEDC Asthma', '0 TRLR'].join('\n'));
     const indi = dataset.records.find((record) => record.tag === 'INDI') as {
       attributes?: Array<{ tag: string; payload?: string; type?: string }>;
     };
