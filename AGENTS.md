@@ -177,9 +177,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   directory, including `packages/ui/.storybook`).
 - **Lint, format and CSS checks:** `npm run lint` (ESLint 10 with
   `typescript-eslint` `strictTypeChecked`, zero warnings), `npm run
-  format:check` (Prettier) and `npm run lint:css` (Stylelint). The fix
-  counterparts are `npm run lint:fix`, `npm run format` and `npm run
-  lint:css:fix`. CI runs all three in the `lint` job.
+  format:check` (Oxfmt, configured by `.oxfmtrc.json`) and `npm run lint:css`
+  (Stylelint). The fix counterparts are `npm run lint:fix`, `npm run format`
+  and `npm run lint:css:fix`. CI runs all three in the `lint` job.
 - **TypeScript 7 uses the TS 6 API for tooling.** The root devDependencies
   alias `typescript` to `@typescript/typescript6` (the JS compiler API that
   typescript-eslint needs) and `@typescript/native` to `typescript@7` (the

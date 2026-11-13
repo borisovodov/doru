@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "proseWrap": "preserve",
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "package-lock.json",
+    "apps/website/docs/",
+    "apps/website/public/settings.json",
+    "apps/website/public/theme.json",
+    "packages/features/src/notices/generated.ts",
+    "apps/desktop/build/Icon.icon/",
+    "apps/desktop/build/llama/",
+    "**/fixtures/",
+    "dist/",
+    "out/",
+    "release/",
+    "coverage/",
+    "storybook-static/",
+    "playwright-report/",
+    "test-results/",
+    "corpus-run/",
+    ".vite/",
+    "apps/website/.vitepress/cache/",
+    "apps/website/.vitepress/dist/",
+    "*.md"
+  ]
+}
