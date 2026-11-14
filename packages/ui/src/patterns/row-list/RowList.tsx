@@ -17,15 +17,18 @@ export interface AttachmentRowProps {
   value: ReactNode;
   actions?: ReactNode;
   className?: string;
+  /** Use a div when the row is nested inside another list item. */
+  as?: 'li' | 'div';
 }
 
 /** One kind/value row with its edit and remove actions. */
-export function AttachmentRow({ kind, value, actions, className }: AttachmentRowProps) {
+export function AttachmentRow({ kind, value, actions, className, as = 'li' }: AttachmentRowProps) {
+  const Tag = as;
   return (
-    <li className={cx(styles['row'], className)}>
+    <Tag className={cx(styles['row'], className)}>
       {kind ? <span className={styles['kind']}>{kind}</span> : null}
       <span className={styles['value']}>{value}</span>
       {actions ? <span className={styles['actions']}>{actions}</span> : null}
-    </li>
+    </Tag>
   );
 }

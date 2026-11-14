@@ -55,15 +55,14 @@ export function AssociationsSection({
       {associations.length > 0 ? (
         <RowList>
           {associations.map((association) => (
-            <li key={association.id}>
-              <AssociationRow
-                association={association}
-                others={others}
-                onUpdate={onUpdate}
-                onDelete={onDelete}
-                renderAttachments={renderAttachments}
-              />
-            </li>
+            <AssociationRow
+              key={association.id}
+              association={association}
+              others={others}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              renderAttachments={renderAttachments}
+            />
           ))}
         </RowList>
       ) : null}
@@ -103,8 +102,9 @@ function AssociationRow({
 
   if (!editing) {
     return (
-      <>
+      <li>
         <AttachmentRow
+          as="div"
           value={
             <>
               <strong>{other ? displayName(other) : association.otherPersonId}</strong>
@@ -137,7 +137,7 @@ function AssociationRow({
           }
         />
         {showAttachments && renderAttachments?.(association)}
-      </>
+      </li>
     );
   }
 
@@ -150,17 +150,19 @@ function AssociationRow({
   };
 
   return (
-    <Subcard>
-      <AssociationFields draft={draft} others={others} onChange={setDraft} />
-      <ActionBar>
-        <Button variant="primary" onClick={() => void save()}>
-          {nls.t('features.tree.save')}
-        </Button>
-        <Button variant="secondary" onClick={() => setEditing(false)}>
-          {nls.t('features.tree.fact.cancel')}
-        </Button>
-      </ActionBar>
-    </Subcard>
+    <li>
+      <Subcard>
+        <AssociationFields draft={draft} others={others} onChange={setDraft} />
+        <ActionBar>
+          <Button variant="primary" onClick={() => void save()}>
+            {nls.t('features.tree.save')}
+          </Button>
+          <Button variant="secondary" onClick={() => setEditing(false)}>
+            {nls.t('features.tree.fact.cancel')}
+          </Button>
+        </ActionBar>
+      </Subcard>
+    </li>
   );
 }
 
