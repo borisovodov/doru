@@ -63,6 +63,20 @@ decisions about what we deliberately do **not** build, see
   triggers) with prefix matching and rank ordering; any FTS failure falls back
   to a `LIKE` scan. An empty query lists persons without searching.
 
+## Media
+
+- File bytes live in the `media/` folder next to the `.doru` file; the
+  database stores project-relative paths plus `media_file`/`media_link`
+  metadata. The main process validates every path against `media/` before it
+  reads or deletes a file.
+- A media record can be linked to several targets. Removing the last link
+  removes the record; removing a file copy is deliberately not undoable, so
+  undo restores the database rows but not bytes that were deleted from disk.
+- `target_type`/`target_id` attachments (notes, citations, tags, identifiers,
+  contacts, restrictions, contributors, media links) are polymorphic and
+  keyed by UUID. Every op that deletes or removes a target cleans its
+  attachment rows; the matching inverse restores the captured snapshot.
+
 ## GEDCOM
 
 - GEDCOM import and export live in the dedicated `@doru/gedcom` package

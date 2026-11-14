@@ -413,7 +413,6 @@ CREATE TABLE IF NOT EXISTS tag_link (
 CREATE TABLE IF NOT EXISTS fact_age (
   id TEXT PRIMARY KEY,
   fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
-  person_id TEXT REFERENCES person(id) ON DELETE CASCADE,
   role TEXT,                 -- HUSB | WIFE for family facts; NULL = the subject
   bound TEXT, years INTEGER, months INTEGER, weeks INTEGER, days INTEGER,
   phrase TEXT

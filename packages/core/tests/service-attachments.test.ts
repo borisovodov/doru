@@ -288,9 +288,59 @@ describe('TreeService attachments', () => {
       });
       expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
       service.undo();
-      // The media row comes back with its own target link; the extra link
-      // was cascaded and is not in the attachment snapshot.
-      expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(1);
+      // The service snapshots the full current record, so both links are
+      // restored by one undo.
+      expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(2);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('updates media records and link metadata with undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
+      const before = fixture.repo.getMedia('M1')!;
+      const after = { ...before, title: 'Wedding portrait' };
+      service.updateMedia(before, after);
+      expect(fixture.repo.getMedia('M1')?.title).toBe('Wedding portrait');
+      service.undo();
+      expect(fixture.repo.getMedia('M1')?.title).toBe('Portrait');
+
+      const link = mediaLink({ mediaId: 'M1' });
+      service.attachMedia(link);
+      const beforeLink = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.link.id === link.id)!.link;
+      const afterLink = { ...beforeLink, title: 'Front', sequence: 2, primary: true };
+      service.updateMediaLink(beforeLink, afterLink);
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === link.id)?.link,
+      ).toMatchObject({ title: 'Front', sequence: 2, primary: true });
+      service.undo();
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === link.id)?.link,
+      ).toMatchObject({ title: undefined, sequence: undefined });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores media and its attachments when the last link is detached', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
+      service.addNote(note({ targetType: 'media', targetId: 'M1' }));
+      expect(fixture.repo.getMedia('M1')).toBeDefined();
+
+      const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
+      service.detachMedia(link);
+      expect(fixture.repo.getMedia('M1')).toBeUndefined();
+      expect(fixture.repo.listNotesFor('media', 'M1')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.getMedia('M1')).toBeDefined();
+      expect(fixture.repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -375,6 +425,23 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.listTags()).toEqual([tag()]);
       expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('cleans and restores address attachments on delete', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addAddress(address());
+      service.addNote(note({ targetType: 'address', targetId: 'AD1' }));
+      service.deleteAddress(address());
+      expect(fixture.repo.getAddress('AD1')).toBeUndefined();
+      expect(fixture.repo.listNotesFor('address', 'AD1')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.getAddress('AD1')).toBeDefined();
+      expect(fixture.repo.listNotesFor('address', 'AD1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
     }

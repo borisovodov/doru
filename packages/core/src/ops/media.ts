@@ -17,6 +17,21 @@ export function addMediaOp(media: MediaRecord): Op {
   };
 }
 
+export function updateMediaOp(before: MediaRecord, after: MediaRecord): Op {
+  return {
+    id: crypto.randomUUID(),
+    kind: 'media.update',
+    timestamp: new Date().toISOString(),
+    change: { targetType: 'media', targetId: before.id, kind: 'changed' },
+    apply(ctx) {
+      ctx.repo.updateMedia(after);
+    },
+    inverse(ctx) {
+      ctx.repo.updateMedia(before);
+    },
+  };
+}
+
 export function deleteMediaOp(media: MediaRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
   return {
     id: crypto.randomUUID(),

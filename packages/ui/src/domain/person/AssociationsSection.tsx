@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pencil, Plus, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Paperclip, Pencil, Plus, X } from 'lucide-react';
 import type { AssociationRecord, PersonRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -36,6 +36,7 @@ export function AssociationsSection({
   onAdd,
   onUpdate,
   onDelete,
+  renderAttachments,
 }: {
   personId: string;
   associations: AssociationRecord[];
@@ -43,6 +44,7 @@ export function AssociationsSection({
   onAdd: (association: AssociationRecord) => Promise<void>;
   onUpdate: (before: AssociationRecord, after: AssociationRecord) => Promise<void>;
   onDelete: (association: AssociationRecord) => Promise<void>;
+  renderAttachments?: ((association: AssociationRecord) => ReactNode) | undefined;
 }) {
   const [adding, setAdding] = useState(false);
   const others = persons.filter((person) => person.id !== personId);
@@ -54,7 +56,13 @@ export function AssociationsSection({
         <RowList>
           {associations.map((association) => (
             <li key={association.id}>
-              <AssociationRow association={association} others={others} onUpdate={onUpdate} onDelete={onDelete} />
+              <AssociationRow
+                association={association}
+                others={others}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                renderAttachments={renderAttachments}
+              />
             </li>
           ))}
         </RowList>
@@ -80,42 +88,56 @@ function AssociationRow({
   others,
   onUpdate,
   onDelete,
+  renderAttachments,
 }: {
   association: AssociationRecord;
   others: PersonRecord[];
   onUpdate: (before: AssociationRecord, after: AssociationRecord) => Promise<void>;
   onDelete: (association: AssociationRecord) => Promise<void>;
+  renderAttachments?: ((association: AssociationRecord) => ReactNode) | undefined;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const [draft, setDraft] = useState<AssociationDraft>(() => associationToDraft(association));
   const other = others.find((person) => person.id === association.otherPersonId);
 
   if (!editing) {
     return (
-      <AttachmentRow
-        value={
-          <>
-            <strong>{other ? displayName(other) : association.otherPersonId}</strong>
-            {association.relationship ? ` — ${association.relationship}` : ''}
-          </>
-        }
-        actions={
-          <>
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.associations.edit')}
-              icon={<Pencil size={13} aria-hidden="true" />}
-              onClick={() => setEditing(true)}
-            />
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.associations.remove')}
-              icon={<X size={13} aria-hidden="true" />}
-              onClick={() => void onDelete(association)}
-            />
-          </>
-        }
-      />
+      <>
+        <AttachmentRow
+          value={
+            <>
+              <strong>{other ? displayName(other) : association.otherPersonId}</strong>
+              {association.relationship ? ` — ${association.relationship}` : ''}
+            </>
+          }
+          actions={
+            <>
+              {renderAttachments !== undefined && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setShowAttachments((current) => !current)}
+                />
+              )}
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.associations.edit')}
+                icon={<Pencil size={13} aria-hidden="true" />}
+                onClick={() => setEditing(true)}
+              />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.associations.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => void onDelete(association)}
+              />
+            </>
+          }
+        />
+        {showAttachments && renderAttachments?.(association)}
+      </>
     );
   }
 

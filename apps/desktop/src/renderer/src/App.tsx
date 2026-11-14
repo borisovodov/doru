@@ -15,6 +15,7 @@ import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
 import { AddressTab } from './components/AddressTab';
 import { FamilyTab } from './components/FamilyTab';
+import { MediaTab } from './components/MediaTab';
 import { PersonTab } from './components/PersonTab';
 import { PlaceTab } from './components/PlaceTab';
 import { RepositoryTab } from './components/RepositoryTab';
@@ -31,6 +32,7 @@ import {
   ADDRESS_TAB_PREFIX,
   EXPORT_TAB_ID,
   FAMILY_TAB_PREFIX,
+  MEDIA_TAB_PREFIX,
   NOTICES_TAB_ID,
   PERSON_TAB_PREFIX,
   PLACE_TAB_PREFIX,
@@ -66,6 +68,7 @@ export function App() {
     tree.addresses,
     tree.todos,
     tree.titles,
+    tree.media,
   );
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
@@ -330,6 +333,8 @@ export function App() {
           tabId={tab.id}
           persons={tree.persons}
           api={{ ...tree.api, openSource: tabs.openSourceTab }}
+          mediaApi={tree.mediaApi}
+          onOpenMedia={tabs.openMediaTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${PERSON_TAB_PREFIX}${realId}`)}
         />
@@ -348,6 +353,9 @@ export function App() {
           api={tree.familyApi}
           persons={tree.persons}
           sources={tree.sources}
+          media={tree.media}
+          mediaApi={tree.mediaApi}
+          onOpenMedia={tabs.openMediaTab}
           onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
         />
@@ -371,7 +379,10 @@ export function App() {
           places={tree.places}
           citations={tree.citations}
           notes={tree.notes}
+          media={tree.media}
+          mediaApi={tree.mediaApi}
           onOpenPerson={openPersonAndFocus}
+          onOpenMedia={tabs.openMediaTab}
           onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
         />
@@ -388,7 +399,10 @@ export function App() {
           families={tree.families}
           facts={tree.facts}
           sources={tree.sources}
+          media={tree.media}
+          mediaApi={tree.mediaApi}
           onOpenPerson={openPersonAndFocus}
+          onOpenMedia={tabs.openMediaTab}
           onOpenSource={tabs.openSourceTab}
           onClose={tabs.closeTab}
         />
@@ -401,7 +415,10 @@ export function App() {
           repositories={tree.repositories}
           api={tree.registriesApi}
           sources={tree.sources}
+          media={tree.media}
+          mediaApi={tree.mediaApi}
           onOpenSource={tabs.openSourceTab}
+          onOpenMedia={tabs.openMediaTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${REPOSITORY_TAB_PREFIX}${realId}`)}
         />
@@ -414,7 +431,10 @@ export function App() {
           submitters={tree.submitters}
           api={tree.registriesApi}
           sources={tree.sources}
+          media={tree.media}
+          mediaApi={tree.mediaApi}
           onOpenSource={tabs.openSourceTab}
+          onOpenMedia={tabs.openMediaTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${SUBMITTER_TAB_PREFIX}${realId}`)}
         />
@@ -428,6 +448,7 @@ export function App() {
           facts={tree.facts}
           repositories={tree.repositories}
           submitters={tree.submitters}
+          sources={tree.sources}
           api={tree.registriesApi}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${ADDRESS_TAB_PREFIX}${realId}`)}
@@ -447,7 +468,20 @@ export function App() {
           titles={tree.titles}
           api={tree.todosApi}
           onClose={tabs.closeTab}
+          onOpenMedia={tabs.openMediaTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${TASK_TAB_PREFIX}${realId}`)}
+        />
+      );
+    }
+    if (tab.id.startsWith(MEDIA_TAB_PREFIX)) {
+      return (
+        <MediaTab
+          tabId={tab.id}
+          media={tree.media}
+          api={tree.mediaAdminApi}
+          attachmentsApi={tree.api}
+          sources={tree.sources}
+          onClose={tabs.closeTab}
         />
       );
     }
@@ -461,6 +495,7 @@ export function App() {
           api={tree.titlesApi}
           onClose={tabs.closeTab}
           onOpenSource={tabs.openSourceTab}
+          onOpenMedia={tabs.openMediaTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${TITLE_TAB_PREFIX}${realId}`)}
         />
       );
@@ -547,6 +582,7 @@ export function App() {
             titles={tree.titles}
             todos={tree.todos}
             onOpenPerson={openPersonAndFocus}
+            onOpenMedia={tabs.openMediaTab}
             onOpenFamily={tabs.openFamilyTab}
             onOpenSource={tabs.openSourceTab}
             onOpenPlace={tabs.openPlaceTab}

@@ -1,5 +1,6 @@
 import type { AttachmentsSnapshot, FamilyRecord, PersonRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
+import type { FamilyLinkAttachments } from './family';
 import type { NestedAttachments, Op } from './op';
 
 export function updatePersonOp(
@@ -35,6 +36,7 @@ export function deletePersonOp(
   familyLinks: Array<{ before: FamilyRecord; after: FamilyRecord }>,
   attachments: AttachmentsSnapshot = emptyAttachments(),
   nestedAttachments: NestedAttachments[] = [],
+  linkAttachments: FamilyLinkAttachments[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -56,6 +58,9 @@ export function deletePersonOp(
       for (const nested of nestedAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);
       }
+      for (const link of linkAttachments) {
+        ctx.repo.restoreAttachments(link.attachments);
+      }
     },
   };
 }
@@ -69,6 +74,7 @@ export function reparentOp(
   familyLinks: Array<{ before: FamilyRecord; after: FamilyRecord }>,
   created: FamilyRecord | undefined,
   personId: string,
+  linkAttachments: FamilyLinkAttachments[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -89,6 +95,9 @@ export function reparentOp(
       }
       for (const link of [...familyLinks].reverse()) {
         ctx.repo.updateFamily(link.before);
+      }
+      for (const link of linkAttachments) {
+        ctx.repo.restoreAttachments(link.attachments);
       }
     },
   };

@@ -40,7 +40,7 @@ import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
 import { TagsSection } from '@doru/ui/domain';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
-import type { MediaWithPath, PersonEditorApi } from './types';
+import type { MediaTargetApi, MediaWithPath, PersonEditorApi } from './types';
 
 export interface PersonEditorProps {
   draft: PersonDraft;
@@ -49,13 +49,24 @@ export interface PersonEditorProps {
   onSave: () => void;
   onCancel?: (() => void) | undefined;
   api: PersonEditorApi;
+  mediaApi: MediaTargetApi;
+  onOpenMedia?: ((mediaId: string) => void) | undefined;
 }
 
 /**
  * The person tab: a person card (avatar, name, life span, badges) above the
  * identity form and the family/events/sources/media/notes sections.
  */
-export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }: PersonEditorProps) {
+export function PersonEditor({
+  draft,
+  persons,
+  onChange,
+  onSave,
+  onCancel,
+  api,
+  mediaApi,
+  onOpenMedia,
+}: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [allNotes, setAllNotes] = useState<NoteRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
@@ -279,6 +290,7 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
                 sections={[
                   'notes',
                   'sources',
+                  'media',
                   'tags',
                   'identifiers',
                   'contacts',
@@ -345,6 +357,9 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
               await api.deleteAssociation(association);
               await refreshAssociations();
             }}
+            renderAttachments={(association) => (
+              <AttachmentsPanel targetType="association" targetId={association.id} api={api} sources={sources} />
+            )}
           />
           <AliasesSection
             personId={draft.id}
@@ -388,6 +403,7 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
                 sections={[
                   'notes',
                   'sources',
+                  'media',
                   'tags',
                   'identifiers',
                   'contacts',
@@ -426,11 +442,12 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
             )}
           />
           <MediaSection
-            personId={draft.id}
+            targetType="person"
+            targetId={draft.id}
             media={media}
+            api={mediaApi}
             refresh={refreshMedia}
-            onAddMedia={api.addMedia}
-            onDeleteMedia={api.deleteMedia}
+            onOpenMedia={onOpenMedia}
           />
           <NotesSection
             targetType="person"

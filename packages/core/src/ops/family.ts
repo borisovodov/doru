@@ -17,7 +17,11 @@ export function addFamilyOp(family: FamilyRecord): Op {
   };
 }
 
-export function updateFamilyOp(before: FamilyRecord, after: FamilyRecord): Op {
+export function updateFamilyOp(
+  before: FamilyRecord,
+  after: FamilyRecord,
+  removedLinkAttachments: FamilyLinkAttachments[] = [],
+): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'family.update',
@@ -28,6 +32,9 @@ export function updateFamilyOp(before: FamilyRecord, after: FamilyRecord): Op {
     },
     inverse(ctx) {
       ctx.repo.updateFamily(before);
+      for (const link of removedLinkAttachments) {
+        ctx.repo.restoreAttachments(link.attachments);
+      }
     },
   };
 }

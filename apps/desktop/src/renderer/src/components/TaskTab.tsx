@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type {
-  ChangeRecord,
   FamilyRecord,
   PersonRecord,
   PlaceRecord,
@@ -11,9 +10,8 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import { EntityTab } from '@doru/features';
+import { AttachmentsPanel, EntityTab, type TodoEditorApi } from '@doru/features';
 import {
-  ChangesSection,
   TaskEditorFields,
   displayName,
   emptyTodoDraft,
@@ -39,6 +37,7 @@ export function TaskTab({
   titles,
   api,
   onClose,
+  onOpenMedia,
   onCreated,
 }: {
   tabId: string;
@@ -49,13 +48,9 @@ export function TaskTab({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
-  api: {
-    getChanges: (targetType: string, targetId: string) => Promise<ChangeRecord[]>;
-    addTodo: (todo: TodoRecord) => Promise<void>;
-    updateTodo: (before: TodoRecord, after: TodoRecord) => Promise<void>;
-    deleteTodo: (todo: TodoRecord) => Promise<void>;
-  };
+  api: TodoEditorApi;
   onClose: (tabId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const taskId = tabId.slice(TASK_TAB_PREFIX.length);
@@ -77,6 +72,7 @@ export function TaskTab({
       titles={titles}
       api={api}
       onClose={onClose}
+      onOpenMedia={onOpenMedia}
       onCreated={onCreated}
     />
   );
@@ -94,6 +90,7 @@ function TaskTabBody({
   titles,
   api,
   onClose,
+  onOpenMedia,
   onCreated,
 }: {
   tabId: string;
@@ -105,31 +102,15 @@ function TaskTabBody({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
-  api: {
-    getChanges: (targetType: string, targetId: string) => Promise<ChangeRecord[]>;
-    addTodo: (todo: TodoRecord) => Promise<void>;
-    updateTodo: (before: TodoRecord, after: TodoRecord) => Promise<void>;
-    deleteTodo: (todo: TodoRecord) => Promise<void>;
-  };
+  api: TodoEditorApi;
   onClose: (tabId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
   const [lastSaved, setLastSaved] = useState<TodoRecord | undefined>(record);
-  const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const [draft, setDraft] = useState<TodoDraft>(() => (isNew ? emptyTodoDraft() : todoToDraft(base)));
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!isNew && record !== undefined) {
-      void api.getChanges('todo', record.id).then((loaded) => {
-        if (!cancelled) setChanges(loaded);
-      });
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [api, isNew, record]);
+  const targetId = lastSaved?.id ?? record?.id;
 
   const personById = new Map(persons.map((person) => [person.id, person]));
   const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
@@ -227,7 +208,9 @@ function TaskTabBody({
           onChange={patch}
         />
       </SectionCard>
-      {!isNew && <ChangesSection changes={changes} />}
+      {targetId !== undefined && (
+        <AttachmentsPanel targetType="todo" targetId={targetId} api={api} sources={sources} onOpenMedia={onOpenMedia} />
+      )}
     </EntityTab>
   );
 }

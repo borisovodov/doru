@@ -5,6 +5,7 @@ import type {
   ContactRecord,
   IdentifierRecord,
   MediaLinkRecord,
+  MediaRecord,
   NoteLinkRecord,
   NoteRecord,
   RepositoryRecord,
@@ -14,6 +15,7 @@ import type {
   TagLinkRecord,
   TagRecord,
 } from '../model/types';
+import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
 
 function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse']): Op {
@@ -208,21 +210,48 @@ export function detachCitationOp(citation: CitationRecord): Op {
 // --- media -------------------------------------------------------------------
 
 export function attachMediaOp(link: MediaLinkRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'media.attach',
-    (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
-    (ctx) => ctx.repo.removeMediaLink(link.id),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'media.attach',
+      (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
+      (ctx) => ctx.repo.removeMediaLink(link.id),
+    ),
+    change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
+  };
 }
 
-export function detachMediaOp(link: MediaLinkRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'media.detach',
-    (ctx) => ctx.repo.removeMediaLink(link.id),
-    (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
-  );
+export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecord): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'media.linkUpdate',
+      (ctx) => ctx.repo.updateMediaLink(after),
+      (ctx) => ctx.repo.updateMediaLink(before),
+    ),
+    change: { targetType: 'media', targetId: before.mediaId, kind: 'changed' },
+  };
+}
+
+export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'media.detach',
+      (ctx) => ctx.repo.removeMediaLink(link.id),
+      (ctx) => {
+        if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
+          ctx.repo.insertMedia(media);
+          if (attachments !== undefined) {
+            ctx.repo.restoreAttachments(attachments);
+          }
+        } else {
+          ctx.repo.addMediaLink(link.mediaId, link);
+        }
+      },
+    ),
+    change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
+  };
 }
 
 // --- universal attachments ----------------------------------------------------
@@ -512,13 +541,16 @@ export function updateAddressOp(before: AddressRecord, after: AddressRecord): Op
   };
 }
 
-export function deleteAddressOp(address: AddressRecord): Op {
+export function deleteAddressOp(address: AddressRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'address.delete',
       (ctx) => ctx.repo.deleteAddress(address.id),
-      (ctx) => ctx.repo.insertAddress(address),
+      (ctx) => {
+        ctx.repo.insertAddress(address);
+        ctx.repo.restoreAttachments(attachments);
+      },
     ),
     change: { targetType: 'address', targetId: address.id, kind: 'changed' },
   };

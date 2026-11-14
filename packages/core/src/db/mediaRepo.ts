@@ -79,7 +79,7 @@ export class MediaRepo {
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
            title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption
-         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY id`,
+         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY sequence, id`,
       )
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: MediaRecord[] = [];
@@ -100,7 +100,7 @@ export class MediaRepo {
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
            title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption
-         FROM media_link WHERE target_type = ? AND target_id = ?`,
+         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY sequence, id`,
       )
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: Array<{ media: MediaRecord; link: MediaLinkRecord }> = [];
@@ -123,6 +123,41 @@ export class MediaRepo {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...linkParams(mediaId, link));
+  }
+
+  updateMediaLink(link: MediaLinkRecord): void {
+    this.db
+      .prepare(
+        `UPDATE media_link SET target_type = ?, target_id = ?, crop_top = ?, crop_left = ?,
+           crop_height = ?, crop_width = ?, title = ?, sequence = ?, primary_flag = ?,
+           scrapbook = ?, slideshow = ?, thumbnail = ?, exclude = ?, caption = ?
+         WHERE id = ?`,
+      )
+      .run(
+        link.targetType,
+        link.targetId,
+        link.crop?.top ?? null,
+        link.crop?.left ?? null,
+        link.crop?.height ?? null,
+        link.crop?.width ?? null,
+        link.title ?? null,
+        link.sequence ?? null,
+        link.primary ? 1 : 0,
+        link.scrapbook ? 1 : 0,
+        link.slideshow ? 1 : 0,
+        link.thumbnail ? 1 : 0,
+        link.exclude ? 1 : 0,
+        link.caption ? 1 : 0,
+        link.id,
+      );
+  }
+
+  /** The media record that owns a link, before the link is removed. */
+  getMediaIdForLink(id: string): string | undefined {
+    const row = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
+      | { media_id: string }
+      | undefined;
+    return row?.media_id;
   }
 
   removeMediaLink(id: string): boolean {
@@ -196,7 +231,7 @@ export class MediaRepo {
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
            title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption
-         FROM media_link WHERE media_id = ? ORDER BY id`,
+         FROM media_link WHERE media_id = ? ORDER BY sequence, id`,
       )
       .all(row.id) as unknown as LinkRow[];
     const firstFile = files[0];

@@ -1,14 +1,16 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { CitationRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import {
   ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
+  MediaSection,
   NotesSection,
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  type MediaWithPath,
 } from '@doru/ui/domain';
 import type { AttachmentsApi } from '../person/types';
 import { useAttachments } from './useAttachments';
@@ -16,6 +18,7 @@ import { useAttachments } from './useAttachments';
 export type AttachmentSection =
   | 'notes'
   | 'sources'
+  | 'media'
   | 'tags'
   | 'identifiers'
   | 'contacts'
@@ -36,6 +39,7 @@ export interface AttachmentsPanelApi extends AttachmentsApi {
 const ALL_SECTIONS: readonly AttachmentSection[] = [
   'notes',
   'sources',
+  'media',
   'tags',
   'identifiers',
   'contacts',
@@ -56,6 +60,7 @@ export function AttachmentsPanel({
   sources,
   sections = ALL_SECTIONS,
   onOpenSource,
+  onOpenMedia,
   renderCitationAttachments,
 }: {
   targetType: string;
@@ -64,6 +69,7 @@ export function AttachmentsPanel({
   sources: SourceRecord[];
   sections?: readonly AttachmentSection[];
   onOpenSource?: ((sourceId: string) => void) | undefined;
+  onOpenMedia?: ((mediaId: string) => void) | undefined;
   renderCitationAttachments?: ((citation: CitationRecord) => ReactNode) | undefined;
 }) {
   const {
@@ -140,6 +146,9 @@ export function AttachmentsPanel({
           onOpenSource={onOpenSource ?? (() => undefined)}
           renderCitationAttachments={renderCitationAttachments}
         />
+      )}
+      {include.has('media') && (
+        <MediaAttachments targetType={targetType} targetId={targetId} api={api} onOpenMedia={onOpenMedia} />
       )}
       {include.has('tags') && (
         <TagsSection
@@ -245,5 +254,49 @@ export function AttachmentsPanel({
       )}
       {include.has('changes') && <ChangesSection changes={changes} />}
     </>
+  );
+}
+
+function MediaAttachments({
+  targetType,
+  targetId,
+  api,
+  onOpenMedia,
+}: {
+  targetType: string;
+  targetId: string | undefined;
+  api: AttachmentsPanelApi;
+  onOpenMedia?: ((mediaId: string) => void) | undefined;
+}) {
+  const [media, setMedia] = useState<MediaWithPath[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (targetId === undefined) {
+      return;
+    }
+    void api.getMediaFor(targetType, targetId).then((loaded) => {
+      if (!cancelled) {
+        setMedia(loaded);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, targetId, targetType]);
+
+  if (targetId === undefined) {
+    return null;
+  }
+
+  return (
+    <MediaSection
+      targetType={targetType}
+      targetId={targetId}
+      media={media}
+      api={api}
+      refresh={async () => setMedia(await api.getMediaFor(targetType, targetId))}
+      onOpenMedia={onOpenMedia}
+    />
   );
 }

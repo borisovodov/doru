@@ -77,6 +77,39 @@ describe('TreeService families, persons and facts', () => {
     }
   });
 
+  it('cleans and restores attachments when a family link is removed', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addFamily(
+        family({
+          partners: ['P1', 'P2'],
+          children: [],
+          partnerLinks: [
+            { id: 'PL1', personId: 'P1' },
+            { id: 'PL2', personId: 'P2' },
+          ],
+        }),
+      );
+      service.addNote({ id: 'N1', text: 'on the partner link', targetType: 'family_partner', targetId: 'PL2' });
+
+      const before = fixture.repo.getFamily('F1')!;
+      const after = family({
+        partners: ['P1'],
+        children: [],
+        partnerLinks: [{ id: 'PL1', personId: 'P1' }],
+      });
+      service.updateFamily(before, after);
+      expect(fixture.repo.listNotesFor('family_partner', 'PL2')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.listNotesFor('family_partner', 'PL2').map((note) => note.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores a family fact when deleting the family is undone', () => {
     const { fixture, service } = makeService();
     try {

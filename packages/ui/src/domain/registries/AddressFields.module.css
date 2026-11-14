@@ -4,6 +4,12 @@
   gap: 8px;
 }
 
+.lineRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .title {
   margin: 0;
   font-size: var(--doru-font-size-sm);

@@ -104,6 +104,7 @@ export interface TreeRepository {
   getMedia(id: string): MediaRecord | undefined;
   deleteMedia(id: string): boolean;
   addMediaLink(mediaId: string, link: MediaLinkRecord): void;
+  updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
@@ -296,7 +297,15 @@ export class SqliteTreeRepository implements TreeRepository {
       this.deleteAttachmentsFor('person', id);
       this.names.deleteFtsForPerson(id);
       this.facts.deleteFactsForPerson(id);
-      this.families.removePersonFromFamilies(id);
+      for (const family of this.families.listFamiliesForPerson(id)) {
+        this.updateFamily({
+          ...family,
+          partners: family.partners.filter((personId) => personId !== id),
+          children: family.children.filter((childId) => childId !== id),
+          partnerLinks: family.partnerLinks?.filter((link) => link.personId !== id),
+          childLinks: family.childLinks?.filter((link) => link.childId !== id),
+        });
+      }
       return this.persons.deletePerson(id);
     });
   }
@@ -335,7 +344,24 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateFamily(family: FamilyRecord): void {
+    const before = this.families.getFamily(family.id);
     this.families.updateFamily(family);
+    const after = this.families.getFamily(family.id);
+    if (!before || !after) {
+      return;
+    }
+    const afterPartners = new Set((after.partnerLinks ?? []).map((link) => link.id));
+    for (const link of before.partnerLinks ?? []) {
+      if (!afterPartners.has(link.id)) {
+        this.deleteAttachmentsFor('family_partner', link.id);
+      }
+    }
+    const afterChildren = new Set((after.childLinks ?? []).map((link) => link.id));
+    for (const link of before.childLinks ?? []) {
+      if (!afterChildren.has(link.id)) {
+        this.deleteAttachmentsFor('family_child', link.id);
+      }
+    }
   }
 
   getFamily(id: string): FamilyRecord | undefined {
@@ -543,8 +569,17 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.addMediaLink(mediaId, link);
   }
 
+  updateMediaLink(link: MediaLinkRecord): void {
+    this.media.updateMediaLink(link);
+  }
+
   removeMediaLink(id: string): boolean {
-    return this.media.removeMediaLink(id);
+    const mediaId = this.media.getMediaIdForLink(id);
+    const removed = this.media.removeMediaLink(id);
+    if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
+      this.deleteAttachmentsFor('media', mediaId);
+    }
+    return removed;
   }
 
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {
@@ -637,7 +672,10 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   deleteAddress(id: string): boolean {
-    return this.addresses.deleteAddress(id);
+    return this.transactions.run(() => {
+      this.deleteAttachmentsFor('address', id);
+      return this.addresses.deleteAddress(id);
+    });
   }
 
   insertIdentifier(identifier: IdentifierRecord): void {

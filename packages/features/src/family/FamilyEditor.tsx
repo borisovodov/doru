@@ -1,8 +1,9 @@
 import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Checkbox, Field, FieldGrid, InlineForm, Input, Select, SectionCard, Subcard } from '@doru/ui';
-import { Plus, Users, X } from 'lucide-react';
+import { Checkbox, Field, FieldGrid, InlineForm, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
+import { Paperclip, Plus, Users, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
@@ -15,6 +16,7 @@ import type { FamilyEditorApi } from '../person/types';
 import {
   CHILD_STATUS_TYPES,
   PEDIGREE_TYPES,
+  moveItem,
   emptyChildLinkDraft,
   emptyPartnerLinkDraft,
   type ChildLinkDraft,
@@ -34,10 +36,14 @@ export function FamilyEditor({
   persons,
   sources,
   api,
+  savedLinkIds,
+  renderLinkAttachments,
   onSave,
   onDelete,
 }: {
   draft: FamilyDraft;
+  savedLinkIds?: ReadonlySet<string> | undefined;
+  renderLinkAttachments?: ((kind: 'partner' | 'child', linkId: string) => ReactNode) | undefined;
   onChange: (draft: FamilyDraft) => void;
   persons: PersonRecord[];
   sources: SourceRecord[];
@@ -54,6 +60,7 @@ export function FamilyEditor({
   >([]);
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
+  const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
 
   const set = (patch: Partial<FamilyDraft>) => onChange({ ...draft, ...patch });
 
@@ -155,6 +162,22 @@ export function FamilyEditor({
                 checked={link.preferred}
                 onChange={(event) => patchPartner(index, { preferred: event.target.checked })}
               />
+              <ReorderButtons
+                upLabel={nls.t('features.tree.reorder.up')}
+                downLabel={nls.t('features.tree.reorder.down')}
+                canMoveUp={index > 0}
+                canMoveDown={index < draft.partnerLinks.length - 1}
+                onMoveUp={() => set({ partnerLinks: moveItem(draft.partnerLinks, index, index - 1) })}
+                onMoveDown={() => set({ partnerLinks: moveItem(draft.partnerLinks, index, index + 1) })}
+              />
+              {renderLinkAttachments !== undefined && savedLinkIds?.has(link.id) === true && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setExpandedLinkId(expandedLinkId === link.id ? null : link.id)}
+                />
+              )}
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.family.removeMember')}
@@ -168,6 +191,7 @@ export function FamilyEditor({
               onChange={(date) => patchPartner(index, { date })}
               hidePlace
             />
+            {expandedLinkId === link.id && renderLinkAttachments?.('partner', link.id)}
           </Subcard>
         ))}
         <InlineForm>
@@ -192,6 +216,22 @@ export function FamilyEditor({
           <Subcard key={link.id}>
             <div className="family-link-head">
               <span className="family-link-name">{displayName(personById.get(link.childId))}</span>
+              <ReorderButtons
+                upLabel={nls.t('features.tree.reorder.up')}
+                downLabel={nls.t('features.tree.reorder.down')}
+                canMoveUp={index > 0}
+                canMoveDown={index < draft.childLinks.length - 1}
+                onMoveUp={() => set({ childLinks: moveItem(draft.childLinks, index, index - 1) })}
+                onMoveDown={() => set({ childLinks: moveItem(draft.childLinks, index, index + 1) })}
+              />
+              {renderLinkAttachments !== undefined && savedLinkIds?.has(link.id) === true && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setExpandedLinkId(expandedLinkId === link.id ? null : link.id)}
+                />
+              )}
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.family.removeMember')}
@@ -239,6 +279,7 @@ export function FamilyEditor({
                 />
               </Field>
             </FieldGrid>
+            {expandedLinkId === link.id && renderLinkAttachments?.('child', link.id)}
           </Subcard>
         ))}
         <InlineForm>
@@ -286,6 +327,7 @@ export function FamilyEditor({
             sections={[
               'notes',
               'sources',
+              'media',
               'tags',
               'identifiers',
               'contacts',

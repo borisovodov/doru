@@ -1,10 +1,13 @@
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
+import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
 import { Subcard } from '../../patterns/subcard/Subcard';
+import { moveItem } from '../reorder';
 import type { AddressDraft } from './address';
 import styles from './AddressFields.module.css';
 
@@ -25,16 +28,29 @@ export function AddressFields({
       <div className={styles['fields']}>
         <h4 className={styles['title']}>{nls.t('features.tree.address.title')}</h4>
         {address.lines.map((line, index) => (
-          <Input
-            // Address lines are plain strings with no identity of their own and
-            // are only appended and edited in place, so the index is stable.
-            // oxlint-disable-next-line react/no-array-index-key
-            key={index}
-            aria-label={nls.t('features.tree.address.line')}
-            placeholder={nls.t('features.tree.address.line')}
-            value={line}
-            onChange={(event) => patchLine(index, event.target.value)}
-          />
+          // oxlint-disable-next-line react/no-array-index-key -- address lines have no identity of their own
+          <div className={styles['lineRow']} key={index}>
+            <Input
+              aria-label={nls.t('features.tree.address.line')}
+              placeholder={nls.t('features.tree.address.line')}
+              value={line}
+              onChange={(event) => patchLine(index, event.target.value)}
+            />
+            <ReorderButtons
+              upLabel={nls.t('features.tree.reorder.up')}
+              downLabel={nls.t('features.tree.reorder.down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < address.lines.length - 1}
+              onMoveUp={() => set({ lines: moveItem(address.lines, index, index - 1) })}
+              onMoveDown={() => set({ lines: moveItem(address.lines, index, index + 1) })}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.address.removeLine')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => set({ lines: address.lines.filter((_, lineIndex) => lineIndex !== index) })}
+            />
+          </div>
         ))}
         <Button
           size="sm"

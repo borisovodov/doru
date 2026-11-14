@@ -4,16 +4,19 @@ import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord } from '@doru/core';
-import { EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { EntityTab, type MediaTargetApi, type RegistriesEditorApi } from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 import {
   AddressFields,
   ChangesSection,
   ContactsSection,
+  ContributorsSection,
   IdentifiersSection,
   NotesSection,
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  MediaSection,
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
@@ -28,7 +31,10 @@ export function RepositoryTab({
   repositories,
   api,
   sources,
+  media,
+  mediaApi,
   onOpenSource,
+  onOpenMedia,
   onClose,
   onCreated,
 }: {
@@ -36,7 +42,10 @@ export function RepositoryTab({
   repositories: RepositoryRecord[];
   api: RegistriesEditorApi;
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -53,7 +62,10 @@ export function RepositoryTab({
       isNew={isNew}
       api={api}
       sources={sources}
+      media={media}
+      mediaApi={mediaApi}
       onOpenSource={onOpenSource}
+      onOpenMedia={onOpenMedia}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -66,7 +78,10 @@ function RepositoryTabBody({
   isNew,
   api,
   sources,
+  media,
+  mediaApi,
   onOpenSource,
+  onOpenMedia,
   onClose,
   onCreated,
 }: {
@@ -75,7 +90,10 @@ function RepositoryTabBody({
   isNew: boolean;
   api: RegistriesEditorApi;
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -95,8 +113,10 @@ function RepositoryTabBody({
     contacts,
     restrictions,
     changes,
+    submitters,
+    contributors,
     refresh: refreshAttachments,
-  } = useAttachments('repository', targetId, api);
+  } = useAttachments('repository', targetId, api, true);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,6 +291,24 @@ function RepositoryTabBody({
               await api.updateTagLink(before, after);
               await refreshAttachments();
             }}
+          />
+          <MediaSection
+            targetType="repository"
+            targetId={targetId}
+            media={media.filter((item) =>
+              item.links?.some((link) => link.targetType === 'repository' && link.targetId === targetId),
+            )}
+            api={mediaApi}
+            refresh={async () => undefined}
+            onOpenMedia={onOpenMedia}
+          />
+          <ContributorsSection
+            targetType="repository"
+            targetId={targetId}
+            submitters={submitters}
+            links={contributors}
+            onAdd={api.addRecordSubmitter}
+            onDelete={api.deleteRecordSubmitter}
           />
           <ChangesSection changes={changes} />
         </>

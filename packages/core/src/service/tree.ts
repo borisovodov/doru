@@ -33,6 +33,8 @@ import {
   addFamilyOp,
   addIdentifierOp,
   addMediaOp,
+  updateMediaOp,
+  updateMediaLinkOp,
   addNoteOp,
   addPersonOp,
   attachNoteOp,
@@ -298,7 +300,8 @@ export class TreeService {
         attachments: this.repo.listAttachmentsFor('fact', fact.id),
       });
     }
-    return this.apply(deletePersonOp(person, links, attachments, nested));
+    const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
+    return this.apply(deletePersonOp(person, links, attachments, nested, linkAttachments));
   }
 
   /**
@@ -329,7 +332,8 @@ export class TreeService {
       });
     }
     const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
-    return this.apply(reparentOp(links, created, childId));
+    const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
+    return this.apply(reparentOp(links, created, childId, linkAttachments));
   }
 
   /**
@@ -377,7 +381,8 @@ export class TreeService {
   }
 
   updateFamily(before: FamilyRecord, after: FamilyRecord): UndoRedoState {
-    return this.apply(updateFamilyOp(before, after));
+    const removed = this.removedLinkAttachments(before, after);
+    return this.apply(updateFamilyOp(before, after, removed));
   }
 
   deleteFamily(family: FamilyRecord): UndoRedoState {
@@ -540,17 +545,32 @@ export class TreeService {
     return this.apply(addMediaOp(media));
   }
 
+  getMedia(id: string): MediaRecord | undefined {
+    return this.repo.getMedia(id);
+  }
+
+  updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
+    return this.apply(updateMediaOp(before, after));
+  }
+
   deleteMedia(media: MediaRecord): UndoRedoState {
+    const current = this.repo.getMedia(media.id) ?? media;
     const attachments = this.repo.listAttachmentsFor('media', media.id);
-    return this.apply(deleteMediaOp(media, attachments));
+    return this.apply(deleteMediaOp(current, attachments));
   }
 
   attachMedia(link: MediaLinkRecord): UndoRedoState {
     return this.apply(attachMediaOp(link));
   }
 
+  updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
+    return this.apply(updateMediaLinkOp(before, after));
+  }
+
   detachMedia(link: MediaLinkRecord): UndoRedoState {
-    return this.apply(detachMediaOp(link));
+    const media = this.repo.getMedia(link.mediaId);
+    const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
+    return this.apply(detachMediaOp(link, media, attachments));
   }
 
   // --- universal attachments --------------------------------------------------
@@ -709,7 +729,8 @@ export class TreeService {
   }
 
   deleteAddress(address: AddressRecord): UndoRedoState {
-    return this.apply(deleteAddressOp(address));
+    const attachments = this.repo.listAttachmentsFor('address', address.id);
+    return this.apply(deleteAddressOp(address, attachments));
   }
 
   addAssociation(association: AssociationRecord): UndoRedoState {
@@ -780,6 +801,32 @@ export class TreeService {
   }
 
   // --- plumbing -------------------------------------------------------------
+
+  /** Attachments of the partner/child link rows that an update removes. */
+  private removedLinkAttachments(before: FamilyRecord, after: FamilyRecord): FamilyLinkAttachments[] {
+    const removed: FamilyLinkAttachments[] = [];
+    const afterPartners = new Set((after.partnerLinks ?? []).map((link) => link.id));
+    for (const link of before.partnerLinks ?? []) {
+      if (!afterPartners.has(link.id)) {
+        removed.push({
+          targetType: 'family_partner',
+          targetId: link.id,
+          attachments: this.repo.listAttachmentsFor('family_partner', link.id),
+        });
+      }
+    }
+    const afterChildren = new Set((after.childLinks ?? []).map((link) => link.id));
+    for (const link of before.childLinks ?? []) {
+      if (!afterChildren.has(link.id)) {
+        removed.push({
+          targetType: 'family_child',
+          targetId: link.id,
+          attachments: this.repo.listAttachmentsFor('family_child', link.id),
+        });
+      }
+    }
+    return removed;
+  }
 
   private apply(op: Op): UndoRedoState {
     this.recordChange(op, op.change?.kind ?? 'changed');

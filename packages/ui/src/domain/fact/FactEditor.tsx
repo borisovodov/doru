@@ -9,7 +9,9 @@ import { DateEditor } from '../date/DateEditor';
 import { Checkbox } from '../../atoms/form/Checkbox';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
+import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
 import { displayName, formatAddress } from '../format/format';
+import { moveItem } from '../reorder';
 import { AddressFields } from '../registries/AddressFields';
 import {
   addressDraftEmpty,
@@ -355,6 +357,28 @@ export function FactEditor({
               placeholder={nls.t('features.tree.fact.participants.role')}
               value={participant.role ?? ''}
               onChange={(event) => patchParticipant(index, { role: event.target.value || undefined })}
+            />
+            <ReorderButtons
+              upLabel={nls.t('features.tree.reorder.up')}
+              downLabel={nls.t('features.tree.reorder.down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < draft.participants.length - 1}
+              onMoveUp={() =>
+                set({
+                  participants: moveItem(draft.participants, index, index - 1).map((entry, position) => ({
+                    ...entry,
+                    position,
+                  })),
+                })
+              }
+              onMoveDown={() =>
+                set({
+                  participants: moveItem(draft.participants, index, index + 1).map((entry, position) => ({
+                    ...entry,
+                    position,
+                  })),
+                })
+              }
             />
             <IconButton
               size="sm"

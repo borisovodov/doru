@@ -12,6 +12,14 @@
   box-shadow: var(--doru-ring);
 }
 
+.open {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
 .remove {
   position: absolute;
   top: 4px;

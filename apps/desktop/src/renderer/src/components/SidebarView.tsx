@@ -49,6 +49,7 @@ export function SidebarView({
   titles,
   todos,
   onOpenPerson,
+  onOpenMedia,
   onOpenFamily,
   onOpenSource,
   onOpenPlace,
@@ -80,6 +81,7 @@ export function SidebarView({
   titles: TitleRecord[];
   todos: TodoRecord[];
   onOpenPerson: (personId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onOpenPlace: (placeId: string) => void;
@@ -173,7 +175,7 @@ export function SidebarView({
           />
         );
       }
-      return <SidebarMedia media={media} persons={persons} onOpenPerson={onOpenPerson} />;
+      return <SidebarMedia media={media} persons={persons} onOpenMedia={onOpenMedia} />;
     case 'sources':
       return (
         <SourcesSidebar

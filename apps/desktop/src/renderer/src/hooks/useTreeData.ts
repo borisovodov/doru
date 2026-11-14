@@ -7,6 +7,7 @@ import type {
   FamilyRecord,
   ContactRecord,
   IdentifierRecord,
+  MediaFile,
   NoteLinkRecord,
   NoteRecord,
   PersonRecord,
@@ -22,10 +23,14 @@ import type {
 } from '@doru/core';
 import type {
   FamilyEditorApi,
+  MediaAdminApi,
+  MediaTargetApi,
   PersonEditorApi,
   PlaceEditorApi,
   RegistriesEditorApi,
   SourceEditorApi,
+  TitleEditorApi,
+  TodoEditorApi,
 } from '@doru/features';
 import type { MediaWithPath } from '@doru/ui/domain';
 
@@ -203,8 +208,88 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const mediaApi = useMemo<MediaTargetApi>(
+    () => ({
+      getMediaFor: (targetType, targetId) =>
+        projectPath ? window.doru.getMedia(projectPath, targetType, targetId) : Promise.resolve([]),
+      getAllMedia: () => (projectPath ? window.doru.getAllMedia(projectPath) : Promise.resolve([])),
+      addMediaToTarget: async (targetType, targetId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addMedia(projectPath, targetType, targetId);
+        await refreshTree();
+      },
+      attachMedia: async (link) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachMedia(projectPath, link);
+        await refreshTree();
+      },
+      detachMedia: async (link) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.detachMedia(projectPath, link);
+        await refreshTree();
+      },
+      deleteMedia: async (media) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteMedia(projectPath, media);
+        await refreshTree();
+      },
+    }),
+    [projectPath, refreshTree],
+  );
+
+  const mediaAdminApi = useMemo<MediaAdminApi>(
+    () => ({
+      ...mediaApi,
+      getMedia: async (id) => {
+        if (!projectPath) {
+          return undefined;
+        }
+        const all = await window.doru.getAllMedia(projectPath);
+        return all.find((media) => media.id === id);
+      },
+      updateMedia: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateMedia(projectPath, before, after);
+        await refreshTree();
+      },
+      addMediaFile: async (mediaId) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addMediaFile(projectPath, mediaId);
+        await refreshTree();
+      },
+      removeMediaFile: async (media, file: MediaFile) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.removeMediaFile(projectPath, media, file);
+        await refreshTree();
+      },
+      updateMediaLink: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateMediaLink(projectPath, before, after);
+        await refreshTree();
+      },
+    }),
+    [mediaApi, projectPath, refreshTree],
+  );
+
   const api = useMemo<PersonEditorApi>(
     () => ({
+      ...mediaApi,
       addPerson: async (person) => {
         if (!projectPath) {
           return;
@@ -350,12 +435,13 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.deleteFact(projectPath, fact);
         await refreshTree();
       },
-      getMedia: (personId) => (projectPath ? window.doru.getMedia(projectPath, personId) : Promise.resolve([])),
+      getMedia: (personId) =>
+        projectPath ? window.doru.getMedia(projectPath, 'person', personId) : Promise.resolve([]),
       addMedia: async (personId) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.addMedia(projectPath, personId);
+        await window.doru.addMedia(projectPath, 'person', personId);
       },
       deleteMedia: async (media) => {
         if (!projectPath) {
@@ -513,12 +599,13 @@ export function useTreeData(projectPath: string | null | undefined) {
       },
       getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, mediaApi],
   );
 
   /** The generic attachment CRUD shared by the family, source and place editors. */
   const attachmentMethods = useMemo(
     () => ({
+      ...mediaApi,
       getNotes: (targetType: string, targetId: string) =>
         projectPath ? window.doru.listNotes(projectPath, targetType, targetId) : Promise.resolve([] as NoteRecord[]),
       getAllNotes: () => (projectPath ? window.doru.listNotes(projectPath) : Promise.resolve([] as NoteRecord[])),
@@ -683,7 +770,7 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, mediaApi],
   );
 
   const sourceApi = useMemo<SourceEditorApi>(
@@ -906,10 +993,22 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree, attachmentMethods],
   );
 
-  const titlesApi = useMemo(
+  const titlesApi = useMemo<TitleEditorApi>(
     () => ({
-      getChanges: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getChanges(projectPath, targetType, targetId) : Promise.resolve([] as ChangeRecord[]),
+      ...attachmentMethods,
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
+      getRecordSubmitters: (targetType, targetId) =>
+        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
+      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+        if (!projectPath) return;
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await refreshTree();
+      },
+      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+        if (!projectPath) return;
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await refreshTree();
+      },
       addTitle: async (title: TitleRecord) => {
         if (!projectPath) return;
         await window.doru.addTitle(projectPath, title);
@@ -926,13 +1025,25 @@ export function useTreeData(projectPath: string | null | undefined) {
         await refreshTree();
       },
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, attachmentMethods],
   );
 
-  const todosApi = useMemo(
+  const todosApi = useMemo<TodoEditorApi>(
     () => ({
-      getChanges: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getChanges(projectPath, targetType, targetId) : Promise.resolve([] as ChangeRecord[]),
+      ...attachmentMethods,
+      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
+      getRecordSubmitters: (targetType, targetId) =>
+        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
+      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+        if (!projectPath) return;
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await refreshTree();
+      },
+      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+        if (!projectPath) return;
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await refreshTree();
+      },
       addTodo: async (todo: TodoRecord) => {
         if (!projectPath) return;
         await window.doru.addTodo(projectPath, todo);
@@ -973,6 +1084,8 @@ export function useTreeData(projectPath: string | null | undefined) {
     deletePerson,
     reparent,
     personCounts,
+    mediaApi,
+    mediaAdminApi,
     api,
     sourceApi,
     placeApi,

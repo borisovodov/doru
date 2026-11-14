@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
-import type { AddressRecord, ChangeRecord, FactRecord, RepositoryRecord, SubmitterRecord } from '@doru/core';
-import { EntityTab, type RegistriesEditorApi } from '@doru/features';
-import { AddressFields, ChangesSection, addressDraftToRecord, addressLabel } from '@doru/ui/domain';
+import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import { AttachmentsPanel, EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { AddressFields, addressDraftToRecord, addressLabel } from '@doru/ui/domain';
 import { Button, EntityViewCard, SectionCard } from '@doru/ui';
 import { nls } from '@doru/workbench';
 import { useRegistryAddress } from './useRegistryAddress';
@@ -13,6 +12,7 @@ export function AddressTab({
   facts,
   repositories,
   submitters,
+  sources,
   api,
   onClose,
   onCreated,
@@ -22,6 +22,7 @@ export function AddressTab({
   facts: FactRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  sources: SourceRecord[];
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
@@ -40,6 +41,7 @@ export function AddressTab({
       facts={facts}
       repositories={repositories}
       submitters={submitters}
+      sources={sources}
       api={api}
       onClose={onClose}
       onCreated={onCreated}
@@ -54,6 +56,7 @@ function AddressTabBody({
   facts,
   repositories,
   submitters,
+  sources,
   api,
   onClose,
   onCreated,
@@ -64,25 +67,13 @@ function AddressTabBody({
   facts: FactRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  sources: SourceRecord[];
   api: RegistriesEditorApi;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
-  const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const { address, setAddress, saveAddress } = useRegistryAddress(api, record?.id);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (record !== undefined) {
-      void api.getChanges('address', record.id).then((loaded) => {
-        if (!cancelled) setChanges(loaded);
-      });
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [api, record]);
   const preview = addressLabel(addressDraftToRecord(address));
   const usage = {
     facts: facts.filter((fact) => fact.addressId === base.id).length,
@@ -133,7 +124,9 @@ function AddressTabBody({
           <p className="side-registries-note">{nls.t('features.tree.address.deleteWarning', usageCount)}</p>
         )}
       </SectionCard>
-      {record !== undefined && <ChangesSection changes={changes} />}
+      {record !== undefined && (
+        <AttachmentsPanel targetType="address" targetId={record.id} api={api} sources={sources} />
+      )}
     </EntityTab>
   );
 }

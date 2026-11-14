@@ -2,7 +2,7 @@ export { addPersonOp } from './addPerson';
 export { addRelativeOp, deletePersonOp, reparentOp, updatePersonOp } from './person';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp, type FamilyLinkAttachments } from './family';
 export { addFactOp, deleteFactOp, updateFactOp } from './fact';
-export { addMediaOp, deleteMediaOp } from './media';
+export { addMediaOp, deleteMediaOp, updateMediaOp } from './media';
 export { addPlaceOp, deletePlaceOp, updatePlaceOp } from './place';
 export {
   addAddressOp,
@@ -35,6 +35,7 @@ export {
   detachCitationOp,
   detachMediaOp,
   detachNoteOp,
+  updateMediaLinkOp,
   detachTagOp,
   updateTagLinkOp,
   splitNoteOp,

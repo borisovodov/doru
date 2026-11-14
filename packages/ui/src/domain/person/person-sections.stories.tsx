@@ -35,7 +35,8 @@ export const ChangeLog: Story = {
 export const Media: Story = {
   render: () => (
     <MediaSection
-      personId="P1"
+      targetType="person"
+      targetId="P1"
       media={[
         {
           id: 'M1',
@@ -44,9 +45,15 @@ export const Media: Story = {
           absolutePath: '/photos/portrait.jpg',
         },
       ]}
+      api={{
+        getMediaFor: async () => [],
+        getAllMedia: async () => [],
+        addMediaToTarget: async () => undefined,
+        attachMedia: async () => undefined,
+        detachMedia: async () => undefined,
+        deleteMedia: async () => undefined,
+      }}
       refresh={async () => undefined}
-      onAddMedia={async () => undefined}
-      onDeleteMedia={async () => undefined}
     />
   ),
 };

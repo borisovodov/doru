@@ -76,3 +76,26 @@ actions for editing an address in place.
 Tasks have creation and closing dates in addition to the scheduled and
 reminder dates. **Related to** links a task to a person, family, source, place,
 repository or title; leave it empty for a free-standing task.
+
+Titles, tasks, addresses, associations and family partner/child links have the
+same Notes, Sources, Tags, Identifiers, Contacts, Restrictions and Contributors
+sections as the main entity tabs.
+
+## Media
+
+Photos are ordinary files in the `media/` folder next to the project. Add them
+from a person, family, source, place, repository, submitter, title, task or
+address; the media section also lets you attach an existing record to another
+target. Click a preview to open the media tab, where you can edit the title,
+manage files and edit link metadata such as the caption, sequence, primary
+flag and exclusion flag.
+
+A media record can be linked to several targets. **Detach from this record**
+removes one link; **Delete media** removes the record and its file copies. A
+record with no remaining links is removed automatically.
+
+## Ordering
+
+Lists whose order matters — names, family partners and children, place names,
+address lines, fact participants and template fields — have up/down controls.
+The order is stored as the row position.

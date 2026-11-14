@@ -11,7 +11,7 @@ import type {
   TodoRecord,
 } from '@doru/core';
 import { placeName } from '@doru/core/model';
-import { addressLabel, displayName, familyLabel } from '@doru/ui/domain';
+import { addressLabel, displayName, familyLabel, type MediaWithPath } from '@doru/ui/domain';
 import { moveTab, nls, type TabInfo } from '@doru/workbench';
 
 const TREE_TAB_ID = 'tree';
@@ -27,6 +27,7 @@ const SUBMITTER_TAB_PREFIX = 'submitter:';
 const ADDRESS_TAB_PREFIX = 'address:';
 const TASK_TAB_PREFIX = 'task:';
 const TITLE_TAB_PREFIX = 'title:';
+const MEDIA_TAB_PREFIX = 'media:';
 
 interface OpenTab {
   id: string;
@@ -45,6 +46,7 @@ function tabLabel(
   addresses: AddressRecord[],
   todos: TodoRecord[],
   titles: TitleRecord[],
+  media: MediaWithPath[],
 ): string {
   if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
     const personId = tab.id.slice(PERSON_TAB_PREFIX.length);
@@ -134,6 +136,13 @@ function tabLabel(
       return todo.text || '—';
     }
   }
+  if (tab.id.startsWith(MEDIA_TAB_PREFIX)) {
+    const mediaId = tab.id.slice(MEDIA_TAB_PREFIX.length);
+    const item = media.find((entry) => entry.id === mediaId);
+    if (item) {
+      return item.title ?? item.path ?? '—';
+    }
+  }
   return tab.label;
 }
 
@@ -147,6 +156,7 @@ export function useTabs(
   addresses: AddressRecord[],
   todos: TodoRecord[],
   titles: TitleRecord[],
+  media: MediaWithPath[],
 ) {
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -305,6 +315,14 @@ export function useTabs(
     openTab({ id: `${TASK_TAB_PREFIX}new:${crypto.randomUUID()}`, label: nls.t('features.tasks.newTask') });
   }, [openTab]);
 
+  const openMediaTab = useCallback(
+    (mediaId: string) => {
+      const item = media.find((entry) => entry.id === mediaId);
+      openTab({ id: `${MEDIA_TAB_PREFIX}${mediaId}`, label: item?.title ?? item?.path ?? mediaId });
+    },
+    [media, openTab],
+  );
+
   const openTitleTab = useCallback(
     (titleId: string) => {
       const title = titles.find((entry) => entry.id === titleId);
@@ -368,7 +386,7 @@ export function useTabs(
 
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
-    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, addresses, todos, titles),
+    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, addresses, todos, titles, media),
     closable: tab.closable,
   }));
 
@@ -395,6 +413,7 @@ export function useTabs(
     openNewAddressTab,
     openTaskTab,
     openNewTaskTab,
+    openMediaTab,
     openTitleTab,
     openNewTitleTab,
     openNewPersonTab,
@@ -423,4 +442,5 @@ export {
   ADDRESS_TAB_PREFIX,
   TASK_TAB_PREFIX,
   TITLE_TAB_PREFIX,
+  MEDIA_TAB_PREFIX,
 };
