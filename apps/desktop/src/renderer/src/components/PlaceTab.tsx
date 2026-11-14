@@ -23,6 +23,7 @@ import {
   SourcesSection,
   TagsSection,
   MediaSection,
+  TasksSection,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
@@ -332,6 +333,7 @@ function PlaceTabBody({
                 onAdd={api.addRecordSubmitter}
                 onDelete={api.deleteRecordSubmitter}
               />
+              <TasksSection targetType="place" targetId={targetId} api={api} />
               <ChangesSection changes={changes} />
             </>
           )}

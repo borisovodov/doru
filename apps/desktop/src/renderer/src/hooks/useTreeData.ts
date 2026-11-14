@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   AddressRecord,
+  AssociationRecord,
   ChangeRecord,
   CitationRecord,
   FactRecord,
@@ -52,6 +53,7 @@ export function useTreeData(projectPath: string | null | undefined) {
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [todos, setTodos] = useState<TodoRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
+  const [associations, setAssociations] = useState<AssociationRecord[]>([]);
 
   const reloadTree = useCallback(async (path: string) => {
     const [
@@ -67,6 +69,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       allAddresses,
       allTodos,
       allTitles,
+      allAssociations,
     ] = await Promise.all([
       window.doru.all(path),
       window.doru.getAllFacts(path),
@@ -80,6 +83,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       window.doru.listAddresses(path),
       window.doru.getTodos(path),
       window.doru.getTitles(path),
+      window.doru.getAllAssociations(path),
     ]);
     setPersons(data.persons);
     setFamilies(data.families);
@@ -94,6 +98,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     setAddresses(allAddresses);
     setTodos(allTodos);
     setTitles(allTitles);
+    setAssociations(allAssociations);
   }, []);
 
   useEffect(() => {
@@ -111,6 +116,7 @@ export function useTreeData(projectPath: string | null | undefined) {
       setAddresses([]);
       setTodos([]);
       setTitles([]);
+      setAssociations([]);
       return;
     }
     void reloadTree(projectPath);
@@ -340,6 +346,29 @@ export function useTreeData(projectPath: string | null | undefined) {
           return;
         }
         await window.doru.deleteNote(projectPath, note);
+        await refreshTree();
+      },
+      getTodosFor: (targetType, targetId) =>
+        projectPath ? window.doru.getTodosFor(projectPath, targetType, targetId) : Promise.resolve([] as TodoRecord[]),
+      addTodo: async (todo) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addTodo(projectPath, todo);
+        await refreshTree();
+      },
+      updateTodo: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateTodo(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteTodo: async (todo) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteTodo(projectPath, todo);
         await refreshTree();
       },
       getFamilies: () => (projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([])),
@@ -632,6 +661,23 @@ export function useTreeData(projectPath: string | null | undefined) {
       deleteNote: async (note: NoteRecord) => {
         if (!projectPath) return;
         await window.doru.deleteNote(projectPath, note);
+        await refreshTree();
+      },
+      getTodosFor: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getTodosFor(projectPath, targetType, targetId) : Promise.resolve([] as TodoRecord[]),
+      addTodo: async (todo: TodoRecord) => {
+        if (!projectPath) return;
+        await window.doru.addTodo(projectPath, todo);
+        await refreshTree();
+      },
+      updateTodo: async (before: TodoRecord, after: TodoRecord) => {
+        if (!projectPath) return;
+        await window.doru.updateTodo(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteTodo: async (todo: TodoRecord) => {
+        if (!projectPath) return;
+        await window.doru.deleteTodo(projectPath, todo);
         await refreshTree();
       },
       getCitations: (targetType: string, targetId: string) =>
@@ -1039,28 +1085,13 @@ export function useTreeData(projectPath: string | null | undefined) {
         await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
         await refreshTree();
       },
-      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+      deleteRecordSubmitter: async (id: string, submitterId: string, targetType: string, targetId: string) => {
         if (!projectPath) return;
         await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
         await refreshTree();
       },
-      addTodo: async (todo: TodoRecord) => {
-        if (!projectPath) return;
-        await window.doru.addTodo(projectPath, todo);
-        await refreshTree();
-      },
-      updateTodo: async (before: TodoRecord, after: TodoRecord) => {
-        if (!projectPath) return;
-        await window.doru.updateTodo(projectPath, before, after);
-        await refreshTree();
-      },
-      deleteTodo: async (todo: TodoRecord) => {
-        if (!projectPath) return;
-        await window.doru.deleteTodo(projectPath, todo);
-        await refreshTree();
-      },
     }),
-    [projectPath, refreshTree],
+    [projectPath, refreshTree, attachmentMethods],
   );
 
   return {
@@ -1077,6 +1108,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     addresses,
     todos,
     titles,
+    associations,
     undo,
     redo,
     refreshTree,

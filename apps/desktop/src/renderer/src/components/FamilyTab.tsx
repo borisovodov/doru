@@ -20,6 +20,7 @@ import {
   SourcesSection,
   TagsSection,
   MediaSection,
+  TasksSection,
   familyDraftMatches,
   familyDraftToRecord,
   familyToDraft,
@@ -293,6 +294,7 @@ function FamilyTabBody({
         onAdd={api.addRecordSubmitter}
         onDelete={api.deleteRecordSubmitter}
       />
+      <TasksSection targetType="family" targetId={record.id} api={api} />
       <ChangesSection changes={changes} />
     </EntityTab>
   );

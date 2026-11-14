@@ -1,52 +1,32 @@
-import type { FamilyRecord, PersonRecord, PlaceRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
-import { placeName } from '@doru/core/model';
+import { TARGET_TYPES } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { DateEditor } from '../date/DateEditor';
-import { displayName, familyLabel } from '../format/format';
+import type { TaskTargetData } from './taskTargets';
+import { taskTargetOptions } from './taskTargets';
 import type { TodoDraft } from './todoDraft';
-
-const TARGET_TYPES = ['person', 'family', 'source', 'place', 'repository', 'title'] as const;
 
 /**
  * The editable fields of a todo, shared by the task tab editor: the text,
  * the classification fields (category, locality, priority, status), the
  * repository and entity links, and the creation/scheduled/reminder/closed
- * dates.
+ * dates. `data` carries every record type a task can be related to.
  */
 export function TaskEditorFields({
   edit,
-  persons,
-  families,
-  sources,
-  places,
-  repositories,
-  titles,
+  data,
   onChange,
 }: {
   edit: TodoDraft;
-  persons: PersonRecord[];
-  families: FamilyRecord[];
-  sources: SourceRecord[];
-  places: PlaceRecord[];
-  repositories: RepositoryRecord[];
-  titles: TitleRecord[];
+  data: TaskTargetData;
   onChange: (update: Partial<TodoDraft>) => void;
 }) {
-  const personById = new Map(persons.map((person) => [person.id, person]));
   const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
-  const targetOptions = targetOptionsFor(edit.targetType, {
-    persons,
-    families,
-    sources,
-    places,
-    repositories,
-    titles,
-    personById,
-  });
+  const targetOptions = taskTargetOptions(edit.targetType, data);
+  const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
 
   return (
     <>
@@ -92,7 +72,7 @@ export function TaskEditorFields({
         <Field label={nls.t('features.tasks.repository')}>
           <Select value={edit.repositoryId} onChange={(event) => onChange({ repositoryId: event.target.value })}>
             <option value="">{nls.t('features.tasks.none')}</option>
-            {repositories.map((repository) => (
+            {data.repositories.map((repository) => (
               <option key={repository.id} value={repository.id}>
                 {repository.name}
               </option>
@@ -127,7 +107,7 @@ export function TaskEditorFields({
             onChange={(event) => onChange({ targetId: event.target.value })}
           >
             <option value="">{nls.t('features.tasks.none')}</option>
-            {!knownTarget && edit.targetId !== '' && <option value={edit.targetId}>{edit.targetId}</option>}
+            {edit.targetId !== '' && !knownTargetId && <option value={edit.targetId}>{edit.targetId}</option>}
             {targetOptions.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
@@ -162,34 +142,4 @@ export function TaskEditorFields({
       />
     </>
   );
-}
-
-function targetOptionsFor(
-  targetType: string,
-  data: {
-    persons: PersonRecord[];
-    families: FamilyRecord[];
-    sources: SourceRecord[];
-    places: PlaceRecord[];
-    repositories: RepositoryRecord[];
-    titles: TitleRecord[];
-    personById: Map<string, PersonRecord>;
-  },
-): Array<{ id: string; label: string }> {
-  switch (targetType) {
-    case 'person':
-      return data.persons.map((person) => ({ id: person.id, label: displayName(person) }));
-    case 'family':
-      return data.families.map((family) => ({ id: family.id, label: familyLabel(family, data.personById) }));
-    case 'source':
-      return data.sources.map((source) => ({ id: source.id, label: source.title ?? source.id }));
-    case 'place':
-      return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
-    case 'repository':
-      return data.repositories.map((repository) => ({ id: repository.id, label: repository.name }));
-    case 'title':
-      return data.titles.map((title) => ({ id: title.id, label: title.name ?? title.id }));
-    default:
-      return [];
-  }
 }

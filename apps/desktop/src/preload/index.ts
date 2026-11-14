@@ -110,6 +110,8 @@ const api = {
     ipcRenderer.invoke('tree:deleteFamily', { projectPath, family }),
   getAssociations: (projectPath: string, personId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:associations', { projectPath, personId }),
+  getAllAssociations: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:allAssociations', { projectPath }),
   addAssociation: (projectPath: string, association: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addAssociation', { projectPath, association }),
   updateAssociation: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
@@ -156,6 +158,8 @@ const api = {
   updateTagLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateTagLink', { projectPath, before, after }),
   getTodos: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:todos', { projectPath }),
+  getTodosFor: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:todosFor', { projectPath, targetType, targetId }),
   addTodo: (projectPath: string, todo: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addTodo', { projectPath, todo }),
   updateTodo: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>

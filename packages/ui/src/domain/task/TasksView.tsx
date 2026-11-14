@@ -1,18 +1,25 @@
 import { Plus } from 'lucide-react';
 import type {
+  AddressRecord,
+  AssociationRecord,
+  CitationRecord,
+  FactRecord,
   FamilyRecord,
+  MediaRecord,
+  NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
   SourceRecord,
+  SubmitterRecord,
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import { placeName } from '@doru/core/model';
-import { displayName, familyLabel, formatDate } from '../format/format';
+import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { nls } from '../../nls';
+import { taskTargetLabel, type TaskTargetData } from './taskTargets';
 import './TasksView.css';
 
 /**
@@ -27,6 +34,13 @@ export function TasksView({
   places,
   repositories,
   titles,
+  facts,
+  citations,
+  notes,
+  media,
+  submitters,
+  addresses,
+  associations,
   onOpenTask,
   onNewTask,
   onOpenPerson,
@@ -34,6 +48,9 @@ export function TasksView({
   onOpenSource,
   onOpenPlace,
   onOpenRepository,
+  onOpenSubmitter,
+  onOpenAddress,
+  onOpenMedia,
   onOpenTitle,
 }: {
   todos: TodoRecord[];
@@ -43,6 +60,13 @@ export function TasksView({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
+  facts: FactRecord[];
+  citations: CitationRecord[];
+  notes: NoteRecord[];
+  media: MediaRecord[];
+  submitters: SubmitterRecord[];
+  addresses: AddressRecord[];
+  associations: AssociationRecord[];
   onOpenTask: (todoId: string) => void;
   onNewTask: () => void;
   onOpenPerson: (personId: string) => void;
@@ -50,10 +74,28 @@ export function TasksView({
   onOpenSource: (sourceId: string) => void;
   onOpenPlace: (placeId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
+  onOpenSubmitter: (submitterId: string) => void;
+  onOpenAddress: (addressId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenTitle: (titleId: string) => void;
 }) {
-  const personById = new Map(persons.map((person) => [person.id, person]));
   const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
+  const targetData: TaskTargetData = {
+    persons,
+    families,
+    sources,
+    places,
+    repositories,
+    titles,
+    facts,
+    citations,
+    notes,
+    media,
+    submitters,
+    addresses,
+    associations,
+    todos,
+  };
   const isClosed = (todo: TodoRecord) => todo.status === 'closed';
   const sorted = [...todos].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
@@ -61,44 +103,80 @@ export function TasksView({
     if (todo.targetType === undefined || todo.targetId === undefined) {
       return undefined;
     }
+    const id = todo.targetId;
+    let open: (() => void) | undefined;
     switch (todo.targetType) {
       case 'person':
-        return {
-          label: personById.has(todo.targetId) ? displayName(personById.get(todo.targetId)) : todo.targetId,
-          open: () => onOpenPerson(todo.targetId as string),
-        };
-      case 'family': {
-        const family = families.find((entry) => entry.id === todo.targetId);
-        return {
-          label: family !== undefined ? familyLabel(family, personById) : todo.targetId,
-          open: () => onOpenFamily(todo.targetId as string),
-        };
+        open = () => onOpenPerson(id);
+        break;
+      case 'family':
+        open = () => onOpenFamily(id);
+        break;
+      case 'family_partner':
+      case 'family_child': {
+        const family = families.find((entry) =>
+          [...(entry.partnerLinks ?? []), ...(entry.childLinks ?? [])].some((link) => link.id === id),
+        );
+        open = family !== undefined ? () => onOpenFamily(family.id) : undefined;
+        break;
+      }
+      case 'fact': {
+        const fact = facts.find((entry) => entry.id === id);
+        if (fact?.personId !== undefined) {
+          open = () => onOpenPerson(fact.personId as string);
+        } else if (fact?.familyId !== undefined) {
+          open = () => onOpenFamily(fact.familyId as string);
+        }
+        break;
+      }
+      case 'name': {
+        const person = persons.find((entry) => hasName(entry, id));
+        open = person !== undefined ? () => onOpenPerson(person.id) : undefined;
+        break;
       }
       case 'source':
-        return {
-          label: sources.find((entry) => entry.id === todo.targetId)?.title ?? todo.targetId,
-          open: () => onOpenSource(todo.targetId as string),
-        };
-      case 'place': {
-        const place = places.find((entry) => entry.id === todo.targetId);
-        return {
-          label: place !== undefined ? placeName(place) : todo.targetId,
-          open: () => onOpenPlace(todo.targetId as string),
-        };
+        open = () => onOpenSource(id);
+        break;
+      case 'citation': {
+        const citation = citations.find((entry) => entry.id === id);
+        open = citation !== undefined ? () => onOpenSource(citation.sourceId) : undefined;
+        break;
       }
+      case 'media':
+        open = () => onOpenMedia(id);
+        break;
+      case 'media_file': {
+        const record = media.find((entry) => (entry.files ?? []).some((file) => file.id === id));
+        open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
+        break;
+      }
+      case 'place':
+        open = () => onOpenPlace(id);
+        break;
       case 'repository':
-        return {
-          label: repositoryById.get(todo.targetId)?.name ?? todo.targetId,
-          open: () => onOpenRepository(todo.targetId as string),
-        };
+        open = () => onOpenRepository(id);
+        break;
+      case 'submitter':
+        open = () => onOpenSubmitter(id);
+        break;
+      case 'address':
+        open = () => onOpenAddress(id);
+        break;
+      case 'association': {
+        const association = associations.find((entry) => entry.id === id);
+        open = association !== undefined ? () => onOpenPerson(association.personId) : undefined;
+        break;
+      }
+      case 'todo':
+        open = () => onOpenTask(id);
+        break;
       case 'title':
-        return {
-          label: titles.find((entry) => entry.id === todo.targetId)?.name ?? todo.targetId,
-          open: () => onOpenTitle(todo.targetId as string),
-        };
+        open = () => onOpenTitle(id);
+        break;
       default:
-        return { label: `${todo.targetType}:${todo.targetId}`, open: undefined };
+        open = undefined;
     }
+    return { label: taskTargetLabel(todo.targetType, id, targetData), open };
   };
 
   return (
@@ -166,4 +244,10 @@ export function TasksView({
       )}
     </div>
   );
+}
+
+function hasName(person: PersonRecord, nameId: string): boolean {
+  const visit = (name: PersonRecord['names'][number]): boolean =>
+    name.id === nameId || (name.variants ?? []).some((variant) => visit(variant));
+  return person.names.some((name) => visit(name));
 }

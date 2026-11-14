@@ -1,26 +1,31 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type {
+  AddressRecord,
+  AssociationRecord,
+  CitationRecord,
+  FactRecord,
   FamilyRecord,
+  MediaRecord,
+  NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
   SourceRecord,
+  SubmitterRecord,
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
 import { AttachmentsPanel, EntityTab, type TodoEditorApi } from '@doru/features';
 import {
   TaskEditorFields,
-  displayName,
   emptyTodoDraft,
-  familyLabel,
+  taskTargetLabel,
   todoDraftToRecord,
   todoToDraft,
   type TodoDraft,
 } from '@doru/ui/domain';
-import { placeName } from '@doru/core/model';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
@@ -35,6 +40,13 @@ export function TaskTab({
   places,
   repositories,
   titles,
+  facts,
+  citations,
+  notes,
+  media,
+  submitters,
+  addresses,
+  associations,
   api,
   onClose,
   onOpenMedia,
@@ -48,6 +60,13 @@ export function TaskTab({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
+  facts: FactRecord[];
+  citations: CitationRecord[];
+  notes: NoteRecord[];
+  media: MediaRecord[];
+  submitters: SubmitterRecord[];
+  addresses: AddressRecord[];
+  associations: AssociationRecord[];
   api: TodoEditorApi;
   onClose: (tabId: string) => void;
   onOpenMedia: (mediaId: string) => void;
@@ -64,12 +83,20 @@ export function TaskTab({
       tabId={tabId}
       record={record}
       isNew={isNew}
+      todos={todos}
       persons={persons}
       families={families}
       sources={sources}
       places={places}
       repositories={repositories}
       titles={titles}
+      facts={facts}
+      citations={citations}
+      notes={notes}
+      media={media}
+      submitters={submitters}
+      addresses={addresses}
+      associations={associations}
       api={api}
       onClose={onClose}
       onOpenMedia={onOpenMedia}
@@ -82,12 +109,20 @@ function TaskTabBody({
   tabId,
   record,
   isNew,
+  todos,
   persons,
   families,
   sources,
   places,
   repositories,
   titles,
+  facts,
+  citations,
+  notes,
+  media,
+  submitters,
+  addresses,
+  associations,
   api,
   onClose,
   onOpenMedia,
@@ -96,12 +131,20 @@ function TaskTabBody({
   tabId: string;
   record: TodoRecord | undefined;
   isNew: boolean;
+  todos: TodoRecord[];
   persons: PersonRecord[];
   families: FamilyRecord[];
   sources: SourceRecord[];
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
+  facts: FactRecord[];
+  citations: CitationRecord[];
+  notes: NoteRecord[];
+  media: MediaRecord[];
+  submitters: SubmitterRecord[];
+  addresses: AddressRecord[];
+  associations: AssociationRecord[];
   api: TodoEditorApi;
   onClose: (tabId: string) => void;
   onOpenMedia: (mediaId: string) => void;
@@ -112,42 +155,50 @@ function TaskTabBody({
   const [draft, setDraft] = useState<TodoDraft>(() => (isNew ? emptyTodoDraft() : todoToDraft(base)));
   const targetId = lastSaved?.id ?? record?.id;
 
-  const personById = new Map(persons.map((person) => [person.id, person]));
   const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
   const patch = (update: Partial<TodoDraft>) => setDraft((current) => ({ ...current, ...update }));
 
-  const targetLabel = (type: string, id: string): string | undefined => {
-    switch (type) {
-      case 'person':
-        return personById.has(id) ? displayName(personById.get(id)) : id;
-      case 'family': {
-        const family = families.find((entry) => entry.id === id);
-        return family !== undefined ? familyLabel(family, personById) : id;
-      }
-      case 'source':
-        return sources.find((entry) => entry.id === id)?.title ?? id;
-      case 'place': {
-        const place = places.find((entry) => entry.id === id);
-        return place !== undefined ? placeName(place) : id;
-      }
-      case 'repository':
-        return repositoryById.get(id)?.name ?? id;
-      case 'title':
-        return titles.find((entry) => entry.id === id)?.name ?? id;
-      default:
-        return `${type}:${id}`;
-    }
-  };
+  const targetData = useMemo(
+    () => ({
+      persons,
+      families,
+      sources,
+      places,
+      repositories,
+      titles,
+      facts,
+      citations,
+      notes,
+      media,
+      submitters,
+      addresses,
+      associations,
+      todos,
+    }),
+    [
+      persons,
+      families,
+      sources,
+      places,
+      repositories,
+      titles,
+      facts,
+      citations,
+      notes,
+      media,
+      submitters,
+      addresses,
+      associations,
+      todos,
+    ],
+  );
 
   const subtitleParts: string[] = [];
   if (draft.category !== '') {
     subtitleParts.push(draft.category);
   }
   if (draft.targetType !== '' && draft.targetId !== '') {
-    const label = targetLabel(draft.targetType, draft.targetId);
-    if (label !== undefined) {
-      subtitleParts.push(label);
-    }
+    subtitleParts.push(taskTargetLabel(draft.targetType, draft.targetId, targetData));
   }
   if (draft.repositoryId !== '') {
     const repository = repositoryById.get(draft.repositoryId);
@@ -197,16 +248,7 @@ function TaskTabBody({
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
-        <TaskEditorFields
-          edit={draft}
-          persons={persons}
-          families={families}
-          sources={sources}
-          places={places}
-          repositories={repositories}
-          titles={titles}
-          onChange={patch}
-        />
+        <TaskEditorFields edit={draft} data={targetData} onChange={patch} />
       </SectionCard>
       {targetId !== undefined && (
         <AttachmentsPanel targetType="todo" targetId={targetId} api={api} sources={sources} onOpenMedia={onOpenMedia} />
