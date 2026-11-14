@@ -6,16 +6,25 @@ import styles from './MediaTile.module.css';
 export interface MediaTileProps {
   src: string;
   alt: string;
+  onOpen?: () => void;
+  openLabel?: string;
   onRemove?: () => void;
   removeLabel?: string;
   className?: string;
 }
 
-/** A square media thumbnail with an optional remove action. */
-export function MediaTile({ src, alt, onRemove, removeLabel, className }: MediaTileProps) {
+/** A square media thumbnail with optional open and remove actions. */
+export function MediaTile({ src, alt, onOpen, openLabel, onRemove, removeLabel, className }: MediaTileProps) {
+  const image = <img src={src} alt={alt} loading="lazy" />;
   return (
     <figure className={cx(styles['tile'], className)}>
-      <img src={src} alt={alt} loading="lazy" />
+      {onOpen ? (
+        <button type="button" className={styles['open']} aria-label={openLabel} onClick={onOpen}>
+          {image}
+        </button>
+      ) : (
+        image
+      )}
       {onRemove ? (
         <IconButton
           className={styles['remove']}

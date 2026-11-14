@@ -21,6 +21,7 @@ export { Progress, type ProgressProps } from './atoms/feedback/Progress';
 export { InlineError, type InlineErrorProps } from './atoms/feedback/InlineError';
 export { Hint, type HintProps } from './atoms/feedback/Hint';
 export { EmptyText, type EmptyTextProps } from './atoms/feedback/EmptyText';
+export { ReorderButtons, type ReorderButtonsProps } from './atoms/reorder-buttons/ReorderButtons';
 export { SectionCard, type SectionCardProps } from './patterns/section-card/SectionCard';
 export { EntityViewCard, type EntityViewCardProps } from './patterns/entity-view-card/EntityViewCard';
 export { EntityCard, type EntityCardProps } from './patterns/entity-card/EntityCard';

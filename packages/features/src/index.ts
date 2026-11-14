@@ -3,10 +3,14 @@ export { PersonCard, type PersonCardData } from './tree/PersonCard';
 export { PersonEditor, type PersonEditorProps } from './person/PersonEditor';
 export type {
   FamilyEditorApi,
+  MediaAdminApi,
+  MediaTargetApi,
   PersonEditorApi,
   PlaceEditorApi,
   RegistriesEditorApi,
   SourceEditorApi,
+  TitleEditorApi,
+  TodoEditorApi,
 } from './person/types';
 export { SidebarFamilies } from './sidebar/SidebarFamilies';
 export { SidebarFacts } from './sidebar/SidebarFacts';

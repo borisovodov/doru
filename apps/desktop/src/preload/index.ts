@@ -245,13 +245,25 @@ const api = {
     ipcRenderer.invoke('tree:updateFact', { projectPath, before, after }),
   deleteFact: (projectPath: string, fact: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteFact', { projectPath, fact }),
-  getMedia: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:media', { projectPath, personId }),
+  getMedia: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:mediaFor', { projectPath, targetType, targetId }),
   getAllMedia: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:allMedia', { projectPath }),
-  addMedia: (projectPath: string, personId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addMedia', { projectPath, personId }),
+  addMedia: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addMedia', { projectPath, targetType, targetId }),
+  updateMedia: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateMedia', { projectPath, before, after }),
+  addMediaFile: (projectPath: string, mediaId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addMediaFile', { projectPath, mediaId }),
+  removeMediaFile: (projectPath: string, media: unknown, file: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:removeMediaFile', { projectPath, media, file }),
   deleteMedia: (projectPath: string, media: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteMedia', { projectPath, media }),
+  attachMedia: (projectPath: string, link: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:attachMedia', { projectPath, link }),
+  detachMedia: (projectPath: string, link: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:detachMedia', { projectPath, link }),
+  updateMediaLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateMediaLink', { projectPath, before, after }),
   getAiSettings: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:get'),
   getAiProviders: (): Promise<unknown> => ipcRenderer.invoke('settings:ai:providers'),
   setAiSettings: (options: unknown): Promise<unknown> => ipcRenderer.invoke('settings:ai:set', options),

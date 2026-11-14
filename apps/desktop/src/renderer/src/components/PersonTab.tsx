@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PersonRecord } from '@doru/core';
-import { PersonEditor, type PersonEditorApi } from '@doru/features';
+import { PersonEditor, type MediaTargetApi, type PersonEditorApi } from '@doru/features';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { PERSON_TAB_PREFIX } from '../hooks/useTabs';
@@ -9,12 +9,16 @@ export function PersonTab({
   tabId,
   persons,
   api,
+  mediaApi,
+  onOpenMedia,
   onClose,
   onCreated,
 }: {
   tabId: string;
   persons: PersonRecord[];
   api: PersonEditorApi;
+  mediaApi: MediaTargetApi;
+  onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -31,6 +35,8 @@ export function PersonTab({
       isNew={isNew}
       persons={persons}
       api={api}
+      mediaApi={mediaApi}
+      onOpenMedia={onOpenMedia}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -43,6 +49,8 @@ function PersonTabBody({
   isNew,
   persons,
   api,
+  mediaApi,
+  onOpenMedia,
   onClose,
   onCreated,
 }: {
@@ -51,6 +59,8 @@ function PersonTabBody({
   isNew: boolean;
   persons: PersonRecord[];
   api: PersonEditorApi;
+  mediaApi: MediaTargetApi;
+  onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -106,6 +116,8 @@ function PersonTabBody({
       onSave={() => void save()}
       onCancel={draft.isNew && !created ? () => onClose(tabId) : undefined}
       api={api}
+      mediaApi={mediaApi}
+      onOpenMedia={onOpenMedia}
     />
   );
 }

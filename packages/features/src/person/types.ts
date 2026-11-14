@@ -8,6 +8,8 @@ import type {
   FactRecord,
   FamilyRecord,
   IdentifierRecord,
+  MediaFile,
+  MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
@@ -20,11 +22,31 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
+  TodoRecord,
 } from '@doru/core';
 
 export type { MediaWithPath } from '@doru/ui/domain';
 
-export interface AttachmentsApi extends AttachmentApi {
+/** Media operations for one target. */
+export interface MediaTargetApi {
+  getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
+  getAllMedia(): Promise<MediaWithPath[]>;
+  addMediaToTarget(targetType: string, targetId: string): Promise<void>;
+  attachMedia(link: MediaLinkRecord): Promise<void>;
+  detachMedia(link: MediaLinkRecord): Promise<void>;
+  deleteMedia(media: MediaRecord): Promise<void>;
+}
+
+/** Media operations used by the media editor. */
+export interface MediaAdminApi extends MediaTargetApi {
+  getMedia(id: string): Promise<MediaWithPath | undefined>;
+  updateMedia(before: MediaRecord, after: MediaRecord): Promise<void>;
+  addMediaFile(mediaId: string): Promise<void>;
+  removeMediaFile(media: MediaRecord, file: MediaFile): Promise<void>;
+  updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): Promise<void>;
+}
+
+export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   addNote(note: NoteRecord): Promise<void>;
   updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): Promise<void>;
   deleteNote(note: NoteRecord): Promise<void>;
@@ -144,6 +166,34 @@ export interface RegistriesEditorApi extends AttachmentsApi {
   updateAddress(before: AddressRecord, after: AddressRecord): Promise<void>;
   deleteAddress(address: AddressRecord): Promise<void>;
   getAddress(id: string): Promise<AddressRecord | undefined>;
+}
+
+/** The service surface the title tab needs from its host application. */
+export interface TitleEditorApi extends AttachmentsApi {
+  addTitle(title: TitleRecord): Promise<void>;
+  updateTitle(before: TitleRecord, after: TitleRecord): Promise<void>;
+  deleteTitle(title: TitleRecord): Promise<void>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  getRecordSubmitters(
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+}
+
+/** The service surface the task tab needs from its host application. */
+export interface TodoEditorApi extends AttachmentsApi {
+  addTodo(todo: TodoRecord): Promise<void>;
+  updateTodo(before: TodoRecord, after: TodoRecord): Promise<void>;
+  deleteTodo(todo: TodoRecord): Promise<void>;
+  getSubmitters(): Promise<SubmitterRecord[]>;
+  getRecordSubmitters(
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
+  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
 }
 
 /** The service surface the family tab needs from its host application. */

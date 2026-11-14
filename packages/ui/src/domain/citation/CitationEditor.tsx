@@ -10,6 +10,8 @@ import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Textarea } from '../../atoms/form/Textarea';
+import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
+import { moveItem } from '../reorder';
 import { emptySourceTextDraft, type SourceTextDraft, type TemplateFieldDraft } from '../source/sourceDraft';
 import './CitationEditor.css';
 
@@ -132,6 +134,14 @@ export function CitationEditor({
               placeholder={nls.t('features.tree.source.templateFields.value')}
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
+            />
+            <ReorderButtons
+              upLabel={nls.t('features.tree.reorder.up')}
+              downLabel={nls.t('features.tree.reorder.down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < draft.templateFields.length - 1}
+              onMoveUp={() => set({ templateFields: moveItem(draft.templateFields, index, index - 1) })}
+              onMoveDown={() => set({ templateFields: moveItem(draft.templateFields, index, index + 1) })}
             />
             <IconButton
               size="sm"

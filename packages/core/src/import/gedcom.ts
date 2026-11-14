@@ -632,17 +632,12 @@ function mapAges(age: AgeStructure | undefined): FactRecord['ages'] {
   if (age === undefined) {
     return undefined;
   }
-  return [mapAge(age, undefined, undefined)];
+  return [mapAge(age, undefined)];
 }
 
-function mapAge(
-  age: AgeStructure,
-  role: string | undefined,
-  personId: string | undefined,
-): NonNullable<FactRecord['ages']>[number] {
+function mapAge(age: AgeStructure, role: string | undefined): NonNullable<FactRecord['ages']>[number] {
   return {
     id: crypto.randomUUID(),
-    personId,
     role,
     bound: age.payload?.bound,
     years: age.payload?.years,
@@ -860,10 +855,10 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     if (husbandAge !== undefined || wifeAge !== undefined) {
       const ages: NonNullable<FactRecord['ages']> = [];
       if (husbandAge !== undefined) {
-        ages.push(mapAge(husbandAge, 'HUSB', undefined));
+        ages.push(mapAge(husbandAge, 'HUSB'));
       }
       if (wifeAge !== undefined) {
-        ages.push(mapAge(wifeAge, 'WIFE', undefined));
+        ages.push(mapAge(wifeAge, 'WIFE'));
       }
       fact.ages = ages;
     }

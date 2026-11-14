@@ -5,16 +5,19 @@ import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { SourceRecord, SubmitterRecord } from '@doru/core';
-import { EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { EntityTab, type MediaTargetApi, type RegistriesEditorApi } from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 import {
   AddressFields,
   ChangesSection,
   ContactsSection,
+  ContributorsSection,
   IdentifiersSection,
   NotesSection,
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  MediaSection,
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
@@ -31,7 +34,10 @@ export function SubmitterTab({
   submitters,
   api,
   sources,
+  media,
+  mediaApi,
   onOpenSource,
+  onOpenMedia,
   onClose,
   onCreated,
 }: {
@@ -39,7 +45,10 @@ export function SubmitterTab({
   submitters: SubmitterRecord[];
   api: RegistriesEditorApi;
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -56,7 +65,10 @@ export function SubmitterTab({
       isNew={isNew}
       api={api}
       sources={sources}
+      media={media}
+      mediaApi={mediaApi}
       onOpenSource={onOpenSource}
+      onOpenMedia={onOpenMedia}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -69,7 +81,10 @@ function SubmitterTabBody({
   isNew,
   api,
   sources,
+  media,
+  mediaApi,
   onOpenSource,
+  onOpenMedia,
   onClose,
   onCreated,
 }: {
@@ -78,7 +93,10 @@ function SubmitterTabBody({
   isNew: boolean;
   api: RegistriesEditorApi;
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -99,8 +117,10 @@ function SubmitterTabBody({
     contacts,
     restrictions,
     changes,
+    submitters: contributorOptions,
+    contributors,
     refresh: refreshAttachments,
-  } = useAttachments('submitter', targetId, api);
+  } = useAttachments('submitter', targetId, api, true);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,6 +324,24 @@ function SubmitterTabBody({
               await api.updateTagLink(before, after);
               await refreshAttachments();
             }}
+          />
+          <MediaSection
+            targetType="submitter"
+            targetId={targetId}
+            media={media.filter((item) =>
+              item.links?.some((link) => link.targetType === 'submitter' && link.targetId === targetId),
+            )}
+            api={mediaApi}
+            refresh={async () => undefined}
+            onOpenMedia={onOpenMedia}
+          />
+          <ContributorsSection
+            targetType="submitter"
+            targetId={targetId}
+            submitters={contributorOptions}
+            links={contributors}
+            onAdd={api.addRecordSubmitter}
+            onDelete={api.deleteRecordSubmitter}
           />
           <ChangesSection changes={changes} />
         </>

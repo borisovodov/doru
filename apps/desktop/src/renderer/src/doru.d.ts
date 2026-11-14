@@ -7,6 +7,8 @@ import type {
   FactRecord,
   FamilyRecord,
   IdentifierRecord,
+  MediaFile,
+  MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
@@ -220,10 +222,16 @@ declare global {
       addFact(projectPath: string, fact: FactRecord): Promise<UndoRedoState>;
       updateFact(projectPath: string, before: FactRecord, after: FactRecord): Promise<UndoRedoState>;
       deleteFact(projectPath: string, fact: FactRecord): Promise<UndoRedoState>;
-      getMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
+      getMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
       getAllMedia(projectPath: string): Promise<MediaWithPath[]>;
-      addMedia(projectPath: string, personId: string): Promise<MediaWithPath[]>;
+      addMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
+      updateMedia(projectPath: string, before: MediaRecord, after: MediaRecord): Promise<UndoRedoState>;
+      addMediaFile(projectPath: string, mediaId: string): Promise<MediaWithPath | undefined>;
+      removeMediaFile(projectPath: string, media: MediaRecord, file: MediaFile): Promise<MediaWithPath | undefined>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
+      attachMedia(projectPath: string, link: MediaLinkRecord): Promise<UndoRedoState>;
+      detachMedia(projectPath: string, link: MediaLinkRecord): Promise<UndoRedoState>;
+      updateMediaLink(projectPath: string, before: MediaLinkRecord, after: MediaLinkRecord): Promise<UndoRedoState>;
       getAiSettings(): Promise<AiSettingsState>;
       getAiProviders(): Promise<AiProviderInfo[]>;
       setAiSettings(options: {

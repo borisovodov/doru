@@ -7,6 +7,8 @@ import type {
   FactRecord,
   FamilyRecord,
   IdentifierRecord,
+  MediaFile,
+  MediaLinkRecord,
   MediaRecord,
   NoteRecord,
   PersonRecord,
@@ -21,7 +23,14 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import { addMediaToPerson, listAllMedia, listMediaForPerson, removeMediaFile } from './media';
+import {
+  addFilesToMedia,
+  addMediaToTarget,
+  listAllMedia,
+  listMediaForTarget,
+  removeFileFromMedia,
+  removeMediaFiles,
+} from './media';
 import { ensureRuntime } from './runtime';
 
 /**
@@ -636,24 +645,65 @@ export function registerTreeIpc(): void {
     return runtime.service.deleteFact(options.fact);
   });
 
-  ipcMain.handle('tree:media', async (_event, options: { projectPath: string; personId: string }) =>
-    listMediaForPerson(options.projectPath, options.personId),
+  ipcMain.handle(
+    'tree:mediaFor',
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) =>
+      listMediaForTarget(options.projectPath, options.targetType, options.targetId),
   );
 
   ipcMain.handle('tree:allMedia', async (_event, options: { projectPath: string }) =>
     listAllMedia(options.projectPath),
   );
 
-  ipcMain.handle('tree:addMedia', async (_event, options: { projectPath: string; personId: string }) =>
-    addMediaToPerson(options.projectPath, options.personId),
+  ipcMain.handle(
+    'tree:addMedia',
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) =>
+      addMediaToTarget(options.projectPath, options.targetType, options.targetId),
+  );
+
+  ipcMain.handle(
+    'tree:updateMedia',
+    async (_event, options: { projectPath: string; before: MediaRecord; after: MediaRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateMedia(options.before, options.after);
+    },
+  );
+
+  ipcMain.handle('tree:addMediaFile', async (_event, options: { projectPath: string; mediaId: string }) =>
+    addFilesToMedia(options.projectPath, options.mediaId),
+  );
+
+  ipcMain.handle(
+    'tree:removeMediaFile',
+    async (_event, options: { projectPath: string; media: MediaRecord; file: MediaFile }) =>
+      removeFileFromMedia(options.projectPath, options.media, options.file),
   );
 
   ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    const state = runtime.service.deleteMedia(options.media);
-    await removeMediaFile(options.projectPath, options.media.path ?? '');
+    const current = runtime.service.getMedia(options.media.id) ?? options.media;
+    const state = runtime.service.deleteMedia(current);
+    await removeMediaFiles(options.projectPath, current);
     return state;
   });
+
+  ipcMain.handle('tree:attachMedia', async (_event, options: { projectPath: string; link: MediaLinkRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.attachMedia(options.link);
+  });
+
+  ipcMain.handle('tree:detachMedia', async (_event, options: { projectPath: string; link: MediaLinkRecord }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.detachMedia(options.link);
+  });
+
+  ipcMain.handle(
+    'tree:updateMediaLink',
+    async (_event, options: { projectPath: string; before: MediaLinkRecord; after: MediaLinkRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.updateMediaLink(options.before, options.after);
+    },
+  );
 
   ipcMain.handle('tree:todos', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);

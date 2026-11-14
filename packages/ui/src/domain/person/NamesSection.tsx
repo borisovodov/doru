@@ -7,8 +7,10 @@ import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
+import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
 import { Subcard } from '../../patterns/subcard/Subcard';
 import { DateEditor } from '../date/DateEditor';
+import { moveItem } from '../reorder';
 import {
   NAME_PART_FIELDS,
   NAME_TYPES,
@@ -103,6 +105,14 @@ export function NamesSection({
         <Subcard key={name.id}>
           <div className={styles['head']}>
             <span className={styles['label']}>{nameDraftDisplay(name) || '—'}</span>
+            <ReorderButtons
+              upLabel={nls.t('features.tree.reorder.up')}
+              downLabel={nls.t('features.tree.reorder.down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < names.length - 1}
+              onMoveUp={() => onChange(moveItem(names, index, index - 1))}
+              onMoveDown={() => onChange(moveItem(names, index, index + 1))}
+            />
             <IconButton
               size="sm"
               label={nls.t('features.tree.names.primary')}

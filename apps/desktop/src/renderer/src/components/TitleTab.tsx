@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { EmptyText } from '@doru/ui';
 import { Input } from '@doru/ui';
 import { Select } from '@doru/ui';
@@ -6,9 +6,8 @@ import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid } from '@doru/ui';
 import { AttachmentRow, RowList } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
-import type { ChangeRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
-import { EntityTab } from '@doru/features';
-import { ChangesSection } from '@doru/ui/domain';
+import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
+import { AttachmentsPanel, EntityTab, type TitleEditorApi } from '@doru/features';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
@@ -22,19 +21,16 @@ export function TitleTab({
   api,
   onClose,
   onOpenSource,
+  onOpenMedia,
   onCreated,
 }: {
   tabId: string;
   titles: TitleRecord[];
   sources: SourceRecord[];
   repositories: RepositoryRecord[];
-  api: {
-    getChanges: (targetType: string, targetId: string) => Promise<ChangeRecord[]>;
-    addTitle: (title: TitleRecord) => Promise<void>;
-    updateTitle: (before: TitleRecord, after: TitleRecord) => Promise<void>;
-    deleteTitle: (title: TitleRecord) => Promise<void>;
-  };
+  api: TitleEditorApi;
   onClose: (tabId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -54,6 +50,7 @@ export function TitleTab({
       api={api}
       onClose={onClose}
       onOpenSource={onOpenSource}
+      onOpenMedia={onOpenMedia}
       onCreated={onCreated}
     />
   );
@@ -68,6 +65,7 @@ function TitleTabBody({
   api,
   onClose,
   onOpenSource,
+  onOpenMedia,
   onCreated,
 }: {
   tabId: string;
@@ -75,19 +73,14 @@ function TitleTabBody({
   isNew: boolean;
   sources: SourceRecord[];
   repositories: RepositoryRecord[];
-  api: {
-    getChanges: (targetType: string, targetId: string) => Promise<ChangeRecord[]>;
-    addTitle: (title: TitleRecord) => Promise<void>;
-    updateTitle: (before: TitleRecord, after: TitleRecord) => Promise<void>;
-    deleteTitle: (title: TitleRecord) => Promise<void>;
-  };
+  api: TitleEditorApi;
   onClose: (tabId: string) => void;
   onOpenSource: (sourceId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID() };
   const [lastSaved, setLastSaved] = useState<TitleRecord | undefined>(record);
-  const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const [name, setName] = useState(base.name ?? '');
   const [author, setAuthor] = useState(base.author ?? '');
   const [publisher, setPublisher] = useState(base.publisher ?? '');
@@ -97,19 +90,8 @@ function TitleTabBody({
   const [sequence, setSequence] = useState(base.sequence !== undefined ? String(base.sequence) : '');
   const [repositoryId, setRepositoryId] = useState(base.repositoryId ?? '');
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!isNew && record !== undefined) {
-      void api.getChanges('title', record.id).then((loaded) => {
-        if (!cancelled) setChanges(loaded);
-      });
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [api, isNew, record]);
-
   const citingSources = isNew ? [] : sources.filter((source) => source.titleId === base.id);
+  const targetId = lastSaved?.id ?? record?.id;
 
   const subtitle = [author.trim(), publisher.trim()].filter((part) => part !== '').join(' · ');
 
@@ -222,7 +204,16 @@ function TitleTabBody({
           )}
         </SectionCard>
       )}
-      {!isNew && <ChangesSection changes={changes} />}
+      {targetId !== undefined && (
+        <AttachmentsPanel
+          targetType="title"
+          targetId={targetId}
+          api={api}
+          sources={sources}
+          onOpenSource={onOpenSource}
+          onOpenMedia={onOpenMedia}
+        />
+      )}
     </EntityTab>
   );
 }

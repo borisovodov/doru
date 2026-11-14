@@ -129,7 +129,7 @@ describe('factToDraft / factDraftToRecord', () => {
 
   it('preserves extra sub-row fields verbatim', () => {
     const source = fact({
-      ages: [{ id: 'A1', personId: 'P9', bound: 'before', weeks: 2 }],
+      ages: [{ id: 'A1', bound: 'before', weeks: 2 }],
     });
     const record = factDraftToRecord(factToDraft(source));
     expect(record.ages).toEqual(source.ages);

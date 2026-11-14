@@ -1,14 +1,14 @@
 import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
 import { useMemo } from 'react';
-import { Checkbox, Field, FieldGrid, Input, Select, SectionCard, Subcard } from '@doru/ui';
+import { Checkbox, Field, FieldGrid, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
 import { MapPin, Plus, X } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import '../sidebar/sidebar.css';
 import './PlaceEditor.css';
-import { DateEditor, emptyDate } from '@doru/ui/domain';
+import { DateEditor, emptyDate, moveItem } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
@@ -131,6 +131,14 @@ export function PlaceEditor({
               placeholder={nls.t('features.tree.place.names.value')}
               value={name.value}
               onChange={(event) => patchName(index, { value: event.target.value })}
+            />
+            <ReorderButtons
+              upLabel={nls.t('features.tree.reorder.up')}
+              downLabel={nls.t('features.tree.reorder.down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < draft.names.length - 1}
+              onMoveUp={() => set({ names: moveItem(draft.names, index, index - 1) })}
+              onMoveDown={() => set({ names: moveItem(draft.names, index, index + 1) })}
             />
             <IconButton
               size="sm"

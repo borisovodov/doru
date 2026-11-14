@@ -2,7 +2,7 @@ import { IconButton } from '@doru/ui';
 import { useState } from 'react';
 import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
-import { SectionCard, Subcard } from '@doru/ui';
+import { SectionCard, Subcard, ReorderButtons } from '@doru/ui';
 import { Field, FieldGrid } from '@doru/ui';
 import { BookOpenText, Plus, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
@@ -10,7 +10,7 @@ import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
-import { DateEditor, emptyDate } from '@doru/ui/domain';
+import { DateEditor, emptyDate, moveItem } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
@@ -360,6 +360,14 @@ export function SourceEditor({
               placeholder={nls.t('features.tree.source.templateFields.value')}
               value={field.value}
               onChange={(event) => patchField(index, { value: event.target.value })}
+            />
+            <ReorderButtons
+              upLabel={nls.t('features.tree.reorder.up')}
+              downLabel={nls.t('features.tree.reorder.down')}
+              canMoveUp={index > 0}
+              canMoveDown={index < draft.templateFields.length - 1}
+              onMoveUp={() => set({ templateFields: moveItem(draft.templateFields, index, index - 1) })}
+              onMoveDown={() => set({ templateFields: moveItem(draft.templateFields, index, index + 1) })}
             />
             <IconButton
               size="sm"

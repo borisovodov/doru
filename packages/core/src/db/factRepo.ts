@@ -191,14 +191,13 @@ export class FactRepo {
     this.db.prepare('DELETE FROM fact_participant WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_flag WHERE fact_id = ?').run(fact.id);
     const insertAge = this.db.prepare(
-      `INSERT INTO fact_age (id, fact_id, person_id, role, bound, years, months, weeks, days, phrase)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO fact_age (id, fact_id, role, bound, years, months, weeks, days, phrase)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const age of fact.ages ?? []) {
       insertAge.run(
         age.id,
         fact.id,
-        age.personId ?? null,
         age.role ?? null,
         age.bound ?? null,
         age.years ?? null,
@@ -235,13 +234,12 @@ export class FactRepo {
     const placeholders = factIds.map(() => '?').join(', ');
     const rows = this.db
       .prepare(
-        `SELECT id, fact_id, person_id, role, bound, years, months, weeks, days, phrase
+        `SELECT id, fact_id, role, bound, years, months, weeks, days, phrase
          FROM fact_age WHERE fact_id IN (${placeholders}) ORDER BY rowid`,
       )
       .all(...factIds) as unknown as {
       id: string;
       fact_id: string;
-      person_id: string | null;
       role: string | null;
       bound: string | null;
       years: number | null;
@@ -254,7 +252,6 @@ export class FactRepo {
       const ages = byFact.get(row.fact_id) ?? [];
       ages.push({
         id: row.id,
-        personId: row.person_id ?? undefined,
         role: row.role ?? undefined,
         bound: row.bound ?? undefined,
         years: row.years ?? undefined,

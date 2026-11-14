@@ -21,7 +21,7 @@ export function CitationAttachments({
       api={api}
       sources={sources}
       onOpenSource={onOpenSource}
-      sections={['notes', 'tags', 'identifiers', 'contacts', 'restrictions', 'changes']}
+      sections={['notes', 'media', 'tags', 'identifiers', 'contacts', 'restrictions', 'contributors', 'changes']}
     />
   );
 }
@@ -46,7 +46,7 @@ export function NoteAttachments({
       api={api}
       sources={sources}
       onOpenSource={onOpenSource}
-      sections={['sources', 'tags', 'identifiers', 'contacts', 'restrictions', 'changes']}
+      sections={['sources', 'media', 'tags', 'identifiers', 'contacts', 'restrictions', 'contributors', 'changes']}
     />
   );
 }

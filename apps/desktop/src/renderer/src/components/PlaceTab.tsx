@@ -8,9 +8,11 @@ import {
   placeDraftMatches,
   placeDraftToRecord,
   placeToDraft,
+  type MediaTargetApi,
   type PlaceDraft,
   type PlaceEditorApi,
 } from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
   ContactsSection,
@@ -20,6 +22,7 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  MediaSection,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
@@ -33,7 +36,10 @@ export function PlaceTab({
   families,
   facts,
   sources,
+  media,
+  mediaApi,
   onOpenPerson,
+  onOpenMedia,
   onOpenSource,
   onClose,
   onCreated,
@@ -45,7 +51,10 @@ export function PlaceTab({
   families: FamilyRecord[];
   facts: FactRecord[];
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenPerson: (personId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
@@ -67,7 +76,10 @@ export function PlaceTab({
       families={families}
       facts={facts}
       sources={sources}
+      media={media}
+      mediaApi={mediaApi}
       onOpenPerson={onOpenPerson}
+      onOpenMedia={onOpenMedia}
       onOpenSource={onOpenSource}
       onClose={onClose}
       onCreated={onCreated}
@@ -85,7 +97,10 @@ function PlaceTabBody({
   families,
   facts,
   sources,
+  media,
+  mediaApi,
   onOpenPerson,
+  onOpenMedia,
   onOpenSource,
   onClose,
   onCreated,
@@ -99,7 +114,10 @@ function PlaceTabBody({
   families: FamilyRecord[];
   facts: FactRecord[];
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenPerson: (personId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
@@ -295,6 +313,16 @@ function PlaceTabBody({
                   await api.updateTagLink(before, after);
                   await refreshAttachments();
                 }}
+              />
+              <MediaSection
+                targetType="place"
+                targetId={targetId}
+                media={media.filter((item) =>
+                  item.links?.some((link) => link.targetType === 'place' && link.targetId === targetId),
+                )}
+                api={mediaApi}
+                refresh={async () => undefined}
+                onOpenMedia={onOpenMedia}
               />
               <ContributorsSection
                 targetType="place"

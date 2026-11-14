@@ -1,4 +1,5 @@
 export * from './format/format';
+export * from './reorder';
 export * from './person/draft';
 export * from './person/associationDraft';
 export * from './fact/factDraft';
@@ -16,7 +17,7 @@ export { NamesSection } from './person/NamesSection';
 export { PersonCardView } from './person/PersonCardView';
 export { PersonCardEditor } from './person/PersonCardEditor';
 export { PersonList, type PersonListProps } from './person/PersonList';
-export type { CardAction, MediaWithPath, PersonCounts } from './person/types';
+export type { CardAction, MediaFileWithPath, MediaWithPath, PersonCounts } from './person/types';
 export { FactsSection } from './fact/FactsSection';
 export { FactEditor } from './fact/FactEditor';
 export { FamilySection } from './family/FamilySection';

@@ -32,11 +32,11 @@ function fileName(path: string): string {
 export function SidebarMedia({
   media,
   persons,
-  onOpenPerson,
+  onOpenMedia,
 }: {
   media: SidebarMediaItem[];
   persons: PersonRecord[];
-  onOpenPerson: (personId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
 }) {
   const personById = useMemo(() => new Map(persons.map((person) => [person.id, person])), [persons]);
 
@@ -61,9 +61,7 @@ export function SidebarMedia({
                 : { icon: <FileImage size={15} aria-hidden="true" /> })}
               title={item.title ?? fileName(item.path ?? '')}
               subtitle={owner ?? null}
-              {...(item.targetType === 'person' && item.targetId !== undefined
-                ? { onClick: () => onOpenPerson(item.targetId ?? '') }
-                : {})}
+              onClick={() => onOpenMedia(item.id)}
             />
           </li>
         );

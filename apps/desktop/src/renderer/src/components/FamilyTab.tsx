@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import { CitationAttachments, EntityTab, FamilyEditor, NoteAttachments, type FamilyEditorApi } from '@doru/features';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  EntityTab,
+  FamilyEditor,
+  NoteAttachments,
+  type FamilyEditorApi,
+  type MediaTargetApi,
+} from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
   ContactsSection,
@@ -10,6 +19,7 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  MediaSection,
   familyDraftMatches,
   familyDraftToRecord,
   familyToDraft,
@@ -25,6 +35,9 @@ export function FamilyTab({
   api,
   persons,
   sources,
+  media,
+  mediaApi,
+  onOpenMedia,
   onOpenSource,
   onClose,
 }: {
@@ -33,6 +46,9 @@ export function FamilyTab({
   api: FamilyEditorApi;
   persons: PersonRecord[];
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
 }) {
@@ -48,6 +64,9 @@ export function FamilyTab({
       api={api}
       persons={persons}
       sources={sources}
+      media={media}
+      mediaApi={mediaApi}
+      onOpenMedia={onOpenMedia}
       onOpenSource={onOpenSource}
       onClose={onClose}
     />
@@ -60,6 +79,9 @@ function FamilyTabBody({
   api,
   persons,
   sources,
+  media,
+  mediaApi,
+  onOpenMedia,
   onOpenSource,
   onClose,
 }: {
@@ -68,6 +90,9 @@ function FamilyTabBody({
   api: FamilyEditorApi;
   persons: PersonRecord[];
   sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
 }) {
@@ -117,6 +142,20 @@ function FamilyTabBody({
         persons={persons}
         sources={sources}
         api={api}
+        savedLinkIds={
+          new Set([
+            ...(record.partnerLinks ?? []).map((link) => link.id),
+            ...(record.childLinks ?? []).map((link) => link.id),
+          ])
+        }
+        renderLinkAttachments={(kind, linkId) => (
+          <AttachmentsPanel
+            targetType={kind === 'partner' ? 'family_partner' : 'family_child'}
+            targetId={linkId}
+            api={api}
+            sources={sources}
+          />
+        )}
         onSave={() => void save()}
         onDelete={() => void remove()}
       />
@@ -235,6 +274,16 @@ function FamilyTabBody({
           await api.updateTagLink(before, after);
           await refreshAttachments();
         }}
+      />
+      <MediaSection
+        targetType="family"
+        targetId={record.id}
+        media={media.filter((item) =>
+          item.links?.some((link) => link.targetType === 'family' && link.targetId === record.id),
+        )}
+        api={mediaApi}
+        refresh={async () => undefined}
+        onOpenMedia={onOpenMedia}
       />
       <ContributorsSection
         targetType="family"

@@ -192,7 +192,6 @@ export interface FactRecord {
 /** An age at a fact: the subject's (no person/role) or a partner's (HUSB/WIFE). */
 export interface FactAge {
   id: string;
-  personId?: string | undefined;
   role?: string | undefined;
   bound?: string | undefined;
   years?: number | undefined;
@@ -616,6 +615,7 @@ export const TARGET_TYPES = [
   'place',
   'repository',
   'submitter',
+  'address',
   'association',
   'todo',
   'title',

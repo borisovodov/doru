@@ -10,7 +10,14 @@ import type {
   SourceRecord,
   TitleRecord,
 } from '@doru/core';
-import { EntityTab, SourceCitationsList, SourceEditor, type SourceEditorApi } from '@doru/features';
+import {
+  EntityTab,
+  SourceCitationsList,
+  SourceEditor,
+  type MediaTargetApi,
+  type SourceEditorApi,
+} from '@doru/features';
+import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
   ContactsSection,
@@ -20,6 +27,7 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  MediaSection,
   emptySourceDraft,
   sourceDraftMatches,
   sourceDraftToRecord,
@@ -40,7 +48,10 @@ export function SourceTab({
   places,
   citations,
   notes,
+  media,
+  mediaApi,
   onOpenPerson,
+  onOpenMedia,
   onOpenSource,
   onClose,
   onCreated,
@@ -48,6 +59,9 @@ export function SourceTab({
   tabId: string;
   sources: SourceRecord[];
   api: SourceEditorApi;
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
+  onOpenMedia: (mediaId: string) => void;
   persons: PersonRecord[];
   families: FamilyRecord[];
   facts: FactRecord[];
@@ -78,7 +92,10 @@ export function SourceTab({
       sources={sources}
       citations={citations}
       notes={notes}
+      media={media}
+      mediaApi={mediaApi}
       onOpenPerson={onOpenPerson}
+      onOpenMedia={onOpenMedia}
       onOpenSource={onOpenSource}
       onClose={onClose}
       onCreated={onCreated}
@@ -96,6 +113,9 @@ function SourceTabBody({
   facts,
   places,
   sources,
+  media,
+  mediaApi,
+  onOpenMedia,
   citations,
   notes,
   onOpenPerson,
@@ -114,6 +134,9 @@ function SourceTabBody({
   sources: SourceRecord[];
   citations: CitationRecord[];
   notes: NoteRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
+  onOpenMedia: (mediaId: string) => void;
   onOpenPerson: (personId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
@@ -337,6 +360,16 @@ function SourceTabBody({
                   await api.updateTagLink(before, after);
                   await refreshAttachments();
                 }}
+              />
+              <MediaSection
+                targetType="source"
+                targetId={targetId}
+                media={media.filter((item) =>
+                  item.links?.some((link) => link.targetType === 'source' && link.targetId === targetId),
+                )}
+                api={mediaApi}
+                refresh={async () => undefined}
+                onOpenMedia={onOpenMedia}
               />
               <ContributorsSection
                 targetType="source"

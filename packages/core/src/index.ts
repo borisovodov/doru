@@ -70,7 +70,7 @@ export { addPersonOp } from './ops/addPerson';
 export { updatePersonOp, deletePersonOp, reparentOp, addRelativeOp } from './ops/person';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp } from './ops/family';
 export { addFactOp, deleteFactOp, updateFactOp } from './ops/fact';
-export { addMediaOp, deleteMediaOp } from './ops/media';
+export { addMediaOp, deleteMediaOp, updateMediaOp } from './ops/media';
 export { addPlaceOp, deletePlaceOp, updatePlaceOp } from './ops/place';
 export {
   addAddressOp,
@@ -102,6 +102,7 @@ export {
   detachCitationOp,
   detachMediaOp,
   detachTagOp,
+  updateMediaLinkOp,
   updateTagLinkOp,
   splitNoteOp,
   updateAddressOp,
