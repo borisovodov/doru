@@ -28,6 +28,7 @@ import {
   SourcesSection,
   TagsSection,
   MediaSection,
+  TasksSection,
   emptySourceDraft,
   sourceDraftMatches,
   sourceDraftToRecord,
@@ -379,6 +380,7 @@ function SourceTabBody({
                 onAdd={api.addRecordSubmitter}
                 onDelete={api.deleteRecordSubmitter}
               />
+              <TasksSection targetType="source" targetId={targetId} api={api} />
               <ChangesSection changes={changes} />
             </>
           )}

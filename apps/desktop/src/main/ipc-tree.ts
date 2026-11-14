@@ -212,6 +212,11 @@ export function registerTreeIpc(): void {
     return runtime.service.deleteFamily(options.family);
   });
 
+  ipcMain.handle('tree:allAssociations', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAssociations();
+  });
+
   ipcMain.handle('tree:associations', async (_event, options: { projectPath: string; personId: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listAssociationsFor(options.personId);
@@ -709,6 +714,14 @@ export function registerTreeIpc(): void {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listTodos();
   });
+
+  ipcMain.handle(
+    'tree:todosFor',
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listTodosFor(options.targetType, options.targetId);
+    },
+  );
 
   ipcMain.handle('tree:addTodo', async (_event, options: { projectPath: string; todo: TodoRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);

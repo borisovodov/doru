@@ -333,6 +333,7 @@ export function FamilyEditor({
               'contacts',
               'restrictions',
               'contributors',
+              'tasks',
               'changes',
             ]}
             renderCitationAttachments={(citation) => (

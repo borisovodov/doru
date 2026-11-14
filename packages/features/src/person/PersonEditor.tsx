@@ -39,6 +39,7 @@ import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttac
 import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
 import { TagsSection } from '@doru/ui/domain';
+import { TasksSection } from '@doru/ui/domain';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
 import type { MediaTargetApi, MediaWithPath, PersonEditorApi } from './types';
 
@@ -296,6 +297,7 @@ export function PersonEditor({
                   'contacts',
                   'restrictions',
                   'contributors',
+                  'tasks',
                   'changes',
                 ]}
                 renderCitationAttachments={(citation) => (
@@ -409,6 +411,7 @@ export function PersonEditor({
                   'contacts',
                   'restrictions',
                   'contributors',
+                  'tasks',
                   'changes',
                 ]}
                 renderCitationAttachments={(citation) => (
@@ -585,6 +588,7 @@ export function PersonEditor({
               await refreshContributors();
             }}
           />
+          <TasksSection targetType="person" targetId={draft.id} api={api} />
           <ChangesSection changes={changes} />
         </>
       )}

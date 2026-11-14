@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type {
   AddressRecord,
+  AssociationRecord,
   CitationRecord,
   FactRecord,
   FamilyRecord,
+  NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
@@ -42,12 +44,14 @@ export function SidebarView({
   sources,
   media,
   citations,
+  notes,
   places,
   repositories,
   submitters,
   addresses,
   titles,
   todos,
+  associations,
   onOpenPerson,
   onOpenMedia,
   onOpenFamily,
@@ -74,12 +78,14 @@ export function SidebarView({
   sources: SourceRecord[];
   media: SidebarMediaItem[];
   citations: CitationRecord[];
+  notes: NoteRecord[];
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   titles: TitleRecord[];
   todos: TodoRecord[];
+  associations: AssociationRecord[];
   onOpenPerson: (personId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenFamily: (familyId: string) => void;
@@ -207,6 +213,13 @@ export function SidebarView({
           places={places}
           repositories={repositories}
           titles={titles}
+          facts={facts}
+          citations={citations}
+          notes={notes}
+          media={media}
+          submitters={submitters}
+          addresses={addresses}
+          associations={associations}
           onOpenTask={onOpenTask}
           onNewTask={onNewTask}
           onOpenPerson={onOpenPerson}
@@ -214,6 +227,9 @@ export function SidebarView({
           onOpenSource={onOpenSource}
           onOpenPlace={onOpenPlace}
           onOpenRepository={onOpenRepository}
+          onOpenSubmitter={onOpenSubmitter}
+          onOpenAddress={onOpenAddress}
+          onOpenMedia={onOpenMedia}
           onOpenTitle={onOpenTitle}
         />
       );

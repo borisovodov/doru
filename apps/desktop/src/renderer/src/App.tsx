@@ -332,7 +332,7 @@ export function App() {
         <PersonTab
           tabId={tab.id}
           persons={tree.persons}
-          api={{ ...tree.api, openSource: tabs.openSourceTab }}
+          api={{ ...tree.api, openSource: tabs.openSourceTab, openTask: tabs.openTaskTab }}
           mediaApi={tree.mediaApi}
           onOpenMedia={tabs.openMediaTab}
           onClose={tabs.closeTab}
@@ -350,7 +350,7 @@ export function App() {
         <FamilyTab
           tabId={tab.id}
           families={tree.families}
-          api={tree.familyApi}
+          api={{ ...tree.familyApi, openTask: tabs.openTaskTab }}
           persons={tree.persons}
           sources={tree.sources}
           media={tree.media}
@@ -371,7 +371,7 @@ export function App() {
         <SourceTab
           tabId={tab.id}
           sources={tree.sources}
-          api={tree.sourceApi}
+          api={{ ...tree.sourceApi, openTask: tabs.openTaskTab }}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${SOURCE_TAB_PREFIX}${realId}`)}
           persons={tree.persons}
           families={tree.families}
@@ -393,7 +393,7 @@ export function App() {
         <PlaceTab
           tabId={tab.id}
           places={tree.places}
-          api={tree.placeApi}
+          api={{ ...tree.placeApi, openTask: tabs.openTaskTab }}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${PLACE_TAB_PREFIX}${realId}`)}
           persons={tree.persons}
           families={tree.families}
@@ -413,7 +413,7 @@ export function App() {
         <RepositoryTab
           tabId={tab.id}
           repositories={tree.repositories}
-          api={tree.registriesApi}
+          api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
           sources={tree.sources}
           media={tree.media}
           mediaApi={tree.mediaApi}
@@ -429,7 +429,7 @@ export function App() {
         <SubmitterTab
           tabId={tab.id}
           submitters={tree.submitters}
-          api={tree.registriesApi}
+          api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
           sources={tree.sources}
           media={tree.media}
           mediaApi={tree.mediaApi}
@@ -449,7 +449,7 @@ export function App() {
           repositories={tree.repositories}
           submitters={tree.submitters}
           sources={tree.sources}
-          api={tree.registriesApi}
+          api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${ADDRESS_TAB_PREFIX}${realId}`)}
         />
@@ -466,7 +466,14 @@ export function App() {
           places={tree.places}
           repositories={tree.repositories}
           titles={tree.titles}
-          api={tree.todosApi}
+          facts={tree.facts}
+          citations={tree.citations}
+          notes={tree.notes}
+          media={tree.media}
+          submitters={tree.submitters}
+          addresses={tree.addresses}
+          associations={tree.associations}
+          api={{ ...tree.todosApi, openTask: tabs.openTaskTab }}
           onClose={tabs.closeTab}
           onOpenMedia={tabs.openMediaTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${TASK_TAB_PREFIX}${realId}`)}
@@ -479,7 +486,7 @@ export function App() {
           tabId={tab.id}
           media={tree.media}
           api={tree.mediaAdminApi}
-          attachmentsApi={tree.api}
+          attachmentsApi={{ ...tree.api, openTask: tabs.openTaskTab }}
           sources={tree.sources}
           onClose={tabs.closeTab}
         />
@@ -492,7 +499,7 @@ export function App() {
           titles={tree.titles}
           sources={tree.sources}
           repositories={tree.repositories}
-          api={tree.titlesApi}
+          api={{ ...tree.titlesApi, openTask: tabs.openTaskTab }}
           onClose={tabs.closeTab}
           onOpenSource={tabs.openSourceTab}
           onOpenMedia={tabs.openMediaTab}
@@ -575,12 +582,14 @@ export function App() {
             sources={tree.sources}
             media={tree.media}
             citations={tree.citations}
+            notes={tree.notes}
             places={tree.places}
             repositories={tree.repositories}
             submitters={tree.submitters}
             addresses={tree.addresses}
             titles={tree.titles}
             todos={tree.todos}
+            associations={tree.associations}
             onOpenPerson={openPersonAndFocus}
             onOpenMedia={tabs.openMediaTab}
             onOpenFamily={tabs.openFamilyTab}

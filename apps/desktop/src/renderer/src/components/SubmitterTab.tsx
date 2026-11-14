@@ -18,6 +18,7 @@ import {
   SourcesSection,
   TagsSection,
   MediaSection,
+  TasksSection,
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
@@ -343,6 +344,7 @@ function SubmitterTabBody({
             onAdd={api.addRecordSubmitter}
             onDelete={api.deleteRecordSubmitter}
           />
+          <TasksSection targetType="submitter" targetId={targetId} api={api} />
           <ChangesSection changes={changes} />
         </>
       )}

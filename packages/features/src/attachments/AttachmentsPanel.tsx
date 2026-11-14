@@ -10,6 +10,7 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
+  TasksSection,
   type MediaWithPath,
 } from '@doru/ui/domain';
 import type { AttachmentsApi } from '../person/types';
@@ -24,6 +25,7 @@ export type AttachmentSection =
   | 'contacts'
   | 'restrictions'
   | 'contributors'
+  | 'tasks'
   | 'changes';
 
 export interface AttachmentsPanelApi extends AttachmentsApi {
@@ -45,6 +47,7 @@ const ALL_SECTIONS: readonly AttachmentSection[] = [
   'contacts',
   'restrictions',
   'contributors',
+  'tasks',
   'changes',
 ];
 
@@ -252,6 +255,7 @@ export function AttachmentsPanel({
           }}
         />
       )}
+      {include.has('tasks') && <TasksSection targetType={targetType} targetId={targetId} api={api} />}
       {include.has('changes') && <ChangesSection changes={changes} />}
     </>
   );

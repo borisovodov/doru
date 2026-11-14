@@ -72,6 +72,12 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   attachTag(link: TagLinkRecord): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
   updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
+  getTodosFor(targetType: string, targetId: string): Promise<TodoRecord[]>;
+  addTodo(todo: TodoRecord): Promise<void>;
+  updateTodo(before: TodoRecord, after: TodoRecord): Promise<void>;
+  deleteTodo(todo: TodoRecord): Promise<void>;
+  /** Opens the task tab of the app (host-level navigation). */
+  openTask?: ((todoId: string) => void) | undefined;
 }
 
 /**
@@ -184,9 +190,6 @@ export interface TitleEditorApi extends AttachmentsApi {
 
 /** The service surface the task tab needs from its host application. */
 export interface TodoEditorApi extends AttachmentsApi {
-  addTodo(todo: TodoRecord): Promise<void>;
-  updateTodo(before: TodoRecord, after: TodoRecord): Promise<void>;
-  deleteTodo(todo: TodoRecord): Promise<void>;
   getSubmitters(): Promise<SubmitterRecord[]>;
   getRecordSubmitters(
     targetType: string,

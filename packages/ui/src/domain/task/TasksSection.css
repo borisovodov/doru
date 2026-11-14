@@ -1,0 +1,68 @@
+.tasks-section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tasks-section-item {
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+}
+
+.tasks-section-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.tasks-section-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tasks-section-open:disabled {
+  cursor: default;
+}
+
+.tasks-section-text {
+  font-size: 12px;
+  color: var(--doru-fg);
+  overflow-wrap: anywhere;
+}
+
+.tasks-section-text.closed {
+  text-decoration: line-through;
+  color: var(--doru-fg-muted);
+}
+
+.tasks-section-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tasks-section-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tasks-section-add input {
+  flex: 1;
+  min-width: 0;
+}

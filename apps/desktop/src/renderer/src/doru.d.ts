@@ -123,6 +123,7 @@ declare global {
       updateFamily(projectPath: string, before: FamilyRecord, after: FamilyRecord): Promise<UndoRedoState>;
       deleteFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
       getAssociations(projectPath: string, personId: string): Promise<AssociationRecord[]>;
+      getAllAssociations(projectPath: string): Promise<AssociationRecord[]>;
       addAssociation(projectPath: string, association: AssociationRecord): Promise<UndoRedoState>;
       updateAssociation(
         projectPath: string,
@@ -159,6 +160,7 @@ declare global {
       detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       updateTagLink(projectPath: string, before: TagLinkRecord, after: TagLinkRecord): Promise<UndoRedoState>;
       getTodos(projectPath: string): Promise<TodoRecord[]>;
+      getTodosFor(projectPath: string, targetType: string, targetId: string): Promise<TodoRecord[]>;
       addTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
       updateTodo(projectPath: string, before: TodoRecord, after: TodoRecord): Promise<UndoRedoState>;
       deleteTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;

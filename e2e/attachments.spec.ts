@@ -101,7 +101,36 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
       ) {
         throw new Error('task fields missing');
       }
+
+      await window.doru.addTodo(project, {
+        id: 'AT2',
+        text: 'Check the register',
+        targetType: 'person',
+        targetId: 'I1',
+      });
+      const personTodos = await window.doru.getTodosFor(project, 'person', 'I1');
+      if (personTodos.length !== 1 || personTodos[0]?.id !== 'AT2') {
+        throw new Error('per-target task query missing');
+      }
+      const associations = await window.doru.getAllAssociations(project);
+      if (!Array.isArray(associations)) {
+        throw new Error('association query missing');
+      }
     },
     { project },
   );
+
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Family Tree' })).toBeVisible();
+  await page.getByRole('button', { name: 'People' }).click();
+  const peopleList = page.getByRole('complementary', { name: 'People' }).getByRole('list');
+  await peopleList.getByRole('button').first().click();
+  await expect(page.getByRole('region', { name: 'Person editor' })).toBeVisible();
+
+  const tasks = page.getByRole('region', { name: 'Tasks' }).filter({ hasText: 'Check the register' });
+  await expect(tasks).toBeVisible();
+  await tasks.getByRole('button', { name: 'Open task' }).click();
+  await expect(page.getByLabel('Related to')).toBeVisible();
+  await expect(page.getByLabel('Related to').locator('option')).toHaveCount(19);
+  await expect(page.getByLabel('Related to').locator('option', { hasText: 'Event' })).toHaveCount(1);
 });

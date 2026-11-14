@@ -74,12 +74,16 @@ actions for editing an address in place.
 ## Tasks
 
 Tasks have creation and closing dates in addition to the scheduled and
-reminder dates. **Related to** links a task to a person, family, source, place,
-repository or title; leave it empty for a free-standing task.
+reminder dates. Every editor has a **Tasks** section: add a task there and it
+is linked to that record automatically. Facts, names, citations and notes
+carry their own Tasks section in their attachment panel. **Related to** links
+a task to any record in the tree — a person, family, event, name, source,
+citation, note, media file, place, repository, submitter, address, title or
+even another task; leave it empty for a free-standing task.
 
 Titles, tasks, addresses, associations and family partner/child links have the
-same Notes, Sources, Tags, Identifiers, Contacts, Restrictions and Contributors
-sections as the main entity tabs.
+same Notes, Sources, Tags, Identifiers, Contacts, Restrictions, Contributors
+and Tasks sections as the main entity tabs.
 
 ## Media
 

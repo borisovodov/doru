@@ -746,6 +746,10 @@ export class TreeService {
     return this.apply(deleteAssociationOp(association, attachments));
   }
 
+  listAssociations(): AssociationRecord[] {
+    return this.repo.listAssociations();
+  }
+
   listAssociationsFor(personId: string): AssociationRecord[] {
     return this.repo.listAssociationsFor(personId);
   }
