@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
@@ -27,6 +27,9 @@ export function FactsSection({
   onAddFact,
   onUpdateFact,
   onDeleteFact,
+  renderAttachments,
+  onAddAddress,
+  onUpdateAddress,
 }: {
   owner: FactOwner;
   events: FactRecord[];
@@ -37,6 +40,9 @@ export function FactsSection({
   onAddFact: (fact: FactRecord) => Promise<void>;
   onUpdateFact: (before: FactRecord, after: FactRecord) => Promise<void>;
   onDeleteFact: (fact: FactRecord) => Promise<void>;
+  renderAttachments?: ((fact: FactRecord) => ReactNode) | undefined;
+  onAddAddress?: ((address: AddressRecord) => Promise<AddressRecord>) | undefined;
+  onUpdateAddress?: ((before: AddressRecord, after: AddressRecord) => Promise<AddressRecord>) | undefined;
 }) {
   const [type, setType] = useState('');
   const [date, setDate] = useState<DateDraft>(() => emptyDate());
@@ -118,6 +124,9 @@ export function FactsSection({
                   persons={persons}
                   places={places}
                   addresses={addresses}
+                  attachments={renderAttachments?.(fact)}
+                  onAddAddress={onAddAddress}
+                  onUpdateAddress={onUpdateAddress}
                   onSave={(next) => save(fact, next)}
                   onCancel={() => setExpandedId(null)}
                   onDelete={(deleted) => remove(deleted)}

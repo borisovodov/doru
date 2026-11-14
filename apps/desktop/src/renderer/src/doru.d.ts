@@ -113,6 +113,8 @@ declare global {
         after: NoteRecord,
         context?: NoteLinkRecord,
       ): Promise<UndoRedoState>;
+      attachNote(projectPath: string, noteId: string, link: NoteLinkRecord): Promise<UndoRedoState>;
+      detachNote(projectPath: string, note: NoteRecord, link: NoteLinkRecord): Promise<UndoRedoState>;
       deleteNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getFamilies(projectPath: string): Promise<FamilyRecord[]>;
       addFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;
@@ -158,7 +160,7 @@ declare global {
       addTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
       updateTodo(projectPath: string, before: TodoRecord, after: TodoRecord): Promise<UndoRedoState>;
       deleteTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
-      getChanges(projectPath: string, personId: string): Promise<ChangeRecord[]>;
+      getChanges(projectPath: string, targetType: string, targetId: string): Promise<ChangeRecord[]>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(
         projectPath: string,

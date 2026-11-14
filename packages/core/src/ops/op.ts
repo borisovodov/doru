@@ -1,4 +1,12 @@
 import type { TreeRepository } from '../db/repository';
+import type { AttachmentsSnapshot } from '../model/types';
+
+/** Attachments of a nested entity (a name, a fact, …) captured for undo. */
+export interface NestedAttachments {
+  targetType: string;
+  targetId: string;
+  attachments: AttachmentsSnapshot;
+}
 
 export interface MutationContext {
   repo: TreeRepository;

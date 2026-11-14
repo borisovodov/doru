@@ -127,7 +127,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const submitters = repo.listSubmitters();
   const titles = repo.listTitles();
   const firstSubmitter = submitters[0];
-  const notes = repo.listNotes().filter((note): note is NoteRecord & { xref: string } => note.xref !== undefined);
+  const notes = repo.listNotes().filter((note) => note.xref !== undefined || (note.links?.length ?? 0) > 1);
   const todos = repo.listTodos().filter((todo) => todo.targetType === undefined && todo.targetId === undefined);
   const tags = repo.listTags();
 
@@ -161,7 +161,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...repositories.map((repository) => buildRepository(repository, repo, xrefs)),
     ...titles.map((title) => buildTitle(title, repo, xrefs)),
     ...sources.map((source) => buildSource(source, repo, xrefs)),
-    ...notes.map((note) => buildSharedNote(note)),
+    ...notes.map((note) => buildSharedNote(note, repo, xrefs)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
     ...todos.map((todo) => buildTodoRecord(todo)),
@@ -532,10 +532,10 @@ function buildTitle(title: import('../model/types').TitleRecord, repo: TreeRepos
   };
 }
 
-function buildSharedNote(note: NoteRecord): GedcomRecord {
+function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
   return {
     tag: 'SNOTE',
-    xref: note.xref,
+    xref: xrefs.of(note.id),
     payload: note.text,
     ...(note.mime !== undefined ? { mediaType: note.mime } : {}),
     ...(note.language !== undefined ? { language: note.language } : {}),
@@ -549,7 +549,8 @@ function buildSharedNote(note: NoteRecord): GedcomRecord {
           })),
         }
       : {}),
-  } as GedcomRecord;
+    ...withCitationList(repo, 'note', note.id, xrefs),
+  };
 }
 
 function buildTodoRecord(todo: TodoRecord): GedcomRecord {
@@ -815,7 +816,7 @@ function withNoteList(
   xrefs: Xrefs,
 ): { notes: NoteStructure[] } {
   const notes: NoteStructure[] = repo.listNotesFor(targetType, targetId).map((note) =>
-    note.xref !== undefined
+    xrefs.has(note.id)
       ? { tag: 'SNOTE', note: xrefs.of(note.id) }
       : {
           tag: 'NOTE',
@@ -1258,6 +1259,10 @@ class Xrefs {
     this.used.add(xref);
     this.byId.set(id, xref);
     return xref;
+  }
+
+  has(id: string): boolean {
+    return this.byId.has(id);
   }
 
   of(id: string): string {

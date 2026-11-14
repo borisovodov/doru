@@ -8,6 +8,7 @@ import type { SourceRecord, SubmitterRecord } from '@doru/core';
 import { EntityTab, type RegistriesEditorApi } from '@doru/features';
 import {
   AddressFields,
+  ChangesSection,
   ContactsSection,
   IdentifiersSection,
   NotesSection,
@@ -19,7 +20,7 @@ import {
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { useAttachments } from '../hooks/useAttachments';
+import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -90,12 +91,14 @@ function SubmitterTabBody({
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: submitterNotes,
+    allNotes,
     citations: submitterCitations,
     tags,
     tagLinks,
     identifiers,
     contacts,
     restrictions,
+    changes,
     refresh: refreshAttachments,
   } = useAttachments('submitter', targetId, api);
 
@@ -197,11 +200,15 @@ function SubmitterTabBody({
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={onOpenSource}
+            renderCitationAttachments={(citation) => (
+              <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
+            )}
           />
           <NotesSection
             targetType="submitter"
             targetId={targetId}
             notes={submitterNotes}
+            availableNotes={allNotes}
             onAdd={async (text) => {
               await api.addNote({ id: crypto.randomUUID(), text, targetType: 'submitter', targetId });
               await refreshAttachments();
@@ -210,10 +217,21 @@ function SubmitterTabBody({
               await api.updateNote(before, after, context);
               await refreshAttachments();
             }}
+            onAttach={async (noteId) => {
+              await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'submitter', targetId });
+              await refreshAttachments();
+            }}
+            onDetach={async (note, link) => {
+              await api.detachNote(note, link);
+              await refreshAttachments();
+            }}
             onDelete={async (note) => {
               await api.deleteNote(note);
               await refreshAttachments();
             }}
+            renderAttachments={(note) => (
+              <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+            )}
           />
           <IdentifiersSection
             targetType="submitter"
@@ -287,6 +305,7 @@ function SubmitterTabBody({
               await refreshAttachments();
             }}
           />
+          <ChangesSection changes={changes} />
         </>
       )}
     </EntityTab>

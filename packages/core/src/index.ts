@@ -42,7 +42,16 @@ export type {
   TodoRecord,
   TreeDocument,
 } from './model/types';
-export { TARGET_TYPES, emptyAttachments, emptyDocument, factOf, factYear, placeName, signedYear } from './model/types';
+export {
+  TARGET_TYPES,
+  collectNameIds,
+  emptyAttachments,
+  emptyDocument,
+  factOf,
+  factYear,
+  placeName,
+  signedYear,
+} from './model/types';
 export { DORU_APPLICATION_ID, SCHEMA_SQL, SCHEMA_VERSION } from './db/schema';
 export { TreeStore, type ITreeStore, type TreeStoreFactory } from './db/store';
 export { SqliteTreeRepository, type PersonQuery, type TreeRepository } from './db/repository';

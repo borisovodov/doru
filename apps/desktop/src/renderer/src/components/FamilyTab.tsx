@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import { EntityTab, FamilyEditor, type FamilyEditorApi } from '@doru/features';
+import { CitationAttachments, EntityTab, FamilyEditor, NoteAttachments, type FamilyEditorApi } from '@doru/features';
 import {
+  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -15,7 +16,7 @@ import {
   type FamilyDraft,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { useAttachments } from '../hooks/useAttachments';
+import { useAttachments } from '@doru/features';
 import { FAMILY_TAB_PREFIX } from '../hooks/useTabs';
 
 export function FamilyTab({
@@ -73,12 +74,14 @@ function FamilyTabBody({
   const [draft, setDraft] = useState<FamilyDraft>(() => familyToDraft(record));
   const {
     notes: familyNotes,
+    allNotes,
     citations: familyCitations,
     tags,
     tagLinks,
     identifiers,
     contacts,
     restrictions,
+    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -112,6 +115,7 @@ function FamilyTabBody({
         draft={draft}
         onChange={setDraft}
         persons={persons}
+        sources={sources}
         api={api}
         onSave={() => void save()}
         onDelete={() => void remove()}
@@ -127,11 +131,15 @@ function FamilyTabBody({
         onDetachCitation={api.detachCitation}
         onUpdateCitation={api.updateCitation}
         onOpenSource={onOpenSource}
+        renderCitationAttachments={(citation) => (
+          <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
+        )}
       />
       <NotesSection
         targetType="family"
         targetId={record.id}
         notes={familyNotes}
+        availableNotes={allNotes}
         onAdd={async (text) => {
           await api.addNote({ id: crypto.randomUUID(), text, targetType: 'family', targetId: record.id });
           await refreshAttachments();
@@ -140,10 +148,21 @@ function FamilyTabBody({
           await api.updateNote(before, after, context);
           await refreshAttachments();
         }}
+        onAttach={async (noteId) => {
+          await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'family', targetId: record.id });
+          await refreshAttachments();
+        }}
+        onDetach={async (note, link) => {
+          await api.detachNote(note, link);
+          await refreshAttachments();
+        }}
         onDelete={async (note) => {
           await api.deleteNote(note);
           await refreshAttachments();
         }}
+        renderAttachments={(note) => (
+          <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+        )}
       />
       <IdentifiersSection
         targetType="family"
@@ -225,6 +244,7 @@ function FamilyTabBody({
         onAdd={api.addRecordSubmitter}
         onDelete={api.deleteRecordSubmitter}
       />
+      <ChangesSection changes={changes} />
     </EntityTab>
   );
 }

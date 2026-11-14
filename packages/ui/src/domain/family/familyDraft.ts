@@ -178,6 +178,7 @@ function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
     a.timeHour === b.timeHour &&
     a.timeMinute === b.timeMinute &&
     a.timeSecond === b.timeSecond &&
+    a.timeFraction === b.timeFraction &&
     a.timeUtc === b.timeUtc
   );
 }

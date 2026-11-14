@@ -2,6 +2,7 @@ import { IconButton } from '@doru/ui';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type {
+  AddressRecord,
   CitationRecord,
   FactRecord,
   FamilyRecord,
@@ -15,6 +16,7 @@ import type {
 } from '@doru/core';
 import { PersonList, TasksView } from '@doru/ui/domain';
 import {
+  AddressList,
   PlaceholderView,
   RepositoryList,
   SidebarFamilies,
@@ -43,6 +45,7 @@ export function SidebarView({
   places,
   repositories,
   submitters,
+  addresses,
   titles,
   todos,
   onOpenPerson,
@@ -51,6 +54,7 @@ export function SidebarView({
   onOpenPlace,
   onOpenRepository,
   onOpenSubmitter,
+  onOpenAddress,
   onOpenTitle,
   onNewTitle,
   onNewPerson,
@@ -58,6 +62,7 @@ export function SidebarView({
   onNewSource,
   onNewRepository,
   onNewSubmitter,
+  onNewAddress,
   onOpenTask,
   onNewTask,
 }: {
@@ -71,6 +76,7 @@ export function SidebarView({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  addresses: AddressRecord[];
   titles: TitleRecord[];
   todos: TodoRecord[];
   onOpenPerson: (personId: string) => void;
@@ -79,6 +85,7 @@ export function SidebarView({
   onOpenPlace: (placeId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
+  onOpenAddress: (addressId: string) => void;
   onOpenTitle: (titleId: string) => void;
   onNewTitle: () => void;
   onNewPerson: () => void;
@@ -86,6 +93,7 @@ export function SidebarView({
   onNewSource: () => void;
   onNewRepository: () => void;
   onNewSubmitter: () => void;
+  onNewAddress: () => void;
   onOpenTask: (todoId: string) => void;
   onNewTask: () => void;
 }) {
@@ -173,15 +181,18 @@ export function SidebarView({
           citations={citations}
           repositories={repositories}
           submitters={submitters}
+          addresses={addresses}
           titles={titles}
           onOpenSource={onOpenSource}
           onOpenRepository={onOpenRepository}
           onOpenSubmitter={onOpenSubmitter}
+          onOpenAddress={onOpenAddress}
           onOpenTitle={onOpenTitle}
           onNewTitle={onNewTitle}
           onNewSource={onNewSource}
           onNewRepository={onNewRepository}
           onNewSubmitter={onNewSubmitter}
+          onNewAddress={onNewAddress}
         />
       );
     case 'tasks':
@@ -189,10 +200,19 @@ export function SidebarView({
         <TasksView
           todos={todos}
           persons={persons}
+          families={families}
+          sources={sources}
+          places={places}
           repositories={repositories}
+          titles={titles}
           onOpenTask={onOpenTask}
           onNewTask={onNewTask}
           onOpenPerson={onOpenPerson}
+          onOpenFamily={onOpenFamily}
+          onOpenSource={onOpenSource}
+          onOpenPlace={onOpenPlace}
+          onOpenRepository={onOpenRepository}
+          onOpenTitle={onOpenTitle}
         />
       );
     case 'search':
@@ -212,37 +232,43 @@ export function SidebarView({
   }
 }
 
-/** The Sources sidebar: a segmented picker over sources, repositories, submitters and titles. */
+/** The Sources sidebar: a segmented picker over sources, repositories, submitters, addresses and titles. */
 function SourcesSidebar({
   sources,
   citations,
   repositories,
   submitters,
+  addresses,
   titles,
   onOpenSource,
   onOpenRepository,
   onOpenSubmitter,
+  onOpenAddress,
   onOpenTitle,
   onNewTitle,
   onNewSource,
   onNewRepository,
   onNewSubmitter,
+  onNewAddress,
 }: {
   sources: SourceRecord[];
   citations: CitationRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  addresses: AddressRecord[];
   titles: TitleRecord[];
   onOpenSource: (sourceId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
+  onOpenAddress: (addressId: string) => void;
   onOpenTitle: (titleId: string) => void;
   onNewTitle: () => void;
   onNewSource: () => void;
   onNewRepository: () => void;
   onNewSubmitter: () => void;
+  onNewAddress: () => void;
 }) {
-  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters' | 'titles'>('sources');
+  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters' | 'addresses' | 'titles'>('sources');
 
   return (
     <>
@@ -253,6 +279,7 @@ function SourcesSidebar({
             ['titles', nls.t('workbench.activityBar.titles')],
             ['repositories', nls.t('workbench.activityBar.repositories')],
             ['submitters', nls.t('workbench.activityBar.submitters')],
+            ['addresses', nls.t('workbench.activityBar.addresses')],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -309,6 +336,19 @@ function SourcesSidebar({
             />
           </div>
           <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />
+        </>
+      )}
+      {segment === 'addresses' && (
+        <>
+          <div className="tasks-header">
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.address.newAddress')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewAddress}
+            />
+          </div>
+          <AddressList addresses={addresses} onOpenAddress={onOpenAddress} />
         </>
       )}
       {segment === 'titles' && (

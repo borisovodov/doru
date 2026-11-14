@@ -55,4 +55,24 @@ Removing a person from a family or deleting a family is one click.
 
 - **Sources**: attach sources to a person (with a title and author) or reuse
   an existing source. Each attachment is a citation and can be removed.
-- **Notes**: free-form research notes attached to a person.
+- **Notes**: free-form research notes attached to a person. A note can be
+  attached to several records: use **Attach existing note** in another
+  record's Notes section, then choose whether an edit should update the
+  shared text everywhere or only the current record. **Detach from this
+  record** removes one link; **Delete everywhere** removes the note.
+- Facts and names carry their own Sources, Notes, Tags, Identifiers,
+  Contacts and Restrictions sections inside the person editor.
+
+## Addresses
+
+The **Sources** view has an **Addresses** section. Use it to create, edit and
+delete standalone addresses. Addresses used by facts, repositories or
+submitters show their usage count; deleting one detaches it from those
+records. A fact's address picker also has **New address** and **Edit address**
+actions for editing an address in place.
+
+## Tasks
+
+Tasks have creation and closing dates in addition to the scheduled and
+reminder dates. **Related to** links a task to a person, family, source, place,
+repository or title; leave it empty for a free-standing task.

@@ -333,6 +333,7 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
       mediaType?: string;
       language?: string;
       translations?: Array<{ payload: string; mediaType?: string; language?: string }>;
+      citations?: import('@doru/gedcom').SourceCitation[];
     };
     if (note.xref === undefined) {
       continue;
@@ -352,6 +353,7 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
         language: translation.language,
       })),
     });
+    importCitations(note.citations, 'note', id, ctx);
   }
 }
 

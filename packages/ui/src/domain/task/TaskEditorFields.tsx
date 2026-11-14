@@ -1,29 +1,53 @@
-import type { PersonRecord, RepositoryRecord } from '@doru/core';
+import type { FamilyRecord, PersonRecord, PlaceRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
+import { placeName } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { DateEditor } from '../date/DateEditor';
-import { displayName } from '../format/format';
+import { displayName, familyLabel } from '../format/format';
 import type { TodoDraft } from './todoDraft';
+
+const TARGET_TYPES = ['person', 'family', 'source', 'place', 'repository', 'title'] as const;
 
 /**
  * The editable fields of a todo, shared by the task tab editor: the text,
  * the classification fields (category, locality, priority, status), the
- * repository and person links, and the scheduled/reminder dates.
+ * repository and entity links, and the creation/scheduled/reminder/closed
+ * dates.
  */
 export function TaskEditorFields({
   edit,
   persons,
+  families,
+  sources,
+  places,
   repositories,
+  titles,
   onChange,
 }: {
   edit: TodoDraft;
   persons: PersonRecord[];
+  families: FamilyRecord[];
+  sources: SourceRecord[];
+  places: PlaceRecord[];
   repositories: RepositoryRecord[];
+  titles: TitleRecord[];
   onChange: (update: Partial<TodoDraft>) => void;
 }) {
+  const personById = new Map(persons.map((person) => [person.id, person]));
+  const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
+  const targetOptions = targetOptionsFor(edit.targetType, {
+    persons,
+    families,
+    sources,
+    places,
+    repositories,
+    titles,
+    personById,
+  });
+
   return (
     <>
       <Field label={nls.t('features.tasks.text')}>
@@ -75,17 +99,49 @@ export function TaskEditorFields({
             ))}
           </Select>
         </Field>
-        <Field label={nls.t('features.tasks.person')}>
-          <Select value={edit.personId} onChange={(event) => onChange({ personId: event.target.value })}>
+      </FieldGrid>
+      <FieldGrid columns={2}>
+        <Field label={nls.t('features.tasks.target')}>
+          <Select
+            value={edit.targetType}
+            onChange={(event) =>
+              onChange({
+                targetType: event.target.value,
+                ...(event.target.value === edit.targetType ? {} : { targetId: '' }),
+              })
+            }
+          >
             <option value="">{nls.t('features.tasks.none')}</option>
-            {persons.map((person) => (
-              <option key={person.id} value={person.id}>
-                {displayName(person)}
+            {TARGET_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {nls.t(`features.tasks.target.${type}`)}
+              </option>
+            ))}
+            {!knownTarget && edit.targetType !== '' && <option value={edit.targetType}>{edit.targetType}</option>}
+          </Select>
+        </Field>
+        <Field label={nls.t('features.tasks.targetRecord')}>
+          <Select
+            value={edit.targetId}
+            disabled={edit.targetType === ''}
+            onChange={(event) => onChange({ targetId: event.target.value })}
+          >
+            <option value="">{nls.t('features.tasks.none')}</option>
+            {!knownTarget && edit.targetId !== '' && <option value={edit.targetId}>{edit.targetId}</option>}
+            {targetOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
               </option>
             ))}
           </Select>
         </Field>
       </FieldGrid>
+      <DateEditor
+        label={nls.t('features.tasks.created')}
+        value={edit.created}
+        onChange={(value) => onChange({ created: value })}
+        hidePlace
+      />
       <DateEditor
         label={nls.t('features.tasks.scheduled')}
         value={edit.scheduled}
@@ -98,6 +154,42 @@ export function TaskEditorFields({
         onChange={(value) => onChange({ reminder: value })}
         hidePlace
       />
+      <DateEditor
+        label={nls.t('features.tasks.closed')}
+        value={edit.closed}
+        onChange={(value) => onChange({ closed: value })}
+        hidePlace
+      />
     </>
   );
+}
+
+function targetOptionsFor(
+  targetType: string,
+  data: {
+    persons: PersonRecord[];
+    families: FamilyRecord[];
+    sources: SourceRecord[];
+    places: PlaceRecord[];
+    repositories: RepositoryRecord[];
+    titles: TitleRecord[];
+    personById: Map<string, PersonRecord>;
+  },
+): Array<{ id: string; label: string }> {
+  switch (targetType) {
+    case 'person':
+      return data.persons.map((person) => ({ id: person.id, label: displayName(person) }));
+    case 'family':
+      return data.families.map((family) => ({ id: family.id, label: familyLabel(family, data.personById) }));
+    case 'source':
+      return data.sources.map((source) => ({ id: source.id, label: source.title ?? source.id }));
+    case 'place':
+      return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
+    case 'repository':
+      return data.repositories.map((repository) => ({ id: repository.id, label: repository.name }));
+    case 'title':
+      return data.titles.map((title) => ({ id: title.id, label: title.name ?? title.id }));
+    default:
+      return [];
+  }
 }

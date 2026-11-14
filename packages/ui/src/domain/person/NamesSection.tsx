@@ -1,4 +1,5 @@
 import { Plus, Star, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
@@ -31,7 +32,15 @@ import styles from './NamesSection.module.css';
  * display form; name variants (translations, phonetic and romanized forms)
  * nest inside their base name.
  */
-export function NamesSection({ names, onChange }: { names: NameDraft[]; onChange: (names: NameDraft[]) => void }) {
+export function NamesSection({
+  names,
+  onChange,
+  renderAttachments,
+}: {
+  names: NameDraft[];
+  onChange: (names: NameDraft[]) => void;
+  renderAttachments?: ((name: NameDraft | NameVariantDraft) => ReactNode) | undefined;
+}) {
   const patch = (index: number, values: Partial<NameDraft>) =>
     onChange(names.map((name, i) => (i === index ? { ...name, ...values } : name)));
 
@@ -202,6 +211,7 @@ export function NamesSection({ names, onChange }: { names: NameDraft[]; onChange
                   onChange={(date) => setVariantDate(index, variantIndex, date)}
                   hidePlace
                 />
+                {renderAttachments?.(variant)}
               </div>
             ))}
             <Button
@@ -213,6 +223,7 @@ export function NamesSection({ names, onChange }: { names: NameDraft[]; onChange
               {nls.t('features.tree.names.variant.add')}
             </Button>
           </div>
+          {renderAttachments?.(name)}
         </Subcard>
       ))}
       <Button size="sm" variant="secondary" icon={<Plus size={13} aria-hidden="true" />} onClick={addName}>

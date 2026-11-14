@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
+import { collectNameIds } from '@doru/core/model';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -33,6 +34,8 @@ import { FactsSection } from '@doru/ui/domain';
 import { FamilySection } from '@doru/ui/domain';
 import { MediaSection } from '@doru/ui/domain';
 import { NotesSection } from '@doru/ui/domain';
+import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
+import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttachments';
 import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
 import { TagsSection } from '@doru/ui/domain';
@@ -54,6 +57,7 @@ export interface PersonEditorProps {
  */
 export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
+  const [allNotes, setAllNotes] = useState<NoteRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const [aliases, setAliases] = useState<Array<{ id: string; aliasId: string }>>([]);
@@ -92,12 +96,12 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
   const refreshAttachments = async () => {
     const [loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges] =
       await Promise.all([
-        api.getIdentifiers(draft.id),
-        api.getContacts(draft.id),
-        api.getRestrictions(draft.id),
+        api.getIdentifiers('person', draft.id),
+        api.getContacts('person', draft.id),
+        api.getRestrictions('person', draft.id),
         api.getTags(),
-        api.getTagLinks(draft.id),
-        api.getChanges(draft.id),
+        api.getTagLinks('person', draft.id),
+        api.getChanges('person', draft.id),
       ]);
     setIdentifiers(loadedIdentifiers);
     setContacts(loadedContacts);
@@ -107,8 +111,14 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
     setChanges(loadedChanges);
   };
 
+  const refreshNotes = async () => {
+    const [loadedNotes, loadedAllNotes] = await Promise.all([api.getNotes('person', draft.id), api.getAllNotes()]);
+    setNotes(loadedNotes);
+    setAllNotes(loadedAllNotes);
+  };
+
   const refreshCitations = async () => {
-    setCitations(await api.getCitations(draft.id));
+    setCitations(await api.getCitations('person', draft.id));
     setSources(await api.getSources());
   };
 
@@ -125,18 +135,23 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
       return;
     }
     let cancelled = false;
-    void api.getNotes(draft.id).then((loaded) => {
-      if (!cancelled) setNotes(loaded);
+    void Promise.all([api.getNotes('person', draft.id), api.getAllNotes()]).then(([loadedNotes, loadedAllNotes]) => {
+      if (!cancelled) {
+        setNotes(loadedNotes);
+        setAllNotes(loadedAllNotes);
+      }
     });
     void api.getFamilies().then((loaded) => {
       if (!cancelled) setFamilies(loaded);
     });
-    void Promise.all([api.getCitations(draft.id), api.getSources()]).then(([loadedCitations, loadedSources]) => {
-      if (!cancelled) {
-        setCitations(loadedCitations);
-        setSources(loadedSources);
-      }
-    });
+    void Promise.all([api.getCitations('person', draft.id), api.getSources()]).then(
+      ([loadedCitations, loadedSources]) => {
+        if (!cancelled) {
+          setCitations(loadedCitations);
+          setSources(loadedSources);
+        }
+      },
+    );
     void api.getAssociations(draft.id).then((loaded) => {
       if (!cancelled) setAssociations(loaded);
     });
@@ -147,12 +162,12 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
       if (!cancelled) setMedia(loaded);
     });
     void Promise.all([
-      api.getIdentifiers(draft.id),
-      api.getContacts(draft.id),
-      api.getRestrictions(draft.id),
+      api.getIdentifiers('person', draft.id),
+      api.getContacts('person', draft.id),
+      api.getRestrictions('person', draft.id),
       api.getTags(),
-      api.getTagLinks(draft.id),
-      api.getChanges(draft.id),
+      api.getTagLinks('person', draft.id),
+      api.getChanges('person', draft.id),
     ]).then(([loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges]) => {
       if (!cancelled) {
         setIdentifiers(loadedIdentifiers);
@@ -187,6 +202,8 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
 
   const name = nameDraftDisplay(primaryNameDraft(draft));
   const span = draftSpan(draft);
+  const savedPerson = persons.find((person) => person.id === draft.id);
+  const savedNameIds = new Set(savedPerson ? collectNameIds(savedPerson.names) : []);
   const deceased = draft.death.year !== '' || draft.death.text.trim() !== '';
   const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : HelpCircle;
   const sexTitle =
@@ -249,7 +266,33 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
       />
 
       <SectionCard title={nls.t('features.tree.names.title')}>
-        <NamesSection names={draft.names} onChange={(names) => set({ names })} />
+        <NamesSection
+          names={draft.names}
+          onChange={(names) => set({ names })}
+          renderAttachments={(name) =>
+            savedNameIds.has(name.id) ? (
+              <AttachmentsPanel
+                targetType="name"
+                targetId={name.id}
+                api={api}
+                sources={sources}
+                sections={[
+                  'notes',
+                  'sources',
+                  'tags',
+                  'identifiers',
+                  'contacts',
+                  'restrictions',
+                  'contributors',
+                  'changes',
+                ]}
+                renderCitationAttachments={(citation) => (
+                  <CitationAttachments citation={citation} api={api} sources={sources} />
+                )}
+              />
+            ) : null
+          }
+        />
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.details')}>
@@ -326,6 +369,37 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
             onAddFact={api.addFact}
             onUpdateFact={api.updateFact}
             onDeleteFact={api.deleteFact}
+            onAddAddress={async (address) => {
+              const created = await api.addAddress(address);
+              setAddresses(await api.getAddresses());
+              return created;
+            }}
+            onUpdateAddress={async (before, after) => {
+              const updated = await api.updateAddress(before, after);
+              setAddresses(await api.getAddresses());
+              return updated;
+            }}
+            renderAttachments={(fact) => (
+              <AttachmentsPanel
+                targetType="fact"
+                targetId={fact.id}
+                api={api}
+                sources={sources}
+                sections={[
+                  'notes',
+                  'sources',
+                  'tags',
+                  'identifiers',
+                  'contacts',
+                  'restrictions',
+                  'contributors',
+                  'changes',
+                ]}
+                renderCitationAttachments={(citation) => (
+                  <CitationAttachments citation={citation} api={api} sources={sources} />
+                )}
+              />
+            )}
           />
           <SourcesSection
             targetType="person"
@@ -334,14 +408,22 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
             citations={citations}
             refresh={refreshCitations}
             onAddSource={async (source, _targetType, targetId) => {
-              await api.addSource(source, targetId);
+              await api.addSource(source, 'person', targetId);
             }}
             onAttachSource={async (sourceId, _targetType, targetId) => {
-              await api.attachSource(sourceId, targetId);
+              await api.attachSource(sourceId, 'person', targetId);
             }}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+            renderCitationAttachments={(citation) => (
+              <CitationAttachments
+                citation={citation}
+                api={api}
+                sources={sources}
+                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+              />
+            )}
           />
           <MediaSection
             personId={draft.id}
@@ -354,18 +436,45 @@ export function PersonEditor({ draft, persons, onChange, onSave, onCancel, api }
             targetType="person"
             targetId={draft.id}
             notes={notes}
+            availableNotes={allNotes}
             onAdd={async (text) => {
-              await api.addNote(draft.id, text);
-              setNotes(await api.getNotes(draft.id));
+              await api.addNote({
+                id: crypto.randomUUID(),
+                text,
+                targetType: 'person',
+                targetId: draft.id,
+                links: [{ id: crypto.randomUUID(), targetType: 'person', targetId: draft.id }],
+              });
+              await refreshNotes();
             }}
             onUpdate={async (before, after, context) => {
               await api.updateNote(before, after, context);
-              setNotes(await api.getNotes(draft.id));
+              await refreshNotes();
+            }}
+            onAttach={async (noteId) => {
+              await api.attachNote(noteId, {
+                id: crypto.randomUUID(),
+                targetType: 'person',
+                targetId: draft.id,
+              });
+              await refreshNotes();
+            }}
+            onDetach={async (note, link) => {
+              await api.detachNote(note, link);
+              await refreshNotes();
             }}
             onDelete={async (note) => {
               await api.deleteNote(note);
-              setNotes(await api.getNotes(draft.id));
+              await refreshNotes();
             }}
+            renderAttachments={(note) => (
+              <NoteAttachments
+                note={note}
+                api={api}
+                sources={sources}
+                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+              />
+            )}
           />
           <IdentifiersSection
             targetType="person"

@@ -1,6 +1,6 @@
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { AddressRecord, FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../../nls';
@@ -10,6 +10,14 @@ import { Checkbox } from '../../atoms/form/Checkbox';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { displayName, formatAddress } from '../format/format';
+import { AddressFields } from '../registries/AddressFields';
+import {
+  addressDraftEmpty,
+  addressDraftToRecord,
+  addressToDraft,
+  emptyAddressDraft,
+  type AddressDraft,
+} from '../registries/address';
 import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from './factDraft';
 import './FactEditor.css';
 
@@ -25,6 +33,9 @@ export function FactEditor({
   persons,
   places,
   addresses,
+  attachments,
+  onAddAddress,
+  onUpdateAddress,
   onSave,
   onCancel,
   onDelete,
@@ -33,11 +44,15 @@ export function FactEditor({
   persons: PersonRecord[];
   places: PlaceRecord[];
   addresses: AddressRecord[];
+  attachments?: ReactNode;
+  onAddAddress?: ((address: AddressRecord) => Promise<AddressRecord>) | undefined;
+  onUpdateAddress?: ((before: AddressRecord, after: AddressRecord) => Promise<AddressRecord>) | undefined;
   onSave: (fact: FactRecord) => Promise<void>;
   onCancel: () => void;
   onDelete: (fact: FactRecord) => Promise<void>;
 }) {
   const [draft, setDraft] = useState<FactDraft>(() => factToDraft(fact));
+  const [addressDraft, setAddressDraft] = useState<AddressDraft | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
   const set = (patch: Partial<FactDraft>) => setDraft({ ...draft, ...patch });
@@ -49,6 +64,27 @@ export function FactEditor({
     } finally {
       setSaving(false);
     }
+  };
+
+  const saveAddressDraft = async () => {
+    if (addressDraft === undefined) {
+      return;
+    }
+    if (addressDraftEmpty(addressDraft)) {
+      setAddressDraft(undefined);
+      return;
+    }
+    const record = addressDraftToRecord(addressDraft);
+    if (addressDraft.id !== undefined && onUpdateAddress !== undefined) {
+      const before = addresses.find((address) => address.id === addressDraft.id);
+      if (before !== undefined) {
+        await onUpdateAddress(before, record);
+      }
+    } else if (onAddAddress !== undefined) {
+      await onAddAddress(record);
+    }
+    set({ addressId: record.id });
+    setAddressDraft(undefined);
   };
 
   const patchAge = (index: number, values: Partial<FactAge>) =>
@@ -166,6 +202,40 @@ export function FactEditor({
           ))}
         </Select>
       </label>
+      {(onAddAddress !== undefined || onUpdateAddress !== undefined) && (
+        <div className="fact-editor-row">
+          <Button size="sm" variant="secondary" onClick={() => setAddressDraft(emptyAddressDraft())}>
+            {nls.t('features.tree.address.newAddress')}
+          </Button>
+          {draft.addressId !== undefined && onUpdateAddress !== undefined && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                const address = addresses.find((entry) => entry.id === draft.addressId);
+                if (address !== undefined) {
+                  setAddressDraft(addressToDraft(address));
+                }
+              }}
+            >
+              {nls.t('features.tree.address.edit')}
+            </Button>
+          )}
+        </div>
+      )}
+      {addressDraft !== undefined && (
+        <div className="fact-subsection">
+          <AddressFields address={addressDraft} onChange={setAddressDraft} />
+          <div className="fact-editor-row">
+            <Button size="sm" variant="primary" onClick={() => void saveAddressDraft()}>
+              {nls.t('features.tree.save')}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setAddressDraft(undefined)}>
+              {nls.t('features.tree.fact.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
       <DateEditor
         label={nls.t('features.tree.fact.sortDate')}
         value={draft.sortDate}
@@ -203,6 +273,15 @@ export function FactEditor({
         <h4>{nls.t('features.tree.fact.ages.title')}</h4>
         {draft.ages.map((age, index) => (
           <div className="fact-age-row" key={age.id}>
+            <Select
+              aria-label={nls.t('features.tree.fact.ages.bound')}
+              value={age.bound ?? ''}
+              onChange={(event) => patchAge(index, { bound: event.target.value || undefined })}
+            >
+              <option value="">{nls.t('features.tree.fact.ages.bound.none')}</option>
+              <option value="<">{nls.t('features.tree.fact.ages.bound.lt')}</option>
+              <option value=">">{nls.t('features.tree.fact.ages.bound.gt')}</option>
+            </Select>
             <Select
               value={age.role ?? ''}
               onChange={(event) => patchAge(index, { role: event.target.value || undefined })}
@@ -304,6 +383,8 @@ export function FactEditor({
           ))}
         </div>
       </div>
+
+      {attachments}
 
       <div className="fact-editor-actions">
         <Button variant="primary" disabled={saving} onClick={() => void save()}>

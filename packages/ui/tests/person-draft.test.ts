@@ -77,6 +77,7 @@ describe('emptyDate', () => {
       timeHour: '',
       timeMinute: '',
       timeSecond: '',
+      timeFraction: '',
       timeUtc: false,
     });
   });
@@ -290,7 +291,15 @@ describe('date refinements', () => {
     });
   });
 
-  it('carries the date row id and the fractional seconds through rebaseDate', () => {
+  it('writes the fractional seconds from the draft', () => {
+    expect(fromDateDraft(dateDraft({ timeHour: '9', timeMinute: '0', timeFraction: '5' }))?.time).toEqual({
+      hour: 9,
+      minute: 0,
+      fraction: '5',
+    });
+  });
+
+  it('carries the date row id through rebaseDate and keeps the draft time verbatim', () => {
     const stored = {
       id: 'D1',
       quality: 'exact' as const,
@@ -302,7 +311,7 @@ describe('date refinements', () => {
       id: 'D1',
       quality: 'exact',
       component: { year: 1901 },
-      time: { hour: 9, minute: 0, fraction: '5' },
+      time: { hour: 9, minute: 0 },
     });
   });
 

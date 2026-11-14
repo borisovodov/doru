@@ -32,8 +32,10 @@ describe('todoDraft', () => {
       priority: 'high',
       status: 'in-progress',
       repositoryId: 'R1',
-      personId: 'P1',
+      targetType: 'person',
+      targetId: 'P1',
       scheduled: { year: '2026', month: '3', day: '12', quality: 'exact' },
+      created: { year: '2026' },
     });
     expect(todoDraftToRecord(source, draft)).toEqual(source);
   });
@@ -44,7 +46,8 @@ describe('todoDraft', () => {
       text: ' Visit the cemetery ',
       priority: 'low',
       status: 'closed',
-      personId: 'P2',
+      targetType: 'person',
+      targetId: 'P2',
       scheduled: { ...emptyTodoDraft().scheduled, year: '2027' },
     });
     expect(after).toEqual({
@@ -61,7 +64,8 @@ describe('todoDraft', () => {
   it('detaches a todo when the person is cleared', () => {
     const after = todoDraftToRecord(todo({ targetType: 'person', targetId: 'P1' }), {
       ...todoToDraft(todo({ targetType: 'person', targetId: 'P1' })),
-      personId: '',
+      targetType: '',
+      targetId: '',
     });
     expect(after.targetType).toBeUndefined();
     expect(after.targetId).toBeUndefined();

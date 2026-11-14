@@ -13,6 +13,7 @@ import {
 } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
+import { AddressTab } from './components/AddressTab';
 import { FamilyTab } from './components/FamilyTab';
 import { PersonTab } from './components/PersonTab';
 import { PlaceTab } from './components/PlaceTab';
@@ -27,6 +28,7 @@ import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
 import {
+  ADDRESS_TAB_PREFIX,
   EXPORT_TAB_ID,
   FAMILY_TAB_PREFIX,
   NOTICES_TAB_ID,
@@ -61,6 +63,7 @@ export function App() {
     tree.places,
     tree.repositories,
     tree.submitters,
+    tree.addresses,
     tree.todos,
     tree.titles,
   );
@@ -417,13 +420,31 @@ export function App() {
         />
       );
     }
+    if (tab.id.startsWith(ADDRESS_TAB_PREFIX)) {
+      return (
+        <AddressTab
+          tabId={tab.id}
+          addresses={tree.addresses}
+          facts={tree.facts}
+          repositories={tree.repositories}
+          submitters={tree.submitters}
+          api={tree.registriesApi}
+          onClose={tabs.closeTab}
+          onCreated={(realId) => tabs.replaceTab(tab.id, `${ADDRESS_TAB_PREFIX}${realId}`)}
+        />
+      );
+    }
     if (tab.id.startsWith(TASK_TAB_PREFIX)) {
       return (
         <TaskTab
           tabId={tab.id}
           todos={tree.todos}
           persons={tree.persons}
+          families={tree.families}
+          sources={tree.sources}
+          places={tree.places}
           repositories={tree.repositories}
+          titles={tree.titles}
           api={tree.todosApi}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${TASK_TAB_PREFIX}${realId}`)}
@@ -522,6 +543,7 @@ export function App() {
             places={tree.places}
             repositories={tree.repositories}
             submitters={tree.submitters}
+            addresses={tree.addresses}
             titles={tree.titles}
             todos={tree.todos}
             onOpenPerson={openPersonAndFocus}
@@ -530,6 +552,7 @@ export function App() {
             onOpenPlace={tabs.openPlaceTab}
             onOpenRepository={tabs.openRepositoryTab}
             onOpenSubmitter={tabs.openSubmitterTab}
+            onOpenAddress={tabs.openAddressTab}
             onOpenTitle={tabs.openTitleTab}
             onNewTitle={tabs.openNewTitleTab}
             onNewPerson={tabs.openNewPersonTab}
@@ -537,6 +560,7 @@ export function App() {
             onNewSource={tabs.openNewSourceTab}
             onNewRepository={tabs.openNewRepositoryTab}
             onNewSubmitter={tabs.openNewSubmitterTab}
+            onNewAddress={tabs.openNewAddressTab}
             onOpenTask={tabs.openTaskTab}
             onNewTask={tabs.openNewTaskTab}
           />

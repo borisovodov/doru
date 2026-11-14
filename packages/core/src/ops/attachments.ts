@@ -80,6 +80,47 @@ export function deleteNoteOp(note: NoteRecord, attachments: AttachmentsSnapshot)
   );
 }
 
+/** Attaches an existing note to another target (shared-note semantics). */
+export function attachNoteOp(noteId: string, link: NoteLinkRecord): Op {
+  return op(
+    crypto.randomUUID(),
+    'note.attach',
+    (ctx) => ctx.repo.addNoteLink(noteId, link),
+    (ctx) => {
+      ctx.repo.removeNoteLink(link.id);
+    },
+  );
+}
+
+/**
+ * Removes one note link. The last link deletes the note row; the operation
+ * keeps the note and its attachments so undo restores both even when the
+ * note is shared and the link is not the last one.
+ */
+export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments?: AttachmentsSnapshot): Op {
+  const last = (note.links?.length ?? 1) <= 1;
+  return op(
+    crypto.randomUUID(),
+    'note.detach',
+    (ctx) => {
+      ctx.repo.removeNoteLink(link.id);
+      if (last) {
+        ctx.repo.deleteAttachmentsFor('note', note.id);
+      }
+    },
+    (ctx) => {
+      if (ctx.repo.getNote(note.id) === undefined) {
+        ctx.repo.insertNote(note);
+      } else {
+        ctx.repo.addNoteLink(note.id, link);
+      }
+      if (last && attachments !== undefined) {
+        ctx.repo.restoreAttachments(attachments);
+      }
+    },
+  );
+}
+
 // --- sources -----------------------------------------------------------------
 
 export function addSourceOp(source: SourceRecord, citation?: { targetType: string; targetId: string }): Op {
@@ -350,63 +391,81 @@ export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op
 // --- registries: repositories, submitters, addresses, fact types, header -------
 
 export function addRepositoryOp(repository: RepositoryRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'repository.add',
-    (ctx) => ctx.repo.insertRepository(repository),
-    (ctx) => ctx.repo.deleteRepository(repository.id),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'repository.add',
+      (ctx) => ctx.repo.insertRepository(repository),
+      (ctx) => ctx.repo.deleteRepository(repository.id),
+    ),
+    change: { targetType: 'repository', targetId: repository.id, kind: 'created' },
+  };
 }
 
 export function updateRepositoryOp(before: RepositoryRecord, after: RepositoryRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'repository.update',
-    (ctx) => ctx.repo.updateRepository(after),
-    (ctx) => ctx.repo.updateRepository(before),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'repository.update',
+      (ctx) => ctx.repo.updateRepository(after),
+      (ctx) => ctx.repo.updateRepository(before),
+    ),
+    change: { targetType: 'repository', targetId: before.id, kind: 'changed' },
+  };
 }
 
 export function deleteRepositoryOp(repository: RepositoryRecord, attachments: AttachmentsSnapshot): Op {
-  return op(
-    crypto.randomUUID(),
-    'repository.delete',
-    (ctx) => ctx.repo.deleteRepository(repository.id),
-    (ctx) => {
-      ctx.repo.insertRepository(repository);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'repository.delete',
+      (ctx) => ctx.repo.deleteRepository(repository.id),
+      (ctx) => {
+        ctx.repo.insertRepository(repository);
+        ctx.repo.restoreAttachments(attachments);
+      },
+    ),
+    change: { targetType: 'repository', targetId: repository.id, kind: 'changed' },
+  };
 }
 
 export function addSubmitterOp(submitter: SubmitterRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'submitter.add',
-    (ctx) => ctx.repo.insertSubmitter(submitter),
-    (ctx) => ctx.repo.deleteSubmitter(submitter.id),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'submitter.add',
+      (ctx) => ctx.repo.insertSubmitter(submitter),
+      (ctx) => ctx.repo.deleteSubmitter(submitter.id),
+    ),
+    change: { targetType: 'submitter', targetId: submitter.id, kind: 'created' },
+  };
 }
 
 export function updateSubmitterOp(before: SubmitterRecord, after: SubmitterRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'submitter.update',
-    (ctx) => ctx.repo.updateSubmitter(after),
-    (ctx) => ctx.repo.updateSubmitter(before),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'submitter.update',
+      (ctx) => ctx.repo.updateSubmitter(after),
+      (ctx) => ctx.repo.updateSubmitter(before),
+    ),
+    change: { targetType: 'submitter', targetId: before.id, kind: 'changed' },
+  };
 }
 
 export function deleteSubmitterOp(submitter: SubmitterRecord, attachments: AttachmentsSnapshot): Op {
-  return op(
-    crypto.randomUUID(),
-    'submitter.delete',
-    (ctx) => ctx.repo.deleteSubmitter(submitter.id),
-    (ctx) => {
-      ctx.repo.insertSubmitter(submitter);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'submitter.delete',
+      (ctx) => ctx.repo.deleteSubmitter(submitter.id),
+      (ctx) => {
+        ctx.repo.insertSubmitter(submitter);
+        ctx.repo.restoreAttachments(attachments);
+      },
+    ),
+    change: { targetType: 'submitter', targetId: submitter.id, kind: 'changed' },
+  };
 }
 
 /** Links a submitter as the contributor of a record (GEDCOM SUBM on INDI/FAM). */
@@ -430,28 +489,37 @@ export function deleteRecordSubmitterOp(id: string, submitterId: string, targetT
 }
 
 export function addAddressOp(address: AddressRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'address.add',
-    (ctx) => ctx.repo.insertAddress(address),
-    (ctx) => ctx.repo.deleteAddress(address.id),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'address.add',
+      (ctx) => ctx.repo.insertAddress(address),
+      (ctx) => ctx.repo.deleteAddress(address.id),
+    ),
+    change: { targetType: 'address', targetId: address.id, kind: 'created' },
+  };
 }
 
 export function updateAddressOp(before: AddressRecord, after: AddressRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'address.update',
-    (ctx) => ctx.repo.updateAddress(after),
-    (ctx) => ctx.repo.updateAddress(before),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'address.update',
+      (ctx) => ctx.repo.updateAddress(after),
+      (ctx) => ctx.repo.updateAddress(before),
+    ),
+    change: { targetType: 'address', targetId: before.id, kind: 'changed' },
+  };
 }
 
 export function deleteAddressOp(address: AddressRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'address.delete',
-    (ctx) => ctx.repo.deleteAddress(address.id),
-    (ctx) => ctx.repo.insertAddress(address),
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'address.delete',
+      (ctx) => ctx.repo.deleteAddress(address.id),
+      (ctx) => ctx.repo.insertAddress(address),
+    ),
+    change: { targetType: 'address', targetId: address.id, kind: 'changed' },
+  };
 }

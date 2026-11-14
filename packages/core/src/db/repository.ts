@@ -25,7 +25,7 @@ import type {
   TodoRecord,
   TreeDocument,
 } from '../model/types';
-import { emptyAttachments } from '../model/types';
+import { collectNameIds, emptyAttachments } from '../model/types';
 import { AddressRepo } from './addressRepo';
 import { AttachmentRepo } from './attachmentRepo';
 import { DateRepo } from './dateRepo';
@@ -241,19 +241,27 @@ export class SqliteTreeRepository implements TreeRepository {
    */
   updatePerson(person: PersonRecord): void {
     this.transactions.run(() => {
+      const oldNames = collectNameIds(this.names.listNamesForPerson(person.id));
+      const oldFacts = this.facts.listFactsForPerson(person.id);
       this.persons.updatePerson({ id: person.id, xref: person.xref, sex: person.sex });
       this.names.replaceNamesForPerson(person.id, person.names);
-      const existing = this.facts.listFactsForPerson(person.id);
+      const newNames = new Set(collectNameIds(person.names));
+      for (const nameId of oldNames) {
+        if (!newNames.has(nameId)) {
+          this.deleteAttachmentsFor('name', nameId);
+        }
+      }
       const incoming = new Map(person.facts.map((fact) => [fact.id, fact]));
       for (const fact of person.facts) {
-        if (existing.some((entry) => entry.id === fact.id)) {
+        if (oldFacts.some((entry) => entry.id === fact.id)) {
           this.facts.updateFact(fact);
         } else {
           this.facts.insertFact(fact);
         }
       }
-      for (const old of existing) {
+      for (const old of oldFacts) {
         if (!incoming.has(old.id)) {
+          this.deleteAttachmentsFor('fact', old.id);
           this.facts.deleteFact(old.id);
         }
       }
@@ -279,6 +287,12 @@ export class SqliteTreeRepository implements TreeRepository {
    */
   deletePerson(id: string): boolean {
     return this.transactions.run(() => {
+      for (const nameId of collectNameIds(this.names.listNamesForPerson(id))) {
+        this.deleteAttachmentsFor('name', nameId);
+      }
+      for (const fact of this.facts.listFactsForPerson(id)) {
+        this.deleteAttachmentsFor('fact', fact.id);
+      }
       this.deleteAttachmentsFor('person', id);
       this.names.deleteFtsForPerson(id);
       this.facts.deleteFactsForPerson(id);
@@ -337,6 +351,9 @@ export class SqliteTreeRepository implements TreeRepository {
       }
       for (const link of family?.childLinks ?? []) {
         this.deleteAttachmentsFor('family_child', link.id);
+      }
+      for (const fact of this.facts.listFactsForFamily(id)) {
+        this.deleteAttachmentsFor('fact', fact.id);
       }
       this.deleteAttachmentsFor('family', id);
       this.facts.deleteFactsForFamily(id);
