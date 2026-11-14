@@ -18,71 +18,79 @@ const VARIANTS = [
   ['link', 'Link'],
 ] as const;
 
-const SIZES = ['sm', 'md', 'lg'] as const;
+const SIZES = [
+  ['sm', 'Small'],
+  ['md', 'Medium'],
+  ['lg', 'Large'],
+] as const;
 
-const heading = {
-  margin: '0 0 8px',
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: '0.04em',
-  textTransform: 'uppercase' as const,
-  color: 'var(--doru-fg-muted)',
+const row = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 8,
+} as const;
+
+export const Variants: DemoCase = {
+  render: () => (
+    <div style={row}>
+      {VARIANTS.map(([variant, label]) => (
+        <Button key={variant} variant={variant}>
+          {label}
+        </Button>
+      ))}
+    </div>
+  ),
 };
 
-export const AllStates: DemoCase = {
+export const Sizes: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 24, minWidth: 560 }}>
-      <section>
-        <h3 style={heading}>Variants × sizes</h3>
-        <div style={{ display: 'grid', gap: 10 }}>
-          {VARIANTS.map(([variant, label]) => (
-            <div key={variant} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {SIZES.map((size) => (
-                <Button key={size} variant={variant} size={size}>
-                  {label} {size}
-                </Button>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
+    <div style={row}>
+      {SIZES.map(([size, label]) => (
+        <Button key={size} size={size}>
+          {label}
+        </Button>
+      ))}
+    </div>
+  ),
+};
 
-      <section>
-        <h3 style={heading}>Disabled</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {VARIANTS.map(([variant, label]) => (
-            <Button key={variant} variant={variant} disabled>
-              {label}
-            </Button>
-          ))}
-        </div>
-      </section>
+export const Disabled: DemoCase = {
+  render: () => (
+    <div style={row}>
+      {VARIANTS.map(([variant, label]) => (
+        <Button key={variant} variant={variant} disabled>
+          {label}
+        </Button>
+      ))}
+    </div>
+  ),
+};
 
-      <section>
-        <h3 style={heading}>Loading</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {VARIANTS.map(([variant, label]) => (
-            <Button key={variant} variant={variant} loading>
-              {label}
-            </Button>
-          ))}
-        </div>
-      </section>
+export const Loading: DemoCase = {
+  render: () => (
+    <div style={row}>
+      {VARIANTS.map(([variant, label]) => (
+        <Button key={variant} variant={variant} loading>
+          {label}
+        </Button>
+      ))}
+    </div>
+  ),
+};
 
-      <section>
-        <h3 style={heading}>With icon</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Button variant="primary" icon={<Save size={14} />}>
-            Save
-          </Button>
-          <Button variant="secondary" icon={<Save size={14} />}>
-            Save
-          </Button>
-          <Button variant="danger" icon={<Trash2 size={14} />}>
-            Delete
-          </Button>
-        </div>
-      </section>
+export const WithIcon: DemoCase = {
+  render: () => (
+    <div style={row}>
+      <Button variant="primary" icon={<Save size={14} />}>
+        Save
+      </Button>
+      <Button variant="secondary" icon={<Save size={14} />}>
+        Save
+      </Button>
+      <Button variant="danger" icon={<Trash2 size={14} />}>
+        Delete
+      </Button>
     </div>
   ),
 };
