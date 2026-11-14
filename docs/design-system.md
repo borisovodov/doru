@@ -29,7 +29,7 @@ re-export the library.
 1. Component styles live next to the component in a `*.module.css` file and are
    imported by the component itself.
 2. The global stylesheet `@doru/ui/styles.css` contains only tokens and base
-   styles. It is imported once by the app entry point and by Storybook.
+   styles. It is imported once by the app entry point and by the component gallery.
 3. Feature CSS is layout-only (`display`, `grid`, `gap`, `padding`, sizing of
    containers). It must not skin buttons, inputs, selects or textareas.
 4. Components accept `className` for layout; they do not expose internal
@@ -59,17 +59,17 @@ import { Button, Field, Input, SectionCard } from '@doru/ui';
 ## Gallery
 
 ```bash
-npm run ui          # Storybook at http://localhost:6006
-npm run ui:build    # static build, also runs in CI
+npm run gallery     # component gallery at http://localhost:6006
 ```
 
-The toolbar switches between all bundled themes, dark/light mode and the 17
-UI locales.
+Demos live next to their components in `packages/ui/src` (`*.demo.tsx`) and are
+discovered automatically. The toolbar switches between all bundled themes,
+dark/light mode and the 17 UI locales.
 
-User themes are discovered from `<DORU_USER_DATA>/themes` at Storybook start:
+User themes are discovered from `<DORU_USER_DATA>/themes` at gallery start:
 
 ```bash
-DORU_USER_DATA="$HOME/Library/Application Support/Doru" npm run ui
+DORU_USER_DATA="$HOME/Library/Application Support/Doru" npm run gallery
 ```
 
 Without the variable only bundled themes are shown. A user theme with the same
@@ -87,5 +87,5 @@ The specs launch the app with `--lang=en-US` so accessible names are stable.
 2. Give it a scoped CSS module and import that module from the component.
 3. Keep user-facing strings out of the component; accept them as props
    (domain components may use the `@doru/ui` NLS instance).
-4. Add a story with the relevant variants and states.
-5. Run `npm run typecheck`, `npm run check:nls` and `npm run ui:build`.
+4. Add a demo next to it (`*.demo.tsx`) with the relevant variants and states.
+5. Run `npm run typecheck` and `npm run check:nls`.

@@ -21,7 +21,6 @@
     "out/",
     "release/",
     "coverage/",
-    "storybook-static/",
     "playwright-report/",
     "test-results/",
     "corpus-run/",

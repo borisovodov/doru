@@ -5,7 +5,7 @@ declare module '*.module.css' {
 }
 declare module '*.css';
 
-declare module 'virtual:doru-themes' {
-  const themes: import('./storybook/themes').ThemeDefinition[];
+declare module 'virtual:doru-gallery-themes' {
+  const themes: import('../gallery/themes').ThemeDefinition[];
   export default themes;
 }

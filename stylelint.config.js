@@ -6,7 +6,6 @@ export default {
     '**/out/**',
     '**/release/**',
     '**/coverage/**',
-    '**/storybook-static/**',
     'apps/website/.vitepress/cache/**',
     'apps/website/.vitepress/dist/**',
     'apps/desktop/build/llama/**',

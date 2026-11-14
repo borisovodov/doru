@@ -19,7 +19,6 @@
     "**/.vite/**",
     "**/.vitepress/cache/**",
     "**/.vitepress/dist/**",
-    "**/storybook-static/**",
     "**/playwright-report/**",
     "**/test-results/**",
     "**/corpus-run/**",
@@ -287,6 +286,7 @@
       "files": [
         "apps/desktop/src/renderer/**/*.{ts,tsx}",
         "packages/{ui,features,workbench}/src/**/*.{ts,tsx}",
+        "packages/ui/gallery/**/*.{ts,tsx}",
         "apps/website/.vitepress/**/*.{ts,mts,tsx}"
       ],
       "env": {
