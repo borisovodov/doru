@@ -96,9 +96,9 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - **The UI comes from `@doru/ui`.** Atoms, shared patterns and reusable
   domain components live in `packages/ui`; feature code composes them and
   keeps only layout CSS. Component styles are CSS Modules; tokens and base
-  styles live in `@doru/ui/styles.css`. Every shared component has a
-  Storybook story (`npm run ui`), and Playwright tests select by role and
-  accessible name, never by CSS class or `data-testid`. See
+  styles live in `@doru/ui/styles.css`. Every shared component has a demo in
+  the component gallery (`npm run gallery`), and Playwright tests select by
+  role and accessible name, never by CSS class or `data-testid`. See
   docs/design-system.md.
 - **The AI model catalog ships as the `@opencode-ai/models` dependency.** Model lists, pricing, limits, capabilities and reasoning options come from its offline `./snapshot` export (models.dev data, MIT) via `packages/ai/src/catalog.ts`; the app never fetches model data at runtime. Refreshing the catalog at release time is a version bump of that package — no other step.
 - **The agent runtime is the Vercel AI SDK.** `packages/ai` wraps `streamText`
@@ -174,7 +174,7 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - Typecheck all workspaces: `npm run typecheck` (this also covers the root
   `tsconfig.json`: `playwright.config.ts`, `vitest.config.ts`, `e2e/`, and the
   dev helper scripts. Every workspace `tsconfig.json` includes its `tests/`
-  directory, including `packages/ui/.storybook`).
+  directory, including the component gallery in `packages/ui/gallery`).
 - **Lint, format and CSS checks:** `npm run lint` (Oxlint with type-aware
   rules from `.oxlintrc.json`, zero warnings), `npm run format:check` (Oxfmt,
   configured by `.oxfmtrc.json`) and `npm run lint:css` (Stylelint). The fix
@@ -183,9 +183,7 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - **TypeScript 7 is the only compiler.** `typescript` is pinned to 7.x and
   `node_modules/.bin/tsc` is the native binary; `oxlint-tsgolint` provides
   type-aware linting on the same TypeScript 7 toolchain. Do not add a classic
-  JavaScript compiler API alias: nothing in the repository needs it. Storybook's
-  default `react-docgen` does not need it either; only an opt-in
-  `react-docgen-typescript` setup would.
+  JavaScript compiler API alias: nothing in the repository needs it.
 - Dev helper scripts (`scripts/*.ts`, `apps/*/scripts/*.ts`) are TypeScript
   run directly by Node's built-in type stripping (Node ≥ 24): `node
   scripts/ui-check.ts`. They must therefore use only erasable syntax — no

@@ -138,8 +138,7 @@ const files = [
           !file.endsWith('.d.ts') &&
           !file.includes('.test.') &&
           !file.includes('.spec.') &&
-          !file.includes('.stories.') &&
-          !file.includes(join('src', 'storybook')) &&
+          !file.includes('.demo.') &&
           !file.endsWith(join('src', 'nls.ts')),
       ),
     ),
