@@ -78,6 +78,9 @@ function initialMode(): Mode {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
+const INITIAL_LOCALE = stored('gallery.locale', 'en');
+nls.setLocale(INITIAL_LOCALE);
+
 function applyDecorators(content: ReactNode, decorators: DemoDecorator[] | undefined): ReactNode {
   return (decorators ?? []).reduceRight<ReactNode>((child, decorator) => decorator(() => child), content);
 }
@@ -107,7 +110,7 @@ export function App(): ReactNode {
   const [selected, setSelected] = useState(GROUPS[0]?.title ?? '');
   const [themeId, setThemeId] = useState(() => stored('gallery.theme', defaultThemeId()));
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [locale, setLocale] = useState(() => stored('gallery.locale', 'en'));
+  const [locale, setLocale] = useState(INITIAL_LOCALE);
 
   const active = GROUPS.find((group) => group.title === selected) ?? GROUPS[0];
 
@@ -128,10 +131,13 @@ export function App(): ReactNode {
     localStorage.setItem('gallery.mode', mode);
   }, [themeId, mode]);
 
-  useEffect(() => {
-    nls.setLocale(locale);
-    localStorage.setItem('gallery.locale', locale);
-  }, [locale]);
+  const changeLocale = (next: string): void => {
+    // Update the shared NLS service before React re-renders the demos;
+    // an effect would run after the render and leave them one locale behind.
+    nls.setLocale(next);
+    setLocale(next);
+    localStorage.setItem('gallery.locale', next);
+  };
 
   if (!active) {
     return <div className="gallery-empty">No demos found.</div>;
@@ -186,7 +192,7 @@ export function App(): ReactNode {
 
             <label className="control">
               <span>Locale</span>
-              <select value={locale} onChange={(event) => setLocale(event.target.value)}>
+              <select value={locale} onChange={(event) => changeLocale(event.target.value)}>
                 {GALLERY_LOCALES.map((entry) => (
                   <option key={entry.value} value={entry.value}>
                     {entry.label}
