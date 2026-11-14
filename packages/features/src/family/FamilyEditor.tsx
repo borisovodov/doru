@@ -3,11 +3,13 @@ import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, InlineForm, Input, Select, SectionCard, Subcard } from '@doru/ui';
 import { Plus, Users, X } from 'lucide-react';
-import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SubmitterRecord } from '@doru/core';
+import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
 import { ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
+import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
+import { CitationAttachments } from '../attachments/TargetAttachments';
 import { Button, EditorPage, EntityViewCard } from '@doru/ui';
 import type { FamilyEditorApi } from '../person/types';
 import {
@@ -30,6 +32,7 @@ export function FamilyEditor({
   draft,
   onChange,
   persons,
+  sources,
   api,
   onSave,
   onDelete,
@@ -37,6 +40,7 @@ export function FamilyEditor({
   draft: FamilyDraft;
   onChange: (draft: FamilyDraft) => void;
   persons: PersonRecord[];
+  sources: SourceRecord[];
   api: FamilyEditorApi;
   onSave: () => void;
   onDelete: (() => void) | undefined;
@@ -263,6 +267,37 @@ export function FamilyEditor({
         onAddFact={api.addFact}
         onUpdateFact={api.updateFact}
         onDeleteFact={api.deleteFact}
+        onAddAddress={async (address) => {
+          const created = await api.addAddress(address);
+          setAddresses(await api.getAddresses());
+          return created;
+        }}
+        onUpdateAddress={async (before, after) => {
+          const updated = await api.updateAddress(before, after);
+          setAddresses(await api.getAddresses());
+          return updated;
+        }}
+        renderAttachments={(fact) => (
+          <AttachmentsPanel
+            targetType="fact"
+            targetId={fact.id}
+            api={api}
+            sources={sources}
+            sections={[
+              'notes',
+              'sources',
+              'tags',
+              'identifiers',
+              'contacts',
+              'restrictions',
+              'contributors',
+              'changes',
+            ]}
+            renderCitationAttachments={(citation) => (
+              <CitationAttachments citation={citation} api={api} sources={sources} />
+            )}
+          />
+        )}
       />
 
       <ContributorsSection

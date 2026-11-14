@@ -25,10 +25,19 @@ const meta = {
   args: {
     todos,
     persons: [],
+    families: [],
+    sources: [],
+    places: [],
     repositories: [],
+    titles: [],
     onOpenTask: () => undefined,
     onNewTask: () => undefined,
     onOpenPerson: () => undefined,
+    onOpenFamily: () => undefined,
+    onOpenSource: () => undefined,
+    onOpenPlace: () => undefined,
+    onOpenRepository: () => undefined,
+    onOpenTitle: () => undefined,
   },
   decorators: [
     (Story) => (

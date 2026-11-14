@@ -1,6 +1,6 @@
-import type { AttachmentsSnapshot, FamilyRecord } from '../model/types';
+import type { AttachmentsSnapshot, FactRecord, FamilyRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { Op } from './op';
+import type { NestedAttachments, Op } from './op';
 
 export function addFamilyOp(family: FamilyRecord): Op {
   return {
@@ -46,6 +46,8 @@ export function deleteFamilyOp(
   family: FamilyRecord,
   attachments: AttachmentsSnapshot = emptyAttachments(),
   linkAttachments: FamilyLinkAttachments[] = [],
+  nestedAttachments: NestedAttachments[] = [],
+  facts: FactRecord[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -57,9 +59,15 @@ export function deleteFamilyOp(
     },
     inverse(ctx) {
       ctx.repo.insertFamily(family);
+      for (const fact of facts) {
+        ctx.repo.insertFact(fact);
+      }
       ctx.repo.restoreAttachments(attachments);
       for (const link of linkAttachments) {
         ctx.repo.restoreAttachments(link.attachments);
+      }
+      for (const nested of nestedAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
       }
     },
   };

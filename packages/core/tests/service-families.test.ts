@@ -77,6 +77,22 @@ describe('TreeService families, persons and facts', () => {
     }
   });
 
+  it('restores a family fact when deleting the family is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily(family({ partners: ['P1'], children: [] }));
+      service.addFact({ id: 'FF1', familyId: 'F1', tag: 'MARR' });
+
+      service.deleteFamily(fixture.repo.getFamily('F1')!);
+      expect(fixture.repo.listFactsForFamily('F1')).toEqual([]);
+      service.undo();
+      expect(fixture.repo.listFactsForFamily('F1').map((fact) => fact.id)).toEqual(['FF1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates persons and facts with undo', () => {
     const { fixture, service } = makeService();
     try {

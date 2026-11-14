@@ -12,6 +12,7 @@ import {
   type PlaceEditorApi,
 } from '@doru/features';
 import {
+  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -21,7 +22,7 @@ import {
   TagsSection,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { useAttachments } from '../hooks/useAttachments';
+import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
 import { PLACE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function PlaceTab({
@@ -112,12 +113,14 @@ function PlaceTabBody({
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: placeNotes,
+    allNotes,
     citations: placeCitations,
     tags,
     tagLinks,
     identifiers,
     contacts,
     restrictions,
+    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -188,11 +191,15 @@ function PlaceTabBody({
                 onDetachCitation={api.detachCitation}
                 onUpdateCitation={api.updateCitation}
                 onOpenSource={onOpenSource}
+                renderCitationAttachments={(citation) => (
+                  <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
+                )}
               />
               <NotesSection
                 targetType="place"
                 targetId={targetId}
                 notes={placeNotes}
+                availableNotes={allNotes}
                 onAdd={async (text) => {
                   await api.addNote({ id: crypto.randomUUID(), text, targetType: 'place', targetId });
                   await refreshAttachments();
@@ -201,10 +208,21 @@ function PlaceTabBody({
                   await api.updateNote(before, after, context);
                   await refreshAttachments();
                 }}
+                onAttach={async (noteId) => {
+                  await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'place', targetId });
+                  await refreshAttachments();
+                }}
+                onDetach={async (note, link) => {
+                  await api.detachNote(note, link);
+                  await refreshAttachments();
+                }}
                 onDelete={async (note) => {
                   await api.deleteNote(note);
                   await refreshAttachments();
                 }}
+                renderAttachments={(note) => (
+                  <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+                )}
               />
               <IdentifiersSection
                 targetType="place"
@@ -286,6 +304,7 @@ function PlaceTabBody({
                 onAdd={api.addRecordSubmitter}
                 onDelete={api.deleteRecordSubmitter}
               />
+              <ChangesSection changes={changes} />
             </>
           )}
         </>

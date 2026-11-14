@@ -8,10 +8,13 @@ export interface TodoDraft {
   locality: string;
   priority: string;
   status: string;
+  created: DateDraft;
   scheduled: DateDraft;
   reminder: DateDraft;
+  closed: DateDraft;
   repositoryId: string;
-  personId: string;
+  targetType: string;
+  targetId: string;
 }
 
 export function emptyTodoDraft(): TodoDraft {
@@ -21,10 +24,13 @@ export function emptyTodoDraft(): TodoDraft {
     locality: '',
     priority: '',
     status: '',
+    created: emptyDate(),
     scheduled: emptyDate(),
     reminder: emptyDate(),
+    closed: emptyDate(),
     repositoryId: '',
-    personId: '',
+    targetType: '',
+    targetId: '',
   };
 }
 
@@ -35,10 +41,13 @@ export function todoToDraft(todo: TodoRecord): TodoDraft {
     locality: todo.locality ?? '',
     priority: todo.priority ?? '',
     status: todo.status ?? '',
+    created: toDateDraft(todo.createdDate),
     scheduled: toDateDraft(todo.scheduledDate),
     reminder: toDateDraft(todo.reminderDate),
+    closed: toDateDraft(todo.closedDate),
     repositoryId: todo.repositoryId ?? '',
-    personId: todo.targetType === 'person' ? (todo.targetId ?? '') : '',
+    targetType: todo.targetType ?? '',
+    targetId: todo.targetId ?? '',
   };
 }
 
@@ -49,12 +58,14 @@ export function todoDraftToRecord(todo: TodoRecord, draft: TodoDraft): TodoRecor
   next.locality = draft.locality.trim() || undefined;
   next.priority = draft.priority || undefined;
   next.status = draft.status || undefined;
+  next.createdDate = fromDateDraft(draft.created);
   next.scheduledDate = fromDateDraft(draft.scheduled);
   next.reminderDate = fromDateDraft(draft.reminder);
+  next.closedDate = fromDateDraft(draft.closed);
   next.repositoryId = draft.repositoryId || undefined;
-  if (draft.personId !== '') {
-    next.targetType = 'person';
-    next.targetId = draft.personId;
+  if (draft.targetType !== '' && draft.targetId !== '') {
+    next.targetType = draft.targetType;
+    next.targetId = draft.targetId;
   } else {
     next.targetType = undefined;
     next.targetId = undefined;

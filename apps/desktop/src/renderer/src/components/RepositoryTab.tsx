@@ -7,6 +7,7 @@ import type { RepositoryRecord, SourceRecord } from '@doru/core';
 import { EntityTab, type RegistriesEditorApi } from '@doru/features';
 import {
   AddressFields,
+  ChangesSection,
   ContactsSection,
   IdentifiersSection,
   NotesSection,
@@ -18,7 +19,7 @@ import {
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { useAttachments } from '../hooks/useAttachments';
+import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
 import { REPOSITORY_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -86,12 +87,14 @@ function RepositoryTabBody({
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: repositoryNotes,
+    allNotes,
     citations: repositoryCitations,
     tags,
     tagLinks,
     identifiers,
     contacts,
     restrictions,
+    changes,
     refresh: refreshAttachments,
   } = useAttachments('repository', targetId, api);
 
@@ -164,11 +167,15 @@ function RepositoryTabBody({
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={onOpenSource}
+            renderCitationAttachments={(citation) => (
+              <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
+            )}
           />
           <NotesSection
             targetType="repository"
             targetId={targetId}
             notes={repositoryNotes}
+            availableNotes={allNotes}
             onAdd={async (text) => {
               await api.addNote({ id: crypto.randomUUID(), text, targetType: 'repository', targetId });
               await refreshAttachments();
@@ -177,10 +184,21 @@ function RepositoryTabBody({
               await api.updateNote(before, after, context);
               await refreshAttachments();
             }}
+            onAttach={async (noteId) => {
+              await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'repository', targetId });
+              await refreshAttachments();
+            }}
+            onDetach={async (note, link) => {
+              await api.detachNote(note, link);
+              await refreshAttachments();
+            }}
             onDelete={async (note) => {
               await api.deleteNote(note);
               await refreshAttachments();
             }}
+            renderAttachments={(note) => (
+              <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+            )}
           />
           <IdentifiersSection
             targetType="repository"
@@ -254,6 +272,7 @@ function RepositoryTabBody({
               await refreshAttachments();
             }}
           />
+          <ChangesSection changes={changes} />
         </>
       )}
     </EntityTab>

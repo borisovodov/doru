@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import type {
+  AddressRecord,
   FamilyRecord,
   PersonRecord,
   PlaceRecord,
@@ -10,7 +11,7 @@ import type {
   TodoRecord,
 } from '@doru/core';
 import { placeName } from '@doru/core/model';
-import { displayName, familyLabel } from '@doru/ui/domain';
+import { addressLabel, displayName, familyLabel } from '@doru/ui/domain';
 import { moveTab, nls, type TabInfo } from '@doru/workbench';
 
 const TREE_TAB_ID = 'tree';
@@ -23,6 +24,7 @@ const SOURCE_TAB_PREFIX = 'source:';
 const PLACE_TAB_PREFIX = 'place:';
 const REPOSITORY_TAB_PREFIX = 'repository:';
 const SUBMITTER_TAB_PREFIX = 'submitter:';
+const ADDRESS_TAB_PREFIX = 'address:';
 const TASK_TAB_PREFIX = 'task:';
 const TITLE_TAB_PREFIX = 'title:';
 
@@ -40,6 +42,7 @@ function tabLabel(
   places: PlaceRecord[],
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
+  addresses: AddressRecord[],
   todos: TodoRecord[],
   titles: TitleRecord[],
 ): string {
@@ -101,6 +104,16 @@ function tabLabel(
       return submitter.name || '—';
     }
   }
+  if (tab.id.startsWith(ADDRESS_TAB_PREFIX)) {
+    const addressId = tab.id.slice(ADDRESS_TAB_PREFIX.length);
+    if (addressId.startsWith('new:')) {
+      return nls.t('features.tree.address.newAddress');
+    }
+    const address = addresses.find((entry) => entry.id === addressId);
+    if (address) {
+      return addressLabel(address) || '—';
+    }
+  }
   if (tab.id.startsWith(TITLE_TAB_PREFIX)) {
     const titleId = tab.id.slice(TITLE_TAB_PREFIX.length);
     if (titleId.startsWith('new:')) {
@@ -131,6 +144,7 @@ export function useTabs(
   places: PlaceRecord[],
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
+  addresses: AddressRecord[],
   todos: TodoRecord[],
   titles: TitleRecord[],
 ) {
@@ -272,6 +286,13 @@ export function useTabs(
     [openTab],
   );
 
+  const openAddressTab = useCallback(
+    (addressId: string) => {
+      openTab({ id: `${ADDRESS_TAB_PREFIX}${addressId}`, label: addressId });
+    },
+    [openTab],
+  );
+
   const openTaskTab = useCallback(
     (todoId: string) => {
       const todo = todos.find((entry) => entry.id === todoId);
@@ -322,6 +343,13 @@ export function useTabs(
     });
   }, [openTab]);
 
+  const openNewAddressTab = useCallback(() => {
+    openTab({
+      id: `${ADDRESS_TAB_PREFIX}new:${crypto.randomUUID()}`,
+      label: nls.t('features.tree.address.newAddress'),
+    });
+  }, [openTab]);
+
   const openSettingsTab = useCallback(() => {
     openTab({ id: SETTINGS_TAB_ID, label: nls.t('workbench.settings') });
   }, [openTab]);
@@ -340,7 +368,7 @@ export function useTabs(
 
   const tabInfos: TabInfo[] = openTabs.map((tab) => ({
     id: tab.id,
-    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, todos, titles),
+    label: tabLabel(tab, persons, families, sources, places, repositories, submitters, addresses, todos, titles),
     closable: tab.closable,
   }));
 
@@ -363,6 +391,8 @@ export function useTabs(
     openPlaceTab,
     openRepositoryTab,
     openSubmitterTab,
+    openAddressTab,
+    openNewAddressTab,
     openTaskTab,
     openNewTaskTab,
     openTitleTab,
@@ -390,6 +420,7 @@ export {
   PLACE_TAB_PREFIX,
   REPOSITORY_TAB_PREFIX,
   SUBMITTER_TAB_PREFIX,
+  ADDRESS_TAB_PREFIX,
   TASK_TAB_PREFIX,
   TITLE_TAB_PREFIX,
 };

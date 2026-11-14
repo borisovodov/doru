@@ -89,6 +89,7 @@ export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot 
       ctx.repo.insertTodo(todo);
       ctx.repo.restoreAttachments(attachments);
     },
+    { targetType: 'todo', targetId: todo.id, kind: 'changed' },
   );
 }
 
@@ -121,5 +122,6 @@ export function deleteTitleOp(title: TitleRecord, attachments: AttachmentsSnapsh
       ctx.repo.insertTitle(title);
       ctx.repo.restoreAttachments(attachments);
     },
+    { targetType: 'title', targetId: title.id, kind: 'changed' },
   );
 }

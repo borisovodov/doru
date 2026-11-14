@@ -153,6 +153,66 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('attaches and detaches a shared note with undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addNote(note());
+      const link = { id: 'L2', targetType: 'family', targetId: 'F1' };
+      service.attachNote('N1', link);
+      const shared = fixture.repo.getNote('N1')!;
+      expect(shared.links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ targetType: 'family', targetId: 'F1' }),
+          expect.objectContaining({ targetType: 'person', targetId: 'P1' }),
+        ]),
+      );
+
+      service.detachNote(shared, link);
+      expect(fixture.repo.listNotesFor('family', 'F1')).toEqual([]);
+      expect(fixture.repo.getNote('N1')?.links?.map((entry) => entry.targetId)).toEqual(['P1']);
+
+      const last = fixture.repo.getNote('N1')!;
+      service.detachNote(last, last.links![0]!);
+      expect(fixture.repo.getNote('N1')).toBeUndefined();
+      service.undo();
+      expect(fixture.repo.getNote('N1')?.links?.map((entry) => entry.targetId)).toEqual(['P1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores attachments on facts and names when a person is deleted', () => {
+    const { fixture, service } = makeService();
+    try {
+      const person = {
+        id: 'P1',
+        sex: 'U' as const,
+        names: [{ id: 'N1', given: 'Ivan' }],
+        facts: [{ id: 'F1', personId: 'P1', tag: 'BIRT' }],
+      };
+      service.addPerson(person);
+      fixture.repo.insertSource({ id: 'S1', title: 'Parish register' });
+      fixture.repo.insertNote({
+        id: 'NN1',
+        text: 'name note',
+        targetType: 'name',
+        targetId: 'N1',
+      });
+      fixture.repo.addSourceCitation('S1', 'fact', 'F1');
+
+      const stored = fixture.repo.getPerson('P1')!;
+      service.deletePerson(stored);
+      expect(fixture.repo.getNote('NN1')).toBeUndefined();
+      expect(fixture.repo.listCitationRecordsFor('fact', 'F1')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.getNote('NN1')?.text).toBe('name note');
+      expect(fixture.repo.listCitationRecordsFor('fact', 'F1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('adds sources with and without a citation, updates and deletes them', () => {
     const { fixture, service } = makeService();
     try {

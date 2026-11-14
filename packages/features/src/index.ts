@@ -14,7 +14,15 @@ export { SidebarPlaces } from './sidebar/SidebarPlaces';
 export { SidebarMedia, type SidebarMediaItem } from './sidebar/SidebarMedia';
 export { SidebarSources } from './sidebar/SidebarSources';
 export { SidebarSearch } from './sidebar/SidebarSearch';
-export { RepositoryList, SubmitterList, TitleList } from './sidebar/RegistryLists';
+export {
+  useAttachments,
+  type AttachmentApi,
+  type AttachmentData,
+  type SubmitterAttachmentApi,
+} from './attachments/useAttachments';
+export { AttachmentsPanel, type AttachmentsPanelApi } from './attachments/AttachmentsPanel';
+export { CitationAttachments, NoteAttachments } from './attachments/TargetAttachments';
+export { AddressList, RepositoryList, SubmitterList, TitleList } from './sidebar/RegistryLists';
 export { FamilyInfoList } from './sidebar/FamilyView';
 export { SourceCitationsList, EntityTab } from './sidebar/SourceView';
 export { SourceEditor } from './source/SourceEditor';

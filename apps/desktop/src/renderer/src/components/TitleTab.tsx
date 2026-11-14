@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EmptyText } from '@doru/ui';
 import { Input } from '@doru/ui';
 import { Select } from '@doru/ui';
@@ -6,8 +6,9 @@ import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid } from '@doru/ui';
 import { AttachmentRow, RowList } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
-import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
+import type { ChangeRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { EntityTab } from '@doru/features';
+import { ChangesSection } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
@@ -28,6 +29,7 @@ export function TitleTab({
   sources: SourceRecord[];
   repositories: RepositoryRecord[];
   api: {
+    getChanges: (targetType: string, targetId: string) => Promise<ChangeRecord[]>;
     addTitle: (title: TitleRecord) => Promise<void>;
     updateTitle: (before: TitleRecord, after: TitleRecord) => Promise<void>;
     deleteTitle: (title: TitleRecord) => Promise<void>;
@@ -74,6 +76,7 @@ function TitleTabBody({
   sources: SourceRecord[];
   repositories: RepositoryRecord[];
   api: {
+    getChanges: (targetType: string, targetId: string) => Promise<ChangeRecord[]>;
     addTitle: (title: TitleRecord) => Promise<void>;
     updateTitle: (before: TitleRecord, after: TitleRecord) => Promise<void>;
     deleteTitle: (title: TitleRecord) => Promise<void>;
@@ -84,6 +87,7 @@ function TitleTabBody({
 }) {
   const base = record ?? { id: crypto.randomUUID() };
   const [lastSaved, setLastSaved] = useState<TitleRecord | undefined>(record);
+  const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const [name, setName] = useState(base.name ?? '');
   const [author, setAuthor] = useState(base.author ?? '');
   const [publisher, setPublisher] = useState(base.publisher ?? '');
@@ -92,6 +96,18 @@ function TitleTabBody({
   const [callNumber, setCallNumber] = useState(base.callNumber ?? '');
   const [sequence, setSequence] = useState(base.sequence !== undefined ? String(base.sequence) : '');
   const [repositoryId, setRepositoryId] = useState(base.repositoryId ?? '');
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isNew && record !== undefined) {
+      void api.getChanges('title', record.id).then((loaded) => {
+        if (!cancelled) setChanges(loaded);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [api, isNew, record]);
 
   const citingSources = isNew ? [] : sources.filter((source) => source.titleId === base.id);
 
@@ -206,6 +222,7 @@ function TitleTabBody({
           )}
         </SectionCard>
       )}
+      {!isNew && <ChangesSection changes={changes} />}
     </EntityTab>
   );
 }

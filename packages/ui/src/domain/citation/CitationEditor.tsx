@@ -1,6 +1,6 @@
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { CitationRecord } from '@doru/core';
 import { nls } from '../../nls';
@@ -16,10 +16,12 @@ import './CitationEditor.css';
 /** The full citation form, shown inline under a cited source in the person's sources section. */
 export function CitationEditor({
   citation,
+  attachments,
   onSave,
   onCancel,
 }: {
   citation: CitationRecord;
+  attachments?: ReactNode;
   onSave: (citation: CitationRecord) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -144,6 +146,8 @@ export function CitationEditor({
           {nls.t('features.tree.source.templateFields.add')}
         </Button>
       </div>
+
+      {attachments}
 
       <div className="citation-actions">
         <Button variant="primary" disabled={saving} onClick={() => void save()}>

@@ -106,6 +106,25 @@ export interface NamePart {
  * themselves live in `parts`. When `parts` is absent on write, the flat
  * fields are turned into parts by the repository.
  */
+/**
+ * Every addressable name id of a person: the top-level names and all nested
+ * variants. Attachments target the individual `person_name` rows, so the
+ * whole tree has to be walked before names are replaced or deleted.
+ */
+export function collectNameIds(names: PersonName[]): string[] {
+  const ids: string[] = [];
+  const visit = (name: PersonName): void => {
+    ids.push(name.id);
+    for (const variant of name.variants ?? []) {
+      visit(variant);
+    }
+  };
+  for (const name of names) {
+    visit(name);
+  }
+  return ids;
+}
+
 export interface PersonName {
   id: string;
   /** Translation/phonetic/romanized variant of another name; undefined for a top-level name. */

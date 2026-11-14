@@ -1,6 +1,7 @@
-import { Archive, BookMarked, User } from 'lucide-react';
-import type { RepositoryRecord, SubmitterRecord, TitleRecord } from '@doru/core';
+import { Archive, BookMarked, MapPin, User } from 'lucide-react';
+import type { AddressRecord, RepositoryRecord, SubmitterRecord, TitleRecord } from '@doru/core';
 import { EntityCard } from '@doru/ui';
+import { addressLabel } from '@doru/ui/domain';
 import { nls } from '../nls';
 import './sidebar.css';
 
@@ -57,6 +58,32 @@ export function SubmitterList({
 }
 
 /** The bibliographic-title list of the Sources sidebar; clicking opens the title tab. */
+/** The address list of the Sources sidebar; clicking opens the address tab. */
+export function AddressList({
+  addresses,
+  onOpenAddress,
+}: {
+  addresses: AddressRecord[];
+  onOpenAddress: (addressId: string) => void;
+}) {
+  if (addresses.length === 0) {
+    return <p className="side-registries-note">{nls.t('features.tree.address.empty')}</p>;
+  }
+  return (
+    <ul className="side-section-list">
+      {addresses.map((address) => (
+        <li key={address.id}>
+          <EntityCard
+            icon={<MapPin size={15} aria-hidden="true" />}
+            title={addressLabel(address) || '—'}
+            onClick={() => onOpenAddress(address.id)}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function TitleList({ titles, onOpenTitle }: { titles: TitleRecord[]; onOpenTitle: (titleId: string) => void }) {
   if (titles.length === 0) {
     return <p className="side-registries-note">{nls.t('features.tree.title.empty')}</p>;

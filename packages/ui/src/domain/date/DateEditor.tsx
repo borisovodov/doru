@@ -227,6 +227,13 @@ export function DateEditor({
           value={value.timeSecond}
           onChange={(event) => set({ timeSecond: event.target.value })}
         />
+        <Input
+          controlSize="sm"
+          aria-label={nls.t('features.tree.date.timeFraction')}
+          placeholder={nls.t('features.tree.date.timeFraction')}
+          value={value.timeFraction}
+          onChange={(event) => set({ timeFraction: event.target.value })}
+        />
         <Checkbox
           label={nls.t('features.tree.date.timeUtc')}
           checked={value.timeUtc}

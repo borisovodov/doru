@@ -45,6 +45,7 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     if (addressDraftEmpty(address)) {
       if (addressBefore) {
         await api.deleteAddress(addressBefore);
+        setAddressBefore(undefined);
       }
       return undefined;
     }
@@ -54,6 +55,8 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     } else {
       await api.addAddress(record);
     }
+    setAddress((current) => ({ ...current, id: record.id }));
+    setAddressBefore(record);
     return record.id;
   };
 

@@ -23,7 +23,11 @@ const meta = {
   args: {
     edit: { ...emptyTodoDraft(), text: 'Find the parish register' },
     persons: [],
+    families: [],
+    sources: [],
+    places: [],
     repositories: [],
+    titles: [],
     onChange: () => undefined,
   },
   decorators: [

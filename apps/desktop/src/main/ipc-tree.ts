@@ -159,6 +159,22 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle(
+    'tree:attachNote',
+    async (_event, options: { projectPath: string; noteId: string; link: NoteLinkRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.attachNote(options.noteId, options.link);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:detachNote',
+    async (_event, options: { projectPath: string; note: NoteRecord; link: NoteLinkRecord }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.detachNote(options.note, options.link);
+    },
+  );
+
   ipcMain.handle('tree:deleteNote', async (_event, options: { projectPath: string; note: NoteRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.deleteNote(options.note);
@@ -355,10 +371,13 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle('tree:changes', async (_event, options: { projectPath: string; personId: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.listChangesFor('person', options.personId);
-  });
+  ipcMain.handle(
+    'tree:changes',
+    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.listChangesFor(options.targetType, options.targetId);
+    },
+  );
 
   ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);

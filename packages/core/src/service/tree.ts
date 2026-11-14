@@ -23,6 +23,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
+import { collectNameIds } from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -34,6 +35,7 @@ import {
   addMediaOp,
   addNoteOp,
   addPersonOp,
+  attachNoteOp,
   addPlaceOp,
   addRelativeOp,
   addRepositoryOp,
@@ -71,6 +73,7 @@ import {
   deleteTodoOp,
   detachCitationOp,
   detachMediaOp,
+  detachNoteOp,
   detachTagOp,
   updateTagLinkOp,
   reparentOp,
@@ -91,7 +94,7 @@ import {
   updateTodoOp,
   type FamilyLinkAttachments,
 } from '../ops';
-import { OpQueue, type Op } from '../ops/op';
+import { OpQueue, type NestedAttachments, type Op } from '../ops/op';
 
 export type RelativeRelation = 'child' | 'spouse' | 'parent';
 
@@ -239,7 +242,28 @@ export class TreeService {
   }
 
   updatePerson(before: PersonRecord, after: PersonRecord): UndoRedoState {
-    return this.apply(updatePersonOp(before, after));
+    const removed: NestedAttachments[] = [];
+    const nextNames = new Set(collectNameIds(after.names));
+    for (const nameId of collectNameIds(before.names)) {
+      if (!nextNames.has(nameId)) {
+        removed.push({
+          targetType: 'name',
+          targetId: nameId,
+          attachments: this.repo.listAttachmentsFor('name', nameId),
+        });
+      }
+    }
+    const nextFacts = new Set(after.facts.map((fact) => fact.id));
+    for (const fact of before.facts) {
+      if (!nextFacts.has(fact.id)) {
+        removed.push({
+          targetType: 'fact',
+          targetId: fact.id,
+          attachments: this.repo.listAttachmentsFor('fact', fact.id),
+        });
+      }
+    }
+    return this.apply(updatePersonOp(before, after, removed));
   }
 
   /**
@@ -259,7 +283,22 @@ export class TreeService {
       },
     }));
     const attachments = this.repo.listAttachmentsFor('person', person.id);
-    return this.apply(deletePersonOp(person, links, attachments));
+    const nested: NestedAttachments[] = [];
+    for (const nameId of collectNameIds(person.names)) {
+      nested.push({
+        targetType: 'name',
+        targetId: nameId,
+        attachments: this.repo.listAttachmentsFor('name', nameId),
+      });
+    }
+    for (const fact of person.facts) {
+      nested.push({
+        targetType: 'fact',
+        targetId: fact.id,
+        attachments: this.repo.listAttachmentsFor('fact', fact.id),
+      });
+    }
+    return this.apply(deletePersonOp(person, links, attachments, nested));
   }
 
   /**
@@ -358,7 +397,13 @@ export class TreeService {
         attachments: this.repo.listAttachmentsFor('family_child', link.id),
       });
     }
-    return this.apply(deleteFamilyOp(family, attachments, linkAttachments));
+    const facts = this.repo.listFactsForFamily(family.id);
+    const nested: NestedAttachments[] = facts.map((fact) => ({
+      targetType: 'fact',
+      targetId: fact.id,
+      attachments: this.repo.listAttachmentsFor('fact', fact.id),
+    }));
+    return this.apply(deleteFamilyOp(family, attachments, linkAttachments, nested, facts));
   }
 
   // --- places ---------------------------------------------------------------
@@ -470,6 +515,20 @@ export class TreeService {
       }
     }
     return this.apply(updateNoteOp(before, after));
+  }
+
+  /** Attaches an existing note to another target (makes it shared). */
+  attachNote(noteId: string, link: NoteLinkRecord): UndoRedoState {
+    return this.apply(attachNoteOp(noteId, link));
+  }
+
+  /**
+   * Removes one context link. Detaching the last link deletes the note; the
+   * op keeps the note and its attachments for undo.
+   */
+  detachNote(note: NoteRecord, link: NoteLinkRecord): UndoRedoState {
+    const attachments = this.repo.listAttachmentsFor('note', note.id);
+    return this.apply(detachNoteOp(note, link, attachments));
   }
 
   deleteNote(note: NoteRecord): UndoRedoState {

@@ -35,6 +35,7 @@ export interface DateDraft {
   timeHour: string;
   timeMinute: string;
   timeSecond: string;
+  timeFraction: string;
   timeUtc: boolean;
 }
 
@@ -116,6 +117,7 @@ export function emptyDate(): DateDraft {
     timeHour: '',
     timeMinute: '',
     timeSecond: '',
+    timeFraction: '',
     timeUtc: false,
   };
 }
@@ -139,6 +141,7 @@ export function dateDraftBlank(date: DateDraft): boolean {
     date.timeHour === '' &&
     date.timeMinute === '' &&
     date.timeSecond === '' &&
+    date.timeFraction.trim() === '' &&
     !date.timeUtc
   );
 }
@@ -285,6 +288,7 @@ export function toDateDraft(date: DateValue | undefined, place = ''): DateDraft 
     timeHour: date?.time?.hour !== undefined ? String(date.time.hour) : '',
     timeMinute: date?.time?.minute !== undefined ? String(date.time.minute) : '',
     timeSecond: date?.time?.second !== undefined ? String(date.time.second) : '',
+    timeFraction: date?.time?.fraction ?? '',
     timeUtc: date?.time?.utc === true,
   };
 }
@@ -293,7 +297,7 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
   const component = componentOf(draft.year, draft.month, draft.day, draft.calendar, draft.epoch);
   const end = componentOf(draft.endYear, draft.endMonth, draft.endDay, draft.endCalendar, draft.endEpoch);
   const text = draft.text.trim() || undefined;
-  const time = timeOf(draft.timeHour, draft.timeMinute, draft.timeSecond, draft.timeUtc);
+  const time = timeOf(draft.timeHour, draft.timeMinute, draft.timeSecond, draft.timeFraction, draft.timeUtc);
   if (!component && !end && !text && !time) {
     return undefined;
   }
@@ -318,17 +322,19 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
 }
 
 /** The time of day from the typed fields; absent when nothing is typed. */
-function timeOf(hour: string, minute: string, second: string, utc: boolean): TimeValue | undefined {
+function timeOf(hour: string, minute: string, second: string, fraction: string, utc: boolean): TimeValue | undefined {
   const h = parseInt(hour, 10);
   const m = parseInt(minute, 10);
   const s = parseInt(second, 10);
-  if (Number.isNaN(h) && Number.isNaN(m) && Number.isNaN(s)) {
+  const f = fraction.trim() || undefined;
+  if (Number.isNaN(h) && Number.isNaN(m) && Number.isNaN(s) && f === undefined) {
     return undefined;
   }
   return {
     hour: Number.isNaN(h) ? 0 : h,
     minute: Number.isNaN(m) ? 0 : m,
     ...(!Number.isNaN(s) ? { second: s } : {}),
+    ...(f !== undefined ? { fraction: f } : {}),
     ...(utc ? { utc: true } : {}),
   };
 }
@@ -615,23 +621,17 @@ function factFromDraft(
 }
 
 /**
- * Rebuilds a date from the draft, carrying over what the draft cannot
- * express: the date row id (citations may target it) and the fractional
- * part of the time of day (the editor does not expose it). Shared by the
- * person quick fields and the fact editor.
+ * Rebuilds a date from the draft, carrying over the date row id
+ * (citations may target it). The editor now expresses every other date
+ * field, including the fractional part of the time of day.
  */
 export function rebaseDate(next: DateValue | undefined, stored: DateValue | undefined): DateValue | undefined {
   if (next === undefined || stored === undefined) {
     return next;
   }
-  const time =
-    next.time !== undefined && stored.time?.fraction !== undefined
-      ? { ...next.time, fraction: stored.time.fraction }
-      : next.time;
   return {
     ...next,
     ...(stored.id !== undefined ? { id: stored.id } : {}),
-    ...(time !== undefined ? { time } : {}),
   };
 }
 
@@ -655,6 +655,7 @@ export function dateDraftsEqual(a: DateDraft, b: DateDraft): boolean {
     a.timeHour === b.timeHour &&
     a.timeMinute === b.timeMinute &&
     a.timeSecond === b.timeSecond &&
+    a.timeFraction === b.timeFraction &&
     a.timeUtc === b.timeUtc
   );
 }

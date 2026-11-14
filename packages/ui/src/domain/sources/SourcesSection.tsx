@@ -4,7 +4,7 @@ import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { SourceLink } from './SourceLink';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pencil, X } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
 import { nls } from '../../nls';
@@ -22,6 +22,7 @@ interface SourcesSectionProps {
   onDetachCitation: (citationId: string) => Promise<void>;
   onUpdateCitation: (before: CitationRecord, after: CitationRecord) => Promise<void>;
   onOpenSource: (sourceId: string) => void;
+  renderCitationAttachments?: ((citation: CitationRecord) => ReactNode) | undefined;
 }
 
 export function SourcesSection({
@@ -35,6 +36,7 @@ export function SourcesSection({
   onDetachCitation,
   onUpdateCitation,
   onOpenSource,
+  renderCitationAttachments,
 }: SourcesSectionProps) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -105,6 +107,7 @@ export function SourcesSection({
             {expandedId === citation.id && (
               <CitationEditor
                 citation={citation}
+                attachments={renderCitationAttachments?.(citation)}
                 onSave={(after) => saveCitation(citation, after)}
                 onCancel={() => setExpandedId(null)}
               />

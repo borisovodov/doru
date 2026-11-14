@@ -6,6 +6,34 @@ import type { FactRecord, PersonRecord, SourceRecord } from '../src/model/types'
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('buildGedcomDataset', () => {
+  it('exports an app-created shared note as an SNOTE record', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertSource({ id: 'S1', title: 'Parish register' });
+      repo.insertNote({
+        id: 'SN1',
+        text: 'shared note',
+        links: [
+          { id: 'L1', targetType: 'person', targetId: 'P1' },
+          { id: 'L2', targetType: 'person', targetId: 'P2' },
+        ],
+      });
+      repo.addSourceCitation('S1', 'note', 'SN1');
+      const dataset = buildGedcomDataset(repo);
+      const note = dataset.records.find((record) => record.tag === 'SNOTE');
+      expect(note).toEqual(
+        expect.objectContaining({
+          xref: '@N1@',
+          payload: 'shared note',
+          citations: [expect.objectContaining({ tag: 'SOUR' })],
+        }),
+      );
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('round-trips persons, facts, dates, families, sources, citations and notes', () => {
     const fixture = makeRepo();
     try {

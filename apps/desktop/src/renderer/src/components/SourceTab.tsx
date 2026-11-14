@@ -12,6 +12,7 @@ import type {
 } from '@doru/core';
 import { EntityTab, SourceCitationsList, SourceEditor, type SourceEditorApi } from '@doru/features';
 import {
+  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -26,7 +27,7 @@ import {
   type SourceDraft,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { useAttachments } from '../hooks/useAttachments';
+import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
 import { SOURCE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function SourceTab({
@@ -130,12 +131,14 @@ function SourceTabBody({
   const targetId = currentSource?.id;
   const {
     notes: sourceNotes,
+    allNotes,
     citations: sourceCitations,
     tags,
     tagLinks,
     identifiers,
     contacts,
     restrictions,
+    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -230,11 +233,15 @@ function SourceTabBody({
                 onDetachCitation={api.detachCitation}
                 onUpdateCitation={api.updateCitation}
                 onOpenSource={onOpenSource}
+                renderCitationAttachments={(citation) => (
+                  <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
+                )}
               />
               <NotesSection
                 targetType="source"
                 targetId={targetId}
                 notes={sourceNotes}
+                availableNotes={allNotes}
                 onAdd={async (text) => {
                   await api.addNote({ id: crypto.randomUUID(), text, targetType: 'source', targetId });
                   await refreshAttachments();
@@ -243,10 +250,21 @@ function SourceTabBody({
                   await api.updateNote(before, after, context);
                   await refreshAttachments();
                 }}
+                onAttach={async (noteId) => {
+                  await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'source', targetId });
+                  await refreshAttachments();
+                }}
+                onDetach={async (note, link) => {
+                  await api.detachNote(note, link);
+                  await refreshAttachments();
+                }}
                 onDelete={async (note) => {
                   await api.deleteNote(note);
                   await refreshAttachments();
                 }}
+                renderAttachments={(note) => (
+                  <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+                )}
               />
               <IdentifiersSection
                 targetType="source"
@@ -328,6 +346,7 @@ function SourceTabBody({
                 onAdd={api.addRecordSubmitter}
                 onDelete={api.deleteRecordSubmitter}
               />
+              <ChangesSection changes={changes} />
             </>
           )}
         </>
