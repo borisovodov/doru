@@ -24,66 +24,59 @@ const VARIANTS: ReadonlyArray<[IconButtonVariant, string]> = [
   ['danger', 'Danger'],
 ];
 
-const SIZES: ReadonlyArray<IconButtonSize> = ['sm', 'md', 'lg', 'nav'];
+const SIZES: ReadonlyArray<[IconButtonSize, string]> = [
+  ['sm', 'Small'],
+  ['md', 'Medium'],
+  ['lg', 'Large'],
+  ['nav', 'Navigation'],
+];
 
-const heading = {
-  margin: '0 0 8px',
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: '0.04em',
-  textTransform: 'uppercase' as const,
-  color: 'var(--doru-fg-muted)',
+const row = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 8,
+} as const;
+
+function iconFor(variant: IconButtonVariant) {
+  if (variant === 'danger') {
+    return <Trash2 size={16} />;
+  }
+  if (variant === 'primary') {
+    return <Plus size={16} />;
+  }
+  if (variant === 'active') {
+    return <Settings size={16} />;
+  }
+  return <Pencil size={16} />;
+}
+
+export const Variants: DemoCase = {
+  render: () => (
+    <div style={row}>
+      {VARIANTS.map(([variant, label]) => (
+        <IconButton key={variant} variant={variant} label={label} icon={iconFor(variant)} />
+      ))}
+    </div>
+  ),
 };
 
-export const AllSizes: DemoCase = {
-  name: 'All sizes',
-  args: { label: 'Edit', icon: <Pencil size={14} /> },
+export const Sizes: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 24 }}>
-      <section>
-        <h3 style={heading}>Variants × sizes</h3>
-        <div style={{ display: 'grid', gap: 10 }}>
-          {VARIANTS.map(([variant, label]) => (
-            <div key={variant} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {SIZES.map((size) => (
-                <IconButton
-                  key={size}
-                  size={size}
-                  variant={variant}
-                  label={`${label} ${size}`}
-                  icon={
-                    variant === 'danger' ? (
-                      <Trash2 size={16} />
-                    ) : variant === 'primary' ? (
-                      <Plus size={16} />
-                    ) : variant === 'active' ? (
-                      <Settings size={16} />
-                    ) : (
-                      <Pencil size={16} />
-                    )
-                  }
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
+    <div style={row}>
+      {SIZES.map(([size, label]) => (
+        <IconButton key={size} size={size} variant="ghost" label={`Edit ${label}`} icon={<Pencil size={16} />} />
+      ))}
+    </div>
+  ),
+};
 
-      <section>
-        <h3 style={heading}>Disabled</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {VARIANTS.map(([variant, label]) => (
-            <IconButton
-              key={variant}
-              size="md"
-              variant={variant}
-              disabled
-              label={`${label} disabled`}
-              icon={<Pencil size={16} />}
-            />
-          ))}
-        </div>
-      </section>
+export const Disabled: DemoCase = {
+  render: () => (
+    <div style={row}>
+      {VARIANTS.map(([variant, label]) => (
+        <IconButton key={variant} variant={variant} label={`${label} disabled`} icon={iconFor(variant)} disabled />
+      ))}
     </div>
   ),
 };
