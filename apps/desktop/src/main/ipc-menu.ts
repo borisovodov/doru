@@ -1,5 +1,6 @@
 import { BrowserWindow, app, ipcMain } from 'electron';
 import type { MenuAction } from '@doru/platform';
+import { createWindow } from './windows';
 
 /**
  * Performs a main-process menu action on `window`. These are the
@@ -8,6 +9,12 @@ import type { MenuAction } from '@doru/platform';
 export function performMenuAction(window: BrowserWindow | null, action: MenuAction): void {
   if (action === 'app.quit') {
     app.quit();
+    return;
+  }
+  // A new window needs no source window, so it is handled before the null
+  // check: the command may arrive when the last window just closed.
+  if (action === 'window.new') {
+    createWindow(null);
     return;
   }
   if (!window || window.isDestroyed()) {

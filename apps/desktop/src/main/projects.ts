@@ -1,6 +1,7 @@
-import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
-import { dirname, join } from 'node:path';
+import { BrowserWindow, app, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { basename, dirname, join } from 'node:path';
 import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
+import { LocalizationService, resolveLocale } from '@doru/platform';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
@@ -52,12 +53,17 @@ function releaseAccess(filePath: string): void {
   activeBookmarks.delete(filePath);
 }
 
-export async function openProject(
-  options: { dialog?: boolean; path?: string },
-  senderId?: number,
-): Promise<ProjectSummary | null> {
+export interface OpenProjectOptions {
+  /** Show the Open dialog instead of using `path`. */
+  dialog?: boolean;
+  path?: string;
+  /** The path was chosen in a native file picker; never reopen the picker on failure. */
+  fromPicker?: boolean;
+}
+
+export async function openProject(options: OpenProjectOptions, senderId?: number): Promise<ProjectSummary | null> {
   let filePath = options.path;
-  const pickedViaDialog = filePath === undefined;
+  const fromPicker = filePath === undefined || options.fromPicker === true;
   if (!filePath) {
     const dialogOptions: OpenDialogOptions = {
       properties: ['openFile'],
@@ -101,7 +107,13 @@ export async function openProject(
     // by this build. Log the reason and drop the held access, if any.
     log.error('failed to open project', filePath, error);
     releaseAccess(filePath);
-    if (senderId !== undefined && !pickedViaDialog) {
+    if (fromPicker) {
+      // The user already chose this file; reopening the picker would just
+      // loop on the same broken file. Report the failure instead.
+      await showOpenProjectError(filePath, error, senderId);
+      return null;
+    }
+    if (senderId !== undefined) {
       // A user-initiated reopen failed — let them pick the file again.
       return openProject({ dialog: true }, senderId);
     }
@@ -120,6 +132,23 @@ export async function openProject(
   return summary;
 }
 
+/** Shows the failure of a user-picked file in the locale of the app. */
+async function showOpenProjectError(filePath: string, error: unknown, senderId?: number): Promise<void> {
+  const nls = new LocalizationService(resolveLocale(app.getLocale()));
+  const detail = error instanceof Error ? error.message : String(error);
+  const options = {
+    type: 'error' as const,
+    message: nls.t('project.open.error.title'),
+    detail: nls.t('project.open.error.message', basename(filePath), detail),
+  };
+  const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
+  if (parent !== null) {
+    await dialog.showMessageBox(parent, options);
+  } else {
+    await dialog.showMessageBox(options);
+  }
+}
+
 /**
  * Opens a file picked by the user (or handed over by the OS): a `.doru`
  * file opens its project, a `.ged`/`.gdz` file is imported into a new,
@@ -128,9 +157,10 @@ export async function openProject(
 export function openFileAsProject(
   filePath: string,
   senderId?: number,
+  fromPicker = false,
 ): Promise<ProjectSummary | ProjectBinding | null> {
   if (filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
-    return openProject({ path: filePath }, senderId);
+    return openProject({ path: filePath, fromPicker }, senderId);
   }
   if (isGedcomFile(filePath)) {
     return openGedcomAsProject(filePath, senderId);
@@ -150,7 +180,7 @@ export async function openAnyProjectDialog(senderId?: number): Promise<ProjectSu
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile'],
     filters: [{ name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] }],
-    title: 'Open or Import GEDCOM',
+    title: 'Open Project or Import GEDCOM',
   };
   const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
   const result =
@@ -158,7 +188,7 @@ export async function openAnyProjectDialog(senderId?: number): Promise<ProjectSu
   if (result.canceled || result.filePaths[0] === undefined) {
     return null;
   }
-  return openFileAsProject(result.filePaths[0], senderId);
+  return openFileAsProject(result.filePaths[0], senderId, true);
 }
 
 export async function createProject(senderId?: number): Promise<ProjectSummary | null> {
@@ -195,7 +225,7 @@ export async function createProject(senderId?: number): Promise<ProjectSummary |
   if (await fs.exists(filePath)) {
     await fs.remove(filePath);
   }
-  return openProject({ path: filePath }, senderId);
+  return openProject({ path: filePath, fromPicker: true }, senderId);
 }
 
 /**

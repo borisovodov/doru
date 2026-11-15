@@ -29,7 +29,8 @@ export type MenuAction =
   | 'view.resetZoom'
   | 'view.zoomIn'
   | 'view.zoomOut'
-  | 'view.toggleFullscreen';
+  | 'view.toggleFullscreen'
+  | 'window.new';
 
 /** Electron menu roles the native macOS menu understands. */
 export type MenuRole =
@@ -109,6 +110,14 @@ export const APP_MENU: readonly MenuGroup[] = [
         command: 'workbench.createProject',
         accelerator: 'CmdOrCtrl+N',
         hint: 'Ctrl+N',
+      },
+      {
+        type: 'item',
+        id: 'file.new-window',
+        labelKey: 'workbench.newWindow',
+        command: 'workbench.newWindow',
+        accelerator: 'CmdOrCtrl+Shift+N',
+        hint: 'Ctrl+Shift+N',
       },
       {
         type: 'item',

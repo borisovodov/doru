@@ -9,8 +9,9 @@ and the chat input; plain typing never triggers a shortcut.
 
 | Action | macOS | Linux / Windows |
 |---|---|---|
-| New Project | `⌘N` | `Ctrl+N` |
-| Open or Import GEDCOM… | `⌘O` | `Ctrl+O` |
+| New Project… | `⌘N` | `Ctrl+N` |
+| New Window | `⌘⇧N` | `Ctrl+Shift+N` |
+| Open Project or Import GEDCOM… | `⌘O` | `Ctrl+O` |
 | Save | `⌘S` | `Ctrl+S` |
 | Export GEDCOM… | `⌘⇧E` | `Ctrl+Shift+E` |
 | Open Settings | `⌘,` | `Ctrl+,` |
@@ -65,7 +66,7 @@ shortcuts as a reminder; close and reopen a tab to see another set.
 
 ## Notes
 
-Opening a `.ged`/`.gdz` file through **Open or Import GEDCOM…** imports
-the tree into a new, not-yet-saved project. Exporting happens in the
+Opening a `.ged`/`.gdz` file through **Open Project or Import GEDCOM…**
+imports the tree into a new, not-yet-saved project. Exporting happens in the
 **Export** tab, which offers GEDCOM 7.0 and GEDZIP (see
 [Quick start](getting-started.md)).

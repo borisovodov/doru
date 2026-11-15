@@ -9,6 +9,17 @@ test('app launches and shows the welcome screen', async () => {
   await app.close();
 });
 
+test('New Window shortcut opens a second welcome window', async () => {
+  const { app, page } = await launchApp();
+  // The native macOS menu consumes the accelerator before the DOM; other
+  // platforms go through the renderer keybindings. Both end in one new window.
+  const shortcut = process.platform === 'darwin' ? 'Meta+Shift+N' : 'Control+Shift+N';
+  const [second] = await Promise.all([app.waitForEvent('window'), page.keyboard.press(shortcut)]);
+  await expect(second.getByRole('region', { name: 'Welcome' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Welcome' })).toBeVisible();
+  await app.close();
+});
+
 test('settings link opens the third-party notices tab', async () => {
   const { app, page } = await launchApp();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
