@@ -1,0 +1,257 @@
+# CodeRabbit configuration for Dóru.
+#
+# Reviews are free for public repositories; this file only tunes what the bot
+# looks at and which repository rules it applies. Reference:
+# https://docs.coderabbit.ai/reference/configuration
+#
+# The authoritative conventions live in AGENTS.md and docs/ (they are loaded
+# through knowledge_base.code_guidelines). The path_instructions below only
+# restate the rules that reviewers and bots miss most often.
+
+language: en-US
+
+reviews:
+  # CI already gates lint, formatting, types, localization and notices, so the
+  # review should focus on correctness, design and convention violations.
+  profile: chill
+
+  high_level_summary: true
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  poem: false
+  in_progress_fortune: false
+  suggested_labels: false
+  suggested_reviewers: false
+
+  # Agents never approve or merge here: approval is a human maintainer decision.
+  auto_approvals:
+    enabled: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - WIP
+      - DO NOT MERGE
+      - DRAFT
+
+  path_filters:
+    - '!**/node_modules/**'
+    - '!**/dist/**'
+    - '!**/out/**'
+    - '!apps/desktop/build/**'
+    - '!apps/website/public/**'
+    - '!package-lock.json'
+    - '!packages/features/src/notices/generated.ts'
+    - '!**/*.snap'
+    - '!**/*.png'
+    - '!**/*.jpg'
+    - '!**/*.icns'
+    - '!**/*.woff2'
+
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >-
+        Write the title as a plain sentence a non-technical reader understands:
+        GitHub release notes are generated from merged PR titles and double as
+        the user-facing changelog. No conventional-commit or area prefixes
+        (feat:, fix:, chore:, docs:, ci:, style:, website:, …), no ticket ids at
+        the start. English, imperative or descriptive, roughly under 80
+        characters.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: 'off'
+    custom_checks:
+      - name: No format migrations
+        mode: warning
+        instructions: |
+          Pass when the pull request adds no code that upgrades, converts or
+          reads older on-disk formats: tree documents, the SQLite schema,
+          settings, themes, exports. Before 1.0.0 the project deliberately
+          breaks formats instead of migrating them, and formats written by
+          older versions are expected to be unreadable.
+          Fail when a change introduces a versioned migration, a compatibility
+          reader, or a fallback for a previous file layout.
+
+  tools:
+    # Oxlint, Stylelint and Oxfmt are the only style/lint gates in CI; running
+    # other JS linters here would produce duplicate, conflicting comments.
+    eslint:
+      enabled: false
+    biome:
+      enabled: false
+    markdownlint:
+      enabled: false
+
+  path_instructions:
+    - path: 'packages/core/**'
+      instructions: |
+        `@doru/core` is the domain layer and must stay UI-free.
+        - Flag any import of `@doru/platform`, `@doru/workbench`, `@doru/ui`,
+          Electron, React or other UI/runtime packages.
+        - Every tree mutation must be an op (command pattern) with an inverse so
+          undo/redo stays consistent. Reject direct mutation of model state.
+        - Do not ask for migrations or backwards-compatibility shims: breaking
+          the document, SQLite and storage formats is allowed before 1.0.0.
+        - Keep the service layer free of Electron-specific APIs.
+
+    - path: 'apps/desktop/src/main/**'
+      instructions: |
+        Main process: the only place that may touch SQLite, files and windows.
+        - SQLite is only touched here; renderer and agents go through IPC/MCP.
+        - An IPC contract change must update `src/preload` and every renderer
+          call site in the same pull request.
+        - One window per project file: `projectWindows` maps project keys to
+          windows, `windowProject` maps webContents ids to projects. A `closed`
+          handler must read the current binding from `windowProject`, never a
+          path captured at creation time; a rebinding otherwise leaks a
+          destroyed window.
+        - Model output is untrusted: keep windows denying `window.open` and
+          off-app navigation (`setWindowOpenHandler` + `will-navigate`), and
+          route external links through the protocol-validated
+          `shell:openExternal` IPC.
+        - Settings and theme schemas (`src/main/schemas.ts`) are
+          forward-compatible: values that may grow over time are plain strings
+          and the runtime tolerates unknown values. Schema changes require
+          regenerating the published schemas in `apps/website/public/`.
+        - macOS recent projects rely on security-scoped bookmarks; do not
+          replace that with a path-only shortcut.
+
+    - path: 'apps/desktop/src/preload/**'
+      instructions: |
+        The preload bridge is the only renderer-visible surface of the main
+        process.
+        - Keep the exposed API minimal and typed; no Node built-ins leak into
+          the renderer.
+        - Every channel added here needs a matching handler in `src/main` and a
+          caller in `src/renderer` (or an explicit note why it is unused).
+        - Do not pass raw filesystem paths or SQL through unless the existing
+          contract already does.
+
+    - path: 'apps/desktop/src/renderer/**'
+      instructions: |
+        Renderer code follows the UI conventions in AGENTS.md and
+        docs/architecture.md.
+        - Never hardcode user-facing strings: all texts go through the nls
+          layer with `area.feature.message` keys. `npm run check:nls` enforces
+          this; a `nls-ignore` comment is only acceptable for genuinely
+          universal strings.
+        - Tabs are entities, not projects: `openTabs` holds `tree`, `settings`,
+          `person:<id>` and `person:new:<uuid>`; inactive panes stay mounted via
+          the `.editor-stack`/`.editor-pane` pattern. `Cmd/Ctrl+W` closes the
+          active tab in renderer keybindings, not in the application menu.
+        - Drag interactions are pointer-based (`setPointerCapture`, a 4px
+          gesture threshold, Escape cancel), never HTML5 drag-and-drop.
+        - Use custom tooltips instead of `title`, and reset `padding: 0` on
+          icon-only buttons so flex children are not collapsed by UA padding.
+        - Agent markdown is rendered without raw HTML and without remote
+          images; links go through `shell:openExternal`.
+
+    - path: 'packages/ui/**'
+      instructions: |
+        `@doru/ui` owns atoms, shared patterns and reusable domain components.
+        - Feature code composes these components and keeps only layout CSS;
+          feature-specific components belong in the feature package.
+        - Component styles are CSS Modules; tokens and base styles live in
+          `@doru/ui/styles.css`. Flag hardcoded colors, spacing and fonts.
+        - Every shared component needs a gallery demo in `packages/ui/gallery`
+          and tests that select by role and accessible name, never by CSS class
+          or `data-testid`.
+        - Watch for the icon-only button padding reset and other interaction
+          conventions listed in docs/design-system.md.
+
+    - path: 'packages/ai/**'
+      instructions: |
+        The agent runtime is the Vercel AI SDK; hand-rolled agent loops and
+        provider connectors are a non-goal.
+        - `doruTools` in `src/tools.ts` is the single tool definition list. Both
+          the in-app AI SDK toolset and the MCP server register from it; flag
+          any second definition or divergent schema.
+        - MCP tool names must match `^[a-zA-Z0-9_-]+$` (underscores, not dots
+          or colons) and stay English; only descriptions are localized.
+        - Tools execute directly; do not reintroduce permission gates.
+        - Model catalog data comes from the offline `@opencode-ai/models`
+          snapshot; the app must not fetch model data at runtime.
+        - Settings values that come from the model/provider catalog must remain
+          plain strings with a runtime fallback.
+
+    - path: 'packages/platform/src/nls/**'
+      instructions: |
+        Locale bundles are the source of every user-facing string.
+        - English is the base language and fallback; add the English key first.
+        - Every key must exist, be non-empty and use the same `{n}` placeholders
+          in all 17 locale bundles (en, ru, fr, de, it, es, pt-br, cs, pl, hu,
+          bg, el, tr, ja, ko, zh-cn, zh-tw).
+        - Bundles are plain JSON with alphabetically sorted keys.
+        - Bulk renames must touch all locales in one change; script the edit
+          instead of hand-editing files.
+        - License texts are reproduced verbatim and are never translated.
+
+    - path: '**/*.{ts,tsx,css}'
+      instructions: |
+        Repository-wide code rules.
+        - Identifiers, comments and docstrings are English only.
+        - TypeScript 7 is the only compiler; do not add shims for the classic
+          JavaScript compiler API.
+        - Dev helper scripts (`scripts/*.ts`, `apps/*/scripts/*.ts`) run through
+          Node type stripping: erasable syntax only, so no enums, namespaces or
+          parameter properties.
+        - Component styles are CSS Modules; no global selectors outside the
+          token/base layer.
+        - Skip formatting nits that `npm run lint`, `npm run lint:css` or
+          `npm run format:check` already cover unless they hide a real bug.
+
+    - path: '.github/workflows/**'
+      instructions: |
+        - Workflow changes must pass `actionlint`; the `secrets` context is not
+          allowed in `if` conditions of steps.
+        - Releases are cut by pushing a `v*` tag; never create a release or
+          move a release tag by hand.
+        - Never add `pull_request_target` workflows that check out and execute
+          pull-request code with secrets; explain the risk if one appears.
+        - Agents never merge pull requests; do not suggest auto-merge.
+
+    - path: 'e2e/**'
+      instructions: |
+        - Specs launch the app with an isolated `DORU_USER_DATA` env var, or the
+          single-instance lock collides with a running dev instance.
+        - Select by role and accessible name, never by CSS class or
+          `data-testid`.
+        - Drag simulations must first `mouse.move` past the 4px gesture
+          threshold and assert with retrying `expect(locator).toHaveText`
+          instead of one-shot reads.
+        - Close `TreeStore` before removing temp directories; Windows fails
+          with `EPERM` on open files.
+
+    - path: 'docs/**'
+      instructions: |
+        - English only. Keep documents to what exists and why; future work
+          belongs in GitHub issues, not in roadmap or TODO lists.
+        - Design rationale lives in docs/architecture.md and non-goals in
+          docs/decisions.md; flag documentation that contradicts them.
+
+    - path: '**/*.md'
+      instructions: |
+        - English only, including README, AGENTS.md, CONTRIBUTING.md and docs.
+        - Do not add roadmap, TODO or "future work" sections; file an issue
+          instead.
+        - Pull request titles are user-facing plain sentences; the rest of a PR
+          is written for maintainers.
+
+chat:
+  art: false
+  auto_reply: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - AGENTS.md
+      - CONTRIBUTING.md
+      - docs/architecture.md
+      - docs/design-system.md
+  learnings:
+    scope: local
