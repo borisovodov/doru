@@ -67,6 +67,8 @@ export interface NameVariantDraft {
   kind: NameVariantKind;
   /** Name type preserved from imported variants; not edited by the form. */
   type: string;
+  /** The transliteration method (FONE/ROMN TYPE). */
+  variantType: string;
   language: string;
   /** Primary marker preserved from imported variants; not edited by the form. */
   primary: boolean;
@@ -91,12 +93,24 @@ export interface NameDraft {
   parts: NamePart[];
   date?: DateDraft | undefined;
   variants: NameVariantDraft[];
+  /** Vendor name fields kept verbatim on the name row. */
+  callName: string;
+  middleName: string;
+  patronymic: string;
+  marriedName: string;
+  aka: string;
+  hebrewName: string;
+  title: string;
+  shortName: string;
+  nameAsRecorded: string;
+  givenNameUsed: string;
 }
 
 export interface PersonDraft {
   id: string;
   names: NameDraft[];
   sex: Sex;
+  addressId?: string | undefined;
   birth: DateDraft;
   death: DateDraft;
   isNew: boolean;
@@ -155,6 +169,7 @@ export function emptyVariantDraft(): NameVariantDraft {
     id: crypto.randomUUID(),
     kind: 'translation',
     type: '',
+    variantType: '',
     language: '',
     primary: false,
     parts: [],
@@ -170,6 +185,16 @@ export function emptyNameDraft(): NameDraft {
     primary: false,
     parts: [],
     variants: [],
+    callName: '',
+    middleName: '',
+    patronymic: '',
+    marriedName: '',
+    aka: '',
+    hebrewName: '',
+    title: '',
+    shortName: '',
+    nameAsRecorded: '',
+    givenNameUsed: '',
   };
 }
 
@@ -402,6 +427,7 @@ export function variantToDraft(variant: PersonName): NameVariantDraft {
     id: variant.id,
     kind: variant.kind ?? 'translation',
     type: variant.type ?? '',
+    variantType: variant.variantType ?? '',
     language: variant.language ?? '',
     primary: variant.primary === true,
     parts: [...partsOfName(variant)],
@@ -419,6 +445,16 @@ export function nameToDraft(name: PersonName): NameDraft {
     parts: [...partsOfName(name)],
     date: name.date !== undefined ? toDateDraft(name.date) : undefined,
     variants: (name.variants ?? []).map(variantToDraft),
+    callName: name.callName ?? '',
+    middleName: name.middleName ?? '',
+    patronymic: name.patronymic ?? '',
+    marriedName: name.marriedName ?? '',
+    aka: name.aka ?? '',
+    hebrewName: name.hebrewName ?? '',
+    title: name.title ?? '',
+    shortName: name.shortName ?? '',
+    nameAsRecorded: name.nameAsRecorded ?? '',
+    givenNameUsed: name.givenNameUsed ?? '',
   };
 }
 
@@ -429,6 +465,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
     id: person.id,
     names: person.names.map(nameToDraft),
     sex: person.sex,
+    ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
     birth: toDateDraft(birth?.date, birth?.place),
     death: toDateDraft(death?.date, death?.place),
     isNew: false,
@@ -455,6 +492,16 @@ function nameDraftMatches(a: NameDraft, b: NameDraft): boolean {
     a.type === b.type &&
     a.language === b.language &&
     a.primary === b.primary &&
+    a.callName === b.callName &&
+    a.middleName === b.middleName &&
+    a.patronymic === b.patronymic &&
+    a.marriedName === b.marriedName &&
+    a.aka === b.aka &&
+    a.hebrewName === b.hebrewName &&
+    a.title === b.title &&
+    a.shortName === b.shortName &&
+    a.nameAsRecorded === b.nameAsRecorded &&
+    a.givenNameUsed === b.givenNameUsed &&
     partsEqual(a.parts, b.parts) &&
     nameDateMatches(a.date, b.date) &&
     a.variants.length === b.variants.length &&
@@ -478,6 +525,7 @@ function variantDraftMatches(a: NameVariantDraft, b: NameVariantDraft): boolean 
     a.id === b.id &&
     a.kind === b.kind &&
     a.type === b.type &&
+    a.variantType === b.variantType &&
     a.language === b.language &&
     a.primary === b.primary &&
     partsEqual(a.parts, b.parts) &&
@@ -515,7 +563,19 @@ export function nameDraftEmpty(name: NameDraft): boolean {
   return (
     name.date === undefined &&
     name.parts.every((part) => part.value.trim() === '') &&
-    name.variants.every(variantDraftEmpty)
+    name.variants.every(variantDraftEmpty) &&
+    [
+      name.callName,
+      name.middleName,
+      name.patronymic,
+      name.marriedName,
+      name.aka,
+      name.hebrewName,
+      name.title,
+      name.shortName,
+      name.nameAsRecorded,
+      name.givenNameUsed,
+    ].every((value) => value.trim() === '')
   );
 }
 
@@ -527,6 +587,7 @@ export function variantDraftToName(variant: NameVariantDraft): PersonName | unde
     id: variant.id,
     kind: variant.kind,
     type: variant.type.trim() || undefined,
+    variantType: variant.variantType.trim() || undefined,
     language: variant.language.trim() || undefined,
     primary: variant.primary || undefined,
     parts: normalizedParts(variant.parts),
@@ -545,6 +606,16 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
     type: draft.type.trim() || undefined,
     language: draft.language.trim() || undefined,
     primary: draft.primary || undefined,
+    callName: draft.callName.trim() || undefined,
+    middleName: draft.middleName.trim() || undefined,
+    patronymic: draft.patronymic.trim() || undefined,
+    marriedName: draft.marriedName.trim() || undefined,
+    aka: draft.aka.trim() || undefined,
+    hebrewName: draft.hebrewName.trim() || undefined,
+    title: draft.title.trim() || undefined,
+    shortName: draft.shortName.trim() || undefined,
+    nameAsRecorded: draft.nameAsRecorded.trim() || undefined,
+    givenNameUsed: draft.givenNameUsed.trim() || undefined,
     parts: normalizedParts(draft.parts),
     ...flatFromParts(draft.parts),
     date: draft.date !== undefined ? fromDateDraft(draft.date) : undefined,
@@ -574,6 +645,8 @@ export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): Pers
   }
   return {
     id: draft.id,
+    ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
+    ...(draft.addressId !== undefined ? { addressId: draft.addressId } : {}),
     sex: draft.sex,
     names,
     facts,

@@ -40,6 +40,7 @@ import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttac
 import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
 import { TagsSection } from '@doru/ui/domain';
+import { addressLabel } from '@doru/ui/domain';
 import { TasksSection } from '@doru/ui/domain';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
 import type { MediaTargetApi, MediaWithPath, PersonEditorApi } from './types';
@@ -323,6 +324,19 @@ export function PersonEditor({
             <option value="M">{nls.t('features.tree.sex.M')}</option>
             <option value="F">{nls.t('features.tree.sex.F')}</option>
             <option value="X">{nls.t('features.tree.sex.X')}</option>
+          </Select>
+        </Field>
+        <Field label={nls.t('features.tree.address.title')}>
+          <Select
+            value={draft.addressId ?? ''}
+            onChange={(event) => set({ addressId: event.target.value || undefined })}
+          >
+            <option value="">{nls.t('features.tasks.none')}</option>
+            {addresses.map((address) => (
+              <option key={address.id} value={address.id}>
+                {addressLabel(address)}
+              </option>
+            ))}
           </Select>
         </Field>
         <DateEditor

@@ -17,6 +17,10 @@ interface SourceRow {
   pub_place_text: string | null;
   agency: string | null;
   title_id: string | null;
+  certainty: string | null;
+  subsequent_citation_format: string | null;
+  bibliography: string | null;
+  data_note: string | null;
 }
 
 interface CitationRow {
@@ -33,6 +37,15 @@ interface CitationRow {
   phrase: string | null;
   date_id: string | null;
   www: string | null;
+  name: string | null;
+  quality_assessment: string | null;
+  reference: string | null;
+  reference_number: string | null;
+  abbreviation: string | null;
+  footnote: string | null;
+  verified: number;
+  assessment: string | null;
+  found_by: string | null;
 }
 
 /**
@@ -49,8 +62,9 @@ export class SourceRepo {
     this.db
       .prepare(
         `INSERT INTO source (id, xref, title, abbreviation, author, publication,
-           medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id,
+           certainty, subsequent_citation_format, bibliography, data_note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...sourceParams(source, this.dates));
     this.replaceSourceDetails(source);
@@ -63,7 +77,9 @@ export class SourceRepo {
     this.db
       .prepare(
         `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
-           medium = ?, url = ?, access_date = ?, confidence = ?, pub_date_id = ?, pub_place_text = ?, agency = ?, title_id = ?
+           medium = ?, url = ?, access_date = ?, confidence = ?, pub_date_id = ?, pub_place_text = ?,
+           agency = ?, title_id = ?, certainty = ?, subsequent_citation_format = ?, bibliography = ?,
+           data_note = ?
          WHERE id = ?`,
       )
       .run(...sourceParams(source, this.dates).slice(1), source.id);
@@ -114,6 +130,68 @@ export class SourceRepo {
     return rows.map((row) => this.hydrate(row));
   }
 
+  /**
+   * The source→repository links of one repository with their call numbers,
+   * for the delete/undo snapshot. The FK cascade removes them with the
+   * repository.
+   */
+  listSourceRepositoriesFor(repositoryId: string): Array<{
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers: Array<{ id: string; value: string; medium?: string }>;
+  }> {
+    const rows = this.db
+      .prepare('SELECT id, source_id, repository_id FROM source_repository WHERE repository_id = ? ORDER BY id')
+      .all(repositoryId) as unknown as { id: string; source_id: string; repository_id: string }[];
+    const callNumbers = this.db.prepare(
+      'SELECT id, value, medium FROM call_number WHERE source_repository_id = ? ORDER BY id',
+    );
+    return rows.map((row) => {
+      const numbers = callNumbers.all(row.id) as unknown as { id: string; value: string; medium: string | null }[];
+      return {
+        id: row.id,
+        sourceId: row.source_id,
+        repositoryId: row.repository_id,
+        callNumbers: numbers.map((number) => ({
+          id: number.id,
+          value: number.value,
+          ...(number.medium !== null ? { medium: number.medium } : {}),
+        })),
+      };
+    });
+  }
+
+  /** Re-inserts a source→repository link and its call numbers after an undo. */
+  restoreSourceRepository(link: {
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers?: Array<{ id: string; value: string; medium?: string }>;
+  }): void {
+    this.db
+      .prepare('INSERT INTO source_repository (id, source_id, repository_id) VALUES (?, ?, ?)')
+      .run(link.id, link.sourceId, link.repositoryId);
+    const insert = this.db.prepare(
+      'INSERT INTO call_number (id, source_repository_id, value, medium) VALUES (?, ?, ?, ?)',
+    );
+    for (const callNumber of link.callNumbers ?? []) {
+      insert.run(callNumber.id, link.id, callNumber.value, callNumber.medium ?? null);
+    }
+  }
+
+  /** Sources citing a bibliographic title, for the title delete/undo snapshot. */
+  listSourcesForTitle(titleId: string): Array<{ id: string; titleId: string }> {
+    const rows = this.db
+      .prepare('SELECT id, title_id FROM source WHERE title_id = ? ORDER BY id')
+      .all(titleId) as unknown as { id: string; title_id: string }[];
+    return rows.map((row) => ({ id: row.id, titleId: row.title_id }));
+  }
+
+  setSourceTitle(sourceId: string, titleId: string | undefined): void {
+    this.db.prepare('UPDATE source SET title_id = ? WHERE id = ?').run(titleId ?? null, sourceId);
+  }
+
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void {
     this.insertCitation({ id: crypto.randomUUID(), sourceId, targetType, targetId });
   }
@@ -122,8 +200,9 @@ export class SourceRepo {
     this.db
       .prepare(
         `INSERT INTO citation (id, source_id, target_type, target_id, description, page, quality,
-           confidence, event, role, phrase, date_id, www)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           confidence, event, role, phrase, date_id, www, name, quality_assessment, reference,
+           reference_number, abbreviation, footnote, verified, assessment, found_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...citationParams(citation, this.dates));
     this.replaceCitationDetails(citation);
@@ -136,7 +215,9 @@ export class SourceRepo {
     this.db
       .prepare(
         `UPDATE citation SET source_id = ?, target_type = ?, target_id = ?, description = ?, page = ?,
-           quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, date_id = ?, www = ?
+           quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, date_id = ?, www = ?,
+           name = ?, quality_assessment = ?, reference = ?, reference_number = ?, abbreviation = ?,
+           footnote = ?, verified = ?, assessment = ?, found_by = ?
          WHERE id = ?`,
       )
       .run(...citationParams(citation, this.dates).slice(1), citation.id);
@@ -310,6 +391,10 @@ export class SourceRepo {
       pubPlace: row.pub_place_text ?? undefined,
       agency: row.agency ?? undefined,
       titleId: row.title_id ?? undefined,
+      certainty: row.certainty ?? undefined,
+      subsequentCitationFormat: row.subsequent_citation_format ?? undefined,
+      bibliography: row.bibliography ?? undefined,
+      dataNote: row.data_note ?? undefined,
     };
     if (texts.length > 0) {
       source.texts = texts.map((text) => ({
@@ -386,6 +471,15 @@ export class SourceRepo {
       phrase: row.phrase ?? undefined,
       date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
       www: row.www ?? undefined,
+      name: row.name ?? undefined,
+      qualityAssessment: row.quality_assessment ?? undefined,
+      reference: row.reference ?? undefined,
+      referenceNumber: row.reference_number ?? undefined,
+      abbreviation: row.abbreviation ?? undefined,
+      footnote: row.footnote ?? undefined,
+      verified: row.verified === 1 ? true : undefined,
+      assessment: row.assessment ?? undefined,
+      foundBy: row.found_by ?? undefined,
     };
     if (texts.length > 0) {
       citation.texts = texts.map((text) => ({
@@ -407,11 +501,13 @@ export class SourceRepo {
 }
 
 const sourceSelect = `SELECT id, xref, title, abbreviation, author, publication,
-  medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id
+  medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id,
+  certainty, subsequent_citation_format, bibliography, data_note
   FROM source`;
 
 const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, quality,
-  confidence, event, role, phrase, date_id, www
+  confidence, event, role, phrase, date_id, www, name, quality_assessment, reference,
+  reference_number, abbreviation, footnote, verified, assessment, found_by
   FROM citation`;
 
 function sourceParams(source: SourceRecord, dates: DateRepo): Array<string | number | null> {
@@ -430,6 +526,10 @@ function sourceParams(source: SourceRecord, dates: DateRepo): Array<string | num
     source.pubPlace ?? null,
     source.agency ?? null,
     source.titleId ?? null,
+    source.certainty ?? null,
+    source.subsequentCitationFormat ?? null,
+    source.bibliography ?? null,
+    source.dataNote ?? null,
   ];
 }
 
@@ -448,5 +548,14 @@ function citationParams(citation: CitationRecord, dates: DateRepo): Array<string
     citation.phrase ?? null,
     citation.date ? dates.upsert(citation.date) : null,
     citation.www ?? null,
+    citation.name ?? null,
+    citation.qualityAssessment ?? null,
+    citation.reference ?? null,
+    citation.referenceNumber ?? null,
+    citation.abbreviation ?? null,
+    citation.footnote ?? null,
+    citation.verified ? 1 : 0,
+    citation.assessment ?? null,
+    citation.foundBy ?? null,
   ];
 }

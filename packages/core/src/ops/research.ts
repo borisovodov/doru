@@ -115,7 +115,16 @@ export function updateTitleOp(before: TitleRecord, after: TitleRecord): Op {
   );
 }
 
-export function deleteTitleOp(title: TitleRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+/** Sources whose `title_id` FK is nulled by the title delete. */
+export interface TitleConsumers {
+  sources?: Array<{ id: string; titleId: string }>;
+}
+
+export function deleteTitleOp(
+  title: TitleRecord,
+  attachments: AttachmentsSnapshot = emptyAttachments(),
+  consumers: TitleConsumers = {},
+): Op {
   return op(
     crypto.randomUUID(),
     'title.delete',
@@ -123,6 +132,9 @@ export function deleteTitleOp(title: TitleRecord, attachments: AttachmentsSnapsh
     (ctx) => {
       ctx.repo.insertTitle(title);
       ctx.repo.restoreAttachments(attachments);
+      for (const source of consumers.sources ?? []) {
+        ctx.repo.setSourceTitle(source.id, source.titleId);
+      }
     },
     { targetType: 'title', targetId: title.id, kind: 'changed' },
   );

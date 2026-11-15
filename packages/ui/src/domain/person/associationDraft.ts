@@ -39,7 +39,7 @@ export function emptyAssociationDraft(personId: string): AssociationDraft {
 export function associationToDraft(association: AssociationRecord): AssociationDraft {
   return {
     id: association.id,
-    personId: association.personId,
+    personId: association.personId ?? '',
     otherPersonId: association.otherPersonId,
     role: association.role ?? '',
     relationship: association.relationship ?? '',

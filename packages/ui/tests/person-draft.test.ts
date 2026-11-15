@@ -624,6 +624,12 @@ describe('draftToRecord', () => {
     expect(record.names).toEqual([]);
   });
 
+  it('carries the imported xref through an edit', () => {
+    const existing = person({ xref: '@I7@' });
+    expect(draftToRecord(personToDraft(existing), existing).xref).toBe('@I7@');
+    expect(draftToRecord(personToDraft(existing)).xref).toBeUndefined();
+  });
+
   it('writes every name of the draft, preserving ids and variants', () => {
     const record = draftToRecord(
       draft({

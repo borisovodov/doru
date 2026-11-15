@@ -19,12 +19,14 @@ export interface PersonRow {
   id: string;
   xref?: string | undefined;
   sex: Sex;
+  addressId?: string | undefined;
 }
 
 interface PersonDbRow {
   id: string;
   xref: string | null;
   sex: string | null;
+  address_id: string | null;
 }
 
 export class PersonRepo {
@@ -36,21 +38,23 @@ export class PersonRepo {
   insertPerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
-        .prepare('INSERT INTO person (id, xref, sex) VALUES (?, ?, ?)')
-        .run(person.id, person.xref ?? null, person.sex);
+        .prepare('INSERT INTO person (id, xref, sex, address_id) VALUES (?, ?, ?, ?)')
+        .run(person.id, person.xref ?? null, person.sex, person.addressId ?? null);
     });
   }
 
   updatePerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
-        .prepare('UPDATE person SET xref = ?, sex = ? WHERE id = ?')
-        .run(person.xref ?? null, person.sex, person.id);
+        .prepare('UPDATE person SET xref = ?, sex = ?, address_id = ? WHERE id = ?')
+        .run(person.xref ?? null, person.sex, person.addressId ?? null, person.id);
     });
   }
 
   getPerson(id: string): PersonRow | undefined {
-    const row = this.db.prepare('SELECT id, xref, sex FROM person WHERE id = ?').get(id) as PersonDbRow | undefined;
+    const row = this.db.prepare('SELECT id, xref, sex, address_id FROM person WHERE id = ?').get(id) as
+      | PersonDbRow
+      | undefined;
     return row ? toPerson(row) : undefined;
   }
 
@@ -87,7 +91,7 @@ export class PersonRepo {
       conditions.push('p.sex = ?');
       params.push(query.sex);
     }
-    let sql = 'SELECT p.id, p.xref, p.sex FROM person p';
+    let sql = 'SELECT p.id, p.xref, p.sex, p.address_id FROM person p';
     if (conditions.length > 0) {
       sql += ' WHERE ' + conditions.join(' AND ');
     }
@@ -97,7 +101,9 @@ export class PersonRepo {
   }
 
   listAllPersons(): PersonRow[] {
-    const rows = this.db.prepare('SELECT id, xref, sex FROM person ORDER BY id').all() as unknown as PersonDbRow[];
+    const rows = this.db
+      .prepare('SELECT id, xref, sex, address_id FROM person ORDER BY id')
+      .all() as unknown as PersonDbRow[];
     return rows.map(toPerson);
   }
 
@@ -108,5 +114,10 @@ export class PersonRepo {
 }
 
 function toPerson(row: PersonDbRow): PersonRow {
-  return { id: row.id, xref: row.xref ?? undefined, sex: (row.sex ?? 'U') as Sex };
+  return {
+    id: row.id,
+    xref: row.xref ?? undefined,
+    sex: (row.sex ?? 'U') as Sex,
+    addressId: row.address_id ?? undefined,
+  };
 }

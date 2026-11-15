@@ -43,7 +43,7 @@ describe('placeToDraft / placeDraftToRecord', () => {
         { id: 'N2', kind: 'official', position: 1, value: 'Tula Oblast' },
         { id: 'N3', kind: 'translation', language: 'en', position: 0, value: 'Tula' },
       ],
-      hierarchy: [{ parentId: 'PL2', type: 'poli' }],
+      hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
       postalCodes: [
         { id: 'PC1', code: '300000', date: { quality: 'exact', component: { year: 1930 } } },
         { id: 'PC2', code: '300999' },
@@ -56,7 +56,7 @@ describe('placeToDraft / placeDraftToRecord', () => {
       latitude: '54.19',
       longitude: '37.61',
       verified: true,
-      hierarchy: [{ parentId: 'PL2', type: 'poli' }],
+      hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
     });
     expect(draft.names).toHaveLength(3);
     expect(draft.names[1]).toMatchObject({ id: 'N2', kind: 'official', value: 'Tula Oblast' });
@@ -71,7 +71,7 @@ describe('placeToDraft / placeDraftToRecord', () => {
       longitude: 'abc',
       names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: '  Tula  ' }],
       postalCodes: [{ id: 'PC1', code: '  ', date: emptyDate() }],
-      hierarchy: [{ parentId: '', type: '' }],
+      hierarchy: [{ id: 'H1', parentId: '', type: '' }],
     });
     expect(record.latitude).toBe(54.19);
     expect(record.longitude).toBeUndefined();
@@ -112,6 +112,6 @@ describe('placeDraftMatches', () => {
         stored,
       ),
     ).toBe(false);
-    expect(placeDraftMatches({ ...base, hierarchy: [{ parentId: 'PL2', type: '' }] }, stored)).toBe(false);
+    expect(placeDraftMatches({ ...base, hierarchy: [{ id: 'H1', parentId: 'PL2', type: '' }] }, stored)).toBe(false);
   });
 });

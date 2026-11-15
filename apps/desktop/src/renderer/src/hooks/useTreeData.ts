@@ -1025,14 +1025,17 @@ export function useTreeData(projectPath: string | null | undefined) {
       addAddress: async (address) => {
         if (!projectPath) return;
         await window.doru.addAddress(projectPath, address);
+        await refreshTree();
       },
       updateAddress: async (before, after) => {
         if (!projectPath) return;
         await window.doru.updateAddress(projectPath, before, after);
+        await refreshTree();
       },
       deleteAddress: async (address) => {
         if (!projectPath) return;
         await window.doru.deleteAddress(projectPath, address);
+        await refreshTree();
       },
       getAddress: (id) => (projectPath ? window.doru.getAddress(projectPath, id) : Promise.resolve(undefined)),
     }),

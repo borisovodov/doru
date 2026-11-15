@@ -430,10 +430,6 @@ export class TreeService {
     return this.repo.listPlaces();
   }
 
-  searchPlaces(query: string, limit?: number): PlaceRecord[] {
-    return this.repo.searchPlaces(query, limit);
-  }
-
   getPlace(id: string): PlaceRecord | undefined {
     return this.repo.getPlace(id);
   }
@@ -723,7 +719,8 @@ export class TreeService {
 
   deleteRepository(repository: RepositoryRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('repository', repository.id);
-    return this.apply(deleteRepositoryOp(repository, attachments));
+    const consumers = { sourceRepositories: this.repo.listSourceRepositoriesFor(repository.id) };
+    return this.apply(deleteRepositoryOp(repository, attachments, consumers));
   }
 
   addSubmitter(submitter: SubmitterRecord): UndoRedoState {
@@ -736,7 +733,8 @@ export class TreeService {
 
   deleteSubmitter(submitter: SubmitterRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('submitter', submitter.id);
-    return this.apply(deleteSubmitterOp(submitter, attachments));
+    const consumers = { recordSubmitters: this.repo.listRecordSubmittersForSubmitter(submitter.id) };
+    return this.apply(deleteSubmitterOp(submitter, attachments, consumers));
   }
 
   /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
@@ -849,7 +847,8 @@ export class TreeService {
 
   deleteTitle(title: TitleRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('title', title.id);
-    return this.apply(deleteTitleOp(title, attachments));
+    const consumers = { sources: this.repo.listSourcesForTitle(title.id) };
+    return this.apply(deleteTitleOp(title, attachments, consumers));
   }
 
   // --- plumbing -------------------------------------------------------------

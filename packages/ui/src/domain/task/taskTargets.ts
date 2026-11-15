@@ -99,23 +99,49 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
       );
     case 'place':
       return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
+    case 'place_hierarchy':
+      return data.places.flatMap((place) =>
+        (place.hierarchy ?? []).map((link) => {
+          const parent = data.places.find((entry) => entry.id === link.parentId);
+          return {
+            id: link.id,
+            label: `${placeName(place)} · ${parent ? placeName(parent) : link.parentId}`,
+          };
+        }),
+      );
     case 'repository':
       return data.repositories.map((repository) => ({ id: repository.id, label: repository.name }));
     case 'submitter':
       return data.submitters.map((submitter) => ({ id: submitter.id, label: submitter.name }));
     case 'address':
       return data.addresses.map((address) => ({ id: address.id, label: formatAddress(address) || address.id }));
+    case 'address_line':
+      return data.addresses.flatMap((address) =>
+        address.lines.map((line) => ({
+          id: line.id,
+          label: [formatAddress(address), line.value].filter((part) => part !== '').join(' · '),
+        })),
+      );
     case 'association':
-      return data.associations.map((association) => ({
-        id: association.id,
-        label: [
-          `${displayName(personById.get(association.personId))} ↔ ${displayName(personById.get(association.otherPersonId))}`,
-          association.role ?? '',
-          association.relationship ?? '',
-        ]
-          .filter((part) => part !== '')
-          .join(' · '),
-      }));
+      return data.associations.map((association) => {
+        const family = association.familyId !== undefined ? familyById.get(association.familyId) : undefined;
+        const owner =
+          association.personId !== undefined
+            ? displayName(personById.get(association.personId))
+            : family !== undefined
+              ? familyLabel(family, personById)
+              : (association.familyId ?? '');
+        return {
+          id: association.id,
+          label: [
+            `${owner} ↔ ${displayName(personById.get(association.otherPersonId))}`,
+            association.role ?? '',
+            association.relationship ?? '',
+          ]
+            .filter((part) => part !== '')
+            .join(' · '),
+        };
+      });
     case 'todo':
       return data.todos.map((todo) => ({ id: todo.id, label: truncate(todo.text) }));
     case 'title':

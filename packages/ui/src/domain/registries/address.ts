@@ -1,9 +1,15 @@
 import type { AddressRecord } from '@doru/core';
 
+/** One editable address line; the id keeps the stored row addressable. */
+export interface AddressLineDraft {
+  id: string | undefined; // undefined = not stored yet
+  value: string;
+}
+
 /** An editable address: address lines plus the fixed fields. */
 export interface AddressDraft {
   id: string | undefined; // undefined = no stored address yet
-  lines: string[];
+  lines: AddressLineDraft[];
   city: string;
   state: string;
   postalCode: string;
@@ -11,13 +17,16 @@ export interface AddressDraft {
 }
 
 export function emptyAddressDraft(): AddressDraft {
-  return { id: undefined, lines: [''], city: '', state: '', postalCode: '', country: '' };
+  return { id: undefined, lines: [{ id: undefined, value: '' }], city: '', state: '', postalCode: '', country: '' };
 }
 
 export function addressToDraft(address: AddressRecord): AddressDraft {
   return {
     id: address.id,
-    lines: address.lines.length > 0 ? [...address.lines] : [''],
+    lines:
+      address.lines.length > 0
+        ? address.lines.map((line) => ({ id: line.id, value: line.value }))
+        : [{ id: undefined, value: '' }],
     city: address.city ?? '',
     state: address.state ?? '',
     postalCode: address.postalCode ?? '',
@@ -27,7 +36,7 @@ export function addressToDraft(address: AddressRecord): AddressDraft {
 
 export function addressDraftEmpty(draft: AddressDraft): boolean {
   return (
-    draft.lines.every((line) => line.trim() === '') &&
+    draft.lines.every((line) => line.value.trim() === '') &&
     draft.city.trim() === '' &&
     draft.state.trim() === '' &&
     draft.postalCode.trim() === '' &&
@@ -38,7 +47,9 @@ export function addressDraftEmpty(draft: AddressDraft): boolean {
 export function addressDraftToRecord(draft: AddressDraft): AddressRecord {
   return {
     id: draft.id ?? crypto.randomUUID(),
-    lines: draft.lines.map((line) => line.trim()).filter((line) => line !== ''),
+    lines: draft.lines
+      .map((line) => ({ id: line.id ?? crypto.randomUUID(), value: line.value.trim() }))
+      .filter((line) => line.value !== ''),
     ...(draft.city.trim() !== '' ? { city: draft.city.trim() } : {}),
     ...(draft.state.trim() !== '' ? { state: draft.state.trim() } : {}),
     ...(draft.postalCode.trim() !== '' ? { postalCode: draft.postalCode.trim() } : {}),
@@ -52,7 +63,7 @@ export function addressLabel(address: AddressRecord | undefined): string {
     return '';
   }
   return [
-    ...address.lines,
+    ...address.lines.map((line) => line.value),
     [address.city, address.state, address.postalCode].filter((part) => part !== undefined).join(' '),
     address.country,
   ]

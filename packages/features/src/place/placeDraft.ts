@@ -24,8 +24,9 @@ export interface PostalCodeDraft {
   date: DateDraft;
 }
 
-/** A parent link of the place. */
+/** A parent link of the place. The id keeps the stored row addressable. */
 export interface HierarchyDraft {
+  id: string;
   parentId: string; // '' = none
   type: string; // '' = unspecified
 }
@@ -82,6 +83,7 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
       date: toDateDraft(postal.date),
     })),
     hierarchy: (place.hierarchy ?? []).map((link) => ({
+      id: link.id,
       parentId: link.parentId,
       type: link.type ?? '',
     })),
@@ -119,6 +121,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     hierarchy: draft.hierarchy
       .filter((link) => link.parentId !== '')
       .map((link) => ({
+        id: link.id,
         parentId: link.parentId,
         ...(link.type !== '' ? { type: link.type } : {}),
       })),

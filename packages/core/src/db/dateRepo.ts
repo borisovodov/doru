@@ -1,6 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { DateComponent, DateValue } from '../model/types';
-import { signedYear } from '../model/types';
 
 interface DateRow {
   id: string;
@@ -22,7 +21,6 @@ interface DateRow {
   time_second: number | null;
   time_fraction: string | null;
   utc: number;
-  sort_year: number | null;
 }
 
 /**
@@ -50,8 +48,8 @@ export class DateRepo {
       .prepare(
         `INSERT INTO date (id, quality, modifier, calendar, year, month, day, epoch,
            end_calendar, end_year, end_month, end_day, end_epoch, text,
-           time_hour, time_minute, time_second, time_fraction, utc, sort_year)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           time_hour, time_minute, time_second, time_fraction, utc)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET
            quality = excluded.quality, modifier = excluded.modifier,
            calendar = excluded.calendar, year = excluded.year, month = excluded.month,
@@ -61,7 +59,7 @@ export class DateRepo {
            end_epoch = excluded.end_epoch, text = excluded.text,
            time_hour = excluded.time_hour, time_minute = excluded.time_minute,
            time_second = excluded.time_second, time_fraction = excluded.time_fraction,
-           utc = excluded.utc, sort_year = excluded.sort_year`,
+           utc = excluded.utc`,
       )
       .run(...dateParams(id, date));
     return id;
@@ -94,14 +92,14 @@ export class DateRepo {
 
 const DATE_COLUMNS = `id, quality, modifier, calendar, year, month, day, epoch,
   end_calendar, end_year, end_month, end_day, end_epoch, text,
-  time_hour, time_minute, time_second, time_fraction, utc, sort_year`;
+  time_hour, time_minute, time_second, time_fraction, utc`;
 
 const selectSql = `SELECT ${DATE_COLUMNS} FROM date WHERE id = ?`;
 
 const insertSql = `INSERT INTO date (id, quality, modifier, calendar, year, month, day, epoch,
   end_calendar, end_year, end_month, end_day, end_epoch, text,
-  time_hour, time_minute, time_second, time_fraction, utc, sort_year)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  time_hour, time_minute, time_second, time_fraction, utc)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 function dateParams(id: string, date: DateValue): Array<string | number | null> {
   const component = date.component;
@@ -127,7 +125,6 @@ function dateParams(id: string, date: DateValue): Array<string | number | null> 
     time?.second ?? null,
     time?.fraction ?? null,
     time?.utc ? 1 : 0,
-    sortYearOf(date),
   ];
 }
 
@@ -137,11 +134,6 @@ function monthParam(component: DateComponent | undefined): string | null {
     return null;
   }
   return String(component.month);
-}
-
-/** The year the date sorts by: the start year, falling back to the end year of a range. */
-function sortYearOf(date: DateValue): number | null {
-  return signedYear(date.component) ?? signedYear(date.end) ?? null;
 }
 
 function rowToDate(row: DateRow): DateValue {

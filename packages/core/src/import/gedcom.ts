@@ -210,12 +210,20 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.tag !== 'REPO') {
       continue;
     }
-    const repository = record as {
+    const repository = record as unknown as {
       xref?: string;
       name: string;
       address?: AddressStructure;
       identifiers?: IdentifierStructure[];
       notes?: NoteStructure[];
+      phone?: string[];
+      email?: string[];
+      fax?: string[];
+      www?: string[];
+      changeDate?: ChangeDate;
+      creationDate?: CreationDate;
+      submitters?: string[];
+      tagLinks?: GedcomTagLink[];
     };
     const id = crypto.randomUUID();
     if (repository.xref !== undefined) {
@@ -228,6 +236,22 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
     ctx.repo.insertRepository({ id, xref: repository.xref, name: repository.name, addressId });
     importIdentifiers(repository.identifiers, 'repository', id, ctx);
     importNotes(repository.notes, 'repository', id, ctx);
+    importContacts(
+      'repository',
+      id,
+      [
+        ...(repository.email ?? []).map((value) => ({ kind: 'email', value })),
+        ...(repository.phone ?? []).map((value) => ({ kind: 'phone', value })),
+        ...(repository.fax ?? []).map((value) => ({ kind: 'fax', value })),
+        ...(repository.www ?? []).map((value) => ({ kind: 'www', value })),
+      ],
+      ctx,
+    );
+    importChanges(repository.changeDate, repository.creationDate, 'repository', id, ctx);
+    importSubmitterLinks(repository.submitters, 'repository', id, ctx);
+    for (const tagLink of repository.tagLinks ?? []) {
+      importTagLink(tagLink, 'repository', id, ctx);
+    }
   }
 }
 
@@ -236,7 +260,7 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.tag !== 'SUBM') {
       continue;
     }
-    const submitter = record as {
+    const submitter = record as unknown as {
       xref?: string;
       name: string;
       address?: AddressStructure;
@@ -244,6 +268,13 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       automatedRecordId?: string;
       identifiers?: IdentifierStructure[];
       notes?: NoteStructure[];
+      phone?: string[];
+      email?: string[];
+      fax?: string[];
+      www?: string[];
+      changeDate?: ChangeDate;
+      creationDate?: CreationDate;
+      submitters?: string[];
     };
     const id = crypto.randomUUID();
     if (submitter.xref !== undefined) {
@@ -262,6 +293,19 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
     });
     importIdentifiers(submitter.identifiers, 'submitter', id, ctx);
     importNotes(submitter.notes, 'submitter', id, ctx);
+    importContacts(
+      'submitter',
+      id,
+      [
+        ...(submitter.email ?? []).map((value) => ({ kind: 'email', value })),
+        ...(submitter.phone ?? []).map((value) => ({ kind: 'phone', value })),
+        ...(submitter.fax ?? []).map((value) => ({ kind: 'fax', value })),
+        ...(submitter.www ?? []).map((value) => ({ kind: 'www', value })),
+      ],
+      ctx,
+    );
+    importChanges(submitter.changeDate, submitter.creationDate, 'submitter', id, ctx);
+    importSubmitterLinks(submitter.submitters, 'submitter', id, ctx);
   }
 }
 
@@ -288,6 +332,7 @@ function importTitles(records: GedcomRecord[], ctx: ImportContext): void {
       callNumber: title.callNumber,
       sequence: numericSequence(title.sequenceNumber),
     });
+    importChanges(title.changeDate, undefined, 'title', id, ctx);
   }
 }
 
@@ -317,12 +362,12 @@ function importTags(records: GedcomRecord[], ctx: ImportContext): void {
 
 function importAddress(address: AddressStructure, ctx: ImportContext): string {
   const id = crypto.randomUUID();
-  const lines = address.payload
+  const values = address.payload
     ? address.payload.split('\n')
     : [address.line1, address.line2, address.line3].filter((line): line is string => line !== undefined);
   ctx.repo.insertAddress({
     id,
-    lines,
+    lines: values.map((value) => ({ id: crypto.randomUUID(), value })),
     city: address.city,
     state: address.state,
     postalCode: address.postalCode,
@@ -339,6 +384,8 @@ function importAddress(address: AddressStructure, ctx: ImportContext): string {
     ],
     ctx,
   );
+  importNotes(address.notes, 'address', id, ctx);
+  importRestrictions(address.private === true ? ['privacy'] : undefined, 'address', id, ctx);
   return id;
 }
 
@@ -351,13 +398,18 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.tag !== 'NOTE' && record.tag !== 'SNOTE') {
       continue;
     }
-    const note = record as {
+    const note = record as unknown as {
       xref?: string;
       payload: string;
       mediaType?: string;
       language?: string;
       translations?: Array<{ payload: string; mediaType?: string; language?: string }>;
       citations?: import('@doru/gedcom').SourceCitation[];
+      identifiers?: IdentifierStructure[];
+      changeDate?: ChangeDate;
+      creationDate?: CreationDate;
+      submitters?: string[];
+      tagLinks?: GedcomTagLink[];
     };
     if (note.xref === undefined) {
       continue;
@@ -378,6 +430,12 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
       })),
     });
     importCitations(note.citations, 'note', id, ctx);
+    importIdentifiers(note.identifiers, 'note', id, ctx);
+    importChanges(note.changeDate, note.creationDate, 'note', id, ctx);
+    importSubmitterLinks(note.submitters, 'note', id, ctx);
+    for (const tagLink of note.tagLinks ?? []) {
+      importTagLink(tagLink, 'note', id, ctx);
+    }
   }
 }
 
@@ -405,16 +463,21 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
             language: text.language,
           }))
         : undefined;
-    const dataEvents = (source.data?.events ?? []).map((event) => {
+    const dataEvents = (source.data?.events ?? []).flatMap((event) => {
       const date = mapDatePeriod(event.date);
       const placeId = event.place ? importPlace(event.place, ctx) : undefined;
-      return {
+      const tags = event.payload.length > 0 ? event.payload : [''];
+      return tags.map((tag, index) => ({
         id: crypto.randomUUID(),
-        tag: event.payload[0] ?? '',
-        ...(event.userDefined?.[0] !== undefined ? { value: event.userDefined[0] } : {}),
+        tag,
+        ...(event.userDefined?.[index] !== undefined
+          ? { value: event.userDefined[index] }
+          : event.userDefined?.[0] !== undefined
+            ? { value: event.userDefined[0] }
+            : {}),
         ...(date !== undefined ? { date } : {}),
         ...(placeId !== undefined ? { placeId } : {}),
-      };
+      }));
     });
     const repositories = (source.repositoryCitations ?? []).flatMap((citation) => {
       const repositoryId = ctx.repositoryIds.get(citation.repository);
@@ -436,7 +499,7 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     ctx.repo.insertSource({
       id,
       xref: source.xref,
-      title: source.title ?? source.abbreviation ?? source.author ?? `Source ${source.xref ?? ''}`.trim(),
+      title: source.title,
       abbreviation: source.abbreviation,
       author: source.author,
       publication: source.publication,
@@ -444,11 +507,16 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
       url: source.url,
       accessDate: source.accessDate,
       confidence: source.confidence,
-      pubDate: source.publicationDetails?.date
-        ? mapDateExact({ value: source.publicationDetails.date.value })
-        : undefined,
+      pubDate: source.publicationDetails?.date ? mapDateExact(source.publicationDetails.date) : undefined,
       pubPlace: source.publicationDetails?.place,
       agency: source.data?.agency,
+      certainty: source.certainty,
+      subsequentCitationFormat: source.subsequentCitationFormat,
+      bibliography: source.bibliography,
+      dataNote:
+        source.data?.notes?.[0] !== undefined && 'payload' in source.data.notes[0]
+          ? source.data.notes[0].payload
+          : undefined,
       titleId: source.titlRef ? ctx.titleIds.get(source.titlRef) : undefined,
       texts,
       dataEvents,
@@ -463,6 +531,10 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     importIdentifiers(source.identifiers, 'source', id, ctx);
     importMediaLinks(source.media, 'source', id, ctx);
     importChanges(source.changeDate, source.creationDate, 'source', id, ctx);
+    importSubmitterLinks(source.submitters, 'source', id, ctx);
+    for (const tagLink of source.tagLinks ?? []) {
+      importTagLink(tagLink, 'source', id, ctx);
+    }
     imported += 1;
   }
   return imported;
@@ -539,6 +611,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     id,
     xref: record.xref,
     sex: mapSex(record.sex),
+    ...(record.address !== undefined ? { addressId: importAddress(record.address, ctx) } : {}),
     names,
     facts,
   });
@@ -623,6 +696,25 @@ function mapFact(
   ctx: ImportContext,
 ): FactRecord {
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
+  importRestrictions(detail?.restriction, 'fact', base.id, ctx);
+  importIdentifiers(
+    detail?.uniqueIds?.map((payload) => ({ tag: 'UID', payload })),
+    'fact',
+    base.id,
+    ctx,
+  );
+  importContacts(
+    'fact',
+    base.id,
+    [
+      ...(detail?.email ?? []).map((value) => ({ kind: 'email', value })),
+      ...(detail?.phone ?? []).map((value) => ({ kind: 'phone', value })),
+      ...(detail?.fax ?? []).map((value) => ({ kind: 'fax', value })),
+      ...(detail?.www ?? []).map((value) => ({ kind: 'www', value })),
+    ],
+    ctx,
+  );
+  importChanges(detail?.changeDate, detail?.creationDate, 'fact', base.id, ctx);
   return {
     id: base.id,
     personId: base.personId,
@@ -631,10 +723,33 @@ function mapFact(
     type: base.type,
     value: base.payload === undefined || base.payload === 'Y' ? undefined : String(base.payload),
     date: mapDate(detail?.date),
+    endDate: mapDate(detail?.endDate),
     sortDate: mapSortDate(detail?.sortDate),
     placeId: detail?.place ? importPlace(detail.place, ctx) : undefined,
     place: mapPlaceText(detail?.place),
+    ...(detail?.additionalPlaces !== undefined
+      ? {
+          additionalPlaceIds: detail.additionalPlaces.flatMap((additional) => {
+            const placeId = importPlace(additional, ctx);
+            return placeId !== undefined ? [placeId] : [];
+          }),
+        }
+      : {}),
     addressId: detail?.address ? importAddress(detail.address, ctx) : undefined,
+    placePrefix: detail?.placePrefix,
+    eventNumber: detail?.eventNumber,
+    birthLength: detail?.birthLength,
+    birthWeight: detail?.birthWeight,
+    cemetery: detail?.cemetery,
+    fna: detail?.fna === true ? true : undefined,
+    descriptionAware: detail?.descriptionAware,
+    map:
+      detail?.map !== undefined
+        ? {
+            latitude: mapCoordinate(detail.map.latitude, 'S') ?? 0,
+            longitude: mapCoordinate(detail.map.longitude, 'W') ?? 0,
+          }
+        : undefined,
     agency: detail?.agency,
     religiousAffiliation: detail?.religiousAffiliation,
     cause: detail?.cause,
@@ -642,8 +757,17 @@ function mapFact(
     quality: detail?.quality,
     ages: mapAges(age),
     participants: mapParticipants(detail, ctx),
-    flags: detail?.factFlags,
+    flags: factFlags(detail),
   };
+}
+
+/** The `_FLGS` flags plus the `_PRI` preferred marker. */
+function factFlags(detail: EventDetail | undefined): string[] | undefined {
+  const flags = new Set<string>(detail?.factFlags ?? []);
+  if (detail?.primary === true) {
+    flags.add('preferred');
+  }
+  return flags.size > 0 ? [...flags] : undefined;
 }
 
 function mapAges(age: AgeStructure | undefined): FactRecord['ages'] {
@@ -670,6 +794,9 @@ function mapParticipants(detail: EventDetail | undefined, ctx: ImportContext): F
   const participants: NonNullable<FactRecord['participants']> = [];
   for (const witness of detail?.witnesses ?? []) {
     participants.push({ id: crypto.randomUUID(), value: witness, role: 'WITN', position: participants.length });
+  }
+  for (const godparent of detail?.godparents ?? []) {
+    participants.push({ id: crypto.randomUUID(), value: godparent, role: 'GODP', position: participants.length });
   }
   for (const association of detail?.associations ?? []) {
     const personId = association.individual === '@VOID@' ? undefined : ctx.personIds.get(association.individual);
@@ -722,6 +849,18 @@ function mapName(structure: PersonalNameStructure, ctx: ImportContext): PersonNa
     primary: structure.primary,
     ...(language !== undefined ? { language } : {}),
     full: full || undefined,
+    ...(structure.callName !== undefined ? { callName: structure.callName } : {}),
+    ...(structure.middleName !== undefined ? { middleName: structure.middleName } : {}),
+    ...(structure.patronymic !== undefined ? { patronymic: structure.patronymic } : {}),
+    ...(structure.marriedName !== undefined ? { marriedName: structure.marriedName } : {}),
+    ...(structure.alsoKnownAs !== undefined && structure.alsoKnownAs.length > 0
+      ? { aka: structure.alsoKnownAs.join(', ') }
+      : {}),
+    ...(structure.hebrewName !== undefined ? { hebrewName: structure.hebrewName } : {}),
+    ...(structure.title !== undefined ? { title: structure.title } : {}),
+    ...(structure.shortName !== undefined ? { shortName: structure.shortName } : {}),
+    ...(structure.nameAsRecorded !== undefined ? { nameAsRecorded: structure.nameAsRecorded } : {}),
+    ...(structure.givenNameUsed !== undefined ? { givenNameUsed: structure.givenNameUsed } : {}),
     parts: parts.length > 0 ? parts : undefined,
     ...(structure.date !== undefined ? { date: mapDate(structure.date) } : {}),
   };
@@ -730,10 +869,10 @@ function mapName(structure: PersonalNameStructure, ctx: ImportContext): PersonNa
       mapNameVariant(translation.payload, translation.pieces, 'translation', translation.language),
     ),
     ...(structure.phonetic ?? []).map((variation) =>
-      mapNameVariant(variation.payload, variation.pieces, 'phonetic', undefined),
+      mapNameVariant(variation.payload, variation.pieces, 'phonetic', undefined, variation.type),
     ),
     ...(structure.romanized ?? []).map((variation) =>
-      mapNameVariant(variation.payload, variation.pieces, 'romanized', undefined),
+      mapNameVariant(variation.payload, variation.pieces, 'romanized', undefined, variation.type),
     ),
   ];
   if (variants.length > 0) {
@@ -748,12 +887,14 @@ function mapNameVariant(
   pieces: PersonalNamePieces | undefined,
   kind: 'translation' | 'phonetic' | 'romanized',
   language: string | undefined,
+  variantType?: string,
 ): PersonName {
   const parts = nameParts(payload, pieces);
   return {
     id: crypto.randomUUID(),
     kind,
     language,
+    ...(variantType !== undefined ? { variantType } : {}),
     full: joinName(payload, pieces) || undefined,
     parts: parts.length > 0 ? parts : undefined,
   };
@@ -821,6 +962,12 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       personId,
       preferred: link.preferred,
       date: date ? mapDate(date) : undefined,
+      phrase: link.phrase,
+      name: link.name
+        ? [link.name.payload.given, link.name.payload.surname].filter((part) => part !== undefined).join(' ')
+        : undefined,
+      civilStatus: link.civilStatus,
+      marriageNumber: link.marriageNumber !== undefined ? String(link.marriageNumber) : undefined,
     });
   }
   const childLinks: FamilyChildLink[] = [];
@@ -839,11 +986,26 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       status: details?.status,
       fatherRelation: link.fatherRelation ?? details?.fatherRelation,
       motherRelation: link.motherRelation ?? details?.motherRelation,
+      preferred: link.preferred,
+      multiplicity: link.multiplicity,
     });
   }
   ctx.repo.insertFamily({
     id,
     xref: record.xref,
+    preferred: record.preferred,
+    sameSex: record.sameSexUnion,
+    unionKind: record.unionKind,
+    unionStatus: record.unionStatus,
+    marriageBeginStatus: record.marriageBeginningStatus,
+    marriageEndStatus: record.marriageEndingStatus,
+    witnesses: record.witnesses,
+    marriageStatuses: (record.marriageStatuses ?? []).map((status) => ({
+      id: crypto.randomUUID(),
+      status: status.payload,
+      date: mapDate(status.date),
+      placeId: status.place ? importPlace(status.place, ctx) : undefined,
+    })),
     partners: partnerLinks.map((link) => link.personId),
     children: childLinks.map((link) => link.childId),
     partnerLinks,
@@ -919,13 +1081,38 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   importIdentifiers(record.identifiers, 'family', id, ctx);
   importRestrictions(record.restriction, 'family', id, ctx);
   importMediaLinks(record.media, 'family', id, ctx);
-  importChanges(record.changeDate, undefined, 'family', id, ctx);
+  importChanges(record.changeDate, record.creationDate, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'family', id, ctx);
   }
   for (const todo of record.todos ?? []) {
     importTodoStructure(todo, 'family', id, ctx);
+  }
+  for (const association of record.associations ?? []) {
+    const otherPersonId = ctx.personIds.get(association.individual);
+    if (otherPersonId === undefined) {
+      continue;
+    }
+    const associationId = crypto.randomUUID();
+    ctx.repo.insertAssociation({
+      id: associationId,
+      familyId: id,
+      otherPersonId,
+      role: association.role?.payload,
+      relationship: association.relationship,
+      phrase: association.phrase,
+      primary: association.primary,
+      specificType: association.specificType,
+      confidence: association.confidence,
+      periodStart: mapDate(association.period?.start),
+      periodEnd: mapDate(association.period?.end),
+    });
+    importCitations(association.citations, 'association', associationId, ctx);
+    importNotes(association.notes, 'association', associationId, ctx);
+    if (association.private === true) {
+      importRestrictions(['privacy'], 'association', associationId, ctx);
+    }
   }
 }
 
@@ -1123,7 +1310,25 @@ function importCitation(citation: SourceCitation, targetType: string, targetId: 
     role: citation.event?.role?.payload,
     phrase: citation.event?.phrase,
     date: mapDate(citation.data?.date),
-    www: citation.data?.www,
+    www: citation.www ?? citation.data?.www,
+    name: citation.name,
+    qualityAssessment:
+      citation.qualityAssessment !== undefined
+        ? [
+            citation.qualityAssessment.source,
+            citation.qualityAssessment.information,
+            citation.qualityAssessment.evidence,
+          ]
+            .filter((part) => part !== undefined && part !== '')
+            .join(' / ') || undefined
+        : undefined,
+    reference: citation.reference,
+    referenceNumber: citation.referenceNumber,
+    abbreviation: citation.abbreviation,
+    footnote: citation.footnote,
+    verified: citation.verified,
+    assessment: citation.assessment,
+    foundBy: citation.foundBy,
     texts: (citation.data?.texts ?? []).map((text) => ({
       id: crypto.randomUUID(),
       text: text.payload,
@@ -1201,6 +1406,7 @@ function importIdentifiers(
       targetType,
       targetId,
       namespace,
+      ...('type' in structure ? { type: structure.type } : {}),
       value: structure.payload,
     });
   }
@@ -1503,6 +1709,15 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       ...(record.title !== undefined ? { title: record.title } : {}),
       files,
     });
+    importNotes(record.notes, 'media', id, ctx);
+    importCitations(record.citations, 'media', id, ctx);
+    importIdentifiers(record.identifiers, 'media', id, ctx);
+    importRestrictions(record.restriction, 'media', id, ctx);
+    importChanges(record.changeDate, record.creationDate, 'media', id, ctx);
+    importSubmitterLinks(record.submitters, 'media', id, ctx);
+    for (const tagLink of record.tagLinks ?? []) {
+      importTagLink(tagLink, 'media', id, ctx);
+    }
   }
 }
 
@@ -1559,16 +1774,27 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.xref !== undefined) {
       ctx.placeCardIds.set(record.xref, id);
     }
-    const names = (record.names ?? []).map((entry, position) => ({
-      id: crypto.randomUUID(),
-      kind: (extensionText(entry.extensions, '_KIND') ?? 'official') as PlaceName['kind'],
-      ...(entry.language !== undefined ? { language: entry.language } : {}),
-      ...(extensionText(entry.extensions, '_TYPE') !== undefined
-        ? { type: extensionText(entry.extensions, '_TYPE') as string }
-        : {}),
-      position,
-      value: entry.name,
-    }));
+    const names = (record.names ?? []).map((entry, position) => {
+      const abbreviation = entry.abbreviations?.[0];
+      return {
+        id: crypto.randomUUID(),
+        kind: (extensionText(entry.extensions, '_KIND') ?? 'official') as PlaceName['kind'],
+        ...(entry.language !== undefined ? { language: entry.language } : {}),
+        ...(extensionText(entry.extensions, '_TYPE') !== undefined
+          ? { type: extensionText(entry.extensions, '_TYPE') as string }
+          : {}),
+        position,
+        value: entry.name,
+        ...(entry.date !== undefined ? { date: mapDate(entry.date) } : {}),
+        ...(entry.addition !== undefined ? { addition: entry.addition } : {}),
+        ...(abbreviation !== undefined
+          ? {
+              abbreviation: abbreviation.abbreviation,
+              ...(abbreviation.type !== undefined ? { abbreviationType: abbreviation.type } : {}),
+            }
+          : {}),
+      };
+    });
     if (names.length === 0 && record.payload !== '') {
       names.push({ id: crypto.randomUUID(), kind: 'official', position: 0, value: record.payload });
     }
@@ -1594,6 +1820,12 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
       ...(latitude !== undefined ? { latitude } : {}),
       ...(longitude !== undefined ? { longitude } : {}),
       ...(verified === true ? { verified: true } : {}),
+      ...(record.form !== undefined ? { form: record.form.split(',') } : {}),
+      ...(record.abbreviation !== undefined ? { abbreviation: record.abbreviation } : {}),
+      ...(record.preposition !== undefined ? { preposition: record.preposition } : {}),
+      ...(record.govId !== undefined ? { govId: record.govId } : {}),
+      ...(record.maidenhead !== undefined ? { maidenhead: record.maidenhead } : {}),
+      ...(record.types !== undefined && record.types.length > 0 ? { placeType: record.types[0]?.type } : {}),
       names,
       ...(record.postalCodes !== undefined && record.postalCodes.length > 0
         ? { postalCodes: mapPostalCodes(record.postalCodes) }
@@ -1602,6 +1834,8 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
     importCitations(record.citations, 'place', id, ctx);
     importNotes(record.notes, 'place', id, ctx);
     importMediaLinks(record.media, 'place', id, ctx);
+    importIdentifiers(record.identifiers, 'place', id, ctx);
+    importChanges(record.changeDate, undefined, 'place', id, ctx);
     if (record.parents !== undefined && record.parents.length > 0) {
       ctx.placeParents.set(
         id,
@@ -1623,7 +1857,9 @@ function linkPlaceHierarchy(ctx: ImportContext): void {
     }
     const hierarchy = parents.flatMap((parent) => {
       const parentId = ctx.placeCardIds.get(parent.parentXref);
-      return parentId !== undefined ? [{ parentId, ...(parent.type !== undefined ? { type: parent.type } : {}) }] : [];
+      return parentId !== undefined
+        ? [{ id: crypto.randomUUID(), parentId, ...(parent.type !== undefined ? { type: parent.type } : {}) }]
+        : [];
     });
     if (hierarchy.length > 0) {
       ctx.repo.updatePlace({ ...place, hierarchy });
@@ -1652,6 +1888,7 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   const names = place.payload.map((value, position) => ({
     id: crypto.randomUUID(),
     kind: 'official' as const,
+    ...(place.language !== undefined ? { language: place.language } : {}),
     position,
     value,
   }));
@@ -1685,6 +1922,7 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
     ...(latitude !== undefined ? { latitude } : {}),
     ...(longitude !== undefined ? { longitude } : {}),
     ...(place.verified === true ? { verified: true } : {}),
+    ...(place.form !== undefined && place.form.length > 0 ? { form: place.form } : {}),
     names: [...names, ...variants],
     ...(place.postalCodes !== undefined && place.postalCodes.length > 0
       ? { postalCodes: mapPostalCodes(place.postalCodes) }
@@ -1692,6 +1930,7 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   });
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);
+  importIdentifiers(place.externalIds, 'place', id, ctx);
   ctx.placeIds.set(joined, id);
   return id;
 }

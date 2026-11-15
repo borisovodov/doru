@@ -273,7 +273,7 @@ describe('formatAddress', () => {
     expect(
       formatAddress({
         id: 'A1',
-        lines: ['12 Archive Lane'],
+        lines: [{ id: 'L1', value: '12 Archive Lane' }],
         city: 'Moscow',
         state: 'MO',
         postalCode: '123456',
@@ -283,7 +283,7 @@ describe('formatAddress', () => {
   });
 
   it('omits the missing parts', () => {
-    expect(formatAddress({ id: 'A1', lines: ['5 Main St'] })).toBe('5 Main St');
+    expect(formatAddress({ id: 'A1', lines: [{ id: 'L1', value: '5 Main St' }] })).toBe('5 Main St');
     expect(formatAddress({ id: 'A1', lines: [] })).toBe('');
   });
 

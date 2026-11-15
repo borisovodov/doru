@@ -14,9 +14,9 @@ export class RelationRepo {
   insertAssociation(association: AssociationRecord): void {
     this.db
       .prepare(
-        `INSERT INTO association (id, person_id, other_person_id, role, relationship, phrase,
+        `INSERT INTO association (id, person_id, family_id, other_person_id, role, relationship, phrase,
            primary_flag, specific_type, confidence, period_start_id, period_end_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...associationParams(association, this.dates));
   }
@@ -27,7 +27,7 @@ export class RelationRepo {
       .get(association.id) as { period_start_id: string | null; period_end_id: string | null } | undefined;
     this.db
       .prepare(
-        `UPDATE association SET person_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
+        `UPDATE association SET person_id = ?, family_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
            primary_flag = ?, specific_type = ?, confidence = ?, period_start_id = ?, period_end_id = ?
          WHERE id = ?`,
       )
@@ -58,21 +58,10 @@ export class RelationRepo {
     return result.changes > 0;
   }
 
-  getAssociation(id: string): AssociationRecord | undefined {
-    const row = this.db
-      .prepare(
-        `SELECT id, person_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence, period_start_id, period_end_id
-         FROM association WHERE id = ?`,
-      )
-      .get(id) as AssociationRow | undefined;
-    return row ? this.hydrate(row) : undefined;
-  }
-
   listAssociations(): AssociationRecord[] {
     const rows = this.db
       .prepare(
-        `SELECT id, person_id, other_person_id, role, relationship, phrase,
+        `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
            primary_flag, specific_type, confidence, period_start_id, period_end_id
          FROM association ORDER BY id`,
       )
@@ -83,11 +72,22 @@ export class RelationRepo {
   listAssociationsFor(personId: string): AssociationRecord[] {
     const rows = this.db
       .prepare(
-        `SELECT id, person_id, other_person_id, role, relationship, phrase,
+        `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
            primary_flag, specific_type, confidence, period_start_id, period_end_id
          FROM association WHERE person_id = ? OR other_person_id = ? ORDER BY id`,
       )
       .all(personId, personId) as unknown as AssociationRow[];
+    return rows.map((row) => this.hydrate(row));
+  }
+
+  listAssociationsForFamily(familyId: string): AssociationRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
+           primary_flag, specific_type, confidence, period_start_id, period_end_id
+         FROM association WHERE family_id = ? ORDER BY id`,
+      )
+      .all(familyId) as unknown as AssociationRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
@@ -116,7 +116,8 @@ export class RelationRepo {
     );
     return {
       id: row.id,
-      personId: row.person_id,
+      personId: row.person_id ?? undefined,
+      familyId: row.family_id ?? undefined,
       otherPersonId: row.other_person_id,
       role: row.role ?? undefined,
       relationship: row.relationship ?? undefined,
@@ -174,7 +175,8 @@ export class RelationRepo {
 
 interface AssociationRow {
   id: string;
-  person_id: string;
+  person_id: string | null;
+  family_id: string | null;
   other_person_id: string;
   role: string | null;
   relationship: string | null;
@@ -189,7 +191,8 @@ interface AssociationRow {
 function associationParams(association: AssociationRecord, dates: DateRepo): Array<string | number | null> {
   return [
     association.id,
-    association.personId,
+    association.personId ?? null,
+    association.familyId ?? null,
     association.otherPersonId,
     association.role ?? null,
     association.relationship ?? null,

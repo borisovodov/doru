@@ -5,8 +5,14 @@ import { AddressLinkField } from './AddressLinkField';
 import { addressToDraft, emptyAddressDraft } from './address';
 
 const addresses: AddressRecord[] = [
-  { id: 'A1', lines: ['12 Archive Lane'], city: 'Moscow', postalCode: '101000', country: 'Russia' },
-  { id: 'A2', lines: ['3 Library Street'], city: 'Tver', country: 'Russia' },
+  {
+    id: 'A1',
+    lines: [{ id: 'L1', value: '12 Archive Lane' }],
+    city: 'Moscow',
+    postalCode: '101000',
+    country: 'Russia',
+  },
+  { id: 'A2', lines: [{ id: 'L2', value: '3 Library Street' }], city: 'Tver', country: 'Russia' },
 ];
 
 const firstAddress = addresses[0];

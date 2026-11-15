@@ -60,19 +60,6 @@ describe('media repo edge cases', () => {
 });
 
 describe('place repo edge cases', () => {
-  it('returns every place for an empty search', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertPlace({ id: 'P1', names: [{ id: 'N1', kind: 'official', position: 0, value: 'Moscow' }] });
-      repo.insertPlace({ id: 'P2', names: [{ id: 'N2', kind: 'official', position: 0, value: 'Berlin' }] });
-      expect(repo.searchPlaces('').map((place) => place.id)).toEqual(['P1', 'P2']);
-      expect(repo.searchPlaces('', 1).map((place) => place.id)).toEqual(['P1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('round-trips hierarchy, postal codes and their dates', () => {
     const fixture = makeRepo();
     try {
@@ -82,7 +69,10 @@ describe('place repo edge cases', () => {
       repo.insertPlace({
         id: 'P1',
         names: [{ id: 'N1', kind: 'official', position: 0, value: 'Moscow' }],
-        hierarchy: [{ parentId: 'P2', type: 'part-of' }, { parentId: 'P3' }],
+        hierarchy: [
+          { id: 'H1', parentId: 'P2', type: 'part-of' },
+          { id: 'H2', parentId: 'P3' },
+        ],
         postalCodes: [
           { id: 'PC1', code: '101000', date: { quality: 'exact' as const, component: { year: 2020 } } },
           { id: 'PC2', code: '101001' },
@@ -91,7 +81,10 @@ describe('place repo edge cases', () => {
 
       const read = repo.getPlace('P1')!;
       // Hierarchy rows come back ordered by their type (null first).
-      expect(read.hierarchy).toEqual([{ parentId: 'P3' }, { parentId: 'P2', type: 'part-of' }]);
+      expect(read.hierarchy).toEqual([
+        { id: 'H2', parentId: 'P3' },
+        { id: 'H1', parentId: 'P2', type: 'part-of' },
+      ]);
       expect(read.postalCodes).toEqual([
         { id: 'PC1', code: '101000', date: expect.objectContaining({ component: { year: 2020 } }) },
         { id: 'PC2', code: '101001' },

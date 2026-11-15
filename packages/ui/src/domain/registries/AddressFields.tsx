@@ -21,7 +21,7 @@ export function AddressFields({
 }) {
   const set = (patch: Partial<AddressDraft>) => onChange({ ...address, ...patch });
   const patchLine = (index: number, value: string) =>
-    set({ lines: address.lines.map((line, i) => (i === index ? value : line)) });
+    set({ lines: address.lines.map((line, i) => (i === index ? { ...line, value } : line)) });
 
   return (
     <Subcard>
@@ -33,7 +33,7 @@ export function AddressFields({
             <Input
               aria-label={nls.t('features.tree.address.line')}
               placeholder={nls.t('features.tree.address.line')}
-              value={line}
+              value={line.value}
               onChange={(event) => patchLine(index, event.target.value)}
             />
             <ReorderButtons
@@ -56,7 +56,7 @@ export function AddressFields({
           size="sm"
           variant="primary"
           icon={<Plus size={13} aria-hidden="true" />}
-          onClick={() => set({ lines: [...address.lines, ''] })}
+          onClick={() => set({ lines: [...address.lines, { id: undefined, value: '' }] })}
         >
           {nls.t('features.tree.address.addLine')}
         </Button>

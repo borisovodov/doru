@@ -58,8 +58,8 @@ export class AddressRepo {
   private replaceLines(address: AddressRecord): void {
     this.db.prepare('DELETE FROM address_line WHERE address_id = ?').run(address.id);
     const insert = this.db.prepare('INSERT INTO address_line (id, address_id, position, value) VALUES (?, ?, ?, ?)');
-    address.lines.forEach((value, position) => {
-      insert.run(crypto.randomUUID(), address.id, position, value);
+    address.lines.forEach((line, position) => {
+      insert.run(line.id, address.id, position, line.value);
     });
   }
 
@@ -71,9 +71,12 @@ export class AddressRepo {
     country: string | null;
   }): AddressRecord {
     const lines = this.db
-      .prepare('SELECT value FROM address_line WHERE address_id = ? ORDER BY position')
-      .all(row.id) as unknown as { value: string }[];
-    const address: AddressRecord = { id: row.id, lines: lines.map((line) => line.value) };
+      .prepare('SELECT id, value FROM address_line WHERE address_id = ? ORDER BY position')
+      .all(row.id) as unknown as { id: string; value: string }[];
+    const address: AddressRecord = {
+      id: row.id,
+      lines: lines.map((line) => ({ id: line.id, value: line.value })),
+    };
     if (row.city !== null) {
       address.city = row.city;
     }
