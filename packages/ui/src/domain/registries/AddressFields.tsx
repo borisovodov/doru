@@ -1,4 +1,5 @@
-import { Plus, X } from 'lucide-react';
+import { Paperclip, Plus, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
@@ -15,10 +16,13 @@ import styles from './AddressFields.module.css';
 export function AddressFields({
   address,
   onChange,
+  renderAttachments,
 }: {
   address: AddressDraft;
   onChange: (draft: AddressDraft) => void;
+  renderAttachments?: ((lineId: string) => ReactNode) | undefined;
 }) {
+  const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const set = (patch: Partial<AddressDraft>) => onChange({ ...address, ...patch });
   const patchLine = (index: number, value: string) =>
     set({ lines: address.lines.map((line, i) => (i === index ? { ...line, value } : line)) });
@@ -28,28 +32,38 @@ export function AddressFields({
       <div className={styles['fields']}>
         <h4 className={styles['title']}>{nls.t('features.tree.address.title')}</h4>
         {address.lines.map((line, index) => (
-          // oxlint-disable-next-line react/no-array-index-key -- address lines have no identity of their own
-          <div className={styles['lineRow']} key={index}>
-            <Input
-              aria-label={nls.t('features.tree.address.line')}
-              placeholder={nls.t('features.tree.address.line')}
-              value={line.value}
-              onChange={(event) => patchLine(index, event.target.value)}
-            />
-            <ReorderButtons
-              upLabel={nls.t('features.tree.reorder.up')}
-              downLabel={nls.t('features.tree.reorder.down')}
-              canMoveUp={index > 0}
-              canMoveDown={index < address.lines.length - 1}
-              onMoveUp={() => set({ lines: moveItem(address.lines, index, index - 1) })}
-              onMoveDown={() => set({ lines: moveItem(address.lines, index, index + 1) })}
-            />
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.address.removeLine')}
-              icon={<X size={13} aria-hidden="true" />}
-              onClick={() => set({ lines: address.lines.filter((_, lineIndex) => lineIndex !== index) })}
-            />
+          <div key={line.id ?? `new-${index}`}>
+            <div className={styles['lineRow']}>
+              <Input
+                aria-label={nls.t('features.tree.address.line')}
+                placeholder={nls.t('features.tree.address.line')}
+                value={line.value}
+                onChange={(event) => patchLine(index, event.target.value)}
+              />
+              <ReorderButtons
+                upLabel={nls.t('features.tree.reorder.up')}
+                downLabel={nls.t('features.tree.reorder.down')}
+                canMoveUp={index > 0}
+                canMoveDown={index < address.lines.length - 1}
+                onMoveUp={() => set({ lines: moveItem(address.lines, index, index - 1) })}
+                onMoveDown={() => set({ lines: moveItem(address.lines, index, index + 1) })}
+              />
+              {renderAttachments !== undefined && line.id !== undefined && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setExpandedLineId(expandedLineId === line.id ? null : (line.id ?? null))}
+                />
+              )}
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.address.removeLine')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => set({ lines: address.lines.filter((_, lineIndex) => lineIndex !== index) })}
+              />
+            </div>
+            {line.id !== undefined && expandedLineId === line.id && renderAttachments?.(line.id)}
           </div>
         ))}
         <Button

@@ -75,6 +75,39 @@ function parseDataset(text = GEDCOM) {
   return result.value.dataset;
 }
 
+describe('importGedcomDataset validation', () => {
+  it('rolls the whole import back when the file contains a parent cycle', () => {
+    const fixture = makeRepo();
+    try {
+      const cyclic = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME A /One/',
+        '1 FAMS @F1@',
+        '1 FAMC @F2@',
+        '0 @I2@ INDI',
+        '1 NAME B /Two/',
+        '1 FAMS @F2@',
+        '1 FAMC @F1@',
+        '0 @F1@ FAM',
+        '1 HUSB @I1@',
+        '1 CHIL @I2@',
+        '0 @F2@ FAM',
+        '1 HUSB @I2@',
+        '1 CHIL @I1@',
+        '0 TRLR',
+      ].join('\n');
+      expect(() => importGedcomDataset(parseDataset(cyclic), fixture.repo)).toThrow(/parent cycle/);
+      expect(fixture.repo.countPersons()).toBe(0);
+      expect(fixture.repo.listFamilies()).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
+
 describe('importGedcomDataset media', () => {
   it('imports OBJE records and links with the prepared project paths', () => {
     const fixture = makeRepo();

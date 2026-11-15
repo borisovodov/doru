@@ -46,6 +46,17 @@
   gap: 6px;
 }
 
+.partFieldRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.partFieldRow > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .extraPartRow,
 .addPartRow {
   display: flex;

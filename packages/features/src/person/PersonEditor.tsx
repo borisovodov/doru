@@ -321,6 +321,9 @@ export function PersonEditor({
               />
             ) : null
           }
+          renderPartAttachments={(partId) => (
+            <AttachmentsPanel targetType="name_part" targetId={partId} api={api} sources={sources} />
+          )}
         />
       </SectionCard>
 

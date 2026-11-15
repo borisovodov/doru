@@ -37,6 +37,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
+import { detectParentCycles } from '../validate/validator';
 import type {
   AssociationRecord,
   CitationRecord,
@@ -186,6 +187,10 @@ export function importGedcomDataset(
     importPersonRelations(dataset.records, ctx);
     linkPlaceHierarchy(ctx);
     importResearchRecords(dataset.records, ctx);
+    const cycles = detectParentCycles(repo.toTreeDocument());
+    if (cycles.length > 0) {
+      throw new Error(`GEDCOM import contains a parent cycle: ${cycles[0]?.message ?? 'unknown cycle'}`);
+    }
   });
   return {
     importedPersons,
@@ -990,6 +995,15 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       multiplicity: link.multiplicity,
     });
   }
+  const marriageStatuses = (record.marriageStatuses ?? []).map((status) => ({
+    mapped: {
+      id: crypto.randomUUID(),
+      status: status.payload,
+      date: mapDate(status.date),
+      placeId: status.place ? importPlace(status.place, ctx) : undefined,
+    },
+    source: status,
+  }));
   ctx.repo.insertFamily({
     id,
     xref: record.xref,
@@ -1000,17 +1014,16 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     marriageBeginStatus: record.marriageBeginningStatus,
     marriageEndStatus: record.marriageEndingStatus,
     witnesses: record.witnesses,
-    marriageStatuses: (record.marriageStatuses ?? []).map((status) => ({
-      id: crypto.randomUUID(),
-      status: status.payload,
-      date: mapDate(status.date),
-      placeId: status.place ? importPlace(status.place, ctx) : undefined,
-    })),
+    marriageStatuses: marriageStatuses.map((entry) => entry.mapped),
     partners: partnerLinks.map((link) => link.personId),
     children: childLinks.map((link) => link.childId),
     partnerLinks,
     childLinks,
   });
+  for (const entry of marriageStatuses) {
+    importNotes(entry.source.notes, 'family_marriage_status', entry.mapped.id, ctx);
+    importCitations(entry.source.citations, 'family_marriage_status', entry.mapped.id, ctx);
+  }
   const childrenByXref = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.children ?? []) {
     childrenByXref.set(link.child, link.notes);

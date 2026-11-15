@@ -120,7 +120,13 @@ function AddressTabBody({
         }
       />
       <SectionCard title={nls.t('features.tree.address.title')}>
-        <AddressFields address={address} onChange={setAddress} />
+        <AddressFields
+          address={address}
+          onChange={setAddress}
+          renderAttachments={(lineId) => (
+            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+          )}
+        />
         {usageCount > 0 && (
           <p className="side-registries-note">{nls.t('features.tree.address.deleteWarning', usageCount)}</p>
         )}

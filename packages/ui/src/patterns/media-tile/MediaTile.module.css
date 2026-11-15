@@ -20,6 +20,10 @@
   cursor: pointer;
 }
 
+.muted {
+  opacity: 0.55;
+}
+
 .badge {
   position: absolute;
   bottom: 4px;

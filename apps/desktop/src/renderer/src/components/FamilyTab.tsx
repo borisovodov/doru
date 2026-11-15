@@ -159,6 +159,9 @@ function FamilyTabBody({
             ...(record.childLinks ?? []).map((link) => link.id),
           ])
         }
+        renderStatusAttachments={(statusId) => (
+          <AttachmentsPanel targetType="family_marriage_status" targetId={statusId} api={api} sources={sources} />
+        )}
         renderLinkAttachments={(kind, linkId) => (
           <AttachmentsPanel
             targetType={kind === 'partner' ? 'family_partner' : 'family_child'}

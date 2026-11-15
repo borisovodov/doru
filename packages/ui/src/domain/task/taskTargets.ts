@@ -66,6 +66,13 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
           label: `${familyLabel(family, personById)} · ${displayName(personById.get(link.childId))}`,
         })),
       );
+    case 'family_marriage_status':
+      return data.families.flatMap((family) =>
+        (family.marriageStatuses ?? []).map((status) => ({
+          id: status.id,
+          label: `${familyLabel(family, personById)} · ${status.status}`,
+        })),
+      );
     case 'fact':
       return data.facts.map((fact) => ({
         id: fact.id,
@@ -79,6 +86,15 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
       }));
     case 'name':
       return data.persons.flatMap((person) => nameOptions(person));
+    case 'name_part':
+      return data.persons.flatMap((person) =>
+        person.names.flatMap((name) =>
+          (name.parts ?? []).map((part) => ({
+            id: part.id,
+            label: `${displayName(person)} · ${nameLabel(name)} · ${part.kind}`,
+          })),
+        ),
+      );
     case 'source':
       return data.sources.map((source) => ({ id: source.id, label: source.title ?? source.id }));
     case 'citation':
@@ -99,6 +115,13 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
       );
     case 'place':
       return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
+    case 'place_name':
+      return data.places.flatMap((place) =>
+        place.names.map((name) => ({
+          id: name.id,
+          label: `${placeName(place)} · ${name.value}`,
+        })),
+      );
     case 'place_hierarchy':
       return data.places.flatMap((place) =>
         (place.hierarchy ?? []).map((link) => {

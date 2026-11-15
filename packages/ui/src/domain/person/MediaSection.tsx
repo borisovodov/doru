@@ -76,7 +76,11 @@ export function MediaSection({
     setAllMedia(await api.getAllMedia());
   };
 
-  const visibleMedia = media.filter(isVisibleMedia);
+  const linkOf = (item: MediaRecord) =>
+    item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+  const visibleMedia = media
+    .filter(isVisibleMedia)
+    .sort((a, b) => Number(linkOf(b)?.primary === true) - Number(linkOf(a)?.primary === true));
   const attachable = allMedia.filter(
     (item) =>
       isVisibleMedia(item) &&
@@ -90,7 +94,7 @@ export function MediaSection({
       ) : (
         <div className={styles['grid']}>
           {visibleMedia.map((item) => {
-            const link = item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+            const link = linkOf(item);
             const badge =
               link?.primary === true
                 ? nls.t('features.tree.media.primary')
@@ -103,6 +107,7 @@ export function MediaSection({
                 src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
                 alt={item.title ?? ''}
                 {...(badge !== undefined ? { badge } : {})}
+                {...(link?.exclude === true ? { muted: true } : {})}
                 {...(onOpenMedia
                   ? {
                       openLabel: nls.t('features.tree.media.open'),

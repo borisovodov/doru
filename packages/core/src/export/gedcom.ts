@@ -489,6 +489,8 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
             payload: status.status,
             ...(status.date !== undefined ? { date: buildDate(status.date) } : {}),
             ...(status.placeId !== undefined ? { place: buildPlace(repo, status.placeId, xrefs) } : {}),
+            ...withNoteList(repo, 'family_marriage_status', status.id, xrefs),
+            ...withCitationList(repo, 'family_marriage_status', status.id, xrefs),
           })) as import('@doru/gedcom').MarriageStatusStructure[],
         }
       : {}),

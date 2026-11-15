@@ -51,12 +51,14 @@ export function FamilyEditor({
   api,
   savedLinkIds,
   renderLinkAttachments,
+  renderStatusAttachments,
   onSave,
   onDelete,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
   renderLinkAttachments?: ((kind: 'partner' | 'child', linkId: string) => ReactNode) | undefined;
+  renderStatusAttachments?: ((statusId: string) => ReactNode) | undefined;
   onChange: (draft: FamilyDraft) => void;
   persons: PersonRecord[];
   families: FamilyRecord[];
@@ -76,6 +78,7 @@ export function FamilyEditor({
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
+  const [expandedStatusId, setExpandedStatusId] = useState<string | null>(null);
 
   const set = (patch: Partial<FamilyDraft>) => onChange({ ...draft, ...patch });
 
@@ -238,6 +241,14 @@ export function FamilyEditor({
                   })
                 }
               />
+              {renderStatusAttachments !== undefined && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setExpandedStatusId(expandedStatusId === status.id ? null : status.id)}
+                />
+              )}
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.family.removeWitness')}
@@ -245,6 +256,7 @@ export function FamilyEditor({
                 onClick={() => set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) })}
               />
             </div>
+            {expandedStatusId === status.id && renderStatusAttachments?.(status.id)}
             <DateEditor
               label={nls.t('features.tree.names.date')}
               value={status.date}
