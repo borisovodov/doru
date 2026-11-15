@@ -131,6 +131,6 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
   await expect(tasks).toBeVisible();
   await tasks.getByRole('button', { name: 'Open task' }).click();
   await expect(page.getByLabel('Related to')).toBeVisible();
-  await expect(page.getByLabel('Related to').locator('option')).toHaveCount(19);
+  await expect(page.getByLabel('Related to').locator('option')).toHaveCount(21);
   await expect(page.getByLabel('Related to').locator('option', { hasText: 'Event' })).toHaveCount(1);
 });
