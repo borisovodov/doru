@@ -23,6 +23,7 @@ export function projectLayout(
   collapsed: ReadonlySet<string>,
   counts: Record<string, PersonCounts>,
   dropTargetId: string | null,
+  photos: ReadonlyMap<string, string>,
   callbacks: ProjectionCallbacks,
 ): { nodes: CanvasNode[]; edges: Edge[] } {
   const personById = new Map(persons.map((person) => [person.id, person]));
@@ -71,6 +72,7 @@ export function projectLayout(
       hasSubtree: card.hasSubtree,
       collapsed: collapsed.has(card.personId),
       counts: counts[card.personId] ?? { notes: 0, sources: 0, media: 0 },
+      ...(photos.get(card.personId) !== undefined ? { photo: photos.get(card.personId) } : {}),
       isDropTarget: card.personId === dropTargetId,
       onToggleCollapse: callbacks.onToggleCollapse,
       onAction: callbacks.onAction,

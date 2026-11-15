@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord, PersonRecord } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
-import { TreeService } from '../src/service/tree';
+import { ParentCycleError, TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const person = (id: string, sex: PersonRecord['sex'] = 'U'): PersonRecord => ({
@@ -43,6 +43,90 @@ describe('TreeService families, persons and facts', () => {
       expect(fixture.repo.listFamilies()).toEqual([]);
       service.undo();
       expect(fixture.repo.getFamily('F1')).toMatchObject({ partners: ['P1', 'P2'], children: ['K1'] });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects family links that would create a parent cycle', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('P3'));
+      service.addFamily(family({ partners: ['P1'], children: ['P2'] }));
+      service.addFamily(family({ id: 'F2', partners: ['P2'], children: ['P3'] }));
+
+      expect(() => service.reparent('P1', 'P3')).toThrow(ParentCycleError);
+      expect(() => service.addFamily(family({ id: 'F3', partners: ['P1'], children: ['P1'] }))).toThrow(
+        ParentCycleError,
+      );
+
+      const before = fixture.repo.getFamily('F1')!;
+      expect(() =>
+        service.updateFamily(before, {
+          ...before,
+          partners: ['P1', 'P3'],
+          children: ['P2'],
+        }),
+      ).toThrow(ParentCycleError);
+      expect(fixture.repo.getFamily('F1')).toMatchObject({ partners: ['P1'], children: ['P2'] });
+
+      service.reparent('P3', 'P1');
+      expect(fixture.repo.getFamily('F1')?.children).toContain('P3');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('clears partner dates and child details when an edited link omits them', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('K1'));
+      service.addFamily(
+        family({
+          partners: ['P1'],
+          children: ['K1'],
+          partnerLinks: [
+            {
+              id: 'PL1',
+              personId: 'P1',
+              preferred: true,
+              date: { quality: 'exact', component: { year: 1900 } },
+            },
+          ],
+          childLinks: [
+            {
+              id: 'CL1',
+              childId: 'K1',
+              pedigree: 'adopted',
+              pedigreePhrase: 'adopted abroad',
+              status: 'proven',
+              fatherRelation: 'adoptive',
+              motherRelation: 'birth',
+            },
+          ],
+        }),
+      );
+
+      const before = fixture.repo.getFamily('F1')!;
+      service.updateFamily(before, {
+        ...before,
+        partnerLinks: [{ id: 'PL1', personId: 'P1' }],
+        childLinks: [{ id: 'CL1', childId: 'K1' }],
+      });
+
+      const after = fixture.repo.getFamily('F1')!;
+      expect(after.partnerLinks?.[0]).toMatchObject({ id: 'PL1', personId: 'P1' });
+      expect(after.partnerLinks?.[0]?.date).toBeUndefined();
+      expect(after.partnerLinks?.[0]?.preferred).toBeUndefined();
+      expect(after.childLinks?.[0]).toMatchObject({ id: 'CL1', childId: 'K1' });
+      expect(after.childLinks?.[0]?.pedigree).toBeUndefined();
+      expect(after.childLinks?.[0]?.pedigreePhrase).toBeUndefined();
+      expect(after.childLinks?.[0]?.status).toBeUndefined();
+      expect(after.childLinks?.[0]?.fatherRelation).toBeUndefined();
+      expect(after.childLinks?.[0]?.motherRelation).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }
@@ -202,7 +286,7 @@ describe('TreeService families, persons and facts', () => {
     }
   });
 
-  it('lists and searches places through the service', () => {
+  it('lists and gets places through the service', () => {
     const { fixture, service } = makeService();
     try {
       service.addPlace({
@@ -210,8 +294,6 @@ describe('TreeService families, persons and facts', () => {
         names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }],
       });
       expect(service.listPlaces().map((place) => place.id)).toEqual(['PL1']);
-      expect(service.searchPlaces('mosc').map((place) => place.id)).toEqual(['PL1']);
-      expect(service.searchPlaces('zzz')).toEqual([]);
       expect(service.getPlace('PL1')?.id).toBe('PL1');
       expect(service.getPlace('missing')).toBeUndefined();
     } finally {

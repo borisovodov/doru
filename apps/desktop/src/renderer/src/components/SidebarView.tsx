@@ -65,6 +65,7 @@ export function SidebarView({
   onNewTitle,
   onNewPerson,
   onNewPlace,
+  onNewMedia,
   onNewSource,
   onNewRepository,
   onNewSubmitter,
@@ -99,6 +100,7 @@ export function SidebarView({
   onNewTitle: () => void;
   onNewPerson: () => void;
   onNewPlace: () => void;
+  onNewMedia: () => void;
   onNewSource: () => void;
   onNewRepository: () => void;
   onNewSubmitter: () => void;
@@ -175,15 +177,26 @@ export function SidebarView({
       );
     case 'media': {
       const visibleMedia = media.filter(isVisibleMedia);
-      if (visibleMedia.length === 0) {
-        return (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.media')}
-            description={nls.t('features.media.placeholder')}
-          />
-        );
-      }
-      return <SidebarMedia media={visibleMedia} persons={persons} onOpenMedia={onOpenMedia} />;
+      return (
+        <>
+          <div className="tasks-header">
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.media.add')}
+              icon={<Plus size={14} aria-hidden="true" />}
+              onClick={onNewMedia}
+            />
+          </div>
+          {visibleMedia.length === 0 ? (
+            <PlaceholderView
+              title={nls.t('workbench.activityBar.media')}
+              description={nls.t('features.media.placeholder')}
+            />
+          ) : (
+            <SidebarMedia media={visibleMedia} persons={persons} onOpenMedia={onOpenMedia} />
+          )}
+        </>
+      );
     }
     case 'sources':
       return (

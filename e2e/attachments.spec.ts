@@ -57,13 +57,13 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
 
       await window.doru.addAddress(project, {
         id: 'A1',
-        lines: ['1 Main Street'],
+        lines: [{ id: 'AL1', value: '1 Main Street' }],
         city: 'Testville',
       });
       await window.doru.updateAddress(
         project,
-        { id: 'A1', lines: ['1 Main Street'], city: 'Testville' },
-        { id: 'A1', lines: ['2 Main Street'], city: 'Testville' },
+        { id: 'A1', lines: [{ id: 'AL1', value: '1 Main Street' }], city: 'Testville' },
+        { id: 'A1', lines: [{ id: 'AL1', value: '2 Main Street' }], city: 'Testville' },
       );
       await window.doru.addFact(project, {
         id: 'AF1',
@@ -73,7 +73,7 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
       });
       await window.doru.deleteAddress(project, {
         id: 'A1',
-        lines: ['2 Main Street'],
+        lines: [{ id: 'AL1', value: '2 Main Street' }],
         city: 'Testville',
       });
       const facts = await window.doru.getFacts(project, 'I1');
@@ -131,6 +131,6 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
   await expect(tasks).toBeVisible();
   await tasks.getByRole('button', { name: 'Open task' }).click();
   await expect(page.getByLabel('Related to')).toBeVisible();
-  await expect(page.getByLabel('Related to').locator('option')).toHaveCount(19);
+  await expect(page.getByLabel('Related to').locator('option')).toHaveCount(24);
   await expect(page.getByLabel('Related to').locator('option', { hasText: 'Event' })).toHaveCount(1);
 });

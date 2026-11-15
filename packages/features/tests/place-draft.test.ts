@@ -3,6 +3,7 @@ import type { PlaceRecord } from '@doru/core';
 import { emptyDate } from '@doru/ui/domain';
 import {
   emptyPlaceDraft,
+  emptyPlaceNameDraft,
   placeDraftMatches,
   placeDraftName,
   placeDraftToRecord,
@@ -38,12 +39,27 @@ describe('placeToDraft / placeDraftToRecord', () => {
       latitude: 54.19,
       longitude: 37.61,
       verified: true,
+      form: ['city', 'region', 'country'],
+      abbreviation: 'TUL',
+      preposition: 'in',
+      govId: 'RU-TUL',
+      maidenhead: 'KO91',
+      placeType: 'city',
       names: [
-        { id: 'N1', kind: 'official', position: 0, value: 'Tula' },
+        {
+          id: 'N1',
+          kind: 'official',
+          position: 0,
+          value: 'Tula',
+          addition: 'Tula Oblast',
+          abbreviation: 'Tul.',
+          abbreviationType: 'ISO',
+          date: { quality: 'exact', component: { year: 1800 } },
+        },
         { id: 'N2', kind: 'official', position: 1, value: 'Tula Oblast' },
         { id: 'N3', kind: 'translation', language: 'en', position: 0, value: 'Tula' },
       ],
-      hierarchy: [{ parentId: 'PL2', type: 'poli' }],
+      hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
       postalCodes: [
         { id: 'PC1', code: '300000', date: { quality: 'exact', component: { year: 1930 } } },
         { id: 'PC2', code: '300999' },
@@ -56,7 +72,13 @@ describe('placeToDraft / placeDraftToRecord', () => {
       latitude: '54.19',
       longitude: '37.61',
       verified: true,
-      hierarchy: [{ parentId: 'PL2', type: 'poli' }],
+      form: 'city, region, country',
+      abbreviation: 'TUL',
+      preposition: 'in',
+      govId: 'RU-TUL',
+      maidenhead: 'KO91',
+      placeType: 'city',
+      hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
     });
     expect(draft.names).toHaveLength(3);
     expect(draft.names[1]).toMatchObject({ id: 'N2', kind: 'official', value: 'Tula Oblast' });
@@ -69,9 +91,9 @@ describe('placeToDraft / placeDraftToRecord', () => {
       ...emptyPlaceDraft(),
       latitude: '54.19',
       longitude: 'abc',
-      names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: '  Tula  ' }],
+      names: [{ ...emptyPlaceNameDraft(0), id: 'N1', value: '  Tula  ' }],
       postalCodes: [{ id: 'PC1', code: '  ', date: emptyDate() }],
-      hierarchy: [{ parentId: '', type: '' }],
+      hierarchy: [{ id: 'H1', parentId: '', type: '', date: emptyDate() }],
     });
     expect(record.latitude).toBe(54.19);
     expect(record.longitude).toBeUndefined();
@@ -107,11 +129,10 @@ describe('placeDraftMatches', () => {
     const base = placeToDraft(stored);
     expect(placeDraftMatches({ ...base, latitude: '54.2' }, stored)).toBe(false);
     expect(
-      placeDraftMatches(
-        { ...base, names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: 'Kaluga' }] },
-        stored,
-      ),
+      placeDraftMatches({ ...base, names: [{ ...emptyPlaceNameDraft(0), id: 'N1', value: 'Kaluga' }] }, stored),
     ).toBe(false);
-    expect(placeDraftMatches({ ...base, hierarchy: [{ parentId: 'PL2', type: '' }] }, stored)).toBe(false);
+    expect(
+      placeDraftMatches({ ...base, hierarchy: [{ id: 'H1', parentId: 'PL2', type: '', date: emptyDate() }] }, stored),
+    ).toBe(false);
   });
 });

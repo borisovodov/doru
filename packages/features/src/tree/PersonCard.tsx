@@ -20,6 +20,8 @@ export type PersonCardData = {
   collapsed: boolean;
   /** Badge counts (notes, sources, media). */
   counts: PersonCounts;
+  /** URL of the person's primary media, when one is marked. */
+  photo?: string | undefined;
   /** Highlighted as the drop target of an ongoing card drag. */
   isDropTarget: boolean;
   /** A never-persisted draft card (new person typed on the canvas). */
@@ -51,6 +53,7 @@ export const PersonCard = memo(function PersonCard({ data, selected, dragging }:
     collapsed,
     counts,
     isDropTarget,
+    photo,
     isDraft,
     isEditing,
     onDraftSave,
@@ -81,6 +84,7 @@ export const PersonCard = memo(function PersonCard({ data, selected, dragging }:
         collapsed={false}
         counts={counts}
         isDropTarget={false}
+        {...(photo !== undefined ? { photo } : {})}
         isEditing
         editingContent={
           <PersonCardEditor autoFocus onSave={(next) => onDraftSave?.(next)} onCancel={() => onDraftCancel?.()} />
@@ -101,6 +105,7 @@ export const PersonCard = memo(function PersonCard({ data, selected, dragging }:
       collapsed={collapsed}
       counts={counts}
       isDropTarget={isDropTarget}
+      {...(photo !== undefined ? { photo } : {})}
       selected={selected}
       dragging={dragging}
       isDraft={isDraft}

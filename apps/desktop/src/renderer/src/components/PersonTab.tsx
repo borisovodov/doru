@@ -13,6 +13,7 @@ export function PersonTab({
   onOpenMedia,
   onClose,
   onCreated,
+  onDeletePerson,
 }: {
   tabId: string;
   persons: PersonRecord[];
@@ -21,6 +22,7 @@ export function PersonTab({
   onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
+  onDeletePerson: (person: PersonRecord) => Promise<void>;
 }) {
   const personId = tabId.slice(PERSON_TAB_PREFIX.length);
   const isNew = personId.startsWith('new:');
@@ -39,6 +41,7 @@ export function PersonTab({
       onOpenMedia={onOpenMedia}
       onClose={onClose}
       onCreated={onCreated}
+      onDeletePerson={onDeletePerson}
     />
   );
 }
@@ -53,6 +56,7 @@ function PersonTabBody({
   onOpenMedia,
   onClose,
   onCreated,
+  onDeletePerson,
 }: {
   tabId: string;
   personId: string;
@@ -63,6 +67,7 @@ function PersonTabBody({
   onOpenMedia: (mediaId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
+  onDeletePerson: (person: PersonRecord) => Promise<void>;
 }) {
   const record = persons.find((person) => person.id === personId);
   const [draft, setDraft] = useState<PersonDraft>(() =>
@@ -114,6 +119,13 @@ function PersonTabBody({
       persons={persons}
       onChange={setDraft}
       onSave={() => void save()}
+      onDelete={
+        !draft.isNew && record !== undefined
+          ? () => {
+              void onDeletePerson(record).then(() => onClose(tabId));
+            }
+          : undefined
+      }
       onCancel={draft.isNew && !created ? () => onClose(tabId) : undefined}
       api={api}
       mediaApi={mediaApi}

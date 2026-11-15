@@ -40,6 +40,7 @@ import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttac
 import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
 import { TagsSection } from '@doru/ui/domain';
+import { addressLabel } from '@doru/ui/domain';
 import { TasksSection } from '@doru/ui/domain';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
 import type { MediaTargetApi, MediaWithPath, PersonEditorApi } from './types';
@@ -49,6 +50,7 @@ export interface PersonEditorProps {
   persons: PersonRecord[];
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
+  onDelete?: (() => void) | undefined;
   onCancel?: (() => void) | undefined;
   api: PersonEditorApi;
   mediaApi: MediaTargetApi;
@@ -64,6 +66,7 @@ export function PersonEditor({
   persons,
   onChange,
   onSave,
+  onDelete,
   onCancel,
   api,
   mediaApi,
@@ -275,6 +278,11 @@ export function PersonEditor({
             <Button variant="primary" size="sm" onClick={onSave}>
               {nls.t('features.tree.save')}
             </Button>
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
             {onCancel && (
               <Button variant="secondary" size="sm" onClick={onCancel}>
                 {nls.t('features.tree.back')}
@@ -313,6 +321,9 @@ export function PersonEditor({
               />
             ) : null
           }
+          renderPartAttachments={(partId) => (
+            <AttachmentsPanel targetType="name_part" targetId={partId} api={api} sources={sources} />
+          )}
         />
       </SectionCard>
 
@@ -323,6 +334,19 @@ export function PersonEditor({
             <option value="M">{nls.t('features.tree.sex.M')}</option>
             <option value="F">{nls.t('features.tree.sex.F')}</option>
             <option value="X">{nls.t('features.tree.sex.X')}</option>
+          </Select>
+        </Field>
+        <Field label={nls.t('features.tree.address.title')}>
+          <Select
+            value={draft.addressId ?? ''}
+            onChange={(event) => set({ addressId: event.target.value || undefined })}
+          >
+            <option value="">{nls.t('features.tasks.none')}</option>
+            {addresses.map((address) => (
+              <option key={address.id} value={address.id}>
+                {addressLabel(address)}
+              </option>
+            ))}
           </Select>
         </Field>
         <DateEditor
@@ -352,7 +376,7 @@ export function PersonEditor({
             onDeleteFact={api.deleteFact}
           />
           <AssociationsSection
-            personId={draft.id}
+            owner={{ kind: 'person', id: draft.id }}
             associations={associations}
             persons={persons}
             onAdd={async (association) => {

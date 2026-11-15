@@ -20,6 +20,15 @@ export interface CitationDraft {
   role: string;
   phrase: string;
   www: string;
+  name: string;
+  qualityAssessment: string;
+  reference: string;
+  referenceNumber: string;
+  abbreviation: string;
+  footnote: string;
+  verified: boolean;
+  assessment: string;
+  foundBy: string;
   date: DateDraft;
   texts: SourceTextDraft[];
   templateFields: TemplateFieldDraft[];
@@ -39,6 +48,15 @@ export function citationToDraft(citation: CitationRecord): CitationDraft {
     role: citation.role ?? '',
     phrase: citation.phrase ?? '',
     www: citation.www ?? '',
+    name: citation.name ?? '',
+    qualityAssessment: citation.qualityAssessment ?? '',
+    reference: citation.reference ?? '',
+    referenceNumber: citation.referenceNumber ?? '',
+    abbreviation: citation.abbreviation ?? '',
+    footnote: citation.footnote ?? '',
+    verified: citation.verified === true,
+    assessment: citation.assessment ?? '',
+    foundBy: citation.foundBy ?? '',
     date: toDateDraft(citation.date),
     texts: (citation.texts ?? []).map((text) => ({
       id: text.id,
@@ -69,6 +87,15 @@ export function citationDraftToRecord(draft: CitationDraft): CitationRecord {
     role: draft.role.trim() || undefined,
     phrase: draft.phrase.trim() || undefined,
     www: draft.www.trim() || undefined,
+    name: draft.name.trim() || undefined,
+    qualityAssessment: draft.qualityAssessment.trim() || undefined,
+    reference: draft.reference.trim() || undefined,
+    referenceNumber: draft.referenceNumber.trim() || undefined,
+    abbreviation: draft.abbreviation.trim() || undefined,
+    footnote: draft.footnote.trim() || undefined,
+    verified: draft.verified || undefined,
+    assessment: draft.assessment.trim() || undefined,
+    foundBy: draft.foundBy.trim() || undefined,
     date: fromDateDraft(draft.date),
     texts: draft.texts
       .filter((text) => text.text.trim() !== '')

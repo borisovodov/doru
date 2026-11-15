@@ -24,7 +24,7 @@ import {
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
 import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -219,6 +219,9 @@ function SubmitterTabBody({
           onSelect={selectAddress}
           onChange={setAddress}
           onOpen={onOpenAddress}
+          renderAttachments={(lineId) => (
+            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+          )}
         />
       </SectionCard>
       {targetId !== undefined && (

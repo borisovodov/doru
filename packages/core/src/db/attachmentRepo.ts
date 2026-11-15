@@ -24,8 +24,15 @@ export class AttachmentRepo {
 
   insertIdentifier(identifier: IdentifierRecord): void {
     this.db
-      .prepare('INSERT INTO identifier (id, target_type, target_id, namespace, value) VALUES (?, ?, ?, ?, ?)')
-      .run(identifier.id, identifier.targetType, identifier.targetId, identifier.namespace, identifier.value);
+      .prepare('INSERT INTO identifier (id, target_type, target_id, namespace, type, value) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(
+        identifier.id,
+        identifier.targetType,
+        identifier.targetId,
+        identifier.namespace,
+        identifier.type ?? null,
+        identifier.value,
+      );
   }
 
   deleteIdentifier(id: string): boolean {
@@ -34,20 +41,28 @@ export class AttachmentRepo {
 
   updateIdentifier(identifier: IdentifierRecord): void {
     this.db
-      .prepare('UPDATE identifier SET target_type = ?, target_id = ?, namespace = ?, value = ? WHERE id = ?')
-      .run(identifier.targetType, identifier.targetId, identifier.namespace, identifier.value, identifier.id);
+      .prepare('UPDATE identifier SET target_type = ?, target_id = ?, namespace = ?, type = ?, value = ? WHERE id = ?')
+      .run(
+        identifier.targetType,
+        identifier.targetId,
+        identifier.namespace,
+        identifier.type ?? null,
+        identifier.value,
+        identifier.id,
+      );
   }
 
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT id, target_type, target_id, namespace, value FROM identifier WHERE target_type = ? AND target_id = ? ORDER BY id',
+        'SELECT id, target_type, target_id, namespace, type, value FROM identifier WHERE target_type = ? AND target_id = ? ORDER BY id',
       )
       .all(targetType, targetId) as unknown as {
       id: string;
       target_type: string;
       target_id: string;
       namespace: string;
+      type: string | null;
       value: string;
     }[];
     return rows.map((row) => ({
@@ -55,6 +70,7 @@ export class AttachmentRepo {
       targetType: row.target_type,
       targetId: row.target_id,
       namespace: row.namespace,
+      ...(row.type !== null ? { type: row.type } : {}),
       value: row.value,
     }));
   }
@@ -142,17 +158,6 @@ export class AttachmentRepo {
     this.db
       .prepare('INSERT INTO change (id, target_type, target_id, kind, date_id, user) VALUES (?, ?, ?, ?, ?, ?)')
       .run(change.id, change.targetType, change.targetId, change.kind, dateId, change.user ?? null);
-  }
-
-  deleteChange(id: string): boolean {
-    const row = this.db.prepare('SELECT date_id FROM change WHERE id = ?').get(id) as
-      | { date_id: string | null }
-      | undefined;
-    const result = this.db.prepare('DELETE FROM change WHERE id = ?').run(id);
-    if (row?.date_id !== null && row?.date_id !== undefined) {
-      this.dates.delete(row.date_id);
-    }
-    return result.changes > 0;
   }
 
   listChangesFor(targetType: string, targetId: string): ChangeRecord[] {

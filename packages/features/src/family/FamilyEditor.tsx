@@ -6,6 +6,7 @@ import { Paperclip, Plus, Users, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type {
   AddressRecord,
+  AssociationRecord,
   FactRecord,
   FamilyRecord,
   PersonRecord,
@@ -13,10 +14,11 @@ import type {
   SourceRecord,
   SubmitterRecord,
 } from '@doru/core';
+import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
-import { ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
+import { AssociationsSection, ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
 import { CitationAttachments } from '../attachments/TargetAttachments';
 import { Button, EditorPage, EntityViewCard } from '@doru/ui';
@@ -26,6 +28,7 @@ import {
   PEDIGREE_TYPES,
   moveItem,
   emptyChildLinkDraft,
+  emptyMarriageStatusDraft,
   emptyPartnerLinkDraft,
   type ChildLinkDraft,
   type FamilyDraft,
@@ -43,19 +46,23 @@ export function FamilyEditor({
   onChange,
   persons,
   families,
+  associations,
   sources,
   api,
   savedLinkIds,
   renderLinkAttachments,
+  renderStatusAttachments,
   onSave,
   onDelete,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
   renderLinkAttachments?: ((kind: 'partner' | 'child', linkId: string) => ReactNode) | undefined;
+  renderStatusAttachments?: ((statusId: string) => ReactNode) | undefined;
   onChange: (draft: FamilyDraft) => void;
   persons: PersonRecord[];
   families: FamilyRecord[];
+  associations: AssociationRecord[];
   sources: SourceRecord[];
   api: FamilyEditorApi;
   onSave: () => void;
@@ -71,6 +78,7 @@ export function FamilyEditor({
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
+  const [expandedStatusId, setExpandedStatusId] = useState<string | null>(null);
 
   const set = (patch: Partial<FamilyDraft>) => onChange({ ...draft, ...patch });
 
@@ -161,6 +169,135 @@ export function FamilyEditor({
         }
       />
 
+      <SectionCard title={nls.t('features.tree.families.details')}>
+        <Checkbox
+          label={nls.t('features.tree.family.preferred')}
+          checked={draft.preferred}
+          onChange={(event) => set({ preferred: event.target.checked })}
+        />
+        <Checkbox
+          label={nls.t('features.tree.family.sameSex')}
+          checked={draft.sameSex}
+          onChange={(event) => set({ sameSex: event.target.checked })}
+        />
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.family.unionKind')}>
+            <Input value={draft.unionKind} onChange={(event) => set({ unionKind: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.family.unionStatus')}>
+            <Input value={draft.unionStatus} onChange={(event) => set({ unionStatus: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.family.marriageBeginStatus')}>
+            <Input
+              value={draft.marriageBeginStatus}
+              onChange={(event) => set({ marriageBeginStatus: event.target.value })}
+            />
+          </Field>
+          <Field label={nls.t('features.tree.family.marriageEndStatus')}>
+            <Input
+              value={draft.marriageEndStatus}
+              onChange={(event) => set({ marriageEndStatus: event.target.value })}
+            />
+          </Field>
+        </FieldGrid>
+        <h4>{nls.t('features.tree.family.witnesses')}</h4>
+        {draft.witnesses.map((witness, index) => (
+          // oxlint-disable-next-line react/no-array-index-key -- witnesses are plain text rows
+          <div className="family-link-head" key={index}>
+            <Input
+              value={witness}
+              aria-label={nls.t('features.tree.family.witnesses')}
+              onChange={(event) =>
+                set({ witnesses: draft.witnesses.map((value, i) => (i === index ? event.target.value : value)) })
+              }
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.family.removeWitness')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => set({ witnesses: draft.witnesses.filter((_, i) => i !== index) })}
+            />
+          </div>
+        ))}
+        <Button size="sm" variant="secondary" onClick={() => set({ witnesses: [...draft.witnesses, ''] })}>
+          <Plus size={13} aria-hidden="true" />
+          {nls.t('features.tree.family.addWitness')}
+        </Button>
+      </SectionCard>
+
+      <SectionCard title={nls.t('features.tree.family.marriageStatuses')}>
+        {draft.marriageStatuses.map((status, index) => (
+          <Subcard key={status.id}>
+            <div className="family-link-head">
+              <Input
+                aria-label={nls.t('features.tree.family.marriageStatus')}
+                placeholder={nls.t('features.tree.family.marriageStatus')}
+                value={status.status}
+                onChange={(event) =>
+                  set({
+                    marriageStatuses: draft.marriageStatuses.map((entry, i) =>
+                      i === index ? { ...entry, status: event.target.value } : entry,
+                    ),
+                  })
+                }
+              />
+              {renderStatusAttachments !== undefined && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setExpandedStatusId(expandedStatusId === status.id ? null : status.id)}
+                />
+              )}
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.family.removeWitness')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) })}
+              />
+            </div>
+            {expandedStatusId === status.id && renderStatusAttachments?.(status.id)}
+            <DateEditor
+              label={nls.t('features.tree.names.date')}
+              value={status.date}
+              onChange={(date) =>
+                set({
+                  marriageStatuses: draft.marriageStatuses.map((entry, i) =>
+                    i === index ? { ...entry, date } : entry,
+                  ),
+                })
+              }
+              hidePlace
+            />
+            <Select
+              value={status.placeId}
+              onChange={(event) =>
+                set({
+                  marriageStatuses: draft.marriageStatuses.map((entry, i) =>
+                    i === index ? { ...entry, placeId: event.target.value } : entry,
+                  ),
+                })
+              }
+            >
+              <option value="">{nls.t('features.tree.fact.placeLink.none')}</option>
+              {places.map((place) => (
+                <option key={place.id} value={place.id}>
+                  {placeName(place)}
+                </option>
+              ))}
+            </Select>
+          </Subcard>
+        ))}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => set({ marriageStatuses: [...draft.marriageStatuses, emptyMarriageStatusDraft()] })}
+        >
+          <Plus size={13} aria-hidden="true" />
+          {nls.t('features.tree.family.addMarriageStatus')}
+        </Button>
+      </SectionCard>
+
       <SectionCard title={nls.t('features.tree.families.partners')}>
         {draft.partnerLinks.length === 0 && <EmptyText>{nls.t('features.tree.families.empty')}</EmptyText>}
         {draft.partnerLinks.map((link, index) => (
@@ -201,6 +338,26 @@ export function FamilyEditor({
               onChange={(date) => patchPartner(index, { date })}
               hidePlace
             />
+            <FieldGrid columns={2}>
+              <Field label={nls.t('features.tree.family.partnerPhrase')}>
+                <Input value={link.phrase} onChange={(event) => patchPartner(index, { phrase: event.target.value })} />
+              </Field>
+              <Field label={nls.t('features.tree.family.partnerName')}>
+                <Input value={link.name} onChange={(event) => patchPartner(index, { name: event.target.value })} />
+              </Field>
+              <Field label={nls.t('features.tree.family.civilStatus')}>
+                <Input
+                  value={link.civilStatus}
+                  onChange={(event) => patchPartner(index, { civilStatus: event.target.value })}
+                />
+              </Field>
+              <Field label={nls.t('features.tree.family.marriageNumber')}>
+                <Input
+                  value={link.marriageNumber}
+                  onChange={(event) => patchPartner(index, { marriageNumber: event.target.value })}
+                />
+              </Field>
+            </FieldGrid>
             {expandedLinkId === link.id && renderLinkAttachments?.('partner', link.id)}
           </Subcard>
         ))}
@@ -288,7 +445,18 @@ export function FamilyEditor({
                   onChange={(event) => patchChild(index, { pedigreePhrase: event.target.value })}
                 />
               </Field>
+              <Field label={nls.t('features.tree.family.multiplicity')}>
+                <Input
+                  value={link.multiplicity}
+                  onChange={(event) => patchChild(index, { multiplicity: event.target.value })}
+                />
+              </Field>
             </FieldGrid>
+            <Checkbox
+              label={nls.t('features.tree.family.childPreferred')}
+              checked={link.preferred}
+              onChange={(event) => patchChild(index, { preferred: event.target.checked })}
+            />
             {expandedLinkId === link.id && renderLinkAttachments?.('child', link.id)}
           </Subcard>
         ))}
@@ -307,6 +475,15 @@ export function FamilyEditor({
           </Button>
         </InlineForm>
       </SectionCard>
+
+      <AssociationsSection
+        owner={{ kind: 'family', id: draft.id }}
+        associations={associations}
+        persons={persons}
+        onAdd={api.addAssociation}
+        onUpdate={api.updateAssociation}
+        onDelete={api.deleteAssociation}
+      />
 
       <FactsSection
         owner={{ familyId: draft.id }}

@@ -168,7 +168,7 @@ export function formatAddress(address: AddressRecord | undefined): string {
     return '';
   }
   return [
-    ...address.lines,
+    ...address.lines.map((line) => line.value),
     [address.city, address.state].filter((part) => part !== undefined && part !== '').join(', '),
     address.postalCode,
     address.country,

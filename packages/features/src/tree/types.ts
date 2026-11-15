@@ -25,6 +25,8 @@ export interface TreeCanvasApi {
 export interface TreeCanvasProps {
   persons: PersonRecord[];
   families: FamilyRecord[];
+  /** Person id → primary media URL, used for the card avatar. */
+  photos?: ReadonlyMap<string, string> | undefined;
   api: TreeCanvasApi;
   /** External focus request (e.g. a click in the People sidebar). */
   focusRequest?: { personId: string; nonce: number } | null;

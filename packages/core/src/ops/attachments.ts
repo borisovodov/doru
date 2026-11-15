@@ -497,7 +497,21 @@ export function updateRepositoryOp(before: RepositoryRecord, after: RepositoryRe
   };
 }
 
-export function deleteRepositoryOp(repository: RepositoryRecord, attachments: AttachmentsSnapshot): Op {
+/** Source links and call numbers that the repository FK cascade removes. */
+export interface RepositoryConsumers {
+  sourceRepositories?: Array<{
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers?: Array<{ id: string; value: string; medium?: string }>;
+  }>;
+}
+
+export function deleteRepositoryOp(
+  repository: RepositoryRecord,
+  attachments: AttachmentsSnapshot,
+  consumers: RepositoryConsumers = {},
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -506,6 +520,9 @@ export function deleteRepositoryOp(repository: RepositoryRecord, attachments: At
       (ctx) => {
         ctx.repo.insertRepository(repository);
         ctx.repo.restoreAttachments(attachments);
+        for (const link of consumers.sourceRepositories ?? []) {
+          ctx.repo.restoreSourceRepository(link);
+        }
       },
     ),
     change: { targetType: 'repository', targetId: repository.id, kind: 'changed' },
@@ -536,7 +553,16 @@ export function updateSubmitterOp(before: SubmitterRecord, after: SubmitterRecor
   };
 }
 
-export function deleteSubmitterOp(submitter: SubmitterRecord, attachments: AttachmentsSnapshot): Op {
+/** Record links that the submitter FK cascade removes. */
+export interface SubmitterConsumers {
+  recordSubmitters?: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+}
+
+export function deleteSubmitterOp(
+  submitter: SubmitterRecord,
+  attachments: AttachmentsSnapshot,
+  consumers: SubmitterConsumers = {},
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -545,6 +571,9 @@ export function deleteSubmitterOp(submitter: SubmitterRecord, attachments: Attac
       (ctx) => {
         ctx.repo.insertSubmitter(submitter);
         ctx.repo.restoreAttachments(attachments);
+        for (const link of consumers.recordSubmitters ?? []) {
+          ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId);
+        }
       },
     ),
     change: { targetType: 'submitter', targetId: submitter.id, kind: 'changed' },

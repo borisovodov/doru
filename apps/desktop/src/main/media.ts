@@ -102,6 +102,30 @@ export async function addMediaToTarget(
   return added;
 }
 
+/** Picks files and creates media records without attaching them to a target. */
+export async function addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]> {
+  const sources = await pickMediaFiles();
+  if (sources.length === 0) {
+    return [];
+  }
+  const { runtime } = await ensureRuntime(projectPath);
+  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
+  const added: MediaWithPath[] = [];
+  for (const source of sources) {
+    const name = `${randomUUID()}${extname(source)}`;
+    const destination = join(mediaDir, name);
+    await fs.copyFile(source, destination);
+    const media: MediaRecord = {
+      id: randomUUID(),
+      path: join(MEDIA_DIR_NAME, name),
+    };
+    runtime.service.addMedia(media);
+    added.push(withPaths(projectPath, media));
+  }
+  return added;
+}
+
 /** Copies more files into an existing media record. */
 export async function addFilesToMedia(projectPath: string, mediaId: string): Promise<MediaWithPath | undefined> {
   const sources = await pickMediaFiles();

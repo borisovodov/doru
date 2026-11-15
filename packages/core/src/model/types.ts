@@ -132,6 +132,8 @@ export interface PersonName {
   language?: string | undefined;
   /** The name's kind: 'birth', 'maiden', 'married', 'aka', … */
   type?: string | undefined;
+  /** The transliteration method of a phonetic/romanized variant (FONE/ROMN TYPE). */
+  variantType?: string | undefined;
   /** The preferred name of the person. */
   primary?: boolean | undefined;
   date?: DateValue | undefined;
@@ -144,6 +146,17 @@ export interface PersonName {
   nickname?: string | undefined;
   prefix?: string | undefined;
   suffix?: string | undefined;
+  /** Vendor name fields kept verbatim (GEDCOM-L/FamilySearch/MyHeritage). */
+  callName?: string | undefined;
+  middleName?: string | undefined;
+  patronymic?: string | undefined;
+  marriedName?: string | undefined;
+  aka?: string | undefined;
+  hebrewName?: string | undefined;
+  title?: string | undefined;
+  shortName?: string | undefined;
+  nameAsRecorded?: string | undefined;
+  givenNameUsed?: string | undefined;
   parts?: NamePart[] | undefined;
   variants?: PersonName[] | undefined;
 }
@@ -168,12 +181,16 @@ export interface FactRecord {
   /** The fact asserts the event did NOT happen (GEDCOM NO). */
   negation?: boolean | undefined;
   date?: DateValue | undefined;
+  /** The end date of a period (vendor `_DATE2`). */
+  endDate?: DateValue | undefined;
   /** Sort date (GEDCOM SDATE): orders the fact when the display date cannot. */
   sortDate?: DateValue | undefined;
   /** The place entity this fact happened at; the raw string stays in `place`. */
   placeId?: string | undefined;
   /** The place as typed/displayed. */
   place?: string | undefined;
+  /** Additional places of the event (vendor `_PLAC`). */
+  additionalPlaceIds?: string[] | undefined;
   addressId?: string | undefined;
   agency?: string | undefined;
   religiousAffiliation?: string | undefined;
@@ -187,6 +204,18 @@ export interface FactRecord {
   participants?: FactParticipant[] | undefined;
   /** Flags: private | preferred | tentative | rejected. */
   flags?: string[] | undefined;
+  /** The place prefix (vendor `_PPFX`). */
+  placePrefix?: string | undefined;
+  /** The vendor event number (vendor `_EVN`). */
+  eventNumber?: string | undefined;
+  birthLength?: string | undefined;
+  birthWeight?: string | undefined;
+  cemetery?: string | undefined;
+  /** The event carries a full recorded name (vendor `_FNA`). */
+  fna?: boolean | undefined;
+  descriptionAware?: boolean | undefined;
+  /** Event coordinates (vendor `_COR`). */
+  map?: { latitude: number; longitude: number } | undefined;
 }
 
 /** An age at a fact: the subject's (no person/role) or a partner's (HUSB/WIFE). */
@@ -216,6 +245,8 @@ export interface PersonRecord {
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
   sex: Sex;
+  /** The person's own address (GEDCOM INDI.ADDR), shared with other records. */
+  addressId?: string | undefined;
   names: PersonName[];
   /** The person's facts (events and attributes), including birth and death. */
   facts: FactRecord[];
@@ -237,6 +268,14 @@ export interface FamilyPartnerLink {
   personId: string;
   preferred?: boolean | undefined;
   date?: DateValue | undefined;
+  /** The role phrase on the partner slot (GEDCOM HUSB/WIFE PHRASE). */
+  phrase?: string | undefined;
+  /** The partner's name as written on the link (vendor `_NAM`). */
+  name?: string | undefined;
+  /** Civil status of the union (vendor `_ZVST`). */
+  civilStatus?: string | undefined;
+  /** Marriage number (vendor `_NR`). */
+  marriageNumber?: string | undefined;
 }
 
 /** One child slot of a family, with its addressable id and link details. */
@@ -248,6 +287,17 @@ export interface FamilyChildLink {
   status?: string | undefined;
   fatherRelation?: string | undefined;
   motherRelation?: string | undefined;
+  preferred?: boolean | undefined;
+  /** Birth multiplicity as written on the link (vendor `_STAT`). */
+  multiplicity?: string | undefined;
+}
+
+/** A dated marriage-status entry of a family (GEDCOM-L `_STAT`). */
+export interface FamilyMarriageStatus {
+  id: string;
+  status: string;
+  date?: DateValue | undefined;
+  placeId?: string | undefined;
 }
 
 export interface FamilyRecord {
@@ -260,6 +310,18 @@ export interface FamilyRecord {
   /** The ordered partner slots; the repository always fills them. */
   partnerLinks?: FamilyPartnerLink[] | undefined;
   childLinks?: FamilyChildLink[] | undefined;
+  preferred?: boolean | undefined;
+  sameSex?: boolean | undefined;
+  /** Union kind (vendor UTYP). */
+  unionKind?: string | undefined;
+  /** Union status (vendor `_UST`). */
+  unionStatus?: string | undefined;
+  /** Marriage beginning/ending status (vendor `_MSTAT`/`_MEND`). */
+  marriageBeginStatus?: string | undefined;
+  marriageEndStatus?: string | undefined;
+  marriageStatuses?: FamilyMarriageStatus[] | undefined;
+  /** Free-text family witnesses (vendor `_WITN`/`_GODT`). */
+  witnesses?: string[] | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -278,6 +340,13 @@ export interface PlaceName {
   type?: string | undefined;
   position: number;
   value: string;
+  /** The period the name was in force (GEDCOM-L NAME.DATE). */
+  date?: DateValue | undefined;
+  /** An addition to the name (GEDCOM-L NAMC). */
+  addition?: string | undefined;
+  /** A short form of the name (GEDCOM-L ABBR). */
+  abbreviation?: string | undefined;
+  abbreviationType?: string | undefined;
 }
 
 export interface PlaceRecord {
@@ -286,8 +355,15 @@ export interface PlaceRecord {
   latitude?: number | undefined;
   longitude?: number | undefined;
   verified?: boolean | undefined;
+  /** The jurisdiction-type list (GEDCOM PLAC.FORM). */
+  form?: string[] | undefined;
+  abbreviation?: string | undefined;
+  preposition?: string | undefined;
+  govId?: string | undefined;
+  maidenhead?: string | undefined;
+  placeType?: string | undefined;
   names: PlaceName[];
-  hierarchy?: { parentId: string; type?: string }[] | undefined;
+  hierarchy?: Array<{ id: string; parentId: string; type?: string; date?: DateValue }> | undefined;
   postalCodes?: { id: string; code: string; date?: DateValue }[] | undefined;
 }
 
@@ -330,6 +406,14 @@ export interface SourceRecord {
   pubDate?: DateValue | undefined;
   pubPlace?: string | undefined;
   agency?: string | undefined;
+  /** Record-level reliability assessment (QUAY). */
+  certainty?: string | undefined;
+  /** The short subsequent-citation form (vendor `_SUBQ`). */
+  subsequentCitationFormat?: string | undefined;
+  /** The bibliography entry (vendor `_BIBL`). */
+  bibliography?: string | undefined;
+  /** Notes on the source's DATA block. */
+  dataNote?: string | undefined;
   /** The bibliographic work (7.0 TITL record) this source cites. */
   titleId?: string | undefined;
   texts?: SourceText[] | undefined;
@@ -359,6 +443,19 @@ export interface CitationRecord {
   phrase?: string | undefined;
   date?: DateValue | undefined;
   www?: string | undefined;
+  /** The citation's own name (vendor NAME). */
+  name?: string | undefined;
+  /** The source-quality assessment (vendor `_QUAL`). */
+  qualityAssessment?: string | undefined;
+  /** A cross-reference to another citation (vendor `_CREF`). */
+  reference?: string | undefined;
+  /** The citation reference number (REFN). */
+  referenceNumber?: string | undefined;
+  abbreviation?: string | undefined;
+  footnote?: string | undefined;
+  verified?: boolean | undefined;
+  assessment?: string | undefined;
+  foundBy?: string | undefined;
   texts?: SourceText[] | undefined;
   templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
@@ -459,9 +556,15 @@ export function isVisibleMedia(media: Pick<MediaRecord, 'path' | 'files'>): bool
 // Repositories, submitters, addresses, header
 // ---------------------------------------------------------------------------
 
+/** One address line. The id makes the row a stable attachment target. */
+export interface AddressLine {
+  id: string;
+  value: string;
+}
+
 export interface AddressRecord {
   id: string;
-  lines: string[];
+  lines: AddressLine[];
   city?: string | undefined;
   state?: string | undefined;
   postalCode?: string | undefined;
@@ -492,6 +595,8 @@ export interface IdentifierRecord {
   targetType: string;
   targetId: string;
   namespace: string;
+  /** The issuing authority of a REFN/EXID identifier (GEDCOM TYPE). */
+  type?: string | undefined;
   value: string;
 }
 
@@ -566,10 +671,13 @@ export function emptyAttachments(): AttachmentsSnapshot {
 // Relations and the research layer
 // ---------------------------------------------------------------------------
 
-/** A non-family relation between two persons (GEDCOM ASSO). */
+/** A GEDCOM ASSO: a person association or a family↔person association. */
 export interface AssociationRecord {
   id: string;
-  personId: string;
+  /** The owning person (INDI.ASSO); exactly one of personId/familyId is set. */
+  personId?: string | undefined;
+  /** The owning family (FAM.ASSO); exactly one of personId/familyId is set. */
+  familyId?: string | undefined;
   otherPersonId: string;
   role?: string | undefined;
   relationship?: string | undefined;
@@ -625,17 +733,22 @@ export const TARGET_TYPES = [
   'family',
   'family_partner',
   'family_child',
+  'family_marriage_status',
   'fact',
   'name',
+  'name_part',
   'source',
   'citation',
   'note',
   'media',
   'media_file',
   'place',
+  'place_name',
+  'place_hierarchy',
   'repository',
   'submitter',
   'address',
+  'address_line',
   'association',
   'todo',
   'title',

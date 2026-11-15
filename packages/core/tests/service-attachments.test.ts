@@ -98,7 +98,7 @@ const submitter = (overrides: Partial<SubmitterRecord> = {}): SubmitterRecord =>
 
 const address = (overrides: Partial<AddressRecord> = {}): AddressRecord => ({
   id: 'AD1',
-  lines: ['12 Archive Lane'],
+  lines: [{ id: 'AL1', value: '12 Archive Lane' }],
   city: 'Moscow',
   ...overrides,
 });
@@ -528,6 +528,53 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getAddress('AD1')).toBeUndefined();
       service.undo();
       expect(fixture.repo.getAddress('AD1')?.city).toBe('Berlin');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores repository, submitter and title consumers on undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addRepository(repository());
+      service.addSubmitter(submitter());
+      service.addTitle({ id: 'TL1', name: 'The Parish Registers' });
+      service.addSource(
+        source({
+          repositories: [
+            {
+              id: 'SR1',
+              repositoryId: 'RP1',
+              callNumbers: [{ id: 'CN1', value: 'F.12', medium: 'film' }],
+            },
+          ],
+          titleId: 'TL1',
+        }),
+      );
+      service.addRecordSubmitter('SU1', 'source', 'S1');
+
+      service.deleteRepository(repository());
+      expect(fixture.repo.getSource('S1')?.repositories).toBeUndefined();
+      service.undo();
+      expect(fixture.repo.getSource('S1')?.repositories).toEqual([
+        expect.objectContaining({
+          id: 'SR1',
+          repositoryId: 'RP1',
+          callNumbers: [expect.objectContaining({ id: 'CN1', value: 'F.12', medium: 'film' })],
+        }),
+      ]);
+
+      service.deleteSubmitter(submitter());
+      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([]);
+      service.undo();
+      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([
+        expect.objectContaining({ submitterId: 'SU1', targetType: 'source', targetId: 'S1' }),
+      ]);
+
+      service.deleteTitle({ id: 'TL1', name: 'The Parish Registers' });
+      expect(fixture.repo.getSource('S1')?.titleId).toBeUndefined();
+      service.undo();
+      expect(fixture.repo.getSource('S1')?.titleId).toBe('TL1');
     } finally {
       cleanupRepo(fixture);
     }

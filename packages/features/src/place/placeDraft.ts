@@ -1,5 +1,5 @@
 import type { PlaceRecord } from '@doru/core';
-import { fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
+import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
 
 /** The name kinds of a place row. Official rows carry 'official' explicitly. */
 export const PLACE_NAME_KINDS = ['official', 'translation', 'phonetic', 'romanized'] as const;
@@ -15,6 +15,10 @@ export interface PlaceNameDraft {
   type: string;
   position: number;
   value: string;
+  date: DateDraft;
+  addition: string;
+  abbreviation: string;
+  abbreviationType: string;
 }
 
 /** A postal code with its validity period. */
@@ -24,10 +28,12 @@ export interface PostalCodeDraft {
   date: DateDraft;
 }
 
-/** A parent link of the place. */
+/** A parent link of the place. The id keeps the stored row addressable. */
 export interface HierarchyDraft {
+  id: string;
   parentId: string; // '' = none
   type: string; // '' = unspecified
+  date: DateDraft;
 }
 
 /**
@@ -40,13 +46,30 @@ export interface PlaceDraft {
   latitude: string;
   longitude: string;
   verified: boolean;
+  form: string;
+  abbreviation: string;
+  preposition: string;
+  govId: string;
+  maidenhead: string;
+  placeType: string;
   names: PlaceNameDraft[];
   postalCodes: PostalCodeDraft[];
   hierarchy: HierarchyDraft[];
 }
 
 export function emptyPlaceNameDraft(position = 0): PlaceNameDraft {
-  return { id: crypto.randomUUID(), kind: 'official', language: '', type: '', position, value: '' };
+  return {
+    id: crypto.randomUUID(),
+    kind: 'official',
+    language: '',
+    type: '',
+    position,
+    value: '',
+    date: emptyDate(),
+    addition: '',
+    abbreviation: '',
+    abbreviationType: '',
+  };
 }
 
 export function emptyPlaceDraft(): PlaceDraft {
@@ -55,6 +78,12 @@ export function emptyPlaceDraft(): PlaceDraft {
     latitude: '',
     longitude: '',
     verified: false,
+    form: '',
+    abbreviation: '',
+    preposition: '',
+    govId: '',
+    maidenhead: '',
+    placeType: '',
     names: [],
     postalCodes: [],
     hierarchy: [],
@@ -68,6 +97,12 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
     latitude: place.latitude !== undefined ? String(place.latitude) : '',
     longitude: place.longitude !== undefined ? String(place.longitude) : '',
     verified: place.verified === true,
+    form: (place.form ?? []).join(', '),
+    abbreviation: place.abbreviation ?? '',
+    preposition: place.preposition ?? '',
+    govId: place.govId ?? '',
+    maidenhead: place.maidenhead ?? '',
+    placeType: place.placeType ?? '',
     names: place.names.map((name) => ({
       id: name.id,
       kind: name.kind ?? 'official',
@@ -75,6 +110,10 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
       type: name.type ?? '',
       position: name.position,
       value: name.value,
+      date: toDateDraft(name.date),
+      addition: name.addition ?? '',
+      abbreviation: name.abbreviation ?? '',
+      abbreviationType: name.abbreviationType ?? '',
     })),
     postalCodes: (place.postalCodes ?? []).map((postal) => ({
       id: postal.id,
@@ -82,8 +121,10 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
       date: toDateDraft(postal.date),
     })),
     hierarchy: (place.hierarchy ?? []).map((link) => ({
+      id: link.id,
       parentId: link.parentId,
       type: link.type ?? '',
+      date: toDateDraft(link.date),
     })),
   };
 }
@@ -96,16 +137,36 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     ...(parseCoordinate(draft.latitude) !== undefined ? { latitude: parseCoordinate(draft.latitude) } : {}),
     ...(parseCoordinate(draft.longitude) !== undefined ? { longitude: parseCoordinate(draft.longitude) } : {}),
     verified: draft.verified || undefined,
+    ...(draft.form.trim() !== ''
+      ? {
+          form: draft.form
+            .split(',')
+            .map((value) => value.trim())
+            .filter((value) => value !== ''),
+        }
+      : {}),
+    ...(draft.abbreviation.trim() !== '' ? { abbreviation: draft.abbreviation.trim() } : {}),
+    ...(draft.preposition.trim() !== '' ? { preposition: draft.preposition.trim() } : {}),
+    ...(draft.govId.trim() !== '' ? { govId: draft.govId.trim() } : {}),
+    ...(draft.maidenhead.trim() !== '' ? { maidenhead: draft.maidenhead.trim() } : {}),
+    ...(draft.placeType.trim() !== '' ? { placeType: draft.placeType.trim() } : {}),
     names: draft.names
       .filter((name) => name.value.trim() !== '')
-      .map((name) => ({
-        id: name.id,
-        kind: name.kind as PlaceRecord['names'][number]['kind'],
-        ...(name.language.trim() !== '' ? { language: name.language.trim() } : {}),
-        ...(name.type.trim() !== '' ? { type: name.type.trim() } : {}),
-        position: name.position,
-        value: name.value.trim(),
-      })),
+      .map((name) => {
+        const date = fromDateDraft(name.date);
+        return {
+          id: name.id,
+          kind: name.kind as PlaceRecord['names'][number]['kind'],
+          ...(name.language.trim() !== '' ? { language: name.language.trim() } : {}),
+          ...(name.type.trim() !== '' ? { type: name.type.trim() } : {}),
+          position: name.position,
+          value: name.value.trim(),
+          ...(date !== undefined ? { date } : {}),
+          ...(name.addition.trim() !== '' ? { addition: name.addition.trim() } : {}),
+          ...(name.abbreviation.trim() !== '' ? { abbreviation: name.abbreviation.trim() } : {}),
+          ...(name.abbreviationType.trim() !== '' ? { abbreviationType: name.abbreviationType.trim() } : {}),
+        };
+      }),
     postalCodes: draft.postalCodes
       .filter((postal) => postal.code.trim() !== '')
       .map((postal) => {
@@ -118,10 +179,15 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
       }),
     hierarchy: draft.hierarchy
       .filter((link) => link.parentId !== '')
-      .map((link) => ({
-        parentId: link.parentId,
-        ...(link.type !== '' ? { type: link.type } : {}),
-      })),
+      .map((link) => {
+        const date = fromDateDraft(link.date);
+        return {
+          id: link.id,
+          parentId: link.parentId,
+          ...(link.type !== '' ? { type: link.type } : {}),
+          ...(date !== undefined ? { date } : {}),
+        };
+      }),
   };
 }
 
@@ -143,6 +209,12 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
     draft.latitude === other.latitude &&
     draft.longitude === other.longitude &&
     draft.verified === other.verified &&
+    draft.form === other.form &&
+    draft.abbreviation === other.abbreviation &&
+    draft.preposition === other.preposition &&
+    draft.govId === other.govId &&
+    draft.maidenhead === other.maidenhead &&
+    draft.placeType === other.placeType &&
     draft.names.length === other.names.length &&
     draft.names.every((name, index) => {
       const entry = other.names[index];
@@ -155,7 +227,11 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
         name.language === entry.language &&
         name.type === entry.type &&
         name.position === entry.position &&
-        name.value === entry.value
+        name.value === entry.value &&
+        name.addition === entry.addition &&
+        name.abbreviation === entry.abbreviation &&
+        name.abbreviationType === entry.abbreviationType &&
+        dateDraftsMatch(name.date, entry.date)
       );
     }) &&
     draft.postalCodes.length === other.postalCodes.length &&
@@ -169,7 +245,12 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
     draft.hierarchy.length === other.hierarchy.length &&
     draft.hierarchy.every((link, index) => {
       const entry = other.hierarchy[index];
-      return entry !== undefined && link.parentId === entry.parentId && link.type === entry.type;
+      return (
+        entry !== undefined &&
+        link.parentId === entry.parentId &&
+        link.type === entry.type &&
+        dateDraftsMatch(link.date, entry.date)
+      );
     })
   );
 }

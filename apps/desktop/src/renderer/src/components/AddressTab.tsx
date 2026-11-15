@@ -5,6 +5,7 @@ import { AddressFields, addressDraftToRecord, addressLabel } from '@doru/ui/doma
 import { Button, EntityViewCard, SectionCard } from '@doru/ui';
 import { nls } from '@doru/workbench';
 import { useRegistryAddress } from './useRegistryAddress';
+import { ADDRESS_TAB_PREFIX } from '../hooks/useTabs';
 
 export function AddressTab({
   tabId,
@@ -27,7 +28,7 @@ export function AddressTab({
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const addressId = tabId.slice('address:'.length);
+  const addressId = tabId.slice(ADDRESS_TAB_PREFIX.length);
   const isNew = addressId.startsWith('new:');
   const record = addresses.find((address) => address.id === addressId);
   if (!isNew && !record) {
@@ -119,7 +120,13 @@ function AddressTabBody({
         }
       />
       <SectionCard title={nls.t('features.tree.address.title')}>
-        <AddressFields address={address} onChange={setAddress} />
+        <AddressFields
+          address={address}
+          onChange={setAddress}
+          renderAttachments={(lineId) => (
+            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+          )}
+        />
         {usageCount > 0 && (
           <p className="side-registries-note">{nls.t('features.tree.address.deleteWarning', usageCount)}</p>
         )}

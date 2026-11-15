@@ -76,7 +76,11 @@ export function MediaSection({
     setAllMedia(await api.getAllMedia());
   };
 
-  const visibleMedia = media.filter(isVisibleMedia);
+  const linkOf = (item: MediaRecord) =>
+    item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+  const visibleMedia = media
+    .filter(isVisibleMedia)
+    .sort((a, b) => Number(linkOf(b)?.primary === true) - Number(linkOf(a)?.primary === true));
   const attachable = allMedia.filter(
     (item) =>
       isVisibleMedia(item) &&
@@ -89,21 +93,32 @@ export function MediaSection({
         <EmptyText>{nls.t('features.tree.media.empty')}</EmptyText>
       ) : (
         <div className={styles['grid']}>
-          {visibleMedia.map((item) => (
-            <MediaTile
-              key={item.id}
-              src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
-              alt={item.title ?? ''}
-              {...(onOpenMedia
-                ? {
-                    openLabel: nls.t('features.tree.media.open'),
-                    onOpen: () => onOpenMedia(item.id),
-                  }
-                : {})}
-              removeLabel={nls.t('features.tree.media.remove')}
-              onRemove={() => void remove(item)}
-            />
-          ))}
+          {visibleMedia.map((item) => {
+            const link = linkOf(item);
+            const badge =
+              link?.primary === true
+                ? nls.t('features.tree.media.primary')
+                : link?.exclude === true
+                  ? nls.t('features.tree.media.excluded')
+                  : undefined;
+            return (
+              <MediaTile
+                key={item.id}
+                src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
+                alt={item.title ?? ''}
+                {...(badge !== undefined ? { badge } : {})}
+                {...(link?.exclude === true ? { muted: true } : {})}
+                {...(onOpenMedia
+                  ? {
+                      openLabel: nls.t('features.tree.media.open'),
+                      onOpen: () => onOpenMedia(item.id),
+                    }
+                  : {})}
+                removeLabel={nls.t('features.tree.media.remove')}
+                onRemove={() => void remove(item)}
+              />
+            );
+          })}
         </div>
       )}
       <div className={styles['actions']}>

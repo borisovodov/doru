@@ -21,6 +21,7 @@ import {
   associationToDraft,
   emptyAssociationDraft,
   type AssociationDraft,
+  type AssociationOwner,
 } from './associationDraft';
 import styles from './AssociationsSection.module.css';
 
@@ -30,7 +31,7 @@ import styles from './AssociationsSection.module.css';
  * Rows edit inline — pick the other person, save the row.
  */
 export function AssociationsSection({
-  personId,
+  owner,
   associations,
   persons,
   onAdd,
@@ -38,7 +39,7 @@ export function AssociationsSection({
   onDelete,
   renderAttachments,
 }: {
-  personId: string;
+  owner: AssociationOwner;
   associations: AssociationRecord[];
   persons: PersonRecord[];
   onAdd: (association: AssociationRecord) => Promise<void>;
@@ -47,7 +48,7 @@ export function AssociationsSection({
   renderAttachments?: ((association: AssociationRecord) => ReactNode) | undefined;
 }) {
   const [adding, setAdding] = useState(false);
-  const others = persons.filter((person) => person.id !== personId);
+  const others = persons.filter((person) => owner.kind !== 'person' || person.id !== owner.id);
 
   return (
     <SectionCard title={nls.t('features.tree.associations.title')}>
@@ -67,7 +68,7 @@ export function AssociationsSection({
         </RowList>
       ) : null}
       {adding ? (
-        <AddAssociationForm personId={personId} others={others} onAdd={onAdd} onDone={() => setAdding(false)} />
+        <AddAssociationForm owner={owner} others={others} onAdd={onAdd} onDone={() => setAdding(false)} />
       ) : (
         <Button
           variant="primary"
@@ -167,17 +168,17 @@ function AssociationRow({
 }
 
 function AddAssociationForm({
-  personId,
+  owner,
   others,
   onAdd,
   onDone,
 }: {
-  personId: string;
+  owner: AssociationOwner;
   others: PersonRecord[];
   onAdd: (association: AssociationRecord) => Promise<void>;
   onDone: () => void;
 }) {
-  const [draft, setDraft] = useState<AssociationDraft>(() => emptyAssociationDraft(personId));
+  const [draft, setDraft] = useState<AssociationDraft>(() => emptyAssociationDraft(owner));
 
   const save = async () => {
     if (draft.otherPersonId === '') {

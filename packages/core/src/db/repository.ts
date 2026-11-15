@@ -75,12 +75,27 @@ export interface TreeRepository {
   getPlace(id: string): PlaceRecord | undefined;
   deletePlace(id: string): boolean;
   listPlaces(): PlaceRecord[];
-  searchPlaces(query: string, limit?: number): PlaceRecord[];
   insertSource(source: SourceRecord): void;
   updateSource(source: SourceRecord): void;
   getSource(id: string): SourceRecord | undefined;
   deleteSource(id: string): boolean;
   listSources(): SourceRecord[];
+  /** Source→repository links of one repository, with call numbers, for delete/undo snapshots. */
+  listSourceRepositoriesFor(repositoryId: string): Array<{
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers: Array<{ id: string; value: string; medium?: string }>;
+  }>;
+  restoreSourceRepository(link: {
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers?: Array<{ id: string; value: string; medium?: string }>;
+  }): void;
+  /** Sources citing a bibliographic title, for the title delete/undo snapshot. */
+  listSourcesForTitle(titleId: string): Array<{ id: string; titleId: string }>;
+  setSourceTitle(sourceId: string, titleId: string | undefined): void;
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void;
   insertCitation(citation: CitationRecord): void;
   updateCitation(citation: CitationRecord): void;
@@ -124,6 +139,10 @@ export interface TreeRepository {
     targetType: string,
     targetId: string,
   ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  /** Every record a submitter contributes to, for the delete/undo snapshot. */
+  listRecordSubmittersForSubmitter(
+    submitterId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
   deleteRecordSubmitter(id: string): boolean;
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
@@ -158,15 +177,12 @@ export interface TreeRepository {
   deleteAssociation(id: string): boolean;
   listAssociations(): AssociationRecord[];
   listAssociationsFor(personId: string): AssociationRecord[];
-  /** Deletes every association of a person together with its period dates. */
-  deleteAssociationsForPerson(personId: string): void;
+  listAssociationsForFamily(familyId: string): AssociationRecord[];
   insertAlias(id: string, personId: string, aliasId: string): void;
   deleteAlias(id: string): boolean;
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }>;
   /** Exact direction of every alias link involving a person, for snapshots. */
   listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }>;
-  /** Deletes every alias link involving a person. */
-  deleteAliasesForPerson(personId: string): void;
   insertTodo(todo: TodoRecord): void;
   updateTodo(todo: TodoRecord): void;
   deleteTodo(id: string): boolean;
@@ -230,7 +246,12 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertPerson(person: PersonRecord): void {
     this.transactions.run(() => {
-      this.persons.insertPerson({ id: person.id, xref: person.xref, sex: person.sex });
+      this.persons.insertPerson({
+        id: person.id,
+        xref: person.xref,
+        sex: person.sex,
+        addressId: person.addressId,
+      });
       this.names.replaceNamesForPerson(person.id, person.names);
       for (const fact of person.facts) {
         this.facts.insertFact(fact);
@@ -250,7 +271,12 @@ export class SqliteTreeRepository implements TreeRepository {
     this.transactions.run(() => {
       const oldNames = collectNameIds(this.names.listNamesForPerson(person.id));
       const oldFacts = this.facts.listFactsForPerson(person.id);
-      this.persons.updatePerson({ id: person.id, xref: person.xref, sex: person.sex });
+      this.persons.updatePerson({
+        id: person.id,
+        xref: person.xref,
+        sex: person.sex,
+        addressId: person.addressId,
+      });
       this.names.replaceNamesForPerson(person.id, person.names);
       const newNames = new Set(collectNameIds(person.names));
       for (const nameId of oldNames) {
@@ -460,10 +486,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.places.listPlaces();
   }
 
-  searchPlaces(query: string, limit?: number): PlaceRecord[] {
-    return this.places.searchPlaces(query, limit);
-  }
-
   insertSource(source: SourceRecord): void {
     this.sources.insertSource(source);
   }
@@ -488,6 +510,32 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listSources(): SourceRecord[] {
     return this.sources.listSources();
+  }
+
+  listSourceRepositoriesFor(repositoryId: string): Array<{
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers: Array<{ id: string; value: string; medium?: string }>;
+  }> {
+    return this.sources.listSourceRepositoriesFor(repositoryId);
+  }
+
+  restoreSourceRepository(link: {
+    id: string;
+    sourceId: string;
+    repositoryId: string;
+    callNumbers?: Array<{ id: string; value: string; medium?: string }>;
+  }): void {
+    this.sources.restoreSourceRepository(link);
+  }
+
+  listSourcesForTitle(titleId: string): Array<{ id: string; titleId: string }> {
+    return this.sources.listSourcesForTitle(titleId);
+  }
+
+  setSourceTitle(sourceId: string, titleId: string | undefined): void {
+    this.sources.setSourceTitle(sourceId, titleId);
   }
 
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void {
@@ -680,6 +728,12 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.submitters.listRecordSubmittersFor(targetType, targetId);
   }
 
+  listRecordSubmittersForSubmitter(
+    submitterId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+    return this.submitters.listRecordSubmittersForSubmitter(submitterId);
+  }
+
   deleteRecordSubmitter(id: string): boolean {
     return this.submitters.deleteRecordSubmitter(id);
   }
@@ -822,8 +876,8 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.relations.listAssociationsFor(personId);
   }
 
-  deleteAssociationsForPerson(personId: string): void {
-    this.relations.deleteAssociationsForPerson(personId);
+  listAssociationsForFamily(familyId: string): AssociationRecord[] {
+    return this.relations.listAssociationsForFamily(familyId);
   }
 
   insertAlias(id: string, personId: string, aliasId: string): void {
@@ -840,10 +894,6 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }> {
     return this.relations.listAliasRowsFor(personId);
-  }
-
-  deleteAliasesForPerson(personId: string): void {
-    this.relations.deleteAliasesForPerson(personId);
   }
 
   insertTodo(todo: TodoRecord): void {

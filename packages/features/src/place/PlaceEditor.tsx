@@ -1,8 +1,9 @@
 import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
-import { useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
-import { MapPin, Plus, X } from 'lucide-react';
+import { MapPin, Paperclip, Plus, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
@@ -12,7 +13,6 @@ import { DateEditor, emptyDate, moveItem } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
-  /* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
   HIERARCHY_TYPES,
   PLACE_NAME_KINDS,
   emptyPlaceNameDraft,
@@ -34,13 +34,19 @@ export function PlaceEditor({
   places,
   onSave,
   onDelete,
+  renderAttachments,
+  renderNameAttachments,
 }: {
   draft: PlaceDraft;
   onChange: (draft: PlaceDraft) => void;
   places: PlaceRecord[];
   onSave: () => void;
   onDelete: (() => void) | undefined;
+  renderAttachments?: ((linkId: string) => ReactNode) | undefined;
+  renderNameAttachments?: ((nameId: string) => ReactNode) | undefined;
 }) {
+  const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
+  const [expandedNameId, setExpandedNameId] = useState<string | null>(null);
   const set = (patch: Partial<PlaceDraft>) => onChange({ ...draft, ...patch });
 
   const patchName = (index: number, values: Partial<PlaceNameDraft>) =>
@@ -56,7 +62,10 @@ export function PlaceEditor({
 
   const patchHierarchy = (index: number, values: Partial<HierarchyDraft>) =>
     set({ hierarchy: draft.hierarchy.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const addHierarchy = () => set({ hierarchy: [...draft.hierarchy, { parentId: '', type: '' }] });
+  const addHierarchy = () =>
+    set({
+      hierarchy: [...draft.hierarchy, { id: crypto.randomUUID(), parentId: '', type: '', date: emptyDate() }],
+    });
   const removeHierarchy = (index: number) => set({ hierarchy: draft.hierarchy.filter((_, i) => i !== index) });
 
   /** The place itself and everything below it — never a valid parent. */
@@ -79,6 +88,7 @@ export function PlaceEditor({
   }, [draft.id, places]);
 
   const parentOptions = places.filter((place) => !excludedIds.has(place.id));
+  const saved = places.some((place) => place.id === draft.id);
   const subtitle = [draft.latitude.trim(), draft.longitude.trim()].filter((part) => part !== '').join(', ');
 
   return (
@@ -140,12 +150,49 @@ export function PlaceEditor({
               onMoveUp={() => set({ names: moveItem(draft.names, index, index - 1) })}
               onMoveDown={() => set({ names: moveItem(draft.names, index, index + 1) })}
             />
+            {renderNameAttachments !== undefined && saved && (
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.attachments.show')}
+                icon={<Paperclip size={13} aria-hidden="true" />}
+                onClick={() => setExpandedNameId(expandedNameId === name.id ? null : name.id)}
+              />
+            )}
             <IconButton
               size="sm"
               label={nls.t('features.tree.place.names.remove')}
               icon={<X size={13} aria-hidden="true" />}
               onClick={() => removeName(index)}
             />
+            <div className="place-name-extra">
+              <DateEditor
+                label={nls.t('features.tree.names.date')}
+                value={name.date}
+                onChange={(date) => patchName(index, { date })}
+                hidePlace
+              />
+              <FieldGrid columns={3}>
+                <Field label={nls.t('features.tree.place.names.addition')}>
+                  <Input
+                    value={name.addition}
+                    onChange={(event) => patchName(index, { addition: event.target.value })}
+                  />
+                </Field>
+                <Field label={nls.t('features.tree.place.names.abbreviation')}>
+                  <Input
+                    value={name.abbreviation}
+                    onChange={(event) => patchName(index, { abbreviation: event.target.value })}
+                  />
+                </Field>
+                <Field label={nls.t('features.tree.place.names.abbreviationType')}>
+                  <Input
+                    value={name.abbreviationType}
+                    onChange={(event) => patchName(index, { abbreviationType: event.target.value })}
+                  />
+                </Field>
+              </FieldGrid>
+            </div>
+            {expandedNameId === name.id && renderNameAttachments?.(name.id)}
           </div>
         ))}
         <Button variant="primary" onClick={addName}>
@@ -167,6 +214,29 @@ export function PlaceEditor({
             checked={draft.verified}
             onChange={(event) => set({ verified: event.target.checked })}
           />
+        </FieldGrid>
+      </SectionCard>
+
+      <SectionCard title={nls.t('features.tree.families.details')}>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.place.form')}>
+            <Input value={draft.form} onChange={(event) => set({ form: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.abbreviation')}>
+            <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.preposition')}>
+            <Input value={draft.preposition} onChange={(event) => set({ preposition: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.govId')}>
+            <Input value={draft.govId} onChange={(event) => set({ govId: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.maidenhead')}>
+            <Input value={draft.maidenhead} onChange={(event) => set({ maidenhead: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.placeType')}>
+            <Input value={draft.placeType} onChange={(event) => set({ placeType: event.target.value })} />
+          </Field>
         </FieldGrid>
       </SectionCard>
 
@@ -202,34 +272,54 @@ export function PlaceEditor({
 
       <SectionCard title={nls.t('features.tree.place.hierarchy')}>
         {draft.hierarchy.map((link, index) => (
-          <div className="place-sub-row" key={index}>
-            <Select value={link.parentId} onChange={(event) => patchHierarchy(index, { parentId: event.target.value })}>
-              <option value="">{nls.t('features.tree.place.hierarchy.parent.none')}</option>
-              {parentOptions.map((place) => (
-                <option key={place.id} value={place.id}>
-                  {placeName(place)}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={link.type}
-              onChange={(event) => patchHierarchy(index, { type: event.target.value })}
-              title={nls.t('features.tree.place.hierarchy.type')}
-            >
-              <option value="">{nls.t('features.tree.place.hierarchy.type.none')}</option>
-              {HIERARCHY_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {nls.t(`features.tree.place.hierarchy.type.${type}`)}
-                </option>
-              ))}
-            </Select>
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.place.hierarchy.remove')}
-              icon={<X size={13} aria-hidden="true" />}
-              onClick={() => removeHierarchy(index)}
-            />
-          </div>
+          <Fragment key={link.id}>
+            <div className="place-sub-row">
+              <Select
+                value={link.parentId}
+                onChange={(event) => patchHierarchy(index, { parentId: event.target.value })}
+              >
+                <option value="">{nls.t('features.tree.place.hierarchy.parent.none')}</option>
+                {parentOptions.map((place) => (
+                  <option key={place.id} value={place.id}>
+                    {placeName(place)}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={link.type}
+                onChange={(event) => patchHierarchy(index, { type: event.target.value })}
+                title={nls.t('features.tree.place.hierarchy.type')}
+              >
+                <option value="">{nls.t('features.tree.place.hierarchy.type.none')}</option>
+                {HIERARCHY_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {nls.t(`features.tree.place.hierarchy.type.${type}`)}
+                  </option>
+                ))}
+              </Select>
+              <DateEditor
+                label={nls.t('features.tree.names.date')}
+                value={link.date}
+                onChange={(date) => patchHierarchy(index, { date })}
+                hidePlace
+              />
+              {renderAttachments !== undefined && saved && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => setExpandedLinkId(expandedLinkId === link.id ? null : link.id)}
+                />
+              )}
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.place.hierarchy.remove')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => removeHierarchy(index)}
+              />
+            </div>
+            {expandedLinkId === link.id && renderAttachments?.(link.id)}
+          </Fragment>
         ))}
         <Button variant="primary" onClick={addHierarchy}>
           <Plus size={13} aria-hidden="true" />

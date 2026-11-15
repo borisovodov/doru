@@ -19,6 +19,8 @@ export interface PersonCardViewProps {
   collapsed: boolean;
   counts: PersonCounts;
   isDropTarget: boolean;
+  /** The primary media URL, when the person has a main photo. */
+  photo?: string | undefined;
   selected?: boolean | undefined;
   dragging?: boolean | undefined;
   isDraft?: boolean | undefined;
@@ -47,6 +49,7 @@ export function PersonCardView({
   collapsed,
   counts,
   isDropTarget,
+  photo,
   selected = false,
   dragging = false,
   isDraft = false,
@@ -96,6 +99,7 @@ export function PersonCardView({
         tone={person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : 'neutral'}
         size="md"
         shape="circle"
+        {...(photo !== undefined ? { src: photo } : {})}
       />
       <div className={styles['body']}>
         <span className={styles['name']}>{isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}</span>

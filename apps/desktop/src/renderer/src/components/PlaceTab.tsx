@@ -26,7 +26,7 @@ import {
   TasksSection,
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
 import { PLACE_TAB_PREFIX } from '../hooks/useTabs';
 
 export function PlaceTab({
@@ -193,6 +193,12 @@ function PlaceTabBody({
         places={places}
         onSave={() => void save()}
         onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
+        renderAttachments={(linkId) => (
+          <AttachmentsPanel targetType="place_hierarchy" targetId={linkId} api={api} sources={sources} />
+        )}
+        renderNameAttachments={(nameId) => (
+          <AttachmentsPanel targetType="place_name" targetId={nameId} api={api} sources={sources} />
+        )}
       />
       {(lastSaved !== undefined || record !== undefined) && (
         <>

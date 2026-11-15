@@ -164,7 +164,8 @@ export function TasksView({
         break;
       case 'association': {
         const association = associations.find((entry) => entry.id === id);
-        open = association !== undefined ? () => onOpenPerson(association.personId) : undefined;
+        const personId = association?.personId;
+        open = personId !== undefined ? () => onOpenPerson(personId) : undefined;
         break;
       }
       case 'todo':

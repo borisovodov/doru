@@ -63,6 +63,7 @@ export { ProjectOpener, type OpenedProject, type ProjectLogger, type ProjectSumm
 export { RecentProjects, type RecentProject } from './project/recent';
 export { OpQueue, type MutationContext, type Op } from './ops/op';
 export {
+  ParentCycleError,
   TreeService,
   type PersonCounts,
   type RelativeRelation,

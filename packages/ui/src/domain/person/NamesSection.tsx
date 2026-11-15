@@ -1,4 +1,4 @@
-import { Plus, Star, X } from 'lucide-react';
+import { Paperclip, Plus, Star, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -22,6 +22,7 @@ import {
   emptyVariantDraft,
   nameDraftDisplay,
   partOf,
+  partsOfKind,
   removeNamePart,
   setPartValue,
   updateNamePart,
@@ -31,6 +32,20 @@ import {
 } from './draft';
 import type { NamePart, NamePartKind } from '@doru/core';
 import styles from './NamesSection.module.css';
+
+/** The vendor name fields kept verbatim on the name row. */
+const NAME_VENDOR_FIELDS = [
+  'callName',
+  'middleName',
+  'patronymic',
+  'marriedName',
+  'aka',
+  'hebrewName',
+  'title',
+  'shortName',
+  'nameAsRecorded',
+  'givenNameUsed',
+] as const satisfies readonly (keyof NameDraft)[];
 
 /**
  * The editable list of a person's names: each name block carries its type,
@@ -42,11 +57,14 @@ export function NamesSection({
   names,
   onChange,
   renderAttachments,
+  renderPartAttachments,
 }: {
   names: NameDraft[];
   onChange: (names: NameDraft[]) => void;
   renderAttachments?: ((name: NameDraft | NameVariantDraft) => ReactNode) | undefined;
+  renderPartAttachments?: ((partId: string) => ReactNode) | undefined;
 }) {
+  const [expandedPartId, setExpandedPartId] = useState<string | null>(null);
   const patch = (index: number, values: Partial<NameDraft>) =>
     onChange(names.map((name, i) => (i === index ? { ...name, ...values } : name)));
 
@@ -163,11 +181,31 @@ export function NamesSection({
                 key={field}
                 field={field}
                 value={partOf(name, field)}
+                partId={partsOfKind(name, field)[0]?.id}
+                expandedPartId={expandedPartId}
+                onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
+                renderPartAttachments={renderPartAttachments}
                 onChange={(value) => patch(index, setPartValue(name, field, value))}
               />
             ))}
           </FieldGrid>
-          <ExtraParts name={name} onChange={(next) => patch(index, next)} />
+          <ExtraParts
+            name={name}
+            onChange={(next) => patch(index, next)}
+            expandedPartId={expandedPartId}
+            onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
+            renderPartAttachments={renderPartAttachments}
+          />
+          <details className={styles['vendorFields']}>
+            <summary>{nls.t('features.tree.names.additional')}</summary>
+            <FieldGrid columns={2}>
+              {NAME_VENDOR_FIELDS.map((field) => (
+                <Field key={field} label={nls.t(`features.tree.names.${field}`)}>
+                  <Input value={name[field]} onChange={(event) => patch(index, { [field]: event.target.value })} />
+                </Field>
+              ))}
+            </FieldGrid>
+          </details>
           <div className={styles['variants']}>
             {name.variants.map((variant, variantIndex) => (
               <div className={styles['variant']} key={variant.id}>
@@ -191,6 +229,12 @@ export function NamesSection({
                     value={variant.language}
                     onChange={(event) => patchVariant(index, variantIndex, { language: event.target.value })}
                   />
+                  <Input
+                    aria-label={nls.t('features.tree.names.variantType')}
+                    placeholder={nls.t('features.tree.names.variantType')}
+                    value={variant.variantType}
+                    onChange={(event) => patchVariant(index, variantIndex, { variantType: event.target.value })}
+                  />
                   <IconButton
                     size="sm"
                     label={nls.t('features.tree.names.variant.remove')}
@@ -212,11 +256,21 @@ export function NamesSection({
                       key={field}
                       field={field}
                       value={partOf(variant, field)}
+                      partId={partsOfKind(variant, field)[0]?.id}
+                      expandedPartId={expandedPartId}
+                      onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
+                      renderPartAttachments={renderPartAttachments}
                       onChange={(value) => patchVariant(index, variantIndex, setPartValue(variant, field, value))}
                     />
                   ))}
                 </FieldGrid>
-                <ExtraParts name={variant} onChange={(next) => patchVariant(index, variantIndex, next)} />
+                <ExtraParts
+                  name={variant}
+                  onChange={(next) => patchVariant(index, variantIndex, next)}
+                  expandedPartId={expandedPartId}
+                  onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
+                  renderPartAttachments={renderPartAttachments}
+                />
                 <DateEditor
                   label={nls.t('features.tree.names.date')}
                   value={variant.date ?? emptyDate()}
@@ -248,16 +302,37 @@ export function NamesSection({
 function NamePartField({
   field,
   value,
+  partId,
+  expandedPartId,
+  onTogglePart,
+  renderPartAttachments,
   onChange,
 }: {
   field: (typeof NAME_PART_FIELDS)[number];
   value: string;
+  partId: string | undefined;
+  expandedPartId: string | null;
+  onTogglePart: (partId: string) => void;
+  renderPartAttachments: ((partId: string) => ReactNode) | undefined;
   onChange: (value: string) => void;
 }) {
   return (
-    <Field label={nls.t(`features.tree.names.part.${field}`)}>
-      <Input value={value} onChange={(event) => onChange(event.target.value)} />
-    </Field>
+    <>
+      <div className={styles['partFieldRow']}>
+        <Field label={nls.t(`features.tree.names.part.${field}`)}>
+          <Input value={value} onChange={(event) => onChange(event.target.value)} />
+        </Field>
+        {partId !== undefined && renderPartAttachments !== undefined && (
+          <IconButton
+            size="sm"
+            label={nls.t('features.tree.attachments.show')}
+            icon={<Paperclip size={13} aria-hidden="true" />}
+            onClick={() => onTogglePart(partId)}
+          />
+        )}
+      </div>
+      {partId !== undefined && expandedPartId === partId && renderPartAttachments?.(partId)}
+    </>
   );
 }
 
@@ -280,7 +355,19 @@ function extraPartsOf(name: { parts: NamePart[] }): NamePart[] {
   });
 }
 
-function ExtraParts<T extends { parts: NamePart[] }>({ name, onChange }: { name: T; onChange: (next: T) => void }) {
+function ExtraParts<T extends { parts: NamePart[] }>({
+  name,
+  onChange,
+  expandedPartId,
+  onTogglePart,
+  renderPartAttachments,
+}: {
+  name: T;
+  onChange: (next: T) => void;
+  expandedPartId: string | null;
+  onTogglePart: (partId: string) => void;
+  renderPartAttachments: ((partId: string) => ReactNode) | undefined;
+}) {
   const [newKind, setNewKind] = useState<NamePartKind>('given');
   const extras = extraPartsOf(name);
   return (
@@ -292,31 +379,42 @@ function ExtraParts<T extends { parts: NamePart[] }>({ name, onChange }: { name:
           ? NAME_PART_FIELDS
           : [...NAME_PART_FIELDS, part.kind as (typeof NAME_PART_FIELDS)[number]];
         return (
-          <div className={styles['extraPartRow']} key={part.id}>
-            <Select
-              aria-label={nls.t('features.tree.names.part.kind')}
-              value={part.kind}
-              onChange={(event) =>
-                onChange(updateNamePart(name, part.id, { kind: event.target.value as NamePartKind }))
-              }
-            >
-              {kinds.map((kind) => (
-                <option key={kind} value={kind}>
-                  {nls.t(`features.tree.names.part.${kind}`)}
-                </option>
-              ))}
-            </Select>
-            <Input
-              aria-label={nls.t('features.tree.names.part.value')}
-              value={part.value}
-              onChange={(event) => onChange(updateNamePart(name, part.id, { value: event.target.value }))}
-            />
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.names.part.remove')}
-              icon={<X size={14} aria-hidden="true" />}
-              onClick={() => onChange(removeNamePart(name, part.id))}
-            />
+          <div key={part.id}>
+            <div className={styles['extraPartRow']}>
+              <Select
+                aria-label={nls.t('features.tree.names.part.kind')}
+                value={part.kind}
+                onChange={(event) =>
+                  onChange(updateNamePart(name, part.id, { kind: event.target.value as NamePartKind }))
+                }
+              >
+                {kinds.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {nls.t(`features.tree.names.part.${kind}`)}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                aria-label={nls.t('features.tree.names.part.value')}
+                value={part.value}
+                onChange={(event) => onChange(updateNamePart(name, part.id, { value: event.target.value }))}
+              />
+              {renderPartAttachments !== undefined && (
+                <IconButton
+                  size="sm"
+                  label={nls.t('features.tree.attachments.show')}
+                  icon={<Paperclip size={13} aria-hidden="true" />}
+                  onClick={() => onTogglePart(part.id)}
+                />
+              )}
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.names.part.remove')}
+                icon={<X size={14} aria-hidden="true" />}
+                onClick={() => onChange(removeNamePart(name, part.id))}
+              />
+            </div>
+            {expandedPartId === part.id && renderPartAttachments?.(part.id)}
           </div>
         );
       })}

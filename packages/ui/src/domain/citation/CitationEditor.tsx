@@ -1,4 +1,5 @@
 import { Button } from '../../atoms/button/Button';
+import { Checkbox } from '../../atoms/form/Checkbox';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState, type ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
@@ -20,11 +21,13 @@ export function CitationEditor({
   citation,
   attachments,
   onSave,
+  onDelete,
   onCancel,
 }: {
   citation: CitationRecord;
   attachments?: ReactNode;
   onSave: (citation: CitationRecord) => Promise<void>;
+  onDelete?: (() => Promise<void>) | undefined;
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState<CitationDraft>(() => citationToDraft(citation));
@@ -78,7 +81,36 @@ export function CitationEditor({
         <Field label={nls.t('features.tree.citation.www')}>
           <Input value={draft.www} onChange={(event) => set({ www: event.target.value })} />
         </Field>
+        <Field label={nls.t('features.tree.citation.name')}>
+          <Input value={draft.name} onChange={(event) => set({ name: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.qualityAssessment')}>
+          <Input value={draft.qualityAssessment} onChange={(event) => set({ qualityAssessment: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.reference')}>
+          <Input value={draft.reference} onChange={(event) => set({ reference: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.referenceNumber')}>
+          <Input value={draft.referenceNumber} onChange={(event) => set({ referenceNumber: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.source.abbreviation')}>
+          <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.footnote')}>
+          <Input value={draft.footnote} onChange={(event) => set({ footnote: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.assessment')}>
+          <Input value={draft.assessment} onChange={(event) => set({ assessment: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.citation.foundBy')}>
+          <Input value={draft.foundBy} onChange={(event) => set({ foundBy: event.target.value })} />
+        </Field>
       </FieldGrid>
+      <Checkbox
+        label={nls.t('features.tree.citation.verified')}
+        checked={draft.verified}
+        onChange={(event) => set({ verified: event.target.checked })}
+      />
       <DateEditor
         label={nls.t('features.tree.citation.date')}
         value={draft.date}
@@ -166,6 +198,16 @@ export function CitationEditor({
         <Button variant="secondary" onClick={onCancel}>
           {nls.t('features.tree.fact.cancel')}
         </Button>
+        {onDelete !== undefined && (
+          <Button
+            variant="danger"
+            onClick={() => {
+              void onDelete();
+            }}
+          >
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        )}
       </div>
     </div>
   );

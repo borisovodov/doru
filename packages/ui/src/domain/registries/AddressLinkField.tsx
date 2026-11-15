@@ -1,4 +1,5 @@
 import type { AddressRecord } from '@doru/core';
+import type { ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { Field } from '../../atoms/field/Field';
@@ -19,6 +20,7 @@ export function AddressLinkField({
   onSelect,
   onChange,
   onOpen,
+  renderAttachments,
 }: {
   addresses: AddressRecord[];
   addressId: string | undefined;
@@ -26,6 +28,7 @@ export function AddressLinkField({
   onSelect: (addressId: string | undefined) => void;
   onChange: (draft: AddressDraft) => void;
   onOpen?: ((addressId: string) => void) | undefined;
+  renderAttachments?: ((lineId: string) => ReactNode) | undefined;
 }) {
   const linked = addressId !== undefined ? addresses.find((entry) => entry.id === addressId) : undefined;
   return (
@@ -55,7 +58,7 @@ export function AddressLinkField({
           </div>
         </div>
       ) : (
-        <AddressFields address={address} onChange={onChange} />
+        <AddressFields address={address} onChange={onChange} renderAttachments={renderAttachments} />
       )}
     </>
   );

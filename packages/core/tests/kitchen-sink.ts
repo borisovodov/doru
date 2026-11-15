@@ -24,7 +24,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
       { id: 'PN2', kind: 'official', position: 1, value: 'Russia' },
       { id: 'PN3', kind: 'translation', language: 'en', position: 0, value: 'Moscow' },
     ],
-    hierarchy: [{ parentId: 'PL2', type: 'poli' }],
+    hierarchy: [{ id: 'PH1', parentId: 'PL2', type: 'poli' }],
     postalCodes: [
       {
         id: 'PC1',
@@ -35,7 +35,10 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   });
   repo.insertAddress({
     id: 'AD1',
-    lines: ['12 Archive Lane', 'Building 3'],
+    lines: [
+      { id: 'AL1', value: '12 Archive Lane' },
+      { id: 'AL2', value: 'Building 3' },
+    ],
     city: 'Moscow',
     state: 'Moscow Oblast',
     postalCode: '101000',

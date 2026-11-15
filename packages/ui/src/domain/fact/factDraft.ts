@@ -26,9 +26,20 @@ export interface FactDraft {
   value: string;
   negation: boolean;
   date: DateDraft;
+  endDate: DateDraft;
   sortDate: DateDraft;
   placeId?: string | undefined;
+  additionalPlaceIds: string[];
   addressId?: string | undefined;
+  placePrefix: string;
+  eventNumber: string;
+  birthLength: string;
+  birthWeight: string;
+  cemetery: string;
+  fna: boolean;
+  descriptionAware: boolean;
+  mapLatitude: string;
+  mapLongitude: string;
   agency: string;
   religiousAffiliation: string;
   cause: string;
@@ -71,7 +82,18 @@ export function emptyFactDraft(owner: { personId?: string; familyId?: string }):
     value: '',
     negation: false,
     date: emptyDate(),
+    endDate: emptyDate(),
     sortDate: emptyDate(),
+    additionalPlaceIds: [],
+    placePrefix: '',
+    eventNumber: '',
+    birthLength: '',
+    birthWeight: '',
+    cemetery: '',
+    fna: false,
+    descriptionAware: false,
+    mapLatitude: '',
+    mapLongitude: '',
     agency: '',
     religiousAffiliation: '',
     cause: '',
@@ -93,9 +115,20 @@ export function factToDraft(fact: FactRecord): FactDraft {
     value: fact.value ?? '',
     negation: fact.negation === true,
     date: toDateDraft(fact.date, fact.place ?? ''),
+    endDate: toDateDraft(fact.endDate),
     sortDate: toDateDraft(fact.sortDate),
     placeId: fact.placeId,
+    additionalPlaceIds: [...(fact.additionalPlaceIds ?? [])],
     addressId: fact.addressId,
+    placePrefix: fact.placePrefix ?? '',
+    eventNumber: fact.eventNumber ?? '',
+    birthLength: fact.birthLength ?? '',
+    birthWeight: fact.birthWeight ?? '',
+    cemetery: fact.cemetery ?? '',
+    fna: fact.fna === true,
+    descriptionAware: fact.descriptionAware === true,
+    mapLatitude: fact.map !== undefined ? String(fact.map.latitude) : '',
+    mapLongitude: fact.map !== undefined ? String(fact.map.longitude) : '',
     agency: fact.agency ?? '',
     religiousAffiliation: fact.religiousAffiliation ?? '',
     cause: fact.cause ?? '',
@@ -119,10 +152,24 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
     value: draft.value.trim() || undefined,
     negation: draft.negation || undefined,
     date,
+    endDate: rebaseDate(fromDateDraft(draft.endDate), existing?.endDate),
     sortDate,
     place,
     placeId,
+    ...(draft.additionalPlaceIds.filter((id) => id !== '').length > 0
+      ? { additionalPlaceIds: draft.additionalPlaceIds.filter((id) => id !== '') }
+      : {}),
     addressId: draft.addressId,
+    placePrefix: draft.placePrefix.trim() || undefined,
+    eventNumber: draft.eventNumber.trim() || undefined,
+    birthLength: draft.birthLength.trim() || undefined,
+    birthWeight: draft.birthWeight.trim() || undefined,
+    cemetery: draft.cemetery.trim() || undefined,
+    fna: draft.fna || undefined,
+    descriptionAware: draft.descriptionAware || undefined,
+    ...(draft.mapLatitude.trim() !== '' && draft.mapLongitude.trim() !== ''
+      ? { map: { latitude: Number(draft.mapLatitude), longitude: Number(draft.mapLongitude) } }
+      : {}),
     agency: draft.agency.trim() || undefined,
     religiousAffiliation: draft.religiousAffiliation.trim() || undefined,
     cause: draft.cause.trim() || undefined,

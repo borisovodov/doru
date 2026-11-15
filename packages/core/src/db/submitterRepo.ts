@@ -102,6 +102,28 @@ export class SubmitterRepo {
     }));
   }
 
+  /** Every record this submitter contributes to, for the delete/undo snapshot. */
+  listRecordSubmittersForSubmitter(
+    submitterId: string,
+  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+    const rows = this.db
+      .prepare(
+        'SELECT id, submitter_id, target_type, target_id FROM record_submitter WHERE submitter_id = ? ORDER BY id',
+      )
+      .all(submitterId) as unknown as {
+      id: string;
+      submitter_id: string;
+      target_type: string;
+      target_id: string;
+    }[];
+    return rows.map((row) => ({
+      id: row.id,
+      submitterId: row.submitter_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+    }));
+  }
+
   deleteRecordSubmittersFor(targetType: string, targetId: string): void {
     this.db.prepare('DELETE FROM record_submitter WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }

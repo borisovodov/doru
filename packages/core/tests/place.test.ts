@@ -65,26 +65,6 @@ describe('PlaceRepo', () => {
     }
   });
 
-  it('searches places by name in any case', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertPlace(moscow);
-      repo.insertPlace({
-        id: 'PL2',
-        names: [{ id: 'PN3', kind: 'official', position: 0, value: 'Берлин' }],
-      });
-
-      expect(repo.searchPlaces('moscow').map((place) => place.id)).toEqual(['PL1']);
-      expect(repo.searchPlaces('MOSCOW').map((place) => place.id)).toEqual(['PL1']);
-      expect(repo.searchPlaces('берл').map((place) => place.id)).toEqual(['PL2']);
-      // Short terms fall back to a scan.
-      expect(repo.searchPlaces('mo').map((place) => place.id)).toEqual(['PL1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('detaches facts when the place is deleted, keeping the raw text', () => {
     const fixture = makeRepo();
     try {

@@ -3,6 +3,7 @@ import type { FamilyRecord } from '@doru/core';
 import { emptyDate } from '../src/domain/person/draft';
 import {
   emptyFamilyDraft,
+  emptyPartnerLinkDraft,
   familyDraftMatches,
   familyDraftToRecord,
   familyToDraft,
@@ -68,7 +69,7 @@ describe('familyToDraft / familyDraftToRecord', () => {
 
   it('drops slots without a person and empty link fields', () => {
     const draft = familyToDraft(family());
-    draft.partnerLinks.push({ id: 'PLX', personId: '', preferred: false, date: emptyDate() });
+    draft.partnerLinks.push({ ...emptyPartnerLinkDraft(''), id: 'PLX' });
     draft.childLinks[0]!.pedigree = '   ';
     const record = familyDraftToRecord(draft);
     expect(record.partnerLinks).toHaveLength(2);
@@ -90,7 +91,10 @@ describe('familyDraftMatches', () => {
     expect(familyDraftMatches({ ...base, childLinks: [] }, stored)).toBe(false);
     expect(
       familyDraftMatches(
-        { ...base, partnerLinks: [{ id: 'PL1', personId: 'P1', preferred: true, date: emptyDate() }] },
+        {
+          ...base,
+          partnerLinks: [{ ...emptyPartnerLinkDraft('P1'), id: 'PL1', preferred: true }],
+        },
         stored,
       ),
     ).toBe(false);

@@ -9,9 +9,20 @@ interface NameRow {
   kind: string | null;
   language: string | null;
   type: string | null;
+  variant_type: string | null;
   primary_flag: number;
   date_id: string | null;
   position: number;
+  call_name: string | null;
+  middle_name: string | null;
+  patronymic: string | null;
+  married_name: string | null;
+  aka: string | null;
+  hebrew_name: string | null;
+  title: string | null;
+  short_name: string | null;
+  name_as_recorded: string | null;
+  given_name_used: string | null;
 }
 
 interface PartRow {
@@ -36,8 +47,10 @@ export class NameRepo {
     private readonly dates: DateRepo,
   ) {
     this.insertName = this.db.prepare(
-      `INSERT INTO person_name (id, person_id, variant_of_id, kind, language, type, primary_flag, date_id, position)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO person_name (id, person_id, variant_of_id, kind, language, type, variant_type,
+         primary_flag, date_id, position, call_name, middle_name, patronymic, married_name, aka,
+         hebrew_name, title, short_name, name_as_recorded, given_name_used)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     this.insertPart = this.db.prepare(
       'INSERT INTO name_part (id, name_id, part_kind, value, position) VALUES (?, ?, ?, ?, ?)',
@@ -96,7 +109,9 @@ export class NameRepo {
     const placeholders = personIds.map(() => '?').join(', ');
     const rows = this.db
       .prepare(
-        `SELECT id, person_id, variant_of_id, kind, language, type, primary_flag, date_id, position
+        `SELECT id, person_id, variant_of_id, kind, language, type, variant_type, primary_flag, date_id, position,
+           call_name, middle_name, patronymic, married_name, aka, hebrew_name, title, short_name,
+           name_as_recorded, given_name_used
          FROM person_name WHERE person_id IN (${placeholders}) ORDER BY position`,
       )
       .all(...personIds) as unknown as NameRow[];
@@ -145,9 +160,20 @@ export class NameRepo {
       name.kind ?? null,
       name.language ?? null,
       name.type ?? null,
+      name.variantType ?? null,
       name.primary ? 1 : 0,
       dateId,
       position,
+      name.callName ?? null,
+      name.middleName ?? null,
+      name.patronymic ?? null,
+      name.marriedName ?? null,
+      name.aka ?? null,
+      name.hebrewName ?? null,
+      name.title ?? null,
+      name.shortName ?? null,
+      name.nameAsRecorded ?? null,
+      name.givenNameUsed ?? null,
     );
     const parts = [...(name.parts ?? partsFromFlat(name))];
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
@@ -187,9 +213,20 @@ export class NameRepo {
       kind: (row.kind ?? undefined) as PersonName['kind'],
       language: row.language ?? undefined,
       type: row.type ?? undefined,
+      variantType: row.variant_type ?? undefined,
       primary: row.primary_flag === 1 ? true : undefined,
       date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
       ...flat,
+      callName: row.call_name ?? undefined,
+      middleName: row.middle_name ?? undefined,
+      patronymic: row.patronymic ?? undefined,
+      marriedName: row.married_name ?? undefined,
+      aka: row.aka ?? undefined,
+      hebrewName: row.hebrew_name ?? undefined,
+      title: row.title ?? undefined,
+      shortName: row.short_name ?? undefined,
+      nameAsRecorded: row.name_as_recorded ?? undefined,
+      givenNameUsed: row.given_name_used ?? undefined,
       parts: parts.length > 0 ? parts : undefined,
       variants: variants.length > 0 ? variants : undefined,
     };

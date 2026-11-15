@@ -54,6 +54,10 @@ export interface SourceDraft {
   url: string;
   accessDate: string;
   confidence: string;
+  certainty: string;
+  subsequentCitationFormat: string;
+  bibliography: string;
+  dataNote: string;
   agency: string;
   /** The publication date; the date draft's place field holds the publication place. */
   pubDate: DateDraft;
@@ -80,6 +84,10 @@ export function emptySourceDraft(): SourceDraft {
     url: '',
     accessDate: '',
     confidence: '',
+    certainty: '',
+    subsequentCitationFormat: '',
+    bibliography: '',
+    dataNote: '',
     agency: '',
     pubDate: emptyDate(),
     texts: [],
@@ -100,6 +108,10 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
     url: source.url ?? '',
     accessDate: source.accessDate ?? '',
     confidence: source.confidence ?? '',
+    certainty: source.certainty ?? '',
+    subsequentCitationFormat: source.subsequentCitationFormat ?? '',
+    bibliography: source.bibliography ?? '',
+    dataNote: source.dataNote ?? '',
     agency: source.agency ?? '',
     pubDate: toDateDraft(source.pubDate, source.pubPlace ?? ''),
     titleId: source.titleId,
@@ -151,6 +163,10 @@ export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
     url: draft.url.trim() || undefined,
     accessDate: draft.accessDate.trim() || undefined,
     confidence: draft.confidence.trim() || undefined,
+    certainty: draft.certainty.trim() || undefined,
+    subsequentCitationFormat: draft.subsequentCitationFormat.trim() || undefined,
+    bibliography: draft.bibliography.trim() || undefined,
+    dataNote: draft.dataNote.trim() || undefined,
     agency: draft.agency.trim() || undefined,
     pubDate: fromDateDraft(draft.pubDate),
     pubPlace: draft.pubDate.place.trim() || undefined,

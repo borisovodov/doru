@@ -5,9 +5,8 @@
 2. **Create** asks for a location and a name and creates a `.doru` file there;
    **Open or Import GEDCOM** opens an existing `.doru` file, or a
    `.ged`/`.gdz` GEDCOM file — a GEDCOM file starts a new, not-yet-saved
-   project (the import itself is still being rebuilt, so it opens empty for
-   now; save it to `.doru` afterwards). The file *is* the project — its name
-   is the project's name:
+   project with the imported tree; save it to `.doru` afterwards. The file
+   *is* the project — its name is the project's name:
 
 ```
 My Family.doru      the tree itself (SQLite, branded with an app id)
@@ -17,9 +16,9 @@ media/              photos and scans, created on demand (optional)
 3. Get data in: a new tree shows one empty card — click it, type the name,
    confirm with the checkmark, and the first person appears on the canvas;
    every card can add children, spouses and parents the same way. GEDCOM
-   files come in through **Open or Import GEDCOM** (step 2); **Export
-   GEDCOM…** is not wired up yet — GEDCOM support is being rebuilt in the
-   `@doru/gedcom` package.
+   files come in through **Open or Import GEDCOM** (step 2). To export,
+   open the **Export** tab, choose **GEDCOM 7.0** (`.ged`) or **GEDZIP**
+   (`.gdz`, with the managed media files), and confirm the save location.
 
 Each project opens in its **own window**; persons, the tree editor and the
 settings open as tabs inside it. Recently used projects are listed on the

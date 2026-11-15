@@ -109,6 +109,10 @@ export function SourcesSection({
                 citation={citation}
                 attachments={renderCitationAttachments?.(citation)}
                 onSave={(after) => saveCitation(citation, after)}
+                onDelete={async () => {
+                  await onDetachCitation(citation.id);
+                  setExpandedId(null);
+                }}
                 onCancel={() => setExpandedId(null)}
               />
             )}

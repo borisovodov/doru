@@ -91,7 +91,7 @@ const INDIVIDUAL_EVENT_TAGS = new Set([
   'WILL',
 ]);
 
-const FAMILY_EVENT_TAGS = new Set(['ANUL', 'DIV', 'DIVF', 'ENGA', 'MARB', 'MARC', 'MARL', 'MARR', 'MARS']);
+const FAMILY_EVENT_TAGS = new Set(['ANUL', 'CENS', 'DIV', 'DIVF', 'ENGA', 'MARB', 'MARC', 'MARL', 'MARR', 'MARS']);
 
 const INDIVIDUAL_ATTRIBUTE_TAGS = new Set([
   'CAST',
@@ -172,7 +172,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
 
   const records: GedcomRecord[] = [
     ...places.map((place) => buildPlaceRecord(place, repo, xrefs)),
-    ...media.map((entry) => buildMediaRecord(entry, xrefs)),
+    ...media.map((entry) => buildMediaRecord(entry, repo, xrefs)),
     ...submitters.map((submitter) => buildSubmitter(submitter, repo, xrefs)),
     ...repositories.map((repository) => buildRepository(repository, repo, xrefs)),
     ...titles.map((title) => buildTitle(title, repo, xrefs)),
@@ -180,7 +180,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...notes.map((note) => buildSharedNote(note, repo, xrefs)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
-    ...todos.map((todo) => buildTodoRecord(todo)),
+    ...todos.map((todo) => buildTodoRecord(todo, repo, xrefs)),
     ...tags.map((tag) => buildTagRecord(tag, xrefs)),
     ...buildAssociations(),
   ];
@@ -231,6 +231,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   const sosaNumber = personIdentifiers.find((identifier) => identifier.namespace === 'sosa')?.value;
   const sosaDAboville = personIdentifiers.find((identifier) => identifier.namespace === 'daboville')?.value;
   const contacts = withContacts(repo, 'person', person.id);
+  const addressRecord = person.addressId !== undefined ? repo.getAddress(person.addressId) : undefined;
   const restriction = repo
     .listRestrictionsFor('person', person.id)
     .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
@@ -249,6 +250,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(restriction.length > 0 ? { restriction } : {}),
     ...changes,
     ...contacts,
+    ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
     ...withNoteList(repo, 'person', person.id, xrefs),
     ...withMediaLinks(repo, 'person', person.id, xrefs),
@@ -326,6 +328,16 @@ function buildName(name: PersonName, repo: TreeRepository, xrefs: Xrefs): Person
       ...(name.suffix !== undefined ? { suffix: name.suffix } : {}),
     },
     ...(name.type !== undefined ? { type: mapNameType(name.type) } : {}),
+    ...(name.callName !== undefined ? { callName: name.callName } : {}),
+    ...(name.middleName !== undefined ? { middleName: name.middleName } : {}),
+    ...(name.patronymic !== undefined ? { patronymic: name.patronymic } : {}),
+    ...(name.marriedName !== undefined ? { marriedName: name.marriedName } : {}),
+    ...(name.aka !== undefined ? { alsoKnownAs: name.aka.split(',').map((value) => value.trim()) } : {}),
+    ...(name.hebrewName !== undefined ? { hebrewName: name.hebrewName } : {}),
+    ...(name.title !== undefined ? { title: name.title } : {}),
+    ...(name.shortName !== undefined ? { shortName: name.shortName } : {}),
+    ...(name.nameAsRecorded !== undefined ? { nameAsRecorded: name.nameAsRecorded } : {}),
+    ...(name.givenNameUsed !== undefined ? { givenNameUsed: name.givenNameUsed } : {}),
     pieces,
     ...(nameDate !== undefined ? { date: nameDate } : {}),
     ...(name.primary === true ? { primary: true } : {}),
@@ -380,7 +392,7 @@ function buildNameVariation(variant: PersonName): PhoneticNameVariation {
       ...(variant.given !== undefined ? { given: variant.given } : {}),
       ...(variant.surname !== undefined ? { surname: variant.surname } : {}),
     },
-    ...(variant.type !== undefined ? { type: variant.type } : {}),
+    ...(variant.variantType !== undefined ? { type: variant.variantType } : {}),
     ...(Object.keys(pieces).length > 0 ? { pieces } : {}),
   };
 }
@@ -404,17 +416,38 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
   // versions); families with more partners export the first two.
   const husband: FamilyPartnerLink | undefined =
     first !== undefined
-      ? { partner: xrefs.of(first.personId), ...(first.preferred === true ? { preferred: true } : {}) }
+      ? {
+          partner: xrefs.of(first.personId),
+          ...(first.preferred === true ? { preferred: true } : {}),
+          ...(first.phrase !== undefined ? { phrase: first.phrase } : {}),
+          ...(first.name !== undefined ? { name: { tag: 'NAME' as const, payload: { given: first.name } } } : {}),
+          ...(first.civilStatus !== undefined ? { civilStatus: first.civilStatus } : {}),
+          ...(first.marriageNumber !== undefined && /^\d+$/.test(first.marriageNumber)
+            ? { marriageNumber: Number(first.marriageNumber) }
+            : {}),
+        }
       : undefined;
   const wife: FamilyPartnerLink | undefined =
     second !== undefined
-      ? { partner: xrefs.of(second.personId), ...(second.preferred === true ? { preferred: true } : {}) }
+      ? {
+          partner: xrefs.of(second.personId),
+          ...(second.preferred === true ? { preferred: true } : {}),
+          ...(second.phrase !== undefined ? { phrase: second.phrase } : {}),
+          ...(second.name !== undefined ? { name: { tag: 'NAME' as const, payload: { given: second.name } } } : {}),
+          ...(second.civilStatus !== undefined ? { civilStatus: second.civilStatus } : {}),
+          ...(second.marriageNumber !== undefined && /^\d+$/.test(second.marriageNumber)
+            ? { marriageNumber: Number(second.marriageNumber) }
+            : {}),
+        }
       : undefined;
   const childLinks = family.childLinks ?? [];
   const children = childLinks.map((link) => ({
     child: xrefs.of(link.childId),
     ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
     ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
+    ...(link.preferred === true ? { preferred: true } : {}),
+    ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
+    ...withNoteList(repo, 'family_child', link.id, xrefs),
   }));
   const events: FamilyEventStructure[] = [];
   const attributes: FamilyAttributeStructure[] = [];
@@ -442,6 +475,25 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
   return {
     tag: 'FAM',
     xref: xrefs.of(family.id),
+    ...(family.preferred === true ? { preferred: true } : {}),
+    ...(family.sameSex === true ? { sameSexUnion: true } : {}),
+    ...(family.unionKind !== undefined ? { unionKind: family.unionKind as import('@doru/gedcom').UsmUnionKind } : {}),
+    ...(family.unionStatus !== undefined ? { unionStatus: family.unionStatus } : {}),
+    ...(family.marriageBeginStatus !== undefined ? { marriageBeginningStatus: family.marriageBeginStatus } : {}),
+    ...(family.marriageEndStatus !== undefined ? { marriageEndingStatus: family.marriageEndStatus } : {}),
+    ...(family.witnesses !== undefined && family.witnesses.length > 0 ? { witnesses: family.witnesses } : {}),
+    ...(family.marriageStatuses !== undefined && family.marriageStatuses.length > 0
+      ? {
+          marriageStatuses: family.marriageStatuses.map((status) => ({
+            tag: '_STAT' as const,
+            payload: status.status,
+            ...(status.date !== undefined ? { date: buildDate(status.date) } : {}),
+            ...(status.placeId !== undefined ? { place: buildPlace(repo, status.placeId, xrefs) } : {}),
+            ...withNoteList(repo, 'family_marriage_status', status.id, xrefs),
+            ...withCitationList(repo, 'family_marriage_status', status.id, xrefs),
+          })) as import('@doru/gedcom').MarriageStatusStructure[],
+        }
+      : {}),
     ...(husband !== undefined ? { husband } : {}),
     ...(wife !== undefined ? { wife } : {}),
     ...(children.length > 0 ? { children } : {}),
@@ -457,6 +509,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
     ...withTodoStructures(repo, 'family', family.id),
+    ...withFamilyAssociations(repo, family.id, xrefs),
   };
 }
 
@@ -522,11 +575,15 @@ function buildRepository(
     tag: 'REPO',
     xref: xrefs.of(repository.id),
     name: repository.name,
-    ...(address !== undefined ? { address: buildAddress(address) } : {}),
+    ...(address !== undefined ? { address: buildAddress(address, repo, xrefs) } : {}),
     ...(withIdentifiers(repo, 'repository', repository.id).length > 0
       ? { identifiers: withIdentifiers(repo, 'repository', repository.id) }
       : {}),
+    ...withContacts(repo, 'repository', repository.id),
+    ...withChanges(repo, 'repository', repository.id),
     ...withNoteList(repo, 'repository', repository.id, xrefs),
+    ...withSubmitterLinks(repo, 'repository', repository.id, xrefs),
+    ...withTagLinks(repo, 'repository', repository.id, xrefs),
   } as GedcomRecord;
   return record;
 }
@@ -541,9 +598,15 @@ function buildSubmitter(
     tag: 'SUBM',
     xref: xrefs.of(submitter.id),
     name: submitter.name,
-    ...(address !== undefined ? { address: buildAddress(address) } : {}),
+    ...(address !== undefined ? { address: buildAddress(address, repo, xrefs) } : {}),
     ...(submitter.languages !== undefined && submitter.languages.length > 0 ? { languages: submitter.languages } : {}),
+    ...(withIdentifiers(repo, 'submitter', submitter.id).length > 0
+      ? { identifiers: withIdentifiers(repo, 'submitter', submitter.id) }
+      : {}),
+    ...withContacts(repo, 'submitter', submitter.id),
+    ...withChanges(repo, 'submitter', submitter.id),
     ...withNoteList(repo, 'submitter', submitter.id, xrefs),
+    ...withSubmitterLinks(repo, 'submitter', submitter.id, xrefs),
   };
 }
 
@@ -559,6 +622,7 @@ function buildTitle(title: import('../model/types').TitleRecord, repo: TreeRepos
     ...(title.repositoryId !== undefined ? { repository: xrefs.of(title.repositoryId) } : {}),
     ...(title.callNumber !== undefined ? { callNumber: title.callNumber } : {}),
     ...(title.sequence !== undefined ? { sequenceNumber: String(title.sequence) } : {}),
+    ...withChanges(repo, 'title', title.id),
     ...withNoteList(repo, 'title', title.id, xrefs),
   };
 }
@@ -580,11 +644,21 @@ function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): 
           })),
         }
       : {}),
+    ...(withIdentifiers(repo, 'note', note.id).length > 0
+      ? { identifiers: withIdentifiers(repo, 'note', note.id) }
+      : {}),
+    ...withChanges(repo, 'note', note.id),
     ...withCitationList(repo, 'note', note.id, xrefs),
+    ...withSubmitterLinks(repo, 'note', note.id, xrefs),
+    ...withTagLinks(repo, 'note', note.id, xrefs),
   };
 }
 
-function buildTodoRecord(todo: TodoRecord): GedcomRecord {
+function buildTodoRecord(todo: TodoRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
+  const uids = repo
+    .listIdentifiersFor('todo', todo.id)
+    .filter((identifier) => identifier.namespace === 'uid')
+    .map((identifier) => identifier.value);
   return {
     tag: '_TODO',
     payload: todo.text,
@@ -592,6 +666,9 @@ function buildTodoRecord(todo: TodoRecord): GedcomRecord {
     ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
     ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
     ...(todo.status !== undefined ? { status: todo.status } : {}),
+    ...(uids.length > 0 ? { uids } : {}),
+    ...withNoteList(repo, 'todo', todo.id, xrefs),
+    ...withChanges(repo, 'todo', todo.id),
   };
 }
 
@@ -620,6 +697,17 @@ function withAssociations(
   return associations.length > 0 ? { associations } : {};
 }
 
+function withFamilyAssociations(
+  repo: TreeRepository,
+  familyId: string,
+  xrefs: Xrefs,
+): { associations?: import('@doru/gedcom').AssociationStructure[] } {
+  const associations = repo
+    .listAssociationsForFamily(familyId)
+    .map((association) => buildAssociation(association, repo, xrefs));
+  return associations.length > 0 ? { associations } : {};
+}
+
 function buildAssociation(
   association: AssociationRecord,
   repo: TreeRepository,
@@ -644,6 +732,9 @@ function buildAssociation(
             ...(association.periodEnd !== undefined ? { end: buildDate(association.periodEnd) } : {}),
           },
         }
+      : {}),
+    ...(repo.listRestrictionsFor('association', association.id).some((entry) => entry.level === 'privacy')
+      ? { private: true }
       : {}),
     ...withCitationList(repo, 'association', association.id, xrefs),
     ...withNoteList(repo, 'association', association.id, xrefs),
@@ -733,7 +824,10 @@ function mediaMime(path: string): string {
   return MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
 }
 
-function buildMediaRecord(media: MediaRecord, xrefs: Xrefs): MultimediaRecord {
+function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs): MultimediaRecord {
+  const restriction = repo
+    .listRestrictionsFor('media', media.id)
+    .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   return {
     tag: 'OBJE',
     xref: xrefs.of(media.id),
@@ -743,6 +837,15 @@ function buildMediaRecord(media: MediaRecord, xrefs: Xrefs): MultimediaRecord {
       form: { payload: mediaMime(file.path) },
       ...(file.title !== undefined ? { title: file.title } : {}),
     })),
+    ...(withIdentifiers(repo, 'media', media.id).length > 0
+      ? { identifiers: withIdentifiers(repo, 'media', media.id) }
+      : {}),
+    ...(restriction.length > 0 ? { restriction } : {}),
+    ...withChanges(repo, 'media', media.id),
+    ...withCitationList(repo, 'media', media.id, xrefs),
+    ...withNoteList(repo, 'media', media.id, xrefs),
+    ...withSubmitterLinks(repo, 'media', media.id, xrefs),
+    ...withTagLinks(repo, 'media', media.id, xrefs),
   };
 }
 
@@ -799,7 +902,12 @@ function withIdentifiers(
         identifier.namespace === 'uid' || identifier.namespace === 'exid' || identifier.namespace === 'refn',
     )
     .map(
-      (identifier) => ({ tag: identifier.namespace.toUpperCase(), payload: identifier.value }) as IdentifierStructure,
+      (identifier) =>
+        ({
+          tag: identifier.namespace.toUpperCase(),
+          payload: identifier.value,
+          ...(identifier.namespace !== 'uid' && identifier.type !== undefined ? { type: identifier.type } : {}),
+        }) as IdentifierStructure,
     );
 }
 
@@ -807,7 +915,7 @@ function withContacts(
   repo: TreeRepository,
   targetType: string,
   targetId: string,
-): { email?: string[]; phone?: string[]; fax?: string[]; url?: string } {
+): { email?: string[]; phone?: string[]; fax?: string[]; url?: string; www?: string[] } {
   const contacts = repo.listContactsFor(targetType, targetId);
   const ofKind = (kind: string): string[] =>
     contacts.filter((contact) => contact.kind === kind).map((contact) => contact.value);
@@ -816,6 +924,7 @@ function withContacts(
     ...(ofKind('phone').length > 0 ? { phone: ofKind('phone') } : {}),
     ...(ofKind('fax').length > 0 ? { fax: ofKind('fax') } : {}),
     ...(ofKind('url').length > 0 ? { url: ofKind('url')[0] } : {}),
+    ...(ofKind('www').length > 0 ? { www: ofKind('www') } : {}),
   };
 }
 
@@ -867,6 +976,18 @@ function buildCitation(
     ...(row.page !== undefined ? { page: { tag: 'PAGE', payload: row.page } } : {}),
     ...(row.quality !== undefined ? { quality: row.quality as QualityEnum } : {}),
     ...(row.confidence !== undefined ? { confidence: row.confidence } : {}),
+    ...(row.name !== undefined ? { name: row.name } : {}),
+    ...(row.qualityAssessment !== undefined
+      ? { qualityAssessment: { tag: '_QUAL' as const, source: row.qualityAssessment } }
+      : {}),
+    ...(row.reference !== undefined ? { reference: row.reference } : {}),
+    ...(row.referenceNumber !== undefined ? { referenceNumber: row.referenceNumber } : {}),
+    ...(row.abbreviation !== undefined ? { abbreviation: row.abbreviation } : {}),
+    ...(row.footnote !== undefined ? { footnote: row.footnote } : {}),
+    ...(row.verified === true ? { verified: true } : {}),
+    ...(row.assessment !== undefined ? { assessment: row.assessment } : {}),
+    ...(row.foundBy !== undefined ? { foundBy: row.foundBy } : {}),
+    ...(row.www !== undefined ? { www: row.www } : {}),
     ...(row.event !== undefined || row.role !== undefined || row.phrase !== undefined
       ? {
           event: {
@@ -910,7 +1031,7 @@ function buildCitation(
       : {}),
     ...withNoteList(repo, 'citation', row.id, xrefs),
     ...withMediaLinks(repo, 'citation', row.id, xrefs),
-  } as SourceCitation;
+  } as unknown as SourceCitation;
 }
 
 function withNoteList(
@@ -1000,6 +1121,7 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
   const texts = source.texts ?? [];
   const data = {
     ...(source.agency !== undefined ? { agency: source.agency } : {}),
+    ...(source.dataNote !== undefined ? { notes: [{ tag: 'NOTE' as const, payload: source.dataNote }] } : {}),
     ...(source.dataEvents !== undefined && source.dataEvents.length > 0
       ? {
           events: source.dataEvents.map((event) => ({
@@ -1023,6 +1145,11 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(source.url !== undefined ? { url: source.url } : {}),
     ...(source.accessDate !== undefined ? { accessDate: source.accessDate } : {}),
     ...(source.confidence !== undefined ? { confidence: source.confidence } : {}),
+    ...(source.certainty !== undefined ? { certainty: source.certainty as import('@doru/gedcom').QualityEnum } : {}),
+    ...(source.subsequentCitationFormat !== undefined
+      ? { subsequentCitationFormat: source.subsequentCitationFormat }
+      : {}),
+    ...(source.bibliography !== undefined ? { bibliography: source.bibliography } : {}),
     ...(source.pubDate !== undefined || source.pubPlace !== undefined
       ? {
           publicationDetails: {
@@ -1079,6 +1206,8 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withNoteList(repo, 'source', source.id, xrefs),
     ...withMediaLinks(repo, 'source', source.id, xrefs),
     ...withChanges(repo, 'source', source.id),
+    ...withSubmitterLinks(repo, 'source', source.id, xrefs),
+    ...withTagLinks(repo, 'source', source.id, xrefs),
   };
 }
 
@@ -1088,6 +1217,11 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
 
 function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): EventDetail | undefined {
   const date = buildDate(fact.date);
+  const endDate = fact.endDate !== undefined ? buildDate(fact.endDate) : undefined;
+  const additionalPlaces =
+    fact.additionalPlaceIds !== undefined && fact.additionalPlaceIds.length > 0
+      ? fact.additionalPlaceIds.map((placeId) => buildPlace(repo, placeId, xrefs))
+      : undefined;
   const place: PlaceStructure | undefined =
     fact.placeId !== undefined
       ? buildPlace(repo, fact.placeId, xrefs)
@@ -1095,7 +1229,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
         ? { tag: 'PLAC', payload: [fact.place] }
         : undefined;
   const addressRecord = fact.addressId !== undefined ? repo.getAddress(fact.addressId) : undefined;
-  const address = addressRecord !== undefined ? buildAddress(addressRecord) : undefined;
+  const address = addressRecord !== undefined ? buildAddress(addressRecord, repo, xrefs) : undefined;
   const ages = fact.ages?.filter((age) => age.role === undefined);
   const witnessAssociations = (fact.participants ?? []).flatMap((participant) => {
     if (participant.personId === undefined) {
@@ -1117,17 +1251,44 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const citations = withCitationList(repo, 'fact', fact.id, xrefs).citations;
   const notes = withNoteList(repo, 'fact', fact.id, xrefs).notes;
   const media = withMediaLinks(repo, 'fact', fact.id, xrefs).media;
+  const restriction = repo
+    .listRestrictionsFor('fact', fact.id)
+    .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
+  const uniqueIds = repo
+    .listIdentifiersFor('fact', fact.id)
+    .filter((identifier) => identifier.namespace === 'uid')
+    .map((identifier) => identifier.value);
+  const contacts = withContacts(repo, 'fact', fact.id);
+  const changes = withChanges(repo, 'fact', fact.id);
   const flags = fact.flags;
   if (
     date === undefined &&
+    endDate === undefined &&
     place === undefined &&
+    additionalPlaces === undefined &&
     address === undefined &&
+    fact.placePrefix === undefined &&
+    fact.eventNumber === undefined &&
+    fact.birthLength === undefined &&
+    fact.birthWeight === undefined &&
+    fact.cemetery === undefined &&
+    fact.fna === undefined &&
+    fact.descriptionAware === undefined &&
+    fact.map === undefined &&
     (ages ?? []).length === 0 &&
     witnesses.length === 0 &&
     witnessAssociations.length === 0 &&
     citations.length === 0 &&
     notes.length === 0 &&
     media === undefined &&
+    restriction.length === 0 &&
+    uniqueIds.length === 0 &&
+    contacts.email === undefined &&
+    contacts.phone === undefined &&
+    contacts.fax === undefined &&
+    contacts.www === undefined &&
+    changes.changeDate === undefined &&
+    changes.creationDate === undefined &&
     fact.sortDate === undefined &&
     fact.agency === undefined &&
     fact.religiousAffiliation === undefined &&
@@ -1141,8 +1302,10 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const firstAge = ages?.[0];
   return {
     ...(date !== undefined ? { date } : {}),
+    ...(endDate !== undefined ? { endDate } : {}),
     ...(fact.sortDate !== undefined ? { sortDate: buildSortDate(fact.sortDate) } : {}),
     ...(place !== undefined ? { place } : {}),
+    ...(additionalPlaces !== undefined ? { additionalPlaces } : {}),
     ...(address !== undefined ? { address } : {}),
     ...(firstAge !== undefined ? { age: buildAge(firstAge) } : {}),
     ...(fact.agency !== undefined ? { agency: fact.agency } : {}),
@@ -1150,12 +1313,37 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     ...(fact.cause !== undefined ? { cause: fact.cause } : {}),
     ...(fact.sentence !== undefined ? { sentence: fact.sentence } : {}),
     ...(fact.quality !== undefined ? { quality: fact.quality as QualityEnum } : {}),
+    ...(fact.placePrefix !== undefined ? { placePrefix: fact.placePrefix } : {}),
+    ...(fact.eventNumber !== undefined ? { eventNumber: fact.eventNumber } : {}),
+    ...(fact.birthLength !== undefined ? { birthLength: fact.birthLength } : {}),
+    ...(fact.birthWeight !== undefined ? { birthWeight: fact.birthWeight } : {}),
+    ...(fact.cemetery !== undefined ? { cemetery: fact.cemetery } : {}),
+    ...(fact.fna === true ? { fna: true } : {}),
+    ...(fact.descriptionAware === true ? { descriptionAware: true } : {}),
+    ...(fact.map !== undefined
+      ? {
+          map: {
+            latitude: {
+              direction: fact.map.latitude >= 0 ? 'N' : 'S',
+              degrees: Math.abs(fact.map.latitude),
+            },
+            longitude: {
+              direction: fact.map.longitude >= 0 ? 'E' : 'W',
+              degrees: Math.abs(fact.map.longitude),
+            },
+          },
+        }
+      : {}),
     ...(flags !== undefined ? { factFlags: flags as EventDetail['factFlags'] } : {}),
     ...(witnesses.length > 0 ? { witnesses } : {}),
     ...(witnessAssociations.length > 0 ? { associations: witnessAssociations } : {}),
     ...(citations.length > 0 ? { citations } : {}),
     ...(notes.length > 0 ? { notes } : {}),
     ...(media !== undefined ? { media } : {}),
+    ...(restriction.length > 0 ? { restriction } : {}),
+    ...(uniqueIds.length > 0 ? { uniqueIds } : {}),
+    ...contacts,
+    ...changes,
   } as EventDetail;
 }
 
@@ -1187,13 +1375,21 @@ function buildAge(age: {
   };
 }
 
-function buildAddress(address: import('../model/types').AddressRecord): import('@doru/gedcom').AddressStructure {
+function buildAddress(
+  address: import('../model/types').AddressRecord,
+  repo: TreeRepository,
+  xrefs: Xrefs,
+): import('@doru/gedcom').AddressStructure {
+  const privateAddress = repo.listRestrictionsFor('address', address.id).some((entry) => entry.level === 'privacy');
   return {
-    ...(address.lines.length > 0 ? { payload: address.lines.join('\n') } : {}),
+    ...(address.lines.length > 0 ? { payload: address.lines.map((line) => line.value).join('\n') } : {}),
     ...(address.city !== undefined ? { city: address.city } : {}),
     ...(address.state !== undefined ? { state: address.state } : {}),
     ...(address.postalCode !== undefined ? { postalCode: address.postalCode } : {}),
     ...(address.country !== undefined ? { country: address.country } : {}),
+    ...(privateAddress ? { private: true } : {}),
+    ...withNoteList(repo, 'address', address.id, xrefs),
+    ...withContacts(repo, 'address', address.id),
   };
 }
 
@@ -1217,6 +1413,7 @@ function buildPlace(repo: TreeRepository, placeId: string, xrefs: Xrefs): PlaceS
       payload: [name.value],
       ...(name.type !== undefined ? { type: name.type } : {}),
     }));
+  const officialName = place?.names.find((name) => name.kind === undefined || name.kind === 'official');
   return {
     tag: 'PLAC',
     payload: place !== undefined ? officialPlaceNames(place) : [''],
@@ -1232,6 +1429,8 @@ function buildPlace(repo: TreeRepository, placeId: string, xrefs: Xrefs): PlaceS
         }
       : {}),
     ...(place?.verified === true ? { verified: true } : {}),
+    ...(place !== undefined && place.form !== undefined && place.form.length > 0 ? { form: place.form } : {}),
+    ...(officialName?.language !== undefined ? { language: officialName.language } : {}),
     ...(place !== undefined ? { location: xrefs.of(place.id) } : {}),
   };
 }
@@ -1242,6 +1441,18 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     .map((name) => ({
       name: name.value,
       ...(name.language !== undefined ? { language: name.language } : {}),
+      ...(name.date !== undefined ? { date: buildDate(name.date) } : {}),
+      ...(name.addition !== undefined ? { addition: name.addition } : {}),
+      ...(name.abbreviation !== undefined
+        ? {
+            abbreviations: [
+              {
+                abbreviation: name.abbreviation,
+                ...(name.abbreviationType !== undefined ? { type: name.abbreviationType } : {}),
+              },
+            ],
+          }
+        : {}),
       ...(name.kind !== undefined && name.kind !== 'official'
         ? {
             extensions: [
@@ -1255,7 +1466,8 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     tag: '_LOC' as const,
     parent: xrefs.of(link.parentId),
     ...(link.type !== undefined ? { type: link.type.toUpperCase() as 'POLI' | 'RELI' | 'GEOG' | 'CULT' } : {}),
-  }));
+    ...(link.date !== undefined ? { date: buildDate(link.date) } : {}),
+  })) as NonNullable<GedcomPlaceRecord['parents']>;
   const postalCodes = (place.postalCodes ?? []).map((postal) => {
     const date = postal.date !== undefined ? buildDate(postal.date) : undefined;
     return {
@@ -1268,6 +1480,12 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     xref: xrefs.of(place.id),
     payload: officialPlaceNames(place).join(', '),
     ...(names.length > 0 ? { names } : {}),
+    ...(place.form !== undefined ? { form: place.form.join(', ') } : {}),
+    ...(place.abbreviation !== undefined ? { abbreviation: place.abbreviation } : {}),
+    ...(place.preposition !== undefined ? { preposition: place.preposition } : {}),
+    ...(place.govId !== undefined ? { govId: place.govId } : {}),
+    ...(place.maidenhead !== undefined ? { maidenhead: place.maidenhead } : {}),
+    ...(place.placeType !== undefined ? { types: [{ type: place.placeType }] } : {}),
     ...(place.latitude !== undefined && place.longitude !== undefined
       ? {
           map: {
@@ -1311,6 +1529,7 @@ function buildSortDate(date: DateValue): import('@doru/gedcom').SortDateStructur
   const value = buildDateValue(date);
   return {
     ...(value !== undefined ? { value } : {}),
+    ...(date.time !== undefined ? { time: date.time as import('@doru/gedcom').TimeValue } : {}),
     ...(date.text !== undefined ? { phrase: date.text } : {}),
   };
 }

@@ -116,6 +116,19 @@ export interface PersonCounts {
   media: number;
 }
 
+/** A family link would make a person their own ancestor. */
+export class ParentCycleError extends Error {
+  readonly code = 'parent-cycle';
+
+  constructor(
+    readonly childId: string,
+    readonly parentId: string,
+  ) {
+    super(`Linking ${childId} as a child of ${parentId} would create a parent cycle`);
+    this.name = 'ParentCycleError';
+  }
+}
+
 /**
  * The tree domain service: every mutation of the tree flows through here as
  * an op on the project's queue (one undo step per call), and every read goes
@@ -322,6 +335,9 @@ export class TreeService {
    * that family when it does not exist — one undo step.
    */
   reparent(childId: string, newParentId: string): UndoRedoState {
+    if (this.isAncestor(childId, newParentId, this.repo.listFamilies())) {
+      throw new ParentCycleError(childId, newParentId);
+    }
     const links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
     for (const family of this.repo.listFamiliesForPerson(childId).filter((entry) => entry.children.includes(childId))) {
       links.push({
@@ -390,10 +406,12 @@ export class TreeService {
   // --- families ------------------------------------------------------------
 
   addFamily(family: FamilyRecord): UndoRedoState {
+    this.assertFamilyAcyclic(family);
     return this.apply(addFamilyOp(family));
   }
 
   updateFamily(before: FamilyRecord, after: FamilyRecord): UndoRedoState {
+    this.assertFamilyAcyclic(after);
     const removed = this.removedLinkAttachments(before, after);
     return this.apply(updateFamilyOp(before, after, removed));
   }
@@ -428,10 +446,6 @@ export class TreeService {
 
   listPlaces(): PlaceRecord[] {
     return this.repo.listPlaces();
-  }
-
-  searchPlaces(query: string, limit?: number): PlaceRecord[] {
-    return this.repo.searchPlaces(query, limit);
   }
 
   getPlace(id: string): PlaceRecord | undefined {
@@ -723,7 +737,8 @@ export class TreeService {
 
   deleteRepository(repository: RepositoryRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('repository', repository.id);
-    return this.apply(deleteRepositoryOp(repository, attachments));
+    const consumers = { sourceRepositories: this.repo.listSourceRepositoriesFor(repository.id) };
+    return this.apply(deleteRepositoryOp(repository, attachments, consumers));
   }
 
   addSubmitter(submitter: SubmitterRecord): UndoRedoState {
@@ -736,7 +751,8 @@ export class TreeService {
 
   deleteSubmitter(submitter: SubmitterRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('submitter', submitter.id);
-    return this.apply(deleteSubmitterOp(submitter, attachments));
+    const consumers = { recordSubmitters: this.repo.listRecordSubmittersForSubmitter(submitter.id) };
+    return this.apply(deleteSubmitterOp(submitter, attachments, consumers));
   }
 
   /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
@@ -849,10 +865,54 @@ export class TreeService {
 
   deleteTitle(title: TitleRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('title', title.id);
-    return this.apply(deleteTitleOp(title, attachments));
+    const consumers = { sources: this.repo.listSourcesForTitle(title.id) };
+    return this.apply(deleteTitleOp(title, attachments, consumers));
   }
 
   // --- plumbing -------------------------------------------------------------
+
+  /**
+   * Rejects a family whose partner/child links would close a parent cycle.
+   * The family itself is part of the graph so a single update that reverses
+   * an existing parent/child pair is caught too.
+   */
+  private assertFamilyAcyclic(family: FamilyRecord): void {
+    const graph = [...this.repo.listFamilies().filter((entry) => entry.id !== family.id), family];
+    for (const childId of family.children) {
+      for (const parentId of family.partners) {
+        if (this.isAncestor(childId, parentId, graph)) {
+          throw new ParentCycleError(childId, parentId);
+        }
+      }
+    }
+  }
+
+  /** True when `ancestorId` is `personId` itself or one of their ancestors. */
+  private isAncestor(ancestorId: string, personId: string, families: FamilyRecord[]): boolean {
+    if (ancestorId === personId) {
+      return true;
+    }
+    const seen = new Set<string>();
+    const stack = [personId];
+    while (stack.length > 0) {
+      const current = stack.pop() as string;
+      for (const family of families) {
+        if (!family.children.includes(current)) {
+          continue;
+        }
+        for (const parent of family.partners) {
+          if (parent === ancestorId) {
+            return true;
+          }
+          if (!seen.has(parent)) {
+            seen.add(parent);
+            stack.push(parent);
+          }
+        }
+      }
+    }
+    return false;
+  }
 
   /** Attachments of the partner/child link rows that an update removes. */
   private removedLinkAttachments(before: FamilyRecord, after: FamilyRecord): FamilyLinkAttachments[] {

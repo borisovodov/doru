@@ -79,7 +79,7 @@ describe('buildGedcomDataset kitchen sink', () => {
         const moscow = places.find((place) => place.names.some((name) => name.value === 'Moscow'));
         const russia = places.find((place) => place.id !== moscow?.id);
         expect(moscow?.verified).toBe(true);
-        expect(moscow?.hierarchy).toEqual([{ parentId: russia?.id, type: 'poli' }]);
+        expect(moscow?.hierarchy).toEqual([expect.objectContaining({ parentId: russia?.id, type: 'poli' })]);
         expect(moscow?.postalCodes?.[0]?.code).toBe('101000');
         expect(moscow?.names.some((name) => name.kind === 'translation')).toBe(true);
 
@@ -97,7 +97,10 @@ describe('buildGedcomDataset kitchen sink', () => {
             ?.texts?.map((text) => text.text)
             .sort(),
         ).toEqual(['A note about the source', 'A second transcription'].sort());
-        expect(target.repo.listAddresses()[0]?.lines).toEqual(['12 Archive Lane', 'Building 3']);
+        expect(target.repo.listAddresses()[0]?.lines.map((line) => line.value)).toEqual([
+          '12 Archive Lane',
+          'Building 3',
+        ]);
         expect(target.repo.listRepositories()).toHaveLength(1);
         expect(target.repo.listSubmitters()).toHaveLength(1);
         expect(target.repo.listTitles()).toHaveLength(1);

@@ -214,6 +214,12 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const addStandaloneMedia = useCallback(async () => {
+    if (!projectPath) return;
+    await window.doru.addStandaloneMedia(projectPath);
+    await refreshTree();
+  }, [projectPath, refreshTree]);
+
   const mediaApi = useMemo<MediaTargetApi>(
     () => ({
       getMediaFor: (targetType, targetId) =>
@@ -913,6 +919,27 @@ export function useTreeData(projectPath: string | null | undefined) {
   const familyApi = useMemo<FamilyEditorApi>(
     () => ({
       ...attachmentMethods,
+      getAssociationsForFamily: (familyId) =>
+        projectPath
+          ? window.doru
+              .getAllAssociations(projectPath)
+              .then((all) => all.filter((association) => association.familyId === familyId))
+          : Promise.resolve([]),
+      addAssociation: async (association) => {
+        if (!projectPath) return;
+        await window.doru.addAssociation(projectPath, association);
+        await refreshTree();
+      },
+      updateAssociation: async (before, after) => {
+        if (!projectPath) return;
+        await window.doru.updateAssociation(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteAssociation: async (association) => {
+        if (!projectPath) return;
+        await window.doru.deleteAssociation(projectPath, association);
+        await refreshTree();
+      },
       getFacts: (personId, familyId) =>
         projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
       addFact: async (fact) => {
@@ -1025,14 +1052,17 @@ export function useTreeData(projectPath: string | null | undefined) {
       addAddress: async (address) => {
         if (!projectPath) return;
         await window.doru.addAddress(projectPath, address);
+        await refreshTree();
       },
       updateAddress: async (before, after) => {
         if (!projectPath) return;
         await window.doru.updateAddress(projectPath, before, after);
+        await refreshTree();
       },
       deleteAddress: async (address) => {
         if (!projectPath) return;
         await window.doru.deleteAddress(projectPath, address);
+        await refreshTree();
       },
       getAddress: (id) => (projectPath ? window.doru.getAddress(projectPath, id) : Promise.resolve(undefined)),
     }),
@@ -1116,6 +1146,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     deletePerson,
     reparent,
     personCounts,
+    addStandaloneMedia,
     mediaApi,
     mediaAdminApi,
     api,

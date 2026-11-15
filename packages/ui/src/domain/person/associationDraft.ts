@@ -6,9 +6,12 @@ import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from './draft';
  * persons, GEDCOM ASSO). The period bounds edit through the shared date
  * draft; everything else is a plain field.
  */
+export type AssociationOwner = { kind: 'person'; id: string } | { kind: 'family'; id: string };
+
 export interface AssociationDraft {
   id: string;
-  personId: string;
+  personId?: string | undefined;
+  familyId?: string | undefined;
   otherPersonId: string; // '' = nobody picked yet
   role: string;
   relationship: string;
@@ -20,10 +23,10 @@ export interface AssociationDraft {
   periodEnd: DateDraft;
 }
 
-export function emptyAssociationDraft(personId: string): AssociationDraft {
+export function emptyAssociationDraft(owner: AssociationOwner): AssociationDraft {
   return {
     id: crypto.randomUUID(),
-    personId,
+    ...(owner.kind === 'person' ? { personId: owner.id } : { familyId: owner.id }),
     otherPersonId: '',
     role: '',
     relationship: '',
@@ -40,6 +43,7 @@ export function associationToDraft(association: AssociationRecord): AssociationD
   return {
     id: association.id,
     personId: association.personId,
+    familyId: association.familyId,
     otherPersonId: association.otherPersonId,
     role: association.role ?? '',
     relationship: association.relationship ?? '',
@@ -55,7 +59,8 @@ export function associationToDraft(association: AssociationRecord): AssociationD
 export function associationDraftToRecord(draft: AssociationDraft): AssociationRecord {
   return {
     id: draft.id,
-    personId: draft.personId,
+    ...(draft.personId !== undefined ? { personId: draft.personId } : {}),
+    ...(draft.familyId !== undefined ? { familyId: draft.familyId } : {}),
     otherPersonId: draft.otherPersonId,
     role: draft.role.trim() || undefined,
     relationship: draft.relationship.trim() || undefined,
