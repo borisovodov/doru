@@ -57,7 +57,9 @@ export function PlaceEditor({
   const patchHierarchy = (index: number, values: Partial<HierarchyDraft>) =>
     set({ hierarchy: draft.hierarchy.map((link, i) => (i === index ? { ...link, ...values } : link)) });
   const addHierarchy = () =>
-    set({ hierarchy: [...draft.hierarchy, { id: crypto.randomUUID(), parentId: '', type: '' }] });
+    set({
+      hierarchy: [...draft.hierarchy, { id: crypto.randomUUID(), parentId: '', type: '', date: emptyDate() }],
+    });
   const removeHierarchy = (index: number) => set({ hierarchy: draft.hierarchy.filter((_, i) => i !== index) });
 
   /** The place itself and everything below it — never a valid parent. */

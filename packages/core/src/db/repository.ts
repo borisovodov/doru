@@ -246,7 +246,12 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertPerson(person: PersonRecord): void {
     this.transactions.run(() => {
-      this.persons.insertPerson({ id: person.id, xref: person.xref, sex: person.sex });
+      this.persons.insertPerson({
+        id: person.id,
+        xref: person.xref,
+        sex: person.sex,
+        addressId: person.addressId,
+      });
       this.names.replaceNamesForPerson(person.id, person.names);
       for (const fact of person.facts) {
         this.facts.insertFact(fact);
@@ -266,7 +271,12 @@ export class SqliteTreeRepository implements TreeRepository {
     this.transactions.run(() => {
       const oldNames = collectNameIds(this.names.listNamesForPerson(person.id));
       const oldFacts = this.facts.listFactsForPerson(person.id);
-      this.persons.updatePerson({ id: person.id, xref: person.xref, sex: person.sex });
+      this.persons.updatePerson({
+        id: person.id,
+        xref: person.xref,
+        sex: person.sex,
+        addressId: person.addressId,
+      });
       this.names.replaceNamesForPerson(person.id, person.names);
       const newNames = new Set(collectNameIds(person.names));
       for (const nameId of oldNames) {

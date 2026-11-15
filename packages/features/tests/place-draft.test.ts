@@ -3,6 +3,7 @@ import type { PlaceRecord } from '@doru/core';
 import { emptyDate } from '@doru/ui/domain';
 import {
   emptyPlaceDraft,
+  emptyPlaceNameDraft,
   placeDraftMatches,
   placeDraftName,
   placeDraftToRecord,
@@ -69,9 +70,9 @@ describe('placeToDraft / placeDraftToRecord', () => {
       ...emptyPlaceDraft(),
       latitude: '54.19',
       longitude: 'abc',
-      names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: '  Tula  ' }],
+      names: [{ ...emptyPlaceNameDraft(0), id: 'N1', value: '  Tula  ' }],
       postalCodes: [{ id: 'PC1', code: '  ', date: emptyDate() }],
-      hierarchy: [{ id: 'H1', parentId: '', type: '' }],
+      hierarchy: [{ id: 'H1', parentId: '', type: '', date: emptyDate() }],
     });
     expect(record.latitude).toBe(54.19);
     expect(record.longitude).toBeUndefined();
@@ -107,11 +108,10 @@ describe('placeDraftMatches', () => {
     const base = placeToDraft(stored);
     expect(placeDraftMatches({ ...base, latitude: '54.2' }, stored)).toBe(false);
     expect(
-      placeDraftMatches(
-        { ...base, names: [{ id: 'N1', kind: 'official', language: '', type: '', position: 0, value: 'Kaluga' }] },
-        stored,
-      ),
+      placeDraftMatches({ ...base, names: [{ ...emptyPlaceNameDraft(0), id: 'N1', value: 'Kaluga' }] }, stored),
     ).toBe(false);
-    expect(placeDraftMatches({ ...base, hierarchy: [{ id: 'H1', parentId: 'PL2', type: '' }] }, stored)).toBe(false);
+    expect(
+      placeDraftMatches({ ...base, hierarchy: [{ id: 'H1', parentId: 'PL2', type: '', date: emptyDate() }] }, stored),
+    ).toBe(false);
   });
 });
