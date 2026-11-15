@@ -10,11 +10,12 @@ export interface MediaTileProps {
   openLabel?: string;
   onRemove?: () => void;
   removeLabel?: string;
+  badge?: string;
   className?: string;
 }
 
 /** A square media thumbnail with optional open and remove actions. */
-export function MediaTile({ src, alt, onOpen, openLabel, onRemove, removeLabel, className }: MediaTileProps) {
+export function MediaTile({ src, alt, onOpen, openLabel, onRemove, removeLabel, badge, className }: MediaTileProps) {
   const image = <img src={src} alt={alt} loading="lazy" />;
   return (
     <figure className={cx(styles['tile'], className)}>
@@ -25,6 +26,7 @@ export function MediaTile({ src, alt, onOpen, openLabel, onRemove, removeLabel, 
       ) : (
         image
       )}
+      {badge !== undefined ? <span className={styles['badge']}>{badge}</span> : null}
       {onRemove ? (
         <IconButton
           className={styles['remove']}

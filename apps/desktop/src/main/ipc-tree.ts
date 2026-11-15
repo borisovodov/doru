@@ -26,6 +26,7 @@ import type {
 import {
   addFilesToMedia,
   addMediaToTarget,
+  addStandaloneMedia,
   listAllMedia,
   listMediaForTarget,
   removeFileFromMedia,
@@ -664,6 +665,10 @@ export function registerTreeIpc(): void {
     'tree:addMedia',
     async (_event, options: { projectPath: string; targetType: string; targetId: string }) =>
       addMediaToTarget(options.projectPath, options.targetType, options.targetId),
+  );
+
+  ipcMain.handle('tree:addStandaloneMedia', async (_event, options: { projectPath: string }) =>
+    addStandaloneMedia(options.projectPath),
   );
 
   ipcMain.handle(

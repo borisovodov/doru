@@ -250,6 +250,12 @@ export function FactEditor({
           }
         }}
       />
+      <DateEditor
+        label={nls.t('features.tree.fact.endDate')}
+        value={draft.endDate}
+        onChange={(endDate) => set({ endDate })}
+        hidePlace
+      />
       <label className="fact-field">
         {nls.t('features.tree.fact.placeLink')}
         <Select
@@ -346,6 +352,46 @@ export function FactEditor({
           {nls.t('features.tree.fact.quality')}
           <Input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
         </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.placePrefix')}
+          <Input value={draft.placePrefix} onChange={(event) => set({ placePrefix: event.target.value })} />
+        </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.eventNumber')}
+          <Input value={draft.eventNumber} onChange={(event) => set({ eventNumber: event.target.value })} />
+        </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.birthLength')}
+          <Input value={draft.birthLength} onChange={(event) => set({ birthLength: event.target.value })} />
+        </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.birthWeight')}
+          <Input value={draft.birthWeight} onChange={(event) => set({ birthWeight: event.target.value })} />
+        </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.cemetery')}
+          <Input value={draft.cemetery} onChange={(event) => set({ cemetery: event.target.value })} />
+        </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.mapLatitude')}
+          <Input value={draft.mapLatitude} onChange={(event) => set({ mapLatitude: event.target.value })} />
+        </label>
+        <label className="fact-field">
+          {nls.t('features.tree.fact.mapLongitude')}
+          <Input value={draft.mapLongitude} onChange={(event) => set({ mapLongitude: event.target.value })} />
+        </label>
+      </div>
+      <div className="fact-editor-row">
+        <Checkbox
+          label={nls.t('features.tree.fact.fna')}
+          checked={draft.fna}
+          onChange={(event) => set({ fna: event.target.checked })}
+        />
+        <Checkbox
+          label={nls.t('features.tree.fact.descriptionAware')}
+          checked={draft.descriptionAware}
+          onChange={(event) => set({ descriptionAware: event.target.checked })}
+        />
       </div>
       <label className="fact-field">
         {nls.t('features.tree.fact.sentence')}

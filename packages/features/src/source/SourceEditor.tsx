@@ -180,6 +180,21 @@ export function SourceEditor({
           <Field label={nls.t('features.tree.source.agency')}>
             <Input value={draft.agency} onChange={(event) => set({ agency: event.target.value })} />
           </Field>
+          <Field label={nls.t('features.tree.source.certainty')}>
+            <Input value={draft.certainty} onChange={(event) => set({ certainty: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.subsequentCitationFormat')}>
+            <Input
+              value={draft.subsequentCitationFormat}
+              onChange={(event) => set({ subsequentCitationFormat: event.target.value })}
+            />
+          </Field>
+          <Field label={nls.t('features.tree.source.bibliography')}>
+            <Input value={draft.bibliography} onChange={(event) => set({ bibliography: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.dataNote')}>
+            <Input value={draft.dataNote} onChange={(event) => set({ dataNote: event.target.value })} />
+          </Field>
         </FieldGrid>
         <DateEditor
           label={nls.t('features.tree.source.pubDate')}

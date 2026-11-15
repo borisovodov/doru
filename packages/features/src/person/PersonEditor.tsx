@@ -50,6 +50,7 @@ export interface PersonEditorProps {
   persons: PersonRecord[];
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
+  onDelete?: (() => void) | undefined;
   onCancel?: (() => void) | undefined;
   api: PersonEditorApi;
   mediaApi: MediaTargetApi;
@@ -65,6 +66,7 @@ export function PersonEditor({
   persons,
   onChange,
   onSave,
+  onDelete,
   onCancel,
   api,
   mediaApi,
@@ -276,6 +278,11 @@ export function PersonEditor({
             <Button variant="primary" size="sm" onClick={onSave}>
               {nls.t('features.tree.save')}
             </Button>
+            {onDelete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                {nls.t('features.tree.fact.delete')}
+              </Button>
+            )}
             {onCancel && (
               <Button variant="secondary" size="sm" onClick={onCancel}>
                 {nls.t('features.tree.back')}

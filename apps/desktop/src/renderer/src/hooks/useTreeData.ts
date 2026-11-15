@@ -214,6 +214,12 @@ export function useTreeData(projectPath: string | null | undefined) {
     [projectPath, refreshTree],
   );
 
+  const addStandaloneMedia = useCallback(async () => {
+    if (!projectPath) return;
+    await window.doru.addStandaloneMedia(projectPath);
+    await refreshTree();
+  }, [projectPath, refreshTree]);
+
   const mediaApi = useMemo<MediaTargetApi>(
     () => ({
       getMediaFor: (targetType, targetId) =>
@@ -1119,6 +1125,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     deletePerson,
     reparent,
     personCounts,
+    addStandaloneMedia,
     mediaApi,
     mediaAdminApi,
     api,

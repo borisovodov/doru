@@ -65,6 +65,7 @@ shortcuts as a reminder; close and reopen a tab to see another set.
 
 ## Notes
 
-Opening a `.ged`/`.gdz` file through **Open or Import GEDCOM…** starts a
-new, not-yet-saved project; the GEDCOM data import itself and exporting
-(`⌘⇧E`) are not wired up yet (see [Quick start](getting-started.md)).
+Opening a `.ged`/`.gdz` file through **Open or Import GEDCOM…** imports
+the tree into a new, not-yet-saved project. Exporting happens in the
+**Export** tab, which offers GEDCOM 7.0 and GEDZIP (see
+[Quick start](getting-started.md)).

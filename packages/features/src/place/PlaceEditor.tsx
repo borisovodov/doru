@@ -149,6 +149,34 @@ export function PlaceEditor({
               icon={<X size={13} aria-hidden="true" />}
               onClick={() => removeName(index)}
             />
+            <div className="place-name-extra">
+              <DateEditor
+                label={nls.t('features.tree.names.date')}
+                value={name.date}
+                onChange={(date) => patchName(index, { date })}
+                hidePlace
+              />
+              <FieldGrid columns={3}>
+                <Field label={nls.t('features.tree.place.names.addition')}>
+                  <Input
+                    value={name.addition}
+                    onChange={(event) => patchName(index, { addition: event.target.value })}
+                  />
+                </Field>
+                <Field label={nls.t('features.tree.place.names.abbreviation')}>
+                  <Input
+                    value={name.abbreviation}
+                    onChange={(event) => patchName(index, { abbreviation: event.target.value })}
+                  />
+                </Field>
+                <Field label={nls.t('features.tree.place.names.abbreviationType')}>
+                  <Input
+                    value={name.abbreviationType}
+                    onChange={(event) => patchName(index, { abbreviationType: event.target.value })}
+                  />
+                </Field>
+              </FieldGrid>
+            </div>
           </div>
         ))}
         <Button variant="primary" onClick={addName}>
@@ -170,6 +198,29 @@ export function PlaceEditor({
             checked={draft.verified}
             onChange={(event) => set({ verified: event.target.checked })}
           />
+        </FieldGrid>
+      </SectionCard>
+
+      <SectionCard title={nls.t('features.tree.families.details')}>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.place.form')}>
+            <Input value={draft.form} onChange={(event) => set({ form: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.source.abbreviation')}>
+            <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.preposition')}>
+            <Input value={draft.preposition} onChange={(event) => set({ preposition: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.govId')}>
+            <Input value={draft.govId} onChange={(event) => set({ govId: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.maidenhead')}>
+            <Input value={draft.maidenhead} onChange={(event) => set({ maidenhead: event.target.value })} />
+          </Field>
+          <Field label={nls.t('features.tree.place.placeType')}>
+            <Input value={draft.placeType} onChange={(event) => set({ placeType: event.target.value })} />
+          </Field>
         </FieldGrid>
       </SectionCard>
 
@@ -226,6 +277,12 @@ export function PlaceEditor({
                 </option>
               ))}
             </Select>
+            <DateEditor
+              label={nls.t('features.tree.names.date')}
+              value={link.date}
+              onChange={(date) => patchHierarchy(index, { date })}
+              hidePlace
+            />
             <IconButton
               size="sm"
               label={nls.t('features.tree.place.hierarchy.remove')}

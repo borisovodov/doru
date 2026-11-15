@@ -337,6 +337,7 @@ export function App() {
           onOpenMedia={tabs.openMediaTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${PERSON_TAB_PREFIX}${realId}`)}
+          onDeletePerson={tree.deletePerson}
         />
       );
     }
@@ -492,6 +493,22 @@ export function App() {
           api={tree.mediaAdminApi}
           attachmentsApi={{ ...tree.api, openTask: tabs.openTaskTab }}
           sources={tree.sources}
+          targetData={{
+            persons: tree.persons,
+            families: tree.families,
+            sources: tree.sources,
+            places: tree.places,
+            repositories: tree.repositories,
+            titles: tree.titles,
+            facts: tree.facts,
+            citations: tree.citations,
+            notes: tree.notes,
+            media: tree.media,
+            submitters: tree.submitters,
+            addresses: tree.addresses,
+            associations: tree.associations,
+            todos: tree.todos,
+          }}
           onClose={tabs.closeTab}
         />
       );
@@ -606,6 +623,7 @@ export function App() {
             onNewTitle={tabs.openNewTitleTab}
             onNewPerson={tabs.openNewPersonTab}
             onNewPlace={tabs.openNewPlaceTab}
+            onNewMedia={() => void tree.addStandaloneMedia()}
             onNewSource={tabs.openNewSourceTab}
             onNewRepository={tabs.openNewRepositoryTab}
             onNewSubmitter={tabs.openNewSubmitterTab}

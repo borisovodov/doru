@@ -32,6 +32,20 @@ import {
 import type { NamePart, NamePartKind } from '@doru/core';
 import styles from './NamesSection.module.css';
 
+/** The vendor name fields kept verbatim on the name row. */
+const NAME_VENDOR_FIELDS = [
+  'callName',
+  'middleName',
+  'patronymic',
+  'marriedName',
+  'aka',
+  'hebrewName',
+  'title',
+  'shortName',
+  'nameAsRecorded',
+  'givenNameUsed',
+] as const satisfies readonly (keyof NameDraft)[];
+
 /**
  * The editable list of a person's names: each name block carries its type,
  * language, the name-part fields and (for imported names) the verbatim
@@ -168,6 +182,16 @@ export function NamesSection({
             ))}
           </FieldGrid>
           <ExtraParts name={name} onChange={(next) => patch(index, next)} />
+          <details className={styles['vendorFields']}>
+            <summary>{nls.t('features.tree.names.additional')}</summary>
+            <FieldGrid columns={2}>
+              {NAME_VENDOR_FIELDS.map((field) => (
+                <Field key={field} label={nls.t(`features.tree.names.${field}`)}>
+                  <Input value={name[field]} onChange={(event) => patch(index, { [field]: event.target.value })} />
+                </Field>
+              ))}
+            </FieldGrid>
+          </details>
           <div className={styles['variants']}>
             {name.variants.map((variant, variantIndex) => (
               <div className={styles['variant']} key={variant.id}>
@@ -190,6 +214,12 @@ export function NamesSection({
                     placeholder={nls.t('features.tree.names.language')}
                     value={variant.language}
                     onChange={(event) => patchVariant(index, variantIndex, { language: event.target.value })}
+                  />
+                  <Input
+                    aria-label={nls.t('features.tree.names.variantType')}
+                    placeholder={nls.t('features.tree.names.variantType')}
+                    value={variant.variantType}
+                    onChange={(event) => patchVariant(index, variantIndex, { variantType: event.target.value })}
                   />
                   <IconButton
                     size="sm"

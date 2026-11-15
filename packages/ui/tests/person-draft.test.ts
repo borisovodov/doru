@@ -624,6 +624,39 @@ describe('draftToRecord', () => {
     expect(record.names).toEqual([]);
   });
 
+  it('carries vendor name fields through an edit', () => {
+    const existing = person({
+      names: [
+        {
+          id: 'N1',
+          given: 'Anna',
+          callName: 'Anya',
+          middleName: 'Maria',
+          patronymic: 'Ivanovna',
+          marriedName: 'Sidorova',
+          aka: 'Annette',
+          hebrewName: 'Chana',
+          title: 'Dr',
+          shortName: 'A. Petrova',
+          nameAsRecorded: 'Anna Petrova',
+          givenNameUsed: 'Anya',
+        },
+      ],
+    });
+    expect(draftToRecord(personToDraft(existing), existing).names[0]).toMatchObject({
+      callName: 'Anya',
+      middleName: 'Maria',
+      patronymic: 'Ivanovna',
+      marriedName: 'Sidorova',
+      aka: 'Annette',
+      hebrewName: 'Chana',
+      title: 'Dr',
+      shortName: 'A. Petrova',
+      nameAsRecorded: 'Anna Petrova',
+      givenNameUsed: 'Anya',
+    });
+  });
+
   it('carries the imported xref through an edit', () => {
     const existing = person({ xref: '@I7@' });
     expect(draftToRecord(personToDraft(existing), existing).xref).toBe('@I7@');

@@ -14,7 +14,7 @@ import {
 } from '@doru/ui';
 import { AttachmentsPanel, EntityTab, type AttachmentsPanelApi, type MediaAdminApi } from '@doru/features';
 import { nls } from '@doru/workbench';
-import { moveItem, type MediaWithPath } from '@doru/ui/domain';
+import { moveItem, taskTargetLabel, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
 import { MEDIA_TAB_PREFIX } from '../hooks/useTabs';
 import './MediaTab.css';
 
@@ -24,6 +24,7 @@ export function MediaTab({
   api,
   attachmentsApi,
   sources,
+  targetData,
   onClose,
 }: {
   tabId: string;
@@ -31,6 +32,7 @@ export function MediaTab({
   api: MediaAdminApi;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
+  targetData: TaskTargetData;
   onClose: (tabId: string) => void;
 }) {
   const mediaId = tabId.slice(MEDIA_TAB_PREFIX.length);
@@ -46,6 +48,7 @@ export function MediaTab({
       api={api}
       attachmentsApi={attachmentsApi}
       sources={sources}
+      targetData={targetData}
       onClose={onClose}
     />
   );
@@ -57,6 +60,7 @@ function MediaTabBody({
   api,
   attachmentsApi,
   sources,
+  targetData,
   onClose,
 }: {
   tabId: string;
@@ -64,6 +68,7 @@ function MediaTabBody({
   api: MediaAdminApi;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
+  targetData: TaskTargetData;
   onClose: (tabId: string) => void;
 }) {
   const [title, setTitle] = useState(record.title ?? '');
@@ -198,6 +203,7 @@ function MediaTabBody({
             <MediaLinkRow
               key={link.id}
               link={link}
+              targetLabel={taskTargetLabel(link.targetType, link.targetId, targetData)}
               canDetach={(record.links?.length ?? 0) > 1}
               onSave={(after) => api.updateMediaLink(link, after)}
               onDetach={async () => {
@@ -220,11 +226,13 @@ function MediaTabBody({
 
 function MediaLinkRow({
   link,
+  targetLabel,
   canDetach,
   onSave,
   onDetach,
 }: {
   link: MediaLinkRecord;
+  targetLabel: string;
   canDetach: boolean;
   onSave: (link: MediaLinkRecord) => Promise<void>;
   onDetach: () => Promise<void>;
@@ -236,7 +244,7 @@ function MediaLinkRow({
     <li className="media-link-row">
       <div className="media-link-target">
         <strong>{link.targetType}</strong>
-        <span>{link.targetId}</span>
+        <span>{targetLabel}</span>
       </div>
       <FieldGrid columns={2}>
         <Field label={nls.t('features.tree.media.linkTitle')}>

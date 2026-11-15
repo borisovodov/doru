@@ -89,21 +89,31 @@ export function MediaSection({
         <EmptyText>{nls.t('features.tree.media.empty')}</EmptyText>
       ) : (
         <div className={styles['grid']}>
-          {visibleMedia.map((item) => (
-            <MediaTile
-              key={item.id}
-              src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
-              alt={item.title ?? ''}
-              {...(onOpenMedia
-                ? {
-                    openLabel: nls.t('features.tree.media.open'),
-                    onOpen: () => onOpenMedia(item.id),
-                  }
-                : {})}
-              removeLabel={nls.t('features.tree.media.remove')}
-              onRemove={() => void remove(item)}
-            />
-          ))}
+          {visibleMedia.map((item) => {
+            const link = item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+            const badge =
+              link?.primary === true
+                ? nls.t('features.tree.media.primary')
+                : link?.exclude === true
+                  ? nls.t('features.tree.media.excluded')
+                  : undefined;
+            return (
+              <MediaTile
+                key={item.id}
+                src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
+                alt={item.title ?? ''}
+                {...(badge !== undefined ? { badge } : {})}
+                {...(onOpenMedia
+                  ? {
+                      openLabel: nls.t('features.tree.media.open'),
+                      onOpen: () => onOpenMedia(item.id),
+                    }
+                  : {})}
+                removeLabel={nls.t('features.tree.media.remove')}
+                onRemove={() => void remove(item)}
+              />
+            );
+          })}
         </div>
       )}
       <div className={styles['actions']}>
