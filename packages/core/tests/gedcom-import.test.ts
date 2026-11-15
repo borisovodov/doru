@@ -52,13 +52,50 @@ const GEDCOM = [
   '0 TRLR',
 ].join('\n');
 
-function parseDataset() {
-  const result = parse(new TextEncoder().encode(GEDCOM));
+const MEDIA = [
+  '0 HEAD',
+  '1 GEDC',
+  '2 VERS 7.0',
+  '0 @O1@ OBJE',
+  '1 FILE photos/a.jpg',
+  '1 TITL Portrait',
+  '0 @I1@ INDI',
+  '1 NAME Ivan /Petrov/',
+  '1 OBJE @O1@',
+  '2 CROP',
+  '3 TOP 10',
+  '0 TRLR',
+].join('\n');
+
+function parseDataset(text = GEDCOM) {
+  const result = parse(new TextEncoder().encode(text));
   if (!result.ok || result.value.kind !== 'dataset') {
     throw new Error(`fixture failed to parse: ${JSON.stringify(result)}`);
   }
   return result.value.dataset;
 }
+
+describe('importGedcomDataset media', () => {
+  it('imports OBJE records and links with the prepared project paths', () => {
+    const fixture = makeRepo();
+    try {
+      const dataset = parseDataset(MEDIA);
+      const result = importGedcomDataset(dataset, fixture.repo, new Map([['photos/a.jpg', 'media/prepared.jpg']]));
+      expect(result.importedMedia).toBe(1);
+      const media = fixture.repo.listAllMedia();
+      expect(media).toHaveLength(1);
+      expect(media[0]).toMatchObject({ title: 'Portrait', xref: '@O1@' });
+      expect(media[0]?.files?.[0]?.path).toBe('media/prepared.jpg');
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      const links = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks;
+      expect(links).toHaveLength(1);
+      expect(links[0]?.link.crop).toEqual({ top: 10 });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
 
 describe('importGedcomDataset', () => {
   it('maps persons, names, facts, dates, families, sources, citations and notes', () => {
@@ -71,6 +108,7 @@ describe('importGedcomDataset', () => {
         importedFamilies: 1,
         importedSources: 1,
         importedPlaces: 2,
+        importedMedia: 0,
         totalPersons: 3,
         droppedStructures: 0,
       });

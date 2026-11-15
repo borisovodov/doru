@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { dirname, extname, join } from 'node:path';
-import { MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
+import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { ensureRuntime, runtimeFilePath } from './runtime';
@@ -48,7 +48,7 @@ function withPaths(projectPath: string, media: MediaRecord): MediaWithPath {
 async function pickMediaFiles(): Promise<string[]> {
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'tiff'] }],
+    filters: [{ name: 'Images', extensions: [...IMAGE_EXTENSIONS] }],
     title: 'Add photos',
   };
   const result =

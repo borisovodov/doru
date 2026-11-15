@@ -854,7 +854,7 @@ describe('repository, note and source records', () => {
       title?: string;
       abbreviation?: string;
       publication?: string;
-      text?: { payload: string; mediaType?: string; language?: string };
+      texts?: Array<{ payload: string; mediaType?: string; language?: string }>;
       template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
       fullFootnote?: string;
       repositoryCitations?: Array<{
@@ -882,7 +882,7 @@ describe('repository, note and source records', () => {
     expect(rec.title).toBe('The Title');
     expect(rec.abbreviation).toBe('TT');
     expect(rec.publication).toBe('Pub Co');
-    expect(rec.text).toEqual({ payload: 'the transcript', mediaType: 'text/plain', language: 'en' });
+    expect(rec.texts).toEqual([{ payload: 'the transcript', mediaType: 'text/plain', language: 'en' }]);
     expect(rec.template).toEqual({
       tag: '_TMPLT',
       templateId: '123',
@@ -951,7 +951,7 @@ describe('repository, note and source records', () => {
       title?: string;
       abbreviation?: string;
       publication?: string;
-      text?: { payload: string };
+      texts?: Array<{ payload: string }>;
       template?: { templateId?: string; fields: Array<{ name: string; value?: string }> };
       fullFootnote?: string;
       repositoryCitations?: Array<{
@@ -976,7 +976,7 @@ describe('repository, note and source records', () => {
     expect(rec.title).toBe('The Title');
     expect(rec.abbreviation).toBe('TT');
     expect(rec.publication).toBe('Pub Co');
-    expect(rec.text?.payload).toBe('the transcript');
+    expect(rec.texts?.[0]?.payload).toBe('the transcript');
     expect(rec.template).toEqual({
       tag: '_TMPLT',
       templateId: '123',
@@ -1013,9 +1013,9 @@ describe('repository, note and source records', () => {
     expect(sour.template?.fields?.[0]?.name).toBe('');
     const dataset = parse70('0 HEAD\n1 GEDC\n2 VERS 7.0\n0 @S1@ SOUR\n1 TEXT t\n2 BOGUS x\n0 TRLR\n');
     const sour2 = dataset.records.find((record) => record.tag === 'SOUR') as {
-      text?: { extensions?: Array<{ tag: string }> };
+      texts?: Array<{ extensions?: Array<{ tag: string }> }>;
     };
-    expect(sour2.text?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
+    expect(sour2.texts?.[0]?.extensions?.some((extension) => extension.tag === 'BOGUS')).toBe(true);
   });
 
   test('a SOUR record payload becomes the title; a TITL child overrides it', () => {

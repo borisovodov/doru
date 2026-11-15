@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileImage, Image as ImageIcon, Paperclip, X } from 'lucide-react';
-import type { MediaFile, MediaLinkRecord, MediaRecord, SourceRecord } from '@doru/core';
+import { isImagePath, type MediaFile, type MediaLinkRecord, type MediaRecord, type SourceRecord } from '@doru/core';
 import {
   Button,
   Checkbox,
@@ -109,7 +109,7 @@ function MediaTabBody({
     <EntityTab>
       <EntityViewCard
         media={
-          first !== undefined ? (
+          first !== undefined && isImagePath(first.path) ? (
             <img
               className="media-tab-preview"
               src={`doru-media://local/?path=${encodeURIComponent(first.absolutePath)}`}
@@ -144,7 +144,7 @@ function MediaTabBody({
           {(record.files ?? []).map((file, index) => (
             <li key={file.id} className="media-file-item">
               <div className="media-file-row">
-                {isImage(file.path) ? (
+                {isImagePath(file.path) ? (
                   <img
                     className="media-file-thumb"
                     src={`doru-media://local/?path=${encodeURIComponent(file.absolutePath)}`}
@@ -306,12 +306,4 @@ function MediaLinkRow({
       </div>
     </li>
   );
-}
-
-function isImage(path: string): boolean {
-  const dot = path.lastIndexOf('.');
-  if (dot === -1) {
-    return false;
-  }
-  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'tiff'].includes(path.slice(dot + 1).toLowerCase());
 }

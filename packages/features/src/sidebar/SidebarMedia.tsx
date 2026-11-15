@@ -1,22 +1,12 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
-import type { MediaRecord, PersonRecord } from '@doru/core';
+import { isImagePath, type MediaRecord, type PersonRecord } from '@doru/core';
 import { displayName } from '@doru/ui/domain';
 import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
 export interface SidebarMediaItem extends MediaRecord {
   absolutePath: string;
-}
-
-const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'tiff']);
-
-function isImage(path: string): boolean {
-  const dot = path.lastIndexOf('.');
-  if (dot === -1) {
-    return false;
-  }
-  return IMAGE_EXTENSIONS.has(path.slice(dot + 1).toLowerCase());
 }
 
 /** The file name part of a slash-separated project-relative path. */
@@ -47,7 +37,7 @@ export function SidebarMedia({
           item.targetType === 'person' && item.targetId !== undefined
             ? displayName(personById.get(item.targetId))
             : undefined;
-        const image = isImage(item.path ?? '');
+        const image = isImagePath(item.path);
         return (
           <li key={item.id}>
             <EntityCard

@@ -38,6 +38,11 @@ export function deleteFactOp(fact: FactRecord, attachments: AttachmentsSnapshot 
     id: crypto.randomUUID(),
     kind: 'fact.delete',
     timestamp: new Date().toISOString(),
+    ...(fact.personId !== undefined
+      ? { change: { targetType: 'person', targetId: fact.personId, kind: 'changed' as const } }
+      : fact.familyId !== undefined
+        ? { change: { targetType: 'family', targetId: fact.familyId, kind: 'changed' as const } }
+        : {}),
     apply(ctx) {
       ctx.repo.deleteFact(fact.id);
     },

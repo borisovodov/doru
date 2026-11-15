@@ -158,9 +158,15 @@ export interface TreeRepository {
   deleteAssociation(id: string): boolean;
   listAssociations(): AssociationRecord[];
   listAssociationsFor(personId: string): AssociationRecord[];
+  /** Deletes every association of a person together with its period dates. */
+  deleteAssociationsForPerson(personId: string): void;
   insertAlias(id: string, personId: string, aliasId: string): void;
   deleteAlias(id: string): boolean;
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }>;
+  /** Exact direction of every alias link involving a person, for snapshots. */
+  listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }>;
+  /** Deletes every alias link involving a person. */
+  deleteAliasesForPerson(personId: string): void;
   insertTodo(todo: TodoRecord): void;
   updateTodo(todo: TodoRecord): void;
   deleteTodo(id: string): boolean;
@@ -294,9 +300,14 @@ export class SqliteTreeRepository implements TreeRepository {
       for (const fact of this.facts.listFactsForPerson(id)) {
         this.deleteAttachmentsFor('fact', fact.id);
       }
+      for (const association of this.relations.listAssociationsFor(id)) {
+        this.deleteAttachmentsFor('association', association.id);
+      }
       this.deleteAttachmentsFor('person', id);
-      this.names.deleteFtsForPerson(id);
+      this.names.deleteNamesForPerson(id);
       this.facts.deleteFactsForPerson(id);
+      this.relations.deleteAssociationsForPerson(id);
+      this.relations.deleteAliasesForPerson(id);
       for (const family of this.families.listFamiliesForPerson(id)) {
         this.updateFamily({
           ...family,
@@ -467,6 +478,9 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteSource(id: string): boolean {
     return this.transactions.run(() => {
+      for (const citation of this.sources.listAllCitations().filter((entry) => entry.sourceId === id)) {
+        this.deleteAttachmentsFor('citation', citation.id);
+      }
       this.deleteAttachmentsFor('source', id);
       return this.sources.deleteSource(id);
     });
@@ -551,7 +565,14 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateMedia(media: MediaRecord): void {
+    const before = this.media.getMedia(media.id);
+    const remaining = new Set((media.files ?? []).map((file) => file.id));
     this.media.updateMedia(media);
+    for (const file of before?.files ?? []) {
+      if (!remaining.has(file.id)) {
+        this.deleteAttachmentsFor('media_file', file.id);
+      }
+    }
   }
 
   getMedia(id: string): MediaRecord | undefined {
@@ -560,7 +581,11 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteMedia(id: string): boolean {
     return this.transactions.run(() => {
+      const media = this.media.getMedia(id);
       this.deleteAttachmentsFor('media', id);
+      for (const file of media?.files ?? []) {
+        this.deleteAttachmentsFor('media_file', file.id);
+      }
       return this.media.deleteMedia(id);
     });
   }
@@ -575,9 +600,13 @@ export class SqliteTreeRepository implements TreeRepository {
 
   removeMediaLink(id: string): boolean {
     const mediaId = this.media.getMediaIdForLink(id);
+    const media = mediaId !== undefined ? this.media.getMedia(mediaId) : undefined;
     const removed = this.media.removeMediaLink(id);
     if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
       this.deleteAttachmentsFor('media', mediaId);
+      for (const file of media?.files ?? []) {
+        this.deleteAttachmentsFor('media_file', file.id);
+      }
     }
     return removed;
   }
@@ -793,6 +822,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.relations.listAssociationsFor(personId);
   }
 
+  deleteAssociationsForPerson(personId: string): void {
+    this.relations.deleteAssociationsForPerson(personId);
+  }
+
   insertAlias(id: string, personId: string, aliasId: string): void {
     this.relations.insertAlias(id, personId, aliasId);
   }
@@ -803,6 +836,14 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }> {
     return this.relations.listAliasesFor(personId);
+  }
+
+  listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }> {
+    return this.relations.listAliasRowsFor(personId);
+  }
+
+  deleteAliasesForPerson(personId: string): void {
+    this.relations.deleteAliasesForPerson(personId);
   }
 
   insertTodo(todo: TodoRecord): void {
@@ -865,7 +906,16 @@ export class SqliteTreeRepository implements TreeRepository {
   deleteAttachmentsFor(targetType: string, targetId: string): void {
     this.notes.deleteLinksFor(targetType, targetId);
     this.sources.deleteCitationsFor(targetType, targetId);
+    const affectedMedia = this.media.listLinksFor(targetType, targetId).map((entry) => entry.media);
     this.media.deleteLinksFor(targetType, targetId);
+    for (const media of affectedMedia) {
+      if (this.media.getMedia(media.id) === undefined) {
+        this.deleteAttachmentsFor('media', media.id);
+        for (const file of media.files ?? []) {
+          this.deleteAttachmentsFor('media_file', file.id);
+        }
+      }
+    }
     this.attachments.deleteAllFor(targetType, targetId);
     this.research.deleteTodosFor(targetType, targetId);
     this.submitters.deleteRecordSubmittersFor(targetType, targetId);

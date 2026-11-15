@@ -24,9 +24,11 @@ export const doruTools: ToolDefinition[] = [
     inputSchema: {
       query: z.string().optional().describe('Free-text search query, matched against names'),
       sex: z
-        .enum(['M', 'F', 'U'])
+        .enum(['M', 'F', 'X', 'U'])
         .optional()
-        .describe('Only persons with this sex: M (male), F (female), U (unknown). Omit to include every sex.'),
+        .describe(
+          'Only persons with this sex: M (male), F (female), X (other), U (unknown). Omit to include every sex.',
+        ),
       limit: z.number().optional().describe('Maximum number of results (default 20)'),
     },
   },
@@ -60,7 +62,7 @@ export const doruTools: ToolDefinition[] = [
                   full: z.string().optional(),
                 }),
               ),
-              sex: z.enum(['M', 'F', 'U']),
+              sex: z.enum(['M', 'F', 'X', 'U']),
             }),
           }),
           z.object({
@@ -88,7 +90,7 @@ export const doruTools: ToolDefinition[] = [
             full: z.string().optional(),
           }),
         ),
-        sex: z.enum(['M', 'F', 'U']),
+        sex: z.enum(['M', 'F', 'X', 'U']),
       }),
     },
   },

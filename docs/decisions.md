@@ -50,6 +50,15 @@ Dóru follows each OS's native conventions for its settings directory (Electron
 (gh, zed, OpenCode) uses `~/.config` everywhere, but for a GUI app the native
 locations are intentional — do not move the macOS settings to `~/.config`.
 
+## GEDCOM media
+
+Media metadata and links are always imported. GEDZIP bytes are copied into
+the project's `media/` folder; plain GEDCOM `FILE` paths are copied when the
+referenced file is reachable on the importing machine. Unresolvable paths
+stay external references in the database and are hidden from the UI. Export
+offers GEDCOM 7.0 (`.ged`, paths only) and GEDZIP (`.gdz`, bundled files);
+the choice lives in the Export tab, not in a save-dialog filter.
+
 ## API stability before 1.0.0
 
 Our own APIs — including MCP tool names — may break freely until 1.0.0 is

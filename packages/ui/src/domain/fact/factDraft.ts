@@ -39,6 +39,28 @@ export interface FactDraft {
   flags: string[];
 }
 
+/** The owner a fact belongs to: exactly one person or one family. */
+export type FactOwnerRef = { kind: 'person'; id: string } | { kind: 'family'; id: string };
+
+export function factOwnerRef(fact: Pick<FactDraft, 'personId' | 'familyId'>): FactOwnerRef | undefined {
+  if (fact.personId !== undefined) {
+    return { kind: 'person', id: fact.personId };
+  }
+  if (fact.familyId !== undefined) {
+    return { kind: 'family', id: fact.familyId };
+  }
+  return undefined;
+}
+
+/** Moves the fact to another owner, clearing the other owner column. */
+export function setFactOwner(draft: FactDraft, owner: FactOwnerRef): FactDraft {
+  return {
+    ...draft,
+    personId: owner.kind === 'person' ? owner.id : undefined,
+    familyId: owner.kind === 'family' ? owner.id : undefined,
+  };
+}
+
 export function emptyFactDraft(owner: { personId?: string; familyId?: string }): FactDraft {
   return {
     id: crypto.randomUUID(),

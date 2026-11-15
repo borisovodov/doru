@@ -1,14 +1,14 @@
 import { IconButton } from '@doru/ui';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
-import type { SourceRecord, SubmitterRecord } from '@doru/core';
+import type { AddressRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { EntityTab, type MediaTargetApi, type RegistriesEditorApi } from '@doru/features';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  AddressFields,
+  AddressLinkField,
   ChangesSection,
   ContactsSection,
   ContributorsSection,
@@ -33,23 +33,27 @@ import { useRegistryAddress } from './useRegistryAddress';
 export function SubmitterTab({
   tabId,
   submitters,
+  addresses,
   api,
   sources,
   media,
   mediaApi,
   onOpenSource,
   onOpenMedia,
+  onOpenAddress,
   onClose,
   onCreated,
 }: {
   tabId: string;
   submitters: SubmitterRecord[];
+  addresses: AddressRecord[];
   api: RegistriesEditorApi;
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenAddress: (addressId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -63,6 +67,7 @@ export function SubmitterTab({
     <SubmitterTabBody
       tabId={tabId}
       record={record}
+      addresses={addresses}
       isNew={isNew}
       api={api}
       sources={sources}
@@ -70,6 +75,7 @@ export function SubmitterTab({
       mediaApi={mediaApi}
       onOpenSource={onOpenSource}
       onOpenMedia={onOpenMedia}
+      onOpenAddress={onOpenAddress}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -79,6 +85,7 @@ export function SubmitterTab({
 function SubmitterTabBody({
   tabId,
   record,
+  addresses,
   isNew,
   api,
   sources,
@@ -86,11 +93,13 @@ function SubmitterTabBody({
   mediaApi,
   onOpenSource,
   onOpenMedia,
+  onOpenAddress,
   onClose,
   onCreated,
 }: {
   tabId: string;
   record: SubmitterRecord | undefined;
+  addresses: AddressRecord[];
   isNew: boolean;
   api: RegistriesEditorApi;
   sources: SourceRecord[];
@@ -98,6 +107,7 @@ function SubmitterTabBody({
   mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenAddress: (addressId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -105,8 +115,9 @@ function SubmitterTabBody({
   const [lastSaved, setLastSaved] = useState<SubmitterRecord | undefined>(record);
   const [name, setName] = useState(base.name);
   const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
-  const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
-  const [addressText, setAddressText] = useState('');
+  const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
+  const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
+  const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: submitterNotes,
@@ -123,17 +134,12 @@ function SubmitterTabBody({
     refresh: refreshAttachments,
   } = useAttachments('submitter', targetId, api, true);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (base.addressId !== undefined) {
-      void api.getAddress(base.addressId).then((loaded) => {
-        if (!cancelled && loaded) setAddressText(addressLabel(loaded));
-      });
+  const selectAddress = (addressId: string | undefined) => {
+    setLinkedAddressId(addressId);
+    if (addressId === undefined) {
+      unlinkAddress();
     }
-    return () => {
-      cancelled = true;
-    };
-  }, [base.addressId, api]);
+  };
 
   const patchLanguage = (index: number, value: string) =>
     setLanguages(languages.map((language, i) => (i === index ? value : language)));
@@ -145,7 +151,7 @@ function SubmitterTabBody({
       name: name.trim(),
       languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
     };
-    next.addressId = await saveAddress();
+    next.addressId = linkedAddressId ?? (await saveAddress());
     if (isNew && lastSaved === undefined) {
       await api.addSubmitter(next);
       onCreated(next.id);
@@ -206,7 +212,14 @@ function SubmitterTabBody({
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.submitter.languages.add')}
         </Button>
-        <AddressFields address={address} onChange={setAddress} />
+        <AddressLinkField
+          addresses={addresses}
+          addressId={linkedAddressId}
+          address={address}
+          onSelect={selectAddress}
+          onChange={setAddress}
+          onOpen={onOpenAddress}
+        />
       </SectionCard>
       {targetId !== undefined && (
         <>

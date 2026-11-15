@@ -1,4 +1,4 @@
-import type { MediaLinkRecord, MediaRecord } from '@doru/core';
+import { isVisibleMedia, type MediaLinkRecord, type MediaRecord } from '@doru/core';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -76,17 +76,20 @@ export function MediaSection({
     setAllMedia(await api.getAllMedia());
   };
 
+  const visibleMedia = media.filter(isVisibleMedia);
   const attachable = allMedia.filter(
-    (item) => !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
+    (item) =>
+      isVisibleMedia(item) &&
+      !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
   );
 
   return (
     <SectionCard title={nls.t('features.tree.media.title')}>
-      {media.length === 0 ? (
+      {visibleMedia.length === 0 ? (
         <EmptyText>{nls.t('features.tree.media.empty')}</EmptyText>
       ) : (
         <div className={styles['grid']}>
-          {media.map((item) => (
+          {visibleMedia.map((item) => (
             <MediaTile
               key={item.id}
               src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}

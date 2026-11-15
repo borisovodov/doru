@@ -10,18 +10,32 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
 
   // Places and addresses.
   repo.insertPlace({
+    id: 'PL2',
+    names: [{ id: 'PN0', kind: 'official', position: 0, value: 'Russia' }],
+  });
+  repo.insertPlace({
     id: 'PL1',
+    xref: '@P1@',
     latitude: 55.7558,
     longitude: -37.6173,
+    verified: true,
     names: [
       { id: 'PN1', kind: 'official', position: 0, value: 'Moscow' },
       { id: 'PN2', kind: 'official', position: 1, value: 'Russia' },
       { id: 'PN3', kind: 'translation', language: 'en', position: 0, value: 'Moscow' },
     ],
+    hierarchy: [{ parentId: 'PL2', type: 'poli' }],
+    postalCodes: [
+      {
+        id: 'PC1',
+        code: '101000',
+        date: { quality: 'exact', component: { year: 1920 } },
+      },
+    ],
   });
   repo.insertAddress({
     id: 'AD1',
-    lines: ['12 Archive Lane'],
+    lines: ['12 Archive Lane', 'Building 3'],
     city: 'Moscow',
     state: 'Moscow Oblast',
     postalCode: '101000',
@@ -47,6 +61,9 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
         id: 'N1',
         type: 'birth',
         primary: true,
+        language: 'ru',
+        full: 'Dr. Ivan von Petrov Jr.',
+        date: { quality: 'exact', component: { year: 1923 } },
         given: 'Ivan',
         surname: 'Petrov',
         surnamePrefix: 'von',
@@ -179,7 +196,10 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     pubPlace: 'Moscow',
     agency: 'state',
     titleId: 'TL1',
-    texts: [{ id: 'ST1', text: 'A note about the source', mime: 'text/plain', language: 'en' }],
+    texts: [
+      { id: 'ST1', text: 'A note about the source', mime: 'text/plain', language: 'en' },
+      { id: 'ST2', text: 'A second transcription', mime: 'text/plain', language: 'ru' },
+    ],
     dataEvents: [
       {
         id: 'SE1',
@@ -249,6 +269,8 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertIdentifier({ id: 'I1', targetType: 'person', targetId: 'P1', namespace: 'uid', value: 'abc' });
   repo.insertIdentifier({ id: 'I2', targetType: 'person', targetId: 'P1', namespace: 'exid', value: 'xyz' });
   repo.insertIdentifier({ id: 'I3', targetType: 'person', targetId: 'P1', namespace: 'refn', value: '7' });
+  repo.insertIdentifier({ id: 'I5', targetType: 'person', targetId: 'P1', namespace: 'sosa', value: '1' });
+  repo.insertIdentifier({ id: 'I6', targetType: 'person', targetId: 'P1', namespace: 'daboville', value: '1 G1' });
   repo.insertIdentifier({ id: 'I4', targetType: 'person', targetId: 'P1', namespace: 'custom', value: 'ignored' });
   repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'ivan@example.org' });
   repo.insertContact({ id: 'CT2', targetType: 'person', targetId: 'P1', kind: 'phone', value: '+7 000' });

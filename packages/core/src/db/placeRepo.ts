@@ -104,11 +104,25 @@ export class PlaceRepo {
     // fact.place_id is ON DELETE SET NULL — facts detach automatically and
     // keep their raw place_text. The op that deletes a place restores the
     // link on undo.
+    const postalDates = this.db
+      .prepare('SELECT date_id FROM place_postal_code WHERE place_id = ? AND date_id IS NOT NULL')
+      .all(id) as unknown as { date_id: string }[];
     this.db.prepare('DELETE FROM place_name_fts WHERE place_id = ?').run(id);
-    return this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
+    const removed = this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
+    for (const entry of postalDates) {
+      this.dates.delete(entry.date_id);
+    }
+    return removed;
   }
 
   private replaceDetails(place: PlaceRecord): void {
+    const oldPostalDates = new Set(
+      (
+        this.db
+          .prepare('SELECT date_id FROM place_postal_code WHERE place_id = ? AND date_id IS NOT NULL')
+          .all(place.id) as unknown as { date_id: string }[]
+      ).map((entry) => entry.date_id),
+    );
     this.db.prepare('DELETE FROM place_name_fts WHERE place_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_name WHERE place_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_hierarchy WHERE child_id = ?').run(place.id);
@@ -138,9 +152,18 @@ export class PlaceRepo {
     const insertPostal = this.db.prepare(
       'INSERT INTO place_postal_code (id, place_id, code, date_id) VALUES (?, ?, ?, ?)',
     );
+    const newPostalDates = new Set<string>();
     for (const postal of place.postalCodes ?? []) {
       const dateId = postal.date ? this.dates.upsert(postal.date) : null;
       insertPostal.run(postal.id, place.id, postal.code, dateId);
+      if (dateId !== null) {
+        newPostalDates.add(dateId);
+      }
+    }
+    for (const stale of oldPostalDates) {
+      if (!newPostalDates.has(stale)) {
+        this.dates.delete(stale);
+      }
     }
   }
 

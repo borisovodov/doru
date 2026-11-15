@@ -48,12 +48,15 @@ export function useProject(projectPath: string | null | undefined, ensureTreeTab
     [refreshRecent],
   );
 
-  const exportGedcom = useCallback(async () => {
-    if (!projectPath) {
-      return;
-    }
-    await window.doru.exportGedcom(projectPath);
-  }, [projectPath]);
+  const exportGedcom = useCallback(
+    async (format: 'ged' | 'gdz' = 'ged') => {
+      if (!projectPath) {
+        return;
+      }
+      await window.doru.exportGedcom(projectPath, format);
+    },
+    [projectPath],
+  );
 
   return {
     recent,

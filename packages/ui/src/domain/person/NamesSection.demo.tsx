@@ -18,7 +18,10 @@ const meta = {
         type: 'birth',
         parts: [
           { id: 'N1', kind: 'given', value: 'Ivan', position: 0 },
-          { id: 'N2', kind: 'surname', value: 'Ivanov', position: 1 },
+          { id: 'N2', kind: 'given', value: 'Petrovich', position: 1 },
+          { id: 'N3', kind: 'surname', value: 'Ivanov', position: 2 },
+          { id: 'N4', kind: 'surname', value: 'Sidorov', position: 3 },
+          { id: 'N5', kind: 'full', value: 'Ivan Petrovich Ivanov-Sidorov', position: 4 },
         ],
       },
     ],

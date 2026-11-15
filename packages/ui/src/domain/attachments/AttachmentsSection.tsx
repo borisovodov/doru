@@ -10,7 +10,7 @@ import type { ContactRecord, IdentifierRecord, RestrictionRecord } from '@doru/c
 import { nls } from '../../nls';
 import './AttachmentsSection.css';
 
-const ID_NAMESPACES = ['uid', 'exid', 'refn', 'rin', 'sosa', 'daboville'];
+const ID_NAMESPACES = ['uid', 'exid', 'refn', 'sosa', 'daboville'];
 
 const CONTACT_KINDS = ['email', 'phone', 'fax', 'url', 'www'] as const;
 
@@ -96,11 +96,15 @@ export function IdentifiersSection({
     setEditingId(null);
   };
 
+  // `rin` was removed from the Dóru model; legacy rows stay in old files but
+  // must not surface in the UI.
+  const visibleIdentifiers = identifiers.filter((identifier) => identifier.namespace !== 'rin');
+
   return (
     <SectionCard title={nls.t('features.tree.identifiers.title')}>
-      {identifiers.length === 0 && <EmptyText>{nls.t('features.tree.identifiers.empty')}</EmptyText>}
+      {visibleIdentifiers.length === 0 && <EmptyText>{nls.t('features.tree.identifiers.empty')}</EmptyText>}
       <ul className="attachment-list">
-        {identifiers.map((identifier) => (
+        {visibleIdentifiers.map((identifier) => (
           <li key={identifier.id}>
             {editingId === identifier.id ? (
               <div className="attachment-edit">

@@ -158,7 +158,7 @@ export class AttachmentRepo {
   listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT id, target_type, target_id, kind, date_id, user FROM change WHERE target_type = ? AND target_id = ? ORDER BY id',
+        'SELECT id, target_type, target_id, kind, date_id, user FROM change WHERE target_type = ? AND target_id = ? ORDER BY rowid ASC',
       )
       .all(targetType, targetId) as unknown as {
       id: string;
@@ -186,7 +186,14 @@ export class AttachmentRepo {
   }
 
   deleteTag(id: string): boolean {
-    return this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
+    const linkDates = this.db
+      .prepare('SELECT date_id FROM tag_link WHERE tag_id = ? AND date_id IS NOT NULL')
+      .all(id) as unknown as { date_id: string }[];
+    const removed = this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
+    for (const entry of linkDates) {
+      this.dates.delete(entry.date_id);
+    }
+    return removed;
   }
 
   updateTag(tag: TagRecord): void {
@@ -209,14 +216,27 @@ export class AttachmentRepo {
   }
 
   deleteTagLink(id: string): boolean {
-    return this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
+    const row = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(id) as
+      | { date_id: string | null }
+      | undefined;
+    const removed = this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
+    if (row?.date_id !== null && row?.date_id !== undefined) {
+      this.dates.delete(row.date_id);
+    }
+    return removed;
   }
 
   updateTagLink(link: TagLinkRecord): void {
+    const before = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(link.id) as
+      | { date_id: string | null }
+      | undefined;
     const dateId = link.date ? this.dates.upsert(link.date) : null;
     this.db
       .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ?, date_id = ? WHERE id = ?')
       .run(link.tagId, link.targetType, link.targetId, dateId, link.id);
+    if (before?.date_id !== null && before?.date_id !== undefined && before.date_id !== dateId) {
+      this.dates.delete(before.date_id);
+    }
   }
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
@@ -271,10 +291,13 @@ export class AttachmentRepo {
     const changeDates = this.db
       .prepare('SELECT date_id FROM change WHERE target_type = ? AND target_id = ? AND date_id IS NOT NULL')
       .all(targetType, targetId) as unknown as { date_id: string }[];
+    const tagLinkDates = this.db
+      .prepare('SELECT date_id FROM tag_link WHERE target_type = ? AND target_id = ? AND date_id IS NOT NULL')
+      .all(targetType, targetId) as unknown as { date_id: string }[];
     for (const table of ['identifier', 'contact', 'restriction', 'tag_link', 'change'] as const) {
       this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
     }
-    for (const entry of changeDates) {
+    for (const entry of [...changeDates, ...tagLinkDates]) {
       this.dates.delete(entry.date_id);
     }
   }

@@ -410,7 +410,10 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
       }
     },
     TEXT: (child) => {
-      rec.text = parseSourceText(child, ctx);
+      (rec.texts ??= []).push(parseSourceText(child, ctx));
+    },
+    _TEXT: (child) => {
+      (rec.texts ??= []).push(parseSourceText(child, ctx));
     },
     _TMPLT: (child) => {
       rec.template = parseEvidenceTemplate(child, ctx);
@@ -658,6 +661,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     'ABBR',
     'PUBL',
     'TEXT',
+    '_TEXT',
     'CHAN',
     'CREA',
     'RIN',

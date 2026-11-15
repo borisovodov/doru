@@ -129,7 +129,7 @@ export function formatDate(date: DateValue): string {
   const parts: string[] = [];
   const year = date.component?.year;
   if (year !== undefined) {
-    parts.push(`${qualityMark(date.quality)}${year}${date.component?.epoch === 'BCE' ? ' BC' : ''}`);
+    parts.push(`${qualityMark(date.quality, date.modifier)}${year}${date.component?.epoch === 'BCE' ? ' BC' : ''}`);
   }
   if (date.quality === 'range' && date.end?.year !== undefined) {
     parts.push(`— ${date.end.year}`);
@@ -140,7 +140,16 @@ export function formatDate(date: DateValue): string {
   return parts.join(' ');
 }
 
-export function qualityMark(quality: DateQuality): string {
+export function qualityMark(quality: DateQuality, modifier?: string): string {
+  if (modifier === 'ABT') {
+    return '~';
+  }
+  if (modifier === 'CAL') {
+    return 'c. ';
+  }
+  if (modifier === 'EST') {
+    return 'est. ';
+  }
   switch (quality) {
     case 'about':
       return '~';

@@ -3,6 +3,7 @@ import type {
   AttachmentsSnapshot,
   CitationRecord,
   ContactRecord,
+  FactRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
@@ -16,10 +17,10 @@ import type {
   TagRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { Op } from './op';
+import type { NestedAttachments, Op } from './op';
 
-function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse']): Op {
-  return { id, kind, timestamp: new Date().toISOString(), apply, inverse };
+function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse'], change?: Op['change']): Op {
+  return { id, kind, timestamp: new Date().toISOString(), ...(change ? { change } : {}), apply, inverse };
 }
 
 // --- notes -------------------------------------------------------------------
@@ -67,10 +68,12 @@ export function splitNoteOp(originalId: string, after: NoteRecord, link: NoteLin
       ctx.repo.deleteNote(after.id);
       ctx.repo.addNoteLink(originalId, link);
     },
+    { targetType: 'note', targetId: after.id, kind: 'created' },
   );
 }
 
 export function deleteNoteOp(note: NoteRecord, attachments: AttachmentsSnapshot): Op {
+  const owner = note.links?.[0];
   return op(
     crypto.randomUUID(),
     'note.delete',
@@ -79,6 +82,9 @@ export function deleteNoteOp(note: NoteRecord, attachments: AttachmentsSnapshot)
       ctx.repo.insertNote(note);
       ctx.repo.restoreAttachments(attachments);
     },
+    owner !== undefined
+      ? { targetType: owner.targetType, targetId: owner.targetId, kind: 'changed' }
+      : { targetType: 'note', targetId: note.id, kind: 'changed' },
   );
 }
 
@@ -91,6 +97,7 @@ export function attachNoteOp(noteId: string, link: NoteLinkRecord): Op {
     (ctx) => {
       ctx.repo.removeNoteLink(link.id);
     },
+    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
   );
 }
 
@@ -120,6 +127,7 @@ export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments
         ctx.repo.restoreAttachments(attachments);
       }
     },
+    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
   );
 }
 
@@ -160,6 +168,7 @@ export function deleteSourceOp(
   source: SourceRecord,
   attachments: AttachmentsSnapshot,
   citations: CitationRecord[],
+  citationAttachments: NestedAttachments[] = [],
 ): Op {
   return op(
     crypto.randomUUID(),
@@ -174,7 +183,11 @@ export function deleteSourceOp(
       for (const citation of citations) {
         ctx.repo.insertCitation(citation);
       }
+      for (const nested of citationAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
+      }
     },
+    { targetType: 'source', targetId: source.id, kind: 'changed' },
   );
 }
 
@@ -186,6 +199,7 @@ export function attachCitationOp(citation: CitationRecord): Op {
     'citation.attach',
     (ctx) => ctx.repo.insertCitation(citation),
     (ctx) => ctx.repo.deleteCitation(citation.id),
+    { targetType: 'citation', targetId: citation.id, kind: 'created' },
   );
 }
 
@@ -195,6 +209,7 @@ export function updateCitationOp(before: CitationRecord, after: CitationRecord):
     'citation.update',
     (ctx) => ctx.repo.updateCitation(after),
     (ctx) => ctx.repo.updateCitation(before),
+    { targetType: 'citation', targetId: before.id, kind: 'changed' },
   );
 }
 
@@ -204,18 +219,35 @@ export function detachCitationOp(citation: CitationRecord): Op {
     'citation.detach',
     (ctx) => ctx.repo.deleteCitation(citation.id),
     (ctx) => ctx.repo.insertCitation(citation),
+    { targetType: citation.targetType, targetId: citation.targetId, kind: 'changed' },
   );
 }
 
 // --- media -------------------------------------------------------------------
 
-export function attachMediaOp(link: MediaLinkRecord): Op {
+export function attachMediaOp(
+  link: MediaLinkRecord,
+  media?: MediaRecord,
+  attachments?: AttachmentsSnapshot,
+  fileAttachments: NestedAttachments[] = [],
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'media.attach',
       (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
-      (ctx) => ctx.repo.removeMediaLink(link.id),
+      (ctx) => {
+        ctx.repo.removeMediaLink(link.id);
+        if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
+          ctx.repo.insertMedia(media);
+          if (attachments !== undefined) {
+            ctx.repo.restoreAttachments(attachments);
+          }
+          for (const nested of fileAttachments) {
+            ctx.repo.restoreAttachments(nested.attachments);
+          }
+        }
+      },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
   };
@@ -233,7 +265,12 @@ export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecor
   };
 }
 
-export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
+export function detachMediaOp(
+  link: MediaLinkRecord,
+  media?: MediaRecord,
+  attachments?: AttachmentsSnapshot,
+  fileAttachments: NestedAttachments[] = [],
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -244,6 +281,9 @@ export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attach
           ctx.repo.insertMedia(media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
+          }
+          for (const nested of fileAttachments) {
+            ctx.repo.restoreAttachments(nested.attachments);
           }
         } else {
           ctx.repo.addMediaLink(link.mediaId, link);
@@ -262,6 +302,7 @@ export function addIdentifierOp(identifier: IdentifierRecord): Op {
     'identifier.add',
     (ctx) => ctx.repo.insertIdentifier(identifier),
     (ctx) => ctx.repo.deleteIdentifier(identifier.id),
+    { targetType: identifier.targetType, targetId: identifier.targetId, kind: 'changed' },
   );
 }
 
@@ -271,6 +312,7 @@ export function deleteIdentifierOp(identifier: IdentifierRecord): Op {
     'identifier.delete',
     (ctx) => ctx.repo.deleteIdentifier(identifier.id),
     (ctx) => ctx.repo.insertIdentifier(identifier),
+    { targetType: identifier.targetType, targetId: identifier.targetId, kind: 'changed' },
   );
 }
 
@@ -293,6 +335,7 @@ export function addContactOp(contact: ContactRecord): Op {
     'contact.add',
     (ctx) => ctx.repo.insertContact(contact),
     (ctx) => ctx.repo.deleteContact(contact.id),
+    { targetType: contact.targetType, targetId: contact.targetId, kind: 'changed' },
   );
 }
 
@@ -302,6 +345,7 @@ export function deleteContactOp(contact: ContactRecord): Op {
     'contact.delete',
     (ctx) => ctx.repo.deleteContact(contact.id),
     (ctx) => ctx.repo.insertContact(contact),
+    { targetType: contact.targetType, targetId: contact.targetId, kind: 'changed' },
   );
 }
 
@@ -324,6 +368,7 @@ export function addRestrictionOp(restriction: RestrictionRecord): Op {
     'restriction.add',
     (ctx) => ctx.repo.insertRestriction(restriction),
     (ctx) => ctx.repo.deleteRestriction(restriction.id),
+    { targetType: restriction.targetType, targetId: restriction.targetId, kind: 'changed' },
   );
 }
 
@@ -333,6 +378,7 @@ export function deleteRestrictionOp(restriction: RestrictionRecord): Op {
     'restriction.delete',
     (ctx) => ctx.repo.deleteRestriction(restriction.id),
     (ctx) => ctx.repo.insertRestriction(restriction),
+    { targetType: restriction.targetType, targetId: restriction.targetId, kind: 'changed' },
   );
 }
 
@@ -355,6 +401,7 @@ export function addTagOp(tag: TagRecord): Op {
     'tag.add',
     (ctx) => ctx.repo.insertTag(tag),
     (ctx) => ctx.repo.deleteTag(tag.id),
+    { targetType: 'tag', targetId: tag.id, kind: 'created' },
   );
 }
 
@@ -364,6 +411,7 @@ export function updateTagOp(before: TagRecord, after: TagRecord): Op {
     'tag.update',
     (ctx) => ctx.repo.updateTag(after),
     (ctx) => ctx.repo.updateTag(before),
+    { targetType: 'tag', targetId: before.id, kind: 'changed' },
   );
 }
 
@@ -376,13 +424,17 @@ export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
   return op(
     crypto.randomUUID(),
     'tag.delete',
-    (ctx) => ctx.repo.deleteTag(tag.id),
+    (ctx) => {
+      ctx.repo.deleteAttachmentsFor('tag', tag.id);
+      ctx.repo.deleteTag(tag.id);
+    },
     (ctx) => {
       ctx.repo.insertTag(tag);
       for (const link of links) {
         ctx.repo.insertTagLink(link);
       }
     },
+    { targetType: 'tag', targetId: tag.id, kind: 'changed' },
   );
 }
 
@@ -392,6 +444,7 @@ export function attachTagOp(link: TagLinkRecord): Op {
     'tag_link.attach',
     (ctx) => ctx.repo.insertTagLink(link),
     (ctx) => ctx.repo.deleteTagLink(link.id),
+    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
   );
 }
 
@@ -401,6 +454,7 @@ export function detachTagOp(link: TagLinkRecord): Op {
     'tag_link.detach',
     (ctx) => ctx.repo.deleteTagLink(link.id),
     (ctx) => ctx.repo.insertTagLink(link),
+    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
   );
 }
 
@@ -505,6 +559,7 @@ export function addRecordSubmitterOp(submitterId: string, targetType: string, ta
     'record_submitter.add',
     (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
     (ctx) => ctx.repo.deleteRecordSubmitter(id),
+    { targetType, targetId, kind: 'changed' },
   );
 }
 
@@ -514,6 +569,7 @@ export function deleteRecordSubmitterOp(id: string, submitterId: string, targetT
     'record_submitter.delete',
     (ctx) => ctx.repo.deleteRecordSubmitter(id),
     (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+    { targetType, targetId, kind: 'changed' },
   );
 }
 
@@ -541,7 +597,11 @@ export function updateAddressOp(before: AddressRecord, after: AddressRecord): Op
   };
 }
 
-export function deleteAddressOp(address: AddressRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+export function deleteAddressOp(
+  address: AddressRecord,
+  attachments: AttachmentsSnapshot = emptyAttachments(),
+  consumers: { repositories?: RepositoryRecord[]; submitters?: SubmitterRecord[]; facts?: FactRecord[] } = {},
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -550,6 +610,15 @@ export function deleteAddressOp(address: AddressRecord, attachments: Attachments
       (ctx) => {
         ctx.repo.insertAddress(address);
         ctx.repo.restoreAttachments(attachments);
+        for (const repository of consumers.repositories ?? []) {
+          ctx.repo.updateRepository({ ...repository, addressId: address.id });
+        }
+        for (const submitter of consumers.submitters ?? []) {
+          ctx.repo.updateSubmitter({ ...submitter, addressId: address.id });
+        }
+        for (const fact of consumers.facts ?? []) {
+          ctx.repo.updateFact({ ...fact, addressId: address.id });
+        }
       },
     ),
     change: { targetType: 'address', targetId: address.id, kind: 'changed' },

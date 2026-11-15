@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
-import type { RepositoryRecord, SourceRecord } from '@doru/core';
+import type { AddressRecord, RepositoryRecord, SourceRecord } from '@doru/core';
 import { EntityTab, type MediaTargetApi, type RegistriesEditorApi } from '@doru/features';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  AddressFields,
+  AddressLinkField,
   ChangesSection,
   ContactsSection,
   ContributorsSection,
@@ -30,23 +30,27 @@ import { useRegistryAddress } from './useRegistryAddress';
 export function RepositoryTab({
   tabId,
   repositories,
+  addresses,
   api,
   sources,
   media,
   mediaApi,
   onOpenSource,
   onOpenMedia,
+  onOpenAddress,
   onClose,
   onCreated,
 }: {
   tabId: string;
   repositories: RepositoryRecord[];
+  addresses: AddressRecord[];
   api: RegistriesEditorApi;
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenAddress: (addressId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -60,6 +64,7 @@ export function RepositoryTab({
     <RepositoryTabBody
       tabId={tabId}
       record={record}
+      addresses={addresses}
       isNew={isNew}
       api={api}
       sources={sources}
@@ -67,6 +72,7 @@ export function RepositoryTab({
       mediaApi={mediaApi}
       onOpenSource={onOpenSource}
       onOpenMedia={onOpenMedia}
+      onOpenAddress={onOpenAddress}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -76,6 +82,7 @@ export function RepositoryTab({
 function RepositoryTabBody({
   tabId,
   record,
+  addresses,
   isNew,
   api,
   sources,
@@ -83,11 +90,13 @@ function RepositoryTabBody({
   mediaApi,
   onOpenSource,
   onOpenMedia,
+  onOpenAddress,
   onClose,
   onCreated,
 }: {
   tabId: string;
   record: RepositoryRecord | undefined;
+  addresses: AddressRecord[];
   isNew: boolean;
   api: RegistriesEditorApi;
   sources: SourceRecord[];
@@ -95,14 +104,16 @@ function RepositoryTabBody({
   mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenAddress: (addressId: string) => void;
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
   const [name, setName] = useState(base.name);
-  const { address, setAddress, saveAddress } = useRegistryAddress(api, base.addressId);
-  const [addressText, setAddressText] = useState('');
+  const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
+  const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
+  const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: repositoryNotes,
@@ -119,21 +130,16 @@ function RepositoryTabBody({
     refresh: refreshAttachments,
   } = useAttachments('repository', targetId, api, true);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (base.addressId !== undefined) {
-      void api.getAddress(base.addressId).then((loaded) => {
-        if (!cancelled && loaded) setAddressText(addressLabel(loaded));
-      });
+  const selectAddress = (addressId: string | undefined) => {
+    setLinkedAddressId(addressId);
+    if (addressId === undefined) {
+      unlinkAddress();
     }
-    return () => {
-      cancelled = true;
-    };
-  }, [base.addressId, api]);
+  };
 
   const save = async () => {
     const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
-    next.addressId = await saveAddress();
+    next.addressId = linkedAddressId ?? (await saveAddress());
     if (isNew && lastSaved === undefined) {
       await api.addRepository(next);
       onCreated(next.id);
@@ -173,7 +179,14 @@ function RepositoryTabBody({
         <Field label={nls.t('features.tree.repository.name')}>
           <Input value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
-        <AddressFields address={address} onChange={setAddress} />
+        <AddressLinkField
+          addresses={addresses}
+          addressId={linkedAddressId}
+          address={address}
+          onSelect={selectAddress}
+          onChange={setAddress}
+          onOpen={onOpenAddress}
+        />
       </SectionCard>
       {targetId !== undefined && (
         <>

@@ -165,12 +165,12 @@ describe('importGedcomDataset edge coverage', () => {
       const ivan = byXref.get('@I1@')!;
       expect(ivan).toBeDefined();
 
-      // RIN / _SOSA / _SOSA_DABOVILLE become identifiers.
+      // _SOSA / _SOSADABOVILLE become identifiers; RIN is not part of Dóru.
       const identifierNamespaces = repo
         .listIdentifiersFor('person', ivan.id)
         .map((identifier) => identifier.namespace)
         .sort();
-      expect(identifierNamespaces).toEqual(['daboville', 'rin', 'sosa']);
+      expect(identifierNamespaces).toEqual(['daboville', 'sosa']);
 
       // INDI-level and fact-address contacts.
       const contactKinds = repo
@@ -203,11 +203,9 @@ describe('importGedcomDataset edge coverage', () => {
       expect(repo.listAssociationsFor(ivan.id)).toHaveLength(1);
       expect(repo.listAliasesFor(ivan.id)).toHaveLength(1);
 
-      // Submitter identifiers and notes.
+      // Submitter identifiers and notes: RIN is ignored, only notes survive.
       const submitter = repo.listSubmitters()[0]!;
-      expect(repo.listIdentifiersFor('submitter', submitter.id).map((identifier) => identifier.namespace)).toEqual([
-        'rin',
-      ]);
+      expect(repo.listIdentifiersFor('submitter', submitter.id)).toEqual([]);
       expect(repo.listNotesFor('submitter', submitter.id)).toHaveLength(1);
 
       // Tag without a name is skipped; the tag link to a missing tag is skipped.

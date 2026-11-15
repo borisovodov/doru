@@ -120,6 +120,19 @@ describe('Phase 2: attachments cascade and undo', () => {
 });
 
 describe('Phase 2: change log', () => {
+  it('lists changes in insertion order', () => {
+    const fixture = makeRepo();
+    try {
+      const svc = service(fixture);
+      const p = person('P1');
+      svc.addPerson(p);
+      svc.updatePerson(p, { ...p, names: [{ id: 'N1', given: 'Ivan' }] });
+      expect(fixture.repo.listChangesFor('person', 'P1').map((change) => change.kind)).toEqual(['created', 'changed']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('records created/changed rows and forgets them with the entity', () => {
     const fixture = makeRepo();
     try {

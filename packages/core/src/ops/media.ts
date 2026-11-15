@@ -1,6 +1,6 @@
 import type { AttachmentsSnapshot, MediaRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { Op } from './op';
+import type { NestedAttachments, Op } from './op';
 
 export function addMediaOp(media: MediaRecord): Op {
   return {
@@ -17,7 +17,7 @@ export function addMediaOp(media: MediaRecord): Op {
   };
 }
 
-export function updateMediaOp(before: MediaRecord, after: MediaRecord): Op {
+export function updateMediaOp(before: MediaRecord, after: MediaRecord, fileAttachments: NestedAttachments[] = []): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'media.update',
@@ -28,11 +28,18 @@ export function updateMediaOp(before: MediaRecord, after: MediaRecord): Op {
     },
     inverse(ctx) {
       ctx.repo.updateMedia(before);
+      for (const nested of fileAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
+      }
     },
   };
 }
 
-export function deleteMediaOp(media: MediaRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+export function deleteMediaOp(
+  media: MediaRecord,
+  attachments: AttachmentsSnapshot = emptyAttachments(),
+  fileAttachments: NestedAttachments[] = [],
+): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'media.delete',
@@ -44,6 +51,9 @@ export function deleteMediaOp(media: MediaRecord, attachments: AttachmentsSnapsh
     inverse(ctx) {
       ctx.repo.insertMedia(media);
       ctx.repo.restoreAttachments(attachments);
+      for (const nested of fileAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
+      }
     },
   };
 }

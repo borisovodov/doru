@@ -2116,8 +2116,13 @@ export interface SourceRecord extends GedcomStructureBase {
    * substructures, so the details have no 5.5.1 slot).
    */
   publicationDetails?: SourcePublicationDetails;
-  /** TEXT {0:1}, g7:TEXT — a verbatim copy of any description contained within the source. */
-  text?: SourceText;
+  /**
+   * TEXT {0:M} — verbatim copies of descriptions contained within the
+   * source. GEDCOM 5.5.1 allows several; 7.0 permits one standard TEXT, so
+   * the serializer writes the first as TEXT and the rest as the documented
+   * `_TEXT` extension.
+   */
+  texts?: SourceText[];
   /** <<SOURCE_REPOSITORY_CITATION>> {0:M}. */
   repositoryCitations?: SourceRepositoryCitation[];
   /** <<IDENTIFIER_STRUCTURE>> {0:M}. */

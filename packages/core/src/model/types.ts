@@ -435,6 +435,26 @@ export interface MediaRecord {
   links?: MediaLinkRecord[] | undefined;
 }
 
+/** Media extensions the UI renders as images. */
+export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'tiff'] as const;
+
+export function isImagePath(path: string | undefined): boolean {
+  if (!path) {
+    return false;
+  }
+  const dot = path.lastIndexOf('.');
+  return dot !== -1 && (IMAGE_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase());
+}
+
+/**
+ * True when a media record has at least one project-relative image file.
+ * External paths and non-image files are intentionally hidden from the UI.
+ */
+export function isVisibleMedia(media: Pick<MediaRecord, 'path' | 'files'>): boolean {
+  const paths = media.files?.map((file) => file.path) ?? (media.path !== undefined ? [media.path] : []);
+  return paths.some((path) => path.startsWith('media/') && !path.includes('../') && isImagePath(path));
+}
+
 // ---------------------------------------------------------------------------
 // Repositories, submitters, addresses, header
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AddressRecord } from '@doru/core';
 import type { RegistriesEditorApi } from '@doru/features';
 import {
@@ -10,43 +10,51 @@ import {
 } from '@doru/ui/domain';
 
 /**
- * The address sub-form state shared by the repository and submitter tabs:
- * loads the stored address (if any) and saves it on demand, returning the
- * address id to store on the owning record (or undefined when cleared).
+ * The address sub-form state shared by the repository and submitter tabs.
+ *
+ * A linked address (`addressId` set) is read-only in these editors and is
+ * loaded for the summary; a new address keeps its editable draft. Unlinking
+ * only clears the draft/link — the AddressRecord itself is never deleted
+ * here, because it may be shared with other records.
  */
 export function useRegistryAddress(api: RegistriesEditorApi, addressId: string | undefined) {
   const [address, setAddress] = useState<AddressDraft>(emptyAddressDraft());
   const [addressLoaded, setAddressLoaded] = useState(false);
   const [addressBefore, setAddressBefore] = useState<AddressRecord | undefined>(undefined);
+  const apiRef = useRef(api);
+  apiRef.current = api;
 
   useEffect(() => {
     let cancelled = false;
     if (addressId !== undefined) {
-      void api.getAddress(addressId).then((loaded) => {
-        if (!cancelled && loaded) {
-          setAddress(addressToDraft(loaded));
-          setAddressBefore(loaded);
+      void apiRef.current.getAddress(addressId).then((loaded) => {
+        if (!cancelled) {
+          if (loaded) {
+            setAddress(addressToDraft(loaded));
+            setAddressBefore(loaded);
+          } else {
+            setAddress(emptyAddressDraft());
+            setAddressBefore(undefined);
+          }
           setAddressLoaded(true);
         }
       });
     } else {
+      setAddress(emptyAddressDraft());
+      setAddressBefore(undefined);
       setAddressLoaded(true);
     }
     return () => {
       cancelled = true;
     };
-  }, [addressId, api]);
+  }, [addressId]);
 
-  /** Persists the address and returns the id for the owning record. */
+  /** Persists a new/edited private address and returns the id to store. */
   const saveAddress = async (): Promise<string | undefined> => {
     if (!addressLoaded) {
       return addressId;
     }
     if (addressDraftEmpty(address)) {
-      if (addressBefore) {
-        await api.deleteAddress(addressBefore);
-        setAddressBefore(undefined);
-      }
       return undefined;
     }
     const record = addressDraftToRecord(address);
@@ -60,5 +68,12 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     return record.id;
   };
 
-  return { address, setAddress, addressLoaded, saveAddress };
+  /** Clears the local draft after the owner drops its address link. */
+  const unlinkAddress = () => {
+    setAddress(emptyAddressDraft());
+    setAddressBefore(undefined);
+    setAddressLoaded(true);
+  };
+
+  return { address, setAddress, addressLoaded, addressBefore, saveAddress, unlinkAddress };
 }

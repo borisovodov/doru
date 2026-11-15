@@ -118,6 +118,8 @@ describe('TreeService', () => {
       service.addNote({ id: 'N1', text: 'note', targetType: 'person', targetId: 'P1' });
       service.addSource({ id: 'S1', title: 'Source' }, 'person', 'P1');
       service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/a.pdf', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M3', path: '../external/a.jpg', targetType: 'person', targetId: 'P1' });
 
       expect(service.personCounts(['P1', 'P2'])).toEqual({
         P1: { notes: 1, sources: 1, media: 1 },

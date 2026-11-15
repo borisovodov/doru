@@ -1533,7 +1533,7 @@ export function emitSource(
     abbreviationExtensions?: ExtensionStructure[];
     publication?: string;
     publicationDetails?: SourcePublicationDetails;
-    text?: SourceText;
+    texts?: SourceText[];
     repositoryCitations?: Array<{ repository: string; notes?: NoteStructure[]; callNumbers?: CallNumberStructure[] }>;
     identifiers?: Array<{ tag: string; payload: string; type?: string }>;
     notes?: NoteStructure[];
@@ -1673,17 +1673,18 @@ export function emitSource(
       emitExtensions(w, version, 2, rec.publicationDetails);
     }
   }
-  if (rec.text !== undefined) {
-    w.line(1, 'TEXT', { value: rec.text.payload });
+  for (const [index, text] of (rec.texts ?? []).entries()) {
+    const tag = version === '7.0' && index > 0 ? '_TEXT' : 'TEXT';
+    w.line(1, tag, { value: text.payload });
     if (version === '7.0') {
-      if (rec.text.mediaType !== undefined) {
-        w.line(2, 'MIME', { value: rec.text.mediaType });
+      if (text.mediaType !== undefined) {
+        w.line(2, 'MIME', { value: text.mediaType });
       }
-      if (rec.text.language !== undefined) {
-        w.line(2, 'LANG', { value: rec.text.language });
+      if (text.language !== undefined) {
+        w.line(2, 'LANG', { value: text.language });
       }
     }
-    emitExtensions(w, version, 2, rec.text);
+    emitExtensions(w, version, 2, text);
   }
   for (const citation of rec.repositoryCitations ?? []) {
     emitRepositoryCitation(w, version, 1, citation);

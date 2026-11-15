@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
-import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
+import type { AddressRecord, FactRecord, FamilyRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { DateEditor } from '../date/DateEditor';
 import { Button } from '../../atoms/button/Button';
@@ -21,6 +21,7 @@ export function FactsSection({
   owner,
   events: facts,
   persons,
+  families,
   places,
   addresses,
   refresh,
@@ -34,6 +35,7 @@ export function FactsSection({
   owner: FactOwner;
   events: FactRecord[];
   persons: PersonRecord[];
+  families: FamilyRecord[];
   places: PlaceRecord[];
   addresses: AddressRecord[];
   refresh: () => Promise<void>;
@@ -122,6 +124,7 @@ export function FactsSection({
                 <FactEditor
                   fact={fact}
                   persons={persons}
+                  families={families}
                   places={places}
                   addresses={addresses}
                   attachments={renderAttachments?.(fact)}

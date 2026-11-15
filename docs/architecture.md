@@ -81,19 +81,26 @@ decisions about what we deliberately do **not** build, see
 
 - GEDCOM import and export live in the dedicated `@doru/gedcom` package
   (GEDCOM 5.5.1, GEDCOM 7.0, GEDZIP; the GEDCOM 5.5.5 vocabulary parses
-  on 5.x import), kept free of runtime dependencies and
-  of Electron. The package is not wired to the tree database yet: the
-  desktop export IPC handler (`project:export`) stays wired to the UI but
-  is a no-op until the dataset → tree mapping lands.
+  on 5.x import), kept free of runtime dependencies and of Electron. The
+  desktop import/export layer maps the GEDCOM dataset to and from the tree
+  database in `@doru/core`; the format package itself stays storage-free.
 - The app registers `.ged`/`.gdz` file associations (next to `.doru`) and
   routes every opened file by extension. Opening a GEDCOM file imports it
-  into a new **not-yet-saved project** — the import itself is currently
-  stubbed, so the project opens empty: the data lives in a temporary
+  into a new **not-yet-saved project**: the data lives in a temporary
   `.doru` store under the OS temp directory, keyed `untitled:<uuid>`, and
   the window shows the imported file's name with an unsaved marker. The
   first save asks for a `.doru` location, moves the store and media folder
   there and rebinds the window to the real path; from then on the project
   autosaves like any other.
+- **Media** follows the project-folder rule: GEDZIP bytes are written to
+  the project's `media/` folder during import, and plain GEDCOM `FILE`
+  paths are copied when the referenced file is reachable. Unresolvable
+  paths stay external references in the database and are hidden from the
+  media UI; the bytes are never stored in SQLite.
+- Export happens in the Export tab, which offers **GEDCOM 7.0 (`.ged`)** and
+  **GEDZIP (`.gdz`)**. GEDZIP bundles the managed media files; `.ged`
+  keeps only their paths. The save dialog opens only after the user
+  confirms the format in the tab.
 
 ## Localization
 

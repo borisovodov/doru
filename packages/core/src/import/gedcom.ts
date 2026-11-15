@@ -1,4 +1,11 @@
-import type { Calendar, DateFields, DateValue as GedcomDateValue, GedcomMonth, PersonalName } from '@doru/gedcom';
+import type {
+  Calendar,
+  DateFields,
+  DateValue as GedcomDateValue,
+  ExtensionStructure,
+  GedcomMonth,
+  PersonalName,
+} from '@doru/gedcom';
 import type {
   AddressStructure,
   AgeStructure,
@@ -21,7 +28,7 @@ import type {
   SourceCitation,
   SortDateStructure,
 } from '@doru/gedcom';
-import { isFamilyRecord, isIndividualRecord } from '@doru/gedcom';
+import { isFamilyRecord, isIndividualRecord, isPlaceRecord } from '@doru/gedcom';
 import type {
   OccurrenceRecord as GedcomOccurrenceRecord,
   TagLink as GedcomTagLink,
@@ -41,6 +48,8 @@ import type {
   FamilyPartnerLink,
   NamePart,
   PersonName,
+  PlaceName,
+  PlaceRecord,
   RestrictionRecord,
   Sex,
   TodoRecord,
@@ -53,9 +62,9 @@ import type {
  * citations, …) lives here and nowhere else.
  *
  * Deliberately not imported:
- * - media (OBJE): the import policy is an open question — issue #172. File
- *   paths point at the exporting machine; nothing is imported until the
- *   policy lands. The media tables stay empty on import.
+ * - media bytes are not read here: the host prepares project-relative paths
+ *   (GEDZIP bytes, resolvable FILE paths) and passes them as `mediaPaths`;
+ *   unresolved paths stay external references.
  * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`), the
  *   MagiKey census record (`_CENR`), the Legacy custom event definitions
  *   (`_EVENT_DEFN`) and the LDS ordinance structures (BAPL/CONL/ENDL/
@@ -75,6 +84,7 @@ export interface GedcomImportResult {
   importedFamilies: number;
   importedSources: number;
   importedPlaces: number;
+  importedMedia: number;
   totalPersons: number;
   /** Whole records that were deliberately not imported (vendor-only). */
   droppedStructures: number;
@@ -92,6 +102,14 @@ interface ImportContext {
   tagIds: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
+  /** Place-card xref → place id. */
+  placeCardIds: Map<string, string>;
+  /** Place id → parent links resolved after all cards are imported. */
+  placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined }>>;
+  /** Media record xref → media id. */
+  mediaIds: Map<string, string>;
+  /** Original GEDCOM FILE path → project-relative path prepared by the host. */
+  mediaPaths: ReadonlyMap<string, string>;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
   spouseLinkDates: Map<string, Map<string, DateStructure | undefined>>;
   /** Person xref → family xref → the FAMC link details (pedigree, status, relations). */
@@ -116,7 +134,11 @@ interface ImportContext {
  * fresh UUIDs; the GEDCOM cross-reference lands in `xref` for round-trip
  * export provenance.
  */
-export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository): GedcomImportResult {
+export function importGedcomDataset(
+  dataset: GedcomDataset,
+  repo: TreeRepository,
+  mediaPaths: ReadonlyMap<string, string> = new Map(),
+): GedcomImportResult {
   const ctx: ImportContext = {
     repo,
     personIds: new Map(),
@@ -128,6 +150,10 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     noteIds: new Map(),
     tagIds: new Map(),
     placeIds: new Map(),
+    placeCardIds: new Map(),
+    placeParents: new Map(),
+    mediaIds: new Map(),
+    mediaPaths,
     spouseLinkDates: new Map(),
     childLinkDetails: new Map(),
     dropped: 0,
@@ -142,6 +168,8 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     importRepositories(dataset.records, ctx);
     importSubmitters(dataset.records, ctx);
     importTags(dataset.records, ctx);
+    importMediaRecords(dataset.records, ctx);
+    importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
     for (const record of dataset.records) {
       if (isIndividualRecord(record)) {
@@ -156,6 +184,7 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
       }
     }
     importPersonRelations(dataset.records, ctx);
+    linkPlaceHierarchy(ctx);
     importResearchRecords(dataset.records, ctx);
   });
   return {
@@ -163,6 +192,7 @@ export function importGedcomDataset(dataset: GedcomDataset, repo: TreeRepository
     importedFamilies,
     importedSources,
     importedPlaces: ctx.placeIds.size,
+    importedMedia: ctx.mediaIds.size,
     totalPersons: repo.countPersons(),
     droppedStructures: ctx.dropped,
   };
@@ -230,15 +260,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       addressId,
       languages: submitter.languages,
     });
-    if (submitter.automatedRecordId !== undefined) {
-      ctx.repo.insertIdentifier({
-        id: crypto.randomUUID(),
-        targetType: 'submitter',
-        targetId: id,
-        namespace: 'rin',
-        value: submitter.automatedRecordId,
-      });
-    }
     importIdentifiers(submitter.identifiers, 'submitter', id, ctx);
     importNotes(submitter.notes, 'submitter', id, ctx);
   }
@@ -296,9 +317,12 @@ function importTags(records: GedcomRecord[], ctx: ImportContext): void {
 
 function importAddress(address: AddressStructure, ctx: ImportContext): string {
   const id = crypto.randomUUID();
+  const lines = address.payload
+    ? address.payload.split('\n')
+    : [address.line1, address.line2, address.line3].filter((line): line is string => line !== undefined);
   ctx.repo.insertAddress({
     id,
-    lines: address.payload ? [address.payload] : [],
+    lines,
     city: address.city,
     state: address.state,
     postalCode: address.postalCode,
@@ -372,16 +396,15 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     if (source.xref !== undefined) {
       ctx.sourceIds.set(source.xref, id);
     }
-    const texts = source.text
-      ? [
-          {
+    const texts =
+      source.texts !== undefined && source.texts.length > 0
+        ? source.texts.map((text) => ({
             id: crypto.randomUUID(),
-            text: source.text.payload,
-            mime: source.text.mediaType,
-            language: source.text.language,
-          },
-        ]
-      : undefined;
+            text: text.payload,
+            mime: text.mediaType,
+            language: text.language,
+          }))
+        : undefined;
     const dataEvents = (source.data?.events ?? []).map((event) => {
       const date = mapDatePeriod(event.date);
       const placeId = event.place ? importPlace(event.place, ctx) : undefined;
@@ -438,6 +461,8 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     });
     importNotes(source.notes, 'source', id, ctx);
     importIdentifiers(source.identifiers, 'source', id, ctx);
+    importMediaLinks(source.media, 'source', id, ctx);
+    importChanges(source.changeDate, source.creationDate, 'source', id, ctx);
     imported += 1;
   }
   return imported;
@@ -484,7 +509,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     ctx.childLinkDetails.set(record.xref, famcDetails);
   }
 
-  const structures = (record.names ?? []).map((structure) => ({ structure, name: mapName(structure) }));
+  const structures = (record.names ?? []).map((structure) => ({ structure, name: mapName(structure, ctx) }));
   const names = structures.map((entry) => entry.name);
   const factStructures = [...(record.events ?? []), ...(record.attributes ?? [])];
   const facts = factStructures.map((structure) =>
@@ -541,15 +566,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   importCitations(record.citations, 'person', id, ctx);
   importNotes(record.notes, 'person', id, ctx);
   importIdentifiers(record.identifiers, 'person', id, ctx);
-  if (record.automatedRecordId !== undefined) {
-    ctx.repo.insertIdentifier({
-      id: crypto.randomUUID(),
-      targetType: 'person',
-      targetId: id,
-      namespace: 'rin',
-      value: record.automatedRecordId,
-    });
-  }
+  importMediaLinks(record.media, 'person', id, ctx);
   if (record.sosaNumber !== undefined) {
     ctx.repo.insertIdentifier({
       id: crypto.randomUUID(),
@@ -605,6 +622,7 @@ function mapFact(
   age: AgeStructure | undefined,
   ctx: ImportContext,
 ): FactRecord {
+  importMediaLinks(detail?.media, 'fact', base.id, ctx);
   return {
     id: base.id,
     personId: base.personId,
@@ -683,11 +701,16 @@ function importAddressContacts(detail: EventDetail | undefined, targetId: string
   );
 }
 
-function mapName(structure: PersonalNameStructure): PersonName {
+function extensionText(extensions: ExtensionStructure[] | undefined, tag: string): string | undefined {
+  return extensions?.find((extension) => extension.tag === tag)?.payload;
+}
+
+function mapName(structure: PersonalNameStructure, ctx: ImportContext): PersonName {
   const payload = structure.payload;
   const pieces = structure.pieces;
   const parts = nameParts(payload, pieces);
-  const full = joinName(payload, pieces);
+  const full = extensionText(structure.extensions, '_FULL') ?? joinName(payload, pieces);
+  const language = extensionText(structure.extensions, '_LANG');
   const type = structure.type
     ? structure.type.payload.toLowerCase() === 'other' && structure.type.phrase !== undefined
       ? structure.type.phrase
@@ -697,8 +720,10 @@ function mapName(structure: PersonalNameStructure): PersonName {
     id: crypto.randomUUID(),
     type,
     primary: structure.primary,
+    ...(language !== undefined ? { language } : {}),
     full: full || undefined,
     parts: parts.length > 0 ? parts : undefined,
+    ...(structure.date !== undefined ? { date: mapDate(structure.date) } : {}),
   };
   const variants = [
     ...(structure.translations ?? []).map((translation) =>
@@ -714,6 +739,7 @@ function mapName(structure: PersonalNameStructure): PersonName {
   if (variants.length > 0) {
     name.variants = variants;
   }
+  importMediaLinks(structure.media, 'name', name.id, ctx);
   return name;
 }
 
@@ -892,6 +918,7 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   importNotes(record.notes, 'family', id, ctx);
   importIdentifiers(record.identifiers, 'family', id, ctx);
   importRestrictions(record.restriction, 'family', id, ctx);
+  importMediaLinks(record.media, 'family', id, ctx);
   importChanges(record.changeDate, undefined, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
   for (const tagLink of record.tagLinks ?? []) {
@@ -976,16 +1003,11 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
       case '_OCUR':
         importOccurrence(record as GedcomOccurrenceRecord, ctx);
         break;
-      case 'OBJE':
-        // Media import policy is open (issue #172); nothing is imported.
-        ctx.dropped += 1;
-        break;
       case '_ALIA':
         // The duplicate-candidate record carries a single person pointer and
         // has no second-person slot in our model.
         ctx.dropped += 1;
         break;
-      case '_PLAC':
       case '_GRP':
       case '_PUBLISH':
       case '_MTTAG':
@@ -1116,6 +1138,7 @@ function importCitation(citation: SourceCitation, targetType: string, targetId: 
   };
   ctx.repo.insertCitation(mapped);
   importNotes(citation.notes, 'citation', mapped.id, ctx);
+  importMediaLinks(citation.media, 'citation', mapped.id, ctx);
 }
 
 function importCitations(
@@ -1429,11 +1452,194 @@ function mapPlaceText(place: PlaceStructure | undefined): string | undefined {
   return place.payload.join(', ');
 }
 
+/** Postal codes with their optional dated validity rows. */
+function mapPostalCodes(
+  codes: Array<{ code: string; date?: DateStructure | undefined }>,
+): NonNullable<PlaceRecord['postalCodes']> {
+  return codes.map((postal) => {
+    const date = postal.date !== undefined ? mapDate(postal.date) : undefined;
+    return {
+      id: crypto.randomUUID(),
+      code: postal.code,
+      ...(date !== undefined ? { date } : {}),
+    };
+  });
+}
+
+/** Signed coordinate from a GEDCOM MAP direction (S/W are negative). */
+function mapCoordinate(
+  value: { direction: string; degrees: number } | undefined,
+  negativeDirection: string,
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return value.direction === negativeDirection ? -value.degrees : value.degrees;
+}
+
+/** Imports the global OBJE records before any link references them. */
+function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
+  for (const record of records) {
+    if (record.tag !== 'OBJE') {
+      continue;
+    }
+    const id = crypto.randomUUID();
+    if (record.xref !== undefined) {
+      ctx.mediaIds.set(record.xref, id);
+    }
+    const files = record.files
+      .filter((file) => file.payload !== '')
+      .map((file) => ({
+        id: crypto.randomUUID(),
+        path: ctx.mediaPaths.get(file.payload) ?? file.payload,
+        ...(file.title !== undefined ? { title: file.title } : {}),
+      }));
+    if (files.length === 0) {
+      continue;
+    }
+    ctx.repo.insertMedia({
+      id,
+      ...(record.xref !== undefined ? { xref: record.xref } : {}),
+      ...(record.title !== undefined ? { title: record.title } : {}),
+      files,
+    });
+  }
+}
+
+/** Imports OBJE links under a structure into the media_link table. */
+function importMediaLinks(
+  links:
+    | Array<{
+        object: string;
+        crop?: { top?: number; left?: number; height?: number; width?: number } | undefined;
+        title?: string | undefined;
+        sequence?: number | undefined;
+        primary?: boolean | undefined;
+        scrapbook?: boolean | undefined;
+        slideshow?: boolean | undefined;
+        thumbnail?: boolean | undefined;
+        excludeFromDiagrams?: boolean | undefined;
+        caption?: boolean | undefined;
+      }>
+    | undefined,
+  targetType: string,
+  targetId: string,
+  ctx: ImportContext,
+): void {
+  for (const link of links ?? []) {
+    const mediaId = ctx.mediaIds.get(link.object);
+    if (mediaId === undefined) {
+      continue;
+    }
+    ctx.repo.addMediaLink(mediaId, {
+      id: crypto.randomUUID(),
+      mediaId,
+      targetType,
+      targetId,
+      ...(link.crop !== undefined ? { crop: link.crop } : {}),
+      ...(link.title !== undefined ? { title: link.title } : {}),
+      ...(link.sequence !== undefined ? { sequence: link.sequence } : {}),
+      ...(link.primary !== undefined ? { primary: link.primary } : {}),
+      ...(link.scrapbook !== undefined ? { scrapbook: link.scrapbook } : {}),
+      ...(link.slideshow !== undefined ? { slideshow: link.slideshow } : {}),
+      ...(link.thumbnail !== undefined ? { thumbnail: link.thumbnail } : {}),
+      ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
+      ...(link.caption !== undefined ? { caption: link.caption } : {}),
+    });
+  }
+}
+
+/** Imports the shared place cards (`_LOC`/`_PLAC`) before anything references them. */
+function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
+  for (const record of records) {
+    if (!isPlaceRecord(record)) {
+      continue;
+    }
+    const id = crypto.randomUUID();
+    if (record.xref !== undefined) {
+      ctx.placeCardIds.set(record.xref, id);
+    }
+    const names = (record.names ?? []).map((entry, position) => ({
+      id: crypto.randomUUID(),
+      kind: (extensionText(entry.extensions, '_KIND') ?? 'official') as PlaceName['kind'],
+      ...(entry.language !== undefined ? { language: entry.language } : {}),
+      ...(extensionText(entry.extensions, '_TYPE') !== undefined
+        ? { type: extensionText(entry.extensions, '_TYPE') as string }
+        : {}),
+      position,
+      value: entry.name,
+    }));
+    if (names.length === 0 && record.payload !== '') {
+      names.push({ id: crypto.randomUUID(), kind: 'official', position: 0, value: record.payload });
+    }
+    const official = names
+      .filter((name) => name.kind === 'official')
+      .sort((a, b) => a.position - b.position)
+      .map((name) => name.value);
+    const joined = official.length > 0 ? official.join(', ') : record.payload;
+    if (joined !== '') {
+      ctx.placeIds.set(joined, id);
+    }
+    if (record.xref !== undefined && record.payload !== '') {
+      ctx.placeIds.set(record.payload, id);
+    }
+    const verified = record.extensions?.some(
+      (extension) => extension.tag === '_VERI' && (extension.payload === 'Y' || extension.payload === '1'),
+    );
+    const latitude = mapCoordinate(record.map?.latitude, 'S');
+    const longitude = mapCoordinate(record.map?.longitude, 'W');
+    ctx.repo.insertPlace({
+      id,
+      ...(record.xref !== undefined ? { xref: record.xref } : {}),
+      ...(latitude !== undefined ? { latitude } : {}),
+      ...(longitude !== undefined ? { longitude } : {}),
+      ...(verified === true ? { verified: true } : {}),
+      names,
+      ...(record.postalCodes !== undefined && record.postalCodes.length > 0
+        ? { postalCodes: mapPostalCodes(record.postalCodes) }
+        : {}),
+    });
+    importCitations(record.citations, 'place', id, ctx);
+    importNotes(record.notes, 'place', id, ctx);
+    importMediaLinks(record.media, 'place', id, ctx);
+    if (record.parents !== undefined && record.parents.length > 0) {
+      ctx.placeParents.set(
+        id,
+        record.parents.map((parent) => ({
+          parentXref: parent.parent,
+          ...(parent.type !== undefined ? { type: parent.type.toLowerCase() } : {}),
+        })),
+      );
+    }
+  }
+}
+
+/** Resolves card parent links after every card has an id. */
+function linkPlaceHierarchy(ctx: ImportContext): void {
+  for (const [childId, parents] of ctx.placeParents) {
+    const place = ctx.repo.getPlace(childId);
+    if (place === undefined) {
+      continue;
+    }
+    const hierarchy = parents.flatMap((parent) => {
+      const parentId = ctx.placeCardIds.get(parent.parentXref);
+      return parentId !== undefined ? [{ parentId, ...(parent.type !== undefined ? { type: parent.type } : {}) }] : [];
+    });
+    if (hierarchy.length > 0) {
+      ctx.repo.updatePlace({ ...place, hierarchy });
+    }
+  }
+}
+
 /**
  * Creates (or reuses, by joined name) the place row for a GEDCOM place
  * structure, carrying the jurisdiction names, coordinates and variants.
  */
 function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefined {
+  const cardId = place.location !== undefined ? ctx.placeCardIds.get(place.location) : undefined;
+  if (cardId !== undefined) {
+    return cardId;
+  }
   const joined = mapPlaceText(place);
   if (joined === undefined) {
     return undefined;
@@ -1472,11 +1678,17 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
       value: variation.payload.join(', '),
     })),
   ];
+  const latitude = mapCoordinate(place.map?.latitude, 'S');
+  const longitude = mapCoordinate(place.map?.longitude, 'W');
   ctx.repo.insertPlace({
     id,
-    latitude: place.map?.latitude ? place.map.latitude.degrees : undefined,
-    longitude: place.map?.longitude ? place.map.longitude.degrees : undefined,
+    ...(latitude !== undefined ? { latitude } : {}),
+    ...(longitude !== undefined ? { longitude } : {}),
+    ...(place.verified === true ? { verified: true } : {}),
     names: [...names, ...variants],
+    ...(place.postalCodes !== undefined && place.postalCodes.length > 0
+      ? { postalCodes: mapPostalCodes(place.postalCodes) }
+      : {}),
   });
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);

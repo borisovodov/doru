@@ -72,6 +72,16 @@ export class NameRepo {
     this.db.prepare('DELETE FROM person_name_fts WHERE person_id = ?').run(personId);
   }
 
+  /** Deletes every name of a person together with the name date rows. */
+  deleteNamesForPerson(personId: string): void {
+    const dateIds = this.dateIdsOfPerson(personId);
+    this.deleteFtsForPerson(personId);
+    this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
+    for (const dateId of dateIds) {
+      this.dates.delete(dateId);
+    }
+  }
+
   /** Every name of one person: top-level names with their parts and variants. */
   listNamesForPerson(personId: string): PersonName[] {
     return this.listNamesForMany([personId]).get(personId) ?? [];
