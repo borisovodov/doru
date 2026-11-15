@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Save } from 'lucide-react';
-import { CommandService } from '@doru/platform';
 import { AppMenu, IconButton } from '@doru/ui';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
@@ -9,6 +8,7 @@ import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
+import { useAppCommands } from './hooks/useAppCommands';
 import { useTabs } from './hooks/useTabs';
 import { useTheme } from './hooks/useTheme';
 import { useTreeData } from './hooks/useTreeData';
@@ -51,6 +51,7 @@ export function App() {
   );
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
+  const { commands, keybindings } = useAppCommands(project, tabs, tree);
   const [version, setVersion] = useState('');
 
   useEffect(() => {
@@ -70,8 +71,6 @@ export function App() {
     settingsWasOpenRef.current = isSettings;
     // oxlint-disable-next-line react/exhaustive-deps -- stable callbacks; the hook object changes every render
   }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
-
-  const commands = useMemo(() => new CommandService(), []);
 
   const startProject = useCallback(
     (info: ProjectBinding) => {
@@ -103,90 +102,6 @@ export function App() {
   }, [startProject]);
 
   useEffect(() => {
-    const removeOpen = commands.register({
-      id: 'workbench.openProject',
-      title: nls.t('workbench.openProject'),
-      handler: () => project.openProject(),
-    });
-    const removeSave = commands.register({
-      id: 'workbench.saveProject',
-      title: nls.t('workbench.saveProject'),
-      handler: () => project.saveProject(),
-    });
-    const removeCreate = commands.register({
-      id: 'workbench.createProject',
-      title: nls.t('workbench.createProject'),
-      handler: () => project.createProject(),
-    });
-    const removeNewWindow = commands.register({
-      id: 'workbench.newWindow',
-      title: nls.t('workbench.newWindow'),
-      handler: () => window.doru.menuAction('window.new'),
-    });
-    const removeExport = commands.register({
-      id: 'workbench.exportGedcom',
-      title: nls.t('workbench.exportGedcom'),
-      handler: () => tabs.openStatic.export(),
-    });
-    const removeOpenSettings = commands.register({
-      id: 'workbench.openSettings',
-      title: nls.t('workbench.settings'),
-      handler: () => tabs.openStatic.settings(),
-    });
-    const removeNextTab = commands.register({
-      id: 'workbench.nextTab',
-      title: nls.t('workbench.nextTab'),
-      handler: () => tabs.nextTab(),
-    });
-    const removePrevTab = commands.register({
-      id: 'workbench.prevTab',
-      title: nls.t('workbench.prevTab'),
-      handler: () => tabs.prevTab(),
-    });
-    const removeSwitchToTab = commands.register({
-      id: 'workbench.switchToTab',
-      title: nls.t('workbench.switchToTab'),
-      handler: (index) => tabs.openTabAt(Number(index) - 1),
-    });
-    const removeUndo = commands.register({
-      id: 'tree.undo',
-      title: nls.t('workbench.undo'),
-      handler: () => tree.undo(),
-    });
-    const removeRedo = commands.register({
-      id: 'tree.redo',
-      title: nls.t('workbench.redo'),
-      handler: () => tree.redo(),
-    });
-    return () => {
-      removeOpen.dispose();
-      removeSave.dispose();
-      removeCreate.dispose();
-      removeNewWindow.dispose();
-      removeExport.dispose();
-      removeOpenSettings.dispose();
-      removeNextTab.dispose();
-      removePrevTab.dispose();
-      removeSwitchToTab.dispose();
-      removeUndo.dispose();
-      removeRedo.dispose();
-    };
-    // oxlint-disable-next-line react/exhaustive-deps -- handlers are stable; including the hook objects would rebind every render
-  }, [
-    commands,
-    project.openProject,
-    project.saveProject,
-    project.createProject,
-    tabs.openStatic.export,
-    tabs.openStatic.settings,
-    tabs.nextTab,
-    tabs.prevTab,
-    tabs.openTabAt,
-    tree.undo,
-    tree.redo,
-  ]);
-
-  useEffect(() => {
     return window.doru.onMenuCommand((commandId) => {
       // Native macOS menu items execute the same renderer commands as the
       // in-window menu and the keybindings; they are registered by App and
@@ -194,38 +109,6 @@ export function App() {
       void commands.execute(commandId).catch(() => undefined);
     });
   }, [commands]);
-
-  const keybindings = useMemo(
-    () => [
-      { key: 'meta+z', command: 'tree.undo' },
-      { key: 'ctrl+z', command: 'tree.undo' },
-      { key: 'meta+shift+z', command: 'tree.redo' },
-      { key: 'ctrl+shift+z', command: 'tree.redo' },
-      { key: 'meta+s', command: 'workbench.saveProject' },
-      { key: 'ctrl+s', command: 'workbench.saveProject' },
-      { key: 'meta+o', command: 'workbench.openProject' },
-      { key: 'ctrl+o', command: 'workbench.openProject' },
-      { key: 'meta+n', command: 'workbench.createProject' },
-      { key: 'ctrl+n', command: 'workbench.createProject' },
-      { key: 'meta+shift+n', command: 'workbench.newWindow' },
-      { key: 'ctrl+shift+n', command: 'workbench.newWindow' },
-      { key: 'meta+,', command: 'workbench.openSettings' },
-      { key: 'ctrl+,', command: 'workbench.openSettings' },
-      { key: 'meta+shift+]', command: 'workbench.nextTab' },
-      { key: 'meta+shift+[', command: 'workbench.prevTab' },
-      { key: 'ctrl+tab', command: 'workbench.nextTab' },
-      { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
-      { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
-      { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
-      { key: 'meta+alt+b', command: 'workbench.toggleAgentChat' },
-      { key: 'ctrl+alt+b', command: 'workbench.toggleAgentChat' },
-      ...Array.from({ length: 9 }, (_, index) => [
-        { key: `meta+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
-        { key: `ctrl+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
-      ]).flat(),
-    ],
-    [],
-  );
 
   const handleSelectView = useCallback(
     (view: ActivityViewId) => {

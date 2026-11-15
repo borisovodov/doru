@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { emptyFamilyDraft } from '@doru/ui/domain';
 import type { PersonRecord } from '@doru/core';
 import { FamilyEditor } from '@doru/features';
@@ -21,7 +21,7 @@ const grace: PersonRecord = {
   facts: [],
 };
 
-function renderEditor(overrides: { onSave?: () => void; onDelete?: () => void } = {}) {
+async function renderEditor(overrides: { onSave?: () => void; onDelete?: () => void } = {}) {
   const draft = emptyFamilyDraft();
   const onChange = vi.fn();
   const api = stubApi<FamilyEditorApi>({
@@ -46,12 +46,13 @@ function renderEditor(overrides: { onSave?: () => void; onDelete?: () => void } 
     />,
   );
 
+  await act(async () => {});
   return { draft, onChange };
 }
 
 describe('FamilyEditor', () => {
-  it('adds a partner and a child from the candidate lists', () => {
-    const { onChange } = renderEditor();
+  it('adds a partner and a child from the candidate lists', async () => {
+    const { onChange } = await renderEditor();
     const selects = screen.getAllByRole('combobox');
 
     fireEvent.change(selects[0]!, { target: { value: ada.id } });
@@ -67,10 +68,10 @@ describe('FamilyEditor', () => {
     );
   });
 
-  it('reports family details and the header actions', () => {
+  it('reports family details and the header actions', async () => {
     const onSave = vi.fn();
     const onDelete = vi.fn();
-    const { onChange } = renderEditor({ onSave, onDelete });
+    const { onChange } = await renderEditor({ onSave, onDelete });
 
     expect(screen.getByLabelText(nls.t('features.tree.families.title'))).toBeInTheDocument();
 
