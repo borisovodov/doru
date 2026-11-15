@@ -373,17 +373,8 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/platform",
-                  "@doru/platform/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*"
-                ],
-                "message": "@doru/core is the domain layer: no UI, workbench, features or platform imports."
+                "group": ["@doru/**", "!@doru/core", "!@doru/core/**", "!@doru/gedcom", "!@doru/gedcom/**"],
+                "message": "@doru/core may only import @doru/core and @doru/gedcom."
               },
               {
                 "group": ["electron", "react", "react-dom"],
@@ -411,17 +402,8 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/platform",
-                  "@doru/platform/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*"
-                ],
-                "message": "@doru/core is the domain layer: no UI, workbench, features or platform imports."
+                "group": ["@doru/**", "!@doru/core", "!@doru/core/**", "!@doru/gedcom", "!@doru/gedcom/**"],
+                "message": "@doru/core may only import @doru/core and @doru/gedcom."
               },
               {
                 "group": ["electron", "react", "react-dom"],
@@ -445,17 +427,8 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/platform",
-                  "@doru/platform/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*"
-                ],
-                "message": "@doru/ai is an agent layer: no UI, workbench, features or platform imports."
+                "group": ["@doru/**", "!@doru/ai", "!@doru/ai/**", "!@doru/core", "!@doru/core/**"],
+                "message": "@doru/ai may only import @doru/ai and @doru/core."
               },
               {
                 "group": ["electron", "react", "react-dom"],
@@ -479,8 +452,12 @@
           {
             "patterns": [
               {
-                "group": ["@doru/*", "electron", "react", "react-dom"],
-                "message": "@doru/gedcom is a standalone GEDCOM package: no app, UI or Electron imports."
+                "group": ["@doru/**"],
+                "message": "@doru/gedcom is a standalone GEDCOM package: no other workspace imports."
+              },
+              {
+                "group": ["electron", "react", "react-dom"],
+                "message": "@doru/gedcom must stay free of Electron and React."
               }
             ]
           }
@@ -496,21 +473,8 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/core",
-                  "@doru/core/*",
-                  "@doru/ai",
-                  "@doru/ai/*",
-                  "@doru/gedcom",
-                  "@doru/gedcom/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*"
-                ],
-                "message": "@doru/platform is the base layer: it cannot depend on domain or UI packages."
+                "group": ["@doru/**"],
+                "message": "@doru/platform is the base layer: it cannot depend on other workspace packages."
               },
               {
                 "group": ["electron", "react", "react-dom"],
@@ -538,8 +502,16 @@
                 "message": "UI packages run in the renderer: no Electron or Node built-ins."
               },
               {
-                "group": ["@doru/features", "@doru/features/*", "@doru/workbench", "@doru/workbench/*"],
-                "message": "@doru/ui is the design system: it cannot depend on features or the workbench shell."
+                "group": [
+                  "@doru/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**"
+                ],
+                "message": "@doru/ui may only import @doru/ui, @doru/core and @doru/platform."
               },
               {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
@@ -568,8 +540,20 @@
                 "message": "UI packages run in the renderer: no Electron or Node built-ins."
               },
               {
-                "group": ["@doru/workbench", "@doru/workbench/*"],
-                "message": "@doru/features is a domain UI layer: it cannot depend on the workbench shell."
+                "group": [
+                  "@doru/**",
+                  "!@doru/features",
+                  "!@doru/features/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**",
+                  "!@doru/ai",
+                  "!@doru/ai/**"
+                ],
+                "message": "@doru/features may only import the UI, core, platform and AI packages."
               },
               {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
@@ -598,8 +582,16 @@
                 "message": "UI packages run in the renderer: no Electron or Node built-ins."
               },
               {
-                "group": ["@doru/features", "@doru/features/*"],
-                "message": "@doru/workbench is the shell: it cannot depend on domain features."
+                "group": [
+                  "@doru/**",
+                  "!@doru/workbench",
+                  "!@doru/workbench/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**"
+                ],
+                "message": "@doru/workbench may only import @doru/workbench, @doru/ui and @doru/platform."
               },
               {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
@@ -628,6 +620,24 @@
                 "message": "The renderer talks to the main process through the preload API, not Electron or Node."
               },
               {
+                "group": [
+                  "@doru/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**",
+                  "!@doru/ai",
+                  "!@doru/ai/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/features",
+                  "!@doru/features/**",
+                  "!@doru/workbench",
+                  "!@doru/workbench/**"
+                ],
+                "message": "The renderer may only import the UI, workbench, platform, core and AI packages."
+              },
+              {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
                 "allowTypeImports": true,
                 "message": "The renderer may use AI types, but runtime AI lives in the main process."
@@ -651,14 +661,17 @@
             "patterns": [
               {
                 "group": [
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*"
+                  "@doru/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/ai",
+                  "!@doru/ai/**",
+                  "!@doru/gedcom",
+                  "!@doru/gedcom/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**"
                 ],
-                "message": "The main process is the domain host: it cannot import renderer UI packages."
+                "message": "The main process may only import the core, AI, GEDCOM and platform packages."
               },
               {
                 "group": ["react", "react-dom"],
@@ -686,7 +699,7 @@
           {
             "patterns": [
               {
-                "group": ["@doru/*"],
+                "group": ["@doru/**"],
                 "allowTypeImports": true,
                 "message": "The preload exposes IPC only: no runtime domain, AI or UI imports."
               },
