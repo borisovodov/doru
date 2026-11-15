@@ -151,6 +151,11 @@ export function App() {
       title: nls.t('workbench.createProject'),
       handler: () => project.createProject(),
     });
+    const removeNewWindow = commands.register({
+      id: 'workbench.newWindow',
+      title: nls.t('workbench.newWindow'),
+      handler: () => window.doru.menuAction('window.new'),
+    });
     const removeExport = commands.register({
       id: 'workbench.exportGedcom',
       title: nls.t('workbench.exportGedcom'),
@@ -190,6 +195,7 @@ export function App() {
       removeOpen.dispose();
       removeSave.dispose();
       removeCreate.dispose();
+      removeNewWindow.dispose();
       removeExport.dispose();
       removeOpenSettings.dispose();
       removeNextTab.dispose();
@@ -234,6 +240,8 @@ export function App() {
       { key: 'ctrl+o', command: 'workbench.openProject' },
       { key: 'meta+n', command: 'workbench.createProject' },
       { key: 'ctrl+n', command: 'workbench.createProject' },
+      { key: 'meta+shift+n', command: 'workbench.newWindow' },
+      { key: 'ctrl+shift+n', command: 'workbench.newWindow' },
       { key: 'meta+,', command: 'workbench.openSettings' },
       { key: 'ctrl+,', command: 'workbench.openSettings' },
       { key: 'meta+shift+]', command: 'workbench.nextTab' },

@@ -1,5 +1,9 @@
 # Troubleshooting
 
+- **A `.doru` project from an older build refuses to open** — before 1.0 the
+  project schema changes without migrations, so files written by another
+  build are not understood. Open the project in the build that created it,
+  export GEDCOM, and import that file into this build.
 - **“AI provider is not configured”** — open Settings (gear icon in the left
   bar), pick a provider, and follow the wizard: fetch the model list (or pick
   a model) and save a key where required.

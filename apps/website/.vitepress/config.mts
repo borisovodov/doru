@@ -467,9 +467,13 @@ function themeConfig(nav: string, docs: string, relnotes: string, footer: string
   };
 }
 
+// English is the default locale and stays first; the switcher lists every
+// other language in the same alphabetical order as the app's nls bundles, so
+// no language is pinned to a hand-picked position.
 const localeConfig = Object.fromEntries(
   (Object.keys(LOCALIZED) as Array<keyof typeof LOCALIZED>)
     .filter((key) => key !== 'en')
+    .sort()
     .map((key) => {
       const { label, nav, docs, relnotes, footer } = LOCALIZED[key];
       return [key, { label, lang: key, themeConfig: themeConfig(nav, docs, relnotes, footer) }];

@@ -1,9 +1,9 @@
 # Quick start
 
-1. Launch Dóru and click **Create New Project** (or **Open or Import
+1. Launch Dóru and click **Create New Project…** (or **Open Project or Import
    GEDCOM…**) on the start page.
 2. **Create** asks for a location and a name and creates a `.doru` file there;
-   **Open or Import GEDCOM** opens an existing `.doru` file, or a
+   **Open Project or Import GEDCOM** opens an existing `.doru` file, or a
    `.ged`/`.gdz` GEDCOM file — a GEDCOM file starts a new, not-yet-saved
    project with the imported tree; save it to `.doru` afterwards. The file
    *is* the project — its name is the project's name:
@@ -16,13 +16,16 @@ media/              photos and scans, created on demand (optional)
 3. Get data in: a new tree shows one empty card — click it, type the name,
    confirm with the checkmark, and the first person appears on the canvas;
    every card can add children, spouses and parents the same way. GEDCOM
-   files come in through **Open or Import GEDCOM** (step 2). To export,
-   open the **Export** tab, choose **GEDCOM 7.0** (`.ged`) or **GEDZIP**
+   files come in through **Open Project or Import GEDCOM** (step 2). To
+   export, open the **Export** tab, choose **GEDCOM 7.0** (`.ged`) or **GEDZIP**
    (`.gdz`, with the managed media files), and confirm the save location.
 
 Each project opens in its **own window**; persons, the tree editor and the
-settings open as tabs inside it. Recently used projects are listed on the
-start page, and your open project windows are restored on the next launch.
+settings open as tabs inside it. **New Window** (`⌘⇧N`, `Ctrl+Shift+N` on
+Linux and Windows) opens another start page without closing the current
+project, so you can import a GEDCOM file or open a second tree alongside it.
+Recently used projects are listed on the start page, and your open project
+windows are restored on the next launch.
 Double-clicking a `*.doru` file (or opening a
 `doru://open?path=/…/family.doru` link) opens it in the running app.
 

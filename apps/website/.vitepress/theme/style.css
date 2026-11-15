@@ -80,10 +80,11 @@
   );
   --vp-home-hero-image-filter: none;
 
-  /* The app's system font stack */
-  --vp-font-family-base:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu, Cantarell, 'Helvetica Neue', sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  /* Typography is VitePress' built-in self-hosted Inter: the default theme
+     loads it and keeps the language-specific CJK fallbacks, so the site uses
+     one font family everywhere (the wordmark stays Berkshire Swash). Overriding
+     --vp-font-family-base here would switch the whole site back to system
+     fonts. */
 }
 
 .dark {
