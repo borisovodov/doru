@@ -59,13 +59,45 @@ describe('buildGedcomDataset kitchen sink', () => {
         const ivan = persons.find((entry) => entry.names[0]?.given === 'Ivan');
         expect(ivan?.sex).toBe('M');
         expect(ivan?.facts.find((fact) => fact.tag === 'BIRT')?.place).toBe('Moscow, Russia');
+        expect(ivan?.names[0]?.date?.component).toEqual(expect.objectContaining({ year: 1923 }));
+        expect(ivan?.names[0]?.full).toBe('Dr. Ivan von Petrov Jr.');
+        expect(ivan?.names[0]?.language).toBe('ru');
+        expect(
+          target.repo
+            .listIdentifiersFor('person', ivan!.id)
+            .map((entry) => entry.namespace)
+            .sort(),
+        ).toEqual(['daboville', 'exid', 'refn', 'sosa', 'uid']);
 
         const families = target.repo.listFamilies();
         expect(families).toHaveLength(1);
         expect(families[0]?.partners).toHaveLength(2);
         expect(families[0]?.children).toHaveLength(1);
 
+        const places = target.repo.listPlaces();
+        expect(places).toHaveLength(2);
+        const moscow = places.find((place) => place.names.some((name) => name.value === 'Moscow'));
+        const russia = places.find((place) => place.id !== moscow?.id);
+        expect(moscow?.verified).toBe(true);
+        expect(moscow?.hierarchy).toEqual([{ parentId: russia?.id, type: 'poli' }]);
+        expect(moscow?.postalCodes?.[0]?.code).toBe('101000');
+        expect(moscow?.names.some((name) => name.kind === 'translation')).toBe(true);
+
+        const media = target.repo.listAllMedia();
+        expect(media).toHaveLength(1);
+        expect(media[0]?.title).toBe('Portrait');
+        expect(media[0]?.files?.[0]?.path).toBe('media/photo.jpg');
+        expect(target.repo.listMediaFor('person', ivan!.id)).toHaveLength(1);
+
         expect(target.repo.listSources()).toHaveLength(1);
+        expect(target.repo.listSources()[0]?.texts).toHaveLength(2);
+        expect(
+          target.repo
+            .listSources()[0]
+            ?.texts?.map((text) => text.text)
+            .sort(),
+        ).toEqual(['A note about the source', 'A second transcription'].sort());
+        expect(target.repo.listAddresses()[0]?.lines).toEqual(['12 Archive Lane', 'Building 3']);
         expect(target.repo.listRepositories()).toHaveLength(1);
         expect(target.repo.listSubmitters()).toHaveLength(1);
         expect(target.repo.listTitles()).toHaveLength(1);

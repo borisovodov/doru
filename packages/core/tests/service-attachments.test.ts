@@ -326,6 +326,28 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores attachments of a removed media file on undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addMedia({
+        id: 'M1',
+        files: [
+          { id: 'F1', path: 'media/a.jpg' },
+          { id: 'F2', path: 'media/b.jpg' },
+        ],
+      });
+      service.addNote(note({ id: 'N2', targetType: 'media_file', targetId: 'F1' }));
+      const before = fixture.repo.getMedia('M1')!;
+      service.updateMedia(before, { ...before, files: [{ id: 'F2', path: 'media/b.jpg' }] });
+      expect(fixture.repo.listNotesFor('media_file', 'F1')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.listNotesFor('media_file', 'F1').map((entry) => entry.id)).toEqual(['N2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores media and its attachments when the last link is detached', () => {
     const { fixture, service } = makeService();
     try {
@@ -430,17 +452,42 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores associations, aliases and their attachments after a person delete', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [{ id: 'N1', given: 'Ivan' }], sex: 'M', facts: [] });
+      service.addPerson({ id: 'P2', names: [{ id: 'N2', given: 'Maria' }], sex: 'F', facts: [] });
+      service.addAssociation({ id: 'A1', personId: 'P1', otherPersonId: 'P2' });
+      service.addNote(note({ id: 'N1', targetType: 'association', targetId: 'A1' }));
+      service.addAlias('P1', 'P2');
+
+      service.deletePerson(fixture.repo.getPerson('P1')!);
+      expect(fixture.repo.listAssociationsFor('P1')).toEqual([]);
+      expect(fixture.repo.listAliasesFor('P1')).toEqual([]);
+
+      service.undo();
+      expect(fixture.repo.listAssociationsFor('P1').map((entry) => entry.id)).toEqual(['A1']);
+      expect(fixture.repo.listAliasesFor('P1')).toHaveLength(1);
+      expect(fixture.repo.listNotesFor('association', 'A1').map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('cleans and restores address attachments on delete', () => {
     const { fixture, service } = makeService();
     try {
       service.addAddress(address());
+      service.addRepository({ id: 'RP1', name: 'Archive', addressId: 'AD1' });
       service.addNote(note({ targetType: 'address', targetId: 'AD1' }));
       service.deleteAddress(address());
       expect(fixture.repo.getAddress('AD1')).toBeUndefined();
+      expect(fixture.repo.getRepository('RP1')?.addressId).toBeUndefined();
       expect(fixture.repo.listNotesFor('address', 'AD1')).toEqual([]);
 
       service.undo();
       expect(fixture.repo.getAddress('AD1')).toBeDefined();
+      expect(fixture.repo.getRepository('RP1')?.addressId).toBe('AD1');
       expect(fixture.repo.listNotesFor('address', 'AD1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
@@ -517,7 +564,12 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listChangesFor('note', 'N1')).toEqual([]);
 
       service.undo();
-      expect(fixture.repo.listChangesFor('note', 'N1')).toHaveLength(1);
+      expect(
+        fixture.repo
+          .listChangesFor('note', 'N1')
+          .map((change) => change.kind)
+          .sort(),
+      ).toEqual(['changed', 'created']);
     } finally {
       cleanupRepo(fixture);
     }

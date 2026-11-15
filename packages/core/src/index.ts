@@ -43,12 +43,15 @@ export type {
   TreeDocument,
 } from './model/types';
 export {
+  IMAGE_EXTENSIONS,
   TARGET_TYPES,
   collectNameIds,
   emptyAttachments,
   emptyDocument,
   factOf,
   factYear,
+  isImagePath,
+  isVisibleMedia,
   placeName,
   signedYear,
 } from './model/types';

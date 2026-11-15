@@ -2,7 +2,15 @@ import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState, type ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
-import type { AddressRecord, FactAge, FactParticipant, FactRecord, PersonRecord, PlaceRecord } from '@doru/core';
+import type {
+  AddressRecord,
+  FactAge,
+  FactParticipant,
+  FactRecord,
+  FamilyRecord,
+  PersonRecord,
+  PlaceRecord,
+} from '@doru/core';
 import { nls } from '../../nls';
 import { placeName } from '@doru/core/model';
 import { DateEditor } from '../date/DateEditor';
@@ -10,7 +18,7 @@ import { Checkbox } from '../../atoms/form/Checkbox';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
-import { displayName, formatAddress } from '../format/format';
+import { displayName, familyLabel, formatAddress } from '../format/format';
 import { moveItem } from '../reorder';
 import { AddressFields } from '../registries/AddressFields';
 import {
@@ -20,7 +28,16 @@ import {
   emptyAddressDraft,
   type AddressDraft,
 } from '../registries/address';
-import { EVENT_TYPES, FACT_AGE_ROLES, FACT_FLAGS, factDraftToRecord, factToDraft, type FactDraft } from './factDraft';
+import {
+  EVENT_TYPES,
+  FACT_AGE_ROLES,
+  FACT_FLAGS,
+  factDraftToRecord,
+  factOwnerRef,
+  factToDraft,
+  setFactOwner,
+  type FactDraft,
+} from './factDraft';
 import './FactEditor.css';
 
 const AGE_NUMBER_FIELDS = ['years', 'months', 'weeks', 'days'] as const;
@@ -33,6 +50,7 @@ const AGE_NUMBER_FIELDS = ['years', 'months', 'weeks', 'days'] as const;
 export function FactEditor({
   fact,
   persons,
+  families,
   places,
   addresses,
   attachments,
@@ -44,6 +62,7 @@ export function FactEditor({
 }: {
   fact: FactRecord;
   persons: PersonRecord[];
+  families: FamilyRecord[];
   places: PlaceRecord[];
   addresses: AddressRecord[];
   attachments?: ReactNode;
@@ -58,6 +77,48 @@ export function FactEditor({
   const [saving, setSaving] = useState(false);
 
   const set = (patch: Partial<FactDraft>) => setDraft({ ...draft, ...patch });
+
+  const owner = factOwnerRef(draft);
+  const personById = new Map(persons.map((person) => [person.id, person]));
+  const ownerOptions: Array<{ value: string; label: string }> = [];
+  const seenOwners = new Set<string>();
+  const pushPerson = (person: PersonRecord) => {
+    const value = `person:${person.id}`;
+    if (!seenOwners.has(value)) {
+      seenOwners.add(value);
+      ownerOptions.push({
+        value,
+        label: `${nls.t('features.tree.fact.owner.person')}: ${displayName(person)}`,
+      });
+    }
+  };
+  const pushFamily = (family: FamilyRecord) => {
+    const value = `family:${family.id}`;
+    if (!seenOwners.has(value)) {
+      seenOwners.add(value);
+      ownerOptions.push({
+        value,
+        label: `${nls.t('features.tree.fact.owner.family')}: ${familyLabel(family, personById)}`,
+      });
+    }
+  };
+  if (owner?.kind === 'family') {
+    const current = families.find((family) => family.id === owner.id);
+    if (current) {
+      pushFamily(current);
+    }
+    persons.forEach(pushPerson);
+  } else if (owner?.kind === 'person') {
+    const current = persons.find((person) => person.id === owner.id);
+    if (current) {
+      pushPerson(current);
+    }
+    families.forEach(pushFamily);
+  } else {
+    persons.forEach(pushPerson);
+    families.forEach(pushFamily);
+  }
+  const ownerValue = owner === undefined ? '' : `${owner.kind}:${owner.id}`;
 
   const save = async () => {
     setSaving(true);
@@ -124,6 +185,26 @@ export function FactEditor({
 
   return (
     <div className="fact-editor">
+      <label className="fact-field">
+        {nls.t('features.tree.fact.owner')}
+        <Select
+          value={ownerValue}
+          onChange={(event) => {
+            const separator = event.target.value.indexOf(':');
+            const kind = event.target.value.slice(0, separator);
+            const id = event.target.value.slice(separator + 1);
+            if (id !== '') {
+              setDraft(setFactOwner(draft, { kind: kind === 'family' ? 'family' : 'person', id }));
+            }
+          }}
+        >
+          {ownerOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </label>
       <div className="fact-editor-row fact-kind-row">
         <label className="fact-field">
           {nls.t('features.tree.events.typeField')}

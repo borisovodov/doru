@@ -39,3 +39,26 @@
   align-items: center;
   gap: 6px;
 }
+
+.extraParts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.extraPartRow,
+.addPartRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.extraPartRow > :first-child,
+.addPartRow > :first-child {
+  flex: 0 0 150px;
+}
+
+.extraPartRow > :nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}

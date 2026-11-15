@@ -88,7 +88,7 @@ export function DateEditor({
           />
         )}
       </div>
-      {value.quality === 'about' && (
+      {value.quality !== 'range' && value.quality !== 'unknown' && (
         <div className={styles['row']}>
           <span className={styles['rangeLabel']}>{nls.t('features.tree.date.modifier')}</span>
           <Select

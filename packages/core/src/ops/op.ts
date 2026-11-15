@@ -63,6 +63,16 @@ export class OpQueue {
     return op;
   }
 
+  /** The op that `undo` would invert, without touching the stacks. */
+  peekUndo(): Op | undefined {
+    return this.undoStack[this.undoStack.length - 1];
+  }
+
+  /** The op that `redo` would re-apply, without touching the stacks. */
+  peekRedo(): Op | undefined {
+    return this.redoStack[this.redoStack.length - 1];
+  }
+
   canUndo(): boolean {
     return this.undoStack.length > 0;
   }

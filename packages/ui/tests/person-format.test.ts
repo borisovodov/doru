@@ -246,6 +246,12 @@ describe('formatDate', () => {
   it('appends the free text', () => {
     expect(formatDate({ quality: 'exact', component: { year: 1923 }, text: 'winter' })).toBe('1923 winter');
   });
+
+  it('shows the date modifier', () => {
+    expect(formatDate({ quality: 'exact', modifier: 'CAL', component: { year: 1923 } })).toBe('c. 1923');
+    expect(formatDate({ quality: 'exact', modifier: 'EST', component: { year: 1923 } })).toBe('est. 1923');
+    expect(formatDate({ quality: 'exact', modifier: 'ABT', component: { year: 1923 } })).toBe('~1923');
+  });
 });
 
 describe('qualityMark', () => {
@@ -256,6 +262,9 @@ describe('qualityMark', () => {
     expect(qualityMark('exact')).toBe('');
     expect(qualityMark('range')).toBe('');
     expect(qualityMark('unknown')).toBe('');
+    expect(qualityMark('exact', 'ABT')).toBe('~');
+    expect(qualityMark('exact', 'CAL')).toBe('c. ');
+    expect(qualityMark('exact', 'EST')).toBe('est. ');
   });
 });
 

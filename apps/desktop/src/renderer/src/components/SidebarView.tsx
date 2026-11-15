@@ -1,4 +1,5 @@
 import { IconButton } from '@doru/ui';
+import { isVisibleMedia } from '@doru/core';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type {
@@ -172,8 +173,9 @@ export function SidebarView({
           )}
         </>
       );
-    case 'media':
-      if (media.length === 0) {
+    case 'media': {
+      const visibleMedia = media.filter(isVisibleMedia);
+      if (visibleMedia.length === 0) {
         return (
           <PlaceholderView
             title={nls.t('workbench.activityBar.media')}
@@ -181,7 +183,8 @@ export function SidebarView({
           />
         );
       }
-      return <SidebarMedia media={media} persons={persons} onOpenMedia={onOpenMedia} />;
+      return <SidebarMedia media={visibleMedia} persons={persons} onOpenMedia={onOpenMedia} />;
+    }
     case 'sources':
       return (
         <SourcesSidebar

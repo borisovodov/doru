@@ -1,13 +1,21 @@
 import { dialog } from 'electron';
-import { basename, dirname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import {
   buildGedcomDataset,
   importGedcomDataset,
+  MEDIA_DIR_NAME,
   SqliteTreeRepository,
   type GedcomImportResult,
   type ProjectBinding,
 } from '@doru/core';
-import { parseTolerant, serializeGedcom70Bytes } from '@doru/gedcom';
+import {
+  parseTolerant,
+  serializeGedcom70Bytes,
+  serializeGedzip,
+  type GedcomDataset,
+  type GedzipMediaEntry,
+} from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { ensureRuntime, openUntitledStore, runtimeFilePath } from './runtime';
@@ -16,6 +24,46 @@ import { createUntitledProject, disposeUntitled } from './untitled';
 import { bindingOf, openProjectInWindow } from './windows';
 
 const fs = new NodeFileSystem();
+
+/** Copies GEDCOM media into the project folder and maps FILE paths to them. */
+async function prepareGedcomMedia(
+  dataset: GedcomDataset,
+  entries: GedzipMediaEntry[] | undefined,
+  sourcePath: string,
+  tempDir: string,
+): Promise<Map<string, string>> {
+  const paths = new Map<string, string>();
+  const mediaDir = join(tempDir, MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
+  const store = async (contents: Uint8Array, original: string): Promise<void> => {
+    const name = `${randomUUID()}${extname(original) || '.bin'}`;
+    await fs.writeBinary(join(mediaDir, name), contents);
+    paths.set(original, `${MEDIA_DIR_NAME}/${name}`);
+  };
+  if (entries !== undefined) {
+    for (const entry of entries) {
+      if (!paths.has(entry.name)) {
+        await store(entry.contents, entry.name);
+      }
+    }
+    return paths;
+  }
+  for (const record of dataset.records) {
+    if (record.tag !== 'OBJE') {
+      continue;
+    }
+    for (const file of record.files) {
+      if (file.payload === '' || paths.has(file.payload)) {
+        continue;
+      }
+      const candidate = isAbsolute(file.payload) ? file.payload : join(dirname(sourcePath), file.payload);
+      if (await fs.exists(candidate)) {
+        await store(await fs.readBinary(candidate), file.payload);
+      }
+    }
+  }
+  return paths;
+}
 
 /**
  * Opens a GEDCOM/GEDZIP file as a new, not-yet-saved project: the dataset
@@ -43,7 +91,9 @@ export async function openGedcomAsProject(filePath: string, senderId?: number): 
     const runtime = openUntitledStore(key, info.tempPath);
     const repo = new SqliteTreeRepository(runtime.store.db);
     const dataset = parsed.value.kind === 'gedzip' ? parsed.value.archive.dataset : parsed.value.dataset;
-    result = importGedcomDataset(dataset, repo);
+    const mediaEntries = parsed.value.kind === 'gedzip' ? parsed.value.archive.mediaFiles : undefined;
+    const mediaPaths = await prepareGedcomMedia(dataset, mediaEntries, filePath, info.tempDir);
+    result = importGedcomDataset(dataset, repo, mediaPaths);
     log.info('gedcom imported', result);
   } catch (error) {
     await disposeUntitled(key);
@@ -58,33 +108,56 @@ export async function openGedcomAsProject(filePath: string, senderId?: number): 
 }
 
 /**
- * Exports a project as a GEDCOM 7.0 file. The user picks the destination in
- * a save dialog (the default name is the project's name with a `.ged`
- * extension); the export itself never modifies the project.
+ * Exports a project as a GEDCOM 7.0 stream or a GEDZIP archive. The format
+ * is chosen in the Export tab; the save dialog opens only after the user
+ * confirms there. The export itself never modifies the project.
  */
-export async function exportGedcom(projectPath: string): Promise<{ path: string } | null> {
+export async function exportGedcom(
+  projectPath: string,
+  format: 'ged' | 'gdz' = 'ged',
+): Promise<{ path: string } | null> {
   try {
     const { runtime } = await ensureRuntime(projectPath);
     const repo = new SqliteTreeRepository(runtime.store.db);
     const dataset = buildGedcomDataset(repo);
-    const result = serializeGedcom70Bytes(dataset);
+    let result: ReturnType<typeof serializeGedcom70Bytes>;
+    if (format === 'gdz') {
+      const mediaFiles: GedzipMediaEntry[] = [];
+      const seen = new Set<string>();
+      for (const media of repo.listAllMedia()) {
+        for (const file of media.files ?? []) {
+          if (seen.has(file.path) || !file.path.startsWith(`${MEDIA_DIR_NAME}/`) || file.path.includes('../')) {
+            continue;
+          }
+          const absolute = join(dirname(runtimeFilePath(projectPath)), file.path);
+          if (await fs.exists(absolute)) {
+            mediaFiles.push({ name: file.path, contents: await fs.readBinary(absolute) });
+            seen.add(file.path);
+          }
+        }
+      }
+      result = serializeGedzip({ dataset, mediaFiles });
+    } else {
+      result = serializeGedcom70Bytes(dataset);
+    }
     if (!result.ok) {
       throw new Error(result.error.message);
     }
     const untitled = untitledProjects.get(projectPath);
     const stem = untitled ? untitled.name.replace(/\.(ged|gdz)$/i, '') : basename(projectPath, '.doru');
     const window = projectWindows.get(projectPath);
+    const extension = format === 'gdz' ? 'gdz' : 'ged';
     const options: Electron.SaveDialogOptions = {
       title: 'Export GEDCOM',
-      defaultPath: join(dirname(runtimeFilePath(projectPath)), `${stem}.ged`),
-      filters: [{ name: 'GEDCOM', extensions: ['ged'] }],
+      defaultPath: join(dirname(runtimeFilePath(projectPath)), `${stem}.${extension}`),
+      filters: format === 'gdz' ? [{ name: 'GEDZIP', extensions: ['gdz'] }] : [{ name: 'GEDCOM', extensions: ['ged'] }],
     };
     const save = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
     if (save.canceled || !save.filePath) {
       return null;
     }
     await fs.writeBinary(save.filePath, result.value);
-    log.info('gedcom exported', { path: save.filePath });
+    log.info('gedcom exported', { path: save.filePath, format });
     return { path: save.filePath };
   } catch (error) {
     dialog.showErrorBox(

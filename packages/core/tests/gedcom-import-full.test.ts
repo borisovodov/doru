@@ -152,13 +152,13 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(name.full).toBe('Ivan Petrov');
       expect(name.parts?.map((part) => part.kind)).toEqual(['given', 'nickname', 'surname', 'full']);
 
-      // Identifiers and contacts.
+      // Identifiers and contacts: RIN is not imported.
       expect(
         repo
           .listIdentifiersFor('person', ivan.id)
           .map((entry) => entry.namespace)
           .sort(),
-      ).toEqual(['refn', 'rin', 'uid']);
+      ).toEqual(['refn', 'uid']);
       expect(repo.listContactsFor('person', ivan.id)).toEqual([
         expect.objectContaining({ kind: 'email', value: 'ivan@example.org' }),
       ]);
@@ -251,8 +251,10 @@ describe('importGedcomDataset (phase 4)', () => {
       }
       const imported = importGedcomDataset(result.value.dataset, repo);
       expect(imported.importedPersons).toBe(1);
-      expect(imported.droppedStructures).toBe(2);
-      expect(repo.listAllMedia()).toEqual([]);
+      // _ALIA stays dropped; the OBJE record and the _PLAC card are now imported.
+      expect(imported.droppedStructures).toBe(1);
+      expect(imported.importedMedia).toBe(1);
+      expect(repo.listAllMedia()).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }

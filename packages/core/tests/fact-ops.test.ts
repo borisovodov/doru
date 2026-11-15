@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addFactOp, deleteFactOp } from '../src/ops/fact';
+import { addFactOp, deleteFactOp, updateFactOp } from '../src/ops/fact';
 import { addMediaOp, deleteMediaOp } from '../src/ops/media';
 import { cleanupRepo, flatMedia, makeRepo } from './helpers';
 
@@ -30,6 +30,29 @@ describe('fact ops', () => {
       expect(fixture.repo.listFactsForPerson('P1')).toEqual([]);
       del.inverse(ctx);
       expect(fixture.repo.listFactsForPerson('P1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('moves a fact from a person to a family and back on undo', () => {
+    const fixture = makeRepo();
+    try {
+      const ctx = { repo: fixture.repo };
+      fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      fixture.repo.insertFamily({ id: 'F1', partners: ['P1'], children: [] });
+      const fact = { id: 'E1', personId: 'P1', tag: 'MARR' };
+      addFactOp(fact).apply(ctx);
+
+      const moved = { ...fact, personId: undefined, familyId: 'F1' };
+      const op = updateFactOp(fact, moved);
+      op.apply(ctx);
+      expect(fixture.repo.listFactsForPerson('P1')).toEqual([]);
+      expect(fixture.repo.listFactsForFamily('F1')).toHaveLength(1);
+
+      op.inverse(ctx);
+      expect(fixture.repo.listFactsForPerson('P1')).toHaveLength(1);
+      expect(fixture.repo.listFactsForFamily('F1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

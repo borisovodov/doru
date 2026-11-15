@@ -34,4 +34,5 @@ export type { TaskTargetData, TaskTargetOption } from './task/taskTargets';
 export { taskTargetLabel, taskTargetOptions } from './task/taskTargets';
 export { TasksView } from './task/TasksView';
 export { AddressFields } from './registries/AddressFields';
+export { AddressLinkField } from './registries/AddressLinkField';
 export { TreeToolbar, type TreeToolbarProps } from './tree/TreeToolbar';

@@ -73,6 +73,105 @@ describe('db cleanup paths', () => {
   });
 });
 
+describe('date cleanup on delete/update', () => {
+  it('deletes name and association dates with the person', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({
+        id: 'P1',
+        names: [
+          {
+            id: 'N1',
+            given: 'Ivan',
+            date: { quality: 'exact', component: { year: 1900 } },
+          },
+        ],
+        sex: 'M',
+        facts: [],
+      });
+      repo.insertPerson({ id: 'P2', names: [], sex: 'F', facts: [] });
+      repo.insertAssociation({
+        id: 'A1',
+        personId: 'P1',
+        otherPersonId: 'P2',
+        periodStart: { quality: 'exact', component: { year: 1920 } },
+        periodEnd: { quality: 'exact', component: { year: 1930 } },
+      });
+      repo.deletePerson('P1');
+      const count = (fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n;
+      expect(count).toBe(0);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('deletes postal-code dates with the place', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }],
+        postalCodes: [{ id: 'PC1', code: '101000', date: { quality: 'exact', component: { year: 1920 } } }],
+      });
+      repo.deletePlace('PL1');
+      const count = (fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n;
+      expect(count).toBe(0);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('replaces source event dates instead of leaking the old row', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertSource({
+        id: 'S1',
+        title: 'Book',
+        dataEvents: [{ id: 'E1', tag: 'CENS', date: { quality: 'exact', component: { year: 1900 } } }],
+      });
+      repo.updateSource({
+        id: 'S1',
+        title: 'Book',
+        dataEvents: [{ id: 'E1', tag: 'CENS', date: { quality: 'exact', component: { year: 1901 } } }],
+      });
+      const count = (fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n;
+      expect(count).toBe(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('replaces and deletes tag-link dates', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertTag({ id: 'T1', name: 'favorites' });
+      repo.insertTagLink({
+        id: 'TL1',
+        tagId: 'T1',
+        targetType: 'person',
+        targetId: 'P1',
+        date: { quality: 'exact', component: { year: 1920 } },
+      });
+      repo.updateTagLink({
+        id: 'TL1',
+        tagId: 'T1',
+        targetType: 'person',
+        targetId: 'P1',
+        date: { quality: 'exact', component: { year: 1921 } },
+      });
+      expect((fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(1);
+      repo.deleteTagLink('TL1');
+      expect((fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(0);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
+
 describe('op queue edges', () => {
   it('redo on an empty stack is undefined', () => {
     const queue = new OpQueue();

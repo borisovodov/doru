@@ -22,6 +22,16 @@ export class ResearchRepo {
   }
 
   updateTodo(todo: TodoRecord): void {
+    const before = this.db
+      .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
+      .get(todo.id) as
+      | {
+          created_date_id: string | null;
+          scheduled_date_id: string | null;
+          reminder_date_id: string | null;
+          closed_date_id: string | null;
+        }
+      | undefined;
     this.db
       .prepare(
         `UPDATE todo SET text = ?, target_type = ?, target_id = ?, category = ?, locality = ?, priority = ?,
@@ -29,6 +39,29 @@ export class ResearchRepo {
          WHERE id = ?`,
       )
       .run(...todoParams(todo, this.dates).slice(1), todo.id);
+    const after = this.db
+      .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
+      .get(todo.id) as {
+      created_date_id: string | null;
+      scheduled_date_id: string | null;
+      reminder_date_id: string | null;
+      closed_date_id: string | null;
+    };
+    const kept = new Set(
+      [after.created_date_id, after.scheduled_date_id, after.reminder_date_id, after.closed_date_id].filter(
+        (id): id is string => id !== null,
+      ),
+    );
+    for (const dateId of [
+      before?.created_date_id,
+      before?.scheduled_date_id,
+      before?.reminder_date_id,
+      before?.closed_date_id,
+    ]) {
+      if (dateId !== null && dateId !== undefined && !kept.has(dateId)) {
+        this.dates.delete(dateId);
+      }
+    }
   }
 
   deleteTodo(id: string): boolean {

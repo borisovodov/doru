@@ -23,7 +23,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
-import { collectNameIds } from '../model/types';
+import { collectNameIds, isVisibleMedia } from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -213,7 +213,7 @@ export class TreeService {
       counts[personId] = {
         notes: this.repo.listNotesFor('person', personId).length,
         sources: this.repo.listCitationsFor('person', personId).length,
-        media: this.repo.listMediaFor('person', personId).length,
+        media: this.repo.listMediaFor('person', personId).filter(isVisibleMedia).length,
       };
     }
     return counts;
@@ -222,17 +222,21 @@ export class TreeService {
   // --- history -------------------------------------------------------------
 
   undo(): UndoRedoState {
-    const op = this.queue.undo({ repo: this.repo });
-    if (op) {
-      this.recordChange(op, 'changed');
+    const pending = this.queue.peekUndo();
+    if (pending) {
+      // Record before the inverse mutates the tree: recording afterwards
+      // would leave a change row for a target the inverse just deleted.
+      this.recordChange(pending, 'changed');
+      this.queue.undo({ repo: this.repo });
     }
     return this.historyState();
   }
 
   redo(): UndoRedoState {
-    const op = this.queue.redo({ repo: this.repo });
-    if (op) {
-      this.recordChange(op, 'changed');
+    const pending = this.queue.peekRedo();
+    if (pending) {
+      this.recordChange(pending, 'changed');
+      this.queue.redo({ repo: this.repo });
     }
     return this.historyState();
   }
@@ -300,8 +304,17 @@ export class TreeService {
         attachments: this.repo.listAttachmentsFor('fact', fact.id),
       });
     }
+    const associations = this.repo.listAssociationsFor(person.id);
+    for (const association of associations) {
+      nested.push({
+        targetType: 'association',
+        targetId: association.id,
+        attachments: this.repo.listAttachmentsFor('association', association.id),
+      });
+    }
+    const aliases = this.repo.listAliasRowsFor(person.id);
     const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-    return this.apply(deletePersonOp(person, links, attachments, nested, linkAttachments));
+    return this.apply(deletePersonOp(person, links, attachments, nested, linkAttachments, associations, aliases));
   }
 
   /**
@@ -464,7 +477,12 @@ export class TreeService {
   deleteSource(source: SourceRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('source', source.id);
     const citations = this.repo.listAllCitations().filter((citation) => citation.sourceId === source.id);
-    return this.apply(deleteSourceOp(source, attachments, citations));
+    const citationAttachments = citations.map((citation) => ({
+      targetType: 'citation',
+      targetId: citation.id,
+      attachments: this.repo.listAttachmentsFor('citation', citation.id),
+    }));
+    return this.apply(deleteSourceOp(source, attachments, citations, citationAttachments));
   }
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
@@ -550,17 +568,37 @@ export class TreeService {
   }
 
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
-    return this.apply(updateMediaOp(before, after));
+    const current = this.repo.getMedia(before.id) ?? before;
+    const remaining = new Set((after.files ?? []).map((file) => file.id));
+    const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
+    const fileAttachments = removedFiles.map((file) => ({
+      targetType: 'media_file',
+      targetId: file.id,
+      attachments: this.repo.listAttachmentsFor('media_file', file.id),
+    }));
+    return this.apply(updateMediaOp(current, after, fileAttachments));
   }
 
   deleteMedia(media: MediaRecord): UndoRedoState {
     const current = this.repo.getMedia(media.id) ?? media;
     const attachments = this.repo.listAttachmentsFor('media', media.id);
-    return this.apply(deleteMediaOp(current, attachments));
+    const fileAttachments = (current.files ?? []).map((file) => ({
+      targetType: 'media_file',
+      targetId: file.id,
+      attachments: this.repo.listAttachmentsFor('media_file', file.id),
+    }));
+    return this.apply(deleteMediaOp(current, attachments, fileAttachments));
   }
 
   attachMedia(link: MediaLinkRecord): UndoRedoState {
-    return this.apply(attachMediaOp(link));
+    const media = this.repo.getMedia(link.mediaId);
+    const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
+    const fileAttachments = (media?.files ?? []).map((file) => ({
+      targetType: 'media_file',
+      targetId: file.id,
+      attachments: this.repo.listAttachmentsFor('media_file', file.id),
+    }));
+    return this.apply(attachMediaOp(link, media, attachments, fileAttachments));
   }
 
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
@@ -570,7 +608,12 @@ export class TreeService {
   detachMedia(link: MediaLinkRecord): UndoRedoState {
     const media = this.repo.getMedia(link.mediaId);
     const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-    return this.apply(detachMediaOp(link, media, attachments));
+    const fileAttachments = (media?.files ?? []).map((file) => ({
+      targetType: 'media_file',
+      targetId: file.id,
+      attachments: this.repo.listAttachmentsFor('media_file', file.id),
+    }));
+    return this.apply(detachMediaOp(link, media, attachments, fileAttachments));
   }
 
   // --- universal attachments --------------------------------------------------
@@ -730,7 +773,12 @@ export class TreeService {
 
   deleteAddress(address: AddressRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('address', address.id);
-    return this.apply(deleteAddressOp(address, attachments));
+    const consumers = {
+      repositories: this.repo.listRepositories().filter((entry) => entry.addressId === address.id),
+      submitters: this.repo.listSubmitters().filter((entry) => entry.addressId === address.id),
+      facts: this.repo.listAllFacts().filter((entry) => entry.addressId === address.id),
+    };
+    return this.apply(deleteAddressOp(address, attachments, consumers));
   }
 
   addAssociation(association: AssociationRecord): UndoRedoState {

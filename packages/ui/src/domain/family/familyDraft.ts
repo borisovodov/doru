@@ -1,5 +1,5 @@
 import type { FamilyChildLink, FamilyPartnerLink, FamilyRecord } from '@doru/core';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
+import { dateDraftsEqual, emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
 /** The pedigree kinds of a child link (GEDCOM PEDI). */
 export const PEDIGREE_TYPES = ['birth', 'adopted', 'foster', 'sealing', 'other'] as const;
@@ -139,7 +139,7 @@ export function familyDraftMatches(draft: FamilyDraft, family: FamilyRecord): bo
         link.id === entry.id &&
         link.personId === entry.personId &&
         link.preferred === entry.preferred &&
-        dateDraftsMatch(link.date, entry.date)
+        dateDraftsEqual(link.date, entry.date)
       );
     }) &&
     draft.childLinks.length === other.childLinks.length &&
@@ -156,29 +156,5 @@ export function familyDraftMatches(draft: FamilyDraft, family: FamilyRecord): bo
         link.motherRelation === entry.motherRelation
       );
     })
-  );
-}
-
-function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
-  return (
-    a.year === b.year &&
-    a.month === b.month &&
-    a.day === b.day &&
-    a.endYear === b.endYear &&
-    a.endMonth === b.endMonth &&
-    a.endDay === b.endDay &&
-    a.text === b.text &&
-    a.quality === b.quality &&
-    a.place === b.place &&
-    a.modifier === b.modifier &&
-    a.calendar === b.calendar &&
-    a.epoch === b.epoch &&
-    a.endCalendar === b.endCalendar &&
-    a.endEpoch === b.endEpoch &&
-    a.timeHour === b.timeHour &&
-    a.timeMinute === b.timeMinute &&
-    a.timeSecond === b.timeSecond &&
-    a.timeFraction === b.timeFraction &&
-    a.timeUtc === b.timeUtc
   );
 }

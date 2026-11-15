@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS identifier (
   id TEXT PRIMARY KEY,
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  namespace TEXT NOT NULL,   -- uid | exid | refn | rin | sosa | daboville | ...
+  namespace TEXT NOT NULL,   -- uid | exid | refn | sosa | daboville | ...
   value TEXT NOT NULL
 );
 

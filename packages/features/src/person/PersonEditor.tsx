@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, Venus } from 'lucide-react';
+import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, UserRound, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
+import { isVisibleMedia } from '@doru/core';
 import { collectNameIds } from '@doru/core/model';
 import type {
   AddressRecord,
@@ -217,19 +218,25 @@ export function PersonEditor({
   const savedPerson = persons.find((person) => person.id === draft.id);
   const savedNameIds = new Set(savedPerson ? collectNameIds(savedPerson.names) : []);
   const deceased = draft.death.year !== '' || draft.death.text.trim() !== '';
-  const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : HelpCircle;
+  const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : draft.sex === 'X' ? UserRound : HelpCircle;
   const sexTitle =
     draft.sex === 'M'
       ? nls.t('features.tree.sex.M')
       : draft.sex === 'F'
         ? nls.t('features.tree.sex.F')
-        : nls.t('features.tree.sex.U');
+        : draft.sex === 'X'
+          ? nls.t('features.tree.sex.X')
+          : nls.t('features.tree.sex.U');
   const badges = draft.isNew
     ? []
     : [
         { icon: StickyNote, count: notes.length, title: nls.t('features.tree.notes.title') },
         { icon: BookOpenText, count: citations.length, title: nls.t('features.tree.sources.title') },
-        { icon: ImageIcon, count: media.length, title: nls.t('features.tree.media.title') },
+        {
+          icon: ImageIcon,
+          count: media.filter(isVisibleMedia).length,
+          title: nls.t('features.tree.media.title'),
+        },
       ];
 
   return (
@@ -315,6 +322,7 @@ export function PersonEditor({
             <option value="U">{nls.t('features.tree.sex.U')}</option>
             <option value="M">{nls.t('features.tree.sex.M')}</option>
             <option value="F">{nls.t('features.tree.sex.F')}</option>
+            <option value="X">{nls.t('features.tree.sex.X')}</option>
           </Select>
         </Field>
         <DateEditor
@@ -380,6 +388,7 @@ export function PersonEditor({
             owner={{ personId: draft.id }}
             events={facts}
             persons={persons}
+            families={families}
             places={places}
             addresses={addresses}
             refresh={refreshFacts}

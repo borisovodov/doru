@@ -65,7 +65,11 @@ export const NAME_PART_FIELDS = ['prefix', 'given', 'nickname', 'surnamePrefix',
 export interface NameVariantDraft {
   id: string;
   kind: NameVariantKind;
+  /** Name type preserved from imported variants; not edited by the form. */
+  type: string;
   language: string;
+  /** Primary marker preserved from imported variants; not edited by the form. */
+  primary: boolean;
   parts: NamePart[];
   date?: DateDraft | undefined;
   variants: NameVariantDraft[];
@@ -150,7 +154,9 @@ export function emptyVariantDraft(): NameVariantDraft {
   return {
     id: crypto.randomUUID(),
     kind: 'translation',
+    type: '',
     language: '',
+    primary: false,
     parts: [],
     variants: [],
   };
@@ -172,20 +178,74 @@ export function partOf(name: { parts: NamePart[] }, kind: NamePartKind): string 
   return name.parts.find((part) => part.kind === kind)?.value ?? '';
 }
 
+/** Every part of the kind, in list order. */
+export function partsOfKind(name: { parts: NamePart[] }, kind: NamePartKind): NamePart[] {
+  return name.parts.filter((part) => part.kind === kind);
+}
+
 /**
- * Replaces every part of the kind with a single part carrying the typed
- * value (keeping the first part's id), or drops them when the value is
- * empty. Other kinds keep all their parts.
+ * Updates the first part of the kind in place (keeping its id and order) or
+ * appends one when the kind has no part yet. Emptying the field drops only
+ * that first part — additional parts of the same kind stay untouched.
  */
 export function setPartValue<T extends { parts: NamePart[] }>(name: T, kind: NamePartKind, value: string): T {
-  const original = name.parts.filter((part) => part.kind === kind);
-  const rest = name.parts.filter((part) => part.kind !== kind);
+  const first = name.parts.find((part) => part.kind === kind);
   const trimmed = value.trim();
-  const parts =
-    trimmed === ''
-      ? rest
-      : [...rest, { id: original[0]?.id ?? crypto.randomUUID(), kind, value: trimmed, position: rest.length }];
-  return { ...name, parts };
+  if (first === undefined) {
+    if (trimmed === '') {
+      return name;
+    }
+    return addNamePart(name, kind, trimmed);
+  }
+  if (trimmed === '') {
+    return removeNamePart(name, first.id);
+  }
+  return setPartValueAt(name, first.id, trimmed);
+}
+
+/** Updates exactly one part by id, preserving its id and list position. */
+export function setPartValueAt<T extends { parts: NamePart[] }>(name: T, partId: string, value: string): T {
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return removeNamePart(name, partId);
+  }
+  return {
+    ...name,
+    parts: name.parts.map((part) => (part.id === partId ? { ...part, value: trimmed } : part)),
+  };
+}
+
+/** Changes the kind and/or value of one part, preserving its id and position. */
+export function updateNamePart<T extends { parts: NamePart[] }>(
+  name: T,
+  partId: string,
+  patch: { kind?: NamePartKind; value?: string },
+): T {
+  return {
+    ...name,
+    parts: name.parts.map((part) =>
+      part.id === partId
+        ? {
+            ...part,
+            ...(patch.kind !== undefined ? { kind: patch.kind } : {}),
+            ...(patch.value !== undefined ? { value: patch.value } : {}),
+          }
+        : part,
+    ),
+  };
+}
+
+/** Appends a part with a fresh id; positions are derived on save. */
+export function addNamePart<T extends { parts: NamePart[] }>(name: T, kind: NamePartKind, value = ''): T {
+  return {
+    ...name,
+    parts: [...name.parts, { id: crypto.randomUUID(), kind, value, position: name.parts.length }],
+  };
+}
+
+/** Removes one part by id. */
+export function removeNamePart<T extends { parts: NamePart[] }>(name: T, partId: string): T {
+  return { ...name, parts: name.parts.filter((part) => part.id !== partId) };
 }
 
 /** The display form of a name draft: the verbatim form, else given + surname. */
@@ -314,9 +374,7 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
     quality: draft.quality,
     ...(component !== undefined ? { component } : {}),
     ...(text !== undefined ? { text } : {}),
-    ...(draft.quality === 'about' && draft.modifier !== ''
-      ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' }
-      : {}),
+    ...(draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {}),
     ...(time !== undefined ? { time } : {}),
   };
 }
@@ -343,7 +401,9 @@ export function variantToDraft(variant: PersonName): NameVariantDraft {
   return {
     id: variant.id,
     kind: variant.kind ?? 'translation',
+    type: variant.type ?? '',
     language: variant.language ?? '',
+    primary: variant.primary === true,
     parts: [...partsOfName(variant)],
     date: variant.date !== undefined ? toDateDraft(variant.date) : undefined,
     variants: (variant.variants ?? []).map(variantToDraft),
@@ -417,7 +477,9 @@ function variantDraftMatches(a: NameVariantDraft, b: NameVariantDraft): boolean 
   return (
     a.id === b.id &&
     a.kind === b.kind &&
+    a.type === b.type &&
     a.language === b.language &&
+    a.primary === b.primary &&
     partsEqual(a.parts, b.parts) &&
     nameDateMatches(a.date, b.date) &&
     a.variants.length === b.variants.length &&
@@ -464,7 +526,9 @@ export function variantDraftToName(variant: NameVariantDraft): PersonName | unde
   return {
     id: variant.id,
     kind: variant.kind,
+    type: variant.type.trim() || undefined,
     language: variant.language.trim() || undefined,
+    primary: variant.primary || undefined,
     parts: normalizedParts(variant.parts),
     ...flatFromParts(variant.parts),
     date: variant.date !== undefined ? fromDateDraft(variant.date) : undefined,
@@ -563,9 +627,9 @@ function syntheticPartId(nameId: string, kind: NamePartKind, index: number): str
   return `${nameId}#${kind}#${index}`;
 }
 
-/** Parts with contiguous positions (0-based, in list order). */
+/** Parts with contiguous positions (0-based, in list order); blank rows are dropped. */
 function normalizedParts(parts: NamePart[]): NamePart[] {
-  return parts.map((part, index) => ({ ...part, position: index }));
+  return parts.filter((part) => part.value.trim() !== '').map((part, index) => ({ ...part, position: index }));
 }
 
 /** The flat display pieces of a name, derived from its parts. */

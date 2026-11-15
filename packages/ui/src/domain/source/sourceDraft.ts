@@ -1,5 +1,5 @@
 import type { SourceRecord } from '@doru/core';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
+import { dateDraftsEqual, emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
 /** An editable text extract of a source or citation. */
 export interface SourceTextDraft {
@@ -237,7 +237,7 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     draft.agency === other.agency &&
     draft.titleId === other.titleId &&
     draft.xref === other.xref &&
-    dateDraftsMatch(draft.pubDate, other.pubDate) &&
+    dateDraftsEqual(draft.pubDate, other.pubDate) &&
     draft.texts.length === other.texts.length &&
     draft.texts.every((text, index) => {
       const entry = other.texts[index];
@@ -258,7 +258,7 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
         event.tag === entry.tag &&
         event.value === entry.value &&
         event.placeId === entry.placeId &&
-        dateDraftsMatch(event.date, entry.date)
+        dateDraftsEqual(event.date, entry.date)
       );
     }) &&
     draft.repositories.length === other.repositories.length &&
@@ -285,29 +285,5 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
       const entry = other.templateFields[index];
       return entry !== undefined && field.id === entry.id && field.name === entry.name && field.value === entry.value;
     })
-  );
-}
-
-function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
-  return (
-    a.year === b.year &&
-    a.month === b.month &&
-    a.day === b.day &&
-    a.endYear === b.endYear &&
-    a.endMonth === b.endMonth &&
-    a.endDay === b.endDay &&
-    a.text === b.text &&
-    a.quality === b.quality &&
-    a.place === b.place &&
-    a.modifier === b.modifier &&
-    a.calendar === b.calendar &&
-    a.epoch === b.epoch &&
-    a.endCalendar === b.endCalendar &&
-    a.endEpoch === b.endEpoch &&
-    a.timeHour === b.timeHour &&
-    a.timeMinute === b.timeMinute &&
-    a.timeSecond === b.timeSecond &&
-    a.timeFraction === b.timeFraction &&
-    a.timeUtc === b.timeUtc
   );
 }

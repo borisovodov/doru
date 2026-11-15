@@ -1,5 +1,5 @@
 import { Plus, Star, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
@@ -15,17 +15,21 @@ import {
   NAME_PART_FIELDS,
   NAME_TYPES,
   NAME_VARIANT_KINDS,
+  addNamePart,
   dateDraftBlank,
   emptyDate,
   emptyNameDraft,
   emptyVariantDraft,
   nameDraftDisplay,
   partOf,
+  removeNamePart,
   setPartValue,
+  updateNamePart,
   type DateDraft,
   type NameDraft,
   type NameVariantDraft,
 } from './draft';
+import type { NamePart, NamePartKind } from '@doru/core';
 import styles from './NamesSection.module.css';
 
 /**
@@ -147,14 +151,12 @@ export function NamesSection({
             onChange={(date) => setDate(index, date)}
             hidePlace
           />
-          {partOf(name, 'full').trim() !== '' && (
-            <Field label={nls.t('features.tree.names.displayForm')}>
-              <Input
-                value={partOf(name, 'full')}
-                onChange={(event) => patch(index, setPartValue(name, 'full', event.target.value))}
-              />
-            </Field>
-          )}
+          <Field label={nls.t('features.tree.names.displayForm')}>
+            <Input
+              value={partOf(name, 'full')}
+              onChange={(event) => patch(index, setPartValue(name, 'full', event.target.value))}
+            />
+          </Field>
           <FieldGrid columns={3}>
             {NAME_PART_FIELDS.map((field) => (
               <NamePartField
@@ -165,6 +167,7 @@ export function NamesSection({
               />
             ))}
           </FieldGrid>
+          <ExtraParts name={name} onChange={(next) => patch(index, next)} />
           <div className={styles['variants']}>
             {name.variants.map((variant, variantIndex) => (
               <div className={styles['variant']} key={variant.id}>
@@ -195,16 +198,14 @@ export function NamesSection({
                     onClick={() => removeVariant(index, variantIndex)}
                   />
                 </div>
-                {partOf(variant, 'full').trim() !== '' && (
-                  <Field label={nls.t('features.tree.names.displayForm')}>
-                    <Input
-                      value={partOf(variant, 'full')}
-                      onChange={(event) =>
-                        patchVariant(index, variantIndex, setPartValue(variant, 'full', event.target.value))
-                      }
-                    />
-                  </Field>
-                )}
+                <Field label={nls.t('features.tree.names.displayForm')}>
+                  <Input
+                    value={partOf(variant, 'full')}
+                    onChange={(event) =>
+                      patchVariant(index, variantIndex, setPartValue(variant, 'full', event.target.value))
+                    }
+                  />
+                </Field>
                 <FieldGrid columns={3}>
                   {NAME_PART_FIELDS.map((field) => (
                     <NamePartField
@@ -215,6 +216,7 @@ export function NamesSection({
                     />
                   ))}
                 </FieldGrid>
+                <ExtraParts name={variant} onChange={(next) => patchVariant(index, variantIndex, next)} />
                 <DateEditor
                   label={nls.t('features.tree.names.date')}
                   value={variant.date ?? emptyDate()}
@@ -256,5 +258,89 @@ function NamePartField({
     <Field label={nls.t(`features.tree.names.part.${field}`)}>
       <Input value={value} onChange={(event) => onChange(event.target.value)} />
     </Field>
+  );
+}
+
+/**
+ * The parts beyond the first one of each kind. The six labeled fields above
+ * edit the first part; these rows keep every additional given/surname/… part
+ * reachable instead of collapsing them on save.
+ */
+function extraPartsOf(name: { parts: NamePart[] }): NamePart[] {
+  const seen = new Set<string>();
+  return name.parts.filter((part) => {
+    if (part.kind === 'full') {
+      return false;
+    }
+    if (seen.has(part.kind)) {
+      return true;
+    }
+    seen.add(part.kind);
+    return false;
+  });
+}
+
+function ExtraParts<T extends { parts: NamePart[] }>({ name, onChange }: { name: T; onChange: (next: T) => void }) {
+  const [newKind, setNewKind] = useState<NamePartKind>('given');
+  const extras = extraPartsOf(name);
+  return (
+    <div className={styles['extraParts']}>
+      {extras.map((part) => {
+        const kinds: readonly (typeof NAME_PART_FIELDS)[number][] = (NAME_PART_FIELDS as readonly string[]).includes(
+          part.kind,
+        )
+          ? NAME_PART_FIELDS
+          : [...NAME_PART_FIELDS, part.kind as (typeof NAME_PART_FIELDS)[number]];
+        return (
+          <div className={styles['extraPartRow']} key={part.id}>
+            <Select
+              aria-label={nls.t('features.tree.names.part.kind')}
+              value={part.kind}
+              onChange={(event) =>
+                onChange(updateNamePart(name, part.id, { kind: event.target.value as NamePartKind }))
+              }
+            >
+              {kinds.map((kind) => (
+                <option key={kind} value={kind}>
+                  {nls.t(`features.tree.names.part.${kind}`)}
+                </option>
+              ))}
+            </Select>
+            <Input
+              aria-label={nls.t('features.tree.names.part.value')}
+              value={part.value}
+              onChange={(event) => onChange(updateNamePart(name, part.id, { value: event.target.value }))}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.names.part.remove')}
+              icon={<X size={14} aria-hidden="true" />}
+              onClick={() => onChange(removeNamePart(name, part.id))}
+            />
+          </div>
+        );
+      })}
+      <div className={styles['addPartRow']}>
+        <Select
+          aria-label={nls.t('features.tree.names.part.kind')}
+          value={newKind}
+          onChange={(event) => setNewKind(event.target.value as NamePartKind)}
+        >
+          {NAME_PART_FIELDS.map((kind) => (
+            <option key={kind} value={kind}>
+              {nls.t(`features.tree.names.part.${kind}`)}
+            </option>
+          ))}
+        </Select>
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<Plus size={13} aria-hidden="true" />}
+          onClick={() => onChange(addNamePart(name, newKind))}
+        >
+          {nls.t('features.tree.names.part.add')}
+        </Button>
+      </div>
+    </div>
   );
 }

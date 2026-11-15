@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DateDraft, NameDraft, PersonDraft } from '../src/domain/person/draft';
 import {
+  addNamePart,
   rebaseDate,
   dateDraftBlank,
   draftInitials,
@@ -18,6 +19,7 @@ import {
   partOf,
   personDraftMatches,
   personToDraft,
+  removeNamePart,
   setPartValue,
   toDateDraft,
   variantDraftEmpty,
@@ -109,15 +111,24 @@ describe('partOf / setPartValue', () => {
     expect(partOf(nameDraft(), 'suffix')).toBe('');
   });
 
-  it('replaces every part of the kind with the typed value, keeping the first id', () => {
+  it('updates only the first part of the kind and keeps the rest', () => {
     const withTwoGiven = nameDraft({
       parts: [part('given', 'Anna', 'G1'), part('given', 'Maria', 'G2'), part('surname', 'Schmidt')],
     });
     const updated = setPartValue(withTwoGiven, 'given', 'Anna Maria');
     expect(updated.parts).toEqual([
+      { id: 'G1', kind: 'given', value: 'Anna Maria', position: 0 },
+      part('given', 'Maria', 'G2'),
       part('surname', 'Schmidt'),
-      { id: 'G1', kind: 'given', value: 'Anna Maria', position: 1 },
     ]);
+  });
+
+  it('adds a part of the same kind and removes it by id', () => {
+    const withExtra = addNamePart(nameDraft(), 'given', 'Maria');
+    expect(withExtra.parts.filter((entry) => entry.kind === 'given')).toHaveLength(2);
+    const extra = withExtra.parts.find((entry) => entry.value === 'Maria')!;
+    const removed = removeNamePart(withExtra, extra.id);
+    expect(removed.parts).toEqual(nameDraft().parts);
   });
 
   it('drops the kind when the value is emptied', () => {
@@ -279,7 +290,7 @@ describe('date refinements', () => {
     });
   });
 
-  it('applies the modifier only to about dates', () => {
+  it('carries the modifier for every non-range date', () => {
     expect(fromDateDraft(dateDraft({ quality: 'about', year: '1900', modifier: 'CAL' }))).toEqual({
       quality: 'about',
       modifier: 'CAL',
@@ -287,7 +298,13 @@ describe('date refinements', () => {
     });
     expect(fromDateDraft(dateDraft({ quality: 'exact', year: '1900', modifier: 'CAL' }))).toEqual({
       quality: 'exact',
+      modifier: 'CAL',
       component: { year: 1900 },
+    });
+    expect(fromDateDraft(dateDraft({ quality: 'range', year: '1900', endYear: '1910', modifier: 'CAL' }))).toEqual({
+      quality: 'range',
+      component: { year: 1900 },
+      end: { year: 1910 },
     });
   });
 
@@ -470,6 +487,15 @@ describe('nameToDraft / nameDraftToName', () => {
     expect(draftName.variants[0]?.kind).toBe('translation');
   });
 
+  it('preserves the type and primary marker of imported variants', () => {
+    const draftName = nameToDraft({
+      id: 'N1',
+      variants: [{ id: 'V1', kind: 'translation', type: 'aka', primary: true, given: 'John' }],
+    });
+    expect(draftName.variants[0]).toMatchObject({ type: 'aka', primary: true });
+    expect(nameDraftToName(draftName)?.variants?.[0]).toMatchObject({ type: 'aka', primary: true });
+  });
+
   it('preserves the verbatim display form of imported names', () => {
     const draftName = nameToDraft({ id: 'N1', full: '/Иван Петров/' });
     expect(partOf(draftName, 'full')).toBe('/Иван Петров/');
@@ -536,6 +562,13 @@ describe('personToDraft', () => {
     expect(result.names[0]).toMatchObject({ id: 'N1' });
     expect(partOf(result.names[0]!, 'given')).toBe('Ivan');
     expect(result.names[1]).toMatchObject({ id: 'N2', type: 'aka' });
+  });
+
+  it('keeps the X sex through the draft and back', () => {
+    const source = person({ id: 'P1', sex: 'X', names: [], facts: [] });
+    const draft = personToDraft(source);
+    expect(draft.sex).toBe('X');
+    expect(draftToRecord(draft).sex).toBe('X');
   });
 });
 

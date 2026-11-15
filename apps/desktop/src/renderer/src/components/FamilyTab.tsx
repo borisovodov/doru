@@ -62,6 +62,7 @@ export function FamilyTab({
     <FamilyTabBody
       tabId={tabId}
       record={record}
+      families={families}
       api={api}
       persons={persons}
       sources={sources}
@@ -77,6 +78,7 @@ export function FamilyTab({
 function FamilyTabBody({
   tabId,
   record,
+  families,
   api,
   persons,
   sources,
@@ -88,6 +90,7 @@ function FamilyTabBody({
 }: {
   tabId: string;
   record: FamilyRecord;
+  families: FamilyRecord[];
   api: FamilyEditorApi;
   persons: PersonRecord[];
   sources: SourceRecord[];
@@ -141,6 +144,7 @@ function FamilyTabBody({
         draft={draft}
         onChange={setDraft}
         persons={persons}
+        families={families}
         sources={sources}
         api={api}
         savedLinkIds={

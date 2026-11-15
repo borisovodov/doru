@@ -57,6 +57,9 @@ export class SourceRepo {
   }
 
   updateSource(source: SourceRecord): void {
+    const before = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(source.id) as
+      | { pub_date_id: string | null }
+      | undefined;
     this.db
       .prepare(
         `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
@@ -64,6 +67,16 @@ export class SourceRepo {
          WHERE id = ?`,
       )
       .run(...sourceParams(source, this.dates).slice(1), source.id);
+    const after = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(source.id) as
+      | { pub_date_id: string | null }
+      | undefined;
+    if (
+      before?.pub_date_id !== null &&
+      before?.pub_date_id !== undefined &&
+      before.pub_date_id !== after?.pub_date_id
+    ) {
+      this.dates.delete(before.pub_date_id);
+    }
     this.replaceSourceDetails(source);
   }
 
@@ -75,9 +88,15 @@ export class SourceRepo {
     const citationDateIds = this.db
       .prepare('SELECT date_id FROM citation WHERE source_id = ? AND date_id IS NOT NULL')
       .all(id) as unknown as { date_id: string }[];
+    const eventDateIds = this.listSourceEventDateIds(id);
     const result = this.db.prepare('DELETE FROM source WHERE id = ?').run(id);
     for (const dateId of citationDateIds.map((entry) => entry.date_id)) {
       this.dates.delete(dateId);
+    }
+    for (const dateId of eventDateIds) {
+      if (dateId !== null) {
+        this.dates.delete(dateId);
+      }
     }
     if (row?.pub_date_id !== null && row?.pub_date_id !== undefined) {
       this.dates.delete(row.pub_date_id);
@@ -111,6 +130,9 @@ export class SourceRepo {
   }
 
   updateCitation(citation: CitationRecord): void {
+    const before = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(citation.id) as
+      | { date_id: string | null }
+      | undefined;
     this.db
       .prepare(
         `UPDATE citation SET source_id = ?, target_type = ?, target_id = ?, description = ?, page = ?,
@@ -118,6 +140,12 @@ export class SourceRepo {
          WHERE id = ?`,
       )
       .run(...citationParams(citation, this.dates).slice(1), citation.id);
+    const after = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(citation.id) as
+      | { date_id: string | null }
+      | undefined;
+    if (before?.date_id !== null && before?.date_id !== undefined && before.date_id !== after?.date_id) {
+      this.dates.delete(before.date_id);
+    }
     this.replaceCitationDetails(citation);
   }
 
@@ -179,6 +207,7 @@ export class SourceRepo {
   }
 
   private replaceSourceDetails(source: SourceRecord): void {
+    const oldEventDates = new Set(this.listSourceEventDateIds(source.id));
     this.db.prepare('DELETE FROM source_text WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_data_event WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_repository WHERE source_id = ?').run(source.id);
@@ -193,15 +222,18 @@ export class SourceRepo {
     const insertEvent = this.db.prepare(
       'INSERT INTO source_data_event (id, source_id, tag, value, date_id, place_id) VALUES (?, ?, ?, ?, ?, ?)',
     );
+    const newEventDates = new Set<string>();
     for (const event of source.dataEvents ?? []) {
-      insertEvent.run(
-        event.id,
-        source.id,
-        event.tag,
-        event.value ?? null,
-        event.date ? this.dates.upsert(event.date) : null,
-        event.placeId ?? null,
-      );
+      const dateId = event.date ? this.dates.upsert(event.date) : null;
+      insertEvent.run(event.id, source.id, event.tag, event.value ?? null, dateId, event.placeId ?? null);
+      if (dateId !== null) {
+        newEventDates.add(dateId);
+      }
+    }
+    for (const stale of oldEventDates) {
+      if (stale !== null && !newEventDates.has(stale)) {
+        this.dates.delete(stale);
+      }
     }
     const insertRepository = this.db.prepare(
       'INSERT INTO source_repository (id, source_id, repository_id) VALUES (?, ?, ?)',

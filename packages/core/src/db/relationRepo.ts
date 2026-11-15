@@ -22,6 +22,9 @@ export class RelationRepo {
   }
 
   updateAssociation(association: AssociationRecord): void {
+    const before = this.db
+      .prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?')
+      .get(association.id) as { period_start_id: string | null; period_end_id: string | null } | undefined;
     this.db
       .prepare(
         `UPDATE association SET person_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
@@ -29,6 +32,15 @@ export class RelationRepo {
          WHERE id = ?`,
       )
       .run(...associationParams(association, this.dates).slice(1), association.id);
+    const after = this.db
+      .prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?')
+      .get(association.id) as { period_start_id: string | null; period_end_id: string | null } | undefined;
+    const kept = new Set([after?.period_start_id, after?.period_end_id].filter((id): id is string => id != null));
+    for (const dateId of [before?.period_start_id, before?.period_end_id]) {
+      if (dateId !== null && dateId !== undefined && !kept.has(dateId)) {
+        this.dates.delete(dateId);
+      }
+    }
   }
 
   deleteAssociation(id: string): boolean {
@@ -79,6 +91,25 @@ export class RelationRepo {
     return rows.map((row) => this.hydrate(row));
   }
 
+  /** Deletes every association of a person with its period date rows. */
+  deleteAssociationsForPerson(personId: string): void {
+    const rows = this.db
+      .prepare('SELECT id, period_start_id, period_end_id FROM association WHERE person_id = ? OR other_person_id = ?')
+      .all(personId, personId) as unknown as {
+      id: string;
+      period_start_id: string | null;
+      period_end_id: string | null;
+    }[];
+    this.db.prepare('DELETE FROM association WHERE person_id = ? OR other_person_id = ?').run(personId, personId);
+    for (const row of rows) {
+      for (const dateId of [row.period_start_id, row.period_end_id]) {
+        if (dateId !== null) {
+          this.dates.delete(dateId);
+        }
+      }
+    }
+  }
+
   private hydrate(row: AssociationRow): AssociationRecord {
     const datesById = this.dates.getMany(
       [row.period_start_id, row.period_end_id].filter((id): id is string => id !== null),
@@ -121,6 +152,23 @@ export class RelationRepo {
       // The link is symmetric for display: return the other person.
       aliasId: row.person_id === personId ? row.alias_id : row.person_id,
     }));
+  }
+
+  /** Exact direction of every alias link involving a person, for snapshots. */
+  listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }> {
+    const rows = this.db
+      .prepare(
+        `SELECT id, person_id, alias_id FROM person_alias
+         WHERE person_id = ? OR alias_id = ?
+         ORDER BY id`,
+      )
+      .all(personId, personId) as unknown as { id: string; person_id: string; alias_id: string }[];
+    return rows.map((row) => ({ id: row.id, personId: row.person_id, aliasId: row.alias_id }));
+  }
+
+  /** Deletes every alias link involving a person. */
+  deleteAliasesForPerson(personId: string): void {
+    this.db.prepare('DELETE FROM person_alias WHERE person_id = ? OR alias_id = ?').run(personId, personId);
   }
 }
 

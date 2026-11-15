@@ -197,12 +197,18 @@ export class MediaRepo {
   }
 
   private replaceFiles(media: MediaRecord): void {
+    const existing = this.db
+      .prepare('SELECT id, path FROM media_file WHERE media_id = ? ORDER BY position')
+      .all(media.id) as unknown as { id: string; path: string }[];
     this.db.prepare('DELETE FROM media_file WHERE media_id = ?').run(media.id);
     const insert = this.db.prepare(
       'INSERT INTO media_file (id, media_id, path, title, position) VALUES (?, ?, ?, ?, ?)',
     );
-    const files: MediaFile[] =
-      media.files ?? (media.path !== undefined ? [{ id: crypto.randomUUID(), path: media.path }] : []);
+    const fallbackId =
+      media.path !== undefined
+        ? (existing.find((entry) => entry.path === media.path)?.id ?? crypto.randomUUID())
+        : crypto.randomUUID();
+    const files: MediaFile[] = media.files ?? (media.path !== undefined ? [{ id: fallbackId, path: media.path }] : []);
     files.forEach((file, position) => {
       insert.run(file.id, media.id, file.path, file.title ?? null, position);
     });

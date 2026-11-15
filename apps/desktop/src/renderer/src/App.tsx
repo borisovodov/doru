@@ -325,7 +325,7 @@ export function App() {
       return <NoticesView onOpenLink={(url) => void window.doru.openExternal(url)} />;
     }
     if (tab.id === EXPORT_TAB_ID) {
-      return <ExportView onExportGedcom={() => void project.exportGedcom()} />;
+      return <ExportView hasMedia={tree.media.length > 0} onExport={(format) => void project.exportGedcom(format)} />;
     }
     if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
       return (
@@ -413,12 +413,14 @@ export function App() {
         <RepositoryTab
           tabId={tab.id}
           repositories={tree.repositories}
+          addresses={tree.addresses}
           api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
           sources={tree.sources}
           media={tree.media}
           mediaApi={tree.mediaApi}
           onOpenSource={tabs.openSourceTab}
           onOpenMedia={tabs.openMediaTab}
+          onOpenAddress={tabs.openAddressTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${REPOSITORY_TAB_PREFIX}${realId}`)}
         />
@@ -429,12 +431,14 @@ export function App() {
         <SubmitterTab
           tabId={tab.id}
           submitters={tree.submitters}
+          addresses={tree.addresses}
           api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
           sources={tree.sources}
           media={tree.media}
           mediaApi={tree.mediaApi}
           onOpenSource={tabs.openSourceTab}
           onOpenMedia={tabs.openMediaTab}
+          onOpenAddress={tabs.openAddressTab}
           onClose={tabs.closeTab}
           onCreated={(realId) => tabs.replaceTab(tab.id, `${SUBMITTER_TAB_PREFIX}${realId}`)}
         />

@@ -4,7 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, InlineForm, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
 import { Paperclip, Plus, Users, X } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { AddressRecord, FactRecord, PersonRecord, PlaceRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import type {
+  AddressRecord,
+  FactRecord,
+  FamilyRecord,
+  PersonRecord,
+  PlaceRecord,
+  SourceRecord,
+  SubmitterRecord,
+} from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
@@ -34,6 +42,7 @@ export function FamilyEditor({
   draft,
   onChange,
   persons,
+  families,
   sources,
   api,
   savedLinkIds,
@@ -46,6 +55,7 @@ export function FamilyEditor({
   renderLinkAttachments?: ((kind: 'partner' | 'child', linkId: string) => ReactNode) | undefined;
   onChange: (draft: FamilyDraft) => void;
   persons: PersonRecord[];
+  families: FamilyRecord[];
   sources: SourceRecord[];
   api: FamilyEditorApi;
   onSave: () => void;
@@ -302,6 +312,7 @@ export function FamilyEditor({
         owner={{ familyId: draft.id }}
         events={facts}
         persons={persons}
+        families={families}
         places={places}
         addresses={addresses}
         refresh={refreshFacts}

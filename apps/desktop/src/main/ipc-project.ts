@@ -26,7 +26,7 @@ export function registerProjectIpc(): void {
     return bound === null ? null : bindingOf(bound);
   });
 
-  ipcMain.handle('project:export', async (_event, options: { projectPath: string }) =>
-    exportGedcom(options.projectPath),
+  ipcMain.handle('project:export', async (_event, options: { projectPath: string; format?: 'ged' | 'gdz' }) =>
+    exportGedcom(options.projectPath, options.format ?? 'ged'),
   );
 }

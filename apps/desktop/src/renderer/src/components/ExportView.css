@@ -3,3 +3,8 @@
 .export-view {
   padding: 8px 16px;
 }
+
+.export-view-hint {
+  margin: 8px 0 12px;
+  color: var(--doru-fg-muted);
+}

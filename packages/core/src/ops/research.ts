@@ -38,6 +38,7 @@ export function deleteAssociationOp(
       ctx.repo.insertAssociation(association);
       ctx.repo.restoreAttachments(attachments);
     },
+    { targetType: 'association', targetId: association.id, kind: 'changed' },
   );
 }
 
@@ -57,6 +58,7 @@ export function deleteAliasOp(id: string, personId: string, aliasId: string): Op
     'alias.delete',
     (ctx) => ctx.repo.deleteAlias(id),
     (ctx) => ctx.repo.insertAlias(id, personId, aliasId),
+    { targetType: 'person', targetId: personId, kind: 'changed' },
   );
 }
 

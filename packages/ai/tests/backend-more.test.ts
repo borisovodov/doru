@@ -151,10 +151,14 @@ describe('TreeMcpBackend coverage', () => {
     try {
       fixture.repo.insertPerson({ id: '@M@', names: [{ id: 'N1', given: 'Ivan' }], sex: 'M', facts: [] });
       fixture.repo.insertPerson({ id: '@F@', names: [{ id: 'N2', given: 'Maria' }], sex: 'F', facts: [] });
+      fixture.repo.insertPerson({ id: '@X@', names: [{ id: 'N3', given: 'Sam' }], sex: 'X', facts: [] });
       const backend = new TreeMcpBackend(fixture.service);
 
       const males = (await backend.invoke('tree_query', { query: 'iv', sex: 'M' })) as Array<{ id: string }>;
       expect(males.map((entry) => entry.id)).toEqual(['@M@']);
+
+      const other = (await backend.invoke('tree_query', { query: 'sam', sex: 'X' })) as Array<{ id: string }>;
+      expect(other.map((entry) => entry.id)).toEqual(['@X@']);
 
       const all = (await backend.invoke('tree_query', { query: 'iv' })) as Array<{ id: string }>;
       expect(all.map((entry) => entry.id)).toEqual(['@M@']);

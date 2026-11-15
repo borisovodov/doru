@@ -24,6 +24,7 @@ export const Facts: DemoCase = {
       owner={{ personId: 'P1' }}
       events={[]}
       persons={[]}
+      families={[]}
       places={[]}
       addresses={[]}
       refresh={noop}
@@ -158,6 +159,7 @@ export const FactForm: DemoCase = {
     <FactEditor
       fact={fact}
       persons={[]}
+      families={[]}
       places={[]}
       addresses={[]}
       onSave={noop}
