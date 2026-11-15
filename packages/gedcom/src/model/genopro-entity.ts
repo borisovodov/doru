@@ -19,7 +19,7 @@ import type { DateStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
 import type { PlaceStructure } from './names-places';
 import type { SourceCitation } from './sources-media';
-import type { FamilyRecord } from './records';
+import type { FamilyRecord } from './family-record';
 
 /** The fields shared by the GenoPro entity records. */
 export interface GenoProEntity extends GedcomStructureBase {

@@ -31,7 +31,8 @@
 import type { Pointer, Special, Text, Xref } from '../primitives';
 import type { AgeStructure, ChangeDate, DateStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
-import type { IndividualRecord, MultimediaRecord } from './records';
+import type { IndividualRecord } from './individual-record';
+import type { MultimediaRecord } from './multimedia-record';
 import type { PlaceStructure } from './names-places';
 import type { SourceCitation } from './sources-media';
 

@@ -21,7 +21,8 @@ import type { AgeStructure, ChangeDate, DateStructure, EventDetail, RoleStructur
 import type { GedcomStructureBase } from './extensions';
 import type { SexEnum } from '../enumerations';
 import type { PersonalNameStructure } from './names-places';
-import type { IndividualRecord, SourceRecord } from './records';
+import type { IndividualRecord } from './individual-record';
+import type { SourceRecord } from './source-record';
 
 /**
  * GEDCOM 7.0 §1.5 / MagiKey_record_CENR.yaml — the `_CENR` census record.

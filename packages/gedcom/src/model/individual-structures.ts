@@ -1,8 +1,8 @@
 import type { AdoptionEnum } from '../enumerations';
 import type { Integer, Pointer, Special, Text } from '../primitives';
 
-import type { FamilyRecord } from './records';
-import type { UsmBirthType } from './records';
+import type { FamilyRecord } from './family-record';
+import type { UsmBirthType } from './vendor-structures';
 import type { GedcomStructureBase } from './extensions';
 import type { IndividualEventDetail } from './common';
 

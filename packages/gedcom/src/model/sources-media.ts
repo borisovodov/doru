@@ -2,16 +2,16 @@ import type { EventAttributeEnum, MediaEnum, QualityEnum } from '../enumerations
 import type { Integer, Pointer, Special, Text } from '../primitives';
 
 import type { GedcomStructureBase } from './extensions';
-import type { EvidenceTemplate } from './records';
-import type { MftSourceQuality } from './records';
-import type { MultimediaRecord } from './records';
+import type { EvidenceTemplate } from './source-record';
+import type { MftSourceQuality } from './vendor-structures';
+import type { MultimediaRecord } from './multimedia-record';
 import type { NoteStructure } from './common';
-import type { RepositoryRecord } from './records';
-import type { SourceRecord } from './records';
-import type { SourceText } from './records';
+import type { RepositoryRecord } from './repository-record';
+import type { SourceRecord } from './source-record';
+import type { SourceText } from './source-record';
 import type { DateStructure } from './common';
 import type { RoleStructure } from './common';
-import type { SubmitterRecord } from './records';
+import type { SubmitterRecord } from './submitter-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.3 Substructures — sources and media

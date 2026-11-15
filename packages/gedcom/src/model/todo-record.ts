@@ -13,7 +13,7 @@
 import type { Pointer, Special, Text, Xref } from '../primitives';
 import type { ChangeDate, DateStructure, NoteStructure } from './common';
 import type { GedcomStructureBase } from './extensions';
-import type { RepositoryRecord } from './records';
+import type { RepositoryRecord } from './repository-record';
 
 export interface TodoRecord extends GedcomStructureBase {
   tag: '_TODO';

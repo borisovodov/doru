@@ -16,10 +16,10 @@ import type {
 
 import type { GedcomStructureBase } from './extensions';
 import type { CensusRecord } from './census-record';
-import type { IndividualRecord } from './records';
+import type { IndividualRecord } from './individual-record';
 import type { MultimediaLink } from './sources-media';
-import type { NoteRecord } from './records';
-import type { SharedNoteRecord } from './records';
+import type { NoteRecord } from './note-record';
+import type { SharedNoteRecord } from './note-record';
 import type { SourceCitation } from './sources-media';
 import type { MapCoordinates, PlaceStructure } from './names-places';
 import type { OccurrenceReference } from './evidence-record';

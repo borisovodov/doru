@@ -19,14 +19,23 @@
  * - `{1:M}` — required array field
  *
  * This file is a barrel: the model lives in `src/model/`, split by
- * specification section (extensions, document, records, and the
- * substructure groups). Everything else in the package imports the model
- * through this barrel, so the split is invisible to callers.
+ * specification section (extensions, document, records, substructures and
+ * record groups). Everything else in the package imports the model through
+ * this barrel, so the split is invisible to callers.
  */
 
 export * from './model/extensions';
 export * from './model/document';
-export * from './model/records';
+export * from './model/family-record';
+export * from './model/individual-record';
+export * from './model/individual-links';
+export * from './model/multimedia-record';
+export * from './model/source-record';
+export * from './model/repository-record';
+export * from './model/note-record';
+export * from './model/submitter-record';
+export * from './model/vendor-structures';
+export * from './model/record-union';
 export * from './model/guards';
 export * from './model/census-record';
 export * from './model/group-record';

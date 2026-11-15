@@ -16,7 +16,8 @@
 import type { Pointer, Text, Xref } from '../primitives';
 import type { ChangeDate } from './common';
 import type { GedcomStructureBase } from './extensions';
-import type { IndividualRecord, RepositoryRecord } from './records';
+import type { IndividualRecord } from './individual-record';
+import type { RepositoryRecord } from './repository-record';
 
 /** An Ancestris `TITL` record (see the module JSDoc). */
 export interface TitleRecord extends GedcomStructureBase {
