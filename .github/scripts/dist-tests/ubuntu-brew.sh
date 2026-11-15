@@ -11,8 +11,11 @@
 # cask picks the arch itself via on_arch_conditional).
 #
 # Discrepancies with a real user install, decided case by case:
-# - the app is launched headless with `--no-sandbox --disable-gpu` (no
-#   display server on CI; the Chromium sandbox is unreliable on runners);
+# - the app is launched headless under xvfb/dbus with software GL (no display
+#   server on CI). The Chromium sandbox is left enabled, and the stock Ubuntu
+#   AppArmor userns restriction is restored first (GitHub's runner image
+#   disables it), so the AppImage starts under the same conditions as on a
+#   real Ubuntu desktop;
 # - the cask url is rewritten to a local HTTP server (the artifact is not
 #   published anywhere yet).
 set -euo pipefail
@@ -40,6 +43,19 @@ sudo apt-get install -y -qq \
   || sudo apt-get install -y -qq \
   libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libgbm1 \
   xvfb dbus-x11 libfuse2 desktop-file-utils xdg-utils
+echo "::endgroup::"
+
+echo "::group::Restore the stock AppArmor userns restriction"
+# GitHub's Ubuntu 24.04 image sets kernel.apparmor_restrict_unprivileged_userns=0
+# for CI compatibility (actions/runner-images#10443), while stock Ubuntu 24.04
+# ships with 1. Without this, the AppImage test would pass only because the
+# runner disabled the very restriction that breaks Electron AppImages.
+if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+  sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=1 >/dev/null
+  value=$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)
+  echo "kernel.apparmor_restrict_unprivileged_userns=$value"
+  [ "$value" = "1" ] || fail "could not restore the stock AppArmor userns restriction"
+fi
 echo "::endgroup::"
 
 echo "::group::Install Homebrew on Linux"
@@ -175,18 +191,15 @@ echo "::group::Launch, first-run files, and doru:// deep links"
 export DEEP_LINK_FILE="$HOME/doru-deeplink-test/family.doru"
 export DEEP_LINK_URL="doru://open?path=$DEEP_LINK_FILE"
 rm -rf "$HOME/doru-deeplink-test"
-# Discrepancy: headless launch under xvfb/dbus. ELECTRON_DISABLE_SANDBOX
-# covers the instance a link spawns through the desktop entry — that one
-# cannot receive the --no-sandbox flag the first instance gets.
 # The first instance is launched through the desktop entry (`gio launch`),
 # the way a real user opens the app: GIO sets GIO_LAUNCHED_DESKTOP_FILE,
 # Chromium turns it into CHROME_DESKTOP, and Electron's
 # setAsDefaultProtocolClient uses it to register the doru:// scheme. A direct
 # binary launch has no desktop entry context, so registration is silently
-# skipped there.
+# skipped there. The Chromium sandbox is deliberately not disabled: hiding a
+# sandbox failure here would hide a real launch failure on Ubuntu 24.04+.
 xvfb-run --auto-servernum dbus-run-session -- bash -c '
   set -e
-  export ELECTRON_DISABLE_SANDBOX=1
   export LIBGL_ALWAYS_SOFTWARE=1
   DORU_LOG_LEVEL=debug gio launch "$HOME/.local/share/applications/org.doru.doru.desktop" \
     >/tmp/doru-app.log 2>&1
@@ -260,7 +273,6 @@ echo "::group::doru:// deep link (cold start through the desktop entry)"
 rm -rf "$HOME/doru-deeplink-test"
 xvfb-run --auto-servernum dbus-run-session -- bash -c '
   set -e
-  export ELECTRON_DISABLE_SANDBOX=1
   export LIBGL_ALWAYS_SOFTWARE=1
   timeout 30 xdg-open "$DEEP_LINK_URL" >/dev/null 2>&1 || true
   for _ in $(seq 1 60); do
