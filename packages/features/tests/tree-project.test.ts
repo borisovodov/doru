@@ -59,6 +59,7 @@ describe('projectLayout', () => {
       new Set(),
       {},
       null,
+      new Map(),
       callbacks,
     );
 
@@ -95,6 +96,7 @@ describe('projectLayout', () => {
       new Set(['P1']),
       { P1: { notes: 2, sources: 1, media: 0 } },
       null,
+      new Map(),
       callbacks,
     );
 
@@ -138,6 +140,7 @@ describe('projectLayout', () => {
       new Set(),
       {},
       'MISSING',
+      new Map(),
       callbacks,
     );
 
@@ -193,6 +196,7 @@ describe('projectLayout', () => {
       new Set(),
       {},
       null,
+      new Map(),
       callbacks,
     );
 

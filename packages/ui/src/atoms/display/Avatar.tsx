@@ -10,11 +10,13 @@ export interface AvatarProps {
   tone?: AvatarTone;
   size?: AvatarSize;
   shape?: AvatarShape;
+  /** A project media URL; when present it replaces the initials. */
+  src?: string | undefined;
   className?: string;
 }
 
-/** Initials on a sex-tinted tile, the shared identity avatar of the app. */
-export function Avatar({ initials, tone = 'neutral', size = 'md', shape = 'rounded', className }: AvatarProps) {
+/** Initials on a sex-tinted tile (or a photo), the shared identity avatar. */
+export function Avatar({ initials, tone = 'neutral', size = 'md', shape = 'rounded', src, className }: AvatarProps) {
   return (
     <span
       className={cx(
@@ -26,7 +28,7 @@ export function Avatar({ initials, tone = 'neutral', size = 'md', shape = 'round
       )}
       aria-hidden="true"
     >
-      {initials}
+      {src !== undefined ? <img src={src} alt="" loading="lazy" /> : initials}
     </span>
   );
 }

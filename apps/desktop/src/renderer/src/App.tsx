@@ -56,6 +56,18 @@ export function App() {
   const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
 
   const tree = useTreeData(projectPath);
+
+  const personPhotos = useMemo(() => {
+    const photos = new Map<string, string>();
+    for (const media of tree.media) {
+      for (const link of media.links ?? []) {
+        if (link.targetType === 'person' && link.primary === true) {
+          photos.set(link.targetId, `doru-media://local/?path=${encodeURIComponent(media.absolutePath)}`);
+        }
+      }
+    }
+    return photos;
+  }, [tree.media]);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();
   const tabs = useTabs(
@@ -270,6 +282,7 @@ export function App() {
           key={projectPath ?? 'none'}
           persons={tree.persons}
           families={tree.families}
+          photos={personPhotos}
           focusRequest={canvasFocus}
           api={{
             addPerson: tree.api.addPerson,

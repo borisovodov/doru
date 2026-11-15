@@ -96,7 +96,7 @@ export function TreeCanvas(props: TreeCanvasProps) {
   );
 }
 
-function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasProps) {
+function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequest }: TreeCanvasProps) {
   const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set<string>());
@@ -224,7 +224,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   const projected = useMemo(() => {
     const base = !layout
       ? { nodes: [] as CanvasNode[], edges: [] as Edge[] }
-      : projectLayout(layout, persons, collapsed, activeCounts, null, {
+      : projectLayout(layout, persons, collapsed, activeCounts, null, photos, {
           onToggleCollapse: toggleCollapse,
           onAction: handleAction,
         });
@@ -283,6 +283,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
     persons,
     collapsed,
     activeCounts,
+    photos,
     toggleCollapse,
     handleAction,
     visibleDrafts,
