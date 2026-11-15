@@ -334,7 +334,7 @@
       "plugins": ["typescript"]
     },
     {
-      "files": ["**/tests/**/*.ts", "apps/*/tests/**/*.ts", "scripts/**/*.test.ts"],
+      "files": ["**/tests/**/*.{ts,tsx}", "apps/*/tests/**/*.{ts,tsx}", "scripts/**/*.test.ts"],
       "rules": {
         "vitest/no-focused-tests": "error",
         "vitest/no-disabled-tests": "error",
@@ -354,7 +354,7 @@
       }
     },
     {
-      "files": ["**/tests/**/*.ts", "apps/*/tests/**/*.ts", "scripts/**/*.test.ts", "e2e/**/*.ts"],
+      "files": ["**/tests/**/*.{ts,tsx}", "apps/*/tests/**/*.{ts,tsx}", "scripts/**/*.test.ts", "e2e/**/*.ts"],
       "rules": {
         "typescript/no-non-null-assertion": "off",
         "typescript/no-unsafe-assignment": "off",
