@@ -334,7 +334,7 @@
       "plugins": ["typescript"]
     },
     {
-      "files": ["**/tests/**/*.ts", "apps/*/tests/**/*.ts", "scripts/**/*.test.ts"],
+      "files": ["**/tests/**/*.{ts,tsx}", "apps/*/tests/**/*.{ts,tsx}", "scripts/**/*.test.ts"],
       "rules": {
         "vitest/no-focused-tests": "error",
         "vitest/no-disabled-tests": "error",
@@ -354,7 +354,7 @@
       }
     },
     {
-      "files": ["**/tests/**/*.ts", "apps/*/tests/**/*.ts", "scripts/**/*.test.ts", "e2e/**/*.ts"],
+      "files": ["**/tests/**/*.{ts,tsx}", "apps/*/tests/**/*.{ts,tsx}", "scripts/**/*.test.ts", "e2e/**/*.ts"],
       "rules": {
         "typescript/no-non-null-assertion": "off",
         "typescript/no-unsafe-assignment": "off",
@@ -373,17 +373,8 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/platform",
-                  "@doru/platform/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*"
-                ],
-                "message": "@doru/core is the domain layer: no UI, workbench, features or platform imports."
+                "group": ["@doru/**", "!@doru/core", "!@doru/core/**", "!@doru/gedcom", "!@doru/gedcom/**"],
+                "message": "@doru/core may only import @doru/core and @doru/gedcom."
               },
               {
                 "group": ["electron", "react", "react-dom"],
@@ -392,6 +383,10 @@
               {
                 "group": ["node:sqlite"],
                 "message": "SQLite is only touched in packages/core/src/db."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
               }
             ]
           }
@@ -407,21 +402,16 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/platform",
-                  "@doru/platform/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*"
-                ],
-                "message": "@doru/core is the domain layer: no UI, workbench, features or platform imports."
+                "group": ["@doru/**", "!@doru/core", "!@doru/core/**", "!@doru/gedcom", "!@doru/gedcom/**"],
+                "message": "@doru/core may only import @doru/core and @doru/gedcom."
               },
               {
                 "group": ["electron", "react", "react-dom"],
                 "message": "@doru/core must stay free of Electron and React."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
               }
             ]
           }
@@ -437,21 +427,16 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/platform",
-                  "@doru/platform/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*"
-                ],
-                "message": "@doru/ai is an agent layer: no UI, workbench, features or platform imports."
+                "group": ["@doru/**", "!@doru/ai", "!@doru/ai/**", "!@doru/core", "!@doru/core/**"],
+                "message": "@doru/ai may only import @doru/ai and @doru/core."
               },
               {
                 "group": ["electron", "react", "react-dom"],
                 "message": "@doru/ai must stay free of Electron and React."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
               }
             ]
           }
@@ -467,8 +452,12 @@
           {
             "patterns": [
               {
-                "group": ["@doru/*", "electron", "react", "react-dom"],
-                "message": "@doru/gedcom is a standalone GEDCOM package: no app, UI or Electron imports."
+                "group": ["@doru/**"],
+                "message": "@doru/gedcom is a standalone GEDCOM package: no other workspace imports."
+              },
+              {
+                "group": ["electron", "react", "react-dom"],
+                "message": "@doru/gedcom must stay free of Electron and React."
               }
             ]
           }
@@ -484,25 +473,16 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@doru/core",
-                  "@doru/core/*",
-                  "@doru/ai",
-                  "@doru/ai/*",
-                  "@doru/gedcom",
-                  "@doru/gedcom/*",
-                  "@doru/ui",
-                  "@doru/ui/*",
-                  "@doru/features",
-                  "@doru/features/*",
-                  "@doru/workbench",
-                  "@doru/workbench/*"
-                ],
-                "message": "@doru/platform is the base layer: it cannot depend on domain or UI packages."
+                "group": ["@doru/**"],
+                "message": "@doru/platform is the base layer: it cannot depend on other workspace packages."
               },
               {
                 "group": ["electron", "react", "react-dom"],
                 "message": "@doru/platform must stay free of Electron and React."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
               }
             ]
           }
@@ -511,7 +491,7 @@
       "plugins": ["typescript"]
     },
     {
-      "files": ["packages/{ui,features,workbench}/src/**/*.{ts,tsx}"],
+      "files": ["packages/ui/src/**/*.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -522,9 +502,25 @@
                 "message": "UI packages run in the renderer: no Electron or Node built-ins."
               },
               {
+                "group": [
+                  "@doru/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**"
+                ],
+                "message": "@doru/ui may only import @doru/ui, @doru/core and @doru/platform."
+              },
+              {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
                 "allowTypeImports": true,
                 "message": "UI packages may use AI types, but runtime AI lives in the main process."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
               }
             ]
           }
@@ -533,9 +529,82 @@
       "plugins": ["typescript"]
     },
     {
-      "files": ["packages/features/src/settings/reasoning.ts"],
+      "files": ["packages/features/src/**/*.{ts,tsx}"],
       "rules": {
-        "no-restricted-imports": "off"
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["electron", "node:*"],
+                "message": "UI packages run in the renderer: no Electron or Node built-ins."
+              },
+              {
+                "group": [
+                  "@doru/**",
+                  "!@doru/features",
+                  "!@doru/features/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**",
+                  "!@doru/ai",
+                  "!@doru/ai/**"
+                ],
+                "message": "@doru/features may only import the UI, core, platform and AI packages."
+              },
+              {
+                "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
+                "allowTypeImports": true,
+                "message": "UI packages may use AI types, but runtime AI lives in the main process."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
+              }
+            ]
+          }
+        ]
+      },
+      "plugins": ["typescript"]
+    },
+    {
+      "files": ["packages/workbench/src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["electron", "node:*"],
+                "message": "UI packages run in the renderer: no Electron or Node built-ins."
+              },
+              {
+                "group": [
+                  "@doru/**",
+                  "!@doru/workbench",
+                  "!@doru/workbench/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**"
+                ],
+                "message": "@doru/workbench may only import @doru/workbench, @doru/ui and @doru/platform."
+              },
+              {
+                "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
+                "allowTypeImports": true,
+                "message": "UI packages may use AI types, but runtime AI lives in the main process."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
+              }
+            ]
+          }
+        ]
       },
       "plugins": ["typescript"]
     },
@@ -551,9 +620,96 @@
                 "message": "The renderer talks to the main process through the preload API, not Electron or Node."
               },
               {
+                "group": [
+                  "@doru/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**",
+                  "!@doru/ai",
+                  "!@doru/ai/**",
+                  "!@doru/ui",
+                  "!@doru/ui/**",
+                  "!@doru/features",
+                  "!@doru/features/**",
+                  "!@doru/workbench",
+                  "!@doru/workbench/**"
+                ],
+                "message": "The renderer may only import the UI, workbench, platform, core and AI packages."
+              },
+              {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
                 "allowTypeImports": true,
                 "message": "The renderer may use AI types, but runtime AI lives in the main process."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
+              }
+            ]
+          }
+        ]
+      },
+      "plugins": ["typescript"]
+    },
+    {
+      "files": ["apps/desktop/src/main/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@doru/**",
+                  "!@doru/core",
+                  "!@doru/core/**",
+                  "!@doru/ai",
+                  "!@doru/ai/**",
+                  "!@doru/gedcom",
+                  "!@doru/gedcom/**",
+                  "!@doru/platform",
+                  "!@doru/platform/**"
+                ],
+                "message": "The main process may only import the core, AI, GEDCOM and platform packages."
+              },
+              {
+                "group": ["react", "react-dom"],
+                "message": "The main process must stay free of React."
+              },
+              {
+                "group": ["**/renderer/**", "**/renderer"],
+                "message": "The main process cannot import the renderer bundle."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
+              }
+            ]
+          }
+        ]
+      },
+      "plugins": ["typescript"]
+    },
+    {
+      "files": ["apps/desktop/src/preload/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@doru/**"],
+                "allowTypeImports": true,
+                "message": "The preload exposes IPC only: no runtime domain, AI or UI imports."
+              },
+              {
+                "group": ["react", "react-dom"],
+                "message": "The preload must stay free of React."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
               }
             ]
           }

@@ -1,0 +1,75 @@
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen } from '@testing-library/react';
+import { emptySourceDraft } from '@doru/ui/domain';
+import { SourceEditor } from '@doru/features';
+import { nls } from '../src/nls';
+import { renderUi } from '../../../test/ui/harness';
+
+function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void; onDelete?: () => void } = {}) {
+  const draft = emptySourceDraft();
+  const onChange = vi.fn();
+
+  renderUi(
+    <SourceEditor
+      draft={draft}
+      onChange={onChange}
+      repositories={[]}
+      titles={[]}
+      places={[]}
+      onAddRepository={async () => {}}
+      onSave={overrides.onSave ?? vi.fn()}
+      onCancel={overrides.onCancel}
+      onDelete={overrides.onDelete}
+    />,
+  );
+
+  return { draft, onChange };
+}
+
+describe('SourceEditor', () => {
+  it('renders the bibliographic fields and the header actions', () => {
+    const onSave = vi.fn();
+    const onCancel = vi.fn();
+    const onDelete = vi.fn();
+    renderEditor({ onSave, onCancel, onDelete });
+
+    expect(screen.getByLabelText(nls.t('features.tree.sources.title'))).toBeInTheDocument();
+    expect(screen.getByLabelText(nls.t('features.tree.sources.titleField'))).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.fact.delete') }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.back') }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports field edits through onChange', () => {
+    const { onChange } = renderEditor();
+
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.sources.titleField')), {
+      target: { value: 'Parish register' },
+    });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ title: 'Parish register' }));
+
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.sources.authorField')), {
+      target: { value: 'St Mary' },
+    });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ author: 'St Mary' }));
+  });
+
+  it('adds text extracts, data events and repository copies', () => {
+    const { onChange } = renderEditor();
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.source.texts.add') }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ texts: [expect.any(Object)] }));
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.source.dataEvents.add') }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dataEvents: [expect.any(Object)] }));
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.source.repositories.add') }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ repositories: [expect.any(Object)] }));
+  });
+});

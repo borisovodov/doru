@@ -2,12 +2,12 @@ import type { Language, ListText, Pointer, Special, TagDefinitionValue, Text } f
 
 import type { AddressStructure } from './common';
 import type { DateExactStructure } from './common';
-import type { GedcomRecord } from './records';
+import type { GedcomRecord } from './record-union';
 import type { GedcomStructureBase } from './extensions';
-import type { IndividualRecord } from './records';
+import type { IndividualRecord } from './individual-record';
 import type { NoteStructure } from './common';
-import type { SubmissionRecord } from './records';
-import type { SubmitterRecord } from './records';
+import type { SubmissionRecord } from './submitter-record';
+import type { SubmitterRecord } from './submitter-record';
 
 // ---------------------------------------------------------------------------
 // GEDCOM 7.0 §3.2.1 Document

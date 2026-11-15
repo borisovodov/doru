@@ -6,6 +6,7 @@
   "include": [
     "e2e",
     "scripts",
+    "test",
     "apps/desktop/scripts",
     "apps/website/scripts",
     ".github/scripts/check-nls.ts",

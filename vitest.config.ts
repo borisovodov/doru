@@ -2,13 +2,6 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['packages/*/tests/**/*.test.ts', 'apps/*/tests/**/*.test.ts', 'scripts/tests/**/*.test.ts'],
-    // SQLite-backed tests open a real database per test; slow CI runners
-    // (Windows) take tens of seconds per test once the suite runs the
-    // whole model through them. 90s keeps a loaded runner from flaking
-    // while still catching real hangs.
-    testTimeout: 90_000,
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**', 'apps/*/src/**'],
@@ -25,5 +18,33 @@ export default defineConfig({
         branches: 80,
       },
     },
+    projects: [
+      {
+        test: {
+          name: 'unit',
+          environment: 'node',
+          include: ['packages/*/tests/**/*.test.ts', 'apps/*/tests/**/*.test.ts', 'scripts/tests/**/*.test.ts'],
+          // SQLite-backed tests open a real database per test; slow CI runners
+          // (Windows) take tens of seconds per test once the suite runs the
+          // whole model through them. 90s keeps a loaded runner from flaking
+          // while still catching real hangs.
+          testTimeout: 90_000,
+        },
+      },
+      {
+        test: {
+          name: 'ui',
+          environment: 'jsdom',
+          include: ['packages/{ui,features,workbench}/tests/**/*.test.tsx', 'apps/desktop/tests/**/*.test.tsx'],
+          setupFiles: ['./test/ui/setup.ts'],
+          css: {
+            modules: {
+              classNameStrategy: 'non-scoped',
+            },
+          },
+          testTimeout: 30_000,
+        },
+      },
+    ],
   },
 });

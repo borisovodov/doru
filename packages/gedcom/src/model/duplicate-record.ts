@@ -17,7 +17,7 @@ import type { Pointer, Text, Xref } from '../primitives';
 import type { GedcomStructureBase } from './extensions';
 import type { NoteStructure } from './common';
 import type { SourceCitation } from './sources-media';
-import type { IndividualRecord } from './records';
+import type { IndividualRecord } from './individual-record';
 
 /**
  * The GDO `_ALIA` duplicate-candidate record.

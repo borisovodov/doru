@@ -1,52 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Save } from 'lucide-react';
-import { CommandService } from '@doru/platform';
 import { AppMenu, IconButton } from '@doru/ui';
-import {
-  ChatPanel,
-  ChatSetupPlaceholder,
-  EmptyEditorPage,
-  NoticesView,
-  SettingsView,
-  TreeCanvas,
-  WelcomePage,
-} from '@doru/features';
+import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import type { ProjectBinding } from '@doru/core';
-import { AddressTab } from './components/AddressTab';
-import { FamilyTab } from './components/FamilyTab';
-import { MediaTab } from './components/MediaTab';
-import { PersonTab } from './components/PersonTab';
-import { PlaceTab } from './components/PlaceTab';
-import { RepositoryTab } from './components/RepositoryTab';
-import { SourceTab } from './components/SourceTab';
-import { SubmitterTab } from './components/SubmitterTab';
-import { TaskTab } from './components/TaskTab';
-import { TitleTab } from './components/TitleTab';
-import { ExportView } from './components/ExportView';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
-import {
-  ADDRESS_TAB_PREFIX,
-  EXPORT_TAB_ID,
-  FAMILY_TAB_PREFIX,
-  MEDIA_TAB_PREFIX,
-  NOTICES_TAB_ID,
-  PERSON_TAB_PREFIX,
-  PLACE_TAB_PREFIX,
-  REPOSITORY_TAB_PREFIX,
-  SETTINGS_TAB_ID,
-  SOURCE_TAB_PREFIX,
-  SUBMITTER_TAB_PREFIX,
-  TASK_TAB_PREFIX,
-  TITLE_TAB_PREFIX,
-  TREE_TAB_ID,
-  useTabs,
-} from './hooks/useTabs';
+import { useAppCommands } from './hooks/useAppCommands';
+import { useTabs } from './hooks/useTabs';
 import { useTheme } from './hooks/useTheme';
 import { useTreeData } from './hooks/useTreeData';
+import { renderTab } from './tabs/registry';
+import { SETTINGS_TAB_ID, type TabRenderContext } from './tabs/types';
 
 export function App() {
   const [projectPath, setProjectPath] = useState<string | null | undefined>(undefined);
@@ -84,6 +51,7 @@ export function App() {
   );
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
+  const { commands, keybindings } = useAppCommands(project, tabs, tree);
   const [version, setVersion] = useState('');
 
   useEffect(() => {
@@ -103,8 +71,6 @@ export function App() {
     settingsWasOpenRef.current = isSettings;
     // oxlint-disable-next-line react/exhaustive-deps -- stable callbacks; the hook object changes every render
   }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
-
-  const commands = useMemo(() => new CommandService(), []);
 
   const startProject = useCallback(
     (info: ProjectBinding) => {
@@ -136,90 +102,6 @@ export function App() {
   }, [startProject]);
 
   useEffect(() => {
-    const removeOpen = commands.register({
-      id: 'workbench.openProject',
-      title: nls.t('workbench.openProject'),
-      handler: () => project.openProject(),
-    });
-    const removeSave = commands.register({
-      id: 'workbench.saveProject',
-      title: nls.t('workbench.saveProject'),
-      handler: () => project.saveProject(),
-    });
-    const removeCreate = commands.register({
-      id: 'workbench.createProject',
-      title: nls.t('workbench.createProject'),
-      handler: () => project.createProject(),
-    });
-    const removeNewWindow = commands.register({
-      id: 'workbench.newWindow',
-      title: nls.t('workbench.newWindow'),
-      handler: () => window.doru.menuAction('window.new'),
-    });
-    const removeExport = commands.register({
-      id: 'workbench.exportGedcom',
-      title: nls.t('workbench.exportGedcom'),
-      handler: () => tabs.openExportTab(),
-    });
-    const removeOpenSettings = commands.register({
-      id: 'workbench.openSettings',
-      title: nls.t('workbench.settings'),
-      handler: () => tabs.openSettingsTab(),
-    });
-    const removeNextTab = commands.register({
-      id: 'workbench.nextTab',
-      title: nls.t('workbench.nextTab'),
-      handler: () => tabs.nextTab(),
-    });
-    const removePrevTab = commands.register({
-      id: 'workbench.prevTab',
-      title: nls.t('workbench.prevTab'),
-      handler: () => tabs.prevTab(),
-    });
-    const removeSwitchToTab = commands.register({
-      id: 'workbench.switchToTab',
-      title: nls.t('workbench.switchToTab'),
-      handler: (index) => tabs.openTabAt(Number(index) - 1),
-    });
-    const removeUndo = commands.register({
-      id: 'tree.undo',
-      title: nls.t('workbench.undo'),
-      handler: () => tree.undo(),
-    });
-    const removeRedo = commands.register({
-      id: 'tree.redo',
-      title: nls.t('workbench.redo'),
-      handler: () => tree.redo(),
-    });
-    return () => {
-      removeOpen.dispose();
-      removeSave.dispose();
-      removeCreate.dispose();
-      removeNewWindow.dispose();
-      removeExport.dispose();
-      removeOpenSettings.dispose();
-      removeNextTab.dispose();
-      removePrevTab.dispose();
-      removeSwitchToTab.dispose();
-      removeUndo.dispose();
-      removeRedo.dispose();
-    };
-    // oxlint-disable-next-line react/exhaustive-deps -- handlers are stable; including the hook objects would rebind every render
-  }, [
-    commands,
-    project.openProject,
-    project.saveProject,
-    project.createProject,
-    tabs.openExportTab,
-    tabs.openSettingsTab,
-    tabs.nextTab,
-    tabs.prevTab,
-    tabs.openTabAt,
-    tree.undo,
-    tree.redo,
-  ]);
-
-  useEffect(() => {
     return window.doru.onMenuCommand((commandId) => {
       // Native macOS menu items execute the same renderer commands as the
       // in-window menu and the keybindings; they are registered by App and
@@ -228,329 +110,38 @@ export function App() {
     });
   }, [commands]);
 
-  const keybindings = useMemo(
-    () => [
-      { key: 'meta+z', command: 'tree.undo' },
-      { key: 'ctrl+z', command: 'tree.undo' },
-      { key: 'meta+shift+z', command: 'tree.redo' },
-      { key: 'ctrl+shift+z', command: 'tree.redo' },
-      { key: 'meta+s', command: 'workbench.saveProject' },
-      { key: 'ctrl+s', command: 'workbench.saveProject' },
-      { key: 'meta+o', command: 'workbench.openProject' },
-      { key: 'ctrl+o', command: 'workbench.openProject' },
-      { key: 'meta+n', command: 'workbench.createProject' },
-      { key: 'ctrl+n', command: 'workbench.createProject' },
-      { key: 'meta+shift+n', command: 'workbench.newWindow' },
-      { key: 'ctrl+shift+n', command: 'workbench.newWindow' },
-      { key: 'meta+,', command: 'workbench.openSettings' },
-      { key: 'ctrl+,', command: 'workbench.openSettings' },
-      { key: 'meta+shift+]', command: 'workbench.nextTab' },
-      { key: 'meta+shift+[', command: 'workbench.prevTab' },
-      { key: 'ctrl+tab', command: 'workbench.nextTab' },
-      { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
-      { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
-      { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
-      { key: 'meta+alt+b', command: 'workbench.toggleAgentChat' },
-      { key: 'ctrl+alt+b', command: 'workbench.toggleAgentChat' },
-      ...Array.from({ length: 9 }, (_, index) => [
-        { key: `meta+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
-        { key: `ctrl+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
-      ]).flat(),
-    ],
-    [],
-  );
-
   const handleSelectView = useCallback(
     (view: ActivityViewId) => {
       setActiveView(view);
       if (view === 'tree' && projectPath) {
-        tabs.openTab({ id: TREE_TAB_ID, label: nls.t('features.tree.title') });
+        tabs.openStatic.tree();
       }
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
-    [tabs.openTab, projectPath],
+    [tabs.openStatic.tree, projectPath],
   );
 
   /** Opens the person editor and refocuses the tree canvas on that person. */
   const openPersonAndFocus = useCallback(
     (personId: string) => {
-      tabs.openPersonTab(personId);
+      tabs.open.person(personId);
       setCanvasFocus((current) => ({ personId, nonce: (current?.nonce ?? 0) + 1 }));
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
-    [tabs.openPersonTab],
+    [tabs.open.person],
   );
 
-  const renderTabContent = (tab: { id: string }): ReactNode => {
-    if (tab.id === TREE_TAB_ID) {
-      // Keying by the project path resets canvas state (focus history,
-      // direction) when the user switches projects.
-      return (
-        <TreeCanvas
-          key={projectPath ?? 'none'}
-          persons={tree.persons}
-          families={tree.families}
-          photos={personPhotos}
-          focusRequest={canvasFocus}
-          api={{
-            addPerson: tree.api.addPerson,
-            addRelative: tree.addRelative,
-            deletePerson: tree.deletePerson,
-            reparent: tree.reparent,
-            updatePerson: tree.api.updatePerson,
-            getPersonCounts: tree.personCounts,
-            openEditor: tabs.openPersonTab,
-          }}
-        />
-      );
-    }
-    if (tab.id === SETTINGS_TAB_ID) {
-      return (
-        <SettingsView
-          theme={theme.theme}
-          themes={theme.themes}
-          onThemeChange={theme.selectTheme}
-          onOpenLogs={() => void window.doru.openLogs()}
-          onOpenThemesFolder={() => void window.doru.openThemesFolder()}
-          onOpenNotices={tabs.openNoticesTab}
-          version={version}
-          ai={
-            ai.settings
-              ? {
-                  settings: ai.settings,
-                  providers: ai.providers,
-                  test: ai.test,
-                  fetchedModels: ai.fetchedModels,
-                  modelFetch: ai.modelFetch,
-                  doruModel: ai.doruModel,
-                  onSetProvider: (id) => void ai.setProvider(id),
-                  onSetModel: ai.setModel,
-                  onSetBaseUrl: ai.setBaseUrl,
-                  onSetReasoning: ai.setReasoning,
-                  onSetApiKey: ai.setApiKey,
-                  onClearApiKey: ai.clearApiKey,
-                  onSetAcpCommand: ai.setAcpCommand,
-                  onSetAcpArgs: ai.setAcpArgs,
-                  onTest: () => void ai.runTest(),
-                  onFetchModels: (baseUrl) => void ai.fetchModels(baseUrl !== undefined ? { baseUrl } : undefined),
-                  onDownloadDoruModel: () => void ai.downloadDoruModel(),
-                  onCancelDoruModelDownload: () => void ai.cancelDoruModelDownload(),
-                  onDeleteDoruModel: () => void ai.deleteDoruModel(),
-                }
-              : null
-          }
-        />
-      );
-    }
-    if (tab.id === NOTICES_TAB_ID) {
-      return <NoticesView onOpenLink={(url) => void window.doru.openExternal(url)} />;
-    }
-    if (tab.id === EXPORT_TAB_ID) {
-      return <ExportView hasMedia={tree.media.length > 0} onExport={(format) => void project.exportGedcom(format)} />;
-    }
-    if (tab.id.startsWith(PERSON_TAB_PREFIX)) {
-      return (
-        <PersonTab
-          tabId={tab.id}
-          persons={tree.persons}
-          api={{ ...tree.api, openSource: tabs.openSourceTab, openTask: tabs.openTaskTab }}
-          mediaApi={tree.mediaApi}
-          onOpenMedia={tabs.openMediaTab}
-          onClose={tabs.closeTab}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${PERSON_TAB_PREFIX}${realId}`)}
-          onDeletePerson={tree.deletePerson}
-        />
-      );
-    }
-    if (tab.id.startsWith(FAMILY_TAB_PREFIX)) {
-      const familyId = tab.id.slice(FAMILY_TAB_PREFIX.length);
-      const family = tree.families.find((entry) => entry.id === familyId);
-      if (!family) {
-        return <p className="person-missing">{nls.t('features.tree.familyNotFound')}</p>;
-      }
-      return (
-        <FamilyTab
-          tabId={tab.id}
-          families={tree.families}
-          api={{ ...tree.familyApi, openTask: tabs.openTaskTab }}
-          persons={tree.persons}
-          associations={tree.associations}
-          sources={tree.sources}
-          media={tree.media}
-          mediaApi={tree.mediaApi}
-          onOpenMedia={tabs.openMediaTab}
-          onOpenSource={tabs.openSourceTab}
-          onClose={tabs.closeTab}
-        />
-      );
-    }
-    if (tab.id.startsWith(SOURCE_TAB_PREFIX)) {
-      const sourceId = tab.id.slice(SOURCE_TAB_PREFIX.length);
-      const source = tree.sources.find((entry) => entry.id === sourceId);
-      if (!sourceId.startsWith('new:') && !source) {
-        return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
-      }
-      return (
-        <SourceTab
-          tabId={tab.id}
-          sources={tree.sources}
-          api={{ ...tree.sourceApi, openTask: tabs.openTaskTab }}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${SOURCE_TAB_PREFIX}${realId}`)}
-          persons={tree.persons}
-          families={tree.families}
-          facts={tree.facts}
-          places={tree.places}
-          citations={tree.citations}
-          notes={tree.notes}
-          media={tree.media}
-          mediaApi={tree.mediaApi}
-          onOpenPerson={openPersonAndFocus}
-          onOpenMedia={tabs.openMediaTab}
-          onOpenSource={tabs.openSourceTab}
-          onClose={tabs.closeTab}
-        />
-      );
-    }
-    if (tab.id.startsWith(PLACE_TAB_PREFIX)) {
-      return (
-        <PlaceTab
-          tabId={tab.id}
-          places={tree.places}
-          api={{ ...tree.placeApi, openTask: tabs.openTaskTab }}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${PLACE_TAB_PREFIX}${realId}`)}
-          persons={tree.persons}
-          families={tree.families}
-          facts={tree.facts}
-          sources={tree.sources}
-          media={tree.media}
-          mediaApi={tree.mediaApi}
-          onOpenPerson={openPersonAndFocus}
-          onOpenMedia={tabs.openMediaTab}
-          onOpenSource={tabs.openSourceTab}
-          onClose={tabs.closeTab}
-        />
-      );
-    }
-    if (tab.id.startsWith(REPOSITORY_TAB_PREFIX)) {
-      return (
-        <RepositoryTab
-          tabId={tab.id}
-          repositories={tree.repositories}
-          addresses={tree.addresses}
-          api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
-          sources={tree.sources}
-          media={tree.media}
-          mediaApi={tree.mediaApi}
-          onOpenSource={tabs.openSourceTab}
-          onOpenMedia={tabs.openMediaTab}
-          onOpenAddress={tabs.openAddressTab}
-          onClose={tabs.closeTab}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${REPOSITORY_TAB_PREFIX}${realId}`)}
-        />
-      );
-    }
-    if (tab.id.startsWith(SUBMITTER_TAB_PREFIX)) {
-      return (
-        <SubmitterTab
-          tabId={tab.id}
-          submitters={tree.submitters}
-          addresses={tree.addresses}
-          api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
-          sources={tree.sources}
-          media={tree.media}
-          mediaApi={tree.mediaApi}
-          onOpenSource={tabs.openSourceTab}
-          onOpenMedia={tabs.openMediaTab}
-          onOpenAddress={tabs.openAddressTab}
-          onClose={tabs.closeTab}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${SUBMITTER_TAB_PREFIX}${realId}`)}
-        />
-      );
-    }
-    if (tab.id.startsWith(ADDRESS_TAB_PREFIX)) {
-      return (
-        <AddressTab
-          tabId={tab.id}
-          addresses={tree.addresses}
-          facts={tree.facts}
-          repositories={tree.repositories}
-          submitters={tree.submitters}
-          sources={tree.sources}
-          api={{ ...tree.registriesApi, openTask: tabs.openTaskTab }}
-          onClose={tabs.closeTab}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${ADDRESS_TAB_PREFIX}${realId}`)}
-        />
-      );
-    }
-    if (tab.id.startsWith(TASK_TAB_PREFIX)) {
-      return (
-        <TaskTab
-          tabId={tab.id}
-          todos={tree.todos}
-          persons={tree.persons}
-          families={tree.families}
-          sources={tree.sources}
-          places={tree.places}
-          repositories={tree.repositories}
-          titles={tree.titles}
-          facts={tree.facts}
-          citations={tree.citations}
-          notes={tree.notes}
-          media={tree.media}
-          submitters={tree.submitters}
-          addresses={tree.addresses}
-          associations={tree.associations}
-          api={{ ...tree.todosApi, openTask: tabs.openTaskTab }}
-          onClose={tabs.closeTab}
-          onOpenMedia={tabs.openMediaTab}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${TASK_TAB_PREFIX}${realId}`)}
-        />
-      );
-    }
-    if (tab.id.startsWith(MEDIA_TAB_PREFIX)) {
-      return (
-        <MediaTab
-          tabId={tab.id}
-          media={tree.media}
-          api={tree.mediaAdminApi}
-          attachmentsApi={{ ...tree.api, openTask: tabs.openTaskTab }}
-          sources={tree.sources}
-          targetData={{
-            persons: tree.persons,
-            families: tree.families,
-            sources: tree.sources,
-            places: tree.places,
-            repositories: tree.repositories,
-            titles: tree.titles,
-            facts: tree.facts,
-            citations: tree.citations,
-            notes: tree.notes,
-            media: tree.media,
-            submitters: tree.submitters,
-            addresses: tree.addresses,
-            associations: tree.associations,
-            todos: tree.todos,
-          }}
-          onClose={tabs.closeTab}
-        />
-      );
-    }
-    if (tab.id.startsWith(TITLE_TAB_PREFIX)) {
-      return (
-        <TitleTab
-          tabId={tab.id}
-          titles={tree.titles}
-          sources={tree.sources}
-          repositories={tree.repositories}
-          api={{ ...tree.titlesApi, openTask: tabs.openTaskTab }}
-          onClose={tabs.closeTab}
-          onOpenSource={tabs.openSourceTab}
-          onOpenMedia={tabs.openMediaTab}
-          onCreated={(realId) => tabs.replaceTab(tab.id, `${TITLE_TAB_PREFIX}${realId}`)}
-        />
-      );
-    }
-    return null;
+  const tabContext: TabRenderContext = {
+    tree,
+    tabs,
+    projectPath,
+    personPhotos,
+    canvasFocus,
+    openPersonAndFocus,
+    theme,
+    ai,
+    project,
+    version,
   };
 
   const editor =
@@ -572,7 +163,7 @@ export function App() {
       <div className="editor-stack">
         {tabs.openTabs.map((tab) => (
           <div key={tab.id} className={tab.id === tabs.activeTabId ? 'editor-pane active' : 'editor-pane'}>
-            {renderTabContent(tab)}
+            {renderTab(tab.id, tabContext)}
           </div>
         ))}
       </div>
@@ -634,24 +225,24 @@ export function App() {
             todos={tree.todos}
             associations={tree.associations}
             onOpenPerson={openPersonAndFocus}
-            onOpenMedia={tabs.openMediaTab}
-            onOpenFamily={tabs.openFamilyTab}
-            onOpenSource={tabs.openSourceTab}
-            onOpenPlace={tabs.openPlaceTab}
-            onOpenRepository={tabs.openRepositoryTab}
-            onOpenSubmitter={tabs.openSubmitterTab}
-            onOpenAddress={tabs.openAddressTab}
-            onOpenTitle={tabs.openTitleTab}
-            onNewTitle={tabs.openNewTitleTab}
-            onNewPerson={tabs.openNewPersonTab}
-            onNewPlace={tabs.openNewPlaceTab}
+            onOpenMedia={tabs.open.media}
+            onOpenFamily={tabs.open.family}
+            onOpenSource={tabs.open.source}
+            onOpenPlace={tabs.open.place}
+            onOpenRepository={tabs.open.repository}
+            onOpenSubmitter={tabs.open.submitter}
+            onOpenAddress={tabs.open.address}
+            onOpenTitle={tabs.open.title}
+            onNewTitle={tabs.openNew.title}
+            onNewPerson={tabs.openNew.person}
+            onNewPlace={tabs.openNew.place}
             onNewMedia={() => void tree.addStandaloneMedia()}
-            onNewSource={tabs.openNewSourceTab}
-            onNewRepository={tabs.openNewRepositoryTab}
-            onNewSubmitter={tabs.openNewSubmitterTab}
-            onNewAddress={tabs.openNewAddressTab}
-            onOpenTask={tabs.openTaskTab}
-            onNewTask={tabs.openNewTaskTab}
+            onNewSource={tabs.openNew.source}
+            onNewRepository={tabs.openNew.repository}
+            onNewSubmitter={tabs.openNew.submitter}
+            onNewAddress={tabs.openNew.address}
+            onOpenTask={tabs.open.task}
+            onNewTask={tabs.openNew.task}
           />
         }
         activeView={activeView}
@@ -673,7 +264,7 @@ export function App() {
               onOpenLink={(url) => void window.doru.openExternal(url)}
             />
           ) : (
-            <ChatSetupPlaceholder onOpenSettings={tabs.openSettingsTab} />
+            <ChatSetupPlaceholder onOpenSettings={tabs.openStatic.settings} />
           )
         }
         tabs={tabs.tabInfos}
@@ -681,7 +272,7 @@ export function App() {
         onSelectTab={tabs.setActiveTabId}
         onCloseTab={tabs.closeTab}
         onReorderTab={tabs.reorderTabs}
-        onOpenSettings={tabs.openSettingsTab}
+        onOpenSettings={tabs.openStatic.settings}
       />
     </>
   );

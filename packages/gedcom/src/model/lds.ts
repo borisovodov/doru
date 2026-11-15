@@ -3,7 +3,7 @@ import type { Pointer, Text } from '../primitives';
 
 import type { DateExactStructure } from './common';
 import type { DateStructure } from './common';
-import type { FamilyRecord } from './records';
+import type { FamilyRecord } from './family-record';
 import type { GedcomStructureBase } from './extensions';
 import type { NoteStructure } from './common';
 import type { PlaceStructure } from './names-places';

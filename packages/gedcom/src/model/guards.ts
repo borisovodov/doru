@@ -18,7 +18,10 @@ import type { EvidenceRecord, ResearchDocumentRecord } from './evidence-record';
 import type { GroupRecord } from './group-record';
 import type { OccurrenceRecord } from './occurrence-record';
 import type { PlaceRecord } from './place-record';
-import type { FamilyRecord, GedcomRecord, IndividualRecord, MultimediaRecord } from './records';
+import type { FamilyRecord } from './family-record';
+import type { IndividualRecord } from './individual-record';
+import type { MultimediaRecord } from './multimedia-record';
+import type { GedcomRecord } from './record-union';
 
 /** True when the record is the typed `FAM` family record. */
 export function isFamilyRecord(record: GedcomRecord): record is FamilyRecord {
