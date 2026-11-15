@@ -50,6 +50,17 @@ Dóru follows each OS's native conventions for its settings directory (Electron
 (gh, zed, OpenCode) uses `~/.config` everywhere, but for a GUI app the native
 locations are intentional — do not move the macOS settings to `~/.config`.
 
+## GEDCOM header, submission and raw extensions
+
+The project database deliberately does not store the GEDCOM `HEAD`/`SUBN`
+metadata or raw extension structures (`extensions`, vendor blocks, unknown
+records). The schema models the genealogy domain; import counts these
+structures as dropped and export synthesizes a fresh header. This is a
+product decision, not an unfinished mapping: revisit it only when a concrete
+feature needs the wire metadata. The same applies to the LDS, research,
+census, event-definition, duplicate-candidate, published-site, group,
+tree-tag and GenoPro record families listed in `import/gedcom.ts`.
+
 ## GEDCOM media
 
 Media metadata and links are always imported. GEDZIP bytes are copied into
