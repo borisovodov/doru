@@ -55,9 +55,11 @@ export function IdentifiersSection({
   onDelete: (identifier: IdentifierRecord) => Promise<void>;
 }) {
   const [namespace, setNamespace] = useState('');
+  const [type, setType] = useState('');
   const [value, setValue] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNamespace, setEditNamespace] = useState('');
+  const [editType, setEditType] = useState('');
   const [editValue, setEditValue] = useState('');
 
   const add = async () => {
@@ -71,15 +73,18 @@ export function IdentifiersSection({
       targetType,
       targetId,
       namespace: trimmedNamespace,
+      ...(type.trim() !== '' ? { type: type.trim() } : {}),
       value: trimmedValue,
     });
     setNamespace('');
+    setType('');
     setValue('');
   };
 
   const startEdit = (identifier: IdentifierRecord) => {
     setEditingId(identifier.id);
     setEditNamespace(identifier.namespace);
+    setEditType(identifier.type ?? '');
     setEditValue(identifier.value);
   };
 
@@ -89,9 +94,16 @@ export function IdentifiersSection({
     if (
       trimmedNamespace !== '' &&
       trimmedValue !== '' &&
-      (trimmedNamespace !== identifier.namespace || trimmedValue !== identifier.value)
+      (trimmedNamespace !== identifier.namespace ||
+        trimmedValue !== identifier.value ||
+        editType.trim() !== (identifier.type ?? ''))
     ) {
-      await onUpdate(identifier, { ...identifier, namespace: trimmedNamespace, value: trimmedValue });
+      await onUpdate(identifier, {
+        ...identifier,
+        namespace: trimmedNamespace,
+        ...(editType.trim() !== '' ? { type: editType.trim() } : {}),
+        value: trimmedValue,
+      });
     }
     setEditingId(null);
   };
@@ -116,6 +128,11 @@ export function IdentifiersSection({
                   autoFocus
                 />
                 <Input
+                  value={editType}
+                  placeholder={nls.t('features.tree.place.names.type')}
+                  onChange={(event) => setEditType(event.target.value)}
+                />
+                <Input
                   value={editValue}
                   placeholder={nls.t('features.tree.identifiers.value')}
                   onChange={(event) => setEditValue(event.target.value)}
@@ -129,7 +146,9 @@ export function IdentifiersSection({
               </div>
             ) : (
               <>
-                <span className="attachment-kind">{identifier.namespace}</span>
+                <span className="attachment-kind">
+                  {identifier.type !== undefined ? `${identifier.namespace}:${identifier.type}` : identifier.namespace}
+                </span>
                 <span className="attachment-value">{identifier.value}</span>
                 <IconButton
                   size="sm"
@@ -160,6 +179,11 @@ export function IdentifiersSection({
             <option key={entry} value={entry} />
           ))}
         </datalist>
+        <Input
+          placeholder={nls.t('features.tree.place.names.type')}
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+        />
         <Input
           placeholder={nls.t('features.tree.identifiers.value')}
           value={value}

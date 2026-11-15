@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
+import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import {
   AttachmentsPanel,
   CitationAttachments,
@@ -35,6 +35,7 @@ export function FamilyTab({
   families,
   api,
   persons,
+  associations,
   sources,
   media,
   mediaApi,
@@ -46,6 +47,7 @@ export function FamilyTab({
   families: FamilyRecord[];
   api: FamilyEditorApi;
   persons: PersonRecord[];
+  associations: AssociationRecord[];
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
@@ -65,6 +67,7 @@ export function FamilyTab({
       families={families}
       api={api}
       persons={persons}
+      associations={associations}
       sources={sources}
       media={media}
       mediaApi={mediaApi}
@@ -81,6 +84,7 @@ function FamilyTabBody({
   families,
   api,
   persons,
+  associations,
   sources,
   media,
   mediaApi,
@@ -93,6 +97,7 @@ function FamilyTabBody({
   families: FamilyRecord[];
   api: FamilyEditorApi;
   persons: PersonRecord[];
+  associations: AssociationRecord[];
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
@@ -145,6 +150,7 @@ function FamilyTabBody({
         onChange={setDraft}
         persons={persons}
         families={families}
+        associations={associations}
         sources={sources}
         api={api}
         savedLinkIds={

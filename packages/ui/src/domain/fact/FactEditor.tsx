@@ -325,6 +325,43 @@ export function FactEditor({
           </div>
         </div>
       )}
+      <div className="fact-subsection">
+        <h4>{nls.t('features.tree.fact.additionalPlaces')}</h4>
+        {draft.additionalPlaceIds.map((placeId, index) => (
+          // oxlint-disable-next-line react/no-array-index-key -- place ids may repeat before a pick
+          <div className="fact-editor-row" key={`${placeId}-${index}`}>
+            <Select
+              value={placeId}
+              onChange={(event) =>
+                set({
+                  additionalPlaceIds: draft.additionalPlaceIds.map((id, i) => (i === index ? event.target.value : id)),
+                })
+              }
+            >
+              <option value="">{nls.t('features.tree.fact.placeLink.none')}</option>
+              {places.map((place) => (
+                <option key={place.id} value={place.id}>
+                  {placeName(place)}
+                </option>
+              ))}
+            </Select>
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.fact.additionalPlaces')}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={() => set({ additionalPlaceIds: draft.additionalPlaceIds.filter((_, i) => i !== index) })}
+            />
+          </div>
+        ))}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => set({ additionalPlaceIds: [...draft.additionalPlaceIds, ''] })}
+        >
+          <Plus size={13} aria-hidden="true" />
+          {nls.t('features.tree.fact.additionalPlaces')}
+        </Button>
+      </div>
       <DateEditor
         label={nls.t('features.tree.fact.sortDate')}
         value={draft.sortDate}

@@ -156,7 +156,9 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
     sortDate,
     place,
     placeId,
-    ...(draft.additionalPlaceIds.length > 0 ? { additionalPlaceIds: draft.additionalPlaceIds } : {}),
+    ...(draft.additionalPlaceIds.filter((id) => id !== '').length > 0
+      ? { additionalPlaceIds: draft.additionalPlaceIds.filter((id) => id !== '') }
+      : {}),
     addressId: draft.addressId,
     placePrefix: draft.placePrefix.trim() || undefined,
     eventNumber: draft.eventNumber.trim() || undefined,

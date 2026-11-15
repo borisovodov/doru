@@ -353,6 +353,7 @@ export function App() {
           families={tree.families}
           api={{ ...tree.familyApi, openTask: tabs.openTaskTab }}
           persons={tree.persons}
+          associations={tree.associations}
           sources={tree.sources}
           media={tree.media}
           mediaApi={tree.mediaApi}

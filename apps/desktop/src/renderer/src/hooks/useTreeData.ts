@@ -919,6 +919,27 @@ export function useTreeData(projectPath: string | null | undefined) {
   const familyApi = useMemo<FamilyEditorApi>(
     () => ({
       ...attachmentMethods,
+      getAssociationsForFamily: (familyId) =>
+        projectPath
+          ? window.doru
+              .getAllAssociations(projectPath)
+              .then((all) => all.filter((association) => association.familyId === familyId))
+          : Promise.resolve([]),
+      addAssociation: async (association) => {
+        if (!projectPath) return;
+        await window.doru.addAssociation(projectPath, association);
+        await refreshTree();
+      },
+      updateAssociation: async (before, after) => {
+        if (!projectPath) return;
+        await window.doru.updateAssociation(projectPath, before, after);
+        await refreshTree();
+      },
+      deleteAssociation: async (association) => {
+        if (!projectPath) return;
+        await window.doru.deleteAssociation(projectPath, association);
+        await refreshTree();
+      },
       getFacts: (personId, familyId) =>
         projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
       addFact: async (fact) => {

@@ -373,7 +373,7 @@ export function PersonEditor({
             onDeleteFact={api.deleteFact}
           />
           <AssociationsSection
-            personId={draft.id}
+            owner={{ kind: 'person', id: draft.id }}
             associations={associations}
             persons={persons}
             onAdd={async (association) => {

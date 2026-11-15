@@ -10,7 +10,7 @@ import {
 
 describe('emptyAssociationDraft', () => {
   it('builds an empty draft bound to the person', () => {
-    const draft = emptyAssociationDraft('P1');
+    const draft = emptyAssociationDraft({ kind: 'person', id: 'P1' });
     expect(draft.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(draft).toMatchObject({
       personId: 'P1',
@@ -61,7 +61,7 @@ describe('associationToDraft / associationDraftToRecord', () => {
   });
 
   it('drops empty optional fields', () => {
-    const draft = emptyAssociationDraft('P1');
+    const draft = emptyAssociationDraft({ kind: 'person', id: 'P1' });
     const record = associationDraftToRecord({ ...draft, otherPersonId: 'P2' });
     expect(record).toEqual({
       id: draft.id,
@@ -81,7 +81,9 @@ describe('associationToDraft / associationDraftToRecord', () => {
 
 describe('associationDraftEmpty', () => {
   it('is empty until another person is picked', () => {
-    expect(associationDraftEmpty(emptyAssociationDraft('P1'))).toBe(true);
-    expect(associationDraftEmpty({ ...emptyAssociationDraft('P1'), otherPersonId: 'P2' })).toBe(false);
+    expect(associationDraftEmpty(emptyAssociationDraft({ kind: 'person', id: 'P1' }))).toBe(true);
+    expect(associationDraftEmpty({ ...emptyAssociationDraft({ kind: 'person', id: 'P1' }), otherPersonId: 'P2' })).toBe(
+      false,
+    );
   });
 });

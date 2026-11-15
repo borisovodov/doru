@@ -201,6 +201,10 @@ export interface TodoEditorApi extends AttachmentsApi {
 
 /** The service surface the family tab needs from its host application. */
 export interface FamilyEditorApi extends AttachmentsApi {
+  getAssociationsForFamily(familyId: string): Promise<AssociationRecord[]>;
+  addAssociation(association: AssociationRecord): Promise<void>;
+  updateAssociation(before: AssociationRecord, after: AssociationRecord): Promise<void>;
+  deleteAssociation(association: AssociationRecord): Promise<void>;
   getFacts(personId?: string, familyId?: string): Promise<FactRecord[]>;
   addFact(fact: FactRecord): Promise<void>;
   updateFact(before: FactRecord, after: FactRecord): Promise<void>;

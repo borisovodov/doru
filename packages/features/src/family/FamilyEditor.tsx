@@ -6,6 +6,7 @@ import { Paperclip, Plus, Users, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type {
   AddressRecord,
+  AssociationRecord,
   FactRecord,
   FamilyRecord,
   PersonRecord,
@@ -13,10 +14,11 @@ import type {
   SourceRecord,
   SubmitterRecord,
 } from '@doru/core';
+import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './FamilyEditor.css';
-import { ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
+import { AssociationsSection, ContributorsSection, DateEditor, FactsSection, displayName } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
 import { CitationAttachments } from '../attachments/TargetAttachments';
 import { Button, EditorPage, EntityViewCard } from '@doru/ui';
@@ -26,6 +28,7 @@ import {
   PEDIGREE_TYPES,
   moveItem,
   emptyChildLinkDraft,
+  emptyMarriageStatusDraft,
   emptyPartnerLinkDraft,
   type ChildLinkDraft,
   type FamilyDraft,
@@ -43,6 +46,7 @@ export function FamilyEditor({
   onChange,
   persons,
   families,
+  associations,
   sources,
   api,
   savedLinkIds,
@@ -56,6 +60,7 @@ export function FamilyEditor({
   onChange: (draft: FamilyDraft) => void;
   persons: PersonRecord[];
   families: FamilyRecord[];
+  associations: AssociationRecord[];
   sources: SourceRecord[];
   api: FamilyEditorApi;
   onSave: () => void;
@@ -214,6 +219,70 @@ export function FamilyEditor({
         <Button size="sm" variant="secondary" onClick={() => set({ witnesses: [...draft.witnesses, ''] })}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.family.addWitness')}
+        </Button>
+      </SectionCard>
+
+      <SectionCard title={nls.t('features.tree.family.marriageStatuses')}>
+        {draft.marriageStatuses.map((status, index) => (
+          <Subcard key={status.id}>
+            <div className="family-link-head">
+              <Input
+                aria-label={nls.t('features.tree.family.marriageStatus')}
+                placeholder={nls.t('features.tree.family.marriageStatus')}
+                value={status.status}
+                onChange={(event) =>
+                  set({
+                    marriageStatuses: draft.marriageStatuses.map((entry, i) =>
+                      i === index ? { ...entry, status: event.target.value } : entry,
+                    ),
+                  })
+                }
+              />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tree.family.removeWitness')}
+                icon={<X size={13} aria-hidden="true" />}
+                onClick={() => set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) })}
+              />
+            </div>
+            <DateEditor
+              label={nls.t('features.tree.names.date')}
+              value={status.date}
+              onChange={(date) =>
+                set({
+                  marriageStatuses: draft.marriageStatuses.map((entry, i) =>
+                    i === index ? { ...entry, date } : entry,
+                  ),
+                })
+              }
+              hidePlace
+            />
+            <Select
+              value={status.placeId}
+              onChange={(event) =>
+                set({
+                  marriageStatuses: draft.marriageStatuses.map((entry, i) =>
+                    i === index ? { ...entry, placeId: event.target.value } : entry,
+                  ),
+                })
+              }
+            >
+              <option value="">{nls.t('features.tree.fact.placeLink.none')}</option>
+              {places.map((place) => (
+                <option key={place.id} value={place.id}>
+                  {placeName(place)}
+                </option>
+              ))}
+            </Select>
+          </Subcard>
+        ))}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => set({ marriageStatuses: [...draft.marriageStatuses, emptyMarriageStatusDraft()] })}
+        >
+          <Plus size={13} aria-hidden="true" />
+          {nls.t('features.tree.family.addMarriageStatus')}
         </Button>
       </SectionCard>
 
@@ -394,6 +463,15 @@ export function FamilyEditor({
           </Button>
         </InlineForm>
       </SectionCard>
+
+      <AssociationsSection
+        owner={{ kind: 'family', id: draft.id }}
+        associations={associations}
+        persons={persons}
+        onAdd={api.addAssociation}
+        onUpdate={api.updateAssociation}
+        onDelete={api.deleteAssociation}
+      />
 
       <FactsSection
         owner={{ familyId: draft.id }}
