@@ -4,7 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./attachments": "./src/attachments/index.ts",
+    "./chat": "./src/chat/index.ts",
+    "./family": "./src/family/index.ts",
+    "./notices": "./src/notices/index.ts",
+    "./person": "./src/person/index.ts",
+    "./place": "./src/place/index.ts",
+    "./placeholder": "./src/placeholder/index.ts",
+    "./settings": "./src/settings/index.ts",
+    "./sidebar": "./src/sidebar/index.ts",
+    "./source": "./src/source/index.ts",
+    "./tree": "./src/tree/index.ts",
+    "./welcome": "./src/welcome/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
