@@ -61,7 +61,7 @@ export function App() {
     const photos = new Map<string, string>();
     for (const media of tree.media) {
       for (const link of media.links ?? []) {
-        if (link.targetType === 'person' && link.primary === true) {
+        if (link.targetType === 'person' && link.primary === true && link.exclude !== true) {
           photos.set(link.targetId, `doru-media://local/?path=${encodeURIComponent(media.absolutePath)}`);
         }
       }
