@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Annulla",
   "tree.canvas.collapse": "Comprimi ramo",
   "tree.canvas.collapseAll": "Comprimi tutti i rami",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Elimina persona",
   "tree.canvas.edit": "Modifica",
   "tree.canvas.expand": "Espandi ramo",

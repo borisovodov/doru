@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Отмена",
   "tree.canvas.collapse": "Свернуть ветку",
   "tree.canvas.collapseAll": "Свернуть все ветки",
+  "tree.canvas.cycle": "Это перемещение создаст цикл предков.",
   "tree.canvas.deletePerson": "Удалить персону",
   "tree.canvas.edit": "Редактировать",
   "tree.canvas.expand": "Развернуть ветку",

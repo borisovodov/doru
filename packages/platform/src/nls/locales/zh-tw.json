@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "取消",
   "tree.canvas.collapse": "摺疊分支",
   "tree.canvas.collapseAll": "摺疊所有分支",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "刪除人物",
   "tree.canvas.edit": "編輯",
   "tree.canvas.expand": "展開分支",

@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "İptal",
   "tree.canvas.collapse": "Dalı daralt",
   "tree.canvas.collapseAll": "Tüm dalları daralt",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Kişiyi sil",
   "tree.canvas.edit": "Düzenle",
   "tree.canvas.expand": "Dalı genişlet",

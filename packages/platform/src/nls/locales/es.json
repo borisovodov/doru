@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Cancelar",
   "tree.canvas.collapse": "Contraer rama",
   "tree.canvas.collapseAll": "Contraer todas las ramas",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Eliminar persona",
   "tree.canvas.edit": "Editar",
   "tree.canvas.expand": "Expandir rama",

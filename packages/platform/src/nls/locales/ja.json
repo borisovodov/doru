@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "キャンセル",
   "tree.canvas.collapse": "枝を折りたたむ",
   "tree.canvas.collapseAll": "すべての枝を折りたたむ",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "人物を削除",
   "tree.canvas.edit": "編集",
   "tree.canvas.expand": "枝を展開する",

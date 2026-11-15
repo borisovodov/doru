@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Cancel",
   "tree.canvas.collapse": "Collapse branch",
   "tree.canvas.collapseAll": "Collapse all branches",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Delete person",
   "tree.canvas.edit": "Edit",
   "tree.canvas.expand": "Expand branch",

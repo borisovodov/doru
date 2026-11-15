@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Zrušit",
   "tree.canvas.collapse": "Sbalit větev",
   "tree.canvas.collapseAll": "Sbalit všechny větve",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Smazat osobu",
   "tree.canvas.edit": "Upravit",
   "tree.canvas.expand": "Rozbalit větev",

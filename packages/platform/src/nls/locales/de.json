@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Abbrechen",
   "tree.canvas.collapse": "Zweig einklappen",
   "tree.canvas.collapseAll": "Alle Zweige einklappen",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Person löschen",
   "tree.canvas.edit": "Bearbeiten",
   "tree.canvas.expand": "Zweig ausklappen",

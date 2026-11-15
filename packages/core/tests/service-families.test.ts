@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyRecord, PersonRecord } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
-import { TreeService } from '../src/service/tree';
+import { ParentCycleError, TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const person = (id: string, sex: PersonRecord['sex'] = 'U'): PersonRecord => ({
@@ -43,6 +43,37 @@ describe('TreeService families, persons and facts', () => {
       expect(fixture.repo.listFamilies()).toEqual([]);
       service.undo();
       expect(fixture.repo.getFamily('F1')).toMatchObject({ partners: ['P1', 'P2'], children: ['K1'] });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects family links that would create a parent cycle', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('P3'));
+      service.addFamily(family({ partners: ['P1'], children: ['P2'] }));
+      service.addFamily(family({ id: 'F2', partners: ['P2'], children: ['P3'] }));
+
+      expect(() => service.reparent('P1', 'P3')).toThrow(ParentCycleError);
+      expect(() => service.addFamily(family({ id: 'F3', partners: ['P1'], children: ['P1'] }))).toThrow(
+        ParentCycleError,
+      );
+
+      const before = fixture.repo.getFamily('F1')!;
+      expect(() =>
+        service.updateFamily(before, {
+          ...before,
+          partners: ['P1', 'P3'],
+          children: ['P2'],
+        }),
+      ).toThrow(ParentCycleError);
+      expect(fixture.repo.getFamily('F1')).toMatchObject({ partners: ['P1'], children: ['P2'] });
+
+      service.reparent('P3', 'P1');
+      expect(fixture.repo.getFamily('F1')?.children).toContain('P3');
     } finally {
       cleanupRepo(fixture);
     }

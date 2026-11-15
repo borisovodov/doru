@@ -295,6 +295,7 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
   // standard change handlers.
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [dropError, setDropError] = useState(false);
   // React Flow is a controlled external store: these two states mirror the
   // domain projection and must reset whenever the projection changes. This is
   // the one deliberate exception to the synchronous-setState-in-effect rule.
@@ -445,7 +446,10 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
       const data = node.data as PersonCardData;
       if (target) {
         const targetPerson = (target.data as PersonCardData).person;
-        void api.reparent(data.person.id, targetPerson.id);
+        void api
+          .reparent(data.person.id, targetPerson.id)
+          .then(() => setDropError(false))
+          .catch(() => setDropError(true));
       }
       // Re-project: clears the highlight and snaps the card back.
       setNodes(projected.nodes);
@@ -505,6 +509,11 @@ function TreeCanvasInner({ persons, families, api, focusRequest }: TreeCanvasPro
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
+          {dropError && (
+            <Panel position="top-right" className="tree-drop-error" role="status">
+              {nls.t('tree.canvas.cycle')}
+            </Panel>
+          )}
           <Panel position="bottom-left" className="tree-zoom">
             <IconButton
               size="sm"

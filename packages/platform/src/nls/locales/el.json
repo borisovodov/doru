@@ -652,6 +652,7 @@
   "tree.canvas.cancel": "Άκυρο",
   "tree.canvas.collapse": "Σύμπτυξη κλάδου",
   "tree.canvas.collapseAll": "Σύμπτυξη όλων των κλάδων",
+  "tree.canvas.cycle": "This move would create a parent cycle.",
   "tree.canvas.deletePerson": "Διαγραφή προσώπου",
   "tree.canvas.edit": "Επεξεργασία",
   "tree.canvas.expand": "Ανάπτυξη κλάδου",
