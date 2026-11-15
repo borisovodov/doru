@@ -93,6 +93,11 @@ describe('schema v3 extra structures', () => {
         status: 'married',
         date: expect.objectContaining({ component: { year: 1900 } }),
       });
+
+      repo.insertAssociation({ id: 'AF1', familyId: 'F1', otherPersonId: 'P1', role: 'witness' });
+      expect(repo.listAssociationsForFamily('F1')).toEqual([
+        expect.objectContaining({ id: 'AF1', familyId: 'F1', otherPersonId: 'P1', role: 'witness' }),
+      ]);
     } finally {
       cleanupRepo(fixture);
     }
