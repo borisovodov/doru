@@ -1,6 +1,6 @@
 import { familyLabel } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { FamilyTab } from '../components/FamilyTab';
+import { FamilyTab } from '@doru/features/family';
 import { ENTITY_TAB_PREFIX, type TabDescriptor } from './types';
 
 const prefix = ENTITY_TAB_PREFIX.family;
@@ -24,7 +24,7 @@ export const familyTab: TabDescriptor = {
     }
     return (
       <FamilyTab
-        tabId={id}
+        entityId={id.slice(prefix.length)}
         families={context.tree.families}
         api={{ ...context.tree.familyApi, openTask: context.tabs.open.task }}
         persons={context.tree.persons}
@@ -34,7 +34,7 @@ export const familyTab: TabDescriptor = {
         mediaApi={context.tree.mediaApi}
         onOpenMedia={context.tabs.open.media}
         onOpenSource={context.tabs.open.source}
-        onClose={context.tabs.closeTab}
+        onClose={() => context.tabs.closeTab(id)}
       />
     );
   },

@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import {
-  AttachmentsPanel,
-  CitationAttachments,
-  EntityTab,
-  FamilyEditor,
-  NoteAttachments,
-  type FamilyEditorApi,
-  type MediaTargetApi,
-} from '@doru/features';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
+import { FamilyEditor } from './FamilyEditor';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
@@ -26,12 +21,10 @@ import {
   familyToDraft,
   type FamilyDraft,
 } from '@doru/ui/domain';
-import { nls } from '@doru/workbench';
-import { useAttachments } from '@doru/features';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
+import { nls } from '../nls';
 
 export function FamilyTab({
-  tabId,
+  entityId,
   families,
   api,
   persons,
@@ -43,7 +36,7 @@ export function FamilyTab({
   onOpenSource,
   onClose,
 }: {
-  tabId: string;
+  entityId: string;
   families: FamilyRecord[];
   api: FamilyEditorApi;
   persons: PersonRecord[];
@@ -53,16 +46,15 @@ export function FamilyTab({
   mediaApi: MediaTargetApi;
   onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
 }) {
-  const familyId = tabId.slice(ENTITY_TAB_PREFIX.family.length);
+  const familyId = entityId;
   const record = families.find((family) => family.id === familyId);
   if (!record) {
     return <p className="person-missing">{nls.t('features.tree.familyNotFound')}</p>;
   }
   return (
     <FamilyTabBody
-      tabId={tabId}
       record={record}
       families={families}
       api={api}
@@ -79,7 +71,6 @@ export function FamilyTab({
 }
 
 function FamilyTabBody({
-  tabId,
   record,
   families,
   api,
@@ -92,7 +83,6 @@ function FamilyTabBody({
   onOpenSource,
   onClose,
 }: {
-  tabId: string;
   record: FamilyRecord;
   families: FamilyRecord[];
   api: FamilyEditorApi;
@@ -103,7 +93,7 @@ function FamilyTabBody({
   mediaApi: MediaTargetApi;
   onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
 }) {
   const [draft, setDraft] = useState<FamilyDraft>(() => familyToDraft(record));
   const {
@@ -140,7 +130,7 @@ function FamilyTabBody({
 
   const remove = async () => {
     await api.deleteFamily(record);
-    onClose(tabId);
+    onClose();
   };
 
   return (

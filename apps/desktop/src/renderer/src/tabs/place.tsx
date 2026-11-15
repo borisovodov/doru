@@ -1,6 +1,6 @@
 import { placeName } from '@doru/core/model';
 import { nls } from '@doru/workbench';
-import { PlaceTab } from '../components/PlaceTab';
+import { PlaceTab } from '@doru/features/place';
 import { ENTITY_TAB_PREFIX, entityTabId, type TabDescriptor } from './types';
 
 const prefix = ENTITY_TAB_PREFIX.place;
@@ -19,7 +19,7 @@ export const placeTab: TabDescriptor = {
   },
   render: (id, context) => (
     <PlaceTab
-      tabId={id}
+      entityId={id.slice(prefix.length)}
       places={context.tree.places}
       api={{ ...context.tree.placeApi, openTask: context.tabs.open.task }}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('place', realId))}
@@ -32,7 +32,7 @@ export const placeTab: TabDescriptor = {
       onOpenPerson={context.openPersonAndFocus}
       onOpenMedia={context.tabs.open.media}
       onOpenSource={context.tabs.open.source}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
     />
   ),
 };

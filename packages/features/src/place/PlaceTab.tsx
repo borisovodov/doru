@@ -1,22 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type {
-  CitationRecord,
-  FactRecord,
-  FamilyRecord,
-  NoteRecord,
-  PersonRecord,
-  PlaceRecord,
-  RepositoryRecord,
-  SourceRecord,
-  TitleRecord,
-} from '@doru/core';
-import {
-  EntityTab,
-  SourceCitationsList,
-  SourceEditor,
-  type MediaTargetApi,
-  type SourceEditorApi,
-} from '@doru/features';
+import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
+import { PlaceEditor } from './PlaceEditor';
+import { PlaceFactsList } from './PlaceFactsList';
+import { emptyPlaceDraft, placeDraftMatches, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
@@ -29,26 +18,17 @@ import {
   TagsSection,
   MediaSection,
   TasksSection,
-  emptySourceDraft,
-  sourceDraftMatches,
-  sourceDraftToRecord,
-  sourceToDraft,
-  type SourceDraft,
 } from '@doru/ui/domain';
-import { nls } from '@doru/workbench';
-import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
+import { nls } from '../nls';
 
-export function SourceTab({
-  tabId,
-  sources,
+export function PlaceTab({
+  entityId,
+  places,
   api,
   persons,
   families,
   facts,
-  places,
-  citations,
-  notes,
+  sources,
   media,
   mediaApi,
   onOpenPerson,
@@ -57,42 +37,37 @@ export function SourceTab({
   onClose,
   onCreated,
 }: {
-  tabId: string;
-  sources: SourceRecord[];
-  api: SourceEditorApi;
-  media: MediaWithPath[];
-  mediaApi: MediaTargetApi;
-  onOpenMedia: (mediaId: string) => void;
+  entityId: string;
+  places: PlaceRecord[];
+  api: PlaceEditorApi;
   persons: PersonRecord[];
   families: FamilyRecord[];
   facts: FactRecord[];
-  places: PlaceRecord[];
-  citations: CitationRecord[];
-  notes: NoteRecord[];
+  sources: SourceRecord[];
+  media: MediaWithPath[];
+  mediaApi: MediaTargetApi;
   onOpenPerson: (personId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const sourceId = tabId.slice(ENTITY_TAB_PREFIX.source.length);
-  const isNew = sourceId.startsWith('new:');
-  const record = sources.find((source) => source.id === sourceId);
+  const placeId = entityId;
+  const isNew = placeId.startsWith('new:');
+  const record = places.find((place) => place.id === placeId);
   if (!isNew && !record) {
-    return <p className="person-missing">{nls.t('features.sources.notFound')}</p>;
+    return <p className="person-missing">{nls.t('features.tree.place.notFound')}</p>;
   }
   return (
-    <SourceTabBody
-      tabId={tabId}
+    <PlaceTabBody
       record={record}
       isNew={isNew}
+      places={places}
       api={api}
       persons={persons}
       families={families}
       facts={facts}
-      places={places}
       sources={sources}
-      citations={citations}
-      notes={notes}
       media={media}
       mediaApi={mediaApi}
       onOpenPerson={onOpenPerson}
@@ -104,59 +79,50 @@ export function SourceTab({
   );
 }
 
-function SourceTabBody({
-  tabId,
+function PlaceTabBody({
   record,
   isNew,
+  places,
   api,
   persons,
   families,
   facts,
-  places,
   sources,
   media,
   mediaApi,
-  onOpenMedia,
-  citations,
-  notes,
   onOpenPerson,
+  onOpenMedia,
   onOpenSource,
   onClose,
   onCreated,
 }: {
-  tabId: string;
-  record: SourceRecord | undefined;
+  record: PlaceRecord | undefined;
   isNew: boolean;
-  api: SourceEditorApi;
+  places: PlaceRecord[];
+  api: PlaceEditorApi;
   persons: PersonRecord[];
   families: FamilyRecord[];
   facts: FactRecord[];
-  places: PlaceRecord[];
   sources: SourceRecord[];
-  citations: CitationRecord[];
-  notes: NoteRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
-  onOpenMedia: (mediaId: string) => void;
   onOpenPerson: (personId: string) => void;
+  onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const [draft, setDraft] = useState<SourceDraft>(() =>
-    isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
+  const [draft, setDraft] = useState<PlaceDraft>(() =>
+    isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
   );
-  const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
-  const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
-  const [titles, setTitles] = useState<TitleRecord[]>([]);
+  const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
   const recordRef = useRef(record);
 
-  const currentSource = lastSaved ?? record;
-  const targetId = currentSource?.id;
+  const targetId = (lastSaved ?? record)?.id;
   const {
-    notes: sourceNotes,
+    notes: placeNotes,
     allNotes,
-    citations: sourceCitations,
+    citations: placeCitations,
     tags,
     tagLinks,
     identifiers,
@@ -166,9 +132,9 @@ function SourceTabBody({
     submitters,
     contributors,
     refresh: refreshAttachments,
-  } = useAttachments('source', targetId, api, true);
+  } = useAttachments('place', targetId, api, true);
 
-  // Reset the draft only when it still equals the previous stored source —
+  // Reset the draft only when it still equals the previous stored place —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
   // clobber in-progress edits.
   useEffect(() => {
@@ -178,34 +144,21 @@ function SourceTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     setDraft((current) =>
-      previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
+      previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
     );
   }, [record, isNew]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void api.getRepositories().then((loaded) => {
-      if (!cancelled) setRepositories(loaded);
-    });
-    void api.getTitles().then((loaded) => {
-      if (!cancelled) setTitles(loaded);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [api, record]);
-
   const save = async () => {
-    const next = sourceDraftToRecord(draft);
+    const next = placeDraftToRecord(draft);
     if (isNew && lastSaved === undefined) {
-      await api.addSource(next);
+      await api.addPlace(next);
       onCreated(next.id);
     } else {
       const target = lastSaved ?? record;
       if (target === undefined) {
         return;
       }
-      await api.updateSource(target, next);
+      await api.updatePlace(target, next);
     }
     setLastSaved(next);
   };
@@ -213,44 +166,39 @@ function SourceTabBody({
   const remove = async () => {
     const target = lastSaved ?? record;
     if (target) {
-      await api.deleteSource(target);
+      await api.deletePlace(target);
     }
-    onClose(tabId);
+    onClose();
   };
+
+  const currentPlace = lastSaved ?? record;
+  const factsAtPlace = currentPlace !== undefined ? facts.filter((fact) => fact.placeId === currentPlace.id) : [];
 
   return (
     <EntityTab>
-      <SourceEditor
+      <PlaceEditor
         draft={draft}
         onChange={setDraft}
-        repositories={repositories}
-        titles={titles}
         places={places}
-        onAddRepository={async (repository) => {
-          await api.addRepository(repository);
-          setRepositories(await api.getRepositories());
-        }}
         onSave={() => void save()}
         onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
+        renderAttachments={(linkId) => (
+          <AttachmentsPanel targetType="place_hierarchy" targetId={linkId} api={api} sources={sources} />
+        )}
+        renderNameAttachments={(nameId) => (
+          <AttachmentsPanel targetType="place_name" targetId={nameId} api={api} sources={sources} />
+        )}
       />
-      {currentSource !== undefined && (
+      {(lastSaved !== undefined || record !== undefined) && (
         <>
-          <SourceCitationsList
-            source={currentSource}
-            persons={persons}
-            families={families}
-            facts={facts}
-            citations={citations}
-            notes={notes}
-            onOpenPerson={onOpenPerson}
-          />
+          <PlaceFactsList facts={factsAtPlace} persons={persons} families={families} onOpenPerson={onOpenPerson} />
           {targetId !== undefined && (
             <>
               <SourcesSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 sources={sources}
-                citations={sourceCitations}
+                citations={placeCitations}
                 refresh={refreshAttachments}
                 onAddSource={api.addSource}
                 onAttachSource={api.attachSource}
@@ -262,12 +210,12 @@ function SourceTabBody({
                 )}
               />
               <NotesSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
-                notes={sourceNotes}
+                notes={placeNotes}
                 availableNotes={allNotes}
                 onAdd={async (text) => {
-                  await api.addNote({ id: crypto.randomUUID(), text, targetType: 'source', targetId });
+                  await api.addNote({ id: crypto.randomUUID(), text, targetType: 'place', targetId });
                   await refreshAttachments();
                 }}
                 onUpdate={async (before, after, context) => {
@@ -275,7 +223,7 @@ function SourceTabBody({
                   await refreshAttachments();
                 }}
                 onAttach={async (noteId) => {
-                  await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'source', targetId });
+                  await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'place', targetId });
                   await refreshAttachments();
                 }}
                 onDetach={async (note, link) => {
@@ -291,7 +239,7 @@ function SourceTabBody({
                 )}
               />
               <IdentifiersSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 identifiers={identifiers}
                 onAdd={async (identifier) => {
@@ -308,7 +256,7 @@ function SourceTabBody({
                 }}
               />
               <ContactsSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 contacts={contacts}
                 onAdd={async (contact) => {
@@ -325,7 +273,7 @@ function SourceTabBody({
                 }}
               />
               <RestrictionsSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 restrictions={restrictions}
                 onAdd={async (restriction) => {
@@ -342,7 +290,7 @@ function SourceTabBody({
                 }}
               />
               <TagsSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 tags={tags}
                 tagLinks={tagLinks}
@@ -363,24 +311,24 @@ function SourceTabBody({
                 }}
               />
               <MediaSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 media={media.filter((item) =>
-                  item.links?.some((link) => link.targetType === 'source' && link.targetId === targetId),
+                  item.links?.some((link) => link.targetType === 'place' && link.targetId === targetId),
                 )}
                 api={mediaApi}
                 refresh={async () => undefined}
                 onOpenMedia={onOpenMedia}
               />
               <ContributorsSection
-                targetType="source"
+                targetType="place"
                 targetId={targetId}
                 submitters={submitters}
                 links={contributors}
                 onAdd={api.addRecordSubmitter}
                 onDelete={api.deleteRecordSubmitter}
               />
-              <TasksSection targetType="source" targetId={targetId} api={api} />
+              <TasksSection targetType="place" targetId={targetId} api={api} />
               <ChangesSection changes={changes} />
             </>
           )}

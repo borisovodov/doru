@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PersonRecord } from '@doru/core';
-import { PersonEditor, type MediaTargetApi, type PersonEditorApi } from '@doru/features';
+import { PersonEditor } from './PersonEditor';
+import type { MediaTargetApi, PersonEditorApi } from './types';
+import { nls } from '../nls';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
-import { nls } from '@doru/workbench';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function PersonTab({
-  tabId,
+  entityId,
   persons,
   api,
   mediaApi,
@@ -15,16 +15,16 @@ export function PersonTab({
   onCreated,
   onDeletePerson,
 }: {
-  tabId: string;
+  entityId: string;
   persons: PersonRecord[];
   api: PersonEditorApi;
   mediaApi: MediaTargetApi;
   onOpenMedia: (mediaId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
   onDeletePerson: (person: PersonRecord) => Promise<void>;
 }) {
-  const personId = tabId.slice(ENTITY_TAB_PREFIX.person.length);
+  const personId = entityId;
   const isNew = personId.startsWith('new:');
   const record = persons.find((person) => person.id === personId);
   if (!isNew && !record) {
@@ -32,7 +32,6 @@ export function PersonTab({
   }
   return (
     <PersonTabBody
-      tabId={tabId}
       personId={personId}
       isNew={isNew}
       persons={persons}
@@ -47,7 +46,6 @@ export function PersonTab({
 }
 
 function PersonTabBody({
-  tabId,
   personId,
   isNew,
   persons,
@@ -58,14 +56,13 @@ function PersonTabBody({
   onCreated,
   onDeletePerson,
 }: {
-  tabId: string;
   personId: string;
   isNew: boolean;
   persons: PersonRecord[];
   api: PersonEditorApi;
   mediaApi: MediaTargetApi;
   onOpenMedia: (mediaId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
   onDeletePerson: (person: PersonRecord) => Promise<void>;
 }) {
@@ -122,11 +119,11 @@ function PersonTabBody({
       onDelete={
         !draft.isNew && record !== undefined
           ? () => {
-              void onDeletePerson(record).then(() => onClose(tabId));
+              void onDeletePerson(record).then(() => onClose());
             }
           : undefined
       }
-      onCancel={draft.isNew && !created ? () => onClose(tabId) : undefined}
+      onCancel={draft.isNew && !created ? () => onClose() : undefined}
       api={api}
       mediaApi={mediaApi}
       onOpenMedia={onOpenMedia}

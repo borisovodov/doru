@@ -1,5 +1,5 @@
 import { nls } from '@doru/workbench';
-import { TaskTab } from '../components/TaskTab';
+import { TaskTab } from '@doru/features/task';
 import { ENTITY_TAB_PREFIX, entityTabId, type TabDescriptor } from './types';
 
 const prefix = ENTITY_TAB_PREFIX.task;
@@ -18,7 +18,7 @@ export const taskTab: TabDescriptor = {
   },
   render: (id, context) => (
     <TaskTab
-      tabId={id}
+      entityId={id.slice(prefix.length)}
       todos={context.tree.todos}
       persons={context.tree.persons}
       families={context.tree.families}
@@ -34,7 +34,7 @@ export const taskTab: TabDescriptor = {
       addresses={context.tree.addresses}
       associations={context.tree.associations}
       api={{ ...context.tree.todosApi, openTask: context.tabs.open.task }}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
       onOpenMedia={context.tabs.open.media}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('task', realId))}
     />

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AddressRecord } from '@doru/core';
-import type { RegistriesEditorApi } from '@doru/features';
+import type { RegistriesEditorApi } from '../person/types';
 import {
   addressDraftEmpty,
   addressDraftToRecord,

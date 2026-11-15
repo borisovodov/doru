@@ -1,4 +1,4 @@
-import { MediaTab } from '../components/MediaTab';
+import { MediaTab } from '@doru/features/media';
 import { ENTITY_TAB_PREFIX, type TabDescriptor } from './types';
 
 const prefix = ENTITY_TAB_PREFIX.media;
@@ -13,7 +13,7 @@ export const mediaTab: TabDescriptor = {
   },
   render: (id, context) => (
     <MediaTab
-      tabId={id}
+      entityId={id.slice(prefix.length)}
       media={context.tree.media}
       api={context.tree.mediaAdminApi}
       attachmentsApi={{ ...context.tree.api, openTask: context.tabs.open.task }}
@@ -34,7 +34,7 @@ export const mediaTab: TabDescriptor = {
         associations: context.tree.associations,
         todos: context.tree.todos,
       }}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
     />
   ),
 };

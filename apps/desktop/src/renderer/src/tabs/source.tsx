@@ -1,5 +1,5 @@
 import { nls } from '@doru/workbench';
-import { SourceTab } from '../components/SourceTab';
+import { SourceTab } from '@doru/features/source';
 import { ENTITY_TAB_PREFIX, entityTabId, type TabDescriptor } from './types';
 
 const prefix = ENTITY_TAB_PREFIX.source;
@@ -24,7 +24,7 @@ export const sourceTab: TabDescriptor = {
     }
     return (
       <SourceTab
-        tabId={id}
+        entityId={id.slice(prefix.length)}
         sources={context.tree.sources}
         api={{ ...context.tree.sourceApi, openTask: context.tabs.open.task }}
         onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('source', realId))}
@@ -39,7 +39,7 @@ export const sourceTab: TabDescriptor = {
         onOpenPerson={context.openPersonAndFocus}
         onOpenMedia={context.tabs.open.media}
         onOpenSource={context.tabs.open.source}
-        onClose={context.tabs.closeTab}
+        onClose={() => context.tabs.closeTab(id)}
       />
     );
   },

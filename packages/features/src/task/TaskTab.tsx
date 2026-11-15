@@ -17,7 +17,9 @@ import type {
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import { AttachmentsPanel, EntityTab, type TodoEditorApi } from '@doru/features';
+import { AttachmentsPanel } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { TodoEditorApi } from '../person/types';
 import {
   TaskEditorFields,
   emptyTodoDraft,
@@ -26,13 +28,12 @@ import {
   todoToDraft,
   type TodoDraft,
 } from '@doru/ui/domain';
-import { nls } from '@doru/workbench';
+import { nls } from '../nls';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function TaskTab({
-  tabId,
+  entityId,
   todos,
   persons,
   families,
@@ -52,7 +53,7 @@ export function TaskTab({
   onOpenMedia,
   onCreated,
 }: {
-  tabId: string;
+  entityId: string;
   todos: TodoRecord[];
   persons: PersonRecord[];
   families: FamilyRecord[];
@@ -68,11 +69,11 @@ export function TaskTab({
   addresses: AddressRecord[];
   associations: AssociationRecord[];
   api: TodoEditorApi;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const taskId = tabId.slice(ENTITY_TAB_PREFIX.task.length);
+  const taskId = entityId;
   const isNew = taskId.startsWith('new:');
   const record = todos.find((todo) => todo.id === taskId);
   if (!isNew && !record) {
@@ -80,7 +81,6 @@ export function TaskTab({
   }
   return (
     <TaskTabBody
-      tabId={tabId}
       record={record}
       isNew={isNew}
       todos={todos}
@@ -106,7 +106,6 @@ export function TaskTab({
 }
 
 function TaskTabBody({
-  tabId,
   record,
   isNew,
   todos,
@@ -128,7 +127,6 @@ function TaskTabBody({
   onOpenMedia,
   onCreated,
 }: {
-  tabId: string;
   record: TodoRecord | undefined;
   isNew: boolean;
   todos: TodoRecord[];
@@ -146,7 +144,7 @@ function TaskTabBody({
   addresses: AddressRecord[];
   associations: AssociationRecord[];
   api: TodoEditorApi;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
 }) {
@@ -224,7 +222,7 @@ function TaskTabBody({
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteTodo(target);
-    onClose(tabId);
+    onClose();
   };
 
   return (

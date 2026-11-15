@@ -1,14 +1,15 @@
 import { MapPin } from 'lucide-react';
 import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
-import { AttachmentsPanel, EntityTab, type RegistriesEditorApi } from '@doru/features';
+import { AttachmentsPanel } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { RegistriesEditorApi } from '../person/types';
 import { AddressFields, addressDraftToRecord, addressLabel } from '@doru/ui/domain';
 import { Button, EntityViewCard, SectionCard } from '@doru/ui';
-import { nls } from '@doru/workbench';
+import { nls } from '../nls';
 import { useRegistryAddress } from './useRegistryAddress';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function AddressTab({
-  tabId,
+  entityId,
   addresses,
   facts,
   repositories,
@@ -18,17 +19,17 @@ export function AddressTab({
   onClose,
   onCreated,
 }: {
-  tabId: string;
+  entityId: string;
   addresses: AddressRecord[];
   facts: FactRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
   sources: SourceRecord[];
   api: RegistriesEditorApi;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const addressId = tabId.slice(ENTITY_TAB_PREFIX.address.length);
+  const addressId = entityId;
   const isNew = addressId.startsWith('new:');
   const record = addresses.find((address) => address.id === addressId);
   if (!isNew && !record) {
@@ -36,7 +37,6 @@ export function AddressTab({
   }
   return (
     <AddressTabBody
-      tabId={tabId}
       record={record}
       isNew={isNew}
       facts={facts}
@@ -51,7 +51,6 @@ export function AddressTab({
 }
 
 function AddressTabBody({
-  tabId,
   record,
   isNew,
   facts,
@@ -62,7 +61,6 @@ function AddressTabBody({
   onClose,
   onCreated,
 }: {
-  tabId: string;
   record: AddressRecord | undefined;
   isNew: boolean;
   facts: FactRecord[];
@@ -70,7 +68,7 @@ function AddressTabBody({
   submitters: SubmitterRecord[];
   sources: SourceRecord[];
   api: RegistriesEditorApi;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
@@ -97,7 +95,7 @@ function AddressTabBody({
     if (record !== undefined) {
       await api.deleteAddress(record);
     }
-    onClose(tabId);
+    onClose();
   };
 
   return (

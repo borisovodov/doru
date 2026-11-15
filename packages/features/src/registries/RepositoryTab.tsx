@@ -1,11 +1,12 @@
-import { IconButton } from '@doru/ui';
 import { useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
-import { Field, FieldGrid, InlineForm } from '@doru/ui';
-import { Plus, User, X } from 'lucide-react';
-import type { AddressRecord, SourceRecord, SubmitterRecord } from '@doru/core';
-import { EntityTab, type MediaTargetApi, type RegistriesEditorApi } from '@doru/features';
+import { Field } from '@doru/ui';
+import { Archive } from 'lucide-react';
+import type { AddressRecord, RepositoryRecord, SourceRecord } from '@doru/core';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   AddressLinkField,
@@ -21,18 +22,14 @@ import {
   TasksSection,
   addressLabel,
 } from '@doru/ui/domain';
-import { nls } from '@doru/workbench';
+import { nls } from '../nls';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
 import { useRegistryAddress } from './useRegistryAddress';
 
-/* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
-
-export function SubmitterTab({
-  tabId,
-  submitters,
+export function RepositoryTab({
+  entityId,
+  repositories,
   addresses,
   api,
   sources,
@@ -44,8 +41,8 @@ export function SubmitterTab({
   onClose,
   onCreated,
 }: {
-  tabId: string;
-  submitters: SubmitterRecord[];
+  entityId: string;
+  repositories: RepositoryRecord[];
   addresses: AddressRecord[];
   api: RegistriesEditorApi;
   sources: SourceRecord[];
@@ -54,18 +51,17 @@ export function SubmitterTab({
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const submitterId = tabId.slice(ENTITY_TAB_PREFIX.submitter.length);
-  const isNew = submitterId.startsWith('new:');
-  const record = submitters.find((submitter) => submitter.id === submitterId);
+  const repositoryId = entityId;
+  const isNew = repositoryId.startsWith('new:');
+  const record = repositories.find((repository) => repository.id === repositoryId);
   if (!isNew && !record) {
-    return <p className="person-missing">{nls.t('features.tree.submitter.notFound')}</p>;
+    return <p className="person-missing">{nls.t('features.tree.repository.notFound')}</p>;
   }
   return (
-    <SubmitterTabBody
-      tabId={tabId}
+    <RepositoryTabBody
       record={record}
       addresses={addresses}
       isNew={isNew}
@@ -82,8 +78,7 @@ export function SubmitterTab({
   );
 }
 
-function SubmitterTabBody({
-  tabId,
+function RepositoryTabBody({
   record,
   addresses,
   isNew,
@@ -97,8 +92,7 @@ function SubmitterTabBody({
   onClose,
   onCreated,
 }: {
-  tabId: string;
-  record: SubmitterRecord | undefined;
+  record: RepositoryRecord | undefined;
   addresses: AddressRecord[];
   isNew: boolean;
   api: RegistriesEditorApi;
@@ -108,31 +102,30 @@ function SubmitterTabBody({
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const base: SubmitterRecord = record ?? { id: crypto.randomUUID(), name: '' };
-  const [lastSaved, setLastSaved] = useState<SubmitterRecord | undefined>(record);
+  const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
   const [name, setName] = useState(base.name);
-  const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
   const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
   const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
-    notes: submitterNotes,
+    notes: repositoryNotes,
     allNotes,
-    citations: submitterCitations,
+    citations: repositoryCitations,
     tags,
     tagLinks,
     identifiers,
     contacts,
     restrictions,
     changes,
-    submitters: contributorOptions,
+    submitters,
     contributors,
     refresh: refreshAttachments,
-  } = useAttachments('submitter', targetId, api, true);
+  } = useAttachments('repository', targetId, api, true);
 
   const selectAddress = (addressId: string | undefined) => {
     setLinkedAddressId(addressId);
@@ -141,36 +134,28 @@ function SubmitterTabBody({
     }
   };
 
-  const patchLanguage = (index: number, value: string) =>
-    setLanguages(languages.map((language, i) => (i === index ? value : language)));
-
   const save = async () => {
-    const next: SubmitterRecord = {
-      id: base.id,
-      xref: base.xref,
-      name: name.trim(),
-      languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
-    };
+    const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
     next.addressId = linkedAddressId ?? (await saveAddress());
     if (isNew && lastSaved === undefined) {
-      await api.addSubmitter(next);
+      await api.addRepository(next);
       onCreated(next.id);
     } else {
-      await api.updateSubmitter(lastSaved ?? base, next);
+      await api.updateRepository(lastSaved ?? base, next);
     }
     setLastSaved(next);
   };
 
   const remove = async () => {
     const target = lastSaved ?? base;
-    await api.deleteSubmitter(target);
-    onClose(tabId);
+    await api.deleteRepository(target);
+    onClose();
   };
 
   return (
     <EntityTab>
       <EntityViewCard
-        media={<User size={20} aria-hidden="true" />}
+        media={<Archive size={20} aria-hidden="true" />}
         title={name.trim() || '—'}
         subtitle={addressText !== '' ? addressText : null}
         actions={
@@ -188,30 +173,9 @@ function SubmitterTabBody({
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
-        <Field label={nls.t('features.tree.submitter.name')}>
+        <Field label={nls.t('features.tree.repository.name')}>
           <Input value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
-        <FieldGrid columns={1}>
-          {languages.map((language, index) => (
-            <InlineForm key={index}>
-              <Input
-                placeholder={nls.t('features.tree.submitter.languages.field')}
-                value={language}
-                onChange={(event) => patchLanguage(index, event.target.value)}
-              />
-              <IconButton
-                size="sm"
-                label={nls.t('features.tree.submitter.languages.remove')}
-                icon={<X size={13} aria-hidden="true" />}
-                onClick={() => setLanguages(languages.filter((_, i) => i !== index))}
-              />
-            </InlineForm>
-          ))}
-        </FieldGrid>
-        <Button variant="primary" size="sm" onClick={() => setLanguages([...languages, ''])}>
-          <Plus size={13} aria-hidden="true" />
-          {nls.t('features.tree.submitter.languages.add')}
-        </Button>
         <AddressLinkField
           addresses={addresses}
           addressId={linkedAddressId}
@@ -227,10 +191,10 @@ function SubmitterTabBody({
       {targetId !== undefined && (
         <>
           <SourcesSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
             sources={sources}
-            citations={submitterCitations}
+            citations={repositoryCitations}
             refresh={refreshAttachments}
             onAddSource={api.addSource}
             onAttachSource={api.attachSource}
@@ -242,12 +206,12 @@ function SubmitterTabBody({
             )}
           />
           <NotesSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
-            notes={submitterNotes}
+            notes={repositoryNotes}
             availableNotes={allNotes}
             onAdd={async (text) => {
-              await api.addNote({ id: crypto.randomUUID(), text, targetType: 'submitter', targetId });
+              await api.addNote({ id: crypto.randomUUID(), text, targetType: 'repository', targetId });
               await refreshAttachments();
             }}
             onUpdate={async (before, after, context) => {
@@ -255,7 +219,7 @@ function SubmitterTabBody({
               await refreshAttachments();
             }}
             onAttach={async (noteId) => {
-              await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'submitter', targetId });
+              await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'repository', targetId });
               await refreshAttachments();
             }}
             onDetach={async (note, link) => {
@@ -271,7 +235,7 @@ function SubmitterTabBody({
             )}
           />
           <IdentifiersSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
             identifiers={identifiers}
             onAdd={async (identifier) => {
@@ -288,7 +252,7 @@ function SubmitterTabBody({
             }}
           />
           <ContactsSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
             contacts={contacts}
             onAdd={async (contact) => {
@@ -305,7 +269,7 @@ function SubmitterTabBody({
             }}
           />
           <RestrictionsSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
             restrictions={restrictions}
             onAdd={async (restriction) => {
@@ -322,7 +286,7 @@ function SubmitterTabBody({
             }}
           />
           <TagsSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
             tags={tags}
             tagLinks={tagLinks}
@@ -343,24 +307,24 @@ function SubmitterTabBody({
             }}
           />
           <MediaSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
             media={media.filter((item) =>
-              item.links?.some((link) => link.targetType === 'submitter' && link.targetId === targetId),
+              item.links?.some((link) => link.targetType === 'repository' && link.targetId === targetId),
             )}
             api={mediaApi}
             refresh={async () => undefined}
             onOpenMedia={onOpenMedia}
           />
           <ContributorsSection
-            targetType="submitter"
+            targetType="repository"
             targetId={targetId}
-            submitters={contributorOptions}
+            submitters={submitters}
             links={contributors}
             onAdd={api.addRecordSubmitter}
             onDelete={api.deleteRecordSubmitter}
           />
-          <TasksSection targetType="submitter" targetId={targetId} api={api} />
+          <TasksSection targetType="repository" targetId={targetId} api={api} />
           <ChangesSection changes={changes} />
         </>
       )}

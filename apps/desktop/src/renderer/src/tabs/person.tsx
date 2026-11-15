@@ -1,6 +1,6 @@
 import { displayName } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { PersonTab } from '../components/PersonTab';
+import { PersonTab } from '@doru/features/person';
 import { ENTITY_TAB_PREFIX, entityTabId, type TabDescriptor } from './types';
 
 const prefix = ENTITY_TAB_PREFIX.person;
@@ -19,12 +19,12 @@ export const personTab: TabDescriptor = {
   },
   render: (id, context) => (
     <PersonTab
-      tabId={id}
+      entityId={id.slice(prefix.length)}
       persons={context.tree.persons}
       api={{ ...context.tree.api, openSource: context.tabs.open.source, openTask: context.tabs.open.task }}
       mediaApi={context.tree.mediaApi}
       onOpenMedia={context.tabs.open.media}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('person', realId))}
       onDeletePerson={context.tree.deletePerson}
     />

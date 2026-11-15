@@ -7,14 +7,15 @@ import { Field, FieldGrid } from '@doru/ui';
 import { AttachmentRow, RowList } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
-import { AttachmentsPanel, EntityTab, type TitleEditorApi } from '@doru/features';
-import { nls } from '@doru/workbench';
+import { AttachmentsPanel } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { TitleEditorApi } from '../person/types';
+import { nls } from '../nls';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function TitleTab({
-  tabId,
+  entityId,
   titles,
   sources,
   repositories,
@@ -24,17 +25,17 @@ export function TitleTab({
   onOpenMedia,
   onCreated,
 }: {
-  tabId: string;
+  entityId: string;
   titles: TitleRecord[];
   sources: SourceRecord[];
   repositories: RepositoryRecord[];
   api: TitleEditorApi;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const titleId = tabId.slice(ENTITY_TAB_PREFIX.title.length);
+  const titleId = entityId;
   const isNew = titleId.startsWith('new:');
   const record = titles.find((title) => title.id === titleId);
   if (!isNew && !record) {
@@ -42,7 +43,6 @@ export function TitleTab({
   }
   return (
     <TitleTabBody
-      tabId={tabId}
       record={record}
       isNew={isNew}
       sources={sources}
@@ -57,7 +57,6 @@ export function TitleTab({
 }
 
 function TitleTabBody({
-  tabId,
   record,
   isNew,
   sources,
@@ -68,13 +67,12 @@ function TitleTabBody({
   onOpenMedia,
   onCreated,
 }: {
-  tabId: string;
   record: TitleRecord | undefined;
   isNew: boolean;
   sources: SourceRecord[];
   repositories: RepositoryRecord[];
   api: TitleEditorApi;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
@@ -125,7 +123,7 @@ function TitleTabBody({
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteTitle(target);
-    onClose(tabId);
+    onClose();
   };
 
   return (

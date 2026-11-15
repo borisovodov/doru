@@ -1,9 +1,6 @@
 import { addressLabel } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { AddressTab } from '../components/AddressTab';
-import { RepositoryTab } from '../components/RepositoryTab';
-import { SubmitterTab } from '../components/SubmitterTab';
-import { TitleTab } from '../components/TitleTab';
+import { AddressTab, RepositoryTab, SubmitterTab, TitleTab } from '@doru/features/registries';
 import { ENTITY_TAB_PREFIX, entityTabId, type TabDescriptor } from './types';
 
 const repositoryPrefix = ENTITY_TAB_PREFIX.repository;
@@ -25,7 +22,7 @@ export const repositoryTab: TabDescriptor = {
   },
   render: (id, context) => (
     <RepositoryTab
-      tabId={id}
+      entityId={id.slice(repositoryPrefix.length)}
       repositories={context.tree.repositories}
       addresses={context.tree.addresses}
       api={{ ...context.tree.registriesApi, openTask: context.tabs.open.task }}
@@ -35,7 +32,7 @@ export const repositoryTab: TabDescriptor = {
       onOpenSource={context.tabs.open.source}
       onOpenMedia={context.tabs.open.media}
       onOpenAddress={context.tabs.open.address}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('repository', realId))}
     />
   ),
@@ -55,7 +52,7 @@ export const submitterTab: TabDescriptor = {
   },
   render: (id, context) => (
     <SubmitterTab
-      tabId={id}
+      entityId={id.slice(submitterPrefix.length)}
       submitters={context.tree.submitters}
       addresses={context.tree.addresses}
       api={{ ...context.tree.registriesApi, openTask: context.tabs.open.task }}
@@ -65,7 +62,7 @@ export const submitterTab: TabDescriptor = {
       onOpenSource={context.tabs.open.source}
       onOpenMedia={context.tabs.open.media}
       onOpenAddress={context.tabs.open.address}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('submitter', realId))}
     />
   ),
@@ -85,14 +82,14 @@ export const addressTab: TabDescriptor = {
   },
   render: (id, context) => (
     <AddressTab
-      tabId={id}
+      entityId={id.slice(addressPrefix.length)}
       addresses={context.tree.addresses}
       facts={context.tree.facts}
       repositories={context.tree.repositories}
       submitters={context.tree.submitters}
       sources={context.tree.sources}
       api={{ ...context.tree.registriesApi, openTask: context.tabs.open.task }}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('address', realId))}
     />
   ),
@@ -112,12 +109,12 @@ export const titleTab: TabDescriptor = {
   },
   render: (id, context) => (
     <TitleTab
-      tabId={id}
+      entityId={id.slice(titlePrefix.length)}
       titles={context.tree.titles}
       sources={context.tree.sources}
       repositories={context.tree.repositories}
       api={{ ...context.tree.titlesApi, openTask: context.tabs.open.task }}
-      onClose={context.tabs.closeTab}
+      onClose={() => context.tabs.closeTab(id)}
       onOpenSource={context.tabs.open.source}
       onOpenMedia={context.tabs.open.media}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('title', realId))}

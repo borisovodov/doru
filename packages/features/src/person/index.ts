@@ -1,4 +1,5 @@
 export { PersonEditor, type PersonEditorProps } from './PersonEditor';
+export { PersonTab } from './PersonTab';
 export type {
   FamilyEditorApi,
   MediaAdminApi,

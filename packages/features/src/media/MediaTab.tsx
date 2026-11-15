@@ -12,14 +12,16 @@ import {
   ReorderButtons,
   SectionCard,
 } from '@doru/ui';
-import { AttachmentsPanel, EntityTab, type AttachmentsPanelApi, type MediaAdminApi } from '@doru/features';
-import { nls } from '@doru/workbench';
+import { AttachmentsPanel } from '../attachments';
+import { EntityTab } from '../sidebar';
+import type { AttachmentsPanelApi } from '../attachments';
+import type { MediaAdminApi } from '../person/types';
+import { nls } from '../nls';
 import { moveItem, taskTargetLabel, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
-import { ENTITY_TAB_PREFIX } from '../tabs/types';
 import './MediaTab.css';
 
 export function MediaTab({
-  tabId,
+  entityId,
   media,
   api,
   attachmentsApi,
@@ -27,15 +29,15 @@ export function MediaTab({
   targetData,
   onClose,
 }: {
-  tabId: string;
+  entityId: string;
   media: MediaWithPath[];
   api: MediaAdminApi;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
   targetData: TaskTargetData;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
 }) {
-  const mediaId = tabId.slice(ENTITY_TAB_PREFIX.media.length);
+  const mediaId = entityId;
   const record = media.find((entry) => entry.id === mediaId);
   if (!record) {
     return <p className="person-missing">{nls.t('features.tree.media.notFound')}</p>;
@@ -43,7 +45,6 @@ export function MediaTab({
   return (
     <MediaTabBody
       key={record.id}
-      tabId={tabId}
       record={record}
       api={api}
       attachmentsApi={attachmentsApi}
@@ -55,7 +56,6 @@ export function MediaTab({
 }
 
 function MediaTabBody({
-  tabId,
   record,
   api,
   attachmentsApi,
@@ -63,13 +63,12 @@ function MediaTabBody({
   targetData,
   onClose,
 }: {
-  tabId: string;
   record: MediaWithPath;
   api: MediaAdminApi;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
   targetData: TaskTargetData;
-  onClose: (tabId: string) => void;
+  onClose: () => void;
 }) {
   const [title, setTitle] = useState(record.title ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
@@ -80,7 +79,7 @@ function MediaTabBody({
 
   const remove = async () => {
     await api.deleteMedia(record);
-    onClose(tabId);
+    onClose();
   };
 
   const addFiles = async () => {
@@ -211,7 +210,7 @@ function MediaTabBody({
                   await api.detachMedia(link);
                 } else {
                   await api.deleteMedia(record);
-                  onClose(tabId);
+                  onClose();
                 }
               }}
             />
