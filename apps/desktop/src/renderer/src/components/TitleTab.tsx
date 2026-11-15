@@ -11,7 +11,7 @@ import { AttachmentsPanel, EntityTab, type TitleEditorApi } from '@doru/features
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { TITLE_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function TitleTab({
   tabId,
@@ -34,7 +34,7 @@ export function TitleTab({
   onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const titleId = tabId.slice(TITLE_TAB_PREFIX.length);
+  const titleId = tabId.slice(ENTITY_TAB_PREFIX.title.length);
   const isNew = titleId.startsWith('new:');
   const record = titles.find((title) => title.id === titleId);
   if (!isNew && !record) {

@@ -29,7 +29,7 @@ import {
 import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
-import { TASK_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function TaskTab({
   tabId,
@@ -72,7 +72,7 @@ export function TaskTab({
   onOpenMedia: (mediaId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const taskId = tabId.slice(TASK_TAB_PREFIX.length);
+  const taskId = tabId.slice(ENTITY_TAB_PREFIX.task.length);
   const isNew = taskId.startsWith('new:');
   const record = todos.find((todo) => todo.id === taskId);
   if (!isNew && !record) {

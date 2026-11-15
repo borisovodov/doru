@@ -25,7 +25,7 @@ import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
-import { SUBMITTER_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 import { useRegistryAddress } from './useRegistryAddress';
 
 /* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
@@ -57,7 +57,7 @@ export function SubmitterTab({
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const submitterId = tabId.slice(SUBMITTER_TAB_PREFIX.length);
+  const submitterId = tabId.slice(ENTITY_TAB_PREFIX.submitter.length);
   const isNew = submitterId.startsWith('new:');
   const record = submitters.find((submitter) => submitter.id === submitterId);
   if (!isNew && !record) {

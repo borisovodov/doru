@@ -28,7 +28,7 @@ import {
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { useAttachments } from '@doru/features';
-import { FAMILY_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function FamilyTab({
   tabId,
@@ -55,7 +55,7 @@ export function FamilyTab({
   onOpenSource: (sourceId: string) => void;
   onClose: (tabId: string) => void;
 }) {
-  const familyId = tabId.slice(FAMILY_TAB_PREFIX.length);
+  const familyId = tabId.slice(ENTITY_TAB_PREFIX.family.length);
   const record = families.find((family) => family.id === familyId);
   if (!record) {
     return <p className="person-missing">{nls.t('features.tree.familyNotFound')}</p>;

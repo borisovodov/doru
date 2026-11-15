@@ -27,7 +27,7 @@ import {
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
-import { PLACE_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function PlaceTab({
   tabId,
@@ -60,7 +60,7 @@ export function PlaceTab({
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const placeId = tabId.slice(PLACE_TAB_PREFIX.length);
+  const placeId = tabId.slice(ENTITY_TAB_PREFIX.place.length);
   const isNew = placeId.startsWith('new:');
   const record = places.find((place) => place.id === placeId);
   if (!isNew && !record) {

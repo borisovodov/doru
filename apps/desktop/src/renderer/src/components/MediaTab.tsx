@@ -15,7 +15,7 @@ import {
 import { AttachmentsPanel, EntityTab, type AttachmentsPanelApi, type MediaAdminApi } from '@doru/features';
 import { nls } from '@doru/workbench';
 import { moveItem, taskTargetLabel, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
-import { MEDIA_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 import './MediaTab.css';
 
 export function MediaTab({
@@ -35,7 +35,7 @@ export function MediaTab({
   targetData: TaskTargetData;
   onClose: (tabId: string) => void;
 }) {
-  const mediaId = tabId.slice(MEDIA_TAB_PREFIX.length);
+  const mediaId = tabId.slice(ENTITY_TAB_PREFIX.media.length);
   const record = media.find((entry) => entry.id === mediaId);
   if (!record) {
     return <p className="person-missing">{nls.t('features.tree.media.notFound')}</p>;

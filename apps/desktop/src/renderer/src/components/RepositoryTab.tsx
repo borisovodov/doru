@@ -24,7 +24,7 @@ import { nls } from '@doru/workbench';
 import { Button } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
-import { REPOSITORY_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 import { useRegistryAddress } from './useRegistryAddress';
 
 export function RepositoryTab({
@@ -54,7 +54,7 @@ export function RepositoryTab({
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const repositoryId = tabId.slice(REPOSITORY_TAB_PREFIX.length);
+  const repositoryId = tabId.slice(ENTITY_TAB_PREFIX.repository.length);
   const isNew = repositoryId.startsWith('new:');
   const record = repositories.find((repository) => repository.id === repositoryId);
   if (!isNew && !record) {

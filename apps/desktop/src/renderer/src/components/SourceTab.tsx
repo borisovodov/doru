@@ -37,7 +37,7 @@ import {
 } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
 import { CitationAttachments, NoteAttachments, useAttachments } from '@doru/features';
-import { SOURCE_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function SourceTab({
   tabId,
@@ -74,7 +74,7 @@ export function SourceTab({
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const sourceId = tabId.slice(SOURCE_TAB_PREFIX.length);
+  const sourceId = tabId.slice(ENTITY_TAB_PREFIX.source.length);
   const isNew = sourceId.startsWith('new:');
   const record = sources.find((source) => source.id === sourceId);
   if (!isNew && !record) {

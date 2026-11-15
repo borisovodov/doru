@@ -3,7 +3,7 @@ import type { PersonRecord } from '@doru/core';
 import { PersonEditor, type MediaTargetApi, type PersonEditorApi } from '@doru/features';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 import { nls } from '@doru/workbench';
-import { PERSON_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function PersonTab({
   tabId,
@@ -24,7 +24,7 @@ export function PersonTab({
   onCreated: (realId: string) => void;
   onDeletePerson: (person: PersonRecord) => Promise<void>;
 }) {
-  const personId = tabId.slice(PERSON_TAB_PREFIX.length);
+  const personId = tabId.slice(ENTITY_TAB_PREFIX.person.length);
   const isNew = personId.startsWith('new:');
   const record = persons.find((person) => person.id === personId);
   if (!isNew && !record) {

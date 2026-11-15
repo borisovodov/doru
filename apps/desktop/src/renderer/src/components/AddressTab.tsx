@@ -5,7 +5,7 @@ import { AddressFields, addressDraftToRecord, addressLabel } from '@doru/ui/doma
 import { Button, EntityViewCard, SectionCard } from '@doru/ui';
 import { nls } from '@doru/workbench';
 import { useRegistryAddress } from './useRegistryAddress';
-import { ADDRESS_TAB_PREFIX } from '../hooks/useTabs';
+import { ENTITY_TAB_PREFIX } from '../tabs/types';
 
 export function AddressTab({
   tabId,
@@ -28,7 +28,7 @@ export function AddressTab({
   onClose: (tabId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const addressId = tabId.slice(ADDRESS_TAB_PREFIX.length);
+  const addressId = tabId.slice(ENTITY_TAB_PREFIX.address.length);
   const isNew = addressId.startsWith('new:');
   const record = addresses.find((address) => address.id === addressId);
   if (!isNew && !record) {
