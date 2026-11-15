@@ -617,13 +617,6 @@
       "plugins": ["typescript"]
     },
     {
-      "files": ["packages/features/src/settings/reasoning.ts"],
-      "rules": {
-        "no-restricted-imports": "off"
-      },
-      "plugins": ["typescript"]
-    },
-    {
       "files": ["apps/desktop/src/renderer/**/*.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
