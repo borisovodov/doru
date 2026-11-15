@@ -75,7 +75,9 @@ one by one (each is documented at the point of use in
   to click through the first-launch verification dialog — `open` would
   block forever, so the app is launched by direct exec.
 - **Linux (cask)**: no display server — the app runs under `xvfb` +
-  `dbus-run-session` with `--no-sandbox --disable-gpu`.
+  `dbus-run-session` with software GL; the Chromium sandbox is left enabled,
+  and the stock Ubuntu AppArmor userns restriction is restored first because
+  GitHub's Ubuntu 24.04 runner image disables it.
 - **Flatpak**: the bundle is unsigned and installed from a local
   `--no-gpg-verify` remote; `XDG_DATA_DIRS` is set explicitly (on a real
   machine the flatpak profile snippet adds the exports dir); first-run
