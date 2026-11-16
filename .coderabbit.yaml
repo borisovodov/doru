@@ -85,6 +85,13 @@ reviews:
       enabled: false
     markdownlint:
       enabled: false
+    # CodeRabbit bundles Oxlint 1.89, which cannot read this repository's
+    # type-aware configuration (`.oxlintrc.json` sets `options.typeAware`, and
+    # CI runs Oxlint 1.93 with `--type-aware`). The tool aborts before it can
+    # produce JSON, so disable it instead of reviewing a tool error on every
+    # pull request.
+    oxc:
+      enabled: false
 
   path_instructions:
     - path: 'packages/core/**'
