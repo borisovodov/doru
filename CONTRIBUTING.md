@@ -81,6 +81,9 @@ and commit both with `npm run icon:mac -w @doru/desktop` (macOS, Xcode 26+).
 - Commit messages in English, concise, imperative mood (e.g. `fix: handle
   corrupted tree files gracefully`).
 - Add or update tests for new behavior in `packages/*/tests`.
+- Pull requests get an automated first review from CodeRabbit before a
+  maintainer looks at them. Its comments are suggestions: a maintainer always
+  makes the approval and merge decision.
 
 ## Code of conduct
 
