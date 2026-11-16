@@ -10,7 +10,9 @@ export default defineConfig({
       // exercised by the Playwright e2e suite; the unit-coverage gate
       // tracks the logic underneath them.
       exclude: ['**/*.tsx', 'apps/desktop/src/main/**', 'apps/desktop/src/preload/**'],
-      reporter: ['text', 'json-summary'],
+      // `lcov` feeds Coveralls; the text and json-summary reporters stay for
+      // local runs and the CI log.
+      reporter: ['text', 'json-summary', 'lcov'],
       thresholds: {
         lines: 80,
         statements: 80,
