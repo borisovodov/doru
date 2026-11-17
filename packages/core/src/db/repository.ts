@@ -1177,7 +1177,11 @@ export class SqliteTreeRepository implements TreeRepository {
         // The note was deleted (it had no other links): re-inserting it
         // restores all of its links at once.
         this.notes.insertNote(entry.note);
-      } else {
+      } else if (
+        !this.notes
+          .listLinksFor(entry.link.targetType, entry.link.targetId)
+          .some((existing) => existing.link.id === entry.link.id)
+      ) {
         this.notes.addNoteLink(entry.note.id, entry.link);
       }
     }
