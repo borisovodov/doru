@@ -65,6 +65,12 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Install actionlint
+        # Pin the version: the README suggests @latest, but a new release could
+        # change diagnostics and turn unrelated pull requests red.
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Lint workflows
+        run: '"$(go env GOPATH)/bin/actionlint" -color'
       - run: npm run lint
       - run: npm run format:check
       - run: npm run lint:css
