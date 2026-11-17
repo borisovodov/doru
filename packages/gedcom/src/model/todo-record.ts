@@ -65,6 +65,12 @@ export interface TodoRecord extends GedcomStructureBase {
    */
   uids?: Special[];
   /**
+   * REPO {0:1} — a pointer to the repository the task belongs to. The
+   * GEDCOM-L E1 task structure carries the slot; the record form uses
+   * the same tag for the same purpose. Written back as `REPO`.
+   */
+  repository?: Pointer<RepositoryRecord>;
+  /**
    * CHAN {0:1} — the change stamp of the task (the My Family Tree
    * `_TASK` record form; same source as `title`). Written back as
    * the CHAN block.
@@ -122,6 +128,13 @@ export interface TodoStructure extends GedcomStructureBase {
   date?: DateStructure;
   /** DATA {0:1} — the details of the solution (GEDCOM-L E1). */
   data?: Text;
+  /**
+   * `_TCDT` {0:1} — the task's creation date in the vendor's encoded
+   * form (the My Family Tree `_TASK` record form; the structure form
+   * uses the same `_TCDT` spelling). Kept verbatim; written back as
+   * `_TCDT`.
+   */
+  createdDate?: Text;
   /** _CDATE {0:1} — the date of completing the task (GEDCOM-L E1). */
   closedDate?: DateStructure;
   /** _RDATE {0:1} — the reminder date (GEDCOM-L E1). */

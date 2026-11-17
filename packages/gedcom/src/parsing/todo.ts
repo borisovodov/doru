@@ -84,6 +84,11 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
         // TodoRecord.uids).
         (out.uids ??= []).push(reqText(child));
       },
+      REPO: (child) => {
+        // GEDCOM-L E1 / record form: the repository the task belongs to
+        // (see TodoRecord.repository).
+        out.repository = reqPtr(child, ctx);
+      },
       CHAN: (child) => {
         // My Family Tree `_TASK`: the change stamp (see
         // TodoRecord.changed).
@@ -91,7 +96,21 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
       },
     },
     ctx,
-    ['_TDSC', '_TTIL', '_TSTS', '_TPTY', '_TSDT', '_TCDT', '_TRDT', '_CAT', '_CDATE', '_LOCL', '_RDATE', 'CHAN'],
+    [
+      '_TDSC',
+      '_TTIL',
+      '_TSTS',
+      '_TPTY',
+      '_TSDT',
+      '_TCDT',
+      '_TRDT',
+      '_CAT',
+      '_CDATE',
+      '_LOCL',
+      '_RDATE',
+      'REPO',
+      'CHAN',
+    ],
   );
   if (out.payload === '') {
     fail(
@@ -155,6 +174,11 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
         // TodoStructure.reminderDate).
         out.reminderDate = parseDateStructure(child, ctx);
       },
+      _TCDT: (child) => {
+        // The structure form of the record's creation date (see
+        // TodoStructure.createdDate).
+        out.createdDate = reqText(child);
+      },
       REPO: (child) => {
         // GEDCOM-L E1: a pointer to a repository record (see
         // TodoStructure.repository).
@@ -170,7 +194,7 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
       },
     },
     ctx,
-    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', 'REPO'],
+    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', '_TCDT', 'REPO'],
   );
   return out;
 }

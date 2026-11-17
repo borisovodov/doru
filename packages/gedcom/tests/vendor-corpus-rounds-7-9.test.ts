@@ -184,13 +184,13 @@ describe('the corpus-remainder typings (round 9)', () => {
       throw new Error('expected SOUR');
     }
     expect(sour.certainty).toBe('2');
-    // Neither grammar has a source-level certainty slot: both writers
-    // drop the record-level QUAY.
+    // Heredis' record-level QUAY is preserved on both writers so the
+    // whole-source assessment survives a round-trip.
     for (const text of [ser551(dataset), ser70(dataset)]) {
-      expect(text).not.toContain('1 QUAY 2');
+      expect(text).toContain('1 QUAY 2');
       const reparsed = text.includes('2 VERS 7.0') ? parseOk70(text) : parseOk551(text);
       const reparsedSour = reparsed.records.find((r) => r.tag === 'SOUR');
-      expect(reparsedSour?.tag === 'SOUR' ? reparsedSour.certainty : 'unexpected').toBeUndefined();
+      expect(reparsedSour?.tag === 'SOUR' ? reparsedSour.certainty : 'unexpected').toBe('2');
     }
   });
 

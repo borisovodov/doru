@@ -54,12 +54,14 @@ locations are intentional — do not move the macOS settings to `~/.config`.
 
 The project database deliberately does not store the GEDCOM `HEAD`/`SUBN`
 metadata or raw extension structures (`extensions`, vendor blocks, unknown
-records). The schema models the genealogy domain; import counts these
-structures as dropped and export synthesizes a fresh header. This is a
-product decision, not an unfinished mapping: revisit it only when a concrete
-feature needs the wire metadata. The same applies to the LDS, research,
-census, event-definition, duplicate-candidate, published-site, group,
-tree-tag and GenoPro record families listed in `import/gedcom.ts`.
+records). The schema models the genealogy domain; export synthesizes a fresh
+header. Import reports whole vendor record families in `droppedStructures`;
+`HEAD`/`SUBN`, `SCHMA` and raw extension/unknown structures are dropped
+without a counter because they are wire metadata rather than tree records.
+This is a product decision, not an unfinished mapping: revisit it only when a
+concrete feature needs the wire metadata. The same applies to the LDS,
+research, census, event-definition, duplicate-candidate, published-site,
+group, tree-tag and GenoPro record families listed in `import/gedcom.ts`.
 
 ## Free-text family witnesses
 

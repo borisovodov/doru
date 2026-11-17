@@ -167,9 +167,8 @@ export interface SourceRecord extends GedcomStructureBase {
    * https://github.com/fisharebest/webtrees/blob/main/app/CustomTags/Heredis.php;
    * the alainamand and Dudouyt Heredis exports in the corpus). No
    * GEDCOM version has the slot (5.5.1 puts QUAY under the citation's
-   * DATA, 7.0 keeps it on citations only). Recognized on input; dropped
-   * on both exports — a non-underscore tag in the record-level position
-   * does not spell a valid file in either version.
+   * DATA, 7.0 keeps it on citations only). Recognized on input and
+   * written back as the same record-level QUAY for round-trip fidelity.
    */
   certainty?: QualityEnum;
   /**

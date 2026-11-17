@@ -79,7 +79,9 @@ import type {
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
  *   `_ALIA` duplicate-candidate records (they carry a single person pointer
  *   and have no second-person slot in our model).
- * Whole dropped record types are counted into `droppedStructures`.
+ * Whole dropped vendor record types are counted into `droppedStructures`;
+ * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
+ * and are not counted.
  */
 
 export interface GedcomImportResult {
@@ -89,7 +91,11 @@ export interface GedcomImportResult {
   importedPlaces: number;
   importedMedia: number;
   totalPersons: number;
-  /** Whole records that were deliberately not imported (vendor-only). */
+  /**
+   * Whole vendor record families that were deliberately not imported.
+   * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
+   * and are not counted.
+   */
   droppedStructures: number;
 }
 
@@ -1246,6 +1252,8 @@ function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
     locality: record.locality,
     priority: record.priority,
     status: record.status,
+    createdDate: parseTodoDate(record.createdDate),
+    ...(record.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(record.repository) } : {}),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
@@ -1258,6 +1266,31 @@ function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
   }
 }
 
+/** The `_TCDT` slot is free text; parse the ISO-ish form the export writes. */
+function parseTodoDate(text: string | undefined): DateValue | undefined {
+  if (text === undefined || text.trim() === '') {
+    return undefined;
+  }
+  const match = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/.exec(text.trim());
+  const month = match?.[2] !== undefined ? Number(match[2]) : undefined;
+  const day = match?.[3] !== undefined ? Number(match[3]) : undefined;
+  if (
+    match === null ||
+    (month !== undefined && (month < 1 || month > 12)) ||
+    (day !== undefined && (day < 1 || day > 31))
+  ) {
+    return { quality: 'unknown', text };
+  }
+  return {
+    quality: 'exact',
+    component: {
+      year: Number(match[1]),
+      ...(month !== undefined ? { month } : {}),
+      ...(day !== undefined ? { day } : {}),
+    },
+  };
+}
+
 function importTodoStructure(todo: TodoStructure, targetType: string, targetId: string, ctx: ImportContext): void {
   const mapped: TodoRecord = {
     id: crypto.randomUUID(),
@@ -1268,9 +1301,11 @@ function importTodoStructure(todo: TodoStructure, targetType: string, targetId: 
     locality: todo.locality,
     priority: todo.priority,
     status: todo.status,
+    createdDate: parseTodoDate(todo.createdDate),
     scheduledDate: mapDate(todo.date),
     reminderDate: mapDate(todo.reminderDate),
     closedDate: mapDate(todo.closedDate),
+    ...(todo.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(todo.repository) } : {}),
   };
   ctx.repo.insertTodo(mapped);
   importNotes(todo.notes, 'todo', mapped.id, ctx);

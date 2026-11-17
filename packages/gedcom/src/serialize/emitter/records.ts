@@ -833,6 +833,7 @@ export function emitTodoRecord(
     priority?: string;
     scheduledDate?: string;
     createdDate?: string;
+    repository?: string;
     uids?: string[];
     changed?: ChangeDate;
     extensions?: ExtensionStructure[];
@@ -871,6 +872,11 @@ export function emitTodoRecord(
   if (rec.createdDate !== undefined) {
     // My Family Tree: the creation date (see TodoRecord.createdDate).
     w.line(1, '_TCDT', { value: rec.createdDate });
+  }
+  if (rec.repository !== undefined) {
+    // GEDCOM-L E1 / record form: the repository the task belongs to
+    // (see TodoRecord.repository).
+    ptr(w, _version, 1, 'REPO', rec.repository);
   }
   for (const uid of rec.uids ?? []) {
     // My Family Tree: the unique identifier (see TodoRecord.uids).
@@ -1104,6 +1110,11 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
   }
   if (rec.date !== undefined) {
     emitDate(w, version, level + 1, 'DATE', rec.date);
+  }
+  if (rec.createdDate !== undefined) {
+    // The structure form of the record's creation date (see
+    // TodoStructure.createdDate).
+    w.line(level + 1, '_TCDT', { value: rec.createdDate });
   }
   for (const note of rec.notes ?? []) {
     emitNoteStructure(w, version, level + 1, note);
@@ -1562,6 +1573,7 @@ export function emitSource(
     quality?: { source?: string; information?: string; evidence?: string; extensions?: ExtensionStructure[] };
     url?: string;
     confidence?: string;
+    certainty?: string;
     accessDate?: string;
     updatedAt?: string;
     ancestryPointers?: string[];
@@ -1764,6 +1776,11 @@ export function emitSource(
   if (rec.confidence !== undefined) {
     // The confidence level of the source (see SourceRecord.confidence).
     w.line(1, '_CONF', { value: rec.confidence });
+  }
+  if (rec.certainty !== undefined) {
+    // Heredis writes the whole-source certainty assessment as QUAY at the
+    // record level (see SourceRecord.certainty); written back verbatim.
+    w.line(1, 'QUAY', { value: rec.certainty });
   }
   if (rec.accessDate !== undefined) {
     // The date the source was accessed (see SourceRecord.accessDate).

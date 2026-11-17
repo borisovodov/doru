@@ -75,6 +75,27 @@ function parseDataset(text = GEDCOM) {
   return result.value.dataset;
 }
 
+describe('importGedcomDataset dropped counters', () => {
+  it('does not count HEAD, SCHMA or raw extension records as dropped tree records', () => {
+    const fixture = makeRepo();
+    try {
+      const text = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '1 SCHMA',
+        '2 TAG _RAW https://example.org/raw',
+        '0 _RAW value',
+        '0 TRLR',
+      ].join('\n');
+      const result = importGedcomDataset(parseDataset(text), fixture.repo);
+      expect(result.droppedStructures).toBe(0);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
+
 describe('importGedcomDataset validation', () => {
   it('rolls the whole import back when the file contains a parent cycle', () => {
     const fixture = makeRepo();

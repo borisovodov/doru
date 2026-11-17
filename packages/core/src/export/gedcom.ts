@@ -266,7 +266,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withMediaLinks(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
     ...withTagLinks(repo, 'person', person.id, xrefs),
-    ...withTodoStructures(repo, 'person', person.id),
+    ...withTodoStructures(repo, 'person', person.id, xrefs),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
     ...withChildFamilies(repo, person.id, xrefs),
@@ -468,6 +468,10 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
         tag: 'NO',
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
+        ...(withCitationList(repo, 'fact', fact.id, xrefs).citations.length > 0
+          ? withCitationList(repo, 'fact', fact.id, xrefs)
+          : {}),
+        ...withNoteList(repo, 'fact', fact.id, xrefs),
       });
       continue;
     }
@@ -518,7 +522,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withMediaLinks(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
-    ...withTodoStructures(repo, 'family', family.id),
+    ...withTodoStructures(repo, 'family', family.id, xrefs),
     ...withFamilyAssociations(repo, family.id, xrefs),
   };
 }
@@ -669,6 +673,7 @@ function buildTodoRecord(todo: TodoRecord, repo: TreeRepository, xrefs: Xrefs): 
     .listIdentifiersFor('todo', todo.id)
     .filter((identifier) => identifier.namespace === 'uid')
     .map((identifier) => identifier.value);
+  const createdDate = formatTodoDate(todo.createdDate);
   return {
     tag: '_TODO',
     payload: todo.text,
@@ -676,10 +681,34 @@ function buildTodoRecord(todo: TodoRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
     ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
     ...(todo.status !== undefined ? { status: todo.status } : {}),
+    ...(createdDate !== undefined ? { createdDate } : {}),
+    ...(todo.repositoryId !== undefined ? { repository: xrefs.of(todo.repositoryId) } : {}),
     ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'todo', todo.id, xrefs),
     ...withChanges(repo, 'todo', todo.id),
   };
+}
+
+/** The vendor `_TCDT` slot is free text: keep a simple ISO-ish date. */
+function formatTodoDate(date: DateValue | undefined): string | undefined {
+  if (date === undefined) {
+    return undefined;
+  }
+  if (date.text !== undefined) {
+    return date.text;
+  }
+  const component = date.component;
+  if (component?.year === undefined) {
+    return undefined;
+  }
+  if (component.month === undefined) {
+    return String(component.year);
+  }
+  const month = String(component.month).padStart(2, '0');
+  if (component.day === undefined) {
+    return `${component.year}-${month}`;
+  }
+  return `${component.year}-${month}-${String(component.day).padStart(2, '0')}`;
 }
 
 function buildTagRecord(tag: TagRecord, xrefs: Xrefs): GedcomRecord {
@@ -1105,21 +1134,24 @@ function withTodoStructures(
   repo: TreeRepository,
   targetType: string,
   targetId: string,
+  xrefs: Xrefs,
 ): { todos?: Array<import('@doru/gedcom').TodoStructure> } {
-  const todos = repo.listTodosFor(targetType, targetId).map(
-    (todo) =>
-      ({
-        tag: '_TODO' as const,
-        payload: todo.text,
-        ...(todo.category !== undefined ? { category: todo.category } : {}),
-        ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
-        ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
-        ...(todo.status !== undefined ? { status: todo.status } : {}),
-        ...(todo.scheduledDate !== undefined ? { date: buildDate(todo.scheduledDate) } : {}),
-        ...(todo.reminderDate !== undefined ? { reminderDate: buildDate(todo.reminderDate) } : {}),
-        ...(todo.closedDate !== undefined ? { closedDate: buildDate(todo.closedDate) } : {}),
-      }) as import('@doru/gedcom').TodoStructure,
-  );
+  const todos = repo.listTodosFor(targetType, targetId).map((todo) => {
+    const createdDate = formatTodoDate(todo.createdDate);
+    return {
+      tag: '_TODO' as const,
+      payload: todo.text,
+      ...(todo.category !== undefined ? { category: todo.category } : {}),
+      ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
+      ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
+      ...(todo.status !== undefined ? { status: todo.status } : {}),
+      ...(todo.scheduledDate !== undefined ? { date: buildDate(todo.scheduledDate) } : {}),
+      ...(createdDate !== undefined ? { createdDate } : {}),
+      ...(todo.reminderDate !== undefined ? { reminderDate: buildDate(todo.reminderDate) } : {}),
+      ...(todo.closedDate !== undefined ? { closedDate: buildDate(todo.closedDate) } : {}),
+      ...(todo.repositoryId !== undefined ? { repository: xrefs.of(todo.repositoryId) } : {}),
+    } as import('@doru/gedcom').TodoStructure;
+  });
   return todos.length > 0 ? { todos } : {};
 }
 
@@ -1255,9 +1287,15 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
       },
     ];
   });
-  const witnesses = (fact.participants ?? [])
-    .filter((participant) => participant.personId === undefined)
-    .flatMap((participant) => (participant.value === undefined ? [] : [participant.value]));
+  const freeTextParticipants = (fact.participants ?? []).filter(
+    (participant) => participant.personId === undefined && participant.value !== undefined,
+  );
+  const witnesses = freeTextParticipants
+    .filter((participant) => participant.role?.toUpperCase() !== 'GODP')
+    .map((participant) => participant.value as string);
+  const godparents = freeTextParticipants
+    .filter((participant) => participant.role?.toUpperCase() === 'GODP')
+    .map((participant) => participant.value as string);
   const citations = withCitationList(repo, 'fact', fact.id, xrefs).citations;
   const notes = withNoteList(repo, 'fact', fact.id, xrefs).notes;
   const media = withMediaLinks(repo, 'fact', fact.id, xrefs).media;
@@ -1291,6 +1329,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     fact.map === undefined &&
     (ages ?? []).length === 0 &&
     witnesses.length === 0 &&
+    godparents.length === 0 &&
     witnessAssociations.length === 0 &&
     citations.length === 0 &&
     notes.length === 0 &&
@@ -1352,6 +1391,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     ...(flags !== undefined ? { factFlags: flags } : {}),
     ...(primary ? { primary: true } : {}),
     ...(witnesses.length > 0 ? { witnesses } : {}),
+    ...(godparents.length > 0 ? { godparents } : {}),
     ...(witnessAssociations.length > 0 ? { associations: witnessAssociations } : {}),
     ...(citations.length > 0 ? { citations } : {}),
     ...(notes.length > 0 ? { notes } : {}),
@@ -1452,6 +1492,8 @@ function buildPlace(repo: TreeRepository, placeId: string, xrefs: Xrefs): PlaceS
 }
 
 function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs): GedcomPlaceRecord {
+  const identifiers = withIdentifiers(repo, 'place', place.id);
+  const changes = withChanges(repo, 'place', place.id);
   const names = [...place.names]
     .sort((a, b) => a.position - b.position)
     .map((name) => ({
@@ -1512,6 +1554,8 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
       : {}),
     ...(parents.length > 0 ? { parents } : {}),
     ...(postalCodes.length > 0 ? { postalCodes } : {}),
+    ...(identifiers.length > 0 ? { identifiers } : {}),
+    ...(changes.changeDate !== undefined ? { changeDate: changes.changeDate } : {}),
     ...(place.verified === true ? { extensions: [{ tag: '_VERI', payload: 'Y', children: [] }] } : {}),
     ...withCitationList(repo, 'place', place.id, xrefs),
     ...withNoteList(repo, 'place', place.id, xrefs),
