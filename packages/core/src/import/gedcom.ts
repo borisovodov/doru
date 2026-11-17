@@ -106,6 +106,10 @@ interface ImportContext {
   personIds: Map<string, string>;
   familyIds: Map<string, string>;
   sourceIds: Map<string, string>;
+  /** True once every SOUR xref has been registered. */
+  sourceIdsReady: boolean;
+  /** Media-link citations found before the SOUR pass. */
+  pendingMediaLinkCitations: Array<{ linkId: string; citations: SourceCitation[] }>;
   repositoryIds: Map<string, string>;
   submitterIds: Map<string, string>;
   titleIds: Map<string, string>;
@@ -169,6 +173,8 @@ export function importGedcomDataset(
     personIds: new Map(),
     familyIds: new Map(),
     sourceIds: new Map(),
+    sourceIdsReady: false,
+    pendingMediaLinkCitations: [],
     repositoryIds: new Map(),
     submitterIds: new Map(),
     titleIds: new Map(),
@@ -199,6 +205,8 @@ export function importGedcomDataset(
     importMediaRecords(dataset.records, ctx);
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
+    ctx.sourceIdsReady = true;
+    flushMediaLinkCitations(ctx);
     linkMediaPlaces(ctx);
     // OBJE citations reference SOUR records: import them after the sources
     // exist, while still before persons/families (whose media links need
@@ -1988,8 +1996,20 @@ function importMediaLinks(
       ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
       ...(link.caption !== undefined ? { caption: link.caption } : {}),
     });
-    importCitations(link.citations, 'media_link', linkId, ctx);
+    if (ctx.sourceIdsReady) {
+      importCitations(link.citations, 'media_link', linkId, ctx);
+    } else if (link.citations !== undefined && link.citations.length > 0) {
+      ctx.pendingMediaLinkCitations.push({ linkId, citations: link.citations });
+    }
   }
+}
+
+/** Imports queued media-link citations once every SOUR xref is known. */
+function flushMediaLinkCitations(ctx: ImportContext): void {
+  for (const pending of ctx.pendingMediaLinkCitations) {
+    importCitations(pending.citations, 'media_link', pending.linkId, ctx);
+  }
+  ctx.pendingMediaLinkCitations = [];
 }
 
 /** Imports the shared place cards (`_LOC`/`_PLAC`) before anything references them. */

@@ -12,21 +12,21 @@ export interface MediaFileFacts {
   height?: number | undefined;
 }
 
-const MIME_BY_EXTENSION: Record<string, string> = {
-  gif: 'image/gif',
-  heic: 'image/heic',
-  jpeg: 'image/jpeg',
-  jpg: 'image/jpeg',
-  pdf: 'application/pdf',
-  png: 'image/png',
-  tif: 'image/tiff',
-  tiff: 'image/tiff',
-  webp: 'image/webp',
-};
+const MIME_BY_EXTENSION = new Map<string, string>([
+  ['gif', 'image/gif'],
+  ['heic', 'image/heic'],
+  ['jpeg', 'image/jpeg'],
+  ['jpg', 'image/jpeg'],
+  ['pdf', 'application/pdf'],
+  ['png', 'image/png'],
+  ['tif', 'image/tiff'],
+  ['tiff', 'image/tiff'],
+  ['webp', 'image/webp'],
+]);
 
 export function mimeForPath(path: string): string {
   const extension = extname(path).slice(1).toLowerCase();
-  return MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
+  return MIME_BY_EXTENSION.get(extension) ?? 'application/octet-stream';
 }
 
 /** Reads the file facts; a missing or unreadable file reports only its MIME. */

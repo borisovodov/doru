@@ -45,6 +45,36 @@ const GEDCOM = [
 ].join('\n');
 
 describe('media historical metadata', () => {
+  it('keeps place-media citations that point at a later source', () => {
+    const fixture = makeRepo();
+    try {
+      const parsed = parseDataset(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @O1@ OBJE',
+          '1 FILE photos/a.jpg',
+          '0 @PL1@ _PLAC Moscow',
+          '1 OBJE @O1@',
+          '2 SOUR @S2@',
+          '0 @S2@ SOUR',
+          '1 TITL Later',
+          '0 TRLR',
+        ].join('\n'),
+      );
+      importGedcomDataset(parsed, fixture.repo);
+      const place = fixture.repo.listPlaces().find((entry) => entry.xref === '@PL1@')!;
+      const s2 = fixture.repo.listSources().find((source) => source.xref === '@S2@')!;
+      const link = fixture.repo.listAttachmentsFor('place', place.id).mediaLinks[0]!.link;
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.sourceId)).toEqual([
+        s2.id,
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps source media-link citations that point at a later source', () => {
     const fixture = makeRepo();
     try {

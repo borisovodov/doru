@@ -524,23 +524,25 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updatePlace(place: PlaceRecord): void {
-    const before = this.places.getPlace(place.id);
-    this.places.updatePlace(place);
-    if (!before) {
-      return;
-    }
-    const nextNames = new Set(place.names.map((name) => name.id));
-    for (const name of before.names) {
-      if (!nextNames.has(name.id)) {
-        this.deleteAttachmentsFor('place_name', name.id);
+    this.transactions.run(() => {
+      const before = this.places.getPlace(place.id);
+      this.places.updatePlace(place);
+      if (!before) {
+        return;
       }
-    }
-    const nextHierarchy = new Set((place.hierarchy ?? []).map((link) => link.id));
-    for (const link of before.hierarchy ?? []) {
-      if (!nextHierarchy.has(link.id)) {
-        this.deleteAttachmentsFor('place_hierarchy', link.id);
+      const nextNames = new Set(place.names.map((name) => name.id));
+      for (const name of before.names) {
+        if (!nextNames.has(name.id)) {
+          this.deleteAttachmentsFor('place_name', name.id);
+        }
       }
-    }
+      const nextHierarchy = new Set((place.hierarchy ?? []).map((link) => link.id));
+      for (const link of before.hierarchy ?? []) {
+        if (!nextHierarchy.has(link.id)) {
+          this.deleteAttachmentsFor('place_hierarchy', link.id);
+        }
+      }
+    });
   }
 
   getPlace(id: string): PlaceRecord | undefined {
@@ -736,17 +738,19 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   removeMediaLink(id: string): boolean {
-    const mediaId = this.media.getMediaIdForLink(id);
-    const media = mediaId !== undefined ? this.media.getMedia(mediaId) : undefined;
-    this.deleteAttachmentsFor('media_link', id);
-    const removed = this.media.removeMediaLink(id);
-    if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
-      this.deleteAttachmentsFor('media', mediaId);
-      for (const file of media?.files ?? []) {
-        this.deleteAttachmentsFor('media_file', file.id);
+    return this.transactions.run(() => {
+      const mediaId = this.media.getMediaIdForLink(id);
+      const media = mediaId !== undefined ? this.media.getMedia(mediaId) : undefined;
+      this.deleteAttachmentsFor('media_link', id);
+      const removed = this.media.removeMediaLink(id);
+      if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
+        this.deleteAttachmentsFor('media', mediaId);
+        for (const file of media?.files ?? []) {
+          this.deleteAttachmentsFor('media_file', file.id);
+        }
       }
-    }
-    return removed;
+      return removed;
+    });
   }
 
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {
@@ -838,17 +842,19 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateAddress(address: AddressRecord): void {
-    const before = this.addresses.getAddress(address.id);
-    this.addresses.updateAddress(address);
-    if (!before) {
-      return;
-    }
-    const nextLines = new Set(address.lines.map((line) => line.id));
-    for (const line of before.lines) {
-      if (!nextLines.has(line.id)) {
-        this.deleteAttachmentsFor('address_line', line.id);
+    this.transactions.run(() => {
+      const before = this.addresses.getAddress(address.id);
+      this.addresses.updateAddress(address);
+      if (!before) {
+        return;
       }
-    }
+      const nextLines = new Set(address.lines.map((line) => line.id));
+      for (const line of before.lines) {
+        if (!nextLines.has(line.id)) {
+          this.deleteAttachmentsFor('address_line', line.id);
+        }
+      }
+    });
   }
 
   getAddress(id: string): AddressRecord | undefined {

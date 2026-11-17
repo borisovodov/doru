@@ -5,6 +5,7 @@ import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } fr
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
+import { resolveMediaPath } from './mediaPaths';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
 
@@ -28,11 +29,7 @@ export interface MediaWithPath extends Omit<MediaRecord, 'files'> {
  * the project's media folder. Returns null for paths that would escape it.
  */
 function mediaAbsolutePath(projectPath: string, mediaPath: string): string | null {
-  const normalized = mediaPath.replaceAll('\\', '/');
-  if (!normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
-    return null;
-  }
-  return join(dirname(runtimeFilePath(projectPath)), mediaPath);
+  return resolveMediaPath(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
 const MEDIA_FACT_CONCURRENCY = 4;

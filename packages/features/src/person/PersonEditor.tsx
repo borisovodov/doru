@@ -361,7 +361,7 @@ export function PersonEditor({
         <Field label={nls.t('features.tree.address.title')}>
           <Select
             value={draft.addressId ?? ''}
-            onChange={(event) => set({ addressId: event.target.value || undefined })}
+            onChange={(event) => set({ addressId: event.target.value || undefined, addressTouched: true })}
           >
             <option value="">{nls.t('features.tasks.none')}</option>
             {addresses.map((address) => (

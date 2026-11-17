@@ -233,7 +233,7 @@ describe('personDraftMatches', () => {
     const renamed = { ...base, names: [setPartValue({ ...base.names[0]! }, 'given', 'John')] };
     expect(personDraftMatches(renamed, source)).toBe(false);
     expect(personDraftMatches({ ...base, sex: 'F' }, source)).toBe(false);
-    expect(personDraftMatches({ ...base, addressId: 'A1' }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, addressId: 'A1', addressTouched: true }, source)).toBe(false);
     expect(personDraftMatches({ ...base, birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
   });
 
@@ -305,6 +305,17 @@ describe('draftToRecord', () => {
     const existing = person({ xref: '@I7@' });
     expect(draftToRecord(personToDraft(existing), existing).xref).toBe('@I7@');
     expect(draftToRecord(personToDraft(existing)).xref).toBeUndefined();
+  });
+
+  it('keeps an untouched address but honours an explicit clear or change', () => {
+    const existing = person({ addressId: 'A1' });
+    expect(draftToRecord(personToDraft(existing), existing).addressId).toBe('A1');
+    expect(
+      draftToRecord({ ...personToDraft(existing), addressTouched: true, addressId: undefined }, existing).addressId,
+    ).toBeUndefined();
+    expect(
+      draftToRecord({ ...personToDraft(existing), addressTouched: true, addressId: 'A2' }, existing).addressId,
+    ).toBe('A2');
   });
 
   it('writes every name of the draft, preserving ids and variants', () => {

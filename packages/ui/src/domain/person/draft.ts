@@ -112,6 +112,8 @@ export interface PersonDraft {
   sex: Sex;
   deathStatus?: 'alive' | 'dead' | undefined;
   addressId?: string | undefined;
+  /** True after the address select was changed or cleared explicitly. */
+  addressTouched?: boolean | undefined;
   birth: DateDraft;
   death: DateDraft;
   isNew: boolean;
@@ -350,6 +352,7 @@ export function newPersonDraft(): PersonDraft {
     names: [emptyNameDraft()],
     sex: 'U',
     deathStatus: undefined,
+    addressTouched: false,
     birth: emptyDate(),
     death: emptyDate(),
     isNew: true,
@@ -476,6 +479,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
     sex: person.sex,
     deathStatus: person.deathStatus,
     ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
+    addressTouched: false,
     birth: toDateDraft(birth?.date, birth?.place),
     death: toDateDraft(death?.date, death?.place),
     isNew: false,
@@ -487,7 +491,7 @@ export function personDraftMatches(draft: PersonDraft, person: PersonRecord): bo
   return (
     draft.sex === other.sex &&
     draft.deathStatus === other.deathStatus &&
-    draft.addressId === other.addressId &&
+    (draft.addressTouched !== true || draft.addressId === other.addressId) &&
     draft.names.length === other.names.length &&
     draft.names.every((name, index) => {
       const otherName = other.names[index];
@@ -664,10 +668,11 @@ export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): Pers
   if (death) {
     facts.push(death);
   }
+  const addressId = draft.addressTouched === true ? draft.addressId : existing?.addressId;
   return {
     id: draft.id,
     ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
-    ...(draft.addressId !== undefined ? { addressId: draft.addressId } : {}),
+    ...(addressId !== undefined ? { addressId } : {}),
     sex: draft.sex,
     ...(draft.deathStatus !== undefined ? { deathStatus: draft.deathStatus } : {}),
     names,

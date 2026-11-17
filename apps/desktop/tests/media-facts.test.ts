@@ -56,7 +56,11 @@ describe('media file facts', () => {
   it('falls back to the extension MIME and reports no facts for a missing file', async () => {
     expect(mimeForPath('scan.JPEG')).toBe('image/jpeg');
     expect(mimeForPath('blob.bin')).toBe('application/octet-stream');
+    expect(mimeForPath('scan.constructor')).toBe('application/octet-stream');
     await expect(readMediaFileFacts(join(dir, 'missing.jpg'))).resolves.toEqual({ mime: 'image/jpeg' });
+    await expect(readMediaFileFacts(join(dir, 'missing.constructor'))).resolves.toEqual({
+      mime: 'application/octet-stream',
+    });
   });
 });
 
