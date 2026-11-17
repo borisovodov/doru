@@ -217,7 +217,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 - In tests, close the `TreeStore` before removing temp dirs — Windows fails
   with `EPERM` on open files.
 - Validate workflow changes with `actionlint .github/workflows/…` before
-  pushing: the `secrets` context is not allowed in `if` conditions of steps.
+  pushing; the `lint` job runs the pinned actionlint on every pull request.
+  The `secrets` context is not allowed in `if` conditions of steps.
 - **Releases are cut by CI.** Pushing a `v*` tag triggers the Release
   workflow, which builds the installers and creates the GitHub release with
   generated notes and assets. Just bump the versions and push the tag — never
