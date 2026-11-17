@@ -22,17 +22,26 @@
 
 .taskRow {
   display: flex;
-  gap: var(--doru-space-2);
+  flex-direction: column;
   align-items: flex-start;
+  gap: var(--doru-space-1);
   padding: var(--doru-space-2);
-  cursor: pointer;
 }
 
-.taskRowBody {
+.taskOpen {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  width: 100%;
   min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .taskRowText {
@@ -54,6 +63,7 @@
 
 .taskChip {
   display: inline-block;
+  align-self: flex-start;
   padding: 0 var(--doru-space-2);
   background: var(--doru-accent-alpha);
   border-radius: 999px;

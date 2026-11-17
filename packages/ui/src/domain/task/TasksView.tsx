@@ -191,13 +191,14 @@ export function TasksView({
           {sorted.map((todo) => {
             const related = target(todo);
             return (
-              <li
-                key={todo.id}
-                aria-current={todo.id === selectedId ? 'true' : undefined}
-                className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}
-              >
-                <div className={styles['taskRow']} onClick={() => onOpenTask(todo.id)}>
-                  <span className={styles['taskRowBody']}>
+              <li key={todo.id} className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}>
+                <div className={styles['taskRow']}>
+                  <button
+                    type="button"
+                    className={styles['taskOpen']}
+                    aria-current={todo.id === selectedId ? 'true' : undefined}
+                    onClick={() => onOpenTask(todo.id)}
+                  >
                     <span className={cx(styles['taskRowText'], isClosed(todo) && styles['closed'])}>{todo.text}</span>
                     <span className={styles['taskRowMeta']}>
                       {todo.priority !== undefined && (
@@ -219,23 +220,20 @@ export function TasksView({
                       {todo.repositoryId !== undefined && repositoryById.has(todo.repositoryId) && (
                         <Chip variant="neutral">{repositoryById.get(todo.repositoryId)?.name}</Chip>
                       )}
-                      {related !== undefined &&
-                        (related.open !== undefined ? (
-                          <button
-                            type="button"
-                            className={cx(styles['taskChip'], styles['taskChipLink'])}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              related.open?.();
-                            }}
-                          >
-                            {related.label}
-                          </button>
-                        ) : (
-                          <Chip variant="neutral">{related.label}</Chip>
-                        ))}
+                      {related !== undefined && related.open === undefined && (
+                        <Chip variant="neutral">{related.label}</Chip>
+                      )}
                     </span>
-                  </span>
+                  </button>
+                  {related !== undefined && related.open !== undefined && (
+                    <button
+                      type="button"
+                      className={cx(styles['taskChip'], styles['taskChipLink'])}
+                      onClick={related.open}
+                    >
+                      {related.label}
+                    </button>
+                  )}
                 </div>
               </li>
             );
