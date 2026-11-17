@@ -1,9 +1,9 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 10px;
-  padding: 6px;
+  gap: var(--doru-space-4);
+  margin: var(--doru-space-5);
+  padding: var(--doru-space-3);
   background: var(--doru-bg-raised);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -12,15 +12,15 @@
 
 .nav {
   display: inline-flex;
-  gap: 2px;
+  gap: var(--doru-space-1);
 }
 
 .breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--doru-space-1);
   margin: 0;
-  padding: 0 4px;
+  padding: 0 var(--doru-space-2);
   list-style: none;
   max-width: 40vw;
   overflow: hidden;
@@ -30,13 +30,13 @@
 .breadcrumbs li {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--doru-space-1);
 }
 
 .breadcrumbs li:not(:last-child)::after {
   content: '›';
   color: var(--doru-fg-faint);
-  margin-left: 2px;
+  margin-left: var(--doru-space-1);
 }
 
 .breadcrumb,
@@ -60,7 +60,7 @@
 }
 
 .breadcrumbsCurrent {
-  padding: 0 8px;
+  padding: 0 var(--doru-space-4);
   color: var(--doru-accent);
   font-weight: 600;
   white-space: nowrap;

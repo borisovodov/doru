@@ -1,12 +1,12 @@
 .grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
