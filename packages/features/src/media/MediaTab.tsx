@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FileImage, Image as ImageIcon, Paperclip, X } from 'lucide-react';
 import { isImagePath, type MediaFile, type MediaLinkRecord, type MediaRecord, type SourceRecord } from '@doru/core';
 import { placeName } from '@doru/core/model';
@@ -10,12 +10,13 @@ import {
   FieldGrid,
   IconButton,
   Input,
+  MetadataText,
   ReorderButtons,
   SectionCard,
   Select,
   Textarea,
 } from '@doru/ui';
-import { DateEditor, fromDateDraft, toDateDraft } from '@doru/ui/domain';
+import { DateEditor, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
@@ -55,7 +56,7 @@ export function MediaTab({
   }
   return (
     <MediaTabBody
-      key={`${record.id}:${mediaMetadataKey(record)}`}
+      key={record.id}
       record={record}
       api={api}
       attachmentsApi={attachmentsApi}
@@ -89,6 +90,38 @@ function MediaTabBody({
   const [description, setDescription] = useState(record.description ?? '');
   const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
+  const recordRef = useRef(record);
+  const metadataRef = useRef({
+    title,
+    date,
+    place,
+    placeId,
+    objectType,
+    description,
+    keywords,
+  });
+
+  useEffect(() => {
+    metadataRef.current = { title, date, place, placeId, objectType, description, keywords };
+  }, [title, date, place, placeId, objectType, description, keywords]);
+
+  useEffect(() => {
+    if (record === recordRef.current) {
+      return;
+    }
+    const previous = recordRef.current;
+    recordRef.current = record;
+    if (!mediaMetadataMatches(metadataRef.current, previous)) {
+      return;
+    }
+    setTitle(record.title ?? '');
+    setDate(toDateDraft(record.date));
+    setPlace(record.place ?? '');
+    setPlaceId(record.placeId ?? '');
+    setObjectType(record.objectType ?? '');
+    setDescription(record.description ?? '');
+    setKeywords(record.keywords ?? '');
+  }, [record]);
 
   const save = async () => {
     await api.updateMedia(record, {
@@ -236,7 +269,7 @@ function MediaTabBody({
                 )}
                 <div className={styles['fileMeta']}>
                   <span className="media-file-path">{file.path}</span>
-                  <span className={styles['fileFacts']}>{factsLabel(file.facts)}</span>
+                  <MetadataText className={styles['fileFacts']}>{factsLabel(file.facts)}</MetadataText>
                 </div>
                 <Input
                   aria-label={nls.t('features.tree.media.fileTitle')}
@@ -420,17 +453,28 @@ function MediaLinkRow({
   );
 }
 
-/** Remount the body when persisted metadata changes (e.g. after undo), not on unrelated refreshes. */
-function mediaMetadataKey(record: MediaWithPath): string {
-  return JSON.stringify([
-    record.title,
-    record.date,
-    record.place,
-    record.placeId,
-    record.objectType,
-    record.description,
-    record.keywords,
-  ]);
+/** True when the metadata draft still equals the stored media record. */
+function mediaMetadataMatches(
+  values: {
+    title: string;
+    date: ReturnType<typeof toDateDraft>;
+    place: string;
+    placeId: string;
+    objectType: string;
+    description: string;
+    keywords: string;
+  },
+  record: MediaWithPath,
+): boolean {
+  return (
+    values.title.trim() === (record.title ?? '') &&
+    dateDraftsEqual(values.date, toDateDraft(record.date)) &&
+    values.place.trim() === (record.place ?? '') &&
+    values.placeId === (record.placeId ?? '') &&
+    values.objectType.trim() === (record.objectType ?? '') &&
+    values.description.trim() === (record.description ?? '') &&
+    values.keywords.trim() === (record.keywords ?? '')
+  );
 }
 
 function factsLabel(facts: MediaFileFacts | undefined): string {

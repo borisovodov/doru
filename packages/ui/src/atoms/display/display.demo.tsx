@@ -5,6 +5,7 @@ import { Badge } from './Badge';
 import { Chip } from './Chip';
 import { Divider } from './Divider';
 import { Kbd } from './Kbd';
+import { MetadataText } from './MetadataText';
 
 const meta = {
   title: 'Atoms/Display',
@@ -50,6 +51,10 @@ export const Keys: DemoCase = {
       <Kbd>K</Kbd>
     </div>
   ),
+};
+
+export const Metadata: DemoCase = {
+  render: () => <MetadataText>JPEG · 2.4 MB · 1920 × 1080</MetadataText>,
 };
 
 export const Dividers: DemoCase = {

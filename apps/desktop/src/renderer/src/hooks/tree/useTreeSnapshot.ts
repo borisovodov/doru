@@ -38,6 +38,10 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const generationRef = useRef(0);
+  const activeProjectPathRef = useRef(projectPath);
+  useEffect(() => {
+    activeProjectPathRef.current = projectPath;
+  }, [projectPath]);
 
   const reloadTree = useCallback(async (path: string) => {
     const generation = ++generationRef.current;
@@ -136,10 +140,11 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   }, [projectPath, reloadTree]);
 
   const refreshTree = useCallback(async () => {
-    if (projectPath) {
-      await reloadTree(projectPath);
+    const activePath = activeProjectPathRef.current;
+    if (activePath) {
+      await reloadTree(activePath);
     }
-  }, [projectPath, reloadTree]);
+  }, [reloadTree]);
   return {
     persons,
     families,

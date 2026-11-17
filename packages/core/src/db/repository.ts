@@ -209,6 +209,11 @@ export interface TreeRepository {
   listTitles(): TitleRecord[];
   /** Everything attached to a target, for op snapshots before a cascade delete. */
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot;
+  /** Cross-target media taken down with several removed child rows. */
+  listCrossTargetMediaAttachments(targets: Array<{ targetType: string; targetId: string }>): {
+    mediaAttachments: AttachmentsSnapshot['mediaAttachments'];
+    mediaFileAttachments: AttachmentsSnapshot['mediaFileAttachments'];
+  };
   /** Removes every attachment of a target (cascade part of entity deletion). */
   deleteAttachmentsFor(targetType: string, targetId: string): void;
   /** Re-inserts a previously captured snapshot (the inverse of a cascade). */
@@ -1052,6 +1057,47 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
+    return this.collectAttachments(targetType, targetId, new Set());
+  }
+
+  /** Cross-target media taken down with several removed child rows. */
+  listCrossTargetMediaAttachments(targets: Array<{ targetType: string; targetId: string }>): {
+    mediaAttachments: AttachmentsSnapshot['mediaAttachments'];
+    mediaFileAttachments: AttachmentsSnapshot['mediaFileAttachments'];
+  } {
+    const targetKeys = new Set(targets.map((target) => `${target.targetType}:${target.targetId}`));
+    const mediaById = new Map<string, MediaRecord>();
+    for (const target of targets) {
+      for (const entry of this.media.listLinksFor(target.targetType, target.targetId)) {
+        mediaById.set(entry.media.id, entry.media);
+      }
+    }
+    const cross = [...mediaById.values()].filter((media) => {
+      const keys = new Set((media.links ?? []).map((link) => `${link.targetType}:${link.targetId}`));
+      return keys.size > 1 && [...keys].every((key) => targetKeys.has(key));
+    });
+    return {
+      mediaAttachments: cross.map((media) => ({
+        targetType: 'media',
+        targetId: media.id,
+        attachments: this.collectAttachments('media', media.id, new Set()),
+      })),
+      mediaFileAttachments: cross.flatMap((media) =>
+        (media.files ?? []).map((file) => ({
+          targetType: 'media_file',
+          targetId: file.id,
+          attachments: this.collectAttachments('media_file', file.id, new Set()),
+        })),
+      ),
+    };
+  }
+
+  private collectAttachments(targetType: string, targetId: string, visited: ReadonlySet<string>): AttachmentsSnapshot {
+    const key = `${targetType}:${targetId}`;
+    if (visited.has(key)) {
+      return emptyAttachments();
+    }
+    const nestedVisited = new Set(visited).add(key);
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const orphanMedia = [
       ...new Map(
@@ -1070,19 +1116,19 @@ export class SqliteTreeRepository implements TreeRepository {
       mediaAttachments: orphanMedia.map((media) => ({
         targetType: 'media',
         targetId: media.id,
-        attachments: this.listAttachmentsFor('media', media.id),
+        attachments: this.collectAttachments('media', media.id, nestedVisited),
       })),
       mediaFileAttachments: orphanMedia.flatMap((media) =>
         (media.files ?? []).map((file) => ({
           targetType: 'media_file',
           targetId: file.id,
-          attachments: this.listAttachmentsFor('media_file', file.id),
+          attachments: this.collectAttachments('media_file', file.id, nestedVisited),
         })),
       ),
       mediaLinkAttachments: mediaLinks.map((entry) => ({
         targetType: 'media_link',
         targetId: entry.link.id,
-        attachments: this.listAttachmentsFor('media_link', entry.link.id),
+        attachments: this.collectAttachments('media_link', entry.link.id, nestedVisited),
       })),
       identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
@@ -1095,19 +1141,28 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   deleteAttachmentsFor(targetType: string, targetId: string): void {
+    this.deleteAttachmentsForInternal(targetType, targetId, new Set());
+  }
+
+  private deleteAttachmentsForInternal(targetType: string, targetId: string, visited: ReadonlySet<string>): void {
+    const key = `${targetType}:${targetId}`;
+    if (visited.has(key)) {
+      return;
+    }
+    const nestedVisited = new Set(visited).add(key);
     this.notes.deleteLinksFor(targetType, targetId);
     this.sources.deleteCitationsFor(targetType, targetId);
     const links = this.media.listLinksFor(targetType, targetId);
     for (const entry of links) {
-      this.deleteAttachmentsFor('media_link', entry.link.id);
+      this.deleteAttachmentsForInternal('media_link', entry.link.id, nestedVisited);
     }
     const affectedMedia = links.map((entry) => entry.media);
     this.media.deleteLinksFor(targetType, targetId);
     for (const media of affectedMedia) {
       if (this.media.getMedia(media.id) === undefined) {
-        this.deleteAttachmentsFor('media', media.id);
+        this.deleteAttachmentsForInternal('media', media.id, nestedVisited);
         for (const file of media.files ?? []) {
-          this.deleteAttachmentsFor('media_file', file.id);
+          this.deleteAttachmentsForInternal('media_file', file.id, nestedVisited);
         }
       }
     }
@@ -1132,7 +1187,11 @@ export class SqliteTreeRepository implements TreeRepository {
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
         this.media.insertMedia(entry.media);
-      } else {
+      } else if (
+        !this.media
+          .listLinksFor(entry.link.targetType, entry.link.targetId)
+          .some((existing) => existing.link.id === entry.link.id)
+      ) {
         this.media.addMediaLink(entry.media.id, entry.link);
       }
     }

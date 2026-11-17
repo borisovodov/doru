@@ -192,6 +192,38 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('restores media shared by several removed place-name rows', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({
+        id: 'PL1',
+        names: [
+          { id: 'PN1', kind: 'official', position: 0, value: 'Tula' },
+          { id: 'PN2', kind: 'official', position: 1, value: 'Tula Oblast' },
+        ],
+      });
+      service.addMedia({
+        id: 'M1',
+        files: [{ id: 'MF1', path: 'media/photo.jpg' }],
+        links: [
+          { id: 'ML1', mediaId: 'M1', targetType: 'place_name', targetId: 'PN1' },
+          { id: 'ML2', mediaId: 'M1', targetType: 'place_name', targetId: 'PN2' },
+        ],
+      });
+      service.addNote({ id: 'NM1', text: 'media note', targetType: 'media', targetId: 'M1' });
+
+      service.deletePlace(repo.getPlace('PL1')!);
+      expect(repo.getMedia('M1')).toBeUndefined();
+      service.undo();
+      expect(repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['NM1']);
+      expect(repo.listAttachmentsFor('place_name', 'PN1').mediaLinks).toHaveLength(1);
+      expect(repo.listAttachmentsFor('place_name', 'PN2').mediaLinks).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores a person address and address-line attachment on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

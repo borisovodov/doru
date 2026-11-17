@@ -91,15 +91,15 @@ export function deletePlaceOp(
       for (const source of consumers.sources ?? []) {
         ctx.repo.updateSource(source);
       }
-      for (const media of consumers.media ?? []) {
-        ctx.repo.updateMedia(media);
-      }
       for (const link of [...facts].reverse()) {
         ctx.repo.updateFact(link.before);
       }
       ctx.repo.restoreAttachments(attachments);
       for (const nested of nestedAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);
+      }
+      for (const media of consumers.media ?? []) {
+        ctx.repo.updateMedia(media);
       }
     },
   };

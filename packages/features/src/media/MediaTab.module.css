@@ -7,9 +7,6 @@
 
 .fileFacts {
   overflow: hidden;
-  color: var(--doru-fg-muted);
-  font-size: 11px;
-  opacity: 0.8;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
