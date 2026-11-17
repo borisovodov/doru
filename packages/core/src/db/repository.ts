@@ -1052,37 +1052,45 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
-    return this.collectAttachments(targetType, targetId, new Set());
+    return this.collectAttachments(targetType, targetId, { cache: new Map(), visiting: new Set() });
   }
 
-  private collectAttachments(targetType: string, targetId: string, visited: ReadonlySet<string>): AttachmentsSnapshot {
+  private collectAttachments(
+    targetType: string,
+    targetId: string,
+    state: { cache: Map<string, AttachmentsSnapshot>; visiting: Set<string> },
+  ): AttachmentsSnapshot {
     const key = `${targetType}:${targetId}`;
-    if (visited.has(key)) {
+    const cached = state.cache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+    if (state.visiting.has(key)) {
       return emptyAttachments();
     }
-    const nestedVisited = new Set(visited).add(key);
+    state.visiting.add(key);
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const linkedMedia = [...new Map(mediaLinks.map((entry) => [entry.media.id, entry.media])).values()];
-    return {
+    const snapshot: AttachmentsSnapshot = {
       noteLinks: this.notes.listLinksFor(targetType, targetId),
       citations: this.sources.listCitations(targetType, targetId),
       mediaLinks,
       mediaAttachments: linkedMedia.map((media) => ({
         targetType: 'media',
         targetId: media.id,
-        attachments: this.collectAttachments('media', media.id, nestedVisited),
+        attachments: this.collectAttachments('media', media.id, state),
       })),
       mediaFileAttachments: linkedMedia.flatMap((media) =>
         (media.files ?? []).map((file) => ({
           targetType: 'media_file',
           targetId: file.id,
-          attachments: this.collectAttachments('media_file', file.id, nestedVisited),
+          attachments: this.collectAttachments('media_file', file.id, state),
         })),
       ),
       mediaLinkAttachments: mediaLinks.map((entry) => ({
         targetType: 'media_link',
         targetId: entry.link.id,
-        attachments: this.collectAttachments('media_link', entry.link.id, nestedVisited),
+        attachments: this.collectAttachments('media_link', entry.link.id, state),
       })),
       identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
@@ -1092,31 +1100,34 @@ export class SqliteTreeRepository implements TreeRepository {
       todos: this.research.listTodosFor(targetType, targetId),
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
+    state.visiting.delete(key);
+    state.cache.set(key, snapshot);
+    return snapshot;
   }
 
   deleteAttachmentsFor(targetType: string, targetId: string): void {
     this.deleteAttachmentsForInternal(targetType, targetId, new Set());
   }
 
-  private deleteAttachmentsForInternal(targetType: string, targetId: string, visited: ReadonlySet<string>): void {
+  private deleteAttachmentsForInternal(targetType: string, targetId: string, visited: Set<string>): void {
     const key = `${targetType}:${targetId}`;
     if (visited.has(key)) {
       return;
     }
-    const nestedVisited = new Set(visited).add(key);
+    visited.add(key);
     this.notes.deleteLinksFor(targetType, targetId);
     this.sources.deleteCitationsFor(targetType, targetId);
     const links = this.media.listLinksFor(targetType, targetId);
     for (const entry of links) {
-      this.deleteAttachmentsForInternal('media_link', entry.link.id, nestedVisited);
+      this.deleteAttachmentsForInternal('media_link', entry.link.id, visited);
     }
     const affectedMedia = links.map((entry) => entry.media);
     this.media.deleteLinksFor(targetType, targetId);
     for (const media of affectedMedia) {
       if (this.media.getMedia(media.id) === undefined) {
-        this.deleteAttachmentsForInternal('media', media.id, nestedVisited);
+        this.deleteAttachmentsForInternal('media', media.id, visited);
         for (const file of media.files ?? []) {
-          this.deleteAttachmentsForInternal('media_file', file.id, nestedVisited);
+          this.deleteAttachmentsForInternal('media_file', file.id, visited);
         }
       }
     }
