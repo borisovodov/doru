@@ -682,6 +682,29 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('lists every tag link and submitter link for the global registries', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTag({ id: 'TAG1', name: 'Priority' });
+      service.addTag({ id: 'TAG2', name: 'Orphan' });
+      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
+      expect(fixture.repo.listAllTagLinks().map((link) => link.id)).toEqual(['TL1']);
+
+      service.addSubmitter(submitter());
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
+      expect(fixture.repo.listAllRecordSubmitters()).toEqual([
+        expect.objectContaining({
+          submitterId: 'SU1',
+          targetType: 'person',
+          targetId: 'P1',
+          kind: 'ancestor_interest',
+        }),
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('stamps the change user into the change-log rows', () => {
     const fixture = makeRepo();
     const service = new TreeService(fixture.repo, new OpQueue(), 'boris');

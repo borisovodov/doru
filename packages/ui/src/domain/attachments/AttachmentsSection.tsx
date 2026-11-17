@@ -256,6 +256,9 @@ export function ContactsSection({
                       {nls.t(`features.tree.contacts.kind.${entry}`)}
                     </option>
                   ))}
+                  {!(CONTACT_KINDS as readonly string[]).includes(editKind) && (
+                    <option value={editKind}>{editKind}</option>
+                  )}
                 </Select>
                 <Input
                   value={editValue}
@@ -362,6 +365,9 @@ export function RestrictionsSection({
                       {nls.t(`features.tree.restrictions.level.${entry}`)}
                     </option>
                   ))}
+                  {!(RESTRICTION_LEVELS as readonly string[]).includes(editLevel) && (
+                    <option value={editLevel}>{editLevel}</option>
+                  )}
                 </Select>
                 <Button variant="primary" size="sm" onClick={() => void saveEdit(restriction)}>
                   {nls.t('features.tree.save')}

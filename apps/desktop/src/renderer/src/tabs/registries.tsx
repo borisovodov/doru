@@ -27,9 +27,11 @@ export const repositoryTab: TabDescriptor = {
       addresses={context.tree.addresses}
       api={{ ...context.tree.registriesApi, openTask: context.tabs.open.task }}
       sources={context.tree.sources}
+      titles={context.tree.titles}
       media={context.tree.media}
       mediaApi={context.tree.mediaApi}
       onOpenSource={context.tabs.open.source}
+      onOpenTitle={context.tabs.open.title}
       onOpenMedia={context.tabs.open.media}
       onOpenAddress={context.tabs.open.address}
       onClose={() => context.tabs.closeTab(id)}
@@ -59,9 +61,62 @@ export const submitterTab: TabDescriptor = {
       sources={context.tree.sources}
       media={context.tree.media}
       mediaApi={context.tree.mediaApi}
+      recordSubmitters={context.tree.recordSubmitters}
+      targetData={{
+        persons: context.tree.persons,
+        families: context.tree.families,
+        sources: context.tree.sources,
+        places: context.tree.places,
+        repositories: context.tree.repositories,
+        titles: context.tree.titles,
+        facts: context.tree.facts,
+        citations: context.tree.citations,
+        notes: context.tree.notes,
+        media: context.tree.media,
+        submitters: context.tree.submitters,
+        addresses: context.tree.addresses,
+        associations: context.tree.associations,
+        todos: context.tree.todos,
+      }}
       onOpenSource={context.tabs.open.source}
       onOpenMedia={context.tabs.open.media}
       onOpenAddress={context.tabs.open.address}
+      onOpenTarget={(targetType, targetId) => {
+        switch (targetType) {
+          case 'person':
+            context.tabs.open.person(targetId);
+            break;
+          case 'family':
+            context.tabs.open.family(targetId);
+            break;
+          case 'source':
+            context.tabs.open.source(targetId);
+            break;
+          case 'place':
+            context.tabs.open.place(targetId);
+            break;
+          case 'repository':
+            context.tabs.open.repository(targetId);
+            break;
+          case 'submitter':
+            context.tabs.open.submitter(targetId);
+            break;
+          case 'address':
+            context.tabs.open.address(targetId);
+            break;
+          case 'task':
+            context.tabs.open.task(targetId);
+            break;
+          case 'media':
+            context.tabs.open.media(targetId);
+            break;
+          case 'title':
+            context.tabs.open.title(targetId);
+            break;
+          default:
+            break;
+        }
+      }}
       onClose={() => context.tabs.closeTab(id)}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('submitter', realId))}
     />

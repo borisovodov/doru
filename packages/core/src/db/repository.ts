@@ -154,6 +154,8 @@ export interface TreeRepository {
   listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[];
   /** Every record a submitter contributes to, for the delete/undo snapshot. */
   listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[];
+  /** Every submitter link in the tree, for the global registries. */
+  listAllRecordSubmitters(): RecordSubmitterLink[];
   deleteRecordSubmitter(id: string): boolean;
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
@@ -183,6 +185,8 @@ export interface TreeRepository {
   updateTagLink(link: TagLinkRecord): void;
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }>;
   listTagLinksByTag(tagId: string): TagLinkRecord[];
+  /** Every tag link in the tree, for the global tag registry. */
+  listAllTagLinks(): TagLinkRecord[];
   insertAssociation(association: AssociationRecord): void;
   updateAssociation(association: AssociationRecord): void;
   deleteAssociation(id: string): boolean;
@@ -821,6 +825,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.submitters.listRecordSubmittersForSubmitter(submitterId);
   }
 
+  listAllRecordSubmitters(): RecordSubmitterLink[] {
+    return this.submitters.listAllRecordSubmitters();
+  }
+
   deleteRecordSubmitter(id: string): boolean {
     return this.submitters.deleteRecordSubmitter(id);
   }
@@ -952,6 +960,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     return this.attachments.listTagLinksByTag(tagId);
+  }
+
+  listAllTagLinks(): TagLinkRecord[] {
+    return this.attachments.listAllTagLinks();
   }
 
   insertAssociation(association: AssociationRecord): void {

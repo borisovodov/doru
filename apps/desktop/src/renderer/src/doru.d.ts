@@ -153,6 +153,7 @@ declare global {
         targetType: string,
         targetId: string,
       ): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
+      getAllTagLinks(projectPath: string): Promise<TagLinkRecord[]>;
       addTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       updateTag(projectPath: string, before: TagRecord, after: TagRecord): Promise<UndoRedoState>;
       deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
@@ -192,6 +193,15 @@ declare global {
         targetType: string,
         targetId: string,
       ): Promise<
+        Array<{
+          id: string;
+          submitterId: string;
+          targetType: string;
+          targetId: string;
+          kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+        }>
+      >;
+      getAllRecordSubmitters(projectPath: string): Promise<
         Array<{
           id: string;
           submitterId: string;

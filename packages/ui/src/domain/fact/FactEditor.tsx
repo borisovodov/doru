@@ -495,6 +495,9 @@ export function FactEditor({
                       )}
                 </option>
               ))}
+              {!(FACT_AGE_ROLES as readonly string[]).includes(age.role ?? '') && (age.role ?? '') !== '' && (
+                <option value={age.role}>{age.role}</option>
+              )}
             </Select>
             {AGE_NUMBER_FIELDS.map((field) => (
               <Input

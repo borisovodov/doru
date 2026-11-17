@@ -107,9 +107,6 @@ function TitleTabBody({
   });
 
   const save = async () => {
-    if (name.trim() === '') {
-      return;
-    }
     const after = build();
     if (isNew && lastSaved === undefined) {
       await api.addTitle(after);
@@ -134,7 +131,7 @@ function TitleTabBody({
         subtitle={subtitle !== '' ? subtitle : null}
         actions={
           <>
-            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
+            <Button variant="primary" size="sm" onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </Button>
             {(!isNew || lastSaved !== undefined) && (

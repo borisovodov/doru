@@ -24,7 +24,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
-import { collectNameIds, collectNamePartIds, isVisibleMedia } from '../model/types';
+import { collectNameIds, collectNamePartIds } from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -227,7 +227,7 @@ export class TreeService {
       counts[personId] = {
         notes: this.repo.listNotesFor('person', personId).length,
         sources: this.repo.listCitationsFor('person', personId).length,
-        media: this.repo.listMediaFor('person', personId).filter(isVisibleMedia).length,
+        media: this.repo.listMediaFor('person', personId).length,
       };
     }
     return counts;
@@ -789,6 +789,10 @@ export class TreeService {
     return this.repo.listTagLinksFor(targetType, targetId);
   }
 
+  listAllTagLinks(): TagLinkRecord[] {
+    return this.repo.listAllTagLinks();
+  }
+
   addTag(tag: TagRecord): UndoRedoState {
     return this.apply(addTagOp(tag));
   }
@@ -861,11 +865,13 @@ export class TreeService {
   }
 
   /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
-  listRecordSubmittersFor(
-    targetType: string,
-    targetId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
     return this.repo.listRecordSubmittersFor(targetType, targetId);
+  }
+
+  /** Every submitter link in the tree, for the global registries. */
+  listAllRecordSubmitters(): RecordSubmitterLink[] {
+    return this.repo.listAllRecordSubmitters();
   }
 
   addRecordSubmitter(

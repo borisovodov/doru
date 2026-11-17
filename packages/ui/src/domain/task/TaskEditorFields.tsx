@@ -27,6 +27,16 @@ export function TaskEditorFields({
   const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
   const targetOptions = taskTargetOptions(edit.targetType, data);
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
+  const categories = [
+    ...new Set(
+      data.todos.map((todo) => todo.category).filter((value): value is string => value !== undefined && value !== ''),
+    ),
+  ];
+  const localities = [
+    ...new Set(
+      data.todos.map((todo) => todo.locality).filter((value): value is string => value !== undefined && value !== ''),
+    ),
+  ];
 
   return (
     <>
@@ -60,6 +70,9 @@ export function TaskEditorFields({
             <option value="low">{nls.t('features.tasks.priorityLow')}</option>
             <option value="medium">{nls.t('features.tasks.priorityMedium')}</option>
             <option value="high">{nls.t('features.tasks.priorityHigh')}</option>
+            {!['', 'low', 'medium', 'high'].includes(edit.priority) && (
+              <option value={edit.priority}>{edit.priority}</option>
+            )}
           </Select>
         </Field>
         <Field label={nls.t('features.tasks.status')}>
@@ -67,6 +80,7 @@ export function TaskEditorFields({
             <option value="">{nls.t('features.tasks.statusOpen')}</option>
             <option value="in-progress">{nls.t('features.tasks.statusInProgress')}</option>
             <option value="closed">{nls.t('features.tasks.statusClosed')}</option>
+            {!['', 'in-progress', 'closed'].includes(edit.status) && <option value={edit.status}>{edit.status}</option>}
           </Select>
         </Field>
         <Field label={nls.t('features.tasks.repository')}>
@@ -140,6 +154,16 @@ export function TaskEditorFields({
         onChange={(value) => onChange({ closed: value })}
         hidePlace
       />
+      <datalist id="doru-task-categories">
+        {categories.map((category) => (
+          <option key={category} value={category} />
+        ))}
+      </datalist>
+      <datalist id="doru-task-localities">
+        {localities.map((locality) => (
+          <option key={locality} value={locality} />
+        ))}
+      </datalist>
     </>
   );
 }

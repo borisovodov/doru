@@ -95,7 +95,7 @@ export function TagsSection({
   };
 
   const saveDateEdit = async (link: TagLinkRecord) => {
-    const date = fromDateDraft(dateDraft);
+    const date = fromDateDraft(dateDraft, link.date);
     if (link.date !== date) {
       await onUpdateTagLink(link, { ...link, date });
     }

@@ -101,6 +101,9 @@ export function DateEditor({
             <option value="ABT">{nls.t('features.tree.date.modifier.ABT')}</option>
             <option value="CAL">{nls.t('features.tree.date.modifier.CAL')}</option>
             <option value="EST">{nls.t('features.tree.date.modifier.EST')}</option>
+            {!['', 'ABT', 'CAL', 'EST'].includes(value.modifier) && (
+              <option value={value.modifier}>{value.modifier}</option>
+            )}
           </Select>
         </div>
       )}
@@ -162,6 +165,9 @@ export function DateEditor({
               )}
             </option>
           ))}
+          {!(CALENDARS as readonly string[]).includes(value.calendar) && value.calendar !== '' && (
+            <option value={value.calendar}>{value.calendar}</option>
+          )}
         </Select>
         <Checkbox
           label={nls.t('features.tree.date.bce')}
@@ -186,6 +192,9 @@ export function DateEditor({
                   )}
                 </option>
               ))}
+              {!(CALENDARS as readonly string[]).includes(value.endCalendar) && value.endCalendar !== '' && (
+                <option value={value.endCalendar}>{value.endCalendar}</option>
+              )}
             </Select>
             <Checkbox
               label={nls.t('features.tree.date.bce')}

@@ -151,7 +151,8 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
  * content, a repository link without a picked repository, …) are dropped;
  * ids are preserved so nothing is re-created on every save.
  */
-export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
+export function sourceDraftToRecord(draft: SourceDraft, existing?: SourceRecord): SourceRecord {
+  const existingEvents = new Map((existing?.dataEvents ?? []).map((event) => [event.id, event]));
   return {
     id: draft.id,
     xref: draft.xref,
@@ -168,7 +169,7 @@ export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
     bibliography: draft.bibliography.trim() || undefined,
     dataNote: draft.dataNote.trim() || undefined,
     agency: draft.agency.trim() || undefined,
-    pubDate: fromDateDraft(draft.pubDate),
+    pubDate: fromDateDraft(draft.pubDate, existing?.pubDate),
     pubPlace: draft.pubDate.place.trim() || undefined,
     titleId: draft.titleId,
     texts: draft.texts
@@ -181,7 +182,7 @@ export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
       })),
     dataEvents: draft.dataEvents
       .map((event) => {
-        const date = fromDateDraft(event.date);
+        const date = fromDateDraft(event.date, existingEvents.get(event.id)?.date);
         const value = event.value.trim();
         return { event, date, value };
       })
@@ -250,6 +251,10 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     draft.url === other.url &&
     draft.accessDate === other.accessDate &&
     draft.confidence === other.confidence &&
+    draft.certainty === other.certainty &&
+    draft.subsequentCitationFormat === other.subsequentCitationFormat &&
+    draft.bibliography === other.bibliography &&
+    draft.dataNote === other.dataNote &&
     draft.agency === other.agency &&
     draft.titleId === other.titleId &&
     draft.xref === other.xref &&

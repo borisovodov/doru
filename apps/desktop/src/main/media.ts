@@ -41,9 +41,11 @@ async function withPaths(projectPath: string, media: MediaRecord): Promise<Media
   const files: MediaFileWithPath[] = [];
   for (const file of sourceFiles) {
     const absolutePath = mediaAbsolutePath(projectPath, file.path);
-    if (absolutePath !== null) {
-      files.push({ ...file, absolutePath, facts: await readMediaFileFacts(absolutePath) });
-    }
+    files.push({
+      ...file,
+      absolutePath: absolutePath ?? '',
+      ...(absolutePath !== null ? { facts: await readMediaFileFacts(absolutePath) } : {}),
+    });
   }
   return {
     ...media,

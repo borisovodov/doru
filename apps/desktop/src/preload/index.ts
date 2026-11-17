@@ -146,6 +146,7 @@ const api = {
   getTags: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tags', { projectPath }),
   getTagLinks: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:tagLinks', { projectPath, targetType, targetId }),
+  getAllTagLinks: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:allTagLinks', { projectPath }),
   addTag: (projectPath: string, tag: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addTag', { projectPath, tag }),
   updateTag: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
@@ -210,6 +211,8 @@ const api = {
     ipcRenderer.invoke('tree:deleteSubmitter', { projectPath, submitter }),
   getRecordSubmitters: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:recordSubmitters', { projectPath, targetType, targetId }),
+  getAllRecordSubmitters: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:allRecordSubmitters', { projectPath }),
   addRecordSubmitter: (
     projectPath: string,
     submitterId: string,

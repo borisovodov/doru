@@ -289,6 +289,27 @@ export class AttachmentRepo {
     }));
   }
 
+  /** Every tag link in the tree, for the global tag registry. */
+  listAllTagLinks(): TagLinkRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link ORDER BY id')
+      .all() as unknown as {
+      id: string;
+      tag_id: string;
+      target_type: string;
+      target_id: string;
+      date_id: string | null;
+    }[];
+    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    return rows.map((row) => ({
+      id: row.id,
+      tagId: row.tag_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+    }));
+  }
+
   // bulk cascade -------------------------------------------------------------
 
   /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */

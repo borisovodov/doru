@@ -12,6 +12,18 @@
   box-shadow: var(--doru-ring);
 }
 
+.fallback {
+  display: flex;
+  width: 120px;
+  height: 120px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-bg-input);
+  box-shadow: var(--doru-ring);
+  color: var(--doru-fg-muted);
+}
+
 .open {
   display: block;
   padding: 0;

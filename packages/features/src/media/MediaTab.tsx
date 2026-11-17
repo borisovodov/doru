@@ -90,11 +90,10 @@ function MediaTabBody({
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
 
   const save = async () => {
-    const dateValue = fromDateDraft(date);
     await api.updateMedia(record, {
       ...record,
       title: title.trim() || undefined,
-      date: dateValue !== undefined && record.date?.id !== undefined ? { ...dateValue, id: record.date.id } : dateValue,
+      date: fromDateDraft(date, record.date),
       place: place.trim() || undefined,
       placeId: placeId || undefined,
       objectType: objectType.trim() || undefined,
@@ -104,6 +103,9 @@ function MediaTabBody({
   };
 
   const remove = async () => {
+    if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+      return;
+    }
     await api.deleteMedia(record);
     onClose();
   };
@@ -113,6 +115,9 @@ function MediaTabBody({
   };
 
   const removeFile = async (file: MediaFile) => {
+    if (!window.confirm(nls.t('features.tree.media.removeFileConfirm'))) {
+      return;
+    }
     await api.removeMediaFile(record, file);
   };
 
@@ -139,7 +144,7 @@ function MediaTabBody({
     <EntityTab>
       <EntityViewCard
         media={
-          first !== undefined && isImagePath(first.path) ? (
+          first !== undefined && first.absolutePath !== '' && isImagePath(first.path) ? (
             <img
               className="media-tab-preview"
               src={`doru-media://local/?path=${encodeURIComponent(first.absolutePath)}`}
@@ -219,7 +224,7 @@ function MediaTabBody({
           {(record.files ?? []).map((file, index) => (
             <li key={file.id} className="media-file-item">
               <div className="media-file-row">
-                {isImagePath(file.path) ? (
+                {file.absolutePath !== '' && isImagePath(file.path) ? (
                   <img
                     className="media-file-thumb"
                     src={`doru-media://local/?path=${encodeURIComponent(file.absolutePath)}`}
@@ -285,6 +290,9 @@ function MediaTabBody({
                 if ((record.links?.length ?? 0) > 1) {
                   await api.detachMedia(link);
                 } else {
+                  if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+                    return;
+                  }
                   await api.deleteMedia(record);
                   onClose();
                 }

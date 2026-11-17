@@ -233,6 +233,7 @@ describe('personDraftMatches', () => {
     const renamed = { ...base, names: [setPartValue({ ...base.names[0]! }, 'given', 'John')] };
     expect(personDraftMatches(renamed, source)).toBe(false);
     expect(personDraftMatches({ ...base, sex: 'F' }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, addressId: 'A1' }, source)).toBe(false);
     expect(personDraftMatches({ ...base, birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
   });
 

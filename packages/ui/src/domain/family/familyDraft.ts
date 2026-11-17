@@ -163,11 +163,13 @@ export function familyToDraft(family: FamilyRecord): FamilyDraft {
 }
 
 /** Builds the family record for a save; empty slots (no person) are dropped. */
-export function familyDraftToRecord(draft: FamilyDraft): FamilyRecord {
+export function familyDraftToRecord(draft: FamilyDraft, existing?: FamilyRecord): FamilyRecord {
+  const existingPartners = new Map((existing?.partnerLinks ?? []).map((link) => [link.id, link]));
+  const existingStatuses = new Map((existing?.marriageStatuses ?? []).map((status) => [status.id, status]));
   const partnerLinks: FamilyPartnerLink[] = draft.partnerLinks
     .filter((link) => link.personId !== '')
     .map((link) => {
-      const date = fromDateDraft(link.date);
+      const date = fromDateDraft(link.date, existingPartners.get(link.id)?.date);
       return {
         id: link.id,
         personId: link.personId,
@@ -197,7 +199,7 @@ export function familyDraftToRecord(draft: FamilyDraft): FamilyRecord {
   const marriageStatuses = draft.marriageStatuses
     .filter((status) => status.status.trim() !== '')
     .map((status) => {
-      const date = fromDateDraft(status.date);
+      const date = fromDateDraft(status.date, existingStatuses.get(status.id)?.date);
       return {
         id: status.id,
         status: status.status.trim(),

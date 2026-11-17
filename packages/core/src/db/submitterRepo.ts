@@ -135,6 +135,26 @@ export class SubmitterRepo {
     }));
   }
 
+  /** Every submitter link in the tree, for the global registries. */
+  listAllRecordSubmitters(): RecordSubmitterLink[] {
+    const rows = this.db
+      .prepare('SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter ORDER BY id')
+      .all() as unknown as {
+      id: string;
+      submitter_id: string;
+      target_type: string;
+      target_id: string;
+      kind: string;
+    }[];
+    return rows.map((row) => ({
+      id: row.id,
+      submitterId: row.submitter_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      kind: row.kind as RecordSubmitterLink['kind'],
+    }));
+  }
+
   deleteRecordSubmittersFor(targetType: string, targetId: string): void {
     this.db.prepare('DELETE FROM record_submitter WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }

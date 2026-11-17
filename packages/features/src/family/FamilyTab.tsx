@@ -96,6 +96,23 @@ function FamilyTabBody({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<FamilyDraft>(() => familyToDraft(record));
+  // The family tab owns only its own associations: the snapshot is scoped
+  // here and refreshed through the dedicated API after mutations.
+  const [familyAssociations, setFamilyAssociations] = useState<AssociationRecord[]>(() =>
+    associations.filter((association) => association.familyId === record.id),
+  );
+  useEffect(() => {
+    let cancelled = false;
+    void api.getAssociationsForFamily(record.id).then((loaded) => {
+      if (!cancelled) {
+        setFamilyAssociations(loaded);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // oxlint-disable-next-line react/exhaustive-deps -- the api object changes every render; the snapshot list drives refreshes
+  }, [record.id, associations]);
   const {
     notes: familyNotes,
     allNotes,
@@ -125,7 +142,7 @@ function FamilyTabBody({
   }, [record]);
 
   const save = async () => {
-    await api.updateFamily(record, familyDraftToRecord(draft));
+    await api.updateFamily(record, familyDraftToRecord(draft, record));
   };
 
   const remove = async () => {
@@ -140,7 +157,7 @@ function FamilyTabBody({
         onChange={setDraft}
         persons={persons}
         families={families}
-        associations={associations}
+        associations={familyAssociations}
         sources={sources}
         api={api}
         savedLinkIds={

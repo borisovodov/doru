@@ -55,7 +55,7 @@ export function FamilySection({
     const draft = familyToDraft(family);
     draft.partnerLinks = draft.partnerLinks.filter((link) => link.personId !== memberId);
     draft.childLinks = draft.childLinks.filter((link) => link.childId !== memberId);
-    await onUpdateFamily(family, familyDraftToRecord(draft));
+    await onUpdateFamily(family, familyDraftToRecord(draft, family));
     await refresh();
   };
 
@@ -66,7 +66,7 @@ export function FamilySection({
     } else {
       draft.childLinks.push(emptyChildLinkDraft(memberId));
     }
-    await onUpdateFamily(family, familyDraftToRecord(draft));
+    await onUpdateFamily(family, familyDraftToRecord(draft, family));
     await refresh();
   };
 

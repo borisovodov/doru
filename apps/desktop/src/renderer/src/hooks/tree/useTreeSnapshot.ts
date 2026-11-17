@@ -8,9 +8,12 @@ import type {
   NoteRecord,
   PersonRecord,
   PlaceRecord,
+  RecordSubmitterLink,
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
@@ -27,6 +30,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
+  const [recordSubmitters, setRecordSubmitters] = useState<RecordSubmitterLink[]>([]);
+  const [tags, setTags] = useState<TagRecord[]>([]);
+  const [tagLinks, setTagLinks] = useState<TagLinkRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [todos, setTodos] = useState<TodoRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
@@ -43,6 +49,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       allPlaces,
       allRepositories,
       allSubmitters,
+      allRecordSubmitters,
+      allTags,
+      allTagLinks,
       allAddresses,
       allTodos,
       allTitles,
@@ -57,6 +66,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getPlaces(path),
       window.doru.getRepositories(path),
       window.doru.getSubmitters(path),
+      window.doru.getAllRecordSubmitters(path),
+      window.doru.getTags(path),
+      window.doru.getAllTagLinks(path),
       window.doru.listAddresses(path),
       window.doru.getTodos(path),
       window.doru.getTitles(path),
@@ -72,6 +84,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     setPlaces(allPlaces);
     setRepositories(allRepositories);
     setSubmitters(allSubmitters);
+    setRecordSubmitters(allRecordSubmitters);
+    setTags(allTags);
+    setTagLinks(allTagLinks);
     setAddresses(allAddresses);
     setTodos(allTodos);
     setTitles(allTitles);
@@ -90,6 +105,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       setPlaces([]);
       setRepositories([]);
       setSubmitters([]);
+      setRecordSubmitters([]);
+      setTags([]);
+      setTagLinks([]);
       setAddresses([]);
       setTodos([]);
       setTitles([]);
@@ -127,6 +145,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     places,
     repositories,
     submitters,
+    recordSubmitters,
+    tags,
+    tagLinks,
     addresses,
     todos,
     titles,

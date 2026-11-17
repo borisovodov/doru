@@ -421,6 +421,9 @@ export function FamilyEditor({
                       {nls.t(`features.tree.family.pedigree.${type}`)}
                     </option>
                   ))}
+                  {!(PEDIGREE_TYPES as readonly string[]).includes(link.pedigree) && link.pedigree !== '' && (
+                    <option value={link.pedigree}>{link.pedigree}</option>
+                  )}
                 </Select>
               </Field>
               <Field label={nls.t('features.tree.family.status')}>
@@ -431,6 +434,9 @@ export function FamilyEditor({
                       {nls.t(`features.tree.family.status.${type}`)}
                     </option>
                   ))}
+                  {!(CHILD_STATUS_TYPES as readonly string[]).includes(link.status) && link.status !== '' && (
+                    <option value={link.status}>{link.status}</option>
+                  )}
                 </Select>
               </Field>
               <Field label={nls.t('features.tree.family.statusPhrase')}>
@@ -495,6 +501,9 @@ export function FamilyEditor({
         onAdd={api.addAssociation}
         onUpdate={api.updateAssociation}
         onDelete={api.deleteAssociation}
+        renderAttachments={(association) => (
+          <AttachmentsPanel targetType="association" targetId={association.id} api={api} sources={sources} />
+        )}
       />
 
       <FactsSection

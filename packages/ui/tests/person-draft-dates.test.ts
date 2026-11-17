@@ -288,6 +288,7 @@ describe('date refinements', () => {
     });
     expect(fromDateDraft(dateDraft({ quality: 'range', year: '1900', endYear: '1910', modifier: 'CAL' }))).toEqual({
       quality: 'range',
+      modifier: 'CAL',
       component: { year: 1900 },
       end: { year: 1910 },
     });

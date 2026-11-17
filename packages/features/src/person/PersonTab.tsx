@@ -90,8 +90,8 @@ function PersonTabBody({
     personRef.current = person;
     setDraft((current) =>
       !current.isNew && previous !== undefined && personDraftMatches(current, previous)
-        ? current
-        : personToDraft(person),
+        ? personToDraft(person)
+        : current,
     );
   }, [personId, persons, isNew]);
 

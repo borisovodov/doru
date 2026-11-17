@@ -1,7 +1,17 @@
-import { Archive, BookMarked, MapPin, User } from 'lucide-react';
-import type { AddressRecord, RepositoryRecord, SubmitterRecord, TitleRecord } from '@doru/core';
-import { EntityCard } from '@doru/ui';
-import { addressLabel } from '@doru/ui/domain';
+import { Archive, BookMarked, BookOpenText, MapPin, NotebookText, Tag as TagIcon, Trash2, User } from 'lucide-react';
+import type {
+  AddressRecord,
+  CitationRecord,
+  NoteRecord,
+  RepositoryRecord,
+  SourceRecord,
+  SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
+  TitleRecord,
+} from '@doru/core';
+import { EntityCard, IconButton } from '@doru/ui';
+import { addressLabel, taskTargetLabel, type TaskTargetData } from '@doru/ui/domain';
 import { nls } from '../nls';
 import './sidebar.css';
 
@@ -100,6 +110,112 @@ export function TitleList({ titles, onOpenTitle }: { titles: TitleRecord[]; onOp
           />
         </li>
       ))}
+    </ul>
+  );
+}
+
+/** Every tag in the tree; orphaned tags (no links) stay reachable and deletable. */
+export function TagsList({
+  tags,
+  tagLinks,
+  onDeleteTag,
+}: {
+  tags: TagRecord[];
+  tagLinks: TagLinkRecord[];
+  onDeleteTag: (tag: TagRecord) => void;
+}) {
+  if (tags.length === 0) {
+    return <p className="side-registries-note">{nls.t('features.tree.tags.empty')}</p>;
+  }
+  const counts = new Map<string, number>();
+  for (const link of tagLinks) {
+    counts.set(link.tagId, (counts.get(link.tagId) ?? 0) + 1);
+  }
+  return (
+    <ul className="side-section-list">
+      {tags.map((tag) => {
+        const count = counts.get(tag.id) ?? 0;
+        return (
+          <li key={tag.id} className="side-tag-row">
+            <EntityCard
+              icon={<TagIcon size={15} aria-hidden="true" />}
+              title={tag.name}
+              subtitle={count === 0 ? nls.t('features.tree.tags.orphan') : null}
+              meta={count > 0 ? count : null}
+            />
+            <IconButton
+              size="sm"
+              label={nls.t('features.tree.tags.delete')}
+              icon={<Trash2 size={13} aria-hidden="true" />}
+              onClick={() => onDeleteTag(tag)}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Every note in the tree, with the record it belongs to. */
+export function NotesList({ notes, targetData }: { notes: NoteRecord[]; targetData: TaskTargetData }) {
+  if (notes.length === 0) {
+    return <p className="side-registries-note">{nls.t('features.tree.notes.empty')}</p>;
+  }
+  return (
+    <ul className="side-section-list">
+      {notes.map((note) => (
+        <li key={note.id}>
+          <EntityCard
+            icon={<NotebookText size={15} aria-hidden="true" />}
+            title={note.text}
+            subtitle={
+              note.targetType !== undefined && note.targetId !== undefined
+                ? taskTargetLabel(note.targetType, note.targetId, targetData)
+                : null
+            }
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Every citation in the tree; the card opens the cited source. */
+export function CitationsList({
+  citations,
+  sources,
+  targetData,
+  onOpenSource,
+}: {
+  citations: CitationRecord[];
+  sources: SourceRecord[];
+  targetData: TaskTargetData;
+  onOpenSource: (sourceId: string) => void;
+}) {
+  if (citations.length === 0) {
+    return <p className="side-registries-note">{nls.t('features.tree.citations.empty')}</p>;
+  }
+  const sourceById = new Map(sources.map((source) => [source.id, source]));
+  return (
+    <ul className="side-section-list">
+      {citations.map((citation) => {
+        const source = sourceById.get(citation.sourceId);
+        const details = [
+          citation.page,
+          citation.description,
+          taskTargetLabel(citation.targetType, citation.targetId, targetData),
+        ].filter((part): part is string => part !== undefined && part !== '');
+        return (
+          <li key={citation.id}>
+            <EntityCard
+              icon={<BookOpenText size={15} aria-hidden="true" />}
+              title={source?.title ?? citation.sourceId}
+              subtitle={details.length > 0 ? details.join(' · ') : null}
+              onClick={() => onOpenSource(citation.sourceId)}
+            />
+          </li>
+        );
+      })}
     </ul>
   );
 }

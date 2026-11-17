@@ -4,11 +4,11 @@ import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
-import type { AddressRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
-import type { MediaWithPath } from '@doru/ui/domain';
+import type { MediaWithPath, TaskTargetData } from '@doru/ui/domain';
 import {
   AddressLinkField,
   ChangesSection,
@@ -22,10 +22,11 @@ import {
   MediaSection,
   TasksSection,
   addressLabel,
+  taskTargetLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
 import { Button } from '@doru/ui';
-import { EntityViewCard } from '@doru/ui';
+import { EntityCard, EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
 /* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
@@ -38,9 +39,12 @@ export function SubmitterTab({
   sources,
   media,
   mediaApi,
+  recordSubmitters,
+  targetData,
   onOpenSource,
   onOpenMedia,
   onOpenAddress,
+  onOpenTarget,
   onClose,
   onCreated,
 }: {
@@ -51,9 +55,12 @@ export function SubmitterTab({
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
+  recordSubmitters: RecordSubmitterLink[];
+  targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
+  onOpenTarget: (targetType: string, targetId: string) => void;
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
@@ -72,9 +79,12 @@ export function SubmitterTab({
       sources={sources}
       media={media}
       mediaApi={mediaApi}
+      recordSubmitters={recordSubmitters}
+      targetData={targetData}
       onOpenSource={onOpenSource}
       onOpenMedia={onOpenMedia}
       onOpenAddress={onOpenAddress}
+      onOpenTarget={onOpenTarget}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -89,9 +99,12 @@ function SubmitterTabBody({
   sources,
   media,
   mediaApi,
+  recordSubmitters,
+  targetData,
   onOpenSource,
   onOpenMedia,
   onOpenAddress,
+  onOpenTarget,
   onClose,
   onCreated,
 }: {
@@ -102,9 +115,12 @@ function SubmitterTabBody({
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
+  recordSubmitters: RecordSubmitterLink[];
+  targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
+  onOpenTarget: (targetType: string, targetId: string) => void;
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
@@ -163,6 +179,8 @@ function SubmitterTabBody({
     await api.deleteSubmitter(target);
     onClose();
   };
+
+  const referencedBy = targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : [];
 
   return (
     <EntityTab>
@@ -223,6 +241,27 @@ function SubmitterTabBody({
       </SectionCard>
       {targetId !== undefined && (
         <>
+          <SectionCard title={nls.t('features.tree.submitter.referencedBy')}>
+            {referencedBy.length === 0 ? (
+              <p className="side-registries-note">{nls.t('features.tree.submitter.referencedBy.empty')}</p>
+            ) : (
+              <ul className="side-section-list">
+                {referencedBy.map((link) => (
+                  <li key={link.id}>
+                    <EntityCard
+                      title={taskTargetLabel(link.targetType, link.targetId, targetData)}
+                      subtitle={
+                        (link.kind ?? 'contributor') === 'contributor'
+                          ? null
+                          : nls.t(`features.tree.contributors.kind.${link.kind ?? 'contributor'}`)
+                      }
+                      onClick={() => onOpenTarget(link.targetType, link.targetId)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
           <SourcesSection
             targetType="submitter"
             targetId={targetId}

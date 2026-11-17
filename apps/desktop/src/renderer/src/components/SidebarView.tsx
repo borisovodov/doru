@@ -1,5 +1,4 @@
 import { IconButton } from '@doru/ui';
-import { isVisibleMedia } from '@doru/core';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type {
@@ -14,12 +13,16 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
-import { PersonList, TasksView } from '@doru/ui/domain';
+import { PersonList, TasksView, type TaskTargetData } from '@doru/ui/domain';
 import {
   AddressList,
+  CitationsList,
+  NotesList,
   PlaceholderView,
   RepositoryList,
   SidebarFamilies,
@@ -29,6 +32,7 @@ import {
   SidebarSearch,
   SidebarSources,
   SubmitterList,
+  TagsList,
   TitleList,
   type SidebarMediaItem,
 } from '@doru/features';
@@ -49,6 +53,8 @@ export function SidebarView({
   places,
   repositories,
   submitters,
+  tags,
+  tagLinks,
   addresses,
   titles,
   todos,
@@ -72,6 +78,7 @@ export function SidebarView({
   onNewAddress,
   onOpenTask,
   onNewTask,
+  onDeleteTag,
 }: {
   activeView: ActivityViewId;
   persons: PersonRecord[];
@@ -84,6 +91,8 @@ export function SidebarView({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  tags: TagRecord[];
+  tagLinks: TagLinkRecord[];
   addresses: AddressRecord[];
   titles: TitleRecord[];
   todos: TodoRecord[];
@@ -107,7 +116,24 @@ export function SidebarView({
   onNewAddress: () => void;
   onOpenTask: (todoId: string) => void;
   onNewTask: () => void;
+  onDeleteTag: (tag: TagRecord) => void;
 }) {
+  const targetData: TaskTargetData = {
+    persons,
+    families,
+    sources,
+    places,
+    repositories,
+    titles,
+    facts,
+    citations,
+    notes,
+    media,
+    submitters,
+    addresses,
+    associations,
+    todos,
+  };
   switch (activeView) {
     case 'people':
       if (persons.length === 0) {
@@ -176,7 +202,6 @@ export function SidebarView({
         </>
       );
     case 'media': {
-      const visibleMedia = media.filter(isVisibleMedia);
       return (
         <>
           <div className="tasks-header">
@@ -187,13 +212,13 @@ export function SidebarView({
               onClick={onNewMedia}
             />
           </div>
-          {visibleMedia.length === 0 ? (
+          {media.length === 0 ? (
             <PlaceholderView
               title={nls.t('workbench.activityBar.media')}
               description={nls.t('features.media.placeholder')}
             />
           ) : (
-            <SidebarMedia media={visibleMedia} persons={persons} onOpenMedia={onOpenMedia} />
+            <SidebarMedia media={media} persons={persons} onOpenMedia={onOpenMedia} />
           )}
         </>
       );
@@ -203,15 +228,20 @@ export function SidebarView({
         <SourcesSidebar
           sources={sources}
           citations={citations}
+          notes={notes}
           repositories={repositories}
           submitters={submitters}
+          tags={tags}
+          tagLinks={tagLinks}
           addresses={addresses}
           titles={titles}
+          targetData={targetData}
           onOpenSource={onOpenSource}
           onOpenRepository={onOpenRepository}
           onOpenSubmitter={onOpenSubmitter}
           onOpenAddress={onOpenAddress}
           onOpenTitle={onOpenTitle}
+          onDeleteTag={onDeleteTag}
           onNewTitle={onNewTitle}
           onNewSource={onNewSource}
           onNewRepository={onNewRepository}
@@ -270,15 +300,20 @@ export function SidebarView({
 function SourcesSidebar({
   sources,
   citations,
+  notes,
   repositories,
   submitters,
+  tags,
+  tagLinks,
   addresses,
   titles,
+  targetData,
   onOpenSource,
   onOpenRepository,
   onOpenSubmitter,
   onOpenAddress,
   onOpenTitle,
+  onDeleteTag,
   onNewTitle,
   onNewSource,
   onNewRepository,
@@ -287,22 +322,29 @@ function SourcesSidebar({
 }: {
   sources: SourceRecord[];
   citations: CitationRecord[];
+  notes: NoteRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
+  tags: TagRecord[];
+  tagLinks: TagLinkRecord[];
   addresses: AddressRecord[];
   titles: TitleRecord[];
+  targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
   onOpenAddress: (addressId: string) => void;
   onOpenTitle: (titleId: string) => void;
+  onDeleteTag: (tag: TagRecord) => void;
   onNewTitle: () => void;
   onNewSource: () => void;
   onNewRepository: () => void;
   onNewSubmitter: () => void;
   onNewAddress: () => void;
 }) {
-  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters' | 'addresses' | 'titles'>('sources');
+  const [segment, setSegment] = useState<
+    'sources' | 'citations' | 'notes' | 'repositories' | 'submitters' | 'addresses' | 'titles' | 'tags'
+  >('sources');
 
   return (
     <>
@@ -310,10 +352,13 @@ function SourcesSidebar({
         {(
           [
             ['sources', nls.t('workbench.activityBar.sources')],
+            ['citations', nls.t('features.tree.citations.title')],
+            ['notes', nls.t('features.tree.notes.title')],
             ['titles', nls.t('workbench.activityBar.titles')],
             ['repositories', nls.t('workbench.activityBar.repositories')],
             ['submitters', nls.t('workbench.activityBar.submitters')],
             ['addresses', nls.t('workbench.activityBar.addresses')],
+            ['tags', nls.t('features.tree.tags.title')],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -346,6 +391,10 @@ function SourcesSidebar({
           )}
         </>
       )}
+      {segment === 'citations' && (
+        <CitationsList citations={citations} sources={sources} targetData={targetData} onOpenSource={onOpenSource} />
+      )}
+      {segment === 'notes' && <NotesList notes={notes} targetData={targetData} />}
       {segment === 'repositories' && (
         <>
           <div className="tasks-header">
@@ -398,6 +447,7 @@ function SourcesSidebar({
           <TitleList titles={titles} onOpenTitle={onOpenTitle} />
         </>
       )}
+      {segment === 'tags' && <TagsList tags={tags} tagLinks={tagLinks} onDeleteTag={onDeleteTag} />}
     </>
   );
 }

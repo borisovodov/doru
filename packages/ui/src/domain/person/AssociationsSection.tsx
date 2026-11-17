@@ -146,7 +146,7 @@ function AssociationRow({
     if (draft.otherPersonId === '') {
       return;
     }
-    await onUpdate(association, associationDraftToRecord(draft));
+    await onUpdate(association, associationDraftToRecord(draft, association));
     setEditing(false);
   };
 

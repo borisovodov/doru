@@ -73,7 +73,7 @@ export function citationToDraft(citation: CitationRecord): CitationDraft {
 }
 
 /** Builds the citation record for a save; empty texts and fields are dropped. */
-export function citationDraftToRecord(draft: CitationDraft): CitationRecord {
+export function citationDraftToRecord(draft: CitationDraft, existing?: CitationRecord): CitationRecord {
   return {
     id: draft.id,
     sourceId: draft.sourceId,
@@ -96,7 +96,7 @@ export function citationDraftToRecord(draft: CitationDraft): CitationRecord {
     verified: draft.verified || undefined,
     assessment: draft.assessment.trim() || undefined,
     foundBy: draft.foundBy.trim() || undefined,
-    date: fromDateDraft(draft.date),
+    date: fromDateDraft(draft.date, existing?.date),
     texts: draft.texts
       .filter((text) => text.text.trim() !== '')
       .map((text) => ({

@@ -149,12 +149,12 @@ function PlaceTabBody({
   }, [record, isNew]);
 
   const save = async () => {
-    const next = placeDraftToRecord(draft);
+    const target = lastSaved ?? record;
+    const next = placeDraftToRecord(draft, target);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
       onCreated(next.id);
     } else {
-      const target = lastSaved ?? record;
       if (target === undefined) {
         return;
       }
@@ -172,7 +172,12 @@ function PlaceTabBody({
   };
 
   const currentPlace = lastSaved ?? record;
-  const factsAtPlace = currentPlace !== undefined ? facts.filter((fact) => fact.placeId === currentPlace.id) : [];
+  const factsAtPlace =
+    currentPlace !== undefined
+      ? facts.filter(
+          (fact) => fact.placeId === currentPlace.id || (fact.additionalPlaceIds ?? []).includes(currentPlace.id),
+        )
+      : [];
 
   return (
     <EntityTab>

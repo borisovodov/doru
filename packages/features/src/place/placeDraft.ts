@@ -1,5 +1,5 @@
 import type { PlaceRecord } from '@doru/core';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
+import { dateDraftsEqual, emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
 
 /** The name kinds of a place row. Official rows carry 'official' explicitly. */
 export const PLACE_NAME_KINDS = ['official', 'translation', 'phonetic', 'romanized'] as const;
@@ -55,6 +55,11 @@ export interface PlaceDraft {
   names: PlaceNameDraft[];
   postalCodes: PostalCodeDraft[];
   hierarchy: HierarchyDraft[];
+}
+
+/** Rewrites jurisdiction positions to the list order after add/move/remove. */
+export function withPlaceNamePositions(names: PlaceNameDraft[]): PlaceNameDraft[] {
+  return names.map((name, position) => ({ ...name, position }));
 }
 
 export function emptyPlaceNameDraft(position = 0): PlaceNameDraft {
@@ -130,7 +135,10 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
 }
 
 /** Builds the place record for a save; empty rows and links are dropped. */
-export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
+export function placeDraftToRecord(draft: PlaceDraft, existing?: PlaceRecord): PlaceRecord {
+  const existingNames = new Map((existing?.names ?? []).map((name) => [name.id, name]));
+  const existingPostals = new Map((existing?.postalCodes ?? []).map((postal) => [postal.id, postal]));
+  const existingLinks = new Map((existing?.hierarchy ?? []).map((link) => [link.id, link]));
   return {
     id: draft.id,
     xref: draft.xref,
@@ -152,14 +160,14 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     ...(draft.placeType.trim() !== '' ? { placeType: draft.placeType.trim() } : {}),
     names: draft.names
       .filter((name) => name.value.trim() !== '')
-      .map((name) => {
-        const date = fromDateDraft(name.date);
+      .map((name, position) => {
+        const date = fromDateDraft(name.date, existingNames.get(name.id)?.date);
         return {
           id: name.id,
           kind: name.kind as PlaceRecord['names'][number]['kind'],
           ...(name.language.trim() !== '' ? { language: name.language.trim() } : {}),
           ...(name.type.trim() !== '' ? { type: name.type.trim() } : {}),
-          position: name.position,
+          position,
           value: name.value.trim(),
           ...(date !== undefined ? { date } : {}),
           ...(name.addition.trim() !== '' ? { addition: name.addition.trim() } : {}),
@@ -170,7 +178,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     postalCodes: draft.postalCodes
       .filter((postal) => postal.code.trim() !== '')
       .map((postal) => {
-        const date = fromDateDraft(postal.date);
+        const date = fromDateDraft(postal.date, existingPostals.get(postal.id)?.date);
         return {
           id: postal.id,
           code: postal.code.trim(),
@@ -180,7 +188,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     hierarchy: draft.hierarchy
       .filter((link) => link.parentId !== '')
       .map((link) => {
-        const date = fromDateDraft(link.date);
+        const date = fromDateDraft(link.date, existingLinks.get(link.id)?.date);
         return {
           id: link.id,
           parentId: link.parentId,
@@ -231,7 +239,7 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
         name.addition === entry.addition &&
         name.abbreviation === entry.abbreviation &&
         name.abbreviationType === entry.abbreviationType &&
-        dateDraftsMatch(name.date, entry.date)
+        dateDraftsEqual(name.date, entry.date)
       );
     }) &&
     draft.postalCodes.length === other.postalCodes.length &&
@@ -240,16 +248,17 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
       if (entry === undefined) {
         return false;
       }
-      return postal.id === entry.id && postal.code === entry.code && dateDraftsMatch(postal.date, entry.date);
+      return postal.id === entry.id && postal.code === entry.code && dateDraftsEqual(postal.date, entry.date);
     }) &&
     draft.hierarchy.length === other.hierarchy.length &&
     draft.hierarchy.every((link, index) => {
       const entry = other.hierarchy[index];
       return (
         entry !== undefined &&
+        link.id === entry.id &&
         link.parentId === entry.parentId &&
         link.type === entry.type &&
-        dateDraftsMatch(link.date, entry.date)
+        dateDraftsEqual(link.date, entry.date)
       );
     })
   );
@@ -262,18 +271,4 @@ function parseCoordinate(value: string): number | undefined {
   }
   const number = Number(trimmed);
   return Number.isFinite(number) ? number : undefined;
-}
-
-function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
-  return (
-    a.year === b.year &&
-    a.month === b.month &&
-    a.day === b.day &&
-    a.endYear === b.endYear &&
-    a.endMonth === b.endMonth &&
-    a.endDay === b.endDay &&
-    a.text === b.text &&
-    a.quality === b.quality &&
-    a.place === b.place
-  );
 }

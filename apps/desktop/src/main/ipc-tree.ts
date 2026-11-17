@@ -350,6 +350,11 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle('tree:allTagLinks', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAllTagLinks();
+  });
+
   ipcMain.handle('tree:addTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.addTag(options.tag);
@@ -541,6 +546,11 @@ export function registerTreeIpc(): void {
       return runtime.service.listRecordSubmittersFor(options.targetType, options.targetId);
     },
   );
+
+  ipcMain.handle('tree:allRecordSubmitters', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAllRecordSubmitters();
+  });
 
   ipcMain.handle(
     'tree:addRecordSubmitter',

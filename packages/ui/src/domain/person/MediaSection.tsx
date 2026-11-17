@@ -1,4 +1,5 @@
-import { isVisibleMedia, type MediaLinkRecord, type MediaRecord } from '@doru/core';
+import { isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core';
+import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -70,6 +71,9 @@ export function MediaSection({
     if (link !== undefined && (item.links?.length ?? 0) > 1) {
       await api.detachMedia(link);
     } else {
+      if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+        return;
+      }
       await api.deleteMedia(item);
     }
     await refresh();
@@ -79,12 +83,10 @@ export function MediaSection({
   const linkOf = (item: MediaRecord) =>
     item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
   const visibleMedia = media
-    .filter(isVisibleMedia)
+    .slice()
     .sort((a, b) => Number(linkOf(b)?.primary === true) - Number(linkOf(a)?.primary === true));
   const attachable = allMedia.filter(
-    (item) =>
-      isVisibleMedia(item) &&
-      !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
+    (item) => !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
   );
 
   return (
@@ -104,8 +106,13 @@ export function MediaSection({
             return (
               <MediaTile
                 key={item.id}
-                src={`doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`}
+                src={
+                  item.absolutePath !== '' && isImagePath(item.path)
+                    ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
+                    : ''
+                }
                 alt={item.title ?? ''}
+                fallback={<FileImage size={24} aria-hidden="true" />}
                 {...(badge !== undefined ? { badge } : {})}
                 {...(link?.exclude === true ? { muted: true } : {})}
                 {...(onOpenMedia

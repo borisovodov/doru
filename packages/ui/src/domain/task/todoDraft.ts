@@ -58,10 +58,10 @@ export function todoDraftToRecord(todo: TodoRecord, draft: TodoDraft): TodoRecor
   next.locality = draft.locality.trim() || undefined;
   next.priority = draft.priority || undefined;
   next.status = draft.status || undefined;
-  next.createdDate = fromDateDraft(draft.created);
-  next.scheduledDate = fromDateDraft(draft.scheduled);
-  next.reminderDate = fromDateDraft(draft.reminder);
-  next.closedDate = fromDateDraft(draft.closed);
+  next.createdDate = fromDateDraft(draft.created, todo.createdDate);
+  next.scheduledDate = fromDateDraft(draft.scheduled, todo.scheduledDate);
+  next.reminderDate = fromDateDraft(draft.reminder, todo.reminderDate);
+  next.closedDate = fromDateDraft(draft.closed, todo.closedDate);
   next.repositoryId = draft.repositoryId || undefined;
   if (draft.targetType !== '' && draft.targetId !== '') {
     next.targetType = draft.targetType;

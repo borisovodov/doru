@@ -8,6 +8,7 @@ import {
   placeDraftName,
   placeDraftToRecord,
   placeToDraft,
+  withPlaceNamePositions,
 } from '../src/place/placeDraft';
 
 const place = (overrides: Partial<PlaceRecord> = {}): PlaceRecord => ({
@@ -57,7 +58,7 @@ describe('placeToDraft / placeDraftToRecord', () => {
           date: { quality: 'exact', component: { year: 1800 } },
         },
         { id: 'N2', kind: 'official', position: 1, value: 'Tula Oblast' },
-        { id: 'N3', kind: 'translation', language: 'en', position: 0, value: 'Tula' },
+        { id: 'N3', kind: 'translation', language: 'en', position: 2, value: 'Tula' },
       ],
       hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
       postalCodes: [
@@ -84,6 +85,34 @@ describe('placeToDraft / placeDraftToRecord', () => {
     expect(draft.names[1]).toMatchObject({ id: 'N2', kind: 'official', value: 'Tula Oblast' });
     expect(draft.postalCodes[0]).toMatchObject({ id: 'PC1', code: '300000', date: { ...emptyDate(), year: '1930' } });
     expect(placeDraftToRecord(draft)).toEqual(stored);
+  });
+
+  it('normalizes name positions to the list order and keeps date ids', () => {
+    const stored: PlaceRecord = {
+      id: 'PL1',
+      names: [
+        {
+          id: 'N1',
+          kind: 'official',
+          position: 0,
+          value: 'Tula',
+          date: { id: 'PD1', quality: 'exact', component: { year: 1800 } },
+        },
+        { id: 'N2', kind: 'official', position: 1, value: 'Tula Oblast' },
+      ],
+      hierarchy: [{ id: 'H1', parentId: 'PL2', date: { id: 'PD2', quality: 'exact', component: { year: 1900 } } }],
+      postalCodes: [{ id: 'PC1', code: '300000', date: { id: 'PD3', quality: 'exact', component: { year: 1930 } } }],
+    };
+    const draft = placeToDraft(stored);
+    draft.names = withPlaceNamePositions([draft.names[1]!, draft.names[0]!]);
+    const after = placeDraftToRecord(draft, stored);
+    expect(after.names.map((name) => [name.id, name.position])).toEqual([
+      ['N2', 0],
+      ['N1', 1],
+    ]);
+    expect(after.names[1]?.date?.id).toBe('PD1');
+    expect(after.hierarchy?.[0]?.date?.id).toBe('PD2');
+    expect(after.postalCodes?.[0]?.date?.id).toBe('PD3');
   });
 
   it('drops empty names, links and postal codes; parses coordinates', () => {

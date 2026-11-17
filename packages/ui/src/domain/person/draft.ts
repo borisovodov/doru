@@ -380,7 +380,12 @@ export function toDateDraft(date: DateValue | undefined, place = ''): DateDraft 
   };
 }
 
-export function fromDateDraft(draft: DateDraft): DateValue | undefined {
+export function fromDateDraft(draft: DateDraft, stored?: DateValue): DateValue | undefined {
+  const value = dateValueFromDraft(draft);
+  return value !== undefined && stored !== undefined ? rebaseDate(value, stored) : value;
+}
+
+function dateValueFromDraft(draft: DateDraft): DateValue | undefined {
   const component = componentOf(draft.year, draft.month, draft.day, draft.calendar, draft.epoch);
   const end = componentOf(draft.endYear, draft.endMonth, draft.endDay, draft.endCalendar, draft.endEpoch);
   const text = draft.text.trim() || undefined;
@@ -388,6 +393,7 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
   if (!component && !end && !text && !time) {
     return undefined;
   }
+  const modifier = draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {};
   if (draft.quality === 'range') {
     return {
       quality: 'range',
@@ -395,13 +401,14 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
       ...(end !== undefined ? { end } : {}),
       ...(text !== undefined ? { text } : {}),
       ...(time !== undefined ? { time } : {}),
+      ...modifier,
     };
   }
   return {
     quality: draft.quality,
     ...(component !== undefined ? { component } : {}),
     ...(text !== undefined ? { text } : {}),
-    ...(draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {}),
+    ...modifier,
     ...(time !== undefined ? { time } : {}),
   };
 }
@@ -480,6 +487,7 @@ export function personDraftMatches(draft: PersonDraft, person: PersonRecord): bo
   return (
     draft.sex === other.sex &&
     draft.deathStatus === other.deathStatus &&
+    draft.addressId === other.addressId &&
     draft.names.length === other.names.length &&
     draft.names.every((name, index) => {
       const otherName = other.names[index];
@@ -583,10 +591,11 @@ export function nameDraftEmpty(name: NameDraft): boolean {
   );
 }
 
-export function variantDraftToName(variant: NameVariantDraft): PersonName | undefined {
+export function variantDraftToName(variant: NameVariantDraft, existing?: PersonName): PersonName | undefined {
   if (variantDraftEmpty(variant)) {
     return undefined;
   }
+  const existingVariants = new Map((existing?.variants ?? []).map((entry) => [entry.id, entry]));
   return {
     id: variant.id,
     kind: variant.kind,
@@ -596,15 +605,18 @@ export function variantDraftToName(variant: NameVariantDraft): PersonName | unde
     primary: variant.primary || undefined,
     parts: normalizedParts(variant.parts),
     ...flatFromParts(variant.parts),
-    date: variant.date !== undefined ? fromDateDraft(variant.date) : undefined,
-    variants: variant.variants.map(variantDraftToName).filter((entry): entry is PersonName => entry !== undefined),
+    date: variant.date !== undefined ? fromDateDraft(variant.date, existing?.date) : undefined,
+    variants: variant.variants
+      .map((entry) => variantDraftToName(entry, existingVariants.get(entry.id)))
+      .filter((entry): entry is PersonName => entry !== undefined),
   };
 }
 
-export function nameDraftToName(draft: NameDraft): PersonName | undefined {
+export function nameDraftToName(draft: NameDraft, existing?: PersonName): PersonName | undefined {
   if (nameDraftEmpty(draft)) {
     return undefined;
   }
+  const existingVariants = new Map((existing?.variants ?? []).map((entry) => [entry.id, entry]));
   return {
     id: draft.id,
     type: draft.type.trim() || undefined,
@@ -622,8 +634,10 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
     givenNameUsed: draft.givenNameUsed.trim() || undefined,
     parts: normalizedParts(draft.parts),
     ...flatFromParts(draft.parts),
-    date: draft.date !== undefined ? fromDateDraft(draft.date) : undefined,
-    variants: draft.variants.map(variantDraftToName).filter((entry): entry is PersonName => entry !== undefined),
+    date: draft.date !== undefined ? fromDateDraft(draft.date, existing?.date) : undefined,
+    variants: draft.variants
+      .map((variant) => variantDraftToName(variant, existingVariants.get(variant.id)))
+      .filter((entry): entry is PersonName => entry !== undefined),
   };
 }
 
@@ -637,7 +651,10 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
  * edited elsewhere.
  */
 export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): PersonRecord {
-  const names = draft.names.map(nameDraftToName).filter((name): name is PersonName => name !== undefined);
+  const existingNames = new Map((existing?.names ?? []).map((name) => [name.id, name]));
+  const names = draft.names
+    .map((name) => nameDraftToName(name, existingNames.get(name.id)))
+    .filter((name): name is PersonName => name !== undefined);
   const facts = existing ? existing.facts.filter((fact) => fact.tag !== 'BIRT' && fact.tag !== 'DEAT') : [];
   const birth = factFromDraft(draft, existing, 'BIRT', draft.birth);
   const death = factFromDraft(draft, existing, 'DEAT', draft.death);
