@@ -603,12 +603,19 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   }
   const sexCitations = rec.sexCitations ?? [];
   const sexValue = rec.sex !== undefined ? sex(w, version, rec.sex) : undefined;
-  if (sexValue !== undefined || sexCitations.length > 0) {
-    w.line(1, 'SEX', sexValue !== undefined ? { value: sexValue } : {});
+  if (sexValue !== undefined) {
+    w.line(1, 'SEX', { value: sexValue });
     for (const citation of sexCitations) {
       // The vendor SEX citation shape (see IndividualRecord.sexCitations):
       // written under SEX so the evidence stays attached to the sex fact.
       emitSourceCitation(w, version, 2, citation);
+    }
+  } else {
+    // No SEX line can be written (the value is unset or unsupported by this
+    // version). Keep the evidence at the standard record-level slot instead
+    // of emitting a bare SEX line the parser rejects.
+    for (const citation of sexCitations) {
+      emitSourceCitation(w, version, 1, citation);
     }
   }
   for (const attribute of rec.attributes ?? []) {

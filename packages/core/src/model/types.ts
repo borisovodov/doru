@@ -734,6 +734,10 @@ export interface AttachmentsSnapshot {
   noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
   citations: CitationRecord[];
   mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
+  /** Attachments of media records that would be deleted with this target. */
+  mediaAttachments: NestedAttachmentSnapshot[];
+  /** Attachments of the files of those media records. */
+  mediaFileAttachments: NestedAttachmentSnapshot[];
   /** Attachments of the media links above, restored with them. */
   mediaLinkAttachments: NestedAttachmentSnapshot[];
   identifiers: IdentifierRecord[];
@@ -750,6 +754,8 @@ export function emptyAttachments(): AttachmentsSnapshot {
     noteLinks: [],
     citations: [],
     mediaLinks: [],
+    mediaAttachments: [],
+    mediaFileAttachments: [],
     mediaLinkAttachments: [],
     identifiers: [],
     contacts: [],

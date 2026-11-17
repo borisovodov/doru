@@ -111,6 +111,7 @@ describe('TreeService CRUD integrity', () => {
       );
       service.addFamily(family);
       service.addSource(source);
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg', placeId: 'PL1', targetType: 'person', targetId: 'P1' });
       service.addNote(note('N1', 'place', 'PL1'));
       service.addNote(note('N2', 'place_name', 'PN1'));
       service.addNote(note('N3', 'place_hierarchy', 'PH2'));
@@ -127,6 +128,7 @@ describe('TreeService CRUD integrity', () => {
       expect(repo.listFactsForPerson('P1').find((fact) => fact.id === 'FACT2')?.additionalPlaceIds).toEqual(['PL3']);
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBeUndefined();
+      expect(repo.getMedia('M1')?.placeId).toBeUndefined();
       expect(repo.getPlace('PL2')?.hierarchy).toBeUndefined();
       expect(repo.listNotesFor('place', 'PL1')).toEqual([]);
       expect(repo.listNotesFor('place_name', 'PN1')).toEqual([]);
@@ -147,6 +149,7 @@ describe('TreeService CRUD integrity', () => {
       ]);
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBe('PL1');
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('PL1');
+      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
       expect(repo.getPlace('PL2')?.hierarchy?.[0]?.parentId).toBe('PL1');
       expect(repo.listNotesFor('place', 'PL1').map((entry) => entry.id)).toEqual(['N1']);
       expect(repo.listNotesFor('place_name', 'PN1').map((entry) => entry.id)).toEqual(['N2']);
@@ -155,6 +158,35 @@ describe('TreeService CRUD integrity', () => {
       expect(repo.getPlace('PL1')?.names[0]?.date?.component?.year).toBe(1900);
       expect(repo.getPlace('PL1')?.postalCodes?.[0]?.date?.component?.year).toBe(1901);
       expect(repo.getPlace('PL2')?.hierarchy?.[0]?.date?.component?.year).toBe(1902);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores media owned by a deleted place-name row, including media attachments', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }],
+      });
+      service.addMedia({
+        id: 'M1',
+        targetType: 'place_name',
+        targetId: 'PN1',
+        files: [{ id: 'MF1', path: 'media/photo.jpg' }],
+      });
+      service.addNote({ id: 'NM1', text: 'media note', targetType: 'media', targetId: 'M1' });
+      service.addNote({ id: 'NM2', text: 'file note', targetType: 'media_file', targetId: 'MF1' });
+
+      service.deletePlace(repo.getPlace('PL1')!);
+      expect(repo.getMedia('M1')).toBeUndefined();
+
+      service.undo();
+      expect(repo.getMedia('M1')?.id).toBe('M1');
+      expect(repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['NM1']);
+      expect(repo.listNotesFor('media_file', 'MF1').map((entry) => entry.id)).toEqual(['NM2']);
     } finally {
       cleanupRepo(fixture);
     }

@@ -35,6 +35,31 @@ function mediaAbsolutePath(projectPath: string, mediaPath: string): string | nul
   return join(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
+const MEDIA_FACT_CONCURRENCY = 4;
+
+/** Maps items with bounded concurrency, preserving the input order. */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  map: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = items[index];
+      if (item === undefined) {
+        return;
+      }
+      results[index] = await map(item);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 async function withPaths(projectPath: string, media: MediaRecord): Promise<MediaWithPath> {
   const sourceFiles: MediaFile[] =
     media.files ?? (media.path !== undefined ? [{ id: media.id, path: media.path }] : []);
@@ -73,13 +98,17 @@ export async function listMediaForTarget(
   targetId: string,
 ): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return Promise.all(runtime.service.listMediaFor(targetType, targetId).map((media) => withPaths(projectPath, media)));
+  return mapWithConcurrency(runtime.service.listMediaFor(targetType, targetId), MEDIA_FACT_CONCURRENCY, (media) =>
+    withPaths(projectPath, media),
+  );
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
 export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return Promise.all(runtime.service.listAllMedia().map((media) => withPaths(projectPath, media)));
+  return mapWithConcurrency(runtime.service.listAllMedia(), MEDIA_FACT_CONCURRENCY, (media) =>
+    withPaths(projectPath, media),
+  );
 }
 
 export async function addMediaToTarget(

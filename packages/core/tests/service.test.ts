@@ -122,7 +122,7 @@ describe('TreeService', () => {
       service.addMedia({ id: 'M3', path: '../external/a.jpg', targetType: 'person', targetId: 'P1' });
 
       expect(service.personCounts(['P1', 'P2'])).toEqual({
-        P1: { notes: 1, sources: 1, media: 3 },
+        P1: { notes: 1, sources: 1, media: 2 },
         P2: { notes: 0, sources: 0, media: 0 },
       });
     } finally {

@@ -135,13 +135,19 @@ function SourceTabBody({
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const [draft, setDraft] = useState<SourceDraft>(() =>
+  const [draft, setDraftState] = useState<SourceDraft>(() =>
     isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(record);
+  const setDraft = (next: SourceDraft) => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
 
   const currentSource = lastSaved ?? record;
   const targetId = currentSource?.id;
@@ -169,9 +175,10 @@ function SourceTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    setDraft((current) =>
-      previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
-    );
+    if (previous !== undefined && sourceDraftMatches(draftRef.current, previous)) {
+      baselineRef.current = record;
+      setDraft(sourceToDraft(record));
+    }
   }, [record, isNew]);
 
   useEffect(() => {
@@ -189,7 +196,7 @@ function SourceTabBody({
 
   const save = async () => {
     const target = lastSaved ?? record;
-    const next = sourceDraftToRecord(draft, target);
+    const next = sourceDraftToRecord(draftRef.current, baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addSource(next);
       onCreated(next.id);
@@ -199,6 +206,7 @@ function SourceTabBody({
       }
       await api.updateSource(target, next);
     }
+    baselineRef.current = next;
     setLastSaved(next);
   };
 

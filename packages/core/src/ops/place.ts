@@ -1,4 +1,11 @@
-import type { AttachmentsSnapshot, FactRecord, FamilyRecord, PlaceRecord, SourceRecord } from '../model/types';
+import type {
+  AttachmentsSnapshot,
+  FactRecord,
+  FamilyRecord,
+  MediaRecord,
+  PlaceRecord,
+  SourceRecord,
+} from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
 
@@ -51,6 +58,8 @@ export interface PlaceConsumers {
   sources?: SourceRecord[];
   /** Places whose hierarchy row has the deleted place as its parent (FK CASCADE). */
   childPlaces?: PlaceRecord[];
+  /** Media records whose historical place points at the deleted place (FK SET NULL). */
+  media?: MediaRecord[];
 }
 
 export function deletePlaceOp(
@@ -81,6 +90,9 @@ export function deletePlaceOp(
       }
       for (const source of consumers.sources ?? []) {
         ctx.repo.updateSource(source);
+      }
+      for (const media of consumers.media ?? []) {
+        ctx.repo.updateMedia(media);
       }
       for (const link of [...facts].reverse()) {
         ctx.repo.updateFact(link.before);

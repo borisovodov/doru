@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { MediaFile, MediaFileTranslation, MediaLinkRecord, MediaRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
+import type { TransactionScope } from './transaction';
 
 interface MediaRow {
   id: string;
@@ -63,37 +64,42 @@ export class MediaRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {}
 
   /** Inserts the record with its files and links (or the flat projection as one file+link). */
   insertMedia(media: MediaRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO media (id, xref, title, date_id, place_id, place_text, object_type, description, keywords)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(...mediaParams(media, this.dates));
-    this.replaceFiles(media);
-    this.replaceLinks(media);
+    this.transactions.run(() => {
+      this.db
+        .prepare(
+          `INSERT INTO media (id, xref, title, date_id, place_id, place_text, object_type, description, keywords)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(...mediaParams(media, this.dates));
+      this.replaceFiles(media);
+      this.replaceLinks(media);
+    });
   }
 
   updateMedia(media: MediaRecord): void {
-    const old = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(media.id) as
-      | { date_id: string | null }
-      | undefined;
-    const params = mediaParams(media, this.dates);
-    this.db
-      .prepare(
-        `UPDATE media SET xref = ?, title = ?, date_id = ?, place_id = ?, place_text = ?,
-           object_type = ?, description = ?, keywords = ? WHERE id = ?`,
-      )
-      .run(...params.slice(1), media.id);
-    this.deleteStaleDate(old?.date_id ?? null, params[3] as string | null);
-    this.replaceFiles(media);
+    this.transactions.run(() => {
+      const old = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(media.id) as
+        | { date_id: string | null }
+        | undefined;
+      const params = mediaParams(media, this.dates);
+      this.db
+        .prepare(
+          `UPDATE media SET xref = ?, title = ?, date_id = ?, place_id = ?, place_text = ?,
+             object_type = ?, description = ?, keywords = ? WHERE id = ?`,
+        )
+        .run(...params.slice(1), media.id);
+      this.deleteStaleDate(old?.date_id ?? null, params[3] as string | null);
+      this.replaceFiles(media);
+    });
   }
 
   deleteMedia(id: string): boolean {
-    return this.deleteMediaRow(id);
+    return this.transactions.run(() => this.deleteMediaRow(id));
   }
 
   getMedia(id: string): MediaRecord | undefined {

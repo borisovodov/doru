@@ -522,4 +522,27 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
       expect(reparsedIndi.sexCitations?.[0]?.source).toBe('@S9@');
     }
   });
+
+  test('SEX citations fall back to record level when the SEX value is dropped', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 SEX X',
+        '2 SOUR @S9@',
+        '0 @S9@ SOUR',
+        '1 TITL t',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('1 SEX');
+    expect(text).toContain('1 SOUR @S9@');
+    const reparsed = parseOk551(text);
+    const indi = reparsed.records.find((r) => r.tag === 'INDI') as IndividualRecord;
+    expect(indi.citations?.[0]?.source).toBe('@S9@');
+    expect(indi.sexCitations).toBeUndefined();
+  });
 });

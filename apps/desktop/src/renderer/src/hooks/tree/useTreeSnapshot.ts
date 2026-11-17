@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -37,8 +37,10 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [todos, setTodos] = useState<TodoRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
+  const generationRef = useRef(0);
 
   const reloadTree = useCallback(async (path: string) => {
+    const generation = ++generationRef.current;
     const [
       data,
       allFacts,
@@ -74,6 +76,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getTitles(path),
       window.doru.getAllAssociations(path),
     ]);
+    if (generation !== generationRef.current) {
+      return;
+    }
     setPersons(data.persons);
     setFamilies(data.families);
     setFacts(allFacts);
@@ -95,6 +100,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
 
   useEffect(() => {
     if (!projectPath) {
+      generationRef.current += 1;
       setPersons([]);
       setFamilies([]);
       setFacts([]);

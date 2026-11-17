@@ -112,11 +112,17 @@ function PlaceTabBody({
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const [draft, setDraft] = useState<PlaceDraft>(() =>
+  const [draft, setDraftState] = useState<PlaceDraft>(() =>
     isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
   const recordRef = useRef(record);
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(record);
+  const setDraft = (next: PlaceDraft) => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
 
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -143,14 +149,15 @@ function PlaceTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    setDraft((current) =>
-      previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
-    );
+    if (previous !== undefined && placeDraftMatches(draftRef.current, previous)) {
+      baselineRef.current = record;
+      setDraft(placeToDraft(record));
+    }
   }, [record, isNew]);
 
   const save = async () => {
     const target = lastSaved ?? record;
-    const next = placeDraftToRecord(draft, target);
+    const next = placeDraftToRecord(draftRef.current, baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
       onCreated(next.id);
@@ -160,6 +167,7 @@ function PlaceTabBody({
       }
       await api.updatePlace(target, next);
     }
+    baselineRef.current = next;
     setLastSaved(next);
   };
 

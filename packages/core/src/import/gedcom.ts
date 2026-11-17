@@ -119,6 +119,8 @@ interface ImportContext {
   placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined }>>;
   /** Media record xref → media id. */
   mediaIds: Map<string, string>;
+  /** Media id → historical place text, resolved after place records exist. */
+  mediaPlaceText: Map<string, string>;
   /** Original GEDCOM FILE path → project-relative path prepared by the host. */
   mediaPaths: ReadonlyMap<string, string>;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
@@ -176,6 +178,7 @@ export function importGedcomDataset(
     placeCardIds: new Map(),
     placeParents: new Map(),
     mediaIds: new Map(),
+    mediaPlaceText: new Map(),
     mediaPaths,
     spouseLinkDates: new Map(),
     spouseLinkNotes: new Map(),
@@ -196,6 +199,7 @@ export function importGedcomDataset(
     importMediaRecords(dataset.records, ctx);
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
+    linkMediaPlaces(ctx);
     // OBJE citations reference SOUR records: import them after the sources
     // exist, while still before persons/families (whose media links need
     // the media ids registered above).
@@ -479,6 +483,10 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
 
 function importSources(records: GedcomRecord[], ctx: ImportContext): number {
   let imported = 0;
+  const pendingMediaLinks: Array<{
+    id: string;
+    media: Extract<GedcomRecord, { tag: 'SOUR' }>['media'];
+  }> = [];
   for (const record of records) {
     if (record.tag !== 'SOUR') {
       continue;
@@ -563,13 +571,18 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     });
     importNotes(source.notes, 'source', id, ctx);
     importIdentifiers(source.identifiers, 'source', id, ctx);
-    importMediaLinks(source.media, 'source', id, ctx);
+    pendingMediaLinks.push({ id, media: source.media });
     importChanges(source.changeDate, source.creationDate, 'source', id, ctx);
     importSubmitterLinks(source.submitters, 'source', id, ctx);
     for (const tagLink of source.tagLinks ?? []) {
       importTagLink(tagLink, 'source', id, ctx);
     }
     imported += 1;
+  }
+  // Media-link citations can point at sources that appear later in the
+  // file: resolve them only after every SOUR xref is registered.
+  for (const pending of pendingMediaLinks) {
+    importMediaLinks(pending.media, 'source', pending.id, ctx);
   }
   return imported;
 }
@@ -1140,26 +1153,21 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     importNotes(entry.source.notes, 'family_marriage_status', entry.mapped.id, ctx);
     importCitations(entry.source.citations, 'family_marriage_status', entry.mapped.id, ctx);
   }
-  const notesByPerson = new Map<string, NoteStructure[] | undefined>();
-  for (const [personXref, byFamily] of ctx.childLinkDetails) {
-    const personId = ctx.personIds.get(personXref);
+  const childRowsByPerson = new Map<string, { xref: string; notes: NoteStructure[] | undefined }>();
+  for (const child of record.children ?? []) {
+    const personId = ctx.personIds.get(child.child);
     if (personId !== undefined) {
-      notesByPerson.set(personId, byFamily.get(record.xref ?? '')?.notes);
+      childRowsByPerson.set(personId, { xref: child.child, notes: child.notes });
     }
-  }
-  const childrenByXref = new Map<string, NoteStructure[] | undefined>();
-  for (const link of record.children ?? []) {
-    childrenByXref.set(link.child, link.notes);
   }
   for (const link of childLinks) {
-    const childNotes = [...childrenByXref.entries()].find(
-      ([childXref]) => ctx.personIds.get(childXref) === link.childId,
-    )?.[1];
-    const mergedNotes = new Map<string, NoteStructure>();
-    for (const note of [...(notesByPerson.get(link.childId) ?? []), ...(childNotes ?? [])]) {
-      mergedNotes.set('note' in note ? note.note : note.payload, note);
-    }
-    importNotes(mergedNotes.size > 0 ? [...mergedNotes.values()] : undefined, 'family_child', link.id, ctx);
+    const childRow = childRowsByPerson.get(link.childId);
+    const personNotes =
+      childRow !== undefined ? ctx.childLinkDetails.get(childRow.xref)?.get(record.xref ?? '')?.notes : undefined;
+    // Preserve every note structure from both sides: same text may carry
+    // different citations, languages or translations.
+    const mergedNotes = [...(personNotes ?? []), ...(childRow?.notes ?? [])];
+    importNotes(mergedNotes.length > 0 ? mergedNotes : undefined, 'family_child', link.id, ctx);
   }
 
   const factStructures = [...(record.events ?? []), ...(record.attributes ?? [])];
@@ -1886,19 +1894,20 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       continue;
     }
     const id = crypto.randomUUID();
-    const placeId = record.place !== undefined ? ctx.placeIds.get(record.place) : undefined;
     ctx.repo.insertMedia({
       id,
       ...(record.xref !== undefined ? { xref: record.xref } : {}),
       ...(record.title !== undefined ? { title: record.title } : {}),
       ...(record.date !== undefined ? { date: mapDate(record.date) } : {}),
       ...(record.place !== undefined ? { place: record.place } : {}),
-      ...(placeId !== undefined ? { placeId } : {}),
       ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
       ...(record.description !== undefined ? { description: record.description } : {}),
       ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
       files,
     });
+    if (record.place !== undefined) {
+      ctx.mediaPlaceText.set(id, record.place);
+    }
     if (record.xref !== undefined) {
       ctx.mediaIds.set(record.xref, id);
     }
@@ -1922,6 +1931,17 @@ function importMediaCitations(records: GedcomRecord[], ctx: ImportContext): void
     const id = ctx.mediaIds.get(record.xref);
     if (id !== undefined) {
       importCitations(record.citations, 'media', id, ctx);
+    }
+  }
+}
+
+/** Resolves historical media places after the place records are registered. */
+function linkMediaPlaces(ctx: ImportContext): void {
+  for (const [mediaId, placeText] of ctx.mediaPlaceText) {
+    const placeId = ctx.placeIds.get(placeText);
+    const media = ctx.repo.getMedia(mediaId);
+    if (placeId !== undefined && media !== undefined) {
+      ctx.repo.updateMedia({ ...media, placeId });
     }
   }
 }

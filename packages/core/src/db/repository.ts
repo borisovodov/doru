@@ -250,7 +250,7 @@ export class SqliteTreeRepository implements TreeRepository {
     this.places = new PlaceRepo(db, dates);
     this.sources = new SourceRepo(db, dates);
     this.notes = new NoteRepo(db);
-    this.media = new MediaRepo(db, dates);
+    this.media = new MediaRepo(db, dates, this.transactions);
     this.attachments = new AttachmentRepo(db, dates);
     this.repositories = new RepositoryRepo(db);
     this.relations = new RelationRepo(db, dates);
@@ -1053,10 +1053,32 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
+    const orphanMedia = [
+      ...new Map(
+        mediaLinks
+          .map((entry) => entry.media)
+          .filter((media) =>
+            (media.links ?? []).every((link) => link.targetType === targetType && link.targetId === targetId),
+          )
+          .map((media) => [media.id, media]),
+      ).values(),
+    ];
     return {
       noteLinks: this.notes.listLinksFor(targetType, targetId),
       citations: this.sources.listCitations(targetType, targetId),
       mediaLinks,
+      mediaAttachments: orphanMedia.map((media) => ({
+        targetType: 'media',
+        targetId: media.id,
+        attachments: this.listAttachmentsFor('media', media.id),
+      })),
+      mediaFileAttachments: orphanMedia.flatMap((media) =>
+        (media.files ?? []).map((file) => ({
+          targetType: 'media_file',
+          targetId: file.id,
+          attachments: this.listAttachmentsFor('media_file', file.id),
+        })),
+      ),
       mediaLinkAttachments: mediaLinks.map((entry) => ({
         targetType: 'media_link',
         targetId: entry.link.id,
@@ -1113,6 +1135,12 @@ export class SqliteTreeRepository implements TreeRepository {
       } else {
         this.media.addMediaLink(entry.media.id, entry.link);
       }
+    }
+    for (const nested of snapshot.mediaAttachments) {
+      this.restoreAttachments(nested.attachments);
+    }
+    for (const nested of snapshot.mediaFileAttachments) {
+      this.restoreAttachments(nested.attachments);
     }
     for (const nested of snapshot.mediaLinkAttachments) {
       this.restoreAttachments(nested.attachments);

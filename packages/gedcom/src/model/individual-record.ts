@@ -63,7 +63,10 @@ export interface IndividualRecord extends GedcomStructureBase {
    * README's container leniencies; the gemenet Genoese-merchant trees
    * and the Ancestry-derived fixtures carry the same shape). Neither
    * grammar gives SEX substructures. Recognized on input and written back
-   * under the same SEX structure in both versions for round-trip fidelity.
+   * under the same SEX structure in both versions for round-trip fidelity
+   * when a SEX value can be written; if the value is unset or unsupported by
+   * the target version, the citations fall back to the standard record-level
+   * INDI citations instead of producing a bare SEX line.
    */
   sexCitations?: SourceCitation[];
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */

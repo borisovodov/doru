@@ -123,7 +123,7 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
       return data.media.flatMap((media) =>
         (media.links ?? []).map((link) => ({
           id: link.id,
-          label: `${mediaLabel(media)} · ${link.targetType}`,
+          label: `${mediaLabel(media)} · ${taskTargetLabel(link.targetType, link.targetId, data)}`,
         })),
       );
     case 'place':

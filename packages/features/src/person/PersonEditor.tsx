@@ -247,7 +247,7 @@ export function PersonEditor({
         { icon: BookOpenText, count: citations.length, title: nls.t('features.tree.sources.title') },
         {
           icon: ImageIcon,
-          count: media.length,
+          count: media.filter((item) => (item.files ?? []).some((file) => file.absolutePath !== '')).length,
           title: nls.t('features.tree.media.title'),
         },
       ];

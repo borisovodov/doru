@@ -49,22 +49,6 @@
   white-space: nowrap;
 }
 
-.media-file-meta {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.media-file-facts {
-  overflow: hidden;
-  color: var(--doru-fg-muted);
-  font-size: 11px;
-  opacity: 0.8;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .media-link-row {
   display: flex;
   flex-direction: column;

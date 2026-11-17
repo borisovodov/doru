@@ -181,6 +181,10 @@ function SubmitterTabBody({
   };
 
   const referencedBy = targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : [];
+  const openableTarget = (targetType: string): boolean =>
+    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
+      targetType,
+    );
 
   return (
     <EntityTab>
@@ -255,7 +259,9 @@ function SubmitterTabBody({
                           ? null
                           : nls.t(`features.tree.contributors.kind.${link.kind ?? 'contributor'}`)
                       }
-                      onClick={() => onOpenTarget(link.targetType, link.targetId)}
+                      {...(openableTarget(link.targetType)
+                        ? { onClick: () => onOpenTarget(link.targetType, link.targetId) }
+                        : {})}
                     />
                   </li>
                 ))}

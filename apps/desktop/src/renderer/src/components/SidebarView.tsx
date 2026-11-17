@@ -202,6 +202,7 @@ export function SidebarView({
         </>
       );
     case 'media': {
+      const resolvedMedia = media.filter((item) => (item.files ?? []).some((file) => file.absolutePath !== ''));
       return (
         <>
           <div className="tasks-header">
@@ -212,13 +213,13 @@ export function SidebarView({
               onClick={onNewMedia}
             />
           </div>
-          {media.length === 0 ? (
+          {resolvedMedia.length === 0 ? (
             <PlaceholderView
               title={nls.t('workbench.activityBar.media')}
               description={nls.t('features.media.placeholder')}
             />
           ) : (
-            <SidebarMedia media={media} persons={persons} onOpenMedia={onOpenMedia} />
+            <SidebarMedia media={resolvedMedia} persons={persons} onOpenMedia={onOpenMedia} />
           )}
         </>
       );

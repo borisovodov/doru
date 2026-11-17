@@ -28,6 +28,7 @@ import {
   type MediaWithPath,
   type TaskTargetData,
 } from '@doru/ui/domain';
+import styles from './MediaTab.module.css';
 import './MediaTab.css';
 
 export function MediaTab({
@@ -54,7 +55,7 @@ export function MediaTab({
   }
   return (
     <MediaTabBody
-      key={record.id}
+      key={`${record.id}:${mediaMetadataKey(record)}`}
       record={record}
       api={api}
       attachmentsApi={attachmentsApi}
@@ -233,9 +234,9 @@ function MediaTabBody({
                 ) : (
                   <ImageIcon size={18} aria-hidden="true" />
                 )}
-                <div className="media-file-meta">
+                <div className={styles['fileMeta']}>
                   <span className="media-file-path">{file.path}</span>
-                  <span className="media-file-facts">{factsLabel(file.facts)}</span>
+                  <span className={styles['fileFacts']}>{factsLabel(file.facts)}</span>
                 </div>
                 <Input
                   aria-label={nls.t('features.tree.media.fileTitle')}
@@ -417,6 +418,19 @@ function MediaLinkRow({
       )}
     </li>
   );
+}
+
+/** Remount the body when persisted metadata changes (e.g. after undo), not on unrelated refreshes. */
+function mediaMetadataKey(record: MediaWithPath): string {
+  return JSON.stringify([
+    record.title,
+    record.date,
+    record.place,
+    record.placeId,
+    record.objectType,
+    record.description,
+    record.keywords,
+  ]);
 }
 
 function factsLabel(facts: MediaFileFacts | undefined): string {

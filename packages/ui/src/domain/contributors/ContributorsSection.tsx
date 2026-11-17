@@ -51,7 +51,7 @@ export function ContributorsSection({
   );
 
   const save = async () => {
-    if (selected === '') {
+    if (selected === '' || !available.some((submitter) => submitter.id === selected)) {
       return;
     }
     await onAdd(selected, targetType, targetId, kind);
@@ -112,7 +112,13 @@ export function ContributorsSection({
           </Field>
           {targetType === 'person' && (
             <Field label={nls.t('features.tree.contributors.kind')}>
-              <Select value={kind} onChange={(event) => setKind(event.target.value as RecordSubmitterLink['kind'])}>
+              <Select
+                value={kind}
+                onChange={(event) => {
+                  setKind(event.target.value as RecordSubmitterLink['kind']);
+                  setSelected('');
+                }}
+              >
                 <option value="contributor">{nls.t('features.tree.contributors.kind.contributor')}</option>
                 <option value="ancestor_interest">{nls.t('features.tree.contributors.kind.ancestor_interest')}</option>
                 <option value="descendant_interest">

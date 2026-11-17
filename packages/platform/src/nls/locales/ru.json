@@ -592,7 +592,7 @@
   "features.tree.submitter.newSubmitter": "Новый автор",
   "features.tree.submitter.notFound": "Этого автора больше нет в древе.",
   "features.tree.submitter.referencedBy": "Ссылаются",
-  "features.tree.submitter.referencedBy.empty": "Этот submitter не привязан ни к одной записи.",
+  "features.tree.submitter.referencedBy.empty": "Этот автор не привязан ни к одной записи.",
   "features.tree.tags.attach": "Прикрепить",
   "features.tree.tags.date": "Дата прикрепления",
   "features.tree.tags.date.edit": "Изменить дату прикрепления",

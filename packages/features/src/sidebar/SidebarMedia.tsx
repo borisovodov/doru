@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
-import { isImagePath, type MediaRecord, type PersonRecord } from '@doru/core';
+import { isImagePath, type PersonRecord } from '@doru/core';
+import type { MediaWithPath } from '@doru/ui/domain';
 import { displayName } from '@doru/ui/domain';
 import { EntityCard } from '@doru/ui';
 import './sidebar.css';
 
-export interface SidebarMediaItem extends MediaRecord {
-  absolutePath: string;
-}
+export type SidebarMediaItem = MediaWithPath;
 
 /** The file name part of a slash-separated project-relative path. */
 function fileName(path: string): string {

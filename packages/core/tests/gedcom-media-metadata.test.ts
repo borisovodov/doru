@@ -18,6 +18,7 @@ const GEDCOM = [
   '2 VERS 7.0',
   '0 @S1@ SOUR',
   '1 TITL Source',
+  '0 @PL1@ _PLAC Moscow',
   '0 @O1@ OBJE',
   '1 FILE photos/a.jpg',
   '2 FORM image/jpeg',
@@ -44,6 +45,37 @@ const GEDCOM = [
 ].join('\n');
 
 describe('media historical metadata', () => {
+  it('keeps source media-link citations that point at a later source', () => {
+    const fixture = makeRepo();
+    try {
+      const parsed = parseDataset(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @O1@ OBJE',
+          '1 FILE photos/a.jpg',
+          '0 @S1@ SOUR',
+          '1 TITL First',
+          '1 OBJE @O1@',
+          '2 SOUR @S2@',
+          '0 @S2@ SOUR',
+          '1 TITL Second',
+          '0 TRLR',
+        ].join('\n'),
+      );
+      importGedcomDataset(parsed, fixture.repo);
+      const s1 = fixture.repo.listSources().find((source) => source.xref === '@S1@')!;
+      const s2 = fixture.repo.listSources().find((source) => source.xref === '@S2@')!;
+      const link = fixture.repo.listAttachmentsFor('source', s1.id).mediaLinks[0]!.link;
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.sourceId)).toEqual([
+        s2.id,
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('imports the historical record/file fields and round-trips them', () => {
     const fixture = makeRepo();
     try {
@@ -56,6 +88,7 @@ describe('media historical metadata', () => {
         description: 'Studio portrait',
         keywords: 'family, portrait',
       });
+      expect(media.placeId).toBeDefined();
       expect(media.date).toMatchObject({ component: { year: 1900 } });
       expect(media.files?.[0]).toMatchObject({
         path: 'photos/a.jpg',

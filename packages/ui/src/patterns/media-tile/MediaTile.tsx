@@ -32,7 +32,13 @@ export function MediaTile({
   fallback,
 }: MediaTileProps) {
   const image =
-    src !== '' ? <img src={src} alt={alt} loading="lazy" /> : <span className={styles['fallback']}>{fallback}</span>;
+    src !== '' ? (
+      <img src={src} alt={alt} loading="lazy" />
+    ) : (
+      <span className={styles['fallback']} role="img" aria-label={alt}>
+        {fallback}
+      </span>
+    );
   return (
     <figure className={cx(styles['tile'], muted === true && styles['muted'], className)}>
       {onOpen ? (

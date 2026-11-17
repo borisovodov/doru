@@ -227,7 +227,11 @@ export class TreeService {
       counts[personId] = {
         notes: this.repo.listNotesFor('person', personId).length,
         sources: this.repo.listCitationsFor('person', personId).length,
-        media: this.repo.listMediaFor('person', personId).length,
+        media: this.repo
+          .listMediaFor('person', personId)
+          .filter((media) =>
+            (media.files ?? []).some((file) => file.path.startsWith('media/') && !file.path.includes('../')),
+          ).length,
       };
     }
     return counts;
@@ -546,6 +550,7 @@ export class TreeService {
     const sources = this.repo
       .listSources()
       .filter((source) => (source.dataEvents ?? []).some((event) => event.placeId === place.id));
+    const media = this.repo.listAllMedia().filter((entry) => entry.placeId === place.id);
     const childPlaces = this.repo
       .listPlaces()
       .filter((child) => (child.hierarchy ?? []).some((link) => link.parentId === place.id));
@@ -569,7 +574,7 @@ export class TreeService {
       });
     }
     const attachments = this.repo.listAttachmentsFor('place', place.id);
-    return this.apply(deletePlaceOp(place, facts, attachments, { families, sources, childPlaces }, nested));
+    return this.apply(deletePlaceOp(place, facts, attachments, { families, sources, childPlaces, media }, nested));
   }
 
   // --- sources and citations ------------------------------------------------

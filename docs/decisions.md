@@ -94,10 +94,11 @@ the choice lives in the Export tab, not in a save-dialog filter.
 
 The database stores only historical/GEDCOM metadata: the record title,
 `_DATE`, `_PLAC`, `_TYPE`, `_DSCR` and `_KEYS`, plus the file's `MEDI`,
-`_CTYP`, `_TEXT` and `TRAN` rows. Technical facts — MIME type, byte size,
-image dimensions and EXIF — are derived from the file in the main process and
-never persisted. A moved or replaced file therefore reports fresh facts, and
-a missing file reports none instead of stale values. `FORM` is synthesized
+`_CTYP`, `_TEXT` and `TRAN` rows. Technical facts — MIME type, byte size
+and image dimensions — are derived from the file in the main process and
+never persisted; EXIF metadata is neither derived nor stored. A moved or
+replaced file therefore reports fresh facts, and a missing file reports none
+instead of stale values. `FORM` is synthesized
 from the file path on export; `TRAN` is written only for GEDCOM 7.0. Sources
 and notes attach to the media record (`media`); vendor `SOUR` lines under an
 `OBJE` link attach to the link (`media_link`) and are editable in the media

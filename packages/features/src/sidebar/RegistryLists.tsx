@@ -13,6 +13,7 @@ import type {
 import { EntityCard, IconButton } from '@doru/ui';
 import { addressLabel, taskTargetLabel, type TaskTargetData } from '@doru/ui/domain';
 import { nls } from '../nls';
+import styles from './RegistryLists.module.css';
 import './sidebar.css';
 
 /** The repository list of the Sources sidebar; clicking opens the repository tab. */
@@ -136,7 +137,7 @@ export function TagsList({
       {tags.map((tag) => {
         const count = counts.get(tag.id) ?? 0;
         return (
-          <li key={tag.id} className="side-tag-row">
+          <li key={tag.id} className={styles['tagRow']}>
             <EntityCard
               icon={<TagIcon size={15} aria-hidden="true" />}
               title={tag.name}

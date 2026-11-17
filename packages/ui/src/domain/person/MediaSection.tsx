@@ -82,11 +82,15 @@ export function MediaSection({
 
   const linkOf = (item: MediaRecord) =>
     item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+  const hasResolvedFile = (item: MediaWithPath): boolean => (item.files ?? []).some((file) => file.absolutePath !== '');
   const visibleMedia = media
+    .filter(hasResolvedFile)
     .slice()
     .sort((a, b) => Number(linkOf(b)?.primary === true) - Number(linkOf(a)?.primary === true));
   const attachable = allMedia.filter(
-    (item) => !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
+    (item) =>
+      hasResolvedFile(item) &&
+      !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
   );
 
   return (
@@ -111,8 +115,13 @@ export function MediaSection({
                     ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
                     : ''
                 }
-                alt={item.title ?? ''}
-                fallback={<FileImage size={24} aria-hidden="true" />}
+                alt={item.title ?? item.path ?? item.id}
+                fallback={
+                  <span className={styles['fallback']}>
+                    <FileImage size={24} aria-hidden="true" />
+                    <span>{item.title ?? item.path ?? item.id}</span>
+                  </span>
+                }
                 {...(badge !== undefined ? { badge } : {})}
                 {...(link?.exclude === true ? { muted: true } : {})}
                 {...(onOpenMedia

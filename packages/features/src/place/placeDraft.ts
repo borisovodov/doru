@@ -160,14 +160,14 @@ export function placeDraftToRecord(draft: PlaceDraft, existing?: PlaceRecord): P
     ...(draft.placeType.trim() !== '' ? { placeType: draft.placeType.trim() } : {}),
     names: draft.names
       .filter((name) => name.value.trim() !== '')
-      .map((name, position) => {
+      .map((name) => {
         const date = fromDateDraft(name.date, existingNames.get(name.id)?.date);
         return {
           id: name.id,
           kind: name.kind as PlaceRecord['names'][number]['kind'],
           ...(name.language.trim() !== '' ? { language: name.language.trim() } : {}),
           ...(name.type.trim() !== '' ? { type: name.type.trim() } : {}),
-          position,
+          position: name.position,
           value: name.value.trim(),
           ...(date !== undefined ? { date } : {}),
           ...(name.addition.trim() !== '' ? { addition: name.addition.trim() } : {}),
