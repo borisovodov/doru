@@ -1,4 +1,5 @@
 .control {
+  box-sizing: border-box;
   display: inline-flex;
   gap: 2px;
   padding: 3px;
@@ -28,4 +29,16 @@
   background: var(--doru-bg-raised);
   box-shadow: var(--doru-ring);
   color: var(--doru-fg);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--segment-columns, 2), minmax(0, 1fr));
+  width: 100%;
+}
+
+.grid .segment {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

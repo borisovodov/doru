@@ -1,13 +1,15 @@
 .field {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  height: var(--doru-control-height);
   min-width: 0;
-  padding: 0 6px;
+  padding: 0 8px;
   box-sizing: border-box;
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-sm);
+  border-radius: var(--doru-radius-md);
   color: var(--doru-fg-muted);
 }
 
@@ -23,6 +25,7 @@
   background: transparent;
   border: none;
   border-radius: 0;
+  font-size: inherit;
 }
 
 .field input:focus {

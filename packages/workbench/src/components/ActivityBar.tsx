@@ -1,34 +1,16 @@
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
-import {
-  Blend,
-  BookOpenText,
-  CalendarDays,
-  Image,
-  ListTodo,
-  Map,
-  Search,
-  Settings,
-  TreeDeciduous,
-  User,
-} from 'lucide-react';
-import { IconButton } from '@doru/ui';
+import { Blend, BookOpenText, Image, ListTodo, Map, Search, Settings, TreeDeciduous, User } from 'lucide-react';
+import { IconButton, Kbd } from '@doru/ui';
 import { nls } from '../nls';
 
-export type ActivityViewId =
-  | 'tree'
-  | 'search'
-  | 'people'
-  | 'families'
-  | 'events'
-  | 'places'
-  | 'media'
-  | 'sources'
-  | 'tasks';
+export type ActivityViewId = 'tree' | 'search' | 'people' | 'families' | 'places' | 'media' | 'sources' | 'tasks';
 
 export interface ActivityBarProps {
   activeView: ActivityViewId;
   onSelectView: (view: ActivityViewId) => void;
   onOpenSettings: () => void;
+  /** Display labels of registered view shortcuts, e.g. `{ search: '⌘⇧F' }`. */
+  shortcuts?: Partial<Record<ActivityViewId, string>> | undefined;
 }
 
 /** Native title tooltips are unreliable under the custom drag region on
@@ -37,8 +19,8 @@ const TOOLTIP_DELAY_MS = 600;
 
 const ICON_SIZE = 24;
 
-export function ActivityBar({ activeView, onSelectView, onOpenSettings }: ActivityBarProps) {
-  const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
+export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcuts }: ActivityBarProps) {
+  const [tooltip, setTooltip] = useState<{ label: string; shortcut?: string | undefined; top: number } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -50,13 +32,13 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
     [],
   );
 
-  const showTooltip = (label: string, element: HTMLElement) => {
+  const showTooltip = (label: string, element: HTMLElement, shortcut?: string) => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
     timerRef.current = setTimeout(() => {
       const rect = element.getBoundingClientRect();
-      setTooltip({ label, top: rect.top + rect.height / 2 });
+      setTooltip({ label, shortcut, top: rect.top + rect.height / 2 });
     }, TOOLTIP_DELAY_MS);
   };
 
@@ -68,14 +50,14 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
     setTooltip(null);
   };
 
-  const tooltipHandlers = (label: string) => ({
-    onMouseEnter: (event: MouseEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget),
+  const tooltipHandlers = (label: string, shortcut?: string) => ({
+    onMouseEnter: (event: MouseEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget, shortcut),
     onMouseLeave: hideTooltip,
-    onFocus: (event: FocusEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget),
+    onFocus: (event: FocusEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget, shortcut),
     onBlur: hideTooltip,
   });
 
-  const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode }> = [
+  const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode; shortcut?: string | undefined }> = [
     {
       id: 'tree',
       title: nls.t('workbench.activityBar.tree'),
@@ -85,6 +67,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       id: 'search',
       title: nls.t('workbench.activityBar.search'),
       icon: <Search size={ICON_SIZE} aria-hidden="true" />,
+      shortcut: shortcuts?.search,
     },
     {
       id: 'people',
@@ -95,11 +78,6 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       id: 'families',
       title: nls.t('workbench.activityBar.families'),
       icon: <Blend size={ICON_SIZE} aria-hidden="true" />,
-    },
-    {
-      id: 'events',
-      title: nls.t('workbench.activityBar.events'),
-      icon: <CalendarDays size={ICON_SIZE} aria-hidden="true" />,
     },
     {
       id: 'places',
@@ -133,7 +111,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
           label={view.title}
           icon={view.icon}
           onClick={() => onSelectView(view.id)}
-          {...tooltipHandlers(view.title)}
+          {...tooltipHandlers(view.title, view.shortcut)}
         />
       ))}
       <IconButton
@@ -146,7 +124,8 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings }: Activi
       />
       {tooltip && (
         <div className="activity-tooltip" style={{ top: tooltip.top }} role="tooltip">
-          {tooltip.label}
+          <span>{tooltip.label}</span>
+          {tooltip.shortcut !== undefined && <Kbd>{tooltip.shortcut}</Kbd>}
         </div>
       )}
     </nav>

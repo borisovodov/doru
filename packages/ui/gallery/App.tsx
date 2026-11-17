@@ -1,6 +1,7 @@
 import { createElement, useEffect, useState, type ReactNode } from 'react';
 import themes from 'virtual:doru-gallery-themes';
 import { nls } from '../src/nls';
+import { DemoErrorBoundary } from './ErrorBoundary';
 import { GALLERY_LOCALES } from './locales';
 import { paletteToCss } from './themes';
 import type { Demo, DemoDecorator, DemoMeta } from './types';
@@ -100,7 +101,9 @@ function DemoCard({ name, demo, meta }: { name: string; demo: Demo; meta: DemoMe
         <h2>{name}</h2>
       </header>
       <div className="demo-card-canvas">
-        {applyDecorators(content, [...(meta.decorators ?? []), ...(demo.decorators ?? [])])}
+        <DemoErrorBoundary>
+          {applyDecorators(content, [...(meta.decorators ?? []), ...(demo.decorators ?? [])])}
+        </DemoErrorBoundary>
       </div>
     </article>
   );

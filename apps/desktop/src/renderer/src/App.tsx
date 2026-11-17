@@ -20,6 +20,7 @@ export function App() {
   const [projectUntitled, setProjectUntitled] = useState(false);
   const [untitledName, setUntitledName] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
+  const [searchFocusNonce, setSearchFocusNonce] = useState(0);
   const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
 
   const tree = useTreeData(projectPath);
@@ -113,6 +114,11 @@ export function App() {
   const handleSelectView = useCallback(
     (view: ActivityViewId) => {
       setActiveView(view);
+      if (view === 'search') {
+        // Every selection of the Search view — the icon and the shortcut —
+        // asks the sidebar to put the caret into the query field.
+        setSearchFocusNonce((nonce) => nonce + 1);
+      }
       if (view === 'tree' && projectPath) {
         tabs.openStatic.tree();
       }
@@ -210,6 +216,9 @@ export function App() {
         sidebar={
           <SidebarView
             activeView={activeView}
+            canCreate={projectPath !== null}
+            searchFocusNonce={searchFocusNonce}
+            activeTabId={tabs.activeTabId}
             persons={tree.persons}
             families={tree.families}
             facts={tree.facts}

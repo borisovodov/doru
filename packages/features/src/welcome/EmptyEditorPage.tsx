@@ -50,6 +50,7 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
       { label: nls.t('workbench.createProject'), keys: [modKey, 'N'] },
       { label: nls.t('workbench.newWindow'), keys: [modKey, shiftKey, 'N'] },
       { label: nls.t('workbench.openProject'), keys: [modKey, 'O'] },
+      { label: nls.t('workbench.activityBar.search'), keys: [modKey, shiftKey, 'F'] },
       { label: nls.t('workbench.saveProject'), keys: [modKey, 'S'] },
       { label: nls.t('workbench.exportGedcom'), keys: [modKey, shiftKey, 'E'] },
       { label: nls.t('workbench.undo'), keys: [modKey, 'Z'] },

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cx } from '../../lib/cx';
+import { EntitySummary } from '../entity-summary/EntitySummary';
 import styles from './EntityCard.module.css';
 
 export interface EntityCardProps {
@@ -13,24 +14,11 @@ export interface EntityCardProps {
 }
 
 /**
- * The compact entity row used by side-bar lists. Clickable rows render as
+ * The compact entity card used inside editors. Clickable cards render as
  * real buttons so role-based tests and keyboard users see the same control.
  */
 export function EntityCard({ icon, thumbnail, title, subtitle, meta, onClick, className }: EntityCardProps) {
-  const content = (
-    <>
-      {thumbnail ? (
-        <img className={styles['thumb']} src={thumbnail.src} alt={thumbnail.alt} />
-      ) : icon ? (
-        <span className={styles['icon']}>{icon}</span>
-      ) : null}
-      <span className={styles['body']}>
-        <span className={styles['title']}>{title}</span>
-        {subtitle ? <span className={styles['subtitle']}>{subtitle}</span> : null}
-      </span>
-      {meta ? <span className={styles['meta']}>{meta}</span> : null}
-    </>
-  );
+  const content = <EntitySummary icon={icon} thumbnail={thumbnail} title={title} subtitle={subtitle} meta={meta} />;
 
   if (onClick) {
     return (

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpenText, MapPin, Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { Avatar } from '@doru/ui';
-import { Chip, EntityCard, SearchField } from '@doru/ui';
+import { Chip, EntityRow, SearchField, SideBarEmpty, SideBarLayout, SideBarList } from '@doru/ui';
 import { nls } from '../nls';
 import { displayName, familyLabel, formatDate, initials, lifeSpan } from '@doru/ui/domain';
 import './sidebar.css';
@@ -19,6 +19,8 @@ export function SidebarSearch({
   families,
   sources,
   facts,
+  focusNonce,
+  selected,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
@@ -27,12 +29,23 @@ export function SidebarSearch({
   families: FamilyRecord[];
   sources: SourceRecord[];
   facts: FactRecord[];
+  /** Bumped by the shell when the Search view is selected; focuses the query field. */
+  focusNonce: number;
+  /** Entity ids whose tabs are active, highlighted in the result list. */
+  selected?: { person?: string | undefined; family?: string | undefined; source?: string | undefined } | undefined;
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
 }) {
   const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const needle = query.trim().toLowerCase();
+
+  useEffect(() => {
+    if (focusNonce > 0) {
+      inputRef.current?.focus();
+    }
+  }, [focusNonce]);
 
   const personById = useMemo(() => new Map(persons.map((person) => [person.id, person])), [persons]);
   const familyById = useMemo(() => new Map(families.map((family) => [family.id, family])), [families]);
@@ -94,14 +107,20 @@ export function SidebarSearch({
   };
 
   return (
-    <div className="side-search">
-      <SearchField label={nls.t('features.search.field')} value={query} onChange={setQuery} />
+    <SideBarLayout
+      title={nls.t('workbench.activityBar.search')}
+      subheader={
+        <SearchField label={nls.t('features.search.field')} value={query} onChange={setQuery} inputRef={inputRef} />
+      }
+    >
       {result !== null && (
-        <ul className="side-section-list">
+        <SideBarList>
           {result.matchedPersons.length > 0 && group(nls.t('workbench.activityBar.people'))}
           {result.matchedPersons.slice(0, MAX_PER_GROUP).map((person) => (
             <li key={person.id}>
-              <EntityCard
+              <EntityRow
+                selected={person.id === selected?.person}
+                iconVariant="plain"
                 icon={
                   <Avatar
                     initials={initials(person)}
@@ -119,7 +138,8 @@ export function SidebarSearch({
           {result.matchedFamilies.length > 0 && group(nls.t('workbench.activityBar.families'))}
           {result.matchedFamilies.slice(0, MAX_PER_GROUP).map((family) => (
             <li key={family.id}>
-              <EntityCard
+              <EntityRow
+                selected={family.id === selected?.family}
                 icon={<Users size={15} aria-hidden="true" />}
                 title={familyLabel(family, personById)}
                 subtitle={nls.t('features.sidebar.children', family.children.length)}
@@ -130,7 +150,8 @@ export function SidebarSearch({
           {result.matchedSources.length > 0 && group(nls.t('workbench.activityBar.sources'))}
           {result.matchedSources.slice(0, MAX_PER_GROUP).map((source) => (
             <li key={source.id}>
-              <EntityCard
+              <EntityRow
+                selected={source.id === selected?.source}
                 icon={<BookOpenText size={15} aria-hidden="true" />}
                 title={source.title}
                 subtitle={source.author !== undefined ? source.author : null}
@@ -143,7 +164,7 @@ export function SidebarSearch({
             const ownerId = ownerOf(fact);
             return (
               <li key={fact.id}>
-                <EntityCard
+                <EntityRow
                   icon={<Chip variant="neutral">{fact.tag}</Chip>}
                   title={fact.value ?? fact.type ?? factOwner(fact)}
                   subtitle={[fact.date ? formatDate(fact.date) : undefined, fact.place]
@@ -157,13 +178,13 @@ export function SidebarSearch({
           {result.matchedPlaces.length > 0 && group(nls.t('workbench.activityBar.places'))}
           {result.matchedPlaces.slice(0, MAX_PER_GROUP).map(([place, count]) => (
             <li key={place}>
-              <EntityCard icon={<MapPin size={15} aria-hidden="true" />} title={place} meta={count} />
+              <EntityRow icon={<MapPin size={15} aria-hidden="true" />} title={place} meta={count} />
             </li>
           ))}
-          {empty && <p className="side-search-empty">{nls.t('features.search.empty')}</p>}
-        </ul>
+          {empty && <SideBarEmpty>{nls.t('features.search.empty')}</SideBarEmpty>}
+        </SideBarList>
       )}
-    </div>
+    </SideBarLayout>
   );
 
   function factOwner(fact: FactRecord): string {

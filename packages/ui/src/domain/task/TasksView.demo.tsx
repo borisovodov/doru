@@ -38,7 +38,6 @@ const meta = {
     addresses: [],
     associations: [],
     onOpenTask: () => undefined,
-    onNewTask: () => undefined,
     onOpenPerson: () => undefined,
     onOpenFamily: () => undefined,
     onOpenSource: () => undefined,

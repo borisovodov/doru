@@ -16,6 +16,15 @@ and the chat input; plain typing never triggers a shortcut.
 | Export GEDCOM… | `⌘⇧E` | `Ctrl+Shift+E` |
 | Open Settings | `⌘,` | `Ctrl+,` |
 
+## Views
+
+| Action | macOS | Linux / Windows |
+|---|---|---|
+| Open the Search sidebar | `⌘⇧F` | `Ctrl+Shift+F` |
+
+The shortcut opens the Search sidebar and puts the caret into the query
+field, ready to type.
+
 ## Tabs
 
 | Action | macOS | Linux / Windows |

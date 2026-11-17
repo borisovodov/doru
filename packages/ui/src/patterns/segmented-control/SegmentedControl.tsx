@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './SegmentedControl.module.css';
 
@@ -12,6 +12,8 @@ export interface SegmentedControlProps<T extends string> {
   options: ReadonlyArray<SegmentedOption<T>>;
   onChange: (value: T) => void;
   label: string;
+  /** Lays the options out as a fixed-column grid instead of a single row. */
+  columns?: number;
   className?: string;
 }
 
@@ -21,10 +23,18 @@ export function SegmentedControl<T extends string>({
   options,
   onChange,
   label,
+  columns,
   className,
 }: SegmentedControlProps<T>) {
+  const style = columns === undefined ? undefined : ({ '--segment-columns': columns } as CSSProperties);
+
   return (
-    <div className={cx(styles['control'], className)} role="tablist" aria-label={label}>
+    <div
+      className={cx(styles['control'], columns !== undefined && styles['grid'], className)}
+      style={style}
+      role="tablist"
+      aria-label={label}
+    >
       {options.map((option) => (
         <button
           key={option.value}

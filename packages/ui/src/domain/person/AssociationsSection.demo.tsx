@@ -11,7 +11,7 @@ const meta = {
   title: 'Domain/AssociationsSection',
   component: AssociationsSection,
   args: {
-    personId: 'P1',
+    owner: { kind: 'person', id: 'P1' },
     associations: [
       {
         id: 'A1',

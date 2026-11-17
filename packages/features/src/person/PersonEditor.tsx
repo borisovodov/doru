@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, UserRound, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
-import { isVisibleMedia } from '@doru/core';
+import { isVisibleMedia } from '@doru/core/model';
 import { collectNameIds } from '@doru/core/model';
 import type {
   AddressRecord,

@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -17,7 +16,8 @@ import type {
 } from '@doru/core';
 import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
-import { IconButton } from '../../atoms/icon-button/IconButton';
+import { SideBarEmpty } from '../../patterns/side-bar-empty/SideBarEmpty';
+import { SideBarList } from '../../patterns/side-bar-list/SideBarList';
 import { nls } from '../../nls';
 import { taskTargetLabel, type TaskTargetData } from './taskTargets';
 import './TasksView.css';
@@ -42,7 +42,6 @@ export function TasksView({
   addresses,
   associations,
   onOpenTask,
-  onNewTask,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
@@ -52,6 +51,7 @@ export function TasksView({
   onOpenAddress,
   onOpenMedia,
   onOpenTitle,
+  selectedId,
 }: {
   todos: TodoRecord[];
   persons: PersonRecord[];
@@ -68,7 +68,6 @@ export function TasksView({
   addresses: AddressRecord[];
   associations: AssociationRecord[];
   onOpenTask: (todoId: string) => void;
-  onNewTask: () => void;
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
@@ -78,6 +77,8 @@ export function TasksView({
   onOpenAddress: (addressId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenTitle: (titleId: string) => void;
+  /** The task whose tab is active, highlighted as the current row. */
+  selectedId?: string | undefined;
 }) {
   const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
   const targetData: TaskTargetData = {
@@ -182,21 +183,14 @@ export function TasksView({
 
   return (
     <div className="tasks-view">
-      <div className="tasks-header">
-        <IconButton
-          label={nls.t('features.tasks.add')}
-          icon={<Plus size={14} aria-hidden="true" />}
-          onClick={onNewTask}
-        />
-      </div>
       {sorted.length === 0 ? (
-        <p className="side-registries-note">{nls.t('features.tasks.empty')}</p>
+        <SideBarEmpty>{nls.t('features.tasks.empty')}</SideBarEmpty>
       ) : (
-        <ul className="task-list">
+        <SideBarList>
           {sorted.map((todo) => {
             const related = target(todo);
             return (
-              <li key={todo.id} className="task-item">
+              <li key={todo.id} className={todo.id === selectedId ? 'task-item selected' : 'task-item'}>
                 <div className="task-row" onClick={() => onOpenTask(todo.id)}>
                   <span className="task-row-body">
                     <span className={isClosed(todo) ? 'task-row-text closed' : 'task-row-text'}>{todo.text}</span>
@@ -241,7 +235,7 @@ export function TasksView({
               </li>
             );
           })}
-        </ul>
+        </SideBarList>
       )}
     </div>
   );

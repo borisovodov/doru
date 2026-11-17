@@ -68,14 +68,22 @@ export function Workbench({
   const [agentChatWidth, setAgentChatWidth] = useState(DEFAULT_AGENT_CHAT_WIDTH);
   const sideBarStartRef = useRef(DEFAULT_SIDE_BAR_WIDTH);
   const agentChatStartRef = useRef(DEFAULT_AGENT_CHAT_WIDTH);
+  const isMac = platform === 'darwin';
 
   useEffect(() => {
     const keybindings = new KeybindingService();
     keybindings.register('meta+w', 'workbench.closeActiveTab');
     keybindings.register('ctrl+w', 'workbench.closeActiveTab');
+    keybindings.register('meta+shift+f', 'workbench.showSearch');
+    keybindings.register('ctrl+shift+f', 'workbench.showSearch');
     for (const binding of externalKeybindings) {
       keybindings.register(binding.key, binding.command, binding.args);
     }
+    const removeShowSearch = commands.register({
+      id: 'workbench.showSearch',
+      title: nls.t('workbench.activityBar.search'),
+      handler: () => onSelectView('search'),
+    });
     const removeToggleAgentChat = commands.register({
       id: 'workbench.toggleAgentChat',
       title: nls.t('workbench.toggleAgentChat'),
@@ -112,11 +120,12 @@ export function Workbench({
     };
     window.addEventListener('keydown', onKeydown);
     return () => {
+      removeShowSearch.dispose();
       removeToggleAgentChat.dispose();
       removeCloseActiveTab.dispose();
       window.removeEventListener('keydown', onKeydown);
     };
-  }, [commands, externalKeybindings, activeTabId, onCloseTab]);
+  }, [commands, externalKeybindings, activeTabId, onCloseTab, onSelectView]);
 
   const layoutClasses = ['workbench'];
   if (agentChatOpen) {
@@ -149,7 +158,7 @@ export function Workbench({
 
   return (
     <div className={layoutClasses.join(' ')} style={layoutStyle}>
-      <header className={platform === 'darwin' ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
+      <header className={isMac ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
         <div className="title-bar-leading">{titleMenu}</div>
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions">
@@ -168,6 +177,7 @@ export function Workbench({
         <ActivityBar
           activeView={activeView}
           onSelectView={onSelectView}
+          shortcuts={{ search: isMac ? '⌘⇧F' : 'Ctrl+Shift+F' }}
           onOpenSettings={onOpenSettings ?? (() => {})}
         />
         {activeView !== 'tree' && <SideBar label={nls.t(sideBarLabelKey(activeView))}>{sidebar}</SideBar>}
@@ -213,8 +223,6 @@ function sideBarLabelKey(view: ActivityViewId): Parameters<typeof nls.t>[0] {
       return 'workbench.activityBar.people';
     case 'families':
       return 'workbench.activityBar.families';
-    case 'events':
-      return 'workbench.activityBar.events';
     case 'places':
       return 'workbench.activityBar.places';
     case 'media':
