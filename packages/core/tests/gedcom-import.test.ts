@@ -108,7 +108,36 @@ describe('importGedcomDataset validation', () => {
   });
 });
 
+const MEDIA_WITHOUT_FILE = [
+  '0 HEAD',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '1 CHAR UTF-8',
+  '0 @O1@ OBJE',
+  '1 FORM jpg',
+  '1 BLOB raw-bytes',
+  '0 @I1@ INDI',
+  '1 NAME Ivan /Petrov/',
+  '1 OBJE @O1@',
+  '0 TRLR',
+].join('\n');
+
 describe('importGedcomDataset media', () => {
+  it('skips OBJE records without a non-empty FILE instead of failing the import', () => {
+    const fixture = makeRepo();
+    try {
+      const result = importGedcomDataset(parseDataset(MEDIA_WITHOUT_FILE), fixture.repo);
+      expect(result.importedMedia).toBe(0);
+      expect(fixture.repo.listAllMedia()).toEqual([]);
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      expect(person.names[0]?.given).toBe('Ivan');
+      expect(fixture.repo.listAttachmentsFor('person', person.id).mediaLinks).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('imports OBJE records and links with the prepared project paths', () => {
     const fixture = makeRepo();
     try {

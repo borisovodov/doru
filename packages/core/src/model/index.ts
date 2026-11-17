@@ -9,6 +9,7 @@ export type {
   DateQuality,
   DateValue,
   FactAge,
+  FactFlag,
   FactParticipant,
   FactRecord,
   FamilyChildLink,
@@ -42,6 +43,7 @@ export type {
   TreeDocument,
 } from './types';
 export {
+  FACT_FLAGS,
   IMAGE_EXTENSIONS,
   TARGET_TYPES,
   collectNameIds,

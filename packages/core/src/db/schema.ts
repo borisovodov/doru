@@ -53,10 +53,12 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * `date.sort_year` column and the unused `place_name_fts` index; version 3
  * added the GEDCOM substructures that the domain model was still dropping
  * (person addresses, family metadata, dated place names, fact periods and
- * extra places, source/citation details). The pre-release scaffolds that
- * preceded them are not counted.
+ * extra places, source/citation details); version 4 added
+ * `fact.primary_flag` for the AGES! `_PRI` marker, kept apart from the
+ * Family Historian `_FLGS` flags in `fact_flag`. The pre-release scaffolds
+ * that preceded them are not counted.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -175,6 +177,7 @@ CREATE TABLE IF NOT EXISTS fact (
   type TEXT,
   value TEXT,
   negation INTEGER NOT NULL DEFAULT 0,   -- non-events (GEDCOM NO)
+  primary_flag INTEGER NOT NULL DEFAULT 0, -- AGES! _PRI (not an FH _FLGS flag)
   date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   end_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   sort_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,

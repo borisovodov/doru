@@ -162,6 +162,16 @@ export interface PersonName {
 }
 
 /**
+ * The Family Historian fact flags (`_FLGS`). Stored in lowercase in the
+ * `fact_flag` table and edited as checkboxes; the GEDCOM wire form is the
+ * uppercase `FactFlag` of `@doru/gedcom`. The AGES! `_PRI` marker is a
+ * separate concept and lives in `FactRecord.primary`.
+ */
+export const FACT_FLAGS = ['private', 'preferred', 'tentative', 'rejected'] as const;
+
+export type FactFlag = (typeof FACT_FLAGS)[number];
+
+/**
  * A fact about a person or a family: a life event (birth, death, marriage)
  * or an attribute (occupation, residence). The `tag` names the kind
  * ('BIRT', 'DEAT', 'MARR', 'OCCU', …; 'EVEN'/'FACT' carry their subtype in
@@ -202,8 +212,10 @@ export interface FactRecord {
   ages?: FactAge[] | undefined;
   /** Witnesses and other participants. */
   participants?: FactParticipant[] | undefined;
-  /** Flags: private | preferred | tentative | rejected. */
-  flags?: string[] | undefined;
+  /** The Family Historian `_FLGS` flags. */
+  flags?: FactFlag[] | undefined;
+  /** The fact is the primary one of its kind (AGES! `_PRI`). */
+  primary?: boolean | undefined;
   /** The place prefix (vendor `_PPFX`). */
   placePrefix?: string | undefined;
   /** The vendor event number (vendor `_EVN`). */

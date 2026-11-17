@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Hely összekapcsolása",
   "features.tree.fact.placeLink.none": "Szabad szöveg",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "Elsődleges esemény",
   "features.tree.fact.quality": "Megbízhatóság",
   "features.tree.fact.religiousAffiliation": "Vallás",
   "features.tree.fact.sentence": "Mondat",

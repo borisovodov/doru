@@ -8,6 +8,7 @@ import type {
   DateStructure,
   DateValue as GedcomDateValue,
   EventDetail,
+  FactFlag as GedcomFactFlag,
   ChildFamilyLink,
   FamilyAttributeStructure,
   FamilyEventStructure,
@@ -45,6 +46,7 @@ import type {
   AssociationRecord,
   DateComponent,
   DateValue,
+  FactFlag,
   FactRecord,
   FamilyRecord,
   MediaLinkRecord,
@@ -65,6 +67,14 @@ import type {
  * documented inline. The exported header always declares GEDCOM 7.0; the
  * serializers decide the wire form from there.
  */
+
+/** The lowercase core fact flags mapped to the GEDCOM `_FLGS` vocabulary. */
+const CORE_TO_GEDCOM_FACT_FLAG: Readonly<Record<FactFlag, GedcomFactFlag>> = {
+  private: 'PRIVATE',
+  preferred: 'PREFERRED',
+  tentative: 'TENTATIVE',
+  rejected: 'REJECTED',
+};
 
 const INDIVIDUAL_EVENT_TAGS = new Set([
   'ADOP',
@@ -1260,7 +1270,11 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     .map((identifier) => identifier.value);
   const contacts = withContacts(repo, 'fact', fact.id);
   const changes = withChanges(repo, 'fact', fact.id);
-  const flags = fact.flags;
+  const flags =
+    fact.flags !== undefined && fact.flags.length > 0
+      ? fact.flags.map((flag) => CORE_TO_GEDCOM_FACT_FLAG[flag])
+      : undefined;
+  const primary = fact.primary === true;
   if (
     date === undefined &&
     endDate === undefined &&
@@ -1295,7 +1309,8 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     fact.cause === undefined &&
     fact.sentence === undefined &&
     fact.quality === undefined &&
-    flags === undefined
+    flags === undefined &&
+    !primary
   ) {
     return undefined;
   }
@@ -1334,7 +1349,8 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
           },
         }
       : {}),
-    ...(flags !== undefined ? { factFlags: flags as EventDetail['factFlags'] } : {}),
+    ...(flags !== undefined ? { factFlags: flags } : {}),
+    ...(primary ? { primary: true } : {}),
     ...(witnesses.length > 0 ? { witnesses } : {}),
     ...(witnessAssociations.length > 0 ? { associations: witnessAssociations } : {}),
     ...(citations.length > 0 ? { citations } : {}),
@@ -1344,7 +1360,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     ...(uniqueIds.length > 0 ? { uniqueIds } : {}),
     ...contacts,
     ...changes,
-  } as EventDetail;
+  };
 }
 
 function buildAge(age: {

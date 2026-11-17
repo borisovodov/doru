@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Ort verknüpfen",
   "features.tree.fact.placeLink.none": "Freitext",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "Primäres Ereignis",
   "features.tree.fact.quality": "Zuverlässigkeit",
   "features.tree.fact.religiousAffiliation": "Konfession",
   "features.tree.fact.sentence": "Satz",

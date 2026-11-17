@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Свързване на място",
   "features.tree.fact.placeLink.none": "Свободен текст",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "Основно събитие",
   "features.tree.fact.quality": "Достоверност",
   "features.tree.fact.religiousAffiliation": "Вероизповедание",
   "features.tree.fact.sentence": "Изречение",

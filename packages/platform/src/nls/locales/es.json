@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Vincular lugar",
   "features.tree.fact.placeLink.none": "Texto libre",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "Evento principal",
   "features.tree.fact.quality": "Fiabilidad",
   "features.tree.fact.religiousAffiliation": "Religión",
   "features.tree.fact.sentence": "Frase",

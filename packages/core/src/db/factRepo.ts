@@ -1,7 +1,16 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, FactAge, FactParticipant, FactRecord } from '../model/types';
-import { signedYear } from '../model/types';
+import {
+  FACT_FLAGS,
+  signedYear,
+  type DateValue,
+  type FactAge,
+  type FactFlag,
+  type FactParticipant,
+  type FactRecord,
+} from '../model/types';
 import type { DateRepo } from './dateRepo';
+
+const FACT_FLAG_SET = new Set<string>(FACT_FLAGS);
 
 interface FactRow {
   id: string;
@@ -11,6 +20,7 @@ interface FactRow {
   type: string | null;
   value: string | null;
   negation: number;
+  primary_flag: number;
   date_id: string | null;
   end_date_id: string | null;
   sort_date_id: string | null;
@@ -34,7 +44,7 @@ interface FactRow {
   rowid: number;
 }
 
-const FACT_COLUMNS = `id, person_id, family_id, tag, type, value, negation,
+const FACT_COLUMNS = `id, person_id, family_id, tag, type, value, negation, primary_flag,
   date_id, end_date_id, sort_date_id, place_id, place_text, address_id, agency,
   religious_affiliation, cause, sentence, quality, place_prefix, event_number,
   birth_length, birth_weight, cemetery, fna, description_aware, map_latitude,
@@ -55,12 +65,12 @@ export class FactRepo {
   insertFact(fact: FactRecord): void {
     this.db
       .prepare(
-        `INSERT INTO fact (id, person_id, family_id, tag, type, value, negation,
+        `INSERT INTO fact (id, person_id, family_id, tag, type, value, negation, primary_flag,
            date_id, end_date_id, sort_date_id, place_id, place_text, address_id, agency,
            religious_affiliation, cause, sentence, quality, place_prefix, event_number,
            birth_length, birth_weight, cemetery, fna, description_aware, map_latitude,
            map_longitude)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(fact.id, ...factValueParams(fact, this.dates));
     this.replaceSubRows(fact);
@@ -73,7 +83,7 @@ export class FactRepo {
     this.db
       .prepare(
         `UPDATE fact SET person_id = ?, family_id = ?, tag = ?, type = ?, value = ?, negation = ?,
-           date_id = ?, end_date_id = ?, sort_date_id = ?, place_id = ?, place_text = ?, address_id = ?,
+           primary_flag = ?, date_id = ?, end_date_id = ?, sort_date_id = ?, place_id = ?, place_text = ?, address_id = ?,
            agency = ?, religious_affiliation = ?, cause = ?, sentence = ?, quality = ?,
            place_prefix = ?, event_number = ?, birth_length = ?, birth_weight = ?, cemetery = ?,
            fna = ?, description_aware = ?, map_latitude = ?, map_longitude = ?
@@ -343,8 +353,8 @@ export class FactRepo {
     return byFact;
   }
 
-  private flagsForFacts(factIds: string[]): Map<string, string[]> {
-    const byFact = new Map<string, string[]>();
+  private flagsForFacts(factIds: string[]): Map<string, FactFlag[]> {
+    const byFact = new Map<string, FactFlag[]>();
     if (factIds.length === 0) {
       return byFact;
     }
@@ -353,8 +363,11 @@ export class FactRepo {
       .prepare(`SELECT fact_id, flag FROM fact_flag WHERE fact_id IN (${placeholders}) ORDER BY flag`)
       .all(...factIds) as unknown as { fact_id: string; flag: string }[];
     for (const row of rows) {
+      if (!FACT_FLAG_SET.has(row.flag)) {
+        continue;
+      }
       const flags = byFact.get(row.fact_id) ?? [];
-      flags.push(row.flag);
+      flags.push(row.flag as FactFlag);
       byFact.set(row.fact_id, flags);
     }
     return byFact;
@@ -371,6 +384,7 @@ function factValueParams(fact: FactRecord, dates: DateRepo): Array<string | numb
     fact.type ?? null,
     fact.value ?? null,
     fact.negation ? 1 : 0,
+    fact.primary ? 1 : 0,
     fact.date ? dates.upsert(fact.date) : null,
     fact.endDate ? dates.upsert(fact.endDate) : null,
     fact.sortDate ? dates.upsert(fact.sortDate) : null,
@@ -404,7 +418,7 @@ function rowToFact(
   datesById: Map<string, DateValue>,
   agesByFact: Map<string, FactAge[]>,
   participantsByFact: Map<string, FactParticipant[]>,
-  flagsByFact: Map<string, string[]>,
+  flagsByFact: Map<string, FactFlag[]>,
   placesByFact: Map<string, string[]>,
 ): FactRecord {
   const ages = agesByFact.get(row.id);
@@ -419,6 +433,7 @@ function rowToFact(
     type: row.type ?? undefined,
     value: row.value ?? undefined,
     negation: row.negation === 1 ? true : undefined,
+    primary: row.primary_flag === 1 ? true : undefined,
     date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
     endDate: row.end_date_id !== null ? datesById.get(row.end_date_id) : undefined,
     sortDate: row.sort_date_id !== null ? datesById.get(row.sort_date_id) : undefined,

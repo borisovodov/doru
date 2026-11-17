@@ -1,11 +1,18 @@
-import type { DateValue, FactAge, FactParticipant, FactRecord } from '@doru/core';
+import {
+  FACT_FLAGS,
+  type DateValue,
+  type FactAge,
+  type FactFlag,
+  type FactParticipant,
+  type FactRecord,
+} from '@doru/core';
 import { dateDraftsEqual, emptyDate, fromDateDraft, rebaseDate, toDateDraft, type DateDraft } from '../person/draft';
 
 /** The event/attribute tags the form suggests; the field stays free text. */
 export const EVENT_TYPES = ['BIRT', 'DEAT', 'BURI', 'MARR', 'RESI', 'OCCU', 'EMIG', 'IMMI', 'CENS', 'CHR', 'BAPM'];
 
-/** The fact flags the form edits (GEDCOM restriction markers). */
-export const FACT_FLAGS = ['private', 'preferred', 'tentative', 'rejected'] as const;
+/** The fact flags the form edits (Family Historian `_FLGS`). */
+export { FACT_FLAGS };
 
 /** The age roles the form offers: '' is the fact's subject, HUSB/WIFE the partners. */
 export const FACT_AGE_ROLES = ['', 'HUSB', 'WIFE'] as const;
@@ -14,8 +21,9 @@ export const FACT_AGE_ROLES = ['', 'HUSB', 'WIFE'] as const;
  * The editable form of a fact. The text fields mirror the fact columns;
  * `date` carries the place text as well (the raw place string lives on the
  * date draft, like everywhere else in the person form). `ages`,
- * `participants` and `flags` are edited as plain lists; `placeId` and
- * `addressId` are preserved but not edited yet (no place entity picker).
+ * `participants` and `flags` are edited as plain lists; `primary` is the
+ * separate AGES! `_PRI` marker; `placeId` and `addressId` are preserved
+ * but not edited yet (no place entity picker).
  */
 export interface FactDraft {
   id: string;
@@ -47,7 +55,9 @@ export interface FactDraft {
   quality: string;
   ages: FactAge[];
   participants: FactParticipant[];
-  flags: string[];
+  flags: FactFlag[];
+  /** The AGES! `_PRI` marker, separate from the FH `_FLGS` flags. */
+  primary: boolean;
 }
 
 /** The owner a fact belongs to: exactly one person or one family. */
@@ -102,6 +112,7 @@ export function emptyFactDraft(owner: { personId?: string; familyId?: string }):
     ages: [],
     participants: [],
     flags: [],
+    primary: false,
   };
 }
 
@@ -137,6 +148,7 @@ export function factToDraft(fact: FactRecord): FactDraft {
     ages: (fact.ages ?? []).map((age) => ({ ...age })),
     participants: (fact.participants ?? []).map((participant) => ({ ...participant })),
     flags: [...(fact.flags ?? [])],
+    primary: fact.primary === true,
   };
 }
 
@@ -178,6 +190,7 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
     ages: draft.ages.length > 0 ? draft.ages : undefined,
     participants: draft.participants.length > 0 ? draft.participants : undefined,
     flags: draft.flags.length > 0 ? draft.flags : undefined,
+    primary: draft.primary || undefined,
   };
 }
 

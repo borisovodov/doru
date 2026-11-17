@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Привязать место",
   "features.tree.fact.placeLink.none": "Свободный текст",
   "features.tree.fact.placePrefix": "Префикс места",
+  "features.tree.fact.primaryEvent": "Основное событие",
   "features.tree.fact.quality": "Достоверность",
   "features.tree.fact.religiousAffiliation": "Вероисповедание",
   "features.tree.fact.sentence": "Шаблон фразы",

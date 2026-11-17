@@ -31,6 +31,7 @@ describe('emptyFactDraft', () => {
       ages: [],
       participants: [],
       flags: [],
+      primary: false,
     });
   });
 });
@@ -71,6 +72,7 @@ describe('factToDraft / factDraftToRecord', () => {
         { id: 'W2', value: 'Unknown woman', position: 1 },
       ],
       flags: ['private', 'tentative'],
+      primary: true,
     });
     const draft = factToDraft(source);
     expect(draft).toMatchObject({
@@ -103,6 +105,7 @@ describe('factToDraft / factDraftToRecord', () => {
       ages: source.ages,
       participants: source.participants,
       flags: ['private', 'tentative'],
+      primary: true,
     });
     expect(factDraftToRecord(draft)).toEqual(source);
   });
@@ -131,6 +134,7 @@ describe('factToDraft / factDraftToRecord', () => {
       ages: undefined,
       participants: undefined,
       flags: undefined,
+      primary: undefined,
     });
   });
 

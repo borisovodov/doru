@@ -5,6 +5,7 @@ import { Plus, X } from 'lucide-react';
 import type {
   AddressRecord,
   FactAge,
+  FactFlag,
   FactParticipant,
   FactRecord,
   FamilyRecord,
@@ -172,7 +173,7 @@ export function FactEditor({
         .map((participant, position) => ({ ...participant, position })),
     });
 
-  const toggleFlag = (flag: string) =>
+  const toggleFlag = (flag: FactFlag) =>
     set({ flags: draft.flags.includes(flag) ? draft.flags.filter((entry) => entry !== flag) : [...draft.flags, flag] });
 
   const pickParticipantPerson = (index: number, personId: string) => {
@@ -569,6 +570,11 @@ export function FactEditor({
               onChange={() => toggleFlag(flag)}
             />
           ))}
+          <Checkbox
+            label={nls.t('features.tree.fact.primaryEvent')}
+            checked={draft.primary}
+            onChange={() => set({ primary: !draft.primary })}
+          />
         </div>
       </div>
 

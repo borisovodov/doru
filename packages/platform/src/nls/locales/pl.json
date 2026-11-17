@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Powiąż miejsce",
   "features.tree.fact.placeLink.none": "Dowolny tekst",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "Zdarzenie główne",
   "features.tree.fact.quality": "Wiarygodność",
   "features.tree.fact.religiousAffiliation": "Wyznanie",
   "features.tree.fact.sentence": "Zdanie",

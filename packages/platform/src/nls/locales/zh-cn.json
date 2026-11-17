@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "关联地点",
   "features.tree.fact.placeLink.none": "自由文本",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "主要事件",
   "features.tree.fact.quality": "可信度",
   "features.tree.fact.religiousAffiliation": "宗教",
   "features.tree.fact.sentence": "句子",

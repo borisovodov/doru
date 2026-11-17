@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "장소 연결",
   "features.tree.fact.placeLink.none": "자유 텍스트",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "주요 사건",
   "features.tree.fact.quality": "신뢰도",
   "features.tree.fact.religiousAffiliation": "종교",
   "features.tree.fact.sentence": "문장",

@@ -15,6 +15,7 @@ import type {
   DatePeriodStructure,
   DateStructure,
   EventDetail,
+  FactFlag as GedcomFactFlag,
   FamilyRecord as GedcomFamilyRecord,
   GedcomDataset,
   GedcomRecord,
@@ -44,6 +45,7 @@ import type {
   ContactRecord,
   DateComponent,
   DateValue,
+  FactFlag,
   FactRecord,
   FamilyChildLink,
   FamilyPartnerLink,
@@ -763,16 +765,25 @@ function mapFact(
     ages: mapAges(age),
     participants: mapParticipants(detail, ctx),
     flags: factFlags(detail),
+    primary: detail?.primary === true ? true : undefined,
   };
 }
 
-/** The `_FLGS` flags plus the `_PRI` preferred marker. */
-function factFlags(detail: EventDetail | undefined): string[] | undefined {
-  const flags = new Set<string>(detail?.factFlags ?? []);
-  if (detail?.primary === true) {
-    flags.add('preferred');
+/** The GEDCOM wire flags mapped to the lowercase core vocabulary. */
+const GEDCOM_TO_CORE_FACT_FLAG: Readonly<Record<GedcomFactFlag, FactFlag>> = {
+  PRIVATE: 'private',
+  PREFERRED: 'preferred',
+  TENTATIVE: 'tentative',
+  REJECTED: 'rejected',
+};
+
+/** The Family Historian `_FLGS` flags; `_PRI` is mapped to `primary` separately. */
+function factFlags(detail: EventDetail | undefined): FactFlag[] | undefined {
+  const flags = detail?.factFlags;
+  if (flags === undefined || flags.length === 0) {
+    return undefined;
   }
-  return flags.size > 0 ? [...flags] : undefined;
+  return flags.map((flag) => GEDCOM_TO_CORE_FACT_FLAG[flag]);
 }
 
 function mapAges(age: AgeStructure | undefined): FactRecord['ages'] {
@@ -1702,10 +1713,6 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.tag !== 'OBJE') {
       continue;
     }
-    const id = crypto.randomUUID();
-    if (record.xref !== undefined) {
-      ctx.mediaIds.set(record.xref, id);
-    }
     const files = record.files
       .filter((file) => file.payload !== '')
       .map((file) => ({
@@ -1714,14 +1721,21 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
         ...(file.title !== undefined ? { title: file.title } : {}),
       }));
     if (files.length === 0) {
+      // A record with only FORM/BLOB (or an empty FILE) has no path to
+      // store; registering its xref would make later OBJE links point at a
+      // media row that does not exist and fail the import on the FK.
       continue;
     }
+    const id = crypto.randomUUID();
     ctx.repo.insertMedia({
       id,
       ...(record.xref !== undefined ? { xref: record.xref } : {}),
       ...(record.title !== undefined ? { title: record.title } : {}),
       files,
     });
+    if (record.xref !== undefined) {
+      ctx.mediaIds.set(record.xref, id);
+    }
     importNotes(record.notes, 'media', id, ctx);
     importCitations(record.citations, 'media', id, ctx);
     importIdentifiers(record.identifiers, 'media', id, ctx);

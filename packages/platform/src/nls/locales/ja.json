@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "場所を関連付け",
   "features.tree.fact.placeLink.none": "自由記述",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "主要な出来事",
   "features.tree.fact.quality": "信頼性",
   "features.tree.fact.religiousAffiliation": "宗教",
   "features.tree.fact.sentence": "文",

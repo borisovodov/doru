@@ -269,6 +269,7 @@
   "features.tree.fact.placeLink": "Σύνδεση τόπου",
   "features.tree.fact.placeLink.none": "Ελεύθερο κείμενο",
   "features.tree.fact.placePrefix": "Place prefix",
+  "features.tree.fact.primaryEvent": "Κύριο συμβάν",
   "features.tree.fact.quality": "Αξιοπιστία",
   "features.tree.fact.religiousAffiliation": "Θρήσκευμα",
   "features.tree.fact.sentence": "Πρόταση",
