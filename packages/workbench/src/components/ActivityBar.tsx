@@ -110,6 +110,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
           variant={view.id === activeView ? 'active' : 'ghost'}
           label={view.title}
           icon={view.icon}
+          aria-current={view.id === activeView ? 'page' : undefined}
           onClick={() => onSelectView(view.id)}
           {...tooltipHandlers(view.title, view.shortcut)}
         />

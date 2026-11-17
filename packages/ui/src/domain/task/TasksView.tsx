@@ -191,7 +191,11 @@ export function TasksView({
           {sorted.map((todo) => {
             const related = target(todo);
             return (
-              <li key={todo.id} className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}>
+              <li
+                key={todo.id}
+                aria-current={todo.id === selectedId ? 'true' : undefined}
+                className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}
+              >
                 <div className={styles['taskRow']} onClick={() => onOpenTask(todo.id)}>
                   <span className={styles['taskRowBody']}>
                     <span className={cx(styles['taskRowText'], isClosed(todo) && styles['closed'])}>{todo.text}</span>
