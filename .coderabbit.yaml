@@ -15,7 +15,11 @@ reviews:
   # review should focus on correctness, design and convention violations.
   profile: chill
 
-  high_level_summary: true
+  # Maintainers write the pull request description; the bot's summary
+  # duplicates the walkthrough comment and overwrites the "Summary by
+  # CodeRabbit" block on every push. The `@coderabbitai summary` placeholder
+  # still works if a pull request asks for it explicitly.
+  high_level_summary: false
   collapse_walkthrough: true
   sequence_diagrams: false
   poem: false
