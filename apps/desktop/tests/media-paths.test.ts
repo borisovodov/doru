@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolveMediaPath } from '../src/main/mediaPaths';
 
@@ -6,8 +6,8 @@ const projectDir = '/tmp/doru-project';
 
 describe('resolveMediaPath', () => {
   it('accepts files inside the media folder', () => {
-    expect(resolveMediaPath(projectDir, 'media/photo.jpg')).toBe(join(projectDir, 'media/photo.jpg'));
-    expect(resolveMediaPath(projectDir, 'media/sub/../photo.jpg')).toBe(join(projectDir, 'media/photo.jpg'));
+    expect(resolveMediaPath(projectDir, 'media/photo.jpg')).toBe(resolve(projectDir, 'media/photo.jpg'));
+    expect(resolveMediaPath(projectDir, 'media/sub/../photo.jpg')).toBe(resolve(projectDir, 'media/photo.jpg'));
   });
 
   it('rejects the media folder itself and anything outside it', () => {
