@@ -17,6 +17,15 @@ reviews:
 
   high_level_summary: true
   collapse_walkthrough: true
+  # The walkthrough comment itself is mandatory, but its optional sections are
+  # not: on small changes they added 10-13 KB of boilerplate per review.
+  changed_files_summary: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  review_status: false
+  review_info: false
   sequence_diagrams: false
   poem: false
   in_progress_fortune: false
@@ -51,30 +60,19 @@ reviews:
     - '!**/*.woff2'
 
   pre_merge_checks:
+    # Every pre-merge check adds a block to the walkthrough. The title rule and
+    # the no-migrations rule are documented in AGENTS.md, loaded through
+    # knowledge_base, and verified by maintainers during review.
     title:
-      mode: warning
-      requirements: >-
-        Write the title as a plain sentence a non-technical reader understands:
-        GitHub release notes are generated from merged PR titles and double as
-        the user-facing changelog. No conventional-commit or area prefixes
-        (feat:, fix:, chore:, docs:, ci:, style:, website:, …), no ticket ids at
-        the start. English, imperative or descriptive, roughly under 80
-        characters.
+      mode: 'off'
     description:
-      mode: warning
+      mode: 'off'
     issue_assessment:
       mode: 'off'
-    custom_checks:
-      - name: No format migrations
-        mode: warning
-        instructions: |
-          Pass when the pull request adds no code that upgrades, converts or
-          reads older on-disk formats: tree documents, the SQLite schema,
-          settings, themes, exports. Before 1.0.0 the project deliberately
-          breaks formats instead of migrating them, and formats written by
-          older versions are expected to be unreadable.
-          Fail when a change introduces a versioned migration, a compatibility
-          reader, or a fallback for a previous file layout.
+
+  finishing_touches:
+    unit_tests:
+      enabled: false
 
   tools:
     # Oxlint, Stylelint and Oxfmt are the only style/lint gates in CI; running
