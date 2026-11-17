@@ -6,6 +6,7 @@ import type {
   ChangeRecord,
   CitationRecord,
   ContactRecord,
+  FactParticipant,
   FactRecord,
   FamilyRecord,
   IdentifierRecord,
@@ -25,7 +26,7 @@ import type {
   TodoRecord,
   TreeDocument,
 } from '../model/types';
-import { collectNameIds, emptyAttachments } from '../model/types';
+import { collectNameIds, collectNamePartIds, emptyAttachments } from '../model/types';
 import { AddressRepo } from './addressRepo';
 import { AttachmentRepo } from './attachmentRepo';
 import { DateRepo } from './dateRepo';
@@ -70,6 +71,11 @@ export interface TreeRepository {
   listAllFacts(): FactRecord[];
   /** Facts that happened at the given place. */
   listFactsForPlace(placeId: string): FactRecord[];
+  /** Facts that list the place among their additional places. */
+  listFactsWithAdditionalPlace(placeId: string): FactRecord[];
+  /** Participants that point at a person, with their fact id, for delete/undo snapshots. */
+  listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }>;
+  insertParticipant(factId: string, participant: FactParticipant): void;
   insertPlace(place: PlaceRecord): void;
   updatePlace(place: PlaceRecord): void;
   getPlace(id: string): PlaceRecord | undefined;
@@ -269,7 +275,7 @@ export class SqliteTreeRepository implements TreeRepository {
    */
   updatePerson(person: PersonRecord): void {
     this.transactions.run(() => {
-      const oldNames = collectNameIds(this.names.listNamesForPerson(person.id));
+      const oldNames = this.names.listNamesForPerson(person.id);
       const oldFacts = this.facts.listFactsForPerson(person.id);
       this.persons.updatePerson({
         id: person.id,
@@ -279,9 +285,15 @@ export class SqliteTreeRepository implements TreeRepository {
       });
       this.names.replaceNamesForPerson(person.id, person.names);
       const newNames = new Set(collectNameIds(person.names));
-      for (const nameId of oldNames) {
+      for (const nameId of collectNameIds(oldNames)) {
         if (!newNames.has(nameId)) {
           this.deleteAttachmentsFor('name', nameId);
+        }
+      }
+      const newParts = new Set(collectNamePartIds(person.names));
+      for (const partId of collectNamePartIds(oldNames)) {
+        if (!newParts.has(partId)) {
+          this.deleteAttachmentsFor('name_part', partId);
         }
       }
       const incoming = new Map(person.facts.map((fact) => [fact.id, fact]));
@@ -320,8 +332,12 @@ export class SqliteTreeRepository implements TreeRepository {
    */
   deletePerson(id: string): boolean {
     return this.transactions.run(() => {
-      for (const nameId of collectNameIds(this.names.listNamesForPerson(id))) {
+      const names = this.names.listNamesForPerson(id);
+      for (const nameId of collectNameIds(names)) {
         this.deleteAttachmentsFor('name', nameId);
+      }
+      for (const partId of collectNamePartIds(names)) {
+        this.deleteAttachmentsFor('name_part', partId);
       }
       for (const fact of this.facts.listFactsForPerson(id)) {
         this.deleteAttachmentsFor('fact', fact.id);
@@ -399,6 +415,12 @@ export class SqliteTreeRepository implements TreeRepository {
         this.deleteAttachmentsFor('family_child', link.id);
       }
     }
+    const afterStatuses = new Set((after.marriageStatuses ?? []).map((status) => status.id));
+    for (const status of before.marriageStatuses ?? []) {
+      if (!afterStatuses.has(status.id)) {
+        this.deleteAttachmentsFor('family_marriage_status', status.id);
+      }
+    }
   }
 
   getFamily(id: string): FamilyRecord | undefined {
@@ -414,6 +436,12 @@ export class SqliteTreeRepository implements TreeRepository {
       }
       for (const link of family?.childLinks ?? []) {
         this.deleteAttachmentsFor('family_child', link.id);
+      }
+      for (const status of family?.marriageStatuses ?? []) {
+        this.deleteAttachmentsFor('family_marriage_status', status.id);
+      }
+      for (const association of this.relations.listAssociationsForFamily(id)) {
+        this.deleteAttachmentsFor('association', association.id);
       }
       for (const fact of this.facts.listFactsForFamily(id)) {
         this.deleteAttachmentsFor('fact', fact.id);
@@ -463,12 +491,40 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.facts.listFactsForPlace(placeId);
   }
 
+  listFactsWithAdditionalPlace(placeId: string): FactRecord[] {
+    return this.facts.listFactsWithAdditionalPlace(placeId);
+  }
+
+  listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }> {
+    return this.facts.listParticipantsForPerson(personId);
+  }
+
+  insertParticipant(factId: string, participant: FactParticipant): void {
+    this.facts.insertParticipant(factId, participant);
+  }
+
   insertPlace(place: PlaceRecord): void {
     this.places.insertPlace(place);
   }
 
   updatePlace(place: PlaceRecord): void {
+    const before = this.places.getPlace(place.id);
     this.places.updatePlace(place);
+    if (!before) {
+      return;
+    }
+    const nextNames = new Set(place.names.map((name) => name.id));
+    for (const name of before.names) {
+      if (!nextNames.has(name.id)) {
+        this.deleteAttachmentsFor('place_name', name.id);
+      }
+    }
+    const nextHierarchy = new Set((place.hierarchy ?? []).map((link) => link.id));
+    for (const link of before.hierarchy ?? []) {
+      if (!nextHierarchy.has(link.id)) {
+        this.deleteAttachmentsFor('place_hierarchy', link.id);
+      }
+    }
   }
 
   getPlace(id: string): PlaceRecord | undefined {
@@ -477,7 +533,21 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deletePlace(id: string): boolean {
     return this.transactions.run(() => {
+      const place = this.places.getPlace(id);
       this.deleteAttachmentsFor('place', id);
+      for (const name of place?.names ?? []) {
+        this.deleteAttachmentsFor('place_name', name.id);
+      }
+      for (const link of place?.hierarchy ?? []) {
+        this.deleteAttachmentsFor('place_hierarchy', link.id);
+      }
+      for (const child of this.places.listPlaces()) {
+        for (const link of child.hierarchy ?? []) {
+          if (link.parentId === id) {
+            this.deleteAttachmentsFor('place_hierarchy', link.id);
+          }
+        }
+      }
       return this.places.deletePlace(id);
     });
   }
@@ -743,7 +813,17 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateAddress(address: AddressRecord): void {
+    const before = this.addresses.getAddress(address.id);
     this.addresses.updateAddress(address);
+    if (!before) {
+      return;
+    }
+    const nextLines = new Set(address.lines.map((line) => line.id));
+    for (const line of before.lines) {
+      if (!nextLines.has(line.id)) {
+        this.deleteAttachmentsFor('address_line', line.id);
+      }
+    }
   }
 
   getAddress(id: string): AddressRecord | undefined {
@@ -756,7 +836,11 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteAddress(id: string): boolean {
     return this.transactions.run(() => {
+      const address = this.addresses.getAddress(id);
       this.deleteAttachmentsFor('address', id);
+      for (const line of address?.lines ?? []) {
+        this.deleteAttachmentsFor('address_line', line.id);
+      }
       return this.addresses.deleteAddress(id);
     });
   }

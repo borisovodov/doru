@@ -134,6 +134,54 @@ export class FactRepo {
     return this.hydrate(rows);
   }
 
+  /** Facts that list the place among their additional places. */
+  listFactsWithAdditionalPlace(placeId: string): FactRecord[] {
+    const rows = this.db
+      .prepare(`SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT fact_id FROM fact_place WHERE place_id = ?)`)
+      .all(placeId) as unknown as FactRow[];
+    return this.hydrate(rows);
+  }
+
+  /** Participants that point at a person, with the fact they belong to. */
+  listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }> {
+    const rows = this.db
+      .prepare(
+        `SELECT fact_id, id, person_id, value, role, position FROM fact_participant
+         WHERE person_id = ? ORDER BY fact_id, position`,
+      )
+      .all(personId) as unknown as {
+      fact_id: string;
+      id: string;
+      person_id: string | null;
+      value: string | null;
+      role: string | null;
+      position: number;
+    }[];
+    return rows.map((row) => ({
+      factId: row.fact_id,
+      participant: {
+        id: row.id,
+        personId: row.person_id ?? undefined,
+        value: row.value ?? undefined,
+        role: row.role ?? undefined,
+        position: row.position,
+      },
+    }));
+  }
+
+  insertParticipant(factId: string, participant: FactParticipant): void {
+    this.db
+      .prepare('INSERT INTO fact_participant (id, fact_id, person_id, value, role, position) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(
+        participant.id,
+        factId,
+        participant.personId ?? null,
+        participant.value ?? null,
+        participant.role ?? null,
+        participant.position,
+      );
+  }
+
   /** Deletes an owner's facts together with their date rows (before the owner itself goes). */
   deleteFactsForPerson(personId: string): void {
     this.deleteFactsForOwner('person_id', personId);

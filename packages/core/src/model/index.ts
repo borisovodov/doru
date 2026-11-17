@@ -47,6 +47,7 @@ export {
   IMAGE_EXTENSIONS,
   TARGET_TYPES,
   collectNameIds,
+  collectNamePartIds,
   emptyAttachments,
   emptyDocument,
   factOf,

@@ -1,6 +1,6 @@
-import type { AttachmentsSnapshot, FactRecord, PlaceRecord } from '../model/types';
+import type { AttachmentsSnapshot, FactRecord, FamilyRecord, PlaceRecord, SourceRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { Op } from './op';
+import type { NestedAttachments, Op } from './op';
 
 export function addPlaceOp(place: PlaceRecord): Op {
   return {
@@ -17,7 +17,11 @@ export function addPlaceOp(place: PlaceRecord): Op {
   };
 }
 
-export function updatePlaceOp(before: PlaceRecord, after: PlaceRecord): Op {
+export function updatePlaceOp(
+  before: PlaceRecord,
+  after: PlaceRecord,
+  removedAttachments: NestedAttachments[] = [],
+): Op {
   return {
     id: crypto.randomUUID(),
     kind: 'place.update',
@@ -28,6 +32,9 @@ export function updatePlaceOp(before: PlaceRecord, after: PlaceRecord): Op {
     },
     inverse(ctx) {
       ctx.repo.updatePlace(before);
+      for (const nested of removedAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
+      }
     },
   };
 }
@@ -37,10 +44,21 @@ export function updatePlaceOp(before: PlaceRecord, after: PlaceRecord): Op {
  * place string survives in `place_text`) and the place's attachments;
  * inverse restores everything — one undo step, no losses.
  */
+export interface PlaceConsumers {
+  /** Families whose marriage-status row points at the place (FK SET NULL). */
+  families?: FamilyRecord[];
+  /** Sources whose data-event row points at the place (FK SET NULL). */
+  sources?: SourceRecord[];
+  /** Places whose hierarchy row has the deleted place as its parent (FK CASCADE). */
+  childPlaces?: PlaceRecord[];
+}
+
 export function deletePlaceOp(
   place: PlaceRecord,
   facts: Array<{ before: FactRecord; after: FactRecord }>,
   attachments: AttachmentsSnapshot = emptyAttachments(),
+  consumers: PlaceConsumers = {},
+  nestedAttachments: NestedAttachments[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -55,10 +73,22 @@ export function deletePlaceOp(
     },
     inverse(ctx) {
       ctx.repo.insertPlace(place);
+      for (const child of consumers.childPlaces ?? []) {
+        ctx.repo.updatePlace(child);
+      }
+      for (const family of consumers.families ?? []) {
+        ctx.repo.updateFamily(family);
+      }
+      for (const source of consumers.sources ?? []) {
+        ctx.repo.updateSource(source);
+      }
       for (const link of [...facts].reverse()) {
         ctx.repo.updateFact(link.before);
       }
       ctx.repo.restoreAttachments(attachments);
+      for (const nested of nestedAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
+      }
     },
   };
 }

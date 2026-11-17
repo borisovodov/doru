@@ -125,6 +125,23 @@ export function collectNameIds(names: PersonName[]): string[] {
   return ids;
 }
 
+/** Every name part id, including parts of nested variants. */
+export function collectNamePartIds(names: PersonName[]): string[] {
+  const ids: string[] = [];
+  const visit = (name: PersonName): void => {
+    for (const part of name.parts ?? []) {
+      ids.push(part.id);
+    }
+    for (const variant of name.variants ?? []) {
+      visit(variant);
+    }
+  };
+  for (const name of names) {
+    visit(name);
+  }
+  return ids;
+}
+
 export interface PersonName {
   id: string;
   /** Translation/phonetic/romanized variant of another name; undefined for a top-level name. */
@@ -332,7 +349,12 @@ export interface FamilyRecord {
   marriageBeginStatus?: string | undefined;
   marriageEndStatus?: string | undefined;
   marriageStatuses?: FamilyMarriageStatus[] | undefined;
-  /** Free-text family witnesses (vendor `_WITN`/`_GODT`). */
+  /**
+   * Free-text family witnesses (vendor `_WITN`/`_GODT`). These are names,
+   * not person pointers, and deliberately have no stable row identity in
+   * the model: they are not attachment targets. Use `association` for
+   * witnesses that need notes, sources or tasks.
+   */
   witnesses?: string[] | undefined;
 }
 
@@ -739,6 +761,8 @@ export interface TitleRecord {
 /**
  * The machine-readable list of attachment target types. The polymorphic
  * attachment tables pair `target_type` with the target row's UUID.
+ * Free-text `family_witness` rows are deliberately absent: they are names
+ * without stable identity and are not attachment targets.
  */
 export const TARGET_TYPES = [
   'person',

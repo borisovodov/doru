@@ -150,6 +150,9 @@ CREATE TABLE IF NOT EXISTS family_marriage_status (
   position INTEGER NOT NULL
 );
 
+-- Free-text vendor witnesses (_WITN/_GODT), names rather than person
+-- pointers. Deliberately not an attachment target: evidence belongs on a
+-- standard ASSO association row, not on a text witness.
 CREATE TABLE IF NOT EXISTS family_witness (
   id TEXT PRIMARY KEY,
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,

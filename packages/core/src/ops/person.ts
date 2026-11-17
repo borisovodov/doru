@@ -1,4 +1,10 @@
-import type { AssociationRecord, AttachmentsSnapshot, FamilyRecord, PersonRecord } from '../model/types';
+import type {
+  AssociationRecord,
+  AttachmentsSnapshot,
+  FactParticipant,
+  FamilyRecord,
+  PersonRecord,
+} from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { FamilyLinkAttachments } from './family';
 import type { NestedAttachments, Op } from './op';
@@ -39,6 +45,7 @@ export function deletePersonOp(
   linkAttachments: FamilyLinkAttachments[] = [],
   associations: AssociationRecord[] = [],
   aliases: Array<{ id: string; personId: string; aliasId: string }> = [],
+  participants: Array<{ factId: string; participant: FactParticipant }> = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -58,6 +65,9 @@ export function deletePersonOp(
       }
       for (const alias of aliases) {
         ctx.repo.insertAlias(alias.id, alias.personId, alias.aliasId);
+      }
+      for (const entry of participants) {
+        ctx.repo.insertParticipant(entry.factId, entry.participant);
       }
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.before);

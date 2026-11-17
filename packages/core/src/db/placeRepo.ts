@@ -110,12 +110,22 @@ export class PlaceRepo {
   deletePlace(id: string): boolean {
     // fact.place_id is ON DELETE SET NULL — facts detach automatically and
     // keep their raw place_text. The op that deletes a place restores the
-    // link on undo.
-    const postalDates = this.db
-      .prepare('SELECT date_id FROM place_postal_code WHERE place_id = ? AND date_id IS NOT NULL')
-      .all(id) as unknown as { date_id: string }[];
+    // link on undo. The place's own names/hierarchy rows and the hierarchy
+    // rows where it is the parent cascade; their date rows are owned by the
+    // deleted rows, so collect them first.
+    const dateRows = this.db
+      .prepare(
+        `SELECT date_id FROM place_postal_code WHERE place_id = ? AND date_id IS NOT NULL
+         UNION
+         SELECT date_id FROM place_name WHERE place_id = ? AND date_id IS NOT NULL
+         UNION
+         SELECT date_id FROM place_hierarchy WHERE child_id = ? AND date_id IS NOT NULL
+         UNION
+         SELECT date_id FROM place_hierarchy WHERE parent_id = ? AND date_id IS NOT NULL`,
+      )
+      .all(id, id, id, id) as unknown as { date_id: string }[];
     const removed = this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
-    for (const entry of postalDates) {
+    for (const entry of dateRows) {
       this.dates.delete(entry.date_id);
     }
     return removed;

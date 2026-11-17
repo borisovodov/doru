@@ -9,12 +9,15 @@ import type {
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
+  PersonRecord,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TitleRecord,
+  TodoRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
@@ -497,7 +500,7 @@ export function updateRepositoryOp(before: RepositoryRecord, after: RepositoryRe
   };
 }
 
-/** Source links and call numbers that the repository FK cascade removes. */
+/** Source links, call numbers, todos and titles that the repository FK cascade removes. */
 export interface RepositoryConsumers {
   sourceRepositories?: Array<{
     id: string;
@@ -505,6 +508,8 @@ export interface RepositoryConsumers {
     repositoryId: string;
     callNumbers?: Array<{ id: string; value: string; medium?: string }>;
   }>;
+  todos?: TodoRecord[];
+  titles?: TitleRecord[];
 }
 
 export function deleteRepositoryOp(
@@ -522,6 +527,12 @@ export function deleteRepositoryOp(
         ctx.repo.restoreAttachments(attachments);
         for (const link of consumers.sourceRepositories ?? []) {
           ctx.repo.restoreSourceRepository(link);
+        }
+        for (const todo of consumers.todos ?? []) {
+          ctx.repo.updateTodo({ ...todo, repositoryId: repository.id });
+        }
+        for (const title of consumers.titles ?? []) {
+          ctx.repo.updateTitle({ ...title, repositoryId: repository.id });
         }
       },
     ),
@@ -614,13 +625,22 @@ export function addAddressOp(address: AddressRecord): Op {
   };
 }
 
-export function updateAddressOp(before: AddressRecord, after: AddressRecord): Op {
+export function updateAddressOp(
+  before: AddressRecord,
+  after: AddressRecord,
+  removedAttachments: NestedAttachments[] = [],
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'address.update',
       (ctx) => ctx.repo.updateAddress(after),
-      (ctx) => ctx.repo.updateAddress(before),
+      (ctx) => {
+        ctx.repo.updateAddress(before);
+        for (const nested of removedAttachments) {
+          ctx.repo.restoreAttachments(nested.attachments);
+        }
+      },
     ),
     change: { targetType: 'address', targetId: before.id, kind: 'changed' },
   };
@@ -629,7 +649,13 @@ export function updateAddressOp(before: AddressRecord, after: AddressRecord): Op
 export function deleteAddressOp(
   address: AddressRecord,
   attachments: AttachmentsSnapshot = emptyAttachments(),
-  consumers: { repositories?: RepositoryRecord[]; submitters?: SubmitterRecord[]; facts?: FactRecord[] } = {},
+  consumers: {
+    repositories?: RepositoryRecord[];
+    submitters?: SubmitterRecord[];
+    facts?: FactRecord[];
+    persons?: PersonRecord[];
+  } = {},
+  nestedAttachments: NestedAttachments[] = [],
 ): Op {
   return {
     ...op(
@@ -639,6 +665,9 @@ export function deleteAddressOp(
       (ctx) => {
         ctx.repo.insertAddress(address);
         ctx.repo.restoreAttachments(attachments);
+        for (const nested of nestedAttachments) {
+          ctx.repo.restoreAttachments(nested.attachments);
+        }
         for (const repository of consumers.repositories ?? []) {
           ctx.repo.updateRepository({ ...repository, addressId: address.id });
         }
@@ -647,6 +676,9 @@ export function deleteAddressOp(
         }
         for (const fact of consumers.facts ?? []) {
           ctx.repo.updateFact({ ...fact, addressId: address.id });
+        }
+        for (const person of consumers.persons ?? []) {
+          ctx.repo.updatePerson({ ...person, addressId: address.id });
         }
       },
     ),

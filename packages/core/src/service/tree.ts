@@ -23,7 +23,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
-import { collectNameIds, isVisibleMedia } from '../model/types';
+import { collectNameIds, collectNamePartIds, isVisibleMedia } from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -272,6 +272,16 @@ export class TreeService {
         });
       }
     }
+    const nextParts = new Set(collectNamePartIds(after.names));
+    for (const partId of collectNamePartIds(before.names)) {
+      if (!nextParts.has(partId)) {
+        removed.push({
+          targetType: 'name_part',
+          targetId: partId,
+          attachments: this.repo.listAttachmentsFor('name_part', partId),
+        });
+      }
+    }
     const nextFacts = new Set(after.facts.map((fact) => fact.id));
     for (const fact of before.facts) {
       if (!nextFacts.has(fact.id)) {
@@ -310,6 +320,13 @@ export class TreeService {
         attachments: this.repo.listAttachmentsFor('name', nameId),
       });
     }
+    for (const partId of collectNamePartIds(person.names)) {
+      nested.push({
+        targetType: 'name_part',
+        targetId: partId,
+        attachments: this.repo.listAttachmentsFor('name_part', partId),
+      });
+    }
     for (const fact of person.facts) {
       nested.push({
         targetType: 'fact',
@@ -326,8 +343,14 @@ export class TreeService {
       });
     }
     const aliases = this.repo.listAliasRowsFor(person.id);
+    const ownFactIds = new Set(this.repo.listFactsForPerson(person.id).map((fact) => fact.id));
+    const participants = this.repo
+      .listParticipantsForPerson(person.id)
+      .filter((entry) => !ownFactIds.has(entry.factId));
     const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-    return this.apply(deletePersonOp(person, links, attachments, nested, linkAttachments, associations, aliases));
+    return this.apply(
+      deletePersonOp(person, links, attachments, nested, linkAttachments, associations, aliases, participants),
+    );
   }
 
   /**
@@ -433,13 +456,28 @@ export class TreeService {
         attachments: this.repo.listAttachmentsFor('family_child', link.id),
       });
     }
+    for (const status of family.marriageStatuses ?? []) {
+      linkAttachments.push({
+        targetType: 'family_marriage_status',
+        targetId: status.id,
+        attachments: this.repo.listAttachmentsFor('family_marriage_status', status.id),
+      });
+    }
     const facts = this.repo.listFactsForFamily(family.id);
-    const nested: NestedAttachments[] = facts.map((fact) => ({
-      targetType: 'fact',
-      targetId: fact.id,
-      attachments: this.repo.listAttachmentsFor('fact', fact.id),
-    }));
-    return this.apply(deleteFamilyOp(family, attachments, linkAttachments, nested, facts));
+    const associations = this.repo.listAssociationsForFamily(family.id);
+    const nested: NestedAttachments[] = [
+      ...facts.map((fact) => ({
+        targetType: 'fact',
+        targetId: fact.id,
+        attachments: this.repo.listAttachmentsFor('fact', fact.id),
+      })),
+      ...associations.map((association) => ({
+        targetType: 'association',
+        targetId: association.id,
+        attachments: this.repo.listAttachmentsFor('association', association.id),
+      })),
+    ];
+    return this.apply(deleteFamilyOp(family, attachments, linkAttachments, nested, facts, associations));
   }
 
   // --- places ---------------------------------------------------------------
@@ -462,19 +500,66 @@ export class TreeService {
   }
 
   updatePlace(before: PlaceRecord, after: PlaceRecord): UndoRedoState {
-    return this.apply(updatePlaceOp(before, after));
+    const removed = this.removedPlaceChildAttachments(before, after);
+    return this.apply(updatePlaceOp(before, after, removed));
   }
 
   /**
    * Deletes the place, detaching the facts that reference it (their raw
-   * place string survives in `place_text`) — one undo step restores both.
+   * place string survives in `place_text`) and restoring every affected
+   * link, attachment and date row on undo.
    */
   deletePlace(place: PlaceRecord): UndoRedoState {
-    const facts = this.repo
-      .listFactsForPlace(place.id)
-      .map((fact) => ({ before: fact, after: { ...fact, placeId: undefined } }));
+    const byId = new Map<string, FactRecord>();
+    for (const fact of [
+      ...this.repo.listFactsForPlace(place.id),
+      ...this.repo.listFactsWithAdditionalPlace(place.id),
+    ]) {
+      byId.set(fact.id, fact);
+    }
+    const facts = [...byId.values()].map((fact) => {
+      const after: FactRecord = { ...fact };
+      if (fact.placeId === place.id) {
+        delete after.placeId;
+      }
+      const additional = fact.additionalPlaceIds?.filter((id) => id !== place.id) ?? [];
+      if (additional.length > 0) {
+        after.additionalPlaceIds = additional;
+      } else {
+        delete after.additionalPlaceIds;
+      }
+      return { before: fact, after };
+    });
+    const families = this.repo
+      .listFamilies()
+      .filter((family) => (family.marriageStatuses ?? []).some((status) => status.placeId === place.id));
+    const sources = this.repo
+      .listSources()
+      .filter((source) => (source.dataEvents ?? []).some((event) => event.placeId === place.id));
+    const childPlaces = this.repo
+      .listPlaces()
+      .filter((child) => (child.hierarchy ?? []).some((link) => link.parentId === place.id));
+    const nested: NestedAttachments[] = [];
+    for (const name of place.names) {
+      nested.push({
+        targetType: 'place_name',
+        targetId: name.id,
+        attachments: this.repo.listAttachmentsFor('place_name', name.id),
+      });
+    }
+    const hierarchyLinks = [
+      ...(place.hierarchy ?? []),
+      ...childPlaces.flatMap((child) => (child.hierarchy ?? []).filter((link) => link.parentId === place.id)),
+    ];
+    for (const link of hierarchyLinks) {
+      nested.push({
+        targetType: 'place_hierarchy',
+        targetId: link.id,
+        attachments: this.repo.listAttachmentsFor('place_hierarchy', link.id),
+      });
+    }
     const attachments = this.repo.listAttachmentsFor('place', place.id);
-    return this.apply(deletePlaceOp(place, facts, attachments));
+    return this.apply(deletePlaceOp(place, facts, attachments, { families, sources, childPlaces }, nested));
   }
 
   // --- sources and citations ------------------------------------------------
@@ -737,7 +822,11 @@ export class TreeService {
 
   deleteRepository(repository: RepositoryRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('repository', repository.id);
-    const consumers = { sourceRepositories: this.repo.listSourceRepositoriesFor(repository.id) };
+    const consumers = {
+      sourceRepositories: this.repo.listSourceRepositoriesFor(repository.id),
+      todos: this.repo.listTodos().filter((todo) => todo.repositoryId === repository.id),
+      titles: this.repo.listTitles().filter((title) => title.repositoryId === repository.id),
+    };
     return this.apply(deleteRepositoryOp(repository, attachments, consumers));
   }
 
@@ -784,17 +873,24 @@ export class TreeService {
   }
 
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
-    return this.apply(updateAddressOp(before, after));
+    const removed = this.removedAddressLineAttachments(before, after);
+    return this.apply(updateAddressOp(before, after, removed));
   }
 
   deleteAddress(address: AddressRecord): UndoRedoState {
     const attachments = this.repo.listAttachmentsFor('address', address.id);
+    const nested: NestedAttachments[] = address.lines.map((line) => ({
+      targetType: 'address_line',
+      targetId: line.id,
+      attachments: this.repo.listAttachmentsFor('address_line', line.id),
+    }));
     const consumers = {
       repositories: this.repo.listRepositories().filter((entry) => entry.addressId === address.id),
       submitters: this.repo.listSubmitters().filter((entry) => entry.addressId === address.id),
       facts: this.repo.listAllFacts().filter((entry) => entry.addressId === address.id),
+      persons: this.repo.listAllPersons().filter((entry) => entry.addressId === address.id),
     };
-    return this.apply(deleteAddressOp(address, attachments, consumers));
+    return this.apply(deleteAddressOp(address, attachments, consumers, nested));
   }
 
   addAssociation(association: AssociationRecord): UndoRedoState {
@@ -914,7 +1010,49 @@ export class TreeService {
     return false;
   }
 
-  /** Attachments of the partner/child link rows that an update removes. */
+  /** Attachments of address-line rows that an update removes. */
+  private removedAddressLineAttachments(before: AddressRecord, after: AddressRecord): NestedAttachments[] {
+    const removed: NestedAttachments[] = [];
+    const nextLines = new Set(after.lines.map((line) => line.id));
+    for (const line of before.lines) {
+      if (!nextLines.has(line.id)) {
+        removed.push({
+          targetType: 'address_line',
+          targetId: line.id,
+          attachments: this.repo.listAttachmentsFor('address_line', line.id),
+        });
+      }
+    }
+    return removed;
+  }
+
+  /** Attachments of place-name and place-hierarchy rows that an update removes. */
+  private removedPlaceChildAttachments(before: PlaceRecord, after: PlaceRecord): NestedAttachments[] {
+    const removed: NestedAttachments[] = [];
+    const nextNames = new Set(after.names.map((name) => name.id));
+    for (const name of before.names) {
+      if (!nextNames.has(name.id)) {
+        removed.push({
+          targetType: 'place_name',
+          targetId: name.id,
+          attachments: this.repo.listAttachmentsFor('place_name', name.id),
+        });
+      }
+    }
+    const nextHierarchy = new Set((after.hierarchy ?? []).map((link) => link.id));
+    for (const link of before.hierarchy ?? []) {
+      if (!nextHierarchy.has(link.id)) {
+        removed.push({
+          targetType: 'place_hierarchy',
+          targetId: link.id,
+          attachments: this.repo.listAttachmentsFor('place_hierarchy', link.id),
+        });
+      }
+    }
+    return removed;
+  }
+
+  /** Attachments of the partner/child/status rows that a family update removes. */
   private removedLinkAttachments(before: FamilyRecord, after: FamilyRecord): FamilyLinkAttachments[] {
     const removed: FamilyLinkAttachments[] = [];
     const afterPartners = new Set((after.partnerLinks ?? []).map((link) => link.id));
@@ -934,6 +1072,16 @@ export class TreeService {
           targetType: 'family_child',
           targetId: link.id,
           attachments: this.repo.listAttachmentsFor('family_child', link.id),
+        });
+      }
+    }
+    const afterStatuses = new Set((after.marriageStatuses ?? []).map((status) => status.id));
+    for (const status of before.marriageStatuses ?? []) {
+      if (!afterStatuses.has(status.id)) {
+        removed.push({
+          targetType: 'family_marriage_status',
+          targetId: status.id,
+          attachments: this.repo.listAttachmentsFor('family_marriage_status', status.id),
         });
       }
     }

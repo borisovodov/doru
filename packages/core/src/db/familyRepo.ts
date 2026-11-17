@@ -92,12 +92,22 @@ export class FamilyRepo {
 
   deleteFamily(id: string): boolean {
     return this.transactions.run(() => {
+      const dateIds = new Set<string>();
       for (const row of this.listPartnerRows(id)) {
         if (row.date_id !== null) {
-          this.dates.delete(row.date_id);
+          dateIds.add(row.date_id);
         }
       }
-      return this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0;
+      for (const status of this.listMarriageStatuses(id)) {
+        if (status.date_id !== null) {
+          dateIds.add(status.date_id);
+        }
+      }
+      const removed = this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0;
+      for (const dateId of dateIds) {
+        this.dates.delete(dateId);
+      }
+      return removed;
     });
   }
 

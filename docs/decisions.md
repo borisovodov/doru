@@ -61,6 +61,16 @@ feature needs the wire metadata. The same applies to the LDS, research,
 census, event-definition, duplicate-candidate, published-site, group,
 tree-tag and GenoPro record families listed in `import/gedcom.ts`.
 
+## Free-text family witnesses
+
+`family_witness` preserves the vendor `_WITN` and `_GODT` family witnesses
+verbatim as text. They are names, not person pointers, and are deliberately
+not an attachment target: notes, sources, tasks and media belong on a
+standard GEDCOM `ASSO` association row (`association`), which points at a
+person and carries a role. Giving the free-text rows stable ids and
+attachment panels would create `.doru`-only evidence that cannot survive a
+GEDCOM round-trip.
+
 ## GEDCOM media
 
 Media metadata and links are always imported. GEDZIP bytes are copied into

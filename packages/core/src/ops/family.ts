@@ -1,4 +1,4 @@
-import type { AttachmentsSnapshot, FactRecord, FamilyRecord } from '../model/types';
+import type { AssociationRecord, AttachmentsSnapshot, FactRecord, FamilyRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
 
@@ -44,7 +44,7 @@ export function updateFamilyOp(
  * captured before the family (and its links) is deleted.
  */
 export interface FamilyLinkAttachments {
-  targetType: 'family_partner' | 'family_child';
+  targetType: 'family_partner' | 'family_child' | 'family_marriage_status';
   targetId: string;
   attachments: AttachmentsSnapshot;
 }
@@ -55,6 +55,7 @@ export function deleteFamilyOp(
   linkAttachments: FamilyLinkAttachments[] = [],
   nestedAttachments: NestedAttachments[] = [],
   facts: FactRecord[] = [],
+  associations: AssociationRecord[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -68,6 +69,9 @@ export function deleteFamilyOp(
       ctx.repo.insertFamily(family);
       for (const fact of facts) {
         ctx.repo.insertFact(fact);
+      }
+      for (const association of associations) {
+        ctx.repo.insertAssociation(association);
       }
       ctx.repo.restoreAttachments(attachments);
       for (const link of linkAttachments) {
