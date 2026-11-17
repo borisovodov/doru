@@ -1,5 +1,5 @@
 import { IconButton } from '@doru/ui';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
@@ -180,7 +180,20 @@ function SubmitterTabBody({
     onClose();
   };
 
-  const referencedBy = targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : [];
+  const referencedBy = useMemo(
+    () => (targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : []),
+    [recordSubmitters, targetId],
+  );
+  const targetLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const link of referencedBy) {
+      const key = `${link.targetType}:${link.targetId}`;
+      if (!labels.has(key)) {
+        labels.set(key, taskTargetLabel(link.targetType, link.targetId, targetData));
+      }
+    }
+    return labels;
+  }, [referencedBy, targetData]);
   const openableTarget = (targetType: string): boolean =>
     ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
       targetType,
@@ -253,7 +266,9 @@ function SubmitterTabBody({
                 {referencedBy.map((link) => (
                   <li key={link.id}>
                     <EntityCard
-                      title={taskTargetLabel(link.targetType, link.targetId, targetData)}
+                      title={
+                        targetLabels.get(`${link.targetType}:${link.targetId}`) ?? `${link.targetType}:${link.targetId}`
+                      }
                       subtitle={
                         (link.kind ?? 'contributor') === 'contributor'
                           ? null

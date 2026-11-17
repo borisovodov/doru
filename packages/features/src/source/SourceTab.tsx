@@ -195,7 +195,7 @@ function SourceTabBody({
   }, [api, record]);
 
   const save = async () => {
-    const target = baselineRef.current;
+    const target = record ?? lastSaved;
     const next = sourceDraftToRecord(draftRef.current, baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addSource(next);

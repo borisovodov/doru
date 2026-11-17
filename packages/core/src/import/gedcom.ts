@@ -108,6 +108,8 @@ interface ImportContext {
   sourceIds: Map<string, string>;
   /** True once every SOUR xref has been registered. */
   sourceIdsReady: boolean;
+  /** Media-record citations held until the SOUR pass. */
+  pendingMediaCitations: Array<{ mediaId: string; citations: SourceCitation[] }>;
   /** Media-link citations found before the SOUR pass. */
   pendingMediaLinkCitations: Array<{ linkId: string; citations: SourceCitation[] }>;
   repositoryIds: Map<string, string>;
@@ -174,6 +176,7 @@ export function importGedcomDataset(
     familyIds: new Map(),
     sourceIds: new Map(),
     sourceIdsReady: false,
+    pendingMediaCitations: [],
     pendingMediaLinkCitations: [],
     repositoryIds: new Map(),
     submitterIds: new Map(),
@@ -206,12 +209,9 @@ export function importGedcomDataset(
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
     ctx.sourceIdsReady = true;
+    flushMediaCitations(ctx);
     flushMediaLinkCitations(ctx);
     linkMediaPlaces(ctx);
-    // OBJE citations reference SOUR records: import them after the sources
-    // exist, while still before persons/families (whose media links need
-    // the media ids registered above).
-    importMediaCitations(dataset.records, ctx);
     for (const record of dataset.records) {
       if (isIndividualRecord(record)) {
         importPerson(record, ctx);
@@ -1916,6 +1916,9 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.place !== undefined) {
       ctx.mediaPlaceText.set(id, record.place);
     }
+    if (record.citations !== undefined && record.citations.length > 0) {
+      ctx.pendingMediaCitations.push({ mediaId: id, citations: record.citations });
+    }
     if (record.xref !== undefined) {
       ctx.mediaIds.set(record.xref, id);
     }
@@ -1931,16 +1934,11 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
 }
 
 /** Imports OBJE record citations once the SOUR records have ids. */
-function importMediaCitations(records: GedcomRecord[], ctx: ImportContext): void {
-  for (const record of records) {
-    if (record.tag !== 'OBJE' || record.xref === undefined) {
-      continue;
-    }
-    const id = ctx.mediaIds.get(record.xref);
-    if (id !== undefined) {
-      importCitations(record.citations, 'media', id, ctx);
-    }
+function flushMediaCitations(ctx: ImportContext): void {
+  for (const pending of ctx.pendingMediaCitations) {
+    importCitations(pending.citations, 'media', pending.mediaId, ctx);
   }
+  ctx.pendingMediaCitations = [];
 }
 
 /** Resolves historical media places after the place records are registered. */

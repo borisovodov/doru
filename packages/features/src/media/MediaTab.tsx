@@ -173,7 +173,7 @@ function MediaTabBody({
     await api.updateMedia(record, after);
   };
 
-  const first = record.files?.[0];
+  const first = record.files?.find((file) => file.absolutePath !== '');
   return (
     <EntityTab>
       <EntityViewCard
@@ -492,11 +492,16 @@ function factsLabel(facts: MediaFileFacts | undefined): string {
 }
 
 function formatBytes(size: number): string {
+  const integer = new Intl.NumberFormat(nls.locale).format(size);
   if (size < 1024) {
-    return `${size} B`;
+    return nls.t('features.tree.media.bytes.b', integer);
   }
+  const value = new Intl.NumberFormat(nls.locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
   if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
+    return nls.t('features.tree.media.bytes.kb', value.format(size / 1024));
   }
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  return nls.t('features.tree.media.bytes.mb', value.format(size / (1024 * 1024)));
 }

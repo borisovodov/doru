@@ -156,7 +156,7 @@ function PlaceTabBody({
   }, [record, isNew]);
 
   const save = async () => {
-    const target = baselineRef.current;
+    const target = record ?? lastSaved;
     const next = placeDraftToRecord(draftRef.current, baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);

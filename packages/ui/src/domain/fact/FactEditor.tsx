@@ -16,6 +16,7 @@ import { nls } from '../../nls';
 import { placeName } from '@doru/core/model';
 import { DateEditor } from '../date/DateEditor';
 import { Checkbox } from '../../atoms/form/Checkbox';
+import { Field } from '../../atoms/field/Field';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
@@ -239,8 +240,7 @@ export function FactEditor({
 
       {['ADOP', 'BIRT', 'CHR'].includes(draft.tag) && (
         <div className="fact-editor-row">
-          <label className="fact-field">
-            {nls.t('features.tree.fact.relatedFamily')}
+          <Field label={nls.t('features.tree.fact.relatedFamily')}>
             <Select value={draft.relatedFamilyId} onChange={(event) => set({ relatedFamilyId: event.target.value })}>
               <option value="">{nls.t('features.tasks.none')}</option>
               {families.map((family) => (
@@ -249,22 +249,20 @@ export function FactEditor({
                 </option>
               ))}
             </Select>
-          </label>
+          </Field>
           {draft.tag === 'ADOP' && (
             <>
-              <label className="fact-field">
-                {nls.t('features.tree.fact.adoptedBy')}
+              <Field label={nls.t('features.tree.fact.adoptedBy')}>
                 <Select value={draft.adoptedBy} onChange={(event) => set({ adoptedBy: event.target.value })}>
                   <option value="">{nls.t('features.tasks.none')}</option>
                   <option value="HUSB">{nls.t('features.tree.fact.adoptedBy.husb')}</option>
                   <option value="WIFE">{nls.t('features.tree.fact.adoptedBy.wife')}</option>
                   <option value="BOTH">{nls.t('features.tree.fact.adoptedBy.both')}</option>
                 </Select>
-              </label>
-              <label className="fact-field">
-                {nls.t('features.tree.fact.adoptionPhrase')}
+              </Field>
+              <Field label={nls.t('features.tree.fact.adoptionPhrase')}>
                 <Input value={draft.adoptionPhrase} onChange={(event) => set({ adoptionPhrase: event.target.value })} />
-              </label>
+              </Field>
             </>
           )}
         </div>

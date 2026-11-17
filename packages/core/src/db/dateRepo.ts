@@ -75,12 +75,17 @@ export class DateRepo {
     if (ids.length === 0) {
       return byId;
     }
-    const placeholders = ids.map(() => '?').join(', ');
-    const rows = this.db
-      .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE id IN (${placeholders})`)
-      .all(...ids) as unknown as DateRow[];
-    for (const row of rows) {
-      byId.set(row.id, rowToDate(row));
+    // Stay below SQLite's bound-parameter limit for large listings.
+    const chunkSize = 500;
+    for (let start = 0; start < ids.length; start += chunkSize) {
+      const chunk = ids.slice(start, start + chunkSize);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = this.db
+        .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE id IN (${placeholders})`)
+        .all(...chunk) as unknown as DateRow[];
+      for (const row of rows) {
+        byId.set(row.id, rowToDate(row));
+      }
     }
     return byId;
   }

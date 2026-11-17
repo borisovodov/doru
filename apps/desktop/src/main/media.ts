@@ -71,7 +71,7 @@ async function withPaths(projectPath: string, media: MediaRecord): Promise<Media
   }
   return {
     ...media,
-    absolutePath: files[0]?.absolutePath ?? '',
+    absolutePath: files.find((file) => file.absolutePath !== '')?.absolutePath ?? '',
     files: files.length > 0 ? files : undefined,
   };
 }
@@ -212,7 +212,8 @@ export async function removeFileFromMedia(
     return undefined;
   }
   runtime.service.updateMedia(before, { ...before, files });
-  await removeMediaFileCopies(projectPath, file);
+  const referenced = mediaReferencePaths(runtime.service.listAllMedia());
+  await removeMediaFileCopies(projectPath, file, referenced);
   return withPaths(projectPath, runtime.service.getMedia(media.id) ?? { ...before, files });
 }
 
@@ -225,18 +226,40 @@ export async function removeFileFromMedia(
  * treated as derived assets, not undoable state.
  */
 export async function removeMediaFiles(projectPath: string, media: MediaRecord): Promise<void> {
+  const { runtime } = await ensureRuntime(projectPath);
+  const referenced = mediaReferencePaths(runtime.service.listAllMedia());
   for (const file of media.files ?? []) {
-    await removeMediaFileCopies(projectPath, file);
+    await removeMediaFileCopies(projectPath, file, referenced);
   }
-  if (media.path !== undefined && (media.files ?? []).length === 0) {
+  if (media.path !== undefined && (media.files ?? []).length === 0 && !referenced.has(media.path)) {
     await removeMediaFile(projectPath, media.path);
   }
 }
 
-async function removeMediaFileCopies(projectPath: string, file: MediaFile): Promise<void> {
-  await removeMediaFile(projectPath, file.path);
-  for (const translation of file.translations ?? []) {
-    await removeMediaFile(projectPath, translation.path);
+/** Every path still referenced by a stored media file or translation. */
+function mediaReferencePaths(media: MediaRecord[]): Set<string> {
+  const paths = new Set<string>();
+  for (const record of media) {
+    for (const file of record.files ?? []) {
+      paths.add(file.path);
+      for (const translation of file.translations ?? []) {
+        paths.add(translation.path);
+      }
+    }
+  }
+  return paths;
+}
+
+async function removeMediaFileCopies(
+  projectPath: string,
+  file: MediaFile,
+  referenced: ReadonlySet<string>,
+): Promise<void> {
+  const paths = new Set([file.path, ...(file.translations ?? []).map((translation) => translation.path)]);
+  for (const path of paths) {
+    if (!referenced.has(path)) {
+      await removeMediaFile(projectPath, path);
+    }
   }
 }
 

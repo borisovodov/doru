@@ -1167,7 +1167,9 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const citation of snapshot.citations) {
-      this.sources.insertCitation(citation);
+      if (this.sources.getCitation(citation.id) === undefined) {
+        this.sources.insertCitation(citation);
+      }
     }
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
@@ -1194,7 +1196,13 @@ export class SqliteTreeRepository implements TreeRepository {
       this.restoreAttachments(nested.attachments);
     }
     for (const identifier of snapshot.identifiers) {
-      this.attachments.insertIdentifier(identifier);
+      if (
+        !this.attachments
+          .listIdentifiersFor(identifier.targetType, identifier.targetId)
+          .some((existing) => existing.id === identifier.id)
+      ) {
+        this.attachments.insertIdentifier(identifier);
+      }
     }
     for (const contact of snapshot.contacts) {
       this.attachments.insertContact(contact);

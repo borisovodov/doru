@@ -45,6 +45,33 @@ const GEDCOM = [
 ].join('\n');
 
 describe('media historical metadata', () => {
+  it('keeps citations on anonymous media records', () => {
+    const fixture = makeRepo();
+    try {
+      const parsed = parseDataset(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 OBJE',
+          '1 FILE photos/a.jpg',
+          '1 SOUR @S1@',
+          '0 @S1@ SOUR',
+          '1 TITL Source',
+          '0 TRLR',
+        ].join('\n'),
+      );
+      importGedcomDataset(parsed, fixture.repo);
+      const media = fixture.repo.listAllMedia()[0]!;
+      const source = fixture.repo.listSources()[0]!;
+      expect(fixture.repo.listCitationRecordsFor('media', media.id).map((citation) => citation.sourceId)).toEqual([
+        source.id,
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps place-media citations that point at a later source', () => {
     const fixture = makeRepo();
     try {

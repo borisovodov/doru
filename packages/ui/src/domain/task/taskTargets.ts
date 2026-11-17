@@ -119,17 +119,26 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
           label: `${mediaLabel(media)} · ${file.title ?? file.path}`,
         })),
       );
-    case 'media_link':
+    case 'media_link': {
+      const labels = new Map<string, Map<string, string>>();
+      const labelFor = (targetType: string, targetId: string): string => {
+        if (targetType === 'media_link') {
+          return `media_link:${targetId}`;
+        }
+        let byId = labels.get(targetType);
+        if (byId === undefined) {
+          byId = new Map(taskTargetOptions(targetType, data).map((option) => [option.id, option.label]));
+          labels.set(targetType, byId);
+        }
+        return byId.get(targetId) ?? `${targetType}:${targetId}`;
+      };
       return data.media.flatMap((media) =>
         (media.links ?? []).map((link) => ({
           id: link.id,
-          label: `${mediaLabel(media)} · ${
-            link.targetType === 'media_link'
-              ? `media_link:${link.targetId}`
-              : taskTargetLabel(link.targetType, link.targetId, data)
-          }`,
+          label: `${mediaLabel(media)} · ${labelFor(link.targetType, link.targetId)}`,
         })),
       );
+    }
     case 'place':
       return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
     case 'place_name':
