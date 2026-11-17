@@ -210,6 +210,7 @@ describe('personToDraft', () => {
     const source = person({ id: 'P1', sex: 'X', names: [], facts: [] });
     const draft = personToDraft(source);
     expect(draft.sex).toBe('X');
+    expect(draftToRecord({ ...draft, deathStatus: 'dead' }).deathStatus).toBe('dead');
     expect(draftToRecord(draft).sex).toBe('X');
   });
 });

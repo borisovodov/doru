@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { SubmitterRecord } from '../model/types';
+import type { RecordSubmitterLink, SubmitterRecord } from '../model/types';
 
 /** Submitters (GEDCOM SUBM) and their record links (SUBM on records). */
 export class SubmitterRepo {
@@ -66,61 +66,72 @@ export class SubmitterRepo {
     return this.db.prepare('DELETE FROM submitter WHERE id = ?').run(id).changes > 0;
   }
 
-  insertRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): void {
+  insertRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind: RecordSubmitterLink['kind'] = 'contributor',
+  ): void {
     this.db
-      .prepare('INSERT INTO record_submitter (id, submitter_id, target_type, target_id) VALUES (?, ?, ?, ?)')
-      .run(id, submitterId, targetType, targetId);
+      .prepare('INSERT INTO record_submitter (id, submitter_id, target_type, target_id, kind) VALUES (?, ?, ?, ?, ?)')
+      .run(id, submitterId, targetType, targetId, kind);
   }
 
+  /** Only ordinary SUBM contributions; ANCI/DESI interests are separate. */
   listSubmittersFor(targetType: string, targetId: string): string[] {
     const rows = this.db
-      .prepare('SELECT submitter_id FROM record_submitter WHERE target_type = ? AND target_id = ? ORDER BY id')
+      .prepare(
+        `SELECT submitter_id FROM record_submitter
+         WHERE target_type = ? AND target_id = ? AND kind = 'contributor' ORDER BY id`,
+      )
       .all(targetType, targetId) as unknown as { submitter_id: string }[];
     return rows.map((row) => row.submitter_id);
   }
 
   /** The full record_submitter rows of a target, for op snapshots. */
-  listRecordSubmittersFor(
-    targetType: string,
-    targetId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
     const rows = this.db
       .prepare(
-        'SELECT id, submitter_id, target_type, target_id FROM record_submitter WHERE target_type = ? AND target_id = ? ORDER BY id',
+        `SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter
+         WHERE target_type = ? AND target_id = ? ORDER BY id`,
       )
       .all(targetType, targetId) as unknown as {
       id: string;
       submitter_id: string;
       target_type: string;
       target_id: string;
+      kind: string;
     }[];
     return rows.map((row) => ({
       id: row.id,
       submitterId: row.submitter_id,
       targetType: row.target_type,
       targetId: row.target_id,
+      kind: row.kind as RecordSubmitterLink['kind'],
     }));
   }
 
   /** Every record this submitter contributes to, for the delete/undo snapshot. */
-  listRecordSubmittersForSubmitter(
-    submitterId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+  listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[] {
     const rows = this.db
       .prepare(
-        'SELECT id, submitter_id, target_type, target_id FROM record_submitter WHERE submitter_id = ? ORDER BY id',
+        `SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter
+         WHERE submitter_id = ? ORDER BY id`,
       )
       .all(submitterId) as unknown as {
       id: string;
       submitter_id: string;
       target_type: string;
       target_id: string;
+      kind: string;
     }[];
     return rows.map((row) => ({
       id: row.id,
       submitterId: row.submitter_id,
       targetType: row.target_type,
       targetId: row.target_id,
+      kind: row.kind as RecordSubmitterLink['kind'],
     }));
   }
 

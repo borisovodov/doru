@@ -79,6 +79,7 @@ export function PersonEditor({
   const [aliases, setAliases] = useState<Array<{ id: string; aliasId: string }>>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
   const [citations, setCitations] = useState<CitationRecord[]>([]);
+  const [sexCitations, setSexCitations] = useState<CitationRecord[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [media, setMedia] = useState<MediaWithPath[]>([]);
   const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
@@ -91,7 +92,13 @@ export function PersonEditor({
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [contributors, setContributors] = useState<
-    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
+    Array<{
+      id: string;
+      submitterId: string;
+      targetType: string;
+      targetId: string;
+      kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+    }>
   >([]);
 
   const refreshFamilies = async () => {
@@ -135,6 +142,7 @@ export function PersonEditor({
 
   const refreshCitations = async () => {
     setCitations(await api.getCitations('person', draft.id));
+    setSexCitations(await api.getCitations('person_sex', draft.id));
     setSources(await api.getSources());
   };
 
@@ -160,14 +168,17 @@ export function PersonEditor({
     void api.getFamilies().then((loaded) => {
       if (!cancelled) setFamilies(loaded);
     });
-    void Promise.all([api.getCitations('person', draft.id), api.getSources()]).then(
-      ([loadedCitations, loadedSources]) => {
-        if (!cancelled) {
-          setCitations(loadedCitations);
-          setSources(loadedSources);
-        }
-      },
-    );
+    void Promise.all([
+      api.getCitations('person', draft.id),
+      api.getCitations('person_sex', draft.id),
+      api.getSources(),
+    ]).then(([loadedCitations, loadedSexCitations, loadedSources]) => {
+      if (!cancelled) {
+        setCitations(loadedCitations);
+        setSexCitations(loadedSexCitations);
+        setSources(loadedSources);
+      }
+    });
     void api.getAssociations(draft.id).then((loaded) => {
       if (!cancelled) setAssociations(loaded);
     });
@@ -336,6 +347,18 @@ export function PersonEditor({
             <option value="X">{nls.t('features.tree.sex.X')}</option>
           </Select>
         </Field>
+        <Field label={nls.t('features.tree.field.deathStatus')}>
+          <Select
+            value={draft.deathStatus ?? ''}
+            onChange={(event) =>
+              set({ deathStatus: (event.target.value || undefined) as 'alive' | 'dead' | undefined })
+            }
+          >
+            <option value="">{nls.t('features.tree.deathStatus.unknown')}</option>
+            <option value="alive">{nls.t('features.tree.deathStatus.alive')}</option>
+            <option value="dead">{nls.t('features.tree.deathStatus.dead')}</option>
+          </Select>
+        </Field>
         <Field label={nls.t('features.tree.address.title')}>
           <Select
             value={draft.addressId ?? ''}
@@ -363,6 +386,26 @@ export function PersonEditor({
 
       {!draft.isNew && (
         <>
+          <SourcesSection
+            sectionTitle={nls.t('features.tree.person.sexSources')}
+            targetType="person_sex"
+            targetId={draft.id}
+            sources={sources}
+            citations={sexCitations}
+            refresh={refreshCitations}
+            onAddSource={async (source, _targetType, targetId) => {
+              await api.addSource(source, 'person_sex', targetId);
+            }}
+            onAttachSource={async (sourceId, _targetType, targetId) => {
+              await api.attachSource(sourceId, 'person_sex', targetId);
+            }}
+            onDetachCitation={api.detachCitation}
+            onUpdateCitation={api.updateCitation}
+            onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+            renderCitationAttachments={(citation) => (
+              <CitationAttachments citation={citation} api={api} sources={sources} />
+            )}
+          />
           <FamilySection
             personId={draft.id}
             persons={persons}
@@ -612,12 +655,12 @@ export function PersonEditor({
             targetId={draft.id}
             submitters={submitters}
             links={contributors}
-            onAdd={async (submitterId, targetType, targetId) => {
-              await api.addRecordSubmitter(submitterId, targetType, targetId);
+            onAdd={async (submitterId, targetType, targetId, kind) => {
+              await api.addRecordSubmitter(submitterId, targetType, targetId, kind);
               await refreshContributors();
             }}
-            onDelete={async (id, submitterId, targetType, targetId) => {
-              await api.deleteRecordSubmitter(id, submitterId, targetType, targetId);
+            onDelete={async (id, submitterId, targetType, targetId, kind) => {
+              await api.deleteRecordSubmitter(id, submitterId, targetType, targetId, kind);
               await refreshContributors();
             }}
           />

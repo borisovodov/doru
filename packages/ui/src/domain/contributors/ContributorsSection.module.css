@@ -3,3 +3,9 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+.kind {
+  margin-inline-start: 6px;
+  opacity: 0.7;
+  font-size: 0.85em;
+}

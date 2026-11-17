@@ -13,6 +13,7 @@ import type {
   NoteRecord,
   PersonRecord,
   PlaceRecord,
+  RecordSubmitterLink,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -312,7 +313,13 @@ export class TreeService {
       },
     }));
     const attachments = this.repo.listAttachmentsFor('person', person.id);
-    const nested: NestedAttachments[] = [];
+    const nested: NestedAttachments[] = [
+      {
+        targetType: 'person_sex',
+        targetId: person.id,
+        attachments: this.repo.listAttachmentsFor('person_sex', person.id),
+      },
+    ];
     for (const nameId of collectNameIds(person.names)) {
       nested.push({
         targetType: 'name',
@@ -464,6 +471,9 @@ export class TreeService {
       });
     }
     const facts = this.repo.listFactsForFamily(family.id);
+    const linkedFacts = this.repo
+      .listAllFacts()
+      .filter((fact) => (fact.familyLinks ?? []).some((link) => link.familyId === family.id));
     const associations = this.repo.listAssociationsForFamily(family.id);
     const nested: NestedAttachments[] = [
       ...facts.map((fact) => ({
@@ -477,7 +487,7 @@ export class TreeService {
         attachments: this.repo.listAttachmentsFor('association', association.id),
       })),
     ];
-    return this.apply(deleteFamilyOp(family, attachments, linkAttachments, nested, facts, associations));
+    return this.apply(deleteFamilyOp(family, attachments, linkAttachments, nested, facts, associations, linkedFacts));
   }
 
   // --- places ---------------------------------------------------------------
@@ -852,12 +862,23 @@ export class TreeService {
     return this.repo.listRecordSubmittersFor(targetType, targetId);
   }
 
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): UndoRedoState {
-    return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId));
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind: RecordSubmitterLink['kind'] = 'contributor',
+  ): UndoRedoState {
+    return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId, kind));
   }
 
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): UndoRedoState {
-    return this.apply(deleteRecordSubmitterOp(id, submitterId, targetType, targetId));
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind: RecordSubmitterLink['kind'] = 'contributor',
+  ): UndoRedoState {
+    return this.apply(deleteRecordSubmitterOp(id, submitterId, targetType, targetId, kind));
   }
 
   addAddress(address: AddressRecord): UndoRedoState {

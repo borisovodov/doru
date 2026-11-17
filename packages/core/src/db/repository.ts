@@ -6,6 +6,7 @@ import type {
   ChangeRecord,
   CitationRecord,
   ContactRecord,
+  FactFamilyLink,
   FactParticipant,
   FactRecord,
   FamilyRecord,
@@ -16,6 +17,7 @@ import type {
   NoteRecord,
   PersonRecord,
   PlaceRecord,
+  RecordSubmitterLink,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -65,6 +67,8 @@ export interface TreeRepository {
   insertFact(fact: FactRecord): void;
   updateFact(fact: FactRecord): void;
   deleteFact(id: string): boolean;
+  /** Adds an event-family link after the family records exist. */
+  insertFactFamilyLink(factId: string, link: FactFamilyLink): void;
   listFactsForPerson(personId: string): FactRecord[];
   listFactsForFamily(familyId: string): FactRecord[];
   /** Every fact in the tree, ordered by date. */
@@ -139,16 +143,17 @@ export interface TreeRepository {
   getSubmitter(id: string): SubmitterRecord | undefined;
   deleteSubmitter(id: string): boolean;
   listSubmitters(): SubmitterRecord[];
-  insertRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): void;
-  listSubmittersFor(targetType: string, targetId: string): string[];
-  listRecordSubmittersFor(
+  insertRecordSubmitter(
+    id: string,
+    submitterId: string,
     targetType: string,
     targetId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+    kind?: RecordSubmitterLink['kind'],
+  ): void;
+  listSubmittersFor(targetType: string, targetId: string): string[];
+  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[];
   /** Every record a submitter contributes to, for the delete/undo snapshot. */
-  listRecordSubmittersForSubmitter(
-    submitterId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[];
   deleteRecordSubmitter(id: string): boolean;
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
@@ -256,6 +261,7 @@ export class SqliteTreeRepository implements TreeRepository {
         id: person.id,
         xref: person.xref,
         sex: person.sex,
+        deathStatus: person.deathStatus,
         addressId: person.addressId,
       });
       this.names.replaceNamesForPerson(person.id, person.names);
@@ -281,6 +287,7 @@ export class SqliteTreeRepository implements TreeRepository {
         id: person.id,
         xref: person.xref,
         sex: person.sex,
+        deathStatus: person.deathStatus,
         addressId: person.addressId,
       });
       this.names.replaceNamesForPerson(person.id, person.names);
@@ -346,6 +353,7 @@ export class SqliteTreeRepository implements TreeRepository {
         this.deleteAttachmentsFor('association', association.id);
       }
       this.deleteAttachmentsFor('person', id);
+      this.deleteAttachmentsFor('person_sex', id);
       this.names.deleteNamesForPerson(id);
       this.facts.deleteFactsForPerson(id);
       this.relations.deleteAssociationsForPerson(id);
@@ -466,6 +474,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   updateFact(fact: FactRecord): void {
     this.facts.updateFact(fact);
+  }
+
+  insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
+    this.facts.insertFactFamilyLink(factId, link);
   }
 
   deleteFact(id: string): boolean {
@@ -783,24 +795,25 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.submitters.listSubmitters();
   }
 
-  insertRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): void {
-    this.submitters.insertRecordSubmitter(id, submitterId, targetType, targetId);
+  insertRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind: RecordSubmitterLink['kind'] = 'contributor',
+  ): void {
+    this.submitters.insertRecordSubmitter(id, submitterId, targetType, targetId, kind);
   }
 
   listSubmittersFor(targetType: string, targetId: string): string[] {
     return this.submitters.listSubmittersFor(targetType, targetId);
   }
 
-  listRecordSubmittersFor(
-    targetType: string,
-    targetId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
     return this.submitters.listRecordSubmittersFor(targetType, targetId);
   }
 
-  listRecordSubmittersForSubmitter(
-    submitterId: string,
-  ): Array<{ id: string; submitterId: string; targetType: string; targetId: string }> {
+  listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[] {
     return this.submitters.listRecordSubmittersForSubmitter(submitterId);
   }
 
@@ -1094,7 +1107,7 @@ export class SqliteTreeRepository implements TreeRepository {
       this.research.insertTodo(todo);
     }
     for (const entry of snapshot.recordSubmitters) {
-      this.submitters.insertRecordSubmitter(entry.id, entry.submitterId, entry.targetType, entry.targetId);
+      this.submitters.insertRecordSubmitter(entry.id, entry.submitterId, entry.targetType, entry.targetId, entry.kind);
     }
   }
 

@@ -58,6 +58,11 @@ export interface FactDraft {
   flags: FactFlag[];
   /** The AGES! `_PRI` marker, separate from the FH `_FLGS` flags. */
   primary: boolean;
+  /** The family an event belongs to (event-level FAMC). */
+  relatedFamilyId: string;
+  familyLinkId?: string | undefined;
+  adoptedBy: string;
+  adoptionPhrase: string;
 }
 
 /** The owner a fact belongs to: exactly one person or one family. */
@@ -113,6 +118,9 @@ export function emptyFactDraft(owner: { personId?: string; familyId?: string }):
     participants: [],
     flags: [],
     primary: false,
+    relatedFamilyId: '',
+    adoptedBy: '',
+    adoptionPhrase: '',
   };
 }
 
@@ -149,6 +157,10 @@ export function factToDraft(fact: FactRecord): FactDraft {
     participants: (fact.participants ?? []).map((participant) => ({ ...participant })),
     flags: [...(fact.flags ?? [])],
     primary: fact.primary === true,
+    relatedFamilyId: fact.familyLinks?.[0]?.familyId ?? '',
+    familyLinkId: fact.familyLinks?.[0]?.id,
+    adoptedBy: fact.familyLinks?.[0]?.adoptedBy ?? '',
+    adoptionPhrase: fact.familyLinks?.[0]?.phrase ?? '',
   };
 }
 
@@ -191,6 +203,19 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
     participants: draft.participants.length > 0 ? draft.participants : undefined,
     flags: draft.flags.length > 0 ? draft.flags : undefined,
     primary: draft.primary || undefined,
+    ...(draft.relatedFamilyId !== ''
+      ? {
+          familyLinks: [
+            {
+              id: draft.familyLinkId ?? crypto.randomUUID(),
+              familyId: draft.relatedFamilyId,
+              ...(draft.adoptedBy !== '' ? { adoptedBy: draft.adoptedBy as 'HUSB' | 'WIFE' | 'BOTH' } : {}),
+              ...(draft.adoptionPhrase.trim() !== '' ? { phrase: draft.adoptionPhrase.trim() } : {}),
+              position: 0,
+            },
+          ],
+        }
+      : {}),
   };
 }
 

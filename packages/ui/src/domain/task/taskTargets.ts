@@ -1,3 +1,4 @@
+import { nls } from '../../nls';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -50,6 +51,11 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
   switch (type) {
     case 'person':
       return data.persons.map((person) => ({ id: person.id, label: displayName(person) }));
+    case 'person_sex':
+      return data.persons.map((person) => ({
+        id: person.id,
+        label: `${displayName(person)} · ${nls.t('features.tasks.target.person_sex')}`,
+      }));
     case 'family':
       return data.families.map((family) => ({ id: family.id, label: familyLabel(family, personById) }));
     case 'family_partner':

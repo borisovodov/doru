@@ -62,10 +62,8 @@ export interface IndividualRecord extends GedcomStructureBase {
    * continuation bug wraps the lines into `2 CONT 2 SOUR …`, see the
    * README's container leniencies; the gemenet Genoese-merchant trees
    * and the Ancestry-derived fixtures carry the same shape). Neither
-   * grammar gives SEX substructures. Recognized on input; on export the
-   * citations are projected onto the record-level INDI citations (the
-   * only standard SOURCE_CITATION slot) in both versions — the SEX
-   * association itself has no standard spelling.
+   * grammar gives SEX substructures. Recognized on input and written back
+   * under the same SEX structure in both versions for round-trip fidelity.
    */
   sexCitations?: SourceCitation[];
   /** <<INDIVIDUAL_ATTRIBUTE_STRUCTURE>> {0:M}. */

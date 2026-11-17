@@ -237,6 +237,39 @@ export function FactEditor({
         <Input value={draft.value} onChange={(event) => set({ value: event.target.value })} />
       </label>
 
+      {['ADOP', 'BIRT', 'CHR'].includes(draft.tag) && (
+        <div className="fact-editor-row">
+          <label className="fact-field">
+            {nls.t('features.tree.fact.relatedFamily')}
+            <Select value={draft.relatedFamilyId} onChange={(event) => set({ relatedFamilyId: event.target.value })}>
+              <option value="">{nls.t('features.tasks.none')}</option>
+              {families.map((family) => (
+                <option key={family.id} value={family.id}>
+                  {familyLabel(family, personById)}
+                </option>
+              ))}
+            </Select>
+          </label>
+          {draft.tag === 'ADOP' && (
+            <>
+              <label className="fact-field">
+                {nls.t('features.tree.fact.adoptedBy')}
+                <Select value={draft.adoptedBy} onChange={(event) => set({ adoptedBy: event.target.value })}>
+                  <option value="">{nls.t('features.tasks.none')}</option>
+                  <option value="HUSB">{nls.t('features.tree.fact.adoptedBy.husb')}</option>
+                  <option value="WIFE">{nls.t('features.tree.fact.adoptedBy.wife')}</option>
+                  <option value="BOTH">{nls.t('features.tree.fact.adoptedBy.both')}</option>
+                </Select>
+              </label>
+              <label className="fact-field">
+                {nls.t('features.tree.fact.adoptionPhrase')}
+                <Input value={draft.adoptionPhrase} onChange={(event) => set({ adoptionPhrase: event.target.value })} />
+              </label>
+            </>
+          )}
+        </div>
+      )}
+
       <DateEditor
         label={nls.t('features.tree.events.dateField')}
         value={draft.date}

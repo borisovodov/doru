@@ -73,7 +73,13 @@ export function FamilyEditor({
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [contributors, setContributors] = useState<
-    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
+    Array<{
+      id: string;
+      submitterId: string;
+      targetType: string;
+      targetId: string;
+      kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+    }>
   >([]);
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
@@ -427,6 +433,12 @@ export function FamilyEditor({
                   ))}
                 </Select>
               </Field>
+              <Field label={nls.t('features.tree.family.statusPhrase')}>
+                <Input
+                  value={link.statusPhrase}
+                  onChange={(event) => patchChild(index, { statusPhrase: event.target.value })}
+                />
+              </Field>
               <Field label={nls.t('features.tree.family.fatherRelation')}>
                 <Input
                   value={link.fatherRelation}
@@ -536,12 +548,12 @@ export function FamilyEditor({
         targetId={draft.id}
         submitters={submitters}
         links={contributors}
-        onAdd={async (submitterId, targetType, targetId) => {
-          await api.addRecordSubmitter(submitterId, targetType, targetId);
+        onAdd={async (submitterId, targetType, targetId, kind) => {
+          await api.addRecordSubmitter(submitterId, targetType, targetId, kind);
           await refreshContributors();
         }}
-        onDelete={async (id, submitterId, targetType, targetId) => {
-          await api.deleteRecordSubmitter(id, submitterId, targetType, targetId);
+        onDelete={async (id, submitterId, targetType, targetId, kind) => {
+          await api.deleteRecordSubmitter(id, submitterId, targetType, targetId, kind);
           await refreshContributors();
         }}
       />

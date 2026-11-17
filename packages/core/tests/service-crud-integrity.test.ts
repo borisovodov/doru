@@ -241,6 +241,18 @@ describe('TreeService CRUD integrity', () => {
       service.addAssociation({ id: 'A1', familyId: 'F1', otherPersonId: 'P2', role: 'witness' });
       service.addNote(note('N1', 'association', 'A1'));
       service.addNote(note('N2', 'family_marriage_status', 'MS1'));
+      const personBefore = repo.getPerson('P1')!;
+      service.updatePerson(personBefore, {
+        ...personBefore,
+        facts: [
+          {
+            id: 'ADOP1',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'BOTH', position: 0 }],
+          },
+        ],
+      });
 
       const statusDateId = repo.getFamily('F1')?.marriageStatuses?.[0]?.date?.id;
       service.deleteFamily(repo.getFamily('F1')!);
@@ -248,12 +260,18 @@ describe('TreeService CRUD integrity', () => {
       expect(repo.listAssociationsForFamily('F1')).toEqual([]);
       expect(repo.listNotesFor('association', 'A1')).toEqual([]);
       expect(repo.listNotesFor('family_marriage_status', 'MS1')).toEqual([]);
+      expect(repo.getPerson('P1')?.facts[0]?.familyLinks).toBeUndefined();
       expect(dateRow(fixture, statusDateId)).toBeUndefined();
 
       service.undo();
 
       expect(repo.listAssociationsForFamily('F1').map((entry) => entry.id)).toEqual(['A1']);
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.id).toBe('MS1');
+      expect(repo.getPerson('P1')?.facts[0]?.familyLinks?.[0]).toMatchObject({
+        id: 'FF1',
+        familyId: 'F1',
+        adoptedBy: 'BOTH',
+      });
       expect(repo.listNotesFor('association', 'A1').map((entry) => entry.id)).toEqual(['N1']);
       expect(repo.listNotesFor('family_marriage_status', 'MS1').map((entry) => entry.id)).toEqual(['N2']);
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.date?.component?.year).toBe(1920);

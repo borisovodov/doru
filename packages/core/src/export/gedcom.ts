@@ -246,10 +246,19 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     .listRestrictionsFor('person', person.id)
     .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   const changes = withChanges(repo, 'person', person.id);
+  const submitterLinks = repo.listRecordSubmittersFor('person', person.id);
+  const ancestorInterests = submitterLinks
+    .filter((link) => link.kind === 'ancestor_interest')
+    .map((link) => xrefs.of(link.submitterId));
+  const descendantInterests = submitterLinks
+    .filter((link) => link.kind === 'descendant_interest')
+    .map((link) => xrefs.of(link.submitterId));
+  const sexCitations = withCitationList(repo, 'person_sex', person.id, xrefs).citations;
   return {
     tag: 'INDI',
     xref: xrefs.of(person.id),
     sex: person.sex,
+    ...(person.deathStatus === 'dead' ? { deceased: true } : person.deathStatus === 'alive' ? { deceased: false } : {}),
     names: person.names.map((name) => buildName(name, repo, xrefs)),
     ...(events.length > 0 ? { events } : {}),
     ...(attributes.length > 0 ? { attributes } : {}),
@@ -262,9 +271,12 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...contacts,
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
+    ...(sexCitations.length > 0 ? { sexCitations } : {}),
     ...withNoteList(repo, 'person', person.id, xrefs),
     ...withMediaLinks(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
+    ...(ancestorInterests.length > 0 ? { ancestorInterests } : {}),
+    ...(descendantInterests.length > 0 ? { descendantInterests } : {}),
     ...withTagLinks(repo, 'person', person.id, xrefs),
     ...withTodoStructures(repo, 'person', person.id, xrefs),
     ...withAssociations(repo, person.id, xrefs),
@@ -287,8 +299,47 @@ type MappedFamilyFact =
  * extensions, custom kinds) become a generic EVEN whose TYPE carries the
  * original tag — a documented lossy projection.
  */
+function eventFamilyFields(
+  fact: FactRecord,
+  xrefs: Xrefs,
+): {
+  adoptionFamily?: {
+    tag: 'FAMC';
+    family: string;
+    adoption?: { tag: 'ADOP'; payload: string; phrase?: string };
+  };
+  familyChild?: string;
+} {
+  const link = fact.familyLinks?.[0];
+  if (link === undefined) {
+    return {};
+  }
+  if (fact.tag === 'ADOP') {
+    return {
+      adoptionFamily: {
+        tag: 'FAMC',
+        family: xrefs.of(link.familyId),
+        ...(link.adoptedBy !== undefined
+          ? {
+              adoption: {
+                tag: 'ADOP' as const,
+                payload: link.adoptedBy,
+                ...(link.phrase !== undefined ? { phrase: link.phrase } : {}),
+              },
+            }
+          : {}),
+      },
+    };
+  }
+  if (fact.tag === 'BIRT' || fact.tag === 'CHR') {
+    return { familyChild: xrefs.of(link.familyId) };
+  }
+  return {};
+}
+
 function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): MappedPersonFact {
   const detail = buildDetail(fact, repo, xrefs);
+  const familyFields = eventFamilyFields(fact, xrefs);
   if (fact.tag === 'EVEN' || (!INDIVIDUAL_EVENT_TAGS.has(fact.tag) && !INDIVIDUAL_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
       kind: 'event',
@@ -317,6 +368,7 @@ function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
       tag: fact.tag as IndividualEventStructure['tag'],
       ...(fact.value !== undefined ? { payload: fact.value } : {}),
       ...(fact.type !== undefined ? { type: fact.type } : {}),
+      ...familyFields,
       ...(detail !== undefined ? { detail } : {}),
     } as IndividualEventStructure,
   };
@@ -457,7 +509,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
     ...(link.preferred === true ? { preferred: true } : {}),
     ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
-    ...withNoteList(repo, 'family_child', link.id, xrefs),
   }));
   const events: FamilyEventStructure[] = [];
   const attributes: FamilyAttributeStructure[] = [];
@@ -813,10 +864,16 @@ function withChildFamilies(
           }
         : {}),
       ...(link.status !== undefined
-        ? { status: { payload: link.status.toUpperCase() as import('@doru/gedcom').FamilyChildStatusEnum } }
+        ? {
+            status: {
+              payload: link.status.toUpperCase() as import('@doru/gedcom').FamilyChildStatusEnum,
+              ...(link.statusPhrase !== undefined ? { phrase: link.statusPhrase } : {}),
+            },
+          }
         : {}),
       ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
       ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
+      ...withNoteList(repo, 'family_child', link.id, xrefs),
     });
   }
   return links.length > 0 ? { childFamilies: links } : {};
@@ -836,6 +893,7 @@ function withSpouseFamilies(
     links.push({
       family: xrefs.of(family.id),
       ...(link.date !== undefined ? { date: buildDate(link.date) } : {}),
+      ...withNoteList(repo, 'family_partner', link.id, xrefs),
     } as SpouseFamilyLink);
   }
   return links.length > 0 ? { spouseFamilies: links } : {};

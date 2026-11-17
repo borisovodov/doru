@@ -63,6 +63,16 @@ concrete feature needs the wire metadata. The same applies to the LDS,
 research, census, event-definition, duplicate-candidate, published-site,
 group, tree-tag and GenoPro record families listed in `import/gedcom.ts`.
 
+## GEDCOM legacy identifiers and FAMC/FAMS vendor details
+
+`RFN` and `AFN` are GEDCOM 5.5.1 identifiers with no 7.0 spelling; Dóru does
+not store them. The vendor FAMC/FAMS link fields `_HUSB`, `_WIFE`, `MTYP`,
+`_PRIMARY`, `_PREF` and `_PLINK` are also intentionally not stored. Corpus
+counts showed them in only a handful of files (or not at all); the standard
+`PEDI`, `STAT` (including its 7.0 `PHRASE`), relation fields and link notes
+are stored. `WILL.TEXT` is normalized into a note on the `WILL` fact and is
+exported as `NOTE`, not as the vendor `TEXT` tag.
+
 ## Free-text family witnesses
 
 `family_witness` preserves the vendor `_WITN` and `_GODT` family witnesses

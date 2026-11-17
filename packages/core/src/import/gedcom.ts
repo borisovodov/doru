@@ -121,6 +121,16 @@ interface ImportContext {
   mediaPaths: ReadonlyMap<string, string>;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
   spouseLinkDates: Map<string, Map<string, DateStructure | undefined>>;
+  /** Person xref → the notes carried by their FAMS links, keyed by family xref. */
+  spouseLinkNotes: Map<string, Map<string, NoteStructure[] | undefined>>;
+  /** Event-family links held until the family xrefs have ids. */
+  pendingFactFamilies: Array<{
+    factId: string;
+    familyXref: string;
+    adoptedBy?: 'HUSB' | 'WIFE' | 'BOTH' | undefined;
+    phrase?: string | undefined;
+    position: number;
+  }>;
   /** Person xref → family xref → the FAMC link details (pedigree, status, relations). */
   childLinkDetails: Map<
     string,
@@ -130,8 +140,10 @@ interface ImportContext {
         pedigree?: string | undefined;
         pedigreePhrase?: string | undefined;
         status?: string | undefined;
+        statusPhrase?: string | undefined;
         fatherRelation?: string | undefined;
         motherRelation?: string | undefined;
+        notes?: NoteStructure[] | undefined;
       }
     >
   >;
@@ -164,6 +176,8 @@ export function importGedcomDataset(
     mediaIds: new Map(),
     mediaPaths,
     spouseLinkDates: new Map(),
+    spouseLinkNotes: new Map(),
+    pendingFactFamilies: [],
     childLinkDetails: new Map(),
     dropped: 0,
   };
@@ -192,6 +206,7 @@ export function importGedcomDataset(
         importedFamilies += 1;
       }
     }
+    linkFactFamilies(ctx);
     importPersonRelations(dataset.records, ctx);
     linkPlaceHierarchy(ctx);
     importResearchRecords(dataset.records, ctx);
@@ -565,11 +580,14 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   // FAMS dates are carried on the person side in GEDCOM; families look them
   // up when building their partner links.
   const famsDates = new Map<string, DateStructure | undefined>();
+  const famsNotes = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.spouseFamilies ?? []) {
     famsDates.set(link.family, link.date);
+    famsNotes.set(link.family, link.notes);
   }
   if (record.xref !== undefined) {
     ctx.spouseLinkDates.set(record.xref, famsDates);
+    ctx.spouseLinkNotes.set(record.xref, famsNotes);
   }
   const famcDetails = new Map<
     string,
@@ -577,8 +595,10 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       pedigree?: string | undefined;
       pedigreePhrase?: string | undefined;
       status?: string | undefined;
+      statusPhrase?: string | undefined;
       fatherRelation?: string | undefined;
       motherRelation?: string | undefined;
+      notes?: NoteStructure[] | undefined;
     }
   >();
   for (const link of record.childFamilies ?? []) {
@@ -586,8 +606,10 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       pedigree: link.pedigree?.payload.toLowerCase(),
       pedigreePhrase: link.pedigree?.phrase,
       status: link.status?.payload.toLowerCase(),
+      statusPhrase: link.status?.phrase,
       fatherRelation: link.fatherRelation,
       motherRelation: link.motherRelation,
+      notes: link.notes,
     });
   }
   if (record.xref !== undefined) {
@@ -609,6 +631,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       structure.detail,
       structure.detail?.age,
       ctx,
+      structure as EventFamilyRef,
     ),
   );
   for (const nonEvent of record.nonEvents ?? []) {
@@ -624,6 +647,11 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     id,
     xref: record.xref,
     sex: mapSex(record.sex),
+    ...(record.deceased === true
+      ? { deathStatus: 'dead' as const }
+      : record.deceased === false
+        ? { deathStatus: 'alive' as const }
+        : {}),
     ...(record.address !== undefined ? { addressId: importAddress(record.address, ctx) } : {}),
     names,
     facts,
@@ -640,6 +668,16 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     }
     importCitations(structure.detail?.citations, 'fact', fact.id, ctx);
     importNotes(structure.detail?.notes, 'fact', fact.id, ctx);
+    if (structure.tag === 'WILL') {
+      // WILL.TEXT is normalized into ordinary notes on the fact; export
+      // writes them back as NOTE (see docs/decisions.md).
+      importNotes(
+        (structure.texts ?? []).map((text) => ({ tag: 'NOTE' as const, payload: text })),
+        'fact',
+        fact.id,
+        ctx,
+      );
+    }
     importAddressContacts(structure.detail, fact.id, ctx);
   });
   record.nonEvents?.forEach((nonEvent, index) => {
@@ -650,6 +688,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     }
   });
   importCitations(record.citations, 'person', id, ctx);
+  importCitations(record.sexCitations, 'person_sex', id, ctx);
   importNotes(record.notes, 'person', id, ctx);
   importIdentifiers(record.identifiers, 'person', id, ctx);
   importMediaLinks(record.media, 'person', id, ctx);
@@ -685,6 +724,8 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   importRestrictions(record.restriction, 'person', id, ctx);
   importChanges(record.changeDate, record.creationDate, 'person', id, ctx);
   importSubmitterLinks(record.submitters, 'person', id, ctx);
+  importSubmitterLinks(record.ancestorInterests, 'person', id, ctx, 'ancestor_interest');
+  importSubmitterLinks(record.descendantInterests, 'person', id, ctx, 'descendant_interest');
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'person', id, ctx);
   }
@@ -693,6 +734,49 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   }
   // Associations and aliases need the other persons — deferred
   // to importPersonRelations, resolved after every person and family exists.
+}
+
+interface EventFamilyRef {
+  tag?: string | undefined;
+  adoptionFamily?:
+    | {
+        family: string;
+        adoption?: { payload: string; phrase?: string | undefined } | undefined;
+      }
+    | undefined;
+  familyChild?: string | undefined;
+}
+
+function queueFactFamily(structure: EventFamilyRef | undefined, factId: string, ctx: ImportContext): void {
+  if (structure?.adoptionFamily !== undefined) {
+    ctx.pendingFactFamilies.push({
+      factId,
+      familyXref: structure.adoptionFamily.family,
+      adoptedBy: structure.adoptionFamily.adoption?.payload as 'HUSB' | 'WIFE' | 'BOTH' | undefined,
+      phrase: structure.adoptionFamily.adoption?.phrase,
+      position: 0,
+    });
+    return;
+  }
+  if ((structure?.tag === 'BIRT' || structure?.tag === 'CHR') && structure.familyChild !== undefined) {
+    ctx.pendingFactFamilies.push({ factId, familyXref: structure.familyChild, position: 0 });
+  }
+}
+
+function linkFactFamilies(ctx: ImportContext): void {
+  for (const pending of ctx.pendingFactFamilies) {
+    const familyId = ctx.familyIds.get(pending.familyXref);
+    if (familyId === undefined) {
+      continue;
+    }
+    ctx.repo.insertFactFamilyLink(pending.factId, {
+      id: crypto.randomUUID(),
+      familyId,
+      adoptedBy: pending.adoptedBy,
+      phrase: pending.phrase,
+      position: pending.position,
+    });
+  }
 }
 
 function mapFact(
@@ -707,7 +791,9 @@ function mapFact(
   detail: EventDetail | undefined,
   age: AgeStructure | undefined,
   ctx: ImportContext,
+  structure?: EventFamilyRef,
 ): FactRecord {
+  queueFactFamily(structure, base.id, ctx);
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
   importRestrictions(detail?.restriction, 'fact', base.id, ctx);
   importIdentifiers(
@@ -979,7 +1065,8 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       continue;
     }
     const date = ctx.spouseLinkDates.get(link.partner)?.get(record.xref ?? '');
-    partnerLinks.push({
+    const notes = ctx.spouseLinkNotes.get(link.partner)?.get(record.xref ?? '');
+    const partnerLink: FamilyPartnerLink = {
       id: crypto.randomUUID(),
       personId,
       preferred: link.preferred,
@@ -990,7 +1077,9 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
         : undefined,
       civilStatus: link.civilStatus,
       marriageNumber: link.marriageNumber !== undefined ? String(link.marriageNumber) : undefined,
-    });
+    };
+    partnerLinks.push(partnerLink);
+    importNotes(notes, 'family_partner', partnerLink.id, ctx);
   }
   const childLinks: FamilyChildLink[] = [];
   for (const link of record.children ?? []) {
@@ -1006,6 +1095,7 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       pedigree: pedigree?.payload.toLowerCase() ?? details?.pedigree,
       pedigreePhrase: pedigree?.phrase ?? details?.pedigreePhrase,
       status: details?.status,
+      statusPhrase: details?.statusPhrase,
       fatherRelation: link.fatherRelation ?? details?.fatherRelation,
       motherRelation: link.motherRelation ?? details?.motherRelation,
       preferred: link.preferred,
@@ -1041,15 +1131,26 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     importNotes(entry.source.notes, 'family_marriage_status', entry.mapped.id, ctx);
     importCitations(entry.source.citations, 'family_marriage_status', entry.mapped.id, ctx);
   }
+  const notesByPerson = new Map<string, NoteStructure[] | undefined>();
+  for (const [personXref, byFamily] of ctx.childLinkDetails) {
+    const personId = ctx.personIds.get(personXref);
+    if (personId !== undefined) {
+      notesByPerson.set(personId, byFamily.get(record.xref ?? '')?.notes);
+    }
+  }
   const childrenByXref = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.children ?? []) {
     childrenByXref.set(link.child, link.notes);
   }
   for (const link of childLinks) {
-    const notes = [...childrenByXref.entries()].find(
+    const childNotes = [...childrenByXref.entries()].find(
       ([childXref]) => ctx.personIds.get(childXref) === link.childId,
     )?.[1];
-    importNotes(notes, 'family_child', link.id, ctx);
+    const mergedNotes = new Map<string, NoteStructure>();
+    for (const note of [...(notesByPerson.get(link.childId) ?? []), ...(childNotes ?? [])]) {
+      mergedNotes.set('note' in note ? note.note : note.payload, note);
+    }
+    importNotes(mergedNotes.size > 0 ? [...mergedNotes.values()] : undefined, 'family_child', link.id, ctx);
   }
 
   const factStructures = [...(record.events ?? []), ...(record.attributes ?? [])];
@@ -1067,6 +1168,7 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       detail,
       undefined,
       ctx,
+      structure,
     );
     const husbandAge = structure.detail?.husband?.age;
     const wifeAge = structure.detail?.wife?.age;
@@ -1542,11 +1644,12 @@ function importSubmitterLinks(
   targetType: string,
   targetId: string,
   ctx: ImportContext,
+  kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
 ): void {
   for (const submitter of submitters ?? []) {
     const submitterId = ctx.submitterIds.get(submitter);
     if (submitterId !== undefined) {
-      ctx.repo.insertRecordSubmitter(crypto.randomUUID(), submitterId, targetType, targetId);
+      ctx.repo.insertRecordSubmitter(crypto.randomUUID(), submitterId, targetType, targetId, kind);
     }
   }
 }

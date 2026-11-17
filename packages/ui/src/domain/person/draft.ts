@@ -110,6 +110,7 @@ export interface PersonDraft {
   id: string;
   names: NameDraft[];
   sex: Sex;
+  deathStatus?: 'alive' | 'dead' | undefined;
   addressId?: string | undefined;
   birth: DateDraft;
   death: DateDraft;
@@ -348,6 +349,7 @@ export function newPersonDraft(): PersonDraft {
     id: crypto.randomUUID(),
     names: [emptyNameDraft()],
     sex: 'U',
+    deathStatus: undefined,
     birth: emptyDate(),
     death: emptyDate(),
     isNew: true,
@@ -465,6 +467,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
     id: person.id,
     names: person.names.map(nameToDraft),
     sex: person.sex,
+    deathStatus: person.deathStatus,
     ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
     birth: toDateDraft(birth?.date, birth?.place),
     death: toDateDraft(death?.date, death?.place),
@@ -476,6 +479,7 @@ export function personDraftMatches(draft: PersonDraft, person: PersonRecord): bo
   const other = personToDraft(person);
   return (
     draft.sex === other.sex &&
+    draft.deathStatus === other.deathStatus &&
     draft.names.length === other.names.length &&
     draft.names.every((name, index) => {
       const otherName = other.names[index];
@@ -648,6 +652,7 @@ export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): Pers
     ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
     ...(draft.addressId !== undefined ? { addressId: draft.addressId } : {}),
     sex: draft.sex,
+    ...(draft.deathStatus !== undefined ? { deathStatus: draft.deathStatus } : {}),
     names,
     facts,
   };

@@ -580,6 +580,33 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('stores submitter link kinds and restores them on undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSubmitter(submitter());
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'contributor');
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'descendant_interest');
+      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((link) => link.kind))).toEqual(
+        new Set(['ancestor_interest', 'contributor', 'descendant_interest']),
+      );
+
+      const link = fixture.repo
+        .listRecordSubmittersFor('person', 'P1')
+        .find((entry) => entry.kind === 'ancestor_interest')!;
+      service.deleteRecordSubmitter(link.id, 'SU1', 'person', 'P1', 'ancestor_interest');
+      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.kind))).toEqual(
+        new Set(['contributor', 'descendant_interest']),
+      );
+      service.undo();
+      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.kind))).toEqual(
+        new Set(['ancestor_interest', 'contributor', 'descendant_interest']),
+      );
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('links and unlinks record contributors with undo', () => {
     const { fixture, service } = makeService();
     try {

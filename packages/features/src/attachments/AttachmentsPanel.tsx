@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { CitationRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import type { CitationRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import {
   ChangesSection,
   ContactsSection,
@@ -30,12 +30,20 @@ export type AttachmentSection =
 
 export interface AttachmentsPanelApi extends AttachmentsApi {
   getSubmitters(): Promise<SubmitterRecord[]>;
-  getRecordSubmitters(
+  getRecordSubmitters(targetType: string, targetId: string): Promise<RecordSubmitterLink[]>;
+  addRecordSubmitter(
+    submitterId: string,
     targetType: string,
     targetId: string,
-  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+    kind?: RecordSubmitterLink['kind'],
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: RecordSubmitterLink['kind'],
+  ): Promise<void>;
 }
 
 const ALL_SECTIONS: readonly AttachmentSection[] = [
@@ -245,12 +253,12 @@ export function AttachmentsPanel({
           targetId={targetId}
           submitters={submitters}
           links={contributors}
-          onAdd={async (submitterId, type, id) => {
-            await api.addRecordSubmitter(submitterId, type, id);
+          onAdd={async (submitterId, type, id, kind) => {
+            await api.addRecordSubmitter(submitterId, type, id, kind);
             await refresh();
           }}
-          onDelete={async (id, submitterId, type, target) => {
-            await api.deleteRecordSubmitter(id, submitterId, type, target);
+          onDelete={async (id, submitterId, type, target, kind) => {
+            await api.deleteRecordSubmitter(id, submitterId, type, target, kind);
             await refresh();
           }}
         />

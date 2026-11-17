@@ -41,6 +41,7 @@ describe('familyToDraft / familyDraftToRecord', () => {
           childId: 'P3',
           pedigree: 'birth',
           status: 'proven',
+          statusPhrase: 'documented',
           fatherRelation: 'guardian',
           motherRelation: 'birth',
         },
@@ -54,6 +55,7 @@ describe('familyToDraft / familyDraftToRecord', () => {
       preferred: true,
       date: { ...emptyDate(), year: '1948' },
     });
+    expect(draft.childLinks[0]).toMatchObject({ id: 'CL1', statusPhrase: 'documented' });
     expect(draft.childLinks[1]).toMatchObject({ id: 'CL2', childId: 'P4', pedigreePhrase: 'adopted later' });
     expect(familyDraftToRecord(draft)).toEqual(stored);
   });

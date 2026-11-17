@@ -233,6 +233,8 @@ export interface FactRecord {
   flags?: FactFlag[] | undefined;
   /** The fact is the primary one of its kind (AGES! `_PRI`). */
   primary?: boolean | undefined;
+  /** Families referenced by the event (GEDCOM event-level FAMC). */
+  familyLinks?: FactFamilyLink[] | undefined;
   /** The place prefix (vendor `_PPFX`). */
   placePrefix?: string | undefined;
   /** The vendor event number (vendor `_EVN`). */
@@ -245,6 +247,16 @@ export interface FactRecord {
   descriptionAware?: boolean | undefined;
   /** Event coordinates (vendor `_COR`). */
   map?: { latitude: number; longitude: number } | undefined;
+}
+
+/** The family an event belongs to (GEDCOM event-level FAMC). */
+export interface FactFamilyLink {
+  id: string;
+  familyId: string;
+  /** The parent(s) who adopted the subject (ADOP only): HUSB | WIFE | BOTH. */
+  adoptedBy?: 'HUSB' | 'WIFE' | 'BOTH' | undefined;
+  phrase?: string | undefined;
+  position: number;
 }
 
 /** An age at a fact: the subject's (no person/role) or a partner's (HUSB/WIFE). */
@@ -274,6 +286,8 @@ export interface PersonRecord {
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
   sex: Sex;
+  /** The parser's ISDEAD vital flag: alive | dead; undefined = unknown. */
+  deathStatus?: 'alive' | 'dead' | undefined;
   /** The person's own address (GEDCOM INDI.ADDR), shared with other records. */
   addressId?: string | undefined;
   names: PersonName[];
@@ -314,6 +328,7 @@ export interface FamilyChildLink {
   pedigree?: string | undefined;
   pedigreePhrase?: string | undefined;
   status?: string | undefined;
+  statusPhrase?: string | undefined;
   fatherRelation?: string | undefined;
   motherRelation?: string | undefined;
   preferred?: boolean | undefined;
@@ -672,6 +687,16 @@ export interface TagLinkRecord {
   date?: DateValue | undefined;
 }
 
+/** A submitter link: contributor or an ANCI/DESI research interest. */
+export interface RecordSubmitterLink {
+  id: string;
+  submitterId: string;
+  targetType: string;
+  targetId: string;
+  /** Missing on legacy/caller snapshots means an ordinary contributor. */
+  kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest' | undefined;
+}
+
 /** Everything attached to one target, for op snapshots and cascades. */
 export interface AttachmentsSnapshot {
   noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
@@ -683,7 +708,7 @@ export interface AttachmentsSnapshot {
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   todos: TodoRecord[];
-  recordSubmitters: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  recordSubmitters: RecordSubmitterLink[];
 }
 
 export function emptyAttachments(): AttachmentsSnapshot {
@@ -766,6 +791,7 @@ export interface TitleRecord {
  */
 export const TARGET_TYPES = [
   'person',
+  'person_sex',
   'family',
   'family_partner',
   'family_child',

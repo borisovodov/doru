@@ -32,6 +32,9 @@ describe('emptyFactDraft', () => {
       participants: [],
       flags: [],
       primary: false,
+      relatedFamilyId: '',
+      adoptedBy: '',
+      adoptionPhrase: '',
     });
   });
 });
@@ -73,6 +76,7 @@ describe('factToDraft / factDraftToRecord', () => {
       ],
       flags: ['private', 'tentative'],
       primary: true,
+      familyLinks: [{ id: 'FF1', familyId: 'FAM1', adoptedBy: 'BOTH', phrase: 'both parents', position: 0 }],
     });
     const draft = factToDraft(source);
     expect(draft).toMatchObject({
@@ -106,6 +110,10 @@ describe('factToDraft / factDraftToRecord', () => {
       participants: source.participants,
       flags: ['private', 'tentative'],
       primary: true,
+      relatedFamilyId: 'FAM1',
+      familyLinkId: 'FF1',
+      adoptedBy: 'BOTH',
+      adoptionPhrase: 'both parents',
     });
     expect(factDraftToRecord(draft)).toEqual(source);
   });

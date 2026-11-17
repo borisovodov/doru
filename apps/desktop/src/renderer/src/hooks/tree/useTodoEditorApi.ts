@@ -14,14 +14,25 @@ export function useTodoEditorApi(
       getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
       getRecordSubmitters: (targetType, targetId) =>
         projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+      addRecordSubmitter: async (
+        submitterId,
+        targetType,
+        targetId,
+        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
+      ) => {
         if (!projectPath) return;
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
-      deleteRecordSubmitter: async (id: string, submitterId: string, targetType: string, targetId: string) => {
+      deleteRecordSubmitter: async (
+        id: string,
+        submitterId: string,
+        targetType: string,
+        targetId: string,
+        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
+      ) => {
         if (!projectPath) return;
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
     }),

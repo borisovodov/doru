@@ -12,6 +12,7 @@ import { CitationEditor } from '../citation/CitationEditor';
 import './SourcesSection.css';
 
 interface SourcesSectionProps {
+  sectionTitle?: string | undefined;
   targetType: string;
   targetId: string;
   sources: SourceRecord[];
@@ -26,6 +27,7 @@ interface SourcesSectionProps {
 }
 
 export function SourcesSection({
+  sectionTitle,
   targetType,
   targetId,
   sources,
@@ -81,7 +83,7 @@ export function SourcesSection({
   const sourceById = new Map(sources.map((source) => [source.id, source]));
 
   return (
-    <SectionCard title={nls.t('features.tree.sources.title')}>
+    <SectionCard title={sectionTitle ?? nls.t('features.tree.sources.title')}>
       {citations.length === 0 && <EmptyText>{nls.t('features.tree.sources.empty')}</EmptyText>}
       <ul className="source-list">
         {citations.map((citation) => (

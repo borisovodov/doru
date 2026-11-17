@@ -55,16 +55,19 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * (person addresses, family metadata, dated place names, fact periods and
  * extra places, source/citation details); version 4 added
  * `fact.primary_flag` for the AGES! `_PRI` marker, kept apart from the
- * Family Historian `_FLGS` flags in `fact_flag`. The pre-release scaffolds
- * that preceded them are not counted.
+ * Family Historian `_FLGS` flags in `fact_flag`; version 5 added
+ * `person.death_status`, `family_child.status_phrase`,
+ * `record_submitter.kind` and the `fact_family` event-family link. The
+ * pre-release scaffolds that preceded them are not counted.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
   id TEXT PRIMARY KEY,
   xref TEXT,
   sex TEXT,
+  death_status TEXT,    -- alive | dead
   address_id TEXT REFERENCES address(id) ON DELETE SET NULL
 );
 
@@ -132,6 +135,7 @@ CREATE TABLE IF NOT EXISTS family_child (
   pedigree TEXT,          -- birth | adopted | foster | sealing | other
   pedigree_phrase TEXT,
   status TEXT,            -- challenged | disproven | proven
+  status_phrase TEXT,
   father_relation TEXT,   -- birth | adopted | guardian | foster | step | ...
   mother_relation TEXT,
   preferred INTEGER NOT NULL DEFAULT 0,
@@ -202,6 +206,17 @@ CREATE TABLE IF NOT EXISTS fact (
   map_latitude REAL,
   map_longitude REAL,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
+);
+
+-- The family an event belongs to (GEDCOM event-level FAMC: ADOP, BIRT, CHR),
+-- with the "which parent adopted" marker for ADOP.
+CREATE TABLE IF NOT EXISTS fact_family (
+  id TEXT PRIMARY KEY,
+  fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
+  family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
+  adopted_by TEXT,       -- HUSB | WIFE | BOTH (ADOP only)
+  phrase TEXT,
+  position INTEGER NOT NULL
 );
 
 -- Additional places of a fact (the Family Historian _PLAC list).
@@ -443,7 +458,8 @@ CREATE TABLE IF NOT EXISTS record_submitter (
   id TEXT PRIMARY KEY,
   submitter_id TEXT NOT NULL REFERENCES submitter(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL
+  target_id TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'contributor' -- contributor | ancestor_interest | descendant_interest
 );
 
 CREATE TABLE IF NOT EXISTS address (
@@ -598,6 +614,8 @@ CREATE INDEX IF NOT EXISTS idx_family_partner_family ON family_partner(family_id
 CREATE INDEX IF NOT EXISTS idx_family_partner_person ON family_partner(person_id);
 CREATE INDEX IF NOT EXISTS idx_family_child_family ON family_child(family_id, position);
 CREATE INDEX IF NOT EXISTS idx_family_child_child ON family_child(child_id);
+CREATE INDEX IF NOT EXISTS idx_fact_family_fact ON fact_family(fact_id, position);
+CREATE INDEX IF NOT EXISTS idx_fact_family_family ON fact_family(family_id);
 CREATE INDEX IF NOT EXISTS idx_fact_person ON fact(person_id);
 CREATE INDEX IF NOT EXISTS idx_fact_family ON fact(family_id);
 CREATE INDEX IF NOT EXISTS idx_fact_date ON fact(date_id);

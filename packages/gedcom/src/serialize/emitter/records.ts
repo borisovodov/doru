@@ -601,18 +601,15 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   for (const name of rec.names ?? []) {
     emitPersonalName(w, version, 1, name);
   }
-  if (rec.sex !== undefined) {
-    const value = sex(w, version, rec.sex);
-    if (value !== undefined) {
-      w.line(1, 'SEX', { value });
+  const sexCitations = rec.sexCitations ?? [];
+  const sexValue = rec.sex !== undefined ? sex(w, version, rec.sex) : undefined;
+  if (sexValue !== undefined || sexCitations.length > 0) {
+    w.line(1, 'SEX', sexValue !== undefined ? { value: sexValue } : {});
+    for (const citation of sexCitations) {
+      // The vendor SEX citation shape (see IndividualRecord.sexCitations):
+      // written under SEX so the evidence stays attached to the sex fact.
+      emitSourceCitation(w, version, 2, citation);
     }
-  }
-  for (const citation of rec.sexCitations ?? []) {
-    // The citations of the SEX fact (see IndividualRecord.sexCitations)
-    // have no standard SEX position in either version: they are
-    // projected onto the record-level INDI citations, the only standard
-    // SOURCE_CITATION slot.
-    emitSourceCitation(w, version, 1, citation);
   }
   for (const attribute of rec.attributes ?? []) {
     const payload = attribute.payload;

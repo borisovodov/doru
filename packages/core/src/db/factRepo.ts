@@ -4,6 +4,7 @@ import {
   signedYear,
   type DateValue,
   type FactAge,
+  type FactFamilyLink,
   type FactFlag,
   type FactParticipant,
   type FactRecord,
@@ -255,9 +256,10 @@ export class FactRepo {
     const participantsByFact = this.participantsForFacts(factIds);
     const flagsByFact = this.flagsForFacts(factIds);
     const placesByFact = this.additionalPlacesForFacts(factIds);
+    const familyLinksByFact = this.familyLinksForFacts(factIds);
     return rows
       .map((row) => ({
-        fact: rowToFact(row, datesById, agesByFact, participantsByFact, flagsByFact, placesByFact),
+        fact: rowToFact(row, datesById, agesByFact, participantsByFact, flagsByFact, placesByFact, familyLinksByFact),
         rowid: row.rowid,
       }))
       .sort((a, b) => {
@@ -273,6 +275,7 @@ export class FactRepo {
     this.db.prepare('DELETE FROM fact_participant WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_flag WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_place WHERE fact_id = ?').run(fact.id);
+    this.db.prepare('DELETE FROM fact_family WHERE fact_id = ?').run(fact.id);
     const insertPlace = this.db.prepare('INSERT INTO fact_place (id, fact_id, place_id, position) VALUES (?, ?, ?, ?)');
     (fact.additionalPlaceIds ?? []).forEach((placeId, position) => {
       insertPlace.run(crypto.randomUUID(), fact.id, placeId, position);
@@ -311,6 +314,23 @@ export class FactRepo {
     for (const flag of fact.flags ?? []) {
       insertFlag.run(fact.id, flag);
     }
+    const insertFamily = this.db.prepare(
+      `INSERT INTO fact_family (id, fact_id, family_id, adopted_by, phrase, position)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    );
+    for (const link of fact.familyLinks ?? []) {
+      insertFamily.run(link.id, fact.id, link.familyId, link.adoptedBy ?? null, link.phrase ?? null, link.position);
+    }
+  }
+
+  /** Adds one event-family link after the families themselves are imported. */
+  insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
+    this.db
+      .prepare(
+        `INSERT INTO fact_family (id, fact_id, family_id, adopted_by, phrase, position)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(link.id, factId, link.familyId, link.adoptedBy ?? null, link.phrase ?? null, link.position);
   }
 
   private additionalPlacesForFacts(factIds: string[]): Map<string, string[]> {
@@ -401,6 +421,42 @@ export class FactRepo {
     return byFact;
   }
 
+  private familyLinksForFacts(factIds: string[]): Map<string, FactFamilyLink[]> {
+    const byFact = new Map<string, FactFamilyLink[]>();
+    if (factIds.length === 0) {
+      return byFact;
+    }
+    const placeholders = factIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT id, fact_id, family_id, adopted_by, phrase, position FROM fact_family
+         WHERE fact_id IN (${placeholders}) ORDER BY position`,
+      )
+      .all(...factIds) as unknown as {
+      id: string;
+      fact_id: string;
+      family_id: string;
+      adopted_by: string | null;
+      phrase: string | null;
+      position: number;
+    }[];
+    for (const row of rows) {
+      const links = byFact.get(row.fact_id) ?? [];
+      links.push({
+        id: row.id,
+        familyId: row.family_id,
+        adoptedBy:
+          row.adopted_by === 'HUSB' || row.adopted_by === 'WIFE' || row.adopted_by === 'BOTH'
+            ? row.adopted_by
+            : undefined,
+        phrase: row.phrase ?? undefined,
+        position: row.position,
+      });
+      byFact.set(row.fact_id, links);
+    }
+    return byFact;
+  }
+
   private flagsForFacts(factIds: string[]): Map<string, FactFlag[]> {
     const byFact = new Map<string, FactFlag[]>();
     if (factIds.length === 0) {
@@ -468,11 +524,13 @@ function rowToFact(
   participantsByFact: Map<string, FactParticipant[]>,
   flagsByFact: Map<string, FactFlag[]>,
   placesByFact: Map<string, string[]>,
+  familyLinksByFact: Map<string, FactFamilyLink[]>,
 ): FactRecord {
   const ages = agesByFact.get(row.id);
   const participants = participantsByFact.get(row.id);
   const flags = flagsByFact.get(row.id);
   const additionalPlaceIds = placesByFact.get(row.id);
+  const familyLinks = familyLinksByFact.get(row.id);
   return {
     id: row.id,
     personId: row.person_id ?? undefined,
@@ -508,5 +566,6 @@ function rowToFact(
     ages: ages !== undefined && ages.length > 0 ? ages : undefined,
     participants: participants !== undefined && participants.length > 0 ? participants : undefined,
     flags: flags !== undefined && flags.length > 0 ? flags : undefined,
+    familyLinks: familyLinks !== undefined && familyLinks.length > 0 ? familyLinks : undefined,
   };
 }

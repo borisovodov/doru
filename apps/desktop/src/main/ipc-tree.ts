@@ -544,9 +544,23 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:addRecordSubmitter',
-    async (_event, options: { projectPath: string; submitterId: string; targetType: string; targetId: string }) => {
+    async (
+      _event,
+      options: {
+        projectPath: string;
+        submitterId: string;
+        targetType: string;
+        targetId: string;
+        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+      },
+    ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addRecordSubmitter(options.submitterId, options.targetType, options.targetId);
+      return runtime.service.addRecordSubmitter(
+        options.submitterId,
+        options.targetType,
+        options.targetId,
+        options.kind ?? 'contributor',
+      );
     },
   );
 
@@ -554,7 +568,14 @@ export function registerTreeIpc(): void {
     'tree:deleteRecordSubmitter',
     async (
       _event,
-      options: { projectPath: string; id: string; submitterId: string; targetType: string; targetId: string },
+      options: {
+        projectPath: string;
+        id: string;
+        submitterId: string;
+        targetType: string;
+        targetId: string;
+        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+      },
     ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.deleteRecordSubmitter(
@@ -562,6 +583,7 @@ export function registerTreeIpc(): void {
         options.submitterId,
         options.targetType,
         options.targetId,
+        options.kind ?? 'contributor',
       );
     },
   );

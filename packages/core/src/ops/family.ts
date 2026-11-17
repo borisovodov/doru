@@ -56,6 +56,7 @@ export function deleteFamilyOp(
   nestedAttachments: NestedAttachments[] = [],
   facts: FactRecord[] = [],
   associations: AssociationRecord[] = [],
+  linkedFacts: FactRecord[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -72,6 +73,9 @@ export function deleteFamilyOp(
       }
       for (const association of associations) {
         ctx.repo.insertAssociation(association);
+      }
+      for (const fact of linkedFacts) {
+        ctx.repo.updateFact(fact);
       }
       ctx.repo.restoreAttachments(attachments);
       for (const link of linkAttachments) {

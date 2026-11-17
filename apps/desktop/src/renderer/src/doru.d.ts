@@ -191,12 +191,21 @@ declare global {
         projectPath: string,
         targetType: string,
         targetId: string,
-      ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+      ): Promise<
+        Array<{
+          id: string;
+          submitterId: string;
+          targetType: string;
+          targetId: string;
+          kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+        }>
+      >;
       addRecordSubmitter(
         projectPath: string,
         submitterId: string,
         targetType: string,
         targetId: string,
+        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
       ): Promise<UndoRedoState>;
       deleteRecordSubmitter(
         projectPath: string,
@@ -204,6 +213,7 @@ declare global {
         submitterId: string,
         targetType: string,
         targetId: string,
+        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
       ): Promise<UndoRedoState>;
       addAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
       updateAddress(projectPath: string, before: AddressRecord, after: AddressRecord): Promise<UndoRedoState>;

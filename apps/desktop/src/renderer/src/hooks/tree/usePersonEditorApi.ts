@@ -271,18 +271,29 @@ export function usePersonEditorApi(
       },
       getRecordSubmitters: (targetType, targetId) =>
         projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+      addRecordSubmitter: async (
+        submitterId,
+        targetType,
+        targetId,
+        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
+      ) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
-      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+      deleteRecordSubmitter: async (
+        id,
+        submitterId,
+        targetType,
+        targetId,
+        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
+      ) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
       getTagLinks: (targetType, targetId) =>

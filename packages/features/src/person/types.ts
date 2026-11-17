@@ -113,8 +113,19 @@ export interface PersonEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
   getPlaces(): Promise<PlaceRecord[]>;
   getAddresses(): Promise<AddressRecord[]>;
   addAddress(address: AddressRecord): Promise<AddressRecord>;
@@ -133,8 +144,19 @@ export interface SourceEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
 }
 
 /** The service surface the place tab needs from its host application. */
@@ -148,8 +170,19 @@ export interface PlaceEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
 }
 
 /** The service surface the registries view needs from its host application. */
@@ -166,8 +199,19 @@ export interface RegistriesEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
   addAddress(address: AddressRecord): Promise<void>;
   updateAddress(before: AddressRecord, after: AddressRecord): Promise<void>;
   deleteAddress(address: AddressRecord): Promise<void>;
@@ -184,8 +228,19 @@ export interface TitleEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
 }
 
 /** The service surface the task tab needs from its host application. */
@@ -195,8 +250,19 @@ export interface TodoEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
 }
 
 /** The service surface the family tab needs from its host application. */
@@ -220,6 +286,17 @@ export interface FamilyEditorApi extends AttachmentsApi {
     targetType: string,
     targetId: string,
   ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
+  addRecordSubmitter(
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+  ): Promise<void>;
 }

@@ -33,6 +33,7 @@ interface ChildRow {
   pedigree: string | null;
   pedigree_phrase: string | null;
   status: string | null;
+  status_phrase: string | null;
   father_relation: string | null;
   mother_relation: string | null;
   preferred: number;
@@ -190,8 +191,8 @@ export class FamilyRepo {
     this.db.prepare('DELETE FROM family_child WHERE family_id = ?').run(family.id);
     const insertChild = this.db.prepare(
       `INSERT INTO family_child (id, family_id, child_id, position, pedigree, pedigree_phrase, status,
-        father_relation, mother_relation, preferred, multiplicity)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status_phrase, father_relation, mother_relation, preferred, multiplicity)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     childLinks.forEach((link, position) => {
       if (personExists.get(link.childId) === undefined) {
@@ -206,6 +207,7 @@ export class FamilyRepo {
         link.pedigree ?? null,
         link.pedigreePhrase ?? null,
         link.status ?? null,
+        link.statusPhrase ?? null,
         link.fatherRelation ?? null,
         link.motherRelation ?? null,
         link.preferred === true ? 1 : 0,
@@ -254,6 +256,7 @@ export class FamilyRepo {
         pedigree: link.pedigree ?? undefined,
         pedigreePhrase: link.pedigree_phrase ?? undefined,
         status: link.status ?? undefined,
+        statusPhrase: link.status_phrase ?? undefined,
         fatherRelation: link.father_relation ?? undefined,
         motherRelation: link.mother_relation ?? undefined,
         preferred: link.preferred === 1 ? true : undefined,
@@ -285,8 +288,8 @@ export class FamilyRepo {
   private listChildRows(familyId: string): ChildRow[] {
     return this.db
       .prepare(
-        `SELECT id, child_id, position, pedigree, pedigree_phrase, status, father_relation, mother_relation,
-           preferred, multiplicity
+        `SELECT id, child_id, position, pedigree, pedigree_phrase, status, status_phrase,
+           father_relation, mother_relation, preferred, multiplicity
          FROM family_child WHERE family_id = ?`,
       )
       .all(familyId) as unknown as ChildRow[];

@@ -12,6 +12,7 @@ import type {
   PersonRecord,
   RepositoryRecord,
   RestrictionRecord,
+  RecordSubmitterLink,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
@@ -566,7 +567,7 @@ export function updateSubmitterOp(before: SubmitterRecord, after: SubmitterRecor
 
 /** Record links that the submitter FK cascade removes. */
 export interface SubmitterConsumers {
-  recordSubmitters?: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  recordSubmitters?: RecordSubmitterLink[];
 }
 
 export function deleteSubmitterOp(
@@ -583,7 +584,7 @@ export function deleteSubmitterOp(
         ctx.repo.insertSubmitter(submitter);
         ctx.repo.restoreAttachments(attachments);
         for (const link of consumers.recordSubmitters ?? []) {
-          ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId);
+          ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
         }
       },
     ),
@@ -592,23 +593,34 @@ export function deleteSubmitterOp(
 }
 
 /** Links a submitter as the contributor of a record (GEDCOM SUBM on INDI/FAM). */
-export function addRecordSubmitterOp(submitterId: string, targetType: string, targetId: string): Op {
+export function addRecordSubmitterOp(
+  submitterId: string,
+  targetType: string,
+  targetId: string,
+  kind: RecordSubmitterLink['kind'] = 'contributor',
+): Op {
   const id = crypto.randomUUID();
   return op(
     id,
     'record_submitter.add',
-    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId, kind),
     (ctx) => ctx.repo.deleteRecordSubmitter(id),
     { targetType, targetId, kind: 'changed' },
   );
 }
 
-export function deleteRecordSubmitterOp(id: string, submitterId: string, targetType: string, targetId: string): Op {
+export function deleteRecordSubmitterOp(
+  id: string,
+  submitterId: string,
+  targetType: string,
+  targetId: string,
+  kind: RecordSubmitterLink['kind'] = 'contributor',
+): Op {
   return op(
     crypto.randomUUID(),
     'record_submitter.delete',
     (ctx) => ctx.repo.deleteRecordSubmitter(id),
-    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId),
+    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId, kind),
     { targetType, targetId, kind: 'changed' },
   );
 }
