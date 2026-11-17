@@ -921,18 +921,48 @@ function mediaMime(path: string): string {
   return MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
 }
 
+/** The stored place text, or the place row's official name when only an id is set. */
+function mediaPlaceText(media: MediaRecord, repo: TreeRepository): string | undefined {
+  if (media.place !== undefined) {
+    return media.place;
+  }
+  const place = media.placeId !== undefined ? repo.getPlace(media.placeId) : undefined;
+  const names = place !== undefined ? officialPlaceNames(place) : [];
+  return names.length > 0 ? names.join(', ') : undefined;
+}
+
 function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs): MultimediaRecord {
   const restriction = repo
     .listRestrictionsFor('media', media.id)
     .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
+  const date = buildDate(media.date);
+  const place = mediaPlaceText(media, repo);
   return {
     tag: 'OBJE',
     xref: xrefs.of(media.id),
     ...(media.title !== undefined ? { title: media.title } : {}),
+    ...(date !== undefined ? { date } : {}),
+    ...(place !== undefined && place !== '' ? { place } : {}),
+    ...(media.objectType !== undefined ? { objectType: media.objectType } : {}),
+    ...(media.description !== undefined ? { description: media.description } : {}),
+    ...(media.keywords !== undefined ? { keywords: media.keywords } : {}),
     files: (media.files ?? []).map((file) => ({
       payload: file.path,
-      form: { payload: mediaMime(file.path) },
+      form: {
+        payload: mediaMime(file.path),
+        ...(file.medium !== undefined ? { medium: { payload: file.medium as import('@doru/gedcom').MediaEnum } } : {}),
+      },
       ...(file.title !== undefined ? { title: file.title } : {}),
+      ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
+      ...(file.text !== undefined ? { text: file.text } : {}),
+      ...(file.translations !== undefined && file.translations.length > 0
+        ? {
+            translations: file.translations.map((translation) => ({
+              payload: translation.path,
+              form: { payload: mediaMime(translation.path) },
+            })),
+          }
+        : {}),
     })),
     ...(withIdentifiers(repo, 'media', media.id).length > 0
       ? { identifiers: withIdentifiers(repo, 'media', media.id) }
@@ -977,9 +1007,13 @@ function withMediaLinks(
   targetId: string,
   xrefs: Xrefs,
 ): { media?: MultimediaLink[] } {
-  const links = repo
-    .listAttachmentsFor(targetType, targetId)
-    .mediaLinks.map((entry) => buildMediaLink(entry.link, xrefs));
+  const links = repo.listAttachmentsFor(targetType, targetId).mediaLinks.map((entry) => {
+    const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
+    return {
+      ...buildMediaLink(entry.link, xrefs),
+      ...(citations.length > 0 ? { citations } : {}),
+    };
+  });
   return links.length > 0 ? { media: links } : {};
 }
 

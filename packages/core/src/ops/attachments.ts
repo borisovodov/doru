@@ -234,6 +234,7 @@ export function attachMediaOp(
   media?: MediaRecord,
   attachments?: AttachmentsSnapshot,
   fileAttachments: NestedAttachments[] = [],
+  linkAttachments?: AttachmentsSnapshot,
 ): Op {
   return {
     ...op(
@@ -250,6 +251,9 @@ export function attachMediaOp(
           for (const nested of fileAttachments) {
             ctx.repo.restoreAttachments(nested.attachments);
           }
+        }
+        if (linkAttachments !== undefined) {
+          ctx.repo.restoreAttachments(linkAttachments);
         }
       },
     ),
@@ -274,6 +278,7 @@ export function detachMediaOp(
   media?: MediaRecord,
   attachments?: AttachmentsSnapshot,
   fileAttachments: NestedAttachments[] = [],
+  linkAttachments?: AttachmentsSnapshot,
 ): Op {
   return {
     ...op(
@@ -291,6 +296,9 @@ export function detachMediaOp(
           }
         } else {
           ctx.repo.addMediaLink(link.mediaId, link);
+        }
+        if (linkAttachments !== undefined) {
+          ctx.repo.restoreAttachments(linkAttachments);
         }
       },
     ),

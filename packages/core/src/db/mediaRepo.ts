@@ -1,10 +1,17 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { MediaFile, MediaLinkRecord, MediaRecord } from '../model/types';
+import type { MediaFile, MediaFileTranslation, MediaLinkRecord, MediaRecord } from '../model/types';
+import type { DateRepo } from './dateRepo';
 
 interface MediaRow {
   id: string;
   xref: string | null;
   title: string | null;
+  date_id: string | null;
+  place_id: string | null;
+  place_text: string | null;
+  object_type: string | null;
+  description: string | null;
+  keywords: string | null;
 }
 
 interface FileRow {
@@ -12,6 +19,16 @@ interface FileRow {
   media_id: string;
   path: string;
   title: string | null;
+  medium: string | null;
+  content_type: string | null;
+  text: string | null;
+  position: number;
+}
+
+interface TranslationRow {
+  id: string;
+  media_file_id: string;
+  path: string;
   position: number;
 }
 
@@ -40,36 +57,52 @@ interface LinkRow {
  * The flat `path`/`targetType`/`targetId` on the model are projections of
  * the first file and the first link.
  */
+const MEDIA_COLUMNS = `id, xref, title, date_id, place_id, place_text, object_type, description, keywords`;
+
 export class MediaRepo {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly dates: DateRepo,
+  ) {}
 
   /** Inserts the record with its files and links (or the flat projection as one file+link). */
   insertMedia(media: MediaRecord): void {
     this.db
-      .prepare('INSERT INTO media (id, xref, title) VALUES (?, ?, ?)')
-      .run(media.id, media.xref ?? null, media.title ?? null);
+      .prepare(
+        `INSERT INTO media (id, xref, title, date_id, place_id, place_text, object_type, description, keywords)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(...mediaParams(media, this.dates));
     this.replaceFiles(media);
     this.replaceLinks(media);
   }
 
   updateMedia(media: MediaRecord): void {
+    const old = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(media.id) as
+      | { date_id: string | null }
+      | undefined;
+    const params = mediaParams(media, this.dates);
     this.db
-      .prepare('UPDATE media SET xref = ?, title = ? WHERE id = ?')
-      .run(media.xref ?? null, media.title ?? null, media.id);
+      .prepare(
+        `UPDATE media SET xref = ?, title = ?, date_id = ?, place_id = ?, place_text = ?,
+           object_type = ?, description = ?, keywords = ? WHERE id = ?`,
+      )
+      .run(...params.slice(1), media.id);
+    this.deleteStaleDate(old?.date_id ?? null, params[3] as string | null);
     this.replaceFiles(media);
   }
 
   deleteMedia(id: string): boolean {
-    return this.db.prepare('DELETE FROM media WHERE id = ?').run(id).changes > 0;
+    return this.deleteMediaRow(id);
   }
 
   getMedia(id: string): MediaRecord | undefined {
-    const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(id) as MediaRow | undefined;
+    const row = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`).get(id) as MediaRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 
   listAllMedia(): MediaRecord[] {
-    const rows = this.db.prepare('SELECT id, xref, title FROM media ORDER BY id').all() as unknown as MediaRow[];
+    const rows = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media ORDER BY id`).all() as unknown as MediaRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
@@ -84,7 +117,7 @@ export class MediaRepo {
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: MediaRecord[] = [];
     for (const link of links) {
-      const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(link.media_id) as
+      const row = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`).get(link.media_id) as
         | MediaRow
         | undefined;
       if (row) {
@@ -105,7 +138,7 @@ export class MediaRepo {
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: Array<{ media: MediaRecord; link: MediaLinkRecord }> = [];
     for (const link of links) {
-      const row = this.db.prepare('SELECT id, xref, title FROM media WHERE id = ?').get(link.media_id) as
+      const row = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`).get(link.media_id) as
         | MediaRow
         | undefined;
       if (row) {
@@ -172,7 +205,7 @@ export class MediaRepo {
         n: number;
       };
       if (remaining.n === 0) {
-        this.db.prepare('DELETE FROM media WHERE id = ?').run(link.media_id);
+        this.deleteMediaRow(link.media_id);
       }
     }
     return result.changes > 0;
@@ -191,8 +224,26 @@ export class MediaRepo {
         n: number;
       };
       if (remaining.n === 0) {
-        this.db.prepare('DELETE FROM media WHERE id = ?').run(link.media_id);
+        this.deleteMediaRow(link.media_id);
       }
+    }
+  }
+
+  /** Deletes one media row and the date row it owns. */
+  private deleteMediaRow(id: string): boolean {
+    const row = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(id) as
+      | { date_id: string | null }
+      | undefined;
+    const changes = this.db.prepare('DELETE FROM media WHERE id = ?').run(id).changes;
+    if (changes > 0) {
+      this.deleteStaleDate(row?.date_id ?? null, null);
+    }
+    return changes > 0;
+  }
+
+  private deleteStaleDate(oldId: string | null, keptId: string | null): void {
+    if (oldId !== null && oldId !== keptId) {
+      this.dates.delete(oldId);
     }
   }
 
@@ -200,18 +251,39 @@ export class MediaRepo {
     const existing = this.db
       .prepare('SELECT id, path FROM media_file WHERE media_id = ? ORDER BY position')
       .all(media.id) as unknown as { id: string; path: string }[];
+    this.db
+      .prepare(
+        'DELETE FROM media_file_translation WHERE media_file_id IN (SELECT id FROM media_file WHERE media_id = ?)',
+      )
+      .run(media.id);
     this.db.prepare('DELETE FROM media_file WHERE media_id = ?').run(media.id);
     const insert = this.db.prepare(
-      'INSERT INTO media_file (id, media_id, path, title, position) VALUES (?, ?, ?, ?, ?)',
+      `INSERT INTO media_file (id, media_id, path, title, medium, content_type, text, position)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const insertTranslation = this.db.prepare(
+      'INSERT INTO media_file_translation (id, media_file_id, path, position) VALUES (?, ?, ?, ?)',
     );
     const fallbackId =
       media.path !== undefined
         ? (existing.find((entry) => entry.path === media.path)?.id ?? crypto.randomUUID())
         : crypto.randomUUID();
     const files: MediaFile[] = media.files ?? (media.path !== undefined ? [{ id: fallbackId, path: media.path }] : []);
-    files.forEach((file, position) => {
-      insert.run(file.id, media.id, file.path, file.title ?? null, position);
-    });
+    for (const [position, file] of files.entries()) {
+      insert.run(
+        file.id,
+        media.id,
+        file.path,
+        file.title ?? null,
+        file.medium ?? null,
+        file.contentType ?? null,
+        file.text ?? null,
+        position,
+      );
+      for (const translation of file.translations ?? []) {
+        insertTranslation.run(translation.id, file.id, translation.path, translation.position);
+      }
+    }
   }
 
   private replaceLinks(media: MediaRecord): void {
@@ -231,7 +303,10 @@ export class MediaRepo {
 
   private hydrate(row: MediaRow): MediaRecord {
     const files = this.db
-      .prepare('SELECT id, media_id, path, title, position FROM media_file WHERE media_id = ? ORDER BY position')
+      .prepare(
+        `SELECT id, media_id, path, title, medium, content_type, text, position
+         FROM media_file WHERE media_id = ? ORDER BY position`,
+      )
       .all(row.id) as unknown as FileRow[];
     const links = this.db
       .prepare(
@@ -246,6 +321,12 @@ export class MediaRepo {
       id: row.id,
       xref: row.xref ?? undefined,
       title: row.title ?? undefined,
+      ...(row.date_id !== null ? { date: this.dates.get(row.date_id) } : {}),
+      ...(row.place_id !== null ? { placeId: row.place_id } : {}),
+      ...(row.place_text !== null ? { place: row.place_text } : {}),
+      ...(row.object_type !== null ? { objectType: row.object_type } : {}),
+      ...(row.description !== null ? { description: row.description } : {}),
+      ...(row.keywords !== null ? { keywords: row.keywords } : {}),
       path: firstFile?.path,
       targetType: firstLink?.target_type,
       targetId: firstLink?.target_id,
@@ -253,10 +334,41 @@ export class MediaRepo {
         id: file.id,
         path: file.path,
         title: file.title ?? undefined,
+        ...(file.medium !== null ? { medium: file.medium } : {}),
+        ...(file.content_type !== null ? { contentType: file.content_type } : {}),
+        ...(file.text !== null ? { text: file.text } : {}),
+        translations: this.translationsFor(file.id),
       })),
       links: links.map(rowToLink),
     };
   }
+
+  private translationsFor(fileId: string): MediaFileTranslation[] {
+    const rows = this.db
+      .prepare(
+        'SELECT id, media_file_id, path, position FROM media_file_translation WHERE media_file_id = ? ORDER BY position',
+      )
+      .all(fileId) as unknown as TranslationRow[];
+    return rows.map((row) => ({
+      id: row.id,
+      path: row.path,
+      position: row.position,
+    }));
+  }
+}
+
+function mediaParams(media: MediaRecord, dates: DateRepo): Array<string | number | null> {
+  return [
+    media.id,
+    media.xref ?? null,
+    media.title ?? null,
+    media.date !== undefined ? dates.upsert(media.date) : null,
+    media.placeId ?? null,
+    media.place ?? null,
+    media.objectType ?? null,
+    media.description ?? null,
+    media.keywords ?? null,
+  ];
 }
 
 function linkParams(mediaId: string, link: MediaLinkRecord): Array<string | number | null> {

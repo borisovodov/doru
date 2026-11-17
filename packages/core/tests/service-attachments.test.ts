@@ -296,6 +296,39 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores media-link citations when detaching and deleting the record', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSource(source());
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
+      const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
+      fixture.repo.insertCitation({
+        id: 'C1',
+        sourceId: 'S1',
+        targetType: 'media_link',
+        targetId: link.id,
+        page: 'p. 1',
+      });
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
+
+      service.detachMedia(link);
+      expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
+      service.undo();
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
+
+      const media = fixture.repo.getMedia('M1')!;
+      service.deleteMedia(media);
+      expect(fixture.repo.getMedia('M1')).toBeUndefined();
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
+      service.undo();
+      expect(fixture.repo.getMedia('M1')).toBeDefined();
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates media records and link metadata with undo', () => {
     const { fixture, service } = makeService();
     try {

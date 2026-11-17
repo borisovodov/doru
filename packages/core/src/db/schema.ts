@@ -57,10 +57,12 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * `fact.primary_flag` for the AGES! `_PRI` marker, kept apart from the
  * Family Historian `_FLGS` flags in `fact_flag`; version 5 added
  * `person.death_status`, `family_child.status_phrase`,
- * `record_submitter.kind` and the `fact_family` event-family link. The
+ * `record_submitter.kind` and the `fact_family` event-family link; version 6
+ * added the historical media record and file metadata while leaving derived
+ * file facts (MIME, size, dimensions, EXIF) out of the database. The
  * pre-release scaffolds that preceded them are not counted.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -405,7 +407,13 @@ CREATE TABLE IF NOT EXISTS citation_template_field (
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,
   xref TEXT,
-  title TEXT
+  title TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
+  place_text TEXT,
+  object_type TEXT,       -- _TYPE: Photo | Sound | Video | Document ...
+  description TEXT,       -- _DSCR
+  keywords TEXT           -- _KEYS
 );
 
 CREATE TABLE IF NOT EXISTS media_file (
@@ -413,6 +421,17 @@ CREATE TABLE IF NOT EXISTS media_file (
   media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
   path TEXT NOT NULL,
   title TEXT,
+  medium TEXT,            -- FORM.MEDI
+  content_type TEXT,      -- _CTYP
+  text TEXT,              -- _TEXT transcription
+  position INTEGER NOT NULL
+);
+
+-- TRAN: the same media content in another digital format.
+CREATE TABLE IF NOT EXISTS media_file_translation (
+  id TEXT PRIMARY KEY,
+  media_file_id TEXT NOT NULL REFERENCES media_file(id) ON DELETE CASCADE,
+  path TEXT NOT NULL,
   position INTEGER NOT NULL
 );
 
@@ -645,6 +664,7 @@ CREATE INDEX IF NOT EXISTS idx_citation_target ON citation(target_type, target_i
 CREATE INDEX IF NOT EXISTS idx_citation_text_citation ON citation_text(citation_id);
 CREATE INDEX IF NOT EXISTS idx_citation_template_field_citation ON citation_template_field(citation_id);
 CREATE INDEX IF NOT EXISTS idx_media_file_media ON media_file(media_id, position);
+CREATE INDEX IF NOT EXISTS idx_media_file_translation_file ON media_file_translation(media_file_id, position);
 CREATE INDEX IF NOT EXISTS idx_media_link_media ON media_link(media_id);
 CREATE INDEX IF NOT EXISTS idx_media_link_target ON media_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitter_id);

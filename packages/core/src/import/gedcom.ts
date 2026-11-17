@@ -196,6 +196,10 @@ export function importGedcomDataset(
     importMediaRecords(dataset.records, ctx);
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
+    // OBJE citations reference SOUR records: import them after the sources
+    // exist, while still before persons/families (whose media links need
+    // the media ids registered above).
+    importMediaCitations(dataset.records, ctx);
     for (const record of dataset.records) {
       if (isIndividualRecord(record)) {
         importPerson(record, ctx);
@@ -1862,6 +1866,18 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
         id: crypto.randomUUID(),
         path: ctx.mediaPaths.get(file.payload) ?? file.payload,
         ...(file.title !== undefined ? { title: file.title } : {}),
+        ...(file.form?.medium !== undefined ? { medium: file.form.medium.payload } : {}),
+        ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
+        ...(file.text !== undefined ? { text: file.text } : {}),
+        ...(file.translations !== undefined && file.translations.length > 0
+          ? {
+              translations: file.translations.map((translation, position) => ({
+                id: crypto.randomUUID(),
+                path: ctx.mediaPaths.get(translation.payload) ?? translation.payload,
+                position,
+              })),
+            }
+          : {}),
       }));
     if (files.length === 0) {
       // A record with only FORM/BLOB (or an empty FILE) has no path to
@@ -1870,23 +1886,42 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       continue;
     }
     const id = crypto.randomUUID();
+    const placeId = record.place !== undefined ? ctx.placeIds.get(record.place) : undefined;
     ctx.repo.insertMedia({
       id,
       ...(record.xref !== undefined ? { xref: record.xref } : {}),
       ...(record.title !== undefined ? { title: record.title } : {}),
+      ...(record.date !== undefined ? { date: mapDate(record.date) } : {}),
+      ...(record.place !== undefined ? { place: record.place } : {}),
+      ...(placeId !== undefined ? { placeId } : {}),
+      ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
+      ...(record.description !== undefined ? { description: record.description } : {}),
+      ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
       files,
     });
     if (record.xref !== undefined) {
       ctx.mediaIds.set(record.xref, id);
     }
     importNotes(record.notes, 'media', id, ctx);
-    importCitations(record.citations, 'media', id, ctx);
     importIdentifiers(record.identifiers, 'media', id, ctx);
     importRestrictions(record.restriction, 'media', id, ctx);
     importChanges(record.changeDate, record.creationDate, 'media', id, ctx);
     importSubmitterLinks(record.submitters, 'media', id, ctx);
     for (const tagLink of record.tagLinks ?? []) {
       importTagLink(tagLink, 'media', id, ctx);
+    }
+  }
+}
+
+/** Imports OBJE record citations once the SOUR records have ids. */
+function importMediaCitations(records: GedcomRecord[], ctx: ImportContext): void {
+  for (const record of records) {
+    if (record.tag !== 'OBJE' || record.xref === undefined) {
+      continue;
+    }
+    const id = ctx.mediaIds.get(record.xref);
+    if (id !== undefined) {
+      importCitations(record.citations, 'media', id, ctx);
     }
   }
 }
@@ -1905,6 +1940,7 @@ function importMediaLinks(
         thumbnail?: boolean | undefined;
         excludeFromDiagrams?: boolean | undefined;
         caption?: boolean | undefined;
+        citations?: SourceCitation[] | undefined;
       }>
     | undefined,
   targetType: string,
@@ -1916,8 +1952,9 @@ function importMediaLinks(
     if (mediaId === undefined) {
       continue;
     }
+    const linkId = crypto.randomUUID();
     ctx.repo.addMediaLink(mediaId, {
-      id: crypto.randomUUID(),
+      id: linkId,
       mediaId,
       targetType,
       targetId,
@@ -1931,6 +1968,7 @@ function importMediaLinks(
       ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
       ...(link.caption !== undefined ? { caption: link.caption } : {}),
     });
+    importCitations(link.citations, 'media_link', linkId, ctx);
   }
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileImage, Image as ImageIcon, Paperclip, X } from 'lucide-react';
 import { isImagePath, type MediaFile, type MediaLinkRecord, type MediaRecord, type SourceRecord } from '@doru/core';
+import { placeName } from '@doru/core/model';
 import {
   Button,
   Checkbox,
@@ -11,13 +12,22 @@ import {
   Input,
   ReorderButtons,
   SectionCard,
+  Select,
+  Textarea,
 } from '@doru/ui';
+import { DateEditor, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
 import { nls } from '../nls';
-import { moveItem, taskTargetLabel, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
+import {
+  moveItem,
+  taskTargetLabel,
+  type MediaFileFacts,
+  type MediaWithPath,
+  type TaskTargetData,
+} from '@doru/ui/domain';
 import './MediaTab.css';
 
 export function MediaTab({
@@ -71,10 +81,26 @@ function MediaTabBody({
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(record.title ?? '');
+  const [date, setDate] = useState(() => toDateDraft(record.date));
+  const [place, setPlace] = useState(record.place ?? '');
+  const [placeId, setPlaceId] = useState(record.placeId ?? '');
+  const [objectType, setObjectType] = useState(record.objectType ?? '');
+  const [description, setDescription] = useState(record.description ?? '');
+  const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
 
   const save = async () => {
-    await api.updateMedia(record, { ...record, title: title.trim() || undefined });
+    const dateValue = fromDateDraft(date);
+    await api.updateMedia(record, {
+      ...record,
+      title: title.trim() || undefined,
+      date: dateValue !== undefined && record.date?.id !== undefined ? { ...dateValue, id: record.date.id } : dateValue,
+      place: place.trim() || undefined,
+      placeId: placeId || undefined,
+      objectType: objectType.trim() || undefined,
+      description: description.trim() || undefined,
+      keywords: keywords.trim() || undefined,
+    });
   };
 
   const remove = async () => {
@@ -141,6 +167,51 @@ function MediaTabBody({
         <Field label={nls.t('features.tree.media.titleField')}>
           <Input value={title} onChange={(event) => setTitle(event.target.value)} />
         </Field>
+        <DateEditor label={nls.t('features.tree.media.date')} value={date} onChange={setDate} hidePlace />
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.media.place')}>
+            <Select
+              value={placeId}
+              onChange={(event) => {
+                const value = event.target.value;
+                setPlaceId(value);
+                const selected = targetData.places.find((entry) => entry.id === value);
+                if (selected !== undefined) {
+                  setPlace(placeName(selected));
+                }
+              }}
+            >
+              <option value="">{nls.t('features.tasks.none')}</option>
+              {targetData.places.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {placeName(entry)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={nls.t('features.tree.media.placeText')}>
+            <Input
+              value={place}
+              onChange={(event) => {
+                setPlace(event.target.value);
+                if (placeId !== '') {
+                  setPlaceId('');
+                }
+              }}
+            />
+          </Field>
+        </FieldGrid>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.media.objectType')}>
+            <Input value={objectType} onChange={(event) => setObjectType(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.media.keywords')}>
+            <Input value={keywords} onChange={(event) => setKeywords(event.target.value)} />
+          </Field>
+        </FieldGrid>
+        <Field label={nls.t('features.tree.media.description')}>
+          <Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
+        </Field>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.media.files')}>
@@ -157,7 +228,10 @@ function MediaTabBody({
                 ) : (
                   <ImageIcon size={18} aria-hidden="true" />
                 )}
-                <span className="media-file-path">{file.path}</span>
+                <div className="media-file-meta">
+                  <span className="media-file-path">{file.path}</span>
+                  <span className="media-file-facts">{factsLabel(file.facts)}</span>
+                </div>
                 <Input
                   aria-label={nls.t('features.tree.media.fileTitle')}
                   placeholder={nls.t('features.tree.media.fileTitle')}
@@ -204,6 +278,8 @@ function MediaTabBody({
               link={link}
               targetLabel={taskTargetLabel(link.targetType, link.targetId, targetData)}
               canDetach={(record.links?.length ?? 0) > 1}
+              attachmentsApi={attachmentsApi}
+              sources={sources}
               onSave={(after) => api.updateMediaLink(link, after)}
               onDetach={async () => {
                 if ((record.links?.length ?? 0) > 1) {
@@ -227,16 +303,21 @@ function MediaLinkRow({
   link,
   targetLabel,
   canDetach,
+  attachmentsApi,
+  sources,
   onSave,
   onDetach,
 }: {
   link: MediaLinkRecord;
   targetLabel: string;
   canDetach: boolean;
+  attachmentsApi: AttachmentsPanelApi;
+  sources: SourceRecord[];
   onSave: (link: MediaLinkRecord) => Promise<void>;
   onDetach: () => Promise<void>;
 }) {
   const [draft, setDraft] = useState<MediaLinkRecord>(link);
+  const [showSources, setShowSources] = useState(false);
   const set = (patch: Partial<MediaLinkRecord>) => setDraft({ ...draft, ...patch });
 
   return (
@@ -310,7 +391,46 @@ function MediaLinkRow({
         <Button variant="secondary" size="sm" onClick={() => void onDetach()}>
           {canDetach ? nls.t('features.tree.media.detach') : nls.t('features.tree.fact.delete')}
         </Button>
+        <IconButton
+          size="sm"
+          label={nls.t('features.tree.media.linkSources')}
+          icon={<Paperclip size={13} aria-hidden="true" />}
+          onClick={() => setShowSources(!showSources)}
+        />
       </div>
+      {showSources && (
+        <AttachmentsPanel
+          targetType="media_link"
+          targetId={link.id}
+          api={attachmentsApi}
+          sources={sources}
+          sections={['sources']}
+        />
+      )}
     </li>
   );
+}
+
+function factsLabel(facts: MediaFileFacts | undefined): string {
+  if (facts === undefined) {
+    return nls.t('features.tree.media.facts.unknown');
+  }
+  const parts = [`${nls.t('features.tree.media.facts.format')}: ${facts.mime}`];
+  if (facts.size !== undefined) {
+    parts.push(`${nls.t('features.tree.media.facts.size')}: ${formatBytes(facts.size)}`);
+  }
+  if (facts.width !== undefined && facts.height !== undefined) {
+    parts.push(`${nls.t('features.tree.media.facts.dimensions')}: ${facts.width} × ${facts.height}`);
+  }
+  return parts.join(' · ');
+}
+
+function formatBytes(size: number): string {
+  if (size < 1024) {
+    return `${size} B`;
+  }
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }

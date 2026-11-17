@@ -4,13 +4,17 @@ import { dirname, extname, join } from 'node:path';
 import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
+import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
 
 const fs = new NodeFileSystem();
 
+export type { MediaFileFacts };
+
 export interface MediaFileWithPath extends MediaFile {
   absolutePath: string;
+  facts?: MediaFileFacts | undefined;
 }
 
 export interface MediaWithPath extends Omit<MediaRecord, 'files'> {
@@ -31,13 +35,16 @@ function mediaAbsolutePath(projectPath: string, mediaPath: string): string | nul
   return join(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
-function withPaths(projectPath: string, media: MediaRecord): MediaWithPath {
+async function withPaths(projectPath: string, media: MediaRecord): Promise<MediaWithPath> {
   const sourceFiles: MediaFile[] =
     media.files ?? (media.path !== undefined ? [{ id: media.id, path: media.path }] : []);
-  const files = sourceFiles.flatMap((file) => {
+  const files: MediaFileWithPath[] = [];
+  for (const file of sourceFiles) {
     const absolutePath = mediaAbsolutePath(projectPath, file.path);
-    return absolutePath === null ? [] : [{ ...file, absolutePath }];
-  });
+    if (absolutePath !== null) {
+      files.push({ ...file, absolutePath, facts: await readMediaFileFacts(absolutePath) });
+    }
+  }
   return {
     ...media,
     absolutePath: files[0]?.absolutePath ?? '',
@@ -64,13 +71,13 @@ export async function listMediaForTarget(
   targetId: string,
 ): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return runtime.service.listMediaFor(targetType, targetId).map((media) => withPaths(projectPath, media));
+  return Promise.all(runtime.service.listMediaFor(targetType, targetId).map((media) => withPaths(projectPath, media)));
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
 export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return runtime.service.listAllMedia().map((media) => withPaths(projectPath, media));
+  return Promise.all(runtime.service.listAllMedia().map((media) => withPaths(projectPath, media)));
 }
 
 export async function addMediaToTarget(
@@ -97,7 +104,7 @@ export async function addMediaToTarget(
       targetId,
     };
     runtime.service.addMedia(media);
-    added.push(withPaths(projectPath, media));
+    added.push(await withPaths(projectPath, media));
   }
   return added;
 }
@@ -121,7 +128,7 @@ export async function addStandaloneMedia(projectPath: string): Promise<MediaWith
       path: join(MEDIA_DIR_NAME, name),
     };
     runtime.service.addMedia(media);
-    added.push(withPaths(projectPath, media));
+    added.push(await withPaths(projectPath, media));
   }
   return added;
 }
@@ -151,7 +158,7 @@ export async function addFilesToMedia(projectPath: string, mediaId: string): Pro
     }
     const after: MediaRecord = { ...before, files: [...(before.files ?? []), ...added] };
     runtime.service.updateMedia(before, after);
-    return withPaths(projectPath, runtime.service.getMedia(mediaId) ?? after);
+    return await withPaths(projectPath, runtime.service.getMedia(mediaId) ?? after);
   } catch (error) {
     for (const destination of destinations) {
       try {
@@ -177,7 +184,7 @@ export async function removeFileFromMedia(
     return undefined;
   }
   runtime.service.updateMedia(before, { ...before, files });
-  await removeMediaFile(projectPath, file.path);
+  await removeMediaFileCopies(projectPath, file);
   return withPaths(projectPath, runtime.service.getMedia(media.id) ?? { ...before, files });
 }
 
@@ -190,9 +197,18 @@ export async function removeFileFromMedia(
  * treated as derived assets, not undoable state.
  */
 export async function removeMediaFiles(projectPath: string, media: MediaRecord): Promise<void> {
-  const paths = media.files?.map((file) => file.path) ?? (media.path !== undefined ? [media.path] : []);
-  for (const path of paths) {
-    await removeMediaFile(projectPath, path);
+  for (const file of media.files ?? []) {
+    await removeMediaFileCopies(projectPath, file);
+  }
+  if (media.path !== undefined && (media.files ?? []).length === 0) {
+    await removeMediaFile(projectPath, media.path);
+  }
+}
+
+async function removeMediaFileCopies(projectPath: string, file: MediaFile): Promise<void> {
+  await removeMediaFile(projectPath, file.path);
+  for (const translation of file.translations ?? []) {
+    await removeMediaFile(projectPath, translation.path);
   }
 }
 

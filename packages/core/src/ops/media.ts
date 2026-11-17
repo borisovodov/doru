@@ -39,6 +39,7 @@ export function deleteMediaOp(
   media: MediaRecord,
   attachments: AttachmentsSnapshot = emptyAttachments(),
   fileAttachments: NestedAttachments[] = [],
+  linkAttachments: NestedAttachments[] = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -52,6 +53,9 @@ export function deleteMediaOp(
       ctx.repo.insertMedia(media);
       ctx.repo.restoreAttachments(attachments);
       for (const nested of fileAttachments) {
+        ctx.repo.restoreAttachments(nested.attachments);
+      }
+      for (const nested of linkAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);
       }
     },

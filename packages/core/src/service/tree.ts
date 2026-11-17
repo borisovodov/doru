@@ -696,7 +696,12 @@ export class TreeService {
       targetId: file.id,
       attachments: this.repo.listAttachmentsFor('media_file', file.id),
     }));
-    return this.apply(deleteMediaOp(current, attachments, fileAttachments));
+    const linkAttachments = (current.links ?? []).map((link) => ({
+      targetType: 'media_link',
+      targetId: link.id,
+      attachments: this.repo.listAttachmentsFor('media_link', link.id),
+    }));
+    return this.apply(deleteMediaOp(current, attachments, fileAttachments, linkAttachments));
   }
 
   attachMedia(link: MediaLinkRecord): UndoRedoState {
@@ -722,7 +727,8 @@ export class TreeService {
       targetId: file.id,
       attachments: this.repo.listAttachmentsFor('media_file', file.id),
     }));
-    return this.apply(detachMediaOp(link, media, attachments, fileAttachments));
+    const linkAttachments = this.repo.listAttachmentsFor('media_link', link.id);
+    return this.apply(detachMediaOp(link, media, attachments, fileAttachments, linkAttachments));
   }
 
   // --- universal attachments --------------------------------------------------

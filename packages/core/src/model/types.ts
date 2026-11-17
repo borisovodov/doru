@@ -545,6 +545,20 @@ export interface MediaFile {
   id: string;
   path: string;
   title?: string | undefined;
+  /** FORM.MEDI: the historical medium (photograph, negative, digital, …). */
+  medium?: string | undefined;
+  /** _CTYP: person, group, place, tombstone, document, heirloom, … */
+  contentType?: string | undefined;
+  /** _TEXT: the file's transcription text. */
+  text?: string | undefined;
+  /** TRAN: the same content in another digital format. */
+  translations?: MediaFileTranslation[] | undefined;
+}
+
+export interface MediaFileTranslation {
+  id: string;
+  path: string;
+  position: number;
 }
 
 /** A media record attached to some target, with the link's usage details. */
@@ -575,6 +589,17 @@ export interface MediaRecord {
   /** Project-relative path under the media folder (first file). */
   path?: string | undefined;
   title?: string | undefined;
+  /** Historical media date (`_DATE`), not the file's EXIF timestamp. */
+  date?: DateValue | undefined;
+  /** Historical place (`PLAC`), as typed and optionally linked to a place row. */
+  place?: string | undefined;
+  placeId?: string | undefined;
+  /** _TYPE: Photo, Sound, Video, Document, … */
+  objectType?: string | undefined;
+  /** _DSCR: the media object's description. */
+  description?: string | undefined;
+  /** _KEYS: keywords of the media object. */
+  keywords?: string | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
   files?: MediaFile[] | undefined;
@@ -697,11 +722,20 @@ export interface RecordSubmitterLink {
   kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest' | undefined;
 }
 
+/** Attachments of a target nested inside a larger snapshot (e.g. a media link). */
+export interface NestedAttachmentSnapshot {
+  targetType: string;
+  targetId: string;
+  attachments: AttachmentsSnapshot;
+}
+
 /** Everything attached to one target, for op snapshots and cascades. */
 export interface AttachmentsSnapshot {
   noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
   citations: CitationRecord[];
   mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
+  /** Attachments of the media links above, restored with them. */
+  mediaLinkAttachments: NestedAttachmentSnapshot[];
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   restrictions: RestrictionRecord[];
@@ -716,6 +750,7 @@ export function emptyAttachments(): AttachmentsSnapshot {
     noteLinks: [],
     citations: [],
     mediaLinks: [],
+    mediaLinkAttachments: [],
     identifiers: [],
     contacts: [],
     restrictions: [],
@@ -804,6 +839,7 @@ export const TARGET_TYPES = [
   'note',
   'media',
   'media_file',
+  'media_link',
   'place',
   'place_name',
   'place_hierarchy',

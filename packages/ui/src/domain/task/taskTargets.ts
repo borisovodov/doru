@@ -119,6 +119,13 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
           label: `${mediaLabel(media)} · ${file.title ?? file.path}`,
         })),
       );
+    case 'media_link':
+      return data.media.flatMap((media) =>
+        (media.links ?? []).map((link) => ({
+          id: link.id,
+          label: `${mediaLabel(media)} · ${link.targetType}`,
+        })),
+      );
     case 'place':
       return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
     case 'place_name':

@@ -246,7 +246,7 @@ export class SqliteTreeRepository implements TreeRepository {
     this.places = new PlaceRepo(db, dates);
     this.sources = new SourceRepo(db, dates);
     this.notes = new NoteRepo(db);
-    this.media = new MediaRepo(db);
+    this.media = new MediaRepo(db, dates);
     this.attachments = new AttachmentRepo(db, dates);
     this.repositories = new RepositoryRepo(db);
     this.relations = new RelationRepo(db, dates);
@@ -713,6 +713,9 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.transactions.run(() => {
       const media = this.media.getMedia(id);
       this.deleteAttachmentsFor('media', id);
+      for (const link of media?.links ?? []) {
+        this.deleteAttachmentsFor('media_link', link.id);
+      }
       for (const file of media?.files ?? []) {
         this.deleteAttachmentsFor('media_file', file.id);
       }
@@ -731,6 +734,7 @@ export class SqliteTreeRepository implements TreeRepository {
   removeMediaLink(id: string): boolean {
     const mediaId = this.media.getMediaIdForLink(id);
     const media = mediaId !== undefined ? this.media.getMedia(mediaId) : undefined;
+    this.deleteAttachmentsFor('media_link', id);
     const removed = this.media.removeMediaLink(id);
     if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
       this.deleteAttachmentsFor('media', mediaId);
@@ -1036,10 +1040,16 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
+    const mediaLinks = this.media.listLinksFor(targetType, targetId);
     return {
       noteLinks: this.notes.listLinksFor(targetType, targetId),
       citations: this.sources.listCitations(targetType, targetId),
-      mediaLinks: this.media.listLinksFor(targetType, targetId),
+      mediaLinks,
+      mediaLinkAttachments: mediaLinks.map((entry) => ({
+        targetType: 'media_link',
+        targetId: entry.link.id,
+        attachments: this.listAttachmentsFor('media_link', entry.link.id),
+      })),
       identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
       restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
@@ -1053,7 +1063,11 @@ export class SqliteTreeRepository implements TreeRepository {
   deleteAttachmentsFor(targetType: string, targetId: string): void {
     this.notes.deleteLinksFor(targetType, targetId);
     this.sources.deleteCitationsFor(targetType, targetId);
-    const affectedMedia = this.media.listLinksFor(targetType, targetId).map((entry) => entry.media);
+    const links = this.media.listLinksFor(targetType, targetId);
+    for (const entry of links) {
+      this.deleteAttachmentsFor('media_link', entry.link.id);
+    }
+    const affectedMedia = links.map((entry) => entry.media);
     this.media.deleteLinksFor(targetType, targetId);
     for (const media of affectedMedia) {
       if (this.media.getMedia(media.id) === undefined) {
@@ -1087,6 +1101,9 @@ export class SqliteTreeRepository implements TreeRepository {
       } else {
         this.media.addMediaLink(entry.media.id, entry.link);
       }
+    }
+    for (const nested of snapshot.mediaLinkAttachments) {
+      this.restoreAttachments(nested.attachments);
     }
     for (const identifier of snapshot.identifiers) {
       this.attachments.insertIdentifier(identifier);

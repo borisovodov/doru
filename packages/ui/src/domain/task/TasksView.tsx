@@ -151,6 +151,11 @@ export function TasksView({
         open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
         break;
       }
+      case 'media_link': {
+        const record = media.find((entry) => (entry.links ?? []).some((link) => link.id === id));
+        open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
+        break;
+      }
       case 'place':
         open = () => onOpenPlace(id);
         break;

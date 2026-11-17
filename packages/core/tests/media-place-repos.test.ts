@@ -57,6 +57,73 @@ describe('media repo edge cases', () => {
       cleanupRepo(fixture);
     }
   });
+
+  it('round-trips historical fields, file metadata, translations and link citations', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo, store } = fixture;
+      repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
+      repo.insertSource({ id: 'S1', title: 'Source' });
+      repo.insertMedia({
+        id: 'M1',
+        title: 'Portrait',
+        date: { quality: 'exact', component: { year: 1900 } },
+        place: 'Moscow',
+        placeId: 'PL1',
+        objectType: 'Photo',
+        description: 'Studio portrait',
+        keywords: 'family, portrait',
+        targetType: 'person',
+        targetId: 'P1',
+        files: [
+          {
+            id: 'F1',
+            path: 'media/a.jpg',
+            title: 'File title',
+            medium: 'photograph',
+            contentType: 'person',
+            text: 'Transcription',
+            translations: [{ id: 'T1', path: 'media/a.png', position: 0 }],
+          },
+        ],
+      });
+
+      const read = repo.getMedia('M1')!;
+      expect(read).toMatchObject({
+        title: 'Portrait',
+        place: 'Moscow',
+        placeId: 'PL1',
+        objectType: 'Photo',
+        description: 'Studio portrait',
+        keywords: 'family, portrait',
+      });
+      expect(read.date).toMatchObject({ quality: 'exact', component: { year: 1900 } });
+      expect(read.files?.[0]).toMatchObject({
+        id: 'F1',
+        title: 'File title',
+        medium: 'photograph',
+        contentType: 'person',
+        text: 'Transcription',
+        translations: [{ id: 'T1', path: 'media/a.png', position: 0 }],
+      });
+
+      const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
+      repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_link', targetId: link.id });
+      expect(repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.id)).toEqual(['C1']);
+      expect(repo.listAttachmentsFor('person', 'P1').mediaLinkAttachments[0]?.attachments.citations).toHaveLength(1);
+
+      repo.updateMedia({ id: 'M1', title: 'Renamed' });
+      expect(repo.getMedia('M1')?.date).toBeUndefined();
+      expect(repo.getMedia('M1')?.files).toEqual([]);
+      expect((store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(0);
+
+      repo.deleteAttachmentsFor('person', 'P1');
+      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });
 
 describe('place repo edge cases', () => {
