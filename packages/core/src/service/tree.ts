@@ -574,24 +574,7 @@ export class TreeService {
       });
     }
     const attachments = this.repo.listAttachmentsFor('place', place.id);
-    const crossMedia = this.repo.listCrossTargetMediaAttachments([
-      { targetType: 'place', targetId: place.id },
-      ...place.names.map((name) => ({ targetType: 'place_name', targetId: name.id })),
-      ...hierarchyLinks.map((link) => ({ targetType: 'place_hierarchy', targetId: link.id })),
-    ]);
-    return this.apply(
-      deletePlaceOp(
-        place,
-        facts,
-        {
-          ...attachments,
-          mediaAttachments: [...attachments.mediaAttachments, ...crossMedia.mediaAttachments],
-          mediaFileAttachments: [...attachments.mediaFileAttachments, ...crossMedia.mediaFileAttachments],
-        },
-        { families, sources, childPlaces, media },
-        nested,
-      ),
-    );
+    return this.apply(deletePlaceOp(place, facts, attachments, { families, sources, childPlaces, media }, nested));
   }
 
   // --- sources and citations ------------------------------------------------
@@ -1078,19 +1061,6 @@ export class TreeService {
         });
       }
     }
-    if (removed[0] !== undefined) {
-      const cross = this.repo.listCrossTargetMediaAttachments(
-        removed.map((entry) => ({ targetType: entry.targetType, targetId: entry.targetId })),
-      );
-      removed[0] = {
-        ...removed[0],
-        attachments: {
-          ...removed[0].attachments,
-          mediaAttachments: [...removed[0].attachments.mediaAttachments, ...cross.mediaAttachments],
-          mediaFileAttachments: [...removed[0].attachments.mediaFileAttachments, ...cross.mediaFileAttachments],
-        },
-      };
-    }
     return removed;
   }
 
@@ -1116,19 +1086,6 @@ export class TreeService {
           attachments: this.repo.listAttachmentsFor('place_hierarchy', link.id),
         });
       }
-    }
-    if (removed[0] !== undefined) {
-      const cross = this.repo.listCrossTargetMediaAttachments(
-        removed.map((entry) => ({ targetType: entry.targetType, targetId: entry.targetId })),
-      );
-      removed[0] = {
-        ...removed[0],
-        attachments: {
-          ...removed[0].attachments,
-          mediaAttachments: [...removed[0].attachments.mediaAttachments, ...cross.mediaAttachments],
-          mediaFileAttachments: [...removed[0].attachments.mediaFileAttachments, ...cross.mediaFileAttachments],
-        },
-      };
     }
     return removed;
   }

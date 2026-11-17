@@ -307,6 +307,10 @@ export class MediaRepo {
     }
   }
 
+  hasFile(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM media_file WHERE id = ?').get(id) !== undefined;
+  }
+
   private hydrate(row: MediaRow): MediaRecord {
     const files = this.db
       .prepare(
