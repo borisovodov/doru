@@ -21,6 +21,15 @@ reviews:
   # still works if a pull request asks for it explicitly.
   high_level_summary: false
   collapse_walkthrough: true
+  # The walkthrough comment itself is mandatory, but its optional sections are
+  # not: on small changes they added 10-13 KB of boilerplate per review.
+  changed_files_summary: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  review_status: false
+  review_info: false
   sequence_diagrams: false
   poem: false
   in_progress_fortune: false
@@ -55,47 +64,83 @@ reviews:
     - '!**/*.woff2'
 
   pre_merge_checks:
+    # Every pre-merge check adds a block to the walkthrough. The title rule and
+    # the no-migrations rule are documented in AGENTS.md, loaded through
+    # knowledge_base, and verified by maintainers during review.
     title:
-      mode: warning
-      requirements: >-
-        Write the title as a plain sentence a non-technical reader understands:
-        GitHub release notes are generated from merged PR titles and double as
-        the user-facing changelog. No conventional-commit or area prefixes
-        (feat:, fix:, chore:, docs:, ci:, style:, website:, …), no ticket ids at
-        the start. English, imperative or descriptive, roughly under 80
-        characters.
+      mode: 'off'
     description:
-      mode: warning
+      mode: 'off'
     issue_assessment:
       mode: 'off'
-    custom_checks:
-      - name: No format migrations
-        mode: warning
-        instructions: |
-          Pass when the pull request adds no code that upgrades, converts or
-          reads older on-disk formats: tree documents, the SQLite schema,
-          settings, themes, exports. Before 1.0.0 the project deliberately
-          breaks formats instead of migrating them, and formats written by
-          older versions are expected to be unreadable.
-          Fail when a change introduces a versioned migration, a compatibility
-          reader, or a fallback for a previous file layout.
+
+  finishing_touches:
+    unit_tests:
+      enabled: false
 
   tools:
-    # Oxlint, Stylelint and Oxfmt are the only style/lint gates in CI; running
-    # other JS linters here would produce duplicate, conflicting comments.
+    # CI runs the authoritative toolchain: Oxlint with type-aware rules,
+    # Stylelint, Oxfmt, tsc, Vitest, the nls/schema/notices guards and
+    # Playwright. The bot's bundled tools duplicate that work, lag behind the
+    # pinned versions and occasionally fail on the repository configuration
+    # (CodeRabbit ships Oxlint 1.89, which cannot read `options.typeAware`), so
+    # every tool that can run on a TypeScript repository is disabled.
     eslint:
       enabled: false
     biome:
       enabled: false
     markdownlint:
       enabled: false
-    # CodeRabbit bundles Oxlint 1.89, which cannot read this repository's
-    # type-aware configuration (`.oxlintrc.json` sets `options.typeAware`, and
-    # CI runs Oxlint 1.93 with `--type-aware`). The tool aborts before it can
-    # produce JSON, so disable it instead of reviewing a tool error on every
-    # pull request.
     oxc:
       enabled: false
+    ast-grep:
+      enabled: false
+    stylelint:
+      enabled: false
+    htmlhint:
+      enabled: false
+    reactDoctor:
+      enabled: false
+    dotenvLint:
+      enabled: false
+    shellcheck:
+      enabled: false
+    actionlint:
+      enabled: false
+    zizmor:
+      enabled: false
+    yamllint:
+      enabled: false
+    hadolint:
+      enabled: false
+    checkmake:
+      enabled: false
+    skillspector:
+      enabled: false
+    sqlfluff:
+      enabled: false
+    squawk:
+      enabled: false
+    osvScanner:
+      enabled: false
+    trivy:
+      enabled: false
+    semgrep:
+      enabled: false
+    opengrep:
+      enabled: false
+    presidio:
+      enabled: false
+    vale:
+      enabled: false
+    languagetool:
+      enabled: false
+    # Secret scanning is the one exception: it duplicates no CI step and stays
+    # silent unless it finds a credential in the diff.
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
 
   path_instructions:
     - path: 'packages/core/**'
