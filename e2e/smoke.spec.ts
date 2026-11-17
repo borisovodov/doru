@@ -29,6 +29,7 @@ test('Search shortcut opens the sidebar and appears in the activity tooltip', as
   const tooltip = page.getByRole('tooltip');
   await expect(tooltip).toContainText('Search');
   await expect(tooltip).toContainText(isMac ? '⌘⇧F' : 'Ctrl+Shift+F');
+  expect(await searchButton.getAttribute('aria-describedby')).toBe('activity-bar-tooltip');
 
   await page.keyboard.press(isMac ? 'Meta+Shift+F' : 'Control+Shift+F');
   await expect(page.getByRole('complementary', { name: 'Search' })).toBeVisible();

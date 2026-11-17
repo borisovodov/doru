@@ -17,6 +17,8 @@ export interface ActivityBarProps {
  *  macOS, so the activity bar draws its own. */
 const TOOLTIP_DELAY_MS = 600;
 
+const TOOLTIP_ID = 'activity-bar-tooltip';
+
 const ICON_SIZE = 24;
 
 export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcuts }: ActivityBarProps) {
@@ -101,6 +103,8 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
     },
   ];
 
+  const describedBy = (label: string): string | undefined => (tooltip?.label === label ? TOOLTIP_ID : undefined);
+
   return (
     <nav className="activity-bar" aria-label={nls.t('workbench.activityBar.label')}>
       {views.map((view) => (
@@ -111,6 +115,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
           label={view.title}
           icon={view.icon}
           aria-current={view.id === activeView ? 'page' : undefined}
+          aria-describedby={describedBy(view.title)}
           onClick={() => onSelectView(view.id)}
           {...tooltipHandlers(view.title, view.shortcut)}
         />
@@ -120,11 +125,12 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
         size="nav"
         label={nls.t('workbench.activityBar.settings')}
         icon={<Settings size={ICON_SIZE} aria-hidden="true" />}
+        aria-describedby={describedBy(nls.t('workbench.activityBar.settings'))}
         onClick={onOpenSettings}
         {...tooltipHandlers(nls.t('workbench.activityBar.settings'))}
       />
       {tooltip && (
-        <div className="activity-tooltip" style={{ top: tooltip.top }} role="tooltip">
+        <div id={TOOLTIP_ID} className="activity-tooltip" style={{ top: tooltip.top }} role="tooltip">
           <span>{tooltip.label}</span>
           {tooltip.shortcut !== undefined && <Kbd>{tooltip.shortcut}</Kbd>}
         </div>
