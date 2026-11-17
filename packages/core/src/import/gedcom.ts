@@ -79,6 +79,8 @@ import type {
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
  *   `_ALIA` duplicate-candidate records (they carry a single person pointer
  *   and have no second-person slot in our model).
+ * - the 5.5.1-only `RFN`/`AFN` person identifiers: neither has a 7.0
+ *   spelling, and the tree has no matching identifier namespace.
  * Whole dropped vendor record types are counted into `droppedStructures`;
  * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
  * and are not counted.
@@ -690,6 +692,9 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   importCitations(record.citations, 'person', id, ctx);
   importCitations(record.sexCitations, 'person_sex', id, ctx);
   importNotes(record.notes, 'person', id, ctx);
+  // RFN/AFN are 5.5.1-only person identifiers (removed in 7.0). They have
+  // no matching identifier namespace and no 7.0 export form, so they are
+  // deliberately not imported. See docs/decisions.md.
   importIdentifiers(record.identifiers, 'person', id, ctx);
   importMediaLinks(record.media, 'person', id, ctx);
   if (record.sosaNumber !== undefined) {
