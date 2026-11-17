@@ -75,21 +75,68 @@ reviews:
       enabled: false
 
   tools:
-    # Oxlint, Stylelint and Oxfmt are the only style/lint gates in CI; running
-    # other JS linters here would produce duplicate, conflicting comments.
+    # CI runs the authoritative toolchain: Oxlint with type-aware rules,
+    # Stylelint, Oxfmt, tsc, Vitest, the nls/schema/notices guards and
+    # Playwright. The bot's bundled tools duplicate that work, lag behind the
+    # pinned versions and occasionally fail on the repository configuration
+    # (CodeRabbit ships Oxlint 1.89, which cannot read `options.typeAware`), so
+    # every tool that can run on a TypeScript repository is disabled.
     eslint:
       enabled: false
     biome:
       enabled: false
     markdownlint:
       enabled: false
-    # CodeRabbit bundles Oxlint 1.89, which cannot read this repository's
-    # type-aware configuration (`.oxlintrc.json` sets `options.typeAware`, and
-    # CI runs Oxlint 1.93 with `--type-aware`). The tool aborts before it can
-    # produce JSON, so disable it instead of reviewing a tool error on every
-    # pull request.
     oxc:
       enabled: false
+    ast-grep:
+      enabled: false
+    stylelint:
+      enabled: false
+    htmlhint:
+      enabled: false
+    reactDoctor:
+      enabled: false
+    dotenvLint:
+      enabled: false
+    shellcheck:
+      enabled: false
+    actionlint:
+      enabled: false
+    zizmor:
+      enabled: false
+    yamllint:
+      enabled: false
+    hadolint:
+      enabled: false
+    checkmake:
+      enabled: false
+    skillspector:
+      enabled: false
+    sqlfluff:
+      enabled: false
+    squawk:
+      enabled: false
+    osvScanner:
+      enabled: false
+    trivy:
+      enabled: false
+    semgrep:
+      enabled: false
+    opengrep:
+      enabled: false
+    presidio:
+      enabled: false
+    vale:
+      enabled: false
+    languagetool:
+      enabled: false
+    # Secret scanning is the one exception: it duplicates no CI step and stays
+    # silent unless it finds a credential in the diff.
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
 
   path_instructions:
     - path: 'packages/core/**'
