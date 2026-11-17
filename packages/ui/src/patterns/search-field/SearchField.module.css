@@ -1,11 +1,11 @@
 .field {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--doru-space-1);
   width: 100%;
   height: var(--doru-control-height);
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 var(--doru-space-3);
   box-sizing: border-box;
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);

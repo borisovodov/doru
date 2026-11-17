@@ -1,11 +1,11 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-3);
   width: 100%;
   box-sizing: border-box;
   min-width: 0;
-  padding: 5px 6px;
+  padding: var(--doru-space-1) var(--doru-space-2);
   background: transparent;
   border: none;
   border-radius: var(--doru-radius-sm);

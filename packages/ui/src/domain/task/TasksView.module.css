@@ -1,60 +1,60 @@
 /* ── Tasks sidebar list and the shared task editor fields ──────────── */
 
-.tasks-view {
+.tasksView {
   display: flex;
   flex-direction: column;
 }
 
-.task-item {
+.taskItem {
   background: transparent;
   border: none;
   border-radius: var(--doru-radius-sm);
 }
 
-.task-item:hover {
+.taskItem:hover {
   background: var(--doru-overlay-hover);
 }
 
-.task-item.selected,
-.task-item.selected:hover {
+.taskItem.selected,
+.taskItem.selected:hover {
   background: var(--doru-accent-alpha);
 }
 
-.task-row {
+.taskRow {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-2);
   align-items: flex-start;
-  padding: 6px;
+  padding: var(--doru-space-2);
   cursor: pointer;
 }
 
-.task-row-body {
+.taskRowBody {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
 }
 
-.task-row-text {
+.taskRowText {
   font-size: 12px;
   color: var(--doru-fg);
   overflow-wrap: anywhere;
 }
 
-.task-row-text.closed {
+.taskRowText.closed {
   text-decoration: line-through;
   color: var(--doru-fg-muted);
 }
 
-.task-row-meta {
+.taskRowMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--doru-space-1);
 }
 
-.task-chip {
+.taskChip {
   display: inline-block;
-  padding: 0 6px;
+  padding: 0 var(--doru-space-2);
   background: var(--doru-accent-alpha);
   border-radius: 999px;
   font-size: 11px;
@@ -64,11 +64,11 @@
   line-height: 16px;
 }
 
-button.task-chip-link {
+.taskChipLink {
   cursor: pointer;
 }
 
-button.task-chip-link:hover {
+.taskChipLink:hover {
   background: var(--doru-accent-hover);
   color: var(--doru-fg);
 }

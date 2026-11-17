@@ -1,11 +1,11 @@
 .card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-3);
   width: 100%;
   box-sizing: border-box;
   min-width: 0;
-  padding: 6px 8px;
+  padding: var(--doru-space-2) var(--doru-space-3);
   background: var(--doru-bg-raised);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);

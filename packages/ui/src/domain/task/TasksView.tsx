@@ -16,11 +16,12 @@ import type {
 } from '@doru/core';
 import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
+import { cx } from '../../lib/cx';
 import { SideBarEmpty } from '../../patterns/side-bar-empty/SideBarEmpty';
 import { SideBarList } from '../../patterns/side-bar-list/SideBarList';
 import { nls } from '../../nls';
 import { taskTargetLabel, type TaskTargetData } from './taskTargets';
-import './TasksView.css';
+import styles from './TasksView.module.css';
 
 /**
  * The Tasks sidebar view: the read-only task list. A click opens the task
@@ -182,7 +183,7 @@ export function TasksView({
   };
 
   return (
-    <div className="tasks-view">
+    <div className={styles['tasksView']}>
       {sorted.length === 0 ? (
         <SideBarEmpty>{nls.t('features.tasks.empty')}</SideBarEmpty>
       ) : (
@@ -190,11 +191,11 @@ export function TasksView({
           {sorted.map((todo) => {
             const related = target(todo);
             return (
-              <li key={todo.id} className={todo.id === selectedId ? 'task-item selected' : 'task-item'}>
-                <div className="task-row" onClick={() => onOpenTask(todo.id)}>
-                  <span className="task-row-body">
-                    <span className={isClosed(todo) ? 'task-row-text closed' : 'task-row-text'}>{todo.text}</span>
-                    <span className="task-row-meta">
+              <li key={todo.id} className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}>
+                <div className={styles['taskRow']} onClick={() => onOpenTask(todo.id)}>
+                  <span className={styles['taskRowBody']}>
+                    <span className={cx(styles['taskRowText'], isClosed(todo) && styles['closed'])}>{todo.text}</span>
+                    <span className={styles['taskRowMeta']}>
                       {todo.priority !== undefined && (
                         <Chip variant="neutral">
                           {todo.priority === 'low'
@@ -218,7 +219,7 @@ export function TasksView({
                         (related.open !== undefined ? (
                           <button
                             type="button"
-                            className="task-chip task-chip-link"
+                            className={cx(styles['taskChip'], styles['taskChipLink'])}
                             onClick={(event) => {
                               event.stopPropagation();
                               related.open?.();

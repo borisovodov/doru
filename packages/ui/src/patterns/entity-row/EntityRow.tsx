@@ -49,6 +49,7 @@ export function EntityRow({
       <button
         type="button"
         className={cx(styles['row'], styles['clickable'], selected && styles['selected'], className)}
+        aria-current={selected ? 'true' : undefined}
         onClick={onClick}
       >
         {content}
@@ -56,5 +57,12 @@ export function EntityRow({
     );
   }
 
-  return <div className={cx(styles['row'], selected && styles['selected'], className)}>{content}</div>;
+  return (
+    <div
+      className={cx(styles['row'], selected && styles['selected'], className)}
+      aria-current={selected ? 'true' : undefined}
+    >
+      {content}
+    </div>
+  );
 }
