@@ -65,7 +65,9 @@ export class ResearchRepo {
   }
 
   setTodoRepositoryId(id: string, repositoryId: string | undefined): void {
-    this.db.prepare('UPDATE todo SET repository_id = ? WHERE id = ?').run(repositoryId ?? null, id);
+    this.db
+      .prepare('UPDATE todo SET repository_id = ? WHERE id = ? AND repository_id IS NULL')
+      .run(repositoryId ?? null, id);
   }
 
   deleteTodo(id: string): boolean {
@@ -174,7 +176,9 @@ export class ResearchRepo {
   }
 
   setTitleRepositoryId(id: string, repositoryId: string | undefined): void {
-    this.db.prepare('UPDATE title SET repository_id = ? WHERE id = ?').run(repositoryId ?? null, id);
+    this.db
+      .prepare('UPDATE title SET repository_id = ? WHERE id = ? AND repository_id IS NULL')
+      .run(repositoryId ?? null, id);
   }
 
   deleteTitle(id: string): boolean {

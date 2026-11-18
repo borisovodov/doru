@@ -98,6 +98,11 @@ export class MediaRepo {
     });
   }
 
+  /** Reconnects a surviving media record to its place after a place-delete undo. */
+  setPlaceId(id: string, placeId: string | undefined): void {
+    this.db.prepare('UPDATE media SET place_id = ? WHERE id = ? AND place_id IS NULL').run(placeId ?? null, id);
+  }
+
   deleteMedia(id: string): boolean {
     return this.transactions.run(() => this.deleteMediaRow(id));
   }
@@ -325,6 +330,7 @@ export class MediaRepo {
          FROM media_link WHERE media_id = ? ORDER BY sequence, id`,
       )
       .all(row.id) as unknown as LinkRow[];
+    const translationsByFile = this.translationsForFiles(files.map((file) => file.id));
     const firstFile = files[0];
     const firstLink = links[0];
     return {
@@ -347,23 +353,30 @@ export class MediaRepo {
         ...(file.medium !== null ? { medium: file.medium } : {}),
         ...(file.content_type !== null ? { contentType: file.content_type } : {}),
         ...(file.text !== null ? { text: file.text } : {}),
-        translations: this.translationsFor(file.id),
+        translations: translationsByFile.get(file.id) ?? [],
       })),
       links: links.map(rowToLink),
     };
   }
 
-  private translationsFor(fileId: string): MediaFileTranslation[] {
+  private translationsForFiles(fileIds: string[]): Map<string, MediaFileTranslation[]> {
+    const byFile = new Map<string, MediaFileTranslation[]>();
+    if (fileIds.length === 0) {
+      return byFile;
+    }
+    const placeholders = fileIds.map(() => '?').join(', ');
     const rows = this.db
       .prepare(
-        'SELECT id, media_file_id, path, position FROM media_file_translation WHERE media_file_id = ? ORDER BY position',
+        `SELECT id, media_file_id, path, position FROM media_file_translation
+         WHERE media_file_id IN (${placeholders}) ORDER BY position`,
       )
-      .all(fileId) as unknown as TranslationRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      path: row.path,
-      position: row.position,
-    }));
+      .all(...fileIds) as unknown as TranslationRow[];
+    for (const row of rows) {
+      const list = byFile.get(row.media_file_id) ?? [];
+      list.push({ id: row.id, path: row.path, position: row.position });
+      byFile.set(row.media_file_id, list);
+    }
+    return byFile;
   }
 }
 

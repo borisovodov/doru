@@ -180,4 +180,77 @@ describe('P1 GEDCOM export gaps', () => {
       cleanupRepo(fixture);
     }
   });
+  it('pads task years below 1000 when exporting _TCDT', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertTodo({
+        id: 'T1',
+        text: 'Ancient task',
+        createdDate: { quality: 'exact', component: { year: 999, month: 11, day: 17 } },
+      });
+      const serialized = serializeGedcom70(buildGedcomDataset(repo));
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      expect(serialized.value).toContain('_TCDT 0999-11-17');
+
+      const target = makeRepo();
+      try {
+        importGedcomDataset(parseDataset(serialized.value), target.repo);
+        expect(target.repo.listTodos()[0]?.createdDate).toMatchObject({
+          quality: 'exact',
+          component: { year: 999, month: 11, day: 17 },
+        });
+      } finally {
+        cleanupRepo(target);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('ties the adoption marker to the exported partner slot', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'P2', names: [], sex: 'F', facts: [] });
+      repo.insertPerson({ id: 'P3', names: [], sex: 'F', facts: [] });
+      repo.insertFamily({ id: 'F1', partners: ['P2'], children: ['P1'] });
+      repo.insertFamily({ id: 'F2', partners: ['P2', 'P3'], children: ['P1'] });
+      repo.updatePerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          {
+            id: 'ADOP1',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'WIFE', position: 0 }],
+          },
+          {
+            id: 'ADOP2',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [{ id: 'FF2', familyId: 'F2', adoptedBy: 'WIFE', position: 0 }],
+          },
+        ],
+      });
+
+      for (const serialize of [serializeGedcom70, serializeGedcom551]) {
+        const serialized = serialize(buildGedcomDataset(repo));
+        expect(serialized.ok).toBe(true);
+        if (!serialized.ok) {
+          continue;
+        }
+        expect(serialized.value).toContain(`3 ADOP HUSB`);
+        expect(serialized.value).toContain(`3 ADOP WIFE`);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });

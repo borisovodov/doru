@@ -160,17 +160,26 @@ export function PersonEditor({
     void api.getFamilies().then((loaded) => {
       if (!cancelled) setFamilies(loaded);
     });
-    void Promise.all([
-      api.getCitations('person', draft.id),
-      api.getCitations('person_sex', draft.id),
-      api.getSources(),
-    ]).then(([loadedCitations, loadedSexCitations, loadedSources]) => {
-      if (!cancelled) {
-        setCitations(loadedCitations);
-        setSexCitations(loadedSexCitations);
-        setSources(loadedSources);
-      }
-    });
+    void Promise.all([api.getCitations('person', draft.id), api.getSources()]).then(
+      ([loadedCitations, loadedSources]) => {
+        if (!cancelled) {
+          setCitations(loadedCitations);
+          setSources(loadedSources);
+        }
+      },
+    );
+    void api
+      .getCitations('person_sex', draft.id)
+      .then((loadedSexCitations) => {
+        if (!cancelled) {
+          setSexCitations(loadedSexCitations);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSexCitations([]);
+        }
+      });
     void api.getAssociations(draft.id).then((loaded) => {
       if (!cancelled) setAssociations(loaded);
     });

@@ -199,6 +199,64 @@ export function placeDraftToRecord(draft: PlaceDraft, existing?: PlaceRecord): P
   };
 }
 
+function placeRowsEqual<T>(left: T, right: T): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function mergePlaceRows<T extends { id: string }>(draftRows: T[], previousRows: T[], refreshedRows: T[]): T[] {
+  const previousById = new Map(previousRows.map((row) => [row.id, row]));
+  const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
+  const draftIds = new Set(draftRows.map((row) => row.id));
+  const merged: T[] = [];
+  for (const row of draftRows) {
+    const previous = previousById.get(row.id);
+    if (previous === undefined || !placeRowsEqual(row, previous)) {
+      merged.push(row);
+      continue;
+    }
+    const refreshed = refreshedById.get(row.id);
+    if (refreshed !== undefined) {
+      merged.push(refreshed);
+    }
+  }
+  for (const row of refreshedRows) {
+    if (!draftIds.has(row.id) && !previousById.has(row.id)) {
+      merged.push(row);
+    }
+  }
+  return merged;
+}
+
+/**
+ * Merges a refreshed stored place into a dirty draft: untouched fields take
+ * the refreshed row (keeping its date ids), while user edits and additions
+ * stay. Rows deleted externally disappear unless the user edited them.
+ */
+export function mergePlaceDraft(draft: PlaceDraft, previous: PlaceRecord, refreshed: PlaceRecord): PlaceDraft {
+  const base = placeToDraft(previous);
+  const next = placeToDraft(refreshed);
+  const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] =>
+    draft[key] === base[key] ? next[key] : draft[key];
+  return {
+    id: draft.id,
+    xref: scalar('xref'),
+    latitude: scalar('latitude'),
+    longitude: scalar('longitude'),
+    verified: scalar('verified'),
+    form: scalar('form'),
+    abbreviation: scalar('abbreviation'),
+    preposition: scalar('preposition'),
+    govId: scalar('govId'),
+    maidenhead: scalar('maidenhead'),
+    placeType: scalar('placeType'),
+    names: withPlaceNamePositions(
+      mergePlaceRows(draft.names, base.names, next.names).sort((left, right) => left.position - right.position),
+    ),
+    postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, next.postalCodes),
+    hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, next.hierarchy),
+  };
+}
+
 /** The joined display form of the draft: official rows, smallest first. */
 export function placeDraftName(draft: PlaceDraft): string {
   return draft.names

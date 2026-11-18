@@ -175,8 +175,9 @@ function SourceTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
+    baselineRef.current = record;
+    setLastSaved(record);
     if (previous !== undefined && sourceDraftMatches(draftRef.current, previous)) {
-      baselineRef.current = record;
       setDraft(sourceToDraft(record));
     }
   }, [record, isNew]);
@@ -196,7 +197,7 @@ function SourceTabBody({
 
   const save = async () => {
     const target = record ?? lastSaved;
-    const next = sourceDraftToRecord(draftRef.current, baselineRef.current);
+    const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addSource(next);
       onCreated(next.id);

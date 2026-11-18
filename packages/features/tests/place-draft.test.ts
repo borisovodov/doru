@@ -4,6 +4,7 @@ import { emptyDate } from '@doru/ui/domain';
 import {
   emptyPlaceDraft,
   emptyPlaceNameDraft,
+  mergePlaceDraft,
   placeDraftMatches,
   placeDraftName,
   placeDraftToRecord,
@@ -113,6 +114,35 @@ describe('placeToDraft / placeDraftToRecord', () => {
     expect(after.names[1]?.date?.id).toBe('PD1');
     expect(after.hierarchy?.[0]?.date?.id).toBe('PD2');
     expect(after.postalCodes?.[0]?.date?.id).toBe('PD3');
+  });
+
+  it('merges refreshed rows into a dirty draft', () => {
+    const previous = place({
+      names: [
+        { id: 'N1', position: 0, value: 'Tula', date: { id: 'D1', quality: 'exact', component: { year: 1800 } } },
+      ],
+      postalCodes: [{ id: 'PC1', code: '300000', date: { id: 'D2', quality: 'exact', component: { year: 1930 } } }],
+    });
+    const refreshed = place({
+      names: [
+        { id: 'N1', position: 0, value: 'Tula', date: { id: 'D3', quality: 'exact', component: { year: 1800 } } },
+        { id: 'N2', position: 1, value: 'Tula Oblast' },
+      ],
+      postalCodes: [{ id: 'PC1', code: '300000', date: { id: 'D4', quality: 'exact', component: { year: 1930 } } }],
+    });
+    const draft = placeToDraft(previous);
+    draft.names[0]!.abbreviation = 'Tul.';
+    draft.abbreviation = 'TUL';
+
+    const merged = mergePlaceDraft(draft, previous, refreshed);
+
+    expect(merged.abbreviation).toBe('TUL');
+    expect(merged.names[0]).toMatchObject({ id: 'N1', abbreviation: 'Tul.', date: { year: '1800' } });
+    expect(merged.names[1]).toMatchObject({ id: 'N2', value: 'Tula Oblast' });
+    expect(merged.postalCodes[0]).toMatchObject({ id: 'PC1', date: { year: '1930' } });
+    const saved = placeDraftToRecord(merged, refreshed);
+    expect(saved.names[0]?.date?.id).toBe('D3');
+    expect(saved.postalCodes?.[0]?.date?.id).toBe('D4');
   });
 
   it('drops empty names, links and postal codes; parses coordinates', () => {

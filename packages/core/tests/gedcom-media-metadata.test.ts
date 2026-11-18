@@ -209,6 +209,11 @@ describe('media historical metadata', () => {
           } else {
             expect(imported.files?.[0]?.translations).toEqual([]);
           }
+          expect(target.repo.listNotesFor('media', imported.id).map((note) => note.text)).toEqual(['Record note']);
+          const importedSource = target.repo.listSources()[0]!;
+          expect(target.repo.listCitationRecordsFor('media', imported.id).map((citation) => citation.sourceId)).toEqual(
+            [importedSource.id],
+          );
           const importedPerson = target.repo.listAllPersons()[0]!;
           const importedLink = target.repo.listAttachmentsFor('person', importedPerson.id).mediaLinks[0]!.link;
           expect(target.repo.listCitationRecordsFor('media_link', importedLink.id)).toHaveLength(1);

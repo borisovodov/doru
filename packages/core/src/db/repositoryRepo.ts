@@ -18,7 +18,9 @@ export class RepositoryRepo {
   }
 
   setAddressId(id: string, addressId: string | undefined): void {
-    this.db.prepare('UPDATE repository SET address_id = ? WHERE id = ?').run(addressId ?? null, id);
+    this.db
+      .prepare('UPDATE repository SET address_id = ? WHERE id = ? AND address_id IS NULL')
+      .run(addressId ?? null, id);
   }
 
   getRepository(id: string): RepositoryRecord | undefined {

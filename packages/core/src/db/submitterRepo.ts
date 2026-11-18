@@ -29,7 +29,9 @@ export class SubmitterRepo {
   }
 
   setAddressId(id: string, addressId: string | undefined): void {
-    this.db.prepare('UPDATE submitter SET address_id = ? WHERE id = ?').run(addressId ?? null, id);
+    this.db
+      .prepare('UPDATE submitter SET address_id = ? WHERE id = ? AND address_id IS NULL')
+      .run(addressId ?? null, id);
   }
 
   getSubmitter(id: string): SubmitterRecord | undefined {
@@ -80,6 +82,23 @@ export class SubmitterRepo {
     this.db
       .prepare('INSERT INTO record_submitter (id, submitter_id, target_type, target_id, kind) VALUES (?, ?, ?, ?, ?)')
       .run(id, submitterId, targetType, targetId, kind);
+  }
+
+  getRecordSubmitter(id: string): RecordSubmitterLink | undefined {
+    const row = this.db
+      .prepare('SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter WHERE id = ?')
+      .get(id) as
+      | { id: string; submitter_id: string; target_type: string; target_id: string; kind: string }
+      | undefined;
+    return row === undefined
+      ? undefined
+      : {
+          id: row.id,
+          submitterId: row.submitter_id,
+          targetType: row.target_type,
+          targetId: row.target_id,
+          kind: row.kind as RecordSubmitterLink['kind'],
+        };
   }
 
   /** Only ordinary SUBM contributions; ANCI/DESI interests are separate. */

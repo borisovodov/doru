@@ -3,13 +3,11 @@ import type {
   AttachmentsSnapshot,
   CitationRecord,
   ContactRecord,
-  FactRecord,
   IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
-  PersonRecord,
   RepositoryRecord,
   RestrictionRecord,
   RecordSubmitterLink,
@@ -680,8 +678,8 @@ export function deleteAddressOp(
   consumers: {
     repositories?: RepositoryRecord[];
     submitters?: SubmitterRecord[];
-    facts?: FactRecord[];
-    persons?: PersonRecord[];
+    factIds?: string[];
+    personIds?: string[];
   } = {},
   nestedAttachments: NestedAttachments[] = [],
 ): Op {
@@ -702,11 +700,11 @@ export function deleteAddressOp(
         for (const submitter of consumers.submitters ?? []) {
           ctx.repo.setSubmitterAddressId(submitter.id, address.id);
         }
-        for (const fact of consumers.facts ?? []) {
-          ctx.repo.setFactAddressId(fact.id, address.id);
+        for (const factId of consumers.factIds ?? []) {
+          ctx.repo.setFactAddressId(factId, address.id);
         }
-        for (const person of consumers.persons ?? []) {
-          ctx.repo.setPersonAddressId(person.id, address.id);
+        for (const personId of consumers.personIds ?? []) {
+          ctx.repo.setPersonAddressId(personId, address.id);
         }
       },
     ),

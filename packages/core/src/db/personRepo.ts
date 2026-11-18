@@ -54,7 +54,7 @@ export class PersonRepo {
   }
 
   setAddressId(id: string, addressId: string | undefined): void {
-    this.db.prepare('UPDATE person SET address_id = ? WHERE id = ?').run(addressId ?? null, id);
+    this.db.prepare('UPDATE person SET address_id = ? WHERE id = ? AND address_id IS NULL').run(addressId ?? null, id);
   }
 
   getPerson(id: string): PersonRow | undefined {
@@ -111,6 +111,14 @@ export class PersonRepo {
       .prepare('SELECT id, xref, sex, death_status, address_id FROM person ORDER BY id')
       .all() as unknown as PersonDbRow[];
     return rows.map(toPerson);
+  }
+
+  /** Person ids that reference an address, for targeted delete/undo snapshots. */
+  listPersonIdsForAddress(addressId: string): string[] {
+    const rows = this.db
+      .prepare('SELECT id FROM person WHERE address_id = ? ORDER BY id')
+      .all(addressId) as unknown as { id: string }[];
+    return rows.map((row) => row.id);
   }
 
   countPersons(): number {

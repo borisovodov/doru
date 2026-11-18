@@ -6,6 +6,7 @@ import type {
   ChangeRecord,
   CitationRecord,
   ContactRecord,
+  DateValue,
   FactFamilyLink,
   FactParticipant,
   FactRecord,
@@ -55,12 +56,15 @@ export interface TreeRepository {
   deletePerson(id: string): boolean;
   listPersons(query?: PersonQuery): PersonRecord[];
   listAllPersons(): PersonRecord[];
+  listPersonIdsForAddress(addressId: string): string[];
   countPersons(): number;
   countFamilies(): number;
   /** Reconnects a person to an address without rewriting names or facts. */
   setPersonAddressId(personId: string, addressId: string | undefined): void;
   insertFamily(family: FamilyRecord): void;
   updateFamily(family: FamilyRecord): void;
+  /** Reconnects a surviving marriage-status row to its place. */
+  setFamilyMarriageStatusPlaceId(statusId: string, placeId: string | undefined): void;
   getFamily(id: string): FamilyRecord | undefined;
   deleteFamily(id: string): boolean;
   listFamilies(): FamilyRecord[];
@@ -71,11 +75,19 @@ export interface TreeRepository {
   getFact(id: string): FactRecord | undefined;
   /** Reconnects a fact to an address without rewriting its other fields. */
   setFactAddressId(factId: string, addressId: string | undefined): void;
+  /** Reconnects a fact to its primary place without rewriting other fields. */
+  setFactPlaceId(factId: string, placeId: string | undefined): void;
+  /** Re-adds one additional place row to a surviving fact. */
+  insertFactPlace(factId: string, placeId: string, position: number): void;
   deleteFact(id: string): boolean;
   /** Adds an event-family link after the family records exist. */
   insertFactFamilyLink(factId: string, link: FactFamilyLink): void;
   listFactsForPerson(personId: string): FactRecord[];
   listFactsForFamily(familyId: string): FactRecord[];
+  /** Facts that link to a family through fact_family. */
+  listFactsLinkedToFamily(familyId: string): FactRecord[];
+  /** Fact ids that reference an address. */
+  listFactIdsForAddress(addressId: string): string[];
   /** Every fact in the tree, ordered by date. */
   listAllFacts(): FactRecord[];
   /** Facts that happened at the given place. */
@@ -86,12 +98,16 @@ export interface TreeRepository {
   listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }>;
   insertParticipant(factId: string, participant: FactParticipant): void;
   insertPlace(place: PlaceRecord): void;
+  /** Re-inserts one hierarchy row after a place-delete undo. */
+  insertPlaceHierarchy(childId: string, link: { id: string; parentId: string; type?: string; date?: DateValue }): void;
   updatePlace(place: PlaceRecord): void;
   getPlace(id: string): PlaceRecord | undefined;
   deletePlace(id: string): boolean;
   listPlaces(): PlaceRecord[];
   insertSource(source: SourceRecord): void;
   updateSource(source: SourceRecord): void;
+  /** Reconnects a surviving source data event to its place. */
+  setSourceDataEventPlaceId(eventId: string, placeId: string | undefined): void;
   getSource(id: string): SourceRecord | undefined;
   deleteSource(id: string): boolean;
   listSources(): SourceRecord[];
@@ -131,6 +147,8 @@ export interface TreeRepository {
   listNotesFor(targetType: string, targetId: string): NoteRecord[];
   insertMedia(media: MediaRecord): void;
   updateMedia(media: MediaRecord): void;
+  /** Reconnects a surviving media row to its place without rewriting files. */
+  setMediaPlaceId(mediaId: string, placeId: string | undefined): void;
   getMedia(id: string): MediaRecord | undefined;
   deleteMedia(id: string): boolean;
   addMediaLink(mediaId: string, link: MediaLinkRecord): void;
@@ -160,6 +178,7 @@ export interface TreeRepository {
     kind?: RecordSubmitterLink['kind'],
   ): void;
   listSubmittersFor(targetType: string, targetId: string): string[];
+  getRecordSubmitter(id: string): RecordSubmitterLink | undefined;
   listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[];
   /** Every record a submitter contributes to, for the delete/undo snapshot. */
   listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[];
@@ -398,6 +417,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.withAggregates(this.persons.listAllPersons());
   }
 
+  listPersonIdsForAddress(addressId: string): string[] {
+    return this.persons.listPersonIdsForAddress(addressId);
+  }
+
   /** Attaches each person's names and facts, loaded in batched queries. */
   private withAggregates(bases: PersonRow[]): PersonRecord[] {
     const ids = bases.map((base) => base.id);
@@ -426,31 +449,37 @@ export class SqliteTreeRepository implements TreeRepository {
     this.families.insertFamily(family);
   }
 
+  setFamilyMarriageStatusPlaceId(statusId: string, placeId: string | undefined): void {
+    this.families.setMarriageStatusPlaceId(statusId, placeId);
+  }
+
   updateFamily(family: FamilyRecord): void {
-    const before = this.families.getFamily(family.id);
-    this.families.updateFamily(family);
-    const after = this.families.getFamily(family.id);
-    if (!before || !after) {
-      return;
-    }
-    const afterPartners = new Set((after.partnerLinks ?? []).map((link) => link.id));
-    for (const link of before.partnerLinks ?? []) {
-      if (!afterPartners.has(link.id)) {
-        this.deleteAttachmentsFor('family_partner', link.id);
+    this.transactions.run(() => {
+      const before = this.families.getFamily(family.id);
+      this.families.updateFamily(family);
+      const after = this.families.getFamily(family.id);
+      if (!before || !after) {
+        return;
       }
-    }
-    const afterChildren = new Set((after.childLinks ?? []).map((link) => link.id));
-    for (const link of before.childLinks ?? []) {
-      if (!afterChildren.has(link.id)) {
-        this.deleteAttachmentsFor('family_child', link.id);
+      const afterPartners = new Set((after.partnerLinks ?? []).map((link) => link.id));
+      for (const link of before.partnerLinks ?? []) {
+        if (!afterPartners.has(link.id)) {
+          this.deleteAttachmentsFor('family_partner', link.id);
+        }
       }
-    }
-    const afterStatuses = new Set((after.marriageStatuses ?? []).map((status) => status.id));
-    for (const status of before.marriageStatuses ?? []) {
-      if (!afterStatuses.has(status.id)) {
-        this.deleteAttachmentsFor('family_marriage_status', status.id);
+      const afterChildren = new Set((after.childLinks ?? []).map((link) => link.id));
+      for (const link of before.childLinks ?? []) {
+        if (!afterChildren.has(link.id)) {
+          this.deleteAttachmentsFor('family_child', link.id);
+        }
       }
-    }
+      const afterStatuses = new Set((after.marriageStatuses ?? []).map((status) => status.id));
+      for (const status of before.marriageStatuses ?? []) {
+        if (!afterStatuses.has(status.id)) {
+          this.deleteAttachmentsFor('family_marriage_status', status.id);
+        }
+      }
+    });
   }
 
   getFamily(id: string): FamilyRecord | undefined {
@@ -506,6 +535,14 @@ export class SqliteTreeRepository implements TreeRepository {
     this.facts.setFactAddressId(factId, addressId);
   }
 
+  setFactPlaceId(factId: string, placeId: string | undefined): void {
+    this.facts.setFactPlaceId(factId, placeId);
+  }
+
+  insertFactPlace(factId: string, placeId: string, position: number): void {
+    this.facts.insertFactPlace(factId, placeId, position);
+  }
+
   insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
     this.facts.insertFactFamilyLink(factId, link);
   }
@@ -523,6 +560,14 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listFactsForFamily(familyId: string): FactRecord[] {
     return this.facts.listFactsForFamily(familyId);
+  }
+
+  listFactsLinkedToFamily(familyId: string): FactRecord[] {
+    return this.facts.listFactsLinkedToFamily(familyId);
+  }
+
+  listFactIdsForAddress(addressId: string): string[] {
+    return this.facts.listFactIdsForAddress(addressId);
   }
 
   listAllFacts(): FactRecord[] {
@@ -547,6 +592,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertPlace(place: PlaceRecord): void {
     this.places.insertPlace(place);
+  }
+
+  insertPlaceHierarchy(childId: string, link: { id: string; parentId: string; type?: string; date?: DateValue }): void {
+    this.places.insertHierarchyLink(childId, link);
   }
 
   updatePlace(place: PlaceRecord): void {
@@ -602,6 +651,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertSource(source: SourceRecord): void {
     this.sources.insertSource(source);
+  }
+
+  setSourceDataEventPlaceId(eventId: string, placeId: string | undefined): void {
+    this.sources.setDataEventPlaceId(eventId, placeId);
   }
 
   updateSource(source: SourceRecord): void {
@@ -724,6 +777,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   insertMedia(media: MediaRecord): void {
     this.media.insertMedia(media);
+  }
+
+  setMediaPlaceId(mediaId: string, placeId: string | undefined): void {
+    this.media.setPlaceId(mediaId, placeId);
   }
 
   updateMedia(media: MediaRecord): void {
@@ -853,6 +910,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listSubmittersFor(targetType: string, targetId: string): string[] {
     return this.submitters.listSubmittersFor(targetType, targetId);
+  }
+
+  getRecordSubmitter(id: string): RecordSubmitterLink | undefined {
+    return this.submitters.getRecordSubmitter(id);
   }
 
   listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {

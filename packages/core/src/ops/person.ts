@@ -67,7 +67,11 @@ export function deletePersonOp(
         ctx.repo.insertAlias(alias.id, alias.personId, alias.aliasId);
       }
       for (const entry of participants) {
-        ctx.repo.insertParticipant(entry.factId, entry.participant);
+        // The fact may have been deleted by another writer since the person
+        // was removed; its FK would abort the rest of the inverse.
+        if (ctx.repo.getFact(entry.factId) !== undefined) {
+          ctx.repo.insertParticipant(entry.factId, entry.participant);
+        }
       }
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.before);

@@ -82,24 +82,51 @@ export function deletePlaceOp(
     },
     inverse(ctx) {
       ctx.repo.insertPlace(place);
+      // Only the hierarchy row whose parent was deleted cascades; restore it
+      // by id and leave any later edits to the child place intact.
       for (const child of consumers.childPlaces ?? []) {
-        ctx.repo.updatePlace(child);
+        for (const link of child.hierarchy ?? []) {
+          if (link.parentId === place.id) {
+            ctx.repo.insertPlaceHierarchy(child.id, link);
+          }
+        }
       }
       for (const family of consumers.families ?? []) {
-        ctx.repo.updateFamily(family);
+        for (const status of family.marriageStatuses ?? []) {
+          if (status.placeId === place.id) {
+            ctx.repo.setFamilyMarriageStatusPlaceId(status.id, place.id);
+          }
+        }
       }
       for (const source of consumers.sources ?? []) {
-        ctx.repo.updateSource(source);
+        for (const event of source.dataEvents ?? []) {
+          if (event.placeId === place.id) {
+            ctx.repo.setSourceDataEventPlaceId(event.id, place.id);
+          }
+        }
       }
       for (const link of [...facts].reverse()) {
-        ctx.repo.updateFact(link.before);
+        // Surviving facts may have been edited; restore only the place
+        // references the delete removed, and only when still unset.
+        const current = ctx.repo.getFact(link.before.id);
+        if (current === undefined) {
+          continue;
+        }
+        if (link.before.placeId !== undefined && current.placeId === undefined) {
+          ctx.repo.setFactPlaceId(link.before.id, link.before.placeId);
+        }
+        for (const [position, placeId] of (link.before.additionalPlaceIds ?? []).entries()) {
+          if (!(current.additionalPlaceIds ?? []).includes(placeId)) {
+            ctx.repo.insertFactPlace(link.before.id, placeId, position);
+          }
+        }
       }
       ctx.repo.restoreAttachments(attachments);
       for (const nested of nestedAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);
       }
       for (const media of consumers.media ?? []) {
-        ctx.repo.updateMedia(media);
+        ctx.repo.setMediaPlaceId(media.id, place.id);
       }
     },
   };

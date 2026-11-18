@@ -96,6 +96,13 @@ export class SourceRepo {
     this.replaceSourceDetails(source);
   }
 
+  /** Reconnects a surviving source data event to its place. */
+  setDataEventPlaceId(eventId: string, placeId: string | undefined): void {
+    this.db
+      .prepare('UPDATE source_data_event SET place_id = ? WHERE id = ? AND place_id IS NULL')
+      .run(placeId ?? null, eventId);
+  }
+
   deleteSource(id: string): boolean {
     const row = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(id) as
       | { pub_date_id: string | null }
@@ -189,7 +196,7 @@ export class SourceRepo {
   }
 
   setSourceTitle(sourceId: string, titleId: string | undefined): void {
-    this.db.prepare('UPDATE source SET title_id = ? WHERE id = ?').run(titleId ?? null, sourceId);
+    this.db.prepare('UPDATE source SET title_id = ? WHERE id = ? AND title_id IS NULL').run(titleId ?? null, sourceId);
   }
 
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void {

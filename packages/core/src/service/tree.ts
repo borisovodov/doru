@@ -264,38 +264,43 @@ export class TreeService {
   }
 
   updatePerson(before: PersonRecord, after: PersonRecord): UndoRedoState {
-    const removed: NestedAttachments[] = [];
-    const nextNames = new Set(collectNameIds(after.names));
-    for (const nameId of collectNameIds(before.names)) {
-      if (!nextNames.has(nameId)) {
-        removed.push({
-          targetType: 'name',
-          targetId: nameId,
-          attachments: this.repo.listAttachmentsFor('name', nameId),
-        });
+    return this.repo.transaction(() => {
+      // Snapshot the stored pre-write aggregate: a stale draft must not
+      // delete attachments it never saw. Undo restores exactly this state.
+      const current = this.repo.getPerson(before.id) ?? before;
+      const removed: NestedAttachments[] = [];
+      const nextNames = new Set(collectNameIds(after.names));
+      for (const nameId of collectNameIds(current.names)) {
+        if (!nextNames.has(nameId)) {
+          removed.push({
+            targetType: 'name',
+            targetId: nameId,
+            attachments: this.repo.listAttachmentsFor('name', nameId),
+          });
+        }
       }
-    }
-    const nextParts = new Set(collectNamePartIds(after.names));
-    for (const partId of collectNamePartIds(before.names)) {
-      if (!nextParts.has(partId)) {
-        removed.push({
-          targetType: 'name_part',
-          targetId: partId,
-          attachments: this.repo.listAttachmentsFor('name_part', partId),
-        });
+      const nextParts = new Set(collectNamePartIds(after.names));
+      for (const partId of collectNamePartIds(current.names)) {
+        if (!nextParts.has(partId)) {
+          removed.push({
+            targetType: 'name_part',
+            targetId: partId,
+            attachments: this.repo.listAttachmentsFor('name_part', partId),
+          });
+        }
       }
-    }
-    const nextFacts = new Set(after.facts.map((fact) => fact.id));
-    for (const fact of before.facts) {
-      if (!nextFacts.has(fact.id)) {
-        removed.push({
-          targetType: 'fact',
-          targetId: fact.id,
-          attachments: this.repo.listAttachmentsFor('fact', fact.id),
-        });
+      const nextFacts = new Set(after.facts.map((fact) => fact.id));
+      for (const fact of current.facts) {
+        if (!nextFacts.has(fact.id)) {
+          removed.push({
+            targetType: 'fact',
+            targetId: fact.id,
+            attachments: this.repo.listAttachmentsFor('fact', fact.id),
+          });
+        }
       }
-    }
-    return this.apply(updatePersonOp(before, after, removed));
+      return this.apply(updatePersonOp(current, after, removed));
+    });
   }
 
   /**
@@ -450,8 +455,11 @@ export class TreeService {
 
   updateFamily(before: FamilyRecord, after: FamilyRecord): UndoRedoState {
     this.assertFamilyAcyclic(after);
-    const removed = this.removedLinkAttachments(before, after);
-    return this.apply(updateFamilyOp(before, after, removed));
+    return this.repo.transaction(() => {
+      const current = this.repo.getFamily(before.id) ?? before;
+      const removed = this.removedLinkAttachments(current, after);
+      return this.apply(updateFamilyOp(current, after, removed));
+    });
   }
 
   deleteFamily(family: FamilyRecord): UndoRedoState {
@@ -483,9 +491,7 @@ export class TreeService {
       });
     }
     const facts = this.repo.listFactsForFamily(current.id);
-    const linkedFacts = this.repo
-      .listAllFacts()
-      .filter((fact) => (fact.familyLinks ?? []).some((link) => link.familyId === current.id));
+    const linkedFacts = this.repo.listFactsLinkedToFamily(current.id);
     const associations = this.repo.listAssociationsForFamily(current.id);
     const nested: NestedAttachments[] = [
       ...facts.map((fact) => ({
@@ -522,8 +528,11 @@ export class TreeService {
   }
 
   updatePlace(before: PlaceRecord, after: PlaceRecord): UndoRedoState {
-    const removed = this.removedPlaceChildAttachments(before, after);
-    return this.apply(updatePlaceOp(before, after, removed));
+    return this.repo.transaction(() => {
+      const current = this.repo.getPlace(before.id) ?? before;
+      const removed = this.removedPlaceChildAttachments(current, after);
+      return this.apply(updatePlaceOp(current, after, removed));
+    });
   }
 
   /**
@@ -597,7 +606,8 @@ export class TreeService {
   }
 
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
-    return this.apply(updateSourceOp(before, after));
+    const current = this.repo.getSource(before.id) ?? before;
+    return this.apply(updateSourceOp(current, after));
   }
 
   deleteSource(source: SourceRecord): UndoRedoState {
@@ -922,12 +932,25 @@ export class TreeService {
 
   deleteRecordSubmitter(
     id: string,
-    submitterId: string,
-    targetType: string,
-    targetId: string,
-    kind: RecordSubmitterLink['kind'] = 'contributor',
+    _submitterId: string,
+    _targetType: string,
+    _targetId: string,
+    _kind: RecordSubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
-    return this.apply(deleteRecordSubmitterOp(id, submitterId, targetType, targetId, kind));
+    // The caller may omit the kind; the inverse must preserve the stored one.
+    const current = this.repo.getRecordSubmitter(id);
+    if (current === undefined) {
+      return this.historyState();
+    }
+    return this.apply(
+      deleteRecordSubmitterOp(
+        current.id,
+        current.submitterId,
+        current.targetType,
+        current.targetId,
+        current.kind ?? 'contributor',
+      ),
+    );
   }
 
   addAddress(address: AddressRecord): UndoRedoState {
@@ -943,8 +966,11 @@ export class TreeService {
   }
 
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
-    const removed = this.removedAddressLineAttachments(before, after);
-    return this.apply(updateAddressOp(before, after, removed));
+    return this.repo.transaction(() => {
+      const current = this.repo.getAddress(before.id) ?? before;
+      const removed = this.removedAddressLineAttachments(current, after);
+      return this.apply(updateAddressOp(current, after, removed));
+    });
   }
 
   deleteAddress(address: AddressRecord): UndoRedoState {
@@ -961,8 +987,8 @@ export class TreeService {
     const consumers = {
       repositories: this.repo.listRepositories().filter((entry) => entry.addressId === current.id),
       submitters: this.repo.listSubmitters().filter((entry) => entry.addressId === current.id),
-      facts: this.repo.listAllFacts().filter((entry) => entry.addressId === current.id),
-      persons: this.repo.listAllPersons().filter((entry) => entry.addressId === current.id),
+      factIds: this.repo.listFactIdsForAddress(current.id),
+      personIds: this.repo.listPersonIdsForAddress(current.id),
     };
     return this.apply(deleteAddressOp(current, attachments, consumers, nested));
   }

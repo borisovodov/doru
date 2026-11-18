@@ -5,7 +5,7 @@ import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
 import { PlaceEditor } from './PlaceEditor';
 import { PlaceFactsList } from './PlaceFactsList';
-import { emptyPlaceDraft, placeDraftMatches, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
+import { emptyPlaceDraft, mergePlaceDraft, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
@@ -149,15 +149,16 @@ function PlaceTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    if (previous !== undefined && placeDraftMatches(draftRef.current, previous)) {
+    if (previous !== undefined) {
       baselineRef.current = record;
-      setDraft(placeToDraft(record));
+      setDraft(mergePlaceDraft(draftRef.current, previous, record));
+      setLastSaved(record);
     }
   }, [record, isNew]);
 
   const save = async () => {
     const target = record ?? lastSaved;
-    const next = placeDraftToRecord(draftRef.current, baselineRef.current);
+    const next = placeDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
       onCreated(next.id);

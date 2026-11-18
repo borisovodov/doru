@@ -331,6 +331,12 @@ describe('importGedcomDataset', () => {
       expect(fixture.repo.listCitationRecordsFor('note', note.id).map((citation) => citation.sourceId)).toEqual([
         source.id,
       ]);
+      const family = fixture.repo.listFamilies()[0]!;
+      const childLink = family.childLinks?.[0];
+      expect(childLink).toBeDefined();
+      expect(
+        fixture.repo.listAttachmentsFor('family_child', childLink!.id).noteLinks.map((link) => link.note.id),
+      ).toEqual([note.id]);
     } finally {
       cleanupRepo(fixture);
     }

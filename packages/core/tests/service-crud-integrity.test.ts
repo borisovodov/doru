@@ -562,6 +562,74 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('matches a flat given part by value when two given parts exist', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(
+        person('P1', {
+          names: [
+            {
+              id: 'N1',
+              parts: [
+                { id: 'NP1', kind: 'given', value: 'Ada', position: 0 },
+                { id: 'NP2', kind: 'given', value: 'Maria', position: 1 },
+              ],
+            },
+          ],
+        }),
+      );
+      service.addNote(note('NT1', 'name_part', 'NP1'));
+      service.addNote(note('NT2', 'name_part', 'NP2'));
+
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, {
+        ...before,
+        names: [{ id: 'N1', prefix: 'Dr', given: 'Ada' }],
+      });
+
+      const given = repo.getPerson('P1')?.names[0]?.parts?.find((part) => part.kind === 'given');
+      expect(given?.id).toBe('NP1');
+      expect(repo.listNotesFor('name_part', 'NP1').map((entry) => entry.id)).toEqual(['NT1']);
+      expect(repo.listNotesFor('name_part', 'NP2')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps the flat-part id when only its spelling changes', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(
+        person('P1', {
+          names: [
+            {
+              id: 'N1',
+              parts: [
+                { id: 'NP1', kind: 'given', value: 'Alice', position: 0 },
+                { id: 'NP2', kind: 'given', value: 'Beth', position: 1 },
+              ],
+            },
+          ],
+        }),
+      );
+      service.addNote(note('NT1', 'name_part', 'NP1'));
+
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, {
+        ...before,
+        names: [{ id: 'N1', prefix: 'Dr', given: 'Alicia' }],
+      });
+
+      const given = repo.getPerson('P1')?.names[0]?.parts?.find((part) => part.kind === 'given');
+      expect(given).toMatchObject({ id: 'NP1', value: 'Alicia' });
+      expect(repo.listNotesFor('name_part', 'NP1').map((entry) => entry.id)).toEqual(['NT1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores a participant in another fact and a name-part attachment on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -617,6 +685,163 @@ describe('TreeService CRUD integrity', () => {
         role: 'witness',
       });
       expect(repo.listNotesFor('name_part', 'NP2').map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores externally added family statuses and their notes on undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addFamily({ id: 'F1', partners: [], children: [] });
+      const stale = repo.getFamily('F1')!;
+      repo.updateFamily({
+        ...stale,
+        marriageStatuses: [{ id: 'MS2', status: 'married' }],
+      });
+      repo.insertNote({
+        id: 'N2',
+        text: 'late status note',
+        targetType: 'family_marriage_status',
+        targetId: 'MS2',
+      });
+
+      service.updateFamily(stale, { ...stale, marriageStatuses: [] });
+      expect(repo.listNotesFor('family_marriage_status', 'MS2')).toEqual([]);
+
+      service.undo();
+      expect(repo.getFamily('F1')?.marriageStatuses?.map((status) => status.id)).toEqual(['MS2']);
+      expect(repo.listNotesFor('family_marriage_status', 'MS2').map((entry) => entry.id)).toEqual(['N2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores externally added place names and their notes on undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
+      const stale = repo.getPlace('PL1')!;
+      repo.updatePlace({
+        ...stale,
+        names: [...stale.names, { id: 'PN2', kind: 'official', position: 1, value: 'Tula Oblast' }],
+      });
+      repo.insertNote({
+        id: 'N2',
+        text: 'late name note',
+        targetType: 'place_name',
+        targetId: 'PN2',
+      });
+
+      service.updatePlace(stale, { ...stale, names: [stale.names[0]!] });
+      expect(repo.listNotesFor('place_name', 'PN2')).toEqual([]);
+
+      service.undo();
+      expect(repo.getPlace('PL1')?.names.map((name) => name.id)).toEqual(['PN1', 'PN2']);
+      expect(repo.listNotesFor('place_name', 'PN2').map((entry) => entry.id)).toEqual(['N2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('skips a family association whose other person disappeared before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.addAssociation({ id: 'A1', familyId: 'F1', otherPersonId: 'P2', role: 'witness' });
+      service.addNote(note('N1', 'association', 'A1'));
+
+      service.deleteFamily(repo.getFamily('F1')!);
+      repo.deletePerson('P2');
+      service.undo();
+
+      expect(repo.getFamily('F1')).toBeDefined();
+      expect(repo.listAssociationsForFamily('F1')).toEqual([]);
+      expect(repo.listNotesFor('association', 'A1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('skips a participant whose fact disappeared before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      const p2 = repo.getPerson('P2')!;
+      service.updatePerson(p2, {
+        ...p2,
+        facts: [
+          {
+            id: 'F2',
+            personId: 'P2',
+            tag: 'EVEN',
+            participants: [{ id: 'PT1', personId: 'P1', position: 0 }],
+          },
+        ],
+      });
+
+      service.deletePerson(repo.getPerson('P1')!);
+      repo.deleteFact('F2');
+      service.undo();
+
+      expect(repo.getPerson('P1')).toBeDefined();
+      expect(repo.getFact('F2')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a later media file when undoing a place deletion', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
+      service.addMedia({
+        id: 'M1',
+        placeId: 'PL1',
+        files: [{ id: 'MF1', path: 'media/a.jpg' }],
+      });
+      service.deletePlace(repo.getPlace('PL1')!);
+
+      const media = repo.getMedia('M1')!;
+      repo.updateMedia({ ...media, files: [...(media.files ?? []), { id: 'MF2', path: 'media/b.jpg' }] });
+      service.undo();
+
+      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
+      expect(repo.getMedia('M1')?.files?.map((file) => file.id)).toEqual(['MF1', 'MF2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('does not overwrite a later assignment when undoing an address or repository deletion', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addAddress({ id: 'AD1', city: 'Tula', lines: [] });
+      const p1 = repo.getPerson('P1')!;
+      service.updatePerson(p1, { ...p1, addressId: 'AD1' });
+      service.deleteAddress(repo.getAddress('AD1')!);
+      repo.insertAddress({ id: 'A2', city: 'Moscow', lines: [] });
+      repo.setPersonAddressId('P1', 'A2');
+      service.undo();
+      expect(repo.getPerson('P1')?.addressId).toBe('A2');
+
+      service.addRepository({ id: 'RP1', name: 'Archive' });
+      service.addTodo({ id: 'TD1', text: 'Task', repositoryId: 'RP1' });
+      service.deleteRepository(repo.getRepository('RP1')!);
+      repo.insertRepository({ id: 'RP2', name: 'Other archive' });
+      repo.setTodoRepositoryId('TD1', 'RP2');
+      service.undo();
+      expect(repo.getTodo('TD1')?.repositoryId).toBe('RP2');
     } finally {
       cleanupRepo(fixture);
     }

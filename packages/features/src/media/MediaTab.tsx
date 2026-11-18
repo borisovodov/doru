@@ -92,6 +92,7 @@ function MediaTabBody({
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
   const targetLabel = createTaskTargetLabeler(targetData);
   const recordRef = useRef(record);
+  const baselineRef = useRef<MediaRecord>(record);
   const metadataRef = useRef({
     title,
     date,
@@ -112,29 +113,68 @@ function MediaTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    if (!mediaMetadataMatches(metadataRef.current, previous)) {
+    if (mediaMetadataMatches(metadataRef.current, previous)) {
+      baselineRef.current = record;
+      setTitle(record.title ?? '');
+      setDate(toDateDraft(record.date));
+      setPlace(record.place ?? '');
+      setPlaceId(record.placeId ?? '');
+      setObjectType(record.objectType ?? '');
+      setDescription(record.description ?? '');
+      setKeywords(record.keywords ?? '');
       return;
     }
-    setTitle(record.title ?? '');
-    setDate(toDateDraft(record.date));
-    setPlace(record.place ?? '');
-    setPlaceId(record.placeId ?? '');
-    setObjectType(record.objectType ?? '');
-    setDescription(record.description ?? '');
-    setKeywords(record.keywords ?? '');
+    // Keep the user's edits, but advance the baseline for every field they
+    // did not touch so a later save reads those values from the current row.
+    const draft = metadataRef.current;
+    const base = baselineRef.current;
+    const refreshed: MediaRecord = { ...record };
+    if (draft.title === (base.title ?? '')) {
+      refreshed.title = record.title;
+    }
+    if (dateDraftsEqual(draft.date, toDateDraft(base.date))) {
+      refreshed.date = record.date;
+    }
+    if (draft.place === (base.place ?? '') && draft.placeId === (base.placeId ?? '')) {
+      refreshed.place = record.place;
+      refreshed.placeId = record.placeId;
+    }
+    if (draft.objectType === (base.objectType ?? '')) {
+      refreshed.objectType = record.objectType;
+    }
+    if (draft.description === (base.description ?? '')) {
+      refreshed.description = record.description;
+    }
+    if (draft.keywords === (base.keywords ?? '')) {
+      refreshed.keywords = record.keywords;
+    }
+    baselineRef.current = refreshed;
   }, [record]);
 
   const save = async () => {
-    await api.updateMedia(record, {
-      ...record,
-      title: title.trim() || undefined,
-      date: fromDateDraft(date, record.date),
-      place: place.trim() || undefined,
-      placeId: placeId || undefined,
-      objectType: objectType.trim() || undefined,
-      description: description.trim() || undefined,
-      keywords: keywords.trim() || undefined,
-    });
+    const base = baselineRef.current;
+    const next: MediaRecord = { ...record };
+    if (title.trim() !== (base.title ?? '')) {
+      next.title = title.trim() || undefined;
+    }
+    if (!dateDraftsEqual(date, toDateDraft(base.date))) {
+      next.date = fromDateDraft(date, record.date);
+    }
+    if (place.trim() !== (base.place ?? '') || placeId !== (base.placeId ?? '')) {
+      next.place = place.trim() || undefined;
+      next.placeId = placeId || undefined;
+    }
+    if (objectType.trim() !== (base.objectType ?? '')) {
+      next.objectType = objectType.trim() || undefined;
+    }
+    if (description.trim() !== (base.description ?? '')) {
+      next.description = description.trim() || undefined;
+    }
+    if (keywords.trim() !== (base.keywords ?? '')) {
+      next.keywords = keywords.trim() || undefined;
+    }
+    await api.updateMedia(record, next);
+    baselineRef.current = next;
   };
 
   const remove = async () => {

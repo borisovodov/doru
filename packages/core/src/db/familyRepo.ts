@@ -91,6 +91,13 @@ export class FamilyRepo {
     return row ? this.hydrate(row) : undefined;
   }
 
+  /** Reconnects a surviving marriage-status row to its place. */
+  setMarriageStatusPlaceId(statusId: string, placeId: string | undefined): void {
+    this.db
+      .prepare('UPDATE family_marriage_status SET place_id = ? WHERE id = ? AND place_id IS NULL')
+      .run(placeId ?? null, statusId);
+  }
+
   deleteFamily(id: string): boolean {
     return this.transactions.run(() => {
       const dateIds = new Set<string>();

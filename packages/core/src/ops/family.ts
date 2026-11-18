@@ -71,8 +71,15 @@ export function deleteFamilyOp(
       for (const fact of facts) {
         ctx.repo.insertFact(fact);
       }
+      const restoredAssociations = new Set<string>();
       for (const association of associations) {
+        // The other person may have been deleted by another writer; the
+        // association FK would abort the rest of the inverse.
+        if (ctx.repo.getPerson(association.otherPersonId) === undefined) {
+          continue;
+        }
         ctx.repo.insertAssociation(association);
+        restoredAssociations.add(association.id);
       }
       // Facts owned by the family were re-inserted with their links above.
       // Surviving facts may have been edited since the delete, so restore
@@ -98,6 +105,9 @@ export function deleteFamilyOp(
         ctx.repo.restoreAttachments(link.attachments);
       }
       for (const nested of nestedAttachments) {
+        if (nested.targetType === 'association' && !restoredAssociations.has(nested.targetId)) {
+          continue;
+        }
         ctx.repo.restoreAttachments(nested.attachments);
       }
     },

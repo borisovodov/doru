@@ -115,7 +115,9 @@ export class FactRepo {
   }
 
   setFactAddressId(factId: string, addressId: string | undefined): void {
-    this.db.prepare('UPDATE fact SET address_id = ? WHERE id = ?').run(addressId ?? null, factId);
+    this.db
+      .prepare('UPDATE fact SET address_id = ? WHERE id = ? AND address_id IS NULL')
+      .run(addressId ?? null, factId);
   }
 
   getFact(id: string): FactRecord | undefined {
@@ -144,6 +146,40 @@ export class FactRepo {
 
   listFactsForFamily(familyId: string): FactRecord[] {
     return this.queryFacts('family_id', familyId);
+  }
+
+  /** Facts that link to a family through fact_family, without scanning the tree. */
+  listFactsLinkedToFamily(familyId: string): FactRecord[] {
+    const rows = this.db
+      .prepare('SELECT fact_id FROM fact_family WHERE family_id = ? ORDER BY position, id')
+      .all(familyId) as unknown as { fact_id: string }[];
+    return rows.map((row) => this.getFact(row.fact_id)).filter((fact): fact is FactRecord => fact !== undefined);
+  }
+
+  /** Reconnects a fact to its place without rewriting other fields. */
+  setFactPlaceId(factId: string, placeId: string | undefined): void {
+    this.db.prepare('UPDATE fact SET place_id = ? WHERE id = ? AND place_id IS NULL').run(placeId ?? null, factId);
+  }
+
+  /** Re-adds one additional place row to a surviving fact. */
+  insertFactPlace(factId: string, placeId: string, position: number): void {
+    this.transactions.run(() => {
+      // Keep the original order when the delete renumbered the surviving rows.
+      this.db
+        .prepare('UPDATE fact_place SET position = position + 1 WHERE fact_id = ? AND position >= ?')
+        .run(factId, position);
+      this.db
+        .prepare('INSERT INTO fact_place (id, fact_id, place_id, position) VALUES (?, ?, ?, ?)')
+        .run(crypto.randomUUID(), factId, placeId, position);
+    });
+  }
+
+  /** Fact ids that reference an address, for targeted delete/undo snapshots. */
+  listFactIdsForAddress(addressId: string): string[] {
+    const rows = this.db.prepare('SELECT id FROM fact WHERE address_id = ? ORDER BY id').all(addressId) as unknown as {
+      id: string;
+    }[];
+    return rows.map((row) => row.id);
   }
 
   /** Facts that happened at the given place. */
