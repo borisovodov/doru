@@ -55,6 +55,12 @@ describe('LocalizationService', () => {
     expect(service.t('chat.toolCall', 'Expected $& and $`')).toBe('Tool: Expected $& and $`');
   });
 
+  it('does not expand placeholders inside inserted arguments', () => {
+    const service = new LocalizationService('en');
+    expect(service.t('tree.people.listLimit', '{1}', 'second')).toBe('Showing {1} of second persons');
+    expect(service.t('tree.people.listLimit', '1')).toBe('Showing 1 of {1} persons');
+  });
+
   it('exposes the resolved locale and resolves unsupported setLocale calls', () => {
     const service = new LocalizationService('de');
     expect(service.locale).toBe('de');
