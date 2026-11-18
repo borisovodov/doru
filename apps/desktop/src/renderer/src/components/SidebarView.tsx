@@ -385,6 +385,8 @@ function SourcesSidebar({
     { value: 'submitters', label: nls.t('workbench.activityBar.submitters') },
     { value: 'addresses', label: nls.t('workbench.activityBar.addresses') },
   ] as const;
+  const tabPrefix = 'sources-tab';
+  const panelId = 'sources-panel';
 
   return (
     <SideBarLayout
@@ -393,6 +395,9 @@ function SourcesSidebar({
       subheader={
         <SegmentedControl
           label={nls.t('workbench.activityBar.sources')}
+          mode="tabs"
+          idPrefix={tabPrefix}
+          panelId={panelId}
           columns={2}
           value={segment}
           onChange={setSegment}
@@ -400,7 +405,9 @@ function SourcesSidebar({
         />
       }
     >
-      {current.content}
+      <div role="tabpanel" id={panelId} aria-labelledby={`${tabPrefix}-${segment}`}>
+        {current.content}
+      </div>
     </SideBarLayout>
   );
 }

@@ -48,7 +48,8 @@ export function SidebarMedia({
                 ? {
                     thumbnail: {
                       src: `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`,
-                      alt: item.title ?? '',
+                      // The title is already the row button name; the image is decorative.
+                      alt: '',
                     },
                   }
                 : { icon: <FileImage size={15} aria-hidden="true" /> })}

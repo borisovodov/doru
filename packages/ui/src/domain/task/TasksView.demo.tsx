@@ -85,5 +85,6 @@ export const RelatedRecord: DemoCase = {
   args: {
     todos: [relatedTodo],
     persons: [relatedPerson],
+    selectedId: relatedTodo.id,
   },
 };

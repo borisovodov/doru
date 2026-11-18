@@ -10,6 +10,8 @@ const meta = {
 export default meta;
 type DemoCase = Demo;
 
+const rows = Array.from({ length: 12 }, (_, index) => `Row ${index + 1}`);
+
 export const Default: DemoCase = {
   render: () => (
     <div style={{ width: 260, height: 320, display: 'flex' }}>
@@ -27,9 +29,18 @@ export const Default: DemoCase = {
           <div style={{ fontSize: 'var(--doru-font-size-sm)', color: 'var(--doru-fg-muted)' }}>Fixed subheader</div>
         }
       >
-        <p style={{ margin: 0, padding: '0 var(--doru-space-2)', color: 'var(--doru-fg-muted)' }}>
-          Scrollable body content.
-        </p>
+        {rows.map((row) => (
+          <p
+            key={row}
+            style={{
+              margin: 0,
+              padding: 'var(--doru-space-1) var(--doru-space-2)',
+              color: 'var(--doru-fg-muted)',
+            }}
+          >
+            {row}
+          </p>
+        ))}
       </SideBarLayout>
     </div>
   ),

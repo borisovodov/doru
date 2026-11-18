@@ -114,75 +114,105 @@ export function SidebarSearch({
       }
     >
       {result !== null && (
-        <SideBarList>
-          {result.matchedPersons.length > 0 && group(nls.t('workbench.activityBar.people'))}
-          {result.matchedPersons.slice(0, MAX_PER_GROUP).map((person) => (
-            <li key={person.id}>
-              <EntityRow
-                selected={person.id === selected?.person}
-                iconVariant="plain"
-                icon={
-                  <Avatar
-                    initials={initials(person)}
-                    tone={person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : 'neutral'}
-                    size="sm"
-                    shape="circle"
-                  />
-                }
-                title={displayName(person)}
-                subtitle={lifeSpan(person) !== '' ? lifeSpan(person) : null}
-                onClick={() => onOpenPerson(person.id)}
-              />
-            </li>
-          ))}
-          {result.matchedFamilies.length > 0 && group(nls.t('workbench.activityBar.families'))}
-          {result.matchedFamilies.slice(0, MAX_PER_GROUP).map((family) => (
-            <li key={family.id}>
-              <EntityRow
-                selected={family.id === selected?.family}
-                icon={<Users size={15} aria-hidden="true" />}
-                title={familyLabel(family, personById)}
-                subtitle={nls.t('features.sidebar.children', family.children.length)}
-                onClick={() => onOpenFamily(family.id)}
-              />
-            </li>
-          ))}
-          {result.matchedSources.length > 0 && group(nls.t('workbench.activityBar.sources'))}
-          {result.matchedSources.slice(0, MAX_PER_GROUP).map((source) => (
-            <li key={source.id}>
-              <EntityRow
-                selected={source.id === selected?.source}
-                icon={<BookOpenText size={15} aria-hidden="true" />}
-                title={source.title}
-                subtitle={source.author !== undefined ? source.author : null}
-                onClick={() => onOpenSource(source.id)}
-              />
-            </li>
-          ))}
-          {result.matchedFacts.length > 0 && group(nls.t('workbench.activityBar.events'))}
-          {result.matchedFacts.slice(0, MAX_PER_GROUP).map((fact) => {
-            const ownerId = ownerOf(fact);
-            return (
-              <li key={fact.id}>
-                <EntityRow
-                  icon={<Chip variant="neutral">{fact.tag}</Chip>}
-                  title={fact.value ?? fact.type ?? factOwner(fact)}
-                  subtitle={[fact.date ? formatDate(fact.date) : undefined, fact.place]
-                    .filter((part): part is string => part !== undefined)
-                    .join(' · ')}
-                  {...(ownerId !== undefined ? { onClick: () => onOpenPerson(ownerId) } : {})}
-                />
-              </li>
-            );
-          })}
-          {result.matchedPlaces.length > 0 && group(nls.t('workbench.activityBar.places'))}
-          {result.matchedPlaces.slice(0, MAX_PER_GROUP).map(([place, count]) => (
-            <li key={place}>
-              <EntityRow icon={<MapPin size={15} aria-hidden="true" />} title={place} meta={count} />
-            </li>
-          ))}
+        <>
+          {result.matchedPersons.length > 0 && (
+            <>
+              {group(nls.t('workbench.activityBar.people'))}
+              <SideBarList>
+                {result.matchedPersons.slice(0, MAX_PER_GROUP).map((person) => (
+                  <li key={person.id}>
+                    <EntityRow
+                      selected={person.id === selected?.person}
+                      iconVariant="plain"
+                      icon={
+                        <Avatar
+                          initials={initials(person)}
+                          tone={person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : 'neutral'}
+                          size="sm"
+                          shape="circle"
+                        />
+                      }
+                      title={displayName(person)}
+                      subtitle={lifeSpan(person) !== '' ? lifeSpan(person) : null}
+                      onClick={() => onOpenPerson(person.id)}
+                    />
+                  </li>
+                ))}
+              </SideBarList>
+            </>
+          )}
+          {result.matchedFamilies.length > 0 && (
+            <>
+              {group(nls.t('workbench.activityBar.families'))}
+              <SideBarList>
+                {result.matchedFamilies.slice(0, MAX_PER_GROUP).map((family) => (
+                  <li key={family.id}>
+                    <EntityRow
+                      selected={family.id === selected?.family}
+                      icon={<Users size={15} aria-hidden="true" />}
+                      title={familyLabel(family, personById)}
+                      subtitle={nls.t('features.sidebar.children', family.children.length)}
+                      onClick={() => onOpenFamily(family.id)}
+                    />
+                  </li>
+                ))}
+              </SideBarList>
+            </>
+          )}
+          {result.matchedSources.length > 0 && (
+            <>
+              {group(nls.t('workbench.activityBar.sources'))}
+              <SideBarList>
+                {result.matchedSources.slice(0, MAX_PER_GROUP).map((source) => (
+                  <li key={source.id}>
+                    <EntityRow
+                      selected={source.id === selected?.source}
+                      icon={<BookOpenText size={15} aria-hidden="true" />}
+                      title={source.title}
+                      subtitle={source.author !== undefined ? source.author : null}
+                      onClick={() => onOpenSource(source.id)}
+                    />
+                  </li>
+                ))}
+              </SideBarList>
+            </>
+          )}
+          {result.matchedFacts.length > 0 && (
+            <>
+              {group(nls.t('workbench.activityBar.events'))}
+              <SideBarList>
+                {result.matchedFacts.slice(0, MAX_PER_GROUP).map((fact) => {
+                  const ownerId = ownerOf(fact);
+                  return (
+                    <li key={fact.id}>
+                      <EntityRow
+                        icon={<Chip variant="neutral">{fact.tag}</Chip>}
+                        title={fact.value ?? fact.type ?? factOwner(fact)}
+                        subtitle={[fact.date ? formatDate(fact.date) : undefined, fact.place]
+                          .filter((part): part is string => part !== undefined)
+                          .join(' · ')}
+                        {...(ownerId !== undefined ? { onClick: () => onOpenPerson(ownerId) } : {})}
+                      />
+                    </li>
+                  );
+                })}
+              </SideBarList>
+            </>
+          )}
+          {result.matchedPlaces.length > 0 && (
+            <>
+              {group(nls.t('workbench.activityBar.places'))}
+              <SideBarList>
+                {result.matchedPlaces.slice(0, MAX_PER_GROUP).map(([place, count]) => (
+                  <li key={place}>
+                    <EntityRow icon={<MapPin size={15} aria-hidden="true" />} title={place} meta={count} />
+                  </li>
+                ))}
+              </SideBarList>
+            </>
+          )}
           {empty && <SideBarEmpty>{nls.t('features.search.empty')}</SideBarEmpty>}
-        </SideBarList>
+        </>
       )}
     </SideBarLayout>
   );

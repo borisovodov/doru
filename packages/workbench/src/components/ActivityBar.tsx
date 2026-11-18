@@ -59,7 +59,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
     onBlur: hideTooltip,
   });
 
-  const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode; shortcut?: string | undefined }> = [
+  const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode }> = [
     {
       id: 'tree',
       title: nls.t('workbench.activityBar.tree'),
@@ -69,7 +69,6 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
       id: 'search',
       title: nls.t('workbench.activityBar.search'),
       icon: <Search size={ICON_SIZE} aria-hidden="true" />,
-      shortcut: shortcuts?.search,
     },
     {
       id: 'people',
@@ -117,7 +116,7 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
           aria-current={view.id === activeView ? 'page' : undefined}
           aria-describedby={describedBy(view.title)}
           onClick={() => onSelectView(view.id)}
-          {...tooltipHandlers(view.title, view.shortcut)}
+          {...tooltipHandlers(view.title, shortcuts?.[view.id])}
         />
       ))}
       <IconButton
