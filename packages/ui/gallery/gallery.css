@@ -191,15 +191,6 @@
   background: var(--doru-bg-canvas);
 }
 
-.demo-error {
-  padding: 12px;
-  border: 1px solid var(--doru-danger);
-  border-radius: var(--doru-radius-md);
-  color: var(--doru-danger);
-  font-size: var(--doru-font-size-sm);
-  white-space: pre-wrap;
-}
-
 .gallery-empty {
   display: grid;
   height: 100%;

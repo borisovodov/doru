@@ -1,0 +1,8 @@
+.error {
+  padding: var(--doru-space-4);
+  border: 1px solid var(--doru-danger);
+  border-radius: var(--doru-radius-md);
+  color: var(--doru-danger);
+  font-size: var(--doru-font-size-sm);
+  white-space: pre-wrap;
+}

@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { nls } from '../src/nls';
+import styles from './ErrorBoundary.module.css';
 
 interface DemoErrorBoundaryProps {
   children: ReactNode;
@@ -28,7 +29,7 @@ export class DemoErrorBoundary extends Component<DemoErrorBoundaryProps, DemoErr
     const { error } = this.state;
     if (error !== null) {
       return (
-        <div className="demo-error" role="alert">
+        <div className={styles['error']} role="alert">
           {error.readable ? nls.t('gallery.demo.failed', error.text) : nls.t('gallery.demo.unreadable')}
         </div>
       );
