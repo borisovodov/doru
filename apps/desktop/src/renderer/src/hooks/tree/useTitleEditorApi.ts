@@ -12,30 +12,6 @@ export function useTitleEditorApi(
   const titlesApi = useMemo<TitleEditorApi>(
     () => ({
       ...attachmentMethods,
-      getSubmitters: () => (projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([])),
-      getRecordSubmitters: (targetType, targetId) =>
-        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRecordSubmitter: async (
-        submitterId,
-        targetType,
-        targetId,
-        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
-      ) => {
-        if (!projectPath) return;
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
-        await refreshTree();
-      },
-      deleteRecordSubmitter: async (
-        id,
-        submitterId,
-        targetType,
-        targetId,
-        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
-      ) => {
-        if (!projectPath) return;
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
-        await refreshTree();
-      },
       addTitle: async (title: TitleRecord) => {
         if (!projectPath) return;
         await window.doru.addTitle(projectPath, title);

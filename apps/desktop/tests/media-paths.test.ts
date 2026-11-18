@@ -1,11 +1,17 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resolveMediaPath } from '../src/main/mediaPaths';
 
-const projectDir = join(realpathSync(tmpdir()), 'doru-project');
+let projectDir = '';
 let temp = '';
+
+beforeEach(() => {
+  temp = mkdtempSync(join(tmpdir(), 'doru-media-path-'));
+  projectDir = join(temp, 'project');
+  mkdirSync(join(projectDir, 'media'), { recursive: true });
+});
 
 afterEach(() => {
   if (temp !== '') {
@@ -19,7 +25,7 @@ describe('resolveMediaPath', () => {
     const slash = await resolveMediaPath(projectDir, 'media/photo.jpg');
     const backslash = await resolveMediaPath(projectDir, 'media\\photo.jpg');
     expect(slash).not.toBeNull();
-    expect(slash).toMatch(/doru-project[\\/]media[\\/]photo\.jpg$/);
+    expect(slash).toMatch(/doru-media-path-[^\\/]+[\\/]project[\\/]media[\\/]photo\.jpg$/);
     expect(backslash).toBe(slash);
     expect(await resolveMediaPath(projectDir, 'media/sub/../photo.jpg')).toBe(slash);
   });
@@ -32,12 +38,9 @@ describe('resolveMediaPath', () => {
   });
 
   it.skipIf(process.platform === 'win32')('rejects paths escaping through a symlink', async () => {
-    temp = mkdtempSync(join(tmpdir(), 'doru-media-path-'));
-    const project = join(temp, 'project');
     const outside = join(temp, 'outside');
-    mkdirSync(join(project, 'media'), { recursive: true });
     mkdirSync(outside);
-    symlinkSync(outside, join(project, 'media', 'linked'));
-    expect(await resolveMediaPath(project, 'media/linked/photo.jpg')).toBeNull();
+    symlinkSync(outside, join(projectDir, 'media', 'linked'));
+    expect(await resolveMediaPath(projectDir, 'media/linked/photo.jpg')).toBeNull();
   });
 });

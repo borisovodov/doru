@@ -57,6 +57,8 @@ export interface TreeRepository {
   listAllPersons(): PersonRecord[];
   countPersons(): number;
   countFamilies(): number;
+  /** Reconnects a person to an address without rewriting names or facts. */
+  setPersonAddressId(personId: string, addressId: string | undefined): void;
   insertFamily(family: FamilyRecord): void;
   updateFamily(family: FamilyRecord): void;
   getFamily(id: string): FamilyRecord | undefined;
@@ -66,6 +68,9 @@ export interface TreeRepository {
   listFamiliesForPerson(personId: string): FamilyRecord[];
   insertFact(fact: FactRecord): void;
   updateFact(fact: FactRecord): void;
+  getFact(id: string): FactRecord | undefined;
+  /** Reconnects a fact to an address without rewriting its other fields. */
+  setFactAddressId(factId: string, addressId: string | undefined): void;
   deleteFact(id: string): boolean;
   /** Adds an event-family link after the family records exist. */
   insertFactFamilyLink(factId: string, link: FactFamilyLink): void;
@@ -135,11 +140,15 @@ export interface TreeRepository {
   listAllMedia(): MediaRecord[];
   insertRepository(repository: RepositoryRecord): void;
   updateRepository(repository: RepositoryRecord): void;
+  /** Reconnects a repository to an address without rewriting its other fields. */
+  setRepositoryAddressId(repositoryId: string, addressId: string | undefined): void;
   getRepository(id: string): RepositoryRecord | undefined;
   deleteRepository(id: string): boolean;
   listRepositories(): RepositoryRecord[];
   insertSubmitter(submitter: SubmitterRecord): void;
   updateSubmitter(submitter: SubmitterRecord): void;
+  /** Reconnects a submitter to an address without rewriting their other fields. */
+  setSubmitterAddressId(submitterId: string, addressId: string | undefined): void;
   getSubmitter(id: string): SubmitterRecord | undefined;
   deleteSubmitter(id: string): boolean;
   listSubmitters(): SubmitterRecord[];
@@ -200,11 +209,17 @@ export interface TreeRepository {
   listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }>;
   insertTodo(todo: TodoRecord): void;
   updateTodo(todo: TodoRecord): void;
+  getTodo(id: string): TodoRecord | undefined;
+  /** Reconnects a todo to a repository without rewriting its other fields. */
+  setTodoRepositoryId(todoId: string, repositoryId: string | undefined): void;
   deleteTodo(id: string): boolean;
   listTodos(): TodoRecord[];
   listTodosFor(targetType: string, targetId: string): TodoRecord[];
   insertTitle(title: TitleRecord): void;
   updateTitle(title: TitleRecord): void;
+  getTitle(id: string): TitleRecord | undefined;
+  /** Reconnects a title to a repository without rewriting its other fields. */
+  setTitleRepositoryId(titleId: string, repositoryId: string | undefined): void;
   deleteTitle(id: string): boolean;
   listTitles(): TitleRecord[];
   /** Everything attached to a target, for op snapshots before a cascade delete. */
@@ -246,7 +261,7 @@ export class SqliteTreeRepository implements TreeRepository {
     this.persons = new PersonRepo(db, this.transactions);
     this.names = new NameRepo(db, dates);
     this.families = new FamilyRepo(db, this.transactions, dates);
-    this.facts = new FactRepo(db, dates);
+    this.facts = new FactRepo(db, dates, this.transactions);
     this.places = new PlaceRepo(db, dates);
     this.sources = new SourceRepo(db, dates);
     this.notes = new NoteRepo(db);
@@ -403,6 +418,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.families.countFamilies();
   }
 
+  setPersonAddressId(personId: string, addressId: string | undefined): void {
+    this.persons.setAddressId(personId, addressId);
+  }
+
   insertFamily(family: FamilyRecord): void {
     this.families.insertFamily(family);
   }
@@ -477,6 +496,14 @@ export class SqliteTreeRepository implements TreeRepository {
 
   updateFact(fact: FactRecord): void {
     this.facts.updateFact(fact);
+  }
+
+  getFact(id: string): FactRecord | undefined {
+    return this.facts.getFact(id);
+  }
+
+  setFactAddressId(factId: string, addressId: string | undefined): void {
+    this.facts.setFactAddressId(factId, addressId);
   }
 
   insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
@@ -768,6 +795,10 @@ export class SqliteTreeRepository implements TreeRepository {
     this.repositories.updateRepository(repository);
   }
 
+  setRepositoryAddressId(repositoryId: string, addressId: string | undefined): void {
+    this.repositories.setAddressId(repositoryId, addressId);
+  }
+
   getRepository(id: string): RepositoryRecord | undefined {
     return this.repositories.getRepository(id);
   }
@@ -789,6 +820,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   updateSubmitter(submitter: SubmitterRecord): void {
     this.submitters.updateSubmitter(submitter);
+  }
+
+  setSubmitterAddressId(submitterId: string, addressId: string | undefined): void {
+    this.submitters.setAddressId(submitterId, addressId);
   }
 
   getSubmitter(id: string): SubmitterRecord | undefined {
@@ -1022,6 +1057,14 @@ export class SqliteTreeRepository implements TreeRepository {
     this.research.updateTodo(todo);
   }
 
+  getTodo(id: string): TodoRecord | undefined {
+    return this.research.getTodo(id);
+  }
+
+  setTodoRepositoryId(todoId: string, repositoryId: string | undefined): void {
+    this.research.setTodoRepositoryId(todoId, repositoryId);
+  }
+
   deleteTodo(id: string): boolean {
     return this.transactions.run(() => {
       this.deleteAttachmentsFor('todo', id);
@@ -1043,6 +1086,14 @@ export class SqliteTreeRepository implements TreeRepository {
 
   updateTitle(title: TitleRecord): void {
     this.research.updateTitle(title);
+  }
+
+  getTitle(id: string): TitleRecord | undefined {
+    return this.research.getTitle(id);
+  }
+
+  setTitleRepositoryId(titleId: string, repositoryId: string | undefined): void {
+    this.research.setTitleRepositoryId(titleId, repositoryId);
   }
 
   deleteTitle(id: string): boolean {

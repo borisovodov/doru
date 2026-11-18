@@ -308,14 +308,15 @@ describe('draftToRecord', () => {
   });
 
   it('keeps an untouched address but honours an explicit clear or change', () => {
-    const existing = person({ addressId: 'A1' });
-    expect(draftToRecord(personToDraft(existing), existing).addressId).toBe('A1');
+    const source = person({ addressId: 'A1' });
+    const existing = person({ addressId: 'A2' });
+    expect(draftToRecord(personToDraft(source), existing).addressId).toBe('A2');
     expect(
-      draftToRecord({ ...personToDraft(existing), addressTouched: true, addressId: undefined }, existing).addressId,
+      draftToRecord({ ...personToDraft(source), addressTouched: true, addressId: undefined }, existing).addressId,
     ).toBeUndefined();
-    expect(
-      draftToRecord({ ...personToDraft(existing), addressTouched: true, addressId: 'A2' }, existing).addressId,
-    ).toBe('A2');
+    expect(draftToRecord({ ...personToDraft(source), addressTouched: true, addressId: 'A3' }, existing).addressId).toBe(
+      'A3',
+    );
   });
 
   it('writes every name of the draft, preserving ids and variants', () => {

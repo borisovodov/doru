@@ -28,6 +28,10 @@ export class SubmitterRepo {
     }
   }
 
+  setAddressId(id: string, addressId: string | undefined): void {
+    this.db.prepare('UPDATE submitter SET address_id = ? WHERE id = ?').run(addressId ?? null, id);
+  }
+
   getSubmitter(id: string): SubmitterRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, name, address_id FROM submitter WHERE id = ?').get(id) as
       | { id: string; xref: string | null; name: string; address_id: string | null }

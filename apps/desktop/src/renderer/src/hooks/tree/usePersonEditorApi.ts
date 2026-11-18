@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { TodoRecord } from '@doru/core';
+import type { RecordSubmitterLink, TodoRecord } from '@doru/core';
 import type { MediaTargetApi, PersonEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -269,13 +269,13 @@ export function usePersonEditorApi(
         await window.doru.deleteAlias(projectPath, id, personId, aliasId);
         await refreshTree();
       },
-      getRecordSubmitters: (targetType, targetId) =>
+      getRecordSubmitters: (targetType, targetId): Promise<RecordSubmitterLink[]> =>
         projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
       addRecordSubmitter: async (
         submitterId,
         targetType,
         targetId,
-        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
+        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
       ) => {
         if (!projectPath) {
           return;
@@ -288,7 +288,7 @@ export function usePersonEditorApi(
         submitterId,
         targetType,
         targetId,
-        kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
+        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
       ) => {
         if (!projectPath) {
           return;
@@ -321,12 +321,14 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.updateTagLink(projectPath, before, after);
+        await refreshTree();
       },
       updateTag: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateTag(projectPath, before, after);
+        await refreshTree();
       },
       deleteTag: async (tag) => {
         if (!projectPath) {

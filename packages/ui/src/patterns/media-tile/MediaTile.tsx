@@ -39,10 +39,11 @@ export function MediaTile({
         {fallback}
       </span>
     );
+  const openName = openLabel === undefined || alt === '' ? (openLabel ?? alt) : `${openLabel}: ${alt}`;
   return (
     <figure className={cx(styles['tile'], muted === true && styles['muted'], className)}>
       {onOpen ? (
-        <button type="button" className={styles['open']} aria-label={openLabel} onClick={onOpen}>
+        <button type="button" className={styles['open']} aria-label={openName} onClick={onOpen}>
           {image}
         </button>
       ) : (

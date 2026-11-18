@@ -108,6 +108,8 @@ interface ImportContext {
   sourceIds: Map<string, string>;
   /** True once every SOUR xref has been registered. */
   sourceIdsReady: boolean;
+  /** Shared-note citations held until the SOUR pass. */
+  pendingNoteCitations: Array<{ noteId: string; citations: SourceCitation[] }>;
   /** Media-record citations held until the SOUR pass. */
   pendingMediaCitations: Array<{ mediaId: string; citations: SourceCitation[] }>;
   /** Media-link citations found before the SOUR pass. */
@@ -176,6 +178,7 @@ export function importGedcomDataset(
     familyIds: new Map(),
     sourceIds: new Map(),
     sourceIdsReady: false,
+    pendingNoteCitations: [],
     pendingMediaCitations: [],
     pendingMediaLinkCitations: [],
     repositoryIds: new Map(),
@@ -209,6 +212,7 @@ export function importGedcomDataset(
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
     ctx.sourceIdsReady = true;
+    flushNoteCitations(ctx);
     flushMediaCitations(ctx);
     flushMediaLinkCitations(ctx);
     for (const record of dataset.records) {
@@ -475,7 +479,11 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
         language: translation.language,
       })),
     });
-    importCitations(note.citations, 'note', id, ctx);
+    if (note.citations !== undefined && note.citations.length > 0) {
+      // Shared notes are registered before SOUR records so pointers resolve;
+      // their evidence can only be imported once the sources have ids.
+      ctx.pendingNoteCitations.push({ noteId: id, citations: note.citations });
+    }
     importIdentifiers(note.identifiers, 'note', id, ctx);
     importChanges(note.changeDate, note.creationDate, 'note', id, ctx);
     importSubmitterLinks(note.submitters, 'note', id, ctx);
@@ -1931,6 +1939,14 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       importTagLink(tagLink, 'media', id, ctx);
     }
   }
+}
+
+/** Imports shared-note citations once every SOUR xref is known. */
+function flushNoteCitations(ctx: ImportContext): void {
+  for (const pending of ctx.pendingNoteCitations) {
+    importCitations(pending.citations, 'note', pending.noteId, ctx);
+  }
+  ctx.pendingNoteCitations = [];
 }
 
 /** Imports OBJE record citations once the SOUR records have ids. */

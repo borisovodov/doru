@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { CitationsList, NotesList, TagsList } from '../src/sidebar/RegistryLists';
 import { nls } from '../src/nls';
 import { renderUi } from '../../../test/ui/harness';
@@ -36,8 +36,10 @@ describe('registry sidebar lists', () => {
       />,
     );
 
-    expect(screen.getByText(nls.t('features.tree.tags.orphan'))).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.tags.delete') })[1]!);
+    const orphanRow = screen.getByText('Orphan').closest('li');
+    expect(orphanRow).not.toBeNull();
+    expect(within(orphanRow!).getByText(nls.t('features.tree.tags.orphan'))).toBeInTheDocument();
+    fireEvent.click(within(orphanRow!).getByRole('button', { name: nls.t('features.tree.tags.delete') }));
     expect(onDeleteTag).toHaveBeenCalledWith({ id: 'TAG2', name: 'Orphan' });
   });
 

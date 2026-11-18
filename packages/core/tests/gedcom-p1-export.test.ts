@@ -60,6 +60,12 @@ describe('P1 GEDCOM export gaps', () => {
         familyId: 'FAM1',
         tag: 'MARR',
         date: { quality: 'exact', component: { year: 1890 } },
+        flags: ['preferred', 'private'],
+        primary: true,
+        participants: [
+          { id: 'FP1', value: 'Family Godparent', role: 'GODP', position: 0 },
+          { id: 'FP2', value: 'Family Witness', role: 'WITN', position: 1 },
+        ],
       });
       repo.insertFact({
         id: 'FN1',
@@ -97,6 +103,11 @@ describe('P1 GEDCOM export gaps', () => {
         const text = serialized.value;
         expect(text).toContain('_GODP Godparent Name');
         expect(text).toContain('_WITN Witness Name');
+        expect(text).toContain('_GODP Family Godparent');
+        expect(text).toContain('_WITN Family Witness');
+        expect(text).toContain('_FLGS');
+        expect(text).toContain('__PREFERRED Preferred');
+        expect(text).toContain('__PRIVATE Private');
         expect(text).toContain('1 QUAY 2');
         if (hasPlaceCards) {
           // 5.5.1 has no place-card record: the identifiers and CHAN have
@@ -120,8 +131,20 @@ describe('P1 GEDCOM export gaps', () => {
             ]),
           );
 
+          const family = target.repo.listFamilies()[0]!;
+          const marriage = target.repo
+            .listFactsForFamily(family.id)
+            .find((fact) => fact.tag === 'MARR' && fact.date?.component?.year === 1890)!;
+          expect(marriage.flags).toEqual(expect.arrayContaining(['preferred', 'private']));
+          expect(marriage.primary).toBe(true);
+          expect(marriage.participants).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ value: 'Family Godparent', role: 'GODP' }),
+              expect.objectContaining({ value: 'Family Witness', role: 'WITN' }),
+            ]),
+          );
+
           if (hasNonEvents) {
-            const family = target.repo.listFamilies()[0]!;
             const nonEvent = target.repo.listFactsForFamily(family.id).find((fact) => fact.negation === true)!;
             expect(target.repo.listCitationRecordsFor('fact', nonEvent.id)).toHaveLength(1);
             expect(target.repo.listNotesFor('fact', nonEvent.id).map((entry) => entry.text)).toEqual([

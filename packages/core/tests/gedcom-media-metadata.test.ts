@@ -180,6 +180,12 @@ describe('media historical metadata', () => {
         expect(text).toContain('2 _CTYP person');
         expect(text).toContain('2 SOUR @S1@');
         expect(text).toContain('3 PAGE Link page');
+        if (serialize === serializeGedcom70) {
+          expect(text).toContain('2 TRAN photos/a.png');
+          expect(text).toContain('3 FORM image/png');
+        } else {
+          expect(text).not.toContain('2 TRAN');
+        }
 
         const target = makeRepo();
         try {
@@ -198,6 +204,11 @@ describe('media historical metadata', () => {
             contentType: 'person',
             text: 'A transcription',
           });
+          if (serialize === serializeGedcom70) {
+            expect(imported.files?.[0]?.translations?.[0]).toMatchObject({ path: 'photos/a.png', position: 0 });
+          } else {
+            expect(imported.files?.[0]?.translations).toEqual([]);
+          }
           const importedPerson = target.repo.listAllPersons()[0]!;
           const importedLink = target.repo.listAttachmentsFor('person', importedPerson.id).mediaLinks[0]!.link;
           expect(target.repo.listCitationRecordsFor('media_link', importedLink.id)).toHaveLength(1);

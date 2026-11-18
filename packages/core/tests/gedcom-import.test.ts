@@ -302,6 +302,40 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('imports citations on shared notes before families reference them', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @N1@ SNOTE Shared note text',
+      '1 SOUR @S1@',
+      '0 @S1@ SOUR',
+      '1 TITL Parish register',
+      '0 @I1@ INDI',
+      '1 NAME Ivan /Petrov/',
+      '1 FAMC @F1@',
+      '2 NOTE @N1@',
+      '0 @F1@ FAM',
+      '1 CHIL @I1@',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const note = fixture.repo.listNotes().find((entry) => entry.text === 'Shared note text')!;
+      const source = fixture.repo.listSources().find((entry) => entry.title === 'Parish register')!;
+      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((citation) => citation.sourceId)).toEqual([
+        source.id,
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not create a submitter for a nameless SUBM record', () => {
     const gedcom = [
       '0 HEAD',

@@ -51,8 +51,18 @@ describe('DateValue ids outside facts', () => {
     const todo: TodoRecord = {
       id: 'T1',
       text: 'Check the archive',
-      scheduledDate: { id: 'TD1', quality: 'exact', component: { year: 2026 } },
+      createdDate: { id: 'TD1', quality: 'exact', component: { year: 2020 } },
+      scheduledDate: { id: 'TD2', quality: 'exact', component: { year: 2021 } },
+      reminderDate: { id: 'TD3', quality: 'exact', component: { year: 2022 } },
+      closedDate: { id: 'TD4', quality: 'exact', component: { year: 2023 } },
     };
-    expect(todoDraftToRecord(todo, todoToDraft(todo)).scheduledDate?.id).toBe('TD1');
+    const todoDraft = todoToDraft(todo);
+    todoDraft.scheduled = { ...todoDraft.scheduled, year: '2026' };
+    todoDraft.reminder = emptyDate();
+    const todoAfter = todoDraftToRecord(todo, todoDraft);
+    expect(todoAfter.createdDate?.id).toBe('TD1');
+    expect(todoAfter.scheduledDate).toMatchObject({ id: 'TD2', component: { year: 2026 } });
+    expect(todoAfter.reminderDate).toBeUndefined();
+    expect(todoAfter.closedDate?.id).toBe('TD4');
   });
 });

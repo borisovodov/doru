@@ -16,3 +16,13 @@ export default meta;
 type DemoCase = Demo;
 
 export const Default: DemoCase = {};
+
+export const EmptySource: DemoCase = {
+  args: {
+    src: '',
+    alt: 'Parish register scan',
+    fallback: <span>PDF</span>,
+    openLabel: 'Open media',
+    onOpen: () => undefined,
+  },
+};

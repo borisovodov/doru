@@ -53,6 +53,10 @@ export class PersonRepo {
     });
   }
 
+  setAddressId(id: string, addressId: string | undefined): void {
+    this.db.prepare('UPDATE person SET address_id = ? WHERE id = ?').run(addressId ?? null, id);
+  }
+
   getPerson(id: string): PersonRow | undefined {
     const row = this.db.prepare('SELECT id, xref, sex, death_status, address_id FROM person WHERE id = ?').get(id) as
       | PersonDbRow

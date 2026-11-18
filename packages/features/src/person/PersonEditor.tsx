@@ -14,6 +14,7 @@ import type {
   IdentifierRecord,
   NoteRecord,
   PersonRecord,
+  RecordSubmitterLink,
   PlaceRecord,
   RestrictionRecord,
   Sex,
@@ -90,15 +91,7 @@ export function PersonEditor({
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<
-    Array<{
-      id: string;
-      submitterId: string;
-      targetType: string;
-      targetId: string;
-      kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
-    }>
-  >([]);
+  const [contributors, setContributors] = useState<RecordSubmitterLink[]>([]);
 
   const refreshFamilies = async () => {
     setFamilies(await api.getFamilies());

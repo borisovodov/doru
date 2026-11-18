@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { TARGET_TYPES } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
@@ -24,6 +25,9 @@ export function TaskEditorFields({
   data: TaskTargetData;
   onChange: (update: Partial<TodoDraft>) => void;
 }) {
+  const listId = useId();
+  const categoryListId = `${listId}-categories`;
+  const localityListId = `${listId}-localities`;
   const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
   const targetOptions = taskTargetOptions(edit.targetType, data);
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
@@ -50,7 +54,7 @@ export function TaskEditorFields({
       <FieldGrid columns={2}>
         <Field label={nls.t('features.tasks.category')}>
           <Input
-            list="doru-task-categories"
+            list={categoryListId}
             placeholder={nls.t('features.tasks.category')}
             value={edit.category}
             onChange={(event) => onChange({ category: event.target.value })}
@@ -58,7 +62,7 @@ export function TaskEditorFields({
         </Field>
         <Field label={nls.t('features.tasks.locality')}>
           <Input
-            list="doru-task-localities"
+            list={localityListId}
             placeholder={nls.t('features.tasks.locality')}
             value={edit.locality}
             onChange={(event) => onChange({ locality: event.target.value })}
@@ -154,12 +158,12 @@ export function TaskEditorFields({
         onChange={(value) => onChange({ closed: value })}
         hidePlace
       />
-      <datalist id="doru-task-categories">
+      <datalist id={categoryListId}>
         {categories.map((category) => (
           <option key={category} value={category} />
         ))}
       </datalist>
-      <datalist id="doru-task-localities">
+      <datalist id={localityListId}>
         {localities.map((locality) => (
           <option key={locality} value={locality} />
         ))}

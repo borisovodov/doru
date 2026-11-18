@@ -366,6 +366,7 @@ function SourcesSidebar({
             type="button"
             key={id}
             className={segment === id ? 'sidebar-segment active' : 'sidebar-segment'}
+            aria-pressed={segment === id}
             onClick={() => setSegment(id)}
           >
             {label}

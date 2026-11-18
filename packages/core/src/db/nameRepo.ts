@@ -194,7 +194,9 @@ export class NameRepo {
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
       // The verbatim display form is authoritative: keep it alongside the
       // pieces even when the caller supplied explicit parts.
-      const existingFull = existingParts?.find((part) => part.kind === 'full');
+      const existingFull = existingParts?.find(
+        (part) => part.kind === 'full' && !parts.some((entry) => entry.id === part.id),
+      );
       parts.push({
         id: existingFull?.id ?? crypto.randomUUID(),
         kind: 'full',
@@ -318,9 +320,17 @@ export function partsFromFlat(name: PersonName, existingParts?: NamePart[]): Nam
     ['suffix', name.suffix],
   ];
   const parts: NamePart[] = [];
+  const usedIds = new Set<string>();
   const partId = (kind: NamePart['kind'], position: number): string => {
-    const existing = existingParts?.find((part) => part.kind === kind && part.position === position);
-    return existing?.id ?? crypto.randomUUID();
+    // Prefer the exact slot, then any retained part of the same kind: adding
+    // a prefix shifts positions, but the given/surname pieces did not change
+    // and must keep their ids (and therefore their attachments).
+    const existing =
+      existingParts?.find((part) => part.kind === kind && part.position === position && !usedIds.has(part.id)) ??
+      existingParts?.find((part) => part.kind === kind && !usedIds.has(part.id));
+    const id = existing?.id ?? crypto.randomUUID();
+    usedIds.add(id);
+    return id;
   };
   pieces.forEach(([kind, value]) => {
     if (value !== undefined && value !== '') {

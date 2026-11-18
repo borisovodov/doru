@@ -10,6 +10,7 @@ import type {
   FactRecord,
   FamilyRecord,
   PersonRecord,
+  RecordSubmitterLink,
   PlaceRecord,
   SourceRecord,
   SubmitterRecord,
@@ -72,15 +73,7 @@ export function FamilyEditor({
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<
-    Array<{
-      id: string;
-      submitterId: string;
-      targetType: string;
-      targetId: string;
-      kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
-    }>
-  >([]);
+  const [contributors, setContributors] = useState<RecordSubmitterLink[]>([]);
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);

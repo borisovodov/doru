@@ -78,7 +78,7 @@ export function FactEditor({
   const [addressDraft, setAddressDraft] = useState<AddressDraft | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
-  const set = (patch: Partial<FactDraft>) => setDraft({ ...draft, ...patch });
+  const set = (patch: Partial<FactDraft>) => setDraft((current) => ({ ...current, ...patch }));
 
   const owner = factOwnerRef(draft);
   const personById = new Map(persons.map((person) => [person.id, person]));
@@ -148,7 +148,7 @@ export function FactEditor({
     } else if (onAddAddress !== undefined) {
       await onAddAddress(record);
     }
-    set({ addressId: record.id });
+    setDraft((current) => ({ ...current, addressId: record.id }));
     setAddressDraft(undefined);
   };
 

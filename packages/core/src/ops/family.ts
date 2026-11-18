@@ -74,8 +74,24 @@ export function deleteFamilyOp(
       for (const association of associations) {
         ctx.repo.insertAssociation(association);
       }
+      // Facts owned by the family were re-inserted with their links above.
+      // Surviving facts may have been edited since the delete, so restore
+      // only the link rows to this family instead of rewriting the fact.
+      const reinserted = new Set(facts.map((fact) => fact.id));
       for (const fact of linkedFacts) {
-        ctx.repo.updateFact(fact);
+        if (reinserted.has(fact.id)) {
+          continue;
+        }
+        const current = ctx.repo.getFact(fact.id);
+        if (current === undefined) {
+          continue;
+        }
+        const existing = new Set((current.familyLinks ?? []).map((link) => link.id));
+        for (const link of fact.familyLinks ?? []) {
+          if (link.familyId === family.id && !existing.has(link.id)) {
+            ctx.repo.insertFactFamilyLink(fact.id, link);
+          }
+        }
       }
       ctx.repo.restoreAttachments(attachments);
       for (const link of linkAttachments) {

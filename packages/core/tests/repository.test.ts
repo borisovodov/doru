@@ -101,6 +101,44 @@ describe('SqliteTreeRepository', () => {
     }
   });
 
+  it('rolls back a fact save when one family link cannot be written', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson(ivan);
+      repo.insertFamily({ id: 'F1', partners: [], children: [] });
+      repo.insertFamily({ id: 'F2', partners: [], children: [] });
+      repo.insertFact({
+        id: 'ADOP1',
+        personId: 'P1',
+        tag: 'ADOP',
+        familyLinks: [
+          { id: 'FF1', familyId: 'F1', position: 0 },
+          { id: 'FF2', familyId: 'F2', position: 1 },
+        ],
+      });
+      repo.deleteFamily('F1');
+
+      const stale = repo.getFact('ADOP1')!;
+      expect(() =>
+        repo.updateFact({
+          ...stale,
+          value: 'changed',
+          familyLinks: [
+            { id: 'FF1', familyId: 'F1', position: 0 },
+            { id: 'FF2', familyId: 'F2', position: 1 },
+          ],
+        }),
+      ).toThrow();
+
+      const restored = repo.getFact('ADOP1')!;
+      expect(restored.value).toBeUndefined();
+      expect(restored.familyLinks?.map((link) => link.id)).toEqual(['FF2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('stores families with ordered partners and children', () => {
     const fixture = makeRepo();
     try {

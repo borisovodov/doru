@@ -344,6 +344,46 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('restores only the deleted family link on surviving facts', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.addFamily({ id: 'F2', partners: ['P1'], children: [] });
+      const personBefore = repo.getPerson('P1')!;
+      service.updatePerson(personBefore, {
+        ...personBefore,
+        facts: [
+          {
+            id: 'ADOP1',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [
+              { id: 'FF1', familyId: 'F1', position: 0 },
+              { id: 'FF2', familyId: 'F2', position: 1 },
+            ],
+          },
+        ],
+      });
+
+      service.deleteFamily(repo.getFamily('F1')!);
+      const surviving = repo.getPerson('P1')!.facts[0]!;
+      repo.updateFact({ ...surviving, value: 'edited elsewhere' });
+
+      service.undo();
+
+      const restored = repo.getPerson('P1')!.facts[0]!;
+      expect(restored.value).toBe('edited elsewhere');
+      expect(restored.familyLinks?.map((link) => [link.id, link.familyId])).toEqual([
+        ['FF1', 'F1'],
+        ['FF2', 'F2'],
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('cleans and restores place-name and place-hierarchy attachments on update', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -501,6 +541,27 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('keeps name-part attachments when a prefix shifts their positions', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1', { names: [{ id: 'N1', given: 'Ada', surname: 'Lovelace' }] }));
+      const given = repo.getPerson('P1')!.names[0]!.parts!.find((part) => part.kind === 'given')!;
+      service.addNote(note('NT1', 'name_part', given.id));
+
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, {
+        ...before,
+        names: [{ id: 'N1', prefix: 'Dr', given: 'Ada', surname: 'Lovelace' }],
+      });
+
+      expect(repo.getPerson('P1')?.names[0]?.parts?.find((part) => part.kind === 'given')?.id).toBe(given.id);
+      expect(repo.listNotesFor('name_part', given.id).map((entry) => entry.id)).toEqual(['NT1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores a participant in another fact and a name-part attachment on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -556,6 +617,59 @@ describe('TreeService CRUD integrity', () => {
         role: 'witness',
       });
       expect(repo.listNotesFor('name_part', 'NP2').map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('uses the persisted person for the delete and undo snapshot', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.addFamily({ id: 'F2', partners: ['P1'], children: [] });
+      const stale = repo.getPerson('P1')!;
+      const current = repo.getPerson('P1')!;
+      repo.updatePerson({
+        ...current,
+        names: [{ id: 'N2', given: 'Augusta' }],
+        facts: [
+          {
+            id: 'ADOP1',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [
+              { id: 'FF1', familyId: 'F1', position: 0 },
+              { id: 'FF2', familyId: 'F2', position: 1 },
+            ],
+          },
+        ],
+      });
+
+      service.deletePerson(stale);
+      service.undo();
+
+      expect(repo.getPerson('P1')?.names[0]?.id).toBe('N2');
+      expect(repo.getPerson('P1')?.facts[0]?.familyLinks?.map((link) => link.id)).toEqual(['FF1', 'FF2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('uses the persisted source for the delete and undo snapshot', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      const source: SourceRecord = { id: 'S1', title: 'Old title' };
+      service.addSource(source);
+      const stale = repo.getSource('S1')!;
+      repo.updateSource({ ...stale, title: 'New title' });
+
+      service.deleteSource(stale);
+      service.undo();
+
+      expect(repo.getSource('S1')?.title).toBe('New title');
     } finally {
       cleanupRepo(fixture);
     }

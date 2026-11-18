@@ -64,6 +64,10 @@ export class ResearchRepo {
     }
   }
 
+  setTodoRepositoryId(id: string, repositoryId: string | undefined): void {
+    this.db.prepare('UPDATE todo SET repository_id = ? WHERE id = ?').run(repositoryId ?? null, id);
+  }
+
   deleteTodo(id: string): boolean {
     const row = this.db
       .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
@@ -84,6 +88,11 @@ export class ResearchRepo {
       }
     }
     return result.changes > 0;
+  }
+
+  getTodo(id: string): TodoRecord | undefined {
+    const row = this.db.prepare(`${todoSelect} WHERE id = ?`).get(id) as TodoRow | undefined;
+    return row === undefined ? undefined : this.hydrateTodo(row);
   }
 
   listTodos(): TodoRecord[] {
@@ -164,8 +173,21 @@ export class ResearchRepo {
       .run(...titleParams(title).slice(1), title.id);
   }
 
+  setTitleRepositoryId(id: string, repositoryId: string | undefined): void {
+    this.db.prepare('UPDATE title SET repository_id = ? WHERE id = ?').run(repositoryId ?? null, id);
+  }
+
   deleteTitle(id: string): boolean {
     return this.db.prepare('DELETE FROM title WHERE id = ?').run(id).changes > 0;
+  }
+
+  getTitle(id: string): TitleRecord | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence FROM title WHERE id = ?',
+      )
+      .get(id) as TitleRow | undefined;
+    return row === undefined ? undefined : rowToTitle(row);
   }
 
   listTitles(): TitleRecord[] {

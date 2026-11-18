@@ -538,10 +538,10 @@ export function deleteRepositoryOp(
           ctx.repo.restoreSourceRepository(link);
         }
         for (const todo of consumers.todos ?? []) {
-          ctx.repo.updateTodo({ ...todo, repositoryId: repository.id });
+          ctx.repo.setTodoRepositoryId(todo.id, repository.id);
         }
         for (const title of consumers.titles ?? []) {
-          ctx.repo.updateTitle({ ...title, repositoryId: repository.id });
+          ctx.repo.setTitleRepositoryId(title.id, repository.id);
         }
       },
     ),
@@ -592,7 +592,15 @@ export function deleteSubmitterOp(
         ctx.repo.insertSubmitter(submitter);
         ctx.repo.restoreAttachments(attachments);
         for (const link of consumers.recordSubmitters ?? []) {
-          ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
+          // restoreAttachments may already have restored the same link when
+          // it belongs to a media link's attachment snapshot.
+          if (
+            !ctx.repo
+              .listRecordSubmittersFor(link.targetType, link.targetId)
+              .some((existing) => existing.id === link.id)
+          ) {
+            ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
+          }
         }
       },
     ),
@@ -689,16 +697,16 @@ export function deleteAddressOp(
           ctx.repo.restoreAttachments(nested.attachments);
         }
         for (const repository of consumers.repositories ?? []) {
-          ctx.repo.updateRepository({ ...repository, addressId: address.id });
+          ctx.repo.setRepositoryAddressId(repository.id, address.id);
         }
         for (const submitter of consumers.submitters ?? []) {
-          ctx.repo.updateSubmitter({ ...submitter, addressId: address.id });
+          ctx.repo.setSubmitterAddressId(submitter.id, address.id);
         }
         for (const fact of consumers.facts ?? []) {
-          ctx.repo.updateFact({ ...fact, addressId: address.id });
+          ctx.repo.setFactAddressId(fact.id, address.id);
         }
         for (const person of consumers.persons ?? []) {
-          ctx.repo.updatePerson({ ...person, addressId: address.id });
+          ctx.repo.setPersonAddressId(person.id, address.id);
         }
       },
     ),

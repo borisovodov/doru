@@ -527,6 +527,58 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores address and repository references without overwriting later edits', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [{ id: 'N1', given: 'Ada' }], sex: 'U', facts: [] });
+      service.addAddress(address());
+      const beforeAddress = fixture.repo.getPerson('P1')!;
+      service.updatePerson(beforeAddress, { ...beforeAddress, addressId: 'AD1' });
+      service.deleteAddress(fixture.repo.getAddress('AD1')!);
+
+      fixture.repo.updatePerson({
+        ...fixture.repo.getPerson('P1')!,
+        names: [{ id: 'N2', given: 'Augusta' }],
+      });
+      service.undo();
+      expect(fixture.repo.getPerson('P1')?.addressId).toBe('AD1');
+      expect(fixture.repo.getPerson('P1')?.names[0]?.id).toBe('N2');
+
+      service.addRepository(repository());
+      service.addTodo({ id: 'TD1', text: 'Old task', repositoryId: 'RP1' });
+      service.addTitle({ id: 'TT1', name: 'Old title', repositoryId: 'RP1' });
+      service.deleteRepository(fixture.repo.getRepository('RP1')!);
+
+      fixture.repo.updateTodo({ ...fixture.repo.listTodos()[0]!, text: 'Edited task' });
+      fixture.repo.updateTitle({ ...fixture.repo.listTitles()[0]!, name: 'Edited title' });
+      service.undo();
+
+      expect(fixture.repo.listTodos()[0]).toMatchObject({ text: 'Edited task', repositoryId: 'RP1' });
+      expect(fixture.repo.listTitles()[0]).toMatchObject({ name: 'Edited title', repositoryId: 'RP1' });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores a submitter link only once across media and consumer snapshots', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSubmitter(submitter());
+      service.addMedia({ id: 'M1', title: 'Scan' });
+      service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'submitter', targetId: 'SU1' });
+      service.addRecordSubmitter('SU1', 'media_link', 'ML1');
+      const link = fixture.repo.listRecordSubmittersFor('media_link', 'ML1')[0]!;
+
+      service.deleteSubmitter(submitter());
+      service.undo();
+
+      expect(fixture.repo.getSubmitter('SU1')).toBeDefined();
+      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([link]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('manages repositories, submitters and addresses', () => {
     const { fixture, service } = makeService();
     try {
@@ -676,7 +728,9 @@ describe('TreeService attachments', () => {
           .listChangesFor('note', 'N1')
           .map((change) => change.kind)
           .sort(),
-      ).toEqual(['changed', 'created']);
+      ).toEqual(['created']);
+      // The note is attached to P1, so its deletion also marks the owner.
+      expect(fixture.repo.listChangesFor('person', 'P1').map((change) => change.kind)).toContain('changed');
     } finally {
       cleanupRepo(fixture);
     }

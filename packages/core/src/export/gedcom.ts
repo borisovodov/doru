@@ -582,17 +582,16 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
   const detail = buildDetail(fact, repo, xrefs);
   const husbandAge = fact.ages?.find((age) => age.role === 'HUSB');
   const wifeAge = fact.ages?.find((age) => age.role === 'WIFE');
-  // FamilyEventDetail nests the shared EventDetail and the per-partner ages.
-  const familyDetail =
+  // FamilyEventDetail nests the shared EventDetail and the per-partner ages;
+  // the emitter reads flags, primary, witnesses and godparents from detail.detail.
+  const familyDetail: import('@doru/gedcom').FamilyEventDetail | undefined =
     detail !== undefined || husbandAge !== undefined || wifeAge !== undefined
       ? {
-          detail: {
-            ...(detail !== undefined ? detail : {}),
-            ...(husbandAge !== undefined ? { husband: { age: buildAge(husbandAge) } } : {}),
-            ...(wifeAge !== undefined ? { wife: { age: buildAge(wifeAge) } } : {}),
-          },
+          ...(detail !== undefined ? { detail } : {}),
+          ...(husbandAge !== undefined ? { husband: { age: buildAge(husbandAge) } } : {}),
+          ...(wifeAge !== undefined ? { wife: { age: buildAge(wifeAge) } } : {}),
         }
-      : {};
+      : undefined;
   if (fact.tag === 'EVEN' || (!FAMILY_EVENT_TAGS.has(fact.tag) && !FAMILY_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
       kind: 'event',
@@ -600,7 +599,7 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
         tag: 'EVEN',
         payload: fact.value ?? '',
         type: fact.type ?? fact.tag,
-        ...familyDetail,
+        ...(familyDetail !== undefined ? { detail: familyDetail } : {}),
       } as FamilyEventStructure,
     };
   }
@@ -611,7 +610,7 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
         tag: fact.tag as FamilyAttributeStructure['tag'],
         payload: fact.value ?? '',
         ...(fact.type !== undefined ? { type: fact.type } : {}),
-        ...familyDetail,
+        ...(familyDetail !== undefined ? { detail: familyDetail } : {}),
       } as FamilyAttributeStructure,
     };
   }
@@ -621,7 +620,7 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
       tag: fact.tag as FamilyEventStructure['tag'],
       ...(fact.value !== undefined ? { payload: fact.value } : {}),
       ...(fact.type !== undefined ? { type: fact.type } : {}),
-      ...familyDetail,
+      ...(familyDetail !== undefined ? { detail: familyDetail } : {}),
     } as FamilyEventStructure,
   };
 }
@@ -903,22 +902,22 @@ function withSpouseFamilies(
 // Media
 // ---------------------------------------------------------------------------
 
-const MIME_BY_EXTENSION: Record<string, string> = {
-  gif: 'image/gif',
-  heic: 'image/heic',
-  jpeg: 'image/jpeg',
-  jpg: 'image/jpeg',
-  pdf: 'application/pdf',
-  png: 'image/png',
-  tif: 'image/tiff',
-  tiff: 'image/tiff',
-  webp: 'image/webp',
-};
+const MIME_BY_EXTENSION = new Map<string, string>([
+  ['gif', 'image/gif'],
+  ['heic', 'image/heic'],
+  ['jpeg', 'image/jpeg'],
+  ['jpg', 'image/jpeg'],
+  ['pdf', 'application/pdf'],
+  ['png', 'image/png'],
+  ['tif', 'image/tiff'],
+  ['tiff', 'image/tiff'],
+  ['webp', 'image/webp'],
+]);
 
 function mediaMime(path: string): string {
   const dot = path.lastIndexOf('.');
   const extension = dot === -1 ? '' : path.slice(dot + 1).toLowerCase();
-  return MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
+  return MIME_BY_EXTENSION.get(extension) ?? 'application/octet-stream';
 }
 
 /** The stored place text, or the place row's official name when only an id is set. */

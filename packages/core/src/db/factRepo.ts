@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import type { TransactionScope } from './transaction';
 import {
   FACT_FLAGS,
   signedYear,
@@ -61,9 +62,14 @@ export class FactRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {}
 
   insertFact(fact: FactRecord): void {
+    this.transactions.run(() => this.insertFactRows(fact));
+  }
+
+  private insertFactRows(fact: FactRecord): void {
     this.db
       .prepare(
         `INSERT INTO fact (id, person_id, family_id, tag, type, value, negation, primary_flag,
@@ -78,6 +84,10 @@ export class FactRepo {
   }
 
   updateFact(fact: FactRecord): void {
+    this.transactions.run(() => this.updateFactRows(fact));
+  }
+
+  private updateFactRows(fact: FactRecord): void {
     const old = this.db.prepare('SELECT date_id, end_date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
       | { date_id: string | null; end_date_id: string | null; sort_date_id: string | null }
       | undefined;
@@ -102,6 +112,15 @@ export class FactRepo {
         }
       }
     }
+  }
+
+  setFactAddressId(factId: string, addressId: string | undefined): void {
+    this.db.prepare('UPDATE fact SET address_id = ? WHERE id = ?').run(addressId ?? null, factId);
+  }
+
+  getFact(id: string): FactRecord | undefined {
+    const row = this.db.prepare(`SELECT ${FACT_COLUMNS} FROM fact WHERE id = ?`).get(id) as FactRow | undefined;
+    return row === undefined ? undefined : this.hydrate([row])[0];
   }
 
   deleteFact(id: string): boolean {
