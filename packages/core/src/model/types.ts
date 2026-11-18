@@ -739,6 +739,8 @@ export interface NestedAttachmentSnapshot {
 export interface AttachmentsSnapshot {
   noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
   citations: CitationRecord[];
+  /** Attachments of citations that would be deleted with this target. */
+  citationAttachments: NestedAttachmentSnapshot[];
   mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   /** Attachments of media records that would be deleted with this target. */
   mediaAttachments: NestedAttachmentSnapshot[];
@@ -759,6 +761,7 @@ export function emptyAttachments(): AttachmentsSnapshot {
   return {
     noteLinks: [],
     citations: [],
+    citationAttachments: [],
     mediaLinks: [],
     mediaAttachments: [],
     mediaFileAttachments: [],

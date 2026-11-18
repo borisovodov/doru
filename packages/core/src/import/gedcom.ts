@@ -1436,7 +1436,7 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
     return undefined;
   }
   const match =
-    /^(?:(exact|about|before|after|range|unknown):)?(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?(?:\.\.(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\|([\s\S]*))?$/.exec(
+    /^(?:(exact|about|before|after|range|unknown):)?(?:(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\.\.(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\|([\s\S]*))?$/.exec(
       text.trim(),
     );
   const valid = (year: number, month: number | undefined, day: number | undefined): boolean => {
@@ -1461,13 +1461,16 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
   const endDay = match?.[7] !== undefined ? Number(match[7]) : undefined;
   if (
     match === null ||
-    year === undefined ||
-    !valid(year, month, day) ||
+    (year === undefined && endYear === undefined) ||
+    (year !== undefined && !valid(year, month, day)) ||
     (endYear !== undefined && !valid(endYear, endMonth, endDay))
   ) {
     return { quality: 'unknown', text };
   }
-  const component = { year, ...(month !== undefined ? { month } : {}), ...(day !== undefined ? { day } : {}) };
+  const component =
+    year !== undefined
+      ? { year, ...(month !== undefined ? { month } : {}), ...(day !== undefined ? { day } : {}) }
+      : undefined;
   const end =
     endYear !== undefined
       ? {
@@ -1478,7 +1481,7 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
       : undefined;
   return {
     quality: (match[1] ?? 'exact') as DateValue['quality'],
-    component,
+    ...(component !== undefined ? { component } : {}),
     ...(end !== undefined ? { end } : {}),
     ...(match[8] !== undefined ? { text: match[8] } : {}),
   };

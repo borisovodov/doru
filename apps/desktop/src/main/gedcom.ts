@@ -124,15 +124,21 @@ export async function exportGedcom(
     if (format === 'gdz') {
       const mediaFiles: GedzipMediaEntry[] = [];
       const seen = new Set<string>();
+      const appendFile = async (path: string): Promise<void> => {
+        if (seen.has(path) || !path.startsWith(`${MEDIA_DIR_NAME}/`) || path.includes('../')) {
+          return;
+        }
+        const absolute = join(dirname(runtimeFilePath(projectPath)), path);
+        if (await fs.exists(absolute)) {
+          mediaFiles.push({ name: path, contents: await fs.readBinary(absolute) });
+          seen.add(path);
+        }
+      };
       for (const media of repo.listAllMedia()) {
         for (const file of media.files ?? []) {
-          if (seen.has(file.path) || !file.path.startsWith(`${MEDIA_DIR_NAME}/`) || file.path.includes('../')) {
-            continue;
-          }
-          const absolute = join(dirname(runtimeFilePath(projectPath)), file.path);
-          if (await fs.exists(absolute)) {
-            mediaFiles.push({ name: file.path, contents: await fs.readBinary(absolute) });
-            seen.add(file.path);
+          await appendFile(file.path);
+          for (const translation of file.translations ?? []) {
+            await appendFile(translation.path);
           }
         }
       }

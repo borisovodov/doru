@@ -745,9 +745,6 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     return undefined;
   }
   const component = date.component;
-  if (component?.year === undefined) {
-    return date.text;
-  }
   const iso = (value: NonNullable<typeof component>): string => {
     const year = String(value.year).padStart(4, '0');
     if (value.month === undefined) {
@@ -759,9 +756,14 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     }
     return `${year}-${month}-${String(value.day).padStart(2, '0')}`;
   };
+  const start = component?.year !== undefined ? iso(component) : '';
+  const end = date.end?.year !== undefined ? iso(date.end) : '';
+  if (start === '' && end === '') {
+    return date.text;
+  }
   const quality = date.quality === 'exact' ? '' : `${date.quality}:`;
-  const range = date.end?.year !== undefined ? `..${iso(date.end)}` : '';
-  return `${quality}${iso(component)}${range}${date.text !== undefined ? `|${date.text}` : ''}`;
+  const range = end !== '' ? `..${end}` : '';
+  return `${quality}${start}${range}${date.text !== undefined ? `|${date.text}` : ''}`;
 }
 
 function buildTagRecord(tag: TagRecord, xrefs: Xrefs): GedcomRecord {

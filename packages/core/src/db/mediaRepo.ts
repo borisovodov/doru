@@ -312,6 +312,10 @@ export class MediaRepo {
     }
   }
 
+  hasLink(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM media_link WHERE id = ?').get(id) !== undefined;
+  }
+
   hasFile(id: string): boolean {
     return this.db.prepare('SELECT 1 FROM media_file WHERE id = ?').get(id) !== undefined;
   }

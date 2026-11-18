@@ -117,6 +117,29 @@ function PersonTabBody({
       return;
     }
     await api.updatePerson(before, next);
+    const persisted = personToDraft(next);
+    setDraft((current) => {
+      const patch: Partial<PersonDraft> = {};
+      if (current.sex === next.sex) {
+        patch.sexTouched = false;
+      }
+      if (current.deathStatus === next.deathStatus) {
+        patch.deathStatusTouched = false;
+      }
+      if (current.addressId === next.addressId) {
+        patch.addressTouched = false;
+      }
+      if (JSON.stringify(current.names) === JSON.stringify(persisted.names)) {
+        patch.namesTouched = false;
+      }
+      if (JSON.stringify(current.birth) === JSON.stringify(persisted.birth)) {
+        patch.birthTouched = false;
+      }
+      if (JSON.stringify(current.death) === JSON.stringify(persisted.death)) {
+        patch.deathTouched = false;
+      }
+      return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;
+    });
   };
 
   return (

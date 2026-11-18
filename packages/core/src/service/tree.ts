@@ -1083,6 +1083,9 @@ export class TreeService {
   private assertFamilyAcyclic(family: FamilyRecord): void {
     const graph = [...this.repo.listFamilies().filter((entry) => entry.id !== family.id), family];
     for (const childId of family.children) {
+      if (this.hasDisprovenChildLink(family, childId)) {
+        continue;
+      }
       for (const parentId of family.partners) {
         if (this.isAncestor(childId, parentId, graph)) {
           throw new ParentCycleError(childId, parentId);
@@ -1101,7 +1104,7 @@ export class TreeService {
     while (stack.length > 0) {
       const current = stack.pop() as string;
       for (const family of families) {
-        if (!family.children.includes(current)) {
+        if (!family.children.includes(current) || this.hasDisprovenChildLink(family, current)) {
           continue;
         }
         for (const parent of family.partners) {
@@ -1116,6 +1119,10 @@ export class TreeService {
       }
     }
     return false;
+  }
+
+  private hasDisprovenChildLink(family: FamilyRecord, childId: string): boolean {
+    return (family.childLinks ?? []).some((link) => link.childId === childId && link.status === 'disproven');
   }
 
   /** Attachments of address-line rows that an update removes. */

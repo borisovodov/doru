@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '@doru/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
+import { OpQueue } from '../src/ops/op';
+import { TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const GEDCOM = [
@@ -480,6 +482,10 @@ describe('importGedcomDataset', () => {
       const link = second.childLinks?.find((entry) => entry.childId === p1.id);
       expect(link?.status).toBe('disproven');
       expect(fixture.repo.listNotesFor('family_child', link!.id).map((note) => note.text)).toEqual(['Disproven link']);
+
+      const service = new TreeService(fixture.repo, new OpQueue());
+      const parentFamily = fixture.repo.listFamilies().find((entry) => entry.partners.includes(p1.id))!;
+      expect(() => service.updateFamily(parentFamily, { ...parentFamily, preferred: true })).not.toThrow();
     } finally {
       cleanupRepo(fixture);
     }

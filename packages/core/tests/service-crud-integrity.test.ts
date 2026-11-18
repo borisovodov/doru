@@ -716,13 +716,15 @@ describe('TreeService CRUD integrity', () => {
       service.deletePerson(repo.getPerson('P1')!);
       const afterDelete = repo.getFact('F2')!;
       const survivor = afterDelete.participants![0]!;
-      service.updateFact(afterDelete, {
-        ...afterDelete,
-        participants: [{ ...survivor, position: 0 }],
-      });
-      service.undo();
-      service.undo();
+      repo.updateFact({ ...afterDelete, participants: [{ ...survivor, position: 0 }] });
 
+      service.undo();
+      expect(repo.getFact('F2')?.participants?.map((participant) => participant.id)).toEqual(['PTA', 'PTB']);
+      expect(repo.getFact('F2')?.participants?.map((participant) => participant.position)).toEqual([0, 1]);
+
+      service.redo();
+      expect(repo.getFact('F2')?.participants?.map((participant) => participant.id)).toEqual(['PTB']);
+      service.undo();
       expect(repo.getFact('F2')?.participants?.map((participant) => participant.id)).toEqual(['PTA', 'PTB']);
       expect(repo.getFact('F2')?.participants?.map((participant) => participant.position)).toEqual([0, 1]);
     } finally {

@@ -200,6 +200,11 @@ describe('P1 GEDCOM export gaps', () => {
         text: 'Approximate task',
         createdDate: { quality: 'about', component: { year: 1900 }, text: 'circa' },
       });
+      repo.insertTodo({
+        id: 'T3',
+        text: 'End-only task',
+        createdDate: { quality: 'range', end: { year: 1900 } },
+      });
       const serialized = serializeGedcom70(buildGedcomDataset(repo));
       expect(serialized.ok).toBe(true);
       if (!serialized.ok) {
@@ -207,6 +212,7 @@ describe('P1 GEDCOM export gaps', () => {
       }
       expect(serialized.value).toContain('_TCDT 0999-11-17');
       expect(serialized.value).toContain('_TCDT about:1900|circa');
+      expect(serialized.value).toContain('_TCDT range:..1900');
 
       const target = makeRepo();
       try {
@@ -219,6 +225,10 @@ describe('P1 GEDCOM export gaps', () => {
           quality: 'about',
           component: { year: 1900 },
           text: 'circa',
+        });
+        expect(target.repo.listTodos().find((todo) => todo.text === 'End-only task')?.createdDate).toMatchObject({
+          quality: 'range',
+          end: { year: 1900 },
         });
       } finally {
         cleanupRepo(target);

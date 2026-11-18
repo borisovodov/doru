@@ -214,9 +214,9 @@ export async function removeFileFromMedia(
   }
   const files = (before.files ?? []).filter((entry) => entry.id !== stored.id);
   runtime.service.updateMedia(before, { ...before, files });
-  await removeMediaFileCopies(projectPath, stored, (absolute) =>
-    isMediaPathReferenced(projectPath, runtime.service.listAllMedia(), absolute),
-  );
+  const references = (): Promise<Set<string>> =>
+    resolveMediaReferencePaths(projectPath, runtime.service.listAllMedia());
+  await removeMediaFileCopies(projectPath, stored, references);
   return withPaths(projectPath, runtime.service.getMedia(media.id) ?? { ...before, files });
 }
 
@@ -230,54 +230,58 @@ export async function removeFileFromMedia(
  */
 export async function removeMediaFiles(projectPath: string, media: MediaRecord): Promise<void> {
   const { runtime } = await ensureRuntime(projectPath);
-  const isReferenced = (absolute: string): Promise<boolean> =>
-    isMediaPathReferenced(projectPath, runtime.service.listAllMedia(), absolute);
+  const references = (): Promise<Set<string>> =>
+    resolveMediaReferencePaths(projectPath, runtime.service.listAllMedia());
+  const initial = await references();
   for (const file of media.files ?? []) {
-    await removeMediaFileCopies(projectPath, file, isReferenced);
+    await removeMediaFileCopies(projectPath, file, references, initial);
   }
   if (media.path !== undefined && (media.files ?? []).length === 0) {
-    await removeMediaFile(projectPath, media.path, isReferenced);
+    await removeMediaFile(projectPath, media.path, references, initial);
   }
 }
 
-/** True when any stored file or translation resolves to this exact file. */
-async function isMediaPathReferenced(projectPath: string, media: MediaRecord[], absolute: string): Promise<boolean> {
+/** Canonical identities of every stored file and translation. */
+async function resolveMediaReferencePaths(projectPath: string, media: MediaRecord[]): Promise<Set<string>> {
+  const resolved = new Set<string>();
   for (const record of media) {
     for (const file of record.files ?? []) {
       const paths = [file.path, ...(file.translations ?? []).map((translation) => translation.path)];
       for (const path of paths) {
-        if ((await mediaAbsolutePath(projectPath, path)) === absolute) {
-          return true;
+        const absolute = await mediaAbsolutePath(projectPath, path);
+        if (absolute !== null) {
+          resolved.add(absolute);
         }
       }
     }
   }
-  return false;
+  return resolved;
 }
 
 async function removeMediaFileCopies(
   projectPath: string,
   file: MediaFile,
-  isReferenced: (absolute: string) => Promise<boolean>,
+  references: () => Promise<Set<string>>,
+  initial?: Set<string>,
 ): Promise<void> {
+  const referenced = initial ?? (await references());
   const paths = new Set([file.path, ...(file.translations ?? []).map((translation) => translation.path)]);
   for (const path of paths) {
-    await removeMediaFile(projectPath, path, isReferenced);
+    await removeMediaFile(projectPath, path, references, referenced);
   }
 }
 
 async function removeMediaFile(
   projectPath: string,
   mediaPath: string,
-  isReferenced: (absolute: string) => Promise<boolean> = async () => false,
+  references: () => Promise<Set<string>> = async () => new Set(),
+  referenced?: Set<string>,
 ): Promise<void> {
   const absolute = await mediaAbsolutePath(projectPath, mediaPath);
   if (!absolute) {
     return;
   }
-  // Re-check immediately before unlinking: undo/redo may have restored a
-  // reference while the async path resolution was in flight.
-  if (await isReferenced(absolute)) {
+  if ((referenced ?? (await references())).has(absolute)) {
     return;
   }
   try {
@@ -287,7 +291,7 @@ async function removeMediaFile(
       return;
     }
     // The stat itself is another await; a restored reference may have landed.
-    if (await isReferenced(absolute)) {
+    if ((await references()).has(absolute)) {
       return;
     }
     await unlink(absolute);

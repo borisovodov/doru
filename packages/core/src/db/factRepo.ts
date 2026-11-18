@@ -227,11 +227,17 @@ export class FactRepo {
 
   insertParticipant(factId: string, participant: FactParticipant): void {
     this.transactions.run(() => {
-      // A fact edit may have renumbered the survivors; make room instead of
-      // reusing an occupied position.
-      this.db
-        .prepare('UPDATE fact_participant SET position = position + 1 WHERE fact_id = ? AND position >= ?')
-        .run(factId, participant.position);
+      // Make room only when the saved position is actually occupied; a gap
+      // means the surviving rows keep their original positions.
+      const occupied =
+        this.db
+          .prepare('SELECT 1 FROM fact_participant WHERE fact_id = ? AND position = ?')
+          .get(factId, participant.position) !== undefined;
+      if (occupied) {
+        this.db
+          .prepare('UPDATE fact_participant SET position = position + 1 WHERE fact_id = ? AND position >= ?')
+          .run(factId, participant.position);
+      }
       this.db
         .prepare(
           'INSERT INTO fact_participant (id, fact_id, person_id, value, role, position) VALUES (?, ?, ?, ?, ?, ?)',

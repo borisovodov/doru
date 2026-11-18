@@ -152,6 +152,8 @@ export interface TreeRepository {
   getMedia(id: string): MediaRecord | undefined;
   deleteMedia(id: string): boolean;
   addMediaLink(mediaId: string, link: MediaLinkRecord): void;
+  /** True when this link id already exists, without hydrating its target. */
+  hasMediaLink(id: string): boolean;
   updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
@@ -816,6 +818,10 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.addMediaLink(mediaId, link);
   }
 
+  hasMediaLink(id: string): boolean {
+    return this.media.hasLink(id);
+  }
+
   updateMediaLink(link: MediaLinkRecord): void {
     this.media.updateMediaLink(link);
   }
@@ -1187,10 +1193,16 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     state.visiting.add(key);
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
+    const citations = this.sources.listCitations(targetType, targetId);
     const linkedMedia = [...new Map(mediaLinks.map((entry) => [entry.media.id, entry.media])).values()];
     const snapshot: AttachmentsSnapshot = {
       noteLinks: this.notes.listLinksFor(targetType, targetId),
-      citations: this.sources.listCitations(targetType, targetId),
+      citations,
+      citationAttachments: citations.map((citation) => ({
+        targetType: 'citation',
+        targetId: citation.id,
+        attachments: this.collectAttachments('citation', citation.id, state),
+      })),
       mediaLinks,
       mediaAttachments: linkedMedia.map((media) => ({
         targetType: 'media',
@@ -1233,6 +1245,9 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     visited.add(key);
     this.notes.deleteLinksFor(targetType, targetId);
+    for (const citation of this.sources.listCitations(targetType, targetId)) {
+      this.deleteAttachmentsForInternal('citation', citation.id, visited);
+    }
     this.sources.deleteCitationsFor(targetType, targetId);
     const links = this.media.listLinksFor(targetType, targetId);
     for (const entry of links) {
@@ -1282,14 +1297,13 @@ export class SqliteTreeRepository implements TreeRepository {
         this.sources.insertCitation(citation);
       }
     }
+    for (const nested of snapshot.citationAttachments) {
+      this.restoreAttachments(nested.attachments);
+    }
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
         this.media.insertMedia(entry.media);
-      } else if (
-        !this.media
-          .listLinksFor(entry.link.targetType, entry.link.targetId)
-          .some((existing) => existing.link.id === entry.link.id)
-      ) {
+      } else if (!this.media.hasLink(entry.link.id)) {
         this.media.addMediaLink(entry.media.id, entry.link);
       }
     }
