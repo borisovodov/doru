@@ -13,7 +13,7 @@ type DemoCase = Demo;
 
 export const Inputs: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-5)', maxWidth: 320 }}>
       <Input placeholder="Default input" />
       <Input controlSize="sm" placeholder="Small input" />
       <Input controlSize="lg" placeholder="Large input" />
@@ -25,7 +25,7 @@ export const Inputs: DemoCase = {
 
 export const Selects: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-5)', maxWidth: 320 }}>
       <Select controlSize="sm" defaultValue="a">
         <option value="a">Small select</option>
       </Select>
@@ -44,7 +44,7 @@ export const Selects: DemoCase = {
 
 export const Textareas: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 10, maxWidth: 320 }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-5)', maxWidth: 320 }}>
       <Textarea controlSize="sm" placeholder="Small note" rows={2} />
       <Textarea placeholder="Default note" rows={3} />
       <Textarea controlSize="lg" placeholder="Large note" rows={4} />
@@ -55,7 +55,7 @@ export const Textareas: DemoCase = {
 
 export const Checkboxes: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 8 }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-4)' }}>
       <Checkbox label="Preferred name" defaultChecked />
       <Checkbox label="Disabled option" disabled />
     </div>

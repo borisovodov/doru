@@ -15,7 +15,7 @@ type DemoCase = Demo;
 
 export const Avatars: DemoCase = {
   render: () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--doru-space-5)' }}>
       <Avatar initials="II" tone="male" />
       <Avatar initials="MI" tone="female" />
       <Avatar initials="UN" tone="neutral" shape="circle" />
@@ -27,7 +27,7 @@ export const Avatars: DemoCase = {
 
 export const Chips: DemoCase = {
   render: () => (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ display: 'flex', gap: 'var(--doru-space-4)' }}>
       <Chip>BIRT</Chip>
       <Chip variant="neutral">1923</Chip>
     </div>
@@ -36,7 +36,7 @@ export const Chips: DemoCase = {
 
 export const Badges: DemoCase = {
   render: () => (
-    <div style={{ display: 'flex', gap: 12 }}>
+    <div style={{ display: 'flex', gap: 'var(--doru-space-6)' }}>
       <Badge icon={<StickyNote size={12} />}>3</Badge>
       <Badge icon={<BookOpenText size={12} />}>2</Badge>
     </div>
@@ -45,7 +45,7 @@ export const Badges: DemoCase = {
 
 export const Keys: DemoCase = {
   render: () => (
-    <div style={{ display: 'flex', gap: 4 }}>
+    <div style={{ display: 'flex', gap: 'var(--doru-space-2)' }}>
       <Kbd>⌘</Kbd>
       <Kbd>K</Kbd>
     </div>

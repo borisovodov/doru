@@ -28,9 +28,9 @@ const COLORS = [
 
 export const Colors: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 140px)', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 140px)', gap: 'var(--doru-space-6)' }}>
       {COLORS.map(([token, label]) => (
-        <div key={token} style={{ display: 'grid', gap: 4 }}>
+        <div key={token} style={{ display: 'grid', gap: 'var(--doru-space-2)' }}>
           <div
             style={{
               height: 56,
@@ -49,7 +49,7 @@ export const Colors: DemoCase = {
 
 export const Typography: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 8, maxWidth: 420 }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-4)', maxWidth: 420 }}>
       <h1 style={{ margin: 0, fontSize: 24 }}>Entity title</h1>
       <h2 style={{ margin: 0, fontSize: 18 }}>Section heading</h2>
       <h3 style={{ margin: 0, fontSize: 13 }}>Card heading</h3>
@@ -62,15 +62,15 @@ export const Typography: DemoCase = {
 
 export const Controls: DemoCase = {
   render: () => (
-    <div style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-6)', maxWidth: 360 }}>
+      <div style={{ display: 'flex', gap: 'var(--doru-space-4)', alignItems: 'center' }}>
         <Button variant="primary">Primary</Button>
         <Button variant="secondary">Secondary</Button>
         <Button variant="ghost">Ghost</Button>
         <Button variant="danger">Danger</Button>
         <Button variant="link">Link</Button>
       </div>
-      <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ display: 'grid', gap: 'var(--doru-space-4)' }}>
         <Input placeholder="Default control (28px)" />
         <Input controlSize="sm" placeholder="Compact control (24px)" />
         <Input controlSize="lg" placeholder="Prominent control (32px)" />

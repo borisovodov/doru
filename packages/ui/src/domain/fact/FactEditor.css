@@ -3,9 +3,9 @@
 .fact-editor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 6px 0 10px;
-  padding: 10px;
+  gap: var(--doru-space-4);
+  margin: var(--doru-space-3) 0 var(--doru-space-5);
+  padding: var(--doru-space-5);
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -14,13 +14,13 @@
 .fact-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--doru-space-2);
 }
 
 .fact-kind-row {
   display: flex;
   align-items: flex-end;
-  gap: 0 12px;
+  gap: 0 var(--doru-space-6);
 }
 
 .fact-kind-row .fact-field {
@@ -35,13 +35,13 @@
 .fact-details-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
+  gap: 0 var(--doru-space-6);
 }
 
 .fact-subsection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .fact-subsection h4 {
@@ -55,7 +55,7 @@
 .fact-participant-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .fact-age-row input,
@@ -71,11 +71,11 @@
 .fact-flags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  gap: var(--doru-space-2) var(--doru-space-7);
 }
 
 .fact-editor-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }

@@ -21,13 +21,13 @@
 .source-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 0;
+  gap: var(--doru-space-2);
+  padding: var(--doru-space-2) 0;
 }
 
 .sources-new {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .sources-new input {
@@ -38,7 +38,7 @@
 .sources-attach {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .sources-attach button {
