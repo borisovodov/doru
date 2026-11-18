@@ -33,6 +33,14 @@ function normalizeDemoError(error: unknown): Error {
   if (error instanceof Error && error.message !== '') {
     return error;
   }
-  const message = typeof error === 'string' && error.trim() !== '' ? error : `Demo failed: ${String(error)}`;
-  return new Error(message);
+  if (typeof error === 'string' && error.trim() !== '') {
+    return new Error(error);
+  }
+  try {
+    return new Error(`Demo failed: ${String(error)}`);
+  } catch {
+    // Objects without a primitive conversion (for example Object.create(null))
+    // throw from String(); still show a stable diagnostic instead of failing.
+    return new Error('Demo failed with a value that cannot be displayed');
+  }
 }
