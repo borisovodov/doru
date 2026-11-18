@@ -50,6 +50,11 @@ describe('LocalizationService', () => {
     expect(service.t('chat.toolCall', 'tree_query')).toBe('Tool: tree_query');
   });
 
+  it('inserts replacement-pattern characters literally', () => {
+    const service = new LocalizationService('en');
+    expect(service.t('chat.toolCall', 'Expected $& and $`')).toBe('Tool: Expected $& and $`');
+  });
+
   it('exposes the resolved locale and resolves unsupported setLocale calls', () => {
     const service = new LocalizationService('de');
     expect(service.locale).toBe('de');

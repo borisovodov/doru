@@ -40,7 +40,7 @@ export function SegmentedControl<T extends string>({
   const fallbackId = useId();
   const tabPrefix = idPrefix ?? `segmented-${fallbackId}`;
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [focusedValue, setFocusedValue] = useState<T | null>(null);
   const isTabs = mode === 'tabs';
 
   const style = columns === undefined ? undefined : ({ '--segment-columns': columns } as CSSProperties);
@@ -50,8 +50,10 @@ export function SegmentedControl<T extends string>({
     0,
   );
   // While focus is inside the tablist, the focused tab is its single tab stop;
-  // once focus leaves, the selected tab becomes the entry point again.
-  const tabStop = focusedIndex !== null && focusedIndex < options.length ? focusedIndex : selectedIndex;
+  // once focus leaves, the selected tab becomes the entry point again. Track
+  // the option value rather than the index so reordering keeps the same tab.
+  const focusedIndex = focusedValue === null ? -1 : options.findIndex((option) => option.value === focusedValue);
+  const tabStop = focusedIndex >= 0 ? focusedIndex : selectedIndex;
 
   const focusTab = (index: number): void => {
     const count = options.length;
@@ -110,8 +112,8 @@ export function SegmentedControl<T extends string>({
             aria-controls={isTabs && panelId !== undefined ? panelId : undefined}
             tabIndex={isTabs ? (index === tabStop ? 0 : -1) : undefined}
             className={cx(styles['segment'], active && styles['segmentActive'])}
-            onFocus={isTabs ? () => setFocusedIndex(index) : undefined}
-            onBlur={isTabs ? () => setFocusedIndex(null) : undefined}
+            onFocus={isTabs ? () => setFocusedValue(option.value) : undefined}
+            onBlur={isTabs ? () => setFocusedValue(null) : undefined}
             onKeyDown={(event) => onKeyDown(event, index)}
             onClick={() => onChange(option.value)}
           >

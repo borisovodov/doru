@@ -92,7 +92,9 @@ export class LocalizationService implements ILocalizationService {
     const bundle = bundles[this.currentLocale];
     let message = bundle?.[key] ?? en[key];
     for (let i = 0; i < args.length; i++) {
-      message = message.replace(`{${i}}`, String(args[i]));
+      // A replacement callback inserts the argument literally, so dollar
+      // sequences in user-facing data are not treated as replace patterns.
+      message = message.replace(`{${i}}`, () => String(args[i]));
     }
     return message;
   }
