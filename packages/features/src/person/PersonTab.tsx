@@ -88,11 +88,21 @@ function PersonTabBody({
     }
     const previous = personRef.current;
     personRef.current = person;
-    setDraft((current) =>
-      !current.isNew && previous !== undefined && personDraftMatches(current, previous)
-        ? personToDraft(person)
-        : current,
-    );
+    setDraft((current) => {
+      if (current.isNew || previous === undefined || personDraftMatches(current, previous)) {
+        return personToDraft(person);
+      }
+      const refreshed = personToDraft(person);
+      return {
+        ...current,
+        names: current.namesTouched === true ? current.names : refreshed.names,
+        sex: current.sexTouched === true ? current.sex : refreshed.sex,
+        deathStatus: current.deathStatusTouched === true ? current.deathStatus : refreshed.deathStatus,
+        addressId: current.addressTouched === true ? current.addressId : refreshed.addressId,
+        birth: current.birthTouched === true ? current.birth : refreshed.birth,
+        death: current.deathTouched === true ? current.death : refreshed.death,
+      };
+    });
   }, [personId, persons, isNew]);
 
   const [created, setCreated] = useState(false);

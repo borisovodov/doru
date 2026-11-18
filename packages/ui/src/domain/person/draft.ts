@@ -109,6 +109,8 @@ export interface NameDraft {
 export interface PersonDraft {
   id: string;
   names: NameDraft[];
+  /** True after the names section was edited. */
+  namesTouched?: boolean | undefined;
   sex: Sex;
   /** True after the sex select was changed explicitly. */
   sexTouched?: boolean | undefined;
@@ -119,7 +121,11 @@ export interface PersonDraft {
   /** True after the address select was changed or cleared explicitly. */
   addressTouched?: boolean | undefined;
   birth: DateDraft;
+  /** True after the birth date/place was changed. */
+  birthTouched?: boolean | undefined;
   death: DateDraft;
+  /** True after the death date/place was changed. */
+  deathTouched?: boolean | undefined;
   isNew: boolean;
 }
 
@@ -354,13 +360,16 @@ export function newPersonDraft(): PersonDraft {
   return {
     id: crypto.randomUUID(),
     names: [emptyNameDraft()],
+    namesTouched: false,
     sex: 'U',
     sexTouched: false,
     deathStatus: undefined,
     deathStatusTouched: false,
     addressTouched: false,
     birth: emptyDate(),
+    birthTouched: false,
     death: emptyDate(),
+    deathTouched: false,
     isNew: true,
   };
 }
@@ -482,6 +491,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
   return {
     id: person.id,
     names: person.names.map(nameToDraft),
+    namesTouched: false,
     sex: person.sex,
     sexTouched: false,
     deathStatus: person.deathStatus,
@@ -489,7 +499,9 @@ export function personToDraft(person: PersonRecord): PersonDraft {
     ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
     addressTouched: false,
     birth: toDateDraft(birth?.date, birth?.place),
+    birthTouched: false,
     death: toDateDraft(death?.date, death?.place),
+    deathTouched: false,
     isNew: false,
   };
 }
@@ -500,13 +512,14 @@ export function personDraftMatches(draft: PersonDraft, person: PersonRecord): bo
     (draft.sexTouched !== true || draft.sex === other.sex) &&
     (draft.deathStatusTouched !== true || draft.deathStatus === other.deathStatus) &&
     (draft.addressTouched !== true || draft.addressId === other.addressId) &&
-    draft.names.length === other.names.length &&
-    draft.names.every((name, index) => {
-      const otherName = other.names[index];
-      return otherName !== undefined && nameDraftMatches(name, otherName);
-    }) &&
-    dateDraftMatches(draft.birth, factOf(person, 'BIRT')) &&
-    dateDraftMatches(draft.death, factOf(person, 'DEAT'))
+    (draft.namesTouched !== true ||
+      (draft.names.length === other.names.length &&
+        draft.names.every((name, index) => {
+          const otherName = other.names[index];
+          return otherName !== undefined && nameDraftMatches(name, otherName);
+        }))) &&
+    (draft.birthTouched !== true || dateDraftMatches(draft.birth, factOf(person, 'BIRT'))) &&
+    (draft.deathTouched !== true || dateDraftMatches(draft.death, factOf(person, 'DEAT')))
   );
 }
 
@@ -664,17 +677,34 @@ export function nameDraftToName(draft: NameDraft, existing?: PersonName): Person
  */
 export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): PersonRecord {
   const existingNames = new Map((existing?.names ?? []).map((name) => [name.id, name]));
-  const names = draft.names
-    .map((name) => nameDraftToName(name, existingNames.get(name.id)))
-    .filter((name): name is PersonName => name !== undefined);
-  const facts = existing ? existing.facts.filter((fact) => fact.tag !== 'BIRT' && fact.tag !== 'DEAT') : [];
-  const birth = factFromDraft(draft, existing, 'BIRT', draft.birth);
-  const death = factFromDraft(draft, existing, 'DEAT', draft.death);
-  if (birth) {
-    facts.push(birth);
+  const names =
+    existing !== undefined && draft.namesTouched !== true
+      ? existing.names
+      : draft.names
+          .map((name) => nameDraftToName(name, existingNames.get(name.id)))
+          .filter((name): name is PersonName => name !== undefined);
+  const facts = existing ? [...existing.facts] : [];
+  if (existing === undefined || draft.birthTouched === true) {
+    for (let index = facts.length - 1; index >= 0; index -= 1) {
+      if (facts[index]?.tag === 'BIRT') {
+        facts.splice(index, 1);
+      }
+    }
+    const birth = factFromDraft(draft, existing, 'BIRT', draft.birth);
+    if (birth) {
+      facts.push(birth);
+    }
   }
-  if (death) {
-    facts.push(death);
+  if (existing === undefined || draft.deathTouched === true) {
+    for (let index = facts.length - 1; index >= 0; index -= 1) {
+      if (facts[index]?.tag === 'DEAT') {
+        facts.splice(index, 1);
+      }
+    }
+    const death = factFromDraft(draft, existing, 'DEAT', draft.death);
+    if (death) {
+      facts.push(death);
+    }
   }
   const addressId = draft.addressTouched === true ? draft.addressId : existing?.addressId;
   const deathStatus = draft.deathStatusTouched === true ? draft.deathStatus : existing?.deathStatus;

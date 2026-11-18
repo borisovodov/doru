@@ -93,6 +93,7 @@ function MediaTabBody({
   const targetLabel = createTaskTargetLabeler(targetData);
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
+  const savedRef = useRef<MediaRecord>(record);
   const metadataRef = useRef({
     title,
     date,
@@ -113,6 +114,7 @@ function MediaTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
+    savedRef.current = record;
     if (mediaMetadataMatches(metadataRef.current, previous)) {
       baselineRef.current = record;
       setTitle(record.title ?? '');
@@ -160,12 +162,14 @@ function MediaTabBody({
 
   const save = async () => {
     const base = baselineRef.current;
-    const next: MediaRecord = { ...record };
+    // Use the latest saved state even while the refreshed prop is pending.
+    const current = savedRef.current;
+    const next: MediaRecord = { ...current };
     if (title.trim() !== (base.title ?? '')) {
       next.title = title.trim() || undefined;
     }
     if (!dateDraftsEqual(date, toDateDraft(base.date))) {
-      next.date = fromDateDraft(date, record.date);
+      next.date = fromDateDraft(date, current.date);
     }
     if (place.trim() !== (base.place ?? '') || placeId !== (base.placeId ?? '')) {
       next.place = place.trim() || undefined;
@@ -181,11 +185,12 @@ function MediaTabBody({
       next.keywords = keywords.trim() || undefined;
     }
     const recordBeforeSave = recordRef.current;
-    await api.updateMedia(record, next);
+    await api.updateMedia(current, next);
     // A refresh may have advanced the baseline while the write was pending;
     // never replace that newer record with the pre-save snapshot.
     if (recordRef.current === recordBeforeSave) {
       baselineRef.current = next;
+      savedRef.current = next;
     }
   };
 

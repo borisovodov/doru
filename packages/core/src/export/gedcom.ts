@@ -301,7 +301,6 @@ type MappedFamilyFact =
  */
 function eventFamilyFields(
   fact: FactRecord,
-  repo: TreeRepository,
   xrefs: Xrefs,
 ): {
   adoptionFamily?: {
@@ -316,25 +315,15 @@ function eventFamilyFields(
     return {};
   }
   if (fact.tag === 'ADOP') {
-    const family = repo.getFamily(link.familyId);
-    // buildFamily always fills HUSB first. A family imported with only a
-    // WIFE therefore exports that partner in HUSB, so the adoption marker
-    // must follow the same slot assignment.
-    const solePartnerSlot =
-      family !== undefined && family.partners.length === 1
-        ? link.adoptedBy === 'WIFE' || link.adoptedBy === 'BOTH'
-          ? 'HUSB'
-          : link.adoptedBy
-        : link.adoptedBy;
     return {
       adoptionFamily: {
         tag: 'FAMC',
         family: xrefs.of(link.familyId),
-        ...(solePartnerSlot !== undefined
+        ...(link.adoptedBy !== undefined
           ? {
               adoption: {
                 tag: 'ADOP' as const,
-                payload: solePartnerSlot,
+                payload: link.adoptedBy,
                 ...(link.phrase !== undefined ? { phrase: link.phrase } : {}),
               },
             }
@@ -350,7 +339,7 @@ function eventFamilyFields(
 
 function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): MappedPersonFact {
   const detail = buildDetail(fact, repo, xrefs);
-  const familyFields = eventFamilyFields(fact, repo, xrefs);
+  const familyFields = eventFamilyFields(fact, xrefs);
   if (fact.tag === 'EVEN' || (!INDIVIDUAL_EVENT_TAGS.has(fact.tag) && !INDIVIDUAL_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
       kind: 'event',
@@ -755,22 +744,24 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
   if (date === undefined) {
     return undefined;
   }
-  if (date.text !== undefined) {
-    return date.text;
-  }
   const component = date.component;
   if (component?.year === undefined) {
-    return undefined;
+    return date.text;
   }
-  const year = String(component.year).padStart(4, '0');
-  if (component.month === undefined) {
-    return year;
-  }
-  const month = String(component.month).padStart(2, '0');
-  if (component.day === undefined) {
-    return `${year}-${month}`;
-  }
-  return `${year}-${month}-${String(component.day).padStart(2, '0')}`;
+  const iso = (value: NonNullable<typeof component>): string => {
+    const year = String(value.year).padStart(4, '0');
+    if (value.month === undefined) {
+      return year;
+    }
+    const month = String(value.month).padStart(2, '0');
+    if (value.day === undefined) {
+      return `${year}-${month}`;
+    }
+    return `${year}-${month}-${String(value.day).padStart(2, '0')}`;
+  };
+  const quality = date.quality === 'exact' ? '' : `${date.quality}:`;
+  const range = date.end?.year !== undefined ? `..${iso(date.end)}` : '';
+  return `${quality}${iso(component)}${range}${date.text !== undefined ? `|${date.text}` : ''}`;
 }
 
 function buildTagRecord(tag: TagRecord, xrefs: Xrefs): GedcomRecord {

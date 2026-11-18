@@ -183,7 +183,9 @@ export function deleteSourceOp(
       // not part of the attachment snapshot (that one is keyed by target):
       // re-insert them explicitly so one undo restores everything.
       for (const citation of citations) {
-        ctx.repo.insertCitation(citation);
+        if (ctx.repo.getCitation(citation.id) === undefined) {
+          ctx.repo.insertCitation(citation);
+        }
       }
       for (const nested of citationAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);

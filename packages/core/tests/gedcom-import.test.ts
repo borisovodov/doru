@@ -444,6 +444,47 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('does not treat a disproven FAMC link as ancestry', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME P1 /Example/',
+      '1 FAMS @F1@',
+      '1 FAMC @F2@',
+      '2 STAT DISPROVEN',
+      '2 NOTE Disproven link',
+      '0 @I2@ INDI',
+      '1 NAME P2 /Example/',
+      '1 FAMS @F2@',
+      '1 FAMC @F1@',
+      '0 @F1@ FAM',
+      '1 HUSB @I1@',
+      '1 CHIL @I2@',
+      '0 @F2@ FAM',
+      '1 HUSB @I2@',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const p1 = fixture.repo.listAllPersons().find((person) => person.names[0]?.given === 'P1')!;
+      const family = fixture.repo.listFamilies().find((entry) => entry.partners.includes(p1.id))!;
+      expect(family.partners).toContain(p1.id);
+      const second = fixture.repo.listFamilies().find((entry) => entry.children.includes(p1.id))!;
+      const link = second.childLinks?.find((entry) => entry.childId === p1.id);
+      expect(link?.status).toBe('disproven');
+      expect(fixture.repo.listNotesFor('family_child', link!.id).map((note) => note.text)).toEqual(['Disproven link']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not create a submitter for a nameless SUBM record', () => {
     const gedcom = [
       '0 HEAD',

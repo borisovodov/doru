@@ -253,7 +253,11 @@ export function FactEditor({
           {draft.tag === 'ADOP' && (
             <>
               <Field label={nls.t('features.tree.fact.adoptedBy')}>
-                <Select value={draft.adoptedBy} onChange={(event) => set({ adoptedBy: event.target.value })}>
+                <Select
+                  value={draft.adoptedBy}
+                  disabled={draft.relatedFamilyId === ''}
+                  onChange={(event) => set({ adoptedBy: event.target.value })}
+                >
                   <option value="">{nls.t('features.tasks.none')}</option>
                   <option value="HUSB">{nls.t('features.tree.fact.adoptedBy.husb')}</option>
                   <option value="WIFE">{nls.t('features.tree.fact.adoptedBy.wife')}</option>
@@ -261,7 +265,11 @@ export function FactEditor({
                 </Select>
               </Field>
               <Field label={nls.t('features.tree.fact.adoptionPhrase')}>
-                <Input value={draft.adoptionPhrase} onChange={(event) => set({ adoptionPhrase: event.target.value })} />
+                <Input
+                  value={draft.adoptionPhrase}
+                  disabled={draft.relatedFamilyId === ''}
+                  onChange={(event) => set({ adoptionPhrase: event.target.value })}
+                />
               </Field>
             </>
           )}

@@ -307,7 +307,7 @@ export function PersonEditor({
       <SectionCard title={nls.t('features.tree.names.title')}>
         <NamesSection
           names={draft.names}
-          onChange={(names) => set({ names })}
+          onChange={(names) => set({ names, namesTouched: true })}
           renderAttachments={(name) =>
             savedNameIds.has(name.id) ? (
               <AttachmentsPanel
@@ -379,12 +379,12 @@ export function PersonEditor({
         <DateEditor
           label={nls.t('features.tree.field.birthDate')}
           value={draft.birth}
-          onChange={(birth) => set({ birth })}
+          onChange={(birth) => set({ birth, birthTouched: true })}
         />
         <DateEditor
           label={nls.t('features.tree.field.deathDate')}
           value={draft.death}
-          onChange={(death) => set({ death })}
+          onChange={(death) => set({ death, deathTouched: true })}
         />
       </SectionCard>
 

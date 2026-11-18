@@ -86,9 +86,13 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
       },
       REPO: (child) => {
         // GEDCOM-L E1 / record form: the repository the task belongs to
-        // (see TodoRecord.repository). A non-pointer value is not a
-        // repository link; keep the original child as an extension.
-        if (child.value.kind !== 'pointer') {
+        // (see TodoRecord.repository). Bare identifiers that resolve are
+        // pointer spellings; genuine text stays an extension.
+        const bare =
+          child.value.kind === 'text' &&
+          /^[A-Za-z0-9_]+$/.test(child.value.text) &&
+          ctx.xrefs.has(`@${child.value.text}@`);
+        if (child.value.kind !== 'pointer' && !bare) {
           addExtension(out, child, ctx);
           return;
         }

@@ -139,6 +139,8 @@ interface ImportContext {
     phrase?: string | undefined;
     position: number;
   }>;
+  /** Families imported with only a WIFE slot (the exporter moves them to HUSB). */
+  singleWifeFamilies: Set<string>;
   /** Person xref → family xref → the FAMC link details (pedigree, status, relations). */
   childLinkDetails: Map<
     string,
@@ -189,6 +191,7 @@ export function importGedcomDataset(
     spouseLinkDates: new Map(),
     spouseLinkNotes: new Map(),
     pendingFactFamilies: [],
+    singleWifeFamilies: new Set(),
     childLinkDetails: new Map(),
     dropped: 0,
   };
@@ -795,10 +798,12 @@ function linkFactFamilies(ctx: ImportContext): void {
     if (familyId === undefined) {
       continue;
     }
+    const movedToHusband =
+      ctx.singleWifeFamilies.has(pending.familyXref) && (pending.adoptedBy === 'WIFE' || pending.adoptedBy === 'BOTH');
     ctx.repo.insertFactFamilyLink(pending.factId, {
       id: crypto.randomUUID(),
       familyId,
-      adoptedBy: pending.adoptedBy,
+      adoptedBy: movedToHusband ? 'HUSB' : pending.adoptedBy,
       phrase: pending.phrase,
       position: pending.position,
     });
@@ -1106,6 +1111,9 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     };
     partnerLinks.push(partnerLink);
     importNotes(notes, 'family_partner', partnerLink.id, ctx);
+  }
+  if (record.xref !== undefined && record.husband === undefined && record.wife !== undefined) {
+    ctx.singleWifeFamilies.add(record.xref);
   }
   const childLinks: FamilyChildLink[] = [];
   for (const link of record.children ?? []) {
@@ -1422,33 +1430,57 @@ function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
   }
 }
 
-/** The `_TCDT` slot is free text; parse the ISO-ish form the export writes. */
+/** The `_TCDT` slot is free text; parse the structured form the export writes. */
 function parseTodoDate(text: string | undefined): DateValue | undefined {
   if (text === undefined || text.trim() === '') {
     return undefined;
   }
-  const match = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/.exec(text.trim());
-  const year = match?.[1] !== undefined ? Number(match[1]) : undefined;
-  const month = match?.[2] !== undefined ? Number(match[2]) : undefined;
-  const day = match?.[3] !== undefined ? Number(match[3]) : undefined;
-  const leap = year !== undefined && year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth =
-    month !== undefined ? [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] : undefined;
+  const match =
+    /^(?:(exact|about|before|after|range|unknown):)?(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?(?:\.\.(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\|([\s\S]*))?$/.exec(
+      text.trim(),
+    );
+  const valid = (year: number, month: number | undefined, day: number | undefined): boolean => {
+    if (month !== undefined && (month < 1 || month > 12)) {
+      return false;
+    }
+    if (day === undefined) {
+      return true;
+    }
+    if (month === undefined) {
+      return false;
+    }
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 31;
+    return day >= 1 && day <= daysInMonth;
+  };
+  const year = match?.[2] !== undefined ? Number(match[2]) : undefined;
+  const month = match?.[3] !== undefined ? Number(match[3]) : undefined;
+  const day = match?.[4] !== undefined ? Number(match[4]) : undefined;
+  const endYear = match?.[5] !== undefined ? Number(match[5]) : undefined;
+  const endMonth = match?.[6] !== undefined ? Number(match[6]) : undefined;
+  const endDay = match?.[7] !== undefined ? Number(match[7]) : undefined;
   if (
     match === null ||
     year === undefined ||
-    (month !== undefined && (month < 1 || month > 12)) ||
-    (day !== undefined && (daysInMonth === undefined || day < 1 || day > daysInMonth))
+    !valid(year, month, day) ||
+    (endYear !== undefined && !valid(endYear, endMonth, endDay))
   ) {
     return { quality: 'unknown', text };
   }
+  const component = { year, ...(month !== undefined ? { month } : {}), ...(day !== undefined ? { day } : {}) };
+  const end =
+    endYear !== undefined
+      ? {
+          year: endYear,
+          ...(endMonth !== undefined ? { month: endMonth } : {}),
+          ...(endDay !== undefined ? { day: endDay } : {}),
+        }
+      : undefined;
   return {
-    quality: 'exact',
-    component: {
-      year,
-      ...(month !== undefined ? { month } : {}),
-      ...(day !== undefined ? { day } : {}),
-    },
+    quality: (match[1] ?? 'exact') as DateValue['quality'],
+    component,
+    ...(end !== undefined ? { end } : {}),
+    ...(match[8] !== undefined ? { text: match[8] } : {}),
   };
 }
 

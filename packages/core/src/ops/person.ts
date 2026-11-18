@@ -66,7 +66,9 @@ export function deletePersonOp(
       for (const alias of aliases) {
         ctx.repo.insertAlias(alias.id, alias.personId, alias.aliasId);
       }
-      for (const entry of participants) {
+      for (const entry of [...participants].sort(
+        (left, right) => right.participant.position - left.participant.position,
+      )) {
         // The fact may have been deleted by another writer since the person
         // was removed; its FK would abort the rest of the inverse.
         if (ctx.repo.getFact(entry.factId) !== undefined) {

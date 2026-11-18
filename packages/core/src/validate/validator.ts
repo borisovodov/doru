@@ -13,7 +13,9 @@ export function detectParentCycles(doc: TreeDocument): ValidationIssue[] {
   const parentsOf = (id: string): string[] => {
     const result: string[] = [];
     for (const family of doc.families.values()) {
-      if (family.children.includes(id)) {
+      const link = family.childLinks?.find((entry) => entry.childId === id);
+      // A disproven child link does not establish ancestry.
+      if (family.children.includes(id) && link?.status !== 'disproven') {
         result.push(...family.partners);
       }
     }

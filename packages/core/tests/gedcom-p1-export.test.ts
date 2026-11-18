@@ -164,13 +164,19 @@ describe('P1 GEDCOM export gaps', () => {
 
           const repository = target.repo.listRepositories()[0]!;
           const todos = target.repo.listTodos();
-          expect(todos.find((todo) => todo.text === 'Free task')).toMatchObject({
+          const freeTask = todos.find((todo) => todo.text === 'Free task')!;
+          const attachedTask = todos.find((todo) => todo.text === 'Attached task')!;
+          expect(freeTask).toMatchObject({
             createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
             repositoryId: repository.id,
           });
-          expect(todos.find((todo) => todo.text === 'Attached task')).toMatchObject({
+          expect(freeTask.targetType).toBeUndefined();
+          expect(freeTask.targetId).toBeUndefined();
+          expect(attachedTask).toMatchObject({
             createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 18 } },
             repositoryId: repository.id,
+            targetType: 'person',
+            targetId: person.id,
           });
         } finally {
           cleanupRepo(target);
@@ -189,19 +195,30 @@ describe('P1 GEDCOM export gaps', () => {
         text: 'Ancient task',
         createdDate: { quality: 'exact', component: { year: 999, month: 11, day: 17 } },
       });
+      repo.insertTodo({
+        id: 'T2',
+        text: 'Approximate task',
+        createdDate: { quality: 'about', component: { year: 1900 }, text: 'circa' },
+      });
       const serialized = serializeGedcom70(buildGedcomDataset(repo));
       expect(serialized.ok).toBe(true);
       if (!serialized.ok) {
         return;
       }
       expect(serialized.value).toContain('_TCDT 0999-11-17');
+      expect(serialized.value).toContain('_TCDT about:1900|circa');
 
       const target = makeRepo();
       try {
         importGedcomDataset(parseDataset(serialized.value), target.repo);
-        expect(target.repo.listTodos()[0]?.createdDate).toMatchObject({
+        expect(target.repo.listTodos().find((todo) => todo.text === 'Ancient task')?.createdDate).toMatchObject({
           quality: 'exact',
           component: { year: 999, month: 11, day: 17 },
+        });
+        expect(target.repo.listTodos().find((todo) => todo.text === 'Approximate task')?.createdDate).toMatchObject({
+          quality: 'about',
+          component: { year: 1900 },
+          text: 'circa',
         });
       } finally {
         cleanupRepo(target);
@@ -251,8 +268,45 @@ describe('P1 GEDCOM export gaps', () => {
         ].map((match) => match[0]);
         const singlePartner = adoptionEvents.find((event) => event.includes('FAMC @F1@'));
         const twoPartners = adoptionEvents.find((event) => event.includes('FAMC @F2@'));
-        expect(singlePartner).toContain('ADOP HUSB');
+        expect(singlePartner).toContain('ADOP WIFE');
         expect(twoPartners).toContain('ADOP WIFE');
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('moves an imported wife-only adoption marker with the exported slot', () => {
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(
+        parseDataset(
+          [
+            '0 HEAD',
+            '1 GEDC',
+            '2 VERS 7.0',
+            '0 @I1@ INDI',
+            '1 NAME Child /Example/',
+            '1 ADOP',
+            '2 FAMC @F1@',
+            '3 ADOP WIFE',
+            '0 @I2@ INDI',
+            '1 NAME Wife /Example/',
+            '0 @F1@ FAM',
+            '1 WIFE @I2@',
+            '1 CHIL @I1@',
+            '0 TRLR',
+          ].join('\n'),
+        ),
+        fixture.repo,
+      );
+      const child = fixture.repo.listAllPersons().find((person) => person.names[0]?.given === 'Child')!;
+      expect(child.facts[0]?.familyLinks?.[0]?.adoptedBy).toBe('HUSB');
+
+      const serialized = serializeGedcom70(buildGedcomDataset(fixture.repo));
+      expect(serialized.ok).toBe(true);
+      if (serialized.ok) {
+        expect(serialized.value).toMatch(/1 ADOP\r?\n2 FAMC @F1@\r?\n3 ADOP HUSB/);
       }
     } finally {
       cleanupRepo(fixture);

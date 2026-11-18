@@ -32,9 +32,12 @@ const nameDraft = (overrides: Partial<NameDraft> = {}): NameDraft => ({
 const draft = (overrides: Partial<PersonDraft> = {}): PersonDraft => ({
   id: 'P1',
   names: [nameDraft()],
+  namesTouched: true,
   sex: 'U',
   birth: emptyDate(),
+  birthTouched: true,
   death: emptyDate(),
+  deathTouched: true,
   isNew: false,
   ...overrides,
 });
@@ -230,19 +233,26 @@ describe('personDraftMatches', () => {
 
   it('detects a changed name, sex or date', () => {
     const base = personToDraft(source);
-    const renamed = { ...base, names: [setPartValue({ ...base.names[0]! }, 'given', 'John')] };
+    const renamed = {
+      ...base,
+      namesTouched: true,
+      names: [setPartValue({ ...base.names[0]! }, 'given', 'John')],
+    };
     expect(personDraftMatches(renamed, source)).toBe(false);
     expect(personDraftMatches({ ...base, sex: 'F', sexTouched: true }, source)).toBe(false);
     expect(personDraftMatches({ ...base, addressId: 'A1', addressTouched: true }, source)).toBe(false);
-    expect(personDraftMatches({ ...base, birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, birthTouched: true, birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
   });
 
   it('detects added, removed and reordered names', () => {
     const base = personToDraft(source);
     expect(
-      personDraftMatches({ ...base, names: [...base.names, nameDraft({ parts: [part('given', 'Vanya')] })] }, source),
+      personDraftMatches(
+        { ...base, namesTouched: true, names: [...base.names, nameDraft({ parts: [part('given', 'Vanya')] })] },
+        source,
+      ),
     ).toBe(false);
-    expect(personDraftMatches({ ...base, names: [] }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, namesTouched: true, names: [] }, source)).toBe(false);
     const twoNames = person({
       names: [
         { id: 'N1', given: 'Ivan', surname: 'Petrov' },
@@ -250,7 +260,10 @@ describe('personDraftMatches', () => {
       ],
     });
     expect(
-      personDraftMatches({ ...personToDraft(twoNames), names: [...personToDraft(twoNames).names].reverse() }, twoNames),
+      personDraftMatches(
+        { ...personToDraft(twoNames), namesTouched: true, names: [...personToDraft(twoNames).names].reverse() },
+        twoNames,
+      ),
     ).toBe(false);
   });
 });
@@ -489,6 +502,20 @@ describe('draftToRecord', () => {
     const existing = person({ sex: 'M' });
     expect(draftToRecord(personToDraft(source), existing).sex).toBe('M');
     expect(draftToRecord({ ...personToDraft(source), sexTouched: true }, existing).sex).toBe('F');
+  });
+
+  it('keeps refreshed names and birth facts when the draft did not edit them', () => {
+    const source = person({
+      names: [{ id: 'N1', given: 'Ivan' }],
+      facts: [{ id: 'B1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1900 } } }],
+    });
+    const existing = person({
+      names: [{ id: 'N1', given: 'John' }],
+      facts: [{ id: 'B1', personId: 'P1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1901 } } }],
+    });
+    const record = draftToRecord(personToDraft(source), existing);
+    expect(record.names[0]?.given).toBe('John');
+    expect(record.facts.find((fact) => fact.tag === 'BIRT')?.date).toMatchObject({ component: { year: 1901 } });
   });
 
   it('keeps a refreshed death status when the draft did not edit it', () => {
