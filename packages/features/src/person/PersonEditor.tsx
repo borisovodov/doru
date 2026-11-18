@@ -232,7 +232,7 @@ export function PersonEditor({
   const span = draftSpan(draft);
   const savedPerson = persons.find((person) => person.id === draft.id);
   const savedNameIds = new Set(savedPerson ? collectNameIds(savedPerson.names) : []);
-  const deceased = draft.death.year !== '' || draft.death.text.trim() !== '';
+  const deceased = draft.deathStatus === 'dead' || draft.death.year !== '' || draft.death.text.trim() !== '';
   const SexIcon = draft.sex === 'M' ? Mars : draft.sex === 'F' ? Venus : draft.sex === 'X' ? UserRound : HelpCircle;
   const sexTitle =
     draft.sex === 'M'
@@ -341,7 +341,7 @@ export function PersonEditor({
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.field.sex')}>
-          <Select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex })}>
+          <Select value={draft.sex} onChange={(event) => set({ sex: event.target.value as Sex, sexTouched: true })}>
             <option value="U">{nls.t('features.tree.sex.U')}</option>
             <option value="M">{nls.t('features.tree.sex.M')}</option>
             <option value="F">{nls.t('features.tree.sex.F')}</option>

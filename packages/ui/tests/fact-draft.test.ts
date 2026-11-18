@@ -238,7 +238,12 @@ describe('factKindLabel', () => {
     edited.primary = true;
     expect(factDraftToRecord(edited, source).familyLinks).toEqual(source.familyLinks);
 
-    const cleared = factDraftToRecord({ ...edited, relatedFamilyId: '', familyLinkId: undefined }, source);
+    const cleared = factDraftToRecord({ ...edited, relatedFamilyId: '' }, source);
     expect(cleared.familyLinks).toEqual([source.familyLinks![1]]);
+
+    // A stale draft must not recreate a link removed by another writer, but
+    // the unrelated link still survives.
+    const refreshed: FactRecord = { ...source, familyLinks: [source.familyLinks![1]!] };
+    expect(factDraftToRecord(edited, refreshed).familyLinks).toEqual([source.familyLinks![1]]);
   });
 });

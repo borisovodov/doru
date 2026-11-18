@@ -377,6 +377,73 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('keeps person-side FAMC details without a reciprocal CHIL row', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Child /Petrov/',
+      '1 FAMC @F1@',
+      '2 PEDI ADOPTED',
+      '2 STAT CHALLENGED',
+      '2 NOTE One-sided link note',
+      '0 @I2@ INDI',
+      '1 NAME Parent /Petrov/',
+      '0 @F1@ FAM',
+      '1 HUSB @I2@',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const family = fixture.repo.listFamilies()[0]!;
+      const child = fixture.repo.listAllPersons().find((person) => person.names[0]?.given === 'Child')!;
+      const link = family.childLinks?.[0];
+      expect(family.children).toEqual([child.id]);
+      expect(link).toMatchObject({ childId: child.id, pedigree: 'adopted', status: 'challenged' });
+      expect(fixture.repo.listNotesFor('family_child', link!.id).map((note) => note.text)).toEqual([
+        'One-sided link note',
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('validates todo dates against the month and leap year', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 _TODO Invalid date',
+      '1 _TCDT 2026-02-31',
+      '0 _TODO Leap date',
+      '1 _TCDT 2024-02-29',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const invalid = fixture.repo.listTodos().find((todo) => todo.text === 'Invalid date')!;
+      const leap = fixture.repo.listTodos().find((todo) => todo.text === 'Leap date')!;
+      expect(invalid.createdDate).toMatchObject({ quality: 'unknown', text: '2026-02-31' });
+      expect(leap.createdDate).toMatchObject({
+        quality: 'exact',
+        component: { year: 2024, month: 2, day: 29 },
+      });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not create a submitter for a nameless SUBM record', () => {
     const gedcom = [
       '0 HEAD',

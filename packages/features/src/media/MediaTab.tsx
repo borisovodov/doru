@@ -180,8 +180,13 @@ function MediaTabBody({
     if (keywords.trim() !== (base.keywords ?? '')) {
       next.keywords = keywords.trim() || undefined;
     }
+    const recordBeforeSave = recordRef.current;
     await api.updateMedia(record, next);
-    baselineRef.current = next;
+    // A refresh may have advanced the baseline while the write was pending;
+    // never replace that newer record with the pre-save snapshot.
+    if (recordRef.current === recordBeforeSave) {
+      baselineRef.current = next;
+    }
   };
 
   const remove = async () => {

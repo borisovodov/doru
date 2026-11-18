@@ -167,10 +167,16 @@ export function factToDraft(fact: FactRecord): FactDraft {
 export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): FactRecord {
   const { date, place, placeId } = factDateToRecord(draft, existing);
   const sortDate = factSortDateToRecord(draft, existing);
-  // The form edits only the first link; keep any other links untouched.
-  const remainingLinks = (existing?.familyLinks ?? []).slice(1);
+  // The form edits one identified link; keep every other link by identity.
+  // If that link disappeared from the stored fact, do not recreate it: the
+  // draft is stale, and unrelated links still survive.
+  const existingLinks = existing?.familyLinks ?? [];
+  const editedLinkId = draft.familyLinkId;
+  const remainingLinks = existingLinks.filter((link) => link.id !== editedLinkId);
+  const editedLinkExists =
+    existing === undefined || editedLinkId === undefined || existingLinks.some((link) => link.id === editedLinkId);
   const familyLinks =
-    draft.relatedFamilyId !== ''
+    draft.relatedFamilyId !== '' && editedLinkExists
       ? [
           {
             id: draft.familyLinkId ?? crypto.randomUUID(),

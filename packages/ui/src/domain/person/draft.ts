@@ -110,6 +110,8 @@ export interface PersonDraft {
   id: string;
   names: NameDraft[];
   sex: Sex;
+  /** True after the sex select was changed explicitly. */
+  sexTouched?: boolean | undefined;
   deathStatus?: 'alive' | 'dead' | undefined;
   /** True after the death-status select was changed or cleared explicitly. */
   deathStatusTouched?: boolean | undefined;
@@ -353,6 +355,7 @@ export function newPersonDraft(): PersonDraft {
     id: crypto.randomUUID(),
     names: [emptyNameDraft()],
     sex: 'U',
+    sexTouched: false,
     deathStatus: undefined,
     deathStatusTouched: false,
     addressTouched: false,
@@ -480,6 +483,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
     id: person.id,
     names: person.names.map(nameToDraft),
     sex: person.sex,
+    sexTouched: false,
     deathStatus: person.deathStatus,
     deathStatusTouched: false,
     ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
@@ -493,7 +497,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
 export function personDraftMatches(draft: PersonDraft, person: PersonRecord): boolean {
   const other = personToDraft(person);
   return (
-    draft.sex === other.sex &&
+    (draft.sexTouched !== true || draft.sex === other.sex) &&
     (draft.deathStatusTouched !== true || draft.deathStatus === other.deathStatus) &&
     (draft.addressTouched !== true || draft.addressId === other.addressId) &&
     draft.names.length === other.names.length &&
@@ -674,11 +678,12 @@ export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): Pers
   }
   const addressId = draft.addressTouched === true ? draft.addressId : existing?.addressId;
   const deathStatus = draft.deathStatusTouched === true ? draft.deathStatus : existing?.deathStatus;
+  const sex = draft.sexTouched === true || existing === undefined ? draft.sex : existing.sex;
   return {
     id: draft.id,
     ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
     ...(addressId !== undefined ? { addressId } : {}),
-    sex: draft.sex,
+    sex,
     ...(deathStatus !== undefined ? { deathStatus } : {}),
     names,
     facts,

@@ -1282,6 +1282,39 @@ function importPersonRelations(records: GedcomRecord[], ctx: ImportContext): voi
     if (personId === undefined) {
       continue;
     }
+    // A person-side FAMC without a reciprocal CHIL still describes a child
+    // link. Keep its pedigree/status/relations/notes instead of dropping it.
+    for (const [familyXref, details] of ctx.childLinkDetails.get(record.xref ?? '') ?? []) {
+      const familyId = ctx.familyIds.get(familyXref);
+      if (familyId === undefined) {
+        continue;
+      }
+      const family = ctx.repo.getFamily(familyId);
+      if (
+        family === undefined ||
+        family.partners.includes(personId) ||
+        family.children.includes(personId) ||
+        (family.childLinks ?? []).some((link) => link.childId === personId)
+      ) {
+        continue;
+      }
+      const link: FamilyChildLink = {
+        id: crypto.randomUUID(),
+        childId: personId,
+        pedigree: details.pedigree,
+        pedigreePhrase: details.pedigreePhrase,
+        status: details.status,
+        statusPhrase: details.statusPhrase,
+        fatherRelation: details.fatherRelation,
+        motherRelation: details.motherRelation,
+      };
+      ctx.repo.updateFamily({
+        ...family,
+        children: [...family.children, personId],
+        childLinks: [...(family.childLinks ?? []), link],
+      });
+      importNotes(details.notes, 'family_child', link.id, ctx);
+    }
     for (const association of record.associations ?? []) {
       const otherId = association.individual === '@VOID@' ? undefined : ctx.personIds.get(association.individual);
       if (otherId === undefined) {
@@ -1395,19 +1428,24 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
     return undefined;
   }
   const match = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/.exec(text.trim());
+  const year = match?.[1] !== undefined ? Number(match[1]) : undefined;
   const month = match?.[2] !== undefined ? Number(match[2]) : undefined;
   const day = match?.[3] !== undefined ? Number(match[3]) : undefined;
+  const leap = year !== undefined && year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth =
+    month !== undefined ? [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] : undefined;
   if (
     match === null ||
+    year === undefined ||
     (month !== undefined && (month < 1 || month > 12)) ||
-    (day !== undefined && (day < 1 || day > 31))
+    (day !== undefined && (daysInMonth === undefined || day < 1 || day > daysInMonth))
   ) {
     return { quality: 'unknown', text };
   }
   return {
     quality: 'exact',
     component: {
-      year: Number(match[1]),
+      year,
       ...(month !== undefined ? { month } : {}),
       ...(day !== undefined ? { day } : {}),
     },

@@ -6,7 +6,7 @@
  * the TodoRecord / TodoStructure JSDoc.
  */
 
-import { dispatch, reqPtr, reqText } from './context';
+import { addExtension, dispatch, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import { fail } from '../errors';
 import type { RawNode } from './lines';
@@ -86,7 +86,12 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
       },
       REPO: (child) => {
         // GEDCOM-L E1 / record form: the repository the task belongs to
-        // (see TodoRecord.repository).
+        // (see TodoRecord.repository). A non-pointer value is not a
+        // repository link; keep the original child as an extension.
+        if (child.value.kind !== 'pointer') {
+          addExtension(out, child, ctx);
+          return;
+        }
         out.repository = reqPtr(child, ctx);
       },
       CHAN: (child) => {

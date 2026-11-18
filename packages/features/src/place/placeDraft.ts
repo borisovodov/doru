@@ -203,6 +203,22 @@ function placeRowsEqual<T>(left: T, right: T): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function mergePlaceRow<T extends { id: string }>(draft: T, previous: T, refreshed: T): T {
+  const merged: T = { ...draft };
+  for (const key of Object.keys(draft) as Array<keyof T>) {
+    if (key === 'date') {
+      const draftDate = (draft as unknown as { date: DateDraft }).date;
+      const previousDate = (previous as unknown as { date: DateDraft }).date;
+      if (dateDraftsEqual(draftDate, previousDate)) {
+        (merged as unknown as { date: DateDraft }).date = (refreshed as unknown as { date: DateDraft }).date;
+      }
+    } else if (JSON.stringify(draft[key]) === JSON.stringify(previous[key])) {
+      merged[key] = refreshed[key];
+    }
+  }
+  return merged;
+}
+
 function mergePlaceRows<T extends { id: string }>(draftRows: T[], previousRows: T[], refreshedRows: T[]): T[] {
   const previousById = new Map(previousRows.map((row) => [row.id, row]));
   const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
@@ -210,14 +226,22 @@ function mergePlaceRows<T extends { id: string }>(draftRows: T[], previousRows: 
   const merged: T[] = [];
   for (const row of draftRows) {
     const previous = previousById.get(row.id);
-    if (previous === undefined || !placeRowsEqual(row, previous)) {
+    if (previous === undefined) {
       merged.push(row);
       continue;
     }
     const refreshed = refreshedById.get(row.id);
-    if (refreshed !== undefined) {
-      merged.push(refreshed);
+    if (placeRowsEqual(row, previous)) {
+      if (refreshed !== undefined) {
+        merged.push(refreshed);
+      }
+      continue;
     }
+    if (refreshed === undefined) {
+      merged.push(row);
+      continue;
+    }
+    merged.push(mergePlaceRow(row, previous, refreshed));
   }
   for (const row of refreshedRows) {
     if (!draftIds.has(row.id) && !previousById.has(row.id)) {

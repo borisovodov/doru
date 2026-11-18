@@ -232,7 +232,7 @@ describe('personDraftMatches', () => {
     const base = personToDraft(source);
     const renamed = { ...base, names: [setPartValue({ ...base.names[0]! }, 'given', 'John')] };
     expect(personDraftMatches(renamed, source)).toBe(false);
-    expect(personDraftMatches({ ...base, sex: 'F' }, source)).toBe(false);
+    expect(personDraftMatches({ ...base, sex: 'F', sexTouched: true }, source)).toBe(false);
     expect(personDraftMatches({ ...base, addressId: 'A1', addressTouched: true }, source)).toBe(false);
     expect(personDraftMatches({ ...base, birth: dateDraft({ year: '1924' }) }, source)).toBe(false);
   });
@@ -482,6 +482,13 @@ describe('draftToRecord', () => {
     const typed = setPartValue(setPartValue(emptyNameDraft(), 'given', '  Ivan '), 'surname', ' Petrov ');
     const record = draftToRecord(draft({ names: [typed] }));
     expect(record.names[0]).toMatchObject({ given: 'Ivan', surname: 'Petrov' });
+  });
+
+  it('keeps a refreshed sex when the draft did not edit it', () => {
+    const source = person({ sex: 'F' });
+    const existing = person({ sex: 'M' });
+    expect(draftToRecord(personToDraft(source), existing).sex).toBe('M');
+    expect(draftToRecord({ ...personToDraft(source), sexTouched: true }, existing).sex).toBe('F');
   });
 
   it('keeps a refreshed death status when the draft did not edit it', () => {

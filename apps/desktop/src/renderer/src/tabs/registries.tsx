@@ -104,7 +104,7 @@ export const submitterTab: TabDescriptor = {
           case 'address':
             context.tabs.open.address(targetId);
             break;
-          case 'task':
+          case 'todo':
             context.tabs.open.task(targetId);
             break;
           case 'media':

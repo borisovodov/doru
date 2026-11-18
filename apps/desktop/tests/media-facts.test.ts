@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -51,6 +51,15 @@ describe('media file facts', () => {
     webp.writeUIntLE(800 - 1, 24, 3);
     webp.writeUIntLE(600 - 1, 27, 3);
     expect(await readMediaFileFacts(write('image.webp', webp))).toMatchObject({ width: 800, height: 600 });
+  });
+
+  it('does not open directories as image files', async () => {
+    const path = join(dir, 'folder.png');
+    mkdirSync(path);
+    const facts = await readMediaFileFacts(path);
+    expect(facts.mime).toBe('image/png');
+    expect(facts.width).toBeUndefined();
+    expect(facts.height).toBeUndefined();
   });
 
   it('falls back to the extension MIME and reports no facts for a missing file', async () => {

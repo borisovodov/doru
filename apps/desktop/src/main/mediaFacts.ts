@@ -35,6 +35,9 @@ export async function readMediaFileFacts(absolutePath: string): Promise<MediaFil
   try {
     const info = await stat(absolutePath);
     facts.size = info.size;
+    if (!info.isFile()) {
+      return facts;
+    }
     const dimensions = await readImageDimensions(absolutePath);
     if (dimensions !== undefined) {
       facts.width = dimensions.width;

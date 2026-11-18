@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
+import { stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
@@ -278,7 +279,12 @@ async function removeMediaFile(
     return;
   }
   try {
-    await fs.remove(absolute);
+    const info = await stat(absolute);
+    // A stored translation may name a directory; never remove its contents.
+    if (!info.isFile()) {
+      return;
+    }
+    await unlink(absolute);
   } catch (error) {
     log.warn('could not remove media file', absolute, error);
   }

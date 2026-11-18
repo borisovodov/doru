@@ -125,7 +125,12 @@ describe('placeToDraft / placeDraftToRecord', () => {
     });
     const refreshed = place({
       names: [
-        { id: 'N1', position: 0, value: 'Tula', date: { id: 'D3', quality: 'exact', component: { year: 1800 } } },
+        {
+          id: 'N1',
+          position: 0,
+          value: 'Tula District',
+          date: { id: 'D3', quality: 'exact', component: { year: 1800 } },
+        },
         { id: 'N2', position: 1, value: 'Tula Oblast' },
       ],
       postalCodes: [{ id: 'PC1', code: '300000', date: { id: 'D4', quality: 'exact', component: { year: 1930 } } }],
@@ -137,7 +142,12 @@ describe('placeToDraft / placeDraftToRecord', () => {
     const merged = mergePlaceDraft(draft, previous, refreshed);
 
     expect(merged.abbreviation).toBe('TUL');
-    expect(merged.names[0]).toMatchObject({ id: 'N1', abbreviation: 'Tul.', date: { year: '1800' } });
+    expect(merged.names[0]).toMatchObject({
+      id: 'N1',
+      value: 'Tula District',
+      abbreviation: 'Tul.',
+      date: { year: '1800' },
+    });
     expect(merged.names[1]).toMatchObject({ id: 'N2', value: 'Tula Oblast' });
     expect(merged.postalCodes[0]).toMatchObject({ id: 'PC1', date: { year: '1930' } });
     const saved = placeDraftToRecord(merged, refreshed);

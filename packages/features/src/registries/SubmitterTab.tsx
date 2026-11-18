@@ -195,7 +195,7 @@ function SubmitterTabBody({
     return labels;
   }, [referencedBy, targetData]);
   const openableTarget = (targetType: string): boolean =>
-    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
+    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'todo', 'media', 'title'].includes(
       targetType,
     );
 
