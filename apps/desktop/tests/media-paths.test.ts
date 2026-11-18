@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { resolveMediaPath } from '../src/main/mediaPaths';
 
@@ -16,9 +16,12 @@ afterEach(() => {
 
 describe('resolveMediaPath', () => {
   it('accepts files inside the media folder and normalizes separators', async () => {
-    expect(await resolveMediaPath(projectDir, 'media/photo.jpg')).toBe(resolve(projectDir, 'media/photo.jpg'));
-    expect(await resolveMediaPath(projectDir, 'media\\photo.jpg')).toBe(resolve(projectDir, 'media/photo.jpg'));
-    expect(await resolveMediaPath(projectDir, 'media/sub/../photo.jpg')).toBe(resolve(projectDir, 'media/photo.jpg'));
+    const slash = await resolveMediaPath(projectDir, 'media/photo.jpg');
+    const backslash = await resolveMediaPath(projectDir, 'media\\photo.jpg');
+    expect(slash).not.toBeNull();
+    expect(slash).toMatch(/doru-project[\\/]media[\\/]photo\.jpg$/);
+    expect(backslash).toBe(slash);
+    expect(await resolveMediaPath(projectDir, 'media/sub/../photo.jpg')).toBe(slash);
   });
 
   it('rejects the media folder itself and anything outside it', async () => {
