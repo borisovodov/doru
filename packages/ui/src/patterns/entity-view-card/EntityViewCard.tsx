@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasContent } from '../../lib/content';
 import { cx } from '../../lib/cx';
 import styles from './EntityViewCard.module.css';
 
@@ -16,13 +17,13 @@ export interface EntityViewCardProps {
 export function EntityViewCard({ media, title, subtitle, badges, actions, className }: EntityViewCardProps) {
   return (
     <section className={cx(styles['card'], className)}>
-      {media !== undefined && media !== null ? <div className={styles['media']}>{media}</div> : null}
+      {hasContent(media) ? <div className={styles['media']}>{media}</div> : null}
       <div className={styles['body']}>
         <h2 className={styles['title']}>{title}</h2>
-        {subtitle !== undefined && subtitle !== null ? <p className={styles['subtitle']}>{subtitle}</p> : null}
+        {hasContent(subtitle) ? <p className={styles['subtitle']}>{subtitle}</p> : null}
       </div>
-      {badges !== undefined && badges !== null ? <div className={styles['badges']}>{badges}</div> : null}
-      {actions !== undefined && actions !== null ? <div className={styles['actions']}>{actions}</div> : null}
+      {hasContent(badges) ? <div className={styles['badges']}>{badges}</div> : null}
+      {hasContent(actions) ? <div className={styles['actions']}>{actions}</div> : null}
     </section>
   );
 }

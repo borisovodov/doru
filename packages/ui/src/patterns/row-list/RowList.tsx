@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasContent } from '../../lib/content';
 import { cx } from '../../lib/cx';
 import styles from './RowList.module.css';
 
@@ -28,7 +29,7 @@ export function AttachmentRow({ kind, value, actions, className, as = 'li' }: At
     <Tag className={cx(styles['row'], className)}>
       {kind ? <span className={styles['kind']}>{kind}</span> : null}
       <span className={styles['value']}>{value}</span>
-      {actions !== undefined && actions !== null ? <span className={styles['actions']}>{actions}</span> : null}
+      {hasContent(actions) ? <span className={styles['actions']}>{actions}</span> : null}
     </Tag>
   );
 }

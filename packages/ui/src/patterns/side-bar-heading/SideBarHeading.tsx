@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasContent } from '../../lib/content';
 import { cx } from '../../lib/cx';
 import styles from './SideBarHeading.module.css';
 
@@ -15,7 +16,7 @@ export function SideBarHeading({ title, actions, className }: SideBarHeadingProp
   return (
     <div className={cx(styles['heading'], className)}>
       <h3 className={styles['title']}>{title}</h3>
-      {actions !== undefined && actions !== null && <div className={styles['actions']}>{actions}</div>}
+      {hasContent(actions) && <div className={styles['actions']}>{actions}</div>}
     </div>
   );
 }

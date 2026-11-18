@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasContent } from '../../lib/content';
 import { cx } from '../../lib/cx';
 import styles from './EntitySummary.module.css';
 
@@ -25,9 +26,9 @@ export function EntitySummary({ icon, thumbnail, title, subtitle, meta, iconVari
       ) : null}
       <span className={styles['body']}>
         <span className={styles['title']}>{title}</span>
-        {subtitle !== undefined && subtitle !== null ? <span className={styles['subtitle']}>{subtitle}</span> : null}
+        {hasContent(subtitle) ? <span className={styles['subtitle']}>{subtitle}</span> : null}
       </span>
-      {meta !== undefined && meta !== null ? <span className={styles['meta']}>{meta}</span> : null}
+      {hasContent(meta) ? <span className={styles['meta']}>{meta}</span> : null}
     </>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasContent } from '../../lib/content';
 import { cx } from '../../lib/cx';
 import { SideBarHeading } from '../side-bar-heading/SideBarHeading';
 import styles from './SideBarLayout.module.css';
@@ -22,7 +23,7 @@ export function SideBarLayout({ title, actions, subheader, className, children }
   return (
     <div className={cx(styles['view'], className)}>
       <SideBarHeading className={styles['heading']} title={title} actions={actions} />
-      {subheader !== undefined && subheader !== null && <div className={styles['subheader']}>{subheader}</div>}
+      {hasContent(subheader) && <div className={styles['subheader']}>{subheader}</div>}
       <div className={styles['body']}>{children}</div>
     </div>
   );
