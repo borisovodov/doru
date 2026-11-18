@@ -34,7 +34,7 @@ test('Search shortcut opens the sidebar and appears in the activity tooltip', as
   await page.keyboard.press(isMac ? 'Meta+Shift+F' : 'Control+Shift+F');
   await expect(page.getByRole('complementary', { name: 'Search' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
-  await expect(page.getByRole('textbox')).toBeFocused();
+  await expect(page.getByRole('textbox', { name: 'Search persons, families, sources…' })).toBeFocused();
   await app.close();
 });
 
