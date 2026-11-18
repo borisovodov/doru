@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Write a research note…",
   "features.tree.notes.remove": "Delete note",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Show full note",
   "features.tree.notes.title": "Notes",
   "features.tree.notes.translations.add": "Add translation",
   "features.tree.notes.translations.count": "{0} translations",

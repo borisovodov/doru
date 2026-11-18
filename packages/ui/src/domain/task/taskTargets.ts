@@ -120,7 +120,7 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
         })),
       );
     case 'media_link': {
-      const labelFor = createTaskTargetLabeler(data);
+      const labelFor = createTaskTargetLabeler(data, false);
       return data.media.flatMap((media) =>
         (media.links ?? []).map((link) => ({
           id: link.id,
@@ -198,10 +198,13 @@ export function taskTargetLabel(type: string, id: string, data: TaskTargetData):
  * A label lookup that builds each target type's options at most once. Use it
  * for lists with many references instead of calling taskTargetLabel per row.
  */
-export function createTaskTargetLabeler(data: TaskTargetData): (type: string, id: string) => string {
+export function createTaskTargetLabeler(
+  data: TaskTargetData,
+  resolveMediaLinks = true,
+): (type: string, id: string) => string {
   const byType = new Map<string, Map<string, string>>();
   return (type, id) => {
-    if (type === 'media_link') {
+    if (type === 'media_link' && !resolveMediaLinks) {
       return `media_link:${id}`;
     }
     let byId = byType.get(type);

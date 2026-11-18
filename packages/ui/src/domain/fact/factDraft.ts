@@ -167,6 +167,21 @@ export function factToDraft(fact: FactRecord): FactDraft {
 export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): FactRecord {
   const { date, place, placeId } = factDateToRecord(draft, existing);
   const sortDate = factSortDateToRecord(draft, existing);
+  // The form edits only the first link; keep any other links untouched.
+  const remainingLinks = (existing?.familyLinks ?? []).slice(1);
+  const familyLinks =
+    draft.relatedFamilyId !== ''
+      ? [
+          {
+            id: draft.familyLinkId ?? crypto.randomUUID(),
+            familyId: draft.relatedFamilyId,
+            ...(draft.adoptedBy !== '' ? { adoptedBy: draft.adoptedBy as 'HUSB' | 'WIFE' | 'BOTH' } : {}),
+            ...(draft.adoptionPhrase.trim() !== '' ? { phrase: draft.adoptionPhrase.trim() } : {}),
+            position: 0,
+          },
+          ...remainingLinks,
+        ]
+      : remainingLinks;
   return {
     id: draft.id,
     personId: draft.personId,
@@ -203,19 +218,7 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
     participants: draft.participants.length > 0 ? draft.participants : undefined,
     flags: draft.flags.length > 0 ? draft.flags : undefined,
     primary: draft.primary || undefined,
-    ...(draft.relatedFamilyId !== ''
-      ? {
-          familyLinks: [
-            {
-              id: draft.familyLinkId ?? crypto.randomUUID(),
-              familyId: draft.relatedFamilyId,
-              ...(draft.adoptedBy !== '' ? { adoptedBy: draft.adoptedBy as 'HUSB' | 'WIFE' | 'BOTH' } : {}),
-              ...(draft.adoptionPhrase.trim() !== '' ? { phrase: draft.adoptionPhrase.trim() } : {}),
-              position: 0,
-            },
-          ],
-        }
-      : {}),
+    ...(familyLinks.length > 0 ? { familyLinks } : {}),
   };
 }
 

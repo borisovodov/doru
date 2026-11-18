@@ -83,8 +83,18 @@ export function deletePlaceOp(
     inverse(ctx) {
       ctx.repo.insertPlace(place);
       // Only the hierarchy row whose parent was deleted cascades; restore it
-      // by id and leave any later edits to the child place intact.
+      // by id and leave any later edits to the child place intact. A child
+      // deleted by another writer cannot take the row (or its attachments).
+      const skippedHierarchy = new Set<string>();
       for (const child of consumers.childPlaces ?? []) {
+        if (ctx.repo.getPlace(child.id) === undefined) {
+          for (const link of child.hierarchy ?? []) {
+            if (link.parentId === place.id) {
+              skippedHierarchy.add(link.id);
+            }
+          }
+          continue;
+        }
         for (const link of child.hierarchy ?? []) {
           if (link.parentId === place.id) {
             ctx.repo.insertPlaceHierarchy(child.id, link);
@@ -112,17 +122,20 @@ export function deletePlaceOp(
         if (current === undefined) {
           continue;
         }
-        if (link.before.placeId !== undefined && current.placeId === undefined) {
-          ctx.repo.setFactPlaceId(link.before.id, link.before.placeId);
+        if (link.before.placeId === place.id && current.placeId === undefined) {
+          ctx.repo.setFactPlaceId(link.before.id, place.id);
         }
         for (const [position, placeId] of (link.before.additionalPlaceIds ?? []).entries()) {
-          if (!(current.additionalPlaceIds ?? []).includes(placeId)) {
+          if (placeId === place.id && !(current.additionalPlaceIds ?? []).includes(placeId)) {
             ctx.repo.insertFactPlace(link.before.id, placeId, position);
           }
         }
       }
       ctx.repo.restoreAttachments(attachments);
       for (const nested of nestedAttachments) {
+        if (nested.targetType === 'place_hierarchy' && skippedHierarchy.has(nested.targetId)) {
+          continue;
+        }
         ctx.repo.restoreAttachments(nested.attachments);
       }
       for (const media of consumers.media ?? []) {

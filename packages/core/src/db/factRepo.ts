@@ -226,16 +226,25 @@ export class FactRepo {
   }
 
   insertParticipant(factId: string, participant: FactParticipant): void {
-    this.db
-      .prepare('INSERT INTO fact_participant (id, fact_id, person_id, value, role, position) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(
-        participant.id,
-        factId,
-        participant.personId ?? null,
-        participant.value ?? null,
-        participant.role ?? null,
-        participant.position,
-      );
+    this.transactions.run(() => {
+      // A fact edit may have renumbered the survivors; make room instead of
+      // reusing an occupied position.
+      this.db
+        .prepare('UPDATE fact_participant SET position = position + 1 WHERE fact_id = ? AND position >= ?')
+        .run(factId, participant.position);
+      this.db
+        .prepare(
+          'INSERT INTO fact_participant (id, fact_id, person_id, value, role, position) VALUES (?, ?, ?, ?, ?, ?)',
+        )
+        .run(
+          participant.id,
+          factId,
+          participant.personId ?? null,
+          participant.value ?? null,
+          participant.role ?? null,
+          participant.position,
+        );
+    });
   }
 
   /** Deletes an owner's facts together with their date rows (before the owner itself goes). */

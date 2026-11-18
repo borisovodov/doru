@@ -131,22 +131,29 @@ function MediaTabBody({
     const refreshed: MediaRecord = { ...record };
     if (draft.title === (base.title ?? '')) {
       refreshed.title = record.title;
+      setTitle(record.title ?? '');
     }
     if (dateDraftsEqual(draft.date, toDateDraft(base.date))) {
       refreshed.date = record.date;
+      setDate(toDateDraft(record.date));
     }
     if (draft.place === (base.place ?? '') && draft.placeId === (base.placeId ?? '')) {
       refreshed.place = record.place;
       refreshed.placeId = record.placeId;
+      setPlace(record.place ?? '');
+      setPlaceId(record.placeId ?? '');
     }
     if (draft.objectType === (base.objectType ?? '')) {
       refreshed.objectType = record.objectType;
+      setObjectType(record.objectType ?? '');
     }
     if (draft.description === (base.description ?? '')) {
       refreshed.description = record.description;
+      setDescription(record.description ?? '');
     }
     if (draft.keywords === (base.keywords ?? '')) {
       refreshed.keywords = record.keywords;
+      setKeywords(record.keywords ?? '');
     }
     baselineRef.current = refreshed;
   }, [record]);

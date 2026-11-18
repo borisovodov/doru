@@ -39,6 +39,11 @@ export class OpQueue {
 
   apply(op: Op, ctx: MutationContext): void {
     op.apply(ctx);
+    this.push(op);
+  }
+
+  /** Publishes an operation whose database mutation already committed. */
+  push(op: Op): void {
     this.undoStack.push(op);
     this.redoStack.length = 0;
   }

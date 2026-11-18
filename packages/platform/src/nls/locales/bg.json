@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Напишете изследователска бележка…",
   "features.tree.notes.remove": "Изтриване на бележка",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Покажи цялата бележка",
   "features.tree.notes.title": "Бележки",
   "features.tree.notes.translations.add": "Добавяне на превод",
   "features.tree.notes.translations.count": "{0} превода",

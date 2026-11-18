@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Írjon kutatási jegyzetet…",
   "features.tree.notes.remove": "Jegyzet törlése",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Teljes jegyzet megjelenítése",
   "features.tree.notes.title": "Jegyzetek",
   "features.tree.notes.translations.add": "Fordítás hozzáadása",
   "features.tree.notes.translations.count": "{0} fordítás",

@@ -246,8 +246,13 @@ describe('P1 GEDCOM export gaps', () => {
         if (!serialized.ok) {
           continue;
         }
-        expect(serialized.value).toContain(`3 ADOP HUSB`);
-        expect(serialized.value).toContain(`3 ADOP WIFE`);
+        const adoptionEvents = [
+          ...serialized.value.matchAll(/(?:^|\n)1 ADOP\r?\n([\s\S]*?)(?=\r?\n1 |\r?\n0 |$)/g),
+        ].map((match) => match[0]);
+        const singlePartner = adoptionEvents.find((event) => event.includes('FAMC @F1@'));
+        const twoPartners = adoptionEvents.find((event) => event.includes('FAMC @F2@'));
+        expect(singlePartner).toContain('ADOP HUSB');
+        expect(twoPartners).toContain('ADOP WIFE');
       }
     } finally {
       cleanupRepo(fixture);

@@ -303,18 +303,21 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addTag(projectPath, tag);
+        await refreshTree();
       },
       attachTag: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachTag(projectPath, link);
+        await refreshTree();
       },
       detachTag: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.detachTag(projectPath, link);
+        await refreshTree();
       },
       updateTagLink: async (before, after) => {
         if (!projectPath) {

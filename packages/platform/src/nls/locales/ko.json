@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "연구 메모 작성…",
   "features.tree.notes.remove": "메모 삭제",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "메모 전체 보기",
   "features.tree.notes.title": "메모",
   "features.tree.notes.translations.add": "번역 추가",
   "features.tree.notes.translations.count": "번역 {0}개",

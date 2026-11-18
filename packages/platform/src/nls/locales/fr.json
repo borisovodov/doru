@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Rédigez une note de recherche…",
   "features.tree.notes.remove": "Supprimer la note",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Afficher la note complète",
   "features.tree.notes.title": "Notes",
   "features.tree.notes.translations.add": "Ajouter une traduction",
   "features.tree.notes.translations.count": "{0} traductions",

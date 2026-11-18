@@ -226,4 +226,19 @@ describe('factKindLabel', () => {
     expect(factKindLabel(factToDraft(fact()))).toBe('BIRT');
     expect(factKindLabel(emptyFactDraft({}))).toBe('—');
   });
+
+  it('preserves family links outside the edited first link', () => {
+    const source = fact({
+      familyLinks: [
+        { id: 'L1', familyId: 'F1', position: 0 },
+        { id: 'L2', familyId: 'F2', position: 1 },
+      ],
+    });
+    const edited = factToDraft(source);
+    edited.primary = true;
+    expect(factDraftToRecord(edited, source).familyLinks).toEqual(source.familyLinks);
+
+    const cleared = factDraftToRecord({ ...edited, relatedFamilyId: '', familyLinkId: undefined }, source);
+    expect(cleared.familyLinks).toEqual([source.familyLinks![1]]);
+  });
 });

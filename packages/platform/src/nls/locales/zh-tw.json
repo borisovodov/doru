@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "撰寫研究備註…",
   "features.tree.notes.remove": "刪除筆記",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "顯示完整筆記",
   "features.tree.notes.title": "備註",
   "features.tree.notes.translations.add": "新增譯文",
   "features.tree.notes.translations.count": "{0} 則譯文",

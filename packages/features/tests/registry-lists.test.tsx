@@ -50,8 +50,25 @@ describe('registry sidebar lists', () => {
         targetData={targetData}
       />,
     );
-    expect(screen.getByText('A note')).toBeInTheDocument();
+    expect(screen.getAllByText('A note').length).toBeGreaterThan(0);
     expect(screen.getByText('Ivan Petrov')).toBeInTheDocument();
+  });
+
+  it('expands the full note text from the global note list', () => {
+    renderUi(
+      <NotesList
+        notes={[
+          { id: 'N1', text: 'A very long note that needs the full text view', targetType: 'person', targetId: 'P1' },
+        ]}
+        targetData={targetData}
+      />,
+    );
+    const summary = screen.getByText(nls.t('features.tree.notes.showFull'));
+    const details = summary.closest('details');
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute('open');
+    fireEvent.click(summary);
+    expect(details).toHaveAttribute('open');
   });
 
   it('opens the cited source from the global citation list', () => {

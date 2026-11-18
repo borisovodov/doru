@@ -177,6 +177,10 @@ export function NotesList({ notes, targetData }: { notes: NoteRecord[]; targetDa
                 : null
             }
           />
+          <details className="side-note-details">
+            <summary>{nls.t('features.tree.notes.showFull')}</summary>
+            <p className="side-registries-note">{note.text}</p>
+          </details>
         </li>
       ))}
     </ul>

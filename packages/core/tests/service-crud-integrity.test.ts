@@ -690,6 +690,76 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('restores participants without reusing an occupied position', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('P3'));
+      const owner = repo.getPerson('P2')!;
+      service.updatePerson(owner, {
+        ...owner,
+        facts: [
+          {
+            id: 'F2',
+            personId: 'P2',
+            tag: 'EVEN',
+            participants: [
+              { id: 'PTA', personId: 'P1', position: 0 },
+              { id: 'PTB', personId: 'P3', position: 1 },
+            ],
+          },
+        ],
+      });
+
+      service.deletePerson(repo.getPerson('P1')!);
+      const afterDelete = repo.getFact('F2')!;
+      const survivor = afterDelete.participants![0]!;
+      service.updateFact(afterDelete, {
+        ...afterDelete,
+        participants: [{ ...survivor, position: 0 }],
+      });
+      service.undo();
+      service.undo();
+
+      expect(repo.getFact('F2')?.participants?.map((participant) => participant.id)).toEqual(['PTA', 'PTB']);
+      expect(repo.getFact('F2')?.participants?.map((participant) => participant.position)).toEqual([0, 1]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('skips a deleted child place and unrelated place references on undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
+      service.addPlace({ id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Tula Oblast' }] });
+      repo.updatePlace({
+        ...repo.getPlace('PL2')!,
+        hierarchy: [{ id: 'H1', parentId: 'PL1', type: 'poli' }],
+      });
+      service.addPerson(person('P1'));
+      const owner = repo.getPerson('P1')!;
+      repo.updatePerson({
+        ...owner,
+        facts: [{ id: 'F1', personId: 'P1', tag: 'EVEN', placeId: 'PL2', additionalPlaceIds: ['PL1'] }],
+      });
+
+      service.deletePlace(repo.getPlace('PL1')!);
+      repo.deletePlace('PL2');
+      service.undo();
+
+      expect(repo.getPlace('PL1')).toBeDefined();
+      expect(repo.getPlace('PL2')).toBeUndefined();
+      expect(repo.getFact('F1')?.placeId).toBeUndefined();
+      expect(repo.getFact('F1')?.additionalPlaceIds).toEqual(['PL1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores externally added family statuses and their notes on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

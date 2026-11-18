@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "写一条研究备注…",
   "features.tree.notes.remove": "删除笔记",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "显示完整笔记",
   "features.tree.notes.title": "备注",
   "features.tree.notes.translations.add": "添加译文",
   "features.tree.notes.translations.count": "{0} 条译文",

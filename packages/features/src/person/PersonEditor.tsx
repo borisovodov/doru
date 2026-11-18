@@ -352,7 +352,10 @@ export function PersonEditor({
           <Select
             value={draft.deathStatus ?? ''}
             onChange={(event) =>
-              set({ deathStatus: (event.target.value || undefined) as 'alive' | 'dead' | undefined })
+              set({
+                deathStatus: (event.target.value || undefined) as 'alive' | 'dead' | undefined,
+                deathStatusTouched: true,
+              })
             }
           >
             <option value="">{nls.t('features.tree.deathStatus.unknown')}</option>

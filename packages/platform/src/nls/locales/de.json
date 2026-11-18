@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Forschungsnotiz schreiben…",
   "features.tree.notes.remove": "Notiz löschen",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Notiz vollständig anzeigen",
   "features.tree.notes.title": "Notizen",
   "features.tree.notes.translations.add": "Übersetzung hinzufügen",
   "features.tree.notes.translations.count": "{0} Übersetzungen",

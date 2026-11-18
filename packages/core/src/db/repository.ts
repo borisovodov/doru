@@ -1352,7 +1352,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const todo of snapshot.todos) {
-      if (!this.research.listTodos().some((existing) => existing.id === todo.id)) {
+      if (this.research.getTodo(todo.id) === undefined) {
         this.research.insertTodo(todo);
       }
     }

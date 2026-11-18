@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "調査メモを書く…",
   "features.tree.notes.remove": "メモを削除",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "メモ全文を表示",
   "features.tree.notes.title": "メモ",
   "features.tree.notes.translations.add": "翻訳を追加",
   "features.tree.notes.translations.count": "{0}件の翻訳",

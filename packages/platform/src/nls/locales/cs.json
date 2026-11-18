@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Napište výzkumnou poznámku…",
   "features.tree.notes.remove": "Smazat poznámku",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Zobrazit celou poznámku",
   "features.tree.notes.title": "Poznámky",
   "features.tree.notes.translations.add": "Přidat překlad",
   "features.tree.notes.translations.count": "{0} překladů",

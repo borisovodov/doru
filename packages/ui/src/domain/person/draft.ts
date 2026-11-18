@@ -111,6 +111,8 @@ export interface PersonDraft {
   names: NameDraft[];
   sex: Sex;
   deathStatus?: 'alive' | 'dead' | undefined;
+  /** True after the death-status select was changed or cleared explicitly. */
+  deathStatusTouched?: boolean | undefined;
   addressId?: string | undefined;
   /** True after the address select was changed or cleared explicitly. */
   addressTouched?: boolean | undefined;
@@ -352,6 +354,7 @@ export function newPersonDraft(): PersonDraft {
     names: [emptyNameDraft()],
     sex: 'U',
     deathStatus: undefined,
+    deathStatusTouched: false,
     addressTouched: false,
     birth: emptyDate(),
     death: emptyDate(),
@@ -478,6 +481,7 @@ export function personToDraft(person: PersonRecord): PersonDraft {
     names: person.names.map(nameToDraft),
     sex: person.sex,
     deathStatus: person.deathStatus,
+    deathStatusTouched: false,
     ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
     addressTouched: false,
     birth: toDateDraft(birth?.date, birth?.place),
@@ -490,7 +494,7 @@ export function personDraftMatches(draft: PersonDraft, person: PersonRecord): bo
   const other = personToDraft(person);
   return (
     draft.sex === other.sex &&
-    draft.deathStatus === other.deathStatus &&
+    (draft.deathStatusTouched !== true || draft.deathStatus === other.deathStatus) &&
     (draft.addressTouched !== true || draft.addressId === other.addressId) &&
     draft.names.length === other.names.length &&
     draft.names.every((name, index) => {
@@ -669,12 +673,13 @@ export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): Pers
     facts.push(death);
   }
   const addressId = draft.addressTouched === true ? draft.addressId : existing?.addressId;
+  const deathStatus = draft.deathStatusTouched === true ? draft.deathStatus : existing?.deathStatus;
   return {
     id: draft.id,
     ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
     ...(addressId !== undefined ? { addressId } : {}),
     sex: draft.sex,
-    ...(draft.deathStatus !== undefined ? { deathStatus: draft.deathStatus } : {}),
+    ...(deathStatus !== undefined ? { deathStatus } : {}),
     names,
     facts,
   };

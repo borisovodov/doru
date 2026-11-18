@@ -215,7 +215,7 @@ function RepositoryTabBody({
                 {usedBySources.map((source) => (
                   <li key={source.id}>
                     <SourceLink
-                      title={source.title ?? source.abbreviation ?? source.id}
+                      title={source.title || source.abbreviation || source.id}
                       onClick={() => onOpenSource(source.id)}
                     />
                   </li>
@@ -231,7 +231,7 @@ function RepositoryTabBody({
                 {usedByTitles.map((title) => (
                   <li key={title.id}>
                     <SourceLink
-                      title={title.name ?? title.abbreviation ?? title.id}
+                      title={title.name || title.abbreviation || title.id}
                       onClick={() => onOpenTitle(title.id)}
                     />
                   </li>

@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Напишите заметку для исследования…",
   "features.tree.notes.remove": "Удалить заметку",
   "features.tree.notes.shared": "Общая заметка",
+  "features.tree.notes.showFull": "Показать заметку полностью",
   "features.tree.notes.title": "Заметки",
   "features.tree.notes.translations.add": "Добавить перевод",
   "features.tree.notes.translations.count": "{0} переводов",

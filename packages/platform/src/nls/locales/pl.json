@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Napisz notatkę badawczą…",
   "features.tree.notes.remove": "Usuń notatkę",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Pokaż całą notatkę",
   "features.tree.notes.title": "Notatki",
   "features.tree.notes.translations.add": "Dodaj tłumaczenie",
   "features.tree.notes.translations.count": "{0} tłumaczeń",

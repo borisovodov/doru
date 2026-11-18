@@ -465,6 +465,7 @@
   "features.tree.notes.placeholder": "Γράψτε μια ερευνητική σημείωση…",
   "features.tree.notes.remove": "Διαγραφή σημείωσης",
   "features.tree.notes.shared": "Shared note",
+  "features.tree.notes.showFull": "Εμφάνιση πλήρους σημείωσης",
   "features.tree.notes.title": "Σημειώσεις",
   "features.tree.notes.translations.add": "Προσθήκη μετάφρασης",
   "features.tree.notes.translations.count": "{0} μεταφράσεις",

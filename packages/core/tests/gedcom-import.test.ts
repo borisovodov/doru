@@ -342,6 +342,41 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('keeps place-card and repository-note citations that point at a later source', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @PL1@ _PLAC Moscow',
+      '1 SOUR @S1@',
+      '0 @R1@ REPO',
+      '1 NAME State Archive',
+      '1 NOTE Archive note',
+      '2 SOUR @S1@',
+      '0 @S1@ SOUR',
+      '1 TITL Parish register',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const source = fixture.repo.listSources()[0]!;
+      const place = fixture.repo.listPlaces()[0]!;
+      expect(fixture.repo.listCitationRecordsFor('place', place.id).map((entry) => entry.sourceId)).toEqual([
+        source.id,
+      ]);
+      const repository = fixture.repo.listRepositories()[0]!;
+      const note = fixture.repo.listNotesFor('repository', repository.id)[0]!;
+      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((entry) => entry.sourceId)).toEqual([source.id]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not create a submitter for a nameless SUBM record', () => {
     const gedcom = [
       '0 HEAD',

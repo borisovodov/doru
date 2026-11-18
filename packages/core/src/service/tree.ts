@@ -264,7 +264,7 @@ export class TreeService {
   }
 
   updatePerson(before: PersonRecord, after: PersonRecord): UndoRedoState {
-    return this.repo.transaction(() => {
+    return this.applyAfterCommit(() => {
       // Snapshot the stored pre-write aggregate: a stale draft must not
       // delete attachments it never saw. Undo restores exactly this state.
       const current = this.repo.getPerson(before.id) ?? before;
@@ -299,7 +299,7 @@ export class TreeService {
           });
         }
       }
-      return this.apply(updatePersonOp(current, after, removed));
+      return updatePersonOp(current, after, removed);
     });
   }
 
@@ -455,10 +455,10 @@ export class TreeService {
 
   updateFamily(before: FamilyRecord, after: FamilyRecord): UndoRedoState {
     this.assertFamilyAcyclic(after);
-    return this.repo.transaction(() => {
+    return this.applyAfterCommit(() => {
       const current = this.repo.getFamily(before.id) ?? before;
       const removed = this.removedLinkAttachments(current, after);
-      return this.apply(updateFamilyOp(current, after, removed));
+      return updateFamilyOp(current, after, removed);
     });
   }
 
@@ -528,10 +528,10 @@ export class TreeService {
   }
 
   updatePlace(before: PlaceRecord, after: PlaceRecord): UndoRedoState {
-    return this.repo.transaction(() => {
+    return this.applyAfterCommit(() => {
       const current = this.repo.getPlace(before.id) ?? before;
       const removed = this.removedPlaceChildAttachments(current, after);
-      return this.apply(updatePlaceOp(current, after, removed));
+      return updatePlaceOp(current, after, removed);
     });
   }
 
@@ -966,10 +966,10 @@ export class TreeService {
   }
 
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
-    return this.repo.transaction(() => {
+    return this.applyAfterCommit(() => {
       const current = this.repo.getAddress(before.id) ?? before;
       const removed = this.removedAddressLineAttachments(current, after);
-      return this.apply(updateAddressOp(current, after, removed));
+      return updateAddressOp(current, after, removed);
     });
   }
 
@@ -1199,6 +1199,25 @@ export class TreeService {
   private apply(op: Op): UndoRedoState {
     this.recordChange(op, op.change?.kind ?? 'changed');
     this.queue.apply(op, { repo: this.repo });
+    return this.historyState();
+  }
+
+  /**
+   * Applies a mutation inside one transaction and publishes it to the undo
+   * stack only after COMMIT succeeds. A failed save must not leave a phantom
+   * undo entry or discard the redo history.
+   */
+  private applyAfterCommit(build: () => Op): UndoRedoState {
+    let op: Op | undefined;
+    this.repo.transaction(() => {
+      op = build();
+      this.recordChange(op, op.change?.kind ?? 'changed');
+      op.apply({ repo: this.repo });
+    });
+    if (op === undefined) {
+      throw new Error('transaction completed without building an operation');
+    }
+    this.queue.push(op);
     return this.historyState();
   }
 

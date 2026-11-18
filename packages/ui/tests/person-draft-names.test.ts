@@ -210,7 +210,7 @@ describe('personToDraft', () => {
     const source = person({ id: 'P1', sex: 'X', names: [], facts: [] });
     const draft = personToDraft(source);
     expect(draft.sex).toBe('X');
-    expect(draftToRecord({ ...draft, deathStatus: 'dead' }).deathStatus).toBe('dead');
+    expect(draftToRecord({ ...draft, deathStatus: 'dead', deathStatusTouched: true }).deathStatus).toBe('dead');
     expect(draftToRecord(draft).sex).toBe('X');
   });
 });
@@ -482,5 +482,18 @@ describe('draftToRecord', () => {
     const typed = setPartValue(setPartValue(emptyNameDraft(), 'given', '  Ivan '), 'surname', ' Petrov ');
     const record = draftToRecord(draft({ names: [typed] }));
     expect(record.names[0]).toMatchObject({ given: 'Ivan', surname: 'Petrov' });
+  });
+
+  it('keeps a refreshed death status when the draft did not edit it', () => {
+    const source = person({ deathStatus: 'alive' });
+    const existing = person({ deathStatus: 'dead' });
+    expect(draftToRecord(personToDraft(source), existing).deathStatus).toBe('dead');
+    expect(
+      draftToRecord({ ...personToDraft(source), deathStatusTouched: true, deathStatus: 'alive' }, existing).deathStatus,
+    ).toBe('alive');
+    expect(
+      draftToRecord({ ...personToDraft(source), deathStatusTouched: true, deathStatus: undefined }, existing)
+        .deathStatus,
+    ).toBeUndefined();
   });
 });
