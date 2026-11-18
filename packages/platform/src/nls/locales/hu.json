@@ -578,6 +578,8 @@
   "features.tree.title.sources": "E műre hivatkozó források",
   "features.tree.title.sourcesEmpty": "Egy forrás sem hivatkozik erre a műre.",
   "features.tree.title.work": "Mű",
+  "gallery.demo.failed": "A bemutató sikertelen: {0}",
+  "gallery.demo.unreadable": "A bemutató egy megjeleníthetetlen hibával sikertelen volt.",
   "menu.edit": "Szerkesztés",
   "menu.edit.copy": "Másolás",
   "menu.edit.cut": "Kivágás",

@@ -578,6 +578,8 @@
   "features.tree.title.sources": "Sources citant cette œuvre",
   "features.tree.title.sourcesEmpty": "Aucune source ne cite cette œuvre.",
   "features.tree.title.work": "Œuvre",
+  "gallery.demo.failed": "Échec de la démo : {0}",
+  "gallery.demo.unreadable": "La démo a échoué avec une erreur impossible à afficher.",
   "menu.edit": "Édition",
   "menu.edit.copy": "Copier",
   "menu.edit.cut": "Couper",

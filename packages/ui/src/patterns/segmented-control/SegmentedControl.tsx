@@ -1,4 +1,4 @@
-import { useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './SegmentedControl.module.css';
 
@@ -40,9 +40,18 @@ export function SegmentedControl<T extends string>({
   const fallbackId = useId();
   const tabPrefix = idPrefix ?? `segmented-${fallbackId}`;
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const isTabs = mode === 'tabs';
 
   const style = columns === undefined ? undefined : ({ '--segment-columns': columns } as CSSProperties);
+
+  const selectedIndex = Math.max(
+    options.findIndex((option) => option.value === value),
+    0,
+  );
+  // While focus is inside the tablist, the focused tab is its single tab stop;
+  // once focus leaves, the selected tab becomes the entry point again.
+  const tabStop = focusedIndex !== null && focusedIndex < options.length ? focusedIndex : selectedIndex;
 
   const focusTab = (index: number): void => {
     const count = options.length;
@@ -59,11 +68,9 @@ export function SegmentedControl<T extends string>({
     let next: number | undefined;
     switch (event.key) {
       case 'ArrowRight':
-      case 'ArrowDown':
         next = index + 1;
         break;
       case 'ArrowLeft':
-      case 'ArrowUp':
         next = index - 1;
         break;
       case 'Home':
@@ -100,9 +107,11 @@ export function SegmentedControl<T extends string>({
             role={isTabs ? 'tab' : undefined}
             aria-selected={isTabs ? active : undefined}
             aria-pressed={isTabs ? undefined : active}
-            aria-controls={isTabs && active && panelId !== undefined ? panelId : undefined}
-            tabIndex={isTabs ? (active ? 0 : -1) : undefined}
+            aria-controls={isTabs && panelId !== undefined ? panelId : undefined}
+            tabIndex={isTabs ? (index === tabStop ? 0 : -1) : undefined}
             className={cx(styles['segment'], active && styles['segmentActive'])}
+            onFocus={isTabs ? () => setFocusedIndex(index) : undefined}
+            onBlur={isTabs ? () => setFocusedIndex(null) : undefined}
             onKeyDown={(event) => onKeyDown(event, index)}
             onClick={() => onChange(option.value)}
           >

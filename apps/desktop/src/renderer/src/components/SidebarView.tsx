@@ -336,6 +336,7 @@ function SourcesSidebar({
     sources: {
       addLabel: nls.t('features.tree.source.add'),
       onAdd: onNewSource,
+      focusable: sources.length > 0,
       content:
         sources.length === 0 ? (
           <SideBarEmpty>{nls.t('features.sources.placeholder')}</SideBarEmpty>
@@ -351,6 +352,7 @@ function SourcesSidebar({
     repositories: {
       addLabel: nls.t('features.tree.repository.add'),
       onAdd: onNewRepository,
+      focusable: repositories.length > 0,
       content: (
         <RepositoryList
           repositories={repositories}
@@ -362,6 +364,7 @@ function SourcesSidebar({
     submitters: {
       addLabel: nls.t('features.tree.submitter.add'),
       onAdd: onNewSubmitter,
+      focusable: submitters.length > 0,
       content: (
         <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} selectedId={selectedId('submitter')} />
       ),
@@ -369,11 +372,13 @@ function SourcesSidebar({
     addresses: {
       addLabel: nls.t('features.tree.address.newAddress'),
       onAdd: onNewAddress,
+      focusable: addresses.length > 0,
       content: <AddressList addresses={addresses} onOpenAddress={onOpenAddress} selectedId={selectedId('address')} />,
     },
     titles: {
       addLabel: nls.t('features.tree.title.add'),
       onAdd: onNewTitle,
+      focusable: titles.length > 0,
       content: <TitleList titles={titles} onOpenTitle={onOpenTitle} selectedId={selectedId('title')} />,
     },
   } as const;
@@ -405,7 +410,13 @@ function SourcesSidebar({
         />
       }
     >
-      <div role="tabpanel" id={panelId} aria-labelledby={`${tabPrefix}-${segment}`}>
+      {/* An empty panel has no focusable content, so make the panel itself reachable by Tab. */}
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-labelledby={`${tabPrefix}-${segment}`}
+        tabIndex={current.focusable ? undefined : 0}
+      >
         {current.content}
       </div>
     </SideBarLayout>

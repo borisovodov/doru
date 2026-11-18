@@ -578,6 +578,8 @@
   "features.tree.title.sources": "Zdroje citující toto dílo",
   "features.tree.title.sourcesEmpty": "Žádný zdroj necituje toto dílo.",
   "features.tree.title.work": "Dílo",
+  "gallery.demo.failed": "Ukázka selhala: {0}",
+  "gallery.demo.unreadable": "Ukázka selhala s chybou, kterou nelze zobrazit.",
   "menu.edit": "Úpravy",
   "menu.edit.copy": "Kopírovat",
   "menu.edit.cut": "Vyjmout",

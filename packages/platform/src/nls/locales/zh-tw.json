@@ -578,6 +578,8 @@
   "features.tree.title.sources": "引用該著作的來源",
   "features.tree.title.sourcesEmpty": "沒有引用該著作的來源。",
   "features.tree.title.work": "著作",
+  "gallery.demo.failed": "示範失敗：{0}",
+  "gallery.demo.unreadable": "示範因無法顯示的錯誤而失敗。",
   "menu.edit": "編輯",
   "menu.edit.copy": "複製",
   "menu.edit.cut": "剪下",

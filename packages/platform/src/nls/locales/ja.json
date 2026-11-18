@@ -578,6 +578,8 @@
   "features.tree.title.sources": "この文献を引用する情報源",
   "features.tree.title.sourcesEmpty": "この文献を引用する情報源はありません。",
   "features.tree.title.work": "文献",
+  "gallery.demo.failed": "デモに失敗しました: {0}",
+  "gallery.demo.unreadable": "表示できないエラーでデモに失敗しました。",
   "menu.edit": "編集",
   "menu.edit.copy": "コピー",
   "menu.edit.cut": "切り取り",

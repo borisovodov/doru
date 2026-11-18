@@ -578,6 +578,8 @@
   "features.tree.title.sources": "Quellen, die dieses Werk zitieren",
   "features.tree.title.sourcesEmpty": "Keine Quelle zitiert dieses Werk.",
   "features.tree.title.work": "Werk",
+  "gallery.demo.failed": "Demo fehlgeschlagen: {0}",
+  "gallery.demo.unreadable": "Die Demo ist mit einem Fehler fehlgeschlagen, der nicht angezeigt werden kann.",
   "menu.edit": "Bearbeiten",
   "menu.edit.copy": "Kopieren",
   "menu.edit.cut": "Ausschneiden",

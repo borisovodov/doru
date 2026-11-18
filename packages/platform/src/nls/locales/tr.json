@@ -578,6 +578,8 @@
   "features.tree.title.sources": "Bu eseri kaynak gösterenler",
   "features.tree.title.sourcesEmpty": "Bu eseri kaynak gösteren yok.",
   "features.tree.title.work": "Eser",
+  "gallery.demo.failed": "Demo başarısız oldu: {0}",
+  "gallery.demo.unreadable": "Demo, görüntülenemeyen bir hatayla başarısız oldu.",
   "menu.edit": "Düzenle",
   "menu.edit.copy": "Kopyala",
   "menu.edit.cut": "Kes",

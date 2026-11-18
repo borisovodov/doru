@@ -76,6 +76,7 @@ function TabsStory() {
         role="tabpanel"
         id={panelId}
         aria-labelledby={`${tabPrefix}-${value}`}
+        tabIndex={0}
         style={{ padding: 'var(--doru-space-4)', color: 'var(--doru-fg-muted)' }}
       >
         {value === 'sources' ? 'Sources panel' : 'Titles panel'}
