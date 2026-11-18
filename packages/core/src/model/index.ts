@@ -57,6 +57,7 @@ export {
   factOf,
   factYear,
   isImagePath,
+  isProjectMediaPath,
   isVisibleMedia,
   placeName,
   signedYear,

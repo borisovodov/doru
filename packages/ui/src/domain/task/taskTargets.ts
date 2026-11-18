@@ -120,18 +120,7 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
         })),
       );
     case 'media_link': {
-      const labels = new Map<string, Map<string, string>>();
-      const labelFor = (targetType: string, targetId: string): string => {
-        if (targetType === 'media_link') {
-          return `media_link:${targetId}`;
-        }
-        let byId = labels.get(targetType);
-        if (byId === undefined) {
-          byId = new Map(taskTargetOptions(targetType, data).map((option) => [option.id, option.label]));
-          labels.set(targetType, byId);
-        }
-        return byId.get(targetId) ?? `${targetType}:${targetId}`;
-      };
+      const labelFor = createTaskTargetLabeler(data);
       return data.media.flatMap((media) =>
         (media.links ?? []).map((link) => ({
           id: link.id,
@@ -202,7 +191,26 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
 
 /** A human-readable label for a target id, falling back to the raw pair. */
 export function taskTargetLabel(type: string, id: string, data: TaskTargetData): string {
-  return taskTargetOptions(type, data).find((option) => option.id === id)?.label ?? `${type}:${id}`;
+  return createTaskTargetLabeler(data)(type, id);
+}
+
+/**
+ * A label lookup that builds each target type's options at most once. Use it
+ * for lists with many references instead of calling taskTargetLabel per row.
+ */
+export function createTaskTargetLabeler(data: TaskTargetData): (type: string, id: string) => string {
+  const byType = new Map<string, Map<string, string>>();
+  return (type, id) => {
+    if (type === 'media_link') {
+      return `media_link:${id}`;
+    }
+    let byId = byType.get(type);
+    if (byId === undefined) {
+      byId = new Map(taskTargetOptions(type, data).map((option) => [option.id, option.label]));
+      byType.set(type, byId);
+    }
+    return byId.get(id) ?? `${type}:${id}`;
+  };
 }
 
 function nameOptions(person: PersonRecord): TaskTargetOption[] {

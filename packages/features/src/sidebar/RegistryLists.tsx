@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Archive, BookMarked, BookOpenText, MapPin, NotebookText, Tag as TagIcon, Trash2, User } from 'lucide-react';
 import type {
   AddressRecord,
@@ -11,7 +12,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { EntityCard, IconButton } from '@doru/ui';
-import { addressLabel, taskTargetLabel, type TaskTargetData } from '@doru/ui/domain';
+import { addressLabel, createTaskTargetLabeler, type TaskTargetData } from '@doru/ui/domain';
 import { nls } from '../nls';
 import styles from './RegistryLists.module.css';
 import './sidebar.css';
@@ -159,6 +160,7 @@ export function TagsList({
 
 /** Every note in the tree, with the record it belongs to. */
 export function NotesList({ notes, targetData }: { notes: NoteRecord[]; targetData: TaskTargetData }) {
+  const targetLabel = useMemo(() => createTaskTargetLabeler(targetData), [targetData]);
   if (notes.length === 0) {
     return <p className="side-registries-note">{nls.t('features.tree.notes.empty')}</p>;
   }
@@ -171,7 +173,7 @@ export function NotesList({ notes, targetData }: { notes: NoteRecord[]; targetDa
             title={note.text}
             subtitle={
               note.targetType !== undefined && note.targetId !== undefined
-                ? taskTargetLabel(note.targetType, note.targetId, targetData)
+                ? targetLabel(note.targetType, note.targetId)
                 : null
             }
           />
@@ -197,6 +199,7 @@ export function CitationsList({
     return <p className="side-registries-note">{nls.t('features.tree.citations.empty')}</p>;
   }
   const sourceById = new Map(sources.map((source) => [source.id, source]));
+  const targetLabel = createTaskTargetLabeler(targetData);
   return (
     <ul className="side-section-list">
       {citations.map((citation) => {
@@ -204,7 +207,7 @@ export function CitationsList({
         const details = [
           citation.page,
           citation.description,
-          taskTargetLabel(citation.targetType, citation.targetId, targetData),
+          targetLabel(citation.targetType, citation.targetId),
         ].filter((part): part is string => part !== undefined && part !== '');
         return (
           <li key={citation.id}>

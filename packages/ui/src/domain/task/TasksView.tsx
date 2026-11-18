@@ -19,7 +19,7 @@ import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { nls } from '../../nls';
-import { taskTargetLabel, type TaskTargetData } from './taskTargets';
+import { createTaskTargetLabeler, type TaskTargetData } from './taskTargets';
 import './TasksView.css';
 
 /**
@@ -96,6 +96,7 @@ export function TasksView({
     associations,
     todos,
   };
+  const targetLabel = createTaskTargetLabeler(targetData);
   const isClosed = (todo: TodoRecord) => todo.status === 'closed';
   const sorted = [...todos].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
@@ -183,7 +184,7 @@ export function TasksView({
       default:
         open = undefined;
     }
-    return { label: taskTargetLabel(todo.targetType, id, targetData), open };
+    return { label: targetLabel(todo.targetType, id), open };
   };
 
   return (

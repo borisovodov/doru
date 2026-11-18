@@ -211,7 +211,6 @@ export function importGedcomDataset(
     ctx.sourceIdsReady = true;
     flushMediaCitations(ctx);
     flushMediaLinkCitations(ctx);
-    linkMediaPlaces(ctx);
     for (const record of dataset.records) {
       if (isIndividualRecord(record)) {
         importPerson(record, ctx);
@@ -228,6 +227,7 @@ export function importGedcomDataset(
     importPersonRelations(dataset.records, ctx);
     linkPlaceHierarchy(ctx);
     importResearchRecords(dataset.records, ctx);
+    linkMediaPlaces(ctx);
     const cycles = detectParentCycles(repo.toTreeDocument());
     if (cycles.length > 0) {
       throw new Error(`GEDCOM import contains a parent cycle: ${cycles[0]?.message ?? 'unknown cycle'}`);

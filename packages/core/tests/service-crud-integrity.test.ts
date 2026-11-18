@@ -480,6 +480,27 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('keeps name-part attachments when a flat name is saved', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1', { names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }] }));
+      const given = repo.getPerson('P1')!.names[0]!.parts!.find((part) => part.kind === 'given')!;
+      service.addNote(note('NT1', 'name_part', given.id));
+
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, {
+        ...before,
+        names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }],
+      });
+
+      expect(repo.getPerson('P1')?.names[0]?.parts?.find((part) => part.kind === 'given')?.id).toBe(given.id);
+      expect(repo.listNotesFor('name_part', given.id).map((entry) => entry.id)).toEqual(['NT1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores a participant in another fact and a name-part attachment on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

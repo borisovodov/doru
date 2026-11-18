@@ -294,14 +294,13 @@ export class SqliteTreeRepository implements TreeRepository {
         deathStatus: person.deathStatus,
         addressId: person.addressId,
       });
-      this.names.replaceNamesForPerson(person.id, person.names);
+      const newParts = this.names.replaceNamesForPerson(person.id, person.names);
       const newNames = new Set(collectNameIds(person.names));
       for (const nameId of collectNameIds(oldNames)) {
         if (!newNames.has(nameId)) {
           this.deleteAttachmentsFor('name', nameId);
         }
       }
-      const newParts = new Set(collectNamePartIds(person.names));
       for (const partId of collectNamePartIds(oldNames)) {
         if (!newParts.has(partId)) {
           this.deleteAttachmentsFor('name_part', partId);
@@ -1205,22 +1204,60 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const contact of snapshot.contacts) {
-      this.attachments.insertContact(contact);
+      if (
+        !this.attachments
+          .listContactsFor(contact.targetType, contact.targetId)
+          .some((existing) => existing.id === contact.id)
+      ) {
+        this.attachments.insertContact(contact);
+      }
     }
     for (const restriction of snapshot.restrictions) {
-      this.attachments.insertRestriction(restriction);
+      if (
+        !this.attachments
+          .listRestrictionsFor(restriction.targetType, restriction.targetId)
+          .some((existing) => existing.id === restriction.id)
+      ) {
+        this.attachments.insertRestriction(restriction);
+      }
     }
     for (const change of snapshot.changes) {
-      this.attachments.insertChange(change);
+      if (
+        !this.attachments
+          .listChangesFor(change.targetType, change.targetId)
+          .some((existing) => existing.id === change.id)
+      ) {
+        this.attachments.insertChange(change);
+      }
     }
     for (const entry of snapshot.tagLinks) {
-      this.attachments.insertTagLink(entry.link);
+      if (
+        !this.attachments
+          .listTagLinksFor(entry.link.targetType, entry.link.targetId)
+          .some((existing) => existing.link.id === entry.link.id)
+      ) {
+        this.attachments.insertTagLink(entry.link);
+      }
     }
     for (const todo of snapshot.todos) {
-      this.research.insertTodo(todo);
+      if (!this.research.listTodos().some((existing) => existing.id === todo.id)) {
+        this.research.insertTodo(todo);
+      }
     }
     for (const entry of snapshot.recordSubmitters) {
-      this.submitters.insertRecordSubmitter(entry.id, entry.submitterId, entry.targetType, entry.targetId, entry.kind);
+      if (
+        !this.submitters
+          .listRecordSubmittersFor(entry.targetType, entry.targetId)
+          .some((existing) => existing.id === entry.id)
+      ) {
+        this.submitters.insertRecordSubmitter(
+          entry.id,
+          entry.submitterId,
+          entry.targetType,
+          entry.targetId,
+          entry.kind,
+        );
+      }
     }
   }
 

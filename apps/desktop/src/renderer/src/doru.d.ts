@@ -17,6 +17,7 @@ import type {
   ProjectBinding,
   ProjectSummary,
   RecentProject,
+  RecordSubmitterLink,
   RestrictionRecord,
   RepositoryRecord,
   SourceRecord,
@@ -188,34 +189,14 @@ declare global {
       addTitle(projectPath: string, title: TitleRecord): Promise<UndoRedoState>;
       updateTitle(projectPath: string, before: TitleRecord, after: TitleRecord): Promise<UndoRedoState>;
       deleteTitle(projectPath: string, title: TitleRecord): Promise<UndoRedoState>;
-      getRecordSubmitters(
-        projectPath: string,
-        targetType: string,
-        targetId: string,
-      ): Promise<
-        Array<{
-          id: string;
-          submitterId: string;
-          targetType: string;
-          targetId: string;
-          kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
-        }>
-      >;
-      getAllRecordSubmitters(projectPath: string): Promise<
-        Array<{
-          id: string;
-          submitterId: string;
-          targetType: string;
-          targetId: string;
-          kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
-        }>
-      >;
+      getRecordSubmitters(projectPath: string, targetType: string, targetId: string): Promise<RecordSubmitterLink[]>;
+      getAllRecordSubmitters(projectPath: string): Promise<RecordSubmitterLink[]>;
       addRecordSubmitter(
         projectPath: string,
         submitterId: string,
         targetType: string,
         targetId: string,
-        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+        kind?: NonNullable<RecordSubmitterLink['kind']>,
       ): Promise<UndoRedoState>;
       deleteRecordSubmitter(
         projectPath: string,
@@ -223,7 +204,7 @@ declare global {
         submitterId: string,
         targetType: string,
         targetId: string,
-        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest',
+        kind?: NonNullable<RecordSubmitterLink['kind']>,
       ): Promise<UndoRedoState>;
       addAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
       updateAddress(projectPath: string, before: AddressRecord, after: AddressRecord): Promise<UndoRedoState>;

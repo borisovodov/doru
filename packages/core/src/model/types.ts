@@ -617,13 +617,19 @@ export function isImagePath(path: string | undefined): boolean {
   return dot !== -1 && (IMAGE_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase());
 }
 
+/** True when a stored path points inside the project's media folder. */
+export function isProjectMediaPath(path: string): boolean {
+  const normalized = path.replaceAll('\\', '/');
+  return normalized.startsWith('media/') && !normalized.split('/').includes('..');
+}
+
 /**
  * True when a media record has at least one project-relative image file.
  * External paths and non-image files are intentionally hidden from the UI.
  */
 export function isVisibleMedia(media: Pick<MediaRecord, 'path' | 'files'>): boolean {
   const paths = media.files?.map((file) => file.path) ?? (media.path !== undefined ? [media.path] : []);
-  return paths.some((path) => path.startsWith('media/') && !path.includes('../') && isImagePath(path));
+  return paths.some((path) => isProjectMediaPath(path) && isImagePath(path));
 }
 
 // ---------------------------------------------------------------------------

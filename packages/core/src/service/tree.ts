@@ -24,7 +24,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
-import { collectNameIds, collectNamePartIds } from '../model/types';
+import { collectNameIds, collectNamePartIds, isProjectMediaPath } from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -229,9 +229,7 @@ export class TreeService {
         sources: this.repo.listCitationsFor('person', personId).length,
         media: this.repo
           .listMediaFor('person', personId)
-          .filter((media) =>
-            (media.files ?? []).some((file) => file.path.startsWith('media/') && !file.path.includes('../')),
-          ).length,
+          .filter((media) => (media.files ?? []).some((file) => isProjectMediaPath(file.path))).length,
       };
     }
     return counts;

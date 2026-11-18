@@ -64,20 +64,32 @@ export class NameRepo {
    * are deleted. Callers may pass flat name pieces (`given`, `surname`, …) —
    * they become parts — or explicit `parts`.
    */
-  replaceNamesForPerson(personId: string, names: PersonName[]): void {
+  replaceNamesForPerson(personId: string, names: PersonName[]): Set<string> {
+    const existingNames = new Map<string, PersonName>();
+    const remember = (name: PersonName): void => {
+      existingNames.set(name.id, name);
+      for (const variant of name.variants ?? []) {
+        remember(variant);
+      }
+    };
+    for (const name of this.listNamesForPerson(personId)) {
+      remember(name);
+    }
     const oldDateIds = new Set(this.dateIdsOfPerson(personId));
     this.db.prepare('DELETE FROM person_name_fts WHERE person_id = ?').run(personId);
     this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
 
     const newDateIds = new Set<string>();
+    const partIds = new Set<string>();
     names.forEach((name, position) => {
-      this.writeName(personId, name, null, position, newDateIds);
+      this.writeName(personId, name, null, position, newDateIds, existingNames, partIds);
     });
     for (const stale of oldDateIds) {
       if (!newDateIds.has(stale)) {
         this.dates.delete(stale);
       }
     }
+    return partIds;
   }
 
   /** Removes the person's FTS rows before the person row itself is deleted. */
@@ -148,6 +160,8 @@ export class NameRepo {
     variantOfId: string | null,
     position: number,
     dateIds: Set<string>,
+    existingNames: Map<string, PersonName>,
+    partIds: Set<string>,
   ): void {
     const dateId = name.date ? this.dates.upsert(name.date) : null;
     if (dateId !== null) {
@@ -175,13 +189,21 @@ export class NameRepo {
       name.nameAsRecorded ?? null,
       name.givenNameUsed ?? null,
     );
-    const parts = [...(name.parts ?? partsFromFlat(name))];
+    const existingParts = existingNames.get(name.id)?.parts;
+    const parts = [...(name.parts ?? partsFromFlat(name, existingParts))];
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
       // The verbatim display form is authoritative: keep it alongside the
       // pieces even when the caller supplied explicit parts.
-      parts.push({ id: crypto.randomUUID(), kind: 'full', value: name.full.trim(), position: parts.length });
+      const existingFull = existingParts?.find((part) => part.kind === 'full');
+      parts.push({
+        id: existingFull?.id ?? crypto.randomUUID(),
+        kind: 'full',
+        value: name.full.trim(),
+        position: parts.length,
+      });
     }
     parts.forEach((part, index) => {
+      partIds.add(part.id);
       this.insertPart.run(part.id, name.id, part.kind, part.value, index);
     });
     const searchable = parts
@@ -193,7 +215,7 @@ export class NameRepo {
       this.insertFts.run(personId, searchable);
     }
     (name.variants ?? []).forEach((variant, variantPosition) => {
-      this.writeName(personId, variant, name.id, variantPosition, dateIds);
+      this.writeName(personId, variant, name.id, variantPosition, dateIds, existingNames, partIds);
     });
   }
 
@@ -286,7 +308,7 @@ export function flatFromParts(
  * is set. The 'full' part is kept even when it equals the pieces joined —
  * the stored form is authoritative for round-trips.
  */
-export function partsFromFlat(name: PersonName): NamePart[] {
+export function partsFromFlat(name: PersonName, existingParts?: NamePart[]): NamePart[] {
   const pieces: Array<[NamePart['kind'], string | undefined]> = [
     ['prefix', name.prefix],
     ['given', name.given],
@@ -296,13 +318,19 @@ export function partsFromFlat(name: PersonName): NamePart[] {
     ['suffix', name.suffix],
   ];
   const parts: NamePart[] = [];
+  const partId = (kind: NamePart['kind'], position: number): string => {
+    const existing = existingParts?.find((part) => part.kind === kind && part.position === position);
+    return existing?.id ?? crypto.randomUUID();
+  };
   pieces.forEach(([kind, value]) => {
     if (value !== undefined && value !== '') {
-      parts.push({ id: crypto.randomUUID(), kind, value, position: parts.length });
+      const position = parts.length;
+      parts.push({ id: partId(kind, position), kind, value, position });
     }
   });
   if (name.full !== undefined && name.full.trim() !== '') {
-    parts.push({ id: crypto.randomUUID(), kind: 'full', value: name.full.trim(), position: parts.length });
+    const position = parts.length;
+    parts.push({ id: partId('full', position), kind: 'full', value: name.full.trim(), position });
   }
   return parts;
 }

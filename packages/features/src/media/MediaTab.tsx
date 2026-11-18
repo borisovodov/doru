@@ -23,8 +23,8 @@ import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
 import { nls } from '../nls';
 import {
+  createTaskTargetLabeler,
   moveItem,
-  taskTargetLabel,
   type MediaFileFacts,
   type MediaWithPath,
   type TaskTargetData,
@@ -90,6 +90,7 @@ function MediaTabBody({
   const [description, setDescription] = useState(record.description ?? '');
   const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
+  const targetLabel = createTaskTargetLabeler(targetData);
   const recordRef = useRef(record);
   const metadataRef = useRef({
     title,
@@ -315,7 +316,7 @@ function MediaTabBody({
             <MediaLinkRow
               key={link.id}
               link={link}
-              targetLabel={taskTargetLabel(link.targetType, link.targetId, targetData)}
+              targetLabel={targetLabel(link.targetType, link.targetId)}
               canDetach={(record.links?.length ?? 0) > 1}
               attachmentsApi={attachmentsApi}
               sources={sources}

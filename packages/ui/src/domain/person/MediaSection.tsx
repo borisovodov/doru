@@ -101,6 +101,11 @@ export function MediaSection({
         <div className={styles['grid']}>
           {visibleMedia.map((item) => {
             const link = linkOf(item);
+            const resolvedFile = item.files?.find((file) => file.absolutePath !== '');
+            const preview =
+              resolvedFile !== undefined && isImagePath(resolvedFile.path)
+                ? `doru-media://local/?path=${encodeURIComponent(resolvedFile.absolutePath)}`
+                : '';
             const badge =
               link?.primary === true
                 ? nls.t('features.tree.media.primary')
@@ -110,11 +115,7 @@ export function MediaSection({
             return (
               <MediaTile
                 key={item.id}
-                src={
-                  item.absolutePath !== '' && isImagePath(item.path)
-                    ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
-                    : ''
-                }
+                src={preview}
                 alt={item.title ?? item.path ?? item.id}
                 fallback={
                   <span className={styles['fallback']}>

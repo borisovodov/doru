@@ -14,6 +14,7 @@ import type {
   PersonRecord,
   NoteLinkRecord,
   PlaceRecord,
+  RecordSubmitterLink,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -561,7 +562,7 @@ export function registerTreeIpc(): void {
         submitterId: string;
         targetType: string;
         targetId: string;
-        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+        kind?: NonNullable<RecordSubmitterLink['kind']>;
       },
     ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
@@ -584,7 +585,7 @@ export function registerTreeIpc(): void {
         submitterId: string;
         targetType: string;
         targetId: string;
-        kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest';
+        kind?: NonNullable<RecordSubmitterLink['kind']>;
       },
     ) => {
       const { runtime } = await ensureRuntime(options.projectPath);

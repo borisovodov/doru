@@ -28,7 +28,7 @@ export interface MediaWithPath extends Omit<MediaRecord, 'files'> {
  * Resolves a media path stored in the database to an absolute path inside
  * the project's media folder. Returns null for paths that would escape it.
  */
-function mediaAbsolutePath(projectPath: string, mediaPath: string): string | null {
+function mediaAbsolutePath(projectPath: string, mediaPath: string): Promise<string | null> {
   return resolveMediaPath(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
@@ -62,7 +62,7 @@ async function withPaths(projectPath: string, media: MediaRecord): Promise<Media
     media.files ?? (media.path !== undefined ? [{ id: media.id, path: media.path }] : []);
   const files: MediaFileWithPath[] = [];
   for (const file of sourceFiles) {
-    const absolutePath = mediaAbsolutePath(projectPath, file.path);
+    const absolutePath = await mediaAbsolutePath(projectPath, file.path);
     files.push({
       ...file,
       absolutePath: absolutePath ?? '',
@@ -264,7 +264,7 @@ async function removeMediaFileCopies(
 }
 
 async function removeMediaFile(projectPath: string, mediaPath: string): Promise<void> {
-  const absolute = mediaAbsolutePath(projectPath, mediaPath);
+  const absolute = await mediaAbsolutePath(projectPath, mediaPath);
   if (!absolute) {
     return;
   }
