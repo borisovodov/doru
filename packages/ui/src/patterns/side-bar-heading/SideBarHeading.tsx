@@ -15,7 +15,7 @@ export function SideBarHeading({ title, actions, className }: SideBarHeadingProp
   return (
     <div className={cx(styles['heading'], className)}>
       <h3 className={styles['title']}>{title}</h3>
-      {actions !== undefined && <div className={styles['actions']}>{actions}</div>}
+      {actions !== undefined && actions !== null && <div className={styles['actions']}>{actions}</div>}
     </div>
   );
 }

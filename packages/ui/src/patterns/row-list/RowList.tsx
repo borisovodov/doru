@@ -28,7 +28,7 @@ export function AttachmentRow({ kind, value, actions, className, as = 'li' }: At
     <Tag className={cx(styles['row'], className)}>
       {kind ? <span className={styles['kind']}>{kind}</span> : null}
       <span className={styles['value']}>{value}</span>
-      {actions ? <span className={styles['actions']}>{actions}</span> : null}
+      {actions !== undefined && actions !== null ? <span className={styles['actions']}>{actions}</span> : null}
     </Tag>
   );
 }

@@ -22,7 +22,7 @@ export function SideBarLayout({ title, actions, subheader, className, children }
   return (
     <div className={cx(styles['view'], className)}>
       <SideBarHeading className={styles['heading']} title={title} actions={actions} />
-      {subheader !== undefined && <div className={styles['subheader']}>{subheader}</div>}
+      {subheader !== undefined && subheader !== null && <div className={styles['subheader']}>{subheader}</div>}
       <div className={styles['body']}>{children}</div>
     </div>
   );
