@@ -23,9 +23,13 @@ export const Default: DemoCase = {
             onClick={() => undefined}
           />
         }
-        subheader={<div style={{ fontSize: 12, color: 'var(--doru-fg-muted)' }}>Fixed subheader</div>}
+        subheader={
+          <div style={{ fontSize: 'var(--doru-font-size-sm)', color: 'var(--doru-fg-muted)' }}>Fixed subheader</div>
+        }
       >
-        <p style={{ margin: 0, padding: '0 6px', color: 'var(--doru-fg-muted)' }}>Scrollable body content.</p>
+        <p style={{ margin: 0, padding: '0 var(--doru-space-2)', color: 'var(--doru-fg-muted)' }}>
+          Scrollable body content.
+        </p>
       </SideBarLayout>
     </div>
   ),

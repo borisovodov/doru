@@ -25,9 +25,9 @@ export function EntitySummary({ icon, thumbnail, title, subtitle, meta, iconVari
       ) : null}
       <span className={styles['body']}>
         <span className={styles['title']}>{title}</span>
-        {subtitle ? <span className={styles['subtitle']}>{subtitle}</span> : null}
+        {subtitle !== undefined && subtitle !== null ? <span className={styles['subtitle']}>{subtitle}</span> : null}
       </span>
-      {meta ? <span className={styles['meta']}>{meta}</span> : null}
+      {meta !== undefined && meta !== null ? <span className={styles['meta']}>{meta}</span> : null}
     </>
   );
 }

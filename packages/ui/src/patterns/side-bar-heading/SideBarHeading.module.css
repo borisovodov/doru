@@ -23,5 +23,5 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--doru-space-1);
 }
