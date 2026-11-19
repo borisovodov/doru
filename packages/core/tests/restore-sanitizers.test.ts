@@ -143,6 +143,41 @@ describe('undo restore sanitizers', () => {
     }
   });
 
+  it('restores sources and media when their optional targets survive', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const ctx = context(fixture);
+      repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
+      repo.insertTitle({ id: 'TI1', name: 'Work' });
+      repo.insertRepository({ id: 'R1', name: 'Archive' });
+      restoreSource(ctx, {
+        id: 'S1',
+        title: 'Book',
+        titleId: 'TI1',
+        dataEvents: [{ id: 'SE1', tag: 'DATA', placeId: 'PL1' }],
+        repositories: [{ id: 'SR1', repositoryId: 'R1' }],
+      });
+      expect(repo.getSource('S1')?.titleId).toBe('TI1');
+      expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('PL1');
+      expect(repo.getSource('S1')?.repositories?.[0]?.repositoryId).toBe('R1');
+
+      restoreMedia(ctx, { id: 'M1', title: 'Photo', place: 'Moscow', placeId: 'PL1' });
+      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
+
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      restoreFamily(ctx, {
+        id: 'F1',
+        partners: ['P1'],
+        children: [],
+        marriageStatuses: [{ id: 'MS1', status: 'married', placeId: 'PL1' }],
+      });
+      expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBe('PL1');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('skips citations, associations and aliases whose targets vanished', () => {
     const fixture = makeRepo();
     try {
@@ -158,6 +193,7 @@ describe('undo restore sanitizers', () => {
 
       repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       repo.insertFamily({ id: 'F1', partners: ['P1'], children: [] });
+      expect(restoreCitation(ctx, { id: 'C3', sourceId: 'S1', targetType: 'family', targetId: 'F1' })).toBe(true);
       expect(restoreAssociation(ctx, { id: 'A1', personId: 'P1', otherPersonId: 'P2', role: 'witness' })).toBe(true);
       expect(restoreAssociation(ctx, { id: 'A2', personId: 'P1', otherPersonId: 'missing' })).toBe(false);
       expect(restoreAssociation(ctx, { id: 'A3', personId: 'missing', otherPersonId: 'P2' })).toBe(false);
@@ -180,7 +216,9 @@ describe('undo restore sanitizers', () => {
       repo.insertRepository({ id: 'R1', name: 'Archive' });
       restoreTodo(ctx, { id: 'T1', text: 'Task', repositoryId: 'R1' });
       restoreTodo(ctx, { id: 'T2', text: 'Orphan task', repositoryId: 'missing' });
+      restoreTodo(ctx, { id: 'T3', text: 'Linked task', targetType: 'repository', targetId: 'R1' });
       expect(repo.getTodo('T1')?.repositoryId).toBe('R1');
+      expect(repo.getTodo('T3')?.targetId).toBe('R1');
       expect(repo.getTodo('T2')?.id).toBe('T2');
       expect(repo.getTodo('T2')?.repositoryId).toBeUndefined();
 
@@ -194,6 +232,7 @@ describe('undo restore sanitizers', () => {
       repo.insertTag({ id: 'TAG1', name: 'Family' });
       expect(restoreTagLink(ctx, { id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' })).toBe(true);
       expect(restoreTagLink(ctx, { id: 'TL2', tagId: 'missing', targetType: 'person', targetId: 'P1' })).toBe(false);
+      expect(restoreTagLink(ctx, { id: 'TL3', tagId: 'TAG1', targetType: 'person', targetId: 'P1' })).toBe(true);
 
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       expect(
@@ -213,6 +252,14 @@ describe('undo restore sanitizers', () => {
           targetId: 'P1',
         }),
       ).toBe(false);
+      expect(
+        restoreRecordSubmitter(ctx, {
+          id: 'RS3',
+          submitterId: 'SU1',
+          targetType: 'person',
+          targetId: 'P1',
+        }),
+      ).toBe(true);
 
       repo.insertSource({ id: 'S1', title: 'Book' });
       expect(

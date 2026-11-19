@@ -264,6 +264,48 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
+  it('blocks place-update redo when a removed name gained evidence', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({
+        id: 'PL1',
+        names: [
+          { id: 'PN1', kind: 'official', position: 0, value: 'One' },
+          { id: 'PN2', kind: 'official', position: 1, value: 'Two' },
+        ],
+      });
+      const before = repo.getPlace('PL1')!;
+      service.updatePlace(before, { ...before, names: [before.names[0]!] });
+      service.undo();
+      repo.insertNote({ id: 'N1', text: 'new', targetType: 'place_name', targetId: 'PN2' });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks media detach redo when a non-last link was edited', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      const first = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!;
+      repo.addMediaLink('M1', { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'P2' });
+      service.detachMedia(first.link);
+      service.undo();
+      repo.updateMediaLink({
+        ...repo.getMedia('M1')!.links!.find((link) => link.id === first.link.id)!,
+        title: 'Edited',
+      });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('blocks media detach redo when the last link gained media evidence', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
