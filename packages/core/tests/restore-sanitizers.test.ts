@@ -8,8 +8,10 @@ import {
   restoreCitation,
   restoreFact,
   restoreFamily,
+  attachmentTargetExists,
   restoreMedia,
   restorePerson,
+  restorePlace,
   restoreRecordSubmitter,
   restoreSource,
   restoreSourceRepository,
@@ -56,6 +58,26 @@ describe('undo restore sanitizers', () => {
       expect(stored.familyLinks).toBeUndefined();
       expect(stored.participants?.[0]).toMatchObject({ id: 'PT1' });
       expect(stored.participants?.[0]?.personId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores a place without hierarchy links to deleted parents', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const ctx = context(fixture);
+      repo.insertPlace({ id: 'P1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Parent' }] });
+      restorePlace(ctx, {
+        id: 'PL1',
+        names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Child' }],
+        hierarchy: [
+          { id: 'H1', parentId: 'missing' },
+          { id: 'H2', parentId: 'P1' },
+        ],
+      });
+      expect(repo.getPlace('PL1')?.hierarchy?.map((link) => link.id)).toEqual(['H2']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -196,6 +218,46 @@ describe('undo restore sanitizers', () => {
       ).toBe(true);
       expect(restoreSourceRepository(ctx, { id: 'SR2', sourceId: 'missing', repositoryId: 'R1' })).toBe(false);
       expect(restoreSourceRepository(ctx, { id: 'SR3', sourceId: 'S1', repositoryId: 'missing' })).toBe(false);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('reports which attachment targets still exist', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const ctx = context(fixture);
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertFamily({ id: 'F1', partners: ['P1'], children: [] });
+      repo.insertSource({ id: 'S1', title: 'Book' });
+      repo.insertRepository({ id: 'R1', name: 'Archive' });
+      repo.insertSubmitter({ id: 'SU1', name: 'Person' });
+      repo.insertAddress({ id: 'A1', lines: [] });
+      repo.insertTodo({ id: 'T1', text: 'Task' });
+      repo.insertNote({ id: 'N1', text: 'Note', targetType: 'person', targetId: 'P1' });
+      repo.insertFact({ id: 'FACT1', personId: 'P1', tag: 'BIRT' });
+      repo.insertAssociation({ id: 'AS1', personId: 'P1', otherPersonId: 'P1' });
+      repo.insertMedia({ id: 'M1', targetType: 'person', targetId: 'P1' });
+      repo.insertPlace({ id: 'PL1', names: [] });
+
+      for (const [type, id] of [
+        ['fact', 'FACT1'],
+        ['association', 'AS1'],
+        ['person', 'P1'],
+        ['place', 'PL1'],
+        ['media', 'M1'],
+        ['note', 'N1'],
+        ['todo', 'T1'],
+        ['source', 'S1'],
+        ['repository', 'R1'],
+        ['submitter', 'SU1'],
+        ['address', 'A1'],
+        ['other', 'anything'],
+      ] as const) {
+        expect(attachmentTargetExists(ctx, type, id)).toBe(true);
+      }
+      expect(attachmentTargetExists(ctx, 'fact', 'missing')).toBe(false);
     } finally {
       cleanupRepo(fixture);
     }

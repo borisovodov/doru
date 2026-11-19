@@ -8,7 +8,14 @@ import type {
 import { emptyAttachments } from '../model/types';
 import type { FamilyLinkAttachments } from './family';
 import type { NestedAttachments, Op } from './op';
-import { restoreAlias, restoreAssociation, restorePerson, sameRecord } from './restore';
+import {
+  attachmentTargetExists,
+  attachmentsMatch,
+  restoreAlias,
+  restoreAssociation,
+  restorePerson,
+  sameRecord,
+} from './restore';
 
 export function updatePersonOp(
   before: PersonRecord,
@@ -63,6 +70,22 @@ export function deletePersonOp(
       const current = ctx.repo.getPerson(person.id);
       if (current === undefined || !sameRecord(current, person)) {
         return false;
+      }
+      if (!attachmentsMatch(ctx, 'person', person.id, attachments)) {
+        return false;
+      }
+      for (const nested of nestedAttachments) {
+        if (
+          attachmentTargetExists(ctx, nested.targetType, nested.targetId) &&
+          !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)
+        ) {
+          return false;
+        }
+      }
+      for (const link of linkAttachments) {
+        if (!attachmentsMatch(ctx, link.targetType, link.targetId, link.attachments)) {
+          return false;
+        }
       }
       // Anything attached to the person since the undo would be cascaded away
       // by the redo and could not be restored from the captured snapshot.

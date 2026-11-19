@@ -131,6 +131,38 @@ describe('place ops', () => {
     }
   });
 
+  it('redo deletes and restores the place when nothing changed', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPlace(moscow);
+      service.deletePlace(moscow);
+      service.undo();
+      const state = service.redo();
+      expect(state.redoBlocked).toBeUndefined();
+      expect(fixture.repo.getPlace('PL1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects place redo when new attachments appeared', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace(moscow);
+      service.deletePlace(moscow);
+      service.undo();
+      repo.insertNote({ id: 'N1', text: 'new note', targetType: 'place', targetId: 'PL1' });
+
+      const state = service.redo();
+      expect(state.redoBlocked).toBe(true);
+      expect(repo.getPlace('PL1')).toBeDefined();
+      expect(repo.listNotesFor('place', 'PL1').map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates a place through the service with undo', () => {
     const { fixture, service } = makeService();
     try {

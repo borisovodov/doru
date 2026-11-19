@@ -601,6 +601,9 @@ export function deleteRepositoryOp(
       if (current === undefined || !sameRecord(current, repository)) {
         return false;
       }
+      if (!attachmentsMatch(ctx, 'repository', repository.id, attachments)) {
+        return false;
+      }
       const capturedSources = new Set((consumers.sourceRepositories ?? []).map((link) => link.id));
       for (const link of ctx.repo.listSourceRepositoriesFor(repository.id)) {
         if (!capturedSources.has(link.id)) {

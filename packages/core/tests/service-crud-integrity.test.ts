@@ -1292,6 +1292,42 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('rejects family, person, media and repository redo when attachments appeared', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.deleteFamily(repo.getFamily('F1')!);
+      service.undo();
+      repo.insertNote({ id: 'NF', text: 'family note', targetType: 'family', targetId: 'F1' });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getFamily('F1')).toBeDefined();
+
+      service.deletePerson(repo.getPerson('P1')!);
+      service.undo();
+      repo.insertNote({ id: 'NP', text: 'person note', targetType: 'person', targetId: 'P1' });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getPerson('P1')).toBeDefined();
+
+      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      service.deleteMedia(repo.getMedia('M1')!);
+      service.undo();
+      repo.insertNote({ id: 'NM', text: 'media note', targetType: 'media', targetId: 'M1' });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getMedia('M1')).toBeDefined();
+
+      service.addRepository({ id: 'R1', name: 'Archive' });
+      service.deleteRepository(repo.getRepository('R1')!);
+      service.undo();
+      repo.insertNote({ id: 'NR', text: 'repository note', targetType: 'repository', targetId: 'R1' });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getRepository('R1')).toBeDefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not leave a change-log row when a stale update fails', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

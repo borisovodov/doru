@@ -1,7 +1,7 @@
 import type { AttachmentsSnapshot, MediaRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
-import { restoreMedia, sameRecord } from './restore';
+import { attachmentsMatch, restoreMedia, sameRecord } from './restore';
 
 export function addMediaOp(media: MediaRecord): Op {
   return {
@@ -64,6 +64,19 @@ export function deleteMediaOp(
       const linkIds = new Set((media.links ?? []).map((link) => link.id));
       for (const link of current.links ?? []) {
         if (!linkIds.has(link.id)) {
+          return false;
+        }
+      }
+      if (!attachmentsMatch(ctx, 'media', media.id, attachments)) {
+        return false;
+      }
+      for (const nested of fileAttachments) {
+        if (!attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
+          return false;
+        }
+      }
+      for (const nested of linkAttachments) {
+        if (!attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
           return false;
         }
       }
