@@ -121,6 +121,10 @@ describe('TreeService CRUD integrity', () => {
       const nameDateId = stored.names[0]?.date?.id;
       const postalDateId = stored.postalCodes?.[0]?.date?.id;
       const hierarchyDateId = repo.getPlace('PL2')?.hierarchy?.[0]?.date?.id;
+      for (const id of [nameDateId, postalDateId, hierarchyDateId]) {
+        expect(id).toBeDefined();
+        expect(dateRow(fixture, id)).toBeDefined();
+      }
       service.deletePlace(stored);
 
       expect(repo.getPlace('PL1')).toBeUndefined();
@@ -319,6 +323,8 @@ describe('TreeService CRUD integrity', () => {
       });
 
       const statusDateId = repo.getFamily('F1')?.marriageStatuses?.[0]?.date?.id;
+      expect(statusDateId).toBeDefined();
+      expect(dateRow(fixture, statusDateId)).toBeDefined();
       service.deleteFamily(repo.getFamily('F1')!);
 
       expect(repo.listAssociationsForFamily('F1')).toEqual([]);
@@ -827,6 +833,60 @@ describe('TreeService CRUD integrity', () => {
 
       expect(repo.getPerson('P1')?.sex).toBe('F');
       expect(repo.getPerson('P1')?.facts.map((fact) => fact.id)).toContain('RES1');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('merges changed fact fields onto concurrent edits and omits deleted rows', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      const base = repo.getPerson('P1')!;
+      repo.updatePerson({
+        ...base,
+        facts: [
+          {
+            id: 'B1',
+            personId: 'P1',
+            tag: 'BIRT',
+            date: { quality: 'exact', component: { year: 1900 } },
+            place: 'Old place',
+          },
+          { id: 'RES1', personId: 'P1', tag: 'RESI', value: 'Moscow' },
+        ],
+      });
+      const before = repo.getPerson('P1')!;
+      const current = repo.getPerson('P1')!;
+      repo.updatePerson({
+        ...current,
+        facts: [
+          {
+            ...current.facts[0]!,
+            place: 'New place',
+          },
+        ],
+      });
+
+      service.updatePerson(before, {
+        ...before,
+        facts: [
+          {
+            id: 'B1',
+            personId: 'P1',
+            tag: 'BIRT',
+            date: { quality: 'exact', component: { year: 1901 } },
+            place: 'Old place',
+          },
+          { id: 'RES1', personId: 'P1', tag: 'RESI', value: 'Moscow' },
+        ],
+      });
+
+      const birth = repo.getPerson('P1')?.facts.find((fact) => fact.tag === 'BIRT');
+      expect(birth?.date).toMatchObject({ component: { year: 1901 } });
+      expect(birth?.place).toBe('New place');
+      expect(repo.getPerson('P1')?.facts.some((fact) => fact.id === 'RES1')).toBe(false);
     } finally {
       cleanupRepo(fixture);
     }

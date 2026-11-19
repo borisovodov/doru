@@ -98,25 +98,29 @@ function jpegDimensions(bytes: Buffer): { width: number; height: number } | unde
       offset += 1;
       continue;
     }
-    const marker = bytes[offset + 1];
+    let markerOffset = offset + 1;
+    while (bytes[markerOffset] === 0xff) {
+      markerOffset += 1;
+    }
+    const marker = bytes[markerOffset];
     if (marker === undefined) {
       return undefined;
     }
     if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
-      offset += 2;
+      offset = markerOffset + 1;
       continue;
     }
     if (marker === 0xd9 || marker === 0xda) {
       return undefined;
     }
-    const length = bytes.readUInt16BE(offset + 2);
+    const length = bytes.readUInt16BE(markerOffset + 1);
     if (length < 2) {
       return undefined;
     }
     if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-      return { width: bytes.readUInt16BE(offset + 7), height: bytes.readUInt16BE(offset + 5) };
+      return { width: bytes.readUInt16BE(markerOffset + 6), height: bytes.readUInt16BE(markerOffset + 4) };
     }
-    offset += 2 + length;
+    offset = markerOffset + 1 + length;
   }
   return undefined;
 }

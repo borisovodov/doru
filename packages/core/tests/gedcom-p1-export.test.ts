@@ -220,6 +220,11 @@ describe('P1 GEDCOM export gaps', () => {
           time: { hour: 12, minute: 0 },
         },
       });
+      repo.insertTodo({
+        id: 'T6',
+        text: 'Yearless task',
+        createdDate: { quality: 'exact', component: { month: 5, day: 3 } },
+      });
       const serialized = serializeGedcom70(buildGedcomDataset(repo));
       expect(serialized.ok).toBe(true);
       if (!serialized.ok) {
@@ -256,6 +261,10 @@ describe('P1 GEDCOM export gaps', () => {
           modifier: 'CAL',
           component: { calendar: 'julian', year: 1900, month: 1, day: 1 },
           time: { hour: 12, minute: 0 },
+        });
+        expect(target.repo.listTodos().find((todo) => todo.text === 'Yearless task')?.createdDate).toMatchObject({
+          quality: 'exact',
+          component: { month: 5, day: 3 },
         });
       } finally {
         cleanupRepo(target);

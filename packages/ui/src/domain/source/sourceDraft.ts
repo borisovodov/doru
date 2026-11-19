@@ -146,6 +146,20 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
   };
 }
 
+/** Merges refreshed stored fields into a dirty draft, keeping user edits. */
+export function mergeSourceDraft(current: SourceDraft, base: SourceDraft, refreshed: SourceDraft): SourceDraft {
+  const merged = { ...current };
+  for (const key of Object.keys(refreshed) as Array<keyof SourceDraft>) {
+    if (key === 'id') {
+      continue;
+    }
+    if (JSON.stringify(current[key]) === JSON.stringify(base[key])) {
+      (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+    }
+  }
+  return merged;
+}
+
 /**
  * Builds the source record for a save. Empty sub-rows (a text without
  * content, a repository link without a picked repository, …) are dropped;

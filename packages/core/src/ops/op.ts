@@ -49,21 +49,23 @@ export class OpQueue {
   }
 
   undo(ctx: MutationContext): Op | undefined {
-    const op = this.undoStack.pop();
+    const op = this.undoStack[this.undoStack.length - 1];
     if (!op) {
       return undefined;
     }
     op.inverse(ctx);
+    this.undoStack.pop();
     this.redoStack.push(op);
     return op;
   }
 
   redo(ctx: MutationContext): Op | undefined {
-    const op = this.redoStack.pop();
+    const op = this.redoStack[this.redoStack.length - 1];
     if (!op) {
       return undefined;
     }
     op.apply(ctx);
+    this.redoStack.pop();
     this.undoStack.push(op);
     return op;
   }

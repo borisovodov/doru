@@ -129,7 +129,7 @@ describe('SqliteTreeRepository', () => {
             { id: 'FF2', familyId: 'F2', position: 1 },
           ],
         }),
-      ).toThrow();
+      ).toThrow(/FOREIGN KEY/);
 
       const restored = repo.getFact('ADOP1')!;
       expect(restored.value).toBeUndefined();

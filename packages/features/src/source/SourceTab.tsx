@@ -27,6 +27,7 @@ import {
   MediaSection,
   TasksSection,
   emptySourceDraft,
+  mergeSourceDraft,
   sourceDraftMatches,
   sourceDraftToRecord,
   sourceToDraft,
@@ -177,8 +178,12 @@ function SourceTabBody({
     recordRef.current = record;
     baselineRef.current = record;
     setLastSaved(record);
-    if (previous !== undefined && sourceDraftMatches(draftRef.current, previous)) {
-      setDraft(sourceToDraft(record));
+    if (previous !== undefined) {
+      if (sourceDraftMatches(draftRef.current, previous)) {
+        setDraft(sourceToDraft(record));
+      } else {
+        setDraft(mergeSourceDraft(draftRef.current, sourceToDraft(previous), sourceToDraft(record)));
+      }
     }
   }, [record, isNew]);
 

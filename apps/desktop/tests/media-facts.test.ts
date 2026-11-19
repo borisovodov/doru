@@ -44,6 +44,12 @@ describe('media file facts', () => {
     ]);
     expect(await readMediaFileFacts(write('image.jpg', jpeg))).toMatchObject({ width: 768, height: 512 });
 
+    const paddedJpeg = Buffer.from([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x02, 0x00, 0x03, 0x00, 0x03,
+      0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
+    ]);
+    expect(await readMediaFileFacts(write('padded.jpg', paddedJpeg))).toMatchObject({ width: 768, height: 512 });
+
     const webp = Buffer.alloc(30);
     webp.write('RIFF', 0, 'ascii');
     webp.write('WEBP', 8, 'ascii');

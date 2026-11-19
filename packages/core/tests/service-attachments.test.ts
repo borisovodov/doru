@@ -315,7 +315,10 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
       expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
       service.undo();
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.some((entry) => entry.link.id === link.id),
+      ).toBe(true);
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((entry) => entry.id)).toEqual(['C1']);
 
       const media = fixture.repo.getMedia('M1')!;
       service.deleteMedia(media);
@@ -323,7 +326,10 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
       service.undo();
       expect(fixture.repo.getMedia('M1')).toBeDefined();
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.some((entry) => entry.link.id === link.id),
+      ).toBe(true);
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((entry) => entry.id)).toEqual(['C1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -721,6 +727,7 @@ describe('TreeService attachments', () => {
 
       service.deleteNote(note());
       expect(fixture.repo.listChangesFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listChangesFor('person', 'P1').map((change) => change.kind)).toContain('changed');
 
       service.undo();
       expect(

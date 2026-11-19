@@ -154,6 +154,8 @@ export interface TreeRepository {
   getMedia(id: string): MediaRecord | undefined;
   deleteMedia(id: string): boolean;
   addMediaLink(mediaId: string, link: MediaLinkRecord): void;
+  /** Direct media links of a target, without recursive attachment collection. */
+  listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   /** True when this link id already exists, without hydrating its target. */
   hasMediaLink(id: string): boolean;
   updateMediaLink(link: MediaLinkRecord): void;
@@ -824,6 +826,10 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.addMediaLink(mediaId, link);
   }
 
+  listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }> {
+    return this.media.listLinksFor(targetType, targetId);
+  }
+
   hasMediaLink(id: string): boolean {
     return this.media.hasLink(id);
   }
@@ -1298,13 +1304,20 @@ export class SqliteTreeRepository implements TreeRepository {
         this.notes.addNoteLink(entry.note.id, entry.link);
       }
     }
+    const skippedCitations = new Set<string>();
     for (const citation of snapshot.citations) {
+      if (this.sources.getSource(citation.sourceId) === undefined) {
+        skippedCitations.add(citation.id);
+        continue;
+      }
       if (this.sources.getCitation(citation.id) === undefined) {
         this.sources.insertCitation(citation);
       }
     }
     for (const nested of snapshot.citationAttachments) {
-      this.restoreAttachments(nested.attachments);
+      if (!skippedCitations.has(nested.targetId)) {
+        this.restoreAttachments(nested.attachments);
+      }
     }
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
@@ -1319,7 +1332,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const nested of snapshot.mediaFileAttachments) {
-      if (restoreFiles.has(nested.targetId)) {
+      if (restoreFiles.has(nested.targetId) && this.media.hasFile(nested.targetId)) {
         this.restoreAttachments(nested.attachments);
       }
     }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { EntityTab } from '../sidebar';
@@ -96,23 +96,10 @@ function FamilyTabBody({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<FamilyDraft>(() => familyToDraft(record));
-  // The family tab owns only its own associations: the snapshot is scoped
-  // here and refreshed through the dedicated API after mutations.
-  const [familyAssociations, setFamilyAssociations] = useState<AssociationRecord[]>(() =>
-    associations.filter((association) => association.familyId === record.id),
+  const familyAssociations = useMemo(
+    () => associations.filter((association) => association.familyId === record.id),
+    [associations, record.id],
   );
-  useEffect(() => {
-    let cancelled = false;
-    void api.getAssociationsForFamily(record.id).then((loaded) => {
-      if (!cancelled) {
-        setFamilyAssociations(loaded);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-    // oxlint-disable-next-line react/exhaustive-deps -- the api object changes every render; the snapshot list drives refreshes
-  }, [record.id, associations]);
   const {
     notes: familyNotes,
     allNotes,

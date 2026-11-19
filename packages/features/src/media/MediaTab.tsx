@@ -180,7 +180,8 @@ function MediaTabBody({
   }, [record]);
 
   const save = async () => {
-    submittedRef.current = metadataRef.current;
+    const submission = metadataRef.current;
+    submittedRef.current = submission;
     const base = baselineRef.current;
     // Use the latest saved state even while the refreshed prop is pending.
     const current = savedRef.current;
@@ -205,7 +206,14 @@ function MediaTabBody({
       next.keywords = keywords.trim() || undefined;
     }
     const recordBeforeSave = recordRef.current;
-    await api.updateMedia(current, next);
+    try {
+      await api.updateMedia(current, next);
+    } catch (error) {
+      if (submittedRef.current === submission) {
+        submittedRef.current = undefined;
+      }
+      throw error;
+    }
     // A refresh may have advanced the baseline while the write was pending;
     // never replace that newer record with the pre-save snapshot.
     if (recordRef.current === recordBeforeSave) {

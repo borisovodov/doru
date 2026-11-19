@@ -395,18 +395,24 @@ export class TreeService {
     }
     const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
     if (target) {
+      const existing = (target.childLinks ?? []).find((link) => link.childId === childId);
+      const childLinks = existing
+        ? (target.childLinks ?? []).map((link) =>
+            link.childId === childId ? { ...link, status: undefined, statusPhrase: undefined } : link,
+          )
+        : [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }];
       links.push({
         before: target,
         after: {
           ...target,
-          children: [...target.children, childId],
-          childLinks: [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }],
+          children: target.children.includes(childId) ? target.children : [...target.children, childId],
+          childLinks,
         },
       });
     }
     const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
     const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-    return this.apply(reparentOp(links, created, childId, linkAttachments));
+    return this.applyAfterCommit(() => reparentOp(links, created, childId, linkAttachments));
   }
 
   /**
@@ -464,49 +470,51 @@ export class TreeService {
   }
 
   deleteFamily(family: FamilyRecord): UndoRedoState {
-    const current = this.repo.getFamily(family.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('family', current.id);
-    const linkAttachments: FamilyLinkAttachments[] = [];
-    for (const link of current.partnerLinks ?? []) {
-      linkAttachments.push({
-        targetType: 'family_partner',
-        targetId: link.id,
-        attachments: this.repo.listAttachmentsFor('family_partner', link.id),
-      });
-    }
-    for (const link of current.childLinks ?? []) {
-      linkAttachments.push({
-        targetType: 'family_child',
-        targetId: link.id,
-        attachments: this.repo.listAttachmentsFor('family_child', link.id),
-      });
-    }
-    for (const status of current.marriageStatuses ?? []) {
-      linkAttachments.push({
-        targetType: 'family_marriage_status',
-        targetId: status.id,
-        attachments: this.repo.listAttachmentsFor('family_marriage_status', status.id),
-      });
-    }
-    const facts = this.repo.listFactsForFamily(current.id);
-    const linkedFacts = this.repo.listFactsLinkedToFamily(current.id);
-    const associations = this.repo.listAssociationsForFamily(current.id);
-    const nested: NestedAttachments[] = [
-      ...facts.map((fact) => ({
-        targetType: 'fact',
-        targetId: fact.id,
-        attachments: this.repo.listAttachmentsFor('fact', fact.id),
-      })),
-      ...associations.map((association) => ({
-        targetType: 'association',
-        targetId: association.id,
-        attachments: this.repo.listAttachmentsFor('association', association.id),
-      })),
-    ];
-    return this.apply(deleteFamilyOp(current, attachments, linkAttachments, nested, facts, associations, linkedFacts));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getFamily(family.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('family', current.id);
+      const linkAttachments: FamilyLinkAttachments[] = [];
+      for (const link of current.partnerLinks ?? []) {
+        linkAttachments.push({
+          targetType: 'family_partner',
+          targetId: link.id,
+          attachments: this.repo.listAttachmentsFor('family_partner', link.id),
+        });
+      }
+      for (const link of current.childLinks ?? []) {
+        linkAttachments.push({
+          targetType: 'family_child',
+          targetId: link.id,
+          attachments: this.repo.listAttachmentsFor('family_child', link.id),
+        });
+      }
+      for (const status of current.marriageStatuses ?? []) {
+        linkAttachments.push({
+          targetType: 'family_marriage_status',
+          targetId: status.id,
+          attachments: this.repo.listAttachmentsFor('family_marriage_status', status.id),
+        });
+      }
+      const facts = this.repo.listFactsForFamily(current.id);
+      const linkedFacts = this.repo.listFactsLinkedToFamily(current.id);
+      const associations = this.repo.listAssociationsForFamily(current.id);
+      const nested: NestedAttachments[] = [
+        ...facts.map((fact) => ({
+          targetType: 'fact',
+          targetId: fact.id,
+          attachments: this.repo.listAttachmentsFor('fact', fact.id),
+        })),
+        ...associations.map((association) => ({
+          targetType: 'association',
+          targetId: association.id,
+          attachments: this.repo.listAttachmentsFor('association', association.id),
+        })),
+      ];
+      return deleteFamilyOp(current, attachments, linkAttachments, nested, facts, associations, linkedFacts);
+    });
   }
 
   // --- places ---------------------------------------------------------------
@@ -542,11 +550,11 @@ export class TreeService {
    * link, attachment and date row on undo.
    */
   deletePlace(place: PlaceRecord): UndoRedoState {
-    if (this.repo.getPlace(place.id) === undefined) {
-      return this.historyState();
-    }
     return this.applyAfterCommit(() => {
-      const current = this.repo.getPlace(place.id) ?? place;
+      const current = this.repo.getPlace(place.id);
+      if (current === undefined) {
+        return undefined;
+      }
       const byId = new Map<string, FactRecord>();
       for (const fact of [
         ...this.repo.listFactsForPlace(current.id),
@@ -1124,18 +1132,51 @@ export class TreeService {
     return false;
   }
 
+  private mergeChangedFields(before: unknown, after: unknown, stored: unknown): unknown {
+    if (JSON.stringify(before) === JSON.stringify(after)) {
+      return stored;
+    }
+    if (
+      typeof before === 'object' &&
+      before !== null &&
+      typeof after === 'object' &&
+      after !== null &&
+      !Array.isArray(before) &&
+      !Array.isArray(after) &&
+      typeof stored === 'object' &&
+      stored !== null &&
+      !Array.isArray(stored)
+    ) {
+      const beforeRecord = before as Record<string, unknown>;
+      const afterRecord = after as Record<string, unknown>;
+      const storedRecord = stored as Record<string, unknown>;
+      const merged: Record<string, unknown> = { ...storedRecord };
+      for (const key of new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)])) {
+        merged[key] = this.mergeChangedFields(beforeRecord[key], afterRecord[key], storedRecord[key]);
+      }
+      return merged;
+    }
+    return after;
+  }
+
   private mergePersonEdit(before: PersonRecord, after: PersonRecord, current: PersonRecord): PersonRecord {
     const previousNames = new Map(before.names.map((name) => [name.id, name]));
     const currentNames = new Map(current.names.map((name) => [name.id, name]));
     const afterNameIds = new Set(after.names.map((name) => name.id));
-    const names = after.names.map((name) => {
+    const names: PersonRecord['names'] = [];
+    for (const name of after.names) {
       const previous = previousNames.get(name.id);
       const stored = currentNames.get(name.id);
-      if (previous !== undefined && stored !== undefined && JSON.stringify(previous) === JSON.stringify(name)) {
-        return stored;
+      if (previous === undefined) {
+        names.push(name);
+      } else if (JSON.stringify(previous) === JSON.stringify(name)) {
+        if (stored !== undefined) {
+          names.push(stored);
+        }
+      } else {
+        names.push(this.mergeChangedFields(previous, name, stored ?? {}) as PersonRecord['names'][number]);
       }
-      return name;
-    });
+    }
     for (const name of current.names) {
       if (!previousNames.has(name.id) && !afterNameIds.has(name.id)) {
         names.push(name);
@@ -1145,14 +1186,20 @@ export class TreeService {
     const previousFacts = new Map(before.facts.map((fact) => [fact.id, fact]));
     const currentFacts = new Map(current.facts.map((fact) => [fact.id, fact]));
     const afterFactIds = new Set(after.facts.map((fact) => fact.id));
-    const facts = after.facts.map((fact) => {
+    const facts: PersonRecord['facts'] = [];
+    for (const fact of after.facts) {
       const previous = previousFacts.get(fact.id);
       const stored = currentFacts.get(fact.id);
-      if (previous !== undefined && stored !== undefined && JSON.stringify(previous) === JSON.stringify(fact)) {
-        return stored;
+      if (previous === undefined) {
+        facts.push(fact);
+      } else if (JSON.stringify(previous) === JSON.stringify(fact)) {
+        if (stored !== undefined) {
+          facts.push(stored);
+        }
+      } else {
+        facts.push(this.mergeChangedFields(previous, fact, stored ?? {}) as PersonRecord['facts'][number]);
       }
-      return fact;
-    });
+    }
     for (const fact of current.facts) {
       if (!previousFacts.has(fact.id) && !afterFactIds.has(fact.id)) {
         facts.push(fact);
@@ -1263,17 +1310,19 @@ export class TreeService {
    * stack only after COMMIT succeeds. A failed save must not leave a phantom
    * undo entry or discard the redo history.
    */
-  private applyAfterCommit(build: () => Op): UndoRedoState {
+  private applyAfterCommit(build: () => Op | undefined): UndoRedoState {
     let op: Op | undefined;
     this.repo.transaction(() => {
       op = build();
+      if (op === undefined) {
+        return;
+      }
       this.recordChange(op, op.change?.kind ?? 'changed');
       op.apply({ repo: this.repo });
     });
-    if (op === undefined) {
-      throw new Error('transaction completed without building an operation');
+    if (op !== undefined) {
+      this.queue.push(op);
     }
-    this.queue.push(op);
     return this.historyState();
   }
 

@@ -255,7 +255,7 @@ export function FactEditor({
               <Field label={nls.t('features.tree.fact.adoptedBy')}>
                 <Select
                   value={draft.adoptedBy}
-                  disabled={draft.relatedFamilyId === ''}
+                  disabled={draft.relatedFamilyId === '' || draft.adoptedBy === ''}
                   onChange={(event) => set({ adoptedBy: event.target.value })}
                 >
                   <option value="">{nls.t('features.tasks.none')}</option>

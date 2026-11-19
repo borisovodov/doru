@@ -239,7 +239,7 @@ export function CitationsList({
           <li key={citation.id}>
             <EntityCard
               icon={<BookOpenText size={15} aria-hidden="true" />}
-              title={source?.title ?? citation.sourceId}
+              title={source?.title || source?.abbreviation || citation.sourceId}
               subtitle={details.length > 0 ? details.join(' · ') : null}
               onClick={() => onOpenSource(citation.sourceId)}
             />

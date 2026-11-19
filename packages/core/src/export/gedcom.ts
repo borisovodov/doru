@@ -762,9 +762,11 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     value.calendar !== undefined ||
     value.epoch !== undefined ||
     (value.month !== undefined && typeof value.month !== 'number');
+  const yearless = (value: NonNullable<typeof component>): boolean =>
+    value.year === undefined && (value.month !== undefined || value.day !== undefined);
   if (
-    (component !== undefined && complexComponent(component)) ||
-    (date.end !== undefined && complexComponent(date.end)) ||
+    (component !== undefined && (complexComponent(component) || yearless(component))) ||
+    (date.end !== undefined && (complexComponent(date.end) || yearless(date.end))) ||
     date.time !== undefined ||
     date.modifier !== undefined
   ) {
@@ -953,6 +955,10 @@ function mediaPlaceText(media: MediaRecord, repo: TreeRepository): string | unde
   return names.length > 0 ? names.join(', ') : undefined;
 }
 
+function normalizeMediaPath(path: string): string {
+  return path.replaceAll('\\', '/');
+}
+
 function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs): MultimediaRecord {
   const restriction = repo
     .listRestrictionsFor('media', media.id)
@@ -969,7 +975,7 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
     ...(media.description !== undefined ? { description: media.description } : {}),
     ...(media.keywords !== undefined ? { keywords: media.keywords } : {}),
     files: (media.files ?? []).map((file) => ({
-      payload: file.path,
+      payload: normalizeMediaPath(file.path),
       form: {
         payload: mediaMime(file.path),
         ...(file.medium !== undefined ? { medium: { payload: file.medium as import('@doru/gedcom').MediaEnum } } : {}),
@@ -980,7 +986,7 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
       ...(file.translations !== undefined && file.translations.length > 0
         ? {
             translations: file.translations.map((translation) => ({
-              payload: translation.path,
+              payload: normalizeMediaPath(translation.path),
               form: { payload: mediaMime(translation.path) },
             })),
           }
@@ -1029,7 +1035,7 @@ function withMediaLinks(
   targetId: string,
   xrefs: Xrefs,
 ): { media?: MultimediaLink[] } {
-  const links = repo.listAttachmentsFor(targetType, targetId).mediaLinks.map((entry) => {
+  const links = repo.listMediaLinksFor(targetType, targetId).map((entry) => {
     const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
     return {
       ...buildMediaLink(entry.link, xrefs),

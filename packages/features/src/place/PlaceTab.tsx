@@ -119,6 +119,7 @@ function PlaceTabBody({
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
+  const submittedRef = useRef<PlaceDraft | undefined>(undefined);
   const setDraft = (next: PlaceDraft) => {
     draftRef.current = next;
     setDraftState(next);
@@ -150,8 +151,10 @@ function PlaceTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     if (previous !== undefined) {
+      const submitted = submittedRef.current;
+      submittedRef.current = undefined;
       baselineRef.current = record;
-      setDraft(mergePlaceDraft(draftRef.current, previous, record));
+      setDraft(mergePlaceDraft(draftRef.current, previous, record, submitted));
       setLastSaved(record);
     }
   }, [record, isNew]);
@@ -166,7 +169,16 @@ function PlaceTabBody({
       if (target === undefined) {
         return;
       }
-      await api.updatePlace(target, next);
+      const submission = draftRef.current;
+      submittedRef.current = submission;
+      try {
+        await api.updatePlace(target, next);
+      } catch (error) {
+        if (submittedRef.current === submission) {
+          submittedRef.current = undefined;
+        }
+        throw error;
+      }
     }
     baselineRef.current = next;
     setLastSaved(next);

@@ -117,6 +117,8 @@ interface ImportContext {
   tagIds: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
+  /** Place names that resolve to more than one distinct row. */
+  ambiguousPlaceNames: Set<string>;
   /** Place-card xref → place id. */
   placeCardIds: Map<string, string>;
   /** Place id → parent links resolved after all cards are imported. */
@@ -185,6 +187,7 @@ export function importGedcomDataset(
     noteIds: new Map(),
     tagIds: new Map(),
     placeIds: new Map(),
+    ambiguousPlaceNames: new Set(),
     placeCardIds: new Map(),
     placeParents: new Map(),
     mediaIds: new Map(),
@@ -493,10 +496,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
 
 function importSources(records: GedcomRecord[], ctx: ImportContext): number {
   let imported = 0;
-  const pendingMediaLinks: Array<{
-    id: string;
-    media: Extract<GedcomRecord, { tag: 'SOUR' }>['media'];
-  }> = [];
   for (const record of records) {
     if (record.tag !== 'SOUR') {
       continue;
@@ -581,18 +580,13 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     });
     importNotes(source.notes, 'source', id, ctx);
     importIdentifiers(source.identifiers, 'source', id, ctx);
-    pendingMediaLinks.push({ id, media: source.media });
+    importMediaLinks(source.media, 'source', id, ctx);
     importChanges(source.changeDate, source.creationDate, 'source', id, ctx);
     importSubmitterLinks(source.submitters, 'source', id, ctx);
     for (const tagLink of source.tagLinks ?? []) {
       importTagLink(tagLink, 'source', id, ctx);
     }
     imported += 1;
-  }
-  // Media-link citations can point at sources that appear later in the
-  // file: resolve them only after every SOUR xref is registered.
-  for (const pending of pendingMediaLinks) {
-    importMediaLinks(pending.media, 'source', pending.id, ctx);
   }
   return imported;
 }
@@ -611,8 +605,12 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   const famsDates = new Map<string, DateStructure | undefined>();
   const famsNotes = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.spouseFamilies ?? []) {
-    famsDates.set(link.family, link.date);
-    famsNotes.set(link.family, link.notes);
+    if (!famsDates.has(link.family)) {
+      famsDates.set(link.family, link.date);
+    }
+    if (link.notes !== undefined && link.notes.length > 0) {
+      famsNotes.set(link.family, [...(famsNotes.get(link.family) ?? []), ...link.notes]);
+    }
   }
   if (record.xref !== undefined) {
     ctx.spouseLinkDates.set(record.xref, famsDates);
@@ -631,14 +629,15 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     }
   >();
   for (const link of record.childFamilies ?? []) {
+    const previous = famcDetails.get(link.family);
     famcDetails.set(link.family, {
-      pedigree: link.pedigree?.payload.toLowerCase(),
-      pedigreePhrase: link.pedigree?.phrase,
-      status: link.status?.payload.toLowerCase(),
-      statusPhrase: link.status?.phrase,
-      fatherRelation: link.fatherRelation,
-      motherRelation: link.motherRelation,
-      notes: link.notes,
+      pedigree: link.pedigree?.payload.toLowerCase() ?? previous?.pedigree,
+      pedigreePhrase: link.pedigree?.phrase ?? previous?.pedigreePhrase,
+      status: link.status?.payload.toLowerCase() ?? previous?.status,
+      statusPhrase: link.status?.phrase ?? previous?.statusPhrase,
+      fatherRelation: link.fatherRelation ?? previous?.fatherRelation,
+      motherRelation: link.motherRelation ?? previous?.motherRelation,
+      notes: [...(previous?.notes ?? []), ...(link.notes ?? [])],
     });
   }
   if (record.xref !== undefined) {
@@ -1465,6 +1464,21 @@ function parseStructuredComponent(value: unknown): NonNullable<DateValue['compon
   };
 }
 
+function validStructuredComponent(component: NonNullable<DateValue['component']> | undefined): boolean {
+  if (component?.year === undefined || typeof component.month !== 'number' || component.day === undefined) {
+    return true;
+  }
+  if (component.month < 1 || component.month > 12) {
+    return false;
+  }
+  if (component.calendar !== undefined && component.calendar !== '' && component.calendar !== 'julian') {
+    return true;
+  }
+  const leap = component.year % 4 === 0 && (component.year % 100 !== 0 || component.year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][component.month - 1] ?? 31;
+  return component.day >= 1 && component.day <= days;
+}
+
 function parseStructuredTime(value: unknown): NonNullable<DateValue['time']> | null | undefined {
   if (value === undefined) {
     return undefined;
@@ -1514,6 +1528,8 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
         component !== null &&
         end !== null &&
         time !== null &&
+        validStructuredComponent(component) &&
+        validStructuredComponent(end) &&
         (modifier === undefined || modifier === 'ABT' || modifier === 'CAL' || modifier === 'EST') &&
         (parsedText === undefined || typeof parsedText === 'string')
       ) {
@@ -2115,6 +2131,9 @@ function flushPendingCitations(ctx: ImportContext): void {
 /** Resolves historical media places after the place records are registered. */
 function linkMediaPlaces(ctx: ImportContext): void {
   for (const [mediaId, placeText] of ctx.mediaPlaceText) {
+    if (ctx.ambiguousPlaceNames.has(placeText)) {
+      continue;
+    }
     const placeId = ctx.placeIds.get(placeText);
     const media = ctx.repo.getMedia(mediaId);
     if (placeId !== undefined && media !== undefined) {
@@ -2208,11 +2227,19 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
       .sort((a, b) => a.position - b.position)
       .map((name) => name.value);
     const joined = official.length > 0 ? official.join(', ') : record.payload;
+    const rememberPlace = (name: string): void => {
+      const existing = ctx.placeIds.get(name);
+      if (existing !== undefined && existing !== id) {
+        ctx.ambiguousPlaceNames.add(name);
+      } else {
+        ctx.placeIds.set(name, id);
+      }
+    };
     if (joined !== '') {
-      ctx.placeIds.set(joined, id);
+      rememberPlace(joined);
     }
     if (record.xref !== undefined && record.payload !== '') {
-      ctx.placeIds.set(record.payload, id);
+      rememberPlace(record.payload);
     }
     const verified = record.extensions?.some(
       (extension) => extension.tag === '_VERI' && (extension.payload === 'Y' || extension.payload === '1'),
@@ -2336,6 +2363,11 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);
   importIdentifiers(place.externalIds, 'place', id, ctx);
-  ctx.placeIds.set(joined, id);
+  const existingPlace = ctx.placeIds.get(joined);
+  if (existingPlace !== undefined && existingPlace !== id) {
+    ctx.ambiguousPlaceNames.add(joined);
+  } else {
+    ctx.placeIds.set(joined, id);
+  }
   return id;
 }

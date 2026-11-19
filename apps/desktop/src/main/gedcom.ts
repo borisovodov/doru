@@ -52,13 +52,19 @@ async function prepareGedcomMedia(
     if (record.tag !== 'OBJE') {
       continue;
     }
-    for (const file of record.files) {
-      if (file.payload === '' || paths.has(file.payload)) {
-        continue;
+    const storeReachable = async (original: string): Promise<void> => {
+      if (original === '' || paths.has(original)) {
+        return;
       }
-      const candidate = isAbsolute(file.payload) ? file.payload : join(dirname(sourcePath), file.payload);
+      const candidate = isAbsolute(original) ? original : join(dirname(sourcePath), original);
       if (await fs.exists(candidate)) {
-        await store(await fs.readBinary(candidate), file.payload);
+        await store(await fs.readBinary(candidate), original);
+      }
+    };
+    for (const file of record.files) {
+      await storeReachable(file.payload);
+      for (const translation of file.translations ?? []) {
+        await storeReachable(translation.payload);
       }
     }
   }

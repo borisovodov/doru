@@ -137,8 +137,16 @@ function PersonTabBody({
       onCreated(next.id);
       return;
     }
-    submittedRef.current = draft;
-    await api.updatePerson(before, next);
+    const submission = draft;
+    submittedRef.current = submission;
+    try {
+      await api.updatePerson(before, next);
+    } catch (error) {
+      if (submittedRef.current === submission) {
+        submittedRef.current = undefined;
+      }
+      throw error;
+    }
     const persisted = personToDraft(next);
     setDraft((current) => {
       const patch: Partial<PersonDraft> = {};

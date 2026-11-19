@@ -37,14 +37,15 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [todos, setTodos] = useState<TodoRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
-  const generationRef = useRef(0);
+  const requestRef = useRef(0);
+  const publishedRef = useRef(0);
   const activeProjectPathRef = useRef(projectPath);
   useEffect(() => {
     activeProjectPathRef.current = projectPath;
   }, [projectPath]);
 
   const reloadTree = useCallback(async (path: string) => {
-    const generation = ++generationRef.current;
+    const request = ++requestRef.current;
     const [
       data,
       allFacts,
@@ -80,9 +81,10 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getTitles(path),
       window.doru.getAllAssociations(path),
     ]);
-    if (generation !== generationRef.current) {
+    if (path !== activeProjectPathRef.current || request < publishedRef.current) {
       return;
     }
+    publishedRef.current = request;
     setPersons(data.persons);
     setFamilies(data.families);
     setFacts(allFacts);
@@ -104,7 +106,8 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
 
   useEffect(() => {
     if (!projectPath) {
-      generationRef.current += 1;
+      requestRef.current += 1;
+      publishedRef.current = requestRef.current;
       setPersons([]);
       setFamilies([]);
       setFacts([]);

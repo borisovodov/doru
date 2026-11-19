@@ -172,10 +172,14 @@ export class FactRepo {
   /** Re-adds one additional place row to a surviving fact. */
   insertFactPlace(factId: string, placeId: string, position: number): void {
     this.transactions.run(() => {
-      // Keep the original order when the delete renumbered the surviving rows.
-      this.db
-        .prepare('UPDATE fact_place SET position = position + 1 WHERE fact_id = ? AND position >= ?')
-        .run(factId, position);
+      const occupied =
+        this.db.prepare('SELECT 1 FROM fact_place WHERE fact_id = ? AND position = ?').get(factId, position) !==
+        undefined;
+      if (occupied) {
+        this.db
+          .prepare('UPDATE fact_place SET position = position + 1 WHERE fact_id = ? AND position >= ?')
+          .run(factId, position);
+      }
       this.db
         .prepare('INSERT INTO fact_place (id, fact_id, place_id, position) VALUES (?, ?, ?, ?)')
         .run(crypto.randomUUID(), factId, placeId, position);
@@ -203,7 +207,11 @@ export class FactRepo {
     const rows = this.db
       .prepare(`SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT fact_id FROM fact_place WHERE place_id = ?)`)
       .all(placeId) as unknown as FactRow[];
-    return this.hydrate(rows);
+    const facts: FactRecord[] = [];
+    for (let index = 0; index < rows.length; index += 400) {
+      facts.push(...this.hydrate(rows.slice(index, index + 400)));
+    }
+    return facts;
   }
 
   /** Participants that point at a person, with the fact they belong to. */

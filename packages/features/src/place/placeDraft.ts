@@ -219,19 +219,26 @@ function mergePlaceRow<T extends { id: string }>(draft: T, previous: T, refreshe
   return merged;
 }
 
-function mergePlaceRows<T extends { id: string }>(draftRows: T[], previousRows: T[], refreshedRows: T[]): T[] {
+function mergePlaceRows<T extends { id: string }>(
+  draftRows: T[],
+  comparisonRows: T[],
+  previousRows: T[],
+  refreshedRows: T[],
+): T[] {
+  const comparisonById = new Map(comparisonRows.map((row) => [row.id, row]));
   const previousById = new Map(previousRows.map((row) => [row.id, row]));
   const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
   const draftIds = new Set(draftRows.map((row) => row.id));
   const merged: T[] = [];
   for (const row of draftRows) {
+    const comparison = comparisonById.get(row.id);
     const previous = previousById.get(row.id);
     if (previous === undefined) {
       merged.push(row);
       continue;
     }
     const refreshed = refreshedById.get(row.id);
-    if (placeRowsEqual(row, previous)) {
+    if (comparison !== undefined && placeRowsEqual(row, comparison)) {
       if (refreshed !== undefined) {
         merged.push(refreshed);
       }
@@ -241,7 +248,7 @@ function mergePlaceRows<T extends { id: string }>(draftRows: T[], previousRows: 
       merged.push(row);
       continue;
     }
-    merged.push(mergePlaceRow(row, previous, refreshed));
+    merged.push(mergePlaceRow(row, comparison ?? previous, refreshed));
   }
   for (const row of refreshedRows) {
     if (!draftIds.has(row.id) && !previousById.has(row.id)) {
@@ -256,8 +263,14 @@ function mergePlaceRows<T extends { id: string }>(draftRows: T[], previousRows: 
  * the refreshed row (keeping its date ids), while user edits and additions
  * stay. Rows deleted externally disappear unless the user edited them.
  */
-export function mergePlaceDraft(draft: PlaceDraft, previous: PlaceRecord, refreshed: PlaceRecord): PlaceDraft {
-  const base = placeToDraft(previous);
+export function mergePlaceDraft(
+  draft: PlaceDraft,
+  previous: PlaceRecord,
+  refreshed: PlaceRecord,
+  submitted?: PlaceDraft,
+): PlaceDraft {
+  const previousDraft = placeToDraft(previous);
+  const base = submitted ?? previousDraft;
   const next = placeToDraft(refreshed);
   const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] =>
     draft[key] === base[key] ? next[key] : draft[key];
@@ -274,10 +287,12 @@ export function mergePlaceDraft(draft: PlaceDraft, previous: PlaceRecord, refres
     maidenhead: scalar('maidenhead'),
     placeType: scalar('placeType'),
     names: withPlaceNamePositions(
-      mergePlaceRows(draft.names, base.names, next.names).sort((left, right) => left.position - right.position),
+      mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
+        (left, right) => left.position - right.position,
+      ),
     ),
-    postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, next.postalCodes),
-    hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, next.hierarchy),
+    postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
+    hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),
   };
 }
 
