@@ -94,7 +94,9 @@ function PersonTabBody({
     isNew ? newPersonDraft() : record ? personToDraft(record) : newPersonDraft(),
   );
   const personRef = useRef(record);
+  const committedRef = useRef<PersonRecord | undefined>(undefined);
   const submittedRef = useRef<PersonDraft | undefined>(undefined);
+  const submittedRecordRef = useRef<PersonRecord | undefined>(undefined);
 
   // Reset the draft only when it still equals the previously stored person
   // (no unsaved edits); unrelated tree reloads (a fact added elsewhere)
@@ -112,8 +114,21 @@ function PersonTabBody({
     }
     const previous = personRef.current;
     personRef.current = person;
-    const submitted = submittedRef.current;
-    submittedRef.current = undefined;
+    if (
+      committedRef.current !== undefined &&
+      JSON.stringify(personToDraft(person)) === JSON.stringify(personToDraft(committedRef.current))
+    ) {
+      committedRef.current = undefined;
+    }
+    const submittedRecord = submittedRecordRef.current;
+    const confirms =
+      submittedRecord !== undefined &&
+      JSON.stringify(personToDraft(person)) === JSON.stringify(personToDraft(submittedRecord));
+    const submitted = confirms ? submittedRef.current : undefined;
+    if (confirms) {
+      submittedRef.current = undefined;
+      submittedRecordRef.current = undefined;
+    }
     setDraft((current) => {
       if (current.isNew || previous === undefined) {
         return personToDraft(person);
@@ -129,7 +144,7 @@ function PersonTabBody({
   const [created, setCreated] = useState(false);
 
   const save = async () => {
-    const before = persons.find((entry) => entry.id === draft.id);
+    const before = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
     const next = draftToRecord(draft, before);
     if (before === undefined) {
       await api.addPerson(next);
@@ -141,9 +156,12 @@ function PersonTabBody({
     submittedRef.current = submission;
     try {
       await api.updatePerson(before, next);
+      committedRef.current = next;
+      submittedRecordRef.current = next;
     } catch (error) {
       if (submittedRef.current === submission) {
         submittedRef.current = undefined;
+        submittedRecordRef.current = undefined;
       }
       throw error;
     }

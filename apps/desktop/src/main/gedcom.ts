@@ -17,6 +17,7 @@ import {
   type GedzipMediaEntry,
 } from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
+import { resolveMediaPath } from './mediaPaths';
 import { log } from './log';
 import { ensureRuntime, openUntitledStore, runtimeFilePath } from './runtime';
 import { projectWindows, untitledProjects } from './state';
@@ -135,8 +136,8 @@ export async function exportGedcom(
         if (seen.has(normalized) || !normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
           return;
         }
-        const absolute = join(dirname(runtimeFilePath(projectPath)), normalized);
-        if (await fs.exists(absolute)) {
+        const absolute = await resolveMediaPath(dirname(runtimeFilePath(projectPath)), normalized);
+        if (absolute !== null && (await fs.exists(absolute))) {
           mediaFiles.push({ name: normalized, contents: await fs.readBinary(absolute) });
           seen.add(normalized);
         }

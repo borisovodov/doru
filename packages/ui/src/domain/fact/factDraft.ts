@@ -181,12 +181,8 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
           {
             id: draft.familyLinkId ?? crypto.randomUUID(),
             familyId: draft.relatedFamilyId,
-            ...(draft.adoptedBy !== ''
-              ? {
-                  adoptedBy: draft.adoptedBy as 'HUSB' | 'WIFE' | 'BOTH',
-                  ...(draft.adoptionPhrase.trim() !== '' ? { phrase: draft.adoptionPhrase.trim() } : {}),
-                }
-              : {}),
+            ...(draft.adoptedBy !== '' ? { adoptedBy: draft.adoptedBy as 'HUSB' | 'WIFE' | 'BOTH' } : {}),
+            ...(draft.adoptionPhrase.trim() !== '' ? { phrase: draft.adoptionPhrase.trim() } : {}),
             position: 0,
           },
           ...remainingLinks,

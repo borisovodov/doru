@@ -1206,6 +1206,7 @@ export class SqliteTreeRepository implements TreeRepository {
     state.visiting.add(key);
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const citations = this.sources.listCitations(targetType, targetId);
+    const todos = this.research.listTodosFor(targetType, targetId);
     const linkedMedia = [...new Map(mediaLinks.map((entry) => [entry.media.id, entry.media])).values()];
     const snapshot: AttachmentsSnapshot = {
       noteLinks: this.notes.listLinksFor(targetType, targetId),
@@ -1238,7 +1239,12 @@ export class SqliteTreeRepository implements TreeRepository {
       restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
       changes: this.attachments.listChangesFor(targetType, targetId),
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
-      todos: this.research.listTodosFor(targetType, targetId),
+      todos,
+      todoAttachments: todos.map((todo) => ({
+        targetType: 'todo',
+        targetId: todo.id,
+        attachments: this.collectAttachments('todo', todo.id, state),
+      })),
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
     state.visiting.delete(key);
@@ -1276,6 +1282,9 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     this.attachments.deleteAllFor(targetType, targetId);
+    for (const todo of this.research.listTodosFor(targetType, targetId)) {
+      this.deleteAttachmentsForInternal('todo', todo.id, visited);
+    }
     this.research.deleteTodosFor(targetType, targetId);
     this.submitters.deleteRecordSubmittersFor(targetType, targetId);
   }
@@ -1387,6 +1396,11 @@ export class SqliteTreeRepository implements TreeRepository {
     for (const todo of snapshot.todos) {
       if (this.research.getTodo(todo.id) === undefined) {
         this.research.insertTodo(todo);
+      }
+    }
+    for (const nested of snapshot.todoAttachments) {
+      if (this.research.getTodo(nested.targetId) !== undefined) {
+        this.restoreAttachments(nested.attachments);
       }
     }
     for (const entry of snapshot.recordSubmitters) {

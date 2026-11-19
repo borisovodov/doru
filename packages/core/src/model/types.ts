@@ -754,6 +754,8 @@ export interface AttachmentsSnapshot {
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   todos: TodoRecord[];
+  /** Attachments of todos that would be deleted with this target. */
+  todoAttachments: NestedAttachmentSnapshot[];
   recordSubmitters: RecordSubmitterLink[];
 }
 
@@ -772,6 +774,7 @@ export function emptyAttachments(): AttachmentsSnapshot {
     changes: [],
     tagLinks: [],
     todos: [],
+    todoAttachments: [],
     recordSubmitters: [],
   };
 }

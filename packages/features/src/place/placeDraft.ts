@@ -251,7 +251,7 @@ function mergePlaceRows<T extends { id: string }>(
     merged.push(mergePlaceRow(row, comparison ?? previous, refreshed));
   }
   for (const row of refreshedRows) {
-    if (!draftIds.has(row.id) && !previousById.has(row.id)) {
+    if (!draftIds.has(row.id) && !previousById.has(row.id) && !comparisonById.has(row.id)) {
       merged.push(row);
     }
   }
@@ -286,10 +286,8 @@ export function mergePlaceDraft(
     govId: scalar('govId'),
     maidenhead: scalar('maidenhead'),
     placeType: scalar('placeType'),
-    names: withPlaceNamePositions(
-      mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
-        (left, right) => left.position - right.position,
-      ),
+    names: mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
+      (left, right) => left.position - right.position,
     ),
     postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
     hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),

@@ -146,17 +146,50 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
   };
 }
 
+function mergeSourceRows<T extends { id: string }>(current: T[], base: T[], refreshed: T[]): T[] {
+  const baseById = new Map(base.map((row) => [row.id, row]));
+  const refreshedById = new Map(refreshed.map((row) => [row.id, row]));
+  const currentIds = new Set(current.map((row) => row.id));
+  const merged: T[] = [];
+  for (const row of current) {
+    const previous = baseById.get(row.id);
+    if (previous === undefined) {
+      merged.push(row);
+      continue;
+    }
+    if (JSON.stringify(row) === JSON.stringify(previous)) {
+      const fresh = refreshedById.get(row.id);
+      if (fresh !== undefined) {
+        merged.push(fresh);
+      }
+      continue;
+    }
+    // A local edit wins over a concurrent change to the same row.
+    merged.push(row);
+  }
+  for (const row of refreshed) {
+    if (!currentIds.has(row.id) && !baseById.has(row.id)) {
+      merged.push(row);
+    }
+  }
+  return merged;
+}
+
 /** Merges refreshed stored fields into a dirty draft, keeping user edits. */
 export function mergeSourceDraft(current: SourceDraft, base: SourceDraft, refreshed: SourceDraft): SourceDraft {
   const merged = { ...current };
   for (const key of Object.keys(refreshed) as Array<keyof SourceDraft>) {
-    if (key === 'id') {
+    if (key === 'id' || Array.isArray(refreshed[key])) {
       continue;
     }
     if (JSON.stringify(current[key]) === JSON.stringify(base[key])) {
       (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
     }
   }
+  merged.texts = mergeSourceRows(current.texts, base.texts, refreshed.texts);
+  merged.dataEvents = mergeSourceRows(current.dataEvents, base.dataEvents, refreshed.dataEvents);
+  merged.repositories = mergeSourceRows(current.repositories, base.repositories, refreshed.repositories);
+  merged.templateFields = mergeSourceRows(current.templateFields, base.templateFields, refreshed.templateFields);
   return merged;
 }
 

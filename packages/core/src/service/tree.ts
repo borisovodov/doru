@@ -240,10 +240,12 @@ export class TreeService {
   undo(): UndoRedoState {
     const pending = this.queue.peekUndo();
     if (pending) {
-      // Record before the inverse mutates the tree: recording afterwards
-      // would leave a change row for a target the inverse just deleted.
-      this.recordChange(pending, 'changed');
-      this.queue.undo({ repo: this.repo });
+      this.repo.transaction(() => {
+        // Record before the inverse mutates the tree: recording afterwards
+        // would leave a change row for a target the inverse just deleted.
+        this.recordChange(pending, 'changed');
+        this.queue.undo({ repo: this.repo });
+      });
     }
     return this.historyState();
   }
@@ -251,8 +253,10 @@ export class TreeService {
   redo(): UndoRedoState {
     const pending = this.queue.peekRedo();
     if (pending) {
-      this.recordChange(pending, 'changed');
-      this.queue.redo({ repo: this.repo });
+      this.repo.transaction(() => {
+        this.recordChange(pending, 'changed');
+        this.queue.redo({ repo: this.repo });
+      });
     }
     return this.historyState();
   }
@@ -310,68 +314,66 @@ export class TreeService {
    * step restores everything, attachments included.
    */
   deletePerson(person: PersonRecord): UndoRedoState {
-    // The renderer may hold a person whose links changed in another window;
-    // the inverse must re-insert what is actually stored, not the stale view.
-    const current = this.repo.getPerson(person.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const links = this.repo.listFamiliesForPerson(current.id).map((family) => ({
-      before: family,
-      after: {
-        ...family,
-        partners: family.partners.filter((id) => id !== current.id),
-        children: family.children.filter((id) => id !== current.id),
-        partnerLinks: family.partnerLinks?.filter((link) => link.personId !== current.id),
-        childLinks: family.childLinks?.filter((link) => link.childId !== current.id),
-      },
-    }));
-    const attachments = this.repo.listAttachmentsFor('person', current.id);
-    const nested: NestedAttachments[] = [
-      {
-        targetType: 'person_sex',
-        targetId: current.id,
-        attachments: this.repo.listAttachmentsFor('person_sex', current.id),
-      },
-    ];
-    for (const nameId of collectNameIds(current.names)) {
-      nested.push({
-        targetType: 'name',
-        targetId: nameId,
-        attachments: this.repo.listAttachmentsFor('name', nameId),
-      });
-    }
-    for (const partId of collectNamePartIds(current.names)) {
-      nested.push({
-        targetType: 'name_part',
-        targetId: partId,
-        attachments: this.repo.listAttachmentsFor('name_part', partId),
-      });
-    }
-    for (const fact of current.facts) {
-      nested.push({
-        targetType: 'fact',
-        targetId: fact.id,
-        attachments: this.repo.listAttachmentsFor('fact', fact.id),
-      });
-    }
-    const associations = this.repo.listAssociationsFor(current.id);
-    for (const association of associations) {
-      nested.push({
-        targetType: 'association',
-        targetId: association.id,
-        attachments: this.repo.listAttachmentsFor('association', association.id),
-      });
-    }
-    const aliases = this.repo.listAliasRowsFor(current.id);
-    const ownFactIds = new Set(this.repo.listFactsForPerson(current.id).map((fact) => fact.id));
-    const participants = this.repo
-      .listParticipantsForPerson(current.id)
-      .filter((entry) => !ownFactIds.has(entry.factId));
-    const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-    return this.apply(
-      deletePersonOp(current, links, attachments, nested, linkAttachments, associations, aliases, participants),
-    );
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getPerson(person.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const links = this.repo.listFamiliesForPerson(current.id).map((family) => ({
+        before: family,
+        after: {
+          ...family,
+          partners: family.partners.filter((id) => id !== current.id),
+          children: family.children.filter((id) => id !== current.id),
+          partnerLinks: family.partnerLinks?.filter((link) => link.personId !== current.id),
+          childLinks: family.childLinks?.filter((link) => link.childId !== current.id),
+        },
+      }));
+      const attachments = this.repo.listAttachmentsFor('person', current.id);
+      const nested: NestedAttachments[] = [
+        {
+          targetType: 'person_sex',
+          targetId: current.id,
+          attachments: this.repo.listAttachmentsFor('person_sex', current.id),
+        },
+      ];
+      for (const nameId of collectNameIds(current.names)) {
+        nested.push({
+          targetType: 'name',
+          targetId: nameId,
+          attachments: this.repo.listAttachmentsFor('name', nameId),
+        });
+      }
+      for (const partId of collectNamePartIds(current.names)) {
+        nested.push({
+          targetType: 'name_part',
+          targetId: partId,
+          attachments: this.repo.listAttachmentsFor('name_part', partId),
+        });
+      }
+      for (const fact of current.facts) {
+        nested.push({
+          targetType: 'fact',
+          targetId: fact.id,
+          attachments: this.repo.listAttachmentsFor('fact', fact.id),
+        });
+      }
+      const associations = this.repo.listAssociationsFor(current.id);
+      for (const association of associations) {
+        nested.push({
+          targetType: 'association',
+          targetId: association.id,
+          attachments: this.repo.listAttachmentsFor('association', association.id),
+        });
+      }
+      const aliases = this.repo.listAliasRowsFor(current.id);
+      const ownFactIds = new Set(this.repo.listFactsForPerson(current.id).map((fact) => fact.id));
+      const participants = this.repo
+        .listParticipantsForPerson(current.id)
+        .filter((entry) => !ownFactIds.has(entry.factId));
+      const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
+      return deletePersonOp(current, links, attachments, nested, linkAttachments, associations, aliases, participants);
+    });
   }
 
   /**
@@ -382,8 +384,11 @@ export class TreeService {
     if (this.isAncestor(childId, newParentId, this.repo.listFamilies())) {
       throw new ParentCycleError(childId, newParentId);
     }
+    const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
     const links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
-    for (const family of this.repo.listFamiliesForPerson(childId).filter((entry) => entry.children.includes(childId))) {
+    for (const family of this.repo
+      .listFamiliesForPerson(childId)
+      .filter((entry) => entry.children.includes(childId) && entry.id !== target?.id)) {
       links.push({
         before: family,
         after: {
@@ -393,7 +398,6 @@ export class TreeService {
         },
       });
     }
-    const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
     if (target) {
       const existing = (target.childLinks ?? []).find((link) => link.childId === childId);
       const childLinks = existing
@@ -401,14 +405,13 @@ export class TreeService {
             link.childId === childId ? { ...link, status: undefined, statusPhrase: undefined } : link,
           )
         : [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }];
-      links.push({
-        before: target,
-        after: {
-          ...target,
-          children: target.children.includes(childId) ? target.children : [...target.children, childId],
-          childLinks,
-        },
-      });
+      const after = {
+        ...target,
+        children: target.children.includes(childId) ? target.children : [...target.children, childId],
+        childLinks,
+      };
+      this.assertFamilyAcyclic(after);
+      links.push({ before: target, after });
     }
     const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
     const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
@@ -1093,10 +1096,7 @@ export class TreeService {
    */
   private assertFamilyAcyclic(family: FamilyRecord): void {
     const graph = [...this.repo.listFamilies().filter((entry) => entry.id !== family.id), family];
-    for (const childId of family.children) {
-      if (this.hasDisprovenChildLink(family, childId)) {
-        continue;
-      }
+    for (const childId of this.activeChildIds(family)) {
       for (const parentId of family.partners) {
         if (this.isAncestor(childId, parentId, graph)) {
           throw new ParentCycleError(childId, parentId);
@@ -1115,7 +1115,7 @@ export class TreeService {
     while (stack.length > 0) {
       const current = stack.pop() as string;
       for (const family of families) {
-        if (!family.children.includes(current) || this.hasDisprovenChildLink(family, current)) {
+        if (!this.activeChildIds(family).includes(current)) {
           continue;
         }
         for (const parent of family.partners) {
@@ -1135,6 +1135,57 @@ export class TreeService {
   private mergeChangedFields(before: unknown, after: unknown, stored: unknown): unknown {
     if (JSON.stringify(before) === JSON.stringify(after)) {
       return stored;
+    }
+    if (Array.isArray(before) && Array.isArray(after)) {
+      const beforeRows: unknown[] = before;
+      const afterRows: unknown[] = after;
+      const storedRows: unknown[] = Array.isArray(stored) ? stored : [];
+      const beforeById = new Map<string, unknown>(
+        beforeRows.flatMap((entry) =>
+          typeof entry === 'object' && entry !== null && 'id' in entry
+            ? [[(entry as { id: string }).id, entry] as const]
+            : [],
+        ),
+      );
+      const storedById = new Map<string, unknown>(
+        storedRows.flatMap((entry) =>
+          typeof entry === 'object' && entry !== null && 'id' in entry
+            ? [[(entry as { id: string }).id, entry] as const]
+            : [],
+        ),
+      );
+      const afterIds = new Set<string>(
+        afterRows.flatMap((entry) =>
+          typeof entry === 'object' && entry !== null && 'id' in entry ? [(entry as { id: string }).id] : [],
+        ),
+      );
+      const merged: unknown[] = afterRows.flatMap((entry) => {
+        if (typeof entry !== 'object' || entry === null || !('id' in entry)) {
+          return [entry];
+        }
+        const id = (entry as { id: string }).id;
+        const previous = beforeById.get(id);
+        const storedEntry = storedById.get(id);
+        if (previous === undefined) {
+          return [entry];
+        }
+        if (JSON.stringify(previous) === JSON.stringify(entry)) {
+          return storedEntry === undefined ? [] : [storedEntry];
+        }
+        if (storedEntry === undefined) {
+          throw new Error(`cannot merge deleted row ${id}`);
+        }
+        return [this.mergeChangedFields(previous, entry, storedEntry)];
+      });
+      for (const entry of storedRows) {
+        if (typeof entry === 'object' && entry !== null && 'id' in entry) {
+          const id = (entry as { id: string }).id;
+          if (!beforeById.has(id) && !afterIds.has(id)) {
+            merged.push(entry);
+          }
+        }
+      }
+      return merged;
     }
     if (
       typeof before === 'object' &&
@@ -1174,7 +1225,10 @@ export class TreeService {
           names.push(stored);
         }
       } else {
-        names.push(this.mergeChangedFields(previous, name, stored ?? {}) as PersonRecord['names'][number]);
+        if (stored === undefined) {
+          throw new Error(`cannot merge deleted name ${name.id}`);
+        }
+        names.push(this.mergeChangedFields(previous, name, stored) as PersonRecord['names'][number]);
       }
     }
     for (const name of current.names) {
@@ -1197,7 +1251,10 @@ export class TreeService {
           facts.push(stored);
         }
       } else {
-        facts.push(this.mergeChangedFields(previous, fact, stored ?? {}) as PersonRecord['facts'][number]);
+        if (stored === undefined) {
+          throw new Error(`cannot merge deleted fact ${fact.id}`);
+        }
+        facts.push(this.mergeChangedFields(previous, fact, stored) as PersonRecord['facts'][number]);
       }
     }
     for (const fact of current.facts) {
@@ -1217,8 +1274,10 @@ export class TreeService {
     };
   }
 
-  private hasDisprovenChildLink(family: FamilyRecord, childId: string): boolean {
-    return (family.childLinks ?? []).some((link) => link.childId === childId && link.status === 'disproven');
+  private activeChildIds(family: FamilyRecord): string[] {
+    return family.childLinks !== undefined
+      ? family.childLinks.filter((link) => link.status !== 'disproven').map((link) => link.childId)
+      : family.children;
   }
 
   /** Attachments of address-line rows that an update removes. */
