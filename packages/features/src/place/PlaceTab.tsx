@@ -121,6 +121,7 @@ function PlaceTabBody({
   const baselineRef = useRef(record);
   const submittedRef = useRef<PlaceDraft | undefined>(undefined);
   const submittedRecordRef = useRef<PlaceRecord | undefined>(undefined);
+  const submissionTokenRef = useRef<object | undefined>(undefined);
   const setDraft = (next: PlaceDraft) => {
     draftRef.current = next;
     setDraftState(next);
@@ -178,16 +179,23 @@ function PlaceTabBody({
         return;
       }
       const submission = draftRef.current;
+      const token = {};
+      submissionTokenRef.current = token;
       submittedRef.current = submission;
       try {
         await api.updatePlace(target, next);
-        submittedRecordRef.current = next;
+        if (submissionTokenRef.current === token) {
+          submittedRecordRef.current = next;
+        }
       } catch (error) {
-        if (submittedRef.current === submission) {
+        if (submissionTokenRef.current === token && submittedRef.current === submission) {
           submittedRef.current = undefined;
           submittedRecordRef.current = undefined;
         }
         throw error;
+      }
+      if (submissionTokenRef.current !== token) {
+        return;
       }
     }
     baselineRef.current = next;

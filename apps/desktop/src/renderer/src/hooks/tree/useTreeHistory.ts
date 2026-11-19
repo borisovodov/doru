@@ -7,7 +7,10 @@ export function useTreeHistory(projectPath: string | null | undefined, refreshTr
     if (!projectPath) {
       return;
     }
-    await window.doru.undo(projectPath);
+    const state = await window.doru.undo(projectPath);
+    if (state.undoBlocked === true) {
+      window.alert(nls.t('features.tree.undoBlocked'));
+    }
     void refreshTree();
   }, [projectPath, refreshTree]);
 

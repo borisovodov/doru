@@ -66,6 +66,10 @@ export function deleteFamilyOp(
   associations: AssociationRecord[] = [],
   linkedFacts: FactRecord[] = [],
 ): Op {
+  let baselineFamily = family;
+  let baselineFacts = facts;
+  let baselineLinkedFacts = linkedFacts;
+  let baselineAssociations = associations;
   return {
     id: crypto.randomUUID(),
     kind: 'family.delete',
@@ -76,7 +80,7 @@ export function deleteFamilyOp(
     },
     redoSafe(ctx) {
       const current = ctx.repo.getFamily(family.id);
-      if (current === undefined || !sameRecord(current, family)) {
+      if (current === undefined || !sameRecord(current, baselineFamily)) {
         return false;
       }
       // New facts or associations pointing at the family since the undo
@@ -102,7 +106,7 @@ export function deleteFamilyOp(
           return false;
         }
       }
-      const capturedFactById = new Map(facts.map((fact) => [fact.id, fact]));
+      const capturedFactById = new Map(baselineFacts.map((fact) => [fact.id, fact]));
       for (const fact of ctx.repo.listFactsForFamily(family.id)) {
         const captured = capturedFactById.get(fact.id);
         if (captured === undefined || !sameRecord(captured, fact)) {
@@ -113,7 +117,7 @@ export function deleteFamilyOp(
       if (capturedFactById.size > 0) {
         return false;
       }
-      const capturedLinked = new Map(linkedFacts.map((fact) => [fact.id, fact]));
+      const capturedLinked = new Map(baselineLinkedFacts.map((fact) => [fact.id, fact]));
       for (const fact of ctx.repo.listFactsLinkedToFamily(family.id)) {
         const captured = capturedLinked.get(fact.id);
         if (captured === undefined) {
@@ -129,7 +133,7 @@ export function deleteFamilyOp(
       if (capturedLinked.size > 0) {
         return false;
       }
-      const capturedAssociations = new Map(associations.map((association) => [association.id, association]));
+      const capturedAssociations = new Map(baselineAssociations.map((association) => [association.id, association]));
       for (const association of liveAssociations) {
         const captured = capturedAssociations.get(association.id);
         if (captured === undefined || !sameRecord(captured, association)) {
@@ -189,6 +193,10 @@ export function deleteFamilyOp(
         }
         ctx.repo.restoreAttachments(nested.attachments);
       }
+      baselineFamily = ctx.repo.getFamily(family.id) ?? family;
+      baselineFacts = ctx.repo.listFactsForFamily(family.id);
+      baselineLinkedFacts = ctx.repo.listFactsLinkedToFamily(family.id);
+      baselineAssociations = ctx.repo.listAssociationsForFamily(family.id);
     },
   };
 }

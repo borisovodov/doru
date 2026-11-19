@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Quellen, die dieses Werk zitieren",
   "features.tree.title.sourcesEmpty": "Keine Quelle zitiert dieses Werk.",
   "features.tree.title.work": "Werk",
+  "features.tree.undoBlocked": "Rückgängig nicht möglich: Der Datensatz existiert nicht mehr.",
   "gallery.demo.failed": "Demo fehlgeschlagen: {0}",
   "gallery.demo.unreadable": "Die Demo ist mit einem Fehler fehlgeschlagen, der nicht angezeigt werden kann.",
   "menu.edit": "Bearbeiten",

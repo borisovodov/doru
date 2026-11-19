@@ -143,12 +143,19 @@ export function restoreFamily(ctx: MutationContext, family: FamilyRecord): void 
   ctx.repo.insertFamily(clean);
 }
 
-export function restoreMedia(ctx: MutationContext, media: MediaRecord): void {
+export function restoreMedia(ctx: MutationContext, media: MediaRecord): Set<string> {
   const clean: MediaRecord = { ...media };
   if (clean.placeId !== undefined && ctx.repo.getPlace(clean.placeId) === undefined) {
     delete clean.placeId;
   }
+  const links = (media.links ?? []).filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId));
+  if (links.length > 0) {
+    clean.links = links;
+  } else {
+    delete clean.links;
+  }
   ctx.repo.insertMedia(clean);
+  return new Set(links.map((link) => link.id));
 }
 
 export function restoreSource(ctx: MutationContext, source: SourceRecord): void {
@@ -214,6 +221,14 @@ export function restoreTodo(ctx: MutationContext, todo: TodoRecord): void {
   if (clean.repositoryId !== undefined && ctx.repo.getRepository(clean.repositoryId) === undefined) {
     delete clean.repositoryId;
   }
+  if (
+    clean.targetType !== undefined &&
+    clean.targetId !== undefined &&
+    !attachmentTargetExists(ctx, clean.targetType, clean.targetId)
+  ) {
+    delete clean.targetType;
+    delete clean.targetId;
+  }
   ctx.repo.insertTodo(clean);
 }
 
@@ -229,7 +244,10 @@ export function restoreTagLink(
   ctx: MutationContext,
   link: { id: string; tagId: string; targetType: string; targetId: string },
 ): boolean {
-  if (!ctx.repo.listTags().some((tag) => tag.id === link.tagId)) {
+  if (
+    !ctx.repo.listTags().some((tag) => tag.id === link.tagId) ||
+    !attachmentTargetExists(ctx, link.targetType, link.targetId)
+  ) {
     return false;
   }
   ctx.repo.insertTagLink(link);
@@ -246,7 +264,10 @@ export function restoreRecordSubmitter(
     kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest' | undefined;
   },
 ): boolean {
-  if (ctx.repo.getSubmitter(link.submitterId) === undefined) {
+  if (
+    ctx.repo.getSubmitter(link.submitterId) === undefined ||
+    !attachmentTargetExists(ctx, link.targetType, link.targetId)
+  ) {
     return false;
   }
   ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
@@ -276,45 +297,53 @@ export function attachmentsMatch(
   targetId: string,
   captured: AttachmentsSnapshot,
 ): boolean {
-  const signature = (snapshot: AttachmentsSnapshot, seen: Set<string>): unknown => {
-    const nested = [
-      ...snapshot.noteAttachments,
-      ...snapshot.citationAttachments,
-      ...snapshot.mediaAttachments,
-      ...snapshot.mediaFileAttachments,
-      ...snapshot.mediaLinkAttachments,
-      ...snapshot.todoAttachments,
-    ].map((entry) => {
-      const key = `${entry.targetType}\u0000${entry.targetId}`;
-      if (seen.has(key)) {
-        return [entry.targetType, entry.targetId, 'cycle'];
+  const direct = (snapshot: AttachmentsSnapshot): unknown => ({
+    noteLinks: snapshot.noteLinks
+      .map((entry) => [entry.link.id, JSON.stringify({ ...entry.note, links: undefined })])
+      .sort(),
+    citations: snapshot.citations.map((entry) => JSON.stringify(entry)).sort(),
+    mediaLinks: snapshot.mediaLinks
+      .map((entry) => {
+        const { targetType: _targetType, targetId: _targetId, links: _links, ...media } = entry.media;
+        return [JSON.stringify(entry.link), JSON.stringify(media)];
+      })
+      .sort(),
+    identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
+    contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
+    restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
+    tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
+    todos: snapshot.todos.map((entry) => JSON.stringify(entry)).sort(),
+    recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
+  });
+  const flatten = (snapshot: AttachmentsSnapshot, rootKey: string): string => {
+    const records = new Map<string, string>();
+    const edges: string[] = [];
+    const walk = (node: AttachmentsSnapshot, key: string): void => {
+      if (records.has(key)) {
+        return;
       }
-      const next = new Set(seen);
-      next.add(key);
-      return [entry.targetType, entry.targetId, signature(entry.attachments, next)];
-    });
-    return {
-      noteLinks: snapshot.noteLinks
-        .map((entry) => [entry.link.id, JSON.stringify({ ...entry.note, links: undefined })])
-        .sort(),
-      citations: snapshot.citations.map((entry) => JSON.stringify(entry)).sort(),
-      mediaLinks: snapshot.mediaLinks
-        .map((entry) => [JSON.stringify(entry.link), JSON.stringify({ ...entry.media, links: undefined })])
-        .sort(),
-      identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
-      contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
-      restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
-      tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
-      todos: snapshot.todos.map((entry) => JSON.stringify(entry)).sort(),
-      recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
-      nested,
+      records.set(key, JSON.stringify(direct(node)));
+      for (const nested of [
+        ...node.noteAttachments,
+        ...node.citationAttachments,
+        ...node.mediaAttachments,
+        ...node.mediaFileAttachments,
+        ...node.mediaLinkAttachments,
+        ...node.todoAttachments,
+      ]) {
+        const childKey = `${nested.targetType}\u0000${nested.targetId}`;
+        edges.push(`${key}>${childKey}`);
+        walk(nested.attachments, childKey);
+      }
     };
+    walk(snapshot, rootKey);
+    return JSON.stringify({
+      records: [...records.entries()].sort(([left], [right]) => left.localeCompare(right)),
+      edges: edges.sort(),
+    });
   };
   const key = `${targetType}\u0000${targetId}`;
-  return (
-    JSON.stringify(signature(ctx.repo.listAttachmentsFor(targetType, targetId), new Set([key]))) ===
-    JSON.stringify(signature(captured, new Set([key])))
-  );
+  return flatten(ctx.repo.listAttachmentsFor(targetType, targetId), key) === flatten(captured, key);
 }
 
 /** True when the stored row still equals the record captured before its delete. */
@@ -324,25 +353,49 @@ export function sameRecord(left: unknown, right: unknown): boolean {
 
 /** Whether a captured nested attachment target still exists to restore onto. */
 export function attachmentTargetExists(ctx: MutationContext, targetType: string, targetId: string): boolean {
+  const names = (): string[] => {
+    const result: string[] = [];
+    const visit = (name: PersonName): void => {
+      result.push(name.id);
+      for (const variant of name.variants ?? []) {
+        visit(variant);
+      }
+    };
+    for (const person of ctx.repo.listAllPersons()) {
+      person.names.forEach(visit);
+    }
+    return result;
+  };
+  const parts = (): string[] =>
+    ctx.repo.listAllPersons().flatMap((person) =>
+      person.names.flatMap((name) => {
+        const result: string[] = [];
+        const visit = (entry: PersonName): void => {
+          result.push(...(entry.parts ?? []).map((part) => part.id));
+          for (const variant of entry.variants ?? []) {
+            visit(variant);
+          }
+        };
+        visit(name);
+        return result;
+      }),
+    );
   switch (targetType) {
-    case 'fact':
-      return ctx.repo.getFact(targetId) !== undefined;
+    case 'person':
     case 'person_sex':
       return ctx.repo.getPerson(targetId) !== undefined;
-    case 'citation':
-      return ctx.repo.getCitation(targetId) !== undefined;
-    case 'media_file':
-      return ctx.repo.hasMediaFile(targetId);
-    case 'media_link':
-      return ctx.repo.hasMediaLink(targetId);
-    case 'association':
-      return ctx.repo.listAssociations().some((entry) => entry.id === targetId);
-    case 'person':
-      return ctx.repo.getPerson(targetId) !== undefined;
+    case 'family':
+      return ctx.repo.getFamily(targetId) !== undefined;
+    case 'fact':
+      return ctx.repo.getFact(targetId) !== undefined;
     case 'place':
       return ctx.repo.getPlace(targetId) !== undefined;
     case 'media':
       return ctx.repo.getMedia(targetId) !== undefined;
+    case 'media_file':
+      return ctx.repo.hasMediaFile(targetId);
+    case 'media_link':
+      return ctx.repo.hasMediaLink(targetId);
     case 'note':
       return ctx.repo.getNote(targetId) !== undefined;
     case 'todo':
@@ -355,7 +408,42 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
       return ctx.repo.getSubmitter(targetId) !== undefined;
     case 'address':
       return ctx.repo.getAddress(targetId) !== undefined;
+    case 'citation':
+      return ctx.repo.getCitation(targetId) !== undefined;
+    case 'title':
+      return ctx.repo.getTitle(targetId) !== undefined;
+    case 'tag':
+      return ctx.repo.listTags().some((tag) => tag.id === targetId);
+    case 'name':
+      return names().includes(targetId);
+    case 'name_part':
+      return parts().includes(targetId);
+    case 'family_partner':
+    case 'family_child':
+    case 'family_marriage_status':
+      return ctx.repo
+        .listFamilies()
+        .some((family) =>
+          [
+            ...(family.partnerLinks ?? []).map((link) => link.id),
+            ...(family.childLinks ?? []).map((link) => link.id),
+            ...(family.marriageStatuses ?? []).map((status) => status.id),
+          ].includes(targetId),
+        );
+    case 'place_name':
+    case 'place_hierarchy':
+      return ctx.repo
+        .listPlaces()
+        .some((place) =>
+          [...place.names.map((name) => name.id), ...(place.hierarchy ?? []).map((link) => link.id)].includes(targetId),
+        );
+    case 'address_line':
+      return ctx.repo.listAddresses().some((address) => address.lines.some((line) => line.id === targetId));
+    case 'tag_link':
+      return ctx.repo.listAllTagLinks().some((link) => link.id === targetId);
+    case 'association':
+      return ctx.repo.listAssociations().some((entry) => entry.id === targetId);
     default:
-      return true;
+      return false;
   }
 }

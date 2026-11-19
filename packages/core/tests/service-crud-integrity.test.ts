@@ -1430,6 +1430,28 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('reactivates a newly selected disproven child link', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addFamily({
+        id: 'F1',
+        partners: ['P1'],
+        children: [],
+        childLinks: [{ id: 'FC1', childId: 'P2', status: 'disproven', statusPhrase: 'no' }],
+      });
+      const before = repo.getFamily('F1')!;
+      service.updateFamily(before, { ...before, children: ['P2'] });
+      expect(repo.getFamily('F1')?.childLinks?.[0]).toMatchObject({ id: 'FC1' });
+      expect(repo.getFamily('F1')?.childLinks?.[0]?.status).toBeUndefined();
+      expect(repo.getFamily('F1')?.childLinks?.[0]?.statusPhrase).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('preserves concurrent family members when the draft changes the flat list', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

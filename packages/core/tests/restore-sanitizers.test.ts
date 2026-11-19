@@ -226,6 +226,102 @@ describe('undo restore sanitizers', () => {
     }
   });
 
+  it('filters media links and clears a task target when it vanished', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const ctx = context(fixture);
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      const restored = restoreMedia(ctx, {
+        id: 'M1',
+        title: 'Photo',
+        links: [
+          { id: 'L1', mediaId: 'M1', targetType: 'person', targetId: 'P1' },
+          { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'missing' },
+        ],
+      });
+      expect([...restored]).toEqual(['L1']);
+      expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toEqual(['L1']);
+
+      restoreTodo(ctx, { id: 'T1', text: 'Task', targetType: 'person', targetId: 'missing' });
+      expect(repo.getTodo('T1')?.targetType).toBeUndefined();
+      expect(repo.getTodo('T1')?.targetId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('skips tag and submitter links whose targets vanished', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const ctx = context(fixture);
+      repo.insertTag({ id: 'TAG1', name: 'Family' });
+      repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
+      expect(restoreTagLink(ctx, { id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'missing' })).toBe(false);
+      expect(
+        restoreRecordSubmitter(ctx, {
+          id: 'RS1',
+          submitterId: 'SU1',
+          targetType: 'person',
+          targetId: 'missing',
+        }),
+      ).toBe(false);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('checks every nested target kind used by citations and tags', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const ctx = context(fixture);
+      repo.insertPerson({
+        id: 'P1',
+        names: [{ id: 'N1', given: 'Ada', parts: [{ id: 'NP1', kind: 'given', value: 'Ada', position: 0 }] }],
+        sex: 'U',
+        facts: [],
+      });
+      repo.insertFamily({
+        id: 'F1',
+        partners: ['P1'],
+        children: ['P1'],
+        partnerLinks: [{ id: 'FP1', personId: 'P1' }],
+        childLinks: [{ id: 'FC1', childId: 'P1' }],
+        marriageStatuses: [{ id: 'MS1', status: 'married' }],
+      });
+      repo.insertPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }],
+        hierarchy: [{ id: 'PH1', parentId: 'PL1' }],
+      });
+      repo.insertAddress({ id: 'A1', lines: [{ id: 'AL1', value: 'Line' }] });
+      repo.insertTag({ id: 'TAG1', name: 'Family' });
+      repo.insertTagLink({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
+      repo.insertTitle({ id: 'TI1', name: 'Work' });
+
+      for (const [type, id] of [
+        ['family_partner', 'FP1'],
+        ['family_child', 'FC1'],
+        ['family_marriage_status', 'MS1'],
+        ['place_name', 'PN1'],
+        ['place_hierarchy', 'PH1'],
+        ['address_line', 'AL1'],
+        ['tag', 'TAG1'],
+        ['tag_link', 'TL1'],
+        ['title', 'TI1'],
+        ['name', 'N1'],
+        ['name_part', 'NP1'],
+      ] as const) {
+        expect(attachmentTargetExists(ctx, type, id)).toBe(true);
+      }
+      expect(attachmentTargetExists(ctx, 'family_partner', 'missing')).toBe(false);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('reports which attachment targets still exist', () => {
     const fixture = makeRepo();
     try {
@@ -256,7 +352,6 @@ describe('undo restore sanitizers', () => {
         ['repository', 'R1'],
         ['submitter', 'SU1'],
         ['address', 'A1'],
-        ['other', 'anything'],
       ] as const) {
         expect(attachmentTargetExists(ctx, type, id)).toBe(true);
       }

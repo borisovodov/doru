@@ -43,6 +43,9 @@ export function deleteMediaOp(
   linkAttachments: NestedAttachments[] = [],
 ): Op {
   let baseline = media;
+  let attachmentBaseline = attachments;
+  let fileBaseline = fileAttachments;
+  let linkBaseline = linkAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'media.delete',
@@ -56,27 +59,27 @@ export function deleteMediaOp(
       if (current === undefined || !sameRecord(current, baseline)) {
         return false;
       }
-      const fileIds = new Set((media.files ?? []).map((file) => file.id));
+      const fileIds = new Set((baseline.files ?? []).map((file) => file.id));
       for (const file of current.files ?? []) {
         if (!fileIds.has(file.id)) {
           return false;
         }
       }
-      const linkIds = new Set((media.links ?? []).map((link) => link.id));
+      const linkIds = new Set((baseline.links ?? []).map((link) => link.id));
       for (const link of current.links ?? []) {
         if (!linkIds.has(link.id)) {
           return false;
         }
       }
-      if (!attachmentsMatch(ctx, 'media', media.id, attachments)) {
+      if (!attachmentsMatch(ctx, 'media', media.id, attachmentBaseline)) {
         return false;
       }
-      for (const nested of fileAttachments) {
+      for (const nested of fileBaseline) {
         if (!attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
           return false;
         }
       }
-      for (const nested of linkAttachments) {
+      for (const nested of linkBaseline) {
         if (!attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
           return false;
         }
@@ -84,15 +87,32 @@ export function deleteMediaOp(
       return true;
     },
     inverse(ctx) {
-      restoreMedia(ctx, media);
+      const restoredLinks = restoreMedia(ctx, media);
       baseline = ctx.repo.getMedia(media.id) ?? media;
       ctx.repo.restoreAttachments(attachments);
       for (const nested of fileAttachments) {
-        ctx.repo.restoreAttachments(nested.attachments);
+        if (ctx.repo.hasMediaFile(nested.targetId)) {
+          ctx.repo.restoreAttachments(nested.attachments);
+        }
       }
       for (const nested of linkAttachments) {
-        ctx.repo.restoreAttachments(nested.attachments);
+        if (restoredLinks.has(nested.targetId)) {
+          ctx.repo.restoreAttachments(nested.attachments);
+        }
       }
+      attachmentBaseline = ctx.repo.listAttachmentsFor('media', media.id);
+      fileBaseline = fileAttachments
+        .filter((nested) => ctx.repo.hasMediaFile(nested.targetId))
+        .map((nested) => ({
+          ...nested,
+          attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
+        }));
+      linkBaseline = linkAttachments
+        .filter((nested) => restoredLinks.has(nested.targetId))
+        .map((nested) => ({
+          ...nested,
+          attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
+        }));
     },
   };
 }

@@ -107,6 +107,55 @@ describe('db cleanup paths', () => {
     }
   });
 
+  it('does not recreate a media record another writer deleted afterwards', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      repo.addMediaLink('M1', { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'P2' });
+      repo.insertIdentifier({ id: 'MI1', targetType: 'media', targetId: 'M1', namespace: 'uid', value: 'm1' });
+      let snapshot = repo.listAttachmentsFor('person', 'P1');
+      repo.transaction(() => {
+        snapshot = repo.listAttachmentsFor('person', 'P1');
+        repo.deleteAttachmentsFor('person', 'P1');
+      });
+      expect(repo.getMedia('M1')).toBeDefined();
+
+      // Another writer deletes the media record and its evidence.
+      repo.deleteMedia('M1');
+      repo.restoreAttachments(snapshot);
+      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.listIdentifiersFor('media', 'M1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('does not recreate a note another writer deleted afterwards', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      repo.insertNote({ id: 'N1', text: 'shared', targetType: 'person', targetId: 'P1' });
+      repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
+      let snapshot = repo.listAttachmentsFor('person', 'P1');
+      repo.transaction(() => {
+        snapshot = repo.listAttachmentsFor('person', 'P1');
+        repo.deleteAttachmentsFor('person', 'P1');
+      });
+      expect(repo.getNote('N1')).toBeDefined();
+
+      repo.deleteAttachmentsFor('person', 'P2');
+      repo.restoreAttachments(snapshot);
+      expect(repo.getNote('N1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores only the media links the operation removed', () => {
     const fixture = makeRepo();
     try {

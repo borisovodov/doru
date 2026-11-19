@@ -267,6 +267,8 @@ export interface TreeRepository {
  */
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
+  private readonly snapshotMarkers = new WeakMap<object, Set<string>>();
+  private readonly transactionFrames: Set<object>[] = [];
   private readonly persons: PersonRepo;
   private readonly names: NameRepo;
   private readonly families: FamilyRepo;
@@ -1211,7 +1213,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   listAttachmentsFor(targetType: string, targetId: string): AttachmentsSnapshot {
-    return this.collectAttachments(targetType, targetId, { cache: new Map(), visiting: new Set() });
+    const snapshot = this.collectAttachments(targetType, targetId, { cache: new Map(), visiting: new Set() });
+    this.registerSnapshot(snapshot);
+    return snapshot;
   }
 
   private collectAttachments(
@@ -1296,6 +1300,7 @@ export class SqliteTreeRepository implements TreeRepository {
       return;
     }
     visited.add(key);
+    this.markRemoved(targetType, targetId);
     const noteLinks = this.notes.listLinksFor(targetType, targetId);
     const removedLinksByNote = new Map<string, number>();
     for (const entry of noteLinks) {
@@ -1308,6 +1313,7 @@ export class SqliteTreeRepository implements TreeRepository {
     // A note that just lost its last link is gone; its own attachments must
     // follow it instead of being left behind as orphan rows.
     for (const noteId of deletedNoteIds) {
+      this.markRemoved('note', noteId);
       this.deleteAttachmentsForInternal('note', noteId, visited);
     }
     for (const citation of this.sources.listCitations(targetType, targetId)) {
@@ -1322,8 +1328,10 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.deleteLinksFor(targetType, targetId);
     for (const media of affectedMedia) {
       if (this.media.getMedia(media.id) === undefined) {
+        this.markRemoved('media', media.id);
         this.deleteAttachmentsForInternal('media', media.id, visited);
         for (const file of media.files ?? []) {
+          this.markRemoved('media_file', file.id);
           this.deleteAttachmentsForInternal('media_file', file.id, visited);
         }
       }
@@ -1337,17 +1345,17 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   restoreAttachments(snapshot: AttachmentsSnapshot): void {
-    const restoreFiles = new Set(
-      snapshot.mediaFileAttachments
-        .filter((entry) => !this.media.hasFile(entry.targetId))
-        .map((entry) => entry.targetId),
-    );
+    const removed = this.removedTargets(snapshot);
     const restoredNotes = new Set<string>();
     for (const entry of snapshot.noteLinks) {
       if (this.notes.getNote(entry.note.id) === undefined) {
-        // Reinsert the note without its captured links: only the links this
-        // operation removed may come back, not ones another writer removed
-        // while the undo was pending.
+        // Only a note that this operation removed may come back; a note
+        // deleted by another writer after the operation stays deleted.
+        if (removed.size > 0 && !removed.has(`note\u0000${entry.note.id}`)) {
+          continue;
+        }
+        // Reinsert without its captured links: only the links this operation
+        // removed may come back.
         this.notes.insertNote({ ...entry.note, links: [] });
         restoredNotes.add(entry.note.id);
       }
@@ -1378,6 +1386,9 @@ export class SqliteTreeRepository implements TreeRepository {
     const restoredMedia = new Set<string>();
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
+        if (removed.size > 0 && !removed.has(`media\u0000${entry.media.id}`)) {
+          continue;
+        }
         // The historical place may have been deleted while the media record
         // was gone; keep the raw place text and restore the rest. Reinsert
         // without captured links so only this operation's links return.
@@ -1397,12 +1408,17 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const nested of snapshot.mediaFileAttachments) {
-      if (restoreFiles.has(nested.targetId) && this.media.hasFile(nested.targetId)) {
+      if (removed.has(`media_file\u0000${nested.targetId}`) && this.media.hasFile(nested.targetId)) {
         this.restoreAttachments(nested.attachments);
       }
     }
     for (const nested of snapshot.mediaLinkAttachments) {
-      this.restoreAttachments(nested.attachments);
+      if (
+        (removed.size === 0 || removed.has(`media_link\u0000${nested.targetId}`)) &&
+        this.media.hasLink(nested.targetId)
+      ) {
+        this.restoreAttachments(nested.attachments);
+      }
     }
     const identifierIds = new Set(
       [...new Set(snapshot.identifiers.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
@@ -1471,6 +1487,9 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const todo of snapshot.todos) {
       if (this.research.getTodo(todo.id) === undefined) {
+        if (removed.size > 0 && !removed.has(`todo\u0000${todo.id}`)) {
+          continue;
+        }
         const repositoryMissing =
           todo.repositoryId !== undefined && this.getRepository(todo.repositoryId) === undefined;
         this.research.insertTodo(repositoryMissing ? { ...todo, repositoryId: undefined } : todo);
@@ -1507,7 +1526,48 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   transaction<T>(fn: () => T): T {
-    return this.transactions.run(fn);
+    const frame = new Set<object>();
+    this.transactionFrames.push(frame);
+    try {
+      return this.transactions.run(fn);
+    } finally {
+      this.transactionFrames.pop();
+    }
+  }
+
+  /** Registers a snapshot tree so this operation's deletes can annotate it. */
+  private registerSnapshot(snapshot: AttachmentsSnapshot): void {
+    let marker = this.snapshotMarkers.get(snapshot);
+    if (marker === undefined) {
+      marker = new Set();
+      this.snapshotMarkers.set(snapshot, marker);
+    }
+    for (const frame of this.transactionFrames) {
+      frame.add(snapshot);
+    }
+    for (const nested of [
+      ...snapshot.noteAttachments,
+      ...snapshot.citationAttachments,
+      ...snapshot.mediaAttachments,
+      ...snapshot.mediaFileAttachments,
+      ...snapshot.mediaLinkAttachments,
+      ...snapshot.todoAttachments,
+    ]) {
+      this.registerSnapshot(nested.attachments);
+    }
+  }
+
+  private markRemoved(targetType: string, targetId: string): void {
+    const key = `${targetType}\u0000${targetId}`;
+    for (const frame of this.transactionFrames) {
+      for (const snapshot of frame) {
+        this.snapshotMarkers.get(snapshot)?.add(key);
+      }
+    }
+  }
+
+  private removedTargets(snapshot: AttachmentsSnapshot): Set<string> {
+    return this.snapshotMarkers.get(snapshot) ?? new Set();
   }
 }
 

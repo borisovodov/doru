@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Fonti che citano quest'opera",
   "features.tree.title.sourcesEmpty": "Nessuna fonte cita quest'opera.",
   "features.tree.title.work": "Opera",
+  "features.tree.undoBlocked": "Impossibile annullare: il record non esiste più.",
   "gallery.demo.failed": "Demo non riuscita: {0}",
   "gallery.demo.unreadable": "La demo non è riuscita con un errore che non può essere visualizzato.",
   "menu.edit": "Modifica",

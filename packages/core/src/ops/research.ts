@@ -39,6 +39,7 @@ export function updateAssociationOp(before: AssociationRecord, after: Associatio
     (ctx) => ctx.repo.updateAssociation(after),
     (ctx) => ctx.repo.updateAssociation(before),
     { targetType: 'association', targetId: before.id, kind: 'changed' },
+    (ctx) => ctx.repo.listAssociations().some((entry) => entry.id === before.id),
   );
 }
 

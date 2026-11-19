@@ -44,6 +44,23 @@ export function updatePlaceOp(
         ctx.repo.restoreAttachments(nested.attachments);
       }
     },
+    redoSafe(ctx) {
+      const current = ctx.repo.getPlace(before.id);
+      if (current === undefined || !sameRecord(current, before)) {
+        return false;
+      }
+      const nameIds = new Set(current.names.map((name) => name.id));
+      const hierarchyIds = new Set((current.hierarchy ?? []).map((link) => link.id));
+      return removedAttachments.every((nested) => {
+        const exists =
+          nested.targetType === 'place_name'
+            ? nameIds.has(nested.targetId)
+            : nested.targetType === 'place_hierarchy'
+              ? hierarchyIds.has(nested.targetId)
+              : true;
+        return !exists || attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments);
+      });
+    },
   };
 }
 

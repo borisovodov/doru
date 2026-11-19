@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Źródła cytujące to dzieło",
   "features.tree.title.sourcesEmpty": "Żadne źródło nie cytuje tego dzieła.",
   "features.tree.title.work": "Dzieło",
+  "features.tree.undoBlocked": "Nie można cofnąć: rekord już nie istnieje.",
   "gallery.demo.failed": "Pokaz nie powiódł się: {0}",
   "gallery.demo.unreadable": "Pokaz nie powiódł się z błędem, którego nie można wyświetlić.",
   "menu.edit": "Edycja",

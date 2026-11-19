@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Fuentes que citan esta obra",
   "features.tree.title.sourcesEmpty": "Ninguna fuente cita esta obra.",
   "features.tree.title.work": "Obra",
+  "features.tree.undoBlocked": "No se puede deshacer: el registro ya no existe.",
   "gallery.demo.failed": "La demo falló: {0}",
   "gallery.demo.unreadable": "La demo falló con un error que no se puede mostrar.",
   "menu.edit": "Edición",

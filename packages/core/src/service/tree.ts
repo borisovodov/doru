@@ -479,15 +479,21 @@ export class TreeService {
       const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
       const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
       return reparentOp(links, created, childId, linkAttachments, (ctx) => {
+        for (const link of links) {
+          if (JSON.stringify(ctx.repo.getFamily(link.before.id)) !== JSON.stringify(link.before)) {
+            return false;
+          }
+        }
         const changed = new Set(links.map((link) => link.after.id));
         const graph = [
           ...ctx.repo.listFamilies().filter((entry) => !changed.has(entry.id)),
           ...links.map((link) => link.after),
           ...(created ? [created] : []),
         ];
-        for (const link of links) {
-          for (const child of this.activeChildIds(link.after)) {
-            for (const parent of this.partnerIds(link.after)) {
+        const proposed = [...links.map((link) => link.after), ...(created ? [created] : [])];
+        for (const family of proposed) {
+          for (const child of this.activeChildIds(family)) {
+            for (const parent of this.partnerIds(family)) {
               if (this.isAncestor(child, parent, graph)) {
                 return false;
               }
@@ -582,7 +588,16 @@ export class TreeService {
         const kept: FamilyChildLink[] = [];
         for (const childId of after.children) {
           const existing = links.find((link) => link.childId === childId);
-          kept.push(existing ?? { id: crypto.randomUUID(), childId });
+          if (existing !== undefined) {
+            const newlySelected = !before.children.includes(childId);
+            kept.push(
+              newlySelected && existing.status === 'disproven'
+                ? { ...existing, status: undefined, statusPhrase: undefined }
+                : existing,
+            );
+          } else {
+            kept.push({ id: crypto.randomUUID(), childId });
+          }
         }
         for (const link of links) {
           const concurrent = !before.children.includes(link.childId) && !after.children.includes(link.childId);
@@ -756,8 +771,10 @@ export class TreeService {
   }
 
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
-    const current = this.repo.getSource(before.id) ?? before;
-    return this.apply(updateSourceOp(current, after));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getSource(before.id) ?? before;
+      return updateSourceOp(current, after);
+    });
   }
 
   deleteSource(source: SourceRecord): UndoRedoState {
@@ -877,9 +894,29 @@ export class TreeService {
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getMedia(before.id) ?? before;
-      const writtenFiles =
-        after.files ??
-        (after.path !== undefined ? (current.files ?? []).filter((file) => file.path === after.path) : []);
+      const merged: MediaRecord = { ...current };
+      for (const key of [
+        'xref',
+        'title',
+        'path',
+        'date',
+        'place',
+        'placeId',
+        'objectType',
+        'description',
+        'keywords',
+        'files',
+        'links',
+        'targetType',
+        'targetId',
+      ] as const) {
+        if (JSON.stringify(after[key]) !== JSON.stringify(before[key])) {
+          (merged as unknown as Record<string, unknown>)[key] = after[key];
+        }
+      }
+      const pathMatch =
+        merged.path !== undefined ? (current.files ?? []).find((file) => file.path === merged.path) : undefined;
+      const writtenFiles = merged.files ?? (pathMatch !== undefined ? [pathMatch] : []);
       const remaining = new Set(writtenFiles.map((file) => file.id));
       const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
       const fileAttachments = removedFiles.map((file) => ({
@@ -887,7 +924,7 @@ export class TreeService {
         targetId: file.id,
         attachments: this.repo.listAttachmentsFor('media_file', file.id),
       }));
-      return updateMediaOp(current, after, fileAttachments);
+      return updateMediaOp(current, merged, fileAttachments);
     });
   }
 
@@ -1020,7 +1057,11 @@ export class TreeService {
       if (stored === undefined) {
         return undefined;
       }
-      return deleteTagOp(stored, this.repo.listTagLinksByTag(stored.id));
+      return deleteTagOp(
+        stored,
+        this.repo.listTagLinksByTag(stored.id),
+        this.repo.listAttachmentsFor('tag', stored.id),
+      );
     });
   }
 
@@ -1123,20 +1164,20 @@ export class TreeService {
     _targetId: string,
     _kind: RecordSubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
-    // The caller may omit the kind; the inverse must preserve the stored one.
-    const current = this.repo.getRecordSubmitter(id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    return this.apply(
-      deleteRecordSubmitterOp(
+    return this.applyAfterCommit(() => {
+      // The caller may omit the kind; the inverse must preserve the stored one.
+      const current = this.repo.getRecordSubmitter(id);
+      if (current === undefined) {
+        return undefined;
+      }
+      return deleteRecordSubmitterOp(
         current.id,
         current.submitterId,
         current.targetType,
         current.targetId,
         current.kind ?? 'contributor',
-      ),
-    );
+      );
+    });
   }
 
   addAddress(address: AddressRecord): UndoRedoState {
@@ -1416,7 +1457,13 @@ export class TreeService {
             merged[key] = storedPlaces.length > 0 ? storedPlaces : undefined;
             continue;
           }
-          const mergedPlaces = [...draft];
+          const removed = new Set(baseline.filter((id) => !draft.includes(id)));
+          const mergedPlaces: string[] = [];
+          for (const id of draft) {
+            if (!removed.has(id) && !mergedPlaces.includes(id)) {
+              mergedPlaces.push(id);
+            }
+          }
           for (const id of storedPlaces) {
             if (!mergedPlaces.includes(id) && !baseline.includes(id)) {
               mergedPlaces.push(id);

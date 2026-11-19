@@ -1,5 +1,6 @@
 import { dialog } from 'electron';
 import { randomUUID } from 'node:crypto';
+import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import {
   buildGedcomDataset,
@@ -61,7 +62,7 @@ async function prepareGedcomMedia(
       // whose canonical path stays beside the source file may be imported.
       const candidate = resolve(dirname(sourcePath), original);
       const safe = await resolveImportFile(dirname(sourcePath), candidate);
-      if (safe !== null && (await fs.exists(safe))) {
+      if (safe !== null && (await fs.exists(safe)) && (await stat(safe)).isFile()) {
         await store(await fs.readBinary(safe), original);
       } else if (safe === null) {
         log.warn('gedcom import: skipped media outside the source folder', original);
@@ -143,6 +144,10 @@ export async function exportGedcom(
         }
         const absolute = await resolveMediaPath(dirname(runtimeFilePath(projectPath)), normalized);
         if (absolute !== null && (await fs.exists(absolute))) {
+          const info = await stat(absolute);
+          if (!info.isFile()) {
+            return;
+          }
           mediaFiles.push({ name: normalized, contents: await fs.readBinary(absolute) });
           seen.add(normalized);
         }

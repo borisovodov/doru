@@ -885,7 +885,7 @@ export function emitTodoRecord(
     // GEDCOM-L E1 / record form: the repository the task belongs to
     // (see TodoRecord.repository).
     ptr(w, _version, 1, 'REPO', rec.repository);
-    if (rec.repository !== '@VOID@') {
+    if (!(_version === '5.5.1' && rec.repository === '@VOID@')) {
       emitExtensionList(w, _version, 2, rec.repositoryExtensions);
     }
   }
@@ -1150,7 +1150,7 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     // GEDCOM-L E1: a pointer to a repository record (see
     // TodoStructure.repository).
     ptr(w, version, level + 1, 'REPO', rec.repository);
-    if (rec.repository !== '@VOID@') {
+    if (!(version === '5.5.1' && rec.repository === '@VOID@')) {
       emitExtensionList(w, version, level + 2, rec.repositoryExtensions);
     }
   }

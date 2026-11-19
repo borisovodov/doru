@@ -624,6 +624,7 @@
   "features.tree.title.sources": "이 저작물을 인용하는 출처",
   "features.tree.title.sourcesEmpty": "이 저작물을 인용하는 출처가 없습니다.",
   "features.tree.title.work": "저작물",
+  "features.tree.undoBlocked": "실행 취소할 수 없습니다. 레코드가 더 이상 존재하지 않습니다.",
   "gallery.demo.failed": "데모 실패: {0}",
   "gallery.demo.unreadable": "표시할 수 없는 오류로 데모가 실패했습니다.",
   "menu.edit": "편집",

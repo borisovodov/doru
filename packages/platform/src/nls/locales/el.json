@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Πηγές που παραπέμπουν σε αυτό το έργο",
   "features.tree.title.sourcesEmpty": "Καμία πηγή δεν παραπέμπει σε αυτό το έργο.",
   "features.tree.title.work": "Έργο",
+  "features.tree.undoBlocked": "Δεν είναι δυνατή η αναίρεση: η εγγραφή δεν υπάρχει πλέον.",
   "gallery.demo.failed": "Η επίδειξη απέτυχε: {0}",
   "gallery.demo.unreadable": "Η επίδειξη απέτυχε με σφάλμα που δεν μπορεί να εμφανιστεί.",
   "menu.edit": "Επεξεργασία",

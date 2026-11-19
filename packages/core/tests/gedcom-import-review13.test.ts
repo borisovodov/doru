@@ -67,6 +67,25 @@ describe('GEDCOM import edge slots', () => {
     }
   });
 
+  it('maps a wife-only partner age to the normalized HUSB slot', () => {
+    const fixture = importText([
+      ...HEAD,
+      '0 @I1@ INDI',
+      '1 NAME W /One/',
+      '0 @F1@ FAM',
+      '1 WIFE @I1@',
+      '1 MARR',
+      '2 WIFE',
+      '3 AGE 20y',
+    ]);
+    try {
+      const fact = fixture.repo.listFactsForFamily(fixture.repo.listFamilies()[0]!.id)[0]!;
+      expect(fact.ages?.[0]).toMatchObject({ role: 'HUSB', years: 20 });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('rejects an out-of-range structured task month even without a day', () => {
     const fixture = importText([
       ...HEAD,

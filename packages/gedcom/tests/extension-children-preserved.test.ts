@@ -42,11 +42,12 @@ describe('extension children of typed structures', () => {
       ].join('\n');
       const dataset = parse(text, version);
       const out = serialize(dataset, version);
-      expect(out).toContain('1 REPO @R1@');
-      expect(out).toContain('2 _CALLNO Box 7');
-      expect(out).toContain('1 _TCDT 2026-11-19');
-      expect(out).toContain('2 NOTE imported');
-      expect(serialize(parse(out, version), version)).toContain('2 NOTE imported');
+      const normalized = out.replaceAll('\r\n', '\n');
+      expect(normalized).toContain('1 REPO @R1@\n2 _CALLNO Box 7');
+      expect(normalized).toContain('1 _TCDT 2026-11-19\n2 NOTE imported');
+      expect(serialize(parse(out, version), version).replaceAll('\r\n', '\n')).toContain(
+        '1 _TCDT 2026-11-19\n2 NOTE imported',
+      );
     }
   });
 
@@ -56,9 +57,11 @@ describe('extension children of typed structures', () => {
       const text = [...head, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY 2', '2 TEXT eyewitness', '0 TRLR', ''].join('\n');
       const dataset = parse(text, version);
       const out = serialize(dataset, version);
-      expect(out).toContain('1 _QUAY 2');
-      expect(out).toContain('2 TEXT eyewitness');
-      expect(serialize(parse(out, version), version)).toContain('2 TEXT eyewitness');
+      const normalized = out.replaceAll('\r\n', '\n');
+      expect(normalized).toContain('1 _QUAY 2\n2 TEXT eyewitness');
+      expect(serialize(parse(out, version), version).replaceAll('\r\n', '\n')).toContain(
+        '1 _QUAY 2\n2 TEXT eyewitness',
+      );
     }
   });
 });

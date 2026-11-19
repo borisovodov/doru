@@ -173,7 +173,7 @@ describe('place ops', () => {
       service.deletePlace(moscow);
       service.undo();
 
-      repo.updateFact({ ...repo.getFact('F1')!, placeId: 'PL1' });
+      repo.updateFact({ ...repo.getFact('F1')!, placeId: 'PL1', additionalPlaceIds: undefined });
       expect(service.redo().redoBlocked).toBe(true);
       expect(repo.getPlace('PL1')).toBeDefined();
     } finally {

@@ -35,6 +35,8 @@ export function updateFactOp(before: FactRecord, after: FactRecord): Op {
 
 /** Deletes a fact together with its attachments; undo restores both. */
 export function deleteFactOp(fact: FactRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+  let baseline = fact;
+  let attachmentBaseline = attachments;
   return withRedoSafe(
     {
       id: crypto.randomUUID(),
@@ -49,13 +51,16 @@ export function deleteFactOp(fact: FactRecord, attachments: AttachmentsSnapshot 
         ctx.repo.deleteFact(fact.id);
       },
       inverse(ctx) {
-        restoreFact(ctx, fact);
-        ctx.repo.restoreAttachments(attachments);
+        if (restoreFact(ctx, fact)) {
+          baseline = ctx.repo.getFact(fact.id) ?? fact;
+          ctx.repo.restoreAttachments(attachments);
+          attachmentBaseline = ctx.repo.listAttachmentsFor('fact', fact.id);
+        }
       },
     },
     (ctx) =>
       ctx.repo.getFact(fact.id) !== undefined &&
-      sameRecord(ctx.repo.getFact(fact.id), fact) &&
-      attachmentsMatch(ctx, 'fact', fact.id, attachments),
+      sameRecord(ctx.repo.getFact(fact.id), baseline) &&
+      attachmentsMatch(ctx, 'fact', fact.id, attachmentBaseline),
   );
 }

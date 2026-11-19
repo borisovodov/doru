@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Sources citing this work",
   "features.tree.title.sourcesEmpty": "No sources cite this work.",
   "features.tree.title.work": "Bibliographic work",
+  "features.tree.undoBlocked": "Undo is unavailable because the record no longer exists.",
   "gallery.demo.failed": "Demo failed: {0}",
   "gallery.demo.unreadable": "The demo failed with an error that cannot be displayed.",
   "menu.edit": "Edit",

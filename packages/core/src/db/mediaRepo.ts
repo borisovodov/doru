@@ -151,13 +151,20 @@ export class MediaRepo {
       )
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: Array<{ media: MediaRecord; link: MediaLinkRecord }> = [];
+    const mediaById = new Map<string, MediaRecord>();
     for (const link of links) {
-      const row = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`).get(link.media_id) as
-        | MediaRow
-        | undefined;
-      if (row) {
-        result.push({ media: this.hydrate(row), link: rowToLink(link) });
+      let media = mediaById.get(link.media_id);
+      if (media === undefined) {
+        const row = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`).get(link.media_id) as
+          | MediaRow
+          | undefined;
+        if (row === undefined) {
+          continue;
+        }
+        media = this.hydrate(row);
+        mediaById.set(link.media_id, media);
       }
+      result.push({ media, link: rowToLink(link) });
     }
     return result;
   }

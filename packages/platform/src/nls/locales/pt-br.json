@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Fontes que citam esta obra",
   "features.tree.title.sourcesEmpty": "Nenhuma fonte cita esta obra.",
   "features.tree.title.work": "Obra",
+  "features.tree.undoBlocked": "Não é possível desfazer: o registro não existe mais.",
   "gallery.demo.failed": "Falha na demonstração: {0}",
   "gallery.demo.unreadable": "A demonstração falhou com um erro que não pode ser exibido.",
   "menu.edit": "Editar",

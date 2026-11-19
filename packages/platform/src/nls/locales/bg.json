@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Източници, цитиращи това произведение",
   "features.tree.title.sourcesEmpty": "Нито един източник не цитира това произведение.",
   "features.tree.title.work": "Произведение",
+  "features.tree.undoBlocked": "Отмяната е невъзможна: записът вече не съществува.",
   "gallery.demo.failed": "Демото се провали: {0}",
   "gallery.demo.unreadable": "Демото се провали с грешка, която не може да бъде показана.",
   "menu.edit": "Редактиране",

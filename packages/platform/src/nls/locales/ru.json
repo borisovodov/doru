@@ -624,6 +624,7 @@
   "features.tree.title.sources": "Источники, ссылающиеся на произведение",
   "features.tree.title.sourcesEmpty": "Ни один источник не ссылается на это произведение.",
   "features.tree.title.work": "Произведение",
+  "features.tree.undoBlocked": "Отмена невозможна: запись больше не существует.",
   "gallery.demo.failed": "Демо не удалось: {0}",
   "gallery.demo.unreadable": "Демо завершилось с ошибкой, которую невозможно отобразить.",
   "menu.edit": "Правка",

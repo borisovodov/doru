@@ -71,8 +71,9 @@ export function updateNoteOp(before: NoteRecord, after: NoteRecord): Op {
       'note.update',
       (ctx) => ctx.repo.updateNote(after),
       (ctx) => ctx.repo.updateNote(before),
+      { targetType: 'note', targetId: before.id, kind: 'changed' },
+      (ctx) => ctx.repo.getNote(before.id) !== undefined,
     ),
-    change: { targetType: 'note', targetId: before.id, kind: 'changed' },
   };
 }
 
@@ -278,8 +279,9 @@ export function detachCitationOp(citation: CitationRecord, attachments: Attachme
     'citation.detach',
     (ctx) => ctx.repo.deleteCitation(citation.id),
     (ctx) => {
-      restoreCitation(ctx, citation);
-      ctx.repo.restoreAttachments(attachments);
+      if (restoreCitation(ctx, citation)) {
+        ctx.repo.restoreAttachments(attachments);
+      }
     },
     { targetType: citation.targetType, targetId: citation.targetId, kind: 'changed' },
     (ctx) =>
@@ -342,6 +344,7 @@ export function detachMediaOp(
   fileAttachments: NestedAttachments[] = [],
   linkAttachments?: AttachmentsSnapshot,
 ): Op {
+  let mediaBaseline = media;
   return {
     ...op(
       crypto.randomUUID(),
@@ -349,19 +352,23 @@ export function detachMediaOp(
       (ctx) => ctx.repo.removeMediaLink(link.id),
       (ctx) => {
         if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          restoreMedia(ctx, media);
+          const restoredLinks = restoreMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
           for (const nested of fileAttachments) {
             ctx.repo.restoreAttachments(nested.attachments);
           }
+          if (linkAttachments !== undefined && restoredLinks.has(link.id)) {
+            ctx.repo.restoreAttachments(linkAttachments);
+          }
         } else {
           ctx.repo.addMediaLink(link.mediaId, link);
+          if (linkAttachments !== undefined) {
+            ctx.repo.restoreAttachments(linkAttachments);
+          }
         }
-        if (linkAttachments !== undefined) {
-          ctx.repo.restoreAttachments(linkAttachments);
-        }
+        mediaBaseline = ctx.repo.getMedia(link.mediaId) ?? mediaBaseline;
       },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
@@ -376,6 +383,9 @@ export function detachMediaOp(
       const lastLink = (current.links ?? []).length <= 1;
       if (!lastLink) {
         return true;
+      }
+      if (mediaBaseline !== undefined && !sameRecord(current, mediaBaseline)) {
+        return false;
       }
       if (attachments !== undefined && !attachmentsMatch(ctx, 'media', link.mediaId, attachments)) {
         return false;
@@ -515,7 +525,11 @@ export function updateTagOp(before: TagRecord, after: TagRecord): Op {
  * tag_link rows); inverse restores the tag and every link — one undo
  * step, no losses.
  */
-export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
+export function deleteTagOp(
+  tag: TagRecord,
+  links: TagLinkRecord[],
+  attachments: AttachmentsSnapshot = emptyAttachments(),
+): Op {
   return op(
     crypto.randomUUID(),
     'tag.delete',
@@ -525,6 +539,7 @@ export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
     },
     (ctx) => {
       ctx.repo.insertTag(tag);
+      ctx.repo.restoreAttachments(attachments);
       for (const link of links) {
         restoreTagLink(ctx, link);
       }
@@ -533,6 +548,9 @@ export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
     (ctx) => {
       const current = ctx.repo.listTags().find((entry) => entry.id === tag.id);
       if (current === undefined || !sameRecord(current, tag)) {
+        return false;
+      }
+      if (!attachmentsMatch(ctx, 'tag', tag.id, attachments)) {
         return false;
       }
       const capturedLinks = links.map((link) => JSON.stringify(link)).sort();

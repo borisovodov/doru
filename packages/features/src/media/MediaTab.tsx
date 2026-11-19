@@ -163,7 +163,7 @@ function MediaTabBody({
         keywords: baselineRef.current.keywords ?? '',
       } as const);
     const refreshed: MediaRecord = { ...record };
-    if (draft.title === base.title) {
+    if (draft.title.trim() === base.title.trim()) {
       refreshed.title = record.title;
       setTitle(record.title ?? '');
     }
@@ -177,15 +177,15 @@ function MediaTabBody({
       setPlace(record.place ?? '');
       setPlaceId(record.placeId ?? '');
     }
-    if (draft.objectType === base.objectType) {
+    if (draft.objectType.trim() === base.objectType.trim()) {
       refreshed.objectType = record.objectType;
       setObjectType(record.objectType ?? '');
     }
-    if (draft.description === base.description) {
+    if (draft.description.trim() === base.description.trim()) {
       refreshed.description = record.description;
       setDescription(record.description ?? '');
     }
-    if (draft.keywords === base.keywords) {
+    if (draft.keywords.trim() === base.keywords.trim()) {
       refreshed.keywords = record.keywords;
       setKeywords(record.keywords ?? '');
     }

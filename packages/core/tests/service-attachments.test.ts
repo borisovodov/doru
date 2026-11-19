@@ -271,6 +271,7 @@ describe('TreeService attachments', () => {
   it('attaches and detaches media links with undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
       expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(1);
 
@@ -302,6 +303,7 @@ describe('TreeService attachments', () => {
   it('restores media-link citations when detaching and deleting the record', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSource(source());
       service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
       const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
@@ -456,6 +458,7 @@ describe('TreeService attachments', () => {
   it('manages tags and tag links', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addTag(tag());
       expect(fixture.repo.listTags()).toEqual([tag()]);
 

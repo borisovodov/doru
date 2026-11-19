@@ -1223,11 +1223,14 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     const wifeAge = structure.detail?.wife?.age;
     if (husbandAge !== undefined || wifeAge !== undefined) {
       const ages: NonNullable<FactRecord['ages']> = [];
+      // The exporter normalizes a wife-only family to the HUSB slot, so the
+      // wife's age must follow that slot too.
+      const wifeSlot = !husbandResolved && wifeResolved ? 'HUSB' : 'WIFE';
       if (husbandAge !== undefined) {
         ages.push(mapAge(husbandAge, 'HUSB'));
       }
       if (wifeAge !== undefined) {
-        ages.push(mapAge(wifeAge, 'WIFE'));
+        ages.push(mapAge(wifeAge, wifeSlot));
       }
       fact.ages = ages;
     }
