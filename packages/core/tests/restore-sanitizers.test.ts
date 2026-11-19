@@ -247,6 +247,14 @@ describe('undo restore sanitizers', () => {
       expect([...restored]).toEqual(['L1']);
       expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toEqual(['L1']);
 
+      const noLinks = restoreMedia(ctx, {
+        id: 'M2',
+        title: 'Standalone',
+        links: [{ id: 'L3', mediaId: 'M2', targetType: 'person', targetId: 'missing' }],
+      });
+      expect([...noLinks]).toEqual([]);
+      expect(repo.getMedia('M2')?.links).toEqual([]);
+
       restoreTodo(ctx, { id: 'T1', text: 'Task', targetType: 'person', targetId: 'missing' });
       expect(repo.getTodo('T1')?.id).toBe('T1');
       expect(repo.getTodo('T1')?.targetType).toBeUndefined();

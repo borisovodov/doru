@@ -959,6 +959,9 @@ export class TreeService {
         }
       }
       const pathChanged = before.path !== after.path;
+      if (pathChanged && after.files === undefined) {
+        delete merged.files;
+      }
       const pathMatch =
         merged.path !== undefined ? (current.files ?? []).find((file) => file.path === merged.path) : undefined;
       const writtenFiles =

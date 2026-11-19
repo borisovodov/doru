@@ -52,6 +52,46 @@ describe('SourceTab', () => {
     expect(onCreated).toHaveBeenCalledWith(expect.any(String));
   });
 
+  it('ignores a second save while the first is pending', async () => {
+    let resolveSave!: () => void;
+    const addSource = vi.fn(
+      async () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const api = stubApi<SourceEditorApi>({
+      addSource,
+      getRepositories: async () => [],
+      getTitles: async () => [],
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    renderUi(
+      <SourceTab
+        entityId="new:1"
+        sources={[]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await waitFor(() => expect(addSource).toHaveBeenCalledTimes(1));
+    resolveSave();
+  });
+
   it('shows a missing-source message for an unknown id', () => {
     renderTab({ entityId: 'missing' });
     expect(screen.getByText(nls.t('features.sources.notFound'))).toBeInTheDocument();

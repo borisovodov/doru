@@ -75,6 +75,15 @@ describe('typed extension fallbacks', () => {
     expect(serialize(parse(out, '551'), '551')).toContain('1 _QUAY high');
   });
 
+  test('keeps void repository children in 7.0 but not in 5.5.1', () => {
+    const text = [...HEAD70, '0 @T1@ _TODO Task', '1 REPO @VOID@', '2 _WHY retained', '0 TRLR', ''].join('\n');
+    const dataset = parse(text, '70');
+    const out70 = serialize(dataset, '70').replaceAll('\r\n', '\n');
+    expect(out70).toContain('1 REPO @VOID@\n2 _WHY retained');
+    const out551 = serialize(dataset, '551').replaceAll('\r\n', '\n');
+    expect(out551).not.toContain('2 _WHY retained');
+  });
+
   test('lets a valid REPO pointer follow repository text', () => {
     const text = [
       ...HEAD551,

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { deleteMediaOp } from '../src/ops/media';
+import { OpQueue } from '../src/ops/op';
+import { TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('media repo edge cases', () => {
@@ -44,6 +46,33 @@ describe('media repo edge cases', () => {
       const restored = repo.getMedia('M1')!;
       expect(restored.place).toBe('Moscow');
       expect(restored.placeId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('merges concurrent media metadata and honors path-only edits', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({
+        id: 'M1',
+        title: 'Old',
+        description: 'Draft',
+        path: 'media/a.jpg',
+        targetType: 'person',
+        targetId: 'P1',
+      });
+      const stale = repo.getMedia('M1')!;
+      const service = new TreeService(repo, new OpQueue());
+      repo.updateMedia({ ...repo.getMedia('M1')!, description: 'Concurrent' });
+      service.updateMedia(stale, { ...stale, title: 'New' });
+      expect(repo.getMedia('M1')).toMatchObject({ title: 'New', description: 'Concurrent' });
+
+      const beforePath = repo.getMedia('M1')!;
+      service.updateMedia(beforePath, { ...beforePath, path: 'media/b.jpg', files: undefined });
+      expect(repo.getMedia('M1')?.path).toBe('media/b.jpg');
     } finally {
       cleanupRepo(fixture);
     }
