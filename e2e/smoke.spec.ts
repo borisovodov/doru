@@ -20,6 +20,24 @@ test('New Window shortcut opens a second welcome window', async () => {
   await app.close();
 });
 
+test('Search shortcut opens the sidebar and appears in the activity tooltip', async () => {
+  const { app, page } = await launchApp();
+
+  const isMac = process.platform === 'darwin';
+  const searchButton = page.getByRole('button', { name: 'Search', exact: true });
+  await searchButton.hover();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toContainText('Search');
+  await expect(tooltip).toContainText(isMac ? '⌘⇧F' : 'Ctrl+Shift+F');
+  expect(await searchButton.getAttribute('aria-describedby')).toBe('activity-bar-tooltip');
+
+  await page.keyboard.press(isMac ? 'Meta+Shift+F' : 'Control+Shift+F');
+  await expect(page.getByRole('complementary', { name: 'Search' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Search persons, families, sources…' })).toBeFocused();
+  await app.close();
+});
+
 test('settings link opens the third-party notices tab', async () => {
   const { app, page } = await launchApp();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();

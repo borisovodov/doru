@@ -1,6 +1,7 @@
 import { createElement, useEffect, useState, type ReactNode } from 'react';
 import themes from 'virtual:doru-gallery-themes';
 import { nls } from '../src/nls';
+import { DemoErrorBoundary } from './ErrorBoundary';
 import { GALLERY_LOCALES } from './locales';
 import { paletteToCss } from './themes';
 import type { Demo, DemoDecorator, DemoMeta } from './types';
@@ -85,22 +86,34 @@ function applyDecorators(content: ReactNode, decorators: DemoDecorator[] | undef
   return (decorators ?? []).reduceRight<ReactNode>((child, decorator) => decorator(() => child), content);
 }
 
+function DemoCanvas({
+  args,
+  render,
+  component,
+  decorators,
+}: {
+  args: Record<string, unknown>;
+  render?: ((args: Record<string, unknown>) => ReactNode) | undefined;
+  component?: DemoMeta['component'] | undefined;
+  decorators: DemoDecorator[];
+}) {
+  const content = render ? render(args) : component ? createElement(component, args) : null;
+  return <>{applyDecorators(content, decorators)}</>;
+}
+
 function DemoCard({ name, demo, meta }: { name: string; demo: Demo; meta: DemoMeta }): ReactNode {
   const args = { ...(meta.args ?? {}), ...(demo.args ?? {}) };
   const render = demo.render ?? meta.render;
-  let content: ReactNode = null;
-  if (render) {
-    content = render(args);
-  } else if (meta.component) {
-    content = createElement(meta.component, args);
-  }
+  const decorators = [...(meta.decorators ?? []), ...(demo.decorators ?? [])];
   return (
     <article className="demo-card">
       <header className="demo-card-header">
         <h2>{name}</h2>
       </header>
       <div className="demo-card-canvas">
-        {applyDecorators(content, [...(meta.decorators ?? []), ...(demo.decorators ?? [])])}
+        <DemoErrorBoundary>
+          <DemoCanvas args={args} render={render} component={meta.component} decorators={decorators} />
+        </DemoErrorBoundary>
       </div>
     </article>
   );
@@ -206,7 +219,7 @@ export function App(): ReactNode {
         <main className="content">
           <div className="demo-grid">
             {active.demos.map(({ name, demo }) => (
-              <DemoCard key={name} name={name} demo={demo} meta={active.meta} />
+              <DemoCard key={`${active.title}/${name}`} name={name} demo={demo} meta={active.meta} />
             ))}
           </div>
         </main>

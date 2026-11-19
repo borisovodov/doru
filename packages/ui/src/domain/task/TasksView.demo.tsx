@@ -1,5 +1,5 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
-import type { TodoRecord } from '@doru/core';
+import type { PersonRecord, TodoRecord } from '@doru/core';
 import { TasksView } from './TasksView';
 
 const todos: TodoRecord[] = [
@@ -18,6 +18,21 @@ const todos: TodoRecord[] = [
     category: 'Translation',
   },
 ];
+
+const relatedPerson: PersonRecord = {
+  id: 'P1',
+  names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
+  sex: 'M',
+  facts: [],
+};
+
+const relatedTodo: TodoRecord = {
+  id: 'T3',
+  text: 'Check the census entry',
+  status: 'open',
+  targetType: 'person',
+  targetId: 'P1',
+};
 
 const meta = {
   title: 'Domain/TasksView',
@@ -38,7 +53,6 @@ const meta = {
     addresses: [],
     associations: [],
     onOpenTask: () => undefined,
-    onNewTask: () => undefined,
     onOpenPerson: () => undefined,
     onOpenFamily: () => undefined,
     onOpenSource: () => undefined,
@@ -65,4 +79,12 @@ export const Default: DemoCase = {};
 
 export const Empty: DemoCase = {
   args: { todos: [] },
+};
+
+export const RelatedRecord: DemoCase = {
+  args: {
+    todos: [relatedTodo],
+    persons: [relatedPerson],
+    selectedId: relatedTodo.id,
+  },
 };

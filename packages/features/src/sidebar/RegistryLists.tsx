@@ -1,6 +1,6 @@
 import { Archive, BookMarked, MapPin, User } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SubmitterRecord, TitleRecord } from '@doru/core';
-import { EntityCard } from '@doru/ui';
+import { EntityRow, SideBarEmpty, SideBarList } from '@doru/ui';
 import { addressLabel } from '@doru/ui/domain';
 import { nls } from '../nls';
 import './sidebar.css';
@@ -9,25 +9,28 @@ import './sidebar.css';
 export function RepositoryList({
   repositories,
   onOpenRepository,
+  selectedId,
 }: {
   repositories: RepositoryRecord[];
   onOpenRepository: (repositoryId: string) => void;
+  selectedId?: string | undefined;
 }) {
   if (repositories.length === 0) {
-    return <p className="side-registries-note">{nls.t('features.tree.repository.empty')}</p>;
+    return <SideBarEmpty>{nls.t('features.tree.repository.empty')}</SideBarEmpty>;
   }
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {repositories.map((repository) => (
         <li key={repository.id}>
-          <EntityCard
+          <EntityRow
+            selected={repository.id === selectedId}
             icon={<Archive size={15} aria-hidden="true" />}
             title={repository.name || '—'}
             onClick={() => onOpenRepository(repository.id)}
           />
         </li>
       ))}
-    </ul>
+    </SideBarList>
   );
 }
 
@@ -35,25 +38,28 @@ export function RepositoryList({
 export function SubmitterList({
   submitters,
   onOpenSubmitter,
+  selectedId,
 }: {
   submitters: SubmitterRecord[];
   onOpenSubmitter: (submitterId: string) => void;
+  selectedId?: string | undefined;
 }) {
   if (submitters.length === 0) {
-    return <p className="side-registries-note">{nls.t('features.tree.submitter.empty')}</p>;
+    return <SideBarEmpty>{nls.t('features.tree.submitter.empty')}</SideBarEmpty>;
   }
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {submitters.map((submitter) => (
         <li key={submitter.id}>
-          <EntityCard
+          <EntityRow
+            selected={submitter.id === selectedId}
             icon={<User size={15} aria-hidden="true" />}
             title={submitter.name || '—'}
             onClick={() => onOpenSubmitter(submitter.id)}
           />
         </li>
       ))}
-    </ul>
+    </SideBarList>
   );
 }
 
@@ -62,37 +68,49 @@ export function SubmitterList({
 export function AddressList({
   addresses,
   onOpenAddress,
+  selectedId,
 }: {
   addresses: AddressRecord[];
   onOpenAddress: (addressId: string) => void;
+  selectedId?: string | undefined;
 }) {
   if (addresses.length === 0) {
-    return <p className="side-registries-note">{nls.t('features.tree.address.empty')}</p>;
+    return <SideBarEmpty>{nls.t('features.tree.address.empty')}</SideBarEmpty>;
   }
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {addresses.map((address) => (
         <li key={address.id}>
-          <EntityCard
+          <EntityRow
+            selected={address.id === selectedId}
             icon={<MapPin size={15} aria-hidden="true" />}
             title={addressLabel(address) || '—'}
             onClick={() => onOpenAddress(address.id)}
           />
         </li>
       ))}
-    </ul>
+    </SideBarList>
   );
 }
 
-export function TitleList({ titles, onOpenTitle }: { titles: TitleRecord[]; onOpenTitle: (titleId: string) => void }) {
+export function TitleList({
+  titles,
+  onOpenTitle,
+  selectedId,
+}: {
+  titles: TitleRecord[];
+  onOpenTitle: (titleId: string) => void;
+  selectedId?: string | undefined;
+}) {
   if (titles.length === 0) {
-    return <p className="side-registries-note">{nls.t('features.tree.title.empty')}</p>;
+    return <SideBarEmpty>{nls.t('features.tree.title.empty')}</SideBarEmpty>;
   }
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {titles.map((title) => (
         <li key={title.id}>
-          <EntityCard
+          <EntityRow
+            selected={title.id === selectedId}
             icon={<BookMarked size={15} aria-hidden="true" />}
             title={title.name || '—'}
             subtitle={title.author !== undefined ? title.author : null}
@@ -100,6 +118,6 @@ export function TitleList({ titles, onOpenTitle }: { titles: TitleRecord[]; onOp
           />
         </li>
       ))}
-    </ul>
+    </SideBarList>
   );
 }

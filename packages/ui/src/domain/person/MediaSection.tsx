@@ -1,4 +1,4 @@
-import { isVisibleMedia, type MediaLinkRecord, type MediaRecord } from '@doru/core';
+import { isVisibleMedia, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';

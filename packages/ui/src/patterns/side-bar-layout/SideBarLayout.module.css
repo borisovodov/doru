@@ -1,0 +1,23 @@
+.view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.heading {
+  padding: 0 var(--doru-space-4);
+}
+
+.subheader {
+  flex: none;
+  padding: 0 var(--doru-space-4);
+  margin-bottom: var(--doru-space-3);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--doru-space-2);
+}

@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -17,10 +16,12 @@ import type {
 } from '@doru/core';
 import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
-import { IconButton } from '../../atoms/icon-button/IconButton';
+import { cx } from '../../lib/cx';
+import { SideBarEmpty } from '../../patterns/side-bar-empty/SideBarEmpty';
+import { SideBarList } from '../../patterns/side-bar-list/SideBarList';
 import { nls } from '../../nls';
 import { taskTargetLabel, type TaskTargetData } from './taskTargets';
-import './TasksView.css';
+import styles from './TasksView.module.css';
 
 /**
  * The Tasks sidebar view: the read-only task list. A click opens the task
@@ -42,7 +43,6 @@ export function TasksView({
   addresses,
   associations,
   onOpenTask,
-  onNewTask,
   onOpenPerson,
   onOpenFamily,
   onOpenSource,
@@ -52,6 +52,7 @@ export function TasksView({
   onOpenAddress,
   onOpenMedia,
   onOpenTitle,
+  selectedId,
 }: {
   todos: TodoRecord[];
   persons: PersonRecord[];
@@ -68,7 +69,6 @@ export function TasksView({
   addresses: AddressRecord[];
   associations: AssociationRecord[];
   onOpenTask: (todoId: string) => void;
-  onNewTask: () => void;
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
@@ -78,6 +78,8 @@ export function TasksView({
   onOpenAddress: (addressId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenTitle: (titleId: string) => void;
+  /** The task whose tab is active, highlighted as the current row. */
+  selectedId?: string | undefined;
 }) {
   const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
   const targetData: TaskTargetData = {
@@ -181,26 +183,24 @@ export function TasksView({
   };
 
   return (
-    <div className="tasks-view">
-      <div className="tasks-header">
-        <IconButton
-          label={nls.t('features.tasks.add')}
-          icon={<Plus size={14} aria-hidden="true" />}
-          onClick={onNewTask}
-        />
-      </div>
+    <div className={styles['tasksView']}>
       {sorted.length === 0 ? (
-        <p className="side-registries-note">{nls.t('features.tasks.empty')}</p>
+        <SideBarEmpty>{nls.t('features.tasks.empty')}</SideBarEmpty>
       ) : (
-        <ul className="task-list">
+        <SideBarList>
           {sorted.map((todo) => {
             const related = target(todo);
             return (
-              <li key={todo.id} className="task-item">
-                <div className="task-row" onClick={() => onOpenTask(todo.id)}>
-                  <span className="task-row-body">
-                    <span className={isClosed(todo) ? 'task-row-text closed' : 'task-row-text'}>{todo.text}</span>
-                    <span className="task-row-meta">
+              <li key={todo.id} className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}>
+                <div className={styles['taskRow']}>
+                  <button
+                    type="button"
+                    className={styles['taskOpen']}
+                    aria-current={todo.id === selectedId ? 'true' : undefined}
+                    onClick={() => onOpenTask(todo.id)}
+                  >
+                    <span className={cx(styles['taskRowText'], isClosed(todo) && styles['closed'])}>{todo.text}</span>
+                    <span className={styles['taskRowMeta']}>
                       {todo.priority !== undefined && (
                         <Chip variant="neutral">
                           {todo.priority === 'low'
@@ -220,28 +220,25 @@ export function TasksView({
                       {todo.repositoryId !== undefined && repositoryById.has(todo.repositoryId) && (
                         <Chip variant="neutral">{repositoryById.get(todo.repositoryId)?.name}</Chip>
                       )}
-                      {related !== undefined &&
-                        (related.open !== undefined ? (
-                          <button
-                            type="button"
-                            className="task-chip task-chip-link"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              related.open?.();
-                            }}
-                          >
-                            {related.label}
-                          </button>
-                        ) : (
-                          <Chip variant="neutral">{related.label}</Chip>
-                        ))}
+                      {related !== undefined && related.open === undefined && (
+                        <Chip variant="neutral">{related.label}</Chip>
+                      )}
                     </span>
-                  </span>
+                  </button>
+                  {related !== undefined && related.open !== undefined && (
+                    <button
+                      type="button"
+                      className={cx(styles['taskChip'], styles['taskChipLink'])}
+                      onClick={related.open}
+                    >
+                      {related.label}
+                    </button>
+                  )}
                 </div>
               </li>
             );
           })}
-        </ul>
+        </SideBarList>
       )}
     </div>
   );

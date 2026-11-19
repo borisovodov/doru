@@ -1,0 +1,32 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--doru-space-3);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--doru-space-1) var(--doru-space-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--doru-radius-sm);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.clickable:active {
+  background: var(--doru-overlay-pressed);
+}
+
+.selected,
+.selected:hover {
+  background: var(--doru-accent-alpha);
+}

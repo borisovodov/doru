@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import './PlaceholderView.css';
 
 export interface PlaceholderViewProps {
-  title: string;
+  /** Optional: side bars already show the view title in their persistent header. */
+  title?: string | undefined;
   description?: string | undefined;
   children?: ReactNode;
 }
@@ -10,7 +11,7 @@ export interface PlaceholderViewProps {
 export function PlaceholderView({ title, description, children }: PlaceholderViewProps) {
   return (
     <section className="placeholder-view" aria-label={title}>
-      <h3>{title}</h3>
+      {title !== undefined && <h3>{title}</h3>}
       {description && <p>{description}</p>}
       {children}
     </section>

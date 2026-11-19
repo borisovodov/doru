@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
-import { isImagePath, type MediaRecord, type PersonRecord } from '@doru/core';
+import { isImagePath, type MediaRecord, type PersonRecord } from '@doru/core/model';
 import { displayName } from '@doru/ui/domain';
-import { EntityCard } from '@doru/ui';
+import { EntityRow, SideBarList } from '@doru/ui';
 import './sidebar.css';
 
 export interface SidebarMediaItem extends MediaRecord {
@@ -23,15 +23,17 @@ export function SidebarMedia({
   media,
   persons,
   onOpenMedia,
+  selectedId,
 }: {
   media: SidebarMediaItem[];
   persons: PersonRecord[];
   onOpenMedia: (mediaId: string) => void;
+  selectedId?: string | undefined;
 }) {
   const personById = useMemo(() => new Map(persons.map((person) => [person.id, person])), [persons]);
 
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {media.map((item) => {
         const owner =
           item.targetType === 'person' && item.targetId !== undefined
@@ -40,12 +42,14 @@ export function SidebarMedia({
         const image = isImagePath(item.path);
         return (
           <li key={item.id}>
-            <EntityCard
+            <EntityRow
+              selected={item.id === selectedId}
               {...(image
                 ? {
                     thumbnail: {
                       src: `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`,
-                      alt: item.title ?? '',
+                      // The title is already the row button name; the image is decorative.
+                      alt: '',
                     },
                   }
                 : { icon: <FileImage size={15} aria-hidden="true" /> })}
@@ -56,6 +60,6 @@ export function SidebarMedia({
           </li>
         );
       })}
-    </ul>
+    </SideBarList>
   );
 }
