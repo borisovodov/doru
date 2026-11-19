@@ -49,8 +49,8 @@ export class StampedOpQueue extends OpQueue {
     super();
   }
 
-  override apply(op: Op, ctx: MutationContext): void {
-    super.apply(op, ctx);
+  override push(op: Op): void {
+    super.push(op);
     this.onWrite();
   }
 
