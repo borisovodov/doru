@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
-import { EntityCard } from '@doru/ui';
+import { EntityRow, SideBarList } from '@doru/ui';
 import './sidebar.css';
 
 /**
@@ -11,10 +11,12 @@ export function SidebarSources({
   sources,
   citations,
   onOpenSource,
+  selectedId,
 }: {
   sources: SourceRecord[];
   citations: CitationRecord[];
   onOpenSource: (sourceId: string) => void;
+  selectedId?: string | undefined;
 }) {
   const counts = useMemo(() => {
     const bySource = new Map<string, number>();
@@ -25,7 +27,7 @@ export function SidebarSources({
   }, [citations]);
 
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {sources.map((source) => {
         const details = [source.author, source.publication].filter(
           (part): part is string => part !== undefined && part !== '',
@@ -33,7 +35,8 @@ export function SidebarSources({
         const count = counts.get(source.id) ?? 0;
         return (
           <li key={source.id}>
-            <EntityCard
+            <EntityRow
+              selected={source.id === selectedId}
               icon={<BookOpenText size={15} aria-hidden="true" />}
               title={source.title}
               subtitle={details.length > 0 ? details.join(' · ') : null}
@@ -43,6 +46,6 @@ export function SidebarSources({
           </li>
         );
       })}
-    </ul>
+    </SideBarList>
   );
 }

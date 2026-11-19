@@ -1,4 +1,4 @@
-import { isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core';
+import { isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
 import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';

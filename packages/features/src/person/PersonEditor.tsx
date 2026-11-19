@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, UserRound, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
+import { isVisibleMedia } from '@doru/core/model';
 import { collectNameIds } from '@doru/core/model';
 import type {
   AddressRecord,
@@ -249,7 +250,7 @@ export function PersonEditor({
         { icon: BookOpenText, count: citations.length, title: nls.t('features.tree.sources.title') },
         {
           icon: ImageIcon,
-          count: media.filter((item) => (item.files ?? []).some((file) => file.absolutePath !== '')).length,
+          count: media.filter(isVisibleMedia).length,
           title: nls.t('features.tree.media.title'),
         },
       ];

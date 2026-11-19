@@ -1,4 +1,5 @@
-import { IconButton } from '@doru/ui';
+import { IconButton, SegmentedControl, SideBarEmpty, SideBarLayout } from '@doru/ui';
+import { isVisibleMedia } from '@doru/core/model';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type {
@@ -23,10 +24,8 @@ import {
   AddressList,
   CitationsList,
   NotesList,
-  PlaceholderView,
   RepositoryList,
   SidebarFamilies,
-  SidebarFacts,
   SidebarMedia,
   SidebarPlaces,
   SidebarSearch,
@@ -37,12 +36,16 @@ import {
   type SidebarMediaItem,
 } from '@doru/features';
 import { nls, type ActivityViewId } from '@doru/workbench';
+import { ENTITY_TAB_PREFIX, type EntityTabKind } from '../tabs/types';
 
 /** Render cap for the People list on very large trees. */
 const PEOPLE_LIST_LIMIT = 500;
 
 export function SidebarView({
   activeView,
+  canCreate,
+  searchFocusNonce,
+  activeTabId,
   persons,
   families,
   facts,
@@ -81,6 +84,12 @@ export function SidebarView({
   onDeleteTag,
 }: {
   activeView: ActivityViewId;
+  /** Whether the app has a project open (a saved tree or an imported GEDCOM). */
+  canCreate: boolean;
+  /** Bumped whenever the Search view is selected; the query field takes focus. */
+  searchFocusNonce: number;
+  /** The active editor tab, used to highlight the matching list row. */
+  activeTabId: string | null;
   persons: PersonRecord[];
   families: FamilyRecord[];
   facts: FactRecord[];
@@ -106,6 +115,7 @@ export function SidebarView({
   onOpenSubmitter: (submitterId: string) => void;
   onOpenAddress: (addressId: string) => void;
   onOpenTitle: (titleId: string) => void;
+  onDeleteTag: (tag: TagRecord) => void;
   onNewTitle: () => void;
   onNewPerson: () => void;
   onNewPlace: () => void;
@@ -116,7 +126,6 @@ export function SidebarView({
   onNewAddress: () => void;
   onOpenTask: (todoId: string) => void;
   onNewTask: () => void;
-  onDeleteTag: (tag: TagRecord) => void;
 }) {
   const targetData: TaskTargetData = {
     persons,
@@ -134,99 +143,91 @@ export function SidebarView({
     associations,
     todos,
   };
+  const selectedId = (kind: EntityTabKind): string | undefined => {
+    if (activeTabId === null) {
+      return undefined;
+    }
+    const prefix = ENTITY_TAB_PREFIX[kind];
+    return activeTabId.startsWith(prefix) ? activeTabId.slice(prefix.length) : undefined;
+  };
+
   switch (activeView) {
     case 'people':
-      if (persons.length === 0) {
-        return (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.people')}
-            description={nls.t('features.people.placeholder')}
-          />
-        );
-      }
       return (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.person.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewPerson}
-            />
-          </div>
-          <PersonList persons={persons.slice(0, PEOPLE_LIST_LIMIT)} onOpen={onOpenPerson} />
-          {persons.length > PEOPLE_LIST_LIMIT && (
-            <p className="side-bar-note">{nls.t('tree.people.listLimit', PEOPLE_LIST_LIMIT, persons.length)}</p>
+        <SideBarLayout
+          title={nls.t('workbench.activityBar.people')}
+          actions={<AddButton label={nls.t('features.tree.person.add')} onClick={onNewPerson} disabled={!canCreate} />}
+        >
+          {persons.length === 0 ? (
+            <SideBarEmpty>{nls.t('features.people.placeholder')}</SideBarEmpty>
+          ) : (
+            <>
+              <PersonList
+                persons={persons.slice(0, PEOPLE_LIST_LIMIT)}
+                onOpen={onOpenPerson}
+                selectedId={selectedId('person')}
+              />
+              {persons.length > PEOPLE_LIST_LIMIT && (
+                <p className="side-bar-note">{nls.t('tree.people.listLimit', PEOPLE_LIST_LIMIT, persons.length)}</p>
+              )}
+            </>
           )}
-        </>
+        </SideBarLayout>
       );
     case 'families':
-      if (families.length === 0) {
-        return (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.families')}
-            description={nls.t('features.families.placeholder')}
-          />
-        );
-      }
-      return <SidebarFamilies families={families} persons={persons} facts={facts} onOpenFamily={onOpenFamily} />;
-    case 'events':
-      if (facts.length === 0) {
-        return (
-          <PlaceholderView
-            title={nls.t('workbench.activityBar.events')}
-            description={nls.t('features.events.placeholder')}
-          />
-        );
-      }
-      return <SidebarFacts facts={facts} persons={persons} families={families} onOpenPerson={onOpenPerson} />;
+      return (
+        <SideBarLayout title={nls.t('workbench.activityBar.families')}>
+          {families.length === 0 ? (
+            <SideBarEmpty>{nls.t('features.families.placeholder')}</SideBarEmpty>
+          ) : (
+            <SidebarFamilies
+              families={families}
+              persons={persons}
+              facts={facts}
+              onOpenFamily={onOpenFamily}
+              selectedId={selectedId('family')}
+            />
+          )}
+        </SideBarLayout>
+      );
     case 'places':
       return (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.place.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewPlace}
-            />
-          </div>
+        <SideBarLayout
+          title={nls.t('workbench.activityBar.places')}
+          actions={<AddButton label={nls.t('features.tree.place.add')} onClick={onNewPlace} disabled={!canCreate} />}
+        >
           {places.length === 0 ? (
-            <PlaceholderView
-              title={nls.t('workbench.activityBar.places')}
-              description={nls.t('features.places.placeholder')}
-            />
+            <SideBarEmpty>{nls.t('features.places.placeholder')}</SideBarEmpty>
           ) : (
-            <SidebarPlaces places={places} onOpenPlace={onOpenPlace} />
+            <SidebarPlaces places={places} onOpenPlace={onOpenPlace} selectedId={selectedId('place')} />
           )}
-        </>
+        </SideBarLayout>
       );
     case 'media': {
-      const resolvedMedia = media.filter((item) => (item.files ?? []).some((file) => file.absolutePath !== ''));
+      const visibleMedia = media.filter(isVisibleMedia);
       return (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.media.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewMedia}
-            />
-          </div>
-          {resolvedMedia.length === 0 ? (
-            <PlaceholderView
-              title={nls.t('workbench.activityBar.media')}
-              description={nls.t('features.media.placeholder')}
-            />
+        <SideBarLayout
+          title={nls.t('workbench.activityBar.media')}
+          actions={<AddButton label={nls.t('features.tree.media.add')} onClick={onNewMedia} disabled={!canCreate} />}
+        >
+          {visibleMedia.length === 0 ? (
+            <SideBarEmpty>{nls.t('features.media.placeholder')}</SideBarEmpty>
           ) : (
-            <SidebarMedia media={resolvedMedia} persons={persons} onOpenMedia={onOpenMedia} />
+            <SidebarMedia
+              media={visibleMedia}
+              persons={persons}
+              onOpenMedia={onOpenMedia}
+              selectedId={selectedId('media')}
+            />
           )}
-        </>
+        </SideBarLayout>
       );
     }
     case 'sources':
       return (
         <SourcesSidebar
+          canCreate={canCreate}
+          selectedId={selectedId}
           sources={sources}
           citations={citations}
           notes={notes}
@@ -252,33 +253,38 @@ export function SidebarView({
       );
     case 'tasks':
       return (
-        <TasksView
-          todos={todos}
-          persons={persons}
-          families={families}
-          sources={sources}
-          places={places}
-          repositories={repositories}
-          titles={titles}
-          facts={facts}
-          citations={citations}
-          notes={notes}
-          media={media}
-          submitters={submitters}
-          addresses={addresses}
-          associations={associations}
-          onOpenTask={onOpenTask}
-          onNewTask={onNewTask}
-          onOpenPerson={onOpenPerson}
-          onOpenFamily={onOpenFamily}
-          onOpenSource={onOpenSource}
-          onOpenPlace={onOpenPlace}
-          onOpenRepository={onOpenRepository}
-          onOpenSubmitter={onOpenSubmitter}
-          onOpenAddress={onOpenAddress}
-          onOpenMedia={onOpenMedia}
-          onOpenTitle={onOpenTitle}
-        />
+        <SideBarLayout
+          title={nls.t('features.tasks.title')}
+          actions={<AddButton label={nls.t('features.tasks.add')} onClick={onNewTask} disabled={!canCreate} />}
+        >
+          <TasksView
+            todos={todos}
+            persons={persons}
+            families={families}
+            sources={sources}
+            places={places}
+            repositories={repositories}
+            titles={titles}
+            facts={facts}
+            citations={citations}
+            notes={notes}
+            media={media}
+            submitters={submitters}
+            addresses={addresses}
+            associations={associations}
+            onOpenTask={onOpenTask}
+            onOpenPerson={onOpenPerson}
+            onOpenFamily={onOpenFamily}
+            onOpenSource={onOpenSource}
+            onOpenPlace={onOpenPlace}
+            onOpenRepository={onOpenRepository}
+            onOpenSubmitter={onOpenSubmitter}
+            onOpenAddress={onOpenAddress}
+            onOpenMedia={onOpenMedia}
+            onOpenTitle={onOpenTitle}
+            selectedId={selectedId('task')}
+          />
+        </SideBarLayout>
       );
     case 'search':
       return (
@@ -287,6 +293,12 @@ export function SidebarView({
           families={families}
           sources={sources}
           facts={facts}
+          focusNonce={searchFocusNonce}
+          selected={{
+            person: selectedId('person'),
+            family: selectedId('family'),
+            source: selectedId('source'),
+          }}
           onOpenPerson={onOpenPerson}
           onOpenFamily={onOpenFamily}
           onOpenSource={onOpenSource}
@@ -297,8 +309,23 @@ export function SidebarView({
   }
 }
 
+/** The shared add action in side bar title rows. */
+function AddButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled: boolean }) {
+  return (
+    <IconButton
+      size="sm"
+      label={label}
+      icon={<Plus size={14} aria-hidden="true" />}
+      onClick={onClick}
+      disabled={disabled}
+    />
+  );
+}
+
 /** The Sources sidebar: a segmented picker over sources, repositories, submitters, addresses and titles. */
 function SourcesSidebar({
+  canCreate,
+  selectedId,
   sources,
   citations,
   notes,
@@ -321,6 +348,8 @@ function SourcesSidebar({
   onNewSubmitter,
   onNewAddress,
 }: {
+  canCreate: boolean;
+  selectedId: (kind: EntityTabKind) => string | undefined;
   sources: SourceRecord[];
   citations: CitationRecord[];
   notes: NoteRecord[];
@@ -347,109 +376,114 @@ function SourcesSidebar({
     'sources' | 'citations' | 'notes' | 'repositories' | 'submitters' | 'addresses' | 'titles' | 'tags'
   >('sources');
 
-  return (
-    <>
-      <div className="sidebar-segments">
-        {(
-          [
-            ['sources', nls.t('workbench.activityBar.sources')],
-            ['citations', nls.t('features.tree.citations.title')],
-            ['notes', nls.t('features.tree.notes.title')],
-            ['titles', nls.t('workbench.activityBar.titles')],
-            ['repositories', nls.t('workbench.activityBar.repositories')],
-            ['submitters', nls.t('workbench.activityBar.submitters')],
-            ['addresses', nls.t('workbench.activityBar.addresses')],
-            ['tags', nls.t('features.tree.tags.title')],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            type="button"
-            key={id}
-            className={segment === id ? 'sidebar-segment active' : 'sidebar-segment'}
-            aria-pressed={segment === id}
-            onClick={() => setSegment(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {segment === 'sources' && (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.source.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewSource}
-            />
-          </div>
-          {sources.length === 0 ? (
-            <PlaceholderView
-              title={nls.t('workbench.activityBar.sources')}
-              description={nls.t('features.sources.placeholder')}
-            />
-          ) : (
-            <SidebarSources sources={sources} citations={citations} onOpenSource={onOpenSource} />
-          )}
-        </>
-      )}
-      {segment === 'citations' && (
+  const panels = {
+    sources: {
+      addLabel: nls.t('features.tree.source.add'),
+      onAdd: onNewSource,
+      focusable: sources.length > 0,
+      content:
+        sources.length === 0 ? (
+          <SideBarEmpty>{nls.t('features.sources.placeholder')}</SideBarEmpty>
+        ) : (
+          <SidebarSources
+            sources={sources}
+            citations={citations}
+            onOpenSource={onOpenSource}
+            selectedId={selectedId('source')}
+          />
+        ),
+    },
+    citations: {
+      focusable: citations.length > 0,
+      content: (
         <CitationsList citations={citations} sources={sources} targetData={targetData} onOpenSource={onOpenSource} />
-      )}
-      {segment === 'notes' && <NotesList notes={notes} targetData={targetData} />}
-      {segment === 'repositories' && (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.repository.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewRepository}
-            />
-          </div>
-          <RepositoryList repositories={repositories} onOpenRepository={onOpenRepository} />
-        </>
-      )}
-      {segment === 'submitters' && (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.submitter.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewSubmitter}
-            />
-          </div>
-          <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} />
-        </>
-      )}
-      {segment === 'addresses' && (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.address.newAddress')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewAddress}
-            />
-          </div>
-          <AddressList addresses={addresses} onOpenAddress={onOpenAddress} />
-        </>
-      )}
-      {segment === 'titles' && (
-        <>
-          <div className="tasks-header">
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.title.add')}
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={onNewTitle}
-            />
-          </div>
-          <TitleList titles={titles} onOpenTitle={onOpenTitle} />
-        </>
-      )}
-      {segment === 'tags' && <TagsList tags={tags} tagLinks={tagLinks} onDeleteTag={onDeleteTag} />}
-    </>
+      ),
+    },
+    notes: {
+      focusable: notes.length > 0,
+      content: <NotesList notes={notes} targetData={targetData} />,
+    },
+    repositories: {
+      addLabel: nls.t('features.tree.repository.add'),
+      onAdd: onNewRepository,
+      focusable: repositories.length > 0,
+      content: (
+        <RepositoryList
+          repositories={repositories}
+          onOpenRepository={onOpenRepository}
+          selectedId={selectedId('repository')}
+        />
+      ),
+    },
+    submitters: {
+      addLabel: nls.t('features.tree.submitter.add'),
+      onAdd: onNewSubmitter,
+      focusable: submitters.length > 0,
+      content: (
+        <SubmitterList submitters={submitters} onOpenSubmitter={onOpenSubmitter} selectedId={selectedId('submitter')} />
+      ),
+    },
+    addresses: {
+      addLabel: nls.t('features.tree.address.newAddress'),
+      onAdd: onNewAddress,
+      focusable: addresses.length > 0,
+      content: <AddressList addresses={addresses} onOpenAddress={onOpenAddress} selectedId={selectedId('address')} />,
+    },
+    titles: {
+      addLabel: nls.t('features.tree.title.add'),
+      onAdd: onNewTitle,
+      focusable: titles.length > 0,
+      content: <TitleList titles={titles} onOpenTitle={onOpenTitle} selectedId={selectedId('title')} />,
+    },
+    tags: {
+      focusable: tags.length > 0,
+      content: <TagsList tags={tags} tagLinks={tagLinks} onDeleteTag={onDeleteTag} />,
+    },
+  } as const;
+  const current = panels[segment];
+  const segments = [
+    { value: 'sources', label: nls.t('workbench.activityBar.sources') },
+    { value: 'citations', label: nls.t('features.tree.citations.title') },
+    { value: 'notes', label: nls.t('features.tree.notes.title') },
+    { value: 'titles', label: nls.t('workbench.activityBar.titles') },
+    { value: 'repositories', label: nls.t('workbench.activityBar.repositories') },
+    { value: 'submitters', label: nls.t('workbench.activityBar.submitters') },
+    { value: 'addresses', label: nls.t('workbench.activityBar.addresses') },
+    { value: 'tags', label: nls.t('features.tree.tags.title') },
+  ] as const;
+  const tabPrefix = 'sources-tab';
+  const panelId = 'sources-panel';
+
+  return (
+    <SideBarLayout
+      title={nls.t('workbench.activityBar.sources')}
+      actions={
+        'addLabel' in current ? (
+          <AddButton label={current.addLabel} onClick={current.onAdd} disabled={!canCreate} />
+        ) : undefined
+      }
+      subheader={
+        <SegmentedControl
+          label={nls.t('workbench.activityBar.sources')}
+          mode="tabs"
+          idPrefix={tabPrefix}
+          panelId={panelId}
+          columns={2}
+          value={segment}
+          onChange={setSegment}
+          options={segments}
+        />
+      }
+    >
+      {/* An empty panel has no focusable content, so make the panel itself reachable by Tab. */}
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-labelledby={`${tabPrefix}-${segment}`}
+        tabIndex={current.focusable ? undefined : 0}
+      >
+        {current.content}
+      </div>
+    </SideBarLayout>
   );
 }

@@ -1,54 +1,9 @@
 /* ── Sidebar entity lists: one card per entity ─────────────────────── */
 
-.sidebar-segments {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  margin: 0 0 8px;
-  padding: 3px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
-.sidebar-segment {
-  min-width: 0;
-  height: 26px;
-  padding: 0 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border: none;
-  border-radius: var(--doru-radius-sm);
-  background: transparent;
-  color: var(--doru-fg-muted);
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.sidebar-segment.active {
-  background: var(--doru-bg-raised);
-  box-shadow: var(--doru-ring);
-  color: var(--doru-fg);
-}
-
 .side-registries-note {
   margin: 0;
   font-size: 12px;
   color: var(--doru-fg-muted);
-}
-
-.side-section-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  list-style: none;
 }
 
 .entity-card {
@@ -67,7 +22,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--doru-space-1);
 }
 
 /* Read-only sections of entity cards inside editor tabs. */
@@ -111,16 +66,9 @@
 }
 
 /* Search view. */
-.side-search {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-}
-
 .side-search-group {
   margin: 6px 0 0;
+  padding: 0 6px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -130,11 +78,4 @@
 
 .side-search-group:first-of-type {
   margin-top: 0;
-}
-
-.side-search-empty {
-  margin: 0;
-  font-size: 12px;
-  color: var(--doru-fg-muted);
-  text-align: center;
 }

@@ -90,10 +90,13 @@ export class LocalizationService implements ILocalizationService {
 
   t(key: MessageKey, ...args: (string | number)[]): string {
     const bundle = bundles[this.currentLocale];
-    let message = bundle?.[key] ?? en[key];
-    for (let i = 0; i < args.length; i++) {
-      message = message.replace(`{${i}}`, String(args[i]));
-    }
-    return message;
+    const template = bundle?.[key] ?? en[key];
+    // Scan the original template once: inserted arguments may themselves
+    // contain `{n}`, and they must not be expanded again. A callback also
+    // inserts dollar sequences literally instead of as replace patterns.
+    return template.replace(/\{(\d+)\}/g, (placeholder: string, index: string) => {
+      const value = args[Number(index)];
+      return value === undefined ? placeholder : String(value);
+    });
   }
 }

@@ -31,7 +31,7 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   // Refocus on Ivan and look at his descendants (Petr + Kid2).
   await page.getByRole('group', { name: 'Ivan Ivanov', exact: true }).dblclick();
   await page.waitForTimeout(600);
-  await page.getByRole('tab', { name: 'Descendants' }).click();
+  await page.getByRole('button', { name: 'Descendants' }).click();
   await page.waitForTimeout(600);
   await expect(page.getByRole('group', { name: 'Kid2 Ivanov', exact: true })).toBeVisible();
 

@@ -39,6 +39,10 @@
   --doru-line-maternal: #c98ba0;
 
   /* Geometry */
+  --doru-space-1: 4px;
+  --doru-space-2: 6px;
+  --doru-space-3: 8px;
+  --doru-space-4: 12px;
   --doru-radius-sm: 4px;
   --doru-radius-md: 6px;
   --doru-radius-lg: 8px;
@@ -48,8 +52,6 @@
   --doru-font-size-xs: 11px;
   --doru-font-size-sm: 12px;
   --doru-font-size: 13px;
-  --doru-space-1: 4px;
-  --doru-space-2: 8px;
 
   /* Floating panels: gutter between the cards and the window edge,
      and the shared card corner radius. */

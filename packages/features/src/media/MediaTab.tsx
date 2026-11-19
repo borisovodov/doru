@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { FileImage, Image as ImageIcon, Paperclip, X } from 'lucide-react';
-import { isImagePath, type MediaFile, type MediaLinkRecord, type MediaRecord, type SourceRecord } from '@doru/core';
-import { placeName } from '@doru/core/model';
+import {
+  isImagePath,
+  placeName,
+  type MediaFile,
+  type MediaLinkRecord,
+  type MediaRecord,
+  type SourceRecord,
+} from '@doru/core/model';
 import {
   Button,
   Checkbox,

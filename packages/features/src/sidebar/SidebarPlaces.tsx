@@ -1,6 +1,6 @@
 import { MapPin } from 'lucide-react';
 import type { PlaceRecord } from '@doru/core';
-import { EntityCard } from '@doru/ui';
+import { EntityRow, SideBarList } from '@doru/ui';
 import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import './sidebar.css';
@@ -12,15 +12,18 @@ import './sidebar.css';
 export function SidebarPlaces({
   places,
   onOpenPlace,
+  selectedId,
 }: {
   places: PlaceRecord[];
   onOpenPlace: (placeId: string) => void;
+  selectedId?: string | undefined;
 }) {
   return (
-    <ul className="side-section-list">
+    <SideBarList>
       {places.map((place) => (
         <li key={place.id}>
-          <EntityCard
+          <EntityRow
+            selected={place.id === selectedId}
             icon={<MapPin size={15} aria-hidden="true" />}
             title={placeName(place)}
             meta={
@@ -30,6 +33,6 @@ export function SidebarPlaces({
           />
         </li>
       ))}
-    </ul>
+    </SideBarList>
   );
 }

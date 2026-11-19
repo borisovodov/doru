@@ -30,6 +30,22 @@ jobs:
       - name: Coverage gate
         if: runner.os == 'Linux'
         run: npm run test:coverage
+      - name: Upload coverage to Coveralls
+        # Run even when the coverage gate fails, so a pull request that drops
+        # below the threshold still gets a Coveralls report. Tag builds are
+        # skipped: the commit was already reported by the push to main.
+        if: ${{ !cancelled() && runner.os == 'Linux' && !startsWith(github.ref, 'refs/tags/') }}
+        continue-on-error: true
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage/lcov.info
+          format: lcov
+          # Public repositories do not need a Coveralls token: the action's
+          # `github-token` input is forwarded to the reporter as
+          # COVERALLS_REPO_TOKEN, so the GitHub token verifies the repository
+          # at Coveralls. Secrets are not exposed to pull requests from forks,
+          # but `GITHUB_TOKEN` always is.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: npm run typecheck
       - run: npm run check:nls
       - run: npm run check:schemas
@@ -49,6 +65,12 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Install actionlint
+        # Pin the version: the README suggests @latest, but a new release could
+        # change diagnostics and turn unrelated pull requests red.
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Lint workflows
+        run: '"$(go env GOPATH)/bin/actionlint" -color'
       - run: npm run lint
       - run: npm run format:check
       - run: npm run lint:css

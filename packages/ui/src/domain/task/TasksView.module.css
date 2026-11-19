@@ -1,0 +1,86 @@
+/* ── Tasks sidebar list and the shared task editor fields ──────────── */
+
+.tasksView {
+  display: flex;
+  flex-direction: column;
+}
+
+.taskItem {
+  background: transparent;
+  border: none;
+  border-radius: var(--doru-radius-sm);
+}
+
+.taskItem:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.taskItem.selected,
+.taskItem.selected:hover {
+  background: var(--doru-accent-alpha);
+}
+
+.taskRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 0;
+}
+
+.taskOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--doru-space-2);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.taskRowText {
+  font-size: 12px;
+  color: var(--doru-fg);
+  overflow-wrap: anywhere;
+}
+
+.taskRowText.closed {
+  text-decoration: line-through;
+  color: var(--doru-fg-muted);
+}
+
+.taskRowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--doru-space-1);
+}
+
+.taskChip {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0 var(--doru-space-2);
+  background: var(--doru-accent-alpha);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--doru-fg-muted);
+  border: none;
+  font-family: inherit;
+  line-height: 16px;
+}
+
+.taskChipLink {
+  margin: 0 var(--doru-space-2) var(--doru-space-2);
+  cursor: pointer;
+}
+
+.taskChipLink:hover {
+  background: var(--doru-accent-hover);
+  color: var(--doru-fg);
+}

@@ -1,5 +1,4 @@
 export { SidebarFamilies } from './SidebarFamilies';
-export { SidebarFacts } from './SidebarFacts';
 export { SidebarPlaces } from './SidebarPlaces';
 export { SidebarMedia, type SidebarMediaItem } from './SidebarMedia';
 export { SidebarSources } from './SidebarSources';
